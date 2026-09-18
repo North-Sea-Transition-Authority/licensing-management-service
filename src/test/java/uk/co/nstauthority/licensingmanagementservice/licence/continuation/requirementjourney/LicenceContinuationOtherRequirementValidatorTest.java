@@ -3,13 +3,16 @@ package uk.co.nstauthority.licensingmanagementservice.licence.continuation.requi
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.validation.BeanPropertyBindingResult;
 import org.springframework.validation.Errors;
+import uk.co.nstauthority.licensingmanagementservice.file.FileUploadTestUtil;
 
 @ExtendWith(MockitoExtension.class)
 class LicenceContinuationOtherRequirementValidatorTest {
@@ -91,6 +94,28 @@ class LicenceContinuationOtherRequirementValidatorTest {
     assertThat(licenceContinuationOtherRequirementValidator.isValid(licenceContinuationOtherRequirementForm, errors, otherRequirementsVisibility)).isTrue();
 
     assertThat(errors.hasErrors()).isFalse();
+  }
+
+  @Test
+  void isValid_whenDocumentUploadedWithoutDescription_rejectsDescriptionAsRequired() {
+    when(otherRequirementsVisibility.showFinancialCapacity()).thenReturn(false);
+    when(otherRequirementsVisibility.showDevelopmentConsent()).thenReturn(false);
+    when(otherRequirementsVisibility.showRelinquishment()).thenReturn(false);
+
+    var licenceContinuationOtherRequirementForm = new LicenceContinuationOtherRequirementForm();
+    licenceContinuationOtherRequirementForm.setDocuments(
+        List.of(FileUploadTestUtil.getUploadedFileWithFileName(FileUploadTestUtil.FILE_NAME_1))
+    );
+    Errors errors = new BeanPropertyBindingResult(licenceContinuationOtherRequirementForm, "form");
+
+    assertThat(licenceContinuationOtherRequirementValidator.isValid(licenceContinuationOtherRequirementForm, errors,
+                                                                    otherRequirementsVisibility
+    )).isFalse();
+
+    assertThat(errors.getFieldError("documents[0].uploadedFileDescription"))
+        .isNotNull()
+        .extracting(DefaultMessageSourceResolvable::getCode)
+        .isEqualTo("mandatory");
   }
 
   private LicenceContinuationOtherRequirementForm getLicenceContinuationOtherRequirementForm() {

@@ -6,7 +6,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
-import uk.co.nstauthority.licensingmanagementservice.licence.LicenceScheduleFileUsageType;
+import uk.co.nstauthority.licensingmanagementservice.file.FileUsageType;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 
 @ExtendWith(MockitoExtension.class)
@@ -19,7 +19,7 @@ class LicenceScheduleSupportingInformationFileUsagesTest {
 
     ScheduleWorkProgrammeApplicationDetail expectedDetail = new ScheduleWorkProgrammeApplicationDetail(expectedApplicationId);
 
-    String expectedUsageType = LicenceScheduleFileUsageType.SCHEDULE_AMENDMENT_APP_SUPPORTING_DOCUMENT.getUsageType();
+    String expectedUsageType = FileUsageType.SCHEDULE_AMENDMENT_APP_SUPPORTING_DOCUMENT.getUsageType();
     String expectedDocumentType = "licence-schedule-application-supporting-document";
 
     LicenceScheduleSupportingInformationFileUsages result = LicenceScheduleSupportingInformationFileUsages.fromApplication(expectedDetail);

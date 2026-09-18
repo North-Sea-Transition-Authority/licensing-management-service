@@ -1,7 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overview.finaldecision;
 
 import uk.co.nstauthority.licensingmanagementservice.file.ApplicationFileUsage;
-import uk.co.nstauthority.licensingmanagementservice.licence.LicenceScheduleFileUsageType;
+import uk.co.nstauthority.licensingmanagementservice.file.FileUsageType;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 
 public record RecordFinalDecisionFileUsage(
@@ -14,7 +14,7 @@ public record RecordFinalDecisionFileUsage(
       ScheduleWorkProgrammeApplicationDetail applicationDetail) {
     return new RecordFinalDecisionFileUsage(
         applicationDetail.getId().toString(),
-        LicenceScheduleFileUsageType.FINAL_DECISION_SUPPORT_PAPER.getUsageType(),
+        FileUsageType.FINAL_DECISION_SUPPORT_PAPER.getUsageType(),
         "final-decision-support-paper"
     );
   }

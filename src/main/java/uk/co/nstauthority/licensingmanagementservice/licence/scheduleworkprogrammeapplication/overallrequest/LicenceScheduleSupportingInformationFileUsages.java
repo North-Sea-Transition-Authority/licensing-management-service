@@ -1,7 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overallrequest;
 
 import uk.co.nstauthority.licensingmanagementservice.file.ApplicationFileUsage;
-import uk.co.nstauthority.licensingmanagementservice.licence.LicenceScheduleFileUsageType;
+import uk.co.nstauthority.licensingmanagementservice.file.FileUsageType;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 
 public record LicenceScheduleSupportingInformationFileUsages(
@@ -14,7 +14,7 @@ public record LicenceScheduleSupportingInformationFileUsages(
       ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail) {
     return new LicenceScheduleSupportingInformationFileUsages(
         scheduleWorkProgrammeApplicationDetail.getId().toString(),
-        LicenceScheduleFileUsageType.SCHEDULE_AMENDMENT_APP_SUPPORTING_DOCUMENT.getUsageType(),
+        FileUsageType.SCHEDULE_AMENDMENT_APP_SUPPORTING_DOCUMENT.getUsageType(),
         "licence-schedule-application-supporting-document"
     );
   }

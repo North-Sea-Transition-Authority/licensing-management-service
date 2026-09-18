@@ -295,6 +295,11 @@ inclusive, end exclusive**.
 Two tables hang off `schedule_events` rather than off a schedule version, so their history is
 not lost when a new version is created. **Neither is copied during versioning.**
 
+Two further tables outside this document also reach into the schedule this way and are worth
+knowing about before writing a query that joins on `schedule_events` or `original_event_id` —
+`licence_reminders` (`licence-schedule-reminders-data-model.md`) and `licence_event_cache`
+(`licence-event-cache-data-model.md`). Neither holds schedule content.
+
 ### 6.1 `event_comments`
 
 ```

@@ -521,17 +521,9 @@ A boolean only. The documents themselves are in the file upload library (§10), 
 `has_additional_supporting_information = true` with no uploaded files is a data-quality signal
 rather than a contradiction the schema prevents.
 
-### 6.6 `licence_continuation_external_contributor_request`
-
-```
-id                                  UUID PK
-licence_continuation_application_id UUID → licence_continuation_applications.id
-add_external_contributors           BOOLEAN
-```
-
-Unlike the rest of the continuation content tables, this one keys on the **application**, not
-the application detail — matching its extension and amendment counterpart, because external
-contributors belong to the application rather than to one version of it (§9).
+Continuation applications also record whether external contributors were invited, but that
+answer is keyed on the application rather than the application detail, so it is covered
+alongside its extension and amendment twin in §9.
 
 ---
 
@@ -695,9 +687,34 @@ name:
 Scoping on the application rather than the application detail is what keeps a team and its
 membership attached across application versions.
 
-The `*_external_contributor_request` tables hold only the yes/no answer to "do you want to add
-external contributors?", and both key on the application id to match. Joining either to its
-team is a matter of comparing that id against `teams.scope_id` for the right `scope_type`.
+Each family also has a table holding the licensee's yes/no answer to "do you want to add
+external contributors?". The two are the same shape, and both key on the application to match
+the team:
+
+```
+swp_external_contributor_request
+  id                                    UUID PK
+  schedule_work_programme_application_id UUID → schedule_work_programme_applications.id
+  add_external_contributors             BOOLEAN
+
+licence_continuation_external_contributor_request
+  id                                  UUID PK
+  licence_continuation_application_id UUID → licence_continuation_applications.id
+  add_external_contributors           BOOLEAN
+```
+
+These are the only application content tables keyed on the application rather than the
+application detail. Joining either to its team means comparing that application id against
+`teams.scope_id` for the matching `scope_type`.
+
+The answer and the team move together in one direction only:
+
+- `add_external_contributors = true` with an empty team is an ordinary in-progress state — the
+  section simply is not finished yet. It becomes finished once the team has at least one
+  member.
+- Answering **no removes every member from the team**, but does not delete the team. An empty
+  external contributors team is therefore the normal resting state for an application whose
+  answer is `false`, and is not evidence that contributors were never added.
 
 ---
 
@@ -767,21 +784,23 @@ A query written against one family will not port to the other unchanged. `create
 `NOT NULL` on the extension and amendment side; `created_date_time` is nullable on the
 continuation side.
 
-### 11.4 The foreign key to the application detail is named three different ways
+### 11.4 The extension and amendment detail foreign key is spelled two ways
 
-Within the extension and amendment family alone:
+Tables keyed on `schedule_work_programme_application_details` do not agree on whether the
+column name is singular or plural:
 
 | Column | Tables using it |
 |---|---|
 | `schedule_work_programme_application_details_id` (plural) | `licence_schedule_extension_request`, `licence_work_programme_amendment_request`, `licence_work_programme_amendment_summary`, `licence_schedule_supporting_information` |
 | `schedule_work_programme_application_detail_id` (singular) | `swp_application_request_purpose`, all five `swp_record_of_decision*` tables |
-| `schedule_work_programme_application_id` (the **application**, not the detail) | `swp_external_contributor_request` |
 
-The continuation family is consistent — `licence_continuation_application_detail_id`
-everywhere except `licence_continuation_external_contributor_request`, which keys on
-`licence_continuation_application_id`. That one exception matches its extension and amendment
-counterpart, and is deliberate: external contributors belong to the application, not to a
-single version of it (§9).
+A query written against one spelling will not port to the other. The continuation family has
+no equivalent problem — everything keyed on the application detail uses
+`licence_continuation_application_detail_id`.
+
+Both families' external contributor tables key on the application rather than the application
+detail, so they use `schedule_work_programme_application_id` and
+`licence_continuation_application_id` (§9).
 
 ### 11.5 Several references to schedule rows have no foreign key
 

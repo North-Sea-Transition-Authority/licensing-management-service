@@ -30,11 +30,13 @@ public class LicenceContinuationExternalContributorService {
       ExternalContributorForm form,
       LicenceContinuationApplicationDetail applicationDetail
   ) {
+    var application = applicationDetail.getLicenceContinuationApplication();
+
     var request =
-        licenceContinuationExternalContributorRepository.findByLicenceContinuationApplicationDetail(applicationDetail)
+        licenceContinuationExternalContributorRepository.findByLicenceContinuationApplication(application)
             .orElse(new LicenceContinuationExternalContributorRequest());
 
-    request.setLicenceContinuationApplicationDetail(applicationDetail);
+    request.setLicenceContinuationApplication(application);
     request.setAddExternalContributors(form.getAddExternalContributors());
 
     licenceContinuationExternalContributorRepository.save(request);
@@ -57,7 +59,7 @@ public class LicenceContinuationExternalContributorService {
       LicenceContinuationApplicationDetail licenceContinuationApplicationDetail
   ) {
     return licenceContinuationExternalContributorRepository
-        .findByLicenceContinuationApplicationDetail(licenceContinuationApplicationDetail);
+        .findByLicenceContinuationApplication(licenceContinuationApplicationDetail.getLicenceContinuationApplication());
   }
 
   public boolean isExternalContributorSectionComplete(
@@ -79,7 +81,7 @@ public class LicenceContinuationExternalContributorService {
 
   private TeamScopeReference scopeReference(LicenceContinuationApplicationDetail licenceContinuationApplicationDetail) {
     return TeamScopeReference.from(
-        licenceContinuationApplicationDetail.getId().toString(),
+        licenceContinuationApplicationDetail.getLicenceContinuationApplication().getId().toString(),
         ApplicationType.CONTINUATION_APPLICATION.name()
     );
   }

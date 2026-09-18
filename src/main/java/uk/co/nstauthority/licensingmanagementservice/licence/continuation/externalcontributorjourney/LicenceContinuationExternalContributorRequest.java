@@ -7,7 +7,7 @@ import jakarta.persistence.ManyToOne;
 import java.util.UUID;
 import org.hibernate.annotations.UuidGenerator;
 import org.hibernate.envers.Audited;
-import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplication;
 
 @Audited
 @Entity(name = "licence_continuation_external_contributor_request")
@@ -18,8 +18,8 @@ public class LicenceContinuationExternalContributorRequest {
   private UUID id;
 
   @ManyToOne
-  @JoinColumn(name = "licence_continuation_application_detail_id")
-  private LicenceContinuationApplicationDetail licenceContinuationApplicationDetail;
+  @JoinColumn(name = "licence_continuation_application_id")
+  private LicenceContinuationApplication licenceContinuationApplication;
 
   private Boolean addExternalContributors;
 
@@ -31,13 +31,13 @@ public class LicenceContinuationExternalContributorRequest {
     this.id = id;
   }
 
-  public LicenceContinuationApplicationDetail getLicenceContinuationApplicationDetail() {
-    return licenceContinuationApplicationDetail;
+  public LicenceContinuationApplication getLicenceContinuationApplication() {
+    return licenceContinuationApplication;
   }
 
-  public void setLicenceContinuationApplicationDetail(
-      LicenceContinuationApplicationDetail licenceContinuationApplicationDetail) {
-    this.licenceContinuationApplicationDetail = licenceContinuationApplicationDetail;
+  public void setLicenceContinuationApplication(
+      LicenceContinuationApplication licenceContinuationApplication) {
+    this.licenceContinuationApplication = licenceContinuationApplication;
   }
 
   public Boolean getAddExternalContributors() {

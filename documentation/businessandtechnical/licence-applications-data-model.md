@@ -66,9 +66,9 @@ details                    applications               applications
   off a schedule version. A licence with no schedule cannot have an application.
 - Both root tables additionally carry `submitted_licence_schedule_detail_id`, a nullable
   pointer to the exact schedule version the application was submitted against (§7.1).
-- Every journey answer lives in a child table keyed on the **application detail** id — with
-  one exception, on the extension and amendment side, which keys on the **application** id
-  instead (§11.4).
+- Every journey answer lives in a child table keyed on the **application detail** id, except
+  the two external contributor tables, which key on the **application** id so that a team and
+  its membership survive across application versions (§9).
 
 ### 2.1 Entity relationship diagram
 
@@ -84,6 +84,7 @@ flowchart TB
     SWPAD["<b>schedule_work_programme_application_details</b><br/>id · version_number · status · decision_date<br/><i>one row per application version</i>"]
     LCAD["<b>licence_continuation_application_details</b><br/>id · version_number · status · current/next term and phase ids<br/><i>one row per application version</i>"]
     ECSWP["<b>swp_external_contributor_request</b><br/><i>keyed on the application, not the detail</i>"]
+    ECC["<b>licence_continuation_external_contributor_request</b><br/><i>keyed on the application, not the detail</i>"]
 
     subgraph EAA["extension and amendment content — all keyed on schedule_work_programme_application_details_id"]
         direction LR
@@ -101,7 +102,6 @@ flowchart TB
         OTHER["licence_continuation_other_requirement_request"]
         OPS["licence_continuation_licence_operators_request"]
         CSI["licence_continuation_supporting_information"]
-        ECC["licence_continuation_external_contributor_request"]
     end
 
     LIC -- "1 : 1" --> LS
@@ -111,6 +111,7 @@ flowchart TB
     SWPA -- "1 : many" --> SWPAD
     SWPA -- "1 : 1" --> ECSWP
     LCA -- "1 : many" --> LCAD
+    LCA -- "1 : 1" --> ECC
     SWPAD -- "1 : many" --> EAA
     LCAD -- "1 : many" --> CONT
     SWPA -. "submitted_licence_schedule_detail_id<br/>(set at submission)" .-> LSD
@@ -523,13 +524,14 @@ rather than a contradiction the schema prevents.
 ### 6.6 `licence_continuation_external_contributor_request`
 
 ```
-id                                         UUID PK
-licence_continuation_application_detail_id UUID
-add_external_contributors                  BOOLEAN
+id                                  UUID PK
+licence_continuation_application_id UUID → licence_continuation_applications.id
+add_external_contributors           BOOLEAN
 ```
 
-Note this keys on the application **detail**, whereas its extension and amendment counterpart
-keys on the **application** (§11.4).
+Unlike the rest of the continuation content tables, this one keys on the **application**, not
+the application detail — matching its extension and amendment counterpart, because external
+contributors belong to the application rather than to one version of it (§9).
 
 ---
 
@@ -682,17 +684,20 @@ teams
 membership and roles (`EXTERNAL_APPLICATION_EDITOR`, `EXTERNAL_APPLICATION_VIEWER`) live in
 the team role tables.
 
-**The scope id differs between the two families:**
+**`scope_id` is the application id in both families**, and `scope_type` is the application type
+name:
 
 | Family | `scope_type` | `scope_id` | Created when |
 |---|---|---|---|
-| Extension and amendment | `SCHEDULE_AMENDMENT_APPLICATION` | the **application** id | the application is created |
-| Continuation | `CONTINUATION_APPLICATION` | the **application detail** id | the licensee information step is completed |
+| Extension and amendment | `SCHEDULE_AMENDMENT_APPLICATION` | the application id | the application is created |
+| Continuation | `CONTINUATION_APPLICATION` | the application id | the licensee information step is completed |
+
+Scoping on the application rather than the application detail is what keeps a team and its
+membership attached across application versions.
 
 The `*_external_contributor_request` tables hold only the yes/no answer to "do you want to add
-external contributors?", and they follow the same split — the extension and amendment one keys
-on the application, the continuation one on the application detail (§11.4). Joining either to a
-team requires matching the right id.
+external contributors?", and both key on the application id to match. Joining either to its
+team is a matter of comparing that id against `teams.scope_id` for the right `scope_type`.
 
 ---
 
@@ -773,9 +778,10 @@ Within the extension and amendment family alone:
 | `schedule_work_programme_application_id` (the **application**, not the detail) | `swp_external_contributor_request` |
 
 The continuation family is consistent — `licence_continuation_application_detail_id`
-everywhere — but note that its external contributor table points at the detail while the
-extension and amendment equivalent points at the application. The two families genuinely
-differ here; it is not a naming artefact.
+everywhere except `licence_continuation_external_contributor_request`, which keys on
+`licence_continuation_application_id`. That one exception matches its extension and amendment
+counterpart, and is deliberate: external contributors belong to the application, not to a
+single version of it (§9).
 
 ### 11.5 Several references to schedule rows have no foreign key
 
@@ -944,4 +950,4 @@ this draft", none of which have a dedicated column.
 `id`, `licence_continuation_application_detail_id`, `has_additional_supporting_information`
 
 **`licence_continuation_external_contributor_request`**
-`id`, `licence_continuation_application_detail_id`, `add_external_contributors`
+`id`, `licence_continuation_application_id`, `add_external_contributors`

@@ -17,9 +17,10 @@ import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.externalcontributors.ExternalContributorForm;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.externalcontributors.ExternalContributorService;
-import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.teams.Team;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamScopeReference;
 
@@ -38,13 +39,17 @@ class LicenceContinuationExternalContributorServiceTest {
   @Captor
   private ArgumentCaptor<LicenceContinuationExternalContributorRequest> requestArgumentCaptor;
 
+  @Captor
+  private ArgumentCaptor<TeamScopeReference> scopeReferenceArgumentCaptor;
+
   @Test
   void saveExternalContributorForm_persistsAnswer() {
-    var applicationDetail = new LicenceContinuationApplicationDetail();
+    var applicationDetail = LicenceContinuationApplicationTestUtil.builder().build();
+    var application = applicationDetail.getLicenceContinuationApplication();
     var form = new ExternalContributorForm();
     form.setAddExternalContributors(true);
 
-    when(licenceContinuationExternalContributorRepository.findByLicenceContinuationApplicationDetail(applicationDetail))
+    when(licenceContinuationExternalContributorRepository.findByLicenceContinuationApplication(application))
         .thenReturn(Optional.of(new LicenceContinuationExternalContributorRequest()));
 
     licenceContinuationExternalContributorService.saveExternalContributorForm(form, applicationDetail);
@@ -53,32 +58,38 @@ class LicenceContinuationExternalContributorServiceTest {
 
     var savedRequest = requestArgumentCaptor.getValue();
     assertThat(savedRequest.getAddExternalContributors()).isTrue();
-    assertThat(savedRequest.getLicenceContinuationApplicationDetail()).isEqualTo(applicationDetail);
+    assertThat(savedRequest.getLicenceContinuationApplication()).isEqualTo(application);
 
     verify(externalContributorService, never()).clearExternalContributors(any(TeamScopeReference.class));
   }
 
   @Test
   void saveExternalContributorForm_whenAnswerIsNo_clearsExistingContributors() {
-    var applicationDetail = new LicenceContinuationApplicationDetail(UUID.randomUUID());
+    var applicationDetail = LicenceContinuationApplicationTestUtil.builder().build();
+    var application = applicationDetail.getLicenceContinuationApplication();
     var form = new ExternalContributorForm();
     form.setAddExternalContributors(false);
 
-    when(licenceContinuationExternalContributorRepository.findByLicenceContinuationApplicationDetail(applicationDetail))
+    when(licenceContinuationExternalContributorRepository.findByLicenceContinuationApplication(application))
         .thenReturn(Optional.of(new LicenceContinuationExternalContributorRequest()));
 
     licenceContinuationExternalContributorService.saveExternalContributorForm(form, applicationDetail);
 
-    verify(externalContributorService).clearExternalContributors(any(TeamScopeReference.class));
+    verify(externalContributorService).clearExternalContributors(scopeReferenceArgumentCaptor.capture());
+
+    var scopeReference = scopeReferenceArgumentCaptor.getValue();
+    assertThat(scopeReference.getId()).isEqualTo(application.getId().toString());
+    assertThat(scopeReference.getType()).isEqualTo(ApplicationType.CONTINUATION_APPLICATION.name());
   }
 
   @Test
   void getExternalContributorForm_whenExists_returnsMappedForm() {
-    var applicationDetail = new LicenceContinuationApplicationDetail();
+    var applicationDetail = LicenceContinuationApplicationTestUtil.builder().build();
     var request = new LicenceContinuationExternalContributorRequest();
     request.setAddExternalContributors(false);
 
-    when(licenceContinuationExternalContributorRepository.findByLicenceContinuationApplicationDetail(applicationDetail))
+    when(licenceContinuationExternalContributorRepository
+        .findByLicenceContinuationApplication(applicationDetail.getLicenceContinuationApplication()))
         .thenReturn(Optional.of(request));
 
     var result = licenceContinuationExternalContributorService.getExternalContributorForm(applicationDetail);
@@ -88,9 +99,10 @@ class LicenceContinuationExternalContributorServiceTest {
 
   @Test
   void getExternalContributorForm_whenNotExists_returnsEmptyForm() {
-    var applicationDetail = new LicenceContinuationApplicationDetail();
+    var applicationDetail = LicenceContinuationApplicationTestUtil.builder().build();
 
-    when(licenceContinuationExternalContributorRepository.findByLicenceContinuationApplicationDetail(applicationDetail))
+    when(licenceContinuationExternalContributorRepository
+        .findByLicenceContinuationApplication(applicationDetail.getLicenceContinuationApplication()))
         .thenReturn(Optional.empty());
 
     var result = licenceContinuationExternalContributorService.getExternalContributorForm(applicationDetail);
@@ -101,11 +113,12 @@ class LicenceContinuationExternalContributorServiceTest {
 
   @Test
   void isExternalContributorSectionComplete_delegatesWithStoredAnswer() {
-    var applicationDetail = new LicenceContinuationApplicationDetail(UUID.randomUUID());
+    var applicationDetail = LicenceContinuationApplicationTestUtil.builder().build();
     var request = new LicenceContinuationExternalContributorRequest();
     request.setAddExternalContributors(true);
 
-    when(licenceContinuationExternalContributorRepository.findByLicenceContinuationApplicationDetail(applicationDetail))
+    when(licenceContinuationExternalContributorRepository
+        .findByLicenceContinuationApplication(applicationDetail.getLicenceContinuationApplication()))
         .thenReturn(Optional.of(request));
     when(externalContributorService.isSectionComplete(eq(true), any(TeamScopeReference.class)))
         .thenReturn(true);
@@ -116,9 +129,10 @@ class LicenceContinuationExternalContributorServiceTest {
 
   @Test
   void isExternalContributorSectionComplete_whenNoRequest_delegatesNullAnswer() {
-    var applicationDetail = new LicenceContinuationApplicationDetail(UUID.randomUUID());
+    var applicationDetail = LicenceContinuationApplicationTestUtil.builder().build();
 
-    when(licenceContinuationExternalContributorRepository.findByLicenceContinuationApplicationDetail(applicationDetail))
+    when(licenceContinuationExternalContributorRepository
+        .findByLicenceContinuationApplication(applicationDetail.getLicenceContinuationApplication()))
         .thenReturn(Optional.empty());
     when(externalContributorService.isSectionComplete(isNull(), any(TeamScopeReference.class)))
         .thenReturn(false);
@@ -128,8 +142,9 @@ class LicenceContinuationExternalContributorServiceTest {
   }
 
   @Test
-  void getExternalContributorsTeam_delegatesToSharedService() {
-    var applicationDetail = new LicenceContinuationApplicationDetail(UUID.randomUUID());
+  void getExternalContributorsTeam_scopesTeamToTheApplication() {
+    var applicationDetail = LicenceContinuationApplicationTestUtil.builder().build();
+    var application = applicationDetail.getLicenceContinuationApplication();
     var team = new Team(UUID.randomUUID());
 
     when(externalContributorService.getExternalContributorsTeam(any(TeamScopeReference.class)))
@@ -137,5 +152,11 @@ class LicenceContinuationExternalContributorServiceTest {
 
     assertThat(licenceContinuationExternalContributorService.getExternalContributorsTeam(applicationDetail))
         .isEqualTo(team);
+
+    verify(externalContributorService).getExternalContributorsTeam(scopeReferenceArgumentCaptor.capture());
+
+    var scopeReference = scopeReferenceArgumentCaptor.getValue();
+    assertThat(scopeReference.getId()).isEqualTo(application.getId().toString());
+    assertThat(scopeReference.getType()).isEqualTo(ApplicationType.CONTINUATION_APPLICATION.name());
   }
 }

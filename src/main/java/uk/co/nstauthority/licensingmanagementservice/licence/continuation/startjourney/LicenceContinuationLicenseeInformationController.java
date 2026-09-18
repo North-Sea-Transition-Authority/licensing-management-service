@@ -85,7 +85,7 @@ public class LicenceContinuationLicenseeInformationController {
 
   private void createContinuationExternalTeam(LicenceContinuationApplicationDetail applicationDetail) {
     var scopeRef = TeamScopeReference.from(
-        applicationDetail.getId().toString(),
+        applicationDetail.getLicenceContinuationApplication().getId().toString(),
         ApplicationType.CONTINUATION_APPLICATION.name()
     );
 

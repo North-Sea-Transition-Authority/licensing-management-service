@@ -24,17 +24,6 @@
     form=form
     licenceTypes=licenceTypes
     />
-    <@dataItemFilter.applicationReferenceFilter
-    form=form
-    />
-    <@dataItemFilter.applicationTypeFilter
-    form=form
-    applicationTypes=applicationTypes
-    />
-    <@dataItemFilter.applicationStatusFilter
-    form=form
-    applicationStatuses=applicationStatuses
-    />
     <@dataItemFilter.licenseeOrgUnitFilter
     form=form
     licenseeOrgUnitUrl=licenseeOrgUnitUrl
@@ -47,5 +36,16 @@
         preSelectedLicenseeGroup=preSelectedLicenseeGroupOrgUnit
         />
     </#if>
+    <@dataItemFilter.applicationReferenceFilter
+    form=form
+    />
+    <@dataItemFilter.applicationTypeFilter
+    form=form
+    applicationTypes=applicationTypes
+    />
+    <@dataItemFilter.applicationStatusFilter
+    form=form
+    applicationStatuses=applicationStatuses
+    />
   </@search.standardSearch>
 </@defaultPage>

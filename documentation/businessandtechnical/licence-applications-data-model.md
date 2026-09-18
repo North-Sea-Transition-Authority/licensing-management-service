@@ -295,10 +295,6 @@ The two booleans gate the fields below them:
 At least one of the two is true on a saved row — an amendment request that asks for neither a
 date change nor a text change is malformed. Both may be true at once.
 
-Both booleans were originally `TEXT` columns named `duration_extension_required` and
-`additional_info_required`; they were renamed and converted to `BOOLEAN`. Only the current
-names exist.
-
 ### 5.5 `licence_work_programme_amendment_summary` — "anything else?"
 
 One row per application detail, recording the licensee's answer to whether more amendments are
@@ -325,9 +321,6 @@ reason_for_amendment                           TEXT
 plan_during_extension                          TEXT
 impact_on_deliverables                         TEXT
 ```
-
-The table was originally called `licence_schedule_overall_request` and was renamed. Anything
-querying the old name will fail rather than return nothing.
 
 Supporting **documents** are not in this table — see §10.
 
@@ -895,7 +888,7 @@ this draft", none of which have a dedicated column.
 `id`, `schedule_work_programme_application_details_id`,
 `licence_work_programme_amendment_summary_options`
 
-**`licence_schedule_supporting_information`** *(formerly `licence_schedule_overall_request`)*
+**`licence_schedule_supporting_information`**
 `id`, `schedule_work_programme_application_details_id`, `licence_progress`,
 `reason_for_amendment`, `plan_during_extension`, `impact_on_deliverables`
 

@@ -1,12 +1,14 @@
 ---
 name: changing-documented-licence-areas
 description: >
-  Required reading before changing anything under licence/schedule,
-  licence/scheduleworkprogrammeapplication, licence/continuation, licence/reminder or
-  licence/crosslicenceeventtracker — a Flyway migration, an @Entity, a persisted enum, or the
-  application code that decides what gets written: status transitions, date and reference
-  calculation, duplication behaviour, which questions a journey asks, reminder sending rules,
-  event cache refresh, file usage types, document templates and team scoping. Four documents
+  Required reading before changing anything under the licence packages — licence/schedule,
+  licence/scheduleworkprogrammeapplication, licence/continuation, licence/reminder,
+  licence/crosslicenceeventtracker, licence/status, licence/contact,
+  licence/licenceresponsibleorganisation or the PEARS refresh — a Flyway migration, an @Entity,
+  a persisted enum, or the application code that decides what gets written: status transitions,
+  date and reference calculation, duplication behaviour, which questions a journey asks,
+  reminder sending rules, event cache refresh, what the licence sync overwrites or deletes,
+  file usage types, document templates and team scoping. Five documents
   in documentation/businessandtechnical/ describe both the schema and that behaviour to people
   outside the team, nothing regenerates them, and keeping them true is part of the change.
   Also use when asked whether those documents still match the code.
@@ -16,21 +18,26 @@ description: >
 
 The documents in `documentation/businessandtechnical/` describe this part of the service to
 people who do not read the code — analysts writing reporting queries, testers checking data,
-and developers new to the service. At the time of writing there are four; Step 1 is how you
+and developers new to the service. At the time of writing there are five; Step 1 is how you
 confirm that is still the case:
 
 | Document | Covers |
 |---|---|
-| `licence-schedules-data-model.md` | `licences`, `licence_schedules`, `licence_schedule_details` and the seven schedule content tables, plus `schedule_events`, `event_comments` and `work_programme_activity_statuses` |
+| `licences-and-responsible-organisations-data-model.md` | `licences`, `licence_statuses`, `licence_responsible_organisations`, `licence_contact` — the licence record itself, its status history, its licensees, and the hourly PEARS refresh that maintains them |
+| `licence-schedules-data-model.md` | `licence_schedules`, `licence_schedule_details` and the seven schedule content tables, plus `schedule_events`, `event_comments` and `work_programme_activity_statuses` |
 | `licence-applications-data-model.md` | `schedule_work_programme_applications` and `licence_continuation_applications`, their detail tables, and every request, requirement and record-of-decision table hanging off them |
 | `licence-schedule-reminders-data-model.md` | `licence_reminders` — which schedule deadlines have been warned about, and what decides whether a reminder is sent |
 | `licence-event-cache-data-model.md` | `licence_event_cache` — the denormalised read model behind the cross licence event tracker, and when it is rebuilt |
 
-The split is deliberate: reminders and the event tracker cache are driven by the schedule but
-are separate areas of functionality, and folding them into the schedules document would bury
-the schedule itself. Keep them separate. When a change spans two of these — a new schedule
-event type that should also be remindable, say — update both rather than cross-referencing one
-from the other.
+The split is deliberate: reminders, the event tracker cache and the licence record itself are
+all connected to the schedule but are separate areas of functionality, and folding them into
+the schedules document would bury the schedule. Keep them separate. When a change spans two of
+these — a new schedule event type that should also be remindable, say — update both rather than
+cross-referencing one from the other.
+
+They also share values, and a change to a shared one has to land in both places: `licences.type`
+is tabulated in the licences document and repeated in the schedules document, because licence
+type decides which term, phase and activity values are legitimate.
 
 **Nothing regenerates them.** A change that lands without the matching documentation edit
 silently makes them wrong, and wrong is worse than absent — someone will write a query
@@ -75,6 +82,9 @@ single migration being written. Some of what they claim:
   surviving a schedule update is not warned about a second time.
 - That the tracker cache is rebuilt only when a schedule is applied, holds no rates, other
   events or expiry dates, and has four columns nothing ever writes.
+- That the hourly PEARS refresh overwrites licences field for field but never deletes one,
+  writes a status row only when the status has actually changed, and deletes responsible
+  organisations only where `managed_by_lms` is false.
 
 All of that is code, not schema. Changing it changes the documents.
 
@@ -89,7 +99,7 @@ ls documentation/businessandtechnical/
 
 | What you see | What to do |
 |---|---|
-| Exactly the four documents listed above | Carry on |
+| Exactly the five documents listed above | Carry on |
 | A document not in the table | Read its opening section — the title, the "what this is" paragraph and its table list. Treat it exactly like the others for the rest of this skill: audit it for drift, work out what your change invalidates in it, edit it in the same commit. Then **say that this skill's table is out of date** so it can be corrected. |
 | A document listed above that is missing | Do not assume it was deleted on purpose — check `git log` for a rename before concluding anything |
 
@@ -110,6 +120,7 @@ You are, if the change touches any of:
 | Derived values | date calculation for terms, phases, activities and rates; `LicenceScheduleStateService`; the application reference format constants |
 | Versioning and copying | the `duplication` package, `DuplicationSource` / `NotDuplicationSource`, `@DuplicateThisOnUpdate`, `original_event_id` handling |
 | What a journey asks | `SwpApplicationRequestPurposeService`, `OtherRequirementsVisibilityResolverService`, `LicenceTypeFeature` and the licence type rules |
+| The licence record and its licensees | `PearsLicenceRefreshService`, `LicenceScheduledJobService`, `PearsResponsibleOrganisationRefreshService`, `LicenceStatusService`, and anything touching `managed_by_lms` |
 | Reminder sending | the `licence/reminder` package — the deadline sources, `ReminderSuppressionService`, `ReminderType`, `NoticePeriod`, and the uniqueness keys that stop a repeat send |
 | Event cache refresh | `CrossLicenceEventTrackerService.refreshScheduleCache` and anything that changes which events it writes, or adds a second caller |
 | Cross-cutting bindings | `FileUsageType`, `LicenceScheduleFileUsageType`, `ApplicationLetterService` and document template types, `TeamType.EXTERNAL_CONTRIBUTORS` scoping |
@@ -143,6 +154,7 @@ Each document has its own baseline and its own code paths. Substitute accordingl
 
 | Document | Code paths, alongside `src/main/resources/db/migration` |
 |---|---|
+| `licences-and-responsible-organisations-data-model.md` | `licence/status`, `licence/contact`, `licence/licenceresponsibleorganisation`, and `licence/*.java` for the licence record and the refresh services |
 | `licence-schedules-data-model.md` | `licence/schedule` |
 | `licence-applications-data-model.md` | `licence/scheduleworkprogrammeapplication`, `licence/continuation` |
 | `licence-schedule-reminders-data-model.md` | `licence/reminder` |
@@ -188,10 +200,15 @@ Two kinds of false positive to expect, so they do not send you documenting the w
   table that no longer exists under that name still appears. `event_references` is one — it
   was renamed to `schedule_events`. Check for a later `ALTER TABLE ... RENAME` before treating
   a hit as a gap.
-- **Separate feature areas.** Licence positions, corrections, transactions, contacts, statuses,
-  responsible organisations and teams are their own domains and are out of scope for these four
-  documents. If one of them needs documenting, that is a new document and a conversation with
-  the user, not an addition here.
+- **Separate feature areas.** Licence positions, corrections, transactions and teams are their
+  own domains and are out of scope for these five documents. If one of them needs documenting,
+  that is a new document and a conversation with the user, not an addition here.
+
+One weakness to know about: the check only asks whether the table's **name appears anywhere**
+in the directory, so a table merely named in an "out of scope" note counts as documented and
+stops being reported. `licence_positions`, `licence_transactions` and `licence_corrections` are
+named that way in the licences document and no longer show up. Treat a clean sweep as "nothing
+obviously new", not as proof of coverage.
 
 Then read the commit subjects from the `git log` above against the claims in
 "Claims most likely to go stale unnoticed" below. A commit named for a new status, a new
@@ -228,7 +245,8 @@ one document.
 | New, renamed or removed enum value | The value table in the enumerated values section |
 | New foreign key, or a column referencing another table without one | The ERD, and the FK-enforcement table in the caveats section |
 | A unique index or constraint | The relevant table block — these documents are explicit about which invariants the schema guarantees and which are enforced only in application code |
-| Table or column rename | The body, plus a note that the old name existed if a reader might still query it |
+| Table or column rename | The body and the column reference, updated to the new name only — the old name is not recorded |
+| Column dropped | Delete every mention of it. Do not leave a note saying it used to exist. |
 
 ### Behaviour changes
 
@@ -246,6 +264,9 @@ one document.
 | A change to reminder uniqueness, notice period or suppression | The reminders document's uniqueness section, and the claim that a deadline surviving a schedule update is not re-reminded |
 | Which events the tracker cache writes, or a second caller of the refresh | The event cache document — the refresh trigger, the table of what is written, and the list of event types never cached |
 | Starting to populate a cache column that was previously always null | The event cache document's "never populated" section and its caveat — a straight deletion, not an edit |
+| What the PEARS refresh writes, deletes or leaves alone | The licences document's refresh section, and the `managed_by_lms` rules that decide what may be deleted |
+| When a licence status row is written, or where its date comes from | The licences document's status section — it is explicit that rows are transitions, not observations, and that the date is when LMS noticed |
+| Adding a column to `licences` for LMS's own use | The caveat that `licences` is an hourly-overwritten copy, and the two columns already removed for that reason |
 
 ### Claims most likely to go stale unnoticed
 
@@ -269,6 +290,12 @@ No test fails when these stop being true. If your change goes near one, re-read 
 - **"Never cached" and "not sent" claims** — rates, other schedule events and expiry are
   documented as absent from the tracker cache; reminders are documented as suppressed for any
   licence that is not `EXTANT`. Both are easy to change without noticing the document.
+- **"Never deleted" claims** — the refresh is documented as never deleting a licence, and as
+  deleting only PEARS-sourced responsible organisations. Either would be easy to change while
+  fixing something else.
+- **"Only the current value exists" framing** — several sections describe a column's live
+  values without any history of what it used to hold. Adding a value, or changing which ones
+  the service writes, has to land in the value table rather than beside it.
 
 If a change introduces a family of tables or a journey that fits none of the documents that
 exist, start a new document in the same directory with the same shape rather than bolting it
@@ -288,6 +315,11 @@ They have a consistent voice and structure. Match it.
   SQL; "the duplication service iterates the repositories" is not.
 - **Use live PostgreSQL names**: the names as they stand after every migration has run, not
   the name in the `CREATE TABLE` that a later migration renamed.
+- **Document the schema as it is now, never as it was.** A column that has been dropped or
+  renamed gets no mention at all — no "formerly called", no "removed in V106", no table of
+  what to use instead. The migration history is in the migrations; repeating it here doubles
+  what has to be kept true and puts names in front of readers that they cannot use. When you
+  drop or rename a column, delete every trace of the old name rather than annotating it.
 - **Document enums as value tables** — stored value, display string, and when it applies.
   Keep the framing that the list describes what the service writes rather than what the
   schema guarantees; that is what tells a reader an unexpected value is a data-quality

@@ -50,8 +50,9 @@ licence_schedule_expiry_dates
   **at most one** row here; this is enforced in application code, not by a database unique
   constraint.
 - `licence_schedules.licence_id` is the join key back to `licences`. `licences` also carries
-  `type`, `subtype`, `prefix`, `licence_number`, `licence_reference`, `responsible_team`,
-  `end_date`.
+  `type`, `subtype`, `prefix`, `licence_number`, `licence_reference`, `round_issued_on` and
+  `end_date` — see `licences-and-responsible-organisations-data-model.md`, which also covers
+  licence status and the organisations responsible for a licence.
 - `licence_schedule_details` is the version table. Its `status` column drives everything
   (§4).
 - Every child table carries `licence_schedule_detail_id` — i.e. child rows belong to **one

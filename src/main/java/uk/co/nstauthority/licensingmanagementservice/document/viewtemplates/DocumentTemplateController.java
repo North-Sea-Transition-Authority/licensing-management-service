@@ -68,6 +68,10 @@ public class DocumentTemplateController {
         Set.of(Role.DOCUMENT_TEMPLATE_MANAGER)
     );
 
+    var hasMoreThanOneSection = documentTemplateSectionsSummaryView
+        .topLevelDocumentTemplateSectionSummaryViews()
+        .size() > 1;
+
     var hasAnyConditionalSections = documentTemplateSectionsSummaryView
         .topLevelDocumentTemplateSectionSummaryViews()
         .stream()
@@ -82,6 +86,7 @@ public class DocumentTemplateController {
         .addObject("documentTemplateDto", documentTemplateDto)
         .addObject("accordionId", documentTemplateDto.id())
         .addObject("userHasValidPermission", userHasValidPermission)
+        .addObject("hasMoreThanOneSection", hasMoreThanOneSection)
         .addObject("documentSectionsSummaryView", documentTemplateSectionsSummaryView);
 
     if (hasAnyConditionalSections) {

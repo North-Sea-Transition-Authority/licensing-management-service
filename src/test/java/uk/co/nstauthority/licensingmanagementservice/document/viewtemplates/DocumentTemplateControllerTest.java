@@ -181,4 +181,58 @@ class DocumentTemplateControllerTest extends AbstractControllerTest {
         .andExpect(model().attribute("previewWithConditionsUrl", ReverseRouter.route(on(DocumentTemplatePdfController.class).renderTemplatePreviewPdfWithConditions(DOCUMENT_TEMPLATE_ID, null))))
         .andExpect(model().attributeDoesNotExist("previewWithoutConditionsUrl"));
   }
+
+  @Test
+  void renderTemplateOverview_whenOnlyOneSection_removeIsNotOffered() throws Exception {
+    mockTemplateWithSections(sectionTitled("Only section"));
+
+    mockMvc.perform(
+            get(ReverseRouter.route(on(DocumentTemplateController.class)
+                                        .renderTemplateOverview(DOCUMENT_TEMPLATE_ID, null)))
+                .with(user(regulatorUser))
+        )
+        .andExpect(status().isOk())
+        .andExpect(model().attribute("hasMoreThanOneSection", false));
+  }
+
+  @Test
+  void renderTemplateOverview_whenMoreThanOneSection_removeIsOffered() throws Exception {
+    mockTemplateWithSections(sectionTitled("First section"), sectionTitled("Second section"));
+
+    mockMvc.perform(
+            get(ReverseRouter.route(on(DocumentTemplateController.class)
+                                        .renderTemplateOverview(DOCUMENT_TEMPLATE_ID, null)))
+                .with(user(regulatorUser))
+        )
+        .andExpect(status().isOk())
+        .andExpect(model().attribute("hasMoreThanOneSection", true));
+  }
+
+  private void mockTemplateWithSections(DocumentTemplateSectionSummaryView... sections) {
+    var documentTemplateDto = DocumentTemplateDtoTestUtil.newBuilder()
+        .withId(DOCUMENT_TEMPLATE_ID)
+        .build();
+
+    var documentSummaryView = DocumentTemplateSectionsSummaryViewTestUtil.newBuilder()
+        .withDocumentTemplateSectionSummaryViews(List.of(sections))
+        .build();
+
+    when(lmsDocumentTemplateService.getDocumentTemplateSectionsSummaryView(any(), any())).thenReturn(documentSummaryView);
+    when(documentTemplateService.getDocumentTemplateDtoOrThrow(DOCUMENT_TEMPLATE_ID)).thenReturn(documentTemplateDto);
+  }
+
+  private DocumentTemplateSectionSummaryView sectionTitled(String title) {
+    return new DocumentTemplateSectionSummaryView(
+        UUID.randomUUID(),
+        "1",
+        title,
+        "Test content",
+        null,
+        false,
+        List.of(),
+        Map.of(),
+        DocumentTemplateSectionUrlsTestUtil.newBuilder().build(),
+        List.of()
+    );
+  }
 }

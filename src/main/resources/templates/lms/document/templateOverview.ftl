@@ -45,6 +45,7 @@
         userHasValidPermission=userHasValidPermission
         topLevelDocumentSectionSummaryViews=documentSectionsSummaryView.topLevelDocumentTemplateSectionSummaryViews()
         accordionId=accordionId
+        includeRemove=hasMoreThanOneSection
         isTemplate=true
       />
 

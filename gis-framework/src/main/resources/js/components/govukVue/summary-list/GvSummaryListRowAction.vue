@@ -17,7 +17,7 @@
 
 <script setup lang="ts">
 import { computed, inject, onBeforeMount, onBeforeUnmount, ref, useAttrs } from "vue";
-import GvFragment from "../../util/GvFragment.vue";
+import GvFragment from "../util/GvFragment.vue";
 import {
   SummaryListRegisterRowActionFunctionInjectionKey,
   SummaryListRowActionsCountInjectionKey,

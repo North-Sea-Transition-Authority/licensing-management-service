@@ -35,7 +35,7 @@
 import { computed, inject, onBeforeMount, onUnmounted, provide, Ref, ref } from "vue";
 import getSlotText from "../../gdsComponents/composables/useGetSlotText";
 import hasSlot from "../../gdsComponents/composables/useHasSlot";
-import GvFragment from "../../util/GvFragment.vue";
+import GvFragment from "../util/GvFragment.vue";
 import {
   SummaryListAnyRowHasActionsInjectionKey,
   SummaryListRegisterRowActionFunctionInjectionKey,

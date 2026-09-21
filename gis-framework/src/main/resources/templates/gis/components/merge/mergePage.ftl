@@ -1,20 +1,28 @@
 <#import "/spring.ftl" as spring>
 
-<#macro splitByCoordinateEntryPage commandJourneyId srsWkid precision=4 includeNstaQuadrants=true includeNstaBlocks=true>
+<#macro mergePage commandJourneyId srsWkid includeNstaQuadrants=true includeNstaBlocks=true id="" error="">
   <div
-      data-gis-component="gis-split-by-coordinate-entry"
+    <#if id?has_content>id="${id}" tabindex="-1"</#if>
+    class="govuk-form-group<#if error?has_content> govuk-form-group--error</#if>"
+  >
+    <#if error?has_content>
+      <p<#if id?has_content> id="${id}-error"</#if> class="govuk-error-message">
+        <span class="govuk-visually-hidden">Error:</span> ${error}
+      </p>
+    </#if>
+    <div
+      data-gis-component="gis-merge"
       data-gis-command-journey-id="${commandJourneyId}"
       data-gis-srs-wkid="${srsWkid?c}"
-      data-gis-precision="${precision?c}"
       data-gis-include-nsta-quadrants="${includeNstaQuadrants?c}"
       data-gis-include-nsta-blocks="${includeNstaBlocks?c}"
       data-gis-features-base-url="<@spring.url '/api/gis-framework/command-journey-features'/>"
       data-gis-outline-nodes-base-url="<@spring.url '/api/gis-framework/command-journey-outline-nodes'/>"
-      data-gis-split-url="<@spring.url '/api/gis-framework/split'/>"
+      data-gis-merge-url="<@spring.url '/api/gis-framework/merge'/>"
       data-gis-base-url="<@spring.url '/api/gis-framework'/>"
       data-gis-textual-description-url="<@spring.url '/api/gis-framework/command-journey-textual-description'/>"
       data-gis-csrf-header-name="${_csrf.headerName}"
       data-gis-csrf-token="${_csrf.token}"
-   >
+    ></div>
   </div>
 </#macro>

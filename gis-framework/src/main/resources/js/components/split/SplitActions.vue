@@ -1,31 +1,31 @@
 <template>
-  <gv-button-group>
+  <undo-redo-actions
+    v-model:processing="isProcessing"
+    :refresh-counter="refreshCounter"
+    :base-url="baseUrl"
+    :command-journey-id="commandJourneyId"
+    :csrf-header-name="csrfHeaderName"
+    :csrf-token="csrfToken"
+    operation-name="split"
+    @action-success="emit('action-success')"
+    @action-error="emit('action-error', $event)"
+  >
     <gv-button v-if="showSplitButton" :disabled="isProcessing || points.length < 2" @click="split">
       Split
     </gv-button>
-    <gv-button variant="secondary" :disabled="!historyStatus?.canUndo || isProcessing" @click="undoSplit">
-      Undo split
-    </gv-button>
-    <gv-button variant="secondary" :disabled="!historyStatus?.canRedo || isProcessing" @click="redoSplit">
-      Redo split
-    </gv-button>
-  </gv-button-group>
+  </undo-redo-actions>
 </template>
 
 <script setup lang="ts">
-import type { JsonHistoryStatus } from "../../api/history.api";
-import type { LinePoint } from "../../grid-utils";
-import { onMounted, ref, watch } from "vue";
-import { getHistoryStatus } from "../../api/history.api";
-import { redo, splitFeature, undo } from "../../api/operator.api";
+import type { LinePoint } from "@/grid-utils";
+import { ref, watch } from "vue";
+import { splitFeature } from "@/api/operator.api";
 import GvButton from "../govukVue/button/GvButton.vue";
-import GvButtonGroup from "../govukVue/button/GvButtonGroup.vue";
+import UndoRedoActions from "../undoRedo/UndoRedoActions.vue";
 
 interface SplitActionsProps {
   refreshCounter: number,
-  historyUrl: string,
-  undoUrl: string,
-  redoUrl: string,
+  baseUrl: string,
   csrfHeaderName: string,
   csrfToken: string,
   points: LinePoint[],
@@ -42,19 +42,7 @@ const emit = defineEmits<{
   "action-error": [message: string],
 }>();
 
-const historyStatus = ref<JsonHistoryStatus | null>(null);
 const isProcessing = ref(false);
-
-async function fetchHistoryStatus() {
-  try {
-    historyStatus.value = await getHistoryStatus(props.historyUrl);
-  } catch {
-    emit("action-error", "Unable to load undo/redo status.");
-  }
-}
-
-onMounted(fetchHistoryStatus);
-watch(() => props.refreshCounter, fetchHistoryStatus);
 
 watch(() => props.points, () => {
   if (props.autoSplit && !isProcessing.value) {
@@ -85,30 +73,6 @@ async function split() {
     }
   } catch {
     emit("action-error", "An error occurred while attempting to split the feature. Please try again.");
-  } finally {
-    isProcessing.value = false;
-  }
-}
-
-async function undoSplit() {
-  isProcessing.value = true;
-  try {
-    await undo(props.undoUrl, props.csrfHeaderName, props.csrfToken);
-    emit("action-success");
-  } catch {
-    emit("action-error", "An error occurred while attempting to undo the last split. Please try again.");
-  } finally {
-    isProcessing.value = false;
-  }
-}
-
-async function redoSplit() {
-  isProcessing.value = true;
-  try {
-    await redo(props.redoUrl, props.csrfHeaderName, props.csrfToken);
-    emit("action-success");
-  } catch {
-    emit("action-error", "An error occurred while attempting to redo the last split. Please try again.");
   } finally {
     isProcessing.value = false;
   }

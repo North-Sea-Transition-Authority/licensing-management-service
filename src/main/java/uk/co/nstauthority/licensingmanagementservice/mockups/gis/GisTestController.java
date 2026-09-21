@@ -67,9 +67,19 @@ public class GisTestController {
   @GetMapping("/split-disjoint")
   public ModelAndView renderSplitDisjointByPointAndClick() {
     var feature = featureService.getFeatureOrThrow(UUID.fromString("11111111-1111-1111-1111-111111111100"));
-    var commandJourney = commandJourneyService.findOrCreateCommandJourneyForFeature(feature);
+    var commandJourney = commandJourneyService.findOrCreateCommandJourneyForFeatures(List.of(feature));
     return new ModelAndView("lms/mockups/gis/pointAndClickMapTester")
         .addObject("commandJourneyId", commandJourney.getId().toString())
         .addObject(SRS_WKID_MODEL_NAME, CoordinateSystemUtils.getWkid(feature.getCoordinateSystem()));
+  }
+
+  @GetMapping("/merge")
+  public ModelAndView renderMerge() {
+    var features = featureService.findAllByTestCase("EPGF-81");
+    var commandJourney = commandJourneyService.findOrCreateCommandJourneyForFeatures(features);
+    return new ModelAndView("lms/mockups/gis/mergeMapTester")
+        .addObject("commandJourneyId", commandJourney.getId().toString())
+        .addObject(SRS_WKID_MODEL_NAME,
+            CoordinateSystemUtils.getWkid(features.getFirst().getCoordinateSystem()));
   }
 }

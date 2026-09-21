@@ -258,4 +258,15 @@ class FeatureServiceTest {
         .hasMessage("Feature %s not found".formatted(featureId));
   }
 
+  @Test
+  void findAllByTestCase() {
+    var feature1 = FeatureTestUtil.newBuilder().build();
+    var feature2 = FeatureTestUtil.newBuilder().build();
+
+    when(featureRepository.findAllByTestCase("EPGF-81")).thenReturn(List.of(feature1, feature2));
+
+    var result = featureService.findAllByTestCase("EPGF-81");
+
+    assertThat(result).containsExactlyInAnyOrder(feature1, feature2);
+  }
 }

@@ -42,9 +42,7 @@
       :split-url="splitUrl"
       :command-journey-id="commandJourneyId"
       :refresh-counter="refreshCounter"
-      :history-url="historyUrl"
-      :undo-url="undoUrl"
-      :redo-url="redoUrl"
+      :base-url="baseUrl"
       :csrf-header-name="csrfHeaderName"
       :csrf-token="csrfToken"
       @action-success="onSplitSuccess"
@@ -55,9 +53,10 @@
 </template>
 
 <script setup lang="ts">
-import type { SupportedWkid } from "../coordinate-system-utils";
-import type { SnapPoint } from "../grid-utils";
+import type { SupportedWkid } from "@/coordinate-system-utils";
+import type { SnapPoint } from "@/grid-utils";
 import { computed, CSSProperties, ref } from "vue";
+import { buildCommandJourneyUrl } from "@/command-journey-utils";
 import BaseMap from "../components/baseMap/BaseMap.vue";
 import ErrorSummary from "../components/gdsComponents/error/ErrorSummary.vue";
 import DetailsComponent from "../components/govukVue/details/GvDetails.vue";
@@ -71,9 +70,7 @@ interface SplitByPointAndClickPageProps {
   featuresBaseUrl: string,
   outlineNodesBaseUrl: string,
   splitUrl: string,
-  historyBaseUrl: string,
-  undoBaseUrl: string,
-  redoBaseUrl: string,
+  baseUrl: string,
   textualDescriptionUrl: string,
   csrfHeaderName: string,
   csrfToken: string,
@@ -98,15 +95,8 @@ const mapStyleOverride: CSSProperties = {
   display: "block",
 };
 
-function buildCommandJourneyUrl(baseUrl: string, commandJourney: string): string {
-  return `${baseUrl}/${commandJourney}`;
-}
-
 const featuresUrl = computed(() => buildCommandJourneyUrl(props.featuresBaseUrl, props.commandJourneyId));
 const outlineNodesUrl = computed(() => buildCommandJourneyUrl(props.outlineNodesBaseUrl, props.commandJourneyId));
-const historyUrl = computed(() => buildCommandJourneyUrl(props.historyBaseUrl, props.commandJourneyId));
-const undoUrl = computed(() => buildCommandJourneyUrl(props.undoBaseUrl, props.commandJourneyId));
-const redoUrl = computed(() => buildCommandJourneyUrl(props.redoBaseUrl, props.commandJourneyId));
 
 function undoLastPoint() {
   baseMapRef.value?.removeLastPoint();

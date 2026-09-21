@@ -1,6 +1,7 @@
 package uk.co.fivium.gisframework.operator;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -59,6 +60,9 @@ class OperatorCommandReceiverTest {
 
   @Mock
   private GrpcClientService grpcClientService;
+
+  @Mock
+  private MergeOperatorService mergeOperatorService;
 
   @InjectMocks
   private OperatorCommandReceiver operatorCommandReceiver;
@@ -170,6 +174,68 @@ class OperatorCommandReceiverTest {
 
     assertThat(result).isEmpty();
     verify(operatorCommandService, never()).createOperatorCommand(any(), any(), any());
+    verify(featureJourneyStateService, never()).deactivateFeatures(any(), any());
+    verify(featureJourneyStateService, never()).createFeatureJourneyStatesForCommandOutput(any(), any(), any());
+  }
+
+  @Test
+  void executeMerge_whenFeaturesMerged_deactivatesInputsAndActivatesOutput() {
+    var commandJourneyId = UUID.randomUUID();
+    var inputFeature1 = FeatureTestUtil.newBuilder().build();
+    var inputFeature2 = FeatureTestUtil.newBuilder().build();
+    var request = new MergeFromMapRequest(
+        List.of(inputFeature1.getId(), inputFeature2.getId()), commandJourneyId);
+
+    var commandJourney = CommandJourneyTestUtil.newBuilder().withId(commandJourneyId).build();
+    var mergedFeature = FeatureTestUtil.newBuilder().build();
+    var command = new OperatorCommand();
+
+    when(commandJourneyService.getCommandJourneyOrThrow(commandJourneyId)).thenReturn(commandJourney);
+    when(commandJourneyService.getActiveFeatures(commandJourney))
+        .thenReturn(List.of(inputFeature1, inputFeature2));
+    when(mergeOperatorService.mergePolygons(List.of(inputFeature1, inputFeature2))).thenReturn(mergedFeature);
+    when(operatorCommandService.createOperatorCommand(
+        commandJourney, Set.of(inputFeature1.getId(), inputFeature2.getId()), TransformationType.MERGE))
+        .thenReturn(command);
+
+    var result = operatorCommandReceiver.executeMerge(request);
+
+    assertThat(result).contains(mergedFeature);
+    verify(featureJourneyStateService).deactivateFeatures(commandJourney, List.of(inputFeature1, inputFeature2));
+    verify(featureJourneyStateService)
+        .createFeatureJourneyStatesForCommandOutput(commandJourney, command, List.of(mergedFeature));
+  }
+
+  @Test
+  void executeMerge_whenARequestedFeatureIsNotActiveInJourney_throwsAndRecordsNothing() {
+    var commandJourneyId = UUID.randomUUID();
+    var activeFeature = FeatureTestUtil.newBuilder().build();
+    var staleFeatureId = UUID.randomUUID();
+    var request = new MergeFromMapRequest(List.of(activeFeature.getId(), staleFeatureId), commandJourneyId);
+
+    var commandJourney = CommandJourneyTestUtil.newBuilder().withId(commandJourneyId).build();
+
+    when(commandJourneyService.getCommandJourneyOrThrow(commandJourneyId)).thenReturn(commandJourney);
+    when(commandJourneyService.getActiveFeatures(commandJourney)).thenReturn(List.of(activeFeature));
+
+    assertThatThrownBy(() -> operatorCommandReceiver.executeMerge(request))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("All merge features must be active members of command journey %s".formatted(commandJourneyId));
+
+    verifyNoInteractions(mergeOperatorService);
+    verify(operatorCommandService, never()).createOperatorCommand(any(), any(), any());
+    verify(featureJourneyStateService, never()).deactivateFeatures(any(), any());
+    verify(featureJourneyStateService, never()).createFeatureJourneyStatesForCommandOutput(any(), any(), any());
+  }
+
+  @Test
+  void executeMerge_whenNoFeatureIds_returnsEmptyAndRecordsNothing() {
+    var request = new MergeFromMapRequest(List.of(), UUID.randomUUID());
+
+    var result = operatorCommandReceiver.executeMerge(request);
+
+    assertThat(result).isEmpty();
+    verifyNoInteractions(commandJourneyService, featureService, mergeOperatorService, operatorCommandService);
     verify(featureJourneyStateService, never()).deactivateFeatures(any(), any());
     verify(featureJourneyStateService, never()).createFeatureJourneyStatesForCommandOutput(any(), any(), any());
   }

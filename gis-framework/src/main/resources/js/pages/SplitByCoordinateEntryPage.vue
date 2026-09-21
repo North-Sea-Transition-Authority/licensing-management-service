@@ -23,9 +23,7 @@
           :split-url="splitUrl"
           :command-journey-id="commandJourneyId"
           :refresh-counter="refreshCounter"
-          :history-url="historyUrl"
-          :undo-url="undoUrl"
-          :redo-url="redoUrl"
+          :base-url="baseUrl"
           :csrf-header-name="csrfHeaderName"
           :csrf-token="csrfToken"
           @action-success="onSplitSuccess"
@@ -43,9 +41,10 @@
 
 <script setup lang="ts">
 import type { EditablePoint } from "../components/coordinateInput/CoordinateList.vue";
-import type { SupportedWkid } from "../coordinate-system-utils";
-import type { LinePoint } from "../grid-utils";
+import type { SupportedWkid } from "@/coordinate-system-utils";
+import type { LinePoint } from "@/grid-utils";
 import { computed, ref } from "vue";
+import { buildCommandJourneyUrl } from "@/command-journey-utils";
 import BaseMap from "../components/baseMap/BaseMap.vue";
 import CoordinateList from "../components/coordinateInput/CoordinateList.vue";
 import ErrorSummary from "../components/gdsComponents/error/ErrorSummary.vue";
@@ -58,9 +57,7 @@ interface SplitByCoordinateEntryPageProps {
   featuresBaseUrl: string,
   outlineNodesBaseUrl: string,
   splitUrl: string,
-  historyBaseUrl: string,
-  undoBaseUrl: string,
-  redoBaseUrl: string,
+  baseUrl: string,
   textualDescriptionUrl: string,
   csrfHeaderName: string,
   csrfToken: string,
@@ -75,15 +72,8 @@ const props = withDefaults(defineProps<SplitByCoordinateEntryPageProps>(), {
   includeNstaBlocks: true,
 });
 
-function buildCommandJourneyUrl(baseUrl: string, commandJourney: string): string {
-  return `${baseUrl}/${commandJourney}`;
-}
-
 const featuresUrl = computed(() => buildCommandJourneyUrl(props.featuresBaseUrl, props.commandJourneyId));
 const outlineNodesUrl = computed(() => buildCommandJourneyUrl(props.outlineNodesBaseUrl, props.commandJourneyId));
-const historyUrl = computed(() => buildCommandJourneyUrl(props.historyBaseUrl, props.commandJourneyId));
-const undoUrl = computed(() => buildCommandJourneyUrl(props.undoBaseUrl, props.commandJourneyId));
-const redoUrl = computed(() => buildCommandJourneyUrl(props.redoBaseUrl, props.commandJourneyId));
 
 function createInitialPoint(): EditablePoint {
   return {

@@ -153,25 +153,50 @@ class CommandJourneyServiceTest {
   }
 
   @Test
-  void findOrCreateCommandJourneyForFeature_whenJourneyExists_returnsExistingJourney() {
-    var feature = FeatureTestUtil.newBuilder().build();
+  void findOrCreateCommandJourneyForFeatures_whenAJourneyContainsAllTheFeatures_returnsExistingJourney() {
+    var feature1 = FeatureTestUtil.newBuilder().build();
+    var feature2 = FeatureTestUtil.newBuilder().build();
     var journey = new CommandJourney();
 
-    when(featureJourneyStateService.findJourneyForFeature(feature)).thenReturn(Optional.of(journey));
+    when(featureJourneyStateService.findJourneyForFeature(feature1)).thenReturn(Optional.of(journey));
+    when(featureJourneyStateService.getActiveFeatures(journey)).thenReturn(List.of(feature1, feature2));
 
-    assertThat(commandJourneyService.findOrCreateCommandJourneyForFeature(feature)).isEqualTo(journey);
+    assertThat(commandJourneyService.findOrCreateCommandJourneyForFeatures(List.of(feature1, feature2)))
+        .isEqualTo(journey);
     verify(commandJourneyRepository, never()).save(any());
   }
 
   @Test
-  void findOrCreateCommandJourneyForFeature_whenNoJourney_createsAndAssignsJourney() {
-    var feature = FeatureTestUtil.newBuilder().build();
+  void findOrCreateCommandJourneyForFeatures_whenTheExistingJourneyIsMissingAFeature_createsAndAssignsJourney() {
+    var feature1 = FeatureTestUtil.newBuilder().build();
+    var feature2 = FeatureTestUtil.newBuilder().build();
+    var existingJourney = new CommandJourney();
     var savedJourney = new CommandJourney();
 
-    when(featureJourneyStateService.findJourneyForFeature(feature)).thenReturn(Optional.empty());
+    when(featureJourneyStateService.findJourneyForFeature(feature1)).thenReturn(Optional.of(existingJourney));
+    when(featureJourneyStateService.getActiveFeatures(existingJourney)).thenReturn(List.of(feature1));
+    when(featureJourneyStateService.findJourneyForFeature(feature2)).thenReturn(Optional.empty());
     when(commandJourneyRepository.save(any(CommandJourney.class))).thenReturn(savedJourney);
 
-    assertThat(commandJourneyService.findOrCreateCommandJourneyForFeature(feature)).isEqualTo(savedJourney);
-    verify(featureJourneyStateService).createInitialFeatureJourneyStates(savedJourney, List.of(feature));
+    assertThat(commandJourneyService.findOrCreateCommandJourneyForFeatures(List.of(feature1, feature2)))
+        .isEqualTo(savedJourney);
+    verify(featureJourneyStateService)
+        .createInitialFeatureJourneyStates(savedJourney, List.of(feature1, feature2));
+  }
+
+  @Test
+  void findOrCreateCommandJourneyForFeatures_whenNoFeatureHasAJourney_createsAndAssignsJourney() {
+    var feature1 = FeatureTestUtil.newBuilder().build();
+    var feature2 = FeatureTestUtil.newBuilder().build();
+    var savedJourney = new CommandJourney();
+
+    when(featureJourneyStateService.findJourneyForFeature(feature1)).thenReturn(Optional.empty());
+    when(featureJourneyStateService.findJourneyForFeature(feature2)).thenReturn(Optional.empty());
+    when(commandJourneyRepository.save(any(CommandJourney.class))).thenReturn(savedJourney);
+
+    assertThat(commandJourneyService.findOrCreateCommandJourneyForFeatures(List.of(feature1, feature2)))
+        .isEqualTo(savedJourney);
+    verify(featureJourneyStateService)
+        .createInitialFeatureJourneyStates(savedJourney, List.of(feature1, feature2));
   }
 }

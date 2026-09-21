@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { getOutlineNodes, getTextualDescription } from "@/api/features.api";
+import { getCommandJourneyFeatures, getOutlineNodes, getTextualDescription } from "@/api/features.api";
 
 describe("featuresApi", () => {
   afterEach(() => {
@@ -62,6 +62,62 @@ describe("featuresApi", () => {
       vi.stubGlobal("fetch", fetchMock);
 
       await expect(getTextualDescription("/api/gis-framework/textual-description?featureId=feature-1")).rejects.toBe("Response status: Internal Server Error");
+    });
+  });
+
+  describe("getCommandJourneyFeatures", () => {
+    it("getCommandJourneyFeatures_whenResponseOk_mapsFeatureAttributes", async () => {
+      const fetchMock = vi.fn().mockResolvedValue({
+        ok: true,
+        json: vi.fn().mockResolvedValue({
+          features: [
+            { attributes: { featureId: "feature-1", featureName: "Block A" } },
+            { attributes: { featureId: "feature-2", featureName: "Block B" } },
+          ],
+        }),
+      });
+      vi.stubGlobal("fetch", fetchMock);
+
+      const result = await getCommandJourneyFeatures("/api/gis-framework/command-journey-features/journey-1");
+
+      expect(result).toEqual([
+        { featureId: "feature-1", featureName: "Block A" },
+        { featureId: "feature-2", featureName: "Block B" },
+      ]);
+      expect(fetchMock).toHaveBeenCalledWith("/api/gis-framework/command-journey-features/journey-1");
+    });
+
+    it("getCommandJourneyFeatures_whenAFeatureHasMultiplePolygons_deduplicatesByFeatureId", async () => {
+      const fetchMock = vi.fn().mockResolvedValue({
+        ok: true,
+        json: vi.fn().mockResolvedValue({
+          features: [
+            { attributes: { featureId: "feature-1", featureName: "Block A" } },
+            { attributes: { featureId: "feature-1", featureName: "Block A" } },
+            { attributes: { featureId: "feature-2", featureName: "Block B" } },
+          ],
+        }),
+      });
+      vi.stubGlobal("fetch", fetchMock);
+
+      const result = await getCommandJourneyFeatures("/api/gis-framework/command-journey-features/journey-1");
+
+      expect(result).toEqual([
+        { featureId: "feature-1", featureName: "Block A" },
+        { featureId: "feature-2", featureName: "Block B" },
+      ]);
+    });
+
+    it("getCommandJourneyFeatures_whenResponseNotOk_rejects", async () => {
+      const fetchMock = vi.fn().mockResolvedValue({
+        ok: false,
+        statusText: "Internal Server Error",
+      });
+      vi.stubGlobal("fetch", fetchMock);
+
+      await expect(getCommandJourneyFeatures("/api/gis-framework/command-journey-features/journey-1"))
+        .rejects
+        .toBe("Response status: Internal Server Error");
     });
   });
 });

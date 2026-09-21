@@ -17,7 +17,9 @@ import org.springframework.web.bind.annotation.RestController;
 import uk.co.fivium.gisframework.command.CommandJourneyService;
 import uk.co.fivium.gisframework.command.OperatorCommandService;
 import uk.co.fivium.gisframework.operator.JsonHistoryStatus;
+import uk.co.fivium.gisframework.operator.JsonMergeResponse;
 import uk.co.fivium.gisframework.operator.JsonSplitResponse;
+import uk.co.fivium.gisframework.operator.MergeFromMapRequest;
 import uk.co.fivium.gisframework.operator.OperatorCommandReceiver;
 import uk.co.fivium.gisframework.operator.SplitFromMapRequest;
 
@@ -54,6 +56,24 @@ class OperatorRestController {
     return ResponseEntity.ok(
         new JsonSplitResponse(outputFeatureIds)
     );
+  }
+
+  @PostMapping("/merge")
+  ResponseEntity<JsonMergeResponse> merge(@RequestBody MergeFromMapRequest request) {
+    LOGGER.info("Received merge request for '{}'", request);
+    var startingInstant = Instant.now();
+    var outputFeature = operatorCommandReceiver.executeMerge(request);
+    if (outputFeature.isEmpty()) {
+      LOGGER.warn("Merge request '{}' produced no output feature", request);
+      return ResponseEntity.badRequest().build();
+    }
+
+    String outputFeatureId = outputFeature.get().getId().toString();
+    LOGGER.info("Merge request completed successfully for '{}' took {}ms",
+        request,
+        between(startingInstant, Instant.now()).toMillis()
+    );
+    return ResponseEntity.ok(new JsonMergeResponse(outputFeatureId));
   }
 
   @GetMapping("/history/{commandJourneyId}")

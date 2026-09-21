@@ -2,6 +2,7 @@ import {createApp} from "vue";
 import OpenLayersMap from "vue3-openlayers";
 import BaseMap from "./components/baseMap/BaseMap.vue";
 import TextualDescription from "./components/textualDescription/TextualDescription.vue";
+import MergePage from "./pages/MergePage.vue";
 import SplitByCoordinateEntryPage from "./pages/SplitByCoordinateEntryPage.vue";
 import SplitByPointAndClickPage from "./pages/SplitByPointAndClickPage.vue";
 import MapWithTextualDescription from "./components/textualDescription/MapWithTextualDescription.vue";
@@ -50,9 +51,25 @@ for (const element of document.querySelectorAll<HTMLElement>("[data-gis-componen
     featuresBaseUrl: element.dataset.gisFeaturesBaseUrl,
     outlineNodesBaseUrl: element.dataset.gisOutlineNodesBaseUrl,
     splitUrl: element.dataset.gisSplitUrl,
-    historyBaseUrl: element.dataset.gisHistoryBaseUrl,
-    undoBaseUrl: element.dataset.gisUndoBaseUrl,
-    redoBaseUrl: element.dataset.gisRedoBaseUrl,
+    baseUrl: element.dataset.gisBaseUrl,
+    textualDescriptionUrl: element.dataset.gisTextualDescriptionUrl,
+    csrfHeaderName: element.dataset.gisCsrfHeaderName,
+    csrfToken: element.dataset.gisCsrfToken,
+    includeNstaQuadrants: element.dataset.gisIncludeNstaQuadrants === "true",
+    includeNstaBlocks: element.dataset.gisIncludeNstaBlocks === "true",
+  })
+    .use(OpenLayersMap)
+    .mount(element);
+}
+
+for (const element of document.querySelectorAll<HTMLElement>("[data-gis-component='gis-merge']")) {
+  createApp(MergePage, {
+    commandJourneyId: element.dataset.gisCommandJourneyId,
+    srsWkid: Number(element.dataset.gisSrsWkid),
+    featuresBaseUrl: element.dataset.gisFeaturesBaseUrl,
+    outlineNodesBaseUrl: element.dataset.gisOutlineNodesBaseUrl,
+    mergeUrl: element.dataset.gisMergeUrl,
+    baseUrl: element.dataset.gisBaseUrl,
     textualDescriptionUrl: element.dataset.gisTextualDescriptionUrl,
     csrfHeaderName: element.dataset.gisCsrfHeaderName,
     csrfToken: element.dataset.gisCsrfToken,
@@ -70,9 +87,7 @@ for (const element of document.querySelectorAll<HTMLElement>("[data-gis-componen
     featuresBaseUrl: element.dataset.gisFeaturesBaseUrl,
     outlineNodesBaseUrl: element.dataset.gisOutlineNodesBaseUrl,
     splitUrl: element.dataset.gisSplitUrl,
-    historyBaseUrl: element.dataset.gisHistoryBaseUrl,
-    undoBaseUrl: element.dataset.gisUndoBaseUrl,
-    redoBaseUrl: element.dataset.gisRedoBaseUrl,
+    baseUrl: element.dataset.gisBaseUrl,
     textualDescriptionUrl: element.dataset.gisTextualDescriptionUrl,
     csrfHeaderName: element.dataset.gisCsrfHeaderName,
     csrfToken: element.dataset.gisCsrfToken,

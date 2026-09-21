@@ -137,12 +137,39 @@ class GisTestControllerTest extends AbstractControllerTest {
     when(commandJourney.getId()).thenReturn(commandJourneyId);
 
     when(featureService.getFeatureOrThrow(UUID.fromString("11111111-1111-1111-1111-111111111100"))).thenReturn(feature);
-    when(commandJourneyService.findOrCreateCommandJourneyForFeature(feature)).thenReturn(commandJourney);
+    when(commandJourneyService.findOrCreateCommandJourneyForFeatures(List.of(feature))).thenReturn(commandJourney);
 
     mockMvc.perform(get(ReverseRouter.route(on(GisTestController.class).renderSplitDisjointByPointAndClick()))
             .with(user(regulatorUser)))
         .andExpect(status().isOk())
         .andExpect(view().name("lms/mockups/gis/pointAndClickMapTester"))
+        .andExpect(model().attribute("commandJourneyId", commandJourneyId.toString()))
+        .andExpect(model().attribute("srsWkid", 4230));
+  }
+
+  @Test
+  void renderMerge_whenNotLoggedIn() throws Exception {
+    mockMvc.perform(get(ReverseRouter.route(on(GisTestController.class).renderMerge())))
+        .andExpect(status().is3xxRedirection())
+        .andExpect(redirectionToLoginUrl());
+  }
+
+  @Test
+  void renderMerge_assertModelProperties() throws Exception {
+    UUID featureId = UUID.randomUUID();
+    var feature = getMockFeature(featureId);
+    when(feature.getCoordinateSystem()).thenReturn(CoordinateSystem.ED50);
+    var commandJourneyId = UUID.randomUUID();
+    var commandJourney = mock(CommandJourney.class);
+    when(commandJourney.getId()).thenReturn(commandJourneyId);
+
+    when(featureService.findAllByTestCase("EPGF-81")).thenReturn(List.of(feature));
+    when(commandJourneyService.findOrCreateCommandJourneyForFeatures(List.of(feature))).thenReturn(commandJourney);
+
+    mockMvc.perform(get(ReverseRouter.route(on(GisTestController.class).renderMerge()))
+            .with(user(regulatorUser)))
+        .andExpect(status().isOk())
+        .andExpect(view().name("lms/mockups/gis/mergeMapTester"))
         .andExpect(model().attribute("commandJourneyId", commandJourneyId.toString()))
         .andExpect(model().attribute("srsWkid", 4230));
   }

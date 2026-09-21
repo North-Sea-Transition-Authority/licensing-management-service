@@ -49,6 +49,11 @@ public class Feature {
 
   private LocalDate endDate;
 
+  /**
+   * Used only for the GIS test page, will remove in the future.
+   */
+  private String testCase;
+
   @VisibleForTesting
   Feature(UUID id) {
     this.id = id;
@@ -128,5 +133,13 @@ public class Feature {
 
   public void setEndDate(LocalDate endDate) {
     this.endDate = endDate;
+  }
+
+  public String getTestCase() {
+    return testCase;
+  }
+
+  public void setTestCase(String testCase) {
+    this.testCase = testCase;
   }
 }

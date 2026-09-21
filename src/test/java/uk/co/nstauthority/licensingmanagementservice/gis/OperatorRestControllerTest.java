@@ -12,6 +12,7 @@ import static uk.co.nstauthority.licensingmanagementservice.authentication.TestU
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,7 +24,9 @@ import uk.co.fivium.gisframework.command.CommandJourney;
 import uk.co.fivium.gisframework.command.CommandJourneyService;
 import uk.co.fivium.gisframework.command.OperatorCommandService;
 import uk.co.fivium.gisframework.operator.JsonHistoryStatus;
+import uk.co.fivium.gisframework.operator.JsonMergeResponse;
 import uk.co.fivium.gisframework.operator.JsonSplitResponse;
+import uk.co.fivium.gisframework.operator.MergeFromMapRequest;
 import uk.co.fivium.gisframework.operator.OperatorCommandReceiver;
 import uk.co.fivium.gisframework.operator.SplitFromMapRequest;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
@@ -65,6 +68,35 @@ class OperatorRestControllerTest extends AbstractControllerTest {
     var expected = new JsonSplitResponse(List.of(outputFeature1.getId().toString()));
 
     mockMvc.perform(post("/api/gis-framework/split")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(requestBody)
+            .with(csrf())
+            .with(user(regulatorUser)))
+        .andExpect(status().isOk())
+        .andExpect(content().json(objectMapper.writeValueAsString(expected), JsonCompareMode.STRICT));
+  }
+
+  @Test
+  void merge_whenMergeOccurs_assertOutputFeatureId() throws Exception {
+    var commandJourneyId = UUID.randomUUID();
+    var featureId1 = UUID.randomUUID();
+    var featureId2 = UUID.randomUUID();
+    var outputFeature = FeatureTestUtil.builder().build();
+
+    var requestBody = """
+        {
+          "featureIds": ["%s", "%s"],
+          "commandJourneyId": "%s"
+        }
+        """.formatted(featureId1, featureId2, commandJourneyId);
+
+    when(operatorCommandReceiver.executeMerge(
+        new MergeFromMapRequest(List.of(featureId1, featureId2), commandJourneyId)))
+        .thenReturn(Optional.of(outputFeature));
+
+    var expected = new JsonMergeResponse(outputFeature.getId().toString());
+
+    mockMvc.perform(post("/api/gis-framework/merge")
             .contentType(MediaType.APPLICATION_JSON)
             .content(requestBody)
             .with(csrf())

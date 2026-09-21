@@ -46,25 +46,21 @@ public class MergeOperatorService {
     this.lineService = lineService;
   }
 
-
   @Transactional
-  public Feature mergePolygons(Feature featureInput1, Feature featureInput2) {
+  public Feature mergePolygons(List<Feature> inputFeatures) {
+    if (inputFeatures.size() < 2) {
+      throw new IllegalArgumentException("Must provide at least two input features");
+    }
+
     //TODO - EPGF-72: Handle disjoint polygon merge
-    String esriJsonPolygonInput1 = polygonService.getPolygonsAsEsriJson(featureInput1, false).getFirst();
-    String esriJsonPolygonInput2 = polygonService.getPolygonsAsEsriJson(featureInput2, false).getFirst();
+    String resultEsriJsonPolygon = inputFeatures.stream()
+        .map(feature -> polygonService.getPolygonsAsEsriJson(feature, false).getFirst())
+        .reduce(grpcClientService::mergePolygons)
+        .orElseThrow();
 
-    LOGGER.info("Input polygons:");
-    LOGGER.info(esriJsonPolygonInput1);
-    LOGGER.info(esriJsonPolygonInput2);
+    var newFeature = operatorResultProcessingService.processOutputPolygon(inputFeatures, resultEsriJsonPolygon, 1);
 
-    String resultEsriPolygon = grpcClientService.mergePolygons(esriJsonPolygonInput1, esriJsonPolygonInput2);
-    var newFeature = operatorResultProcessingService.processOutputPolygon(
-        List.of(featureInput1, featureInput2),
-        resultEsriPolygon,
-        1
-    );
-
-    removeInnerVertices(resultEsriPolygon, newFeature);
+    removeInnerVertices(resultEsriJsonPolygon, newFeature);
 
     return newFeature;
   }

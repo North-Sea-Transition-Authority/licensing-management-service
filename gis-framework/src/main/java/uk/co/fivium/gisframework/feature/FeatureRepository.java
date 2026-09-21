@@ -26,4 +26,9 @@ interface FeatureRepository extends ListCrudRepository<Feature, UUID> {
 
   @Query(value = "SELECT * FROM lms.gis_framework_features WHERE attributes ->> ?1 IN (?2)", nativeQuery = true)
   List<Feature> findAllByAttributeValueIn(String key, Collection<String> values);
+
+  /**
+   * Used only for the GIS test page, will remove in the future.
+   */
+  List<Feature> findAllByTestCase(String testCase);
 }

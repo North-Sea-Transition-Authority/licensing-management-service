@@ -1,6 +1,7 @@
 package uk.co.fivium.gisframework.operator;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -46,6 +47,15 @@ class MergeOperatorServiceTest {
   private MergeOperatorService mergeOperatorService;
 
   @Test
+  void mergePolygons_whenFewerThanTwoInputFeatures_thenThrows() {
+    var singleFeature = List.of(FeatureTestUtil.newBuilder().build());
+
+    assertThatThrownBy(() -> mergeOperatorService.mergePolygons(singleFeature))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("Must provide at least two input features");
+  }
+
+  @Test
   void mergePolygons_whenNoInnerVertices_thenReturnsMergedFeatureUntouched() {
     var featureInput1 = FeatureTestUtil.newBuilder().build();
     var featureInput2 = FeatureTestUtil.newBuilder().build();
@@ -58,7 +68,7 @@ class MergeOperatorServiceTest {
         .thenReturn(mergedFeature);
     when(grpcClientService.generalizePolygon(SQUARE)).thenReturn(SQUARE);
 
-    var result = mergeOperatorService.mergePolygons(featureInput1, featureInput2);
+    var result = mergeOperatorService.mergePolygons(List.of(featureInput1, featureInput2));
 
     assertThat(result).isEqualTo(mergedFeature);
     verify(lineService, never()).deleteLines(any());
@@ -91,7 +101,7 @@ class MergeOperatorServiceTest {
     when(grpcClientService.mergeAndGeneralizeLines(
         List.of(lineToInnerVertex.getEsriJson(), lineFromInnerVertex.getEsriJson()))).thenReturn(combinedLineJson);
 
-    var result = mergeOperatorService.mergePolygons(featureInput1, featureInput2);
+    var result = mergeOperatorService.mergePolygons(List.of(featureInput1, featureInput2));
 
     assertThat(result).isEqualTo(mergedFeature);
     assertThat(lineToInnerVertex.getEsriJson()).isEqualTo(combinedLineJson);
@@ -126,7 +136,7 @@ class MergeOperatorServiceTest {
     when(lineService.getLines(List.of(polygon)))
         .thenReturn(List.of(lineToInnerVertex, lineFromInnerVertex, line3, line4, line5));
 
-    var result = mergeOperatorService.mergePolygons(featureInput1, featureInput2);
+    var result = mergeOperatorService.mergePolygons(List.of(featureInput1, featureInput2));
 
     assertThat(result).isEqualTo(mergedFeature);
     verify(grpcClientService, never()).mergeAndGeneralizeLines(any());

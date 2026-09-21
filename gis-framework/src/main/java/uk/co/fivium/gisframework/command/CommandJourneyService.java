@@ -2,7 +2,9 @@ package uk.co.fivium.gisframework.command;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityNotFoundException;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,7 +20,7 @@ public class CommandJourneyService {
   private final FeatureService featureService;
   private final EntityManager entityManager;
 
-  public CommandJourneyService(CommandJourneyRepository commandJourneyRepository,
+  CommandJourneyService(CommandJourneyRepository commandJourneyRepository,
                                FeatureJourneyStateService featureJourneyStateService,
                                OperatorCommandService operatorCommandService,
                                FeatureService featureService,
@@ -97,8 +99,12 @@ public class CommandJourneyService {
    * Used only for the GIS test page, will remove in the future.
    */
   @Transactional
-  public CommandJourney findOrCreateCommandJourneyForFeature(Feature feature) {
-    return featureJourneyStateService.findJourneyForFeature(feature)
-        .orElseGet(() -> createAndAssignCommandJourney(List.of(feature)));
+  public CommandJourney findOrCreateCommandJourneyForFeatures(List<Feature> features) {
+    return features.stream()
+        .map(featureJourneyStateService::findJourneyForFeature)
+        .flatMap(Optional::stream)
+        .filter(journey -> new HashSet<>(getActiveFeatures(journey)).containsAll(features))
+        .findFirst()
+        .orElseGet(() -> createAndAssignCommandJourney(features));
   }
 }

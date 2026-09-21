@@ -130,4 +130,11 @@ public class FeatureService {
     return featureRepository.findById(featureId).orElseThrow(() ->
         new EntityNotFoundException("Feature %s not found".formatted(featureId)));
   }
+
+  /**
+   * Used only for the GIS test page, will remove in the future.
+   */
+  public List<Feature> findAllByTestCase(String testCase) {
+    return featureRepository.findAllByTestCase(testCase);
+  }
 }

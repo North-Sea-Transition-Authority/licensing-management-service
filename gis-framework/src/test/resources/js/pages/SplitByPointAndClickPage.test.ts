@@ -38,9 +38,7 @@ const splitActionsStub = {
     "splitUrl",
     "commandJourneyId",
     "refreshCounter",
-    "historyUrl",
-    "undoUrl",
-    "redoUrl",
+    "baseUrl",
     "csrfHeaderName",
     "csrfToken",
   ],
@@ -51,9 +49,7 @@ const splitActionsStub = {
       <p data-testid="split-url">{{ splitUrl }}</p>
       <p data-testid="split-journey">{{ commandJourneyId }}</p>
       <p data-testid="split-points">{{ JSON.stringify(points) }}</p>
-      <p data-testid="history-url">{{ historyUrl }}</p>
-      <p data-testid="undo-url">{{ undoUrl }}</p>
-      <p data-testid="redo-url">{{ redoUrl }}</p>
+      <p data-testid="base-url">{{ baseUrl }}</p>
       <button data-testid="emit-action-success" @click="$emit('action-success')">success</button>
       <button data-testid="emit-action-error" @click="$emit('action-error', 'undo failed')">error</button>
     </div>
@@ -79,9 +75,7 @@ const baseProps = {
   featuresBaseUrl: "/api/gis-framework/features",
   outlineNodesBaseUrl: "/api/gis-framework/outline-nodes",
   splitUrl: "/api/gis-framework/split",
-  historyBaseUrl: "/api/gis-framework/history",
-  undoBaseUrl: "/api/gis-framework/undo",
-  redoBaseUrl: "/api/gis-framework/redo",
+  baseUrl: "/api/gis-framework",
   textualDescriptionUrl: "/api/gis-framework/command-journey-textual-description",
   csrfHeaderName: "X-CSRF-TOKEN",
   csrfToken: "csrf-token-1",
@@ -116,15 +110,11 @@ describe("splitByPointAndClickPage", () => {
     expect(screen.getByTestId("description-journey").textContent).toBe("journey-1");
   });
 
-  it("builds the history, undo and redo urls from the given command journey id", () => {
+  it("wires the base url into the split actions", () => {
     renderPage();
 
-    expect(screen.getByTestId("history-url").textContent)
-      .toBe("/api/gis-framework/history/journey-1");
-    expect(screen.getByTestId("undo-url").textContent)
-      .toBe("/api/gis-framework/undo/journey-1");
-    expect(screen.getByTestId("redo-url").textContent)
-      .toBe("/api/gis-framework/redo/journey-1");
+    expect(screen.getByTestId("base-url").textContent)
+      .toBe("/api/gis-framework");
   });
 
   it("wires the split url, command journey id and auto-split into the split actions", () => {

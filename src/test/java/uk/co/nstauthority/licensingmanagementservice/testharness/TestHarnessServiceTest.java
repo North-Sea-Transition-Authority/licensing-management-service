@@ -35,6 +35,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderType;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.AdministratorOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenseeOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.TransferEquityOperation;
@@ -54,6 +55,7 @@ import uk.co.nstauthority.licensingmanagementservice.testharness.LicencePosition
 class TestHarnessServiceTest {
 
   private static final int BP_EXPLORATION_ALPHA_LTD_ID = 304;
+  private static final int FLAMSTONE_OIL_AND_GAS_LIMITED = 376;
   private static final int SHELL_PLC_ID = 9205;
   private static final int PPRS_TRAINING_ORG = 12845;
 
@@ -204,6 +206,34 @@ class TestHarnessServiceTest {
   }
 
   @Test
+  void generateLicensePositions_whenPrimaryIsProduction_addsLicenseeChangeOnFirstAndNonFinalPosition() {
+    var licence = production(1);
+    var secondaryLicence = carbonStorage(2);
+    var positions = buildPositions(5);
+    when(licencePositionService.getExecutedChronologicalLicencePositions(licence)).thenReturn(positions);
+    givenSeededBlocks(licence);
+    givenSurrenderCommandJourneysCreated();
+
+    testHarnessService.generateLicencePositions(licence, secondaryLicence);
+
+    verify(licencePositionChangeService, times(5)).createLicencePositionChange(
+        positionCaptor.capture(), operationsCaptor.capture(), eq(1), eq(LicencePositionChangeStatus.CONSENTED));
+
+    //Order: 2 Administrator Positions; first = index 0; non-final = index size - 4 = 1
+    assertThat(positionCaptor.getAllValues())
+        .startsWith(positions.get(0), positions.get(2), positions.get(0), positions.get(1));
+    assertThat(operationsCaptor.getAllValues().stream().flatMap(List::stream))
+        .filteredOn(LicenseeOperation.class::isInstance)
+        .extracting(
+            operation -> ((LicenseeOperation) operation).licenseesToAdd(),
+            operation -> ((LicenseeOperation) operation).licenseesToRemove()
+        ).containsExactly(
+            tuple(List.of(BP_EXPLORATION_ALPHA_LTD_ID, FLAMSTONE_OIL_AND_GAS_LIMITED), List.of()),
+            tuple(List.of(SHELL_PLC_ID), List.of(BP_EXPLORATION_ALPHA_LTD_ID))
+        );
+  }
+
+  @Test
   void generateLicencePositions_whenPrimaryIsProduction_addsAdministratorChangeOnFirstAndNonFinalPosition() {
     var licence = production(1);
     var secondaryLicence = carbonStorage(2);
@@ -214,7 +244,7 @@ class TestHarnessServiceTest {
 
     testHarnessService.generateLicencePositions(licence, secondaryLicence);
 
-    verify(licencePositionChangeService, times(3)).createLicencePositionChange(
+    verify(licencePositionChangeService, times(5)).createLicencePositionChange(
         positionCaptor.capture(), operationsCaptor.capture(), eq(1), eq(LicencePositionChangeStatus.CONSENTED));
 
     // first = index 0 (Shell); non-final = index size - 3 = 2 (BP)
@@ -236,7 +266,7 @@ class TestHarnessServiceTest {
 
     testHarnessService.generateLicencePositions(licence, secondaryLicence);
 
-    verify(licencePositionChangeService, times(3)).createLicencePositionChange(
+    verify(licencePositionChangeService, times(5)).createLicencePositionChange(
         positionCaptor.capture(), operationsCaptor.capture(), eq(1), eq(LicencePositionChangeStatus.CONSENTED));
 
     // penultimate = index size - 2 = 3
@@ -275,7 +305,7 @@ class TestHarnessServiceTest {
 
     testHarnessService.generateLicencePositions(licence, secondaryLicence);
 
-    verify(licencePositionChangeService, times(2)).createLicencePositionChange(
+    verify(licencePositionChangeService, times(4)).createLicencePositionChange(
         positionCaptor.capture(), operationsCaptor.capture(), eq(1), eq(LicencePositionChangeStatus.CONSENTED));
 
     assertThat(operationsCaptor.getAllValues().stream().flatMap(List::stream))
@@ -287,13 +317,15 @@ class TestHarnessServiceTest {
   void generateLicencePositions_whenSecondaryIsProduction_addsInitialAdministratorOnFirstPosition() {
     // primary is gas storage so that only the secondary production licence produces a change
     var licence = gasStorage(1);
+    var positions = buildPositions(5);
     var secondaryLicence = production(2);
     var secondaryPositions = buildPositions(1);
+    when(licencePositionService.getExecutedChronologicalLicencePositions(licence)).thenReturn(positions);
     when(licencePositionService.getExecutedChronologicalLicencePositions(secondaryLicence)).thenReturn(secondaryPositions);
 
     testHarnessService.generateLicencePositions(licence, secondaryLicence);
 
-    verify(licencePositionChangeService).createLicencePositionChange(
+    verify(licencePositionChangeService, times(3)).createLicencePositionChange(
         positionCaptor.capture(), operationsCaptor.capture(), eq(1), eq(LicencePositionChangeStatus.CONSENTED));
 
     assertThat(positionCaptor.getValue()).isEqualTo(secondaryPositions.getFirst());
@@ -313,11 +345,11 @@ class TestHarnessServiceTest {
     // the secondary carbon storage licence is not enriched (it only has a single position)
     verify(licencePositionService, never()).getExecutedChronologicalLicencePositions(secondaryLicence);
 
-    verify(licencePositionChangeService, times(2)).createLicencePositionChange(
+    verify(licencePositionChangeService, times(4)).createLicencePositionChange(
         positionCaptor.capture(), operationsCaptor.capture(), eq(1), eq(LicencePositionChangeStatus.CONSENTED));
 
     // set on the first position (index 0), transfer on a non-final position (index size - 3 = 2)
-    assertThat(positionCaptor.getAllValues()).containsExactly(positions.get(0), positions.get(2));
+    assertThat(positionCaptor.getAllValues()).containsExactly(positions.get(0), positions.get(2), positions.get(0), positions.get(1));
 
     var setOperations = operationsCaptor.getAllValues().get(0);
     assertThat(setOperations)

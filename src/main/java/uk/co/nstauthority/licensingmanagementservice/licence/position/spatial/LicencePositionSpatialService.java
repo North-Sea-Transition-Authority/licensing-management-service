@@ -15,6 +15,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.AdministratorOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenseeOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaOperation;
@@ -150,6 +151,7 @@ public class LicencePositionSpatialService {
       case SetEquityOperation ignored -> featureIdsBeforeOperation;
       case TransferEquityOperation ignored -> featureIdsBeforeOperation;
       case SubareaOperation ignored -> featureIdsBeforeOperation;
+      case LicenseeOperation ignored -> featureIdsBeforeOperation;
     };
   }
 }

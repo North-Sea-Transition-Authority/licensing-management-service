@@ -25,6 +25,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.AdministratorOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenseeOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaOperation;
@@ -36,6 +37,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.vie
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.AdministratorChangeView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.ChangeViewUrls;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.LicencePositionChangeView;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.LicenseeChangeView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.PartialSurrenderChangeView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.SetEquityChangeView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.SetEquityRow;
@@ -231,7 +233,19 @@ public final class LicencePositionChangeViewResolver {
           );
       case SubareaOperation subareaOperation ->
           buildSubareaChange(subareaOperation, change, context.featureNames(), correctChangeOrderUrl);
+      case LicenseeOperation licenseeOperation -> buildLicenseeChange(change, correctChangeOrderUrl);
     };
+  }
+
+  //TODO LMS2-87: Implement with necessary parameters and test
+  private static LicenseeChangeView buildLicenseeChange(
+      PositionChange change,
+      @Nullable String correctChangeOrderUrl
+  ) {
+    return new LicenseeChangeView(
+        change.changeType(),
+        new ChangeViewUrls(null, null, null, correctChangeOrderUrl)
+    );
   }
 
   private static SubareaChangeView buildSubareaChange(

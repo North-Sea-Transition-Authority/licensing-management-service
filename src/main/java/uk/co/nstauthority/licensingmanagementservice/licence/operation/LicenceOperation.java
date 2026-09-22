@@ -31,6 +31,10 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
     @JsonSubTypes.Type(
         value = SubareaOperation.class,
         name = LicenceOperation.SUBAREA
+    ),
+    @JsonSubTypes.Type(
+        value = LicenseeOperation.class,
+        name = LicenceOperation.LICENSEE
     )
 })
 public sealed interface LicenceOperation permits
@@ -38,13 +42,15 @@ public sealed interface LicenceOperation permits
     SetEquityOperation,
     TransferEquityOperation,
     PartialSurrenderOperation,
-    SubareaOperation {
+    SubareaOperation,
+    LicenseeOperation {
 
   String LICENCE_ADMINISTRATOR = "licence-administrator";
   String SET_EQUITY = "set-equity";
   String TRANSFER_EQUITY = "transfer-equity";
   String PARTIAL_SURRENDER = "partial-surrender";
   String SUBAREA = "subarea";
+  String LICENSEE = "licensee";
 
   String type();
 
@@ -75,6 +81,9 @@ public sealed interface LicenceOperation permits
     return new SubareaOperation.Builder();
   }
 
+  static LicenseeOperation.Builder newLicenseeOperation() {
+    return new LicenseeOperation.Builder();
+  }
 
   static boolean isEquityOperation(LicenceOperation operation) {
     return operation instanceof SetEquityOperation || operation instanceof TransferEquityOperation;
@@ -87,6 +96,7 @@ public sealed interface LicenceOperation permits
       case AdministratorOperation ignored -> List.of();
       case SetEquityOperation ignored -> List.of();
       case TransferEquityOperation ignored -> List.of();
+      case LicenseeOperation ignored -> List.of();
     };
   }
 
@@ -97,6 +107,7 @@ public sealed interface LicenceOperation permits
       case TransferEquityOperation transfer -> List.of(transfer.transferFrom(), transfer.transferTo());
       case PartialSurrenderOperation ignored -> List.of();
       case SubareaOperation ignored -> List.of();
+      case LicenseeOperation ignored -> List.of();
     };
   }
 }

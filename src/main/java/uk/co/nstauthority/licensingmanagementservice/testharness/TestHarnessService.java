@@ -28,6 +28,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.transaction.Licence
 class TestHarnessService {
 
   private static final int BP_EXPLORATION_ALPHA_LTD_ID = 304;
+  private static final int FLAMSTONE_OIL_AND_GAS_LIMITED = 376;
   private static final int SHELL_PLC_ID = 9205;
   private static final int PPRS_TRAINING_ORG = 12845;
   private static final int SURRENDER_CHANGE_ORDER = 1;
@@ -81,6 +82,7 @@ class TestHarnessService {
     } else if (LicenceType.CARBON_STORAGE.equals(licence.getType())) {
       generateCarbonStorageBeneficialInterestPositionChanges(licence);
     }
+    generateLicenseePositionChange(licence);
 
     if (secondaryLicence.getType().isProduction()) {
       generateInitialAdministrator(secondaryLicence);
@@ -225,6 +227,32 @@ class TestHarnessService {
         .withTransferTo(transferTo)
         .withEquity(equity)
         .build();
+  }
+
+  private void generateLicenseePositionChange(Licence licence) {
+    var executedChronologicalLicencePositions = licencePositionService.getExecutedChronologicalLicencePositions(licence);
+
+    var firstPosition = executedChronologicalLicencePositions.getFirst();
+    var nonfinalPosition = executedChronologicalLicencePositions.get(executedChronologicalLicencePositions.size() - 4);
+
+    createLicenseeChange(firstPosition, List.of(BP_EXPLORATION_ALPHA_LTD_ID, FLAMSTONE_OIL_AND_GAS_LIMITED), List.of());
+    createLicenseeChange(nonfinalPosition, List.of(SHELL_PLC_ID), List.of(BP_EXPLORATION_ALPHA_LTD_ID));
+  }
+
+  private void createLicenseeChange(LicencePosition licencePosition,
+                                    List<Integer> licenseesToAdd,
+                                    List<Integer> licenseesToRemove) {
+    var licenseeChange = LicenceOperation.newLicenseeOperation()
+        .withLicenseesToAdd(licenseesToAdd)
+        .withLicenseesToRemove(licenseesToRemove)
+        .build();
+
+    licencePositionChangeService.createLicencePositionChange(
+        licencePosition,
+        List.of(licenseeChange),
+        1,
+        LicencePositionChangeStatus.CONSENTED
+    );
   }
 
   private void generateAdministratorPositionChange(Licence licence) {

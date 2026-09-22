@@ -12,6 +12,7 @@ import java.util.UUID;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.AdministratorOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenseeOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaOperation;
@@ -95,6 +96,7 @@ public final class LicencePositionStateResolver {
 
   private static LicencePositionState applyOperation(LicencePositionState state, LicenceOperation operation) {
     //TODO extend the switch statement as other operation types are added
+    //TODO LMS2-90: Extend Licensee Operation
     return switch (operation) {
       case AdministratorOperation administratorOperation ->
           state.withAdministratorId(administratorOperation.operatorId());
@@ -103,6 +105,7 @@ public final class LicencePositionStateResolver {
       case SetEquityOperation setEquityOperation -> state;
       case PartialSurrenderOperation partialSurrenderOperation -> state;
       case SubareaOperation subareaOperation -> state;
+      case LicenseeOperation licenseeOperation -> state;
     };
   }
 

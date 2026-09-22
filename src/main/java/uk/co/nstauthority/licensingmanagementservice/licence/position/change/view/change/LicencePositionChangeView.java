@@ -8,7 +8,8 @@ public sealed interface LicencePositionChangeView permits
     SetEquityChangeView,
     TransferEquityChangeView,
     PartialSurrenderChangeView,
-    SubareaChangeView {
+    SubareaChangeView,
+    LicenseeChangeView {
 
   @Nullable
   String changeType();

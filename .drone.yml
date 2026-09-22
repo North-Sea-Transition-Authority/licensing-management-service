@@ -20,7 +20,6 @@ steps:
 
   - name: fetch-fds-submodule
     image: alpine/git:v2.26.2
-    depends_on: [ restore-cache ]
     commands:
       - git config submodule.fivium-design-system-core.url https://github.com/Fivium/fivium-design-system-core.git
       - git submodule update --init --recursive
@@ -30,13 +29,11 @@ steps:
 
   - name: detect-gis-changes
     image: alpine/git:v2.26.2
-    depends_on: [ fetch-fds-submodule ]
     commands:
       - git diff --name-only HEAD~1 HEAD 2>/dev/null | grep -q "^gis-framework/" && touch .gis-framework-changed && echo "GIS changes detected" || echo "No GIS changes detected"
 
   - name: build-gis-node-backend
     image: node:24.16.0
-    depends_on: [ detect-gis-changes ]
     commands:
       - test -f .gis-framework-changed || exit 0
       - cd gis-framework/arcgis-node
@@ -48,7 +45,6 @@ steps:
 
   - name: gis-frontend-visual-tests
     image: node:24.16.0
-    depends_on: [ detect-gis-changes ]
     commands:
       - test -f .gis-framework-changed || exit 0
       - cd gis-framework
@@ -58,7 +54,6 @@ steps:
 
   - name: gis-frontend-visual-tests-publish-report
     image: alpine:3.16.0
-    depends_on: [ gis-frontend-visual-tests ]
     when:
       status: [ success, failure ]
     commands:
@@ -69,7 +64,6 @@ steps:
   - name: build-gis-java-backend
     image: quay.io/testcontainers/dind-drone-plugin
     privileged: true
-    depends_on: [ detect-gis-changes ]
     environment:
       TZ: Europe/London
       CI_WORKSPACE: /drone/src
@@ -96,7 +90,6 @@ steps:
 
   - name: build-frontend
     image: node:24.16.0
-    depends_on: [ fetch-fds-submodule ]
     commands:
       - cd fivium-design-system-core && npm install && npx gulp buildAll && cd ..
       - npm install && npx gulp buildAll
@@ -104,8 +97,6 @@ steps:
   - name: build-backend
     image: quay.io/testcontainers/dind-drone-plugin
     privileged: true
-    # also depends on build-gis-java-backend so the two privileged dind containers don't overlap
-    depends_on: [ build-frontend, build-gis-java-backend ]
     environment:
       TZ: Europe/London
       CI_WORKSPACE: /drone/src
@@ -164,7 +155,6 @@ steps:
 
   - name: sync-reports
     image: alpine:3.16.0
-    depends_on: [ build-backend ]
     commands:
       - mkdir -p /var/webfiles/${DRONE_BUILD_NUMBER}
       - cp -r build/reports /var/webfiles/${DRONE_BUILD_NUMBER}
@@ -176,7 +166,6 @@ steps:
 
   - name: code-analysis
     image: repo1.dev.fivium.local:5000/sonarcloud-scan-java21:latest
-    depends_on: [ build-backend ]
     environment:
       SONAR_TOKEN:
         from_secret: sonarcloud_token
@@ -195,7 +184,6 @@ steps:
 
   - name: publish-ecr
     image: plugins/ecr:21
-    depends_on: [ build-backend ]
     settings:
       repo: digital/licensing-management-service
       registry: 847993322739.dkr.ecr.eu-west-2.amazonaws.com
@@ -218,7 +206,6 @@ steps:
 
   - name: publish-gis-node-app
     image: plugins/ecr:21
-    depends_on: [ build-gis-node-backend ]
     settings:
       repo: digital/licensing-management-service-gis-node-app
       registry: 847993322739.dkr.ecr.eu-west-2.amazonaws.com
@@ -242,7 +229,6 @@ steps:
 
   - name: trivy-build-image
     image: docker:20.10.9
-    depends_on: [ build-backend ]
     volumes:
       - name: docker-sock
         path: /var/run/docker.sock
@@ -252,7 +238,6 @@ steps:
   - name: trivy-scan
     failure: ignore
     image: aquasec/trivy:0.58.0
-    depends_on: [ trivy-build-image ]
     environment:
       TRIVY_DB_REPOSITORY: public.ecr.aws/aquasecurity/trivy-db,aquasec/trivy-db,ghcr.io/aquasecurity/trivy-db
       TRIVY_JAVA_DB_REPOSITORY: public.ecr.aws/aquasecurity/trivy-java-db,aquasec/trivy-java-db,ghcr.io/aquasecurity/trivy-java-db
@@ -270,7 +255,6 @@ steps:
 
   - name: scan-and-sync-public-repo
     image: quay.io/fivium/drone-trufflehog-plugin:v1.0
-    depends_on: [ restore-cache ]
     settings:
       scan_since_commit_hash: 04f3c35fa22d864daaf6b1c50045befb7925db48
       sync_to_mirror: true
@@ -286,7 +270,6 @@ steps:
 
   - name: rebuild-cache
     image: drillster/drone-volume-cache
-    depends_on: [ sync-reports, code-analysis, publish-ecr, publish-gis-node-app, trivy-scan, scan-and-sync-public-repo ]
     volumes:
       - name: drone-cache
         path: /cache
@@ -300,7 +283,6 @@ steps:
 
   - name: slack
     image: plugins/slack
-    depends_on: [ rebuild-cache ]
     settings:
       webhook:
         from_secret: slack_token
@@ -354,8 +336,6 @@ steps:
 
   - name: restore-cache
     image: drillster/drone-volume-cache
-    # clone is a manual step here, not Drone's auto-clone, so it must be depended on explicitly
-    depends_on: [ clone ]
     volumes:
       - name: drone-cache
         path: /cache
@@ -370,7 +350,6 @@ steps:
 
   - name: fetch-fds-submodule
     image: alpine/git:v2.26.2
-    depends_on: [ restore-cache ]
     commands:
       - git config submodule.fivium-design-system-core.url https://github.com/Fivium/fivium-design-system-core.git
       - git submodule update --init --recursive
@@ -380,14 +359,12 @@ steps:
 
   - name: detect-gis-changes
     image: alpine/git:v2.26.2
-    depends_on: [ fetch-fds-submodule ]
     commands:
       - git fetch origin $DRONE_TARGET_BRANCH
       - git diff --name-only origin/$DRONE_TARGET_BRANCH...HEAD | grep -q "^gis-framework/" && touch .gis-framework-changed && echo "GIS changes detected" || echo "No GIS changes detected"
 
   - name: build-gis-node-backend
     image: node:24.16.0
-    depends_on: [ detect-gis-changes ]
     commands:
       - test -f .gis-framework-changed || exit 0
       - cd gis-framework/arcgis-node
@@ -399,7 +376,6 @@ steps:
 
   - name: gis-frontend-visual-tests
     image: node:24.16.0
-    depends_on: [ detect-gis-changes ]
     commands:
       - test -f .gis-framework-changed || exit 0
       - cd gis-framework
@@ -409,7 +385,6 @@ steps:
 
   - name: gis-frontend-visual-tests-publish-report
     image: alpine:3.16.0
-    depends_on: [ gis-frontend-visual-tests ]
     when:
       status: [ success, failure ]
     commands:
@@ -420,7 +395,6 @@ steps:
   - name: build-gis-java-backend
     image: quay.io/testcontainers/dind-drone-plugin
     privileged: true
-    depends_on: [ detect-gis-changes ]
     environment:
       TZ: Europe/London
       CI_WORKSPACE: /drone/src
@@ -448,7 +422,6 @@ steps:
   # This is in the PR pipeline so the code-analysis below can access the test data (to see coverage)
   - name: build-frontend
     image: node:24.16.0
-    depends_on: [ fetch-fds-submodule ]
     commands:
       - cd fivium-design-system-core && npm install && npx gulp buildAll && cd ..
       - npm install && npx gulp buildAll
@@ -457,8 +430,6 @@ steps:
     image: quay.io/testcontainers/dind-drone-plugin
     privileged: true
     # See https://confluence.fivium.co.uk/display/JAVA/Testcontainers
-    # also depends on build-gis-java-backend so the two privileged dind containers don't overlap
-    depends_on: [ build-frontend, build-gis-java-backend ]
     environment:
       TZ: Europe/London
       CI_WORKSPACE: /drone/src
@@ -483,7 +454,6 @@ steps:
   # This is in the PR pipeline as only PR events get the necessary information for proper github integration
   - name: code-analysis
     image: repo1.dev.fivium.local:5000/sonarcloud-scan-java21:latest
-    depends_on: [ build-backend ]
     environment:
       SONAR_TOKEN:
         from_secret: sonarcloud_token
@@ -496,7 +466,6 @@ steps:
 
   - name: rebuild-cache
     image: drillster/drone-volume-cache
-    depends_on: [ code-analysis, gis-frontend-visual-tests-publish-report ]
     volumes:
       - name: drone-cache
         path: /cache

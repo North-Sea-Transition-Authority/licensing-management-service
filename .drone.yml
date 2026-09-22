@@ -85,7 +85,7 @@ steps:
         - cd gis-framework
         - chmod +x gradlew
         - ./gradlew extractIncludeProto extractProto generateProto
-        - ./gradlew test check
+        - ./gradlew test check --parallel --build-cache
       build_image: repo1.dev.fivium.local:5000/docker-compose-java21
 
   - name: build-frontend
@@ -115,7 +115,7 @@ steps:
         - mkdir /drone/dockerconfig
         - echo $DOCKER_CONFIG_JSON > /drone/dockerconfig/config.json
         - chmod +x gradlew
-        - ./gradlew checkstyleMain test bootJar --continue --parallel --max-workers=3
+        - ./gradlew checkstyleMain test bootJar --continue --parallel --max-workers=3 --build-cache
       build_image: repo1.dev.fivium.local:5000/docker-compose-java21
 
   # Compares the licence timeline this application builds with the one PEARS holds. A difference is
@@ -174,7 +174,7 @@ steps:
       SONAR_USER_HOME: /drone/src/sonar_cache
     commands:
       - chmod +x gradlew
-      - ./gradlew sonarqube -info
+      - ./gradlew sonarqube -info --parallel --build-cache
     when:
       # The Pull Request Pipeline will run the Code Analysis on all other branches (once a PR is open)
       branch:
@@ -416,7 +416,7 @@ steps:
         - cd gis-framework
         - chmod +x gradlew
         - ./gradlew extractIncludeProto extractProto generateProto
-        - ./gradlew test check
+        - ./gradlew test check --parallel --build-cache
       build_image: repo1.dev.fivium.local:5000/docker-compose-java21
 
   # This is in the PR pipeline so the code-analysis below can access the test data (to see coverage)
@@ -448,7 +448,7 @@ steps:
         - mkdir /drone/dockerconfig
         - echo $DOCKER_CONFIG_JSON > /drone/dockerconfig/config.json
         - chmod +x gradlew
-        - ./gradlew checkstyleMain test bootJar --continue --parallel --max-workers=3
+        - ./gradlew checkstyleMain test bootJar --continue --parallel --max-workers=3 --build-cache
       build_image: repo1.dev.fivium.local:5000/docker-compose-java21
 
   # This is in the PR pipeline as only PR events get the necessary information for proper github integration
@@ -462,7 +462,7 @@ steps:
       SONAR_USER_HOME: /drone/src/sonar_cache
     commands:
       - chmod +x gradlew
-      - ./gradlew sonarqube -info
+      - ./gradlew sonarqube -info --parallel --build-cache
 
   - name: rebuild-cache
     image: drillster/drone-volume-cache

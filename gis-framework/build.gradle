@@ -109,6 +109,8 @@ tasks.register('buildFrontend', NpmTask) {
   inputs.file('tsconfig.json')
   inputs.file('vite.config.ts')
   inputs.dir('src/main/resources/js')
+  // dependsOn only sequences execution, not the cache key — without this, a stale node_modules can still produce a false cache hit.
+  inputs.dir('node_modules')
   outputs.dir('src/main/resources/public/gis/dist')
   args = ['run', 'build']
 }

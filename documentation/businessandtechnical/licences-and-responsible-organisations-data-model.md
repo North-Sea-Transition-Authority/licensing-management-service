@@ -241,6 +241,10 @@ What each run does:
 4. **Deletes PEARS-sourced responsible organisations** that are no longer present, and their
    contacts, leaving LMS-managed rows alone (§5.1).
 
+All four steps are one unit of work: a run that fails partway leaves no trace, so the data is
+never a half-applied refresh. Expect either the previous hour's picture or the new one, not a
+mixture.
+
 A single licence can also be refreshed on its own, which performs the same steps narrowed to
 that licence. That narrowing matters: the whole-estate deletion step treats every organisation
 absent from the incoming data as departed, so running it with one licence's data would

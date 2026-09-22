@@ -732,8 +732,8 @@ LMS. The mapping is:
 | Continuation — additional supporting documents | application **detail** id | `CONTINUATION-ADDITIONAL-SUPPORTING-DOCUMENT` |
 | Continuation — issued letter | **application** id | `APPLICATION-CONTINUATION-LETTER` |
 
-A sixth value, `APPLICATION-SUPPORTING-DOCUMENT`, is declared in code but not used by any
-section. Expect no rows for it.
+These five are the only usage types LMS writes. Historic rows may still carry a usage type no
+longer in the list.
 
 **Decision letters** are document instances in the shared document management library, keyed
 by `item_reference` = the application id and `item_type` = the application type name. A

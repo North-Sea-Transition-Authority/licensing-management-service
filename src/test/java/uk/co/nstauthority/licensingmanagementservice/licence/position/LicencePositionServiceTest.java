@@ -96,11 +96,11 @@ class LicencePositionServiceTest {
 
     var earlierExecuted = LicencePositionTestUtil.newBuilder()
         .withPositionDate(LocalDate.of(2026, Month.JANUARY, 1))
-        .withIsExecuted(true)
+        .withStatus(LicencePositionStatus.EXECUTED)
         .build();
     var nonExecuted = LicencePositionTestUtil.newBuilder()
         .withPositionDate(LocalDate.of(2026, Month.MARCH, 1))
-        .withIsExecuted(false)
+        .withStatus(LicencePositionStatus.SUBMITTED)
         .build();
 
     when(licencePositionRepository.findByLicence(licence))
@@ -119,19 +119,19 @@ class LicencePositionServiceTest {
         .withId(UUID.randomUUID())
         .withPositionDate(LocalDate.of(2026, Month.FEBRUARY, 1))
         .withPositionOrder(1)
-        .withIsExecuted(true)
+        .withStatus(LicencePositionStatus.EXECUTED)
         .build();
     var pos2 = LicencePositionTestUtil.newBuilder()
         .withId(UUID.randomUUID())
         .withPositionDate(LocalDate.of(2026, Month.JANUARY, 1))
         .withPositionOrder(2)
-        .withIsExecuted(true)
+        .withStatus(LicencePositionStatus.EXECUTED)
         .build();
     var pos3 = LicencePositionTestUtil.newBuilder()
         .withId(UUID.randomUUID())
         .withPositionDate(LocalDate.of(2026, Month.JANUARY, 1))
         .withPositionOrder(1)
-        .withIsExecuted(true)
+        .withStatus(LicencePositionStatus.EXECUTED)
         .build();
 
     when(licencePositionRepository.findByLicence(licence)).thenReturn(List.of(pos1, pos2, pos3));

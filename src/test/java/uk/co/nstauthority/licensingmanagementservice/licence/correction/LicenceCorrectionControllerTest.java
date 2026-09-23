@@ -32,6 +32,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.reviewandapply.ReviewCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionPageView;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTimelineView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.ChangeViewUrls;
@@ -130,9 +131,9 @@ class LicenceCorrectionControllerTest extends AbstractControllerTest {
         .build();
 
     var earlierExecuted = LicencePositionTestUtil.newBuilder()
-        .withPositionDate(LocalDate.of(2026, Month.JUNE, 1)).withIsExecuted(true).build();
+        .withPositionDate(LocalDate.of(2026, Month.JUNE, 1)).withStatus(LicencePositionStatus.EXECUTED).build();
     var latestExecuted = LicencePositionTestUtil.newBuilder()
-        .withPositionDate(LocalDate.of(2026, Month.JUNE, 1)).withIsExecuted(true).build();
+        .withPositionDate(LocalDate.of(2026, Month.JUNE, 1)).withStatus(LicencePositionStatus.EXECUTED).build();
 
     when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
         .thenReturn(Optional.of(correction));

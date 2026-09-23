@@ -38,7 +38,7 @@ public class LicencePositionService {
     licencePosition.setLicenceTransaction(transaction);
     licencePosition.setPositionDate(positionDate);
     licencePosition.setPositionDateOrder(positionDateOrder);
-    licencePosition.setExecuted(true);
+    licencePosition.setStatus(LicencePositionStatus.EXECUTED);
 
     return licencePositionRepository.save(licencePosition);
   }
@@ -52,7 +52,7 @@ public class LicencePositionService {
   public List<LicencePosition> getExecutedChronologicalLicencePositions(Licence licence) {
     return licencePositionRepository.findByLicence(licence)
         .stream()
-        .filter(LicencePosition::isExecuted)
+        .filter(position -> position.getStatus() == LicencePositionStatus.EXECUTED)
         .sorted(CHRONOLOGICAL_ORDER)
         .toList();
   }

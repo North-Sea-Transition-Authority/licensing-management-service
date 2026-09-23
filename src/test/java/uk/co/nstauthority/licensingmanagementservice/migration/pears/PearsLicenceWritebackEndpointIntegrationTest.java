@@ -39,6 +39,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionRepository;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeRepository;
@@ -148,10 +149,10 @@ class PearsLicenceWritebackEndpointIntegrationTest {
       sharedTransaction = persist(transaction("XPT/EXISTING-SHARED"));
       draftTransaction = persist(transaction("XPT/EXISTING-DRAFT"));
 
-      firstPosition = persist(position(licence, firstTransaction, FIRST_POSITION_DATE, 1, true));
-      secondPosition = persist(position(licence, sharedTransaction, FIRST_POSITION_DATE, 2, true));
-      draftPosition = persist(position(licence, draftTransaction, DRAFT_POSITION_DATE, 1, false));
-      otherLicencePosition = persist(position(otherLicence, sharedTransaction, FIRST_POSITION_DATE, 1, true));
+      firstPosition = persist(position(licence, firstTransaction, FIRST_POSITION_DATE, 1, LicencePositionStatus.EXECUTED));
+      secondPosition = persist(position(licence, sharedTransaction, FIRST_POSITION_DATE, 2, LicencePositionStatus.EXECUTED));
+      draftPosition = persist(position(licence, draftTransaction, DRAFT_POSITION_DATE, 1, LicencePositionStatus.SUBMITTED));
+      otherLicencePosition = persist(position(otherLicence, sharedTransaction, FIRST_POSITION_DATE, 1, LicencePositionStatus.EXECUTED));
 
       firstPositionChange = persist(positionChange(firstPosition));
       secondPositionChange = persist(positionChange(secondPosition));
@@ -195,13 +196,13 @@ class PearsLicenceWritebackEndpointIntegrationTest {
         .extracting(
             LicencePosition::getPositionDate,
             LicencePosition::getPositionDateOrder,
-            LicencePosition::isExecuted,
+            LicencePosition::getStatus,
             position -> position.getLicenceTransaction().getRegulatorReference()
         )
         .containsExactlyInAnyOrder(
-            tuple(FIRST_POSITION_DATE, 1, true, "XPT/1"),
-            tuple(FIRST_POSITION_DATE, 2, true, "XPT/2"),
-            tuple(LAST_POSITION_DATE, 1, true, "XPT/3")
+            tuple(FIRST_POSITION_DATE, 1, LicencePositionStatus.EXECUTED, "XPT/1"),
+            tuple(FIRST_POSITION_DATE, 2, LicencePositionStatus.EXECUTED, "XPT/2"),
+            tuple(LAST_POSITION_DATE, 1, LicencePositionStatus.EXECUTED, "XPT/3")
         );
 
     assertThat(licencePositionChangeRepository.findAll())
@@ -240,10 +241,10 @@ class PearsLicenceWritebackEndpointIntegrationTest {
         .extracting(
             LicencePosition::getPositionDate,
             LicencePosition::getPositionDateOrder,
-            LicencePosition::isExecuted,
+            LicencePosition::getStatus,
             position -> position.getLicenceTransaction().getRegulatorReference()
         )
-        .containsExactly(tuple(LAST_POSITION_DATE, 1, true, "XPT/4"));
+        .containsExactly(tuple(LAST_POSITION_DATE, 1, LicencePositionStatus.EXECUTED, "XPT/4"));
 
     assertThat(licencePositionRepository.findByLicence(licence))
         .extracting(LicencePosition::getId)
@@ -347,7 +348,7 @@ class PearsLicenceWritebackEndpointIntegrationTest {
       LicenceTransaction licenceTransaction,
       LocalDate positionDate,
       int positionDateOrder,
-      boolean isExecuted
+      LicencePositionStatus status
   ) {
     return LicencePositionTestUtil.newBuilder()
         .withId(null)
@@ -355,7 +356,7 @@ class PearsLicenceWritebackEndpointIntegrationTest {
         .withLicenceTransaction(licenceTransaction)
         .withPositionDate(positionDate)
         .withPositionOrder(positionDateOrder)
-        .withIsExecuted(isExecuted)
+        .withStatus(status)
         .build();
   }
 

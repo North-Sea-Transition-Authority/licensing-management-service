@@ -1,6 +1,8 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.position;
 
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
@@ -40,7 +42,8 @@ public class LicencePosition {
 
   private int positionDateOrder;
 
-  private boolean isExecuted;
+  @Enumerated(EnumType.STRING)
+  private LicencePositionStatus status;
 
   public LicencePosition() {
 
@@ -90,11 +93,11 @@ public class LicencePosition {
     return DateUtil.formatLongDate(this.positionDate);
   }
 
-  public boolean isExecuted() {
-    return isExecuted;
+  public LicencePositionStatus getStatus() {
+    return status;
   }
 
-  public void setExecuted(boolean executed) {
-    isExecuted = executed;
+  public void setStatus(LicencePositionStatus status) {
+    this.status = status;
   }
 }

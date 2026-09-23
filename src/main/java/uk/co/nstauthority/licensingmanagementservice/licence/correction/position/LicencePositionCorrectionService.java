@@ -27,6 +27,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionRepository;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionChangeOperationUtil;
@@ -98,7 +99,7 @@ public class LicencePositionCorrectionService {
 
   @Transactional
   public void removeExecutedPosition(LicenceCorrection licenceCorrection, LicencePosition licencePosition) {
-    if (!licencePosition.isExecuted()) {
+    if (licencePosition.getStatus() != LicencePositionStatus.EXECUTED) {
       throw new IllegalStateException(
           "Cannot remove licence position %s as it is not executed"
               .formatted(licencePosition.getId()));
@@ -126,7 +127,8 @@ public class LicencePositionCorrectionService {
   }
 
   public boolean canRemovePosition(LicenceCorrection licenceCorrection, LicencePosition licencePosition) {
-    return licencePosition.isExecuted() && !isPositionRemovedInCorrection(licenceCorrection, licencePosition);
+    return licencePosition.getStatus() == LicencePositionStatus.EXECUTED
+        && !isPositionRemovedInCorrection(licenceCorrection, licencePosition);
   }
 
   public boolean isPositionRemovedInCorrection(LicenceCorrection licenceCorrection, LicencePosition licencePosition) {
@@ -666,7 +668,7 @@ public class LicencePositionCorrectionService {
 
     var executedPositions = licencePositionRepository.findByLicence(licenceCorrection.getLicence())
         .stream()
-        .filter(LicencePosition::isExecuted)
+        .filter(position -> position.getStatus() == LicencePositionStatus.EXECUTED)
         .toList();
 
     return new CorrectionPositions(

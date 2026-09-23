@@ -175,7 +175,7 @@ class LicencePositionViewServiceTest {
     var position = LicencePositionTestUtil.newBuilder()
         .withLicence(LICENCE)
         .withLicenceTransaction(LicenceTransactionTestUtil.newBuilder().withRegulatorReference("REF-1").build())
-        .withPositionDate(LocalDate.of(2010, Month.JUNE, 1)).withPositionOrder(1).withIsExecuted(true).build();
+        .withPositionDate(LocalDate.of(2010, Month.JUNE, 1)).withPositionOrder(1).withStatus(LicencePositionStatus.EXECUTED).build();
 
     var change = LicencePositionChangeTestUtil.newBuilder().withLicencePosition(position).build();
 
@@ -203,7 +203,7 @@ class LicencePositionViewServiceTest {
     var correction = LicenceCorrectionTestUtil.newBuilder().withLicence(LICENCE).build();
 
     var executed = LicencePositionTestUtil.newBuilder()
-        .withId(POSITION_ID).withLicence(LICENCE).withIsExecuted(true)
+        .withId(POSITION_ID).withLicence(LICENCE).withStatus(LicencePositionStatus.EXECUTED)
         .withLicenceTransaction(LicenceTransactionTestUtil.newBuilder().withRegulatorReference("REF-1").build())
         .withPositionDate(LocalDate.of(2026, Month.JANUARY, 1)).withPositionOrder(1).build();
 
@@ -242,7 +242,7 @@ class LicencePositionViewServiceTest {
     var position = LicencePositionTestUtil.newBuilder()
         .withLicence(LICENCE)
         .withLicenceTransaction(LicenceTransactionTestUtil.newBuilder().withRegulatorReference("REF-1").build())
-        .withPositionDate(LocalDate.of(2010, Month.JUNE, 1)).withPositionOrder(1).withIsExecuted(true).build();
+        .withPositionDate(LocalDate.of(2010, Month.JUNE, 1)).withPositionOrder(1).withStatus(LicencePositionStatus.EXECUTED).build();
 
     var change = LicencePositionChangeTestUtil.newBuilder().withId(changeId).withLicencePosition(position).build();
 
@@ -281,7 +281,7 @@ class LicencePositionViewServiceTest {
     var position = LicencePositionTestUtil.newBuilder()
         .withLicence(LICENCE)
         .withLicenceTransaction(LicenceTransactionTestUtil.newBuilder().withRegulatorReference("REF-1").build())
-        .withPositionDate(LocalDate.of(2010, Month.JUNE, 1)).withPositionOrder(1).withIsExecuted(true).build();
+        .withPositionDate(LocalDate.of(2010, Month.JUNE, 1)).withPositionOrder(1).withStatus(LicencePositionStatus.EXECUTED).build();
 
     var change = LicencePositionChangeTestUtil.newBuilder()
         .withLicencePosition(position)
@@ -332,7 +332,7 @@ class LicencePositionViewServiceTest {
     var position = LicencePositionTestUtil.newBuilder()
         .withLicence(LICENCE)
         .withLicenceTransaction(LicenceTransactionTestUtil.newBuilder().withRegulatorReference("REF-1").build())
-        .withPositionDate(LocalDate.of(2010, Month.JUNE, 1)).withPositionOrder(1).withIsExecuted(true).build();
+        .withPositionDate(LocalDate.of(2010, Month.JUNE, 1)).withPositionOrder(1).withStatus(LicencePositionStatus.EXECUTED).build();
 
     var change = LicencePositionChangeTestUtil.newBuilder().withId(changeId).withLicencePosition(position).build();
 
@@ -370,7 +370,7 @@ class LicencePositionViewServiceTest {
     var correction = LicenceCorrectionTestUtil.newBuilder().withLicence(LICENCE).build();
 
     var executed = LicencePositionTestUtil.newBuilder()
-        .withId(POSITION_ID).withLicence(LICENCE).withIsExecuted(true)
+        .withId(POSITION_ID).withLicence(LICENCE).withStatus(LicencePositionStatus.EXECUTED)
         .withLicenceTransaction(LicenceTransactionTestUtil.newBuilder().withRegulatorReference("REF-1").build())
         .withPositionDate(LocalDate.of(2026, Month.JANUARY, 1)).withPositionOrder(1).build();
 
@@ -410,7 +410,7 @@ class LicencePositionViewServiceTest {
 
   private static LicencePosition executedPosition() {
     return LicencePositionTestUtil.newBuilder()
-        .withId(POSITION_ID).withLicence(LICENCE).withIsExecuted(true)
+        .withId(POSITION_ID).withLicence(LICENCE).withStatus(LicencePositionStatus.EXECUTED)
         .withPositionDate(LocalDate.of(2026, Month.JANUARY, 1)).withPositionOrder(1).build();
   }
 
@@ -472,7 +472,7 @@ class LicencePositionViewServiceTest {
   void getAdministratorChangeContext() {
     var correction = LicenceCorrectionTestUtil.newBuilder().withLicence(LICENCE).build();
     var position = LicencePositionTestUtil.newBuilder()
-        .withId(POSITION_ID).withLicence(LICENCE).withIsExecuted(true).build();
+        .withId(POSITION_ID).withLicence(LICENCE).withStatus(LicencePositionStatus.EXECUTED).build();
 
     when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(position));
     when(licencePositionChangeService.findByLicencePositionIn(List.of(position))).thenReturn(List.of());
@@ -491,7 +491,7 @@ class LicencePositionViewServiceTest {
   void getAdministratorChangeContext_resolvesAdministratorNames() {
     var correction = LicenceCorrectionTestUtil.newBuilder().withLicence(LICENCE).build();
     var position = LicencePositionTestUtil.newBuilder()
-        .withId(POSITION_ID).withLicence(LICENCE).withIsExecuted(true).build();
+        .withId(POSITION_ID).withLicence(LICENCE).withStatus(LicencePositionStatus.EXECUTED).build();
 
     var change = LicencePositionChangeTestUtil.newBuilder().withLicencePosition(position).build();
 
@@ -514,7 +514,7 @@ class LicencePositionViewServiceTest {
     var position = LicencePositionTestUtil.newBuilder()
         .withLicence(LICENCE)
         .withLicenceTransaction(LicenceTransactionTestUtil.newBuilder().withRegulatorReference("REF").build())
-        .withPositionDate(LocalDate.of(2026, Month.JANUARY, 1)).withPositionOrder(1).withIsExecuted(true).build();
+        .withPositionDate(LocalDate.of(2026, Month.JANUARY, 1)).withPositionOrder(1).withStatus(LicencePositionStatus.EXECUTED).build();
 
     var change = LicencePositionChangeTestUtil.newBuilder().withLicencePosition(position).build();
 
@@ -532,11 +532,11 @@ class LicencePositionViewServiceTest {
     var older = LicencePositionTestUtil.newBuilder()
         .withLicence(LICENCE)
         .withLicenceTransaction(LicenceTransactionTestUtil.newBuilder().withRegulatorReference("REF-1").build())
-        .withPositionDate(LocalDate.of(2026, Month.JANUARY, 1)).withPositionOrder(1).withIsExecuted(true).build();
+        .withPositionDate(LocalDate.of(2026, Month.JANUARY, 1)).withPositionOrder(1).withStatus(LicencePositionStatus.EXECUTED).build();
     var newer = LicencePositionTestUtil.newBuilder()
         .withLicence(LICENCE)
         .withLicenceTransaction(LicenceTransactionTestUtil.newBuilder().withRegulatorReference("REF-2").build())
-        .withPositionDate(LocalDate.of(2026, Month.JUNE, 1)).withPositionOrder(1).withIsExecuted(false).build();
+        .withPositionDate(LocalDate.of(2026, Month.JUNE, 1)).withPositionOrder(1).withStatus(LicencePositionStatus.SUBMITTED).build();
 
     var change = LicencePositionChangeTestUtil.newBuilder().withLicencePosition(older).build();
 
@@ -562,7 +562,7 @@ class LicencePositionViewServiceTest {
     var executed = LicencePositionTestUtil.newBuilder()
         .withLicence(LICENCE)
         .withLicenceTransaction(LicenceTransactionTestUtil.newBuilder().withRegulatorReference("REF-1").build())
-        .withPositionDate(LocalDate.of(2026, Month.JANUARY, 1)).withPositionOrder(1).withIsExecuted(true).build();
+        .withPositionDate(LocalDate.of(2026, Month.JANUARY, 1)).withPositionOrder(1).withStatus(LicencePositionStatus.EXECUTED).build();
 
     var addedPayload = CreateLicencePositionPayloadTestUtil.newBuilder()
         .withEffectiveDate(LocalDate.of(2026, Month.JUNE, 1))
@@ -608,7 +608,7 @@ class LicencePositionViewServiceTest {
     var executed = LicencePositionTestUtil.newBuilder()
         .withLicence(LICENCE)
         .withLicenceTransaction(LicenceTransactionTestUtil.newBuilder().withRegulatorReference("REF-1").build())
-        .withPositionDate(LocalDate.of(2026, Month.JANUARY, 1)).withPositionOrder(1).withIsExecuted(true).build();
+        .withPositionDate(LocalDate.of(2026, Month.JANUARY, 1)).withPositionOrder(1).withStatus(LicencePositionStatus.EXECUTED).build();
 
     when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(executed));
     when(licencePositionChangeService.findByLicencePositionIn(List.of(executed))).thenReturn(List.of());
@@ -635,7 +635,7 @@ class LicencePositionViewServiceTest {
     var correction = LicenceCorrectionTestUtil.newBuilder().withId(correctionId).withLicence(LICENCE).build();
 
     var executed = LicencePositionTestUtil.newBuilder()
-        .withId(POSITION_ID).withLicence(LICENCE).withIsExecuted(true)
+        .withId(POSITION_ID).withLicence(LICENCE).withStatus(LicencePositionStatus.EXECUTED)
         .withPositionDate(LocalDate.of(2026, Month.JANUARY, 1)).withPositionOrder(1).build();
 
     var updateCorrection = LicencePositionCorrectionTestUtil.newBuilder()
@@ -671,7 +671,7 @@ class LicencePositionViewServiceTest {
     var correction = LicenceCorrectionTestUtil.newBuilder().withId(correctionId).withLicence(LICENCE).build();
 
     var executed = LicencePositionTestUtil.newBuilder()
-        .withId(POSITION_ID).withLicence(LICENCE).withIsExecuted(true)
+        .withId(POSITION_ID).withLicence(LICENCE).withStatus(LicencePositionStatus.EXECUTED)
         .withPositionDate(LocalDate.of(2026, Month.JANUARY, 1)).withPositionOrder(1).build();
 
     // A committed change not yet corrected in this correction (change type is null) must still route to the
@@ -724,7 +724,7 @@ class LicencePositionViewServiceTest {
   private static LicencePosition executedPosition(LocalDate positionDate) {
     return LicencePositionTestUtil.newBuilder()
         .withLicence(LICENCE)
-        .withIsExecuted(true)
+        .withStatus(LicencePositionStatus.EXECUTED)
         .withPositionDate(positionDate)
         .withPositionOrder(1)
         .build();
@@ -746,7 +746,7 @@ class LicencePositionViewServiceTest {
     var correction = LicenceCorrectionTestUtil.newBuilder().withId(correctionId).withLicence(LICENCE).build();
 
     var executed = LicencePositionTestUtil.newBuilder()
-        .withId(POSITION_ID).withLicence(LICENCE).withIsExecuted(true)
+        .withId(POSITION_ID).withLicence(LICENCE).withStatus(LicencePositionStatus.EXECUTED)
         .withPositionDate(LocalDate.of(2026, Month.JANUARY, 1)).withPositionOrder(1).build();
 
     var liveChange = LicencePositionChangeTestUtil.newBuilder()
@@ -783,7 +783,7 @@ class LicencePositionViewServiceTest {
     var correction = LicenceCorrectionTestUtil.newBuilder().withId(UUID.randomUUID()).withLicence(LICENCE).build();
 
     var executed = LicencePositionTestUtil.newBuilder()
-        .withId(POSITION_ID).withLicence(LICENCE).withIsExecuted(true)
+        .withId(POSITION_ID).withLicence(LICENCE).withStatus(LicencePositionStatus.EXECUTED)
         .withLicenceTransaction(LicenceTransactionTestUtil.newBuilder().withRegulatorReference("EXEC-1").build())
         .withPositionDate(LocalDate.of(2026, Month.JANUARY, 1)).withPositionOrder(1).build();
 
@@ -815,7 +815,7 @@ class LicencePositionViewServiceTest {
     var correction = LicenceCorrectionTestUtil.newBuilder().withId(UUID.randomUUID()).withLicence(LICENCE).build();
 
     var executed = LicencePositionTestUtil.newBuilder()
-        .withId(POSITION_ID).withLicence(LICENCE).withIsExecuted(true)
+        .withId(POSITION_ID).withLicence(LICENCE).withStatus(LicencePositionStatus.EXECUTED)
         .withLicenceTransaction(LicenceTransactionTestUtil.newBuilder().withRegulatorReference("EXEC-1").build())
         .withPositionDate(LocalDate.of(2026, Month.JANUARY, 1)).withPositionOrder(1).build();
 
@@ -840,7 +840,7 @@ class LicencePositionViewServiceTest {
     var setEquityChangeId = UUID.randomUUID();
 
     var executed = LicencePositionTestUtil.newBuilder()
-        .withId(POSITION_ID).withLicence(LICENCE).withIsExecuted(true)
+        .withId(POSITION_ID).withLicence(LICENCE).withStatus(LicencePositionStatus.EXECUTED)
         .withPositionDate(LocalDate.of(2026, Month.JANUARY, 1)).withPositionOrder(1).build();
 
     var liveAdminChange = LicencePositionChangeTestUtil.newBuilder()
@@ -921,12 +921,12 @@ class LicencePositionViewServiceTest {
         .withId(POSITION_ID)
         .withLicence(LICENCE)
         .withLicenceTransaction(LicenceTransactionTestUtil.newBuilder().withRegulatorReference("CURRENT").build())
-        .withPositionDate(LocalDate.of(2026, Month.JUNE, 1)).withPositionOrder(1).withIsExecuted(true).build();
+        .withPositionDate(LocalDate.of(2026, Month.JUNE, 1)).withPositionOrder(1).withStatus(LicencePositionStatus.EXECUTED).build();
     var removed = LicencePositionTestUtil.newBuilder()
         .withId(UUID.randomUUID())
         .withLicence(LICENCE)
         .withLicenceTransaction(LicenceTransactionTestUtil.newBuilder().withRegulatorReference("REMOVED").build())
-        .withPositionDate(LocalDate.of(2026, Month.JANUARY, 1)).withPositionOrder(1).withIsExecuted(true).build();
+        .withPositionDate(LocalDate.of(2026, Month.JANUARY, 1)).withPositionOrder(1).withStatus(LicencePositionStatus.EXECUTED).build();
 
     var removeCorrection = LicencePositionCorrectionTestUtil.newBuilder()
         .withLicenceCorrection(correction)
@@ -967,7 +967,7 @@ class LicencePositionViewServiceTest {
         .withId(POSITION_ID)
         .withLicence(LICENCE)
         .withLicenceTransaction(LicenceTransactionTestUtil.newBuilder().withRegulatorReference("REMOVED").build())
-        .withPositionDate(LocalDate.of(2026, Month.JUNE, 1)).withPositionOrder(1).withIsExecuted(true).build();
+        .withPositionDate(LocalDate.of(2026, Month.JUNE, 1)).withPositionOrder(1).withStatus(LicencePositionStatus.EXECUTED).build();
 
     var removeCorrection = LicencePositionCorrectionTestUtil.newBuilder()
         .withLicenceCorrection(correction)
@@ -999,7 +999,7 @@ class LicencePositionViewServiceTest {
     var correction = LicenceCorrectionTestUtil.newBuilder().withId(UUID.randomUUID()).withLicence(LICENCE).build();
 
     var removed = LicencePositionTestUtil.newBuilder()
-        .withId(POSITION_ID).withLicence(LICENCE).withIsExecuted(true)
+        .withId(POSITION_ID).withLicence(LICENCE).withStatus(LicencePositionStatus.EXECUTED)
         .withPositionDate(LocalDate.of(2026, Month.JANUARY, 1)).withPositionOrder(1).build();
 
     var liveChange = LicencePositionChangeTestUtil.newBuilder()
@@ -1033,10 +1033,10 @@ class LicencePositionViewServiceTest {
     var removed = LicencePositionTestUtil.newBuilder()
         .withId(POSITION_ID)
         .withLicence(LICENCE)
-        .withPositionDate(LocalDate.of(2026, Month.JUNE, 1)).withPositionOrder(1).withIsExecuted(true).build();
+        .withPositionDate(LocalDate.of(2026, Month.JUNE, 1)).withPositionOrder(1).withStatus(LicencePositionStatus.EXECUTED).build();
     var following = LicencePositionTestUtil.newBuilder()
         .withLicence(LICENCE)
-        .withPositionDate(LocalDate.of(2026, Month.JULY, 1)).withPositionOrder(1).withIsExecuted(true).build();
+        .withPositionDate(LocalDate.of(2026, Month.JULY, 1)).withPositionOrder(1).withStatus(LicencePositionStatus.EXECUTED).build();
 
     var removedAdminChange = LicencePositionChangeTestUtil.newBuilder()
         .withLicencePosition(removed)
@@ -1083,7 +1083,7 @@ class LicencePositionViewServiceTest {
         .withId(POSITION_ID)
         .withLicence(LICENCE)
         .withLicenceTransaction(LicenceTransactionTestUtil.newBuilder().withRegulatorReference("CURRENT").build())
-        .withPositionDate(LocalDate.of(2026, Month.JUNE, 1)).withPositionOrder(1).withIsExecuted(true).build();
+        .withPositionDate(LocalDate.of(2026, Month.JUNE, 1)).withPositionOrder(1).withStatus(LicencePositionStatus.EXECUTED).build();
 
     var correctedPayload = UpdateLicencePositionPayloadTestUtil.newBuilder()
         .withEffectiveDate(LocalDate.of(2026, Month.AUGUST, 15))
@@ -1124,7 +1124,7 @@ class LicencePositionViewServiceTest {
         .withId(POSITION_ID)
         .withLicence(LICENCE)
         .withLicenceTransaction(LicenceTransactionTestUtil.newBuilder().withRegulatorReference("CURRENT").build())
-        .withPositionDate(LocalDate.of(2026, Month.JUNE, 1)).withPositionOrder(1).withIsExecuted(true).build();
+        .withPositionDate(LocalDate.of(2026, Month.JUNE, 1)).withPositionOrder(1).withStatus(LicencePositionStatus.EXECUTED).build();
 
     var emptyPayload = UpdateLicencePositionPayloadTestUtil.newBuilder()
         .withEffectiveDate(null)
@@ -1162,12 +1162,12 @@ class LicencePositionViewServiceTest {
         .withId(POSITION_ID)
         .withLicence(LICENCE)
         .withLicenceTransaction(LicenceTransactionTestUtil.newBuilder().withRegulatorReference("MOVED").build())
-        .withPositionDate(sameDate).withPositionOrder(1).withIsExecuted(true).build();
+        .withPositionDate(sameDate).withPositionOrder(1).withStatus(LicencePositionStatus.EXECUTED).build();
     var other = LicencePositionTestUtil.newBuilder()
         .withId(UUID.randomUUID())
         .withLicence(LICENCE)
         .withLicenceTransaction(LicenceTransactionTestUtil.newBuilder().withRegulatorReference("OTHER").build())
-        .withPositionDate(sameDate).withPositionOrder(2).withIsExecuted(true).build();
+        .withPositionDate(sameDate).withPositionOrder(2).withStatus(LicencePositionStatus.EXECUTED).build();
 
     var movedUpdate = LicencePositionCorrectionTestUtil.newBuilder()
         .withLicenceCorrection(correction)
@@ -1226,7 +1226,7 @@ class LicencePositionViewServiceTest {
     var position = LicencePositionTestUtil.newBuilder()
         .withLicence(LICENCE)
         .withLicenceTransaction(LicenceTransactionTestUtil.newBuilder().withRegulatorReference("REF").build())
-        .withPositionDate(LocalDate.of(2026, Month.JANUARY, 1)).withPositionOrder(1).withIsExecuted(true).build();
+        .withPositionDate(LocalDate.of(2026, Month.JANUARY, 1)).withPositionOrder(1).withStatus(LicencePositionStatus.EXECUTED).build();
 
     var setEquityOp = new SetEquityOperation(
         2, BigDecimal.TEN);
@@ -1265,7 +1265,7 @@ class LicencePositionViewServiceTest {
     var position = LicencePositionTestUtil.newBuilder()
         .withLicence(LICENCE)
         .withLicenceTransaction(LicenceTransactionTestUtil.newBuilder().withRegulatorReference("REF").build())
-        .withPositionDate(positionDate).withPositionOrder(1).withIsExecuted(true).build();
+        .withPositionDate(positionDate).withPositionOrder(1).withStatus(LicencePositionStatus.EXECUTED).build();
 
     var firstBlock = FeatureTestUtil.blockFeature(UUID.randomUUID(), "30", 1);
     var secondBlock = FeatureTestUtil.blockFeature(UUID.randomUUID(), "30", 2);
@@ -1305,7 +1305,7 @@ class LicencePositionViewServiceTest {
     var position = LicencePositionTestUtil.newBuilder()
         .withLicence(LICENCE)
         .withLicenceTransaction(LicenceTransactionTestUtil.newBuilder().withRegulatorReference("REF").build())
-        .withPositionDate(LocalDate.of(2026, Month.JANUARY, 1)).withPositionOrder(1).withIsExecuted(true).build();
+        .withPositionDate(LocalDate.of(2026, Month.JANUARY, 1)).withPositionOrder(1).withStatus(LicencePositionStatus.EXECUTED).build();
 
     var subarea = FeatureTestUtil.subareaFeature(UUID.randomUUID(), "Subarea A");
     var subareaOp = new SubareaOperation(subarea.getId());
@@ -1333,7 +1333,7 @@ class LicencePositionViewServiceTest {
     var position = LicencePositionTestUtil.newBuilder()
         .withId(positionId)
         .withLicence(LICENCE)
-        .withPositionDate(LocalDate.of(2026, Month.JANUARY, 1)).withPositionOrder(1).withIsExecuted(true)
+        .withPositionDate(LocalDate.of(2026, Month.JANUARY, 1)).withPositionOrder(1).withStatus(LicencePositionStatus.EXECUTED)
         .build();
 
     var firstBlock = FeatureTestUtil.blockFeature(UUID.randomUUID(), "30", 1);
@@ -1376,7 +1376,7 @@ class LicencePositionViewServiceTest {
     var position = LicencePositionTestUtil.newBuilder()
         .withId(positionId)
         .withLicence(LICENCE)
-        .withPositionDate(LocalDate.of(2026, Month.JANUARY, 1)).withPositionOrder(1).withIsExecuted(true)
+        .withPositionDate(LocalDate.of(2026, Month.JANUARY, 1)).withPositionOrder(1).withStatus(LicencePositionStatus.EXECUTED)
         .build();
 
     var changeId = UUID.randomUUID();
@@ -1402,7 +1402,7 @@ class LicencePositionViewServiceTest {
     var position = LicencePositionTestUtil.newBuilder()
         .withLicence(LICENCE)
         .withLicenceTransaction(LicenceTransactionTestUtil.newBuilder().withRegulatorReference("REF").build())
-        .withPositionDate(LocalDate.of(2026, Month.JANUARY, 1)).withPositionOrder(1).withIsExecuted(true).build();
+        .withPositionDate(LocalDate.of(2026, Month.JANUARY, 1)).withPositionOrder(1).withStatus(LicencePositionStatus.EXECUTED).build();
 
     var change = LicencePositionChangeTestUtil.newBuilder()
         .withLicencePosition(position)
@@ -1430,12 +1430,12 @@ class LicencePositionViewServiceTest {
     var pos1 = LicencePositionTestUtil.newBuilder()
         .withId(pos1Id).withLicence(LICENCE)
         .withLicenceTransaction(LicenceTransactionTestUtil.newBuilder().withRegulatorReference("REF-1").build())
-        .withPositionDate(sameDate).withPositionOrder(1).withIsExecuted(true).build();
+        .withPositionDate(sameDate).withPositionOrder(1).withStatus(LicencePositionStatus.EXECUTED).build();
 
     var pos2 = LicencePositionTestUtil.newBuilder()
         .withId(pos2Id).withLicence(LICENCE)
         .withLicenceTransaction(LicenceTransactionTestUtil.newBuilder().withRegulatorReference("REF-2").build())
-        .withPositionDate(sameDate).withPositionOrder(2).withIsExecuted(true).build();
+        .withPositionDate(sameDate).withPositionOrder(2).withStatus(LicencePositionStatus.EXECUTED).build();
 
     when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(pos1, pos2));
     when(licencePositionChangeService.findByLicencePositionIn(List.of(pos1, pos2))).thenReturn(List.of());
@@ -1468,7 +1468,7 @@ class LicencePositionViewServiceTest {
     var pos1 = LicencePositionTestUtil.newBuilder()
         .withId(UUID.randomUUID()).withLicence(LICENCE)
         .withLicenceTransaction(LicenceTransactionTestUtil.newBuilder().withRegulatorReference("REF-1").build())
-        .withPositionDate(LocalDate.of(2026, Month.JANUARY, 1)).withPositionOrder(1).withIsExecuted(true).build();
+        .withPositionDate(LocalDate.of(2026, Month.JANUARY, 1)).withPositionOrder(1).withStatus(LicencePositionStatus.EXECUTED).build();
 
     when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(pos1));
     when(licencePositionChangeService.findByLicencePositionIn(List.of(pos1))).thenReturn(List.of());
@@ -1487,7 +1487,7 @@ class LicencePositionViewServiceTest {
         .withLicenceTransaction(LicenceTransactionTestUtil.newBuilder().withRegulatorReference(regulatorReference).build())
         .withPositionDate(positionDate)
         .withPositionOrder(positionOrder)
-        .withIsExecuted(true)
+        .withStatus(LicencePositionStatus.EXECUTED)
         .build();
   }
 

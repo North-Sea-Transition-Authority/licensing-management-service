@@ -45,6 +45,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquity
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionRepository;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeTestUtil;
@@ -374,7 +375,7 @@ class LicencePositionCorrectionServiceTest {
   void removeExecutedPosition_whenPositionNotExecuted_throwsAndDoesNotSave() {
     var nonExecutedPosition = LicencePositionTestUtil.newBuilder()
         .withLicence(LICENCE)
-        .withIsExecuted(false)
+        .withStatus(LicencePositionStatus.SUBMITTED)
         .build();
 
     assertThatThrownBy(() ->
@@ -409,7 +410,7 @@ class LicencePositionCorrectionServiceTest {
   void canRemovePosition_whenPositionNotExecuted_returnsFalse() {
     var nonExecutedPosition = LicencePositionTestUtil.newBuilder()
         .withLicence(LICENCE)
-        .withIsExecuted(false)
+        .withStatus(LicencePositionStatus.SUBMITTED)
         .build();
 
     assertThat(licencePositionCorrectionService.canRemovePosition(LICENCE_CORRECTION, nonExecutedPosition)).isFalse();

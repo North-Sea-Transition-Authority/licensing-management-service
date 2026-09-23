@@ -490,7 +490,7 @@ public class LicencePositionViewService {
 
   private List<LicencePositionTimelineView> getReadOnlyTimelineView(List<LicencePosition> chronologicalLicencePositions) {
     return chronologicalLicencePositions.stream()
-        .filter(LicencePosition::isExecuted)
+        .filter(position -> position.getStatus() == LicencePositionStatus.EXECUTED)
         .map(licencePosition -> new TimelineEntry(
             licencePosition.getPositionDate(),
             licencePosition.getPositionDateOrder(),
@@ -537,7 +537,7 @@ public class LicencePositionViewService {
       List<LicencePositionCorrection> addedCorrections
   ) {
     var counts = licencePositions.stream()
-        .filter(LicencePosition::isExecuted)
+        .filter(position -> position.getStatus() == LicencePositionStatus.EXECUTED)
         .filter(position -> !removedPositionIds.contains(position.getId()))
         .map(position -> effectiveDate(position, correctedPayloadsByPositionId))
         .collect(Collectors.groupingBy(date -> date, Collectors.counting()));
@@ -558,7 +558,7 @@ public class LicencePositionViewService {
       Set<UUID> invalidPositionIds
   ) {
     return licencePositions.stream()
-        .filter(LicencePosition::isExecuted)
+        .filter(position -> position.getStatus() == LicencePositionStatus.EXECUTED)
         .map(licencePosition -> {
           var removed = removedPositionIds.contains(licencePosition.getId());
           var correctedPayload = correctedPayloadsByPositionId.get(licencePosition.getId());

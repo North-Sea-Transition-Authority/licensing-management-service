@@ -14,7 +14,7 @@ public class LicencePositionTestUtil {
   private LicenceTransaction transaction = LicenceTransactionTestUtil.newBuilder().build();
   private LocalDate positionDate = LocalDate.of(2026, 1, 1);
   private int positionOrder = 1;
-  private boolean isExecuted = true;
+  private LicencePositionStatus status = LicencePositionStatus.EXECUTED;
 
   public static LicencePositionTestUtil newBuilder() {
     return new LicencePositionTestUtil();
@@ -45,8 +45,8 @@ public class LicencePositionTestUtil {
     return this;
   }
 
-  public LicencePositionTestUtil withIsExecuted(boolean isExecuted) {
-    this.isExecuted = isExecuted;
+  public LicencePositionTestUtil withStatus(LicencePositionStatus status) {
+    this.status = status;
     return this;
   }
 
@@ -56,7 +56,7 @@ public class LicencePositionTestUtil {
     licencePosition.setLicenceTransaction(transaction);
     licencePosition.setPositionDate(positionDate);
     licencePosition.setPositionDateOrder(positionOrder);
-    licencePosition.setExecuted(isExecuted);
+    licencePosition.setStatus(status);
 
     return licencePosition;
   }

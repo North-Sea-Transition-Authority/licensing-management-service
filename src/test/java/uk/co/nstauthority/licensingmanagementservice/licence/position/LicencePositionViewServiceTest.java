@@ -1227,7 +1227,7 @@ class LicencePositionViewServiceTest {
     var position = LicencePositionTestUtil.newBuilder()
         .withLicence(LICENCE)
         .withLicenceTransaction(LicenceTransactionTestUtil.newBuilder().withRegulatorReference("REF").build())
-        .withPositionDate(LocalDate.of(2026, Month.JANUARY, 1)).withPositionOrder(1).withIsExecuted(true).build();
+        .withPositionDate(LocalDate.of(2026, Month.JANUARY, 1)).withPositionOrder(1).withStatus(LicencePositionStatus.EXECUTED).build();
 
     var licenseeOp = new LicenseeOperation(LicenseeOperation.LICENSEE_OPERATION_ID, List.of(1,2), List.of(3));
 

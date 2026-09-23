@@ -89,6 +89,39 @@
   </@fdsSummaryList.summaryListCard>
 </#macro>
 
+<#macro licenseeRows change>
+  <#local removed>
+    <@fdsTag.tag tagClass="govuk-tag--red">Withdrawing</@fdsTag.tag>
+  </#local>
+
+  <#local added>
+    <@fdsTag.tag tagClass="govuk-tag--green">Joining</@fdsTag.tag>
+  </#local>
+
+  <#list change.withdrawingLicensees() as withdrawingLicensees>
+    <@fdsSummaryList.summaryListRowNoAction keyText=removed>
+      ${withdrawingLicensees}
+    </@fdsSummaryList.summaryListRowNoAction>
+  </#list>
+  <#list change.joiningLicensees() as joiningLicensees>
+    <@fdsSummaryList.summaryListRowNoAction keyText=added>
+      ${joiningLicensees}
+    </@fdsSummaryList.summaryListRowNoAction>
+  </#list>
+</#macro>
+
+<#macro licenseeChange change summaryListId="licensee" correction="">
+  <#assign headingText>
+      <@changeHeading change=change headingText="Licensee change" correction=correction/>
+  </#assign>
+  <@fdsSummaryList.summaryListCard
+  headingText=headingText
+  summaryListId=summaryListId
+  >
+    <@licenseeRows change=change/>
+  </@fdsSummaryList.summaryListCard>
+</#macro>
+
 <#macro setEquityRows change>
   <#list change.rows() as row>
     <@fdsSummaryList.summaryListRowNoAction keyText=row.organisationName()>
@@ -258,6 +291,8 @@
 <#macro changeCard change summaryListId isCarbonStorage=false correction="">
   <#if change.type() == "licence-administrator" && !isCarbonStorage>
     <@administratorChange change=change summaryListId=summaryListId correction=correction/>
+  <#elseif change.type() == "licensee">
+    <@licenseeChange change=change summaryListId=summaryListId correction=correction/>
   <#elseif change.type() == "set-equity">
     <@setEquityChange change=change summaryListId=summaryListId correction=correction/>
   <#elseif change.type() == "transfer-equity">

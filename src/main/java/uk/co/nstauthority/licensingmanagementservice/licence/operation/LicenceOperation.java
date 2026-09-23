@@ -6,6 +6,7 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import jakarta.annotation.Nullable;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Stream;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationError;
 
@@ -107,7 +108,9 @@ public sealed interface LicenceOperation permits
       case TransferEquityOperation transfer -> List.of(transfer.transferFrom(), transfer.transferTo());
       case PartialSurrenderOperation ignored -> List.of();
       case SubareaOperation ignored -> List.of();
-      case LicenseeOperation ignored -> List.of();
+      case LicenseeOperation licenseeOperation -> Stream
+          .concat(licenseeOperation.licenseesToAdd().stream(), licenseeOperation.licenseesToRemove().stream())
+          .toList();
     };
   }
 }

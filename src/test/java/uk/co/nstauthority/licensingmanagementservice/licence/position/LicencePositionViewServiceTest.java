@@ -49,6 +49,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.LicencePositionValidationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.AdministratorOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenseeOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaOperation;
@@ -1219,6 +1220,36 @@ class LicencePositionViewServiceTest {
     assertThat(result.timelineViews())
         .extracting(LicencePositionTimelineView::regulatorReference)
         .containsExactly("ADD-JUN-3", "LIVE-JUN-2", "LIVE-JUN-1", "ADD-MAR", "LIVE-JAN");
+  }
+
+  @Test
+  void getPositionPageView_whenLicensee_resolvesOrganisationNames(){
+    var position = LicencePositionTestUtil.newBuilder()
+        .withLicence(LICENCE)
+        .withLicenceTransaction(LicenceTransactionTestUtil.newBuilder().withRegulatorReference("REF").build())
+        .withPositionDate(LocalDate.of(2026, Month.JANUARY, 1)).withPositionOrder(1).withIsExecuted(true).build();
+
+    var licenseeOp = new LicenseeOperation(LicenseeOperation.LICENSEE_OPERATION_ID, List.of(1,2), List.of(3));
+
+    var licenseeChange = LicencePositionChangeTestUtil.newBuilder()
+        .withLicencePosition(position)
+        .withChangeOrder(1)
+        .withOperations(List.of(licenseeOp))
+        .build();
+
+    when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(position));
+    when(licencePositionChangeService.findByLicencePositionIn(List.of(position)))
+        .thenReturn(List.of(licenseeChange));
+    when(organisationUnitQueryService.getOrganisationNameHistoriesByIds(List.of(1,2,3))).thenReturn(Map.of());
+
+    licencePositionViewService.getPositionPageView(position);
+
+    @SuppressWarnings("unchecked")
+    ArgumentCaptor<List<Integer>> idsCaptor = ArgumentCaptor.forClass(List.class);
+
+    verify(organisationUnitQueryService).getOrganisationNameHistoriesByIds(idsCaptor.capture());
+
+    assertThat(idsCaptor.getValue()).containsExactlyInAnyOrder(1, 2, 3);
   }
 
   @Test

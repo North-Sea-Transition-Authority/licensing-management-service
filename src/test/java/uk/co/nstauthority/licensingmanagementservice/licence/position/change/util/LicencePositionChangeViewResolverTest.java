@@ -38,6 +38,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.vie
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.AdministratorChangeView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.ChangeViewUrls;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.LicencePositionChangeView;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.LicenseeChangeView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.PartialSurrenderChangeView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.SetEquityChangeView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.SetEquityRow;
@@ -87,6 +88,63 @@ class LicencePositionChangeViewResolverTest {
     );
 
     assertThat(result).isEmpty();
+  }
+
+  @Test
+  void buildLicenseeChange() {
+    var currentLicencePosition = LicencePositionTestUtil.newBuilder().build();
+    var currentChronologicalPosition = ChronologicalPositionTestUtil.live(
+        currentLicencePosition,
+        LicenceOperation.newLicenseeOperation().withLicenseesToAdd(List.of(JOINING_ID,2,3)).withLicenseesToRemove(List.of(WITHDRAWING_ID)).build()
+    );
+
+    var chronologicalPositions = List.of(currentChronologicalPosition);
+    var result = LicencePositionChangeViewResolver.getChangeViews(
+        currentLicencePosition.getId(),
+        chronologicalPositions,
+        LicencePositionStateResolver.resolve(chronologicalPositions),
+        Map.of(JOINING_ID, JOINING_NAME, 2, "secondJoin", 3, "thirdJoin", WITHDRAWING_ID, WITHDRAWING_NAME),
+        Map.of(),
+        null
+    );
+
+    assertThat(result)
+        .extracting(LicencePositionChangeView::type)
+        .containsExactly(LicenceOperation.LICENSEE);
+
+    assertThat(result)
+        .singleElement()
+        .isInstanceOf(LicenseeChangeView.class)
+        .extracting(
+            licencePositionChangeView -> ((LicenseeChangeView) licencePositionChangeView).withdrawingLicensees(),
+            licencePositionChangeView -> ((LicenseeChangeView) licencePositionChangeView).joiningLicensees()
+        )
+        .containsExactly(List.of(WITHDRAWING_NAME), List.of(JOINING_NAME, "secondJoin", "thirdJoin"));
+  }
+
+  @Test
+  void buildLicenseeChange_whenOrganisationNameNotFound_usesEmptyName() {
+    var currentLicencePosition = LicencePositionTestUtil.newBuilder().build();
+
+    var currentChronologicalPosition = ChronologicalPositionTestUtil.live(
+        currentLicencePosition,
+        LicenceOperation.newLicenseeOperation().withLicenseesToAdd(List.of(10)).build()
+    );
+
+    var chronologicalPositions = List.of(currentChronologicalPosition);
+    var result = LicencePositionChangeViewResolver.getChangeViews(
+        currentLicencePosition.getId(),
+        chronologicalPositions,
+        LicencePositionStateResolver.resolve(chronologicalPositions),
+        Map.of(),
+        Map.of(),
+        null
+    );
+
+    assertThat(result)
+        .singleElement()
+        .extracting(licencePositionChangeView -> ((LicenseeChangeView) licencePositionChangeView).joiningLicensees())
+        .isEqualTo(List.of("Not available"));
   }
 
   @Test

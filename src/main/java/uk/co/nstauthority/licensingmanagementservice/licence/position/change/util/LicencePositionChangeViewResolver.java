@@ -233,19 +233,39 @@ public final class LicencePositionChangeViewResolver {
           );
       case SubareaOperation subareaOperation ->
           buildSubareaChange(subareaOperation, change, context.featureNames(), correctChangeOrderUrl);
-      case LicenseeOperation licenseeOperation -> buildLicenseeChange(change, correctChangeOrderUrl);
+      case LicenseeOperation licenseeOperation ->
+          buildLicenseeChange(
+              licenseeOperation,
+              change,
+              context.organisationNames(),
+              correctChangeOrderUrl
+          );
     };
   }
 
-  //TODO LMS2-87: Implement with necessary parameters and test
   private static LicenseeChangeView buildLicenseeChange(
+      LicenseeOperation operation,
       PositionChange change,
+      Map<Integer, String> organisationNames,
       @Nullable String correctChangeOrderUrl
   ) {
+
+    var licenseeToAddNames = licenseeIdToNames(operation.licenseesToAdd(), organisationNames);
+    var licenseeToRemoveNames = licenseeIdToNames(operation.licenseesToRemove(), organisationNames);
+
     return new LicenseeChangeView(
+        licenseeToRemoveNames,
+        licenseeToAddNames,
         change.changeType(),
         new ChangeViewUrls(null, null, null, correctChangeOrderUrl)
     );
+  }
+
+  private static List<String> licenseeIdToNames(List<Integer> licenseeIds, Map<Integer, String> organisationNames) {
+    return licenseeIds
+        .stream()
+        .map(licenseeId -> organisationNames.getOrDefault(licenseeId, NOT_AVAILABLE))
+        .toList();
   }
 
   private static SubareaChangeView buildSubareaChange(

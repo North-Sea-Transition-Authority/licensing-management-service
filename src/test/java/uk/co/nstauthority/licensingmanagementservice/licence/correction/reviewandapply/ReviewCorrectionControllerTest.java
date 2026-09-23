@@ -1,5 +1,6 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.correction.reviewandapply;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
@@ -10,7 +11,9 @@ import static uk.co.nstauthority.licensingmanagementservice.authentication.TestU
 import static uk.co.nstauthority.licensingmanagementservice.util.RedirectedToLoginUrlMatcher.redirectionToLoginUrl;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.TreeMap;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.context.ActiveProfiles;
@@ -25,6 +28,9 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceC
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.LicencePositionValidationService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationError;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ResolvedStates;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.AdministratorChangeView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.ChangeViewUrls;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
@@ -39,7 +45,13 @@ class ReviewCorrectionControllerTest extends AbstractControllerTest {
   private EnergyPortalUserService energyPortalUserService;
 
   @MockitoBean
+  private CorrectedTimelineService correctedTimelineService;
+
+  @MockitoBean
   private CorrectionReviewService correctionReviewService;
+
+  @MockitoBean
+  private LicencePositionValidationService licencePositionValidationService;
 
   private static final UUID CORRECTION_ID = UUID.randomUUID();
   private static final String PAGE_CAPTION = "Licence - P1234";
@@ -88,6 +100,24 @@ class ReviewCorrectionControllerTest extends AbstractControllerTest {
   }
 
   @Test
+  void renderReviewCorrection_whenTimelineIsInvalid_thenTheErrorsAreSummarised() throws Exception {
+    var blockingError = new PositionValidationError(
+        UUID.randomUUID(), "1 February 2026", null, null, "Beneficial interests must total 100%");
+
+    givenValidUserAndCorrectionPageWithPositionsAndErrors(List.of(), List.of(blockingError));
+
+    var modelAndView = mockMvc.perform(get(ReverseRouter.route(on(ReviewCorrectionController.class)
+            .renderReviewCorrection(CORRECTION_ID, null)))
+            .with(user(regulatorUser)))
+        .andExpect(status().isOk())
+        .andReturn().getModelAndView();
+
+    assertThat(modelAndView.getModel().get("errorSummaryItems"))
+        .usingRecursiveComparison()
+        .isEqualTo(PositionValidationError.toErrorSummaryItems(List.of(blockingError)));
+  }
+
+  @Test
   void renderReviewCorrection_whenAllocatedToUser_thenRenderReviewPage() throws Exception {
     var allocatedToUser = EnergyPortalUserTestUtil.newBuilder()
         .withWebUserAccountId(ALLOCATED_TO_WUA_ID)
@@ -109,12 +139,7 @@ class ReviewCorrectionControllerTest extends AbstractControllerTest {
             null,
             1))));
 
-    when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
-        .thenReturn(Optional.of(correction));
-    when(licenceService.getLicencePageCaption(correction.getLicence())).thenReturn(PAGE_CAPTION);
-    when(energyPortalUserService.getByWuaId(WebUserAccountId.from(ALLOCATED_TO_WUA_ID), USER_LOOKUP_PURPOSE))
-        .thenReturn(allocatedToUser);
-    when(correctionReviewService.getReviewPositions(correction)).thenReturn(positions);
+    givenValidUserAndCorrectionPageWithPositionsAndErrors(positions, List.of());
 
     mockMvc.perform(get(ReverseRouter.route(on(ReviewCorrectionController.class)
             .renderReviewCorrection(CORRECTION_ID, null)))
@@ -128,8 +153,34 @@ class ReviewCorrectionControllerTest extends AbstractControllerTest {
             model().attribute("allocatedToUser", allocatedToUser.displayName()),
             model().attribute("createdDate", DateUtil.formatLongDate(correction.getCreatedInstant())),
             model().attribute("positions", positions),
+            model().attribute("errorSummaryItems", List.of()),
             model().attribute("backLinkUrl", ReverseRouter.route(on(LicenceCorrectionController.class)
                 .renderCorrection(CORRECTION_ID, null)))
         );
+  }
+
+  private void givenValidUserAndCorrectionPageWithPositionsAndErrors(
+      List<ReviewPositionView> positions,
+      List<PositionValidationError> blockingErrors
+  ) {
+    var correctedTimeline = new CorrectedTimeline(
+        correction, List.of(), List.of(), new ResolvedStates(new TreeMap<>(), Map.of()));
+
+    when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
+        .thenReturn(Optional.of(correction));
+    when(licenceService.getLicencePageCaption(correction.getLicence())).thenReturn(PAGE_CAPTION);
+    when(energyPortalUserService.getByWuaId(WebUserAccountId.from(ALLOCATED_TO_WUA_ID), USER_LOOKUP_PURPOSE))
+        .thenReturn(EnergyPortalUserTestUtil.newBuilder()
+            .withWebUserAccountId(ALLOCATED_TO_WUA_ID)
+            .withForename("Jane")
+            .withSurname("Doe")
+            .buildJson());
+    when(correctedTimelineService.getCorrectedTimeline(correction)).thenReturn(correctedTimeline);
+    when(correctionReviewService.getReviewPositions(correctedTimeline, blockingErrors)).thenReturn(positions);
+    when(licencePositionValidationService.validate(
+        correctedTimeline.positionsToApply(),
+        correctedTimeline.resolvedStates(),
+        correctedTimeline.isCarbonStorage()))
+        .thenReturn(blockingErrors);
   }
 }

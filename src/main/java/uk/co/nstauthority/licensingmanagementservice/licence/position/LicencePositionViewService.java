@@ -143,7 +143,7 @@ public class LicencePositionViewService {
     var licence = licencePosition.getLicence();
     var executedChronologicalLicencePositions = licencePositionService.getExecutedChronologicalLicencePositions(licence);
     var positionCorrections = licencePositionCorrectionService.getPositionCorrections(licenceCorrection);
-    var removedPositionIds = removedPositionIds(positionCorrections);
+    var removedPositionIds = LicencePositionCorrectionService.getRemovedPositionIds(positionCorrections);
     var addedPositionCorrections = correctionsOfType(positionCorrections, LicencePositionCorrectionChangeType.ADD_POSITION);
     var updatedCorrections = correctionsOfType(positionCorrections, LicencePositionCorrectionChangeType.UPDATE_POSITION);
     var updatedPositionPayloadsByTargetId = updatedPositionPayloadsByTargetId(updatedCorrections);
@@ -239,7 +239,7 @@ public class LicencePositionViewService {
     var executedChronologicalLicencePositions =
         licencePositionService.getExecutedChronologicalLicencePositions(licenceCorrection.getLicence());
     var positionCorrections = licencePositionCorrectionService.getPositionCorrections(licenceCorrection);
-    var removedPositionIds = removedPositionIds(positionCorrections);
+    var removedPositionIds = LicencePositionCorrectionService.getRemovedPositionIds(positionCorrections);
     var addedPositionCorrections = correctionsOfType(positionCorrections, LicencePositionCorrectionChangeType.ADD_POSITION);
     var updatedCorrections = correctionsOfType(positionCorrections, LicencePositionCorrectionChangeType.UPDATE_POSITION);
     var updatedPositionPayloadsByTargetId = updatedPositionPayloadsByTargetId(updatedCorrections);
@@ -326,12 +326,23 @@ public class LicencePositionViewService {
       LicenceCorrection licenceCorrection,
       Set<UUID> retainedRemovedPositionIds
   ) {
+    return getCorrectedChronologicalPositions(
+        licenceCorrection,
+        licencePositionCorrectionService.getPositionCorrections(licenceCorrection),
+        retainedRemovedPositionIds
+    );
+  }
+
+  public List<ChronologicalPosition> getCorrectedChronologicalPositions(
+      LicenceCorrection licenceCorrection,
+      List<LicencePositionCorrection> positionCorrections,
+      Set<UUID> retainedRemovedPositionIds
+  ) {
     var executedChronologicalLicencePositions =
         licencePositionService.getExecutedChronologicalLicencePositions(licenceCorrection.getLicence());
-    var positionCorrections = licencePositionCorrectionService.getPositionCorrections(licenceCorrection);
     return getCorrectedChronologicalPositions(
         executedChronologicalLicencePositions,
-        removedPositionIds(positionCorrections),
+        LicencePositionCorrectionService.getRemovedPositionIds(positionCorrections),
         correctionsOfType(positionCorrections, LicencePositionCorrectionChangeType.UPDATE_POSITION),
         correctionsOfType(positionCorrections, LicencePositionCorrectionChangeType.ADD_POSITION),
         retainedRemovedPositionIds
@@ -455,13 +466,6 @@ public class LicencePositionViewService {
         .filter(Objects::nonNull)
         .distinct()
         .toList();
-  }
-
-  private static Set<UUID> removedPositionIds(List<LicencePositionCorrection> positionCorrections) {
-    return positionCorrections.stream()
-        .filter(correction -> correction.getChangeType() == LicencePositionCorrectionChangeType.REMOVE_POSITION)
-        .map(correction -> correction.getTargetLicencePosition().getId())
-        .collect(Collectors.toSet());
   }
 
   private static List<LicencePositionCorrection> correctionsOfType(

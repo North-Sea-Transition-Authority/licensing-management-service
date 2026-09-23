@@ -10,7 +10,7 @@ public record ReviewPositionView(
     UUID positionId,
     String positionName,
     String reference,
-    CorrectionMarker marker,
+    @Nullable CorrectionMarker marker,
     List<ReviewChangeView> changes
 ) {
 
@@ -24,7 +24,7 @@ public record ReviewPositionView(
         position.id(),
         position.positionName(),
         details != null ? details.correctionReference() : position.reference(),
-        details != null ? CorrectionMarker.forPosition(details.changeType()) : CorrectionMarker.POSITION_CORRECTED,
+        details != null ? CorrectionMarker.forPosition(details.changeType()) : null,
         ReviewChangeView.forPosition(position, correctedContext, changeEdits)
     );
   }

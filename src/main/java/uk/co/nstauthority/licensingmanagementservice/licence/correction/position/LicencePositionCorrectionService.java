@@ -186,6 +186,14 @@ public class LicencePositionCorrectionService {
     return licencePositionCorrectionRepository.findByLicenceCorrection(licenceCorrection);
   }
 
+  public static Set<UUID> getRemovedPositionIds(List<LicencePositionCorrection> positionCorrections) {
+    return positionCorrections.stream()
+        .filter(correction ->
+            LicencePositionCorrectionChangeType.REMOVE_POSITION.equals(correction.getChangeType()))
+        .map(correction -> correction.getTargetLicencePosition().getId())
+        .collect(Collectors.toSet());
+  }
+
   public List<LicencePositionCorrection> getAddedLicencePositionCorrections(LicenceCorrection licenceCorrection) {
     return licencePositionCorrectionRepository
         .findByLicenceCorrectionAndChangeType(licenceCorrection, LicencePositionCorrectionChangeType.ADD_POSITION);

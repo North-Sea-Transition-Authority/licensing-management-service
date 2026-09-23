@@ -17,6 +17,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.LicencePositionValidationService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationError;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.util.DateUtil;
 
@@ -28,13 +30,22 @@ public class ReviewCorrectionController {
 
   private final EnergyPortalUserService energyPortalUserService;
   private final LicenceService licenceService;
+  private final CorrectedTimelineService correctedTimelineService;
   private final CorrectionReviewService correctionReviewService;
+  private final LicencePositionValidationService licencePositionValidationService;
 
-  public ReviewCorrectionController(EnergyPortalUserService energyPortalUserService, LicenceService licenceService,
-                                    CorrectionReviewService correctionReviewService) {
+  public ReviewCorrectionController(
+      EnergyPortalUserService energyPortalUserService,
+      LicenceService licenceService,
+      CorrectedTimelineService correctedTimelineService,
+      CorrectionReviewService correctionReviewService,
+      LicencePositionValidationService licencePositionValidationService
+  ) {
     this.energyPortalUserService = energyPortalUserService;
     this.licenceService = licenceService;
+    this.correctedTimelineService = correctedTimelineService;
     this.correctionReviewService = correctionReviewService;
+    this.licencePositionValidationService = licencePositionValidationService;
   }
 
   @GetMapping
@@ -42,9 +53,17 @@ public class ReviewCorrectionController {
       @PathVariable UUID correctionId,
       @RequestAttribute("validatedCorrection") LicenceCorrection licenceCorrection
   ) {
-    var positions = correctionReviewService.getReviewPositions(licenceCorrection);
+    var correctedTimeline = correctedTimelineService.getCorrectedTimeline(licenceCorrection);
+    var blockingErrors = licencePositionValidationService.validate(
+        correctedTimeline.positionsToApply(),
+        correctedTimeline.resolvedStates(),
+        correctedTimeline.isCarbonStorage()
+    );
+    var positions = correctionReviewService.getReviewPositions(correctedTimeline, blockingErrors);
+
     return licencePositionsModelAndView(correctionId, licenceCorrection)
-        .addObject("positions", positions);
+        .addObject("positions", positions)
+        .addObject("errorSummaryItems", PositionValidationError.toErrorSummaryItems(blockingErrors));
   }
 
   private ModelAndView licencePositionsModelAndView(

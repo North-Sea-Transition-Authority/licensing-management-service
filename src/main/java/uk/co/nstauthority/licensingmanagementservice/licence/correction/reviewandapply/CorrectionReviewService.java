@@ -1,47 +1,46 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.correction.reviewandapply;
 
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.springframework.stereotype.Service;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionChangeType;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.UpdateLicencePositionPayload;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationError;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionViewService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionStateResolver;
 
 @Service
 public class CorrectionReviewService {
 
-  private final LicencePositionCorrectionService licencePositionCorrectionService;
   private final LicencePositionViewService licencePositionViewService;
 
-  public CorrectionReviewService(
-      LicencePositionCorrectionService licencePositionCorrectionService,
-      LicencePositionViewService licencePositionViewService
-  ) {
-    this.licencePositionCorrectionService = licencePositionCorrectionService;
+  public CorrectionReviewService(LicencePositionViewService licencePositionViewService) {
     this.licencePositionViewService = licencePositionViewService;
   }
 
-  public List<ReviewPositionView> getReviewPositions(LicenceCorrection licenceCorrection) {
-    var positionCorrections = licencePositionCorrectionService.getPositionCorrections(licenceCorrection);
-    var detailsByPositionId = positionDetailsByPositionId(positionCorrections);
-    var removedPositionIds = detailsByPositionId.values().stream()
-        .filter(details -> details.changeType() == LicencePositionCorrectionChangeType.REMOVE_POSITION)
-        .map(PositionDetails::positionId)
+  public List<ReviewPositionView> getReviewPositions(
+      CorrectedTimeline correctedTimeline,
+      List<PositionValidationError> blockingErrors
+  ) {
+    var erroredPositionIds = blockingErrors.stream()
+        .map(PositionValidationError::positionId)
         .collect(Collectors.toSet());
 
-    var correctedPositions =
-        licencePositionViewService.getCorrectedChronologicalPositions(licenceCorrection, removedPositionIds);
-    var executedPositions =
-        licencePositionViewService.getLiveChronologicalPositions(licenceCorrection.getLicence());
+    var positionCorrections = correctedTimeline.positionCorrections();
+    var detailsByPositionId = positionCorrections.stream()
+        .map(CorrectionReviewService::toPositionDetails)
+        .collect(Collectors.toMap(PositionDetails::positionId, Function.identity()));
+
+
+    var correctedPositions = correctedTimeline.displayedPositions();
+    var executedPositions = licencePositionViewService.getLiveChronologicalPositions(
+        correctedTimeline.licenceCorrection().getLicence()
+    );
 
     var bothTimelines = Stream.concat(correctedPositions.stream(), executedPositions.stream()).toList();
     var organisationNames = licencePositionViewService.resolveOrganisationNames(bothTimelines);
@@ -49,7 +48,7 @@ public class CorrectionReviewService {
 
     var correctedContext = new ReviewPositionContext(
         correctedPositions,
-        LicencePositionStateResolver.resolve(correctedPositions, removedPositionIds),
+        correctedTimeline.resolvedStates(),
         organisationNames,
         featureNames
     );
@@ -62,18 +61,11 @@ public class CorrectionReviewService {
     var changeEdits = ChangeEdits.from(positionCorrections, executedContext);
 
     return correctedPositions.stream()
-        .filter(position -> detailsByPositionId.containsKey(position.id()))
+        .filter(position -> detailsByPositionId.containsKey(position.id())
+            || erroredPositionIds.contains(position.id()))
         .map(position -> ReviewPositionView.from(
             position, detailsByPositionId.get(position.id()), correctedContext, changeEdits))
         .toList();
-  }
-
-  private Map<UUID, PositionDetails> positionDetailsByPositionId(
-      List<LicencePositionCorrection> positionCorrections
-  ) {
-    return positionCorrections.stream()
-        .map(CorrectionReviewService::toPositionDetails)
-        .collect(Collectors.toMap(PositionDetails::positionId, Function.identity()));
   }
 
   private static PositionDetails toPositionDetails(LicencePositionCorrection correction) {
@@ -91,19 +83,16 @@ public class CorrectionReviewService {
         yield new PositionDetails(
             correction.getTargetLicencePosition().getId(),
             correction.getChangeType(),
-            payload.correctionReference() != null ? payload.correctionReference() : executedReference(correction)
+            payload.correctionReference() != null ? payload.correctionReference() :
+                correction.getTargetLicencePosition().getLicenceTransaction().getRegulatorReference()
         );
       }
       case REMOVE_POSITION -> new PositionDetails(
           correction.getTargetLicencePosition().getId(),
           correction.getChangeType(),
-          executedReference(correction)
+          correction.getTargetLicencePosition().getLicenceTransaction().getRegulatorReference()
       );
     };
-  }
-
-  private static String executedReference(LicencePositionCorrection correction) {
-    return correction.getTargetLicencePosition().getLicenceTransaction().getRegulatorReference();
   }
 
   record PositionDetails(

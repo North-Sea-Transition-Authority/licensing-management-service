@@ -20,17 +20,18 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceC
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionChangeType;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.UpdateChangeOperations;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.UpdateLicencePositionPayloadTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationError;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionViewService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPosition;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionStateResolver;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPositionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.PositionChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.PositionChangeTestUtil;
@@ -49,9 +50,6 @@ class CorrectionReviewServiceTest {
   private static final String CORRECTED_JOINING_NAME = "Corrected Org Ltd";
   private static final Map<Integer, String> ORGANISATION_NAMES =
       Map.of(JOINING_ID, JOINING_NAME, CORRECTED_JOINING_ID, CORRECTED_JOINING_NAME);
-
-  @Mock
-  private LicencePositionCorrectionService licencePositionCorrectionService;
 
   @Mock
   private LicencePositionViewService licencePositionViewService;
@@ -87,15 +85,46 @@ class CorrectionReviewServiceTest {
         chronologicalPosition(updatedPosition.getId(), LocalDate.of(2026, Month.FEBRUARY, 1)),
         chronologicalPosition(addedPositionId, LocalDate.of(2026, Month.MARCH, 1)));
 
-    stubTimelines(List.of(updateCorrection, addCorrection), Set.of(), chronologicalPositions, List.of());
+    var correctedTimeline = stubTimelines(List.of(updateCorrection, addCorrection), Set.of(), chronologicalPositions, List.of());
 
-    var result = correctionReviewService.getReviewPositions(correction);
+    var result = correctionReviewService.getReviewPositions(correctedTimeline, List.of());
 
     assertThat(result).isEqualTo(List.of(
         new ReviewPositionView(
             updatedPosition.getId(), "1 February 2026", "COR-1", CorrectionMarker.POSITION_CORRECTED, List.of()),
         new ReviewPositionView(
             addedPositionId, "1 March 2026", "COR-2", CorrectionMarker.POSITION_ADDED, List.of())));
+  }
+
+  @Test
+  void getReviewPositions_whenAnUntouchedPositionHasAnError_thenItIsIncludedWithoutAMarker() {
+    var updatedPosition = executedPosition();
+    var erroredPositionId = UUID.randomUUID();
+
+    var updateCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+        .withTargetLicencePosition(updatedPosition)
+        .withPayload(UpdateLicencePositionPayloadTestUtil.newBuilder()
+            .withCorrectionReference("COR-1")
+            .build())
+        .build();
+
+    var chronologicalPositions = List.of(
+        chronologicalPosition(erroredPositionId, LocalDate.of(2026, Month.JANUARY, 1)),
+        chronologicalPosition(updatedPosition.getId(), LocalDate.of(2026, Month.FEBRUARY, 1)),
+        chronologicalPosition(UUID.randomUUID(), LocalDate.of(2026, Month.MARCH, 1)));
+
+    var correctedTimeline = stubTimelines(List.of(updateCorrection), Set.of(), chronologicalPositions, List.of());
+
+    var blockingError = new PositionValidationError(
+        erroredPositionId, "1 January 2026", null, null, "Position is invalid");
+
+    var result = correctionReviewService.getReviewPositions(correctedTimeline, List.of(blockingError));
+
+    assertThat(result).isEqualTo(List.of(
+        new ReviewPositionView(erroredPositionId, "1 January 2026", "REGULATOR_REFERENCE", null, List.of()),
+        new ReviewPositionView(
+            updatedPosition.getId(), "1 February 2026", "COR-1", CorrectionMarker.POSITION_CORRECTED, List.of())));
   }
 
   @Test
@@ -111,9 +140,9 @@ class CorrectionReviewServiceTest {
     var chronologicalPositions =
         List.of(chronologicalPosition(updatedPosition.getId(), LocalDate.of(2026, Month.FEBRUARY, 1)));
 
-    stubTimelines(List.of(updateCorrection), Set.of(), chronologicalPositions, List.of());
+    var correctedTimeline = stubTimelines(List.of(updateCorrection), Set.of(), chronologicalPositions, List.of());
 
-    var result = correctionReviewService.getReviewPositions(correction);
+    var result = correctionReviewService.getReviewPositions(correctedTimeline, List.of());
 
     assertThat(result).isEqualTo(List.of(new ReviewPositionView(
         updatedPosition.getId(), "1 February 2026", EXECUTED_REFERENCE, CorrectionMarker.POSITION_CORRECTED, List.of())));
@@ -136,9 +165,9 @@ class CorrectionReviewServiceTest {
         .withChanges(List.of(administratorChange(changeId, 1, JOINING_ID, null)))
         .build());
 
-    stubTimelines(List.of(removeCorrection), Set.of(removedPosition.getId()), chronologicalPositions, List.of());
+    var correctedTimeline = stubTimelines(List.of(removeCorrection), Set.of(removedPosition.getId()), chronologicalPositions, List.of());
 
-    var result = correctionReviewService.getReviewPositions(correction);
+    var result = correctionReviewService.getReviewPositions(correctedTimeline, List.of());
 
     assertThat(result).isEqualTo(List.of(new ReviewPositionView(
         removedPosition.getId(),
@@ -176,9 +205,9 @@ class CorrectionReviewServiceTest {
         .withChanges(List.of(administratorChange(changeId, 1, JOINING_ID, null)))
         .build());
 
-    stubTimelines(List.of(updateCorrection), Set.of(), correctedPositions, executedPositions);
+    var correctedTimeline = stubTimelines(List.of(updateCorrection), Set.of(), correctedPositions, executedPositions);
 
-    var result = correctionReviewService.getReviewPositions(correction);
+    var result = correctionReviewService.getReviewPositions(correctedTimeline, List.of());
 
     assertThat(result).isEqualTo(List.of(new ReviewPositionView(
         updatedPosition.getId(),
@@ -191,21 +220,25 @@ class CorrectionReviewServiceTest {
             1)))));
   }
 
-  private void stubTimelines(
+  private CorrectedTimeline stubTimelines(
       List<LicencePositionCorrection> positionCorrections,
-      Set<UUID> retainedRemovedPositionIds,
+      Set<UUID> removedPositionIds,
       List<ChronologicalPosition> correctedPositions,
       List<ChronologicalPosition> executedPositions
   ) {
     var bothTimelines = Stream.concat(correctedPositions.stream(), executedPositions.stream()).toList();
 
-    when(licencePositionCorrectionService.getPositionCorrections(correction)).thenReturn(positionCorrections);
-    when(licencePositionViewService.getCorrectedChronologicalPositions(correction, retainedRemovedPositionIds))
-        .thenReturn(correctedPositions);
     when(licencePositionViewService.getLiveChronologicalPositions(correction.getLicence()))
         .thenReturn(executedPositions);
     when(licencePositionViewService.resolveOrganisationNames(bothTimelines)).thenReturn(ORGANISATION_NAMES);
     when(licencePositionViewService.resolveFeatureNames(bothTimelines)).thenReturn(Map.of());
+
+    return new CorrectedTimeline(
+        correction,
+        positionCorrections,
+        correctedPositions,
+        LicencePositionStateResolver.resolve(correctedPositions, removedPositionIds)
+    );
   }
 
   private static LicencePosition executedPosition() {

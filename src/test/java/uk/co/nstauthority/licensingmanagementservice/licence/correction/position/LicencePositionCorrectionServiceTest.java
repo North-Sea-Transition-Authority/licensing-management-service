@@ -263,6 +263,31 @@ class LicencePositionCorrectionServiceTest {
   }
 
   @Test
+  void getRemovedPositionIds_returnsOnlyTheTargetsOfRemovePositionCorrections() {
+    var removedPosition = LicencePositionTestUtil.newBuilder().build();
+    var updatedPosition = LicencePositionTestUtil.newBuilder().build();
+
+    var removeCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withChangeType(LicencePositionCorrectionChangeType.REMOVE_POSITION)
+        .withTargetLicencePosition(removedPosition)
+        .withPayload(null)
+        .build();
+    var updateCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+        .withTargetLicencePosition(updatedPosition)
+        .build();
+    var addCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withChangeType(LicencePositionCorrectionChangeType.ADD_POSITION)
+        .withTargetLicencePosition(null)
+        .build();
+
+    var result = LicencePositionCorrectionService.getRemovedPositionIds(
+        List.of(removeCorrection, updateCorrection, addCorrection));
+
+    assertThat(result).containsExactly(removedPosition.getId());
+  }
+
+  @Test
   void getAddedLicencePositionCorrections_returnsAddPositionCorrectionsFromRepository() {
     var addedCorrection = LicencePositionCorrectionTestUtil.newBuilder().build();
 

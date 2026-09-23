@@ -8,6 +8,7 @@
   caption=pageCaption
   pageSize=PageSize.FULL_COLUMN
   backLinkUrl=springUrl(backLinkUrl)
+  errorSummaryItems=errorSummaryItems
 >
   <@correctionDetailsCard.correctionDetailsCard
     correction=correction
@@ -20,9 +21,12 @@
   <#if positions?has_content>
     <@fdsAccordion.accordion accordionId="corrected-positions-${correction.getId()}">
       <#list positions?reverse as position>
+        <#assign marker = position.marker()!''>
         <#assign sectionHeading>
-          ${position.positionName()}
-          <@fdsTag.tag tagClass=position.marker().tagClass>${position.marker().label}</@fdsTag.tag>
+          <span id="${position.positionId()}" tabindex="-1">${position.positionName()}</span>
+          <#if marker?has_content>
+            <@fdsTag.tag tagClass=marker.tagClass>${marker.label}</@fdsTag.tag>
+          </#if>
         </#assign>
         <@fdsAccordion.accordionSection
           sectionHeading=sectionHeading

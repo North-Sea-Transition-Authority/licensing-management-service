@@ -1,7 +1,5 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.position;
 
-import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
-
 import java.util.UUID;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -11,7 +9,6 @@ import org.springframework.web.servlet.ModelAndView;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.tab.TabbedLicencePageService;
-import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @Controller
 @RequestMapping("licences/{licenceId}/timeline")
@@ -45,9 +42,10 @@ public class LicencePositionController {
       return licencePositionsModelAndView(licence, LicencePositionPageView.empty(), user);
     }
 
-    return ReverseRouter.redirect(on(this.getClass()).renderLicencePosition(
-        licence, executedChronologicalLicencePositions.getLast().getId(), null)
-    );
+    var licencePositionPageView =
+        licencePositionViewService.getPositionPageView(executedChronologicalLicencePositions.getLast());
+
+    return licencePositionsModelAndView(licence, licencePositionPageView, user);
   }
 
   @GetMapping("/{licencePositionId}")

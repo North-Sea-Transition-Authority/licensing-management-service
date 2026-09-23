@@ -84,6 +84,12 @@ public class LicenceCorrectionService {
   }
 
   @Transactional
+  public void completeCorrection(LicenceCorrection licenceCorrection) {
+    licenceCorrection.setStatus(LicenceCorrectionStatus.COMPLETE);
+    licenceCorrectionRepository.save(licenceCorrection);
+  }
+
+  @Transactional
   public void updateGeneralDetails(
       LicenceCorrection licenceCorrection,
       String correctionReference,

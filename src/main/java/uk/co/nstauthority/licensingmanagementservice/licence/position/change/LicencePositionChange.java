@@ -8,9 +8,9 @@ import jakarta.persistence.ManyToOne;
 import java.util.List;
 import java.util.UUID;
 import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.annotations.UuidGenerator;
 import org.hibernate.envers.Audited;
 import org.hibernate.type.SqlTypes;
+import uk.co.nstauthority.licensingmanagementservice.hibernate.AssignedOrGeneratedUuid;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 
@@ -19,7 +19,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePos
 public class LicencePositionChange {
 
   @Id
-  @UuidGenerator
+  @AssignedOrGeneratedUuid
   private UUID id;
 
   @ManyToOne
@@ -37,7 +37,7 @@ public class LicencePositionChange {
 
   }
 
-  LicencePositionChange(UUID id) {
+  public LicencePositionChange(UUID id) {
     this.id = id;
   }
 

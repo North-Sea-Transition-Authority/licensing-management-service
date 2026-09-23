@@ -9,6 +9,8 @@ import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -36,17 +38,18 @@ class InvokingUserCanViewCorrectionInterceptorRuleTest extends AbstractIntercept
   @InjectMocks
   private InvokingUserCanViewCorrectionInterceptorRule rule;
 
-  private ServiceUserDetail user = ServiceUserDetailTestUtil.newBuilder().build();
+  private final ServiceUserDetail user = ServiceUserDetailTestUtil.newBuilder().build();
 
   @Test
   void supports() {
     assertThat(rule.supports()).isEqualTo(InvokingUserCanViewCorrection.class);
   }
 
-  @Test
-  void check_userCanViewCorrection_continueAsNormal() throws NoSuchMethodException {
+  @ParameterizedTest
+  @EnumSource(value = LicenceCorrectionStatus.class, names = {"IN_PROGRESS", "COMPLETE"})
+  void check_userCanViewCorrection_continueAsNormal(LicenceCorrectionStatus status) throws NoSuchMethodException {
     var correction = LicenceCorrectionTestUtil.newBuilder()
-        .withStatus(LicenceCorrectionStatus.IN_PROGRESS)
+        .withStatus(status)
         .build();
 
     when(request.getAttribute(HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE))

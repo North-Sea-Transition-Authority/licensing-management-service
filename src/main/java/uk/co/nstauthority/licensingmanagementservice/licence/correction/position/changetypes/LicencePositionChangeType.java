@@ -85,4 +85,14 @@ public sealed interface LicencePositionChangeType
   default boolean isUpdateChangeOrder() {
     return this instanceof UpdateChangeOrder;
   }
+
+  @JsonIgnore
+  default Integer ownedChangeOrder() {
+    return switch (this) {
+      case AddChange addChange -> addChange.changeOrder();
+      case UpdateChangeOrder updateChangeOrder -> updateChangeOrder.changeOrder();
+      case UpdateChangeOperations ignored -> null;
+      case RemoveChange ignored -> null;
+    };
+  }
 }

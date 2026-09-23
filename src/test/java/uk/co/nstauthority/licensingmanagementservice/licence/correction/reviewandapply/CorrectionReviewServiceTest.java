@@ -20,6 +20,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceC
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionChangeType;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.UpdateChangeOperations;
@@ -28,6 +29,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationError;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionViewService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPosition;
@@ -53,6 +55,12 @@ class CorrectionReviewServiceTest {
 
   @Mock
   private LicencePositionViewService licencePositionViewService;
+
+  @Mock
+  private LicencePositionCorrectionService licencePositionCorrectionService;
+
+  @Mock
+  private LicencePositionService licencePositionService;
 
   @InjectMocks
   private CorrectionReviewService correctionReviewService;
@@ -218,6 +226,95 @@ class CorrectionReviewServiceTest {
             administratorChangeView(changeId, CORRECTED_JOINING_NAME, LicencePositionChangeType.UPDATE_CHANGE_OPERATIONS),
             administratorChangeView(changeId, JOINING_NAME, null),
             1)))));
+  }
+
+  @Test
+  void getAppliedPositions_returnsOnlyThePositionsTouchedByTheCorrection() {
+    var untouchedPosition = executedPosition();
+    var updatedPosition = executedPosition();
+    var addedPosition = executedPosition();
+
+    var updateCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+        .withTargetLicencePosition(updatedPosition)
+        .withPayload(UpdateLicencePositionPayloadTestUtil.newBuilder()
+            .withCorrectionReference("COR-1")
+            .build())
+        .build();
+    var addCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withChangeType(LicencePositionCorrectionChangeType.ADD_POSITION)
+        .withTargetLicencePosition(null)
+        .withPayload(CreateLicencePositionPayloadTestUtil.newBuilder()
+            .withLicencePositionId(addedPosition.getId().toString())
+            .withCorrectionReference("COR-2")
+            .build())
+        .build();
+
+    stubAppliedTimeline(
+        List.of(updateCorrection, addCorrection),
+        List.of(untouchedPosition, updatedPosition, addedPosition),
+        List.of(
+            chronologicalPosition(untouchedPosition.getId(), LocalDate.of(2026, Month.JANUARY, 1)),
+            chronologicalPosition(updatedPosition.getId(), LocalDate.of(2026, Month.FEBRUARY, 1)),
+            chronologicalPosition(addedPosition.getId(), LocalDate.of(2026, Month.MARCH, 1))));
+
+    var result = correctionReviewService.getAppliedPositions(correction);
+
+    assertThat(result).isEqualTo(List.of(
+        new ReviewPositionView(
+            updatedPosition.getId(), "1 February 2026", "COR-1", CorrectionMarker.POSITION_CORRECTED, List.of()),
+        new ReviewPositionView(
+            addedPosition.getId(), "1 March 2026", "COR-2", CorrectionMarker.POSITION_ADDED, List.of())));
+  }
+
+  @Test
+  void getAppliedPositions_whenPositionWasRemoved_thenItIsRetainedWithTheChangesExecutedOnIt() {
+    var removedPosition = executedPosition();
+    var changeId = UUID.randomUUID().toString();
+
+    var removeCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withChangeType(LicencePositionCorrectionChangeType.REMOVE_POSITION)
+        .withTargetLicencePosition(removedPosition)
+        .withPayload(null)
+        .build();
+
+    stubAppliedTimeline(
+        List.of(removeCorrection),
+        List.of(),
+        List.of(ChronologicalPositionTestUtil.newBuilder()
+            .withId(removedPosition.getId())
+            .withDate(LocalDate.of(2026, Month.FEBRUARY, 1))
+            .withChanges(List.of(administratorChange(changeId, 1, JOINING_ID, null)))
+            .build()));
+
+    var result = correctionReviewService.getAppliedPositions(correction);
+
+    assertThat(result).isEqualTo(List.of(new ReviewPositionView(
+        removedPosition.getId(),
+        "1 February 2026",
+        EXECUTED_REFERENCE,
+        CorrectionMarker.POSITION_REMOVED,
+        List.of(unchanged(administratorChangeView(changeId, JOINING_NAME, null), 1)))));
+  }
+
+  private void stubAppliedTimeline(
+      List<LicencePositionCorrection> positionCorrections,
+      List<LicencePosition> executedPositions,
+      List<ChronologicalPosition> appliedPositions
+  ) {
+    var removedPositions = positionCorrections.stream()
+        .filter(positionCorrection ->
+            positionCorrection.getChangeType() == LicencePositionCorrectionChangeType.REMOVE_POSITION)
+        .map(LicencePositionCorrection::getTargetLicencePosition);
+
+    when(licencePositionCorrectionService.getPositionCorrections(correction)).thenReturn(positionCorrections);
+    when(licencePositionService.getExecutedChronologicalLicencePositions(correction.getLicence()))
+        .thenReturn(executedPositions);
+    when(licencePositionViewService.getLiveChronologicalPositions(
+        Stream.concat(executedPositions.stream(), removedPositions).toList()))
+        .thenReturn(appliedPositions);
+    when(licencePositionViewService.resolveOrganisationNames(appliedPositions)).thenReturn(ORGANISATION_NAMES);
+    when(licencePositionViewService.resolveFeatureNames(appliedPositions)).thenReturn(Map.of());
   }
 
   private CorrectedTimeline stubTimelines(

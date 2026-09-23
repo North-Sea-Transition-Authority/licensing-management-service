@@ -243,6 +243,22 @@ class LicenceCorrectionServiceTest {
   }
 
   @Test
+  void completeCorrection() {
+    var correction = LicenceCorrectionTestUtil.newBuilder()
+        .withStatus(LicenceCorrectionStatus.IN_PROGRESS)
+        .build();
+
+    licenceCorrectionService.completeCorrection(correction);
+
+    verify(licenceCorrectionRepository).save(licenceCorrectionCaptor.capture());
+    var persistedCorrection = licenceCorrectionCaptor.getValue();
+    assertThat(persistedCorrection)
+        .usingRecursiveComparison()
+        .isEqualTo(correction);
+    assertThat(persistedCorrection.getStatus()).isEqualTo(LicenceCorrectionStatus.COMPLETE);
+  }
+
+  @Test
   void updateGeneralDetails() {
     var correction = LicenceCorrectionTestUtil.newBuilder()
         .withCorrectionReference("OLD-REF")

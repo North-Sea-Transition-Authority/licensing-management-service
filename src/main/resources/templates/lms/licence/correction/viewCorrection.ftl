@@ -13,15 +13,13 @@
   <@correctionDetailsCard.correctionDetailsCard
     correction=correction
     allocatedToUser=allocatedToUser
-    updateUrl=isCorrectionInProgress?then(updateGeneralDetailsUrl, "")
+    updateUrl=updateGeneralDetailsUrl
   />
 
   <@fdsAction.buttonGroup>
     <@fdsAction.link linkText="Add position" linkUrl=springUrl(addPositionUrl) linkClass="govuk-button"/>
     <@fdsAction.link linkText="Cancel correction" linkUrl=springUrl(cancelCorrectionUrl) linkClass="govuk-button govuk-button--secondary"/>
-    <#if isCorrectionInProgress>
-      <@fdsAction.link linkText="Review correction" linkUrl=springUrl(reviewCorrectionUrl) linkClass="govuk-button govuk-button--secondary"/>
-    </#if>
+    <@fdsAction.link linkText="Review correction" linkUrl=springUrl(reviewCorrectionUrl) linkClass="govuk-button govuk-button--secondary"/>
   </@fdsAction.buttonGroup>
 
   <#if licencePositionPageView.hasPositions()>

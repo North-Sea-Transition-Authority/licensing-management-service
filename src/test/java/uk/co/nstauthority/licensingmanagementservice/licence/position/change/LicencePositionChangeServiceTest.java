@@ -6,6 +6,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import jakarta.persistence.EntityManager;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
@@ -28,6 +29,9 @@ class LicencePositionChangeServiceTest {
 
   @Mock
   private LicencePositionChangeRepository licencePositionChangeRepository;
+
+  @Mock
+  private EntityManager entityManager;
 
   @InjectMocks
   private LicencePositionChangeService licencePositionChangeService;
@@ -152,6 +156,30 @@ class LicencePositionChangeServiceTest {
     assertThat(saved.getOperations()).isEqualTo(List.of(administratorChange));
     assertThat(saved.getChangeOrder()).isEqualTo(1L);
     assertThat(saved.getStatus()).isEqualTo(LicencePositionChangeStatus.CONSENTED);
+  }
+
+  @Test
+  void createLicencePositionChange_whenIdIsAssigned_thenTheChangeIsPersistedWithThatId() {
+    var licencePositionChangeId = UUID.randomUUID();
+    var position = LicencePositionTestUtil.newBuilder().build();
+    var administratorChange = LicenceOperation.newAdministratorChange().withOperator(1).build();
+
+    var result = licencePositionChangeService.createLicencePositionChange(
+        licencePositionChangeId, position, List.of(administratorChange), 1, LicencePositionChangeStatus.CONSENTED);
+
+    verify(entityManager).persist(changeCaptor.capture());
+    verifyNoInteractions(licencePositionChangeRepository);
+
+    assertThat(changeCaptor.getValue())
+        .isSameAs(result)
+        .usingRecursiveComparison()
+        .isEqualTo(LicencePositionChangeTestUtil.newBuilder()
+            .withId(licencePositionChangeId)
+            .withLicencePosition(position)
+            .withOperations(List.of(administratorChange))
+            .withChangeOrder(1)
+            .withStatus(LicencePositionChangeStatus.CONSENTED)
+            .build());
   }
 
   @Test

@@ -1,5 +1,6 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.position.change;
 
+import jakarta.persistence.EntityManager;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -14,9 +15,14 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePos
 public class LicencePositionChangeService {
 
   private final LicencePositionChangeRepository licencePositionChangeRepository;
+  private final EntityManager entityManager;
 
-  public LicencePositionChangeService(LicencePositionChangeRepository licencePositionChangeRepository) {
+  public LicencePositionChangeService(
+      LicencePositionChangeRepository licencePositionChangeRepository,
+      EntityManager entityManager
+  ) {
     this.licencePositionChangeRepository = licencePositionChangeRepository;
+    this.entityManager = entityManager;
   }
 
   public List<LicencePositionChange> findByLicencePositionIn(Collection<LicencePosition> licencePositions) {
@@ -55,13 +61,24 @@ public class LicencePositionChangeService {
       int changeOrder,
       LicencePositionChangeStatus status
   ) {
-    var licencePositionChange = new LicencePositionChange();
-    licencePositionChange.setLicencePosition(licencePosition);
-    licencePositionChange.setOperations(operations);
-    licencePositionChange.setChangeOrder(changeOrder);
-    licencePositionChange.setStatus(status);
+    return licencePositionChangeRepository.save(
+        newLicencePositionChange(null, licencePosition, operations, changeOrder, status));
+  }
 
-    return licencePositionChangeRepository.save(licencePositionChange);
+  @Transactional
+  public LicencePositionChange createLicencePositionChange(
+      UUID licencePositionChangeId,
+      LicencePosition licencePosition,
+      List<LicenceOperation> operations,
+      int changeOrder,
+      LicencePositionChangeStatus status
+  ) {
+    var licencePositionChange =
+        newLicencePositionChange(licencePositionChangeId, licencePosition, operations, changeOrder, status);
+
+    entityManager.persist(licencePositionChange);
+
+    return licencePositionChange;
   }
 
   @Transactional
@@ -72,5 +89,21 @@ public class LicencePositionChangeService {
 
     var licencePositionChanges = licencePositionChangeRepository.findByLicencePositionIn(licencePositions);
     licencePositionChangeRepository.deleteAll(licencePositionChanges);
+  }
+
+  private LicencePositionChange newLicencePositionChange(
+      UUID licencePositionChangeId,
+      LicencePosition licencePosition,
+      List<LicenceOperation> operations,
+      int changeOrder,
+      LicencePositionChangeStatus status
+  ) {
+    var licencePositionChange = new LicencePositionChange(licencePositionChangeId);
+    licencePositionChange.setLicencePosition(licencePosition);
+    licencePositionChange.setOperations(operations);
+    licencePositionChange.setChangeOrder(changeOrder);
+    licencePositionChange.setStatus(status);
+
+    return licencePositionChange;
   }
 }

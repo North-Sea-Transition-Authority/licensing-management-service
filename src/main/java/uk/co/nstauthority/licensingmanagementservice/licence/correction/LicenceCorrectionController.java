@@ -58,6 +58,10 @@ public class LicenceCorrectionController {
       @PathVariable UUID correctionId,
       @RequestAttribute("validatedCorrection") LicenceCorrection licenceCorrection
   ) {
+    if (isCorrectionApplied(licenceCorrection)) {
+      return appliedCorrectionRedirect(correctionId);
+    }
+
     var licence = licenceCorrection.getLicence();
     var executedLicencePositions = licencePositionService.getExecutedChronologicalLicencePositions(licence);
     var addedPositions = licencePositionCorrectionService.getAddedLicencePositionCorrections(licenceCorrection);
@@ -81,6 +85,10 @@ public class LicenceCorrectionController {
       @PathVariable UUID licencePositionId,
       @RequestAttribute("validatedCorrection") LicenceCorrection licenceCorrection
   ) {
+    if (isCorrectionApplied(licenceCorrection)) {
+      return appliedCorrectionRedirect(correctionId);
+    }
+
     var licence = licenceCorrection.getLicence();
     var licencePosition = licencePositionService.getPositionForLicence(licence, licencePositionId);
     var licencePositionPageView = licencePositionViewService.getCorrectionPositionPageView(licenceCorrection, licencePosition);
@@ -94,12 +102,25 @@ public class LicenceCorrectionController {
       @PathVariable UUID licencePositionCorrectionId,
       @RequestAttribute("validatedCorrection") LicenceCorrection licenceCorrection
   ) {
+    if (isCorrectionApplied(licenceCorrection)) {
+      return appliedCorrectionRedirect(correctionId);
+    }
+
     var positionCorrection = licencePositionCorrectionService
         .getPositionCorrectionForCorrection(licencePositionCorrectionId, licenceCorrection);
     var licencePositionPageView = licencePositionViewService
         .getCorrectionAddedPositionPageView(licenceCorrection, positionCorrection);
 
     return licencePositionsModelAndView(licenceCorrection, licencePositionPageView);
+  }
+
+  private static boolean isCorrectionApplied(LicenceCorrection licenceCorrection) {
+    return LicenceCorrectionStatus.COMPLETE.equals(licenceCorrection.getStatus());
+  }
+
+  private static ModelAndView appliedCorrectionRedirect(UUID correctionId) {
+    return ReverseRouter.redirect(on(ReviewCorrectionController.class)
+        .renderReviewCorrection(correctionId, null));
   }
 
   private ModelAndView licencePositionsModelAndView(
@@ -124,8 +145,6 @@ public class LicenceCorrectionController {
         .addObject("updateGeneralDetailsUrl",
             ReverseRouter.route(on(UpdateCorrectionGeneralDetailsController.class)
                 .renderUpdateGeneralDetails(licenceCorrection.getId(), null)))
-        .addObject("isCorrectionInProgress",
-            LicenceCorrectionStatus.IN_PROGRESS.equals(licenceCorrection.getStatus()))
         .addObject("cancelCorrectionUrl", ReverseRouter.route(on(LicenceCorrectionCancelController.class)
             .renderCancelCorrection(licenceCorrection.getId(), null)))
         .addObject("reviewCorrectionUrl", ReverseRouter.route(on(ReviewCorrectionController.class)

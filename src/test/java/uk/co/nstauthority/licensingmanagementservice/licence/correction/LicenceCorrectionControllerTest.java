@@ -233,6 +233,30 @@ class LicenceCorrectionControllerTest extends AbstractControllerTest {
   }
 
   @Test
+  void renderLicencePosition_whenTheCorrectionIsComplete_thenItRedirectsToTheAppliedCorrection() throws Exception {
+    var licence = LicenceTestUtil.builder()
+        .withLicenceReference(LICENCE_REFERENCE)
+        .withLicenceType(LICENCE_TYPE)
+        .build();
+    var correction = LicenceCorrectionTestUtil.newBuilder()
+        .withId(CORRECTION_ID)
+        .withLicence(licence)
+        .withAllocatedToWuaId(ALLOCATED_TO_WUA_ID)
+        .withStatus(LicenceCorrectionStatus.COMPLETE)
+        .build();
+    var position = LicencePositionTestUtil.newBuilder().build();
+
+    when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
+        .thenReturn(Optional.of(correction));
+
+    mockMvc.perform(get(ReverseRouter.route(on(LicenceCorrectionController.class)
+            .renderLicencePosition(CORRECTION_ID, position.getId(), null)))
+            .with(user(regulatorUser)))
+        .andExpect(redirectedUrl(ReverseRouter.route(on(ReviewCorrectionController.class)
+            .renderReviewCorrection(CORRECTION_ID, null))));
+  }
+
+  @Test
   void renderLicencePosition_whenPartialSurrenderStaged_rendersThePartialSurrenderCard() throws Exception {
     var licence = LicenceTestUtil.builder()
         .withLicenceReference(LICENCE_REFERENCE)

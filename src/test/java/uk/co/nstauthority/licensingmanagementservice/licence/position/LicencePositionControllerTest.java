@@ -3,7 +3,6 @@ package uk.co.nstauthority.licensingmanagementservice.licence.position;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
@@ -20,6 +19,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
+import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
@@ -64,26 +64,48 @@ class LicencePositionControllerTest extends AbstractControllerTest {
   }
 
   @Test
-  void renderLicencePositionTimeline_redirectsToLatestPosition() throws Exception {
+  void renderLicencePositionTimeline_whenPositionsExist_thenLatestPositionIsRendered() throws Exception {
     var older  = LicencePositionTestUtil.newBuilder().withPositionDate(LocalDate.of(2026, Month.JANUARY, 1)).build();
     var latest = LicencePositionTestUtil.newBuilder().withPositionDate(LocalDate.of(2026, Month.JUNE, 1)).build();
+    var pageView = LicencePositionPageView.empty();
 
     when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE))
         .thenReturn(List.of(older, latest));
+    when(licencePositionViewService.getPositionPageView(latest)).thenReturn(pageView);
 
     mockMvc.perform(get(ReverseRouter.route(on(LicencePositionController.class).renderLicencePositionTimeline(LICENCE, null)))
             .with(user(regulatorUser)))
-        .andExpect(status().is3xxRedirection())
-        .andExpect(redirectedUrl(ReverseRouter.route(on(LicencePositionController.class)
-            .renderLicencePosition(LICENCE, latest.getId(), null))));
+        .andExpectAll(
+            status().isOk(),
+            view().name("lms/licence/position/licencePositions"),
+            model().attribute("licencePositionPageView", pageView)
+        );
+  }
+
+  @Test
+  void renderLicencePositionTimeline_whenNotificationBannerIsFlashed_thenItIsRenderedOnTheLatestPosition()
+      throws Exception {
+    var latest = LicencePositionTestUtil.newBuilder().withPositionDate(LocalDate.of(2026, Month.JUNE, 1)).build();
+    var banner = NotificationBanner.newSuccessBanner().withHeadingContent("Correction COR-1 applied").build();
+
+    when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(latest));
+    when(licencePositionViewService.getPositionPageView(latest)).thenReturn(LicencePositionPageView.empty());
+
+    mockMvc.perform(get(ReverseRouter.route(on(LicencePositionController.class)
+            .renderLicencePositionTimeline(LICENCE, null)))
+            .flashAttr("notificationBanner", banner)
+            .with(user(regulatorUser)))
+        .andExpectAll(
+            status().isOk(),
+            model().attribute("notificationBanner", banner)
+        );
   }
 
   @Test
   void renderLicencePositionTimeline_whenNoPositions() throws Exception {
     when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of());
 
-    mockMvc.perform(get(ReverseRouter.route(on(LicencePositionController.class)
-            .renderLicencePositionTimeline(LICENCE, null)))
+    mockMvc.perform(get(ReverseRouter.route(on(LicencePositionController.class).renderLicencePositionTimeline(LICENCE, null)))
             .with(user(regulatorUser)))
         .andExpectAll(
             status().isOk(),

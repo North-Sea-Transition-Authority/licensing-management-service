@@ -301,7 +301,7 @@ public class LicencePositionViewService {
     return getLiveChronologicalPositions(licencePositionService.getExecutedChronologicalLicencePositions(licence));
   }
 
-  private List<ChronologicalPosition> getLiveChronologicalPositions(List<LicencePosition> executedChronologicalLicencePositions) {
+  public List<ChronologicalPosition> getLiveChronologicalPositions(List<LicencePosition> executedChronologicalLicencePositions) {
     var liveChangesByPositionId = getLiveChangesByPositionId(executedChronologicalLicencePositions);
 
     return executedChronologicalLicencePositions.stream()

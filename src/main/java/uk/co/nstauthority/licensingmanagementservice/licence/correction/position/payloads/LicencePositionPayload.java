@@ -27,6 +27,13 @@ public sealed interface LicencePositionPayload permits CreateLicencePositionPayl
 
   List<LicencePositionChangeType> changes();
 
+  default <T extends LicencePositionChangeType> List<T> changesOfType(Class<T> changeType) {
+    return changes().stream()
+        .filter(changeType::isInstance)
+        .map(changeType::cast)
+        .toList();
+  }
+
   static CreateLicencePositionPayload.Builder newCreateLicencePositionPayload() {
     return new CreateLicencePositionPayload.Builder();
   }

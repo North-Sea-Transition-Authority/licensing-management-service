@@ -2,7 +2,10 @@ package uk.co.nstauthority.licensingmanagementservice.licence.position.transacti
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 
+import jakarta.persistence.EntityManager;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -19,6 +22,9 @@ class LicenceTransactionServiceTest {
 
   @Mock
   private LicenceTransactionRepository licenceTransactionRepository;
+
+  @Mock
+  private EntityManager entityManager;
 
   @InjectMocks
   private LicenceTransactionService licenceTransactionService;
@@ -38,5 +44,24 @@ class LicenceTransactionServiceTest {
     verify(licenceTransactionRepository).save(licenceTransactionArgumentCaptor.capture());
 
     assertThat(licenceTransactionArgumentCaptor.getValue()).usingRecursiveComparison().isEqualTo(expectedLicenceTransaction);
+  }
+
+  @Test
+  void createLicenceTransaction_whenIdIsAssigned_thenTheTransactionIsPersistedWithThatId() {
+    var licenceTransactionId = UUID.randomUUID();
+    var expectedLicenceTransaction = LicenceTransactionTestUtil.newBuilder()
+        .withId(licenceTransactionId)
+        .withRegulatorReference("TEST-REF")
+        .build();
+
+    var result = licenceTransactionService.createLicenceTransaction(licenceTransactionId, "TEST-REF");
+
+    verify(entityManager).persist(licenceTransactionArgumentCaptor.capture());
+    verifyNoInteractions(licenceTransactionRepository);
+
+    assertThat(licenceTransactionArgumentCaptor.getValue())
+        .isSameAs(result)
+        .usingRecursiveComparison()
+        .isEqualTo(expectedLicenceTransaction);
   }
 }

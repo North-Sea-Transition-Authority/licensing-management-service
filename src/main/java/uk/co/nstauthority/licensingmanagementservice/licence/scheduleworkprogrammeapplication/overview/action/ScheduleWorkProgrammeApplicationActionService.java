@@ -6,9 +6,10 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
+import java.util.function.BiPredicate;
 import java.util.function.Function;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.stereotype.Service;
@@ -35,7 +36,7 @@ public class ScheduleWorkProgrammeApplicationActionService {
       Function<ScheduleWorkProgrammeApplicationDetail, Long>> ACTIONS_TO_USER_GRANT_PREDICATES
       = new EnumMap<>(ScheduleWorkProgrammeApplicationActionItem.class);
   private static final Map<ScheduleWorkProgrammeApplicationActionItem,
-      Predicate<ScheduleWorkProgrammeApplicationDetail>> ACTIONS_TO_PRIMARY_PREDICATES
+      BiPredicate<ScheduleWorkProgrammeApplicationDetail, Set<Role>>> ACTIONS_TO_PRIMARY_PREDICATES
       = new EnumMap<>(ScheduleWorkProgrammeApplicationActionItem.class);
 
   private final TeamQueryService teamQueryService;
@@ -46,21 +47,22 @@ public class ScheduleWorkProgrammeApplicationActionService {
     var registeredActions = ScheduleWorkProgrammeApplicationActionBuilder.newBuilder()
         .registerAction(ScheduleWorkProgrammeApplicationActionItem.ALLOCATE_STEWARD)
           .requiresAnyStatusFrom(ApplicationStatus.SUBMITTED)
-          .requiresAnyRoleFrom(detail -> StreamUtil.toSet(
-              StewardRoles.getRequiredRoleForLicenceType(detail.getLicence().getType()),
-              CaseManagerRoles.getRequiredRoleForLicenceType(detail.getLicence().getType())
-          ))
-          .isPrimaryButton(false)
+          .requiresAnyRoleFrom(detail -> StreamUtil.toSet(stewardRole(detail), caseManagerRole(detail)))
+          .isPrimaryButton((detail, userRoles) ->
+              hasRole(caseManagerRole(detail), userRoles)
+              && !stewardIsAllocated(detail)
+          )
         .registerAction(ScheduleWorkProgrammeApplicationActionItem.UPLOAD_DSP)
           .requiresAnyStatusFrom(ApplicationStatus.SUBMITTED)
-          .requiresAnyRoleFrom(detail -> StreamUtil.toSet(
-              CaseManagerRoles.getRequiredRoleForLicenceType(detail.getLicence().getType())))
+          .requiresAnyRoleFrom(detail -> StreamUtil.toSet(caseManagerRole(detail)))
             .orGrantedToUser(detail -> detail.getScheduleWorkProgrammeApplication().getStewardWuaId())
-          .isPrimaryButton(true)
+          .isPrimaryButton((detail, userRoles) ->
+              hasRole(stewardRole(detail), userRoles)
+              && stewardIsAllocated(detail)
+          )
         .registerAction(ScheduleWorkProgrammeApplicationActionItem.RECORD_DECISION)
           .requiresAnyStatusFrom(ApplicationStatus.DSP_UPLOADED)
-          .requiresAnyRoleFrom(detail -> StreamUtil.toSet(
-              CaseManagerRoles.getRequiredRoleForLicenceType(detail.getLicence().getType())))
+          .requiresAnyRoleFrom(detail -> StreamUtil.toSet(caseManagerRole(detail)))
           .isPrimaryButton(true)
         .build();
 
@@ -90,16 +92,33 @@ public class ScheduleWorkProgrammeApplicationActionService {
           return CollectionUtils.containsAny(requiredRoles, userRoles)
               || Objects.equals(grantedUserId, user.wuaId());
         })
-        .map(actionItem -> actionItem.toActionItemView(applicationDetail, isPrimary(applicationDetail, actionItem)))
+        .map(actionItem -> actionItem.toActionItemView(applicationDetail, isPrimary(applicationDetail, actionItem, userRoles)))
         .sorted(Comparator.comparing(ActionItemView::displayOrder))
         .toList();
   }
 
   private static boolean isPrimary(
       ScheduleWorkProgrammeApplicationDetail applicationDetail,
-      ScheduleWorkProgrammeApplicationActionItem actionItem
+      ScheduleWorkProgrammeApplicationActionItem actionItem,
+      Set<Role> userRoles
   ) {
-    return ACTIONS_TO_PRIMARY_PREDICATES.getOrDefault(actionItem, detail -> false)
-        .test(applicationDetail);
+    return ACTIONS_TO_PRIMARY_PREDICATES.getOrDefault(actionItem, (detail, roles) -> false)
+        .test(applicationDetail, userRoles);
+  }
+
+  private static boolean hasRole(Optional<Role> requiredRole, Set<Role> userRoles) {
+    return requiredRole.map(userRoles::contains).orElse(false);
+  }
+
+  private static Optional<Role> caseManagerRole(ScheduleWorkProgrammeApplicationDetail detail) {
+    return CaseManagerRoles.getRequiredRoleForLicenceType(detail.getLicence().getType());
+  }
+
+  private static Optional<Role> stewardRole(ScheduleWorkProgrammeApplicationDetail detail) {
+    return StewardRoles.getRequiredRoleForLicenceType(detail.getLicence().getType());
+  }
+
+  private static boolean stewardIsAllocated(ScheduleWorkProgrammeApplicationDetail detail) {
+    return detail.getScheduleWorkProgrammeApplication().getStewardWuaId() != null;
   }
 }

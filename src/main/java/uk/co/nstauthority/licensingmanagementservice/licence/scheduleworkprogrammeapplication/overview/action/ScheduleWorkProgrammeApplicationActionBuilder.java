@@ -8,8 +8,8 @@ import java.util.LinkedList;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.BiPredicate;
 import java.util.function.Function;
-import java.util.function.Predicate;
 import org.apache.commons.collections4.CollectionUtils;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
@@ -32,7 +32,7 @@ public class ScheduleWorkProgrammeApplicationActionBuilder {
         new EnumMap<>(ScheduleWorkProgrammeApplicationActionItem.class);
     private final Deque<ScheduleWorkProgrammeApplicationActionItem> actionItems = new LinkedList<>();
     public final Map<ScheduleWorkProgrammeApplicationActionItem,
-        Predicate<ScheduleWorkProgrammeApplicationDetail>> primaryActionPredicateMap
+        BiPredicate<ScheduleWorkProgrammeApplicationDetail, Set<Role>>> primaryActionPredicateMap
         = new EnumMap<>(ScheduleWorkProgrammeApplicationActionItem.class);
 
     private Builder() {
@@ -87,14 +87,14 @@ public class ScheduleWorkProgrammeApplicationActionBuilder {
     }
 
     @Override
-    public RegisterAnAction isPrimaryButton(Predicate<ScheduleWorkProgrammeApplicationDetail> condition) {
+    public RegisterAnAction isPrimaryButton(BiPredicate<ScheduleWorkProgrammeApplicationDetail, Set<Role>> condition) {
       primaryActionPredicateMap.put(actionItems.peek(), condition);
       return this;
     }
 
     @Override
     public RegisterAnAction isPrimaryButton(boolean isPrimary) {
-      return isPrimaryButton(detail -> isPrimary);
+      return isPrimaryButton((detail, userRoles) -> isPrimary);
     }
 
     @Override
@@ -129,7 +129,7 @@ public class ScheduleWorkProgrammeApplicationActionBuilder {
   interface RegisterAnAction {
     SetStatusForAnAction registerAction(ScheduleWorkProgrammeApplicationActionItem actionItem);
 
-    RegisterAnAction isPrimaryButton(Predicate<ScheduleWorkProgrammeApplicationDetail> condition);
+    RegisterAnAction isPrimaryButton(BiPredicate<ScheduleWorkProgrammeApplicationDetail, Set<Role>> condition);
 
     RegisterAnAction isPrimaryButton(boolean isPrimary);
 

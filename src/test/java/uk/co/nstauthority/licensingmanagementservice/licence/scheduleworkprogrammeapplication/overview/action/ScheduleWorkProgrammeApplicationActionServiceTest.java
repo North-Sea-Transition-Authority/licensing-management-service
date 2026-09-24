@@ -140,7 +140,7 @@ class ScheduleWorkProgrammeApplicationActionServiceTest {
     when(teamQueryService.getTeamRolesForUser(USER_WUA_ID)).thenReturn(Set.of(teamRole));
 
     assertThat(scheduleWorkProgrammeApplicationActionService.getAvailableUserActionItems(applicationDetail, serviceUserDetail))
-        .contains(ScheduleWorkProgrammeApplicationActionItem.UPLOAD_DSP.toActionItemView(applicationDetail, true));
+        .contains(ScheduleWorkProgrammeApplicationActionItem.UPLOAD_DSP.toActionItemView(applicationDetail, false));
   }
 
   @Test
@@ -285,7 +285,7 @@ class ScheduleWorkProgrammeApplicationActionServiceTest {
   }
 
   @Test
-  void getAvailableUserActionItems_correctlyAssignsPrimaryAndSecondaryFlags() {
+  void getAvailableUserActionItems_caseManagerAndStewardNotAssigned_allocateStewardIsPrimary() {
     var applicationDetail = ScheduleWorkProgrammeApplicationDetailTestUtil.builder()
         .withId(UUID.randomUUID())
         .withStatus(ApplicationStatus.SUBMITTED)
@@ -302,10 +302,77 @@ class ScheduleWorkProgrammeApplicationActionServiceTest {
 
     var availableActions = scheduleWorkProgrammeApplicationActionService.getAvailableUserActionItems(applicationDetail, serviceUserDetail);
 
-    var allocateAction = availableActions.get(0);
-    var recordDecisionAction = availableActions.get(1);
+    assertThat(availableActions)
+        .contains(ScheduleWorkProgrammeApplicationActionItem.ALLOCATE_STEWARD.toActionItemView(applicationDetail, true))
+        .contains(ScheduleWorkProgrammeApplicationActionItem.UPLOAD_DSP.toActionItemView(applicationDetail, false));
+  }
 
-    assertThat(allocateAction.primaryAction()).isTrue();
-    assertThat(recordDecisionAction.primaryAction()).isFalse();
+  @Test
+  void getAvailableUserActionItems_caseManagerAndStewardAlreadyAssigned_allocateStewardIsNotPrimary() {
+    var applicationDetail = ScheduleWorkProgrammeApplicationDetailTestUtil.builder()
+        .withId(UUID.randomUUID())
+        .withStatus(ApplicationStatus.SUBMITTED)
+        .withLicenceType(LicenceType.CARBON_STORAGE)
+        .build();
+    applicationDetail.getScheduleWorkProgrammeApplication().setStewardWuaId(99L);
+
+    TeamRole teamRole = TeamRoleTestUtil.newBuilder()
+        .withRole(Role.CASE_MANAGER_CARBON_STORAGE)
+        .withTeam(new Team())
+        .withWuaId(USER_WUA_ID)
+        .build();
+
+    when(teamQueryService.getTeamRolesForUser(USER_WUA_ID)).thenReturn(Set.of(teamRole));
+
+    var availableActions = scheduleWorkProgrammeApplicationActionService.getAvailableUserActionItems(applicationDetail, serviceUserDetail);
+
+    assertThat(availableActions)
+        .contains(ScheduleWorkProgrammeApplicationActionItem.ALLOCATE_STEWARD.toActionItemView(applicationDetail, false));
+  }
+
+  @Test
+  void getAvailableUserActionItems_stewardAndStewardAssigned_recordFinalDecisionIsPrimary() {
+    var applicationDetail = ScheduleWorkProgrammeApplicationDetailTestUtil.builder()
+        .withId(UUID.randomUUID())
+        .withStatus(ApplicationStatus.SUBMITTED)
+        .withLicenceType(LicenceType.SEAWARD_PRODUCTION)
+        .build();
+    applicationDetail.getScheduleWorkProgrammeApplication().setStewardWuaId(USER_WUA_ID);
+
+    TeamRole teamRole = TeamRoleTestUtil.newBuilder()
+        .withRole(Role.STEWARD_OFFSHORE)
+        .withTeam(new Team())
+        .withWuaId(USER_WUA_ID)
+        .build();
+
+    when(teamQueryService.getTeamRolesForUser(USER_WUA_ID)).thenReturn(Set.of(teamRole));
+
+    var availableActions = scheduleWorkProgrammeApplicationActionService.getAvailableUserActionItems(applicationDetail, serviceUserDetail);
+
+    assertThat(availableActions)
+        .contains(ScheduleWorkProgrammeApplicationActionItem.UPLOAD_DSP.toActionItemView(applicationDetail, true))
+        .contains(ScheduleWorkProgrammeApplicationActionItem.ALLOCATE_STEWARD.toActionItemView(applicationDetail, false));
+  }
+
+  @Test
+  void getAvailableUserActionItems_stewardAndStewardNotAssigned_allocateStewardIsNotPrimary() {
+    var applicationDetail = ScheduleWorkProgrammeApplicationDetailTestUtil.builder()
+        .withId(UUID.randomUUID())
+        .withStatus(ApplicationStatus.SUBMITTED)
+        .withLicenceType(LicenceType.SEAWARD_PRODUCTION)
+        .build();
+
+    TeamRole teamRole = TeamRoleTestUtil.newBuilder()
+        .withRole(Role.STEWARD_OFFSHORE)
+        .withTeam(new Team())
+        .withWuaId(USER_WUA_ID)
+        .build();
+
+    when(teamQueryService.getTeamRolesForUser(USER_WUA_ID)).thenReturn(Set.of(teamRole));
+
+    var availableActions = scheduleWorkProgrammeApplicationActionService.getAvailableUserActionItems(applicationDetail, serviceUserDetail);
+
+    assertThat(availableActions)
+        .contains(ScheduleWorkProgrammeApplicationActionItem.ALLOCATE_STEWARD.toActionItemView(applicationDetail, false));
   }
 }

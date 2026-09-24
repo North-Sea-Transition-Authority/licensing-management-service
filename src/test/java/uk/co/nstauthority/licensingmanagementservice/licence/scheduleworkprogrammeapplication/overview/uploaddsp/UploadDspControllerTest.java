@@ -1,4 +1,4 @@
-package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overview.finaldecision;
+package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overview.uploaddsp;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -15,7 +15,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 import static uk.co.nstauthority.licensingmanagementservice.authentication.TestUserProvider.user;
-import static uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overview.finaldecision.RecordFinalDecisionController.PAGE_TITLE;
+import static uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overview.uploaddsp.UploadDspController.PAGE_TITLE;
 
 import java.util.List;
 import java.util.UUID;
@@ -43,8 +43,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogram
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.workarea.WorkAreaController;
 
-@ContextConfiguration(classes = RecordFinalDecisionController.class)
-class RecordFinalDecisionControllerTest extends AbstractControllerTest {
+@ContextConfiguration(classes = UploadDspController.class)
+class UploadDspControllerTest extends AbstractControllerTest {
 
   private static final Long REGULATOR_WUA_ID = 1L;
   private static final ServiceUserDetail USER = ServiceUserDetailTestUtil.newBuilder()
@@ -55,27 +55,25 @@ class RecordFinalDecisionControllerTest extends AbstractControllerTest {
       .build();
 
   @MockitoBean
-  private RecordFinalDecisionService recordFinalDecisionService;
+  private UploadDspService uploadDspService;
 
   @MockitoBean
-  private RecordFinalDecisionFormValidator recordFinalDecisionFormValidator;
+  private UploadDspFormValidator uploadDspFormValidator;
 
   @MockitoBean
   private FileControllerHelperService fileControllerHelperService;
 
   @Test
   void render_classAnnotations_presentAndCorrect() {
-    assertThat(RecordFinalDecisionController.class)
-        .hasAnnotation(ScheduleAmendmentApplicationHasStatus.class);
-    assertThat(RecordFinalDecisionController.class.getAnnotation(ScheduleAmendmentApplicationHasStatus.class).value())
-        .containsOnly(ApplicationStatus.SUBMITTED);
-    assertThat(RecordFinalDecisionController.class)
-        .hasAnnotation(InvokingUserCanAccessScheduleApplication.class);
-    assertThat(RecordFinalDecisionController.class)
+    assertThat(UploadDspController.class)
+        .hasAnnotation(ScheduleAmendmentApplicationHasStatus.class)
+        .hasAnnotation(InvokingUserCanAccessScheduleApplication.class)
         .hasAnnotation(ScheduleWorkProgrammeApplicationActionEndPointInterceptorRule.ActionEndPoint.class);
-    assertThat(RecordFinalDecisionController.class
+    assertThat(UploadDspController.class.getAnnotation(ScheduleAmendmentApplicationHasStatus.class).value())
+        .containsOnly(ApplicationStatus.SUBMITTED);
+    assertThat(UploadDspController.class
         .getAnnotation(ScheduleWorkProgrammeApplicationActionEndPointInterceptorRule.ActionEndPoint.class).value())
-        .containsOnly(ScheduleWorkProgrammeApplicationActionItem.RECORD_FINAL_DECISION);
+        .containsOnly(ScheduleWorkProgrammeApplicationActionItem.UPLOAD_DSP);
   }
 
   @Test
@@ -92,7 +90,7 @@ class RecordFinalDecisionControllerTest extends AbstractControllerTest {
         .thenReturn(false);
 
     mockMvc.perform(
-            get(ReverseRouter.route(on(RecordFinalDecisionController.class).render(applicationDetailId, null)))
+            get(ReverseRouter.route(on(UploadDspController.class).render(applicationDetailId, null)))
                 .with(user(USER))
         )
         .andExpect(status().isForbidden());
@@ -114,7 +112,7 @@ class RecordFinalDecisionControllerTest extends AbstractControllerTest {
         .thenReturn(List.of());
 
     mockMvc.perform(
-            get(ReverseRouter.route(on(RecordFinalDecisionController.class).render(applicationDetailId, null)))
+            get(ReverseRouter.route(on(UploadDspController.class).render(applicationDetailId, null)))
                 .with(user(USER))
         )
         .andExpect(status().isForbidden());
@@ -126,16 +124,16 @@ class RecordFinalDecisionControllerTest extends AbstractControllerTest {
     var applicationDetail = buildApplicationDetail(applicationDetailId);
 
     setupPassingInterceptors(applicationDetail);
-    when(recordFinalDecisionService.getFormForApplication(applicationDetail))
-        .thenReturn(new RecordFinalDecisionForm());
+    when(uploadDspService.getFormForApplication(applicationDetail))
+        .thenReturn(new UploadDspForm());
     mockFileUploadComponentAttributes();
 
     mockMvc.perform(
-            get(ReverseRouter.route(on(RecordFinalDecisionController.class).render(applicationDetailId, null)))
+            get(ReverseRouter.route(on(UploadDspController.class).render(applicationDetailId, null)))
                 .with(user(USER))
         )
         .andExpect(status().isOk())
-        .andExpect(view().name("lms/licence/scheduleWorkProgrammeApplication/recordFinalDecision"))
+        .andExpect(view().name("lms/licence/scheduleWorkProgrammeApplication/uploadDsp"))
         .andExpect(model().attribute("pageTitle", PAGE_TITLE))
         .andExpect(model().attribute("caption", LicenceType.CARBON_STORAGE.getDisplayName()))
         .andExpect(model().attribute("fileUploadAttributes", FILE_UPLOAD_ATTRIBUTES))
@@ -148,11 +146,11 @@ class RecordFinalDecisionControllerTest extends AbstractControllerTest {
     var applicationDetail = buildApplicationDetail(applicationDetailId);
 
     setupPassingInterceptors(applicationDetail);
-    when(recordFinalDecisionFormValidator.isValid(any(RecordFinalDecisionForm.class), any(Errors.class)))
+    when(uploadDspFormValidator.isValid(any(UploadDspForm.class), any(Errors.class)))
         .thenReturn(true);
 
     mockMvc.perform(
-            post(ReverseRouter.route(on(RecordFinalDecisionController.class)
+            post(ReverseRouter.route(on(UploadDspController.class)
                 .save(applicationDetailId, null, null, null, null)))
                 .with(user(USER))
                 .with(csrf())
@@ -168,18 +166,18 @@ class RecordFinalDecisionControllerTest extends AbstractControllerTest {
     var applicationDetail = buildApplicationDetail(applicationDetailId);
 
     setupPassingInterceptors(applicationDetail);
-    when(recordFinalDecisionFormValidator.isValid(any(RecordFinalDecisionForm.class), any(Errors.class)))
+    when(uploadDspFormValidator.isValid(any(UploadDspForm.class), any(Errors.class)))
         .thenReturn(false);
     mockFileUploadComponentAttributes();
 
     mockMvc.perform(
-            post(ReverseRouter.route(on(RecordFinalDecisionController.class)
+            post(ReverseRouter.route(on(UploadDspController.class)
                 .save(applicationDetailId, null, null, null, null)))
                 .with(user(USER))
                 .with(csrf())
         )
         .andExpect(status().isOk())
-        .andExpect(view().name("lms/licence/scheduleWorkProgrammeApplication/recordFinalDecision"));
+        .andExpect(view().name("lms/licence/scheduleWorkProgrammeApplication/uploadDsp"));
   }
 
   private void mockFileUploadComponentAttributes() {
@@ -209,7 +207,7 @@ class RecordFinalDecisionControllerTest extends AbstractControllerTest {
         .thenReturn(true);
     when(scheduleWorkProgrammeApplicationActionService.getAvailableUserActionItems(applicationDetail, USER))
         .thenReturn(List.of(
-            ScheduleWorkProgrammeApplicationActionItem.RECORD_FINAL_DECISION.toActionItemView(applicationDetail)));
+            ScheduleWorkProgrammeApplicationActionItem.UPLOAD_DSP.toActionItemView(applicationDetail)));
   }
 
   private Licence createLicence() {

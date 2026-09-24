@@ -1,10 +1,11 @@
-package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overview.finaldecision;
+package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overview.uploaddsp;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDate;
+import java.time.Month;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -23,7 +24,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogram
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetailTestUtil;
 
 @ExtendWith(MockitoExtension.class)
-class RecordFinalDecisionServiceTest {
+class UploadDspServiceTest {
 
   @Mock
   private ScheduleWorkProgrammeApplicationDetailRepository detailRepository;
@@ -35,21 +36,21 @@ class RecordFinalDecisionServiceTest {
   private ApplicationLetterService applicationLetterService;
 
   @InjectMocks
-  private RecordFinalDecisionService service;
+  private UploadDspService service;
 
   @Test
   void getFormForApplication_whenDecisionDateSet_populatesDate() {
     var applicationDetail = ScheduleWorkProgrammeApplicationDetailTestUtil.builder()
         .withId(UUID.randomUUID())
         .build();
-    applicationDetail.setDecisionDate(LocalDate.of(2024, 3, 15));
+    applicationDetail.setDecisionDate(LocalDate.of(2024, Month.MARCH, 15));
 
-    when(applicationFileService.getUploadedFiles(RecordFinalDecisionFileUsage.fromApplication(applicationDetail)))
+    when(applicationFileService.getUploadedFiles(UploadDspFileUsage.fromApplication(applicationDetail)))
         .thenReturn(List.of());
 
     var form = service.getFormForApplication(applicationDetail);
 
-    assertThat(form.getDecisionDate().getAsLocalDate()).isEqualTo(Optional.of(LocalDate.of(2024, 3, 15)));
+    assertThat(form.getDecisionDate().getAsLocalDate()).isEqualTo(Optional.of(LocalDate.of(2024, Month.MARCH, 15)));
   }
 
   @Test
@@ -58,12 +59,12 @@ class RecordFinalDecisionServiceTest {
         .withId(UUID.randomUUID())
         .build();
 
-    when(applicationFileService.getUploadedFiles(RecordFinalDecisionFileUsage.fromApplication(applicationDetail)))
+    when(applicationFileService.getUploadedFiles(UploadDspFileUsage.fromApplication(applicationDetail)))
         .thenReturn(List.of());
 
     var form = service.getFormForApplication(applicationDetail);
 
-    assertThat(form.getDecisionDate().getAsLocalDate()).isEqualTo(Optional.empty());
+    assertThat(form.getDecisionDate().getAsLocalDate()).isEmpty();
   }
 
   @Test
@@ -72,7 +73,7 @@ class RecordFinalDecisionServiceTest {
         .withId(UUID.randomUUID())
         .build();
 
-    when(applicationFileService.getUploadedFiles(RecordFinalDecisionFileUsage.fromApplication(applicationDetail)))
+    when(applicationFileService.getUploadedFiles(UploadDspFileUsage.fromApplication(applicationDetail)))
         .thenReturn(List.of());
 
     var form = service.getFormForApplication(applicationDetail);
@@ -81,36 +82,36 @@ class RecordFinalDecisionServiceTest {
   }
 
   @Test
-  void recordDecision_setsDecisionDateStatusAndSaves() {
+  void uploadDspDateStatusAndSaves() {
     var applicationDetail = ScheduleWorkProgrammeApplicationDetailTestUtil.builder()
         .withId(UUID.randomUUID())
         .build();
-    var form = new RecordFinalDecisionForm();
-    form.getDecisionDate().setDate(LocalDate.of(2024, 3, 15));
+    var form = new UploadDspForm();
+    form.getDecisionDate().setDate(LocalDate.of(2024, Month.MARCH, 15));
 
-    service.recordDecision(applicationDetail, form);
+    service.uploadDsp(applicationDetail, form);
 
-    assertThat(applicationDetail.getDecisionDate()).isEqualTo(LocalDate.of(2024, 3, 15));
-    assertThat(applicationDetail.getStatus()).isEqualTo(ApplicationStatus.ISSUE_DECISION);
+    assertThat(applicationDetail.getDecisionDate()).isEqualTo(LocalDate.of(2024, Month.MARCH, 15));
+    assertThat(applicationDetail.getStatus()).isEqualTo(ApplicationStatus.DSP_UPLOADED);
     verify(applicationLetterService).createDocumentInstance(applicationDetail.getScheduleWorkProgrammeApplication());
     verify(detailRepository).save(applicationDetail);
   }
 
   @Test
-  void recordDecision_savesDocuments() {
+  void uploadDsp_savesDocuments() {
     var applicationDetail = ScheduleWorkProgrammeApplicationDetailTestUtil.builder()
         .withId(UUID.randomUUID())
         .build();
-    var form = new RecordFinalDecisionForm();
-    form.getDecisionDate().setDate(LocalDate.of(2024, 3, 15));
+    var form = new UploadDspForm();
+    form.getDecisionDate().setDate(LocalDate.of(2024, Month.MARCH, 15));
     var papers = new ArrayList<UploadedFileForm>(List.of(
         FileUploadTestUtil.getUploadedFileFormWithDescription("decision.pdf", "Final decision paper")));
     form.setFinalDecisionSupportPapers(papers);
 
-    service.recordDecision(applicationDetail, form);
+    service.uploadDsp(applicationDetail, form);
 
     verify(applicationFileService).saveDocuments(
-        RecordFinalDecisionFileUsage.fromApplication(applicationDetail),
+        UploadDspFileUsage.fromApplication(applicationDetail),
         papers
     );
   }

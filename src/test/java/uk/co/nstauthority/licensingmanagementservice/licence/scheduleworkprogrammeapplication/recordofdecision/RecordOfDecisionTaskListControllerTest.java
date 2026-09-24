@@ -14,6 +14,7 @@ import static uk.co.nstauthority.licensingmanagementservice.authentication.TestU
 
 import java.io.ByteArrayInputStream;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -26,16 +27,20 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.InvokingUserCanAccessScheduleApplication;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.ScheduleAmendmentApplicationHasStatus;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationActionEndPointInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.file.FileControllerHelperService;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overview.ScheduleWorkProgrammeApplicationContext;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overview.ScheduleWorkProgrammeApplicationOverviewController;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overview.action.ScheduleWorkProgrammeApplicationActionItem;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryDataView;
 import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListItem;
 import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListLabel;
 import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListSection;
+import uk.co.nstauthority.licensingmanagementservice.workarea.WorkAreaController;
 
 @ContextConfiguration(classes = RecordOfDecisionTaskListController.class)
 class RecordOfDecisionTaskListControllerTest extends AbstractControllerTest {
@@ -54,12 +59,15 @@ class RecordOfDecisionTaskListControllerTest extends AbstractControllerTest {
   @Test
   void getTaskList_classAnnotations_presentAndCorrect() {
     assertThat(RecordOfDecisionTaskListController.class)
-        .hasAnnotation(ScheduleAmendmentApplicationHasStatus.class);
+        .hasAnnotation(ScheduleAmendmentApplicationHasStatus.class)
+        .hasAnnotation(InvokingUserCanAccessScheduleApplication.class)
+        .hasAnnotation(ScheduleWorkProgrammeApplicationActionEndPointInterceptorRule.ActionEndPoint.class);
     assertThat(RecordOfDecisionTaskListController.class
         .getAnnotation(ScheduleAmendmentApplicationHasStatus.class).value())
-        .containsOnly(ApplicationStatus.ISSUE_DECISION);
-    assertThat(RecordOfDecisionTaskListController.class)
-        .hasAnnotation(InvokingUserCanAccessScheduleApplication.class);
+        .containsOnly(ApplicationStatus.DSP_UPLOADED);
+    assertThat(RecordOfDecisionTaskListController.class
+        .getAnnotation(ScheduleWorkProgrammeApplicationActionEndPointInterceptorRule.ActionEndPoint.class).value())
+        .containsOnly(ScheduleWorkProgrammeApplicationActionItem.RECORD_DECISION);
   }
 
   @Test
@@ -71,6 +79,25 @@ class RecordOfDecisionTaskListControllerTest extends AbstractControllerTest {
         .thenReturn(applicationDetail);
     when(applicationAccessService.userHasAccessToApplication(eq(applicationDetail), anyMap(), eq(REGULATOR_WUA_ID)))
         .thenReturn(false);
+
+    mockMvc.perform(
+            get(ReverseRouter.route(on(RecordOfDecisionTaskListController.class)
+                .getTaskList(applicationDetailId, null, null)))
+                .with(user(USER)))
+        .andExpect(status().isForbidden());
+  }
+
+  @Test
+  void getTaskList_noActionAccess_returnsForbidden() throws Exception {
+    var applicationDetailId = UUID.randomUUID();
+    var applicationDetail = buildApplicationDetail(applicationDetailId);
+
+    when(scheduleWorkProgrammeApplicationService.getDetailByIdOrThrow(applicationDetailId))
+        .thenReturn(applicationDetail);
+    when(applicationAccessService.userHasAccessToApplication(eq(applicationDetail), anyMap(), eq(REGULATOR_WUA_ID)))
+        .thenReturn(true);
+    when(scheduleWorkProgrammeApplicationActionService.getAvailableUserActionItems(applicationDetail, USER))
+        .thenReturn(List.of());
 
     mockMvc.perform(
             get(ReverseRouter.route(on(RecordOfDecisionTaskListController.class)
@@ -97,6 +124,10 @@ class RecordOfDecisionTaskListControllerTest extends AbstractControllerTest {
     when(recordOfDecisionTaskListService.getSignedDspSummaryItem(applicationDetail))
         .thenReturn(Optional.empty());
 
+    var workAreaUrl = ReverseRouter.route(on(WorkAreaController.class).getWorkArea(null, null));
+    var viewApplicationUrl = ReverseRouter.route(on(ScheduleWorkProgrammeApplicationOverviewController.class)
+        .renderOverview(applicationDetailId, null, null));
+
     mockMvc.perform(
             get(ReverseRouter.route(on(RecordOfDecisionTaskListController.class)
                 .getTaskList(applicationDetailId, null, null)))
@@ -104,7 +135,10 @@ class RecordOfDecisionTaskListControllerTest extends AbstractControllerTest {
         .andExpect(status().isOk())
         .andExpect(view().name("lms/licence/scheduleWorkProgrammeApplication/recordOfDecisionTaskList"))
         .andExpect(model().attribute("pageTitle", RecordOfDecisionTaskListController.PAGE_TITLE))
-        .andExpect(model().attributeExists("applicationContext", "taskListSections"));
+        .andExpect(model().attributeExists("applicationContext", "taskListSections"))
+        .andExpect(model().attribute("breadcrumbs", Map.of(
+            workAreaUrl, "Work area",
+            viewApplicationUrl, applicationDetail.getScheduleWorkProgrammeApplication().getApplicationReference())));
   }
 
   @Test
@@ -127,7 +161,8 @@ class RecordOfDecisionTaskListControllerTest extends AbstractControllerTest {
   private ScheduleWorkProgrammeApplicationDetail buildApplicationDetail(UUID applicationDetailId) {
     return ScheduleWorkProgrammeApplicationDetailTestUtil.builder()
         .withId(applicationDetailId)
-        .withStatus(ApplicationStatus.ISSUE_DECISION)
+        .withStatus(ApplicationStatus.DSP_UPLOADED)
+        .withApplicationReference("LMS/EAA/2024/1")
         .build();
   }
 
@@ -137,5 +172,8 @@ class RecordOfDecisionTaskListControllerTest extends AbstractControllerTest {
     when(applicationAccessService.userHasAccessToApplication(
         eq(applicationDetail), anyMap(), eq(REGULATOR_WUA_ID)))
         .thenReturn(true);
+    when(scheduleWorkProgrammeApplicationActionService.getAvailableUserActionItems(applicationDetail, USER))
+        .thenReturn(List.of(
+            ScheduleWorkProgrammeApplicationActionItem.RECORD_DECISION.toActionItemView(applicationDetail)));
   }
 }

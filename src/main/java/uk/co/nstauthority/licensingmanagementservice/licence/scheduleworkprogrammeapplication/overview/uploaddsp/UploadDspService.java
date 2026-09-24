@@ -1,4 +1,4 @@
-package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overview.finaldecision;
+package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overview.uploaddsp;
 
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
@@ -10,13 +10,13 @@ import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogram
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetailRepository;
 
 @Service
-public class RecordFinalDecisionService {
+public class UploadDspService {
 
   private final ScheduleWorkProgrammeApplicationDetailRepository detailRepository;
   private final ApplicationFileService applicationFileService;
   private final ApplicationLetterService applicationLetterService;
 
-  public RecordFinalDecisionService(
+  public UploadDspService(
       ScheduleWorkProgrammeApplicationDetailRepository detailRepository,
       ApplicationFileService applicationFileService,
       ApplicationLetterService applicationLetterService
@@ -26,16 +26,16 @@ public class RecordFinalDecisionService {
     this.applicationLetterService = applicationLetterService;
   }
 
-  public RecordFinalDecisionForm getFormForApplication(
+  public UploadDspForm getFormForApplication(
       ScheduleWorkProgrammeApplicationDetail applicationDetail) {
-    var form = new RecordFinalDecisionForm();
+    var form = new UploadDspForm();
 
     if (applicationDetail.getDecisionDate() != null) {
       form.getDecisionDate().setDate(applicationDetail.getDecisionDate());
     }
 
     var uploadedFiles = applicationFileService.getUploadedFiles(
-        RecordFinalDecisionFileUsage.fromApplication(applicationDetail))
+        UploadDspFileUsage.fromApplication(applicationDetail))
         .stream()
         .map(FileUploadLibraryUtils::asForm)
         .toList();
@@ -45,16 +45,16 @@ public class RecordFinalDecisionService {
   }
 
   @Transactional
-  public void recordDecision(
+  public void uploadDsp(
       ScheduleWorkProgrammeApplicationDetail applicationDetail,
-      RecordFinalDecisionForm form) {
+      UploadDspForm form) {
     applicationLetterService.createDocumentInstance(applicationDetail.getScheduleWorkProgrammeApplication());
     form.getDecisionDate().getAsLocalDate().ifPresent(applicationDetail::setDecisionDate);
-    applicationDetail.setStatus(ApplicationStatus.ISSUE_DECISION);
+    applicationDetail.setStatus(ApplicationStatus.DSP_UPLOADED);
     detailRepository.save(applicationDetail);
 
     applicationFileService.saveDocuments(
-        RecordFinalDecisionFileUsage.fromApplication(applicationDetail),
+        UploadDspFileUsage.fromApplication(applicationDetail),
         form.getFinalDecisionSupportPapers()
     );
   }

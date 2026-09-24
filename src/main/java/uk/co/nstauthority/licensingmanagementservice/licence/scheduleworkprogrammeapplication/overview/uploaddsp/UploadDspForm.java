@@ -1,11 +1,11 @@
-package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overview.finaldecision;
+package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overview.uploaddsp;
 
 import java.util.ArrayList;
 import java.util.List;
 import uk.co.fivium.fileuploadlibrary.fds.UploadedFileForm;
 import uk.co.fivium.formlibrary.input.ThreeFieldDateInput;
 
-public class RecordFinalDecisionForm {
+public class UploadDspForm {
 
   private ThreeFieldDateInput decisionDate = new ThreeFieldDateInput("decisionDate", "decision date");
   private List<UploadedFileForm> finalDecisionSupportPapers = new ArrayList<>();

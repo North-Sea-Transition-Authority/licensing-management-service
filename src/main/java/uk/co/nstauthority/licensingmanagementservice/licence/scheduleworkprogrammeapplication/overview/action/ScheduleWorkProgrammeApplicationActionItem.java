@@ -5,21 +5,28 @@ import static org.springframework.web.servlet.mvc.method.annotation.MvcUriCompon
 import java.util.function.Function;
 import uk.co.nstauthority.licensingmanagementservice.components.actions.ActionItemView;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
-import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overview.finaldecision.RecordFinalDecisionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overview.steward.AllocateStewardController;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overview.uploaddsp.UploadDspController;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.recordofdecision.RecordOfDecisionTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.util.enumutil.Displayable;
 
 public enum ScheduleWorkProgrammeApplicationActionItem implements Displayable {
-  RECORD_FINAL_DECISION(
-      "Record final decision",
+  UPLOAD_DSP(
+      "Upload DSP",
       10,
-          detail -> ReverseRouter.route(on(RecordFinalDecisionController.class).render(detail.getId(), null))
+          detail -> ReverseRouter.route(on(UploadDspController.class).render(detail.getId(), null))
   ),
   ALLOCATE_STEWARD(
       "Allocate steward",
       20,
           detail -> ReverseRouter.route(on(AllocateStewardController.class).render(detail.getId(), null))
+  ),
+  RECORD_DECISION(
+      "Record a decision",
+      30,
+          detail -> ReverseRouter.route(on(RecordOfDecisionTaskListController.class)
+              .getTaskList(detail.getId(), null, null))
   );
 
   private final String displayName;

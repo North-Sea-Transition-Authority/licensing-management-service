@@ -116,7 +116,7 @@ You are, if the change touches any of:
 | Area | Typical entry points |
 |---|---|
 | Schema | a `V<n>__*.sql` migration, an `@Entity` class, an enum persisted as `TEXT` |
-| Status transitions | anything calling `setStatus`, `LicenceContinuationService`, `ScheduleWorkProgrammeApplicationService`, `RecordFinalDecisionService` |
+| Status transitions | anything calling `setStatus`, `LicenceContinuationService`, `ScheduleWorkProgrammeApplicationService`, `UploadDspService` |
 | Derived values | date calculation for terms, phases, activities and rates; `LicenceScheduleStateService`; the application reference format constants |
 | Versioning and copying | the `duplication` package, `DuplicationSource` / `NotDuplicationSource`, `@DuplicateThisOnUpdate`, `original_event_id` handling |
 | What a journey asks | `SwpApplicationRequestPurposeService`, `OtherRequirementsVisibilityResolverService`, `LicenceTypeFeature` and the licence type rules |

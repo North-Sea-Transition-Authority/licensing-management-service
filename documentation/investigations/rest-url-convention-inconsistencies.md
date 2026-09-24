@@ -127,7 +127,7 @@ verb-in-path:
 | File | Line |
 |---|---|
 | `LicenceScheduleSupportingInformationController` | 135 |
-| `RecordFinalDecisionController` | 102 |
+| `UploadDspController` | 102 |
 | `LicenceContinuationSupportingInformationController` | 128 |
 | `LicenceContinuationOtherRequirementController` | 144 |
 

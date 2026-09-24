@@ -1,18 +1,18 @@
-package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overview.finaldecision;
+package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overview.uploaddsp;
 
 import uk.co.nstauthority.licensingmanagementservice.file.ApplicationFileUsage;
 import uk.co.nstauthority.licensingmanagementservice.file.FileUsageType;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 
-public record RecordFinalDecisionFileUsage(
+public record UploadDspFileUsage(
     String usageId,
     String usageType,
     String documentType
 ) implements ApplicationFileUsage {
 
-  public static RecordFinalDecisionFileUsage fromApplication(
+  public static UploadDspFileUsage fromApplication(
       ScheduleWorkProgrammeApplicationDetail applicationDetail) {
-    return new RecordFinalDecisionFileUsage(
+    return new UploadDspFileUsage(
         applicationDetail.getId().toString(),
         FileUsageType.FINAL_DECISION_SUPPORT_PAPER.getUsageType(),
         "final-decision-support-paper"

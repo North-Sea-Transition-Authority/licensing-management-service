@@ -19,7 +19,7 @@ import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.W
 @Controller
 @RequestMapping("licence/schedule-work-programme-application/{scheduleWorkProgrammeApplicationDetailId}/overview")
 @ScheduleAmendmentApplicationHasStatus(value = {
-    ApplicationStatus.SUBMITTED, ApplicationStatus.ISSUE_DECISION
+    ApplicationStatus.SUBMITTED, ApplicationStatus.DSP_UPLOADED, ApplicationStatus.ISSUE_DECISION
 })
 @InvokingUserCanAccessScheduleApplication
 @LogWorkAreaItemView(

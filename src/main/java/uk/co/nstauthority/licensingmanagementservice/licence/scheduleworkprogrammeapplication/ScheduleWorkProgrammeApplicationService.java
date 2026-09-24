@@ -139,6 +139,14 @@ public class ScheduleWorkProgrammeApplicationService {
     scheduleWorkProgrammeApplicationDetailRepository.save(scheduleWorkProgrammeApplicationDetail);
   }
 
+  @Transactional
+  public void decisionRecorded(
+      ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail
+  ) {
+    scheduleWorkProgrammeApplicationDetail.setStatus(ApplicationStatus.ISSUE_DECISION);
+    scheduleWorkProgrammeApplicationDetailRepository.save(scheduleWorkProgrammeApplicationDetail);
+  }
+
   public ScheduleWorkProgrammeApplication getApplicationByIdOrThrow(UUID applicationId) {
     return scheduleWorkProgrammeApplicationRepository.findById(applicationId)
         .orElseThrow(() -> new LmsEntityNotFoundException("schedule work programme application detail", applicationId));

@@ -1,4 +1,4 @@
-package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overview.finaldecision;
+package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overview.uploaddsp;
 
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
@@ -30,26 +30,26 @@ import uk.co.nstauthority.licensingmanagementservice.workarea.WorkAreaController
 
 @Controller
 @RequestMapping(
-    "licence/schedule-work-programme-application/{scheduleWorkProgrammeApplicationDetailId}/record-final-decision")
+    "licence/schedule-work-programme-application/{scheduleWorkProgrammeApplicationDetailId}/upload-dsp")
 @ScheduleAmendmentApplicationHasStatus(ApplicationStatus.SUBMITTED)
 @InvokingUserCanAccessScheduleApplication
 @ScheduleWorkProgrammeApplicationActionEndPointInterceptorRule.ActionEndPoint(
-    ScheduleWorkProgrammeApplicationActionItem.RECORD_FINAL_DECISION)
-public class RecordFinalDecisionController {
+    ScheduleWorkProgrammeApplicationActionItem.UPLOAD_DSP)
+public class UploadDspController {
 
-  static final String PAGE_TITLE = "Record final decision";
+  static final String PAGE_TITLE = "Upload DSP";
 
-  private final RecordFinalDecisionService recordFinalDecisionService;
-  private final RecordFinalDecisionFormValidator recordFinalDecisionFormValidator;
+  private final UploadDspService uploadDspService;
+  private final UploadDspFormValidator uploadDspFormValidator;
   private final FileControllerHelperService fileControllerHelperService;
 
-  public RecordFinalDecisionController(
-      RecordFinalDecisionService recordFinalDecisionService,
-      RecordFinalDecisionFormValidator recordFinalDecisionFormValidator,
+  public UploadDspController(
+      UploadDspService uploadDspService,
+      UploadDspFormValidator uploadDspFormValidator,
       FileControllerHelperService fileControllerHelperService
   ) {
-    this.recordFinalDecisionService = recordFinalDecisionService;
-    this.recordFinalDecisionFormValidator = recordFinalDecisionFormValidator;
+    this.uploadDspService = uploadDspService;
+    this.uploadDspFormValidator = uploadDspFormValidator;
     this.fileControllerHelperService = fileControllerHelperService;
   }
 
@@ -58,7 +58,7 @@ public class RecordFinalDecisionController {
       @PathVariable UUID scheduleWorkProgrammeApplicationDetailId,
       ScheduleWorkProgrammeApplicationDetail applicationDetail
   ) {
-    var form = recordFinalDecisionService.getFormForApplication(applicationDetail);
+    var form = uploadDspService.getFormForApplication(applicationDetail);
     return getModelAndView(applicationDetail, form);
   }
 
@@ -66,19 +66,19 @@ public class RecordFinalDecisionController {
   ModelAndView save(
       @PathVariable UUID scheduleWorkProgrammeApplicationDetailId,
       ScheduleWorkProgrammeApplicationDetail applicationDetail,
-      @ModelAttribute("form") RecordFinalDecisionForm form,
+      @ModelAttribute("form") UploadDspForm form,
       BindingResult bindingResult,
       RedirectAttributes redirectAttributes
   ) {
-    if (!recordFinalDecisionFormValidator.isValid(form, bindingResult)) {
+    if (!uploadDspFormValidator.isValid(form, bindingResult)) {
       return getModelAndView(applicationDetail, form);
     }
 
-    recordFinalDecisionService.recordDecision(applicationDetail, form);
+    uploadDspService.uploadDsp(applicationDetail, form);
 
     var applicationReference = applicationDetail.getScheduleWorkProgrammeApplication().getApplicationReference();
     NotificationBanner.newSuccessBanner()
-        .withHeadingContent(String.format("Final decision recorded on %s", applicationReference))
+        .withHeadingContent(String.format("DSP uploaded on %s", applicationReference))
         .applyTo(redirectAttributes);
 
     return ReverseRouter.redirect(on(WorkAreaController.class)
@@ -94,7 +94,7 @@ public class RecordFinalDecisionController {
   ) {
     return fileControllerHelperService.download(
         fileId,
-        () -> RecordFinalDecisionFileUsage.fromApplication(applicationDetail),
+        () -> UploadDspFileUsage.fromApplication(applicationDetail),
         userDetail
     );
   }
@@ -108,14 +108,14 @@ public class RecordFinalDecisionController {
   ) {
     return fileControllerHelperService.delete(
         fileId,
-        () -> RecordFinalDecisionFileUsage.fromApplication(applicationDetail),
+        () -> UploadDspFileUsage.fromApplication(applicationDetail),
         userDetail
     );
   }
 
   private ModelAndView getModelAndView(
       ScheduleWorkProgrammeApplicationDetail applicationDetail,
-      RecordFinalDecisionForm form
+      UploadDspForm form
   ) {
     var licence = applicationDetail.getLicence();
 
@@ -127,7 +127,7 @@ public class RecordFinalDecisionController {
         "form.finalDecisionSupportPapers"
     );
 
-    return new ModelAndView("lms/licence/scheduleWorkProgrammeApplication/recordFinalDecision")
+    return new ModelAndView("lms/licence/scheduleWorkProgrammeApplication/uploadDsp")
         .addObject("pageTitle", PAGE_TITLE)
         .addObject("caption", licence.getType().getDisplayName())
         .addObject("form", form)

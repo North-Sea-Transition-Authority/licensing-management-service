@@ -13,12 +13,14 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.InvokingUserCanAccessScheduleApplication;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.ScheduleAmendmentApplicationHasStatus;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationActionEndPointInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.breadcrumbs.Breadcrumbs;
 import uk.co.nstauthority.licensingmanagementservice.breadcrumbs.BreadcrumbsUtil;
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overview.action.ScheduleWorkProgrammeApplicationActionItem;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.recordofdecision.RecordOfDecisionTaskListContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.recordofdecision.RecordOfDecisionTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.recordofdecision.RecordOfDecisionTaskListService;
@@ -28,8 +30,10 @@ import uk.co.nstauthority.licensingmanagementservice.workarea.WorkAreaController
 @Controller
 @RequestMapping(
     "licence/schedule-work-programme-application/{scheduleWorkProgrammeApplicationDetailId}/record-of-decision/review")
-@ScheduleAmendmentApplicationHasStatus(value = ApplicationStatus.ISSUE_DECISION)
+@ScheduleAmendmentApplicationHasStatus(value = ApplicationStatus.DSP_UPLOADED)
 @InvokingUserCanAccessScheduleApplication
+@ScheduleWorkProgrammeApplicationActionEndPointInterceptorRule.ActionEndPoint(
+    ScheduleWorkProgrammeApplicationActionItem.RECORD_DECISION)
 public class ReviewRecordOfDecisionController {
 
   static final String PAGE_TITLE = "Review record of decision";
@@ -93,6 +97,8 @@ public class ReviewRecordOfDecisionController {
       return ReverseRouter.redirect(on(ReviewRecordOfDecisionController.class)
           .renderReview(scheduleWorkProgrammeApplicationDetailId, null, null));
     }
+
+    recordOfDecisionTaskListService.submit(scheduleWorkProgrammeApplicationDetail);
 
     var applicationReference = scheduleWorkProgrammeApplicationDetail
         .getScheduleWorkProgrammeApplication().getApplicationReference();

@@ -6,6 +6,8 @@ import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -30,10 +32,12 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.InvokingUserCanAccessScheduleApplication;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.ScheduleAmendmentApplicationHasStatus;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationActionEndPointInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetailTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overview.action.ScheduleWorkProgrammeApplicationActionItem;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.recordofdecision.RecordOfDecisionTaskListContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.recordofdecision.RecordOfDecisionTaskListService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
@@ -64,12 +68,15 @@ class ReviewRecordOfDecisionControllerTest extends AbstractControllerTest {
   @Test
   void renderReview_classAnnotations_presentAndCorrect() {
     assertThat(ReviewRecordOfDecisionController.class)
-        .hasAnnotation(ScheduleAmendmentApplicationHasStatus.class);
+        .hasAnnotation(ScheduleAmendmentApplicationHasStatus.class)
+        .hasAnnotation(InvokingUserCanAccessScheduleApplication.class)
+        .hasAnnotation(ScheduleWorkProgrammeApplicationActionEndPointInterceptorRule.ActionEndPoint.class);
     assertThat(ReviewRecordOfDecisionController.class
         .getAnnotation(ScheduleAmendmentApplicationHasStatus.class).value())
-        .containsOnly(ApplicationStatus.ISSUE_DECISION);
-    assertThat(ReviewRecordOfDecisionController.class)
-        .hasAnnotation(InvokingUserCanAccessScheduleApplication.class);
+        .containsOnly(ApplicationStatus.DSP_UPLOADED);
+    assertThat(ReviewRecordOfDecisionController.class
+        .getAnnotation(ScheduleWorkProgrammeApplicationActionEndPointInterceptorRule.ActionEndPoint.class).value())
+        .containsOnly(ScheduleWorkProgrammeApplicationActionItem.RECORD_DECISION);
   }
 
   @Test
@@ -81,6 +88,25 @@ class ReviewRecordOfDecisionControllerTest extends AbstractControllerTest {
         .thenReturn(applicationDetail);
     when(applicationAccessService.userHasAccessToApplication(eq(applicationDetail), anyMap(), eq(REGULATOR_WUA_ID)))
         .thenReturn(false);
+
+    mockMvc.perform(
+            get(ReverseRouter.route(on(ReviewRecordOfDecisionController.class)
+                .renderReview(applicationDetailId, null, null)))
+                .with(user(USER)))
+        .andExpect(status().isForbidden());
+  }
+
+  @Test
+  void renderReview_noActionAccess_returnsForbidden() throws Exception {
+    var applicationDetailId = UUID.randomUUID();
+    var applicationDetail = buildApplicationDetail(applicationDetailId);
+
+    when(scheduleWorkProgrammeApplicationService.getDetailByIdOrThrow(applicationDetailId))
+        .thenReturn(applicationDetail);
+    when(applicationAccessService.userHasAccessToApplication(eq(applicationDetail), anyMap(), eq(REGULATOR_WUA_ID)))
+        .thenReturn(true);
+    when(scheduleWorkProgrammeApplicationActionService.getAvailableUserActionItems(applicationDetail, USER))
+        .thenReturn(List.of());
 
     mockMvc.perform(
             get(ReverseRouter.route(on(ReviewRecordOfDecisionController.class)
@@ -156,7 +182,7 @@ class ReviewRecordOfDecisionControllerTest extends AbstractControllerTest {
   }
 
   @Test
-  void submitReview_whenAllTasksAreComplete_redirectsToWorkAreaLeavingTheStatusUnchanged() throws Exception {
+  void submitReview_whenAllTasksAreComplete_redirectsToWorkAreaAndSubmitsDecision() throws Exception {
     var applicationDetailId = UUID.randomUUID();
     var applicationDetail = buildApplicationDetail(applicationDetailId);
 
@@ -174,7 +200,7 @@ class ReviewRecordOfDecisionControllerTest extends AbstractControllerTest {
             .withHeadingContent(ReviewRecordOfDecisionController.SUBMITTED_BANNER.formatted(APPLICATION_REFERENCE))
             .build()));
 
-    assertThat(applicationDetail.getStatus()).isEqualTo(ApplicationStatus.ISSUE_DECISION);
+    verify(recordOfDecisionTaskListService).submit(applicationDetail);
   }
 
   @Test
@@ -195,7 +221,7 @@ class ReviewRecordOfDecisionControllerTest extends AbstractControllerTest {
             .renderReview(applicationDetailId, null, null))))
         .andExpect(notificationBannerDoesNotExist());
 
-    assertThat(applicationDetail.getStatus()).isEqualTo(ApplicationStatus.ISSUE_DECISION);
+    verify(recordOfDecisionTaskListService, never()).submit(any());
   }
 
   private void mockSubmittable(ScheduleWorkProgrammeApplicationDetail applicationDetail, boolean submittable) {
@@ -214,7 +240,7 @@ class ReviewRecordOfDecisionControllerTest extends AbstractControllerTest {
   private ScheduleWorkProgrammeApplicationDetail buildApplicationDetail(UUID applicationDetailId) {
     return ScheduleWorkProgrammeApplicationDetailTestUtil.builder()
         .withId(applicationDetailId)
-        .withStatus(ApplicationStatus.ISSUE_DECISION)
+        .withStatus(ApplicationStatus.DSP_UPLOADED)
         .withApplicationReference(APPLICATION_REFERENCE)
         .build();
   }
@@ -225,5 +251,8 @@ class ReviewRecordOfDecisionControllerTest extends AbstractControllerTest {
     when(applicationAccessService.userHasAccessToApplication(
         eq(applicationDetail), anyMap(), eq(REGULATOR_WUA_ID)))
         .thenReturn(true);
+    when(scheduleWorkProgrammeApplicationActionService.getAvailableUserActionItems(applicationDetail, USER))
+        .thenReturn(List.of(
+            ScheduleWorkProgrammeApplicationActionItem.RECORD_DECISION.toActionItemView(applicationDetail)));
   }
 }

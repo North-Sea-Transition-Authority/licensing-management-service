@@ -11,18 +11,22 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.InvokingUserCanAccessScheduleApplication;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.ScheduleAmendmentApplicationHasStatus;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationActionEndPointInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.breadcrumbs.Breadcrumbs;
 import uk.co.nstauthority.licensingmanagementservice.breadcrumbs.BreadcrumbsUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overview.action.ScheduleWorkProgrammeApplicationActionItem;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @Controller
 @RequestMapping(
     "licence/schedule-work-programme-application/{scheduleWorkProgrammeApplicationDetailId}" +
         "/duration-changes/summary")
-@ScheduleAmendmentApplicationHasStatus(value = ApplicationStatus.ISSUE_DECISION)
+@ScheduleAmendmentApplicationHasStatus(value = ApplicationStatus.DSP_UPLOADED)
 @InvokingUserCanAccessScheduleApplication
+@ScheduleWorkProgrammeApplicationActionEndPointInterceptorRule.ActionEndPoint(
+    ScheduleWorkProgrammeApplicationActionItem.RECORD_DECISION)
 public class RecordDurationChangesSummaryController {
 
   static final String PAGE_TITLE = "Review changes to term and phase durations";

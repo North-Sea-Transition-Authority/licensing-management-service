@@ -16,8 +16,9 @@ import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplication;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overview.ScheduleWorkProgrammeApplicationContext;
-import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overview.finaldecision.RecordFinalDecisionFileUsage;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overview.uploaddsp.UploadDspFileUsage;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryCard;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryDataView;
@@ -37,18 +38,21 @@ public class RecordOfDecisionTaskListService {
   private final ApplicationFileService applicationFileService;
   private final LicenceService licenceService;
   private final EnergyPortalUserService energyPortalUserService;
+  private final ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService;
 
   @Autowired
   public RecordOfDecisionTaskListService(
       List<TaskListSectionService<RecordOfDecisionTaskListContext>> taskListSectionServices,
       ApplicationFileService applicationFileService,
       LicenceService licenceService,
-      EnergyPortalUserService energyPortalUserService
+      EnergyPortalUserService energyPortalUserService,
+      ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService
   ) {
     this.taskListSectionServices = taskListSectionServices;
     this.applicationFileService = applicationFileService;
     this.licenceService = licenceService;
     this.energyPortalUserService = energyPortalUserService;
+    this.scheduleWorkProgrammeApplicationService = scheduleWorkProgrammeApplicationService;
   }
 
   public List<TaskListSection> getTaskListSections(RecordOfDecisionTaskListContext context, ServiceUserDetail user) {
@@ -65,10 +69,14 @@ public class RecordOfDecisionTaskListService {
         .allMatch(TaskListSection::isCompleted);
   }
 
+  public void submit(ScheduleWorkProgrammeApplicationDetail applicationDetail) {
+    scheduleWorkProgrammeApplicationService.decisionRecorded(applicationDetail);
+  }
+
   // TODO: placeholder for the signed DSP
   public Optional<SummaryItem> getSignedDspSummaryItem(ScheduleWorkProgrammeApplicationDetail applicationDetail) {
     var uploadedFiles = applicationFileService.getUploadedFiles(
-        RecordFinalDecisionFileUsage.fromApplication(applicationDetail));
+        UploadDspFileUsage.fromApplication(applicationDetail));
 
     if (uploadedFiles.isEmpty()) {
       return Optional.empty();

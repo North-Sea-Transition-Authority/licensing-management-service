@@ -1,5 +1,6 @@
-package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overview.finaldecision;
+package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overview.uploaddsp;
 
+import java.time.Clock;
 import java.time.LocalDate;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.Errors;
@@ -7,12 +8,18 @@ import uk.co.fivium.formlibrary.validator.date.ThreeFieldDateInputValidator;
 import uk.co.nstauthority.licensingmanagementservice.file.FileValidationUtil;
 
 @Service
-public class RecordFinalDecisionFormValidator {
+public class UploadDspFormValidator {
 
-  boolean isValid(RecordFinalDecisionForm form, Errors errors) {
+  private final Clock clock;
+
+  UploadDspFormValidator(Clock clock) {
+    this.clock = clock;
+  }
+
+  boolean isValid(UploadDspForm form, Errors errors) {
     ThreeFieldDateInputValidator.builder()
         .emptyInputErrorMessage("Provide the decision date")
-        .mustBeBeforeOrEqualTo(LocalDate.now())
+        .mustBeBeforeOrEqualTo(LocalDate.now(clock))
         .mustBeBeforeOrEqualToErrorMessage("Decision date must be today or in the past")
         .validate(form.getDecisionDate(), errors);
 

@@ -78,7 +78,7 @@ class RecordOfDecisionServiceIntegrationTest {
     var applicationDetail = new ScheduleWorkProgrammeApplicationDetail();
     applicationDetail.setScheduleWorkProgrammeApplication(application);
     applicationDetail.setVersionNumber(1);
-    applicationDetail.setStatus(ApplicationStatus.ISSUE_DECISION);
+    applicationDetail.setStatus(ApplicationStatus.DSP_UPLOADED);
     applicationDetail.setCreatedDatetime(Instant.now());
     em.persist(applicationDetail);
 

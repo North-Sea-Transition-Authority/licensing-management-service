@@ -51,11 +51,16 @@ public class ScheduleWorkProgrammeApplicationActionService {
               CaseManagerRoles.getRequiredRoleForLicenceType(detail.getLicence().getType())
           ))
           .isPrimaryButton(false)
-        .registerAction(ScheduleWorkProgrammeApplicationActionItem.RECORD_FINAL_DECISION)
+        .registerAction(ScheduleWorkProgrammeApplicationActionItem.UPLOAD_DSP)
           .requiresAnyStatusFrom(ApplicationStatus.SUBMITTED)
           .requiresAnyRoleFrom(detail -> StreamUtil.toSet(
               CaseManagerRoles.getRequiredRoleForLicenceType(detail.getLicence().getType())))
             .orGrantedToUser(detail -> detail.getScheduleWorkProgrammeApplication().getStewardWuaId())
+          .isPrimaryButton(true)
+        .registerAction(ScheduleWorkProgrammeApplicationActionItem.RECORD_DECISION)
+          .requiresAnyStatusFrom(ApplicationStatus.DSP_UPLOADED)
+          .requiresAnyRoleFrom(detail -> StreamUtil.toSet(
+              CaseManagerRoles.getRequiredRoleForLicenceType(detail.getLicence().getType())))
           .isPrimaryButton(true)
         .build();
 

@@ -255,6 +255,16 @@ class ScheduleWorkProgrammeApplicationServiceTest {
   }
 
   @Test
+  void issueDecision_setsStatusToDecisionRecordedAndSaves() {
+    scheduleWorkProgrammeApplicationDetail.setStatus(ApplicationStatus.DSP_UPLOADED);
+    scheduleWorkProgrammeApplicationService.decisionRecorded(scheduleWorkProgrammeApplicationDetail);
+
+    verify(scheduleWorkProgrammeApplicationDetailRepository).save(scheduleWorkProgrammeApplicationDetailCaptor.capture());
+    ScheduleWorkProgrammeApplicationDetail savedEntity = scheduleWorkProgrammeApplicationDetailCaptor.getValue();
+    assertThat(savedEntity.getStatus()).isEqualTo(ApplicationStatus.ISSUE_DECISION);
+  }
+
+  @Test
   void userCanSubmitApplication() {
     var user = mockUser();
     var organisationUnitId = 100;

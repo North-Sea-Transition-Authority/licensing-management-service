@@ -1,26 +1,43 @@
-package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overview.finaldecision;
+package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overview.uploaddsp;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.when;
 
+import java.time.Clock;
 import java.time.LocalDate;
+import java.time.Month;
+import java.time.ZoneOffset;
 import java.util.List;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.fivium.formlibrary.input.ThreeFieldDateInput;
 import uk.co.nstauthority.licensingmanagementservice.file.FileUploadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.validation.ValidatorTestingUtil;
 
 @ExtendWith(MockitoExtension.class)
-class RecordFinalDecisionFormValidatorTest {
+class UploadDspFormValidatorTest {
+
+  private static final LocalDate TODAY = LocalDate.of(2024, Month.MARCH, 15);
+
+  @Mock
+  private Clock clock;
 
   @InjectMocks
-  private RecordFinalDecisionFormValidator validator;
+  private UploadDspFormValidator validator;
 
-  private RecordFinalDecisionForm buildValidForm() {
-    var form = new RecordFinalDecisionForm();
-    form.getDecisionDate().setDate(LocalDate.now());
+  @BeforeEach
+  void setUp() {
+    when(clock.instant()).thenReturn(TODAY.atStartOfDay(ZoneOffset.UTC).toInstant());
+    when(clock.getZone()).thenReturn(ZoneOffset.UTC);
+  }
+
+  private UploadDspForm buildValidForm() {
+    var form = new UploadDspForm();
+    form.getDecisionDate().setDate(TODAY);
     form.setFinalDecisionSupportPapers(List.of(
         FileUploadTestUtil.getUploadedFileFormWithDescription("decision.pdf", "Final decision paper")));
     return form;
@@ -58,7 +75,7 @@ class RecordFinalDecisionFormValidatorTest {
   @Test
   void isValid_whenDateInFuture_returnsFalse() {
     var form = buildValidForm();
-    form.getDecisionDate().setDate(LocalDate.now().plusDays(1));
+    form.getDecisionDate().setDate(TODAY.plusDays(1));
     var bindingResult = ValidatorTestingUtil.getBindingResult(form);
 
     assertThat(validator.isValid(form, bindingResult)).isFalse();

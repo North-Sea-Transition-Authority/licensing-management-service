@@ -33,6 +33,7 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.InvokingUserCanAccessScheduleApplication;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.ScheduleAmendmentApplicationHasStatus;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationActionEndPointInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
@@ -45,6 +46,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogra
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.amendjourney.WorkProgrammeActivityView;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overview.action.ScheduleWorkProgrammeApplicationActionItem;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @ContextConfiguration(classes = RecordWorkProgrammeAmendmentDetailsController.class)
@@ -74,7 +76,7 @@ class RecordWorkProgrammeAmendmentDetailsControllerTest extends AbstractControll
     activityId = UUID.randomUUID();
     applicationDetail = ScheduleWorkProgrammeApplicationDetailTestUtil.builder()
         .withId(applicationDetailId)
-        .withStatus(ApplicationStatus.ISSUE_DECISION)
+        .withStatus(ApplicationStatus.DSP_UPLOADED)
         .build();
     workProgrammeActivity = buildActivity();
   }
@@ -82,12 +84,15 @@ class RecordWorkProgrammeAmendmentDetailsControllerTest extends AbstractControll
   @Test
   void renderForm_classAnnotations_presentAndCorrect() {
     assertThat(RecordWorkProgrammeAmendmentDetailsController.class)
-        .hasAnnotation(ScheduleAmendmentApplicationHasStatus.class);
+        .hasAnnotation(ScheduleAmendmentApplicationHasStatus.class)
+        .hasAnnotation(InvokingUserCanAccessScheduleApplication.class)
+        .hasAnnotation(ScheduleWorkProgrammeApplicationActionEndPointInterceptorRule.ActionEndPoint.class);
     assertThat(RecordWorkProgrammeAmendmentDetailsController.class
         .getAnnotation(ScheduleAmendmentApplicationHasStatus.class).value())
-        .containsOnly(ApplicationStatus.ISSUE_DECISION);
-    assertThat(RecordWorkProgrammeAmendmentDetailsController.class)
-        .hasAnnotation(InvokingUserCanAccessScheduleApplication.class);
+        .containsOnly(ApplicationStatus.DSP_UPLOADED);
+    assertThat(RecordWorkProgrammeAmendmentDetailsController.class
+        .getAnnotation(ScheduleWorkProgrammeApplicationActionEndPointInterceptorRule.ActionEndPoint.class).value())
+        .containsOnly(ScheduleWorkProgrammeApplicationActionItem.RECORD_DECISION);
   }
 
   @Test
@@ -96,6 +101,22 @@ class RecordWorkProgrammeAmendmentDetailsControllerTest extends AbstractControll
         .thenReturn(applicationDetail);
     when(applicationAccessService.userHasAccessToApplication(eq(applicationDetail), anyMap(), eq(REGULATOR_WUA_ID)))
         .thenReturn(false);
+
+    mockMvc.perform(
+            get(ReverseRouter.route(on(RecordWorkProgrammeAmendmentDetailsController.class)
+                .renderForm(applicationDetailId, activityId, null, null)))
+                .with(user(USER)))
+        .andExpect(status().isForbidden());
+  }
+
+  @Test
+  void renderForm_noActionAccess_returnsForbidden() throws Exception {
+    when(scheduleWorkProgrammeApplicationService.getDetailByIdOrThrow(applicationDetailId))
+        .thenReturn(applicationDetail);
+    when(applicationAccessService.userHasAccessToApplication(eq(applicationDetail), anyMap(), eq(REGULATOR_WUA_ID)))
+        .thenReturn(true);
+    when(scheduleWorkProgrammeApplicationActionService.getAvailableUserActionItems(applicationDetail, USER))
+        .thenReturn(List.of());
 
     mockMvc.perform(
             get(ReverseRouter.route(on(RecordWorkProgrammeAmendmentDetailsController.class)
@@ -212,6 +233,9 @@ class RecordWorkProgrammeAmendmentDetailsControllerTest extends AbstractControll
         .thenReturn(true);
     when(workProgrammeActivityService.getWorkProgrammeActivityByIdOrThrow(activityId))
         .thenReturn(workProgrammeActivity);
+    when(scheduleWorkProgrammeApplicationActionService.getAvailableUserActionItems(applicationDetail, USER))
+        .thenReturn(List.of(
+            ScheduleWorkProgrammeApplicationActionItem.RECORD_DECISION.toActionItemView(applicationDetail)));
   }
 
   private WorkProgrammeActivity buildActivity() {

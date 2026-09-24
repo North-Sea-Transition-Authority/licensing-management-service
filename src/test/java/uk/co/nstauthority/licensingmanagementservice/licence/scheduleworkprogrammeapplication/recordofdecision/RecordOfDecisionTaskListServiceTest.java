@@ -1,6 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.recordofdecision;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.Instant;
@@ -20,7 +21,8 @@ import uk.co.nstauthority.licensingmanagementservice.file.ApplicationFileService
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetailTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overview.finaldecision.RecordFinalDecisionFileUsage;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationService;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overview.uploaddsp.UploadDspFileUsage;
 import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListSection;
 import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListSectionService;
 import uk.co.nstauthority.licensingmanagementservice.util.EnergyPortalUserTestUtil;
@@ -45,6 +47,9 @@ class RecordOfDecisionTaskListServiceTest {
   @Mock
   private TaskListSectionService<RecordOfDecisionTaskListContext> secondSectionService;
 
+  @Mock
+  private ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService;
+
   private RecordOfDecisionTaskListService recordOfDecisionTaskListService;
   private ScheduleWorkProgrammeApplicationDetail applicationDetail;
 
@@ -57,7 +62,8 @@ class RecordOfDecisionTaskListServiceTest {
         List.of(firstSectionService, secondSectionService),
         applicationFileService,
         licenceService,
-        energyPortalUserService);
+        energyPortalUserService,
+        scheduleWorkProgrammeApplicationService);
   }
 
   @Test
@@ -77,8 +83,15 @@ class RecordOfDecisionTaskListServiceTest {
   }
 
   @Test
+  void submit_delegatesToScheduleWorkProgrammeApplicationService() {
+    recordOfDecisionTaskListService.submit(applicationDetail);
+
+    verify(scheduleWorkProgrammeApplicationService).decisionRecorded(applicationDetail);
+  }
+
+  @Test
   void getSignedDspSummaryItem_whenNoFiles_returnsEmpty() {
-    when(applicationFileService.getUploadedFiles(RecordFinalDecisionFileUsage.fromApplication(applicationDetail)))
+    when(applicationFileService.getUploadedFiles(UploadDspFileUsage.fromApplication(applicationDetail)))
         .thenReturn(List.of());
 
     assertThat(recordOfDecisionTaskListService.getSignedDspSummaryItem(applicationDetail)).isEmpty();
@@ -88,7 +101,7 @@ class RecordOfDecisionTaskListServiceTest {
   void getSignedDspSummaryItem_whenFilesExist_returnsSummaryItem() {
     var uploadedFile = new UploadedFile(UUID.randomUUID());
     uploadedFile.setName("signed-dsp.pdf");
-    when(applicationFileService.getUploadedFiles(RecordFinalDecisionFileUsage.fromApplication(applicationDetail)))
+    when(applicationFileService.getUploadedFiles(UploadDspFileUsage.fromApplication(applicationDetail)))
         .thenReturn(List.of(uploadedFile));
 
     assertThat(recordOfDecisionTaskListService.getSignedDspSummaryItem(applicationDetail)).isPresent();

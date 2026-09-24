@@ -14,22 +14,25 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.LogWorkAreaItemView;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.InvokingUserCanAccessScheduleApplication;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.ScheduleAmendmentApplicationHasStatus;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationActionEndPointInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.breadcrumbs.Breadcrumbs;
 import uk.co.nstauthority.licensingmanagementservice.breadcrumbs.BreadcrumbsUtil;
 import uk.co.nstauthority.licensingmanagementservice.file.FileControllerHelperService;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overview.ScheduleWorkProgrammeApplicationOverviewController;
-import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overview.finaldecision.RecordFinalDecisionFileUsage;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overview.action.ScheduleWorkProgrammeApplicationActionItem;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overview.uploaddsp.UploadDspFileUsage;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.WorkAreaDataItemType;
 
-// TODO LMS1-541: entry point comes later, status and access role here are placeholders
 @Controller
 @RequestMapping(
     "licence/schedule-work-programme-application/{scheduleWorkProgrammeApplicationDetailId}/record-of-decision")
-@ScheduleAmendmentApplicationHasStatus(value = ApplicationStatus.ISSUE_DECISION)
+@ScheduleAmendmentApplicationHasStatus(value = ApplicationStatus.DSP_UPLOADED)
 @InvokingUserCanAccessScheduleApplication
+@ScheduleWorkProgrammeApplicationActionEndPointInterceptorRule.ActionEndPoint(
+    ScheduleWorkProgrammeApplicationActionItem.RECORD_DECISION)
 @LogWorkAreaItemView(
     itemType = WorkAreaDataItemType.SCHEDULE_WORK_PROGRAMME_APPLICATION,
     pathVariable = "scheduleWorkProgrammeApplicationDetailId")
@@ -55,22 +58,25 @@ public class RecordOfDecisionTaskListController {
       ServiceUserDetail serviceUserDetail) {
 
     var context = new RecordOfDecisionTaskListContext(scheduleWorkProgrammeApplicationDetail);
+    var viewApplicationUrl = ReverseRouter.route(on(ScheduleWorkProgrammeApplicationOverviewController.class)
+        .renderOverview(scheduleWorkProgrammeApplicationDetailId, null, null));
 
     var modelAndView = new ModelAndView("lms/licence/scheduleWorkProgrammeApplication/recordOfDecisionTaskList")
         .addObject("pageTitle", PAGE_TITLE)
         .addObject("applicationContext",
             recordOfDecisionTaskListService.getApplicationContext(scheduleWorkProgrammeApplicationDetail))
-        .addObject("viewApplicationUrl",
-            ReverseRouter.route(on(ScheduleWorkProgrammeApplicationOverviewController.class)
-                .renderOverview(scheduleWorkProgrammeApplicationDetailId, null, null)))
+        .addObject("viewApplicationUrl", viewApplicationUrl)
         .addObject("taskListSections",
             recordOfDecisionTaskListService.getTaskListSections(context, serviceUserDetail));
 
     recordOfDecisionTaskListService.getSignedDspSummaryItem(scheduleWorkProgrammeApplicationDetail)
         .ifPresent(summaryItem -> modelAndView.addObject("signedDspSummaryItem", summaryItem));
 
+    var applicationReference = scheduleWorkProgrammeApplicationDetail.getScheduleWorkProgrammeApplication()
+        .getApplicationReference();
     var breadcrumbs = Breadcrumbs.builder(PAGE_TITLE)
         .addWorkAreaBreadcrumb()
+        .addBreadcrumb(applicationReference, viewApplicationUrl)
         .build();
     BreadcrumbsUtil.addBreadcrumbsToModel(modelAndView, breadcrumbs);
 
@@ -85,7 +91,7 @@ public class RecordOfDecisionTaskListController {
       ServiceUserDetail serviceUserDetail) {
     return fileControllerHelperService.download(
         fileId,
-        () -> RecordFinalDecisionFileUsage.fromApplication(scheduleWorkProgrammeApplicationDetail),
+        () -> UploadDspFileUsage.fromApplication(scheduleWorkProgrammeApplicationDetail),
         serviceUserDetail);
   }
 }

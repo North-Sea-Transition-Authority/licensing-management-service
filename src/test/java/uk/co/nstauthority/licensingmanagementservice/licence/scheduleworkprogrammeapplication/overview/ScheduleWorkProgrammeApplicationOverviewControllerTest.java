@@ -54,6 +54,7 @@ class ScheduleWorkProgrammeApplicationOverviewControllerTest extends AbstractCon
         .getAnnotation(ScheduleAmendmentApplicationHasStatus.class).value())
         .containsExactlyInAnyOrder(
             ApplicationStatus.SUBMITTED,
+            ApplicationStatus.DSP_UPLOADED,
             ApplicationStatus.ISSUE_DECISION);
     assertThat(ScheduleWorkProgrammeApplicationOverviewController.class)
         .hasAnnotation(InvokingUserCanAccessScheduleApplication.class);

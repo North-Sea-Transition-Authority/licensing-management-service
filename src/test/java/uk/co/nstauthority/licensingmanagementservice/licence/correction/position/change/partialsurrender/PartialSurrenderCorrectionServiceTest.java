@@ -71,6 +71,7 @@ class PartialSurrenderCorrectionServiceTest {
   private static final UUID FIRST_FEATURE_ID = UUID.randomUUID();
   private static final UUID SECOND_FEATURE_ID = UUID.randomUUID();
   private static final UUID THIRD_FEATURE_ID = UUID.randomUUID();
+  private static final UUID FOURTH_FEATURE_ID = UUID.randomUUID();
   private static final UUID FIRST_COMMAND_JOURNEY_ID = UUID.randomUUID();
   private static final UUID SECOND_COMMAND_JOURNEY_ID = UUID.randomUUID();
   private static final UUID THIRD_COMMAND_JOURNEY_ID = UUID.randomUUID();
@@ -461,12 +462,7 @@ class PartialSurrenderCorrectionServiceTest {
   }
 
   @Test
-  void correctExistingPartialSurrender_whenAlreadyCorrected_deletesOnlyTheJourneysTheCorrectionOwns() {
-    var liveSurrender = LicenceOperation.newPartialSurrenderOperation()
-        .withSurrenderedFeatureIds(List.of(FIRST_FEATURE_ID))
-        .withSurrenderDetails(Map.of(
-            FIRST_FEATURE_ID, surrenderDetails(BlockSurrenderType.PARTIAL_SURRENDER, FIRST_COMMAND_JOURNEY_ID)))
-        .build();
+  void correctExistingPartialSurrender_whenAlreadyCorrected_deletesTheStagedJourneysNoLongerHeld() {
     var staged = LicenceOperation.newPartialSurrenderOperation()
         .withSurrenderedFeatureIds(List.of(FIRST_FEATURE_ID, SECOND_FEATURE_ID))
         .withSurrenderDetails(Map.of(
@@ -476,13 +472,13 @@ class PartialSurrenderCorrectionServiceTest {
     var positionCorrection = updatePositionCorrection(
         List.of(UpdateChangeOperations.buildUpdateChange(LIVE_CHANGE_ID, staged)));
     var corrected = LicenceOperation.newPartialSurrenderOperation()
-        .withSurrenderedFeatureIds(List.of(THIRD_FEATURE_ID))
+        .withSurrenderedFeatureIds(List.of(FIRST_FEATURE_ID, THIRD_FEATURE_ID))
         .withSurrenderDetails(Map.of(
+            FIRST_FEATURE_ID, surrenderDetails(BlockSurrenderType.PARTIAL_SURRENDER, FIRST_COMMAND_JOURNEY_ID),
             THIRD_FEATURE_ID, surrenderDetails(BlockSurrenderType.PARTIAL_SURRENDER, THIRD_COMMAND_JOURNEY_ID)))
         .build();
     givenPositionCorrection(positionCorrection);
     givenCommittedPartialSurrender(positionCorrection, staged);
-    givenLiveSurrenderChange(liveSurrender);
 
     partialSurrenderCorrectionService.correctExistingPartialSurrender(
         LICENCE_CORRECTION, LICENCE_POSITION, LIVE_CHANGE_ID, corrected);
@@ -509,7 +505,7 @@ class PartialSurrenderCorrectionServiceTest {
         .thenReturn(Optional.empty());
 
     partialSurrenderCorrectionService.revertPartialSurrenderCorrection(
-        LICENCE_CORRECTION, LICENCE_POSITION, partialSurrender(FIRST_FEATURE_ID), partialSurrender(FIRST_FEATURE_ID));
+        LICENCE_CORRECTION, LICENCE_POSITION, partialSurrender(FIRST_FEATURE_ID));
 
     verify(licencePositionCorrectionService, never()).save(any());
     verify(licencePositionCorrectionService, never()).delete(any());
@@ -526,7 +522,7 @@ class PartialSurrenderCorrectionServiceTest {
         .thenReturn(Optional.of(positionCorrection));
 
     partialSurrenderCorrectionService.revertPartialSurrenderCorrection(
-        LICENCE_CORRECTION, LICENCE_POSITION, partialSurrender(FIRST_FEATURE_ID), partialSurrender(FIRST_FEATURE_ID));
+        LICENCE_CORRECTION, LICENCE_POSITION, partialSurrender(FIRST_FEATURE_ID));
 
     verify(licencePositionCorrectionService, never()).delete(any());
     verify(licencePositionCorrectionService).save(positionCorrection);
@@ -541,7 +537,7 @@ class PartialSurrenderCorrectionServiceTest {
         .thenReturn(Optional.of(positionCorrection));
 
     partialSurrenderCorrectionService.revertPartialSurrenderCorrection(
-        LICENCE_CORRECTION, LICENCE_POSITION, partialSurrender(FIRST_FEATURE_ID), partialSurrender(FIRST_FEATURE_ID));
+        LICENCE_CORRECTION, LICENCE_POSITION, partialSurrender(FIRST_FEATURE_ID));
 
     verify(licencePositionCorrectionService).delete(positionCorrection);
     verify(licencePositionCorrectionService, never()).save(any());
@@ -562,7 +558,7 @@ class PartialSurrenderCorrectionServiceTest {
         .thenReturn(Optional.of(positionCorrection));
 
     partialSurrenderCorrectionService.revertPartialSurrenderCorrection(
-        LICENCE_CORRECTION, LICENCE_POSITION, partialSurrender(FIRST_FEATURE_ID), partialSurrender(FIRST_FEATURE_ID));
+        LICENCE_CORRECTION, LICENCE_POSITION, partialSurrender(FIRST_FEATURE_ID));
 
     verify(licencePositionCorrectionService, never()).delete(any());
     verify(licencePositionCorrectionService).save(positionCorrection);
@@ -668,31 +664,6 @@ class PartialSurrenderCorrectionServiceTest {
         .replaceAddChangeFor(positionCorrection, PartialSurrenderOperation.class, List.of(expected));
   }
 
-  @Test
-  void adjustPartialSurrenderBlocks_whenARemovedBlockJourneyIsHeldByTheLiveSurrender_retainsThatJourney() {
-    var liveSurrender = LicenceOperation.newPartialSurrenderOperation()
-        .withSurrenderedFeatureIds(List.of(FIRST_FEATURE_ID))
-        .withSurrenderDetails(Map.of(
-            FIRST_FEATURE_ID, surrenderDetails(BlockSurrenderType.PARTIAL_SURRENDER, FIRST_COMMAND_JOURNEY_ID)))
-        .build();
-    var surrender = LicenceOperation.newPartialSurrenderOperation()
-        .withSurrenderedFeatureIds(List.of(FIRST_FEATURE_ID, SECOND_FEATURE_ID))
-        .withSurrenderDetails(Map.of(
-            FIRST_FEATURE_ID, surrenderDetails(BlockSurrenderType.PARTIAL_SURRENDER, FIRST_COMMAND_JOURNEY_ID),
-            SECOND_FEATURE_ID, surrenderDetails(BlockSurrenderType.PARTIAL_SURRENDER, SECOND_COMMAND_JOURNEY_ID)))
-        .build();
-    var stagedChange = UpdateChangeOperations.buildUpdateChange(LIVE_CHANGE_ID, surrender);
-    var positionCorrection = executedPositionCorrection(List.of(stagedChange));
-    givenCommittedPartialSurrender(positionCorrection, surrender);
-    givenLiveSurrenderChange(liveSurrender);
-    when(licencePositionSpatialService.getBlockFeaturesGoingIntoChange(positionCorrection, LIVE_CHANGE_ID))
-        .thenReturn(List.of(FeatureTestUtil.builder().withId(THIRD_FEATURE_ID).build()));
-
-    partialSurrenderCorrectionService.adjustPartialSurrenderBlocks(positionCorrection);
-
-    verify(commandJourneyService).deleteCommandJourney(SECOND_COMMAND_JOURNEY_ID);
-    verify(commandJourneyService, never()).deleteCommandJourney(FIRST_COMMAND_JOURNEY_ID);
-  }
 
   @Test
   void adjustPartialSurrenderBlocks_whenNoBlocksStillSurrenderable_removesTheSurrender() {
@@ -882,34 +853,21 @@ class PartialSurrenderCorrectionServiceTest {
   }
 
   @Test
-  void undoPartialSurrenderChange_whenTheSurrenderCorrectsALiveChange_thenKeepsTheSharedCommandJourneys() {
-    var updateChange =
-        UpdateChangeOperations.buildUpdateChange(LIVE_CHANGE_ID, fullSurrenderOf(FIRST_FEATURE_ID));
-    var positionCorrection = givenStagedChange(updateChange);
-    givenLiveSurrenderChange(fullSurrenderOf(FIRST_FEATURE_ID));
-
-    partialSurrenderCorrectionService.undoPartialSurrenderChange(LICENCE_CORRECTION, updateChange.changeId());
-
-    verify(commandJourneyService, never()).deleteCommandJourney(any());
-    verify(licencePositionCorrectionService).dropStagedChange(positionCorrection, updateChange.changeId());
-  }
-
-  @Test
-  void undoPartialSurrenderChange_whenTheCorrectionSelectedABlockTheLiveSurrenderDidNotHold_thenDeletesOnlyTheJourneyItCreated() {
+  void undoPartialSurrenderChange_whenTheSurrenderCorrectsALiveChange_thenDeletesItsCommandJourneys() {
     var updateChange = UpdateChangeOperations.buildUpdateChange(
         LIVE_CHANGE_ID, twoBlockSurrenderOf(FIRST_FEATURE_ID, SECOND_FEATURE_ID));
     var positionCorrection = givenStagedChange(updateChange);
-    givenLiveSurrenderChange(fullSurrenderOf(FIRST_FEATURE_ID));
 
     partialSurrenderCorrectionService.undoPartialSurrenderChange(LICENCE_CORRECTION, updateChange.changeId());
 
+    verify(commandJourneyService).deleteCommandJourney(FIRST_COMMAND_JOURNEY_ID);
     verify(commandJourneyService).deleteCommandJourney(SECOND_COMMAND_JOURNEY_ID);
-    verify(commandJourneyService, never()).deleteCommandJourney(FIRST_COMMAND_JOURNEY_ID);
     verify(licencePositionCorrectionService).dropStagedChange(positionCorrection, updateChange.changeId());
   }
 
+
   @Test
-  void undoPartialSurrenderChange_whenTheSurrenderWasRemovedByThisCorrection_thenKeepsTheLiveCommandJourneys() {
+  void undoPartialSurrenderChange_whenTheSurrenderWasRemovedByThisCorrection_thenDeletesNoCommandJourneys() {
     var removeChange = LicencePositionChangeType.removeChange().withChangeId(LIVE_CHANGE_ID).build();
     var positionCorrection = givenStagedChange(removeChange, fullSurrenderOf(FIRST_FEATURE_ID));
 
@@ -1099,28 +1057,6 @@ class PartialSurrenderCorrectionServiceTest {
     assertThat(partialSurrenderOperationCaptor.getValue()).containsExactly(expectedOperation);
   }
 
-  @Test
-  void setBlockSurrenderType_whenTypeChangedOnACorrectionOfALiveChange_keepsTheLiveJourney() {
-    var existingOperation = LicenceOperation.newPartialSurrenderOperation()
-        .withSurrenderedFeatureIds(List.of(FIRST_FEATURE_ID))
-        .withSurrenderDetails(Map.of(FIRST_FEATURE_ID, new PartialSurrenderOperation.SurrenderDetails(
-            BlockSurrenderType.PARTIAL_SURRENDER, FIRST_COMMAND_JOURNEY_ID, List.of(FIRST_FEATURE_ID))))
-        .build();
-    var positionCorrection = updatePositionCorrection(
-        List.of(UpdateChangeOperations.buildUpdateChange(LIVE_CHANGE_ID, existingOperation)));
-    givenCommittedPartialSurrender(positionCorrection, existingOperation);
-    givenLiveSurrenderChange(fullSurrenderOf(FIRST_FEATURE_ID));
-    var feature = FeatureTestUtil.builder().withId(FIRST_FEATURE_ID).build();
-    var createdJourney = new CommandJourney();
-    createdJourney.setId(SECOND_COMMAND_JOURNEY_ID);
-    when(featureService.getFeatureOrThrow(FIRST_FEATURE_ID)).thenReturn(feature);
-    when(commandJourneyService.createAndAssignCommandJourney(List.of(feature))).thenReturn(createdJourney);
-
-    partialSurrenderCorrectionService.setBlockSurrenderType(
-        positionCorrection, FIRST_FEATURE_ID, BlockSurrenderType.FULL_SURRENDER);
-
-    verify(commandJourneyService, never()).deleteCommandJourney(any());
-  }
 
   @Test
   void revertPartialSurrenderCorrection_whenTheStagedSurrenderMintedItsOwnJourney_deletesOnlyThatJourney() {
@@ -1136,26 +1072,12 @@ class PartialSurrenderCorrectionServiceTest {
     givenCommittedPartialSurrender(positionCorrection, stagedSurrender);
 
     partialSurrenderCorrectionService.revertPartialSurrenderCorrection(
-        LICENCE_CORRECTION, LICENCE_POSITION, fullSurrenderOf(FIRST_FEATURE_ID), stagedSurrender);
+        LICENCE_CORRECTION, LICENCE_POSITION, stagedSurrender);
 
     verify(commandJourneyService).deleteCommandJourney(SECOND_COMMAND_JOURNEY_ID);
     verify(commandJourneyService, never()).deleteCommandJourney(FIRST_COMMAND_JOURNEY_ID);
   }
 
-  @Test
-  void revertPartialSurrenderCorrection_whenTheStagedSurrenderHoldsTheLiveJourney_deletesNothing() {
-    var stagedSurrender = fullSurrenderOf(FIRST_FEATURE_ID);
-    var positionCorrection = updatePositionCorrection(
-        List.of(UpdateChangeOperations.buildUpdateChange(LIVE_CHANGE_ID, stagedSurrender)));
-    when(licencePositionCorrectionService.findUpdatePositionCorrection(LICENCE_CORRECTION, LICENCE_POSITION))
-        .thenReturn(Optional.of(positionCorrection));
-    givenCommittedPartialSurrender(positionCorrection, stagedSurrender);
-
-    partialSurrenderCorrectionService.revertPartialSurrenderCorrection(
-        LICENCE_CORRECTION, LICENCE_POSITION, fullSurrenderOf(FIRST_FEATURE_ID), stagedSurrender);
-
-    verify(commandJourneyService, never()).deleteCommandJourney(any());
-  }
 
   @Test
   void revertPartialSurrenderCorrection_whenNothingWasStaged_deletesTheJourneyTheCorrectionCreated() {
@@ -1168,7 +1090,7 @@ class PartialSurrenderCorrectionServiceTest {
         .thenReturn(Optional.empty());
 
     partialSurrenderCorrectionService.revertPartialSurrenderCorrection(
-        LICENCE_CORRECTION, LICENCE_POSITION, fullSurrenderOf(FIRST_FEATURE_ID), discardedSurrender);
+        LICENCE_CORRECTION, LICENCE_POSITION, discardedSurrender);
 
     verify(commandJourneyService).deleteCommandJourney(SECOND_COMMAND_JOURNEY_ID);
     verify(commandJourneyService, never()).deleteCommandJourney(FIRST_COMMAND_JOURNEY_ID);
@@ -1188,7 +1110,7 @@ class PartialSurrenderCorrectionServiceTest {
     givenCommittedPartialSurrender(positionCorrection, stagedSurrender);
 
     partialSurrenderCorrectionService.revertPartialSurrenderCorrection(
-        LICENCE_CORRECTION, LICENCE_POSITION, fullSurrenderOf(FIRST_FEATURE_ID), stagedSurrender);
+        LICENCE_CORRECTION, LICENCE_POSITION, stagedSurrender);
 
     verify(commandJourneyService, times(1)).deleteCommandJourney(SECOND_COMMAND_JOURNEY_ID);
   }
@@ -1347,7 +1269,7 @@ class PartialSurrenderCorrectionServiceTest {
     when(commandJourneyService.createAndAssignCommandJourney(List.of(feature))).thenReturn(createdJourney);
 
     var result = partialSurrenderCorrectionService.getOrCreatePartialSurrenderDetails(
-        operation, liveSurrenderWithoutDetails(), FIRST_FEATURE_ID, BlockSurrenderType.FULL_SURRENDER);
+        operation, FIRST_FEATURE_ID, BlockSurrenderType.FULL_SURRENDER);
 
     var expected = LicenceOperation.newPartialSurrenderOperation()
         .withSurrenderDate(surrenderDate)
@@ -1359,7 +1281,7 @@ class PartialSurrenderCorrectionServiceTest {
   }
 
   @Test
-  void getOrCreatePartialSurrenderDetails_whenTheJourneyIsCorrectionOwned_reusesJourneyWithoutCreating() {
+  void getOrCreatePartialSurrenderDetails_whenExistingDetailsHaveAJourney_reusesJourneyWithoutCreating() {
     var existingSurrenderDetails = new PartialSurrenderOperation.SurrenderDetails(
         BlockSurrenderType.PARTIAL_SURRENDER, FIRST_COMMAND_JOURNEY_ID, List.of(FIRST_FEATURE_ID));
     var operation = LicenceOperation.newPartialSurrenderOperation()
@@ -1369,7 +1291,6 @@ class PartialSurrenderCorrectionServiceTest {
 
     var result = partialSurrenderCorrectionService.getOrCreatePartialSurrenderDetails(
         operation,
-        liveSurrenderWithJourney(SECOND_COMMAND_JOURNEY_ID),
         FIRST_FEATURE_ID,
         BlockSurrenderType.PARTIAL_SURRENDER);
 
@@ -1393,7 +1314,6 @@ class PartialSurrenderCorrectionServiceTest {
 
     var result = partialSurrenderCorrectionService.getOrCreatePartialSurrenderDetails(
         operation,
-        liveSurrenderWithJourney(SECOND_COMMAND_JOURNEY_ID),
         FIRST_FEATURE_ID,
         BlockSurrenderType.FULL_SURRENDER);
 
@@ -1407,76 +1327,100 @@ class PartialSurrenderCorrectionServiceTest {
     assertThat(result).isEqualTo(expected);
   }
 
+
+
+
+
   @Test
-  void getOrCreatePartialSurrenderDetails_whenPartialSurrenderAndTheJourneyIsTheLiveOne_createsANewJourney() {
+  void getOrCreatePartialSurrenderDetails_whenExistingDetailsHaveNoJourney_createsANewJourney() {
     var operation = LicenceOperation.newPartialSurrenderOperation()
         .withSurrenderedFeatureIds(List.of(FIRST_FEATURE_ID))
         .withSurrenderDetails(Map.of(FIRST_FEATURE_ID, new PartialSurrenderOperation.SurrenderDetails(
-            BlockSurrenderType.PARTIAL_SURRENDER, FIRST_COMMAND_JOURNEY_ID, List.of(SECOND_FEATURE_ID))))
+            BlockSurrenderType.PARTIAL_SURRENDER, null, List.of(SECOND_FEATURE_ID), List.of(THIRD_FEATURE_ID))))
         .build();
     var feature = FeatureTestUtil.builder().withId(FIRST_FEATURE_ID).build();
     var createdJourney = new CommandJourney();
-    createdJourney.setId(SECOND_COMMAND_JOURNEY_ID);
+    createdJourney.setId(FIRST_COMMAND_JOURNEY_ID);
     when(featureService.getFeatureOrThrow(FIRST_FEATURE_ID)).thenReturn(feature);
     when(commandJourneyService.createAndAssignCommandJourney(List.of(feature))).thenReturn(createdJourney);
 
     var result = partialSurrenderCorrectionService.getOrCreatePartialSurrenderDetails(
-        operation,
-        liveSurrenderWithJourney(FIRST_COMMAND_JOURNEY_ID),
-        FIRST_FEATURE_ID,
-        BlockSurrenderType.PARTIAL_SURRENDER);
-
-    verify(commandJourneyService, never()).deleteCommandJourney(FIRST_COMMAND_JOURNEY_ID);
+        operation, FIRST_FEATURE_ID, BlockSurrenderType.PARTIAL_SURRENDER);
 
     var expected = LicenceOperation.newPartialSurrenderOperation()
         .withSurrenderedFeatureIds(List.of(FIRST_FEATURE_ID))
         .withSurrenderDetails(Map.of(FIRST_FEATURE_ID, new PartialSurrenderOperation.SurrenderDetails(
-            BlockSurrenderType.PARTIAL_SURRENDER, SECOND_COMMAND_JOURNEY_ID, List.of())))
+            BlockSurrenderType.PARTIAL_SURRENDER, FIRST_COMMAND_JOURNEY_ID, List.of())))
         .build();
     assertThat(result).isEqualTo(expected);
   }
 
   @Test
-  void getOrCreatePartialSurrenderDetails_whenFullSurrenderAndTheJourneyIsTheLiveOne_createsANewJourney() {
-    var operation = LicenceOperation.newPartialSurrenderOperation()
-        .withSurrenderedFeatureIds(List.of(FIRST_FEATURE_ID))
-        .withSurrenderDetails(Map.of(FIRST_FEATURE_ID, new PartialSurrenderOperation.SurrenderDetails(
-            BlockSurrenderType.PARTIAL_SURRENDER, FIRST_COMMAND_JOURNEY_ID, List.of(SECOND_FEATURE_ID))))
-        .build();
-    var feature = FeatureTestUtil.builder().withId(FIRST_FEATURE_ID).build();
-    var createdJourney = new CommandJourney();
-    createdJourney.setId(SECOND_COMMAND_JOURNEY_ID);
-    when(featureService.getFeatureOrThrow(FIRST_FEATURE_ID)).thenReturn(feature);
-    when(commandJourneyService.createAndAssignCommandJourney(List.of(feature))).thenReturn(createdJourney);
+  void getRetainedFeatureIds_whenNoJourney_thenTheRecordedRetainedFeatures() {
+    var surrenderDetails = new PartialSurrenderOperation.SurrenderDetails(
+        BlockSurrenderType.PARTIAL_SURRENDER, null, List.of(SECOND_FEATURE_ID), List.of(THIRD_FEATURE_ID));
 
-    var result = partialSurrenderCorrectionService.getOrCreatePartialSurrenderDetails(
-        operation,
-        liveSurrenderWithJourney(FIRST_COMMAND_JOURNEY_ID),
-        FIRST_FEATURE_ID,
-        BlockSurrenderType.FULL_SURRENDER);
+    var result = partialSurrenderCorrectionService.getRetainedFeatureIds(surrenderDetails);
 
-    verify(commandJourneyService, never()).deleteCommandJourney(FIRST_COMMAND_JOURNEY_ID);
-
-    var expected = LicenceOperation.newPartialSurrenderOperation()
-        .withSurrenderedFeatureIds(List.of(FIRST_FEATURE_ID))
-        .withSurrenderDetails(Map.of(FIRST_FEATURE_ID, new PartialSurrenderOperation.SurrenderDetails(
-            BlockSurrenderType.FULL_SURRENDER, SECOND_COMMAND_JOURNEY_ID, List.of(FIRST_FEATURE_ID))))
-        .build();
-    assertThat(result).isEqualTo(expected);
+    assertThat(result).containsExactly(THIRD_FEATURE_ID);
+    verify(commandJourneyService, never()).getActiveFeatures(any(UUID.class));
   }
 
-  private static PartialSurrenderOperation liveSurrenderWithoutDetails() {
-    return LicenceOperation.newPartialSurrenderOperation()
-        .withSurrenderedFeatureIds(List.of(FIRST_FEATURE_ID))
-        .build();
+  @Test
+  void getRetainedFeatureIds_whenNothingSurrenderedYet_thenEmpty() {
+    var surrenderDetails = surrenderDetails(BlockSurrenderType.PARTIAL_SURRENDER, FIRST_COMMAND_JOURNEY_ID);
+
+    var result = partialSurrenderCorrectionService.getRetainedFeatureIds(surrenderDetails);
+
+    assertThat(result).isEmpty();
+    verify(commandJourneyService, never()).getActiveFeatures(any(UUID.class));
   }
 
-  private static PartialSurrenderOperation liveSurrenderWithJourney(UUID commandJourneyId) {
-    return LicenceOperation.newPartialSurrenderOperation()
-        .withSurrenderedFeatureIds(List.of(FIRST_FEATURE_ID))
+  @Test
+  void getRetainedFeatureIds_whenPartsSurrendered_thenTheOtherActiveFeaturesOrderedByName() {
+    var surrenderedPart = FeatureTestUtil.builder().withId(FIRST_FEATURE_ID).withFeatureName("SHAPE 1A").build();
+    var laterRetainedPart = FeatureTestUtil.builder().withId(SECOND_FEATURE_ID).withFeatureName("SHAPE 1C").build();
+    var earlierRetainedPart = FeatureTestUtil.builder().withId(THIRD_FEATURE_ID).withFeatureName("SHAPE 1B").build();
+    var surrenderDetails = new PartialSurrenderOperation.SurrenderDetails(
+        BlockSurrenderType.PARTIAL_SURRENDER, FIRST_COMMAND_JOURNEY_ID, List.of(FIRST_FEATURE_ID));
+    when(commandJourneyService.getActiveFeatures(FIRST_COMMAND_JOURNEY_ID))
+        .thenReturn(List.of(surrenderedPart, laterRetainedPart, earlierRetainedPart));
+
+    var result = partialSurrenderCorrectionService.getRetainedFeatureIds(surrenderDetails);
+
+    assertThat(result).containsExactly(THIRD_FEATURE_ID, SECOND_FEATURE_ID);
+  }
+
+  @Test
+  void toExecutedSurrender_resolvesJourneysIntoRecordedRetainedFeatures() {
+    var surrenderDate = LocalDate.of(2026, Month.AUGUST, 1);
+    var splitPart = FeatureTestUtil.builder().withId(SECOND_FEATURE_ID).withFeatureName("SHAPE 1A").build();
+    var retainedPart = FeatureTestUtil.builder().withId(THIRD_FEATURE_ID).withFeatureName("SHAPE 1B").build();
+    var recordedDetails = new PartialSurrenderOperation.SurrenderDetails(
+        BlockSurrenderType.FULL_SURRENDER, null, List.of(FOURTH_FEATURE_ID));
+    var staged = LicenceOperation.newPartialSurrenderOperation()
+        .withSurrenderDate(surrenderDate)
+        .withSurrenderedFeatureIds(List.of(FIRST_FEATURE_ID, FOURTH_FEATURE_ID))
         .withSurrenderDetails(Map.of(
-            FIRST_FEATURE_ID, surrenderDetails(BlockSurrenderType.PARTIAL_SURRENDER, commandJourneyId)))
+            FIRST_FEATURE_ID, new PartialSurrenderOperation.SurrenderDetails(
+                BlockSurrenderType.PARTIAL_SURRENDER, FIRST_COMMAND_JOURNEY_ID, List.of(SECOND_FEATURE_ID)),
+            FOURTH_FEATURE_ID, recordedDetails))
+        .withOutputFeatureIds(List.of(THIRD_FEATURE_ID))
         .build();
+    when(commandJourneyService.getActiveFeatures(FIRST_COMMAND_JOURNEY_ID)).thenReturn(List.of(splitPart, retainedPart));
+
+    var result = partialSurrenderCorrectionService.toExecutedSurrender(staged);
+
+    var expected = LicenceOperation.newPartialSurrenderOperation()
+        .withSurrenderDate(surrenderDate)
+        .withSurrenderedFeatureIds(List.of(FIRST_FEATURE_ID, FOURTH_FEATURE_ID))
+        .withSurrenderDetails(Map.of(
+            FIRST_FEATURE_ID, new PartialSurrenderOperation.SurrenderDetails(
+                BlockSurrenderType.PARTIAL_SURRENDER, null, List.of(SECOND_FEATURE_ID), List.of(THIRD_FEATURE_ID)),
+            FOURTH_FEATURE_ID, recordedDetails))
+        .withOutputFeatureIds(List.of(THIRD_FEATURE_ID))
+        .build();
+    assertThat(result).isEqualTo(expected);
   }
 
   @Test

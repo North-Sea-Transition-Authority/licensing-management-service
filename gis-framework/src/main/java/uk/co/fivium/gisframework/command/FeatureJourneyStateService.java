@@ -95,6 +95,18 @@ public class FeatureJourneyStateService {
   @Transactional
   public List<Feature> deleteFeatureJourneyStatesCreatedByCommands(List<OperatorCommand> createdByCommands) {
     var states = featureJourneyStateRepository.findAllByCreatedByCommandIn(createdByCommands);
+    return deleteStatesReturningOrphanedFeatures(states);
+  }
+
+  @Transactional
+  public List<Feature> deleteInactiveFeatureJourneyStatesCreatedByCommands(List<OperatorCommand> createdByCommands) {
+    var inactiveStates = featureJourneyStateRepository.findAllByCreatedByCommandIn(createdByCommands).stream()
+        .filter(state -> !state.isActive())
+        .toList();
+    return deleteStatesReturningOrphanedFeatures(inactiveStates);
+  }
+
+  private List<Feature> deleteStatesReturningOrphanedFeatures(List<FeatureJourneyState> states) {
     featureJourneyStateRepository.deleteAll(states);
 
     var featureIds = states.stream()

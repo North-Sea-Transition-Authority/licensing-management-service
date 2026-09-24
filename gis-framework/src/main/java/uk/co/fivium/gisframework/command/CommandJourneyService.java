@@ -96,6 +96,31 @@ public class CommandJourneyService {
   }
 
   /**
+   * Deletes a command journey like {@link #deleteCommandJourney}, but keeps its active features.
+   */
+  @Transactional
+  public void deleteAllExcludingActiveFeatures(UUID commandJourneyId) {
+    var commandJourney = getCommandJourneyOrThrow(commandJourneyId);
+    var operatorCommands = operatorCommandService.getCommands(commandJourney);
+
+    if (!operatorCommands.isEmpty()) {
+      var supersededFeatures =
+          featureJourneyStateService.deleteInactiveFeatureJourneyStatesCreatedByCommands(operatorCommands);
+      featureService.deleteAll(supersededFeatures);
+    }
+
+    featureJourneyStateService.deleteAllStatesForJourney(commandJourney);
+
+    if (!operatorCommands.isEmpty()) {
+      operatorCommandService.deleteCommands(operatorCommands);
+    }
+
+    commandJourneyRepository.delete(commandJourney);
+
+    entityManager.flush();
+  }
+
+  /**
    * Used only for the GIS test page, will remove in the future.
    */
   @Transactional

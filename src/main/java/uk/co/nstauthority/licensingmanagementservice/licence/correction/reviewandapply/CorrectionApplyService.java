@@ -3,21 +3,25 @@ package uk.co.nstauthority.licensingmanagementservice.licence.correction.reviewa
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.LockModeType;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import uk.co.fivium.gisframework.command.CommandJourneyService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionChangeType;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.PartialSurrenderCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.AddChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.RemoveChange;
@@ -28,6 +32,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.UpdateLicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.LicencePositionValidationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationError;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionRepository;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionStatus;
@@ -54,6 +60,8 @@ public class CorrectionApplyService {
   private final LicencePositionChangeRepository licencePositionChangeRepository;
   private final LicenceTransactionRepository licenceTransactionRepository;
   private final EntityManager entityManager;
+  private final PartialSurrenderCorrectionService partialSurrenderCorrectionService;
+  private final CommandJourneyService commandJourneyService;
 
   public CorrectionApplyService(
       CorrectedTimelineService correctedTimelineService,
@@ -64,7 +72,9 @@ public class CorrectionApplyService {
       LicencePositionRepository licencePositionRepository,
       LicencePositionChangeRepository licencePositionChangeRepository,
       LicenceTransactionRepository licenceTransactionRepository,
-      EntityManager entityManager
+      EntityManager entityManager,
+      PartialSurrenderCorrectionService partialSurrenderCorrectionService,
+      CommandJourneyService commandJourneyService
   ) {
     this.correctedTimelineService = correctedTimelineService;
     this.licencePositionValidationService = licencePositionValidationService;
@@ -75,6 +85,8 @@ public class CorrectionApplyService {
     this.licencePositionChangeRepository = licencePositionChangeRepository;
     this.licenceTransactionRepository = licenceTransactionRepository;
     this.entityManager = entityManager;
+    this.partialSurrenderCorrectionService = partialSurrenderCorrectionService;
+    this.commandJourneyService = commandJourneyService;
   }
 
   @Transactional
@@ -100,6 +112,7 @@ public class CorrectionApplyService {
     }
 
     var positionCorrections = correctedTimeline.positionCorrections();
+    var appliedCommandJourneyIds = new LinkedHashSet<UUID>();
 
     positionCorrectionsOfType(positionCorrections, LicencePositionCorrectionChangeType.UPDATE_POSITION)
         .forEach(this::updatePosition);
@@ -113,10 +126,12 @@ public class CorrectionApplyService {
     positionCorrections.stream()
         .filter(positionCorrection ->
             positionCorrection.getChangeType() != LicencePositionCorrectionChangeType.REMOVE_POSITION)
-        .forEach(positionCorrection -> applyStagedChanges(positionCorrection, addedPositionsById));
+        .forEach(positionCorrection -> applyStagedChanges(positionCorrection, addedPositionsById, appliedCommandJourneyIds));
 
     positionCorrectionsOfType(positionCorrections, LicencePositionCorrectionChangeType.REMOVE_POSITION)
         .forEach(this::removePosition);
+
+    appliedCommandJourneyIds.forEach(commandJourneyService::deleteAllExcludingActiveFeatures);
 
     licenceCorrectionService.completeCorrection(licenceCorrection);
 
@@ -187,15 +202,16 @@ public class CorrectionApplyService {
 
   private void applyStagedChanges(
       LicencePositionCorrection positionCorrection,
-      Map<UUID, LicencePosition> addedPositionsById
+      Map<UUID, LicencePosition> addedPositionsById,
+      Set<UUID> appliedCommandJourneyIds
   ) {
     var payload = positionCorrection.getPayload();
     var licencePosition = resolvePosition(positionCorrection, addedPositionsById);
 
     payload.changesOfType(RemoveChange.class).forEach(this::removeChange);
-    payload.changesOfType(AddChange.class).forEach(change -> addChange(licencePosition, change));
+    payload.changesOfType(AddChange.class).forEach(change -> addChange(licencePosition, change, appliedCommandJourneyIds));
     payload.changesOfType(UpdateChangeOperations.class)
-        .forEach(change -> updateChangeOperations(licencePosition, payload, change));
+        .forEach(change -> updateChangeOperations(licencePosition, payload, change, appliedCommandJourneyIds));
     payload.changesOfType(UpdateChangeOrder.class).forEach(this::updateChangeOrder);
   }
 
@@ -204,11 +220,11 @@ public class CorrectionApplyService {
         .ifPresent(licencePositionChangeRepository::delete);
   }
 
-  private void addChange(LicencePosition licencePosition, AddChange change) {
+  private void addChange(LicencePosition licencePosition, AddChange change, Set<UUID> appliedCommandJourneyIds) {
     licencePositionChangeService.createLicencePositionChange(
         UUID.fromString(change.changeId()),
         licencePosition,
-        LicencePositionChangeType.operationsOf(change),
+        toExecutedOperations(LicencePositionChangeType.operationsOf(change), appliedCommandJourneyIds),
         change.changeOrder(),
         APPLIED_CHANGE_STATUS
     );
@@ -217,10 +233,11 @@ public class CorrectionApplyService {
   private void updateChangeOperations(
       LicencePosition licencePosition,
       LicencePositionPayload payload,
-      UpdateChangeOperations change
+      UpdateChangeOperations change,
+      Set<UUID> appliedCommandJourneyIds
   ) {
     var changeId = UUID.fromString(change.changeId());
-    var operations = LicencePositionChangeType.operationsOf(change);
+    var operations = toExecutedOperations(LicencePositionChangeType.operationsOf(change), appliedCommandJourneyIds);
 
     licencePositionChangeService.findById(changeId).ifPresentOrElse(
         licencePositionChange -> {
@@ -235,6 +252,21 @@ public class CorrectionApplyService {
             APPLIED_CHANGE_STATUS
         )
     );
+  }
+
+  private List<LicenceOperation> toExecutedOperations(
+      List<LicenceOperation> stagedOperations,
+      Set<UUID> appliedCommandJourneyIds
+  ) {
+    return stagedOperations.stream()
+        .map(operation -> {
+          if (operation instanceof PartialSurrenderOperation stagedSurrender) {
+            appliedCommandJourneyIds.addAll(PartialSurrenderCorrectionService.commandJourneyIdsOf(stagedSurrender));
+            return partialSurrenderCorrectionService.toExecutedSurrender(stagedSurrender);
+          }
+          return operation;
+        })
+        .toList();
   }
 
   private void updateChangeOrder(UpdateChangeOrder change) {

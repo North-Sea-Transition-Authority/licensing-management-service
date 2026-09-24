@@ -13,7 +13,6 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.co.fivium.gisframework.command.CommandJourney;
-import uk.co.fivium.gisframework.command.CommandJourneyService;
 import uk.co.fivium.gisframework.command.FeatureJourneyStateService;
 import uk.co.fivium.gisframework.command.OperatorCommandService;
 import uk.co.fivium.gisframework.command.TransformationType;
@@ -69,7 +68,6 @@ class LicencePositionFeatureTestHarnessService {
   private final LineService lineService;
   private final LicencePositionService licencePositionService;
   private final LicencePositionChangeService licencePositionChangeService;
-  private final CommandJourneyService commandJourneyService;
   private final OperatorCommandService operatorCommandService;
   private final FeatureJourneyStateService featureJourneyStateService;
 
@@ -79,7 +77,6 @@ class LicencePositionFeatureTestHarnessService {
       LineService lineService,
       LicencePositionService licencePositionService,
       LicencePositionChangeService licencePositionChangeService,
-      CommandJourneyService commandJourneyService,
       OperatorCommandService operatorCommandService,
       FeatureJourneyStateService featureJourneyStateService
   ) {
@@ -88,7 +85,6 @@ class LicencePositionFeatureTestHarnessService {
     this.lineService = lineService;
     this.licencePositionService = licencePositionService;
     this.licencePositionChangeService = licencePositionChangeService;
-    this.commandJourneyService = commandJourneyService;
     this.operatorCommandService = operatorCommandService;
     this.featureJourneyStateService = featureJourneyStateService;
   }
@@ -151,14 +147,11 @@ class LicencePositionFeatureTestHarnessService {
   }
 
   private LicenceOperation seedSpatialOperation(Feature surrenderedBlock, List<Feature> retainedBlocks) {
-    // a full surrender still carries a command journey (with no splits) so downstream processing is uniform
-    var commandJourneyId = commandJourneyService.createAndAssignCommandJourney(List.of(surrenderedBlock)).getId();
-
     // no surrender date - the change takes the date of the position it sits on
     return LicenceOperation.newPartialSurrenderOperation()
         .withSurrenderedFeatureIds(List.of(surrenderedBlock.getId()))
         .withSurrenderDetails(Map.of(surrenderedBlock.getId(), new SurrenderDetails(
-            BlockSurrenderType.FULL_SURRENDER, commandJourneyId, List.of(surrenderedBlock.getId()))))
+            BlockSurrenderType.FULL_SURRENDER, null, List.of(surrenderedBlock.getId()))))
         .withOutputFeatureIds(retainedBlocks.stream().map(Feature::getId).toList())
         .build();
   }

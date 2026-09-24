@@ -224,6 +224,58 @@ class FeatureJourneyStateServiceTest {
   }
 
   @Test
+  void deleteInactiveFeatureJourneyStatesCreatedByCommands_whenStatesAreMixed_thenOnlyInactiveStatesDeleted() {
+    var command = OperatorCommandTestUtil.newBuilder().build();
+    var activeFeature = FeatureTestUtil.newBuilder().build();
+    var supersededFeature = FeatureTestUtil.newBuilder().build();
+    var activeState = FeatureJourneyStateTestUtil.newBuilder()
+        .withFeature(activeFeature)
+        .withCreatedByCommand(command)
+        .withActive(true)
+        .build();
+    var supersededState = FeatureJourneyStateTestUtil.newBuilder()
+        .withFeature(supersededFeature)
+        .withCreatedByCommand(command)
+        .withActive(false)
+        .build();
+
+    when(featureJourneyStateRepository.findAllByCreatedByCommandIn(List.of(command)))
+        .thenReturn(List.of(activeState, supersededState));
+    when(featureJourneyStateRepository.findAllByFeature_IdIn(Set.of(supersededFeature.getId())))
+        .thenReturn(List.of());
+
+    var result = featureJourneyStateService.deleteInactiveFeatureJourneyStatesCreatedByCommands(List.of(command));
+
+    assertThat(result).containsExactly(supersededFeature);
+    verify(featureJourneyStateRepository).deleteAll(List.of(supersededState));
+  }
+
+  @Test
+  void deleteInactiveFeatureJourneyStatesCreatedByCommands_whenAnotherJourneyHoldsTheFeature_thenFeatureNotReturned() {
+    var command = OperatorCommandTestUtil.newBuilder().build();
+    var sharedFeature = FeatureTestUtil.newBuilder().build();
+    var supersededState = FeatureJourneyStateTestUtil.newBuilder()
+        .withFeature(sharedFeature)
+        .withCreatedByCommand(command)
+        .withActive(false)
+        .build();
+    var stateInOtherJourney = FeatureJourneyStateTestUtil.newBuilder()
+        .withFeature(sharedFeature)
+        .withCommandJourney(CommandJourneyTestUtil.newBuilder().build())
+        .build();
+
+    when(featureJourneyStateRepository.findAllByCreatedByCommandIn(List.of(command)))
+        .thenReturn(List.of(supersededState));
+    when(featureJourneyStateRepository.findAllByFeature_IdIn(Set.of(sharedFeature.getId())))
+        .thenReturn(List.of(stateInOtherJourney));
+
+    var result = featureJourneyStateService.deleteInactiveFeatureJourneyStatesCreatedByCommands(List.of(command));
+
+    assertThat(result).isEmpty();
+    verify(featureJourneyStateRepository).deleteAll(List.of(supersededState));
+  }
+
+  @Test
   void deleteAllStatesForJourney() {
     var commandJourney = CommandJourneyTestUtil.newBuilder().build();
 

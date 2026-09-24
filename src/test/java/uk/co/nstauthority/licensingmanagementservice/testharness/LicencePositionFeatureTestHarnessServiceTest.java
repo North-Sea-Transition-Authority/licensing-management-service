@@ -25,7 +25,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.fivium.gisframework.command.CommandJourney;
-import uk.co.fivium.gisframework.command.CommandJourneyService;
 import uk.co.fivium.gisframework.command.FeatureJourneyStateService;
 import uk.co.fivium.gisframework.command.OperatorCommand;
 import uk.co.fivium.gisframework.command.OperatorCommandService;
@@ -123,9 +122,6 @@ class LicencePositionFeatureTestHarnessServiceTest {
   private LicencePositionChangeService licencePositionChangeService;
 
   @Mock
-  private CommandJourneyService commandJourneyService;
-
-  @Mock
   private OperatorCommandService operatorCommandService;
 
   @Mock
@@ -201,7 +197,7 @@ class LicencePositionFeatureTestHarnessServiceTest {
     var expectedOperation = LicenceOperation.newPartialSurrenderOperation()
         .withSurrenderedFeatureIds(List.of(surrenderedBlock.getId()))
         .withSurrenderDetails(Map.of(surrenderedBlock.getId(), new SurrenderDetails(
-            BlockSurrenderType.FULL_SURRENDER, COMMAND_JOURNEY_ID, List.of(surrenderedBlock.getId()))))
+            BlockSurrenderType.FULL_SURRENDER, null, List.of(surrenderedBlock.getId()))))
         .withOutputFeatureIds(retainedBlockIds)
         .build();
 
@@ -347,7 +343,6 @@ class LicencePositionFeatureTestHarnessServiceTest {
    * The real services assign ids on save, which the seeded spatial operation then records.
    */
   private void givenSpatialDataCanBePersisted() {
-    when(commandJourneyService.createAndAssignCommandJourney(anyList())).thenReturn(COMMAND_JOURNEY);
     givenFeaturesCanBePersisted();
   }
 

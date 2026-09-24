@@ -13,7 +13,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import uk.co.fivium.gisframework.command.CommandJourneyService;
 import uk.co.fivium.gisframework.feature.CoordinateSystemUtils;
 import uk.co.fivium.gisframework.feature.Feature;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
@@ -50,9 +49,6 @@ class PartialSurrenderBlockSummarySectionServiceTest {
 
   @Mock
   private LicencePositionSpatialService licencePositionSpatialService;
-
-  @Mock
-  private CommandJourneyService commandJourneyService;
 
   @InjectMocks
   private PartialSurrenderBlockSummarySectionService partialSurrenderBlockSummarySectionService;
@@ -106,17 +102,16 @@ class PartialSurrenderBlockSummarySectionServiceTest {
   @Test
   void getSummarySection_whenBlockPartiallySurrendered_thenBeforeAndAfterMapsShowingRetainedParts() {
     var positionCorrection = positionCorrection();
-    var staged = operation(Map.of(
-        SECOND_BLOCK.getId(),
-        surrenderDetails(BlockSurrenderType.PARTIAL_SURRENDER, List.of(SURRENDERED_PART.getId()))));
+    var blockSurrender = surrenderDetails(BlockSurrenderType.PARTIAL_SURRENDER, List.of(SURRENDERED_PART.getId()));
+    var staged = operation(Map.of(SECOND_BLOCK.getId(), blockSurrender));
 
     when(partialSurrenderCorrectionService.getCommittedPartialSurrender(positionCorrection))
         .thenReturn(Optional.of(staged));
     var stagedChangeId = givenStagedSurrenderChangeId(positionCorrection, staged);
     when(licencePositionSpatialService.getBlockFeaturesGoingIntoChange(positionCorrection, stagedChangeId))
         .thenReturn(List.of(SECOND_BLOCK));
-    when(commandJourneyService.getActiveFeatures(COMMAND_JOURNEY_ID))
-        .thenReturn(List.of(SURRENDERED_PART, RETAINED_PART));
+    when(partialSurrenderCorrectionService.getRetainedFeatureIds(blockSurrender))
+        .thenReturn(List.of(RETAINED_PART.getId()));
 
     var result = partialSurrenderBlockSummarySectionService.getSummarySection(
         new PartialSurrenderSummaryContext.Staged(positionCorrection),
@@ -135,21 +130,19 @@ class PartialSurrenderBlockSummarySectionServiceTest {
   }
 
   @Test
-  void getSummarySection_whenEveryPartOfABlockIsSurrendered_thenNoAfterMap() {
+  void getSummarySection_whenBlockHasNoRetainedParts_thenNoAfterMap() {
     var positionCorrection = positionCorrection();
-    var staged = operation(Map.of(
-        SECOND_BLOCK.getId(),
-        surrenderDetails(
-            BlockSurrenderType.PARTIAL_SURRENDER,
-            List.of(SURRENDERED_PART.getId(), RETAINED_PART.getId()))));
+    var blockSurrender = surrenderDetails(
+        BlockSurrenderType.PARTIAL_SURRENDER,
+        List.of(SURRENDERED_PART.getId(), RETAINED_PART.getId()));
+    var staged = operation(Map.of(SECOND_BLOCK.getId(), blockSurrender));
 
     when(partialSurrenderCorrectionService.getCommittedPartialSurrender(positionCorrection))
         .thenReturn(Optional.of(staged));
     var stagedChangeId = givenStagedSurrenderChangeId(positionCorrection, staged);
     when(licencePositionSpatialService.getBlockFeaturesGoingIntoChange(positionCorrection, stagedChangeId))
         .thenReturn(List.of(SECOND_BLOCK));
-    when(commandJourneyService.getActiveFeatures(COMMAND_JOURNEY_ID))
-        .thenReturn(List.of(SURRENDERED_PART, RETAINED_PART));
+    when(partialSurrenderCorrectionService.getRetainedFeatureIds(blockSurrender)).thenReturn(List.of());
 
     var result = partialSurrenderBlockSummarySectionService.getSummarySection(
         new PartialSurrenderSummaryContext.Staged(positionCorrection),
@@ -249,15 +242,16 @@ class PartialSurrenderBlockSummarySectionServiceTest {
     var licencePosition = LicencePositionTestUtil.newBuilder().build();
     var changeId = UUID.randomUUID().toString();
 
+    var partialBlockSurrender =
+        surrenderDetails(BlockSurrenderType.PARTIAL_SURRENDER, List.of(SURRENDERED_PART.getId()));
     when(partialSurrenderCorrectionService.getSurrenderUnderCorrectionOrThrow(correction, licencePosition, changeId))
         .thenReturn(operation(Map.of(
             FIRST_BLOCK.getId(), surrenderDetails(BlockSurrenderType.FULL_SURRENDER, List.of()),
-            SECOND_BLOCK.getId(),
-            surrenderDetails(BlockSurrenderType.PARTIAL_SURRENDER, List.of(SURRENDERED_PART.getId())))));
+            SECOND_BLOCK.getId(), partialBlockSurrender)));
     when(licencePositionSpatialService.getBlockFeaturesGoingIntoChange(correction, licencePosition, changeId))
         .thenReturn(List.of(SECOND_BLOCK, FIRST_BLOCK));
-    when(commandJourneyService.getActiveFeatures(COMMAND_JOURNEY_ID))
-        .thenReturn(List.of(SURRENDERED_PART, RETAINED_PART));
+    when(partialSurrenderCorrectionService.getRetainedFeatureIds(partialBlockSurrender))
+        .thenReturn(List.of(RETAINED_PART.getId()));
 
     var result = partialSurrenderBlockSummarySectionService.getSummarySection(
         new PartialSurrenderSummaryContext.LiveChange(correction, licencePosition, changeId),
@@ -277,6 +271,9 @@ class PartialSurrenderBlockSummarySectionServiceTest {
 
     assertThat(result).get().usingRecursiveComparison().isEqualTo(expected);
   }
+
+
+
 
   private String givenStagedSurrenderChangeId(
       LicencePositionCorrection positionCorrection,

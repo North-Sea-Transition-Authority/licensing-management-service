@@ -3,6 +3,7 @@ package uk.co.fivium.gisframework.command;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -150,6 +151,49 @@ class CommandJourneyServiceTest {
 
     assertThatThrownBy(() -> commandJourneyService.deleteCommandJourney(journeyId))
         .isInstanceOf(EntityNotFoundException.class);
+  }
+
+  @Test
+  void deleteAllExcludingActiveFeatures_whenJourneyHasCommands_deletesSupersededFeaturesCommandsStatesAndJourney() {
+    var journeyId = UUID.randomUUID();
+    var journey = new CommandJourney();
+    var command = new OperatorCommand();
+    var supersededFeature = FeatureTestUtil.newBuilder().build();
+
+    when(commandJourneyRepository.findById(journeyId)).thenReturn(Optional.of(journey));
+    when(operatorCommandService.getCommands(journey)).thenReturn(List.of(command));
+    when(featureJourneyStateService.deleteInactiveFeatureJourneyStatesCreatedByCommands(List.of(command)))
+        .thenReturn(List.of(supersededFeature));
+
+    commandJourneyService.deleteAllExcludingActiveFeatures(journeyId);
+
+    var inOrder = inOrder(featureJourneyStateService, featureService, operatorCommandService, commandJourneyRepository,
+        entityManager);
+    inOrder.verify(featureJourneyStateService).deleteInactiveFeatureJourneyStatesCreatedByCommands(List.of(command));
+    inOrder.verify(featureService).deleteAll(List.of(supersededFeature));
+    inOrder.verify(featureJourneyStateService).deleteAllStatesForJourney(journey);
+    inOrder.verify(operatorCommandService).deleteCommands(List.of(command));
+    inOrder.verify(commandJourneyRepository).delete(journey);
+    inOrder.verify(entityManager).flush();
+    verify(featureJourneyStateService, never()).deleteFeatureJourneyStatesCreatedByCommands(any());
+  }
+
+  @Test
+  void deleteAllExcludingActiveFeatures_whenJourneyHasNoCommands_deletesStatesAndJourneyOnly() {
+    var journeyId = UUID.randomUUID();
+    var journey = new CommandJourney();
+
+    when(commandJourneyRepository.findById(journeyId)).thenReturn(Optional.of(journey));
+    when(operatorCommandService.getCommands(journey)).thenReturn(List.of());
+
+    commandJourneyService.deleteAllExcludingActiveFeatures(journeyId);
+
+    verify(featureJourneyStateService, never()).deleteInactiveFeatureJourneyStatesCreatedByCommands(any());
+    verify(featureService, never()).deleteAll(any());
+    verify(operatorCommandService, never()).deleteCommands(any());
+    verify(featureJourneyStateService).deleteAllStatesForJourney(journey);
+    verify(commandJourneyRepository).delete(journey);
+    verify(entityManager).flush();
   }
 
   @Test

@@ -273,7 +273,6 @@ public class LicencePositionPartialSurrenderController {
       partialSurrenderCorrectionService.revertPartialSurrenderCorrection(
           correction,
           licencePosition,
-          liveOperation,
           correctedSurrender
       );
     }

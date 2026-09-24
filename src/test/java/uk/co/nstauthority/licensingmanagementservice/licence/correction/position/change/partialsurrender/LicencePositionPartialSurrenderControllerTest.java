@@ -690,7 +690,7 @@ class LicencePositionPartialSurrenderControllerTest extends AbstractControllerTe
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(licencePosition);
     givenBlockFeaturesForCorrectingChange(correction, licencePosition, BLOCK_FEATURES);
     givenNoUpdatePositionCorrection(correction, licencePosition);
-    var liveSurrender = givenLiveSurrender(LicenceOperation.newPartialSurrenderOperation()
+    givenLiveSurrender(LicenceOperation.newPartialSurrenderOperation()
         .withSurrenderedFeatureIds(List.of(BLOCK_30_1A.getId()))
         .build());
     when(licencePositionCorrectionService.blockFeatureIdsAlreadyOperatedOnForExecutedPosition(
@@ -712,7 +712,7 @@ class LicencePositionPartialSurrenderControllerTest extends AbstractControllerTe
     verify(partialSurrenderCorrectionService, never())
         .correctExistingPartialSurrender(any(), any(), any(), any());
     verify(partialSurrenderCorrectionService)
-        .revertPartialSurrenderCorrection(correction, licencePosition, liveSurrender, surrenderOf(BLOCK_30_1A));
+        .revertPartialSurrenderCorrection(correction, licencePosition, surrenderOf(BLOCK_30_1A));
   }
 
   @Test
@@ -748,7 +748,7 @@ class LicencePositionPartialSurrenderControllerTest extends AbstractControllerTe
         .andExpect(status().is3xxRedirection())
         .andExpect(redirectedUrl(correctingChangeTaskListUrl()));
 
-    verify(partialSurrenderCorrectionService, never()).revertPartialSurrenderCorrection(any(), any(), any(), any());
+    verify(partialSurrenderCorrectionService, never()).revertPartialSurrenderCorrection(any(), any(), any());
     verify(partialSurrenderCorrectionService)
         .correctExistingPartialSurrender(correction, licencePosition, LIVE_CHANGE_ID, staged);
   }
@@ -763,7 +763,7 @@ class LicencePositionPartialSurrenderControllerTest extends AbstractControllerTe
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(licencePosition);
     givenBlockFeaturesForCorrectingChange(correction, licencePosition, BLOCK_FEATURES);
     var positionCorrection = givenStagedSurrenderOnUpdatePositionCorrection(correction, licencePosition, staged);
-    var liveSurrender = givenLiveSurrender(LicenceOperation.newPartialSurrenderOperation()
+    givenLiveSurrender(LicenceOperation.newPartialSurrenderOperation()
         .withSurrenderedFeatureIds(List.of(BLOCK_30_1A.getId()))
         .build());
     when(licencePositionCorrectionService.blockFeatureIdsAlreadyOperatedOnForExecutedPosition(
@@ -783,7 +783,7 @@ class LicencePositionPartialSurrenderControllerTest extends AbstractControllerTe
         .andExpect(redirectedUrl(correctingChangeTaskListUrl()));
 
     verify(partialSurrenderCorrectionService)
-        .revertPartialSurrenderCorrection(correction, licencePosition, liveSurrender, surrenderOf(BLOCK_30_1A));
+        .revertPartialSurrenderCorrection(correction, licencePosition, surrenderOf(BLOCK_30_1A));
     verify(partialSurrenderCorrectionService, never())
         .correctExistingPartialSurrender(any(), any(), any(), any());
   }
@@ -818,7 +818,7 @@ class LicencePositionPartialSurrenderControllerTest extends AbstractControllerTe
         .andExpect(status().is3xxRedirection())
         .andExpect(redirectedUrl(correctingChangeTaskListUrl()));
 
-    verify(partialSurrenderCorrectionService, never()).revertPartialSurrenderCorrection(any(), any(), any(), any());
+    verify(partialSurrenderCorrectionService, never()).revertPartialSurrenderCorrection(any(), any(), any());
   }
 
   @Test

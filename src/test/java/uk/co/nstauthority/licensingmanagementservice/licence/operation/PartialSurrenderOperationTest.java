@@ -201,4 +201,49 @@ class PartialSurrenderOperationTest {
     var expected = new PartialSurrenderOperation(SURRENDER_DATE, List.of(FIRST_FEATURE_ID), Map.of(), List.of());
     assertThat(operation).isEqualTo(expected);
   }
+
+  @Test
+  void deserialise_whenPersistedBeforeRetainedFeatureIdsExisted_thenDefaultsToEmptyList() throws Exception {
+    var json = """
+        {
+          "type": "partial-surrender",
+          "id": "00000000-0000-0000-0000-000000000001",
+          "surrenderDate": "2026-08-01",
+          "surrenderedFeatureIds": ["%s"],
+          "featureIdToSurrenderDetails": {
+            "%s": {
+              "type": "FULL_SURRENDER",
+              "commandJourneyId": null,
+              "surrenderedFeatureIds": ["%s"]
+            }
+          }
+        }""".formatted(FIRST_FEATURE_ID, FIRST_FEATURE_ID, FIRST_FEATURE_ID);
+
+    var operation = new ObjectMapper().findAndRegisterModules().readValue(json, LicenceOperation.class);
+
+    var expected = new PartialSurrenderOperation(
+        SURRENDER_DATE,
+        List.of(FIRST_FEATURE_ID),
+        Map.of(FIRST_FEATURE_ID, new SurrenderDetails(BlockSurrenderType.FULL_SURRENDER, null, List.of(FIRST_FEATURE_ID))),
+        List.of());
+    assertThat(operation).isEqualTo(expected);
+  }
+
+  @Test
+  void commandJourneyIdOrThrow_whenCommandJourneyPresent_thenReturnsId() {
+    var details = new SurrenderDetails(BlockSurrenderType.PARTIAL_SURRENDER, COMMAND_JOURNEY_ID, List.of());
+
+    var result = details.commandJourneyIdOrThrow();
+
+    assertThat(result).isEqualTo(COMMAND_JOURNEY_ID);
+  }
+
+  @Test
+  void commandJourneyIdOrThrow_whenNoCommandJourney_thenThrows() {
+    var details = new SurrenderDetails(BlockSurrenderType.PARTIAL_SURRENDER, null, List.of());
+
+    assertThatThrownBy(details::commandJourneyIdOrThrow)
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessage("No split journey started for block surrender");
+  }
 }

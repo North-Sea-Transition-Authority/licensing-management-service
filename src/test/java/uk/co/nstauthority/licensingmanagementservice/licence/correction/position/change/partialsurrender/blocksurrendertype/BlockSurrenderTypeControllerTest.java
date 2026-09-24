@@ -338,7 +338,7 @@ class BlockSurrenderTypeControllerTest extends AbstractControllerTest {
             BlockSurrenderType.PARTIAL_SURRENDER, UUID.randomUUID(), List.of())))
         .build();
     when(partialSurrenderCorrectionService.getOrCreatePartialSurrenderDetails(
-        surrenderUnderCorrection, liveSurrender, FEATURE_ID, BlockSurrenderType.PARTIAL_SURRENDER))
+        surrenderUnderCorrection, FEATURE_ID, BlockSurrenderType.PARTIAL_SURRENDER))
         .thenReturn(corrected);
     when(partialSurrenderCorrectionService.correctExistingPartialSurrender(
         correction, POSITION, LIVE_CHANGE_ID, corrected)).thenReturn(positionCorrection());
@@ -364,7 +364,7 @@ class BlockSurrenderTypeControllerTest extends AbstractControllerTest {
         .withSurrenderedFeatureIds(List.of(FEATURE_ID))
         .build();
     var correction = givenSurrenderUnderCorrection(surrenderUnderCorrection);
-    var liveSurrender = givenLiveSurrender(LicenceOperation.newPartialSurrenderOperation()
+    givenLiveSurrender(LicenceOperation.newPartialSurrenderOperation()
         .withSurrenderDate(LocalDate.of(2026, Month.AUGUST, 1))
         .withSurrenderedFeatureIds(List.of(FEATURE_ID))
         .build());
@@ -375,7 +375,7 @@ class BlockSurrenderTypeControllerTest extends AbstractControllerTest {
             BlockSurrenderType.FULL_SURRENDER, UUID.randomUUID(), List.of(FEATURE_ID))))
         .build();
     when(partialSurrenderCorrectionService.getOrCreatePartialSurrenderDetails(
-        surrenderUnderCorrection, liveSurrender, FEATURE_ID, BlockSurrenderType.FULL_SURRENDER))
+        surrenderUnderCorrection, FEATURE_ID, BlockSurrenderType.FULL_SURRENDER))
         .thenReturn(corrected);
     when(blockSurrenderTypeFormValidator.hasErrors(any(BlockSurrenderTypeForm.class), any(BindingResult.class)))
         .thenReturn(false);
@@ -402,7 +402,7 @@ class BlockSurrenderTypeControllerTest extends AbstractControllerTest {
         .withSurrenderedFeatureIds(List.of(FEATURE_ID))
         .build();
     var correction = givenSurrenderUnderCorrection(surrenderUnderCorrection);
-    var liveSurrender = givenLiveSurrender(LicenceOperation.newPartialSurrenderOperation()
+    givenLiveSurrender(LicenceOperation.newPartialSurrenderOperation()
         .withSurrenderDate(LocalDate.of(2026, Month.AUGUST, 1))
         .withSurrenderedFeatureIds(List.of(FEATURE_ID))
         .withSurrenderDetails(Map.of(FEATURE_ID, new PartialSurrenderOperation.SurrenderDetails(
@@ -415,7 +415,7 @@ class BlockSurrenderTypeControllerTest extends AbstractControllerTest {
             BlockSurrenderType.FULL_SURRENDER, UUID.randomUUID(), List.of(FEATURE_ID))))
         .build();
     when(partialSurrenderCorrectionService.getOrCreatePartialSurrenderDetails(
-        surrenderUnderCorrection, liveSurrender, FEATURE_ID, BlockSurrenderType.FULL_SURRENDER))
+        surrenderUnderCorrection, FEATURE_ID, BlockSurrenderType.FULL_SURRENDER))
         .thenReturn(corrected);
     when(blockSurrenderTypeFormValidator.hasErrors(any(BlockSurrenderTypeForm.class), any(BindingResult.class)))
         .thenReturn(false);
@@ -429,7 +429,7 @@ class BlockSurrenderTypeControllerTest extends AbstractControllerTest {
         .andExpect(redirectedUrl(correctingChangeTaskListUrl()));
 
     verify(partialSurrenderCorrectionService)
-        .revertPartialSurrenderCorrection(correction, POSITION, liveSurrender, corrected);
+        .revertPartialSurrenderCorrection(correction, POSITION, corrected);
     verify(partialSurrenderCorrectionService, never())
         .correctExistingPartialSurrender(any(), any(), any(), any());
   }

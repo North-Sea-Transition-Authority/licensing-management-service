@@ -127,9 +127,7 @@ class TestHarnessService {
     var fullySurrenderedBlock = incomingBlocks.getFirst();
     var partiallySurrenderedBlock = incomingBlocks.get(1);
 
-    // a full surrender still carries a command journey (with no splits) so downstream processing is uniform
-    var fullSurrenderCommandJourney = commandJourneyService.createAndAssignCommandJourney(
-        List.of(fullySurrenderedBlock));
+    // the journey is only the working area the split is made in: the executed change records the halves outright
     var partialSurrenderCommandJourney = commandJourneyService.createAndAssignCommandJourney(
         List.of(partiallySurrenderedBlock));
 
@@ -137,6 +135,8 @@ class TestHarnessService {
         partialSurrenderCommandJourney,
         partiallySurrenderedBlock
     );
+
+    commandJourneyService.deleteAllExcludingActiveFeatures(partialSurrenderCommandJourney.getId());
 
     var outputFeatureIds = Stream.concat(
             incomingBlocks.stream()
@@ -148,13 +148,14 @@ class TestHarnessService {
 
     var fullSurrender = new SurrenderDetails(
         BlockSurrenderType.FULL_SURRENDER,
-        fullSurrenderCommandJourney.getId(),
+        null,
         List.of(fullySurrenderedBlock.getId())
     );
     var partialSurrender = new SurrenderDetails(
         BlockSurrenderType.PARTIAL_SURRENDER,
-        partialSurrenderCommandJourney.getId(),
-        List.of(splitBlock.surrenderedHalf().getId())
+        null,
+        List.of(splitBlock.surrenderedHalf().getId()),
+        List.of(splitBlock.retainedHalf().getId())
     );
 
     // no surrender date - the change takes the date of the position it sits on

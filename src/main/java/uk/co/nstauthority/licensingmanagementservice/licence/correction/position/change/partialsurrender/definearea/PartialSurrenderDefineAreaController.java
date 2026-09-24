@@ -76,7 +76,7 @@ public class PartialSurrenderDefineAreaController {
 
     var commandJourneyId = partialSurrenderCorrectionService
         .getSurrenderDetailsOrThrow(positionCorrection, featureId)
-        .commandJourneyId();
+        .commandJourneyIdOrThrow();
 
     var activeFeatures = commandJourneyService.getActiveFeatures(commandJourneyId);
 
@@ -102,7 +102,7 @@ public class PartialSurrenderDefineAreaController {
 
     var commandJourneyId = partialSurrenderCorrectionService
         .getSurrenderDetailsOrThrow(positionCorrection, featureId)
-        .commandJourneyId();
+        .commandJourneyIdOrThrow();
 
     var activeFeatures = commandJourneyService.getActiveFeatures(commandJourneyId);
 
@@ -140,7 +140,7 @@ public class PartialSurrenderDefineAreaController {
     var positionCorrection = licencePositionCorrectionService
         .getPositionCorrectionForCorrection(licencePositionCorrectionId, correction);
     var surrenderDetails = partialSurrenderCorrectionService.getSurrenderDetailsOrThrow(positionCorrection, featureId);
-    var activeFeatures = commandJourneyService.getActiveFeatures(surrenderDetails.commandJourneyId());
+    var activeFeatures = commandJourneyService.getActiveFeatures(surrenderDetails.commandJourneyIdOrThrow());
 
     return getSelectAreasModelAndView(
         correctionId,
@@ -165,7 +165,7 @@ public class PartialSurrenderDefineAreaController {
     var positionCorrection = licencePositionCorrectionService
         .getPositionCorrectionForCorrection(licencePositionCorrectionId, correction);
     var surrenderDetails = partialSurrenderCorrectionService.getSurrenderDetailsOrThrow(positionCorrection, featureId);
-    var activeFeatures = commandJourneyService.getActiveFeatures(surrenderDetails.commandJourneyId());
+    var activeFeatures = commandJourneyService.getActiveFeatures(surrenderDetails.commandJourneyIdOrThrow());
 
     if (partialSurrenderSelectAreasFormValidator.hasErrors(form, bindingResult, activeFeatures)) {
       return getSelectAreasModelAndView(

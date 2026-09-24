@@ -85,23 +85,51 @@ public record PartialSurrenderOperation(
   }
 
   /**
-   * Per-block surrender detail. A command journey is always present (created for both full and partial surrenders) so
-   * that downstream processing is uniform: every block is a journey plus the active features being surrendered.
+   * Per-block surrender detail. A command journey belongs to a correction while it is being made; once a change has
+   * been executed its shape is recorded outright in {@code surrenderedFeatureIds} and {@code retainedFeatureIds} and it
+   * carries no journey at all.
    *
    * @param type The surrender type for the block.
-   * @param commandJourneyId The journey capturing the block's split edits. For a full surrender this journey has no
-   *                         splits, so its active feature is the input block itself.
+   * @param commandJourneyId The journey holding the block's split edits while a correction is in progress, and null on
+   *                         an executed change.
    * @param surrenderedFeatureIds The active feature ids being surrendered. For a full surrender this is the whole block
    *                              (the input feature); for a partial surrender it is the chosen split parts, and is empty
-   *                              until those parts have been selected.
+   *                              until those parts have been selected. Always empty for a surrender carried across from
+   *                              PEARS, which records the ground a licence kept and nothing at all for the ground it
+   *                              gave up.
+   * @param retainedFeatureIds The features the licence kept, recorded outright rather than derived from a journey.
+   *                           This is how an executed change holds its shape; a correction in progress leaves it empty
+   *                           and works the parts kept out from its journey instead. A surrender carried across from
+   *                           PEARS arrives with these already set, the successor blocks it left behind being the one
+   *                           thing PEARS records about a surrender's shape.
    */
   public record SurrenderDetails(
       BlockSurrenderType type,
-      UUID commandJourneyId,
-      List<UUID> surrenderedFeatureIds
+      @Nullable UUID commandJourneyId,
+      List<UUID> surrenderedFeatureIds,
+      List<UUID> retainedFeatureIds
   ) {
     public SurrenderDetails {
       surrenderedFeatureIds = surrenderedFeatureIds == null ? List.of() : surrenderedFeatureIds;
+      // details persisted before retained features existed have no such field, so absent reads as "none recorded"
+      retainedFeatureIds = retainedFeatureIds == null ? List.of() : List.copyOf(retainedFeatureIds);
+    }
+
+    public SurrenderDetails(BlockSurrenderType type, @Nullable UUID commandJourneyId, List<UUID> surrenderedFeatureIds) {
+      this(type, commandJourneyId, surrenderedFeatureIds, List.of());
+    }
+
+    @JsonIgnore
+    public boolean hasCommandJourney() {
+      return commandJourneyId != null;
+    }
+
+    @JsonIgnore
+    public UUID commandJourneyIdOrThrow() {
+      if (commandJourneyId == null) {
+        throw new IllegalStateException("No split journey started for block surrender");
+      }
+      return commandJourneyId;
     }
 
     @JsonIgnore

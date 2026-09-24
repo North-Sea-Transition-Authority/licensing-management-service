@@ -15,6 +15,7 @@ import jakarta.persistence.LockModeType;
 import java.time.LocalDate;
 import java.time.Month;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -25,6 +26,7 @@ import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import uk.co.fivium.gisframework.command.CommandJourneyService;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionService;
@@ -33,12 +35,16 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceC
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.PartialSurrenderCorrectionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeoperation.LicencePositionChangeOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.LicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.LicencePositionValidationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationError;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation.SurrenderDetails;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionRepository;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionStatus;
@@ -87,6 +93,12 @@ class CorrectionApplyServiceTest {
 
   @Mock
   private EntityManager entityManager;
+
+  @Mock
+  private PartialSurrenderCorrectionService partialSurrenderCorrectionService;
+
+  @Mock
+  private CommandJourneyService commandJourneyService;
 
   @InjectMocks
   private CorrectionApplyService correctionApplyService;
@@ -270,6 +282,57 @@ class CorrectionApplyServiceTest {
 
     verify(licencePositionChangeService).createLicencePositionChange(
         changeId, livePosition, List.of(OPERATION), 3, LicencePositionChangeStatus.CONSENTED);
+    verifyNoInteractions(partialSurrenderCorrectionService, commandJourneyService);
+  }
+
+  @Test
+  void applyCorrection_whenASurrenderIsAdded_thenItIsInsertedWithoutJourneysAndTheJourneysAreFinalised() {
+    var livePosition = LicencePositionTestUtil.newBuilder().build();
+    var changeId = UUID.randomUUID();
+    var commandJourneyId = UUID.randomUUID();
+    var stagedSurrender = surrenderWithJourney(commandJourneyId);
+    var executedSurrender = surrenderWithJourney(null);
+    var addChange = LicencePositionChangeType.addChange()
+        .withChangeId(changeId.toString())
+        .withChangeOrder(3)
+        .withOperations(List.of(addOperation(stagedSurrender)))
+        .build();
+
+    stubTimeline(
+        List.of(updatePositionCorrection(livePosition, null, List.of(addChange))), List.of());
+    when(partialSurrenderCorrectionService.toExecutedSurrender(stagedSurrender)).thenReturn(executedSurrender);
+
+    correctionApplyService.applyCorrection(licenceCorrection);
+
+    var inOrder = inOrder(licencePositionChangeService, commandJourneyService);
+    inOrder.verify(licencePositionChangeService).createLicencePositionChange(
+        changeId, livePosition, List.of(executedSurrender), 3, LicencePositionChangeStatus.CONSENTED);
+    inOrder.verify(commandJourneyService).deleteAllExcludingActiveFeatures(commandJourneyId);
+  }
+
+  @Test
+  void applyCorrection_whenASurrenderIsUpdated_thenTheLiveOperationsAreOverwrittenWithoutJourneys() {
+    var livePosition = LicencePositionTestUtil.newBuilder().build();
+    var liveChange = LicencePositionChangeTestUtil.newBuilder()
+        .withLicencePosition(livePosition)
+        .withChangeOrder(4)
+        .build();
+    var commandJourneyId = UUID.randomUUID();
+    var stagedSurrender = surrenderWithJourney(commandJourneyId);
+    var executedSurrender = surrenderWithJourney(null);
+    var updateChange = LicencePositionChangeType.updateChangeOperations()
+        .withChangeId(liveChange.getId().toString())
+        .withOperations(List.of(addOperation(stagedSurrender)))
+        .build();
+
+    stubTimeline(List.of(updatePositionCorrection(livePosition, null, List.of(updateChange))), List.of());
+    when(licencePositionChangeService.findById(liveChange.getId())).thenReturn(Optional.of(liveChange));
+    when(partialSurrenderCorrectionService.toExecutedSurrender(stagedSurrender)).thenReturn(executedSurrender);
+
+    correctionApplyService.applyCorrection(licenceCorrection);
+
+    assertThat(liveChange.getOperations()).containsExactly(executedSurrender);
+    verify(commandJourneyService).deleteAllExcludingActiveFeatures(commandJourneyId);
   }
 
   @Test
@@ -408,6 +471,15 @@ class CorrectionApplyServiceTest {
     return LicencePositionChangeOperation.newLicencePositionAddOperation()
         .withOperationId(operation.id())
         .withOperation(operation)
+        .build();
+  }
+
+  private static PartialSurrenderOperation surrenderWithJourney(UUID commandJourneyId) {
+    var featureId = UUID.randomUUID();
+    return LicenceOperation.newPartialSurrenderOperation()
+        .withSurrenderedFeatureIds(List.of(featureId))
+        .withSurrenderDetails(Map.of(featureId, new SurrenderDetails(
+            BlockSurrenderType.FULL_SURRENDER, commandJourneyId, List.of(featureId))))
         .build();
   }
 

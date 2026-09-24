@@ -6,6 +6,7 @@ import static uk.co.nstauthority.licensingmanagementservice.licence.position.cha
 import jakarta.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -156,7 +157,7 @@ public class PartialSurrenderCorrectionService {
     var positionCorrection = licencePositionCorrectionService
         .getOrBuildUpdatePositionCorrection(licenceCorrection, licencePosition);
 
-    deleteOrphanedCommandJourneys(positionCorrection, operation, originalChangeId);
+    deleteOrphanedCommandJourneys(positionCorrection, operation);
 
     var payload = positionCorrection.getPayload();
 
@@ -177,24 +178,21 @@ public class PartialSurrenderCorrectionService {
 
   public PartialSurrenderOperation getOrCreatePartialSurrenderDetails(
       PartialSurrenderOperation operation,
-      PartialSurrenderOperation liveSurrender,
       UUID featureId,
       BlockSurrenderType blockSurrenderType
   ) {
     var existing = operation.featureIdToSurrenderDetails().get(featureId);
-    var surrenderDetails =
-        reuseOrCreateJourneyWithType(operation, liveSurrender, featureId, existing, blockSurrenderType);
+    var surrenderDetails = reuseOrCreateJourneyWithType(operation, featureId, existing, blockSurrenderType);
     return withSurrenderDetails(operation, featureId, surrenderDetails);
   }
 
   private SurrenderDetails reuseOrCreateJourneyWithType(
       PartialSurrenderOperation operation,
-      PartialSurrenderOperation liveSurrender,
       UUID featureId,
       @Nullable SurrenderDetails existing,
       BlockSurrenderType blockSurrenderType
   ) {
-    var reusable = isCorrectionOwnedJourney(existing, liveSurrender) ? existing : null;
+    var reusable = existing != null && existing.hasCommandJourney() ? existing : null;
 
     var commandJourneyId = reusable != null
         ? reusable.commandJourneyId()
@@ -209,18 +207,10 @@ public class PartialSurrenderCorrectionService {
     );
   }
 
-  private static boolean isCorrectionOwnedJourney(
-      @Nullable SurrenderDetails existing,
-      PartialSurrenderOperation liveSurrender
-  ) {
-    return existing != null && !commandJourneyIdsOf(liveSurrender).contains(existing.commandJourneyId());
-  }
-
   @Transactional
   public void revertPartialSurrenderCorrection(
       LicenceCorrection licenceCorrection,
       LicencePosition licencePosition,
-      PartialSurrenderOperation liveOperation,
       PartialSurrenderOperation discardedSurrender
   ) {
     var positionCorrection =
@@ -236,7 +226,6 @@ public class PartialSurrenderCorrectionService {
       removeStagedPartialSurrender(pc);
     });
 
-    discardedCommandJourneyIds.removeAll(commandJourneyIdsOf(liveOperation));
     discardedCommandJourneyIds.forEach(commandJourneyService::deleteCommandJourney);
 
     recalculateOutputsAfter(licenceCorrection, licencePosition.getId(), correctedLiveChangeId.orElse(null));
@@ -253,12 +242,6 @@ public class PartialSurrenderCorrectionService {
     recalculateOutputsAfter(licenceCorrection, licencePosition.getId(), changeId);
   }
 
-  /**
-   * Drops a surrender change staged by this correction, whether it was added, corrected or removed.
-   *
-   * <p>Only the command journeys owned exclusively by this correction are deleted: any journey the live surrender
-   * also holds is retained. A staged removal never created any journeys of its own, so nothing is deleted for it.</p>
-   */
   @Transactional
   public void undoPartialSurrenderChange(LicenceCorrection licenceCorrection, String changeId) {
     var positionCorrection = licencePositionCorrectionService
@@ -339,8 +322,7 @@ public class PartialSurrenderCorrectionService {
 
     deleteCommandJourneysForRemovedBlocks(
         committedPartialSurrender.get().featureIdToSurrenderDetails(),
-        surrenderableIds::contains,
-        liveCommandJourneyIds(licencePositionCorrection)
+        surrenderableIds::contains
     );
 
     var retainedSurrenderDetails = committedPartialSurrender.get().featureIdToSurrenderDetails().entrySet().stream()
@@ -458,7 +440,9 @@ public class PartialSurrenderCorrectionService {
       @Nullable SurrenderDetails existing,
       BlockSurrenderType blockSurrenderType
   ) {
-    var unchangedType = existing != null && existing.type() == blockSurrenderType;
+    // A migrated block re-confirmed as the type it already has still needs a journey making, so having one is part
+    // of what counts as unchanged.
+    var unchangedType = existing != null && existing.type() == blockSurrenderType && existing.hasCommandJourney();
 
     var commandJourneyId = unchangedType
         ? existing.commandJourneyId()
@@ -720,81 +704,80 @@ public class PartialSurrenderCorrectionService {
       LicencePositionCorrection licencePositionCorrection,
       PartialSurrenderOperation newOperation
   ) {
-    deleteOrphanedCommandJourneys(licencePositionCorrection, newOperation, null);
-  }
-
-  private void deleteOrphanedCommandJourneys(
-      LicencePositionCorrection licencePositionCorrection,
-      PartialSurrenderOperation newOperation,
-      @Nullable String executedChangeId
-  ) {
     getCommittedPartialSurrender(licencePositionCorrection).ifPresent(staged -> {
-      var retainedCommandJourneyIds = new LinkedHashSet<>(commandJourneyIdsOf(newOperation));
-      retainedCommandJourneyIds.addAll(liveCommandJourneyIds(licencePositionCorrection, executedChangeId));
-      deleteCorrectionOwnedCommandJourneys(staged, retainedCommandJourneyIds);
+      var retainedCommandJourneyIds = commandJourneyIdsOf(newOperation);
+      commandJourneyIdsOf(staged).stream()
+          .filter(commandJourneyId -> !retainedCommandJourneyIds.contains(commandJourneyId))
+          .forEach(commandJourneyService::deleteCommandJourney);
     });
   }
 
-  // journeys the executed change holds are shared, so only the ones this correction alone refers to are deleted
-  private void deleteCorrectionOwnedCommandJourneys(
-      PartialSurrenderOperation stagedSurrender,
-      Set<UUID> retainedCommandJourneyIds
-  ) {
-    commandJourneyIdsOf(stagedSurrender).stream()
-        .filter(commandJourneyId -> !retainedCommandJourneyIds.contains(commandJourneyId))
-        .forEach(commandJourneyService::deleteCommandJourney);
-  }
-
-  private Set<UUID> liveCommandJourneyIds(LicencePositionCorrection licencePositionCorrection) {
-    return liveCommandJourneyIds(licencePositionCorrection, null);
-  }
-
-  /**
-   * The correcting change is not staged yet when a correction is first made, so the executed change being corrected is
-   * accepted as a fallback for finding the live surrender.
-   */
-  private Set<UUID> liveCommandJourneyIds(
-      LicencePositionCorrection licencePositionCorrection,
-      @Nullable String executedChangeId
-  ) {
-    return findCorrectedLiveChangeId(licencePositionCorrection)
-        .or(() -> Optional.ofNullable(executedChangeId))
-        .map(this::getLiveSurrenderOrThrow)
-        .map(PartialSurrenderCorrectionService::commandJourneyIdsOf)
-        .orElseGet(Set::of);
-  }
-
-  // journeys the executed change still holds are shared, so they outlive the block being dropped from the correction
   private void deleteCommandJourneysForRemovedBlocks(
       Map<UUID, SurrenderDetails> featureIdToSurrenderDetails,
-      Predicate<UUID> retainFeatureId,
-      Set<UUID> retainedCommandJourneyIds
+      Predicate<UUID> retainFeatureId
   ) {
     featureIdToSurrenderDetails.entrySet().stream()
         .filter(entry -> !retainFeatureId.test(entry.getKey()))
+        .filter(entry -> entry.getValue().hasCommandJourney())
         .map(entry -> entry.getValue().commandJourneyId())
-        .filter(commandJourneyId -> !retainedCommandJourneyIds.contains(commandJourneyId))
         .forEach(commandJourneyService::deleteCommandJourney);
   }
 
-  private Set<UUID> correctionOwnedCommandJourneyIds(
+  private static Set<UUID> correctionOwnedCommandJourneyIds(
       LicencePositionChangeType changeToUndo,
       PartialSurrenderOperation stagedSurrender
   ) {
     return switch (changeToUndo) {
       case AddChange ignored -> commandJourneyIdsOf(stagedSurrender);
-      case UpdateChangeOperations correctedChange -> {
-        var ownedCommandJourneyIds = new LinkedHashSet<>(commandJourneyIdsOf(stagedSurrender));
-        ownedCommandJourneyIds.removeAll(commandJourneyIdsOf(getLiveSurrenderOrThrow(correctedChange.changeId())));
-        yield ownedCommandJourneyIds;
-      }
+      case UpdateChangeOperations ignored -> commandJourneyIdsOf(stagedSurrender);
       case RemoveChange ignored -> Set.of();
       case UpdateChangeOrder ignored -> Set.of();
     };
   }
 
-  private static Set<UUID> commandJourneyIdsOf(PartialSurrenderOperation surrender) {
+  public List<UUID> getRetainedFeatureIds(SurrenderDetails surrenderDetails) {
+    if (!surrenderDetails.hasCommandJourney()) {
+      return surrenderDetails.retainedFeatureIds();
+    }
+
+    if (surrenderDetails.surrenderedFeatureIds().isEmpty()) {
+      return List.of();
+    }
+
+    var surrenderedFeatureIds = Set.copyOf(surrenderDetails.surrenderedFeatureIds());
+    return commandJourneyService.getActiveFeatures(surrenderDetails.commandJourneyId()).stream()
+        .filter(feature -> !surrenderedFeatureIds.contains(feature.getId()))
+        .sorted(Comparator.comparing(Feature::getFeatureName))
+        .map(Feature::getId)
+        .toList();
+  }
+
+  public PartialSurrenderOperation toExecutedSurrender(PartialSurrenderOperation stagedSurrender) {
+    var executedSurrenderDetails = stagedSurrender.featureIdToSurrenderDetails().entrySet().stream()
+        .collect(Collectors.toMap(
+            Map.Entry::getKey,
+            entry -> {
+              var surrenderDetails = entry.getValue();
+              return new SurrenderDetails(
+                  surrenderDetails.type(),
+                  null,
+                  surrenderDetails.surrenderedFeatureIds(),
+                  getRetainedFeatureIds(surrenderDetails)
+              );
+            })
+        );
+
+    return LicenceOperation.newPartialSurrenderOperation()
+        .withSurrenderDate(stagedSurrender.surrenderDate())
+        .withSurrenderedFeatureIds(stagedSurrender.surrenderedFeatureIds())
+        .withSurrenderDetails(executedSurrenderDetails)
+        .withOutputFeatureIds(stagedSurrender.outputFeatureIds())
+        .build();
+  }
+
+  public static Set<UUID> commandJourneyIdsOf(PartialSurrenderOperation surrender) {
     return surrender.featureIdToSurrenderDetails().values().stream()
+        .filter(SurrenderDetails::hasCommandJourney)
         .map(SurrenderDetails::commandJourneyId)
         .collect(Collectors.toCollection(LinkedHashSet::new));
   }

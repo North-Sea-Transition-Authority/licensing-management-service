@@ -174,7 +174,7 @@ public class BlockSurrenderTypeController {
 
     // the surrender date is deliberately omitted so that saving a type does not stage a date correction
     var correctedSurrender = partialSurrenderCorrectionService
-        .getOrCreatePartialSurrenderDetails(surrenderUnderCorrection, liveOperation, featureId, blockSurrenderType);
+        .getOrCreatePartialSurrenderDetails(surrenderUnderCorrection, featureId, blockSurrenderType);
 
     if (blockSurrenderType == BlockSurrenderType.PARTIAL_SURRENDER) {
       var positionCorrection = partialSurrenderCorrectionService
@@ -194,7 +194,6 @@ public class BlockSurrenderTypeController {
       partialSurrenderCorrectionService.revertPartialSurrenderCorrection(
           correction,
           licencePosition,
-          liveOperation,
           correctedSurrender
       );
     }

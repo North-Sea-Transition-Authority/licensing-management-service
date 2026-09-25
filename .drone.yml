@@ -4,12 +4,20 @@ name: default
 
 steps:
   - name: restore-cache
-    image: drillster/drone-volume-cache
+    image: plugins/cache:1.10.12
     volumes:
       - name: drone-cache
         path: /cache
+    environment:
+      FILESYSTEM_CACHE_ROOT: /cache
     settings:
       restore: true
+      backend: filesystem
+      # Fixed key (no branch/commit template) - one cache shared across all branches, matching
+      # drillster/drone-volume-cache's behaviour.
+      cache_key: lms-shared-cache
+      # Without this, restore/rebuild both log a writeCacheMetadata error every run (empty filename).
+      cache_intel_metrics_file: /cache/metrics.json
       mount:
         - ./node_modules
         # We can only mount volume caches into the working directory, so all steps which use Gradle must have
@@ -287,14 +295,27 @@ steps:
       branch:
         - develop
 
+  # plugins/cache aborts the whole rebuild if any mount path is missing - sonar_cache is only
+  # created by code-analysis, which is skipped on non-develop/main branches.
+  - name: ensure-cache-dirs
+    image: alpine:3.16.0
+    commands:
+      - mkdir -p sonar_cache
+
   - name: rebuild-cache
-    image: drillster/drone-volume-cache
+    image: plugins/cache:1.10.12
     depends_on: [ sync-reports, code-analysis, publish-ecr, publish-gis-node-app, trivy-scan, scan-and-sync-public-repo ]
     volumes:
       - name: drone-cache
         path: /cache
+    environment:
+      FILESYSTEM_CACHE_ROOT: /cache
     settings:
       rebuild: true
+      backend: filesystem
+      cache_key: lms-shared-cache
+      # Without this, restore/rebuild both log a writeCacheMetadata error every run (empty filename).
+      cache_intel_metrics_file: /cache/metrics.json
       mount:
         - ./node_modules
         - ./gradle_cache
@@ -356,14 +377,20 @@ steps:
       - git checkout $DRONE_SOURCE_BRANCH
 
   - name: restore-cache
-    image: drillster/drone-volume-cache
+    image: plugins/cache:1.10.12
     # clone is a manual step here, not Drone's auto-clone, so it must be depended on explicitly
     depends_on: [ clone ]
     volumes:
       - name: drone-cache
         path: /cache
+    environment:
+      FILESYSTEM_CACHE_ROOT: /cache
     settings:
       restore: true
+      backend: filesystem
+      cache_key: lms-shared-cache
+      # Without this, restore/rebuild both log a writeCacheMetadata error every run (empty filename).
+      cache_intel_metrics_file: /cache/metrics.json
       mount:
         - ./node_modules
         # We can only mount volume caches into the working directory, so all steps which use Gradle must have
@@ -498,13 +525,19 @@ steps:
       - ./gradlew sonarqube -info --parallel --build-cache
 
   - name: rebuild-cache
-    image: drillster/drone-volume-cache
+    image: plugins/cache:1.10.12
     depends_on: [ code-analysis, gis-frontend-visual-tests-publish-report ]
     volumes:
       - name: drone-cache
         path: /cache
+    environment:
+      FILESYSTEM_CACHE_ROOT: /cache
     settings:
       rebuild: true
+      backend: filesystem
+      cache_key: lms-shared-cache
+      # Without this, restore/rebuild both log a writeCacheMetadata error every run (empty filename).
+      cache_intel_metrics_file: /cache/metrics.json
       mount:
         - ./node_modules
         - ./gradle_cache

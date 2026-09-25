@@ -201,7 +201,7 @@ class LicencePositionSubareaChangeStartControllerTest extends AbstractController
     assertThat(subareaOperationCaptor.getValue())
         .usingRecursiveComparison()
         .ignoringFields("id")
-        .isEqualTo(new SubareaOperation(BLOCK_30_1.getId()));
+        .isEqualTo(new SubareaOperation(BLOCK_30_1.getId(), List.of(), List.of()));
   }
 
   @Test
@@ -280,7 +280,7 @@ class LicencePositionSubareaChangeStartControllerTest extends AbstractController
     assertThat(subareaOperationCaptor.getValue())
         .usingRecursiveComparison()
         .ignoringFields("id")
-        .isEqualTo(new SubareaOperation(BLOCK_30_2.getId()));
+        .isEqualTo(new SubareaOperation(BLOCK_30_2.getId(), List.of(), List.of()));
   }
 
   private LicenceCorrection givenCorrectionAllocatedToUser() {

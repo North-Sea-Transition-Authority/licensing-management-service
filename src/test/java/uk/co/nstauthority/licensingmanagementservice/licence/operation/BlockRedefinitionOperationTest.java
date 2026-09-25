@@ -15,13 +15,17 @@ class BlockRedefinitionOperationTest {
   private static final UUID FIRST_FEATURE_ID = UUID.randomUUID();
   private static final UUID SECOND_FEATURE_ID = UUID.randomUUID();
   private static final UUID THIRD_FEATURE_ID = UUID.randomUUID();
+  private static final SubareaDetails FIRST_SUBAREA = new SubareaDetails(UUID.randomUUID(), "Subarea A", "A");
+  private static final SubareaDetails SECOND_SUBAREA = new SubareaDetails(UUID.randomUUID(), "Subarea B", "B");
+  private static final SubareaDetails UNSCRIBED_SUBAREA = new SubareaDetails(null, "Unscribed", "U");
 
   @Test
   void constructor_whenIdNull_thenThrows() {
     var replacedFeatureIds = List.of(FIRST_FEATURE_ID);
     var outputFeatureIds = List.of(SECOND_FEATURE_ID);
 
-    assertThatThrownBy(() -> new BlockRedefinitionOperation(null, replacedFeatureIds, outputFeatureIds))
+    assertThatThrownBy(() -> new BlockRedefinitionOperation(
+        null, replacedFeatureIds, outputFeatureIds, List.of(), List.of()))
         .isInstanceOf(NullPointerException.class)
         .hasMessageContaining("id");
   }
@@ -29,7 +33,7 @@ class BlockRedefinitionOperationTest {
   @ParameterizedTest
   @NullAndEmptySource
   void constructor_whenReplacedFeatureIdsNullOrEmpty_thenEmpty(List<UUID> replacedFeatureIds) {
-    var operation = new BlockRedefinitionOperation(UUID.randomUUID(), replacedFeatureIds, List.of(SECOND_FEATURE_ID));
+    var operation = new BlockRedefinitionOperation(UUID.randomUUID(), replacedFeatureIds, List.of(SECOND_FEATURE_ID), List.of(), List.of());
 
     assertThat(operation.replacedFeatureIds()).isEmpty();
   }
@@ -37,7 +41,7 @@ class BlockRedefinitionOperationTest {
   @ParameterizedTest
   @NullAndEmptySource
   void constructor_whenOutputFeatureIdsNullOrEmpty_thenEmpty(List<UUID> outputFeatureIds) {
-    var operation = new BlockRedefinitionOperation(UUID.randomUUID(), List.of(FIRST_FEATURE_ID), outputFeatureIds);
+    var operation = new BlockRedefinitionOperation(UUID.randomUUID(), List.of(FIRST_FEATURE_ID), outputFeatureIds, List.of(), List.of());
 
     assertThat(operation.outputFeatureIds()).isEmpty();
   }
@@ -47,29 +51,29 @@ class BlockRedefinitionOperationTest {
     var replacedFeatureIds = List.of(FIRST_FEATURE_ID);
     var outputFeatureIds = List.of(SECOND_FEATURE_ID);
 
-    var first = new BlockRedefinitionOperation(replacedFeatureIds, outputFeatureIds);
-    var second = new BlockRedefinitionOperation(replacedFeatureIds, outputFeatureIds);
+    var first = new BlockRedefinitionOperation(replacedFeatureIds, outputFeatureIds, List.of(), List.of());
+    var second = new BlockRedefinitionOperation(replacedFeatureIds, outputFeatureIds, List.of(), List.of());
 
     assertThat(first.id()).isNotEqualTo(second.id());
   }
 
   @Test
   void type() {
-    var operation = new BlockRedefinitionOperation(List.of(FIRST_FEATURE_ID), List.of(SECOND_FEATURE_ID));
+    var operation = new BlockRedefinitionOperation(List.of(FIRST_FEATURE_ID), List.of(SECOND_FEATURE_ID), List.of(), List.of());
 
     assertThat(operation.type()).isEqualTo(LicenceOperation.BLOCK_REDEFINITION);
   }
 
   @Test
   void displayName() {
-    var operation = new BlockRedefinitionOperation(List.of(FIRST_FEATURE_ID), List.of(SECOND_FEATURE_ID));
+    var operation = new BlockRedefinitionOperation(List.of(FIRST_FEATURE_ID), List.of(SECOND_FEATURE_ID), List.of(), List.of());
 
     assertThat(operation.displayName()).isEqualTo("Block redefinition");
   }
 
   @Test
   void validate() {
-    var operation = new BlockRedefinitionOperation(List.of(FIRST_FEATURE_ID), List.of(SECOND_FEATURE_ID));
+    var operation = new BlockRedefinitionOperation(List.of(FIRST_FEATURE_ID), List.of(SECOND_FEATURE_ID), List.of(), List.of());
 
     var result = operation.validate(PositionValidationContextTestUtil.newBuilder().build());
 
@@ -80,7 +84,7 @@ class BlockRedefinitionOperationTest {
   void featureIds_returnsDistinctUnionOfReplacedAndOutputFeatureIds() {
     var operation = new BlockRedefinitionOperation(
         List.of(FIRST_FEATURE_ID, SECOND_FEATURE_ID),
-        List.of(SECOND_FEATURE_ID, THIRD_FEATURE_ID));
+        List.of(SECOND_FEATURE_ID, THIRD_FEATURE_ID), List.of(), List.of());
 
     assertThat(LicenceOperation.featureIds(operation))
         .containsExactly(FIRST_FEATURE_ID, SECOND_FEATURE_ID, THIRD_FEATURE_ID);
@@ -88,7 +92,7 @@ class BlockRedefinitionOperationTest {
 
   @Test
   void organisationIds() {
-    var operation = new BlockRedefinitionOperation(List.of(FIRST_FEATURE_ID), List.of(SECOND_FEATURE_ID));
+    var operation = new BlockRedefinitionOperation(List.of(FIRST_FEATURE_ID), List.of(SECOND_FEATURE_ID), List.of(), List.of());
 
     assertThat(LicenceOperation.organisationIds(operation)).isEmpty();
   }
@@ -101,7 +105,7 @@ class BlockRedefinitionOperationTest {
         .build();
 
     var expected = new BlockRedefinitionOperation(
-        operation.id(), List.of(FIRST_FEATURE_ID), List.of(SECOND_FEATURE_ID));
+        operation.id(), List.of(FIRST_FEATURE_ID), List.of(SECOND_FEATURE_ID), List.of(), List.of());
     assertThat(operation).isEqualTo(expected);
   }
 
@@ -113,7 +117,7 @@ class BlockRedefinitionOperationTest {
         .build();
 
     var expected = new BlockRedefinitionOperation(
-        operation.id(), List.of(FIRST_FEATURE_ID), List.of(SECOND_FEATURE_ID));
+        operation.id(), List.of(FIRST_FEATURE_ID), List.of(SECOND_FEATURE_ID), List.of(), List.of());
     assertThat(operation).isEqualTo(expected);
   }
 
@@ -125,7 +129,71 @@ class BlockRedefinitionOperationTest {
         .build();
 
     var expected = new BlockRedefinitionOperation(
-        operation.id(), List.of(FIRST_FEATURE_ID), List.of(SECOND_FEATURE_ID));
+        operation.id(), List.of(FIRST_FEATURE_ID), List.of(SECOND_FEATURE_ID), List.of(), List.of());
+    assertThat(operation).isEqualTo(expected);
+  }
+
+  @ParameterizedTest
+  @NullAndEmptySource
+  void constructor_whenReplacedSubareasNullOrEmpty_thenEmpty(List<SubareaDetails> replacedSubareas) {
+    var operation = new BlockRedefinitionOperation(
+        UUID.randomUUID(),
+        List.of(FIRST_FEATURE_ID),
+        List.of(SECOND_FEATURE_ID),
+        replacedSubareas,
+        List.of(SECOND_SUBAREA)
+    );
+
+    assertThat(operation.replacedSubareas()).isEmpty();
+  }
+
+  @ParameterizedTest
+  @NullAndEmptySource
+  void constructor_whenOutputSubareasNullOrEmpty_thenEmpty(List<SubareaDetails> outputSubareas) {
+    var operation = new BlockRedefinitionOperation(
+        UUID.randomUUID(),
+        List.of(FIRST_FEATURE_ID),
+        List.of(SECOND_FEATURE_ID),
+        List.of(FIRST_SUBAREA),
+        outputSubareas
+    );
+
+    assertThat(operation.outputSubareas()).isEmpty();
+  }
+
+  @Test
+  void featureIds_whenSubareasGiven_thenReturnsDistinctUnionOfBlocksAndSubareasSkippingThoseWithout() {
+    var operation = new BlockRedefinitionOperation(
+        List.of(FIRST_FEATURE_ID),
+        List.of(SECOND_FEATURE_ID),
+        List.of(FIRST_SUBAREA, UNSCRIBED_SUBAREA),
+        List.of(SECOND_SUBAREA, FIRST_SUBAREA)
+    );
+
+    assertThat(LicenceOperation.featureIds(operation)).containsExactly(
+        FIRST_FEATURE_ID,
+        SECOND_FEATURE_ID,
+        FIRST_SUBAREA.featureId(),
+        SECOND_SUBAREA.featureId()
+    );
+  }
+
+  @Test
+  void build_whenSubareasRepeated_thenDeduplicated() {
+    var operation = LicenceOperation.newBlockRedefinitionOperation()
+        .withReplacedFeatureIds(List.of(FIRST_FEATURE_ID))
+        .withOutputFeatureIds(List.of(SECOND_FEATURE_ID))
+        .withReplacedSubareas(List.of(FIRST_SUBAREA, FIRST_SUBAREA))
+        .withOutputSubareas(List.of(SECOND_SUBAREA, SECOND_SUBAREA))
+        .build();
+
+    var expected = new BlockRedefinitionOperation(
+        operation.id(),
+        List.of(FIRST_FEATURE_ID),
+        List.of(SECOND_FEATURE_ID),
+        List.of(FIRST_SUBAREA),
+        List.of(SECOND_SUBAREA)
+    );
     assertThat(operation).isEqualTo(expected);
   }
 }

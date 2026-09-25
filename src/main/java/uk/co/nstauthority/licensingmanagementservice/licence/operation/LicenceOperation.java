@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import jakarta.annotation.Nullable;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Stream;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationContext;
@@ -38,6 +39,14 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
         name = LicenceOperation.LICENSEE
     ),
     @JsonSubTypes.Type(
+        value = SubareaCreateOperation.class,
+        name = LicenceOperation.SUBAREA_CREATE
+    ),
+    @JsonSubTypes.Type(
+        value = SubareaEndOperation.class,
+        name = LicenceOperation.SUBAREA_END
+    ),
+    @JsonSubTypes.Type(
         value = BlockCreateOperation.class,
         name = LicenceOperation.BLOCK_CREATE
     ),
@@ -57,6 +66,8 @@ public sealed interface LicenceOperation permits
     PartialSurrenderOperation,
     SubareaOperation,
     LicenseeOperation,
+    SubareaCreateOperation,
+    SubareaEndOperation,
     BlockCreateOperation,
     BlockRedefinitionOperation,
     BlockEndOperation {
@@ -67,6 +78,8 @@ public sealed interface LicenceOperation permits
   String PARTIAL_SURRENDER = "partial-surrender";
   String SUBAREA = "subarea";
   String LICENSEE = "licensee";
+  String SUBAREA_CREATE = "subarea-create";
+  String SUBAREA_END = "subarea-end";
   String BLOCK_CREATE = "block-create";
   String BLOCK_REDEFINITION = "block-redefinition";
   String BLOCK_END = "block-end";
@@ -104,6 +117,14 @@ public sealed interface LicenceOperation permits
     return new LicenseeOperation.Builder();
   }
 
+  static SubareaCreateOperation.Builder newSubareaCreateOperation() {
+    return new SubareaCreateOperation.Builder();
+  }
+
+  static SubareaEndOperation.Builder newSubareaEndOperation() {
+    return new SubareaEndOperation.Builder();
+  }
+
   static BlockCreateOperation.Builder newBlockCreateOperation() {
     return new BlockCreateOperation.Builder();
   }
@@ -120,23 +141,68 @@ public sealed interface LicenceOperation permits
     return operation instanceof SetEquityOperation || operation instanceof TransferEquityOperation;
   }
 
+  /**
+   * The features an operation names, which is what the feature names on a change view are looked up
+   * by. A subarea whose PED_SUBAREAS.SI_ID was null has no feature to look up and carries its own
+   * name instead, so it drops out here rather than resolving to nothing.
+   */
   static List<UUID> featureIds(LicenceOperation operation) {
     return switch (operation) {
-      case PartialSurrenderOperation partialSurrender -> partialSurrender.surrenderedFeatureIds();
-      case SubareaOperation subarea -> List.of(subarea.featureId());
-      case BlockCreateOperation blockCreate -> blockCreate.featureIds();
-      case BlockRedefinitionOperation blockRedefinition ->
-          Stream.concat(
-                  blockRedefinition.replacedFeatureIds().stream(),
-                  blockRedefinition.outputFeatureIds().stream())
-              .distinct()
-              .toList();
-      case BlockEndOperation blockEnd -> blockEnd.endedFeatureIds();
+      case PartialSurrenderOperation partialSurrender -> Stream.of(
+              partialSurrender.surrenderedFeatureIds().stream(),
+              subareaFeatureIds(partialSurrender.replacedSubareas()),
+              subareaFeatureIds(partialSurrender.outputSubareas()))
+          .flatMap(featureIds -> featureIds)
+          .distinct()
+          .toList();
+      // The block as well as the subareas, since this feeds the feature names a change view shows
+      // and a subarea change is labelled by the block it happened on.
+      case SubareaOperation subarea -> Stream.of(
+              Stream.of(subarea.blockFeatureId()),
+              subareaFeatureIds(subarea.replacedSubareas()),
+              subareaFeatureIds(subarea.outputSubareas()))
+          .flatMap(featureIds -> featureIds)
+          .distinct()
+          .toList();
+      case SubareaCreateOperation subareaCreate -> Stream.concat(
+              Stream.of(subareaCreate.blockFeatureId()),
+              subareaFeatureIds(subareaCreate.createdSubareas()))
+          .distinct()
+          .toList();
+      case SubareaEndOperation subareaEnd -> Stream.concat(
+              Stream.of(subareaEnd.blockFeatureId()),
+              subareaFeatureIds(subareaEnd.endedSubareas()))
+          .distinct()
+          .toList();
+      case BlockCreateOperation blockCreate -> Stream.concat(
+              blockCreate.createdBlockFeatureIds().stream(),
+              subareaFeatureIds(blockCreate.createdSubareas()))
+          .distinct()
+          .toList();
+      case BlockRedefinitionOperation blockRedefinition -> Stream.of(
+              blockRedefinition.replacedFeatureIds().stream(),
+              blockRedefinition.outputFeatureIds().stream(),
+              subareaFeatureIds(blockRedefinition.replacedSubareas()),
+              subareaFeatureIds(blockRedefinition.outputSubareas()))
+          .flatMap(featureIds -> featureIds)
+          .distinct()
+          .toList();
+      case BlockEndOperation blockEnd -> Stream.concat(
+              blockEnd.endedFeatureIds().stream(),
+              subareaFeatureIds(blockEnd.endedSubareas()))
+          .distinct()
+          .toList();
       case AdministratorOperation ignored -> List.of();
       case SetEquityOperation ignored -> List.of();
       case TransferEquityOperation ignored -> List.of();
       case LicenseeOperation ignored -> List.of();
     };
+  }
+
+  private static Stream<UUID> subareaFeatureIds(List<SubareaDetails> subareas) {
+    return subareas.stream()
+        .map(SubareaDetails::featureId)
+        .filter(Objects::nonNull);
   }
 
   static List<Integer> organisationIds(LicenceOperation operation) {
@@ -149,6 +215,8 @@ public sealed interface LicenceOperation permits
       case LicenseeOperation licenseeOperation -> Stream
           .concat(licenseeOperation.licenseesToAdd().stream(), licenseeOperation.licenseesToRemove().stream())
           .toList();
+      case SubareaCreateOperation ignored -> List.of();
+      case SubareaEndOperation ignored -> List.of();
       case BlockCreateOperation ignored -> List.of();
       case BlockRedefinitionOperation ignored -> List.of();
       case BlockEndOperation ignored -> List.of();

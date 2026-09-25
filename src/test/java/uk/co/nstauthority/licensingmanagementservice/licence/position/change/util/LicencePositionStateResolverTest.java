@@ -345,9 +345,9 @@ class LicencePositionStateResolverTest {
   }
 
   @ParameterizedTest
-  @MethodSource("blockOperations")
-  void resolveStates_whenAPositionCarriesABlockOperation_thenTheStateIsUnaffected(
-      LicenceOperation blockOperation
+  @MethodSource("spatialOperations")
+  void resolveStates_whenAPositionCarriesASpatialOperation_thenTheStateIsUnaffected(
+      LicenceOperation spatialOperation
   ) {
     var earlier = LicencePositionTestUtil.newBuilder().withPositionOrder(1).build();
     var current = LicencePositionTestUtil.newBuilder().withPositionOrder(2).build();
@@ -358,7 +358,7 @@ class LicencePositionStateResolverTest {
         LicenceOperation.newSetEquityOperation().withTransferTo(1).withEquity(new BigDecimal("60")).build(),
         LicenceOperation.newSetEquityOperation().withTransferTo(2).withEquity(new BigDecimal("40")).build()
     );
-    var currentChronological = ChronologicalPositionTestUtil.live(current, blockOperation);
+    var currentChronological = ChronologicalPositionTestUtil.live(current, spatialOperation);
 
     var result = LicencePositionStateResolver.resolve(List.of(earlierChronological, currentChronological));
 
@@ -368,14 +368,17 @@ class LicencePositionStateResolverTest {
         .isEqualTo(new LicencePositionState(1, Map.of(1, new BigDecimal("60"), 2, new BigDecimal("40"))));
   }
 
-  private static Stream<LicenceOperation> blockOperations() {
+  private static Stream<LicenceOperation> spatialOperations() {
     return Stream.of(
         LicenceOperation.newBlockCreateOperation().withFeatureIds(Set.of(UUID.randomUUID())).build(),
         LicenceOperation.newBlockRedefinitionOperation()
             .withReplacedFeatureIds(Set.of(UUID.randomUUID()))
             .withOutputFeatureIds(Set.of(UUID.randomUUID()))
             .build(),
-        LicenceOperation.newBlockEndOperation().withEndedFeatureIds(Set.of(UUID.randomUUID())).build()
+        LicenceOperation.newBlockEndOperation().withEndedFeatureIds(Set.of(UUID.randomUUID())).build(),
+        LicenceOperation.newSubAreaOperation().withBlockFeatureId(UUID.randomUUID()).build(),
+        LicenceOperation.newSubareaCreateOperation().withBlockFeatureId(UUID.randomUUID()).build(),
+        LicenceOperation.newSubareaEndOperation().withBlockFeatureId(UUID.randomUUID()).build()
     );
   }
 }

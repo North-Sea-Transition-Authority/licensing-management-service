@@ -41,7 +41,7 @@ class SubareaChangeServiceTest {
   void commitSubareaChangeForExecutedPosition_whenNoExistingSubareaChangeForBlock_addsAddChange() {
     var licencePosition = LicencePositionTestUtil.newBuilder().build();
     var positionCorrection = positionCorrectionWithChanges(List.of());
-    var operation = new SubareaOperation(UUID.randomUUID());
+    var operation = new SubareaOperation(UUID.randomUUID(), List.of(), List.of());
     when(licencePositionCorrectionService.getOrBuildUpdatePositionCorrection(LICENCE_CORRECTION, licencePosition))
         .thenReturn(positionCorrection);
     when(licencePositionCorrectionService.nextChangeOrder(List.of())).thenReturn(1);
@@ -58,7 +58,7 @@ class SubareaChangeServiceTest {
   @Test
   void commitSubareaChange_whenNoExistingSubareaChangeForBlock_addsAddChange() {
     var positionCorrection = positionCorrectionWithChanges(List.of());
-    var operation = new SubareaOperation(UUID.randomUUID());
+    var operation = new SubareaOperation(UUID.randomUUID(), List.of(), List.of());
     when(licencePositionCorrectionService.nextChangeOrder(List.of())).thenReturn(1);
 
     subareaChangeService.commitSubareaChange(positionCorrection, operation);
@@ -73,10 +73,10 @@ class SubareaChangeServiceTest {
   @Test
   void commitSubareaChange_whenExistingSubareaChangeForSameBlock_replacesOnlyThatChange() {
     var blockFeatureId = UUID.randomUUID();
-    var existingOperation = new SubareaOperation(blockFeatureId);
+    var existingOperation = new SubareaOperation(blockFeatureId, List.of(), List.of());
     var existingChange = AddChange.buildOperationsChange(List.of(existingOperation), 1);
     var positionCorrection = positionCorrectionWithChanges(List.of(existingChange));
-    var operation = new SubareaOperation(blockFeatureId);
+    var operation = new SubareaOperation(blockFeatureId, List.of(), List.of());
     when(licencePositionCorrectionService.getAddOperationsOfType(List.of(existingChange), SubareaOperation.class))
         .thenReturn(List.of(existingOperation));
     when(licencePositionCorrectionService.nextChangeOrder(List.of())).thenReturn(1);
@@ -93,10 +93,10 @@ class SubareaChangeServiceTest {
   @Test
   void commitSubareaChange_whenExistingSubareaChangeForDifferentBlock_leavesItIntactAndAppends() {
     var otherBlockFeatureId = UUID.randomUUID();
-    var otherOperation = new SubareaOperation(otherBlockFeatureId);
+    var otherOperation = new SubareaOperation(otherBlockFeatureId, List.of(), List.of());
     var otherChange = AddChange.buildOperationsChange(List.of(otherOperation), 1);
     var positionCorrection = positionCorrectionWithChanges(List.of(otherChange));
-    var operation = new SubareaOperation(UUID.randomUUID());
+    var operation = new SubareaOperation(UUID.randomUUID(), List.of(), List.of());
     when(licencePositionCorrectionService.getAddOperationsOfType(List.of(otherChange), SubareaOperation.class))
         .thenReturn(List.of(otherOperation));
     when(licencePositionCorrectionService.nextChangeOrder(List.of(otherChange))).thenReturn(2);

@@ -32,9 +32,10 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
  *                         for whatever spatial operation comes next. This is the point the surrender journey is
  *                         complete, not the point the correction carrying it is applied, so a surrender staged on an
  *                         earlier position takes effect on the positions after it straight away. Only blocks are
- *                         recorded: the subareas a licence holds follow from the blocks it holds and the subareas' own
- *                         start and end dates, so a surrendered block's subareas remain reachable through the position
- *                         that still held the block.
+ *                         recorded here: what a licence holds is its blocks, and the subarea lists below take no part
+ *                         in working that out.
+ * @param replacedSubareas The subareas that were modified during this partial surrender.
+ * @param outputSubareas The new sub areas as a result of this partial surrender.
  */
 public record PartialSurrenderOperation(
     UUID id,
@@ -42,7 +43,9 @@ public record PartialSurrenderOperation(
     // aliased so partial surrenders persisted before the rename still deserialize
     @JsonAlias("featureIds") List<UUID> surrenderedFeatureIds,
     Map<UUID, SurrenderDetails> featureIdToSurrenderDetails,
-    List<UUID> outputFeatureIds
+    List<UUID> outputFeatureIds,
+    List<SubareaDetails> replacedSubareas,
+    List<SubareaDetails> outputSubareas
 ) implements LicenceOperation {
 
   // Fixed, as a position only ever carries one partial surrender.
@@ -56,6 +59,8 @@ public record PartialSurrenderOperation(
     featureIdToSurrenderDetails = featureIdToSurrenderDetails == null ? Map.of() : Map.copyOf(featureIdToSurrenderDetails);
     // operations persisted before output features existed have no such field, so absent reads as "no outputs yet"
     outputFeatureIds = outputFeatureIds == null ? List.of() : List.copyOf(outputFeatureIds);
+    replacedSubareas = replacedSubareas == null ? List.of() : List.copyOf(replacedSubareas);
+    outputSubareas = outputSubareas == null ? List.of() : List.copyOf(outputSubareas);
   }
 
   public PartialSurrenderOperation(
@@ -69,7 +74,9 @@ public record PartialSurrenderOperation(
         surrenderDate,
         surrenderedFeatureIds,
         featureIdToSurrenderDetails,
-        outputFeatureIds
+        outputFeatureIds,
+        List.of(),
+        List.of()
     );
   }
 
@@ -186,6 +193,8 @@ public record PartialSurrenderOperation(
     private Collection<UUID> surrenderedFeatureIds;
     private Map<UUID, SurrenderDetails> featureIdToSurrenderDetails;
     private Collection<UUID> outputFeatureIds;
+    private Collection<SubareaDetails> replacedSubareas;
+    private Collection<SubareaDetails> outputSubareas;
 
     public Builder withSurrenderDate(@Nullable LocalDate surrenderDate) {
       this.surrenderDate = surrenderDate;
@@ -207,13 +216,25 @@ public record PartialSurrenderOperation(
       return this;
     }
 
+    public Builder withReplacedSubareas(Collection<SubareaDetails> replacedSubareas) {
+      this.replacedSubareas = replacedSubareas;
+      return this;
+    }
+
+    public Builder withOutputSubareas(Collection<SubareaDetails> outputSubareas) {
+      this.outputSubareas = outputSubareas;
+      return this;
+    }
+
     public PartialSurrenderOperation build() {
       return new PartialSurrenderOperation(
           PARTIAL_SURRENDER_OPERATION_ID,
           surrenderDate,
           surrenderedFeatureIds == null ? List.of() : surrenderedFeatureIds.stream().distinct().toList(),
           featureIdToSurrenderDetails == null ? Map.of() : featureIdToSurrenderDetails,
-          outputFeatureIds == null ? List.of() : outputFeatureIds.stream().distinct().toList()
+          outputFeatureIds == null ? List.of() : outputFeatureIds.stream().distinct().toList(),
+          replacedSubareas == null ? List.of() : replacedSubareas.stream().distinct().toList(),
+          outputSubareas == null ? List.of() : outputSubareas.stream().distinct().toList()
       );
     }
   }

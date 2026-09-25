@@ -29,6 +29,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.UpdateLicencePositionPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaDetails;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionViewService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPosition;
@@ -274,11 +275,14 @@ class LicencePositionSpatialServiceTest {
         .containsExactly(BLOCK_30_1, BLOCK_30_2);
   }
 
-  @Test
-  void getBlockFeaturesGoingIntoChange_whenASubareaOperationPrecedesThePosition_thenTheFeatureSetIsUnchanged() {
+  @ParameterizedTest
+  @MethodSource("subareaOperations")
+  void getBlockFeaturesGoingIntoChange_whenASubareaOperationPrecedesThePosition_thenTheFeatureSetIsUnchanged(
+      LicenceOperation subareaOperation
+  ) {
     var positions = List.of(
         position(FIRST_POSITION_ID, 1, surrenderOutputting(BLOCK_30_1.getId(), BLOCK_30_2.getId())),
-        position(SECOND_POSITION_ID, 2, subareaChangeFor(BLOCK_30_1.getId())),
+        position(SECOND_POSITION_ID, 2, subareaOperation),
         position(THIRD_POSITION_ID, 3));
 
     when(licencePositionViewService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, THIRD_POSITION_ID))
@@ -751,6 +755,26 @@ class LicencePositionSpatialServiceTest {
   }
 
   @Test
+  void getBlockFeaturesGoingIntoChange_whenABlockCreateCarriesSubareas_thenOnlyTheCreatedBlocksAreHeld() {
+    var blockCreate = LicenceOperation.newBlockCreateOperation()
+        .withFeatureIds(List.of(BLOCK_30_1.getId()))
+        .withCreatedSubareas(List.of(new SubareaDetails(SUBAREA.getId(), "Subarea A", "A")))
+        .build();
+    var positions = List.of(
+        position(FIRST_POSITION_ID, 1, blockCreate),
+        position(SECOND_POSITION_ID, 2)
+    );
+
+    when(licencePositionViewService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, SECOND_POSITION_ID))
+        .thenReturn(positions);
+    when(featureService.getFeaturesByIds(Set.of(BLOCK_30_1.getId()))).thenReturn(List.of(BLOCK_30_1));
+
+    assertThat(licencePositionSpatialService
+        .getBlockFeaturesGoingIntoChange(LICENCE_CORRECTION, SECOND_POSITION_ID, null))
+        .containsExactly(BLOCK_30_1);
+  }
+
+  @Test
   void getBlockFeaturesGoingIntoChange_whenABlockCreateIsStagedForRemoval_thenTheCreatedBlocksAreNotHeld() {
     var positions = List.of(
         position(FIRST_POSITION_ID, 1, blockCreateOf(BLOCK_30_1.getId())),
@@ -932,10 +956,28 @@ class LicencePositionSpatialServiceTest {
         .build();
   }
 
-  private static LicenceOperation subareaChangeFor(UUID featureId) {
+  private static LicenceOperation subareaChangeFor(UUID blockFeatureId) {
     return LicenceOperation.newSubAreaOperation()
-        .withFeatureId(featureId)
+        .withBlockFeatureId(blockFeatureId)
         .build();
+  }
+
+  private static Stream<LicenceOperation> subareaOperations() {
+    var subarea = new SubareaDetails(SUBAREA.getId(), "Subarea A", "A");
+    return Stream.of(
+        LicenceOperation.newSubAreaOperation()
+            .withBlockFeatureId(BLOCK_30_1.getId())
+            .withOutputSubareas(List.of(subarea))
+            .build(),
+        LicenceOperation.newSubareaCreateOperation()
+            .withBlockFeatureId(BLOCK_30_1.getId())
+            .withCreatedSubareas(List.of(subarea))
+            .build(),
+        LicenceOperation.newSubareaEndOperation()
+            .withBlockFeatureId(BLOCK_30_1.getId())
+            .withEndedSubareas(List.of(subarea))
+            .build()
+    );
   }
 
   private static LicenceOperation blockCreateOf(UUID... featureIds) {

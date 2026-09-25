@@ -18,6 +18,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOp
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenseeOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquityOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaCreateOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaEndOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.TransferEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPosition;
@@ -111,6 +113,8 @@ public final class LicencePositionStateResolver {
       case LicenseeOperation licenseeOperation -> state;
       // Spatial operations change which blocks a licence holds, not the administrator or equity
       // state this resolves.
+      case SubareaCreateOperation ignored -> state;
+      case SubareaEndOperation ignored -> state;
       case BlockCreateOperation ignored -> state;
       case BlockRedefinitionOperation ignored -> state;
       case BlockEndOperation ignored -> state;

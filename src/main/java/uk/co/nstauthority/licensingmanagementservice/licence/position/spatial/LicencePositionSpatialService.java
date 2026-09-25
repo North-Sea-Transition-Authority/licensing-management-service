@@ -23,6 +23,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOp
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenseeOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquityOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaCreateOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaEndOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.TransferEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
@@ -154,7 +156,7 @@ public class LicencePositionSpatialService {
               : Set.copyOf(partialSurrenderOperation.outputFeatureIds());
       // A creation adds to what the licence holds rather than replacing it: most licences create
       // their blocks once, but a few create more later, alongside blocks they already hold.
-      case BlockCreateOperation blockCreate -> union(featureIdsBeforeOperation, blockCreate.featureIds());
+      case BlockCreateOperation blockCreate -> union(featureIdsBeforeOperation, blockCreate.createdBlockFeatureIds());
       // A redefinition swaps one description of the same ground for another, so the blocks it
       // replaced stop being held and their successors start.
       case BlockRedefinitionOperation blockRedefinition -> union(
@@ -164,8 +166,12 @@ public class LicencePositionSpatialService {
       case AdministratorOperation ignored -> featureIdsBeforeOperation;
       case SetEquityOperation ignored -> featureIdsBeforeOperation;
       case TransferEquityOperation ignored -> featureIdsBeforeOperation;
+      // The set carried here is the blocks the licence holds, and a subarea operation never
+      // changes which blocks those are -- only how the ground inside one is divided up.
       case SubareaOperation ignored -> featureIdsBeforeOperation;
       case LicenseeOperation ignored -> featureIdsBeforeOperation;
+      case SubareaCreateOperation ignored -> featureIdsBeforeOperation;
+      case SubareaEndOperation ignored -> featureIdsBeforeOperation;
     };
   }
 

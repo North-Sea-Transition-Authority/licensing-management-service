@@ -1339,7 +1339,7 @@ class LicencePositionViewServiceTest {
         .withPositionDate(LocalDate.of(2026, Month.JANUARY, 1)).withPositionOrder(1).withStatus(LicencePositionStatus.EXECUTED).build();
 
     var subarea = FeatureTestUtil.subareaFeature(UUID.randomUUID(), "Subarea A");
-    var subareaOp = new SubareaOperation(subarea.getId());
+    var subareaOp = new SubareaOperation(subarea.getId(), List.of(), List.of());
 
     var change = LicencePositionChangeTestUtil.newBuilder()
         .withLicencePosition(position)
@@ -1375,7 +1375,7 @@ class LicencePositionViewServiceTest {
         .withId(firstChangeId)
         .withLicencePosition(position)
         .withChangeOrder(1)
-        .withOperations(List.of(new SubareaOperation(firstBlock.getId())))
+        .withOperations(List.of(new SubareaOperation(firstBlock.getId(), List.of(), List.of())))
         .build();
 
     var secondChangeId = UUID.randomUUID();
@@ -1383,7 +1383,7 @@ class LicencePositionViewServiceTest {
         .withId(secondChangeId)
         .withLicencePosition(position)
         .withChangeOrder(2)
-        .withOperations(List.of(new SubareaOperation(secondBlock.getId())))
+        .withOperations(List.of(new SubareaOperation(secondBlock.getId(), List.of(), List.of())))
         .build();
 
     when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(position));

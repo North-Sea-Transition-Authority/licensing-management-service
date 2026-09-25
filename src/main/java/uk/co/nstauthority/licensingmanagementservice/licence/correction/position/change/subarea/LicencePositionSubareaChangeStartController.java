@@ -169,7 +169,7 @@ public class LicencePositionSubareaChangeStartController {
 
   private SubareaOperation toOperation(SubareaChangeStartForm form) {
     return LicenceOperation.newSubAreaOperation()
-        .withFeatureId(UUID.fromString(form.getFeatureId()))
+        .withBlockFeatureId(UUID.fromString(form.getFeatureId()))
         .build();
   }
 

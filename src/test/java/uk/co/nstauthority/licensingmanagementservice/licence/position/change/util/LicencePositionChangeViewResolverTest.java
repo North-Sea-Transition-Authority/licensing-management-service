@@ -30,6 +30,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOp
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation.SurrenderDetails;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquityOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaDetails;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.TransferEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
@@ -1114,15 +1115,12 @@ class LicencePositionChangeViewResolverTest {
 
     var currentChronologicalPosition = ChronologicalPositionTestUtil.live(
         currentLicencePosition,
-        new SubareaOperation(FIRST_FEATURE_ID));
+        new SubareaOperation(FIRST_FEATURE_ID, List.of(), List.of()));
 
     var result = changeViewsFor(currentLicencePosition.getId(), FEATURE_NAMES, currentChronologicalPosition);
 
-    assertThat(result)
-        .singleElement()
-        .isInstanceOf(SubareaChangeView.class)
-        .extracting(view -> ((SubareaChangeView) view).featureName())
-        .isEqualTo(FEATURE_NAMES.get(FIRST_FEATURE_ID));
+    var expected = new SubareaChangeView(FEATURE_NAMES.get(FIRST_FEATURE_ID), null, ChangeViewUrls.none());
+    assertThat(result).containsExactly(expected);
   }
 
   @Test
@@ -1131,7 +1129,7 @@ class LicencePositionChangeViewResolverTest {
 
     var currentChronologicalPosition = ChronologicalPositionTestUtil.live(
         currentLicencePosition,
-        new SubareaOperation(FIRST_FEATURE_ID));
+        new SubareaOperation(FIRST_FEATURE_ID, List.of(), List.of()));
 
     var result = changeViewsFor(currentLicencePosition.getId(), Map.of(), currentChronologicalPosition);
 
@@ -1202,8 +1200,8 @@ class LicencePositionChangeViewResolverTest {
     var result = changeOrderChangeViews(
         positionId,
         List.of(
-            new PositionChange(firstChangeId.toString(), 1, null, List.of(new SubareaOperation(FIRST_FEATURE_ID))),
-            new PositionChange(secondChangeId.toString(), 2, null, List.of(new SubareaOperation(SECOND_FEATURE_ID)))
+            new PositionChange(firstChangeId.toString(), 1, null, List.of(new SubareaOperation(FIRST_FEATURE_ID, List.of(), List.of()))),
+            new PositionChange(secondChangeId.toString(), 2, null, List.of(new SubareaOperation(SECOND_FEATURE_ID, List.of(), List.of())))
         ),
         PositionChangeUrlContext.forExecutedPosition(correctionId, positionId, null)
     );
@@ -1243,9 +1241,9 @@ class LicencePositionChangeViewResolverTest {
   }
 
   @ParameterizedTest
-  @MethodSource("blockOperations")
-  void getChangeViews_whenABlockOnlyChangeAccompaniesASingleOrderableChange_hasNoCorrectChangeOrderUrl(
-      LicenceOperation blockOperation
+  @MethodSource("hiddenOperations")
+  void getChangeViews_whenAHiddenChangeAccompaniesASingleOrderableChange_hasNoCorrectChangeOrderUrl(
+      LicenceOperation hiddenOperation
   ) {
     var correctionId = UUID.randomUUID();
     var positionId = UUID.randomUUID();
@@ -1255,7 +1253,7 @@ class LicencePositionChangeViewResolverTest {
         positionId,
         List.of(
             setEquityChange(changeId.toString(), null),
-            new PositionChange(UUID.randomUUID().toString(), 2, null, List.of(blockOperation))),
+            new PositionChange(UUID.randomUUID().toString(), 2, null, List.of(hiddenOperation))),
         PositionChangeUrlContext.forExecutedPosition(correctionId, positionId, null)
     );
 
@@ -1432,7 +1430,7 @@ class LicencePositionChangeViewResolverTest {
   void getOrderableChangeLabels_labelsSubareaByFeatureNameAndOtherChangesByDisplayName() {
     var subareaChangeId = UUID.randomUUID();
     var subareaChange = new PositionChange(
-        subareaChangeId.toString(), 1, null, List.of(new SubareaOperation(FIRST_FEATURE_ID)));
+        subareaChangeId.toString(), 1, null, List.of(new SubareaOperation(FIRST_FEATURE_ID, List.of(), List.of())));
 
     var administratorOperation = LicenceOperation.newAdministratorChange().withOperator(JOINING_ID).build();
     var administratorChangeId = UUID.randomUUID();
@@ -1451,7 +1449,7 @@ class LicencePositionChangeViewResolverTest {
   void getOrderableChangeLabels_whenSubareaFeatureNameMissing_usesNotAvailable() {
     var changeId = UUID.randomUUID();
     var change = new PositionChange(
-        changeId.toString(), 1, null, List.of(new SubareaOperation(UUID.randomUUID())));
+        changeId.toString(), 1, null, List.of(new SubareaOperation(UUID.randomUUID(), List.of(), List.of())));
 
     var result = LicencePositionChangeViewResolver.getOrderableChangeLabels(List.of(change), Map.of());
 
@@ -1462,11 +1460,11 @@ class LicencePositionChangeViewResolverTest {
   void getOrderableChangeLabels_excludesNonOrderableChanges() {
     var orderableChangeId = UUID.randomUUID();
     var orderableChange = new PositionChange(
-        orderableChangeId.toString(), 1, null, List.of(new SubareaOperation(FIRST_FEATURE_ID)));
+        orderableChangeId.toString(), 1, null, List.of(new SubareaOperation(FIRST_FEATURE_ID, List.of(), List.of())));
 
     var removedChange = new PositionChange(
         UUID.randomUUID().toString(), 2, LicencePositionChangeType.REMOVE_CHANGE,
-        List.of(new SubareaOperation(SECOND_FEATURE_ID)));
+        List.of(new SubareaOperation(SECOND_FEATURE_ID, List.of(), List.of())));
 
     var emptyChange = new PositionChange(UUID.randomUUID().toString(), 3, null, List.of());
 
@@ -1477,24 +1475,24 @@ class LicencePositionChangeViewResolverTest {
   }
 
   @ParameterizedTest
-  @MethodSource("blockOperations")
-  void getOrderableChangeLabels_excludesBlockOnlyChanges(LicenceOperation blockOperation) {
+  @MethodSource("hiddenOperations")
+  void getOrderableChangeLabels_excludesHiddenChanges(LicenceOperation hiddenOperation) {
     var orderableChangeId = UUID.randomUUID();
     var orderableChange = new PositionChange(
-        orderableChangeId.toString(), 1, null, List.of(new SubareaOperation(FIRST_FEATURE_ID)));
+        orderableChangeId.toString(), 1, null, List.of(new SubareaOperation(FIRST_FEATURE_ID, List.of(), List.of())));
 
-    var blockChange = new PositionChange(UUID.randomUUID().toString(), 2, null, List.of(blockOperation));
+    var hiddenChange = new PositionChange(UUID.randomUUID().toString(), 2, null, List.of(hiddenOperation));
 
     var result = LicencePositionChangeViewResolver.getOrderableChangeLabels(
-        List.of(orderableChange, blockChange), FEATURE_NAMES);
+        List.of(orderableChange, hiddenChange), FEATURE_NAMES);
 
     assertThat(result).containsExactly(entry(orderableChangeId, "Subarea change – 30/1a"));
   }
 
   @ParameterizedTest
-  @MethodSource("blockOperations")
-  void getChangeViews_whenAChangeCarriesABlockOperation_thenItProducesNoViewAndLeavesOtherChangesAlone(
-      LicenceOperation blockOperation
+  @MethodSource("hiddenOperations")
+  void getChangeViews_whenAChangeCarriesAHiddenOperation_thenItProducesNoViewAndLeavesOtherChangesAlone(
+      LicenceOperation hiddenOperation
   ) {
     var positionId = UUID.randomUUID();
     var administratorChangeId = UUID.randomUUID().toString();
@@ -1503,7 +1501,7 @@ class LicencePositionChangeViewResolverTest {
         positionId,
         List.of(
             administratorChange(administratorChangeId, null),
-            new PositionChange(UUID.randomUUID().toString(), 2, null, List.of(blockOperation))),
+            new PositionChange(UUID.randomUUID().toString(), 2, null, List.of(hiddenOperation))),
         null
     );
 
@@ -1512,14 +1510,22 @@ class LicencePositionChangeViewResolverTest {
     );
   }
 
-  private static Stream<LicenceOperation> blockOperations() {
+  private static Stream<LicenceOperation> hiddenOperations() {
     return Stream.of(
         LicenceOperation.newBlockCreateOperation().withFeatureIds(List.of(FIRST_FEATURE_ID)).build(),
         LicenceOperation.newBlockRedefinitionOperation()
             .withReplacedFeatureIds(List.of(FIRST_FEATURE_ID))
             .withOutputFeatureIds(List.of(SECOND_FEATURE_ID))
             .build(),
-        LicenceOperation.newBlockEndOperation().withEndedFeatureIds(List.of(FIRST_FEATURE_ID)).build()
+        LicenceOperation.newBlockEndOperation().withEndedFeatureIds(List.of(FIRST_FEATURE_ID)).build(),
+        LicenceOperation.newSubareaCreateOperation()
+            .withBlockFeatureId(FIRST_FEATURE_ID)
+            .withCreatedSubareas(List.of(new SubareaDetails(SECOND_FEATURE_ID, "Subarea A", "A")))
+            .build(),
+        LicenceOperation.newSubareaEndOperation()
+            .withBlockFeatureId(FIRST_FEATURE_ID)
+            .withEndedSubareas(List.of(new SubareaDetails(SECOND_FEATURE_ID, "Subarea A", "A")))
+            .build()
     );
   }
 }

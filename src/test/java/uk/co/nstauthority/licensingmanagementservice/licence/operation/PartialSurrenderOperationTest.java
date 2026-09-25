@@ -21,6 +21,9 @@ class PartialSurrenderOperationTest {
   private static final UUID FIRST_FEATURE_ID = UUID.randomUUID();
   private static final UUID SECOND_FEATURE_ID = UUID.randomUUID();
   private static final UUID COMMAND_JOURNEY_ID = UUID.randomUUID();
+  private static final SubareaDetails FIRST_SUBAREA = new SubareaDetails(UUID.randomUUID(), "Subarea A", "A");
+  private static final SubareaDetails SECOND_SUBAREA = new SubareaDetails(UUID.randomUUID(), "Subarea B", "B");
+  private static final SubareaDetails UNSCRIBED_SUBAREA = new SubareaDetails(null, "Unscribed", "U");
 
   private static SurrenderDetails surrenderDetails(BlockSurrenderType type) {
     return new SurrenderDetails(type, UUID.randomUUID(), List.of());
@@ -245,5 +248,62 @@ class PartialSurrenderOperationTest {
     assertThatThrownBy(details::commandJourneyIdOrThrow)
         .isInstanceOf(IllegalStateException.class)
         .hasMessage("No split journey started for block surrender");
+  }
+
+  @Test
+  void constructor_whenSubareasNull_thenEmpty() {
+    var operation = new PartialSurrenderOperation(
+        UUID.randomUUID(),
+        SURRENDER_DATE,
+        List.of(FIRST_FEATURE_ID),
+        Map.of(),
+        List.of(),
+        null,
+        null
+    );
+
+    var expected = new PartialSurrenderOperation(
+        operation.id(),
+        SURRENDER_DATE,
+        List.of(FIRST_FEATURE_ID),
+        Map.of(),
+        List.of(),
+        List.of(),
+        List.of()
+    );
+    assertThat(operation).isEqualTo(expected);
+  }
+
+  @Test
+  void featureIds_whenSubareasGiven_thenIncludesTheirFeatureIdsSkippingThoseWithout() {
+    var operation = LicenceOperation.newPartialSurrenderOperation()
+        .withSurrenderedFeatureIds(List.of(FIRST_FEATURE_ID))
+        .withReplacedSubareas(List.of(FIRST_SUBAREA, UNSCRIBED_SUBAREA))
+        .withOutputSubareas(List.of(SECOND_SUBAREA, FIRST_SUBAREA))
+        .build();
+
+    assertThat(LicenceOperation.featureIds(operation))
+        .containsExactly(FIRST_FEATURE_ID, FIRST_SUBAREA.featureId(), SECOND_SUBAREA.featureId());
+  }
+
+  @Test
+  void build_whenSubareasRepeated_thenDeduplicated() {
+    var operation = LicenceOperation.newPartialSurrenderOperation()
+        .withSurrenderDate(SURRENDER_DATE)
+        .withSurrenderedFeatureIds(List.of(FIRST_FEATURE_ID))
+        .withReplacedSubareas(List.of(FIRST_SUBAREA, FIRST_SUBAREA))
+        .withOutputSubareas(List.of(SECOND_SUBAREA, SECOND_SUBAREA))
+        .build();
+
+    var expected = new PartialSurrenderOperation(
+        operation.id(),
+        SURRENDER_DATE,
+        List.of(FIRST_FEATURE_ID),
+        Map.of(),
+        List.of(),
+        List.of(FIRST_SUBAREA),
+        List.of(SECOND_SUBAREA)
+    );
+    assertThat(operation).isEqualTo(expected);
   }
 }

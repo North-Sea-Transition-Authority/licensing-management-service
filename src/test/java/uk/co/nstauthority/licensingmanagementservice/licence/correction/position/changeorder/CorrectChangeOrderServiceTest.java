@@ -216,7 +216,7 @@ class CorrectChangeOrderServiceTest {
   }
 
   private static LicencePositionChangeOperation subareaAddOperation(UUID featureId) {
-    var operation = new SubareaOperation(featureId);
+    var operation = new SubareaOperation(featureId, List.of(), List.of());
     return LicencePositionChangeOperation.newLicencePositionAddOperation()
         .withOperationId(operation.id())
         .withOperation(operation)

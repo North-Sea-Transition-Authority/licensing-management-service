@@ -1,24 +1,39 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.operation;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationError;
 
+/**
+ * Subarea operation contains information identifying what subareas were changed.
+ *
+ * @param blockFeatureId   the block whose subareas changed
+ * @param replacedSubareas the subarea versions that ended
+ * @param outputSubareas   the subarea versions that took their place
+ */
 public record SubareaOperation(
     UUID id,
-    UUID featureId
+    UUID blockFeatureId,
+    List<SubareaDetails> replacedSubareas,
+    List<SubareaDetails> outputSubareas
 ) implements LicenceOperation {
 
   public SubareaOperation {
     Objects.requireNonNull(id, "id must not be null");
-    Objects.requireNonNull(featureId, "featureId must not be null");
+    Objects.requireNonNull(blockFeatureId, "blockFeatureId must not be null");
+    replacedSubareas = replacedSubareas == null ? List.of() : List.copyOf(replacedSubareas);
+    outputSubareas = outputSubareas == null ? List.of() : List.copyOf(outputSubareas);
   }
 
   public SubareaOperation(
-      UUID featureId
+      UUID blockFeatureId,
+      List<SubareaDetails> replacedSubareas,
+      List<SubareaDetails> outputSubareas
   ) {
-    this(UUID.randomUUID(), featureId);
+    this(UUID.randomUUID(), blockFeatureId, replacedSubareas, outputSubareas);
   }
 
   @Override
@@ -39,15 +54,30 @@ public record SubareaOperation(
 
   public static class Builder {
 
-    private UUID featureId;
+    private UUID blockFeatureId;
+    private Collection<SubareaDetails> replacedSubareas;
+    private Collection<SubareaDetails> outputSubareas;
 
-    public Builder withFeatureId(UUID featureId) {
-      this.featureId = featureId;
+    public Builder withBlockFeatureId(UUID blockFeatureId) {
+      this.blockFeatureId = blockFeatureId;
+      return this;
+    }
+
+    public Builder withReplacedSubareas(Collection<SubareaDetails> replacedSubareas) {
+      this.replacedSubareas = replacedSubareas;
+      return this;
+    }
+
+    public Builder withOutputSubareas(Collection<SubareaDetails> outputSubareas) {
+      this.outputSubareas = outputSubareas;
       return this;
     }
 
     public SubareaOperation build() {
-      return new SubareaOperation(featureId);
+      return new SubareaOperation(
+          blockFeatureId,
+          replacedSubareas == null ? List.of() : replacedSubareas.stream().distinct().toList(),
+          outputSubareas == null ? List.of() : outputSubareas.stream().distinct().toList());
     }
   }
 }

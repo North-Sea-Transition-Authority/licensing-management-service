@@ -51,7 +51,7 @@ public class SubareaChangeService {
     var payload = licencePositionCorrection.getPayload();
 
     var changes = payload.changes().stream()
-        .filter(change -> !isAddSubareaChangeForBlock(change, operation.featureId()))
+        .filter(change -> !isAddSubareaChangeForBlock(change, operation.blockFeatureId()))
         .collect(Collectors.toCollection(ArrayList::new));
 
     changes.add(AddChange.buildOperationsChange(List.of(operation), licencePositionCorrectionService.nextChangeOrder(changes)));
@@ -62,6 +62,6 @@ public class SubareaChangeService {
 
   private boolean isAddSubareaChangeForBlock(LicencePositionChangeType change, UUID blockFeatureId) {
     return licencePositionCorrectionService.getAddOperationsOfType(List.of(change), SubareaOperation.class).stream()
-        .anyMatch(op -> blockFeatureId.equals(op.featureId()));
+        .anyMatch(op -> blockFeatureId.equals(op.blockFeatureId()));
   }
 }

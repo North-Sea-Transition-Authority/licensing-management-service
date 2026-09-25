@@ -1353,7 +1353,7 @@ class LicencePositionCorrectionServiceTest {
 
   @Test
   void getChangesForExecutedPosition_whenNoUpdateCorrection_foldsLiveChangesOnly() {
-    var operation = new SubareaOperation(UUID.randomUUID());
+    var operation = new SubareaOperation(UUID.randomUUID(), List.of(), List.of());
     var liveChange = LicencePositionChangeTestUtil.newBuilder()
         .withLicencePosition(LICENCE_POSITION)
         .withChangeOrder(1)
@@ -1371,14 +1371,14 @@ class LicencePositionCorrectionServiceTest {
 
   @Test
   void getChangesForExecutedPosition_whenUpdateCorrectionPresent_foldsLiveAndStagedChanges() {
-    var liveOperation = new SubareaOperation(UUID.randomUUID());
+    var liveOperation = new SubareaOperation(UUID.randomUUID(), List.of(), List.of());
     var liveChange = LicencePositionChangeTestUtil.newBuilder()
         .withLicencePosition(LICENCE_POSITION)
         .withChangeOrder(1)
         .withOperations(List.of(liveOperation))
         .build();
 
-    var stagedOperation = new SubareaOperation(UUID.randomUUID());
+    var stagedOperation = new SubareaOperation(UUID.randomUUID(), List.of(), List.of());
     var stagedChange = AddChange.buildOperationsChange(List.of(stagedOperation), 2);
     var updateCorrection = LicencePositionCorrectionTestUtil.newBuilder()
         .withPayload(UpdateLicencePositionPayloadTestUtil.newBuilder()
@@ -1398,7 +1398,7 @@ class LicencePositionCorrectionServiceTest {
 
   @Test
   void getChangesForAddedPosition_foldsAddedCorrectionChanges() {
-    var operation = new SubareaOperation(UUID.randomUUID());
+    var operation = new SubareaOperation(UUID.randomUUID(), List.of(), List.of());
     var addChange = AddChange.buildOperationsChange(List.of(operation), 1);
     var addedCorrection = LicencePositionCorrectionTestUtil.newBuilder()
         .withPayload(CreateLicencePositionPayloadTestUtil.newBuilder()
@@ -1418,13 +1418,13 @@ class LicencePositionCorrectionServiceTest {
     var liveChange = LicencePositionChangeTestUtil.newBuilder()
         .withLicencePosition(LICENCE_POSITION)
         .withChangeOrder(1)
-        .withOperations(List.of(new SubareaOperation(liveFeatureId)))
+        .withOperations(List.of(new SubareaOperation(liveFeatureId, List.of(), List.of())))
         .build();
 
     var stagedFeatureId = UUID.randomUUID();
     var updateCorrection = LicencePositionCorrectionTestUtil.newBuilder()
         .withPayload(UpdateLicencePositionPayloadTestUtil.newBuilder()
-            .withChanges(List.of(AddChange.buildOperationsChange(List.of(new SubareaOperation(stagedFeatureId)), 2)))
+            .withChanges(List.of(AddChange.buildOperationsChange(List.of(new SubareaOperation(stagedFeatureId, List.of(), List.of())), 2)))
             .build())
         .build();
 
@@ -1443,7 +1443,7 @@ class LicencePositionCorrectionServiceTest {
     var liveChange = LicencePositionChangeTestUtil.newBuilder()
         .withLicencePosition(LICENCE_POSITION)
         .withChangeOrder(1)
-        .withOperations(List.of(new SubareaOperation(liveFeatureId)))
+        .withOperations(List.of(new SubareaOperation(liveFeatureId, List.of(), List.of())))
         .build();
 
     var removalCorrection = LicencePositionCorrectionTestUtil.newBuilder()
@@ -1469,14 +1469,14 @@ class LicencePositionCorrectionServiceTest {
     var excludedChange = LicencePositionChangeTestUtil.newBuilder()
         .withLicencePosition(LICENCE_POSITION)
         .withChangeOrder(1)
-        .withOperations(List.of(new SubareaOperation(excludedFeatureId)))
+        .withOperations(List.of(new SubareaOperation(excludedFeatureId, List.of(), List.of())))
         .build();
 
     var retainedFeatureId = UUID.randomUUID();
     var retainedChange = LicencePositionChangeTestUtil.newBuilder()
         .withLicencePosition(LICENCE_POSITION)
         .withChangeOrder(2)
-        .withOperations(List.of(new SubareaOperation(retainedFeatureId)))
+        .withOperations(List.of(new SubareaOperation(retainedFeatureId, List.of(), List.of())))
         .build();
 
     when(licencePositionChangeService.findByLicencePositionId(LICENCE_POSITION.getId()))
@@ -1496,7 +1496,7 @@ class LicencePositionCorrectionServiceTest {
     var addedCorrection = LicencePositionCorrectionTestUtil.newBuilder()
         .withPayload(CreateLicencePositionPayloadTestUtil.newBuilder()
             .withChanges(List.of(
-                AddChange.buildOperationsChange(List.of(new SubareaOperation(subareaFeatureId)), 1),
+                AddChange.buildOperationsChange(List.of(new SubareaOperation(subareaFeatureId, List.of(), List.of())), 1),
                 AddChange.buildOperationsChange(List.of(
                     new PartialSurrenderOperation(
                         null, List.of(surrenderFeatureIdOne, surrenderFeatureIdTwo), null)), 2)))
@@ -1511,9 +1511,9 @@ class LicencePositionCorrectionServiceTest {
   @Test
   void blockFeatureIdsAlreadyOperatedOnForAddedPosition_whenChangeIdExcluded_omitsThatChangesFeatureIds() {
     var excludedFeatureId = UUID.randomUUID();
-    var excludedChange = AddChange.buildOperationsChange(List.of(new SubareaOperation(excludedFeatureId)), 1);
+    var excludedChange = AddChange.buildOperationsChange(List.of(new SubareaOperation(excludedFeatureId, List.of(), List.of())), 1);
     var retainedFeatureId = UUID.randomUUID();
-    var retainedChange = AddChange.buildOperationsChange(List.of(new SubareaOperation(retainedFeatureId)), 2);
+    var retainedChange = AddChange.buildOperationsChange(List.of(new SubareaOperation(retainedFeatureId, List.of(), List.of())), 2);
     var addedCorrection = LicencePositionCorrectionTestUtil.newBuilder()
         .withPayload(CreateLicencePositionPayloadTestUtil.newBuilder()
             .withChanges(List.of(excludedChange, retainedChange))
@@ -1528,7 +1528,7 @@ class LicencePositionCorrectionServiceTest {
 
   @Test
   void getStagedChangeOrThrow_whenTheChangeIsStaged_thenReturnsIt() {
-    var change = AddChange.buildOperationsChange(List.of(new SubareaOperation(UUID.randomUUID())), 1);
+    var change = AddChange.buildOperationsChange(List.of(new SubareaOperation(UUID.randomUUID(), List.of(), List.of())), 1);
     var positionCorrection = updatePositionCorrectionWith(List.of(change));
 
     var result = licencePositionCorrectionService.getStagedChangeOrThrow(positionCorrection, change.changeId());
@@ -1559,7 +1559,7 @@ class LicencePositionCorrectionServiceTest {
 
   @Test
   void resolveStagedChangeOperations_whenTheChangeStagesItsOwnOperations_thenReturnsThem() {
-    var operation = new SubareaOperation(UUID.randomUUID());
+    var operation = new SubareaOperation(UUID.randomUUID(), List.of(), List.of());
     var change = AddChange.buildOperationsChange(List.of(operation), 1);
 
     var result = licencePositionCorrectionService.resolveStagedChangeOperations(change);
@@ -1570,7 +1570,7 @@ class LicencePositionCorrectionServiceTest {
   @Test
   void resolveStagedChangeOperations_whenTheChangeRemovesALiveChange_thenReturnsTheLiveOperations() {
     var liveChangeId = UUID.randomUUID();
-    var operation = new SubareaOperation(UUID.randomUUID());
+    var operation = new SubareaOperation(UUID.randomUUID(), List.of(), List.of());
     when(licencePositionChangeService.getByIdOrThrow(liveChangeId))
         .thenReturn(LicencePositionChangeTestUtil.newBuilder()
             .withId(liveChangeId)
@@ -1585,7 +1585,7 @@ class LicencePositionCorrectionServiceTest {
 
   @Test
   void dropStagedChange_whenTheCorrectionIsLeftEmptyAndTheDateAndOrderAreUnchanged_thenDeletesTheCorrection() {
-    var change = AddChange.buildOperationsChange(List.of(new SubareaOperation(UUID.randomUUID())), 1);
+    var change = AddChange.buildOperationsChange(List.of(new SubareaOperation(UUID.randomUUID(), List.of(), List.of())), 1);
     var positionCorrection = updatePositionCorrectionWith(List.of(change));
 
     licencePositionCorrectionService.dropStagedChange(positionCorrection, change.changeId());
@@ -1596,8 +1596,8 @@ class LicencePositionCorrectionServiceTest {
 
   @Test
   void dropStagedChange_whenOtherChangesRemain_thenSavesWithoutDeleting() {
-    var change = AddChange.buildOperationsChange(List.of(new SubareaOperation(UUID.randomUUID())), 1);
-    var retainedChange = AddChange.buildOperationsChange(List.of(new SubareaOperation(UUID.randomUUID())), 2);
+    var change = AddChange.buildOperationsChange(List.of(new SubareaOperation(UUID.randomUUID(), List.of(), List.of())), 1);
+    var retainedChange = AddChange.buildOperationsChange(List.of(new SubareaOperation(UUID.randomUUID(), List.of(), List.of())), 2);
     var positionCorrection = updatePositionCorrectionWith(List.of(change, retainedChange));
 
     licencePositionCorrectionService.dropStagedChange(positionCorrection, change.changeId());
@@ -1609,7 +1609,7 @@ class LicencePositionCorrectionServiceTest {
 
   @Test
   void dropStagedChange_whenAChangeOrderIsStagedForTheSameChange_thenThatIsKeptAndTheCorrectionSaved() {
-    var change = AddChange.buildOperationsChange(List.of(new SubareaOperation(UUID.randomUUID())), 1);
+    var change = AddChange.buildOperationsChange(List.of(new SubareaOperation(UUID.randomUUID(), List.of(), List.of())), 1);
     var changeOrder = LicencePositionChangeType.updateChangeOrder()
         .withChangeId(change.changeId()).withChangeOrder(2).build();
     var positionCorrection = updatePositionCorrectionWith(List.of(change, changeOrder));
@@ -1623,7 +1623,7 @@ class LicencePositionCorrectionServiceTest {
 
   @Test
   void dropStagedChange_whenThePositionDateWasAlsoCorrected_thenSavesWithoutDeleting() {
-    var change = AddChange.buildOperationsChange(List.of(new SubareaOperation(UUID.randomUUID())), 1);
+    var change = AddChange.buildOperationsChange(List.of(new SubareaOperation(UUID.randomUUID(), List.of(), List.of())), 1);
     var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
         .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
         .withTargetLicencePosition(LICENCE_POSITION)
@@ -1643,7 +1643,7 @@ class LicencePositionCorrectionServiceTest {
 
   @Test
   void dropStagedChange_whenTheCorrectionAddsThePosition_thenSavesWithoutDeleting() {
-    var change = AddChange.buildOperationsChange(List.of(new SubareaOperation(UUID.randomUUID())), 1);
+    var change = AddChange.buildOperationsChange(List.of(new SubareaOperation(UUID.randomUUID(), List.of(), List.of())), 1);
     var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
         .withChangeType(LicencePositionCorrectionChangeType.ADD_POSITION)
         .withTargetLicencePosition(null)

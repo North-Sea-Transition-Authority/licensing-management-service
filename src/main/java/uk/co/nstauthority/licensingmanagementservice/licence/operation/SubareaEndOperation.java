@@ -8,38 +8,35 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationError;
 
 /**
- * Operation for when a licence block is ended on a licence.
+ * Subareas leaving a block the licence keeps.
  *
- * <p>Ending a block ends the subareas on it, which PEARS records without raising a subarea
- * operation of its own, so they are part of this operation rather than a change beside it.
- *
- * @param endedFeatureIds        the blocks the licence stopped holding
- * @param endedSubareas the subareas that went with them
+ * @param blockFeatureId the block the subareas sat on
+ * @param endedSubareas the subareas ended
  */
-public record BlockEndOperation(
+public record SubareaEndOperation(
     UUID id,
-    List<UUID> endedFeatureIds,
+    UUID blockFeatureId,
     List<SubareaDetails> endedSubareas
 ) implements LicenceOperation {
 
-  public BlockEndOperation {
+  public SubareaEndOperation {
     Objects.requireNonNull(id, "id must not be null");
-    endedFeatureIds = endedFeatureIds == null ? List.of() : List.copyOf(endedFeatureIds);
+    Objects.requireNonNull(blockFeatureId, "blockFeatureId must not be null");
     endedSubareas = endedSubareas == null ? List.of() : List.copyOf(endedSubareas);
   }
 
-  public BlockEndOperation(List<UUID> endedFeatureIds, List<SubareaDetails> endedSubareas) {
-    this(UUID.randomUUID(), endedFeatureIds, endedSubareas);
+  public SubareaEndOperation(UUID blockFeatureId, List<SubareaDetails> endedSubareas) {
+    this(UUID.randomUUID(), blockFeatureId, endedSubareas);
   }
 
   @Override
   public String type() {
-    return BLOCK_END;
+    return SUBAREA_END;
   }
 
   @Override
   public String displayName() {
-    return "Blocks ended";
+    return "Subareas ended";
   }
 
   @Override
@@ -49,11 +46,11 @@ public record BlockEndOperation(
 
   public static class Builder {
 
-    private Collection<UUID> endedFeatureIds;
+    private UUID blockFeatureId;
     private Collection<SubareaDetails> endedSubareas;
 
-    public Builder withEndedFeatureIds(Collection<UUID> endedFeatureIds) {
-      this.endedFeatureIds = endedFeatureIds;
+    public Builder withBlockFeatureId(UUID blockFeatureId) {
+      this.blockFeatureId = blockFeatureId;
       return this;
     }
 
@@ -62,9 +59,9 @@ public record BlockEndOperation(
       return this;
     }
 
-    public BlockEndOperation build() {
-      return new BlockEndOperation(
-          endedFeatureIds == null ? List.of() : endedFeatureIds.stream().distinct().toList(),
+    public SubareaEndOperation build() {
+      return new SubareaEndOperation(
+          blockFeatureId,
           endedSubareas == null ? List.of() : endedSubareas.stream().distinct().toList());
     }
   }

@@ -31,6 +31,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOp
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenseeOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquityOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaCreateOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaEndOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.TransferEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPosition;
@@ -178,7 +180,10 @@ public final class LicencePositionChangeViewResolver {
   private static String orderableChangeLabel(PositionChange change, Map<UUID, String> featureNames) {
     var operation = change.operations().getFirst();
     if (operation instanceof SubareaOperation subarea) {
-      return "%s – %s".formatted(operation.displayName(), featureNames.getOrDefault(subarea.featureId(), NOT_AVAILABLE));
+      return "%s – %s".formatted(
+          operation.displayName(),
+          featureNames.getOrDefault(subarea.blockFeatureId(), NOT_AVAILABLE)
+      );
     }
     return operation.displayName();
   }
@@ -193,21 +198,24 @@ public final class LicencePositionChangeViewResolver {
   }
 
   private static boolean canBeReordered(PositionChange change) {
-    return change.isOrderable() && !isBlockOnlyChange(change);
+    return change.isOrderable() && !isHiddenChange(change);
   }
 
-  private static boolean isBlockOnlyChange(PositionChange change) {
+  private static boolean isHiddenChange(PositionChange change) {
     return change.operations().stream().allMatch(operation ->
         operation instanceof BlockCreateOperation
             || operation instanceof BlockRedefinitionOperation
-            || operation instanceof BlockEndOperation);
+            || operation instanceof BlockEndOperation
+            || operation instanceof SubareaCreateOperation
+            || operation instanceof SubareaEndOperation);
   }
 
   /**
    * The view an operation is shown as, or null where it has none.
    *
-   * <p>The block operations the PEARS migration produces are null today: they are carried across so
-   * the spatial timeline is right, and nothing has been designed for showing them on a position yet.
+   * <p>The block, subarea creation and subarea end operations the PEARS migration produces are null
+   * today: they are carried across so the spatial timeline is right, and nothing has been designed
+   * for showing them on a position yet.
    */
   @Nullable
   private static LicencePositionChangeView toView(
@@ -263,6 +271,8 @@ public final class LicencePositionChangeViewResolver {
               context.organisationNames(),
               correctChangeOrderUrl
           );
+      case SubareaCreateOperation ignored -> null;
+      case SubareaEndOperation ignored -> null;
       case BlockCreateOperation ignored -> null;
       case BlockRedefinitionOperation ignored -> null;
       case BlockEndOperation ignored -> null;
@@ -301,7 +311,7 @@ public final class LicencePositionChangeViewResolver {
       @Nullable String correctChangeOrderUrl
   ) {
     return new SubareaChangeView(
-        featureNames.getOrDefault(operation.featureId(), NOT_AVAILABLE),
+        featureNames.getOrDefault(operation.blockFeatureId(), NOT_AVAILABLE),
         change.changeType(),
         new ChangeViewUrls(null, null, null, correctChangeOrderUrl)
     );

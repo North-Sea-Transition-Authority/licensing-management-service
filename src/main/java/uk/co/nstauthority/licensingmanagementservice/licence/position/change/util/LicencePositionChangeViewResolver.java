@@ -24,6 +24,9 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeorder.CorrectChangeOrderController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.AdministratorOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.BlockCreateOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.BlockEndOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.BlockRedefinitionOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenseeOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
@@ -114,11 +117,13 @@ public final class LicencePositionChangeViewResolver {
       var changeViews = new LinkedHashMap<String, LicencePositionChangeView>();
 
       for (var operation : change.operations()) {
-        changeViews.merge(
-            operation.type(),
-            toView(operation, change, stateBeforeChange, currentPositionDate, context, correctChangeOrderUrl),
-            LicencePositionChangeView::merge
-        );
+        var changeView =
+            toView(operation, change, stateBeforeChange, currentPositionDate, context, correctChangeOrderUrl);
+        // An operation with no view of its own is not shown, rather than shown blank.
+        if (changeView == null) {
+          continue;
+        }
+        changeViews.merge(operation.type(), changeView, LicencePositionChangeView::merge);
       }
       stateBeforeChange = LicencePositionStateResolver.applyChange(stateBeforeChange, change);
       viewsByChange.add(new ChangeViews(change.changeId(), changeViews));
@@ -144,7 +149,7 @@ public final class LicencePositionChangeViewResolver {
         .flatMap(chronologicalPosition -> chronologicalPosition.changes().stream())
         .toList();
 
-    var canReorder = currentPositionChanges.stream().filter(PositionChange::isOrderable).count() > 1;
+    var canReorder = currentPositionChanges.stream().filter(LicencePositionChangeViewResolver::canBeReordered).count() > 1;
 
     return viewsByChange(
         currentPositionId,
@@ -162,7 +167,7 @@ public final class LicencePositionChangeViewResolver {
   ) {
     var labels = new LinkedHashMap<UUID, String>();
     changes.stream()
-        .filter(PositionChange::isOrderable)
+        .filter(LicencePositionChangeViewResolver::canBeReordered)
         .forEach(positionChange -> labels.put(
             UUID.fromString(positionChange.changeId()),
             orderableChangeLabel(positionChange, featureNames))
@@ -187,6 +192,24 @@ public final class LicencePositionChangeViewResolver {
         .orElse(null);
   }
 
+  private static boolean canBeReordered(PositionChange change) {
+    return change.isOrderable() && !isBlockOnlyChange(change);
+  }
+
+  private static boolean isBlockOnlyChange(PositionChange change) {
+    return change.operations().stream().allMatch(operation ->
+        operation instanceof BlockCreateOperation
+            || operation instanceof BlockRedefinitionOperation
+            || operation instanceof BlockEndOperation);
+  }
+
+  /**
+   * The view an operation is shown as, or null where it has none.
+   *
+   * <p>The block operations the PEARS migration produces are null today: they are carried across so
+   * the spatial timeline is right, and nothing has been designed for showing them on a position yet.
+   */
+  @Nullable
   private static LicencePositionChangeView toView(
       LicenceOperation operation,
       PositionChange change,
@@ -240,6 +263,9 @@ public final class LicencePositionChangeViewResolver {
               context.organisationNames(),
               correctChangeOrderUrl
           );
+      case BlockCreateOperation ignored -> null;
+      case BlockRedefinitionOperation ignored -> null;
+      case BlockEndOperation ignored -> null;
     };
   }
 
@@ -466,7 +492,7 @@ public final class LicencePositionChangeViewResolver {
       PositionChange change,
       UUID currentPositionId
   ) {
-    if (urlContext == null || !change.isOrderable()) {
+    if (urlContext == null || !canBeReordered(change)) {
       return null;
     }
     return ReverseRouter.route(on(CorrectChangeOrderController.class)

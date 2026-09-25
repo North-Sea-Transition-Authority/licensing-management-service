@@ -1,15 +1,20 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.position.spatial;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.Month;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -43,11 +48,15 @@ class LicencePositionSpatialServiceTest {
   private static final Feature BLOCK_30_1 = FeatureTestUtil.blockFeature(UUID.randomUUID(), "30", 1);
   private static final Feature BLOCK_30_2 = FeatureTestUtil.blockFeature(UUID.randomUUID(), "30", 2);
   private static final Feature BLOCK_30_3 = FeatureTestUtil.blockFeature(UUID.randomUUID(), "30", 3);
+  private static final Feature BLOCK_30_4 = FeatureTestUtil.blockFeature(UUID.randomUUID(), "30", 4);
+  private static final Feature BLOCK_29_10 = FeatureTestUtil.blockFeature(UUID.randomUUID(), "29", 10);
   private static final Feature SUBAREA = FeatureTestUtil.subareaFeature(UUID.randomUUID(), "30/1a");
+  private static final UUID UNHELD_BLOCK_ID = UUID.randomUUID();
 
   private static final UUID FIRST_POSITION_ID = UUID.randomUUID();
   private static final UUID SECOND_POSITION_ID = UUID.randomUUID();
   private static final UUID THIRD_POSITION_ID = UUID.randomUUID();
+  private static final UUID FOURTH_POSITION_ID = UUID.randomUUID();
 
   @Mock
   private LicencePositionViewService licencePositionViewService;
@@ -377,6 +386,500 @@ class LicencePositionSpatialServiceTest {
         .containsExactly(BLOCK_30_1);
   }
 
+  @Test
+  void getBlockFeaturesGoingIntoChange_whenBlocksAreCreatedOnAnEmptyHolding_thenOnlyThoseBlocksAreHeld() {
+    var positions = List.of(
+        position(FIRST_POSITION_ID, 1, blockCreateOf(BLOCK_30_1.getId(), BLOCK_30_2.getId())),
+        position(SECOND_POSITION_ID, 2)
+    );
+
+    when(licencePositionViewService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, SECOND_POSITION_ID))
+        .thenReturn(positions);
+    when(featureService.getFeaturesByIds(Set.of(BLOCK_30_1.getId(), BLOCK_30_2.getId())))
+        .thenReturn(List.of(BLOCK_30_1, BLOCK_30_2));
+
+    assertThat(licencePositionSpatialService
+        .getBlockFeaturesGoingIntoChange(LICENCE_CORRECTION, SECOND_POSITION_ID, null))
+        .containsExactly(BLOCK_30_1, BLOCK_30_2);
+  }
+
+  @Test
+  void getBlockFeaturesGoingIntoChange_whenBlocksAreCreatedOnTopOfAnExistingHolding_thenTheyAreAdded() {
+    var positions = List.of(
+        position(FIRST_POSITION_ID, 1, blockCreateOf(BLOCK_30_1.getId())),
+        position(SECOND_POSITION_ID, 2, blockCreateOf(BLOCK_30_2.getId(), BLOCK_30_3.getId())),
+        position(THIRD_POSITION_ID, 3)
+    );
+
+    when(licencePositionViewService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, THIRD_POSITION_ID))
+        .thenReturn(positions);
+    when(featureService.getFeaturesByIds(Set.of(BLOCK_30_1.getId(), BLOCK_30_2.getId(), BLOCK_30_3.getId())))
+        .thenReturn(List.of(BLOCK_30_1, BLOCK_30_2, BLOCK_30_3));
+
+    assertThat(licencePositionSpatialService
+        .getBlockFeaturesGoingIntoChange(LICENCE_CORRECTION, THIRD_POSITION_ID, null))
+        .containsExactly(BLOCK_30_1, BLOCK_30_2, BLOCK_30_3);
+  }
+
+  @Test
+  void getBlockFeaturesGoingIntoChange_whenACreatedBlockIsAlreadyHeld_thenItIsNotDuplicated() {
+    var positions = List.of(
+        position(FIRST_POSITION_ID, 1, blockCreateOf(BLOCK_30_1.getId(), BLOCK_30_2.getId())),
+        position(SECOND_POSITION_ID, 2, blockCreateOf(BLOCK_30_2.getId())),
+        position(THIRD_POSITION_ID, 3)
+    );
+
+    when(licencePositionViewService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, THIRD_POSITION_ID))
+        .thenReturn(positions);
+    when(featureService.getFeaturesByIds(Set.of(BLOCK_30_1.getId(), BLOCK_30_2.getId())))
+        .thenReturn(List.of(BLOCK_30_1, BLOCK_30_2));
+
+    assertThat(licencePositionSpatialService
+        .getBlockFeaturesGoingIntoChange(LICENCE_CORRECTION, THIRD_POSITION_ID, null))
+        .containsExactly(BLOCK_30_1, BLOCK_30_2);
+  }
+
+  @Test
+  void getBlockFeaturesGoingIntoChange_whenACreateHasNoFeatures_thenTheHoldingIsUnchanged() {
+    var positions = List.of(
+        position(FIRST_POSITION_ID, 1, blockCreateOf(BLOCK_30_1.getId())),
+        position(SECOND_POSITION_ID, 2, blockCreateOf()),
+        position(THIRD_POSITION_ID, 3)
+    );
+
+    when(licencePositionViewService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, THIRD_POSITION_ID))
+        .thenReturn(positions);
+    when(featureService.getFeaturesByIds(Set.of(BLOCK_30_1.getId()))).thenReturn(List.of(BLOCK_30_1));
+
+    assertThat(licencePositionSpatialService
+        .getBlockFeaturesGoingIntoChange(LICENCE_CORRECTION, THIRD_POSITION_ID, null))
+        .containsExactly(BLOCK_30_1);
+  }
+
+  @Test
+  void getBlockFeaturesGoingIntoChange_whenBlocksAreRedefined_thenTheReplacedBlocksAreSwappedForSuccessors() {
+    var positions = List.of(
+        position(FIRST_POSITION_ID, 1, blockCreateOf(BLOCK_30_1.getId(), BLOCK_30_2.getId(), BLOCK_30_3.getId())),
+        position(SECOND_POSITION_ID, 2, blockRedefinitionOf(Set.of(BLOCK_30_2.getId()), Set.of(BLOCK_30_4.getId()))),
+        position(THIRD_POSITION_ID, 3)
+    );
+
+    when(licencePositionViewService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, THIRD_POSITION_ID))
+        .thenReturn(positions);
+    when(featureService.getFeaturesByIds(Set.of(BLOCK_30_1.getId(), BLOCK_30_3.getId(), BLOCK_30_4.getId())))
+        .thenReturn(List.of(BLOCK_30_1, BLOCK_30_3, BLOCK_30_4));
+
+    assertThat(licencePositionSpatialService
+        .getBlockFeaturesGoingIntoChange(LICENCE_CORRECTION, THIRD_POSITION_ID, null))
+        .containsExactly(BLOCK_30_1, BLOCK_30_3, BLOCK_30_4);
+  }
+
+  @Test
+  void getBlockFeaturesGoingIntoChange_whenARedefinitionReplacesABlockNotHeld_thenOnlyItsOutputsAreAdded() {
+    var positions = List.of(
+        position(FIRST_POSITION_ID, 1, blockCreateOf(BLOCK_30_1.getId())),
+        position(SECOND_POSITION_ID, 2, blockRedefinitionOf(Set.of(UNHELD_BLOCK_ID), Set.of(BLOCK_30_4.getId()))),
+        position(THIRD_POSITION_ID, 3)
+    );
+
+    when(licencePositionViewService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, THIRD_POSITION_ID))
+        .thenReturn(positions);
+    when(featureService.getFeaturesByIds(Set.of(BLOCK_30_1.getId(), BLOCK_30_4.getId())))
+        .thenReturn(List.of(BLOCK_30_1, BLOCK_30_4));
+
+    assertThat(licencePositionSpatialService
+        .getBlockFeaturesGoingIntoChange(LICENCE_CORRECTION, THIRD_POSITION_ID, null))
+        .containsExactly(BLOCK_30_1, BLOCK_30_4);
+  }
+
+  @Test
+  void getBlockFeaturesGoingIntoChange_whenARedefinitionReplacesNothing_thenItOnlyAdds() {
+    var positions = List.of(
+        position(FIRST_POSITION_ID, 1, blockCreateOf(BLOCK_30_1.getId())),
+        position(SECOND_POSITION_ID, 2, blockRedefinitionOf(Set.of(), Set.of(BLOCK_30_4.getId()))),
+        position(THIRD_POSITION_ID, 3)
+    );
+
+    when(licencePositionViewService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, THIRD_POSITION_ID))
+        .thenReturn(positions);
+    when(featureService.getFeaturesByIds(Set.of(BLOCK_30_1.getId(), BLOCK_30_4.getId())))
+        .thenReturn(List.of(BLOCK_30_1, BLOCK_30_4));
+
+    assertThat(licencePositionSpatialService
+        .getBlockFeaturesGoingIntoChange(LICENCE_CORRECTION, THIRD_POSITION_ID, null))
+        .containsExactly(BLOCK_30_1, BLOCK_30_4);
+  }
+
+  @Test
+  void getBlockFeaturesGoingIntoChange_whenARedefinitionOutputsNothing_thenItOnlyRemoves() {
+    var positions = List.of(
+        position(FIRST_POSITION_ID, 1, blockCreateOf(BLOCK_30_1.getId(), BLOCK_30_2.getId())),
+        position(SECOND_POSITION_ID, 2, blockRedefinitionOf(Set.of(BLOCK_30_1.getId()), Set.of())),
+        position(THIRD_POSITION_ID, 3)
+    );
+
+    when(licencePositionViewService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, THIRD_POSITION_ID))
+        .thenReturn(positions);
+    when(featureService.getFeaturesByIds(Set.of(BLOCK_30_2.getId()))).thenReturn(List.of(BLOCK_30_2));
+
+    assertThat(licencePositionSpatialService
+        .getBlockFeaturesGoingIntoChange(LICENCE_CORRECTION, THIRD_POSITION_ID, null))
+        .containsExactly(BLOCK_30_2);
+  }
+
+  @Test
+  void getBlockFeaturesGoingIntoChange_whenARedefinitionOutputsABlockItAlsoReplaces_thenTheBlockIsStillHeld() {
+    var positions = List.of(
+        position(FIRST_POSITION_ID, 1, blockCreateOf(BLOCK_30_1.getId(), BLOCK_30_2.getId())),
+        position(SECOND_POSITION_ID, 2, blockRedefinitionOf(
+            Set.of(BLOCK_30_1.getId(), BLOCK_30_2.getId()), Set.of(BLOCK_30_1.getId()))),
+        position(THIRD_POSITION_ID, 3)
+    );
+
+    when(licencePositionViewService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, THIRD_POSITION_ID))
+        .thenReturn(positions);
+    when(featureService.getFeaturesByIds(Set.of(BLOCK_30_1.getId()))).thenReturn(List.of(BLOCK_30_1));
+
+    assertThat(licencePositionSpatialService
+        .getBlockFeaturesGoingIntoChange(LICENCE_CORRECTION, THIRD_POSITION_ID, null))
+        .containsExactly(BLOCK_30_1);
+  }
+
+  @Test
+  void getBlockFeaturesGoingIntoChange_whenBlocksAreEnded_thenOnlyThoseBlocksAreRemoved() {
+    var positions = List.of(
+        position(FIRST_POSITION_ID, 1, blockCreateOf(BLOCK_30_1.getId(), BLOCK_30_2.getId(), BLOCK_30_3.getId())),
+        position(SECOND_POSITION_ID, 2, blockEndOf(BLOCK_30_2.getId())),
+        position(THIRD_POSITION_ID, 3)
+    );
+
+    when(licencePositionViewService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, THIRD_POSITION_ID))
+        .thenReturn(positions);
+    when(featureService.getFeaturesByIds(Set.of(BLOCK_30_1.getId(), BLOCK_30_3.getId())))
+        .thenReturn(List.of(BLOCK_30_1, BLOCK_30_3));
+
+    assertThat(licencePositionSpatialService
+        .getBlockFeaturesGoingIntoChange(LICENCE_CORRECTION, THIRD_POSITION_ID, null))
+        .containsExactly(BLOCK_30_1, BLOCK_30_3);
+  }
+
+  @Test
+  void getBlockFeaturesGoingIntoChange_whenAnEndedBlockIsNotHeld_thenTheHoldingIsUnchanged() {
+    var positions = List.of(
+        position(FIRST_POSITION_ID, 1, blockCreateOf(BLOCK_30_1.getId())),
+        position(SECOND_POSITION_ID, 2, blockEndOf(UNHELD_BLOCK_ID)),
+        position(THIRD_POSITION_ID, 3)
+    );
+
+    when(licencePositionViewService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, THIRD_POSITION_ID))
+        .thenReturn(positions);
+    when(featureService.getFeaturesByIds(Set.of(BLOCK_30_1.getId()))).thenReturn(List.of(BLOCK_30_1));
+
+    assertThat(licencePositionSpatialService
+        .getBlockFeaturesGoingIntoChange(LICENCE_CORRECTION, THIRD_POSITION_ID, null))
+        .containsExactly(BLOCK_30_1);
+  }
+
+  @Test
+  void getBlockFeaturesGoingIntoChange_whenEveryHeldBlockIsEnded_thenNoFeaturesAreLookedUp() {
+    var positions = List.of(
+        position(FIRST_POSITION_ID, 1, blockCreateOf(BLOCK_30_1.getId(), BLOCK_30_2.getId())),
+        position(SECOND_POSITION_ID, 2, blockEndOf(BLOCK_30_1.getId(), BLOCK_30_2.getId())),
+        position(THIRD_POSITION_ID, 3)
+    );
+
+    when(licencePositionViewService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, THIRD_POSITION_ID))
+        .thenReturn(positions);
+
+    assertThat(licencePositionSpatialService
+        .getBlockFeaturesGoingIntoChange(LICENCE_CORRECTION, THIRD_POSITION_ID, null))
+        .isEmpty();
+    verifyNoInteractions(featureService);
+  }
+
+  @Test
+  void getBlockFeaturesGoingIntoChange_whenAnEndHasNoFeatures_thenTheHoldingIsUnchanged() {
+    var positions = List.of(
+        position(FIRST_POSITION_ID, 1, blockCreateOf(BLOCK_30_1.getId())),
+        position(SECOND_POSITION_ID, 2, blockEndOf()),
+        position(THIRD_POSITION_ID, 3)
+    );
+
+    when(licencePositionViewService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, THIRD_POSITION_ID))
+        .thenReturn(positions);
+    when(featureService.getFeaturesByIds(Set.of(BLOCK_30_1.getId()))).thenReturn(List.of(BLOCK_30_1));
+
+    assertThat(licencePositionSpatialService
+        .getBlockFeaturesGoingIntoChange(LICENCE_CORRECTION, THIRD_POSITION_ID, null))
+        .containsExactly(BLOCK_30_1);
+  }
+
+  @ParameterizedTest
+  @MethodSource("nonSpatialOperations")
+  void getBlockFeaturesGoingIntoChange_whenANonSpatialOperationPrecedesThePosition_thenTheHoldingIsUnchanged(
+      LicenceOperation nonSpatialOperation
+  ) {
+    var positions = List.of(
+        position(FIRST_POSITION_ID, 1, blockCreateOf(BLOCK_30_1.getId(), BLOCK_30_2.getId())),
+        position(SECOND_POSITION_ID, 2, nonSpatialOperation),
+        position(THIRD_POSITION_ID, 3)
+    );
+
+    when(licencePositionViewService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, THIRD_POSITION_ID))
+        .thenReturn(positions);
+    when(featureService.getFeaturesByIds(Set.of(BLOCK_30_1.getId(), BLOCK_30_2.getId())))
+        .thenReturn(List.of(BLOCK_30_1, BLOCK_30_2));
+
+    assertThat(licencePositionSpatialService
+        .getBlockFeaturesGoingIntoChange(LICENCE_CORRECTION, THIRD_POSITION_ID, null))
+        .containsExactly(BLOCK_30_1, BLOCK_30_2);
+  }
+
+  @Test
+  void getBlockFeaturesGoingIntoChange_whenBlocksAreCreatedRedefinedAndEndedAcrossPositions_thenSurvivorsRemain() {
+    var positions = List.of(
+        position(FIRST_POSITION_ID, 1, blockCreateOf(BLOCK_30_1.getId(), BLOCK_30_2.getId(), BLOCK_30_3.getId())),
+        position(SECOND_POSITION_ID, 2, blockRedefinitionOf(Set.of(BLOCK_30_2.getId()), Set.of(BLOCK_30_4.getId()))),
+        position(THIRD_POSITION_ID, 3, blockEndOf(BLOCK_30_1.getId())),
+        position(FOURTH_POSITION_ID, 4)
+    );
+
+    when(licencePositionViewService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, FOURTH_POSITION_ID))
+        .thenReturn(positions);
+    when(featureService.getFeaturesByIds(Set.of(BLOCK_30_3.getId(), BLOCK_30_4.getId())))
+        .thenReturn(List.of(BLOCK_30_4, BLOCK_30_3));
+
+    assertThat(licencePositionSpatialService
+        .getBlockFeaturesGoingIntoChange(LICENCE_CORRECTION, FOURTH_POSITION_ID, null))
+        .containsExactly(BLOCK_30_3, BLOCK_30_4);
+  }
+
+  @Test
+  void getBlockFeaturesGoingIntoChange_whenThatSameLifecycleRunsAcrossChangesOnOnePosition_thenItFoldsTheSameWay() {
+    var positions = List.of(
+        positionWithChanges(FIRST_POSITION_ID, 1,
+            change("create-change", 1, blockCreateOf(BLOCK_30_1.getId(), BLOCK_30_2.getId(), BLOCK_30_3.getId())),
+            change("redefine-change", 2, blockRedefinitionOf(Set.of(BLOCK_30_2.getId()), Set.of(BLOCK_30_4.getId()))),
+            change("end-change", 3, blockEndOf(BLOCK_30_1.getId()))
+        ),
+        position(SECOND_POSITION_ID, 2)
+    );
+
+    when(licencePositionViewService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, SECOND_POSITION_ID))
+        .thenReturn(positions);
+    when(featureService.getFeaturesByIds(Set.of(BLOCK_30_3.getId(), BLOCK_30_4.getId())))
+        .thenReturn(List.of(BLOCK_30_4, BLOCK_30_3));
+
+    assertThat(licencePositionSpatialService
+        .getBlockFeaturesGoingIntoChange(LICENCE_CORRECTION, SECOND_POSITION_ID, null))
+        .containsExactly(BLOCK_30_3, BLOCK_30_4);
+  }
+
+  @Test
+  void getBlockFeaturesGoingIntoChange_whenABlockIsCreatedThenEnded_thenItIsNotHeld() {
+    var positions = List.of(
+        positionWithChanges(FIRST_POSITION_ID, 1,
+            change("create-change", 1, blockCreateOf(BLOCK_30_1.getId())),
+            change("end-change", 2, blockEndOf(BLOCK_30_1.getId()))
+        ),
+        position(SECOND_POSITION_ID, 2)
+    );
+
+    when(licencePositionViewService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, SECOND_POSITION_ID))
+        .thenReturn(positions);
+
+    assertThat(licencePositionSpatialService
+        .getBlockFeaturesGoingIntoChange(LICENCE_CORRECTION, SECOND_POSITION_ID, null))
+        .isEmpty();
+  }
+
+  @Test
+  void getBlockFeaturesGoingIntoChange_whenABlockIsEndedThenCreated_thenItIsHeld() {
+    var positions = List.of(
+        positionWithChanges(FIRST_POSITION_ID, 1,
+            change("end-change", 1, blockEndOf(BLOCK_30_1.getId())),
+            change("create-change", 2, blockCreateOf(BLOCK_30_1.getId()))
+        ),
+        position(SECOND_POSITION_ID, 2)
+    );
+
+    when(licencePositionViewService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, SECOND_POSITION_ID))
+        .thenReturn(positions);
+    when(featureService.getFeaturesByIds(Set.of(BLOCK_30_1.getId()))).thenReturn(List.of(BLOCK_30_1));
+
+    assertThat(licencePositionSpatialService
+        .getBlockFeaturesGoingIntoChange(LICENCE_CORRECTION, SECOND_POSITION_ID, null))
+        .containsExactly(BLOCK_30_1);
+  }
+
+  @Test
+  void getBlockFeaturesGoingIntoChange_whenOneChangeCarriesACreateAndAnEnd_thenTheyApplyInOperationOrder() {
+    var positions = List.of(
+        position(FIRST_POSITION_ID, 1,
+            blockCreateOf(BLOCK_30_1.getId(), BLOCK_30_2.getId()),
+            blockEndOf(BLOCK_30_1.getId())
+        ),
+        position(SECOND_POSITION_ID, 2)
+    );
+
+    when(licencePositionViewService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, SECOND_POSITION_ID))
+        .thenReturn(positions);
+    when(featureService.getFeaturesByIds(Set.of(BLOCK_30_2.getId()))).thenReturn(List.of(BLOCK_30_2));
+
+    assertThat(licencePositionSpatialService
+        .getBlockFeaturesGoingIntoChange(LICENCE_CORRECTION, SECOND_POSITION_ID, null))
+        .containsExactly(BLOCK_30_2);
+  }
+
+  @Test
+  void getBlockFeaturesGoingIntoChange_whenTheTargetChangeFollowsABlockCreate_thenTheCreatedBlocksAreInTheInput() {
+    var positions = List.of(
+        positionWithChanges(FIRST_POSITION_ID, 1,
+            change("create-change", 1, blockCreateOf(BLOCK_30_1.getId(), BLOCK_30_2.getId())),
+            change("end-change", 2, blockEndOf(BLOCK_30_1.getId()))
+        )
+    );
+
+    when(licencePositionViewService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, FIRST_POSITION_ID))
+        .thenReturn(positions);
+    when(featureService.getFeaturesByIds(Set.of(BLOCK_30_1.getId(), BLOCK_30_2.getId())))
+        .thenReturn(List.of(BLOCK_30_1, BLOCK_30_2));
+
+    assertThat(licencePositionSpatialService
+        .getBlockFeaturesGoingIntoChange(LICENCE_CORRECTION, FIRST_POSITION_ID, "end-change"))
+        .containsExactly(BLOCK_30_1, BLOCK_30_2);
+  }
+
+  @Test
+  void getBlockFeaturesGoingIntoChange_whenABlockCreateIsStagedForRemoval_thenTheCreatedBlocksAreNotHeld() {
+    var positions = List.of(
+        position(FIRST_POSITION_ID, 1, blockCreateOf(BLOCK_30_1.getId())),
+        positionWithChanges(SECOND_POSITION_ID, 2, removedChange(blockCreateOf(BLOCK_30_2.getId()))),
+        position(THIRD_POSITION_ID, 3)
+    );
+
+    when(licencePositionViewService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, THIRD_POSITION_ID))
+        .thenReturn(positions);
+    when(featureService.getFeaturesByIds(Set.of(BLOCK_30_1.getId()))).thenReturn(List.of(BLOCK_30_1));
+
+    assertThat(licencePositionSpatialService
+        .getBlockFeaturesGoingIntoChange(LICENCE_CORRECTION, THIRD_POSITION_ID, null))
+        .containsExactly(BLOCK_30_1);
+  }
+
+  @Test
+  void getBlockFeaturesGoingIntoChange_whenABlockEndIsStagedForRemoval_thenTheEndedBlocksSurvive() {
+    var positions = List.of(
+        position(FIRST_POSITION_ID, 1, blockCreateOf(BLOCK_30_1.getId(), BLOCK_30_2.getId())),
+        positionWithChanges(SECOND_POSITION_ID, 2, removedChange(blockEndOf(BLOCK_30_1.getId()))),
+        position(THIRD_POSITION_ID, 3)
+    );
+
+    when(licencePositionViewService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, THIRD_POSITION_ID))
+        .thenReturn(positions);
+    when(featureService.getFeaturesByIds(Set.of(BLOCK_30_1.getId(), BLOCK_30_2.getId())))
+        .thenReturn(List.of(BLOCK_30_1, BLOCK_30_2));
+
+    assertThat(licencePositionSpatialService
+        .getBlockFeaturesGoingIntoChange(LICENCE_CORRECTION, THIRD_POSITION_ID, null))
+        .containsExactly(BLOCK_30_1, BLOCK_30_2);
+  }
+
+  @Test
+  void getBlockFeaturesGoingIntoChange_whenASurrenderFollowsABlockCreate_thenItsOutputsReplaceTheWholeHolding() {
+    var positions = List.of(
+        position(FIRST_POSITION_ID, 1, blockCreateOf(BLOCK_30_1.getId(), BLOCK_30_2.getId())),
+        position(SECOND_POSITION_ID, 2, surrenderOutputting(BLOCK_30_3.getId())),
+        position(THIRD_POSITION_ID, 3)
+    );
+
+    when(licencePositionViewService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, THIRD_POSITION_ID))
+        .thenReturn(positions);
+    when(featureService.getFeaturesByIds(Set.of(BLOCK_30_3.getId()))).thenReturn(List.of(BLOCK_30_3));
+
+    assertThat(licencePositionSpatialService
+        .getBlockFeaturesGoingIntoChange(LICENCE_CORRECTION, THIRD_POSITION_ID, null))
+        .containsExactly(BLOCK_30_3);
+  }
+
+  @Test
+  void getBlockFeaturesGoingIntoChange_whenASurrenderWithNoOutputsFollowsABlockCreate_thenTheBlocksSurvive() {
+    var positions = List.of(
+        position(FIRST_POSITION_ID, 1, blockCreateOf(BLOCK_30_1.getId(), BLOCK_30_2.getId())),
+        position(SECOND_POSITION_ID, 2, incompleteSurrender()),
+        position(THIRD_POSITION_ID, 3)
+    );
+
+    when(licencePositionViewService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, THIRD_POSITION_ID))
+        .thenReturn(positions);
+    when(featureService.getFeaturesByIds(Set.of(BLOCK_30_1.getId(), BLOCK_30_2.getId())))
+        .thenReturn(List.of(BLOCK_30_1, BLOCK_30_2));
+
+    assertThat(licencePositionSpatialService
+        .getBlockFeaturesGoingIntoChange(LICENCE_CORRECTION, THIRD_POSITION_ID, null))
+        .containsExactly(BLOCK_30_1, BLOCK_30_2);
+  }
+
+  @Test
+  void getBlockFeaturesGoingIntoChange_whenBlocksFromDifferentQuadrantsAreCreated_thenTheyAreInBlockOrder() {
+    var positions = List.of(
+        position(FIRST_POSITION_ID, 1, blockCreateOf(BLOCK_30_2.getId(), BLOCK_29_10.getId())),
+        position(SECOND_POSITION_ID, 2)
+    );
+
+    when(licencePositionViewService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, SECOND_POSITION_ID))
+        .thenReturn(positions);
+    when(featureService.getFeaturesByIds(Set.of(BLOCK_30_2.getId(), BLOCK_29_10.getId())))
+        .thenReturn(List.of(BLOCK_30_2, BLOCK_29_10));
+
+    assertThat(licencePositionSpatialService
+        .getBlockFeaturesGoingIntoChange(LICENCE_CORRECTION, SECOND_POSITION_ID, null))
+        .containsExactly(BLOCK_29_10, BLOCK_30_2);
+  }
+
+  @Test
+  void getBlockFeaturesGoingIntoChange_whenACreateCarriesANonBlockFeature_thenItIsExcludedFromTheResult() {
+    var positions = List.of(
+        position(FIRST_POSITION_ID, 1, blockCreateOf(BLOCK_30_1.getId(), SUBAREA.getId())),
+        position(SECOND_POSITION_ID, 2)
+    );
+
+    when(licencePositionViewService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, SECOND_POSITION_ID))
+        .thenReturn(positions);
+    when(featureService.getFeaturesByIds(Set.of(BLOCK_30_1.getId(), SUBAREA.getId())))
+        .thenReturn(List.of(BLOCK_30_1, SUBAREA));
+
+    assertThat(licencePositionSpatialService
+        .getBlockFeaturesGoingIntoChange(LICENCE_CORRECTION, SECOND_POSITION_ID, null))
+        .containsExactly(BLOCK_30_1);
+  }
+
+  @Test
+  void getBlockFeaturesGoingIntoChange_whenAnAddedPositionCorrectionCarriesBlockOperations_thenTheyAreApplied() {
+    var addedPositionId = UUID.randomUUID();
+    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withLicenceCorrection(LICENCE_CORRECTION)
+        .withTargetLicencePosition(null)
+        .withPayload(CreateLicencePositionPayloadTestUtil.newBuilder()
+            .withLicencePositionId(addedPositionId.toString())
+            .build())
+        .build();
+
+    when(licencePositionViewService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, addedPositionId))
+        .thenReturn(List.of(
+            position(FIRST_POSITION_ID, 1, blockCreateOf(BLOCK_30_1.getId(), BLOCK_30_2.getId())),
+            position(SECOND_POSITION_ID, 2, blockEndOf(BLOCK_30_1.getId())),
+            ChronologicalPositionTestUtil.newBuilder()
+                .withId(addedPositionId)
+                .withDate(LocalDate.of(2026, Month.JANUARY, 3))
+                .build()
+        ));
+    when(featureService.getFeaturesByIds(Set.of(BLOCK_30_2.getId()))).thenReturn(List.of(BLOCK_30_2));
+
+    assertThat(licencePositionSpatialService.getBlockFeaturesGoingIntoChange(positionCorrection, null))
+        .containsExactly(BLOCK_30_2);
+  }
+
   private static ChronologicalPosition position(UUID positionId, int dayOfMonth, LicenceOperation... operations) {
     var changes = operations.length == 0
         ? List.<PositionChange>of()
@@ -386,6 +889,29 @@ class LicencePositionSpatialServiceTest {
         .withId(positionId)
         .withDate(LocalDate.of(2026, Month.JANUARY, dayOfMonth))
         .withChanges(changes)
+        .build();
+  }
+
+  private static ChronologicalPosition positionWithChanges(UUID positionId, int dayOfMonth, PositionChange... changes) {
+    return ChronologicalPositionTestUtil.newBuilder()
+        .withId(positionId)
+        .withDate(LocalDate.of(2026, Month.JANUARY, dayOfMonth))
+        .withChanges(List.of(changes))
+        .build();
+  }
+
+  private static PositionChange change(String changeId, int changeOrder, LicenceOperation... operations) {
+    return PositionChangeTestUtil.newBuilder()
+        .withChangeId(changeId)
+        .withChangeOrder(changeOrder)
+        .withOperations(List.of(operations))
+        .build();
+  }
+
+  private static PositionChange removedChange(LicenceOperation... operations) {
+    return PositionChangeTestUtil.newBuilder()
+        .withChangeType(LicencePositionChangeType.REMOVE_CHANGE)
+        .withOperations(List.of(operations))
         .build();
   }
 
@@ -410,5 +936,36 @@ class LicencePositionSpatialServiceTest {
     return LicenceOperation.newSubAreaOperation()
         .withFeatureId(featureId)
         .build();
+  }
+
+  private static LicenceOperation blockCreateOf(UUID... featureIds) {
+    return LicenceOperation.newBlockCreateOperation()
+        .withFeatureIds(List.of(featureIds))
+        .build();
+  }
+
+  private static LicenceOperation blockEndOf(UUID... endedFeatureIds) {
+    return LicenceOperation.newBlockEndOperation()
+        .withEndedFeatureIds(List.of(endedFeatureIds))
+        .build();
+  }
+
+  private static LicenceOperation blockRedefinitionOf(Set<UUID> replacedFeatureIds, Set<UUID> outputFeatureIds) {
+    return LicenceOperation.newBlockRedefinitionOperation()
+        .withReplacedFeatureIds(replacedFeatureIds)
+        .withOutputFeatureIds(outputFeatureIds)
+        .build();
+  }
+
+  private static Stream<LicenceOperation> nonSpatialOperations() {
+    return Stream.of(
+        LicenceOperation.newAdministratorChange().withOperator(1).build(),
+        LicenceOperation.newSetEquityOperation().withTransferTo(1).withEquity(new BigDecimal("100")).build(),
+        LicenceOperation.newTransferEquityOperation()
+            .withTransferFrom(1)
+            .withTransferTo(2)
+            .withEquity(new BigDecimal("10"))
+            .build()
+    );
   }
 }

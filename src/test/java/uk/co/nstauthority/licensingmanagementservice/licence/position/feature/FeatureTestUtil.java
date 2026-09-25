@@ -45,6 +45,7 @@ public class FeatureTestUtil {
     private Map<String, String> attributes = Map.of("LAYER", Layer.BLOCKS.name());
     private CoordinateSystem coordinateSystem = CoordinateSystem.ED50;
     private BigDecimal featureArea = BigDecimal.valueOf(100);
+    private Integer legacyId;
 
     private Builder() {}
 
@@ -73,6 +74,11 @@ public class FeatureTestUtil {
       return this;
     }
 
+    public Builder withLegacyId(Integer legacyId) {
+      this.legacyId = legacyId;
+      return this;
+    }
+
     public Feature build() {
       var feature = new Feature();
       feature.setId(id);
@@ -80,6 +86,7 @@ public class FeatureTestUtil {
       feature.setAttributes(attributes);
       feature.setCoordinateSystem(coordinateSystem);
       feature.setFeatureArea(featureArea);
+      feature.setLegacyId(legacyId);
 
       return feature;
     }

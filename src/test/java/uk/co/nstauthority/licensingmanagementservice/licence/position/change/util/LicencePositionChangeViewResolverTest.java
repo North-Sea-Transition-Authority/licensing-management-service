@@ -12,9 +12,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.MethodSource;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.administrator.RemoveAdministratorChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.equity.RemoveEquityChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.RemovePartialSurrenderChangeController;
@@ -1240,6 +1242,34 @@ class LicencePositionChangeViewResolverTest {
             null));
   }
 
+  @ParameterizedTest
+  @MethodSource("blockOperations")
+  void getChangeViews_whenABlockOnlyChangeAccompaniesASingleOrderableChange_hasNoCorrectChangeOrderUrl(
+      LicenceOperation blockOperation
+  ) {
+    var correctionId = UUID.randomUUID();
+    var positionId = UUID.randomUUID();
+    var changeId = UUID.randomUUID();
+
+    var result = changeOrderChangeViews(
+        positionId,
+        List.of(
+            setEquityChange(changeId.toString(), null),
+            new PositionChange(UUID.randomUUID().toString(), 2, null, List.of(blockOperation))),
+        PositionChangeUrlContext.forExecutedPosition(correctionId, positionId, null)
+    );
+
+    assertThat(result)
+        .singleElement()
+        .extracting(LicencePositionChangeView::urls)
+        .isEqualTo(new ChangeViewUrls(
+            null,
+            ReverseRouter.route(on(RemoveEquityChangeController.class).renderRemoveExecutedEquityChange(
+                correctionId, positionId, changeId.toString(), null)),
+            null,
+            null));
+  }
+
   @Test
   void getChangeViews_whenChangeIsRemoved_hasNoCorrectChangeOrderUrlForThatChange() {
     var correctionId = UUID.randomUUID();
@@ -1444,5 +1474,52 @@ class LicencePositionChangeViewResolverTest {
         List.of(orderableChange, removedChange, emptyChange), FEATURE_NAMES);
 
     assertThat(result).containsExactly(entry(orderableChangeId, "Subarea change – 30/1a"));
+  }
+
+  @ParameterizedTest
+  @MethodSource("blockOperations")
+  void getOrderableChangeLabels_excludesBlockOnlyChanges(LicenceOperation blockOperation) {
+    var orderableChangeId = UUID.randomUUID();
+    var orderableChange = new PositionChange(
+        orderableChangeId.toString(), 1, null, List.of(new SubareaOperation(FIRST_FEATURE_ID)));
+
+    var blockChange = new PositionChange(UUID.randomUUID().toString(), 2, null, List.of(blockOperation));
+
+    var result = LicencePositionChangeViewResolver.getOrderableChangeLabels(
+        List.of(orderableChange, blockChange), FEATURE_NAMES);
+
+    assertThat(result).containsExactly(entry(orderableChangeId, "Subarea change – 30/1a"));
+  }
+
+  @ParameterizedTest
+  @MethodSource("blockOperations")
+  void getChangeViews_whenAChangeCarriesABlockOperation_thenItProducesNoViewAndLeavesOtherChangesAlone(
+      LicenceOperation blockOperation
+  ) {
+    var positionId = UUID.randomUUID();
+    var administratorChangeId = UUID.randomUUID().toString();
+
+    var result = changeOrderChangeViews(
+        positionId,
+        List.of(
+            administratorChange(administratorChangeId, null),
+            new PositionChange(UUID.randomUUID().toString(), 2, null, List.of(blockOperation))),
+        null
+    );
+
+    assertThat(result).containsExactly(
+        new AdministratorChangeView(null, JOINING_NAME, administratorChangeId, null, ChangeViewUrls.none())
+    );
+  }
+
+  private static Stream<LicenceOperation> blockOperations() {
+    return Stream.of(
+        LicenceOperation.newBlockCreateOperation().withFeatureIds(List.of(FIRST_FEATURE_ID)).build(),
+        LicenceOperation.newBlockRedefinitionOperation()
+            .withReplacedFeatureIds(List.of(FIRST_FEATURE_ID))
+            .withOutputFeatureIds(List.of(SECOND_FEATURE_ID))
+            .build(),
+        LicenceOperation.newBlockEndOperation().withEndedFeatureIds(List.of(FIRST_FEATURE_ID)).build()
+    );
   }
 }

@@ -182,3 +182,6 @@ CVE-2026-49844
 
 # io.netty:netty-codec-http (app.jar)
 CVE-2026-59903
+
+# org.freemarker:freemarker
+CVE-2026-84939

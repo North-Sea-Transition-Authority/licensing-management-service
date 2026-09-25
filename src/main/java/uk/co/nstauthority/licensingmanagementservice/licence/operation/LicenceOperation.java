@@ -36,6 +36,18 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
     @JsonSubTypes.Type(
         value = LicenseeOperation.class,
         name = LicenceOperation.LICENSEE
+    ),
+    @JsonSubTypes.Type(
+        value = BlockCreateOperation.class,
+        name = LicenceOperation.BLOCK_CREATE
+    ),
+    @JsonSubTypes.Type(
+        value = BlockRedefinitionOperation.class,
+        name = LicenceOperation.BLOCK_REDEFINITION
+    ),
+    @JsonSubTypes.Type(
+        value = BlockEndOperation.class,
+        name = LicenceOperation.BLOCK_END
     )
 })
 public sealed interface LicenceOperation permits
@@ -44,7 +56,10 @@ public sealed interface LicenceOperation permits
     TransferEquityOperation,
     PartialSurrenderOperation,
     SubareaOperation,
-    LicenseeOperation {
+    LicenseeOperation,
+    BlockCreateOperation,
+    BlockRedefinitionOperation,
+    BlockEndOperation {
 
   String LICENCE_ADMINISTRATOR = "licence-administrator";
   String SET_EQUITY = "set-equity";
@@ -52,6 +67,9 @@ public sealed interface LicenceOperation permits
   String PARTIAL_SURRENDER = "partial-surrender";
   String SUBAREA = "subarea";
   String LICENSEE = "licensee";
+  String BLOCK_CREATE = "block-create";
+  String BLOCK_REDEFINITION = "block-redefinition";
+  String BLOCK_END = "block-end";
 
   String type();
 
@@ -86,6 +104,18 @@ public sealed interface LicenceOperation permits
     return new LicenseeOperation.Builder();
   }
 
+  static BlockCreateOperation.Builder newBlockCreateOperation() {
+    return new BlockCreateOperation.Builder();
+  }
+
+  static BlockRedefinitionOperation.Builder newBlockRedefinitionOperation() {
+    return new BlockRedefinitionOperation.Builder();
+  }
+
+  static BlockEndOperation.Builder newBlockEndOperation() {
+    return new BlockEndOperation.Builder();
+  }
+
   static boolean isEquityOperation(LicenceOperation operation) {
     return operation instanceof SetEquityOperation || operation instanceof TransferEquityOperation;
   }
@@ -94,6 +124,14 @@ public sealed interface LicenceOperation permits
     return switch (operation) {
       case PartialSurrenderOperation partialSurrender -> partialSurrender.surrenderedFeatureIds();
       case SubareaOperation subarea -> List.of(subarea.featureId());
+      case BlockCreateOperation blockCreate -> blockCreate.featureIds();
+      case BlockRedefinitionOperation blockRedefinition ->
+          Stream.concat(
+                  blockRedefinition.replacedFeatureIds().stream(),
+                  blockRedefinition.outputFeatureIds().stream())
+              .distinct()
+              .toList();
+      case BlockEndOperation blockEnd -> blockEnd.endedFeatureIds();
       case AdministratorOperation ignored -> List.of();
       case SetEquityOperation ignored -> List.of();
       case TransferEquityOperation ignored -> List.of();
@@ -111,6 +149,9 @@ public sealed interface LicenceOperation permits
       case LicenseeOperation licenseeOperation -> Stream
           .concat(licenseeOperation.licenseesToAdd().stream(), licenseeOperation.licenseesToRemove().stream())
           .toList();
+      case BlockCreateOperation ignored -> List.of();
+      case BlockRedefinitionOperation ignored -> List.of();
+      case BlockEndOperation ignored -> List.of();
     };
   }
 }

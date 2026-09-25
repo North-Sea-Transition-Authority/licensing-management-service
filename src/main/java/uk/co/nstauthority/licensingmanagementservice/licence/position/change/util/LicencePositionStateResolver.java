@@ -11,6 +11,9 @@ import java.util.TreeMap;
 import java.util.UUID;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.AdministratorOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.BlockCreateOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.BlockEndOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.BlockRedefinitionOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenseeOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
@@ -106,6 +109,11 @@ public final class LicencePositionStateResolver {
       case PartialSurrenderOperation partialSurrenderOperation -> state;
       case SubareaOperation subareaOperation -> state;
       case LicenseeOperation licenseeOperation -> state;
+      // Spatial operations change which blocks a licence holds, not the administrator or equity
+      // state this resolves.
+      case BlockCreateOperation ignored -> state;
+      case BlockRedefinitionOperation ignored -> state;
+      case BlockEndOperation ignored -> state;
     };
   }
 

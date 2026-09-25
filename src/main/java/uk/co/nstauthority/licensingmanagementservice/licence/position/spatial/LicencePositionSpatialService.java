@@ -3,6 +3,8 @@ package uk.co.nstauthority.licensingmanagementservice.licence.position.spatial;
 import static uk.co.nstauthority.licensingmanagementservice.licence.position.feature.LicenceBlockFeatureUtil.BLOCK_ORDER;
 
 import jakarta.annotation.Nullable;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -14,6 +16,9 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceC
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.AdministratorOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.BlockCreateOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.BlockEndOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.BlockRedefinitionOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenseeOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
@@ -147,11 +152,38 @@ public class LicencePositionSpatialService {
           partialSurrenderOperation.outputFeatureIds().isEmpty()
               ? featureIdsBeforeOperation
               : Set.copyOf(partialSurrenderOperation.outputFeatureIds());
+      // A creation adds to what the licence holds rather than replacing it: most licences create
+      // their blocks once, but a few create more later, alongside blocks they already hold.
+      case BlockCreateOperation blockCreate -> union(featureIdsBeforeOperation, blockCreate.featureIds());
+      // A redefinition swaps one description of the same ground for another, so the blocks it
+      // replaced stop being held and their successors start.
+      case BlockRedefinitionOperation blockRedefinition -> union(
+          difference(featureIdsBeforeOperation, blockRedefinition.replacedFeatureIds()),
+          blockRedefinition.outputFeatureIds());
+      case BlockEndOperation blockEnd -> difference(featureIdsBeforeOperation, blockEnd.endedFeatureIds());
       case AdministratorOperation ignored -> featureIdsBeforeOperation;
       case SetEquityOperation ignored -> featureIdsBeforeOperation;
       case TransferEquityOperation ignored -> featureIdsBeforeOperation;
       case SubareaOperation ignored -> featureIdsBeforeOperation;
       case LicenseeOperation ignored -> featureIdsBeforeOperation;
     };
+  }
+
+  private static Set<UUID> union(Set<UUID> featureIds, Collection<UUID> added) {
+    if (added.isEmpty()) {
+      return featureIds;
+    }
+    var combined = new HashSet<>(featureIds);
+    combined.addAll(added);
+    return Set.copyOf(combined);
+  }
+
+  private static Set<UUID> difference(Set<UUID> featureIds, Collection<UUID> removed) {
+    if (removed.isEmpty()) {
+      return featureIds;
+    }
+    var remaining = new HashSet<>(featureIds);
+    removed.forEach(remaining::remove);
+    return Set.copyOf(remaining);
   }
 }

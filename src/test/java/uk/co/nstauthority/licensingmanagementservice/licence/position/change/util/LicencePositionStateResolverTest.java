@@ -7,12 +7,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPositionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.LicencePositionState;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.PositionChange;
 
 class LicencePositionStateResolverTest {
@@ -338,5 +342,40 @@ class LicencePositionStateResolverTest {
     var previousState = result.previousState(current.getId());
 
     assertThat(previousState.administratorId()).isNull();
+  }
+
+  @ParameterizedTest
+  @MethodSource("blockOperations")
+  void resolveStates_whenAPositionCarriesABlockOperation_thenTheStateIsUnaffected(
+      LicenceOperation blockOperation
+  ) {
+    var earlier = LicencePositionTestUtil.newBuilder().withPositionOrder(1).build();
+    var current = LicencePositionTestUtil.newBuilder().withPositionOrder(2).build();
+
+    var earlierChronological = ChronologicalPositionTestUtil.live(
+        earlier,
+        LicenceOperation.newAdministratorChange().withOperator(1).build(),
+        LicenceOperation.newSetEquityOperation().withTransferTo(1).withEquity(new BigDecimal("60")).build(),
+        LicenceOperation.newSetEquityOperation().withTransferTo(2).withEquity(new BigDecimal("40")).build()
+    );
+    var currentChronological = ChronologicalPositionTestUtil.live(current, blockOperation);
+
+    var result = LicencePositionStateResolver.resolve(List.of(earlierChronological, currentChronological));
+
+    assertThat(result.currentState(current.getId()))
+        .usingRecursiveComparison()
+        .withComparatorForType(BigDecimal::compareTo, BigDecimal.class)
+        .isEqualTo(new LicencePositionState(1, Map.of(1, new BigDecimal("60"), 2, new BigDecimal("40"))));
+  }
+
+  private static Stream<LicenceOperation> blockOperations() {
+    return Stream.of(
+        LicenceOperation.newBlockCreateOperation().withFeatureIds(Set.of(UUID.randomUUID())).build(),
+        LicenceOperation.newBlockRedefinitionOperation()
+            .withReplacedFeatureIds(Set.of(UUID.randomUUID()))
+            .withOutputFeatureIds(Set.of(UUID.randomUUID()))
+            .build(),
+        LicenceOperation.newBlockEndOperation().withEndedFeatureIds(Set.of(UUID.randomUUID())).build()
+    );
   }
 }

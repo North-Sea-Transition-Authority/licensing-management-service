@@ -2,9 +2,6 @@
   <ol-vector-layer :style="featureStyle" :declutter="true">
     <ol-source-vector
       ref="vectorSourceRef"
-      :url="featuresUrl"
-      :format="esriJson"
-      @featuresloadend="fitToExtent"
     />
   </ol-vector-layer>
 </template>
@@ -15,17 +12,15 @@ import type { Extent } from "ol/extent";
 import type Feature from "ol/Feature";
 import type { Geometry } from "ol/geom";
 import type Map from "ol/Map";
-import type { VectorSourceEvent } from "ol/source/Vector";
 import type OlMap from "vue3-openlayers/map/OlMap";
 import type OlSourceVector from "vue3-openlayers/sources/OlSourceVector";
-import { EsriJSON } from "ol/format";
 import { unByKey } from "ol/Observable";
+import VectorSource from "ol/source/Vector";
 import { Fill, Stroke, Style, Text } from "ol/style";
-import { nextTick, onUnmounted, ref, watch } from "vue";
+import { onUnmounted, ref, watch } from "vue";
 
 interface Props {
-  featuresUrl: string,
-  refreshCounter?: number,
+  features: Feature<Geometry>[],
   olMap: InstanceType<typeof OlMap>,
   fillColor?: [number, number, number],
   strokeColor?: [number, number, number, number],
@@ -41,7 +36,6 @@ const props = withDefaults(defineProps<Props>(), {
   selectedFillColor: () => [212, 53, 28], // red
 });
 
-const esriJson = new EsriJSON();
 const featureLabelFont = "18px \"GDS Transport\"";
 const vectorSourceRef = ref<InstanceType<typeof OlSourceVector> | null>(null);
 
@@ -49,13 +43,19 @@ const vectorSourceRef = ref<InstanceType<typeof OlSourceVector> | null>(null);
 let pendingExtent: Extent | null = null;
 let sizeListenerKey: EventsKey | null = null;
 
-watch(() => props.refreshCounter, async () => {
-  await nextTick();
-  const source = vectorSourceRef.value?.source;
-  if (source?.refresh) {
-    source.refresh();
-  }
-});
+watch(
+  [() => props.features, vectorSourceRef],
+  () => {
+    const source = vectorSourceRef.value?.source;
+    if (!source) {
+      return;
+    }
+    source.clear();
+    source.addFeatures(props.features);
+    fitToExtent(source);
+  },
+  { immediate: true },
+);
 
 watch(() => props.selectedFeatureIds, () => {
   vectorSourceRef.value?.source?.changed();
@@ -79,13 +79,12 @@ function featureStyle(feature: Feature<Geometry>) {
 /**
  * Center the map on the extent of the features loaded from the vector source.
  */
-function fitToExtent(event: VectorSourceEvent<Feature<Geometry>>) {
+function fitToExtent(source: VectorSource<Feature<Geometry>>) {
   const map = props.olMap?.map;
   if (!map) {
     return;
   }
 
-  const source = event.target;
   const extent = source.getExtent();
 
   if (!extent || !Number.isFinite(extent[0])) {

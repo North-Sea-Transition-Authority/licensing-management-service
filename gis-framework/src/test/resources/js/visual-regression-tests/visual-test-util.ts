@@ -1,5 +1,21 @@
+import type Feature from "ol/Feature";
+import type { Geometry } from "ol/geom";
 import { userEvent } from "@vitest/browser/context";
+import { EsriJSON } from "ol/format";
 import { expect } from "vitest";
+
+const esriJson = new EsriJSON();
+
+/**
+ * Parses an EsriJSON feature set fixture into OpenLayers features, mirroring how the application loads
+ * features (WGS84, matching BaseMap's useGeographic()). Use this to feed BaseMap's `features` prop.
+ */
+export function parseFeatures(featureSet: unknown): Feature<Geometry>[] {
+  return esriJson.readFeatures(featureSet, {
+    dataProjection: "EPSG:4326",
+    featureProjection: "EPSG:4326",
+  }) as Feature<Geometry>[];
+}
 
 export async function waitForMapFullyLoaded() {
   await expect.poll(

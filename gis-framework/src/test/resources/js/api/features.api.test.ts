@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { getCommandJourneyFeatures, getOutlineNodes, getTextualDescription } from "@/api/features.api";
+import { getFeatures, getOutlineNodes, getTextualDescription } from "@/api/features.api";
 
 describe("featuresApi", () => {
   afterEach(() => {
@@ -65,57 +65,64 @@ describe("featuresApi", () => {
     });
   });
 
-  describe("getCommandJourneyFeatures", () => {
-    it("getCommandJourneyFeatures_whenResponseOk_mapsFeatureAttributes", async () => {
+  describe("getFeatures", () => {
+    function featureSet() {
+      return {
+        features: [
+          {
+            geometry: { rings: [[[0, 0], [0, 1], [1, 1], [1, 0], [0, 0]]] },
+            attributes: { featureId: "feature-1", featureName: "Block A" },
+          },
+          {
+            geometry: { rings: [[[2, 2], [2, 3], [3, 3], [3, 2], [2, 2]]] },
+            attributes: { featureId: "feature-2", featureName: "Block B" },
+          },
+        ],
+        spatialReference: { wkid: 4326 },
+      };
+    }
+
+    it("getFeatures_whenResponseOk_parsesEachFeatureWithItsAttributesAndGeometry", async () => {
       const fetchMock = vi.fn().mockResolvedValue({
         ok: true,
-        json: vi.fn().mockResolvedValue({
-          features: [
-            { attributes: { featureId: "feature-1", featureName: "Block A" } },
-            { attributes: { featureId: "feature-2", featureName: "Block B" } },
-          ],
-        }),
+        json: vi.fn().mockResolvedValue(featureSet()),
       });
       vi.stubGlobal("fetch", fetchMock);
 
-      const result = await getCommandJourneyFeatures("/api/gis-framework/command-journey-features/journey-1");
+      const result = await getFeatures("/api/gis-framework/command-journey-features/journey-1");
 
-      expect(result).toEqual([
-        { featureId: "feature-1", featureName: "Block A" },
-        { featureId: "feature-2", featureName: "Block B" },
-      ]);
+      expect(result).toHaveLength(2);
+      expect(result.map(feature => feature.get("featureId"))).toEqual(["feature-1", "feature-2"]);
+      expect(result.map(feature => feature.get("featureName"))).toEqual(["Block A", "Block B"]);
+      expect(result.every(feature => feature.getGeometry() !== undefined)).toBe(true);
       expect(fetchMock).toHaveBeenCalledWith("/api/gis-framework/command-journey-features/journey-1");
     });
 
-    it("getCommandJourneyFeatures_whenAFeatureHasMultiplePolygons_deduplicatesByFeatureId", async () => {
+    it("getFeatures_whenAFeatureHasMultiplePolygons_keepsOneFeaturePerPolygon", async () => {
+      const body = featureSet();
+      body.features.push({
+        geometry: { rings: [[[4, 4], [4, 5], [5, 5], [5, 4], [4, 4]]] },
+        attributes: { featureId: "feature-1", featureName: "Block A" },
+      });
       const fetchMock = vi.fn().mockResolvedValue({
         ok: true,
-        json: vi.fn().mockResolvedValue({
-          features: [
-            { attributes: { featureId: "feature-1", featureName: "Block A" } },
-            { attributes: { featureId: "feature-1", featureName: "Block A" } },
-            { attributes: { featureId: "feature-2", featureName: "Block B" } },
-          ],
-        }),
+        json: vi.fn().mockResolvedValue(body),
       });
       vi.stubGlobal("fetch", fetchMock);
 
-      const result = await getCommandJourneyFeatures("/api/gis-framework/command-journey-features/journey-1");
+      const result = await getFeatures("/api/gis-framework/command-journey-features/journey-1");
 
-      expect(result).toEqual([
-        { featureId: "feature-1", featureName: "Block A" },
-        { featureId: "feature-2", featureName: "Block B" },
-      ]);
+      expect(result.map(feature => feature.get("featureId"))).toEqual(["feature-1", "feature-2", "feature-1"]);
     });
 
-    it("getCommandJourneyFeatures_whenResponseNotOk_rejects", async () => {
+    it("getFeatures_whenResponseNotOk_rejects", async () => {
       const fetchMock = vi.fn().mockResolvedValue({
         ok: false,
         statusText: "Internal Server Error",
       });
       vi.stubGlobal("fetch", fetchMock);
 
-      await expect(getCommandJourneyFeatures("/api/gis-framework/command-journey-features/journey-1"))
+      await expect(getFeatures("/api/gis-framework/command-journey-features/journey-1"))
         .rejects
         .toBe("Response status: Internal Server Error");
     });

@@ -1,15 +1,25 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/vue";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { SupportedWkid } from "@/coordinate-system-utils";
 import SplitByPointAndClickPage
   from "@/pages/SplitByPointAndClickPage.vue";
+
+const { getFeaturesMock } = vi.hoisted(() => ({
+  getFeaturesMock: vi.fn(),
+}));
+
+vi.mock("@/api/features.api", () => ({
+  getFeatures: getFeaturesMock,
+  getTextualDescription: vi.fn(),
+  getOutlineNodes: vi.fn(),
+}));
 
 // Stubs BaseMap entirely, exposing a button that emits update:points with a fixed two-point array, so
 // tests can drive the page's point wiring without simulating real map clicks/OpenLayers internals.
 const baseMapStub = {
   props: [
     "srsWkid",
-    "featuresUrl",
+    "features",
     "outlineNodesUrl",
     "includeNstaQuadrants",
     "includeNstaBlocks",
@@ -18,7 +28,6 @@ const baseMapStub = {
   emits: ["update:points"],
   template: `
     <div>
-      <p data-testid="features-url">{{ featuresUrl }}</p>
       <p data-testid="refresh-counter">{{ refreshCounter }}</p>
       <button data-testid="emit-two-points" @click="$emit('update:points', [
         { coordinates: [0, 0], originalSrsCoordinates: [1, 2] },
@@ -95,11 +104,16 @@ function renderPage() {
 }
 
 describe("splitByPointAndClickPage", () => {
-  it("builds the initial features url from the given command journey id", () => {
+  beforeEach(() => {
+    getFeaturesMock.mockReset().mockResolvedValue([]);
+  });
+
+  it("loads the features from the url built from the given command journey id", async () => {
     renderPage();
 
-    expect(screen.getByTestId("features-url").textContent)
-      .toBe("/api/gis-framework/features/journey-1");
+    await waitFor(() => {
+      expect(getFeaturesMock).toHaveBeenCalledWith("/api/gis-framework/features/journey-1");
+    });
   });
 
   it("passes the textual description url and command journey id to the description", () => {

@@ -7,7 +7,7 @@ import { SupportedWkid } from "@/coordinate-system-utils";
 import singleBlockBng from "../fixtures/singleBlockBng.esriJson.json";
 import singleBlockEd50 from "../fixtures/singleBlockEd50.esriJson.json";
 import { worker } from "./setup";
-import { pressKeyOnMap, waitForMapFullyLoaded } from "./visual-test-util";
+import { parseFeatures, pressKeyOnMap, waitForMapFullyLoaded } from "./visual-test-util";
 
 /**
  * Scans pixels outward from the map centre, ring by ring, until a snap-point
@@ -67,13 +67,12 @@ async function movePointerOffSnapPoint(viewport: HTMLElement): Promise<void> {
 describe("snap point layer", () => {
   it("renders snap points for ED50 at more zoom", async () => {
     worker.use(
-      http.get("/api/features", () => HttpResponse.json(singleBlockEd50)),
       http.get("/api/outline-nodes?featureId=feature-id", () => HttpResponse.json({ featureOutlineNodes: [] })),
     );
 
     const screen = render(BaseMap, {
       props: {
-        featuresUrl: "/api/features",
+        features: parseFeatures(singleBlockEd50),
         outlineNodesUrl: "/api/outline-nodes?featureId=1",
         srsWkid: SupportedWkid.ED50_WKID,
         includeSnapPoints: true,
@@ -92,13 +91,12 @@ describe("snap point layer", () => {
 
   it("renders snap points for ED50 at less zoom", async () => {
     worker.use(
-      http.get("/api/features", () => HttpResponse.json(singleBlockEd50)),
       http.get("/api/outline-nodes?featureId=feature-id", () => HttpResponse.json({ featureOutlineNodes: [] })),
     );
 
     const screen = render(BaseMap, {
       props: {
-        featuresUrl: "/api/features",
+        features: parseFeatures(singleBlockEd50),
         outlineNodesUrl: "/api/outline-nodes?featureId=1",
         srsWkid: SupportedWkid.ED50_WKID,
         includeSnapPoints: true,
@@ -116,13 +114,12 @@ describe("snap point layer", () => {
 
   it("no snap points rendered below min zoom level for ED50", async () => {
     worker.use(
-      http.get("/api/features", () => HttpResponse.json(singleBlockEd50)),
       http.get("/api/outline-nodes?featureId=feature-id", () => HttpResponse.json({ featureOutlineNodes: [] })),
     );
 
     const screen = render(BaseMap, {
       props: {
-        featuresUrl: "/api/features",
+        features: parseFeatures(singleBlockEd50),
         outlineNodesUrl: "/api/outline-nodes?featureId=1",
         srsWkid: SupportedWkid.ED50_WKID,
         includeSnapPoints: true,
@@ -139,13 +136,12 @@ describe("snap point layer", () => {
 
   it("renders snap points for BNG at more zoom", async () => {
     worker.use(
-      http.get("/api/features", () => HttpResponse.json(singleBlockBng)),
       http.get("/api/outline-nodes?featureId=feature-id", () => HttpResponse.json({ featureOutlineNodes: [] })),
     );
 
     const screen = render(BaseMap, {
       props: {
-        featuresUrl: "/api/features",
+        features: parseFeatures(singleBlockBng),
         outlineNodesUrl: "/api/outline-nodes?featureId=1",
         srsWkid: SupportedWkid.BNG_WKID,
         includeSnapPoints: true,
@@ -163,13 +159,12 @@ describe("snap point layer", () => {
 
   it("renders snap points for BNG at less zoom", async () => {
     worker.use(
-      http.get("/api/features", () => HttpResponse.json(singleBlockBng)),
       http.get("/api/outline-nodes?featureId=feature-id", () => HttpResponse.json({ featureOutlineNodes: [] })),
     );
 
     const screen = render(BaseMap, {
       props: {
-        featuresUrl: "/api/features",
+        features: parseFeatures(singleBlockBng),
         outlineNodesUrl: "/api/outline-nodes?featureId=1",
         srsWkid: SupportedWkid.BNG_WKID,
         includeSnapPoints: true,
@@ -186,13 +181,12 @@ describe("snap point layer", () => {
 
   it("no snap points rendered below min zoom level for BNG", async () => {
     worker.use(
-      http.get("/api/features", () => HttpResponse.json(singleBlockBng)),
       http.get("/api/outline-nodes?featureId=feature-id", () => HttpResponse.json({ featureOutlineNodes: [] })),
     );
 
     const screen = render(BaseMap, {
       props: {
-        featuresUrl: "/api/features",
+        features: parseFeatures(singleBlockBng),
         outlineNodesUrl: "/api/outline-nodes?featureId=1",
         srsWkid: SupportedWkid.BNG_WKID,
         includeSnapPoints: true,
@@ -209,13 +203,12 @@ describe("snap point layer", () => {
 
   it("shows tooltip when hovering over an ED50 snap point", async () => {
     worker.use(
-      http.get("/api/features", () => HttpResponse.json(singleBlockEd50)),
       http.get("/api/outline-nodes?featureId=feature-id", () => HttpResponse.json({ featureOutlineNodes: [] })),
     );
 
     const screen = render(BaseMap, {
       props: {
-        featuresUrl: "/api/features",
+        features: parseFeatures(singleBlockEd50),
         outlineNodesUrl: "/api/outline-nodes?featureId=1",
         srsWkid: SupportedWkid.ED50_WKID,
         includeSnapPoints: true,
@@ -237,13 +230,12 @@ describe("snap point layer", () => {
 
   it("shows tooltip when hovering over a BNG snap point", async () => {
     worker.use(
-      http.get("/api/features", () => HttpResponse.json(singleBlockBng)),
       http.get("/api/outline-nodes?featureId=feature-id", () => HttpResponse.json({ featureOutlineNodes: [] })),
     );
 
     const screen = render(BaseMap, {
       props: {
-        featuresUrl: "/api/features",
+        features: parseFeatures(singleBlockBng),
         outlineNodesUrl: "/api/outline-nodes?featureId=1",
         srsWkid: SupportedWkid.BNG_WKID,
         includeSnapPoints: true,

@@ -29,8 +29,7 @@
     />
     <feature-layer
       v-if="mapRef"
-      :features-url="featuresUrl"
-      :refresh-counter="refreshCounter"
+      :features="features"
       :ol-map="mapRef"
       :selected-feature-ids="selectedFeatureIds"
     />
@@ -39,6 +38,8 @@
 </template>
 
 <script setup lang="ts">
+import type Feature from "ol/Feature";
+import type { Geometry } from "ol/geom";
 import type OlMap from "vue3-openlayers/map/OlMap";
 import type { SupportedWkid } from "@/coordinate-system-utils";
 import type { LinePoint, SnapPoint } from "@/grid-utils";
@@ -54,7 +55,7 @@ import SnapPointsLayer from "./SnapPointsLayer.vue";
 interface BaseMapProps {
   includeNstaQuadrants?: boolean,
   includeNstaBlocks?: boolean,
-  featuresUrl: string,
+  features: Feature<Geometry>[],
   outlineNodesUrl: string,
   srsWkid: SupportedWkid,
   includeSnapPoints?: boolean,

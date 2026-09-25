@@ -17,7 +17,7 @@
         <base-map
           ref="baseMapRef"
           :srs-wkid="srsWkid"
-          :features-url="featuresUrl"
+          :features="features"
           :outline-nodes-url="outlineNodesUrl"
           :include-nsta-quadrants="includeNstaQuadrants"
           :include-nsta-blocks="includeNstaBlocks"
@@ -55,8 +55,9 @@
 <script setup lang="ts">
 import type { SupportedWkid } from "@/coordinate-system-utils";
 import type { SnapPoint } from "@/grid-utils";
-import { computed, CSSProperties, ref } from "vue";
+import { computed, CSSProperties, ref, watch } from "vue";
 import { buildCommandJourneyUrl } from "@/command-journey-utils";
+import { useCommandJourneyFeatures } from "@/composables/useCommandJourneyFeatures";
 import BaseMap from "../components/baseMap/BaseMap.vue";
 import ErrorSummary from "../components/gdsComponents/error/ErrorSummary.vue";
 import DetailsComponent from "../components/govukVue/details/GvDetails.vue";
@@ -95,8 +96,15 @@ const mapStyleOverride: CSSProperties = {
   display: "block",
 };
 
-const featuresUrl = computed(() => buildCommandJourneyUrl(props.featuresBaseUrl, props.commandJourneyId));
+const featuresUrl = buildCommandJourneyUrl(props.featuresBaseUrl, props.commandJourneyId);
 const outlineNodesUrl = computed(() => buildCommandJourneyUrl(props.outlineNodesBaseUrl, props.commandJourneyId));
+const { features, hasError } = useCommandJourneyFeatures(featuresUrl, refreshCounter);
+
+watch(hasError, (errored) => {
+  if (errored) {
+    splitError.value = "Unable to load the features to split.";
+  }
+});
 
 function undoLastPoint() {
   baseMapRef.value?.removeLastPoint();

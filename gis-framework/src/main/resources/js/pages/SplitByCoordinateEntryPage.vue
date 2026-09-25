@@ -8,7 +8,7 @@
       <div class="split-sticky">
         <base-map
           :srs-wkid="srsWkid"
-          :features-url="featuresUrl"
+          :features="features"
           :outline-nodes-url="outlineNodesUrl"
           :include-nsta-quadrants="includeNstaQuadrants"
           :include-nsta-blocks="includeNstaBlocks"
@@ -43,8 +43,9 @@
 import type { EditablePoint } from "../components/coordinateInput/CoordinateList.vue";
 import type { SupportedWkid } from "@/coordinate-system-utils";
 import type { LinePoint } from "@/grid-utils";
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 import { buildCommandJourneyUrl } from "@/command-journey-utils";
+import { useCommandJourneyFeatures } from "@/composables/useCommandJourneyFeatures";
 import BaseMap from "../components/baseMap/BaseMap.vue";
 import CoordinateList from "../components/coordinateInput/CoordinateList.vue";
 import ErrorSummary from "../components/gdsComponents/error/ErrorSummary.vue";
@@ -72,9 +73,6 @@ const props = withDefaults(defineProps<SplitByCoordinateEntryPageProps>(), {
   includeNstaBlocks: true,
 });
 
-const featuresUrl = computed(() => buildCommandJourneyUrl(props.featuresBaseUrl, props.commandJourneyId));
-const outlineNodesUrl = computed(() => buildCommandJourneyUrl(props.outlineNodesBaseUrl, props.commandJourneyId));
-
 function createInitialPoint(): EditablePoint {
   return {
     id: 0,
@@ -87,11 +85,20 @@ const points = ref<EditablePoint[]>([createInitialPoint()]);
 const splitError = ref<string | null>(null);
 const refreshCounter = ref(0);
 
+const featuresUrl = buildCommandJourneyUrl(props.featuresBaseUrl, props.commandJourneyId);
+const outlineNodesUrl = computed(() => buildCommandJourneyUrl(props.outlineNodesBaseUrl, props.commandJourneyId));
+const { features, hasError } = useCommandJourneyFeatures(featuresUrl, refreshCounter);
 const linePoints = computed<LinePoint[]>(() =>
   points.value
     .filter((point): point is EditablePoint & { coordinates: [number, number] } => point.coordinates !== undefined)
     .map(point => ({ coordinates: point.coordinates, originalSrsCoordinates: point.originalSrsCoordinates })),
 );
+
+watch(hasError, (errored) => {
+  if (errored) {
+    splitError.value = "Unable to load the features to split.";
+  }
+});
 
 function onSplitSuccess() {
   splitError.value = null;

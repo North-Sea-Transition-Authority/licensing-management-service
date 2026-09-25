@@ -3,7 +3,7 @@
     <div class="gis-map-with-textual-description__panel">
       <base-map
         :srs-wkid="srsWkid"
-        :features-url="featuresUrl"
+        :features="features"
         :outline-nodes-url="outlineNodesUrl"
         :include-nsta-quadrants="includeNstaQuadrants"
         :include-nsta-blocks="includeNstaBlocks"
@@ -19,8 +19,9 @@
 </template>
 
 <script setup lang="ts">
-import type { SupportedWkid } from "../../coordinate-system-utils";
+import type { SupportedWkid } from "@/coordinate-system-utils";
 import { CSSProperties } from "vue";
+import { useCommandJourneyFeatures } from "@/composables/useCommandJourneyFeatures";
 import BaseMap from "../baseMap/BaseMap.vue";
 import TextualDescription from "./TextualDescription.vue";
 
@@ -35,7 +36,7 @@ interface MapWithTextualDescriptionProps {
   includeNstaBlocks?: boolean,
 }
 
-withDefaults(defineProps<MapWithTextualDescriptionProps>(), {
+const props = withDefaults(defineProps<MapWithTextualDescriptionProps>(), {
   layout: "horizontal",
   includeNstaQuadrants: true,
   includeNstaBlocks: true,
@@ -47,6 +48,8 @@ const mapStyleOverride: CSSProperties = {
   height: "100%",
   display: "block",
 };
+
+const { features } = useCommandJourneyFeatures(props.featuresUrl);
 </script>
 
 <style scoped>

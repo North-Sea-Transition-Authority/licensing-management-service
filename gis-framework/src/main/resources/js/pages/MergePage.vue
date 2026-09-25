@@ -14,7 +14,7 @@
       <div class="gis-merge-layout__map">
         <base-map
           :srs-wkid="srsWkid"
-          :features-url="featuresUrl"
+          :features="features"
           :outline-nodes-url="outlineNodesUrl"
           :include-nsta-quadrants="includeNstaQuadrants"
           :include-nsta-blocks="includeNstaBlocks"
@@ -63,11 +63,12 @@
 </template>
 
 <script setup lang="ts">
-import type { CommandJourneyFeature } from "@/api/features.api";
+import type Feature from "ol/Feature";
+import type { Geometry } from "ol/geom";
 import type { SupportedWkid } from "@/coordinate-system-utils";
-import { computed, CSSProperties, onMounted, ref, watch } from "vue";
-import { getCommandJourneyFeatures } from "@/api/features.api";
+import { computed, CSSProperties, ref, watch } from "vue";
 import { buildCommandJourneyUrl } from "@/command-journey-utils";
+import { useCommandJourneyFeatures } from "@/composables/useCommandJourneyFeatures";
 import BaseMap from "../components/baseMap/BaseMap.vue";
 import ErrorSummary from "../components/gdsComponents/error/ErrorSummary.vue";
 import GvCheckbox from "../components/govukVue/checkboxes/GvCheckbox.vue";
@@ -90,15 +91,27 @@ interface MergePageProps {
   includeNstaBlocks?: boolean,
 }
 
+interface CommandJourneyFeature {
+  featureId: string,
+  featureName: string,
+}
+
 const props = withDefaults(defineProps<MergePageProps>(), {
   includeNstaQuadrants: true,
   includeNstaBlocks: true,
 });
 
-const features = ref<CommandJourneyFeature[]>([]);
-const selectedFeatureIds = ref<string[]>([]);
-const mergeError = ref<string | null>(null);
-const refreshCounter = ref(0);
+function getString(feature: Feature<Geometry>, key: string): string {
+  return feature.get(key);
+}
+
+function toFeatureOptions(features: Feature<Geometry>[]): CommandJourneyFeature[] {
+  return [...new Map(features.map(feature =>
+    [getString(feature, "featureId"), {
+      featureId: getString(feature, "featureId"),
+      featureName: getString(feature, "featureName"),
+    }])).values()];
+}
 
 // Make the map fill its panel rather than use BaseMap's default clamped height.
 const mapStyleOverride: CSSProperties = {
@@ -107,22 +120,23 @@ const mapStyleOverride: CSSProperties = {
   display: "block",
 };
 
-const featuresUrl = computed(() => buildCommandJourneyUrl(props.featuresBaseUrl, props.commandJourneyId));
+const selectedFeatureIds = ref<string[]>([]);
+const mergeError = ref<string | null>(null);
+const refreshCounter = ref(0);
+
+const featuresUrl = buildCommandJourneyUrl(props.featuresBaseUrl, props.commandJourneyId);
 const outlineNodesUrl = computed(() => buildCommandJourneyUrl(props.outlineNodesBaseUrl, props.commandJourneyId));
-const sortedFeatures = computed(() =>
-  [...features.value].sort((a, b) => a.featureName.localeCompare(b.featureName, undefined, { numeric: true })),
+const { features, hasError } = useCommandJourneyFeatures(featuresUrl, refreshCounter);
+const sortedFeatures = computed<CommandJourneyFeature[]>(() =>
+  toFeatureOptions(features.value)
+    .sort((a, b) => a.featureName.localeCompare(b.featureName, undefined, { numeric: true })),
 );
 
-async function loadFeatures() {
-  try {
-    features.value = await getCommandJourneyFeatures(featuresUrl.value);
-  } catch {
+watch(hasError, (errored) => {
+  if (errored) {
     mergeError.value = "Unable to load the features to merge.";
   }
-}
-
-onMounted(loadFeatures);
-watch(refreshCounter, loadFeatures);
+});
 
 function onMergeSuccess() {
   mergeError.value = null;

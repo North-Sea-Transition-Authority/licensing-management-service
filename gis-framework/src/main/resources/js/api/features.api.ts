@@ -1,3 +1,9 @@
+import type { Geometry } from "ol/geom";
+import type Feature from "ol/Feature";
+import { EsriJSON } from "ol/format";
+
+const esriJson = new EsriJSON();
+
 export interface JsonOutlineNode  {
   polygonId: string;
   lineId: string;
@@ -27,22 +33,19 @@ export async function getOutlineNodes(outlineNodesUrl: string): Promise<JsonFeat
   }
 }
 
-export interface CommandJourneyFeature {
-  featureId: string;
-  featureName: string;
+export interface JsonFeaturesResponse {
+  features: { attributes: { featureId: string; featureName: string }; geometry: unknown }[];
+  spatialReference?: { wkid: number };
 }
 
-interface JsonFeaturesResponse {
-  features: { attributes: CommandJourneyFeature }[];
-}
-
-export async function getCommandJourneyFeatures(featuresUrl: string): Promise<CommandJourneyFeature[]> {
+export async function getFeatures(featuresUrl: string): Promise<Feature<Geometry>[]> {
   const response = await fetch(featuresUrl);
   if (response.ok) {
     const body: JsonFeaturesResponse = await response.json();
-    return [...new Map(body.features.map(feature =>
-      [feature.attributes.featureId, feature.attributes])).values()
-    ];
+    return esriJson.readFeatures(body, {
+      dataProjection: "EPSG:4326",
+      featureProjection: "EPSG:4326",
+    }) as Feature<Geometry>[];
   } else {
     return Promise.reject(`Response status: ${response.statusText}`);
   }

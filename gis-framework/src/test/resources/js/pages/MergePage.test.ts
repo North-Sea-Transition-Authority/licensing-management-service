@@ -1,22 +1,30 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/vue";
+import Feature from "ol/Feature";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { SupportedWkid } from "@/coordinate-system-utils";
 import MergePage from "@/pages/MergePage.vue";
 
-const { getCommandJourneyFeaturesMock } = vi.hoisted(() => ({
-  getCommandJourneyFeaturesMock: vi.fn(),
+const { getFeaturesMock } = vi.hoisted(() => ({
+  getFeaturesMock: vi.fn(),
 }));
 
 vi.mock("@/api/features.api", () => ({
-  getCommandJourneyFeatures: getCommandJourneyFeaturesMock,
+  getFeatures: getFeaturesMock,
   getTextualDescription: vi.fn(),
   getOutlineNodes: vi.fn(),
 }));
 
-// Stubs BaseMap, exposing the wired features url and refresh counter without exercising OpenLayers.
+function feature(featureId: string, featureName: string): Feature {
+  const created = new Feature();
+  created.set("featureId", featureId);
+  created.set("featureName", featureName);
+  return created;
+}
+
+// Stubs BaseMap, exposing the wired features and refresh counter without exercising OpenLayers.
 const baseMapStub = {
-  props: ["srsWkid", "featuresUrl", "refreshCounter"],
-  template: `<div><p data-testid="features-url">{{ featuresUrl }}</p></div>`,
+  props: ["srsWkid", "features", "outlineNodesUrl", "refreshCounter", "selectedFeatureIds"],
+  template: `<div><p data-testid="selected-feature-ids">{{ JSON.stringify(selectedFeatureIds) }}</p></div>`,
 };
 
 // Stubs MergeActions, exposing the props the page wires in plus buttons that emit action-success/error.
@@ -66,9 +74,9 @@ function renderPage() {
 
 describe("mergePage", () => {
   beforeEach(() => {
-    getCommandJourneyFeaturesMock.mockReset().mockResolvedValue([
-      { featureId: "feature-1", featureName: "Block A" },
-      { featureId: "feature-2", featureName: "Block B" },
+    getFeaturesMock.mockReset().mockResolvedValue([
+      feature("feature-1", "Block A"),
+      feature("feature-2", "Block B"),
     ]);
   });
 
@@ -79,13 +87,38 @@ describe("mergePage", () => {
     expect(screen.getByRole("checkbox", { name: "Block B" })).toBeInTheDocument();
   });
 
-  it("builds the features url from the command journey id", async () => {
+  it("loads the features from the url built from the command journey id", async () => {
     renderPage();
 
     await waitFor(() => {
-      expect(screen.getByTestId("features-url").textContent)
-        .toBe("/api/gis-framework/command-journey-features/journey-1");
+      expect(getFeaturesMock).toHaveBeenCalledWith("/api/gis-framework/command-journey-features/journey-1");
     });
+  });
+
+  it("orders the checkboxes by feature name", async () => {
+    getFeaturesMock.mockReset().mockResolvedValue([
+      feature("feature-2", "Block 10"),
+      feature("feature-1", "Block 2"),
+    ]);
+    renderPage();
+
+    await screen.findByRole("checkbox", { name: "Block 2" });
+
+    const labels = screen.getAllByRole("checkbox").map(checkbox => checkbox.getAttribute("value"));
+    expect(labels).toEqual(["feature-1", "feature-2"]);
+  });
+
+  it("renders a single checkbox when a feature spans multiple polygons", async () => {
+    getFeaturesMock.mockReset().mockResolvedValue([
+      feature("feature-1", "Block A"),
+      feature("feature-1", "Block A"),
+      feature("feature-2", "Block B"),
+    ]);
+    renderPage();
+
+    await screen.findByRole("checkbox", { name: "Block A" });
+
+    expect(screen.getAllByRole("checkbox")).toHaveLength(2);
   });
 
   it("wires the merge url and the base url into the merge actions", async () => {
@@ -119,12 +152,12 @@ describe("mergePage", () => {
 
     await waitFor(() => {
       expect(JSON.parse(screen.getByTestId("action-feature-ids").textContent!)).toEqual([]);
-      expect(getCommandJourneyFeaturesMock).toHaveBeenCalledTimes(2);
+      expect(getFeaturesMock).toHaveBeenCalledTimes(2);
     });
   });
 
   it("shows an error message when the features cannot be loaded", async () => {
-    getCommandJourneyFeaturesMock.mockReset().mockRejectedValue(new Error("network error"));
+    getFeaturesMock.mockReset().mockRejectedValue(new Error("network error"));
     renderPage();
 
     await waitFor(() => {

@@ -8,15 +8,18 @@ const {
   getTextualDescriptionMock,
   getHistoryStatusMock,
   splitFeatureMock,
+  getFeaturesMock,
 } = vi.hoisted(() => ({
   getTextualDescriptionMock: vi.fn(),
   getHistoryStatusMock: vi.fn(),
   splitFeatureMock: vi.fn(),
+  getFeaturesMock: vi.fn(),
 }));
 
 vi.mock("@/api/features.api", () => ({
   getTextualDescription: getTextualDescriptionMock,
   getOutlineNodes: vi.fn(),
+  getFeatures: getFeaturesMock,
 }));
 
 vi.mock("@/api/history.api", () => ({
@@ -34,7 +37,7 @@ vi.mock("@/api/operator.api", () => ({
 const baseMapStub = {
   props: [
     "srsWkid",
-    "featuresUrl",
+    "features",
     "outlineNodesUrl",
     "includeNstaQuadrants",
     "includeNstaBlocks",
@@ -45,7 +48,6 @@ const baseMapStub = {
   ],
   template: `
     <div>
-      <p data-testid="features-url">{{ featuresUrl }}</p>
       <p data-testid="refresh-counter">{{ refreshCounter }}</p>
     </div>
   `,
@@ -87,6 +89,7 @@ describe("splitByCoordinateEntryPage", () => {
     getTextualDescriptionMock.mockReset().mockResolvedValue("");
     getHistoryStatusMock.mockReset().mockResolvedValue({ canUndo: false, canRedo: false });
     splitFeatureMock.mockReset();
+    getFeaturesMock.mockReset().mockResolvedValue([]);
   });
 
   it("enables the split button once two valid coordinates are entered", async () => {

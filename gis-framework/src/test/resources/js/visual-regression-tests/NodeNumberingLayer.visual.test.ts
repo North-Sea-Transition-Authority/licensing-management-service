@@ -9,6 +9,7 @@ import bngOutlineNodes from "../fixtures/singleBlockBng.outlineNodes.json";
 import singleBlockEd50 from "../fixtures/singleBlockEd50.esriJson.json";
 import ed50OutlineNodes from "../fixtures/singleBlockEd50.outlineNodes.json";
 import { worker } from "./setup";
+import { parseFeatures } from "./visual-test-util";
 
 async function waitForMapFullyLoaded() {
   await expect.poll(
@@ -41,13 +42,12 @@ describe("nodeNumberingLayer visual", () => {
     "renders the numbered nodes over the $name feature on the base map",
     async ({ esriJson, outlineNodes, srsWkid, screenshot }) => {
       worker.use(
-        http.get("/api/features", () => HttpResponse.json(esriJson)),
         http.get("/api/outline-nodes", () => HttpResponse.json({ featureOutlineNodes: outlineNodes })),
       );
 
       const screen = render(BaseMap, {
         props: {
-          featuresUrl: "/api/features",
+          features: parseFeatures(esriJson),
           outlineNodesUrl: "/api/outline-nodes",
           srsWkid,
           includeSnapPoints: false,

@@ -9,10 +9,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 
 /**
  * Replays one licence's PEARS history into this application on demand, so a licence can be rebuilt
- * without waiting on a release or a whole-service migration run.
- *
- * <p>The endpoint only exists where the PEARS datasource is configured, since that is what the
- * history is read out of.
+ * without waiting on a release. Only registered where the PEARS datasource is configured.
  */
 @Component
 @Endpoint(id = "pears-licence-writeback")
@@ -35,12 +32,12 @@ class PearsLicenceWritebackEndpoint {
   @WriteOperation(produces = MediaType.APPLICATION_JSON_VALUE)
   LicenceWritebackResult overwriteLicencePositionsFromPears(String licenceReference) {
     var licence = licenceService.findByLicenceReferenceOrThrow(normalise(licenceReference));
-    return licenceWritebackService.overwriteLicencePositionsFromPears(licence);
+    return licenceWritebackService.overwriteLicencePositionsFromPears(licence).toResult();
   }
 
   /**
-   * Licence references are held upper case, and this endpoint is reached by hand, so a reference
-   * typed as {@code p1} should find the same licence as one typed as {@code P1}.
+   * Licence references are held upper case and this endpoint is reached by hand, so {@code p1}
+   * should find the same licence as {@code P1}.
    */
   private static String normalise(String licenceReference) {
     if (StringUtils.isBlank(licenceReference)) {

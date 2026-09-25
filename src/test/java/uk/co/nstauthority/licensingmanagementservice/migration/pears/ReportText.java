@@ -4,10 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Shortens the lists that go into difference messages and summaries.
- *
- * <p>A licence can be short of eighty positions for the one reason, so a message naming all eighty
- * costs a screen and says nothing the count and a handful of examples do not.
+ * Shortens the lists that go into difference messages and summaries. A licence can be short of eighty positions for
+ * the one reason, and naming all eighty says nothing the count and a handful of examples do not.
  */
 final class ReportText {
 
@@ -39,10 +37,10 @@ final class ReportText {
    */
   static List<String> capped(List<String> items) {
     if (items.size() <= SAMPLE_SIZE) {
-      return List.copyOf(items);
+      return items;
     }
     var capped = new ArrayList<>(items.subList(0, SAMPLE_SIZE));
     capped.add("... (+%,d more)".formatted(items.size() - SAMPLE_SIZE));
-    return List.copyOf(capped);
+    return capped;
   }
 }

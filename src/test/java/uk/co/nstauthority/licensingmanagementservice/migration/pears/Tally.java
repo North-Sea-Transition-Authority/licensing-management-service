@@ -7,12 +7,8 @@ import org.apache.commons.collections4.ListValuedMap;
 import org.apache.commons.collections4.multimap.ArrayListValuedHashMap;
 
 /**
- * One section of the migration validation summary: a count per key, the licences behind each key,
- * and one worked example.
- *
- * <p>A sweep of every licence PEARS holds produces far too many individual differences to read, so
- * the summary answers "how many licences, for what reason" first and names licences only where
- * there are few enough of them to be worth naming.
+ * One section of the migration validation summary: a count per key, the licences behind each key, and one worked
+ * example. Licences are named only where there are few enough of them to be worth naming.
  */
 class Tally {
 

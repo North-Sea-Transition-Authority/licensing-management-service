@@ -1,0 +1,187 @@
+package uk.co.nstauthority.licensingmanagementservice.migration.pears.history;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import com.fasterxml.jackson.databind.exc.MismatchedInputException;
+import java.io.StringReader;
+import java.time.LocalDate;
+import java.util.List;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+
+class LicenceHistoryReaderTest {
+
+  private static final LocalDate POSITION_DATE = LocalDate.of(1964, 9, 18);
+
+  @Test
+  void read_whenAdministratorIsSet_thenTheConsortiumListIsRead() throws Exception {
+    var xml = PearsHistoryTestUtil.history("P", 8)
+        .position(15188, "XPT/1", POSITION_DATE, 6)
+        .administratorSet(12)
+        .and()
+        .toXml();
+
+    var history = LicenceHistoryReader.read(new StringReader(xml));
+
+    var expected = new PearsOperation.ConsortiumListChange(
+        new PearsOperation.Header(15188, "XPT/1", POSITION_DATE, 6, 1000, 1, PearsOperation.OperationStatus.LIVE, POSITION_DATE, null),
+        null,
+        PearsCompanyListType.LICENCE_ADMINISTRATOR,
+        List.of(new PearsOperation.ConsortiumEntry(
+            PearsOperation.EntryType.SET,
+            new PearsOperation.Organisation(12, "Organisation 12"),
+            null,
+            null
+        ))
+    );
+
+    assertThat(history.operations()).usingRecursiveComparison().isEqualTo(java.util.List.of(expected));
+  }
+
+  @Test
+  void read_whenAnAdministratorIsTransferred_thenTheJoiningOrganisationIsTheSecondary() throws Exception {
+    var xml = PearsHistoryTestUtil.history("P", 8)
+        .position(15188, "XPT/1", POSITION_DATE, 6)
+        .administratorTransfer(12, 34)
+        .and()
+        .toXml();
+
+    var history = LicenceHistoryReader.read(new StringReader(xml));
+
+    assertThat(history.operations())
+        .singleElement()
+        .isInstanceOfSatisfying(PearsOperation.ConsortiumListChange.class, change ->
+            assertThat(change.entries())
+                .singleElement()
+                .usingRecursiveComparison()
+                .isEqualTo(new PearsOperation.ConsortiumEntry(
+                    PearsOperation.EntryType.TRANSFER,
+                    new PearsOperation.Organisation(12, "Organisation 12"),
+                    "EXTANT",
+                    new PearsOperation.Organisation(34, "Organisation 34")
+                ))
+        );
+  }
+
+  @Test
+  void read_whenAnEntryHasNoOrganisation_thenTheEmptyElementIsReadAsAbsent() throws Exception {
+    var xml = PearsHistoryTestUtil.history("P", 8)
+        .position(15188, "XPT/1", POSITION_DATE, 6)
+        .administratorSetWithNoOrganisation()
+        .and()
+        .toXml();
+
+    var history = LicenceHistoryReader.read(new StringReader(xml));
+
+    assertThat(history.operations())
+        .singleElement()
+        .isInstanceOfSatisfying(PearsOperation.ConsortiumListChange.class, change ->
+            assertThat(change.entries()).singleElement().extracting(PearsOperation.ConsortiumEntry::primary).isNull());
+  }
+
+  @Test
+  void read_whenAnOperationHasNoPayload_thenItIsReadAsOmitted() throws Exception {
+    var xml = PearsHistoryTestUtil.history("P", 8)
+        .position(15188, "XPT/1", POSITION_DATE, 6)
+        .operationWithoutPayload("PED_BLOCK_CREATE")
+        .and()
+        .toXml();
+
+    var history = LicenceHistoryReader.read(new StringReader(xml));
+
+    var expected = new PearsOperation.Omitted(
+        new PearsOperation.Header(
+            15188, "XPT/1", POSITION_DATE, 6, 1000, 1, PearsOperation.OperationStatus.LIVE, null, null),
+        "PED_BLOCK_CREATE");
+
+    assertThat(history.operations()).usingRecursiveComparison().isEqualTo(java.util.List.of(expected));
+  }
+
+  @Test
+  void read_whenTheLicenceEnds_thenTheEndOperationIsRead() throws Exception {
+    var xml = PearsHistoryTestUtil.history("P", 8)
+        .position(15188, "XPT/1", POSITION_DATE, 6)
+        .licenceEnd()
+        .and()
+        .toXml();
+
+    var history = LicenceHistoryReader.read(new StringReader(xml));
+
+    assertThat(history.operations())
+        .singleElement()
+        .extracting(PearsOperation::typeName)
+        .isEqualTo(PearsOperationType.LICENCE_END);
+  }
+
+  @Test
+  void read_whenTheDocumentHoldsGeometry_thenItIsSkippedRatherThanFailingTheRead() throws Exception {
+    var xml = """
+        <LICENCE_OPERATION_HISTORY licence_type="P" licence_no="8">
+          <OPERATION_ENTRY tran_id="15188" regulator_reference="XPT/1" position_date="1964-09-18"
+                           position_sequence="6" op_id="1000" op_seq="1" op_status="LIVE"
+                           op_type="PED_BLOCK_CREATE">
+            <OPERATION>
+              <OPERATION_TYPE>PED_BLOCK_CREATE</OPERATION_TYPE>
+              <BLOCK_ENTRY_LIST><BLOCK_ENTRY>
+                <ENTRY_TYPE>SET</ENTRY_TYPE>
+                <PRIMARY_BLOCK><QUADRANT_NO>48</QUADRANT_NO><BLOCK_NO>13</BLOCK_NO>
+                  <SPATIAL_FEATURE_SET><SPATIAL_FEATURE><AREA><BOUNDARY><CONNECTION><NODE>
+                    <COORD><LAT_D>57</LAT_D><LON_D>1</LON_D></COORD>
+                  </NODE></CONNECTION></BOUNDARY></AREA></SPATIAL_FEATURE></SPATIAL_FEATURE_SET>
+                </PRIMARY_BLOCK>
+              </BLOCK_ENTRY></BLOCK_ENTRY_LIST>
+            </OPERATION>
+          </OPERATION_ENTRY>
+        </LICENCE_OPERATION_HISTORY>""";
+
+    var history = LicenceHistoryReader.read(new StringReader(xml));
+
+    assertThat(history.operations())
+        .singleElement()
+        .isInstanceOf(PearsOperation.Unrecognised.class)
+        .extracting(PearsOperation::typeName)
+        .isEqualTo("PED_BLOCK_CREATE");
+  }
+
+  @Test
+  void read_whenTheDocumentIsEmpty_thenTheLicenceIsReadWithNoOperations() throws Exception {
+    var xml = "<LICENCE_OPERATION_HISTORY licence_type=\"P\" licence_no=\"8\"/>";
+
+    var history = LicenceHistoryReader.read(new StringReader(xml));
+
+    assertThat(history).usingRecursiveComparison()
+        .isEqualTo(new LicenceOperationHistory("P", 8, java.util.List.of()));
+  }
+
+  @Test
+  void read_whenAnOperationStatusIsNotOneTheQueryReturns_thenTheReadFails() {
+    var xml = """
+        <LICENCE_OPERATION_HISTORY licence_type="P" licence_no="8">
+          <OPERATION_ENTRY tran_id="1" regulator_reference="XPT/1" position_date="1964-09-18"
+                           position_sequence="1" op_id="1" op_seq="1" op_status="WITHDRAWN"
+                           op_type="LICENCE_END"/>
+        </LICENCE_OPERATION_HISTORY>""";
+
+    assertThatThrownBy(() -> LicenceHistoryReader.read(new StringReader(xml)))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("WITHDRAWN");
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"licence_no", "position_sequence", "op_seq", "op_type"})
+  void read_whenARequiredAttributeIsMissing_thenTheReadFails(String attribute) {
+    var xml = """
+        <LICENCE_OPERATION_HISTORY licence_type="P" licence_no="8">
+          <OPERATION_ENTRY tran_id="1" regulator_reference="XPT/1" position_date="1964-09-18"
+                           position_sequence="1" op_id="1" op_seq="1" op_status="LIVE"
+                           op_type="LICENCE_END"/>
+        </LICENCE_OPERATION_HISTORY>"""
+        .replaceFirst(attribute + "=\"[^\"]+\"", "");
+
+    assertThatThrownBy(() -> LicenceHistoryReader.read(new StringReader(xml)))
+        .isInstanceOf(MismatchedInputException.class)
+        .hasMessageContaining(attribute);
+  }
+}

@@ -8,30 +8,32 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.EnumMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
+import uk.co.nstauthority.licensingmanagementservice.migration.pears.operation.MigrationNotes;
 
 /**
- * Accumulates what a sweep of every licence found, and renders it as the summary the CI step is
- * read for.
- *
- * <p>The step's own failure is ignored, so this summary is the only durable account of why licences
- * did not match: it has to say how many licences were compared, how many agreed, and for the rest,
- * what kind of thing differed and on which licences. It reports each {@link PearsOracle}
- * separately, since a licence agreeing with the operations but not with the data points means
- * something quite different from the reverse.
- *
- * <p>The sweep this accumulates runs one licence at a time -- {@code pearsMigrationTest} takes a
- * single fork, and nothing turns JUnit's parallel execution on -- so nothing here is written for
- * more than one thread. Sweeping in parallel would need more than making these fields thread safe:
- * forks are separate JVMs, so each would render a report of the licences it happened to take.
+ * Accumulates what a sweep of every licence found, and renders it as the summary the CI step is read for. Each
+ * {@link PearsComparisonSource} is reported separately, since a licence agreeing with the operations but not with
+ * the data points means something quite different from the reverse.
  */
 class MigrationValidationReport {
 
   private static final Path REPORT = Path.of("build", "reports", "pears-migration", "position-comparison.txt");
 
   private long licencesSwept;
-  private final Map<PearsOracle, OracleComparison> comparisons = new EnumMap<>(PearsOracle.class);
+  private final Map<PearsComparisonSource, SourceComparison> comparisons = new EnumMap<>(PearsComparisonSource.class);
+
+  private final Map<String, MigratorNotes> migratorNotes = new LinkedHashMap<>();
+
+  private final OperationCounts includedOperations = new OperationCounts(
+      "Operations included, because a migration supports them", "included");
+  private final OperationCounts ignoredOperations = new OperationCounts(
+      "Operations ignored, because no migration supports them", "ignored");
 
   private final Tally notCompared = new Tally(
       System.lineSeparator() + "Licences not compared:");
@@ -39,8 +41,8 @@ class MigrationValidationReport {
       System.lineSeparator() + "Licences that could not be compared at all:");
 
   MigrationValidationReport() {
-    for (var oracle : PearsOracle.values()) {
-      comparisons.put(oracle, new OracleComparison(oracle));
+    for (var comparisonSource : PearsComparisonSource.values()) {
+      comparisons.put(comparisonSource, new SourceComparison(comparisonSource));
     }
   }
 
@@ -55,13 +57,40 @@ class MigrationValidationReport {
    * One licence's comparison against one reading of PEARS, whether or not anything differed.
    */
   void recordComparison(
-      PearsOracle oracle,
+      PearsComparisonSource comparisonSource,
       String licenceReference,
       PearsLicencePositions pearsPositions,
       int builtPositionCount,
+      LivePositionComparison.UnmatchedPositions unmatched,
       List<PositionDifference> differences
   ) {
-    comparisons.get(oracle).record(licenceReference, pearsPositions, builtPositionCount, differences);
+    comparisons.get(comparisonSource)
+        .record(licenceReference, pearsPositions, builtPositionCount, unmatched, differences);
+  }
+
+  /**
+   * What one migrator decided while carrying a licence across. Recorded per migrator rather than per comparison
+   * source, because the question a reader has is what became of the administrator.
+   */
+  void recordMigratorNotes(String migratorName, String licenceReference, MigrationNotes notes) {
+    migratorNotes
+        .computeIfAbsent(migratorName, MigratorNotes::new)
+        .record(licenceReference, notes);
+  }
+
+  /**
+   * The operations of one licence that some migrator supports, by OPERATION_TYPE.
+   */
+  void recordIncludedOperations(String licenceReference, Map<String, Integer> includedOperationsByType) {
+    includedOperations.record(licenceReference, includedOperationsByType);
+  }
+
+  /**
+   * The operations of one licence that no migrator supports, by OPERATION_TYPE. Their positions
+   * were still built; only what they did was left behind.
+   */
+  void recordIgnoredOperations(String licenceReference, Map<String, Integer> ignoredOperationsByType) {
+    ignoredOperations.record(licenceReference, ignoredOperationsByType);
   }
 
   /**
@@ -81,8 +110,8 @@ class MigrationValidationReport {
   /**
    * The licences whose timeline did not match the given reading of PEARS.
    */
-  List<String> differingLicenceReferences(PearsOracle oracle) {
-    return comparisons.get(oracle).differingLicenceReferences();
+  List<String> differingLicenceReferences(PearsComparisonSource comparisonSource) {
+    return comparisons.get(comparisonSource).differingLicenceReferences();
   }
 
   /**
@@ -110,7 +139,10 @@ class MigrationValidationReport {
     out.append("  %,d licences swept%n".formatted(licencesSwept));
 
     comparisons.values().forEach(comparison -> comparison.appendTo(out));
+    migratorNotes.values().forEach(notes -> notes.appendTo(out));
 
+    includedOperations.appendTo(out);
+    ignoredOperations.appendTo(out);
     notCompared.appendTo(out);
     failures.appendTo(out);
 
@@ -126,21 +158,68 @@ class MigrationValidationReport {
   }
 
   /**
+   * PEARS operations across the sweep, by OPERATION_TYPE, with how many licences held each type.
+   */
+  private static final class OperationCounts {
+
+    private final String heading;
+    private final String verb;
+    private long operations;
+    private final Set<String> licences = new HashSet<>();
+    private final Map<String, Long> operationsByType = new TreeMap<>();
+    private final Map<String, Long> licencesByOperationType = new TreeMap<>();
+
+    private OperationCounts(String heading, String verb) {
+      this.heading = heading;
+      this.verb = verb;
+    }
+
+    private void record(String licenceReference, Map<String, Integer> licenceOperationsByType) {
+      if (!licenceOperationsByType.isEmpty()) {
+        licences.add(licenceReference);
+      }
+      licenceOperationsByType.forEach((operationType, count) -> {
+        operations += count;
+        operationsByType.merge(operationType, (long) count, Long::sum);
+        licencesByOperationType.merge(operationType, 1L, Long::sum);
+      });
+    }
+
+    private void appendTo(StringBuilder out) {
+      out.append(System.lineSeparator())
+          .append("--- %s ---%n".formatted(heading));
+      out.append("  %,d operations %s on %,d licences%n".formatted(operations, verb, licences.size()));
+
+      if (operationsByType.isEmpty()) {
+        return;
+      }
+
+      out.append("  Operations %s by type:%n".formatted(verb));
+      operationsByType.entrySet().stream()
+          .sorted(Map.Entry.<String, Long>comparingByValue().reversed().thenComparing(Map.Entry.comparingByKey()))
+          .forEach(entry -> out.append("  %-48s %,9d operations on %,d licences%n".formatted(
+              entry.getKey(), entry.getValue(), licencesByOperationType.get(entry.getKey()))));
+    }
+  }
+
+  /**
    * What the sweep found against one reading of PEARS.
    */
-  private static final class OracleComparison {
+  private static final class SourceComparison {
 
-    private final PearsOracle oracle;
+    private final PearsComparisonSource comparisonSource;
     private long licencesCompared;
     private long pearsPositions;
     private long positionsBuilt;
+    private long positionsMissing;
+    private long positionsAdditional;
     private final List<String> differingLicences = new ArrayList<>();
 
     private final Tally agreement;
     private final Tally differenceKinds;
 
-    private OracleComparison(PearsOracle oracle) {
-      this.oracle = oracle;
+    private SourceComparison(PearsComparisonSource comparisonSource) {
+      this.comparisonSource = comparisonSource;
       this.agreement = new Tally("  Licences by how their timeline compares:");
       this.differenceKinds = new Tally("  Licences by what differs (a licence can differ in more than one way):");
     }
@@ -149,11 +228,14 @@ class MigrationValidationReport {
         String licenceReference,
         PearsLicencePositions positions,
         int builtPositionCount,
+        LivePositionComparison.UnmatchedPositions unmatched,
         List<PositionDifference> differences
     ) {
       licencesCompared++;
       pearsPositions += positions.positions().size();
       positionsBuilt += builtPositionCount;
+      positionsMissing += unmatched.missing();
+      positionsAdditional += unmatched.additional();
 
       if (differences.isEmpty()) {
         agreement.add("timeline matches PEARS", licenceReference);
@@ -182,10 +264,12 @@ class MigrationValidationReport {
 
     private void appendTo(StringBuilder out) {
       out.append(System.lineSeparator())
-          .append("--- Against %s ---%n".formatted(oracle.label()));
+          .append("--- Against %s ---%n".formatted(comparisonSource.label()));
       out.append("  %,d licences compared%n".formatted(licencesCompared));
       out.append("  %,d positions held by PEARS%n".formatted(pearsPositions));
       out.append("  %,d positions built by this application%n".formatted(positionsBuilt));
+      out.append("  %,d positions PEARS holds that are missing from this application%n".formatted(positionsMissing));
+      out.append("  %,d positions this application holds that PEARS does not%n".formatted(positionsAdditional));
       out.append("  %,d licences differ%n".formatted(differingLicences.size()));
 
       agreement.appendTo(out);
@@ -208,6 +292,50 @@ class MigrationValidationReport {
           .min(Comparator.comparingInt(Enum::ordinal))
           .map(PositionDifference.Kind::label)
           .orElseThrow();
+    }
+  }
+
+  /**
+   * What the migration decided while carrying one kind of operation across. A note is the migration deciding not to
+   * carry something across, which is the migration working as intended; an unmapped reason is something PEARS holds
+   * that it could not carry at all.
+   */
+  private static final class MigratorNotes {
+
+    private final String migratorName;
+    private long licencesMigrated;
+
+    private final Tally decisions;
+    private final Tally unmapped;
+
+    private MigratorNotes(String migratorName) {
+      this.migratorName = migratorName;
+      this.decisions = new Tally("  Licences by what the migration decided on them:");
+      this.unmapped = new Tally("  Licences by what PEARS holds that could not be carried across:");
+    }
+
+    private void record(String licenceReference, MigrationNotes notes) {
+      licencesMigrated++;
+
+      // Counted once per licence however often a reason came up on it, because a tally names the
+      // licences behind a number and a licence named twice would say nothing.
+      notes.noteCountsByReason().keySet().forEach(reason -> decisions.add(reason, licenceReference));
+      notes.unmappedCountsByReason().keySet().forEach(reason -> {
+        unmapped.add(reason, licenceReference);
+        var example = notes.unmappedExamplesByReason().get(reason);
+        if (example != null) {
+          unmapped.example(reason, "%s -- %s".formatted(licenceReference, example));
+        }
+      });
+    }
+
+    private void appendTo(StringBuilder out) {
+      out.append(System.lineSeparator())
+          .append("--- The %s, carried across ---%n".formatted(migratorName));
+      out.append("  %,d licences migrated%n".formatted(licencesMigrated));
+
+      decisions.appendTo(out);
+      unmapped.appendTo(out);
     }
   }
 }

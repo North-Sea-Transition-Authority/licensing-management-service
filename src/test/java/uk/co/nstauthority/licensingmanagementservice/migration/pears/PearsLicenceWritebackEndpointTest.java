@@ -5,6 +5,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import java.util.List;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullSource;
@@ -35,6 +36,11 @@ class PearsLicenceWritebackEndpointTest {
         .build();
 
     when(licenceService.findByLicenceReferenceOrThrow("P1")).thenReturn(licence);
+    when(licenceWritebackService.overwriteLicencePositionsFromPears(licence))
+        .thenReturn(LicenceWriteback.nothingToDo(
+            "nothing to do",
+            new PearsLicenceHistory("P", 1, List.of())
+        ));
 
     pearsLicenceWritebackEndpoint.overwriteLicencePositionsFromPears(licenceReference);
 

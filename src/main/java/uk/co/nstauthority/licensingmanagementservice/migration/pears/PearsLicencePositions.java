@@ -7,66 +7,45 @@ import java.util.HashMap;
 import java.util.List;
 
 /**
- * Everything PEARS holds for one licence, as the positions the licence holds and the order it holds
- * them in: by position date, then by order within that date.
- *
- * <p>In PEARS a position is a licence, a position date, and a sequence within that date, reached by
- * executing a transaction against the licence. {@code live-positions.sql} returns one row per
- * operation, so a position appears once for each operation that made it, and
- * {@link #reconstruct(List)} groups those rows back up into the positions themselves. Reading the
- * rows out of the PEARS database is {@code PearsLicenceService}'s job - this record is only the
- * shape they are read into, and the grouping over them.
- *
- * <p>{@code LicenceWritebackService} is what the result is for. It clears out the positions the
- * licence holds in this application and replays these in order, taking nothing from each but
- * its date and its transaction's regulator reference, and letting the application's own services
- * settle everything else. That is what leaves a migrated licence indistinguishable from one built
- * here.
- *
- * <p>The sequence PEARS gives a position orders transactions on a date across the whole live
- * simulation rather than within one licence, so the values a licence sees are sparse. The order
- * the licence displays is therefore the rank of the sequence within its date
- * ({@link Position#positionDateOrder()}), which is the number a replay should independently arrive
- * at for {@code LicencePosition.positionDateOrder}; {@link Position#positionSequence()} is kept
- * alongside it as the thing that decided the rank.
- *
- * <p>The regulator reference is the position's name in PEARS, and the natural thing to compare
- * positions by, though not quite an identifier: one transaction master can execute twice against a
- * licence, on two dates, under one reference.
+ * The positions PEARS holds for one licence, as the licence holds them: by position date, then by
+ * order within that date. Both readings of PEARS -- its data points and its operation history --
+ * are compared in this shape.
  */
-record PearsLicencePositions(
+public record PearsLicencePositions(
     String licenceType,
     int licenceNo,
     List<Position> positions
 ) {
 
   /**
-   * One row of {@code live-positions.sql}: an operation, described by the position it belongs to.
-   * Nothing but the position is read out of a row, so the several rows of a position made by
-   * several operations are identical to each other.
+   * One row of {@code data-point-positions.sql}: a position, as PEARS' own record of the licence
+   * holding one.
    */
   public record Row(
       String licenceType,
       int licenceNo,
       String regulatorReference,
       LocalDate positionDate,
-      int positionSequence
+      int positionSequence,
+      long transactionId
   ) {
   }
 
   /**
-   * One live position of the licence.
+   * One position of the licence.
    *
    * @param positionDate       the date PEARS holds the position on
    * @param positionSequence   the position's sequence within that date across the live simulation
    * @param positionDateOrder  the rank of {@code positionSequence} within the position date, from 1
    * @param regulatorReference the reference of the transaction that reached the position
+   * @param transactionId      the transaction that reached the position, which positions are matched by
    */
   public record Position(
       LocalDate positionDate,
       int positionSequence,
       int positionDateOrder,
-      String regulatorReference
+      String regulatorReference,
+      long transactionId
   ) {
   }
 
@@ -99,18 +78,18 @@ record PearsLicencePositions(
     var keys = new ArrayList<>(firstRows.keySet());
     keys.sort(Comparator.comparing(PositionKey::positionDate).thenComparingInt(PositionKey::positionSequence));
 
-    // The sequence numbers a licence sees are the live simulation's, so they are
-    // ranked within the date to get the order the licence holds its positions in.
-    var orderWithinDate = new HashMap<LocalDate, Integer>();
-    var positions = new ArrayList<Position>(keys.size());
-    for (var key : keys) {
-      var order = orderWithinDate.merge(key.positionDate(), 1, Integer::sum);
+    var ranks = PositionDateOrder.ranks(keys.stream().map(PositionKey::positionDate).toList());
+
+    var positions = new ArrayList<Position>();
+    for (var index = 0; index < keys.size(); index++) {
+      var key = keys.get(index);
+      var row = firstRows.get(key);
       positions.add(new Position(
           key.positionDate(),
           key.positionSequence(),
-          order,
-          firstRows.get(key).regulatorReference()
-      ));
+          ranks[index],
+          row.regulatorReference(),
+          row.transactionId()));
     }
 
     var first = rows.getFirst();

@@ -231,6 +231,33 @@ class LivePositionComparisonTest {
         .endsWith("... (+3 more)");
   }
 
+  @Test
+  void unmatched_whenEachSideHoldsPositionsTheOtherDoesNot_thenBothAreCounted() {
+    var livePositions = livePositions(
+        livePosition(FIRST_DATE, 6, 1, "REF-A"),
+        livePosition(SECOND_DATE, 3, 1, "REF-B"),
+        livePosition(THIRD_DATE, 1, 1, "REF-C")
+    );
+    var built = List.of(
+        builtPosition(FIRST_DATE, 1, "REF-A"),
+        builtPosition(SECOND_DATE, 1, "REF-D")
+    );
+
+    var unmatched = LivePositionComparison.unmatched(livePositions, built);
+
+    assertThat(unmatched).isEqualTo(new LivePositionComparison.UnmatchedPositions(2, 1));
+  }
+
+  @Test
+  void unmatched_whenTimelinesMatch_thenNothingIsMissingOrAdditional() {
+    var livePositions = livePositions(livePosition(FIRST_DATE, 6, 1, "REF-A"));
+    var built = List.of(builtPosition(FIRST_DATE, 1, "REF-A"));
+
+    var unmatched = LivePositionComparison.unmatched(livePositions, built);
+
+    assertThat(unmatched).isEqualTo(new LivePositionComparison.UnmatchedPositions(0, 0));
+  }
+
   private static PearsLicencePositions livePositions(PearsLicencePositions.Position... positions) {
     return livePositions(List.of(positions));
   }
@@ -245,7 +272,8 @@ class LivePositionComparisonTest {
       int positionDateOrder,
       String regulatorReference
   ) {
-    return new PearsLicencePositions.Position(positionDate, positionSequence, positionDateOrder, regulatorReference);
+    return new PearsLicencePositions.Position(
+        positionDate, positionSequence, positionDateOrder, regulatorReference, 0);
   }
 
   private static LicencePosition builtPosition(

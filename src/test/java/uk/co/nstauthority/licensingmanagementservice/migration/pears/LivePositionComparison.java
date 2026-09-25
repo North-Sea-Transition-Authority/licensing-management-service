@@ -12,18 +12,9 @@ import java.util.function.IntFunction;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 
 /**
- * Compares the licence timeline this application builds with the live positions PEARS holds.
- *
- * <p>{@link PearsLicencePositions} works out what PEARS holds, including the order a licence displays its
- * positions in; this works out whether the positions built from it arrived at the same thing. The
- * order is the interesting part: {@code LicenceWritebackService} replays PEARS' dates and
- * references through {@code LicencePositionService}, which derives {@code positionDateOrder}
- * itself rather than copying PEARS' sparse {@code positionSequence} across, so agreement is a
- * result rather than a given.
- *
- * <p>Positions are matched on regulator reference, which is a position's name in PEARS but not
- * quite an identifier: one transaction master can execute twice against a licence, on two dates,
- * under the one reference. Which occurrence stands for which is {@link PositionMatching}'s job.
+ * Compares the licence timeline this application builds with the live positions PEARS holds. The order is the
+ * interesting part: the replay derives {@code positionDateOrder} itself rather than copying PEARS' sparse
+ * {@code positionSequence} across, so agreement is a result rather than a given.
  */
 class LivePositionComparison {
 
@@ -40,10 +31,7 @@ class LivePositionComparison {
    * @param licencePositions the licence's executed positions as this application built them
    */
   static List<PositionDifference> compare(PearsLicencePositions pearsLicencePositions, List<LicencePosition> licencePositions) {
-    var lmsLicencePositions = licencePositions.stream()
-        .sorted(Comparator.comparing(LicencePosition::getPositionDate).thenComparingInt(LicencePosition::getPositionDateOrder))
-        .map(LmsLicencePosition::from)
-        .toList();
+    var lmsLicencePositions = chronological(licencePositions);
 
     var matching = PositionMatching.of(pearsLicencePositions.positions(), lmsLicencePositions);
 
@@ -52,7 +40,32 @@ class LivePositionComparison {
     differences.addAll(unmatchedPositions(pearsLicencePositions.positions(), lmsLicencePositions, matching));
     differences.addAll(matchedPositionDifferences(pearsLicencePositions.positions(), lmsLicencePositions, matching));
 
-    return List.copyOf(differences);
+    return differences;
+  }
+
+  /**
+   * How many positions only one side holds: the ones PEARS holds that were not built, and the ones
+   * built that PEARS does not hold. Positions built without a reference count as neither, since
+   * {@link #compare} reports them in their own right.
+   */
+  static UnmatchedPositions unmatched(PearsLicencePositions pearsLicencePositions, List<LicencePosition> licencePositions) {
+    var lmsLicencePositions = chronological(licencePositions);
+    var matching = PositionMatching.of(pearsLicencePositions.positions(), lmsLicencePositions);
+    return new UnmatchedPositions(matching.unmatchedPearsIndexes().size(), matching.unmatchedLmsIndexes().size());
+  }
+
+  /**
+   * @param missing    positions PEARS holds that this application did not build
+   * @param additional positions this application built that PEARS does not hold
+   */
+  record UnmatchedPositions(int missing, int additional) {
+  }
+
+  private static List<LmsLicencePosition> chronological(List<LicencePosition> licencePositions) {
+    return licencePositions.stream()
+        .sorted(Comparator.comparing(LicencePosition::getPositionDate).thenComparingInt(LicencePosition::getPositionDateOrder))
+        .map(LmsLicencePosition::from)
+        .toList();
   }
 
   /**
@@ -80,9 +93,6 @@ class LivePositionComparison {
   /**
    * The positions only one side holds, each collapsed into a single difference: a licence can be
    * short of eighty positions for the one reason.
-   *
-   * <p>These are the positions the matching could not account for, so the position named is the one
-   * genuinely absent rather than whichever occurrence of its reference happened to fall last.
    */
   private static List<PositionDifference> unmatchedPositions(
       List<PearsLicencePositions.Position> pearsLicencePosition,
@@ -118,11 +128,9 @@ class LivePositionComparison {
   }
 
   /**
-   * The dates and orders of the positions both sides hold.
-   *
-   * <p>Walks PEARS' positions in the order it holds them so the differences come out
-   * chronologically. A position sitting on the wrong date says nothing about its order within a
-   * date the two do not agree on, so only one of the two is reported per position.
+   * The dates and orders of the positions both sides hold, walked in PEARS' order so the differences come out
+   * chronologically. Only one of date and order is reported per position, since a position on the wrong date says
+   * nothing about its order within a date the two do not agree on.
    */
   private static List<PositionDifference> matchedPositionDifferences(
       List<PearsLicencePositions.Position> pearsLicencePosition,
@@ -178,16 +186,9 @@ class LivePositionComparison {
   }
 
   /**
-   * Which built position stands for which of PEARS', and what neither side could account for, held
-   * as indexes into the two lists so identical positions stay distinguishable.
-   *
-   * <p>A reference held once on each side is the whole of it. Where a reference repeats, the
-   * occurrences the two sides agree the date of claim each other first, so a reference PEARS holds
-   * on two dates and the build holds on one of them leaves the other date unmatched -- the
-   * position genuinely missing -- rather than pairing the two in the order they are held and
-   * reporting the date both sides agree on as wrong. Only the occurrences left after that are
-   * paired in the order the sides hold them, nth to nth, which is what a position built on the
-   * wrong date looks like.
+   * Which built position stands for which of PEARS', and what neither side could account for, held as indexes into the
+   * two lists so identical positions stay distinguishable. Occurrences of a repeated reference claim each other by date
+   * first, and whatever is left is paired nth to nth.
    *
    * @param lmsIndexByPearsIndex the built position standing for each of PEARS' positions
    * @param unmatchedPearsIndexes PEARS' positions with no built position to stand for them

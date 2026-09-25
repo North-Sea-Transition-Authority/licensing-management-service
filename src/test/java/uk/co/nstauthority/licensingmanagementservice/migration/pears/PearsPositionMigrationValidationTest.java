@@ -24,21 +24,13 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePos
 import uk.co.nstauthority.licensingmanagementservice.util.IntegrationTest;
 
 /**
- * Sweeps every licence PEARS holds, rebuilds its timeline in this application out of the PEARS live
- * positions, and checks the result is the timeline PEARS holds.
+ * Sweeps every licence PEARS holds, rebuilds it in this application out of the PEARS operation history, and checks
+ * the positions it arrives at are the positions PEARS holds, against both readings of PEARS -- see
+ * {@link PearsComparisonSource}.
  *
- * <p>Excluded from the {@code test} task by its tag and run by the {@code pearsMigrationTest} task
- * instead, because a difference here is a discrepancy to investigate -- a bug in this service, a
- * bug in PEARS, or a legitimate edge case for stakeholders -- rather than a broken build. Reads
- * PEARS over a live Oracle connection, so it disables itself where there are no credentials.
- *
- * <p>Each licence is compared against both readings of PEARS -- see {@link PearsOracle}. The
- * migration builds a licence from the operations, so comparing the result against them again
- * checks the replay rather than the reading; the data points are what PEARS holds in its own
- * right, and are the only one of the two that can catch the reading itself being wrong.
- *
- * <p>Set {@code PEARS_MIGRATION_LICENCES} to a comma separated list of licence references to narrow
- * the sweep, which is worth doing when working on the comparison itself.
+ * <p>Excluded from the {@code test} task by its tag and run by {@code pearsMigrationTest} instead, since a difference
+ * here is a discrepancy to investigate rather than a broken build. Reads PEARS over a live Oracle connection, so it
+ * disables itself without credentials; set {@code PEARS_MIGRATION_LICENCES} to narrow the sweep.
  */
 @Tag("pears-migration")
 @IntegrationTest
@@ -50,7 +42,6 @@ import uk.co.nstauthority.licensingmanagementservice.util.IntegrationTest;
     disabledReason = "No PEARS datasource: set PEARS_DATASOURCE_URL, PEARS_DATASOURCE_USERNAME and PEARS_DATASOURCE_PASSWORD"
 )
 class PearsPositionMigrationValidationTest {
-
 
   private static final MigrationValidationReport REPORT = new MigrationValidationReport();
 
@@ -85,16 +76,22 @@ class PearsPositionMigrationValidationTest {
     try {
       REPORT.recordLicenceSwept();
 
-      var operationPositions = pearsLicenceService.getLicencePositions(
-          pearsLicence.licenceType(), pearsLicence.licenceNo());
-      var dataPointPositions = pearsLicenceService.dataPointPositions(
-          pearsLicence.licenceType(), pearsLicence.licenceNo());
-
-      licenceWritebackService.overwriteLicencePositionsFromPears(licence);
+      var dataPointPositions = pearsLicenceService.dataPointPositions(pearsLicence.licenceType(), pearsLicence.licenceNo());
+      var writeback = licenceWritebackService.overwriteLicencePositionsFromPears(licence);
       var builtPositions = licencePositionService.getExecutedChronologicalLicencePositions(licence);
 
-      differences.addAll(record(PearsOracle.OPERATIONS, pearsLicence, operationPositions, builtPositions));
-      differences.addAll(record(PearsOracle.DATA_POINTS, pearsLicence, dataPointPositions, builtPositions));
+      REPORT.recordIncludedOperations(pearsLicence.licenceReference(), writeback.includedOperationsByType());
+      REPORT.recordIgnoredOperations(pearsLicence.licenceReference(), writeback.ignoredOperationsByType());
+
+      differences.addAll(recordPositions(
+          PearsComparisonSource.OPERATIONS, pearsLicence, writeback.history().toLicencePositions(), builtPositions)
+      );
+      differences.addAll(recordPositions(
+          PearsComparisonSource.DATA_POINTS, pearsLicence, dataPointPositions, builtPositions
+      ));
+
+      writeback.notesByMigrator().forEach((migratorName, notes) ->
+          REPORT.recordMigratorNotes(migratorName, pearsLicence.licenceReference(), notes));
     } catch (RuntimeException e) {
       // Recorded before rethrowing so the summary can group the distinct defects while this
       // licence still fails on its own.
@@ -109,21 +106,27 @@ class PearsPositionMigrationValidationTest {
   }
 
   /**
-   * Records one comparison and returns its differences, labelled with the reading of PEARS they are
-   * against so a failure says which of the two disagreed.
+   * Records one position comparison and returns its differences, labelled with the reading of
+   * PEARS they are against so a failure says which of the two disagreed.
    */
-  private static List<String> record(
-      PearsOracle oracle,
+  private static List<String> recordPositions(
+      PearsComparisonSource comparisonSource,
       PearsLicenceReference pearsLicence,
       PearsLicencePositions pearsPositions,
       List<LicencePosition> builtPositions
   ) {
     var differences = LivePositionComparison.compare(pearsPositions, builtPositions);
     REPORT.recordComparison(
-        oracle, pearsLicence.licenceReference(), pearsPositions, builtPositions.size(), differences);
+        comparisonSource,
+        pearsLicence.licenceReference(),
+        pearsPositions,
+        builtPositions.size(),
+        LivePositionComparison.unmatched(pearsPositions, builtPositions),
+        differences
+    );
 
     return differences.stream()
-        .map(difference -> "[%s] %s".formatted(oracle.name(), difference))
+        .map(difference -> "[%s] %s".formatted(comparisonSource.name(), difference))
         .toList();
   }
 
@@ -157,15 +160,9 @@ class PearsPositionMigrationValidationTest {
   }
 
   /**
-   * The {@link LicenceType} the PEARS licence type maps to, aborting the licence where there is no
-   * mapping.
-   *
-   * <p>A licence cannot be saved without a type, so a PEARS licence type this application does not
-   * know is reported as not compared rather than swept. The mapping plays no other part in the
-   * comparison: the writeback reads PEARS back by {@code licence.getPrefix()}, which the sweep sets
-   * to the PEARS licence type itself, so the several types sharing one {@code LicenceType} --
-   * {@code EXL}, {@code ML}, {@code PEDL} and {@code PL} are all {@code LANDWARD_PRODUCTION} -- are
-   * each still read back as themselves.
+   * The {@link LicenceType} the PEARS licence type maps to, aborting the licence where there is no mapping. The mapping
+   * plays no other part in the comparison: the writeback reads PEARS back by {@code licence.getPrefix()}, which the
+   * sweep sets to the PEARS licence type itself.
    */
   private static LicenceType supportedLicenceType(PearsLicenceReference pearsLicence) {
     try {

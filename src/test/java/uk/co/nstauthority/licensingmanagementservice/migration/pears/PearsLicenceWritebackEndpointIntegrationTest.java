@@ -3,6 +3,8 @@ package uk.co.nstauthority.licensingmanagementservice.migration.pears;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.ArgumentMatchers.anySet;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 import jakarta.persistence.EntityManager;
@@ -43,21 +45,22 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePos
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeRepository;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.AdministratorOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.transaction.LicenceTransactionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.transaction.LicenceTransaction;
 import uk.co.nstauthority.licensingmanagementservice.licence.transaction.LicenceTransactionRepository;
 import uk.co.nstauthority.licensingmanagementservice.licence.transaction.LicenceTransactionService;
+import uk.co.nstauthority.licensingmanagementservice.migration.pears.history.LicenceOperationHistory;
+import uk.co.nstauthority.licensingmanagementservice.migration.pears.history.PearsHistoryTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.util.IntegrationTest;
 
 /**
- * The writeback endpoint end to end: a licence holding positions, position changes, corrections and
- * position corrections is rebuilt out of PEARS, and the whole rebuild is one transaction.
- *
- * <p>The application's own database is the Testcontainers PostgreSQL instance {@code @IntegrationTest}.
- * PEARS is read through {@link PearsLicenceService}, which is mocked below. The {@code pears.datasource}
- * properties are only there to satisfy the endpoint's {@link ConditionalOnPearsDataSource}, and
- * describe a datasource that is never connected to.
+ * The writeback endpoint end to end: a licence holding positions, position changes, corrections and position
+ * corrections is rebuilt out of PEARS, and the whole rebuild is one transaction. PEARS is read through
+ * {@link PearsLicenceService}, which is mocked below, so the {@code pears.datasource} properties only satisfy
+ * {@link ConditionalOnPearsDataSource}.
  */
 @IntegrationTest
 @TestPropertySource(properties = {
@@ -185,12 +188,13 @@ class PearsLicenceWritebackEndpointIntegrationTest {
 
   @Test
   void overwriteLicencePositionsFromPears_whenLicenceHasPositionsAndCorrections_thenTheyAreReplacedByPearsPositions() {
-    when(pearsLicenceService.getLicencePositions("P", 1)).thenReturn(pearsPositions());
+    when(pearsLicenceService.licenceHistory(eq("P"), eq(1), anySet())).thenReturn(pearsHistory());
 
     var response = writeback("P1", LicenceWritebackResult.class);
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-    assertThat(response.getBody()).isEqualTo(new LicenceWritebackResult("Saved 3 positions for licence P1"));
+    assertThat(response.getBody()).isEqualTo(
+        new LicenceWritebackResult("Saved 3 positions, 2 changes and 2 operations for licence P1", 3, 2, 2, 1));
 
     assertThat(licencePositionRepository.findByLicence(licence))
         .extracting(
@@ -206,8 +210,23 @@ class PearsLicenceWritebackEndpointIntegrationTest {
         );
 
     assertThat(licencePositionChangeRepository.findAll())
+        .filteredOn(change -> change.getLicencePosition().getLicence().getId().equals(licence.getId()))
+        .extracting(
+            change -> change.getLicencePosition().getPositionDate(),
+            LicencePositionChange::getChangeOrder,
+            LicencePositionChange::getStatus,
+            LicencePositionChange::getOperations
+        )
+        .containsExactlyInAnyOrder(
+            tuple(FIRST_POSITION_DATE, 1, LicencePositionChangeStatus.CONSENTED,
+                List.of(new AdministratorOperation(AdministratorOperation.ADMINISTRATOR_OPERATION_ID, 11))),
+            tuple(LAST_POSITION_DATE, 1, LicencePositionChangeStatus.CONSENTED,
+                List.of(new AdministratorOperation(AdministratorOperation.ADMINISTRATOR_OPERATION_ID, 22)))
+        );
+
+    assertThat(licencePositionChangeRepository.findAll())
         .extracting(LicencePositionChange::getId)
-        .containsExactly(otherLicencePositionChange.getId());
+        .contains(otherLicencePositionChange.getId());
 
     assertThat(licenceCorrectionRepository.findAll())
         .extracting(LicenceCorrection::getId)
@@ -228,14 +247,17 @@ class PearsLicenceWritebackEndpointIntegrationTest {
 
   @Test
   void overwriteLicencePositionsFromPears_whenLicenceHasNoPositions_thenPearsPositionsAreCreated() {
-    when(pearsLicenceService.getLicencePositions("P", 3)).thenReturn(new PearsLicencePositions("P", 3, List.of(
-        new PearsLicencePositions.Position(LAST_POSITION_DATE, 2, 1, "XPT/4")
-    )));
+    when(pearsLicenceService.licenceHistory(eq("P"), eq(3), anySet())).thenReturn(
+        PearsHistoryTestUtil.history("P", 3)
+            .position(4, "XPT/4", LAST_POSITION_DATE, 2)
+            .administratorSet(44)
+            .build());
 
     var response = writeback("P3", LicenceWritebackResult.class);
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-    assertThat(response.getBody()).isEqualTo(new LicenceWritebackResult("Saved 1 positions for licence P3"));
+    assertThat(response.getBody()).isEqualTo(
+        new LicenceWritebackResult("Saved 1 positions, 1 changes and 1 operations for licence P3", 1, 1, 1, 0));
 
     assertThat(licencePositionRepository.findByLicence(licenceWithoutPositions))
         .extracting(
@@ -253,7 +275,7 @@ class PearsLicenceWritebackEndpointIntegrationTest {
 
   @Test
   void overwriteLicencePositionsFromPears_whenAPositionCannotBeSaved_thenNothingIsDeleted() {
-    when(pearsLicenceService.getLicencePositions("P", 1)).thenReturn(pearsPositions());
+    when(pearsLicenceService.licenceHistory(eq("P"), eq(1), anySet())).thenReturn(pearsHistory());
     doThrow(new IllegalStateException("Could not create licence transaction"))
         .when(licenceTransactionService).createLicenceTransaction("XPT/3");
 
@@ -313,12 +335,21 @@ class PearsLicenceWritebackEndpointIntegrationTest {
     );
   }
 
-  private PearsLicencePositions pearsPositions() {
-    return new PearsLicencePositions("P", 1, List.of(
-        new PearsLicencePositions.Position(FIRST_POSITION_DATE, 6, 1, "XPT/1"),
-        new PearsLicencePositions.Position(FIRST_POSITION_DATE, 9, 2, "XPT/2"),
-        new PearsLicencePositions.Position(LAST_POSITION_DATE, 2, 1, "XPT/3")
-    ));
+  /**
+   * Three positions on two dates, the first setting an administrator and the last moving it to
+   * another organisation, with a block operation in between that still builds a position.
+   */
+  private LicenceOperationHistory pearsHistory() {
+    return PearsHistoryTestUtil.history("P", 1)
+        .position(1, "XPT/1", FIRST_POSITION_DATE, 6)
+        .administratorSet(11)
+        .and()
+        .position(2, "XPT/2", FIRST_POSITION_DATE, 9)
+        .operationWithoutPayload("PED_BLOCK_CREATE")
+        .and()
+        .position(3, "XPT/3", LAST_POSITION_DATE, 2)
+        .administratorTransfer(11, 22)
+        .build();
   }
 
   private <T> T persist(T entity) {

@@ -2,9 +2,7 @@ package uk.co.nstauthority.licensingmanagementservice.migration.pears;
 
 /**
  * One way in which the licence timeline this application builds differs from the one PEARS holds.
- *
- * <p>The kind is what a summary groups by, so it is an enum rather than a prefix on the detail: a
- * report bucketing differences should not have to parse them back out of a sentence.
+ * The kind is an enum rather than a prefix on the detail so a summary can group by it.
  */
 public record PositionDifference(Kind kind, String detail) {
 

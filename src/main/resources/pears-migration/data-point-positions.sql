@@ -13,13 +13,15 @@
 --
 -- A (licence, transaction) pair can hold two live-series data points, from a
 -- transaction master executed twice on one date, so this can return two rows for
--- one transaction. That is what PEARS holds and is left as two positions.
+-- one transaction. That is what PEARS holds and is left as two positions, which is
+-- also why the transaction is not the key a position is grouped by.
 SELECT
   dp.licence_type
 , dp.licence_no
 , xpt.regulator_reference_full
 , TO_CHAR(dp.position_datetime, 'YYYY-MM-DD') position_date
 , dp.position_sequence -- the order of positions on the same date
+, dp.ped_tran_id
 FROM pedmgr.ped_data_points dp
 JOIN pedmgr.xview_ped_transactions xpt ON xpt.ped_tran_id = dp.ped_tran_id
 WHERE dp.licence_type = ? AND dp.licence_no = ?

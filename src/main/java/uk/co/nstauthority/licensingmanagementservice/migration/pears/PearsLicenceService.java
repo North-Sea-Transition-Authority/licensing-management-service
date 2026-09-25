@@ -1,18 +1,24 @@
 package uk.co.nstauthority.licensingmanagementservice.migration.pears;
 
 import java.io.IOException;
+import java.io.Reader;
+import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.regex.Pattern;
 import javax.sql.DataSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
+import uk.co.nstauthority.licensingmanagementservice.migration.pears.history.LicenceHistoryReader;
+import uk.co.nstauthority.licensingmanagementservice.migration.pears.history.LicenceOperationHistory;
 
 /**
  * Reads what PEARS holds for a licence out of the PEARS database.
@@ -23,9 +29,15 @@ class PearsLicenceService {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(PearsLicenceService.class);
 
-  private static final String LIVE_POSITIONS_SQL = sql("live-positions.sql");
+  private static final String LICENCE_HISTORY_SQL = sql("licence-history.sql");
   private static final String LICENCE_REFERENCES_SQL = sql("licence-references.sql");
   private static final String DATA_POINT_POSITIONS_SQL = sql("data-point-positions.sql");
+
+  /**
+   * What an operation type must look like before it is interpolated into the history query. Oracle
+   * has no list bind, so declared types go into the SQL as text and this is what makes that safe.
+   */
+  private static final Pattern OPERATION_TYPE = Pattern.compile("[A-Z_]{1,64}");
 
   private final DataSource dataSource;
 
@@ -34,32 +46,53 @@ class PearsLicenceService {
   }
 
   /**
-   * The live positions PEARS holds for one licence, in the order the licence holds them.
+   * One licence's operation history: every operation of every executed transaction in the live
+   * simulation, in the order PEARS made them. Only the operation types named here carry their XML.
    *
-   * @param licenceType   the licence's prefix, for example {@code P}
-   * @param licenceNumber the licence's number, for example {@code 1}
+   * @param licenceType    the licence's prefix, for example {@code P}
+   * @param licenceNumber  the licence's number, for example {@code 1}
+   * @param operationTypes the PEARS OPERATION_TYPEs whose XML to fetch
    */
-  public PearsLicencePositions getLicencePositions(String licenceType, int licenceNumber) {
-    var positionRows = queryPositionRows(LIVE_POSITIONS_SQL, "live positions", licenceType, licenceNumber);
-    if (positionRows.isEmpty()) {
-      return new PearsLicencePositions(licenceType, licenceNumber, List.of());
-    }
+  public LicenceOperationHistory licenceHistory(String licenceType, int licenceNumber, Set<String> operationTypes) {
+    var start = System.nanoTime();
+    var sql = LICENCE_HISTORY_SQL.formatted(operationTypeList(operationTypes));
 
-    return PearsLicencePositions.reconstruct(positionRows);
+    try (var connection = dataSource.getConnection();
+         var statement = connection.prepareStatement(sql)) {
+      statement.setString(1, licenceType);
+      statement.setInt(2, licenceNumber);
+      statement.setString(3, licenceType);
+      statement.setInt(4, licenceNumber);
+
+      try (var resultSet = statement.executeQuery()) {
+        if (!resultSet.next()) {
+          return new LicenceOperationHistory(licenceType, licenceNumber, List.of());
+        }
+
+        // XMLAGG over no rows is null, which is a licence PEARS holds no operations for.
+        var document = resultSet.getCharacterStream(1);
+        var history = LicenceHistoryReader.read(document == null ? emptyHistory(licenceType, licenceNumber) : document);
+
+        LOGGER.info("Read {} operations of {}{} from PEARS in {}ms", history.operations().size(),
+            licenceType, licenceNumber, Duration.ofNanos(System.nanoTime() - start).toMillis());
+        return history;
+      }
+    } catch (SQLException | IOException e) {
+      throw new IllegalStateException(
+          "Could not read the operation history for %s%d".formatted(licenceType, licenceNumber), e);
+    }
   }
 
   /**
-   * The positions PEARS itself holds for one licence, taken from its own data points.
-   *
-   * <p>An oracle independent of {@link #getLicencePositions}, which re-derives the positions from the
-   * operations that made them. The migration builds a licence from the operations, so checking the
-   * result against them again would only restate the reading; the data points are what PEARS holds.
+   * The positions PEARS itself holds for one licence, taken from its own data points. An oracle
+   * independent of {@link #licenceHistory}, so it can catch the reading being wrong rather than only
+   * the replay.
    *
    * @param licenceType   the licence's prefix, for example {@code P}
    * @param licenceNumber the licence's number, for example {@code 1}
    */
   public PearsLicencePositions dataPointPositions(String licenceType, int licenceNumber) {
-    var rows = queryPositionRows(DATA_POINT_POSITIONS_SQL, "data point positions", licenceType, licenceNumber);
+    var rows = queryDataPointRows(licenceType, licenceNumber);
     if (rows.isEmpty()) {
       return new PearsLicencePositions(licenceType, licenceNumber, List.of());
     }
@@ -96,21 +129,12 @@ class PearsLicenceService {
     return references;
   }
 
-  /**
-   * Both position queries return the same five columns -- licence, regulator reference, position
-   * date and the position's sequence within that date -- so they are read the same way.
-   */
-  private List<PearsLicencePositions.Row> queryPositionRows(
-      String sql,
-      String description,
-      String licenceType,
-      int licenceNumber
-  ) {
+  private List<PearsLicencePositions.Row> queryDataPointRows(String licenceType, int licenceNumber) {
     var start = System.nanoTime();
     var rows = new ArrayList<PearsLicencePositions.Row>();
 
     try (var connection = dataSource.getConnection();
-         var statement = connection.prepareStatement(sql)) {
+         var statement = connection.prepareStatement(DATA_POINT_POSITIONS_SQL)) {
       statement.setFetchSize(5_000);
       statement.setString(1, licenceType);
       statement.setInt(2, licenceNumber);
@@ -122,18 +146,45 @@ class PearsLicenceService {
               resultSet.getInt(2), // licence_no
               resultSet.getString(3), // regulator_reference_full
               LocalDate.parse(resultSet.getString(4)), // position_date
-              resultSet.getInt(5) // position_sequence
+              resultSet.getInt(5), // position_sequence
+              resultSet.getLong(6) // ped_tran_id
           ));
         }
       }
     } catch (SQLException e) {
       throw new IllegalStateException(
-          "Could not read %s for %s%d".formatted(description, licenceType, licenceNumber), e);
+          "Could not read data point positions for %s%d".formatted(licenceType, licenceNumber), e);
     }
 
-    LOGGER.info("Processed {} {} rows from PEARS in {}ms",
-        rows.size(), description, Duration.ofNanos(System.nanoTime() - start).toMillis());
+    LOGGER.info("Processed {} data point position rows from PEARS in {}ms",
+        rows.size(), Duration.ofNanos(System.nanoTime() - start).toMillis());
     return rows;
+  }
+
+  /**
+   * The declared operation types as an SQL list, rejecting anything that is not plainly a type name.
+   */
+  private static String operationTypeList(Set<String> operationTypes) {
+    if (operationTypes.isEmpty()) {
+      return "NULL";
+    }
+
+    return operationTypes.stream()
+        .sorted()
+        .map(operationType -> {
+          if (!OPERATION_TYPE.matcher(operationType).matches()) {
+            throw new IllegalArgumentException("Not a PEARS operation type: " + operationType);
+          }
+          return "'%s'".formatted(operationType);
+        })
+        .reduce((left, right) -> left + "," + right)
+        .orElseThrow();
+  }
+
+  private static Reader emptyHistory(String licenceType, int licenceNumber) {
+    return new StringReader(
+        "<LICENCE_OPERATION_HISTORY licence_type=\"%s\" licence_no=\"%d\"/>"
+            .formatted(licenceType, licenceNumber));
   }
 
   private static String sql(String name) {
@@ -144,5 +195,4 @@ class PearsLicenceService {
       throw new IllegalStateException("Could not read SQL resource " + resource, e);
     }
   }
-
 }

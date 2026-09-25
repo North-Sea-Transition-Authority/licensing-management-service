@@ -5,6 +5,8 @@ import java.util.concurrent.TimeUnit;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.CacheControl;
+import org.springframework.http.converter.HttpMessageConverter;
+import org.springframework.http.converter.xml.MappingJackson2XmlHttpMessageConverter;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
@@ -93,6 +95,16 @@ public class WebMvcConfiguration implements WebMvcConfigurer {
 
     registry.addInterceptor(teamManagementHandlerInterceptor)
         .addPathPatterns("/team-management/**");
+  }
+
+  /**
+   * Drops the XML message converter Spring Boot registers on finding jackson-dataformat-xml on the
+   * classpath. The dependency is there for the PEARS migration, and left in place the converter
+   * would start answering {@code Accept: application/xml} from every existing controller.
+   */
+  @Override
+  public void extendMessageConverters(List<HttpMessageConverter<?>> converters) {
+    converters.removeIf(MappingJackson2XmlHttpMessageConverter.class::isInstance);
   }
 
   @Bean

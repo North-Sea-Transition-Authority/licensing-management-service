@@ -10,6 +10,11 @@ public record RecordDurationChangeView(
     String currentDuration,
     ThreeFieldDuration duration,
     boolean canReduce,
-    boolean canExtend
+    boolean canExtend,
+    boolean hasEnded
 ) {
+
+  public String endedMessage() {
+    return "This %s has already ended and cannot be changed".formatted(isPhase ? "phase" : "term");
+  }
 }

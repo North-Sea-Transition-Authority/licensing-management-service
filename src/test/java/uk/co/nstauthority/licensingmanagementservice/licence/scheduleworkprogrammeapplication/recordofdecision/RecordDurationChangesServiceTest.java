@@ -2,6 +2,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogra
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -16,6 +17,8 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -99,11 +102,12 @@ class RecordDurationChangesServiceTest {
         .extracting(
             RecordDurationChangeView::displayName,
             RecordDurationChangeView::canReduce,
-            RecordDurationChangeView::canExtend)
+            RecordDurationChangeView::canExtend,
+            RecordDurationChangeView::hasEnded)
         .containsExactly(
-            tuple(TermType.INITIAL.getDisplayName(), false, false),
-            tuple(TermType.SECOND.getDisplayName(), false, true),
-            tuple(TermType.THIRD.getDisplayName(), true, false));
+            tuple(TermType.INITIAL.getDisplayName(), false, false, true),
+            tuple(TermType.SECOND.getDisplayName(), false, true, false),
+            tuple(TermType.THIRD.getDisplayName(), true, false, false));
   }
 
   @Test
@@ -144,9 +148,9 @@ class RecordDurationChangesServiceTest {
         .thenReturn(List.of());
 
     var form = new RecordDurationChangesForm();
-    extend(form, initial, new ThreeFieldDuration(1, 0, 0));
-    maintain(form, second);
-    reduce(form, third, new ThreeFieldDuration(1, 0, 0));
+    extend(form, initial.getId().toString(), new ThreeFieldDuration(1, 0, 0));
+    maintain(form, second.getId().toString());
+    reduce(form, third.getId().toString(), new ThreeFieldDuration(1, 0, 0));
 
     recordDurationChangesService.saveDurationChanges(form, applicationDetail);
 
@@ -173,12 +177,77 @@ class RecordDurationChangesServiceTest {
         .thenReturn(List.of(existingReduction));
 
     var form = new RecordDurationChangesForm();
-    maintain(form, second);
+    maintain(form, second.getId().toString());
 
     recordDurationChangesService.saveDurationChanges(form, applicationDetail);
 
     verify(recordOfDecisionReductionRepository).delete(existingReduction);
     verify(recordOfDecisionReductionRepository, never()).save(existingReduction);
+  }
+
+  @Test
+  void saveDurationChanges_whenChangeTypeIsForAPhase_extensionAndReductionAreLinkedToThePhaseNotTheTerm() {
+    var term = initialTerm();
+    var extendedPhase = phaseA(term);
+    var reducedPhase = phaseB(term);
+    mockSchedule(List.of(term));
+    when(licenceSchedulePhaseRepository.findAllByLicenceScheduleTerm(term))
+        .thenReturn(List.of(extendedPhase, reducedPhase));
+    when(licenceSchedulePhaseRepository.findById(extendedPhase.getId())).thenReturn(Optional.of(extendedPhase));
+    when(licenceSchedulePhaseRepository.findById(reducedPhase.getId())).thenReturn(Optional.of(reducedPhase));
+    when(recordOfDecisionExtensionRepository
+        .findByScheduleWorkProgrammeApplicationDetailAndLicenceSchedulePhaseId(applicationDetail, extendedPhase.getId()))
+        .thenReturn(Optional.empty());
+    when(recordOfDecisionReductionRepository
+        .findByScheduleWorkProgrammeApplicationDetailAndLicenceSchedulePhaseId(applicationDetail, reducedPhase.getId()))
+        .thenReturn(Optional.empty());
+
+    var residualExtension = new RecordOfDecisionExtension();
+    residualExtension.setLicenceSchedulePhase(reducedPhase);
+    var residualReduction = new RecordOfDecisionReduction();
+    residualReduction.setLicenceSchedulePhase(extendedPhase);
+    when(recordOfDecisionExtensionRepository.findAllByScheduleWorkProgrammeApplicationDetail(applicationDetail))
+        .thenReturn(List.of(residualExtension));
+    when(recordOfDecisionReductionRepository.findAllByScheduleWorkProgrammeApplicationDetail(applicationDetail))
+        .thenReturn(List.of(residualReduction));
+
+    var form = new RecordDurationChangesForm();
+    extend(form, extendedPhase.getId().toString(), new ThreeFieldDuration(0, 6, 0));
+    reduce(form, reducedPhase.getId().toString(), new ThreeFieldDuration(0, 6, 0));
+
+    recordDurationChangesService.saveDurationChanges(form, applicationDetail);
+
+    var extensionCaptor = ArgumentCaptor.forClass(RecordOfDecisionExtension.class);
+    verify(recordOfDecisionExtensionRepository).save(extensionCaptor.capture());
+    assertThat(extensionCaptor.getValue().getLicenceSchedulePhase()).isEqualTo(extendedPhase);
+    assertThat(extensionCaptor.getValue().getLicenceScheduleTerm()).isNull();
+
+    var reductionCaptor = ArgumentCaptor.forClass(RecordOfDecisionReduction.class);
+    verify(recordOfDecisionReductionRepository).save(reductionCaptor.capture());
+    assertThat(reductionCaptor.getValue().getLicenceSchedulePhase()).isEqualTo(reducedPhase);
+    assertThat(reductionCaptor.getValue().getLicenceScheduleTerm()).isNull();
+
+    verify(recordOfDecisionExtensionRepository).delete(residualExtension);
+    verify(recordOfDecisionReductionRepository).delete(residualReduction);
+  }
+
+  @Test
+  void saveDurationChanges_whenAChangeTypeIsForAnUnknownOrUnselectedId_theEntryIsSkipped() {
+    var second = secondTerm();
+    mockSchedule(List.of(second));
+    when(recordOfDecisionExtensionRepository.findAllByScheduleWorkProgrammeApplicationDetail(applicationDetail))
+        .thenReturn(List.of());
+    when(recordOfDecisionReductionRepository.findAllByScheduleWorkProgrammeApplicationDetail(applicationDetail))
+        .thenReturn(List.of());
+
+    var form = new RecordDurationChangesForm();
+    extend(form, UUID.randomUUID().toString(), new ThreeFieldDuration(1, 0, 0));
+    form.getChangeType().put(second.getId().toString(), null);
+
+    recordDurationChangesService.saveDurationChanges(form, applicationDetail);
+
+    verify(recordOfDecisionExtensionRepository, never()).save(any(RecordOfDecisionExtension.class));
+    verify(recordOfDecisionReductionRepository, never()).save(any(RecordOfDecisionReduction.class));
   }
 
   @Test
@@ -211,7 +280,8 @@ class RecordDurationChangesServiceTest {
   void getFilledForm_populatesTheChangeTypeAndDurationAlreadyRecorded() {
     var initial = initialTerm();
     var second = secondTerm();
-    mockSchedule(List.of(initial, second));
+    var third = thirdTerm();
+    mockSchedule(List.of(initial, second, third));
     var extension = new RecordOfDecisionExtension();
     extension.setLicenceScheduleTerm(initial);
     extension.setExtensionDuration(new ThreeFieldDuration(1, 6, 0));
@@ -227,29 +297,28 @@ class RecordDurationChangesServiceTest {
 
     assertThat(form.getChangeType())
         .containsEntry(initial.getId().toString(), DurationChangeType.EXTEND)
-        .containsEntry(second.getId().toString(), DurationChangeType.REDUCE);
+        .containsEntry(second.getId().toString(), DurationChangeType.REDUCE)
+        .containsEntry(third.getId().toString(), DurationChangeType.MAINTAIN);
     assertThat(form.getExtendDuration().get(initial.getId().toString()).getYears()).isEqualTo("1");
     assertThat(form.getExtendDuration().get(initial.getId().toString()).getMonths()).isEqualTo("6");
   }
 
-  private void extend(RecordDurationChangesForm form, LicenceScheduleTerm term, ThreeFieldDuration duration) {
-    var id = term.getId().toString();
+  private void extend(RecordDurationChangesForm form, String id, ThreeFieldDuration duration) {
     form.getChangeType().put(id, DurationChangeType.EXTEND);
     var input = RecordDurationChangesForm.newExtendDurationInput(id);
     input.setFromThreeFieldDuration(duration);
     form.getExtendDuration().put(id, input);
   }
 
-  private void reduce(RecordDurationChangesForm form, LicenceScheduleTerm term, ThreeFieldDuration duration) {
-    var id = term.getId().toString();
+  private void reduce(RecordDurationChangesForm form, String id, ThreeFieldDuration duration) {
     form.getChangeType().put(id, DurationChangeType.REDUCE);
     var input = RecordDurationChangesForm.newReduceDurationInput(id);
     input.setFromThreeFieldDuration(duration);
     form.getReduceDuration().put(id, input);
   }
 
-  private void maintain(RecordDurationChangesForm form, LicenceScheduleTerm term) {
-    form.getChangeType().put(term.getId().toString(), DurationChangeType.MAINTAIN);
+  private void maintain(RecordDurationChangesForm form, String id) {
+    form.getChangeType().put(id, DurationChangeType.MAINTAIN);
   }
 
   @Test
@@ -321,6 +390,24 @@ class RecordDurationChangesServiceTest {
                 "1 February 2038", "1 February 2039", "5 years 1 month 1 day"),
             tuple(RecordDurationChangesService.REDUCED_BY.formatted("1 year"),
                 "2 March 2039", "2 March 2039", "1 month 1 day"));
+  }
+
+  @ParameterizedTest
+  @CsvSource({
+      "1, 0, 0, 1, 0, 0, true",
+      "0, 1, 0, 2, 0, 0, true",
+      "1, 0, 1, 1, 0, 0, false",
+      "0, 6, 0, 0, 3, 0, false",
+  })
+  void isReductionLongerThanPeriod(
+      int durationYears, int durationMonths, int durationDays,
+      int reductionYears, int reductionMonths, int reductionDays,
+      boolean expected
+  ) {
+    var duration = new ThreeFieldDuration(durationYears, durationMonths, durationDays);
+    var reduction = new ThreeFieldDuration(reductionYears, reductionMonths, reductionDays);
+
+    assertThat(recordDurationChangesService.isReductionLongerThanPeriod(duration, reduction)).isEqualTo(expected);
   }
 
   private void mockRecordedChanges(

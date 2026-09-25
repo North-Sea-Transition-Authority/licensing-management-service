@@ -253,7 +253,8 @@ class RecordDurationChangesControllerTest extends AbstractControllerTest {
         duration,
         new ThreeFieldDuration(4, 0, 0),
         canReduce,
-        canExtend);
+        canExtend,
+        false);
   }
 
   private ScheduleWorkProgrammeApplicationDetail buildApplicationDetail(UUID applicationDetailId) {

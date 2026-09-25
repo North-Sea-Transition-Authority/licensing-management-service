@@ -12,6 +12,9 @@ breadcrumbs=breadcrumbs>
         <#list durationChangeViews as view>
             <h2 class="govuk-heading-m">${view.displayName()}</h2>
 
+            <#if view.hasEnded()>
+                <p class="govuk-body">${view.endedMessage()}</p>
+            <#else>
             <@fdsRadio.radioGroup
                 path="form.changeType[${view.id()}]"
                 labelText="Duration"
@@ -53,6 +56,7 @@ breadcrumbs=breadcrumbs>
                 </@fdsRadio.radioItem>
 
             </@fdsRadio.radioGroup>
+            </#if>
 
             <@fdsSummaryList.summaryList>
                 <@fdsSummaryList.summaryListRowNoAction keyText="Current end date">

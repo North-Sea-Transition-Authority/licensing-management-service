@@ -90,7 +90,8 @@ public class RecordDurationChangesService {
           ThreeFieldDurationDisplayUtil.convertToDisplayText(candidate.duration()),
           toThreeFieldDuration(getSpan(candidate)),
           canReduce,
-          canExtend));
+          canExtend,
+          hasEnded(candidate, today)));
     }
 
     return views;

@@ -142,6 +142,36 @@ class RecordDurationChangesFormValidatorTest {
   }
 
   @Test
+  void isValid_whenAnEndedPeriodHasNoAnswer_assertNoErrorsAndItIsTreatedAsMaintained() {
+    var form = formWith(
+        change(INITIAL_ID, null, 0, 0, 0),
+        change(SECOND_ID, DurationChangeType.MAINTAIN, 0, 0, 0),
+        change(THIRD_ID, DurationChangeType.MAINTAIN, 0, 0, 0));
+    var bindingResult = new BeanPropertyBindingResult(form, "form");
+    mockViewsWithEndedInitialTerm();
+
+    var isValid = recordDurationChangesFormValidator.isValid(form, bindingResult, applicationDetail);
+
+    assertThat(isValid).isTrue();
+    assertThat(form.getChangeType()).containsEntry(INITIAL_ID, DurationChangeType.MAINTAIN);
+  }
+
+  @Test
+  void isValid_whenAnEndedPeriodIsPostedAsReduced_assertNoErrorsAndItIsTreatedAsMaintained() {
+    var form = formWith(
+        change(INITIAL_ID, DurationChangeType.REDUCE, 1, 0, 0),
+        change(SECOND_ID, DurationChangeType.MAINTAIN, 0, 0, 0),
+        change(THIRD_ID, DurationChangeType.MAINTAIN, 0, 0, 0));
+    var bindingResult = new BeanPropertyBindingResult(form, "form");
+    mockViewsWithEndedInitialTerm();
+
+    var isValid = recordDurationChangesFormValidator.isValid(form, bindingResult, applicationDetail);
+
+    assertThat(isValid).isTrue();
+    assertThat(form.getChangeType()).containsEntry(INITIAL_ID, DurationChangeType.MAINTAIN);
+  }
+
+  @Test
   void isValid_whenAReductionConsumesTheWholePeriod_assertError() {
     var form = formWith(
         change(INITIAL_ID, DurationChangeType.EXTEND, 4, 0, 0),
@@ -198,7 +228,21 @@ class RecordDurationChangesFormValidatorTest {
             view(THIRD_ID, TermType.THIRD, true, false)));
   }
 
+  private void mockViewsWithEndedInitialTerm() {
+    when(recordDurationChangesService.getDurationChangeViews(applicationDetail))
+        .thenReturn(List.of(
+            view(INITIAL_ID, TermType.INITIAL, false, false, true),
+            view(SECOND_ID, TermType.SECOND, false, true),
+            view(THIRD_ID, TermType.THIRD, true, false)));
+  }
+
   private RecordDurationChangeView view(String id, TermType termType, boolean canReduce, boolean canExtend) {
+    return view(id, termType, canReduce, canExtend, false);
+  }
+
+  private RecordDurationChangeView view(
+      String id, TermType termType, boolean canReduce, boolean canExtend, boolean hasEnded
+  ) {
     return new RecordDurationChangeView(
         id,
         termType.getDisplayName(),
@@ -207,6 +251,7 @@ class RecordDurationChangesFormValidatorTest {
         "4 years",
         new ThreeFieldDuration(4, 0, 0),
         canReduce,
-        canExtend);
+        canExtend,
+        hasEnded);
   }
 }

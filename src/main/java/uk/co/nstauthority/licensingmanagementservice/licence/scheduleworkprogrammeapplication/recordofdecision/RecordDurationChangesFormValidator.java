@@ -52,6 +52,10 @@ public class RecordDurationChangesFormValidator {
 
   private void initialiseFormFromViews(RecordDurationChangesForm form, List<RecordDurationChangeView> views) {
     for (RecordDurationChangeView view : views) {
+      if (view.hasEnded()) {
+        form.getChangeType().put(view.id(), DurationChangeType.MAINTAIN);
+      }
+
       form.getReduceDuration()
           .computeIfAbsent(view.id(), RecordDurationChangesForm::newReduceDurationInput);
       form.getExtendDuration()

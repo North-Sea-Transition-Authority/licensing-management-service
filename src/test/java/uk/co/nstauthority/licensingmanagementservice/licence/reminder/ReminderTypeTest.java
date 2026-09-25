@@ -12,4 +12,10 @@ class ReminderTypeTest {
   void getNoticePeriod_everyReminderTypeHasOne(ReminderType reminderType) {
     assertThat(reminderType.getNoticePeriod()).isEqualTo(NoticePeriod.SIX_MONTHS);
   }
+
+  @ParameterizedTest
+  @EnumSource(ReminderType.class)
+  void getDisplayName_everyReminderTypeHasOne(ReminderType reminderType) {
+    assertThat(reminderType.getDisplayName()).isNotBlank();
+  }
 }

@@ -173,6 +173,71 @@ class LicenceReminderRepositoryIntegrationTest {
     assertThatExceptionOfType(PersistenceException.class).isThrownBy(em::flush);
   }
 
+  @Test
+  void findAllBouncedAndUnreported_returnsRemindersWhoseEmailTheLibraryGaveUpOn() {
+    var reminder = licenceReminderRepository.save(buildReminder(UUID.randomUUID()));
+    insertNotification(reminder.getNotificationBatchReference(), "FAILED_NOT_SENT", "Email address does not exist");
+    em.flush();
+
+    var bounced = licenceReminderRepository.findAllBouncedAndUnreported();
+
+    assertThat(bounced)
+        .extracting(
+            BouncedReminder::getNotificationBatchReference,
+            BouncedReminder::getLicenceReference,
+            BouncedReminder::getResponsibleOrganisationId,
+            BouncedReminder::getReminderType,
+            BouncedReminder::getDeadlineDate,
+            BouncedReminder::getRecipient,
+            BouncedReminder::getFailureReason)
+        .containsExactly(tuple(
+            reminder.getNotificationBatchReference(),
+            "P001",
+            ORGANISATION_ID,
+            ReminderType.TERM_OR_PHASE_END,
+            DEADLINE,
+            "bp@example.com",
+            "Email address does not exist"));
+  }
+
+  @Test
+  void findAllBouncedAndUnreported_whenTheEmailWasDelivered_thenItIsNotReturned() {
+    var reminder = licenceReminderRepository.save(buildReminder(UUID.randomUUID()));
+    insertNotification(reminder.getNotificationBatchReference(), "SENT", null);
+    em.flush();
+
+    assertThat(licenceReminderRepository.findAllBouncedAndUnreported()).isEmpty();
+  }
+
+  @Test
+  void findAllBouncedAndUnreported_whenTheBounceWasAlreadyReported_thenItIsNotReturned() {
+    var reminder = licenceReminderRepository.save(buildReminder(UUID.randomUUID()));
+    insertNotification(reminder.getNotificationBatchReference(), "FAILED_NOT_SENT", "Email address does not exist");
+    var bounce = new LicenceReminderBounce();
+    bounce.setNotificationBatchReference(reminder.getNotificationBatchReference());
+    bounce.setReportedAt(Instant.parse("2026-03-01T08:00:00Z"));
+    em.persist(bounce);
+    em.flush();
+
+    assertThat(licenceReminderRepository.findAllBouncedAndUnreported()).isEmpty();
+  }
+
+  private void insertNotification(UUID batchReference, String status, String failureReason) {
+    em.createNativeQuery("""
+            INSERT INTO lms.notification_library_notifications
+              (id, type, status, notify_template_id, recipient, domain_reference_id, domain_reference_type,
+               requested_on, failure_reason)
+            VALUES (:id, 'EMAIL', :status, 'template', 'bp@example.com', :domainReferenceId, 'LICENCE_REMINDER',
+                    :requestedOn, :failureReason)
+            """)
+        .setParameter("id", UUID.randomUUID())
+        .setParameter("status", status)
+        .setParameter("domainReferenceId", batchReference.toString())
+        .setParameter("requestedOn", Instant.parse("2026-02-28T07:00:00Z"))
+        .setParameter("failureReason", failureReason)
+        .executeUpdate();
+  }
+
   private LicenceReminder buildReminder(UUID originalEventId, ReminderType reminderType) {
     var reminder = buildReminder(originalEventId);
     reminder.setReminderType(reminderType);

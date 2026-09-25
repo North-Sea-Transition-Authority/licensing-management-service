@@ -40,7 +40,7 @@ class LicenceScheduledJobServiceIntegrationTest {
   private LicenceStatusRepository licenceStatusRepository;
 
   @Autowired
-  private LicenceScheduledJobService licenceScheduledJobService;
+  private PearsLicenceRefreshService pearsLicenceRefreshService;
 
   private Licence licence;
   private Licence licence2;
@@ -91,7 +91,7 @@ class LicenceScheduledJobServiceIntegrationTest {
 
     when(licenceApi.searchLicences(any(LicenceSearchFilter.class), any(), any(), any())).thenReturn(epaResult);
 
-    licenceScheduledJobService.retrieveAndSavePearsLicences();
+    pearsLicenceRefreshService.refreshAllLicences();
 
     var licence3 = new Licence();
     licence3.setId(3);

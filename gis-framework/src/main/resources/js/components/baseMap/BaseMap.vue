@@ -27,15 +27,21 @@
       :refresh-counter="refreshCounter"
       @update:points="emit('update:points', $event)"
     />
-    <feature-layer v-if="mapRef" :features-url="featuresUrl" :refresh-counter="refreshCounter" :ol-map="mapRef"/>
+    <feature-layer
+      v-if="mapRef"
+      :features-url="featuresUrl"
+      :refresh-counter="refreshCounter"
+      :ol-map="mapRef"
+      :selected-feature-ids="selectedFeatureIds"
+    />
     <node-numbering-layer :outline-nodes-url="outlineNodesUrl" :refresh-counter="refreshCounter"/>
   </ol-map>
 </template>
 
 <script setup lang="ts">
 import type OlMap from "vue3-openlayers/map/OlMap";
-import type { SupportedWkid } from "../../coordinate-system-utils";
-import type { LinePoint, SnapPoint } from "../../grid-utils";
+import type { SupportedWkid } from "@/coordinate-system-utils";
+import type { LinePoint, SnapPoint } from "@/grid-utils";
 import { useGeographic } from "ol/proj";
 import { computed, CSSProperties, ref } from "vue";
 import DrawLineLayer from "./DrawLineLayer.vue";
@@ -59,6 +65,7 @@ interface BaseMapProps {
   // Optional override for the map's inline style. When omitted the map uses its default sizing;
   // wrappers can pass e.g. a full-height style to make the map fill a fixed-aspect container.
   mapStyleOverride?: CSSProperties,
+  selectedFeatureIds?: string[],
 }
 
 const props = withDefaults(defineProps<BaseMapProps>(), {

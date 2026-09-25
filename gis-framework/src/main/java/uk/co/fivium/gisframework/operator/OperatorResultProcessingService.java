@@ -44,23 +44,52 @@ public class OperatorResultProcessingService {
   }
 
   @Transactional
-  public Feature processOutputPolygon(List<Feature> inputFeatures,
-                                      String outputEsriJsonPolygon,
-                                      int resultFeatureNameSuffix) {
+  public Feature processOutputPolygon(
+      List<Feature> inputFeatures,
+      String outputEsriJsonPolygon,
+      int resultFeatureNameSuffix
+  ) {
+    return processPolygons(inputFeatures, List.of(outputEsriJsonPolygon), resultFeatureNameSuffix);
+  }
+
+  @Transactional
+  public Feature processOutputPolygons(
+      List<Feature> inputFeatures,
+      List<String> outputEsriJsonPolygons,
+      int resultFeatureNameSuffix
+  ) {
+    return processPolygons(inputFeatures, outputEsriJsonPolygons, resultFeatureNameSuffix);
+  }
+
+  private Feature processPolygons(
+      List<Feature> inputFeatures,
+      List<String> outputEsriJsonPolygons,
+      int resultFeatureNameSuffix
+  ) {
     var inputPolygons = polygonService.getPolygons(inputFeatures);
     var inputPolygonLines = lineService.getLines(inputPolygons);
 
-    var newLineEntities = buildLinesWithParentAttributes(outputEsriJsonPolygon, inputPolygonLines);
-    var newFeature = buildFeature(inputFeatures, newLineEntities, resultFeatureNameSuffix);
-    var newPolygon = buildPolygon(inputPolygons, newFeature);
-    newLineEntities.forEach(line -> line.setPolygon(newPolygon));
+    List<List<Line>> linesPerPolygon = outputEsriJsonPolygons.stream()
+        .map(json -> buildLinesWithParentAttributes(json, inputPolygonLines))
+        .toList();
 
-    numberLines(newLineEntities);
-    validateLinesAreValid(newLineEntities, outputEsriJsonPolygon);
+    List<Line> allLines = linesPerPolygon.stream().flatMap(List::stream).toList();
+
+    var newFeature = buildFeature(inputFeatures, allLines, resultFeatureNameSuffix);
+
+    List<Polygon> newPolygons = new ArrayList<>();
+    for (List<Line> polygonLines : linesPerPolygon) {
+      var newPolygon = buildPolygon(inputPolygons, newFeature);
+      polygonLines.forEach(line -> line.setPolygon(newPolygon));
+      newPolygons.add(newPolygon);
+    }
+
+    numberLines(allLines);
+    validateLinesAreValid(allLines, outputEsriJsonPolygons);
 
     featureService.saveFeature(newFeature);
-    polygonService.savePolygon(newPolygon);
-    lineService.saveLines(newLineEntities);
+    newPolygons.forEach(polygonService::savePolygon);
+    lineService.saveLines(allLines);
     return newFeature;
   }
 
@@ -177,13 +206,27 @@ public class OperatorResultProcessingService {
   }
 
   public void validateLinesAreValid(List<Line> newLineEntities, String outputPolygonEsriJson) {
-    boolean linesAreValid = grpcClientService
-        .validatePolygonReconstructionFromPolylines(newLineEntities, outputPolygonEsriJson);
-    if (!linesAreValid) {
-      throw new IllegalStateException(
-          "Cannot generate valid polygon from processed lines for output polygon with EsriJSON: %s"
-              .formatted(outputPolygonEsriJson)
-      );
+    validateLines(newLineEntities, List.of(outputPolygonEsriJson));
+  }
+
+  public void validateLinesAreValid(List<Line> newLineEntities, List<String> polygons) {
+    validateLines(newLineEntities, polygons);
+  }
+
+  private void validateLines(List<Line> newLineEntities, List<String> polygons) {
+    Map<Polygon, List<Line>> remainingByPolygon = newLineEntities.stream()
+        .collect(Collectors.groupingBy(Line::getPolygon));
+
+    List<String> unmatchedParts = new ArrayList<>(polygons);
+    for (var polyLines : remainingByPolygon.values()) {
+      String matched = unmatchedParts.stream()
+          .filter(polygon -> grpcClientService.validatePolygonReconstructionFromPolylines(polyLines, polygon))
+          .findFirst()
+          .orElseThrow(() -> new IllegalStateException(
+              "Cannot generate valid polygon from processed lines with EsriJSON: %s"
+                  .formatted(polyLines.stream().map(Line::getEsriJson).toList())));
+
+      unmatchedParts.remove(matched);
     }
   }
 
@@ -197,7 +240,7 @@ public class OperatorResultProcessingService {
       newFeature.setFeatureName("%s_%s".formatted(target.getFeatureName(), featureNameSuffix));
     } else {
       //merge operation
-      newFeature.setFeatureName("mergeResult_%s".formatted(featureNameSuffix));
+      newFeature.setFeatureName("mergeResult_%s".formatted(UUID.randomUUID().toString().substring(0, 4).toUpperCase()));
     }
     newFeature.setCoordinateSystem(target.getCoordinateSystem());
     newFeature.setFeatureArea(grpcClientService.calculateArea(newFeature.getCoordinateSystem(), newLineEntities));

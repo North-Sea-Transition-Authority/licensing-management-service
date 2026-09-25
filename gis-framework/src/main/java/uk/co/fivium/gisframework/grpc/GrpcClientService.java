@@ -41,6 +41,7 @@ import uk.co.fivium.grpc.gis.MigrateBlockOrSubAreaRequest;
 import uk.co.fivium.grpc.gis.MigrateBlockOrSubAreaResponse;
 import uk.co.fivium.grpc.gis.MigrateReferenceBlockRequest;
 import uk.co.fivium.grpc.gis.MigrateReferenceBlockResponse;
+import uk.co.fivium.grpc.gis.MultiPartToSinglePartRequest;
 import uk.co.fivium.grpc.gis.ParentLine;
 import uk.co.fivium.grpc.gis.PolygonContainsRequest;
 import uk.co.fivium.grpc.gis.ReferenceBlockValidationRequest;
@@ -171,6 +172,21 @@ public class GrpcClientService {
 
     var response = arcgisClient.mergePolygons(request);
     return response.getResultPolygon();
+  }
+
+  /**
+   * Split a polygon with multiple parts into single part polygons. Each clockwise
+   * outer ring becomes one polygon preserving its anti-clockwise holes.
+   * @param polygon EsriJson polygon (possibly multipart)
+   * @return EsriJson list of each disjoint single part polygon.
+   */
+  public List<String> multiPartToSinglePart(String polygon) {
+    var request = MultiPartToSinglePartRequest.newBuilder()
+        .setInputPolygon(polygon)
+        .build();
+
+    var response = arcgisClient.multiPartToSinglePart(request);
+    return response.getSinglePartPolygonsList();
   }
 
   /**

@@ -30,6 +30,11 @@ class MergeOperatorServiceTest {
       "{\"rings\":[[[0,0],[2,0],[2,2],[0,2],[0,0]]],\"spatialReference\":{\"wkid\":4326}}";
   private static final String SQUARE_WITH_MIDPOINT =
       "{\"rings\":[[[0,0],[1,0],[2,0],[2,2],[0,2],[0,0]]],\"spatialReference\":{\"wkid\":4326}}";
+  private static final String DISJOINT_SQUARE =
+      "{\"rings\":[[[10,10],[12,10],[12,12],[10,12],[10,10]]],\"spatialReference\":{\"wkid\":4326}}";
+  private static final String DISJOINT_MULTIPART_POLYGON =
+      "{\"rings\":[[[0,0],[2,0],[2,2],[0,2],[0,0]],[[10,10],[12,10],[12,12],[10,12],[10,10]]]," +
+          "\"spatialReference\":{\"wkid\":4326}}";
 
   @Mock
   private GrpcClientService grpcClientService;
@@ -64,13 +69,39 @@ class MergeOperatorServiceTest {
     when(polygonService.getPolygonsAsEsriJson(featureInput1, false)).thenReturn(List.of("esri 1"));
     when(polygonService.getPolygonsAsEsriJson(featureInput2, false)).thenReturn(List.of("esri 2"));
     when(grpcClientService.mergePolygons("esri 1", "esri 2")).thenReturn(SQUARE);
-    when(operatorResultProcessingService.processOutputPolygon(List.of(featureInput1, featureInput2), SQUARE, 1))
+    when(grpcClientService.multiPartToSinglePart(SQUARE)).thenReturn(List.of(SQUARE));
+    when(operatorResultProcessingService.processOutputPolygons(List.of(featureInput1, featureInput2), List.of(SQUARE), 0))
         .thenReturn(mergedFeature);
     when(grpcClientService.generalizePolygon(SQUARE)).thenReturn(SQUARE);
 
     var result = mergeOperatorService.mergePolygons(List.of(featureInput1, featureInput2));
 
     assertThat(result).isEqualTo(mergedFeature);
+    verify(lineService, never()).deleteLines(any());
+    verify(lineService, never()).saveLines(any());
+  }
+
+  @Test
+  void mergePolygons_whenDisjointResult_thenSplitsIntoSinglePartsAndProcessesEachPart() {
+    var featureInput1 = FeatureTestUtil.newBuilder().build();
+    var featureInput2 = FeatureTestUtil.newBuilder().build();
+    var mergedFeature = FeatureTestUtil.newBuilder().build();
+
+    when(polygonService.getPolygonsAsEsriJson(featureInput1, false)).thenReturn(List.of("esri 1"));
+    when(polygonService.getPolygonsAsEsriJson(featureInput2, false)).thenReturn(List.of("esri 2"));
+    when(grpcClientService.mergePolygons("esri 1", "esri 2")).thenReturn(DISJOINT_MULTIPART_POLYGON);
+    when(grpcClientService.multiPartToSinglePart(DISJOINT_MULTIPART_POLYGON))
+        .thenReturn(List.of(SQUARE, DISJOINT_SQUARE));
+    when(operatorResultProcessingService.processOutputPolygons(
+        List.of(featureInput1, featureInput2), List.of(SQUARE, DISJOINT_SQUARE), 0)).thenReturn(mergedFeature);
+    when(grpcClientService.generalizePolygon(SQUARE)).thenReturn(SQUARE);
+    when(grpcClientService.generalizePolygon(DISJOINT_SQUARE)).thenReturn(DISJOINT_SQUARE);
+
+    var result = mergeOperatorService.mergePolygons(List.of(featureInput1, featureInput2));
+
+    assertThat(result).isEqualTo(mergedFeature);
+    verify(grpcClientService).generalizePolygon(SQUARE);
+    verify(grpcClientService).generalizePolygon(DISJOINT_SQUARE);
     verify(lineService, never()).deleteLines(any());
     verify(lineService, never()).saveLines(any());
   }
@@ -92,8 +123,9 @@ class MergeOperatorServiceTest {
     when(polygonService.getPolygonsAsEsriJson(featureInput1, false)).thenReturn(List.of("esri 1"));
     when(polygonService.getPolygonsAsEsriJson(featureInput2, false)).thenReturn(List.of("esri 2"));
     when(grpcClientService.mergePolygons("esri 1", "esri 2")).thenReturn(SQUARE_WITH_MIDPOINT);
-    when(operatorResultProcessingService.processOutputPolygon(
-        List.of(featureInput1, featureInput2), SQUARE_WITH_MIDPOINT, 1)).thenReturn(mergedFeature);
+    when(grpcClientService.multiPartToSinglePart(SQUARE_WITH_MIDPOINT)).thenReturn(List.of(SQUARE_WITH_MIDPOINT));
+    when(operatorResultProcessingService.processOutputPolygons(
+        List.of(featureInput1, featureInput2), List.of(SQUARE_WITH_MIDPOINT), 0)).thenReturn(mergedFeature);
     when(grpcClientService.generalizePolygon(SQUARE_WITH_MIDPOINT)).thenReturn(SQUARE);
     when(polygonService.findAllByFeature(mergedFeature)).thenReturn(List.of(polygon));
     when(lineService.getLines(List.of(polygon)))
@@ -109,7 +141,7 @@ class MergeOperatorServiceTest {
     var remainingLines = List.of(lineToInnerVertex, line3, line4, line5);
     verify(lineService).deleteLines(List.of(lineFromInnerVertex));
     verify(operatorResultProcessingService).numberLines(remainingLines);
-    verify(operatorResultProcessingService).validateLinesAreValid(remainingLines, SQUARE_WITH_MIDPOINT);
+    verify(operatorResultProcessingService).validateLinesAreValid(remainingLines, List.of(SQUARE_WITH_MIDPOINT));
     verify(lineService).saveLines(remainingLines);
   }
 
@@ -129,8 +161,9 @@ class MergeOperatorServiceTest {
     when(polygonService.getPolygonsAsEsriJson(featureInput1, false)).thenReturn(List.of("esri 1"));
     when(polygonService.getPolygonsAsEsriJson(featureInput2, false)).thenReturn(List.of("esri 2"));
     when(grpcClientService.mergePolygons("esri 1", "esri 2")).thenReturn(SQUARE_WITH_MIDPOINT);
-    when(operatorResultProcessingService.processOutputPolygon(
-        List.of(featureInput1, featureInput2), SQUARE_WITH_MIDPOINT, 1)).thenReturn(mergedFeature);
+    when(grpcClientService.multiPartToSinglePart(SQUARE_WITH_MIDPOINT)).thenReturn(List.of(SQUARE_WITH_MIDPOINT));
+    when(operatorResultProcessingService.processOutputPolygons(
+        List.of(featureInput1, featureInput2), List.of(SQUARE_WITH_MIDPOINT), 0)).thenReturn(mergedFeature);
     when(grpcClientService.generalizePolygon(SQUARE_WITH_MIDPOINT)).thenReturn(SQUARE);
     when(polygonService.findAllByFeature(mergedFeature)).thenReturn(List.of(polygon));
     when(lineService.getLines(List.of(polygon)))

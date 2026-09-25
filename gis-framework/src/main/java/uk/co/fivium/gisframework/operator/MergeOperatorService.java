@@ -14,8 +14,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import uk.co.fivium.gisframework.feature.Feature;
 import uk.co.fivium.gisframework.feature.Line;
@@ -26,8 +24,6 @@ import uk.co.fivium.gisframework.grpc.GrpcClientService;
 
 @Service
 public class MergeOperatorService {
-
-  private static final Logger LOGGER = LoggerFactory.getLogger(MergeOperatorService.class);
 
   private final GrpcClientService grpcClientService;
   private final OperatorResultProcessingService operatorResultProcessingService;
@@ -52,15 +48,16 @@ public class MergeOperatorService {
       throw new IllegalArgumentException("Must provide at least two input features");
     }
 
-    //TODO - EPGF-72: Handle disjoint polygon merge
     String resultEsriJsonPolygon = inputFeatures.stream()
-        .map(feature -> polygonService.getPolygonsAsEsriJson(feature, false).getFirst())
+        .flatMap(feature -> polygonService.getPolygonsAsEsriJson(feature, false).stream())
         .reduce(grpcClientService::mergePolygons)
         .orElseThrow();
 
-    var newFeature = operatorResultProcessingService.processOutputPolygon(inputFeatures, resultEsriJsonPolygon, 1);
+    List<String> singlePartPolygons = grpcClientService.multiPartToSinglePart(resultEsriJsonPolygon);
 
-    removeInnerVertices(resultEsriJsonPolygon, newFeature);
+    var newFeature = operatorResultProcessingService.processOutputPolygons(inputFeatures, singlePartPolygons, 0);
+
+    removeInnerVertices(singlePartPolygons, newFeature);
 
     return newFeature;
   }
@@ -72,9 +69,10 @@ public class MergeOperatorService {
    * If they have different attributes, keep them separate so each retains
    * its parent's attributes.
    */
-  private void removeInnerVertices(String originalPolygonEsriJson,
-                                   Feature newFeature) {
-    Set<Point2D> innerVertices = findInnerVertices(originalPolygonEsriJson);
+  private void removeInnerVertices(List<String> polygons, Feature newFeature) {
+    Set<Point2D> innerVertices = polygons.stream()
+        .flatMap(polygon -> findInnerVertices(polygon).stream())
+        .collect(Collectors.toCollection(HashSet::new));
 
     if (innerVertices.isEmpty()) {
       return;
@@ -122,7 +120,7 @@ public class MergeOperatorService {
           .toList();
 
       operatorResultProcessingService.numberLines(remainingLines);
-      operatorResultProcessingService.validateLinesAreValid(remainingLines, originalPolygonEsriJson);
+      operatorResultProcessingService.validateLinesAreValid(remainingLines, polygons);
       lineService.saveLines(remainingLines);
     }
   }

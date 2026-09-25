@@ -67,6 +67,8 @@ import uk.co.fivium.grpc.gis.MigrateBlockOrSubAreaRequest;
 import uk.co.fivium.grpc.gis.MigrateBlockOrSubAreaResponse;
 import uk.co.fivium.grpc.gis.MigrateReferenceBlockRequest;
 import uk.co.fivium.grpc.gis.MigrateReferenceBlockResponse;
+import uk.co.fivium.grpc.gis.MultiPartToSinglePartRequest;
+import uk.co.fivium.grpc.gis.MultiPartToSinglePartResponse;
 import uk.co.fivium.grpc.gis.ParentLine;
 import uk.co.fivium.grpc.gis.PolygonContainsRequest;
 import uk.co.fivium.grpc.gis.PolygonContainsResponse;
@@ -684,6 +686,23 @@ class GrpcClientServiceTest {
 
     when(arcgisClient.mergePolygons(expectedRequest)).thenReturn(expectedResponse);
     assertThat(grpcClientService.mergePolygons(polygon1, polygon2)).isEqualTo("dummy esriJson merged polygon");
+  }
+
+  @Test
+  void multiPartToSinglePart_verifyServiceClientCall() {
+    var polygon = "dummy esriJson multipart polygon";
+
+    var expectedRequest = MultiPartToSinglePartRequest.newBuilder()
+        .setInputPolygon(polygon)
+        .build();
+    var expectedResponse = MultiPartToSinglePartResponse.newBuilder()
+        .addAllSinglePartPolygons(List.of("dummy esriJson part 1", "dummy esriJson part 2"))
+        .build();
+
+    when(arcgisClient.multiPartToSinglePart(expectedRequest)).thenReturn(expectedResponse);
+
+    assertThat(grpcClientService.multiPartToSinglePart(polygon))
+        .containsExactly("dummy esriJson part 1", "dummy esriJson part 2");
   }
 
   @Test

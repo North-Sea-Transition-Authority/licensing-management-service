@@ -29,11 +29,16 @@ interface Props {
   olMap: InstanceType<typeof OlMap>,
   fillColor?: [number, number, number],
   strokeColor?: [number, number, number, number],
+  selectedFillColor?: [number, number, number],
+  selectedStrokeColor?: [number, number, number, number],
+  selectedFeatureIds?: string[],
 }
 
 const props = withDefaults(defineProps<Props>(), {
   fillColor: () => [255, 221, 0], // yellow
   strokeColor: () => [0, 0, 0, 1], // black
+  selectedStrokeColor: () => [212, 53, 28, 1], // red
+  selectedFillColor: () => [212, 53, 28], // red
 });
 
 const esriJson = new EsriJSON();
@@ -52,15 +57,15 @@ watch(() => props.refreshCounter, async () => {
   }
 });
 
+watch(() => props.selectedFeatureIds, () => {
+  vectorSourceRef.value?.source?.changed();
+}, { deep: true });
+
 function featureStyle(feature: Feature<Geometry>) {
+  const selected = props.selectedFeatureIds?.includes(feature.get("featureId"));
   return new Style({
-    stroke: new Stroke({
-      color: props.strokeColor,
-      width: 2,
-    }),
-    fill: new Fill({
-      color: [...props.fillColor, 0.50],
-    }),
+    stroke: new Stroke({ color: selected ? props.selectedStrokeColor : props.strokeColor, width: selected ? 4 : 2 }),
+    fill: new Fill({ color: selected ? [...props.selectedFillColor, 0.50] : [...props.fillColor, 0.50] }),
     text: new Text({
       text: feature.get("featureName") || "",
       font: featureLabelFont,

@@ -4,7 +4,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -334,7 +337,7 @@ class OperatorResultProcessingServiceTest {
     verify(featureService).saveFeature(featureCaptor.capture());
     var savedFeature = featureCaptor.getValue();
     var expectedFeature = FeatureTestUtil.newBuilder()
-        .withFeatureName("mergeResult_1")
+        .withFeatureName("mergeResult_[0-9A-F]{4}")
         .withCoordinateSystem(CoordinateSystem.ED50)
         .withAttributes(FEATURE_ATTRIBUTES)
         .withFeatureArea(BigDecimal.TEN)
@@ -342,8 +345,85 @@ class OperatorResultProcessingServiceTest {
         .withEndDate(null)
         .build();
     assertThat(savedFeature).usingRecursiveComparison()
-        .ignoringFields("id", "legacyId")
+        .ignoringFields("id", "legacyId", "featureName")
         .isEqualTo(expectedFeature);
+    assertThat(savedFeature.getFeatureName()).matches("mergeResult_[0-9A-F]{4}");
+  }
+
+  @Test
+  void processOutputPolygons_whenMultipleOutputParts_buildsAndSavesOnePolygonPerPart() {
+    var feature2 = FeatureTestUtil.newBuilder().build();
+    var inputPolygon = PolygonTestUtil.newBuilder().withFeature(FEATURE).build();
+    var inputLine = LineTestUtil.newBuilder()
+        .withPolygon(inputPolygon)
+        .withNavigationType(LineNavigationType.CARTESIAN)
+        .build();
+    var outputPart1 = "output part 1";
+    var outputPart2 = "output part 2";
+    var outputLine1 = "output line 1";
+    var outputLine2 = "output line 2";
+
+    when(polygonService.getPolygons(List.of(FEATURE, feature2))).thenReturn(List.of(inputPolygon));
+    when(lineService.getLines(List.of(inputPolygon))).thenReturn(List.of(inputLine));
+    when(grpcClientService.explodePolygon(outputPart1)).thenReturn(List.of(outputLine1));
+    when(grpcClientService.explodePolygon(outputPart2)).thenReturn(List.of(outputLine2));
+    when(grpcClientService.findParentLines(List.of(inputLine), List.of(outputLine1)))
+        .thenReturn(new FindParentLineResponse(Map.of(), List.of(outputLine1)));
+    when(grpcClientService.findParentLines(List.of(inputLine), List.of(outputLine2)))
+        .thenReturn(new FindParentLineResponse(Map.of(), List.of(outputLine2)));
+    when(grpcClientService.validatePolygonReconstructionFromPolylines(anyList(), anyString())).thenReturn(true);
+    when(grpcClientService.calculateArea(eq(FEATURE.getCoordinateSystem()), anyList())).thenReturn(BigDecimal.TEN);
+
+    operatorResultProcessingService.processOutputPolygons(List.of(FEATURE, feature2), List.of(outputPart1, outputPart2), 1);
+
+    verify(featureService).saveFeature(featureCaptor.capture());
+    assertThat(featureCaptor.getValue().getFeatureName()).matches("mergeResult_[0-9A-F]{4}");
+
+    verify(polygonService, times(2)).savePolygon(polygonCaptor.capture());
+    var savedPolygons = polygonCaptor.getAllValues();
+    assertThat(savedPolygons).hasSize(2);
+
+    verify(lineService).saveLines(linesCaptor.capture());
+    var savedLines = linesCaptor.getValue();
+    assertThat(savedLines)
+        .extracting(Line::getEsriJson, Line::getPolygon)
+        .containsExactly(
+            tuple(outputLine1, savedPolygons.get(0)),
+            tuple(outputLine2, savedPolygons.get(1))
+        );
+  }
+
+  @Test
+  void validateLinesAreValidForParts_whenEachPolygonReconstructsFromAPart_matchesEachPartOnce() {
+    var polygon1 = PolygonTestUtil.newBuilder().build();
+    var polygon2 = PolygonTestUtil.newBuilder().build();
+    var line1 = LineTestUtil.newBuilder().withPolygon(polygon1).build();
+    var line2 = LineTestUtil.newBuilder().withPolygon(polygon2).build();
+    var part1 = "part 1";
+    var part2 = "part 2";
+
+    when(grpcClientService.validatePolygonReconstructionFromPolylines(anyList(), anyString())).thenReturn(true);
+
+    operatorResultProcessingService.validateLinesAreValid(List.of(line1, line2), List.of(part1, part2));
+
+    verify(grpcClientService, times(2)).validatePolygonReconstructionFromPolylines(anyList(), anyString());
+  }
+
+  @Test
+  void validateLinesAreValidForParts_whenAPolygonCannotBeReconstructedFromAnyPart_throwsException() {
+    var polygon = PolygonTestUtil.newBuilder().build();
+    var line = LineTestUtil.newBuilder().withPolygon(polygon).withEsriJson("line json").build();
+    var lines = List.of(line);
+    var parts = List.of("part 1");
+
+    when(grpcClientService.validatePolygonReconstructionFromPolylines(lines, "part 1")).thenReturn(false);
+
+    assertThatThrownBy(() -> operatorResultProcessingService.validateLinesAreValid(lines, parts))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessage(
+            "Cannot generate valid polygon from processed lines with EsriJSON: %s",
+            List.of("line json")
+        );
   }
 
   @Test
@@ -489,8 +569,8 @@ class OperatorResultProcessingServiceTest {
     assertThatThrownBy(() -> operatorResultProcessingService.validateLinesAreValid(lines, outputPolygonEsriJson))
         .isInstanceOf(IllegalStateException.class)
         .hasMessage(
-            "Cannot generate valid polygon from processed lines for output polygon with EsriJSON: %s",
-            outputPolygonEsriJson
+            "Cannot generate valid polygon from processed lines with EsriJSON: %s"
+                .formatted(lines.stream().map(Line::getEsriJson).toList())
         );
 
     verify(grpcClientService).validatePolygonReconstructionFromPolylines(lines, outputPolygonEsriJson);

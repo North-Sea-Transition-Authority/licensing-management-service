@@ -82,4 +82,14 @@ public class GisTestController {
         .addObject(SRS_WKID_MODEL_NAME,
             CoordinateSystemUtils.getWkid(features.getFirst().getCoordinateSystem()));
   }
+
+  @GetMapping("/merge-disjoint")
+  public ModelAndView renderMergeDisjoint() {
+    var features = featureService.findAllByTestCase("EPGF-72");
+    var commandJourney = commandJourneyService.findOrCreateCommandJourneyForFeatures(features);
+    return new ModelAndView("lms/mockups/gis/mergeMapTester")
+        .addObject("commandJourneyId", commandJourney.getId().toString())
+        .addObject(SRS_WKID_MODEL_NAME,
+            CoordinateSystemUtils.getWkid(features.getFirst().getCoordinateSystem()));
+  }
 }

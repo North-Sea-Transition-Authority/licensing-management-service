@@ -174,6 +174,33 @@ class GisTestControllerTest extends AbstractControllerTest {
         .andExpect(model().attribute("srsWkid", 4230));
   }
 
+  @Test
+  void renderMergeDisjoint_whenNotLoggedIn() throws Exception {
+    mockMvc.perform(get(ReverseRouter.route(on(GisTestController.class).renderMergeDisjoint())))
+        .andExpect(status().is3xxRedirection())
+        .andExpect(redirectionToLoginUrl());
+  }
+
+  @Test
+  void renderMergeDisjoint_assertModelProperties() throws Exception {
+    UUID featureId = UUID.randomUUID();
+    var feature = getMockFeature(featureId);
+    when(feature.getCoordinateSystem()).thenReturn(CoordinateSystem.ED50);
+    var commandJourneyId = UUID.randomUUID();
+    var commandJourney = mock(CommandJourney.class);
+    when(commandJourney.getId()).thenReturn(commandJourneyId);
+
+    when(featureService.findAllByTestCase("EPGF-72")).thenReturn(List.of(feature));
+    when(commandJourneyService.findOrCreateCommandJourneyForFeatures(List.of(feature))).thenReturn(commandJourney);
+
+    mockMvc.perform(get(ReverseRouter.route(on(GisTestController.class).renderMergeDisjoint()))
+            .with(user(regulatorUser)))
+        .andExpect(status().isOk())
+        .andExpect(view().name("lms/mockups/gis/mergeMapTester"))
+        .andExpect(model().attribute("commandJourneyId", commandJourneyId.toString()))
+        .andExpect(model().attribute("srsWkid", 4230));
+  }
+
   private Feature getMockFeature(UUID featureId) {
     var mock = mock(Feature.class);
     when(mock.getId()).thenReturn(featureId);

@@ -13,3 +13,4 @@ export type FindNorthwestMostLineHandler = ArcGisServiceHandlers["findNorthwestM
 export type GetLineStartAndEndPointsHandler = ArcGisServiceHandlers["getLineStartAndEndPoints"];
 export type ValidatePolygonReconstructionFromPolylinesHandler = ArcGisServiceHandlers["validatePolygonReconstructionFromPolylines"];
 export type PolygonContainsHandler = ArcGisServiceHandlers["polygonContains"];
+export type MultiPartToSinglePartHandler = ArcGisServiceHandlers["multiPartToSinglePart"];

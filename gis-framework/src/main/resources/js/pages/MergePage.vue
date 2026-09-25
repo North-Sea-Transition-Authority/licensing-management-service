@@ -22,6 +22,7 @@
           :include-draw-line="false"
           :refresh-counter="refreshCounter"
           :map-style-override="mapStyleOverride"
+          :selected-feature-ids="selectedFeatureIds"
         />
       </div>
       <div class="gis-merge-layout__side">
@@ -41,7 +42,7 @@
       form-group-class="govuk-!-margin-top-4"
     >
       <gv-checkbox
-        v-for="feature in features"
+        v-for="feature in sortedFeatures"
         :key="feature.featureId"
         :value="feature.featureId"
         :label="feature.featureName"
@@ -108,6 +109,9 @@ const mapStyleOverride: CSSProperties = {
 
 const featuresUrl = computed(() => buildCommandJourneyUrl(props.featuresBaseUrl, props.commandJourneyId));
 const outlineNodesUrl = computed(() => buildCommandJourneyUrl(props.outlineNodesBaseUrl, props.commandJourneyId));
+const sortedFeatures = computed(() =>
+  [...features.value].sort((a, b) => a.featureName.localeCompare(b.featureName, undefined, { numeric: true })),
+);
 
 async function loadFeatures() {
   try {

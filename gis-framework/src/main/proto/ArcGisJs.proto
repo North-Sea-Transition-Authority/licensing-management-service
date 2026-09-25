@@ -32,6 +32,8 @@ import "coordinatesToPolyline/CoordinatesToPolylineRequest.proto";
 import "coordinatesToPolyline/CoordinatesToPolylineResponse.proto";
 import "mergePolygons/MergePolygonsRequest.proto";
 import "mergePolygons/MergePolygonsResponse.proto";
+import "multiPartToSinglePart/MultiPartToSinglePartRequest.proto";
+import "multiPartToSinglePart/MultiPartToSinglePartResponse.proto";
 import "generalizePolygon/GeneralizePolygonRequest.proto";
 import "generalizePolygon/GeneralizePolygonResponse.proto";
 import "mergeAndGeneralizeLines/MergeAndGeneralizeLinesRequest.proto";
@@ -58,6 +60,7 @@ service ArcGisService {
   rpc validateReferenceBlock (ReferenceBlockValidationRequest) returns (ValidationResponse) {};
   rpc coordinatesToPolyline (CoordinatesToPolylineRequest) returns (CoordinatesToPolylineResponse) {};
   rpc mergePolygons (MergePolygonsRequest) returns (MergePolygonsResponse) {};
+  rpc multiPartToSinglePart (MultiPartToSinglePartRequest) returns (MultiPartToSinglePartResponse) {};
   rpc generalizePolygon (GeneralizePolygonRequest) returns (GeneralizePolygonResponse) {};
   rpc mergeAndGeneralizeLines (MergeAndGeneralizeLinesRequest) returns (MergeAndGeneralizeLinesResponse) {};
   rpc polygonContains (PolygonContainsRequest) returns (PolygonContainsResponse) {};

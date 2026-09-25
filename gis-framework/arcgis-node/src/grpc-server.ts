@@ -17,6 +17,7 @@ import { generalizePolygonHandler } from "./handlers/generalize-polygon-handler"
 import { getLineStartAndEndPointsHandler } from "./handlers/get-line-start-and-end-points-handler";
 import { mergeAndGeneralizeLinesHandler } from "./handlers/merge-and-generalize-lines-handler";
 import { mergePolygonsHandler } from "./handlers/merge-polygons-handler";
+import { multiPartToSinglePartHandler } from "./handlers/multi-part-to-single-part-handler";
 import { polygonContainsHandler } from "./handlers/polygon-contains-handler";
 import { splitPolygonHandler } from "./handlers/split-polygon-handler";
 import {
@@ -88,6 +89,7 @@ function startGrpcServer(arcGisJsProto: ProtoGrpcType["uk"]["co"]["fivium"]["grp
     migrateReferenceBlock: migrateReferenceBlockHandler,
     validateReferenceBlock,
     mergePolygons: mergePolygonsHandler,
+    multiPartToSinglePart: multiPartToSinglePartHandler,
     generalizePolygon: generalizePolygonHandler,
     mergeAndGeneralizeLines: mergeAndGeneralizeLinesHandler,
   });

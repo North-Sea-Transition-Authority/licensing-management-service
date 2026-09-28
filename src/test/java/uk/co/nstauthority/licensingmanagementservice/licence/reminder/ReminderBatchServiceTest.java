@@ -30,6 +30,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivity;
 
 @ExtendWith(MockitoExtension.class)
 class ReminderBatchServiceTest {
@@ -60,8 +61,7 @@ class ReminderBatchServiceTest {
     var initialTerm = deadline(TermType.INITIAL.getDisplayName());
     var secondTerm = deadline(TermType.SECOND.getDisplayName());
 
-    reminderBatchService.queueBatch(
-        RECIPIENT, DEADLINE_DATE, List.of(initialTerm, secondTerm), ReminderType.TERM_OR_PHASE_END);
+    reminderBatchService.queueBatch(RECIPIENT, DEADLINE_DATE, List.of(initialTerm, secondTerm));
 
     verify(licenceReminderRepository).saveAllAndFlush(remindersCaptor.capture());
 
@@ -85,17 +85,43 @@ class ReminderBatchServiceTest {
   }
 
   @Test
+  void queueBatch_whenTheDeadlinesAreOfDifferentTypes_thenEachRowKeepsItsOwnType() {
+    mockClock();
+    var initialTerm = deadline(TermType.INITIAL.getDisplayName());
+    var activity = new ReminderDeadline(
+        new WorkProgrammeActivity(),
+        UUID.randomUUID(),
+        LicenceTestUtil.builder().withId(1).withLicenceReference("P001").build(),
+        DEADLINE_DATE,
+        "Drill well: Drill one exploration well",
+        ReminderType.WORK_PROGRAMME_ACTIVITY);
+
+    reminderBatchService.queueBatch(RECIPIENT, DEADLINE_DATE, List.of(initialTerm, activity));
+
+    verify(licenceReminderRepository).saveAllAndFlush(remindersCaptor.capture());
+
+    var reminders = remindersCaptor.getValue();
+    assertThat(reminders)
+        .extracting(LicenceReminder::getNotificationBatchReference)
+        .containsOnly(reminders.getFirst().getNotificationBatchReference());
+    assertThat(reminders)
+        .extracting(LicenceReminder::getReminderType, LicenceReminder::getNoticePeriod)
+        .containsExactly(
+            Tuple.tuple(ReminderType.TERM_OR_PHASE_END, NoticePeriod.SIX_MONTHS),
+            Tuple.tuple(ReminderType.WORK_PROGRAMME_ACTIVITY, NoticePeriod.SIX_MONTHS));
+  }
+
+  @Test
   void queueBatch_flushesTheRowsBeforeQueueingTheEmail() {
     mockClock();
     var deadline = deadline(TermType.INITIAL.getDisplayName());
 
-    reminderBatchService.queueBatch(
-        RECIPIENT, DEADLINE_DATE, List.of(deadline), ReminderType.TERM_OR_PHASE_END);
+    reminderBatchService.queueBatch(RECIPIENT, DEADLINE_DATE, List.of(deadline));
 
     InOrder inOrder = Mockito.inOrder(licenceReminderRepository, reminderEmailService);
     inOrder.verify(licenceReminderRepository).saveAllAndFlush(anyCollection());
     inOrder.verify(reminderEmailService).queueReminder(
-        eq(RECIPIENT), eq(DEADLINE_DATE), anyCollection(), any(UUID.class), eq(ReminderType.TERM_OR_PHASE_END));
+        eq(RECIPIENT), eq(DEADLINE_DATE), anyCollection(), any(UUID.class));
   }
 
   @Test
@@ -107,9 +133,9 @@ class ReminderBatchServiceTest {
     var deadlines = List.of(deadline(TermType.INITIAL.getDisplayName()));
 
     assertThatExceptionOfType(RuntimeException.class).isThrownBy(() ->
-        reminderBatchService.queueBatch(RECIPIENT, DEADLINE_DATE, deadlines, ReminderType.TERM_OR_PHASE_END));
+        reminderBatchService.queueBatch(RECIPIENT, DEADLINE_DATE, deadlines));
 
-    verify(reminderEmailService, never()).queueReminder(any(), any(), anyCollection(), any(), any());
+    verify(reminderEmailService, never()).queueReminder(any(), any(), anyCollection(), any());
   }
 
   @Test
@@ -120,12 +146,11 @@ class ReminderBatchServiceTest {
     reminderBatchService.queueBatch(
         RECIPIENT,
         DEADLINE_DATE,
-        List.of(deadline(TermType.INITIAL.getDisplayName())),
-        ReminderType.TERM_OR_PHASE_END);
+        List.of(deadline(TermType.INITIAL.getDisplayName())));
 
     verify(licenceReminderRepository).saveAllAndFlush(remindersCaptor.capture());
     verify(reminderEmailService).queueReminder(
-        eq(RECIPIENT), eq(DEADLINE_DATE), anyCollection(), batchReferenceCaptor.capture(), eq(ReminderType.TERM_OR_PHASE_END));
+        eq(RECIPIENT), eq(DEADLINE_DATE), anyCollection(), batchReferenceCaptor.capture());
 
     assertThat(batchReferenceCaptor.getValue())
         .isEqualTo(remindersCaptor.getValue().getFirst().getNotificationBatchReference());

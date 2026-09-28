@@ -101,8 +101,7 @@ public class ReminderService {
 
   private boolean queueBatch(BatchKey batchKey, List<ReminderDeadline> deadlines) {
     try {
-      reminderBatchService.queueBatch(
-          batchKey.recipient(), batchKey.deadlineDate(), deadlines, batchKey.reminderType());
+      reminderBatchService.queueBatch(batchKey.recipient(), batchKey.deadlineDate(), deadlines);
       return true;
     } catch (Exception e) {
       LOGGER.error(
@@ -136,9 +135,7 @@ public class ReminderService {
         }
 
         batches
-            .computeIfAbsent(
-                new BatchKey(recipient, deadline.deadlineDate(), deadline.reminderType()),
-                key -> new ArrayList<>())
+            .computeIfAbsent(new BatchKey(recipient, deadline.deadlineDate()), key -> new ArrayList<>())
             .add(deadline);
       }
     }
@@ -166,7 +163,7 @@ public class ReminderService {
         .toList();
   }
 
-  private record BatchKey(ReminderRecipient recipient, LocalDate deadlineDate, ReminderType reminderType) {
+  private record BatchKey(ReminderRecipient recipient, LocalDate deadlineDate) {
   }
 
   private record RemindedKey(

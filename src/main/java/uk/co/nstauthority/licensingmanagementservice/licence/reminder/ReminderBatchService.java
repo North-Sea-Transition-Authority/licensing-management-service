@@ -29,8 +29,7 @@ public class ReminderBatchService {
   public void queueBatch(
       ReminderRecipient recipient,
       LocalDate deadlineDate,
-      Collection<ReminderDeadline> deadlines,
-      ReminderType reminderType
+      Collection<ReminderDeadline> deadlines
   ) {
     var notificationBatchReference = UUID.randomUUID();
     var queuedAt = Instant.now(clock);
@@ -41,7 +40,7 @@ public class ReminderBatchService {
 
     licenceReminderRepository.saveAllAndFlush(reminders);
 
-    reminderEmailService.queueReminder(recipient, deadlineDate, deadlines, notificationBatchReference, reminderType);
+    reminderEmailService.queueReminder(recipient, deadlineDate, deadlines, notificationBatchReference);
   }
 
   private LicenceReminder toReminder(

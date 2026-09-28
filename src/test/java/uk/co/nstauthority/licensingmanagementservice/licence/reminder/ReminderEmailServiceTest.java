@@ -29,6 +29,7 @@ import uk.co.nstauthority.licensingmanagementservice.email.GovukNotifyTemplate;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
 import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleexpiry.LicenceScheduleExpiry;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.otherscheduleevent.OtherScheduleEvent;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivity;
@@ -67,8 +68,7 @@ class ReminderEmailServiceTest {
         RECIPIENT,
         DEADLINE_DATE,
         List.of(deadline(TermType.INITIAL.getDisplayName())),
-        BATCH_REFERENCE,
-        ReminderType.TERM_OR_PHASE_END);
+        BATCH_REFERENCE);
 
     verify(mergedTemplateBuilder).withMailMergeField("LICENCE_REFERENCE", "P001");
     verify(mergedTemplateBuilder).withMailMergeField("LICENSEE_NAME", "BP Exploration Alpha Ltd");
@@ -96,8 +96,7 @@ class ReminderEmailServiceTest {
         List.of(
             deadline(PhaseType.PHASE_B.getDisplayName()),
             deadline(TermType.INITIAL.getDisplayName())),
-        BATCH_REFERENCE,
-        ReminderType.TERM_OR_PHASE_END);
+        BATCH_REFERENCE);
 
     verify(mergedTemplateBuilder).withMailMergeField(
         "DEADLINE_LIST",
@@ -105,6 +104,50 @@ class ReminderEmailServiceTest {
 
     verify(emailService).sendEmail(
         eq(mergedTemplate), any(EmailRecipient.class), any(DomainReference.class));
+  }
+
+  @Test
+  void queueReminder_whenTheDeadlinesAreOfDifferentTypes_thenTheCombinedTemplateListsThemInTypeOrder() {
+    when(emailService.getTemplate(GovukNotifyTemplate.COMBINED_DEADLINE_REMINDER_V1))
+        .thenReturn(mergedTemplateBuilder);
+    when(mergedTemplateBuilder.withMailMergeField(anyString(), anyString())).thenReturn(mergedTemplateBuilder);
+    when(mergedTemplateBuilder.merge()).thenReturn(mergedTemplate);
+    var activityDeadline = new ReminderDeadline(
+        new WorkProgrammeActivity(),
+        UUID.randomUUID(),
+        LicenceTestUtil.builder().withId(1).withLicenceReference("P001").build(),
+        DEADLINE_DATE,
+        "Drill well: Drill one exploration well",
+        ReminderType.WORK_PROGRAMME_ACTIVITY);
+
+    var eventDeadline = new ReminderDeadline(
+        new OtherScheduleEvent(),
+        UUID.randomUUID(),
+        LicenceTestUtil.builder().withId(1).withLicenceReference("P001").build(),
+        DEADLINE_DATE,
+        "Mandatory relinquishment: Relinquish 50% of the licensed area",
+        ReminderType.OTHER_SCHEDULE_EVENT);
+
+    reminderEmailService.queueReminder(
+        RECIPIENT,
+        DEADLINE_DATE,
+        List.of(eventDeadline, activityDeadline, expiryDeadline(), deadline(TermType.INITIAL.getDisplayName())),
+        BATCH_REFERENCE);
+
+    verify(mergedTemplateBuilder).withMailMergeField("LICENCE_REFERENCE", "P001");
+    verify(mergedTemplateBuilder).withMailMergeField("DEADLINE_DATE", "31 December 2027");
+    verify(mergedTemplateBuilder).withMailMergeField(
+        "DEADLINE_LIST",
+        """
+            * Term or phase end — Initial Term
+            * Licence expiry
+            * Work programme activity — Drill well: Drill one exploration well
+            * Other schedule event — Mandatory relinquishment: Relinquish 50% of the licensed area""");
+
+    verify(emailService).sendEmail(
+        eq(mergedTemplate),
+        refEq(EmailRecipient.directEmailAddress(RECIPIENT.contactEmail())),
+        refEq(DomainReference.from(BATCH_REFERENCE.toString(), ReminderEmailService.DOMAIN_REFERENCE_TYPE)));
   }
 
   @Test
@@ -117,9 +160,8 @@ class ReminderEmailServiceTest {
     reminderEmailService.queueReminder(
         RECIPIENT,
         DEADLINE_DATE,
-        List.of(deadline("Licence expiry")),
-        BATCH_REFERENCE,
-        ReminderType.LICENCE_EXPIRY);
+        List.of(expiryDeadline()),
+        BATCH_REFERENCE);
 
     verify(mergedTemplateBuilder).withMailMergeField("DEADLINE_LIST", "* P001 — Licence expiry");
     verify(emailService).sendEmail(
@@ -129,8 +171,7 @@ class ReminderEmailServiceTest {
   @Test
   void queueReminder_whenThereAreNoDeadlines_thenItFailsRatherThanSendingAnEmptyReminder() {
     assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() ->
-        reminderEmailService.queueReminder(RECIPIENT, DEADLINE_DATE, List.of(), BATCH_REFERENCE,
-        ReminderType.TERM_OR_PHASE_END));
+        reminderEmailService.queueReminder(RECIPIENT, DEADLINE_DATE, List.of(), BATCH_REFERENCE));
   }
 
   @Test
@@ -151,8 +192,7 @@ class ReminderEmailServiceTest {
         RECIPIENT,
         DEADLINE_DATE,
         List.of(eventDeadline),
-        BATCH_REFERENCE,
-        ReminderType.OTHER_SCHEDULE_EVENT);
+        BATCH_REFERENCE);
 
     verify(mergedTemplateBuilder).withMailMergeField(
         "DEADLINE_LIST",
@@ -181,8 +221,7 @@ class ReminderEmailServiceTest {
         RECIPIENT,
         DEADLINE_DATE,
         List.of(activityDeadline),
-        BATCH_REFERENCE,
-        ReminderType.WORK_PROGRAMME_ACTIVITY);
+        BATCH_REFERENCE);
 
     verify(mergedTemplateBuilder).withMailMergeField("DEADLINE_LIST", "* P001 — Drill well: Drill one exploration well");
     verify(emailService).sendEmail(
@@ -201,8 +240,7 @@ class ReminderEmailServiceTest {
     var deadlines = List.of(deadline(TermType.INITIAL.getDisplayName()));
 
     assertThatExceptionOfType(RuntimeException.class).isThrownBy(() ->
-        reminderEmailService.queueReminder(RECIPIENT, DEADLINE_DATE, deadlines, BATCH_REFERENCE,
-        ReminderType.TERM_OR_PHASE_END));
+        reminderEmailService.queueReminder(RECIPIENT, DEADLINE_DATE, deadlines, BATCH_REFERENCE));
   }
 
   private void mockTemplate() {
@@ -222,5 +260,15 @@ class ReminderEmailServiceTest {
         DEADLINE_DATE,
         displayName,
         ReminderType.TERM_OR_PHASE_END);
+  }
+
+  private ReminderDeadline expiryDeadline() {
+    return new ReminderDeadline(
+        new LicenceScheduleExpiry(),
+        null,
+        LicenceTestUtil.builder().withId(1).withLicenceReference("P001").build(),
+        DEADLINE_DATE,
+        "Licence expiry",
+        ReminderType.LICENCE_EXPIRY);
   }
 }

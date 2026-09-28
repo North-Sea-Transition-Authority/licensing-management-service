@@ -64,6 +64,36 @@ public class ReminderRecipientService {
         .collect(Collectors.groupingBy(ReminderRecipient::licenceId));
   }
 
+  /**
+   * The licensees on these licences that have no licence contact, and so cannot be sent a reminder.
+   */
+  public List<LicenceResponsibleOrganisation> getLicenseesWithoutAContact(Collection<Licence> licences) {
+    if (licences.isEmpty()) {
+      return List.of();
+    }
+
+    var licensees = licenceResponsibleOrganisationService.getAllByLicenceIn(licences);
+
+    if (licensees.isEmpty()) {
+      return List.of();
+    }
+
+    return getLicenseesWithoutAContact(licensees, licenceContactService.getContactsForLicensees(licensees));
+  }
+
+  private List<LicenceResponsibleOrganisation> getLicenseesWithoutAContact(
+      Collection<LicenceResponsibleOrganisation> licensees,
+      Collection<LicenceContact> contacts
+  ) {
+    var licenseesWithAContact = contacts.stream()
+        .map(LicenceContact::getLicensee)
+        .collect(Collectors.toSet());
+
+    return licensees.stream()
+        .filter(licensee -> !licenseesWithAContact.contains(licensee))
+        .toList();
+  }
+
   private boolean hasLicenseeName(LicenceContact contact, Map<Integer, String> licenseeNamesByOrganisationId) {
     var licensee = contact.getLicensee();
 
@@ -96,13 +126,7 @@ public class ReminderRecipientService {
       Collection<LicenceResponsibleOrganisation> licensees,
       Collection<LicenceContact> contacts
   ) {
-    var licenseesWithAContact = contacts.stream()
-        .map(LicenceContact::getLicensee)
-        .collect(Collectors.toSet());
-
-    licensees.stream()
-        .filter(licensee -> !licenseesWithAContact.contains(licensee))
-        .forEach(licensee -> LOGGER.warn(
+    getLicenseesWithoutAContact(licensees, contacts).forEach(licensee -> LOGGER.warn(
             "No licence contact for organisation {} on licence {}, no reminder will be sent",
             licensee.getResponsibleOrganisationId(),
             licensee.getLicence().getId()));

@@ -57,6 +57,9 @@ class ReminderServiceTest {
   @Mock
   private LicenceReminderRepository licenceReminderRepository;
 
+  @Mock
+  private ReminderMissingContactService reminderMissingContactService;
+
   @Captor
   private ArgumentCaptor<List<ReminderDeadline>> deadlinesCaptor;
 
@@ -71,7 +74,8 @@ class ReminderServiceTest {
         reminderSuppressionService,
         reminderRecipientService,
         reminderBatchService,
-        licenceReminderRepository);
+        licenceReminderRepository,
+        reminderMissingContactService);
     licence = LicenceTestUtil.builder().withId(1).withLicenceReference("P001").build();
     bpRecipient = new ReminderRecipient(1, BP_ID, "BP Exploration Alpha Ltd", "bp@example.com");
   }
@@ -247,6 +251,28 @@ class ReminderServiceTest {
         DEADLINE_DATE,
         List.of(activityDeadline),
         ReminderType.WORK_PROGRAMME_ACTIVITY);
+  }
+
+  @Test
+  void sendDueReminders_reportsLicenseesWithNoContactForTheUnsuppressedDeadlines() {
+    var deadline = deadline("Initial Term");
+    mockRun(List.of(deadline), List.of(bpRecipient), List.of());
+
+    reminderService.sendDueReminders();
+
+    verify(reminderMissingContactService).reportMissingContacts(List.of(deadline));
+  }
+
+  @Test
+  void sendDueReminders_whenReportingMissingContactsFails_thenTheRunStillCompletes() {
+    var deadline = deadline("Initial Term");
+    mockRun(List.of(deadline), List.of(bpRecipient), List.of());
+    when(reminderMissingContactService.reportMissingContacts(List.of(deadline)))
+        .thenThrow(new IllegalStateException("Energy Portal unavailable"));
+
+    var summary = reminderService.sendDueReminders();
+
+    assertThat(summary.batchesQueued()).isEqualTo(1);
   }
 
   private void mockRun(

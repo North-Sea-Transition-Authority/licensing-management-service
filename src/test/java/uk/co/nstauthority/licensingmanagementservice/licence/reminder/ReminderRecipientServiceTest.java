@@ -127,6 +127,35 @@ class ReminderRecipientServiceTest {
         new ReminderRecipient(licence.getId(), BP_ID, "BP Exploration Alpha Ltd", "bp@example.com"));
   }
 
+  @Test
+  void getLicenseesWithoutAContact_whenNoLicences_thenEmpty() {
+    assertThat(reminderRecipientService.getLicenseesWithoutAContact(List.of())).isEmpty();
+
+    verify(licenceResponsibleOrganisationService, never()).getAllByLicenceIn(anyList());
+  }
+
+  @Test
+  void getLicenseesWithoutAContact_whenOneLicenseeHasNoContact_thenOnlyThatLicenseeIsReturned() {
+    var bp = licensee(BP_ID);
+    var shell = licensee(SHELL_ID);
+    when(licenceResponsibleOrganisationService.getAllByLicenceIn(List.of(licence)))
+        .thenReturn(List.of(bp, shell));
+    when(licenceContactService.getContactsForLicensees(List.of(bp, shell)))
+        .thenReturn(List.of(contact(bp, "bp@example.com")));
+
+    assertThat(reminderRecipientService.getLicenseesWithoutAContact(List.of(licence))).containsExactly(shell);
+  }
+
+  @Test
+  void getLicenseesWithoutAContact_whenEveryLicenseeHasAContact_thenEmpty() {
+    var bp = licensee(BP_ID);
+    when(licenceResponsibleOrganisationService.getAllByLicenceIn(List.of(licence))).thenReturn(List.of(bp));
+    when(licenceContactService.getContactsForLicensees(List.of(bp)))
+        .thenReturn(List.of(contact(bp, "bp@example.com")));
+
+    assertThat(reminderRecipientService.getLicenseesWithoutAContact(List.of(licence))).isEmpty();
+  }
+
   private LicenceResponsibleOrganisation licensee(Integer responsibleOrganisationId) {
     var licensee = new LicenceResponsibleOrganisation();
     licensee.setLicence(licence);

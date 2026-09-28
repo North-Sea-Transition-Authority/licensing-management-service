@@ -23,19 +23,22 @@ public class ReminderService {
   private final ReminderRecipientService reminderRecipientService;
   private final ReminderBatchService reminderBatchService;
   private final LicenceReminderRepository licenceReminderRepository;
+  private final ReminderMissingContactService reminderMissingContactService;
 
   public ReminderService(
       List<ReminderDeadlineSource> reminderDeadlineSources,
       ReminderSuppressionService reminderSuppressionService,
       ReminderRecipientService reminderRecipientService,
       ReminderBatchService reminderBatchService,
-      LicenceReminderRepository licenceReminderRepository
+      LicenceReminderRepository licenceReminderRepository,
+      ReminderMissingContactService reminderMissingContactService
   ) {
     this.reminderDeadlineSources = reminderDeadlineSources;
     this.reminderSuppressionService = reminderSuppressionService;
     this.reminderRecipientService = reminderRecipientService;
     this.reminderBatchService = reminderBatchService;
     this.licenceReminderRepository = licenceReminderRepository;
+    this.reminderMissingContactService = reminderMissingContactService;
   }
 
   public ReminderRunSummary sendDueReminders() {
@@ -75,7 +78,17 @@ public class ReminderService {
 
     LOGGER.info("Queued {} of {} reminder batches", batches.size() - failed, batches.size());
 
+    reportMissingContacts(deadlines);
+
     return new ReminderRunSummary(dueDeadlines.size(), suppressedCount, batches.size() - failed, failed);
+  }
+
+  private void reportMissingContacts(List<ReminderDeadline> deadlines) {
+    try {
+      reminderMissingContactService.reportMissingContacts(deadlines);
+    } catch (Exception e) {
+      LOGGER.error("Failed to report licensees with no contact, reminders were not affected", e);
+    }
   }
 
   private List<ReminderDeadline> getUnsuppressedDeadlines(List<ReminderDeadline> dueDeadlines) {

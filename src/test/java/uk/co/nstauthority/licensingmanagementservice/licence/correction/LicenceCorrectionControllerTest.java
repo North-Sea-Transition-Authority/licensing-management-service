@@ -39,6 +39,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.vie
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.PartialSurrenderChangeView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.AdministratorStateView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.LicencePositionStateView;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.LicenseeStateView;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.util.EnergyPortalUserTestUtil;
 
@@ -281,6 +282,7 @@ class LicenceCorrectionControllerTest extends AbstractControllerTest {
             .withUrl("/position")
             .withRegulatorReference("REF-1")
             .withFormattedPositionDate("1 Jan 2026")
+            .withLicenseeNames(List.of("licenseeNames"))
             .build()),
         "1 Jan 2026",
         "REF-1",
@@ -291,7 +293,11 @@ class LicenceCorrectionControllerTest extends AbstractControllerTest {
                     new PartialSurrenderChangeView.BlockRow("30/2", "Partial surrender")),
                 LicencePositionChangeType.ADD_CHANGE,
                 new ChangeViewUrls("/correct", null, "/undo", null))),
-        new LicencePositionStateView(new AdministratorStateView("Operator Ltd"), List.of(), List.of()),
+        new LicencePositionStateView(
+            new AdministratorStateView("Operator Ltd"),
+            new LicenseeStateView(List.of("Licensee")),
+            List.of(),
+            List.of()),
         position.getId(),
         LicencePositionPageView.Actions.none(),
         LICENCE_TYPE,

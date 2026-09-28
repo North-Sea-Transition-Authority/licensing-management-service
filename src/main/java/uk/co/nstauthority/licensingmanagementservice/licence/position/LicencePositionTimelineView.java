@@ -1,6 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.position;
 
 import jakarta.annotation.Nullable;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -41,6 +42,7 @@ public record LicencePositionTimelineView(
     String url,
     String regulatorReference,
     String formattedPositionDate,
+    List<String> licenseeNames,
     boolean addedInThisCorrection,
     @Nullable String undoUrl,
     boolean removedInThisCorrection,
@@ -61,6 +63,7 @@ public record LicencePositionTimelineView(
     private String url;
     private String regulatorReference;
     private String formattedPositionDate;
+    private List<String> licenseeNames;
     private boolean addedInThisCorrection;
     @Nullable private String undoUrl;
     private boolean removedInThisCorrection;
@@ -136,12 +139,18 @@ public record LicencePositionTimelineView(
       return this;
     }
 
+    public Builder withLicenseeNames(List<String> licenseeNames) {
+      this.licenseeNames = licenseeNames;
+      return this;
+    }
+
     public LicencePositionTimelineView build() {
       return new LicencePositionTimelineView(
           positionId,
           url,
           regulatorReference,
           formattedPositionDate,
+          licenseeNames,
           addedInThisCorrection,
           undoUrl,
           removedInThisCorrection,

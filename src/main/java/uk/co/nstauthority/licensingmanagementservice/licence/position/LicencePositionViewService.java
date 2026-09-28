@@ -1,6 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.position;
 
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
+import static uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionChangeUtil.NOT_AVAILABLE;
 
 import jakarta.annotation.Nullable;
 import java.time.LocalDate;
@@ -45,7 +46,9 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.uti
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.OrganisationNameContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.PositionChangeUrlContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPosition;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.LicencePositionState;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.PositionChange;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ResolvedStates;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.util.DateUtil;
 
@@ -114,7 +117,7 @@ public class LicencePositionViewService {
     var positionDate = effectivePositionDate(liveChronologicalPositions, licencePosition.getId());
 
     return LicencePositionPageView.readOnly(
-        getReadOnlyTimelineView(executedChronologicalLicencePositions),
+        getReadOnlyTimelineView(executedChronologicalLicencePositions, nameContext.getNamesForDate(positionDate), resolvedStates),
         licencePosition.getFormattedPositionDate(),
         licencePosition.getLicenceTransaction().getRegulatorReference(),
         LicencePositionChangeViewResolver.getChangeViews(
@@ -492,17 +495,28 @@ public class LicencePositionViewService {
         .collect(Collectors.groupingBy(change -> change.getLicencePosition().getId()));
   }
 
-  private List<LicencePositionTimelineView> getReadOnlyTimelineView(List<LicencePosition> chronologicalLicencePositions) {
+  private List<LicencePositionTimelineView> getReadOnlyTimelineView(
+      List<LicencePosition> chronologicalLicencePositions,
+      Map<Integer, String> namesForDate,
+      ResolvedStates resolvedStates
+  ) {
     return chronologicalLicencePositions.stream()
         .filter(position -> position.getStatus() == LicencePositionStatus.EXECUTED)
         .map(licencePosition -> new TimelineEntry(
             licencePosition.getPositionDate(),
             licencePosition.getPositionDateOrder(),
-            baseTimelineViewBuilder(licencePosition, getPositionUrl(licencePosition)).build()
+            baseTimelineViewBuilder(
+                licencePosition,
+                getPositionUrl(licencePosition),
+                namesForDate,
+                resolvedStates.currentState(licencePosition.getId()))
+                .build()
         ))
         .sorted(TIMELINE_ORDER_COMPARATOR)
         .map(TimelineEntry::view)
         .toList();
+
+
   }
 
   private List<LicencePositionTimelineView> getCorrectionTimelineView(
@@ -572,7 +586,7 @@ public class LicencePositionViewService {
           var correctionReference = correctedPayload != null ? correctedPayload.correctionReference() : null;
 
           var timelineViewBuilder = baseTimelineViewBuilder(
-              licencePosition, getCorrectionPositionUrl(licenceCorrection, licencePosition))
+              licencePosition, getCorrectionPositionUrl(licenceCorrection, licencePosition), null, null)
               .withFormattedPositionDate(DateUtil.formatLongDateWithOrder(effectiveDate, effectiveDateOrder))
               .withCorrectedInThisCorrection(hasPendingCorrection(correctedPayload))
               .withRemovedInThisCorrection(removed)
@@ -702,12 +716,25 @@ public class LicencePositionViewService {
         || correctedPayload.effectiveDateOrder() != null);
   }
 
-  private LicencePositionTimelineView.Builder baseTimelineViewBuilder(LicencePosition position, String url) {
+  private LicencePositionTimelineView.Builder baseTimelineViewBuilder(LicencePosition position,
+                                                                      String url,
+                                                                      Map<Integer, String> namesForDate,
+                                                                      LicencePositionState state) {
+    List<String> licenseeNames;
+    if (state == null || state.licenseeIds() == null) {
+      licenseeNames = List.of();
+    } else {
+      licenseeNames = state.licenseeIds()
+          .stream()
+          .map(id -> namesForDate.getOrDefault(id, NOT_AVAILABLE))
+          .toList();
+    }
     return LicencePositionTimelineView.builder()
         .withPositionId(position.getId())
         .withUrl(url)
         .withRegulatorReference(position.getLicenceTransaction().getRegulatorReference())
-        .withFormattedPositionDate(DateUtil.formatLongDateWithOrder(position.getPositionDate(), position.getPositionDateOrder()));
+        .withFormattedPositionDate(DateUtil.formatLongDateWithOrder(position.getPositionDate(), position.getPositionDateOrder()))
+        .withLicenseeNames(licenseeNames);
   }
 
   private static String nameOrEmpty(Map<Integer, String> administratorNames, @Nullable Integer administratorId) {

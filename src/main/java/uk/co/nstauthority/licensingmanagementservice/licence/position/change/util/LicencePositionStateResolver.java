@@ -101,7 +101,6 @@ public final class LicencePositionStateResolver {
 
   private static LicencePositionState applyOperation(LicencePositionState state, LicenceOperation operation) {
     //TODO extend the switch statement as other operation types are added
-    //TODO LMS2-90: Extend Licensee Operation
     return switch (operation) {
       case AdministratorOperation administratorOperation ->
           state.withAdministratorId(administratorOperation.operatorId());
@@ -110,7 +109,8 @@ public final class LicencePositionStateResolver {
       case SetEquityOperation setEquityOperation -> state;
       case PartialSurrenderOperation partialSurrenderOperation -> state;
       case SubareaOperation subareaOperation -> state;
-      case LicenseeOperation licenseeOperation -> state;
+      case LicenseeOperation licenseeOperation ->
+          state.withLicenseeIds(licenseeOperation.licenseesToAdd(), licenseeOperation.licenseesToRemove());
       // Spatial operations change which blocks a licence holds, not the administrator or equity
       // state this resolves.
       case SubareaCreateOperation ignored -> state;

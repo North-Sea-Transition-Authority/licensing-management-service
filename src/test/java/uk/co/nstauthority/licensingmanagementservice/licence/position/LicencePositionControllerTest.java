@@ -27,6 +27,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.overview.LicenceOve
 import uk.co.nstauthority.licensingmanagementservice.licence.overview.LicenceSummaryCardView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.AdministratorStateView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.LicencePositionStateView;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.LicenseeStateView;
 import uk.co.nstauthority.licensingmanagementservice.licence.tab.TabbedLicencePageService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
@@ -127,12 +128,13 @@ class LicencePositionControllerTest extends AbstractControllerTest {
     var position = LicencePositionTestUtil.newBuilder().withId(POSITION_ID).withLicence(LICENCE).build();
     var pageView = new LicencePositionPageView(
         List.of(new LicencePositionTimelineView(
-            POSITION_ID, "url1", "REF-2", "5 June 2026", false, null, false, null, null, false, null, null, false)),
+            POSITION_ID, "url1", "REF-2", "5 June 2026", List.of("licenseeNames"), false, null, false, null, null, false, null, null, false)),
         position.getFormattedPositionDate(),
         position.getLicence().getLicenceReference(),
         List.of(),
         new LicencePositionStateView(
             new AdministratorStateView("admin organisation"),
+            new LicenseeStateView(List.of("licenseeNames")),
             List.of(),
             List.of()
         ),

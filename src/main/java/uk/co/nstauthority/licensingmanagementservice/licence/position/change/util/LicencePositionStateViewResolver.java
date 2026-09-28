@@ -16,6 +16,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.vie
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.AdministratorStateView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.BeneficialInterestView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.LicencePositionStateView;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.LicenseeStateView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.OrganisationNameHistoryView;
 
 public final class LicencePositionStateViewResolver {
@@ -33,8 +34,14 @@ public final class LicencePositionStateViewResolver {
   ) {
     var currentState = resolvedStates.currentState(currentLicencePositionId);
 
+    var licenseeNames = currentState.licenseeIds()
+        .stream()
+        .map(id -> nameContext.getNameForDate(id, positionDate, NOT_AVAILABLE))
+        .toList();
+
     return new LicencePositionStateView(
         new AdministratorStateView(nameContext.getNameForDate(currentState.administratorId(), positionDate, "")),
+        new LicenseeStateView(licenseeNames),
         buildBeneficialInterests(currentState.equityByOrganisationId(), nameContext, positionDate),
         buildOrganisationNameHistories(currentState, nameContext, positionDate)
     );
@@ -65,6 +72,7 @@ public final class LicencePositionStateViewResolver {
   ) {
     var distinctOrganisationIds = new HashSet<Integer>();
     Optional.ofNullable(currentState.administratorId()).ifPresent(distinctOrganisationIds::add);
+    distinctOrganisationIds.addAll(currentState.licenseeIds());
     distinctOrganisationIds.addAll(currentState.equityByOrganisationId().keySet());
 
     return distinctOrganisationIds.stream()

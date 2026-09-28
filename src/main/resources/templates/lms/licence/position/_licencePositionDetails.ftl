@@ -1,5 +1,6 @@
 <#include '../../layout/layout.ftl'>
 <#import '_positionChanges.ftl' as positionChanges>
+<#import '../../macros/_licenseesDisplay.ftl' as licenseesDisplay>
 
 <#macro details licencePositionChanges licencePositionState actions={} canEdit=false isCarbonStorage=false>
     <#if canEdit>
@@ -8,6 +9,9 @@
                 <@fdsAction.link linkText="Add change" linkUrl=springUrl(actions.addChangeUrl()) linkClass="govuk-button"/>
             </#if>
         </@fdsAction.buttonGroup>
+    </#if>
+    <#if licencePositionState.licenseeStateView().licenseeNames()?size != 0>
+      <@licenseesDisplay.displayLicensees names=licencePositionState.licenseeStateView().licenseeNames()/>
     </#if>
     <#if !isCarbonStorage>
       <#assign adminName>

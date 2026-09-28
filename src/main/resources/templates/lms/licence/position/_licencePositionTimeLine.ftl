@@ -1,4 +1,5 @@
 <#include '../../layout/layout.ftl'>
+<#import '../../macros/_licenseesDisplay.ftl' as licenseesDisplay>
 
 <#macro timeline licencePositionTimelineViews selectedPositionId>
   <@fdsTimeline.timeline>
@@ -73,6 +74,9 @@
           <p class="govuk-body">
             <@fdsTag.tag tagClass="govuk-tag--yellow">Corrected</@fdsTag.tag>
           </p>
+        </#if>
+        <#if licencePositionTimelineViewEntry.licenseeNames()?? && licencePositionTimelineViewEntry.licenseeNames()?size != 0>
+          <@licenseesDisplay.displayLicensees names=licencePositionTimelineViewEntry.licenseeNames()/>
         </#if>
         <#if licencePositionTimelineViewEntry.correctOrderUrl()??>
             <@fdsAction.link

@@ -19,6 +19,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.vie
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.AdministratorStateView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.BeneficialInterestView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.LicencePositionStateView;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.LicenseeStateView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.NameHistoryEntryView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.OrganisationNameHistoryView;
 
@@ -30,7 +31,7 @@ class LicencePositionStateViewResolverTest {
   private static final LocalDate LONG_BEFORE_THE_POSITION_DATE = LocalDate.of(1990, Month.JANUARY, 1);
 
   @Test
-  void getStateView_resolvesAdministratorAndBeneficialInterests() {
+  void getStateView_resolvesState_withoutNameHistories() {
     var currentPositionId = UUID.randomUUID();
 
     var equityByOrganisationId = new LinkedHashMap<Integer, BigDecimal>();
@@ -38,13 +39,15 @@ class LicencePositionStateViewResolverTest {
     equityByOrganisationId.put(2, new BigDecimal("35"));
     equityByOrganisationId.put(3, new BigDecimal("25"));
 
-    var state = new LicencePositionState(CURRENT_ADMIN_ID, equityByOrganisationId);
+    var state = new LicencePositionState(CURRENT_ADMIN_ID, List.of(11, 12), equityByOrganisationId);
 
     var nameHistories = Map.of(
         CURRENT_ADMIN_ID, heldSince(CURRENT_ADMIN_NAME),
         1, heldSince("charlie oil"),
         2, heldSince("alpha energy"),
-        3, heldSince("Bravo gas")
+        3, heldSince("Bravo gas"),
+        11, heldSince("delta diff"),
+        12, heldSince("echo location")
     );
 
     var result = LicencePositionStateViewResolver.getStateView(
@@ -57,6 +60,7 @@ class LicencePositionStateViewResolverTest {
     assertThat(result)
         .isEqualTo(new LicencePositionStateView(
             new AdministratorStateView(CURRENT_ADMIN_NAME),
+            new LicenseeStateView(List.of("delta diff", "echo location")),
             List.of(
                 new BeneficialInterestView("alpha energy", new BigDecimal("35")),
                 new BeneficialInterestView("Bravo gas", new BigDecimal("25")),
@@ -77,7 +81,27 @@ class LicencePositionStateViewResolverTest {
         POSITION_DATE
     );
 
-    assertThat(result).isEqualTo(new LicencePositionStateView(new AdministratorStateView(""), List.of(), List.of()));
+    assertThat(result).isEqualTo(new LicencePositionStateView(new AdministratorStateView(""),
+        new LicenseeStateView(List.of()),
+        List.of(),
+        List.of()));
+  }
+
+  @Test
+  void getStateView_whenLicenseeNameNotFound_displaysNotAvailable() {
+    var currentPositionId = UUID.randomUUID();
+
+    var state = LicencePositionState.EMPTY.withLicenseeIds(List.of(1, 2), List.of());
+
+    var result = LicencePositionStateViewResolver.getStateView(
+        currentPositionId,
+        resolvedStatesFor(currentPositionId, state),
+        OrganisationNameContext.from(Map.of(1, heldSince("organisationOne"))),
+        POSITION_DATE
+    );
+
+    assertThat(result.licenseeStateView())
+        .isEqualTo(new LicenseeStateView(List.of("organisationOne", "Not available")));
   }
 
   @Test
@@ -116,7 +140,7 @@ class LicencePositionStateViewResolverTest {
   void getStateView_whenOrganisationsRenamed_returnsNameHistoriesSortedByOrganisationName() {
     var currentPositionId = UUID.randomUUID();
 
-    var state = new LicencePositionState(CURRENT_ADMIN_ID, Map.of(1, new BigDecimal("100")));
+    var state = new LicencePositionState(CURRENT_ADMIN_ID, List.of(11), Map.of(1, new BigDecimal("100")));
 
     var nameHistories = Map.of(
         CURRENT_ADMIN_ID, new OrganisationNamePeriods("zeta admin", List.of(
@@ -125,8 +149,11 @@ class LicencePositionStateViewResolverTest {
             new OrganisationNamePeriod("zeta admin", LocalDate.of(2000, Month.MARCH, 3), null))),
         1, new OrganisationNamePeriods("Alpha Renewables", List.of(
             new OrganisationNamePeriod("alpha energy", LONG_BEFORE_THE_POSITION_DATE, LocalDate.of(2020, Month.APRIL, 4)),
-            new OrganisationNamePeriod("Alpha Renewables", LocalDate.of(2020, Month.APRIL, 4), null)))
-    );
+            new OrganisationNamePeriod("Alpha Renewables", LocalDate.of(2020, Month.APRIL, 4), null))),
+        11, new OrganisationNamePeriods("beta pharmaceuticals", List.of(
+            new OrganisationNamePeriod("beta financials", LONG_BEFORE_THE_POSITION_DATE, LocalDate.of(2020, Month.MAY, 5)),
+            new OrganisationNamePeriod("beta pharmaceuticals", LocalDate.of(2020, Month.MAY, 5), null)))
+        );
 
     var result = LicencePositionStateViewResolver.getStateView(
         currentPositionId,
@@ -141,6 +168,10 @@ class LicencePositionStateViewResolverTest {
                 "alpha energy",
                 List.of(),
                 List.of(new NameHistoryEntryView("Alpha Renewables", "from 4 April 2020"))),
+            new OrganisationNameHistoryView(
+                "beta financials",
+                List.of(),
+                List.of(new NameHistoryEntryView("beta pharmaceuticals", "from 5 May 2020"))),
             new OrganisationNameHistoryView(
                 "zeta admin",
                 List.of(new NameHistoryEntryView("Zeta Holdings", "to 3 March 2000")),

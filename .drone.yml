@@ -283,7 +283,7 @@ steps:
     image: quay.io/fivium/drone-trufflehog-plugin:v1.0
     depends_on: [ restore-cache ]
     settings:
-      scan_since_commit_hash: c9b7a808b456e8c654f5e4d12abbb7b0f606ead8
+      scan_since_commit_hash: bf702fbf660fa7d7cb77170d8b2615956b1d2883
       sync_to_mirror: true
       mirror_remote_url: git@github.com:North-Sea-Transition-Authority/licensing-management-service.git
       mirror_branch_to_sync: develop
@@ -523,6 +523,15 @@ steps:
     commands:
       - chmod +x gradlew
       - ./gradlew sonarqube -info --parallel --build-cache
+
+  - name: trufflehog-scan
+    image: quay.io/fivium/drone-trufflehog-plugin:v1.0
+    depends_on: [ code-analysis, gis-frontend-visual-tests-publish-report ]
+    settings:
+      # The plugin passes this value unquoted to trufflehog, so "--branch HEAD" becomes a flag.
+      # Without it, trufflehog scans every branch in the clone, not just this PR.
+      scan_since_commit_hash: "${DRONE_TARGET_BRANCH} --branch HEAD"
+      sync_to_mirror: false
 
   - name: rebuild-cache
     image: plugins/cache:1.10.12

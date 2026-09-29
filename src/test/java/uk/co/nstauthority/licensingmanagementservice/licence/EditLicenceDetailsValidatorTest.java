@@ -42,9 +42,6 @@ class EditLicenceDetailsValidatorTest {
 
   @BeforeEach
   void setUp() {
-    when(clock.instant()).thenReturn(TODAY.atStartOfDay(ZoneOffset.UTC).toInstant());
-    when(clock.getZone()).thenReturn(ZoneOffset.UTC);
-
     when(licenceStatusService.getLatestLicenceStatus(licence)).thenReturn(Optional.empty());
   }
 
@@ -56,8 +53,14 @@ class EditLicenceDetailsValidatorTest {
     return form;
   }
 
+  private void stubClock() {
+    when(clock.instant()).thenReturn(TODAY.atStartOfDay(ZoneOffset.UTC).toInstant());
+    when(clock.getZone()).thenReturn(ZoneOffset.UTC);
+  }
+
   @Test
   void isValid() {
+    stubClock();
     var form = validForm();
 
     var bindingResult = ValidatorTestingUtil.getBindingResult(form);
@@ -67,9 +70,11 @@ class EditLicenceDetailsValidatorTest {
 
   @Test
   void isValid_whenDateAfterPreviousStatusDate_isValid() {
+    stubClock();
     var form = validForm();
 
     var previousLicenceStatus = new LicenceStatus();
+    previousLicenceStatus.setStatus(LicenceStatusType.REVOKED);
     previousLicenceStatus.setStatusDate(TODAY.minusDays(10));
     when(licenceStatusService.getLatestLicenceStatus(licence)).thenReturn(Optional.of(previousLicenceStatus));
 
@@ -79,7 +84,51 @@ class EditLicenceDetailsValidatorTest {
   }
 
   @Test
+  void isValid_whenStatusAndDateUnchanged_thenDateValidationIsSkipped() {
+    var form = validForm();
+    var previousStatusDate = TODAY.minusDays(10);
+    form.getLicenceStatusDate().setDate(previousStatusDate);
+
+    var previousLicenceStatus = new LicenceStatus();
+    previousLicenceStatus.setStatus(form.getLicenceStatus());
+    previousLicenceStatus.setStatusDate(previousStatusDate);
+    when(licenceStatusService.getLatestLicenceStatus(licence)).thenReturn(Optional.of(previousLicenceStatus));
+
+    var bindingResult = ValidatorTestingUtil.getBindingResult(form);
+
+    assertThat(editLicenceDetailsValidator.isValid(form, licence, bindingResult)).isTrue();
+  }
+
+  @Test
+  void isValid_whenOnlyStatusChanged_thenDateIsStillValidated() {
+    stubClock();
+    var form = validForm();
+    var previousStatusDate = TODAY.minusDays(10);
+    form.getLicenceStatusDate().setDate(previousStatusDate);
+    form.setLicenceStatus(LicenceStatusType.EXTANT);
+
+    var previousLicenceStatus = new LicenceStatus();
+    previousLicenceStatus.setStatus(LicenceStatusType.REVOKED);
+    previousLicenceStatus.setStatusDate(previousStatusDate);
+    when(licenceStatusService.getLatestLicenceStatus(licence)).thenReturn(Optional.of(previousLicenceStatus));
+
+    var bindingResult = ValidatorTestingUtil.getBindingResult(form);
+
+    assertThat(editLicenceDetailsValidator.isValid(form, licence, bindingResult)).isFalse();
+
+    assertThat(bindingResult.getFieldErrors())
+        .extracting(FieldError::getField, FieldError::getDefaultMessage)
+        .containsExactly(
+            tuple("licenceStatusDate.dayInput.inputValue",
+                "The date the licence entered this status must be after 5 June 2024"),
+            tuple("licenceStatusDate.monthInput.inputValue", ""),
+            tuple("licenceStatusDate.yearInput.inputValue", "")
+        );
+  }
+
+  @Test
   void isValid_invalidForm_noLicenceStatus() {
+    stubClock();
     var form = validForm();
     form.setLicenceStatus(null);
 
@@ -93,6 +142,7 @@ class EditLicenceDetailsValidatorTest {
 
   @Test
   void isValid_invalidForm_noLicenceStatusDate() {
+    stubClock();
     var form = validForm();
     form.setLicenceStatusDate(new ThreeFieldDateInput("licenceStatusDate", "licence status date"));
 
@@ -111,6 +161,7 @@ class EditLicenceDetailsValidatorTest {
 
   @Test
   void isValid_invalidForm_licenceStatusDateInFuture() {
+    stubClock();
     var form = validForm();
     form.getLicenceStatusDate().setDate(TODAY.plusDays(1));
 
@@ -129,11 +180,13 @@ class EditLicenceDetailsValidatorTest {
 
   @Test
   void isValid_invalidForm_licenceStatusDateOnPreviousStatusDate() {
+    stubClock();
     var form = validForm();
     var previousStatusDate = TODAY.minusDays(10);
     form.getLicenceStatusDate().setDate(previousStatusDate);
 
     var previousLicenceStatus = new LicenceStatus();
+    previousLicenceStatus.setStatus(LicenceStatusType.REVOKED);
     previousLicenceStatus.setStatusDate(previousStatusDate);
     when(licenceStatusService.getLatestLicenceStatus(licence)).thenReturn(Optional.of(previousLicenceStatus));
 
@@ -153,11 +206,13 @@ class EditLicenceDetailsValidatorTest {
 
   @Test
   void isValid_invalidForm_licenceStatusDateBeforePreviousStatusDate() {
+    stubClock();
     var form = validForm();
     var previousStatusDate = TODAY.minusDays(10);
     form.getLicenceStatusDate().setDate(previousStatusDate.minusDays(1));
 
     var previousLicenceStatus = new LicenceStatus();
+    previousLicenceStatus.setStatus(LicenceStatusType.REVOKED);
     previousLicenceStatus.setStatusDate(previousStatusDate);
     when(licenceStatusService.getLatestLicenceStatus(licence)).thenReturn(Optional.of(previousLicenceStatus));
 
@@ -177,6 +232,7 @@ class EditLicenceDetailsValidatorTest {
 
   @Test
   void isValid_invalidForm_noLicensees() {
+    stubClock();
     var form = validForm();
     form.setOrganisationUnitIds(null);
 

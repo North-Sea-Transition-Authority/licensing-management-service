@@ -31,19 +31,32 @@ public class EditLicenceDetailsValidator {
         "Select the status of the licence"
     );
 
-    var dateValidator = ThreeFieldDateInputValidator.builder()
-        .emptyInputErrorMessage("Enter the date the licence entered this status")
-        .mustBeBeforeOrEqualTo(LocalDate.now(clock))
-        .mustBeBeforeOrEqualToErrorMessage("The date the licence entered this status must not be in the future");
+    var latestLicenceStatus = licenceStatusService.getLatestLicenceStatus(licence);
 
-    licenceStatusService.getLatestLicenceStatus(licence)
-        .map(LicenceStatus::getStatusDate)
-        .ifPresent(previousStatusDate -> dateValidator
-            .mustBeAfterDate(previousStatusDate)
-            .mustBeAfterDateErrorMessage("The date the licence entered this status must be after %s"
-                .formatted(DateFormatUtil.convertToDisplayText(previousStatusDate))));
+    var statusHasChanged = latestLicenceStatus
+        .map(previousStatus -> previousStatus.getStatus() != form.getLicenceStatus())
+        .orElse(true);
 
-    dateValidator.validate(form.getLicenceStatusDate(), errors);
+    var dateHasChanged = latestLicenceStatus
+        .map(previousStatus -> !previousStatus.getStatusDate()
+            .equals(form.getLicenceStatusDate().getAsLocalDate().orElse(null)))
+        .orElse(true);
+
+    if (statusHasChanged || dateHasChanged) {
+      var dateValidator = ThreeFieldDateInputValidator.builder()
+          .emptyInputErrorMessage("Enter the date the licence entered this status")
+          .mustBeBeforeOrEqualTo(LocalDate.now(clock))
+          .mustBeBeforeOrEqualToErrorMessage("The date the licence entered this status must not be in the future");
+
+      latestLicenceStatus
+          .map(LicenceStatus::getStatusDate)
+          .ifPresent(previousStatusDate -> dateValidator
+              .mustBeAfterDate(previousStatusDate)
+              .mustBeAfterDateErrorMessage("The date the licence entered this status must be after %s"
+                  .formatted(DateFormatUtil.convertToDisplayText(previousStatusDate))));
+
+      dateValidator.validate(form.getLicenceStatusDate(), errors);
+    }
 
     if (CollectionUtils.isEmpty(form.getOrganisationUnitIds())) {
       errors.rejectValue("organisationUnitSelector", "organisationUnitSelector.notEmpty",

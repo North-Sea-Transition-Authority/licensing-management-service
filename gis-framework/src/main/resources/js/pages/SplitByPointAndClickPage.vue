@@ -18,7 +18,7 @@
           ref="baseMapRef"
           :srs-wkid="srsWkid"
           :features="features"
-          :outline-nodes-url="outlineNodesUrl"
+          :outline-nodes="outlineNodes"
           :include-nsta-quadrants="includeNstaQuadrants"
           :include-nsta-blocks="includeNstaBlocks"
           :include-snap-points="true"
@@ -55,7 +55,7 @@
 <script setup lang="ts">
 import type { SupportedWkid } from "@/coordinate-system-utils";
 import type { SnapPoint } from "@/grid-utils";
-import { computed, CSSProperties, ref, watch } from "vue";
+import { CSSProperties, ref, watch } from "vue";
 import { buildCommandJourneyUrl } from "@/command-journey-utils";
 import { useCommandJourneyFeatures } from "@/composables/useCommandJourneyFeatures";
 import BaseMap from "../components/baseMap/BaseMap.vue";
@@ -97,8 +97,8 @@ const mapStyleOverride: CSSProperties = {
 };
 
 const featuresUrl = buildCommandJourneyUrl(props.featuresBaseUrl, props.commandJourneyId);
-const outlineNodesUrl = computed(() => buildCommandJourneyUrl(props.outlineNodesBaseUrl, props.commandJourneyId));
-const { features, hasError } = useCommandJourneyFeatures(featuresUrl, refreshCounter);
+const outlineNodesUrl = buildCommandJourneyUrl(props.outlineNodesBaseUrl, props.commandJourneyId);
+const { features, outlineNodes, hasError } = useCommandJourneyFeatures(featuresUrl, outlineNodesUrl, refreshCounter);
 
 watch(hasError, (errored) => {
   if (errored) {

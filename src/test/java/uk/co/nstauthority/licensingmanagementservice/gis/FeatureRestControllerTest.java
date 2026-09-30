@@ -55,7 +55,8 @@ class FeatureRestControllerTest extends AbstractControllerTest {
   void getFeaturesEsriJson_assertJsonMap() throws Exception {
     var feature = FeatureTestUtil.builder().build();
     var jsonFeatures = new JsonFeatures(
-        List.of(new JsonFeature(Map.of("rings", List.of()), JsonFeature.Attributes.from(feature))),
+        List.of(new JsonFeature(Map.of("rings", List.of()), new JsonFeature.Attributes(
+            feature.getId().toString(), feature.getFeatureName(), UUID.randomUUID().toString(), null, null))),
         JsonFeatures.SpatialReference.from(CoordinateSystem.WGS84)
     );
 
@@ -74,7 +75,8 @@ class FeatureRestControllerTest extends AbstractControllerTest {
     var commandJourneyId = UUID.randomUUID();
     var feature = FeatureTestUtil.builder().build();
     var jsonFeatures = new JsonFeatures(
-        List.of(new JsonFeature(Map.of("rings", List.of()), JsonFeature.Attributes.from(feature))),
+        List.of(new JsonFeature(Map.of("rings", List.of()), new JsonFeature.Attributes(
+            feature.getId().toString(), feature.getFeatureName(), UUID.randomUUID().toString(), null, null))),
         JsonFeatures.SpatialReference.from(CoordinateSystem.WGS84)
     );
 

@@ -4,7 +4,7 @@
       <base-map
         :srs-wkid="srsWkid"
         :features="features"
-        :outline-nodes-url="outlineNodesUrl"
+        :outline-nodes="outlineNodes"
         :include-nsta-quadrants="includeNstaQuadrants"
         :include-nsta-blocks="includeNstaBlocks"
         :include-snap-points="false"
@@ -49,7 +49,7 @@ const mapStyleOverride: CSSProperties = {
   display: "block",
 };
 
-const { features } = useCommandJourneyFeatures(props.featuresUrl);
+const { features, outlineNodes } = useCommandJourneyFeatures(props.featuresUrl, props.outlineNodesUrl);
 </script>
 
 <style scoped>

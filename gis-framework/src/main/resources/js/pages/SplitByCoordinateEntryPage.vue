@@ -9,7 +9,7 @@
         <base-map
           :srs-wkid="srsWkid"
           :features="features"
-          :outline-nodes-url="outlineNodesUrl"
+          :outline-nodes="outlineNodes"
           :include-nsta-quadrants="includeNstaQuadrants"
           :include-nsta-blocks="includeNstaBlocks"
           :include-snap-points="false"
@@ -86,8 +86,8 @@ const splitError = ref<string | null>(null);
 const refreshCounter = ref(0);
 
 const featuresUrl = buildCommandJourneyUrl(props.featuresBaseUrl, props.commandJourneyId);
-const outlineNodesUrl = computed(() => buildCommandJourneyUrl(props.outlineNodesBaseUrl, props.commandJourneyId));
-const { features, hasError } = useCommandJourneyFeatures(featuresUrl, refreshCounter);
+const outlineNodesUrl = buildCommandJourneyUrl(props.outlineNodesBaseUrl, props.commandJourneyId);
+const { features, outlineNodes, hasError } = useCommandJourneyFeatures(featuresUrl, outlineNodesUrl, refreshCounter);
 const linePoints = computed<LinePoint[]>(() =>
   points.value
     .filter((point): point is EditablePoint & { coordinates: [number, number] } => point.coordinates !== undefined)

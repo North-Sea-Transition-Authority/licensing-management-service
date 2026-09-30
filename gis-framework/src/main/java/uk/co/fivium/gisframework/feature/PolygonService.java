@@ -74,10 +74,12 @@ public class PolygonService {
     List<JsonFeature> esriJsonFeatures = new ArrayList<>();
 
     for (var feature : features) {
-      var esriJsonPolygons = getPolygonsAsEsriJson(feature, true);
-      var attributes = JsonFeature.Attributes.from(feature);
-      for (var esriJsonPolygon : esriJsonPolygons) {
-        esriJsonFeatures.add(new JsonFeature(readGeometry(esriJsonPolygon), attributes));
+      var entityBackedFeature = featureService.getEntityBackedFeature(feature);
+      for (var polygonToLines : entityBackedFeature.polygonToLines().entrySet()) {
+        var esriJsonPolygon = buildPolygonEsriJson(polygonToLines.getValue(), feature.getCoordinateSystem(), true);
+        esriJsonFeatures.add(new JsonFeature(
+            readGeometry(esriJsonPolygon),
+            JsonFeature.Attributes.from(feature, polygonToLines.getKey())));
       }
     }
 
@@ -102,20 +104,20 @@ public class PolygonService {
                                              boolean projectToWgs84) {
     List<String> polygonsAsEsriJson = new ArrayList<>();
 
-    for (var polygonToLines : entityBackedFeature.polygonToLines().entrySet()) {
-      var lineEsriJsons = polygonToLines.getValue()
-          .stream()
-          .sorted(Comparator.comparing(Line::getDisplayOrder))
-          .map(Line::getEsriJson)
-          .toList();
-      String polygonEsriJson = grpcClientService.buildPolygon(
-          lineEsriJsons,
-          entityBackedFeature.feature().getCoordinateSystem(),
-          projectToWgs84
-      );
-      polygonsAsEsriJson.add(polygonEsriJson);
+    for (var lines : entityBackedFeature.polygonToLines().values()) {
+      polygonsAsEsriJson.add(
+          buildPolygonEsriJson(lines, entityBackedFeature.feature().getCoordinateSystem(), projectToWgs84));
     }
 
     return polygonsAsEsriJson;
+  }
+
+  private String buildPolygonEsriJson(List<Line> lines, CoordinateSystem coordinateSystem, boolean projectToWgs84) {
+    var lineEsriJsons = lines
+        .stream()
+        .sorted(Comparator.comparing(Line::getDisplayOrder))
+        .map(Line::getEsriJson)
+        .toList();
+    return grpcClientService.buildPolygon(lineEsriJsons, coordinateSystem, projectToWgs84);
   }
 }

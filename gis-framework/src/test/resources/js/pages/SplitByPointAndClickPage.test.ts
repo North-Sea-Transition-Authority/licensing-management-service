@@ -4,14 +4,15 @@ import { SupportedWkid } from "@/coordinate-system-utils";
 import SplitByPointAndClickPage
   from "@/pages/SplitByPointAndClickPage.vue";
 
-const { getFeaturesMock } = vi.hoisted(() => ({
+const { getFeaturesMock, getOutlineNodesMock } = vi.hoisted(() => ({
   getFeaturesMock: vi.fn(),
+  getOutlineNodesMock: vi.fn(),
 }));
 
 vi.mock("@/api/features.api", () => ({
   getFeatures: getFeaturesMock,
   getTextualDescription: vi.fn(),
-  getOutlineNodes: vi.fn(),
+  getOutlineNodes: getOutlineNodesMock,
 }));
 
 // Stubs BaseMap entirely, exposing a button that emits update:points with a fixed two-point array, so
@@ -20,7 +21,7 @@ const baseMapStub = {
   props: [
     "srsWkid",
     "features",
-    "outlineNodesUrl",
+    "outlineNodes",
     "includeNstaQuadrants",
     "includeNstaBlocks",
     "refreshCounter",
@@ -106,13 +107,15 @@ function renderPage() {
 describe("splitByPointAndClickPage", () => {
   beforeEach(() => {
     getFeaturesMock.mockReset().mockResolvedValue([]);
+    getOutlineNodesMock.mockReset().mockResolvedValue([]);
   });
 
-  it("loads the features from the url built from the given command journey id", async () => {
+  it("loads the features and outline nodes from the urls built from the given command journey id", async () => {
     renderPage();
 
     await waitFor(() => {
       expect(getFeaturesMock).toHaveBeenCalledWith("/api/gis-framework/features/journey-1");
+      expect(getOutlineNodesMock).toHaveBeenCalledWith("/api/gis-framework/outline-nodes/journey-1");
     });
   });
 

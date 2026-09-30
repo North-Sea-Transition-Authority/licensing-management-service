@@ -1,0 +1,125 @@
+[
+  {
+    "featureId": "shallow",
+    "nodes": [
+      {
+        "polygonId": "shallow",
+        "lineId": "shallow-line",
+        "ringNumber": 1,
+        "displayOrder": 1,
+        "x": -3.56,
+        "y": 53.74,
+        "mapText": "(1)"
+      },
+      {
+        "polygonId": "shallow",
+        "lineId": "shallow-line",
+        "ringNumber": 1,
+        "displayOrder": 2,
+        "x": -3.56,
+        "y": 53.86,
+        "mapText": "(2)"
+      },
+      {
+        "polygonId": "shallow",
+        "lineId": "shallow-line",
+        "ringNumber": 1,
+        "displayOrder": 3,
+        "x": -3.44,
+        "y": 53.86,
+        "mapText": "(3)"
+      },
+      {
+        "polygonId": "shallow",
+        "lineId": "shallow-line",
+        "ringNumber": 1,
+        "displayOrder": 4,
+        "x": -3.44,
+        "y": 53.74,
+        "mapText": "(4)"
+      }
+    ]
+  },
+  {
+    "featureId": "middle",
+    "nodes": [
+      {
+        "polygonId": "middle",
+        "lineId": "middle-line",
+        "ringNumber": 1,
+        "displayOrder": 1,
+        "x": -3.53,
+        "y": 53.77,
+        "mapText": "(1)"
+      },
+      {
+        "polygonId": "middle",
+        "lineId": "middle-line",
+        "ringNumber": 1,
+        "displayOrder": 2,
+        "x": -3.53,
+        "y": 53.83,
+        "mapText": "(2)"
+      },
+      {
+        "polygonId": "middle",
+        "lineId": "middle-line",
+        "ringNumber": 1,
+        "displayOrder": 3,
+        "x": -3.47,
+        "y": 53.83,
+        "mapText": "(3)"
+      },
+      {
+        "polygonId": "middle",
+        "lineId": "middle-line",
+        "ringNumber": 1,
+        "displayOrder": 4,
+        "x": -3.47,
+        "y": 53.77,
+        "mapText": "(4)"
+      }
+    ]
+  },
+  {
+    "featureId": "deep",
+    "nodes": [
+      {
+        "polygonId": "deep",
+        "lineId": "deep-line",
+        "ringNumber": 1,
+        "displayOrder": 1,
+        "x": -3.5,
+        "y": 53.75,
+        "mapText": "(1)"
+      },
+      {
+        "polygonId": "deep",
+        "lineId": "deep-line",
+        "ringNumber": 1,
+        "displayOrder": 2,
+        "x": -3.5,
+        "y": 53.8,
+        "mapText": "(2)"
+      },
+      {
+        "polygonId": "deep",
+        "lineId": "deep-line",
+        "ringNumber": 1,
+        "displayOrder": 3,
+        "x": -3.45,
+        "y": 53.8,
+        "mapText": "(3)"
+      },
+      {
+        "polygonId": "deep",
+        "lineId": "deep-line",
+        "ringNumber": 1,
+        "displayOrder": 4,
+        "x": -3.45,
+        "y": 53.75,
+        "mapText": "(4)"
+      }
+    ]
+  }
+]

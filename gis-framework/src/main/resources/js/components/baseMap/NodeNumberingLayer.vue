@@ -18,30 +18,16 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ComputedRef, onBeforeMount, ref, watch } from "vue";
-import { getOutlineNodes, JsonFeatureOutlineNodes } from "../../api/features.api";
-import { jsonFeatureNodesToTextPoints, TextPoint } from "../../textual-description-utils";
+import { computed } from "vue";
+import { JsonFeatureOutlineNodes } from "@/api/features.api";
+import { jsonFeatureNodesToTextPoints } from "@/textual-description-utils";
 
 interface Props {
-  outlineNodesUrl: string,
-  refreshCounter?: number,
+  outlineNodes: JsonFeatureOutlineNodes[],
 }
+
 const props = defineProps<Props>();
 
-const featureNodes = ref<JsonFeatureOutlineNodes[]>([]);
-
-async function loadOutlineNodes() {
-  try {
-    featureNodes.value = await getOutlineNodes(props.outlineNodesUrl);
-  } catch (e) {
-    console.error(e);
-  }
-}
-
-onBeforeMount(loadOutlineNodes);
-
-watch(() => props.refreshCounter, loadOutlineNodes);
-
 const textPointFont = "18px \"GDS Transport\"";
-const textPoints: ComputedRef<TextPoint[]> = computed(() => jsonFeatureNodesToTextPoints(featureNodes.value));
+const textPoints = computed(() => jsonFeatureNodesToTextPoints(props.outlineNodes));
 </script>

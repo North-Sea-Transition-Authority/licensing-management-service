@@ -15,7 +15,7 @@
         <base-map
           :srs-wkid="srsWkid"
           :features="features"
-          :outline-nodes-url="outlineNodesUrl"
+          :outline-nodes="outlineNodes"
           :include-nsta-quadrants="includeNstaQuadrants"
           :include-nsta-blocks="includeNstaBlocks"
           :include-snap-points="false"
@@ -125,8 +125,8 @@ const mergeError = ref<string | null>(null);
 const refreshCounter = ref(0);
 
 const featuresUrl = buildCommandJourneyUrl(props.featuresBaseUrl, props.commandJourneyId);
-const outlineNodesUrl = computed(() => buildCommandJourneyUrl(props.outlineNodesBaseUrl, props.commandJourneyId));
-const { features, hasError } = useCommandJourneyFeatures(featuresUrl, refreshCounter);
+const outlineNodesUrl = buildCommandJourneyUrl(props.outlineNodesBaseUrl, props.commandJourneyId);
+const { features, outlineNodes, hasError } = useCommandJourneyFeatures(featuresUrl, outlineNodesUrl, refreshCounter);
 const sortedFeatures = computed<CommandJourneyFeature[]>(() =>
   toFeatureOptions(features.value)
     .sort((a, b) => a.featureName.localeCompare(b.featureName, undefined, { numeric: true })),

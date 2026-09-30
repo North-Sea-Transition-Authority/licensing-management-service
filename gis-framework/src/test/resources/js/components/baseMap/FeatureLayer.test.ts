@@ -84,7 +84,12 @@ function createOlMapStub(size: Extent | undefined) {
   };
 }
 
-function renderFeatureLayer(olMap: InstanceType<typeof OlMap>, extent: Extent, selectedFeatureIds: string[] = []) {
+function renderFeatureLayer(
+  olMap: InstanceType<typeof OlMap>,
+  extent: Extent,
+  selectedFeatureIds: string[] = [],
+  refitOnFeaturesChange = true,
+) {
   return render(FeatureLayer, {
     props: {
       features: [],
@@ -92,6 +97,7 @@ function renderFeatureLayer(olMap: InstanceType<typeof OlMap>, extent: Extent, s
       fillColor: [10, 20, 30],
       strokeColor: [40, 50, 60, 0.75],
       selectedFeatureIds,
+      refitOnFeaturesChange,
     },
     global: {
       stubs: {
@@ -166,6 +172,33 @@ describe("featureLayer", () => {
     await rerender({ selectedFeatureIds: ["feature-1"] });
 
     expect(sourceMock.changed).toHaveBeenCalled();
+  });
+
+  it.each([
+    { refitOnFeaturesChange: true, expectedFitCount: 2 },
+    { refitOnFeaturesChange: false, expectedFitCount: 0 },
+  ])("fits the map $expectedFitCount times across two feature changes after the initial fit when refitOnFeaturesChange is $refitOnFeaturesChange", async ({ refitOnFeaturesChange, expectedFitCount }) => {
+    const { olMap, fit } = createOlMapStub([1280, 1024]);
+    const { rerender } = renderFeatureLayer(olMap, sourceExtent, [], refitOnFeaturesChange);
+    await rerender({ features: [feature("feature-1", "Block A")] });
+    fit.mockClear();
+
+    await rerender({ features: [feature("feature-2", "Block B")] });
+    await rerender({ features: [feature("feature-3", "Block C")] });
+
+    expect(fit).toHaveBeenCalledTimes(expectedFitCount);
+  });
+
+  it("fits once the map has a size when refitOnFeaturesChange is false and the features change before the first fit", async () => {
+    const { olMap, fit, setSize, triggerSizeChange } = createOlMapStub(undefined);
+    const { rerender } = renderFeatureLayer(olMap, sourceExtent, [], false);
+    await rerender({ features: [feature("feature-1", "Block A")] });
+
+    setSize([1280, 1024]);
+    triggerSizeChange();
+    await rerender({ features: [feature("feature-2", "Block B")] });
+
+    expect(fit).toHaveBeenCalledExactlyOnceWith(sourceExtent, expectedFitOptions);
   });
 
   it("defers the fit until the map has a size", async () => {

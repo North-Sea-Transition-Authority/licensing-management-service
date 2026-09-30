@@ -77,7 +77,7 @@ steps:
   - name: build-gis-java-backend
     image: quay.io/testcontainers/dind-drone-plugin
     privileged: true
-    depends_on: [ detect-gis-changes ]
+    depends_on: [ gis-frontend-visual-tests ]
     environment:
       TZ: Europe/London
       CI_WORKSPACE: /drone/src
@@ -450,7 +450,7 @@ steps:
   - name: build-gis-java-backend
     image: quay.io/testcontainers/dind-drone-plugin
     privileged: true
-    depends_on: [ detect-gis-changes ]
+    depends_on: [ gis-frontend-visual-tests ]
     environment:
       TZ: Europe/London
       CI_WORKSPACE: /drone/src

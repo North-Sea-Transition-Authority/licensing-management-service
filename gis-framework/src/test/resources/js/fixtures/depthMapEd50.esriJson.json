@@ -1,0 +1,122 @@
+{
+  "features": [
+    {
+      "attributes": {
+        "featureId": "shallow",
+        "featureName": "Shallow block",
+        "polygonId": "shallow",
+        "startDepth": 0,
+        "endDepth": -100
+      },
+      "geometry": {
+        "rings": [
+          [
+            [
+              -3.56,
+              53.74
+            ],
+            [
+              -3.56,
+              53.86
+            ],
+            [
+              -3.44,
+              53.86
+            ],
+            [
+              -3.44,
+              53.74
+            ],
+            [
+              -3.56,
+              53.74
+            ]
+          ]
+        ],
+        "spatialReference": {
+          "wkid": 4326
+        }
+      }
+    },
+    {
+      "attributes": {
+        "featureId": "middle",
+        "featureName": "Middle block",
+        "polygonId": "middle",
+        "startDepth": -100,
+        "endDepth": -200
+      },
+      "geometry": {
+        "rings": [
+          [
+            [
+              -3.53,
+              53.77
+            ],
+            [
+              -3.53,
+              53.83
+            ],
+            [
+              -3.47,
+              53.83
+            ],
+            [
+              -3.47,
+              53.77
+            ],
+            [
+              -3.53,
+              53.77
+            ]
+          ]
+        ],
+        "spatialReference": {
+          "wkid": 4326
+        }
+      }
+    },
+    {
+      "attributes": {
+        "featureId": "deep",
+        "featureName": "Deep block",
+        "polygonId": "deep",
+        "startDepth": -200,
+        "endDepth": -300
+      },
+      "geometry": {
+        "rings": [
+          [
+            [
+              -3.5,
+              53.75
+            ],
+            [
+              -3.5,
+              53.8
+            ],
+            [
+              -3.45,
+              53.8
+            ],
+            [
+              -3.45,
+              53.75
+            ],
+            [
+              -3.5,
+              53.75
+            ]
+          ]
+        ],
+        "spatialReference": {
+          "wkid": 4326
+        }
+      }
+    }
+  ],
+  "geometryType": "esriGeometryPolygon",
+  "spatialReference": {
+    "wkid": 4326
+  }
+}

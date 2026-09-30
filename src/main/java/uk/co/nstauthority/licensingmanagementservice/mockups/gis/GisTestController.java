@@ -92,4 +92,14 @@ public class GisTestController {
         .addObject(SRS_WKID_MODEL_NAME,
             CoordinateSystemUtils.getWkid(features.getFirst().getCoordinateSystem()));
   }
+
+  @GetMapping("/depth-map")
+  public ModelAndView renderDepthMap() {
+    var features = featureService.findAllByTestCase("EPGF-78");
+    var commandJourney = commandJourneyService.findOrCreateCommandJourneyForFeatures(features);
+    return new ModelAndView("lms/mockups/gis/depthMapTester")
+        .addObject("commandJourneyId", commandJourney.getId().toString())
+        .addObject(SRS_WKID_MODEL_NAME,
+            CoordinateSystemUtils.getWkid(features.getFirst().getCoordinateSystem()));
+  }
 }

@@ -9,16 +9,18 @@ const {
   getHistoryStatusMock,
   splitFeatureMock,
   getFeaturesMock,
+  getOutlineNodesMock,
 } = vi.hoisted(() => ({
   getTextualDescriptionMock: vi.fn(),
   getHistoryStatusMock: vi.fn(),
   splitFeatureMock: vi.fn(),
   getFeaturesMock: vi.fn(),
+  getOutlineNodesMock: vi.fn(),
 }));
 
 vi.mock("@/api/features.api", () => ({
   getTextualDescription: getTextualDescriptionMock,
-  getOutlineNodes: vi.fn(),
+  getOutlineNodes: getOutlineNodesMock,
   getFeatures: getFeaturesMock,
 }));
 
@@ -38,7 +40,7 @@ const baseMapStub = {
   props: [
     "srsWkid",
     "features",
-    "outlineNodesUrl",
+    "outlineNodes",
     "includeNstaQuadrants",
     "includeNstaBlocks",
     "includeSnapPoints",
@@ -90,6 +92,7 @@ describe("splitByCoordinateEntryPage", () => {
     getHistoryStatusMock.mockReset().mockResolvedValue({ canUndo: false, canRedo: false });
     splitFeatureMock.mockReset();
     getFeaturesMock.mockReset().mockResolvedValue([]);
+    getOutlineNodesMock.mockReset().mockResolvedValue([]);
   });
 
   it("enables the split button once two valid coordinates are entered", async () => {

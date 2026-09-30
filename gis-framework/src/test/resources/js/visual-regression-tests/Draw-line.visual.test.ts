@@ -1,11 +1,9 @@
-import { http, HttpResponse } from "msw";
 import { describe, expect, it } from "vitest";
 import { render } from "vitest-browser-vue";
 import OpenLayersMap from "vue3-openlayers";
 import BaseMap from "@/components/baseMap/BaseMap.vue";
 import { SupportedWkid } from "@/coordinate-system-utils";
 import singleBlockEd50 from "../fixtures/singleBlockEd50.esriJson.json";
-import { worker } from "./setup";
 import { parseFeatures, pressKeyOnMap, waitForMapFullyLoaded } from "./visual-test-util";
 
 /**
@@ -135,14 +133,10 @@ function getViewport(): HTMLElement {
 
 describe("draw line layer", () => {
   it("shows last-marker after selecting first snap point", async () => {
-    worker.use(
-      http.get("/api/outline-nodes?featureId=feature-id", () => HttpResponse.json({ featureOutlineNodes: [] })),
-    );
-
     const screen = render(BaseMap, {
       props: {
         features: parseFeatures(singleBlockEd50),
-        outlineNodesUrl: "/api/outline-nodes?featureId=1",
+        outlineNodes: [],
         srsWkid: SupportedWkid.ED50_WKID,
         includeSnapPoints: true,
         includeNstaQuadrants: false,
@@ -164,14 +158,10 @@ describe("draw line layer", () => {
   });
 
   it("shows dashed preview segment when hovering over a valid second point", async () => {
-    worker.use(
-      http.get("/api/outline-nodes?featureId=feature-id", () => HttpResponse.json({ featureOutlineNodes: [] })),
-    );
-
     const screen = render(BaseMap, {
       props: {
         features: parseFeatures(singleBlockEd50),
-        outlineNodesUrl: "/api/outline-nodes?featureId=1",
+        outlineNodes: [],
         srsWkid: SupportedWkid.ED50_WKID,
         includeSnapPoints: true,
         includeNstaQuadrants: false,
@@ -194,14 +184,10 @@ describe("draw line layer", () => {
   });
 
   it("commits a solid line segment after clicking a second aligned snap point", async () => {
-    worker.use(
-      http.get("/api/outline-nodes?featureId=feature-id", () => HttpResponse.json({ featureOutlineNodes: [] })),
-    );
-
     const screen = render(BaseMap, {
       props: {
         features: parseFeatures(singleBlockEd50),
-        outlineNodesUrl: "/api/outline-nodes?featureId=1",
+        outlineNodes: [],
         srsWkid: SupportedWkid.ED50_WKID,
         includeSnapPoints: true,
         includeNstaQuadrants: false,
@@ -225,14 +211,10 @@ describe("draw line layer", () => {
   });
 
   it("committed line remains visible after zooming out below min snap zoom", async () => {
-    worker.use(
-      http.get("/api/outline-nodes?featureId=feature-id", () => HttpResponse.json({ featureOutlineNodes: [] })),
-    );
-
     const screen = render(BaseMap, {
       props: {
         features: parseFeatures(singleBlockEd50),
-        outlineNodesUrl: "/api/outline-nodes?featureId=1",
+        outlineNodes: [],
         srsWkid: SupportedWkid.ED50_WKID,
         includeSnapPoints: true,
         includeNstaQuadrants: false,

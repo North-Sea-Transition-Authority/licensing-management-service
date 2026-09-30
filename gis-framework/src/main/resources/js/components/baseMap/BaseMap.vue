@@ -32,8 +32,9 @@
       :features="features"
       :ol-map="mapRef"
       :selected-feature-ids="selectedFeatureIds"
+      :refit-on-features-change="refitOnFeaturesChange"
     />
-    <node-numbering-layer :outline-nodes-url="outlineNodesUrl" :refresh-counter="refreshCounter"/>
+    <node-numbering-layer :outline-nodes="outlineNodes"/>
   </ol-map>
 </template>
 
@@ -45,6 +46,7 @@ import type { SupportedWkid } from "@/coordinate-system-utils";
 import type { LinePoint, SnapPoint } from "@/grid-utils";
 import { useGeographic } from "ol/proj";
 import { computed, CSSProperties, ref } from "vue";
+import { JsonFeatureOutlineNodes } from "@/api/features.api";
 import DrawLineLayer from "./DrawLineLayer.vue";
 import FeatureLayer from "./FeatureLayer.vue";
 import NodeNumberingLayer from "./NodeNumberingLayer.vue";
@@ -56,7 +58,7 @@ interface BaseMapProps {
   includeNstaQuadrants?: boolean,
   includeNstaBlocks?: boolean,
   features: Feature<Geometry>[],
-  outlineNodesUrl: string,
+  outlineNodes: JsonFeatureOutlineNodes[],
   srsWkid: SupportedWkid,
   includeSnapPoints?: boolean,
   includeDrawLine?: boolean,
@@ -67,6 +69,7 @@ interface BaseMapProps {
   // wrappers can pass e.g. a full-height style to make the map fill a fixed-aspect container.
   mapStyleOverride?: CSSProperties,
   selectedFeatureIds?: string[],
+  refitOnFeaturesChange?: boolean,
 }
 
 const props = withDefaults(defineProps<BaseMapProps>(), {

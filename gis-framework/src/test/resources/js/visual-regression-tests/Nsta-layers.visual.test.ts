@@ -1,24 +1,18 @@
-import { http, HttpResponse } from "msw";
 import { describe, expect, it } from "vitest";
 import { render } from "vitest-browser-vue";
 import OpenLayersMap from "vue3-openlayers";
 import BaseMap from "@/components/baseMap/BaseMap.vue";
 import singleBlockEd50 from "../fixtures/singleBlockEd50.esriJson.json";
-import { worker } from "./setup";
 import { parseFeatures, pressKeyOnMap, waitForMapFullyLoaded } from "./visual-test-util";
 
 const ED50_WKID = 4230;
 
 describe("nsta layers", () => {
   it("renders quadrants", async () => {
-    worker.use(
-      http.get("/api/outline-nodes?featureId=feature-id", () => HttpResponse.json({ featureOutlineNodes: [] })),
-    );
-
     const screen = render(BaseMap, {
       props: {
         features: parseFeatures(singleBlockEd50),
-        outlineNodesUrl: "/api/outline-nodes?featureId=1",
+        outlineNodes: [],
         srsWkid: ED50_WKID,
         includeSnapPoints: false,
         includeNstaQuadrants: true,
@@ -34,14 +28,10 @@ describe("nsta layers", () => {
   });
 
   it("renders blocks", async () => {
-    worker.use(
-      http.get("/api/outline-nodes?featureId=feature-id", () => HttpResponse.json({ featureOutlineNodes: [] })),
-    );
-
     const screen = render(BaseMap, {
       props: {
         features: parseFeatures(singleBlockEd50),
-        outlineNodesUrl: "/api/outline-nodes?featureId=1",
+        outlineNodes: [],
         srsWkid: ED50_WKID,
         includeSnapPoints: false,
         includeNstaQuadrants: false,

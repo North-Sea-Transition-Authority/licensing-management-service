@@ -128,43 +128,73 @@ class PolygonServiceTest {
 
   @Test
   void getFeaturesAsWgs84EsriJson_assertEsriJsonFeaturesAndSpatialReference() throws Exception {
-    var feature1 = FeatureTestUtil.newBuilder().build();
-    var feature2 = FeatureTestUtil.newBuilder().build();
-    var polygon1 = PolygonTestUtil.newBuilder().build();
-    var polygon2 = PolygonTestUtil.newBuilder().build();
-    var line1 = LineTestUtil.newBuilder()
-        .withPolygon(polygon1)
+    var feature1 = FeatureTestUtil.newBuilder().withFeatureName("Feature 1").build();
+    var feature2 = FeatureTestUtil.newBuilder().withFeatureName("Feature 2").build();
+    var shallowPolygon = PolygonTestUtil.newBuilder()
+        .withFeature(feature1)
+        .withStartDepth(0L)
+        .withEndDepth(-100L)
+        .build();
+    var deepPolygon = PolygonTestUtil.newBuilder()
+        .withFeature(feature1)
+        .withStartDepth(-100L)
+        .withEndDepth(-200L)
+        .build();
+    var undefinedDepthPolygon = PolygonTestUtil.newBuilder()
+        .withFeature(feature2)
+        .withStartDepth(null)
+        .withEndDepth(null)
+        .build();
+    var shallowLine = LineTestUtil.newBuilder()
+        .withPolygon(shallowPolygon)
         .withRingNumber(1)
         .withDisplayOrder(1)
-        .withEsriJson("line1EsriJson")
+        .withEsriJson("shallowLineEsriJson")
         .build();
-    var line2 = LineTestUtil.newBuilder()
-        .withPolygon(polygon2)
+    var deepLine = LineTestUtil.newBuilder()
+        .withPolygon(deepPolygon)
         .withRingNumber(1)
         .withDisplayOrder(1)
-        .withEsriJson("line2EsriJson")
+        .withEsriJson("deepLineEsriJson")
         .build();
-    var entityBackedFeature1 = new EntityBackedFeature(feature1, Map.of(polygon1, List.of(line1)));
-    var entityBackedFeature2 = new EntityBackedFeature(feature2, Map.of(polygon2, List.of(line2)));
-    var esriJsonPolygon1 = "esriJsonPolygon1";
-    var esriJsonPolygon2 = "esriJsonPolygon2";
-    var geometry1 = Map.<String, Object>of("rings", List.of("1"));
-    var geometry2 = Map.<String, Object>of("rings", List.of("2"));
+    var undefinedDepthLine = LineTestUtil.newBuilder()
+        .withPolygon(undefinedDepthPolygon)
+        .withRingNumber(1)
+        .withDisplayOrder(1)
+        .withEsriJson("undefinedDepthLineEsriJson")
+        .build();
+    var entityBackedFeature1 = new EntityBackedFeature(
+        feature1,
+        Map.of(shallowPolygon, List.of(shallowLine), deepPolygon, List.of(deepLine)));
+    var entityBackedFeature2 = new EntityBackedFeature(
+        feature2,
+        Map.of(undefinedDepthPolygon, List.of(undefinedDepthLine)));
+    var shallowGeometry = Map.<String, Object>of("rings", List.of("shallow"));
+    var deepGeometry = Map.<String, Object>of("rings", List.of("deep"));
+    var undefinedDepthGeometry = Map.<String, Object>of("rings", List.of("undefinedDepth"));
 
     when(featureService.getEntityBackedFeature(feature1)).thenReturn(entityBackedFeature1);
     when(featureService.getEntityBackedFeature(feature2)).thenReturn(entityBackedFeature2);
-    when(grpcClientService.buildPolygon(List.of(line1.getEsriJson()), feature1.getCoordinateSystem(), true))
-        .thenReturn(esriJsonPolygon1);
-    when(grpcClientService.buildPolygon(List.of(line2.getEsriJson()), feature2.getCoordinateSystem(), true))
-        .thenReturn(esriJsonPolygon2);
-    when(objectMapper.readValue(eq(esriJsonPolygon1), any(TypeReference.class))).thenReturn(geometry1);
-    when(objectMapper.readValue(eq(esriJsonPolygon2), any(TypeReference.class))).thenReturn(geometry2);
+    when(grpcClientService.buildPolygon(List.of(shallowLine.getEsriJson()), feature1.getCoordinateSystem(), true))
+        .thenReturn("shallowPolygonEsriJson");
+    when(grpcClientService.buildPolygon(List.of(deepLine.getEsriJson()), feature1.getCoordinateSystem(), true))
+        .thenReturn("deepPolygonEsriJson");
+    when(grpcClientService.buildPolygon(List.of(undefinedDepthLine.getEsriJson()), feature2.getCoordinateSystem(), true))
+        .thenReturn("undefinedDepthPolygonEsriJson");
+    when(objectMapper.readValue(eq("shallowPolygonEsriJson"), any(TypeReference.class))).thenReturn(shallowGeometry);
+    when(objectMapper.readValue(eq("deepPolygonEsriJson"), any(TypeReference.class))).thenReturn(deepGeometry);
+    when(objectMapper.readValue(eq("undefinedDepthPolygonEsriJson"), any(TypeReference.class)))
+        .thenReturn(undefinedDepthGeometry);
 
     var result = polygonService.getFeaturesAsWgs84EsriJson(List.of(feature1, feature2));
 
-    assertThat(result.features()).containsExactly(
-        new JsonFeature(geometry1, JsonFeature.Attributes.from(feature1)),
-        new JsonFeature(geometry2, JsonFeature.Attributes.from(feature2))
+    assertThat(result.features()).containsExactlyInAnyOrder(
+        new JsonFeature(shallowGeometry, new JsonFeature.Attributes(
+            feature1.getId().toString(), "Feature 1", shallowPolygon.getId().toString(), 0L, -100L)),
+        new JsonFeature(deepGeometry, new JsonFeature.Attributes(
+            feature1.getId().toString(), "Feature 1", deepPolygon.getId().toString(), -100L, -200L)),
+        new JsonFeature(undefinedDepthGeometry, new JsonFeature.Attributes(
+            feature2.getId().toString(), "Feature 2", undefinedDepthPolygon.getId().toString(), null, null))
     );
     assertThat(result.spatialReference()).isEqualTo(JsonFeatures.SpatialReference.from(CoordinateSystem.WGS84));
   }

@@ -9,10 +9,19 @@ public record JsonFeature(
 
   public record Attributes(
       String featureId,
-      String featureName
+      String featureName,
+      String polygonId,
+      Long startDepth,
+      Long endDepth
   ) {
-    public static Attributes from(Feature feature) {
-      return new Attributes(feature.getId().toString(), feature.getFeatureName());
+    public static Attributes from(Feature feature, Polygon polygon) {
+      return new Attributes(
+          feature.getId().toString(),
+          feature.getFeatureName(),
+          polygon.getId().toString(),
+          polygon.getStartDepth(),
+          polygon.getEndDepth()
+      );
     }
   }
 }

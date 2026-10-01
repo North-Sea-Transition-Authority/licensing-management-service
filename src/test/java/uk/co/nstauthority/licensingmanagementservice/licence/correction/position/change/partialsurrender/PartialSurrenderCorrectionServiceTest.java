@@ -36,6 +36,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceC
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.OrderablePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.AddChange;
@@ -680,6 +681,88 @@ class PartialSurrenderCorrectionServiceTest {
 
     verify(licencePositionCorrectionService)
         .replaceAddChangeFor(positionCorrection, PartialSurrenderOperation.class, List.of());
+  }
+
+  @Test
+  void adjustPartialSurrenderBlocks_whenTheSurrenderIsStagedAsAnUpdate_thenReplacesItInPlaceKeepingItsChangeId() {
+    var surrender = partialSurrender(FIRST_FEATURE_ID, SECOND_FEATURE_ID);
+    var stagedChange = UpdateChangeOperations.buildUpdateChange(LIVE_CHANGE_ID, surrender);
+    var positionCorrection = executedPositionCorrection(List.of(stagedChange));
+    givenCommittedPartialSurrender(positionCorrection, surrender);
+    when(licencePositionSpatialService.getBlockFeaturesGoingIntoChange(positionCorrection, LIVE_CHANGE_ID))
+        .thenReturn(List.of(FeatureTestUtil.builder().withId(FIRST_FEATURE_ID).build()));
+    when(licencePositionCorrectionService.save(positionCorrection)).thenReturn(positionCorrection);
+
+    partialSurrenderCorrectionService.adjustPartialSurrenderBlocks(positionCorrection);
+
+    var expected = LicenceOperation.newPartialSurrenderOperation()
+        .withSurrenderDate(surrender.surrenderDate())
+        .withSurrenderedFeatureIds(List.of(FIRST_FEATURE_ID))
+        .build();
+    verify(licencePositionCorrectionService, never())
+        .replaceAddChangeFor(eq(positionCorrection), eq(PartialSurrenderOperation.class), anyList());
+    assertThat(positionCorrection.getPayload().changes())
+        .containsExactly(UpdateChangeOperations.buildUpdateChange(LIVE_CHANGE_ID, expected));
+  }
+
+  @Test
+  void adjustPartialSurrenderBlocks_whenNoBlocksStillSurrenderableOnALiveSurrenderMovedHere_thenStagesItsRemovalOnItsLivePosition() {
+    var surrender = partialSurrender(FIRST_FEATURE_ID, SECOND_FEATURE_ID);
+    var positionCorrection = updatePositionCorrectionFor(
+        LATER_POSITION,
+        List.of(UpdateChangeOperations.buildUpdateChange(LIVE_CHANGE_ID, surrender))
+    );
+    givenCommittedPartialSurrender(positionCorrection, surrender);
+    when(licencePositionSpatialService.getBlockFeaturesGoingIntoChange(positionCorrection, LIVE_CHANGE_ID))
+        .thenReturn(List.of(FeatureTestUtil.builder().withId(THIRD_FEATURE_ID).build()));
+    when(licencePositionChangeService.getByIdOrThrow(UUID.fromString(LIVE_CHANGE_ID)))
+        .thenReturn(LicencePositionChangeTestUtil.newBuilder()
+            .withId(UUID.fromString(LIVE_CHANGE_ID))
+            .withLicencePosition(LICENCE_POSITION)
+            .withOperations(List.of(surrender))
+            .build());
+
+    partialSurrenderCorrectionService.adjustPartialSurrenderBlocks(positionCorrection);
+
+    verify(licencePositionCorrectionService).dropStagedChange(positionCorrection, LIVE_CHANGE_ID);
+    verify(licencePositionCorrectionService).stageChangesOnPosition(
+        LICENCE_CORRECTION,
+        LICENCE_POSITION.getId(),
+        List.of(LicencePositionChangeType.removeChange().withChangeId(LIVE_CHANGE_ID).build())
+    );
+    verify(licencePositionCorrectionService, never())
+        .replaceAddChangeFor(eq(positionCorrection), eq(PartialSurrenderOperation.class), anyList());
+  }
+
+  @Test
+  void adjustPartialSurrenderBlocksFrom_adjustsEachCorrectedPositionFromTheEarlierOfTheTwoOnwards() {
+    var earlierPositionCorrection =
+        updatePositionCorrectionFor(LicencePositionTestUtil.newBuilder().build(), List.of());
+    var sourcePositionCorrection = updatePositionCorrectionFor(LICENCE_POSITION, List.of());
+    var targetPositionCorrection = updatePositionCorrectionFor(LATER_POSITION, List.of());
+    var uncorrectedPositionId = UUID.randomUUID();
+
+    when(licencePositionCorrectionService.getOrderableDatePositions(LICENCE_CORRECTION)).thenReturn(List.of(
+        orderablePosition(positionId(earlierPositionCorrection)),
+        orderablePosition(LICENCE_POSITION.getId()),
+        orderablePosition(uncorrectedPositionId),
+        orderablePosition(LATER_POSITION.getId())
+    ));
+    when(licencePositionCorrectionService.getPositionCorrections(LICENCE_CORRECTION))
+        .thenReturn(List.of(earlierPositionCorrection, sourcePositionCorrection, targetPositionCorrection));
+
+    partialSurrenderCorrectionService.adjustPartialSurrenderBlocksFrom(
+        LICENCE_CORRECTION,
+        LATER_POSITION.getId(),
+        LICENCE_POSITION.getId()
+    );
+
+    verify(licencePositionCorrectionService, never())
+        .getCommittedChangeOfType(earlierPositionCorrection, PartialSurrenderOperation.class);
+    verify(licencePositionCorrectionService)
+        .getCommittedChangeOfType(sourcePositionCorrection, PartialSurrenderOperation.class);
+    verify(licencePositionCorrectionService)
+        .getCommittedChangeOfType(targetPositionCorrection, PartialSurrenderOperation.class);
   }
 
   @Test
@@ -1644,6 +1727,10 @@ class PartialSurrenderCorrectionServiceTest {
         .withTargetLicencePosition(licencePosition)
         .withPayload(UpdateLicencePositionPayloadTestUtil.newBuilder().withChanges(changes).build())
         .build();
+  }
+
+  private static OrderablePosition orderablePosition(UUID positionId) {
+    return new OrderablePosition(positionId, LocalDate.of(2026, Month.JANUARY, 1), 1, "REF", false);
   }
 
   private static UUID positionId(LicencePositionCorrection licencePositionCorrection) {

@@ -298,6 +298,23 @@ class LicencePositionChangeViewResolverTest {
   }
 
   @Test
+  void buildAdministratorChange_whenChangeMovedAway_hasNoUrls() {
+    var movedAwayChange = new PositionChange(
+        UUID.randomUUID().toString(),
+        1,
+        null,
+        List.of(LicenceOperation.newAdministratorChange().withOperator(JOINING_ID).build())
+    ).asMovedAway();
+
+    var view = adminChangeViewFor(
+        movedAwayChange,
+        PositionChangeUrlContext.forExecutedPosition(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID())
+    );
+
+    assertThat(view.urls()).hasAllNullFieldsOrProperties();
+  }
+
+  @Test
   void buildAdministratorChange_whenAddedPosition_populatesUndoNotRemove() {
     var view = adminChangeView(
         LicencePositionChangeType.ADD_CHANGE,
@@ -318,14 +335,20 @@ class LicencePositionChangeViewResolverTest {
   }
 
   private AdministratorChangeView adminChangeView(String changeType, PositionChangeUrlContext urlContext) {
+    return adminChangeViewFor(
+        new PositionChange(
+            UUID.randomUUID().toString(),
+            1,
+            changeType,
+            List.of(LicenceOperation.newAdministratorChange().withOperator(JOINING_ID).build())
+        ),
+        urlContext
+    );
+  }
+
+  private AdministratorChangeView adminChangeViewFor(PositionChange change, PositionChangeUrlContext urlContext) {
     var currentLicencePosition = LicencePositionTestUtil.newBuilder().build();
 
-    var change = new PositionChange(
-        UUID.randomUUID().toString(),
-        1,
-        changeType,
-        List.of(LicenceOperation.newAdministratorChange().withOperator(JOINING_ID).build())
-    );
     var currentChronologicalPosition = ChronologicalPosition.fromLicencePosition(
         currentLicencePosition,
         currentLicencePosition.getLicenceTransaction().getRegulatorReference(),

@@ -45,6 +45,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.tasklist.PartialSurrenderTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.AddChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.UpdateChangeOperations;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.UpdateLicencePositionPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.LicencePositionValidationService;
@@ -1089,6 +1090,136 @@ class LicencePositionViewServiceTest {
   }
 
   @Test
+  void getCorrectedChronologicalPositions_whenALiveChangeIsMovedToAnotherExecutedPosition_thenShowsItAsMovedAwayOnTheSource() {
+    var correction = LicenceCorrectionTestUtil.newBuilder().withId(UUID.randomUUID()).withLicence(LICENCE).build();
+    var movedChangeId = UUID.randomUUID();
+
+    var source = LicencePositionTestUtil.newBuilder()
+        .withId(POSITION_ID).withLicence(LICENCE).withStatus(LicencePositionStatus.EXECUTED)
+        .withLicenceTransaction(LicenceTransactionTestUtil.newBuilder().withRegulatorReference("EXEC-1").build())
+        .withPositionDate(LocalDate.of(2026, Month.JANUARY, 1)).withPositionOrder(1).build();
+    var target = LicencePositionTestUtil.newBuilder()
+        .withId(UUID.randomUUID()).withLicence(LICENCE).withStatus(LicencePositionStatus.EXECUTED)
+        .withLicenceTransaction(LicenceTransactionTestUtil.newBuilder().withRegulatorReference("EXEC-2").build())
+        .withPositionDate(LocalDate.of(2026, Month.FEBRUARY, 1)).withPositionOrder(1).build();
+
+    var liveChange = LicencePositionChangeTestUtil.newBuilder()
+        .withId(movedChangeId).withLicencePosition(source).withChangeOrder(1)
+        .withOperations(List.of(ADMINISTRATOR_OPERATION))
+        .build();
+
+    var targetPayload = UpdateLicencePositionPayloadTestUtil.newBuilder()
+        .withCorrectionReference("EXEC-2")
+        .withChanges(List.of(
+            UpdateChangeOperations.buildUpdateChange(movedChangeId.toString(), ADMINISTRATOR_OPERATION),
+            LicencePositionChangeType.updateChangeOrder()
+                .withChangeId(movedChangeId.toString()).withChangeOrder(4).build()
+        ))
+        .build();
+    var moveCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withLicenceCorrection(correction)
+        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+        .withTargetLicencePosition(target)
+        .withPayload(targetPayload)
+        .build();
+
+    when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(source, target));
+    when(licencePositionChangeService.findByLicencePositionIn(List.of(source, target))).thenReturn(List.of(liveChange));
+    when(licencePositionCorrectionService.getPositionCorrections(correction)).thenReturn(List.of(moveCorrection));
+
+    var result = licencePositionViewService.getCorrectedChronologicalPositions(correction, POSITION_ID);
+
+    assertThat(result).containsExactlyInAnyOrder(
+        ChronologicalPosition.fromLicencePosition(
+            source,
+            "EXEC-1",
+            source.getPositionDate(),
+            source.getPositionDateOrder(),
+            List.of(new PositionChange(
+                movedChangeId.toString(),
+                1,
+                LicencePositionChangeType.REMOVE_CHANGE,
+                List.of(ADMINISTRATOR_OPERATION),
+                true
+            ))
+        ),
+        ChronologicalPosition.fromLicencePosition(
+            target,
+            "EXEC-2",
+            targetPayload.effectiveDate(),
+            targetPayload.effectiveDateOrder(),
+            List.of(new PositionChange(
+                movedChangeId.toString(),
+                4,
+                LicencePositionChangeType.UPDATE_CHANGE_OPERATIONS,
+                List.of(ADMINISTRATOR_OPERATION)
+            ))
+        )
+    );
+  }
+
+  @Test
+  void getCorrectedChronologicalPositions_whenALiveChangeIsMovedToAnAddedPosition_thenShowsItAsMovedAwayOnTheSource() {
+    var correction = LicenceCorrectionTestUtil.newBuilder().withId(UUID.randomUUID()).withLicence(LICENCE).build();
+    var movedChangeId = UUID.randomUUID();
+
+    var source = LicencePositionTestUtil.newBuilder()
+        .withId(POSITION_ID).withLicence(LICENCE).withStatus(LicencePositionStatus.EXECUTED)
+        .withLicenceTransaction(LicenceTransactionTestUtil.newBuilder().withRegulatorReference("EXEC-1").build())
+        .withPositionDate(LocalDate.of(2026, Month.JANUARY, 1)).withPositionOrder(1).build();
+
+    var liveChange = LicencePositionChangeTestUtil.newBuilder()
+        .withId(movedChangeId).withLicencePosition(source).withChangeOrder(1)
+        .withOperations(List.of(ADMINISTRATOR_OPERATION))
+        .build();
+
+    var addedPayload = CreateLicencePositionPayloadTestUtil.newBuilder()
+        .withEffectiveDate(LocalDate.of(2026, Month.JUNE, 1))
+        .withCorrectionReference("ADD-REF")
+        .withChanges(List.of(
+            UpdateChangeOperations.buildUpdateChange(movedChangeId.toString(), ADMINISTRATOR_OPERATION),
+            LicencePositionChangeType.updateChangeOrder()
+                .withChangeId(movedChangeId.toString()).withChangeOrder(1).build()
+        ))
+        .build();
+    var addedPositionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withLicenceCorrection(correction)
+        .withChangeType(LicencePositionCorrectionChangeType.ADD_POSITION)
+        .withPayload(addedPayload)
+        .build();
+
+    when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(source));
+    when(licencePositionChangeService.findByLicencePositionIn(List.of(source))).thenReturn(List.of(liveChange));
+    when(licencePositionCorrectionService.getPositionCorrections(correction))
+        .thenReturn(List.of(addedPositionCorrection));
+
+    var result = licencePositionViewService.getCorrectedChronologicalPositions(correction, POSITION_ID);
+
+    assertThat(result).containsExactly(
+        ChronologicalPosition.fromLicencePosition(
+            source,
+            "EXEC-1",
+            source.getPositionDate(),
+            source.getPositionDateOrder(),
+            List.of(new PositionChange(
+                movedChangeId.toString(),
+                1,
+                LicencePositionChangeType.REMOVE_CHANGE,
+                List.of(ADMINISTRATOR_OPERATION),
+                true
+            ))
+        ),
+        ChronologicalPosition.fromPayload(addedPayload)
+    );
+    assertThat(result.get(1).changes()).containsExactly(new PositionChange(
+        movedChangeId.toString(),
+        1,
+        LicencePositionChangeType.UPDATE_CHANGE_OPERATIONS,
+        List.of(ADMINISTRATOR_OPERATION)
+    ));
+  }
+
+  @Test
   void getCorrectionAddedPositionPageView_whenAdminChangePresent_setsAddedPositionCorrectUrl() {
     var correctionId = UUID.randomUUID();
     var correction = LicenceCorrectionTestUtil.newBuilder().withId(correctionId).withLicence(LICENCE).build();
@@ -1361,6 +1492,53 @@ class LicencePositionViewServiceTest {
             LicencePositionTimelineView::correctedInThisCorrection)
         .containsExactly(
             tuple("CURRENT", "1 June 2026", false));
+  }
+
+  @Test
+  void getCorrectionPositionPageView_whenALiveChangeIsMovedAway_thenMarksTheSourcePositionAsCorrected() {
+    var correction = LicenceCorrectionTestUtil.newBuilder().withId(UUID.randomUUID()).withLicence(LICENCE).build();
+    var movedChangeId = UUID.randomUUID();
+
+    var source = LicencePositionTestUtil.newBuilder()
+        .withId(POSITION_ID).withLicence(LICENCE).withStatus(LicencePositionStatus.EXECUTED)
+        .withLicenceTransaction(LicenceTransactionTestUtil.newBuilder().withRegulatorReference("EXEC-1").build())
+        .withPositionDate(LocalDate.of(2026, Month.JANUARY, 1)).withPositionOrder(1).build();
+    var target = LicencePositionTestUtil.newBuilder()
+        .withId(UUID.randomUUID()).withLicence(LICENCE).withStatus(LicencePositionStatus.EXECUTED)
+        .withLicenceTransaction(LicenceTransactionTestUtil.newBuilder().withRegulatorReference("EXEC-2").build())
+        .withPositionDate(LocalDate.of(2026, Month.FEBRUARY, 1)).withPositionOrder(1).build();
+
+    var liveChange = LicencePositionChangeTestUtil.newBuilder()
+        .withId(movedChangeId).withLicencePosition(source).withChangeOrder(1)
+        .withOperations(List.of(ADMINISTRATOR_OPERATION))
+        .build();
+
+    var moveCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withLicenceCorrection(correction)
+        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+        .withTargetLicencePosition(target)
+        .withPayload(UpdateLicencePositionPayloadTestUtil.newBuilder()
+            .withEffectiveDate(null)
+            .withEffectiveDateOrder(null)
+            .withCorrectionReference("EXEC-2")
+            .withChanges(List.of(
+                UpdateChangeOperations.buildUpdateChange(movedChangeId.toString(), ADMINISTRATOR_OPERATION)
+            ))
+            .build())
+        .build();
+
+    when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(source, target));
+    when(licencePositionChangeService.findByLicencePositionIn(List.of(source, target))).thenReturn(List.of(liveChange));
+    when(licencePositionCorrectionService.getPositionCorrections(correction)).thenReturn(List.of(moveCorrection));
+
+    var result = licencePositionViewService.getCorrectionPositionPageView(correction, source);
+
+    assertThat(result.timelineViews())
+        .extracting(
+            LicencePositionTimelineView::regulatorReference,
+            LicencePositionTimelineView::correctedInThisCorrection
+        )
+        .containsExactlyInAnyOrder(tuple("EXEC-1", true), tuple("EXEC-2", true));
   }
 
   @Test

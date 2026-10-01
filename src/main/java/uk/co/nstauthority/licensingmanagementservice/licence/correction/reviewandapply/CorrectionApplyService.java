@@ -241,6 +241,7 @@ public class CorrectionApplyService {
 
     licencePositionChangeService.findById(changeId).ifPresentOrElse(
         licencePositionChange -> {
+          licencePositionChange.setLicencePosition(licencePosition);
           licencePositionChange.setOperations(operations);
           licencePositionChangeRepository.save(licencePositionChange);
         },

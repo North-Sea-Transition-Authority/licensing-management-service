@@ -114,6 +114,7 @@ public class LicencePositionPartialSurrenderController {
         .getBlockFeaturesGoingIntoChange(correction, licencePosition, stagedChangeId);
     var existing = partialSurrenderCorrectionService.getCommittedPartialSurrender(positionCorrection).orElse(null);
     var featureIdsAlreadyOperatedOn = licencePositionCorrectionService.blockFeatureIdsAlreadyOperatedOnForExecutedPosition(
+        correction,
         licencePosition,
         positionCorrection,
         stagedChangeId
@@ -242,6 +243,7 @@ public class LicencePositionPartialSurrenderController {
     var stagedSurrender = partialSurrenderCorrectionService.getCommittedPartialSurrender(positionCorrection)
         .orElse(null);
     var featureIdsAlreadyOperatedOn = licencePositionCorrectionService.blockFeatureIdsAlreadyOperatedOnForExecutedPosition(
+        correction,
         licencePosition,
         positionCorrection,
         changeId

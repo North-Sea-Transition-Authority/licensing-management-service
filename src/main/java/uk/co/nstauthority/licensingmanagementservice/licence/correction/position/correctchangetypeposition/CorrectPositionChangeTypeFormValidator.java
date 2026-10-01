@@ -13,6 +13,8 @@ import uk.co.fivium.formlibrary.validator.string.StringInputValidator;
 @Service
 public class CorrectPositionChangeTypeFormValidator {
 
+  private static final String SELECT_MOVE_ERROR_MESSAGE = "Select where to move the change to";
+
   private final Clock clock;
 
   CorrectPositionChangeTypeFormValidator(Clock clock) {
@@ -20,7 +22,9 @@ public class CorrectPositionChangeTypeFormValidator {
   }
 
   boolean hasErrors(CorrectPositionChangeTypeForm form, Errors errors, List<String> allowedMoves) {
-    StringInputValidator.builder().validate(form.getChangeTypePositionMove(), errors);
+    StringInputValidator.builder()
+        .emptyInputErrorMessage(SELECT_MOVE_ERROR_MESSAGE)
+        .validate(form.getChangeTypePositionMove(), errors);
 
     var value = form.getChangeTypePositionMove().getInputValue();
 
@@ -29,8 +33,11 @@ public class CorrectPositionChangeTypeFormValidator {
           .mustBeBeforeOrEqualTo(LocalDate.now(clock))
           .validate(form.getCorrectPositionDate(), errors);
     } else if (!StringUtils.isBlank(value) && !allowedMoves.contains(value)) {
-      errors.rejectValue("changeTypePositionMove.inputValue", "changeTypePositionMove.invalid",
-          "Select the position to move the change to");
+      errors.rejectValue(
+          "changeTypePositionMove.inputValue",
+          "changeTypePositionMove.invalid",
+          SELECT_MOVE_ERROR_MESSAGE
+      );
     }
 
     return errors.hasErrors();

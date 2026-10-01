@@ -16,7 +16,7 @@
 
     <@fdsRadio.radioGroup
       path="form.changeTypePositionMove.inputValue"
-      labelText="Which position do you want to move this change to?"
+      labelText="Where do you want to move this change to?"
       hiddenContent=true
     >
       <#assign firstItem=true/>

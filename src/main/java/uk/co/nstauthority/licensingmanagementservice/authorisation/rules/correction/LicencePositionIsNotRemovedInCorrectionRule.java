@@ -36,9 +36,12 @@ public class LicencePositionIsNotRemovedInCorrectionRule implements AccessInterc
   public SecurityRuleResult check(Object annotation, HttpServletRequest request, HttpServletResponse response) {
     var correction = (LicenceCorrection) request.getAttribute("validatedCorrection");
     var positionId = getPathVariableEntityIdFromRequest(request, "licencePositionId");
+
+    if (licencePositionCorrectionService.findFirstAddedPositionCorrection(correction, positionId).isPresent()) {
+      return SecurityRuleResult.continueAsNormal();
+    }
+
     var position = licencePositionService.getPositionForLicence(correction.getLicence(), positionId);
-
-
     var positionRemovedInCorrection = licencePositionCorrectionService.isPositionRemovedInCorrection(correction, position);
     if (positionRemovedInCorrection) {
       return SecurityRuleResult.checkFailedWithStatusAndMessage(

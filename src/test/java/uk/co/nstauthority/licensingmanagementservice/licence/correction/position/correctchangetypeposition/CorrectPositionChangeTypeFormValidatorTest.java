@@ -38,8 +38,12 @@ class CorrectPositionChangeTypeFormValidatorTest {
     var hasErrors = validator.hasErrors(form, bindingResult, ALLOWED_MOVES);
 
     assertThat(bindingResult.getFieldErrors())
-        .extracting(FieldError::getField, FieldError::getCode)
-        .containsExactly(tuple("changeTypePositionMove.inputValue", "changeTypePositionMove.required"));
+        .extracting(FieldError::getField, FieldError::getCode, FieldError::getDefaultMessage)
+        .containsExactly(tuple(
+            "changeTypePositionMove.inputValue",
+            "changeTypePositionMove.required",
+            "Select where to move the change to"
+        ));
     assertThat(hasErrors).isTrue();
   }
 
@@ -54,7 +58,8 @@ class CorrectPositionChangeTypeFormValidatorTest {
         .containsExactly(tuple(
             "changeTypePositionMove.inputValue",
             "changeTypePositionMove.invalid",
-            "Select the position to move the change to"));
+            "Select where to move the change to"
+        ));
     assertThat(hasErrors).isTrue();
   }
 

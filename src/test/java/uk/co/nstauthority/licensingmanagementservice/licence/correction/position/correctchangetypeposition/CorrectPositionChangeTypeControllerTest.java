@@ -2,6 +2,8 @@ package uk.co.nstauthority.licensingmanagementservice.licence.correction.positio
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
@@ -35,8 +37,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceC
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.OrderablePosition;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeorder.CorrectChangeOrderService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeorder.OrderableChange;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @ContextConfiguration(classes = CorrectPositionChangeTypeController.class)
@@ -46,42 +48,40 @@ class CorrectPositionChangeTypeControllerTest extends AbstractControllerTest {
   @MockitoBean
   private CorrectPositionChangeTypeFormValidator correctPositionChangeTypeFormValidator;
 
+  @MockitoBean
+  private CorrectChangeOrderService correctChangeOrderService;
+
   private static final Licence LICENCE = LicenceTestUtil.builder().build();
   private static final UUID CORRECTION_ID = UUID.randomUUID();
   private static final UUID POSITION_ID = UUID.randomUUID();
   private static final UUID CHANGE_ID = UUID.randomUUID();
   private static final UUID OTHER_POSITION_ID = UUID.randomUUID();
   private static final LocalDate POSITION_DATE = LocalDate.of(2026, Month.JUNE, 1);
-  private static final String PAGE_TITLE = "Update position of change type";
+  private static final String CHANGE_REFERENCE = "Subarea – Block A";
+  private static final String PAGE_TITLE = "Update position of Subarea – Block A";
   private static final String VIEW_NAME = "lms/licence/correction/change/moveChangeTypePosition";
-
-  private static final LicencePosition POSITION = LicencePositionTestUtil.newBuilder()
-      .withId(POSITION_ID)
-      .withLicence(LICENCE)
-      .withPositionDate(POSITION_DATE)
-      .withPositionOrder(2)
-      .build();
 
   private static final LicenceCorrection CORRECTION = LicenceCorrectionTestUtil.newBuilder()
       .withId(CORRECTION_ID)
       .withLicence(LICENCE)
       .build();
 
-  private static final List<OrderablePosition> MOVE_OPTIONS = List.of(
-      new OrderablePosition(POSITION_ID, POSITION_DATE, 1, "REF-A", false),
-      new OrderablePosition(OTHER_POSITION_ID, POSITION_DATE, 2, "REF-B", false));
+  private static final OrderablePosition CURRENT_POSITION =
+      new OrderablePosition(POSITION_ID, POSITION_DATE, 2, "REF-A", false);
 
-  private static final Map<String, String> MOVE_OPTION_LABELS = Map.of(
-      POSITION_ID.toString(), "REF-A - 1 June 2026",
-      OTHER_POSITION_ID.toString(), "REF-B - 1 June 2026 (2)");
+  private static final OrderablePosition OTHER_POSITION =
+      new OrderablePosition(OTHER_POSITION_ID, POSITION_DATE.plusDays(1), 2, "REF-B", false);
 
-  private static final String FORMATTED_POSITION_DATE = "1 June 2026 (2)";
+  private static final Map<String, String> MOVE_OPTIONS =
+      Map.of(OTHER_POSITION_ID.toString(), "REF-B - 2 June 2026 (2)");
 
-  private static final List<String> ALLOWED_MOVES =
-      List.of(POSITION_ID.toString(), OTHER_POSITION_ID.toString());
+  private static final List<String> ALLOWED_MOVES = List.of(OTHER_POSITION_ID.toString());
 
   private final String correctionUrl = ReverseRouter.route(on(LicenceCorrectionController.class)
       .renderCorrection(CORRECTION_ID, null));
+
+  private final String executedPositionUrl = ReverseRouter.route(on(LicenceCorrectionController.class)
+      .renderLicencePosition(CORRECTION_ID, POSITION_ID, null));
 
   @Test
   void renderMoveChangeTypePosition_whenNotLoggedIn() throws Exception {
@@ -94,6 +94,7 @@ class CorrectPositionChangeTypeControllerTest extends AbstractControllerTest {
   void renderMoveChangeTypePosition_whenAllocatedToUser() throws Exception {
     givenCorrectionAllocatedToUser();
     givenPosition();
+    givenChangeOnPosition();
     givenMoveOptions();
 
     mockMvc.perform(get(ReverseRouter.route(on(CorrectPositionChangeTypeController.class)
@@ -104,10 +105,26 @@ class CorrectPositionChangeTypeControllerTest extends AbstractControllerTest {
             view().name(VIEW_NAME),
             model().attribute("pageTitle", PAGE_TITLE),
             model().attributeExists("form"),
-            model().attribute("positionDate", FORMATTED_POSITION_DATE),
-            model().attribute("positionReference", POSITION.getLicenceTransaction().getRegulatorReference()),
-            model().attribute("changeTypePositionMoveOptions", MOVE_OPTION_LABELS),
+            model().attribute("positionDate", "1 June 2026 (2)"),
+            model().attribute("positionReference", "REF-A"),
+            model().attribute("changeTypePositionMoveOptions", MOVE_OPTIONS),
             model().attribute("backLinkUrl", correctionUrl)
+        );
+  }
+
+  @Test
+  void renderMoveChangeTypePosition_whenChangeNotOnPosition_redirectsToPosition() throws Exception {
+    givenCorrectionAllocatedToUser();
+    givenExecutedPosition();
+    when(correctChangeOrderService.getOrderableChanges(CORRECTION, POSITION_ID))
+        .thenReturn(List.of(new OrderableChange(UUID.randomUUID(), "REF-B")));
+
+    mockMvc.perform(get(ReverseRouter.route(on(CorrectPositionChangeTypeController.class)
+            .renderMoveChangeTypePosition(CORRECTION_ID, POSITION_ID, CHANGE_ID, null)))
+            .with(user(regulatorUser)))
+        .andExpectAll(
+            status().is3xxRedirection(),
+            redirectedUrl(executedPositionUrl)
         );
   }
 
@@ -130,9 +147,10 @@ class CorrectPositionChangeTypeControllerTest extends AbstractControllerTest {
   }
 
   @Test
-  void correctChangeTypePosition_whenValid() throws Exception {
+  void correctChangeTypePosition_whenAPositionIsSelected_thenMovesTheChange() throws Exception {
     givenCorrectionAllocatedToUser();
     givenPosition();
+    givenChangeOnPosition();
     givenMoveOptions();
 
     var form = new CorrectPositionChangeTypeForm();
@@ -151,15 +169,45 @@ class CorrectPositionChangeTypeControllerTest extends AbstractControllerTest {
             status().is3xxRedirection(),
             redirectedUrl(correctionUrl),
             notificationBanner(NotificationBanner.newSuccessBanner()
-                .withHeadingContent("Change type position updated")
+                .withHeadingContent("Position of Subarea – Block A updated")
                 .build())
         );
+
+    verify(correctChangeOrderService).moveChangeToPosition(CORRECTION, POSITION_ID, CHANGE_ID, OTHER_POSITION_ID);
+  }
+
+  @Test
+  void correctChangeTypePosition_whenOtherDateIsSelected_thenMovesNothing() throws Exception {
+    givenCorrectionAllocatedToUser();
+    givenPosition();
+    givenChangeOnPosition();
+    givenMoveOptions();
+
+    var form = new CorrectPositionChangeTypeForm();
+    form.getChangeTypePositionMove().setInputValue(CorrectPositionChangeTypeForm.OTHER_DATE_OPTION);
+
+    when(correctPositionChangeTypeFormValidator
+        .hasErrors(eq(form), any(BindingResult.class), eq(ALLOWED_MOVES)))
+        .thenReturn(false);
+
+    mockMvc.perform(post(ReverseRouter.route(on(CorrectPositionChangeTypeController.class)
+            .correctChangeTypePosition(CORRECTION_ID, POSITION_ID, CHANGE_ID, null, null, null, null)))
+            .with(user(regulatorUser))
+            .with(csrf())
+            .flashAttr("form", form))
+        .andExpectAll(
+            status().is3xxRedirection(),
+            redirectedUrl(correctionUrl)
+        );
+
+    verify(correctChangeOrderService, never()).moveChangeToPosition(any(), any(), any(), any());
   }
 
   @Test
   void correctChangeTypePosition_whenInvalid() throws Exception {
     givenCorrectionAllocatedToUser();
     givenPosition();
+    givenChangeOnPosition();
     givenMoveOptions();
 
     var form = new CorrectPositionChangeTypeForm();
@@ -178,11 +226,33 @@ class CorrectPositionChangeTypeControllerTest extends AbstractControllerTest {
             view().name(VIEW_NAME),
             model().attribute("pageTitle", PAGE_TITLE),
             model().attribute("form", form),
-            model().attribute("positionDate", FORMATTED_POSITION_DATE),
-            model().attribute("positionReference", POSITION.getLicenceTransaction().getRegulatorReference()),
-            model().attribute("changeTypePositionMoveOptions", MOVE_OPTION_LABELS),
+            model().attribute("positionDate", "1 June 2026 (2)"),
+            model().attribute("positionReference", "REF-A"),
+            model().attribute("changeTypePositionMoveOptions", MOVE_OPTIONS),
             model().attribute("backLinkUrl", correctionUrl)
         );
+
+    verify(correctChangeOrderService, never()).moveChangeToPosition(any(), any(), any(), any());
+  }
+
+  @Test
+  void correctChangeTypePosition_whenChangeNotOnPosition_redirectsToPosition() throws Exception {
+    givenCorrectionAllocatedToUser();
+    givenExecutedPosition();
+    when(correctChangeOrderService.getOrderableChanges(CORRECTION, POSITION_ID))
+        .thenReturn(List.of(new OrderableChange(UUID.randomUUID(), "REF-B")));
+
+    mockMvc.perform(post(ReverseRouter.route(on(CorrectPositionChangeTypeController.class)
+            .correctChangeTypePosition(CORRECTION_ID, POSITION_ID, CHANGE_ID, null, null, null, null)))
+            .with(user(regulatorUser))
+            .with(csrf())
+            .flashAttr("form", new CorrectPositionChangeTypeForm()))
+        .andExpectAll(
+            status().is3xxRedirection(),
+            redirectedUrl(executedPositionUrl)
+        );
+
+    verifyNoInteractions(correctPositionChangeTypeFormValidator);
   }
 
   @Test
@@ -210,10 +280,25 @@ class CorrectPositionChangeTypeControllerTest extends AbstractControllerTest {
   }
 
   private void givenPosition() {
-    when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(POSITION);
+    when(licencePositionCorrectionService.getOrderableDatePosition(CORRECTION, POSITION_ID))
+        .thenReturn(CURRENT_POSITION);
+  }
+
+  private void givenChangeOnPosition() {
+    when(correctChangeOrderService.getOrderableChanges(CORRECTION, POSITION_ID))
+        .thenReturn(List.of(
+            new OrderableChange(UUID.randomUUID(), "Subarea – Block B"),
+            new OrderableChange(CHANGE_ID, CHANGE_REFERENCE)
+        ));
+  }
+
+  private void givenExecutedPosition() {
+    when(licencePositionCorrectionService.findFirstAddedPositionCorrection(CORRECTION, POSITION_ID))
+        .thenReturn(Optional.empty());
   }
 
   private void givenMoveOptions() {
-    when(licencePositionCorrectionService.getOrderableDatePositions(CORRECTION)).thenReturn(MOVE_OPTIONS);
+    when(licencePositionCorrectionService.getOrderableDatePositionsExcluding(CORRECTION, POSITION_ID))
+        .thenReturn(List.of(OTHER_POSITION));
   }
 }

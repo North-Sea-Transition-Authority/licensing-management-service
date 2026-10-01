@@ -66,6 +66,10 @@ public record ChronologicalPosition(
     return DateUtil.formatLongDateWithOrder(date, order);
   }
 
+  public boolean hasMovedAwayChange() {
+    return changes.stream().anyMatch(PositionChange::movedAway);
+  }
+
   public List<PositionValidationError> validate(PositionValidationContext positionValidationContext) {
     var positionValidationErrors = new ArrayList<PositionValidationError>();
 

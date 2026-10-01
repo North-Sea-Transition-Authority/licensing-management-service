@@ -75,6 +75,7 @@ public class TransferEquityCorrectionService {
 
     for (var chronologicalPosition : chronologicalPositions) {
       chronologicalPosition.changes().stream()
+          .filter(change -> !LicencePositionChangeType.REMOVE_CHANGE.equals(change.changeType()))
           .flatMap(change -> change.operations().stream())
           .forEach(operation -> applyEquityOperation(holdings, operation));
 

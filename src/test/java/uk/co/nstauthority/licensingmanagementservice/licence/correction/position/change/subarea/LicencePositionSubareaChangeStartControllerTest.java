@@ -154,8 +154,11 @@ class LicencePositionSubareaChangeStartControllerTest extends AbstractController
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(licencePosition);
     when(licencePositionSpatialService.getBlockFeaturesGoingIntoChange(correction, licencePosition, null))
         .thenReturn(BLOCK_FEATURES);
-    when(licencePositionCorrectionService.blockFeatureIdsAlreadyOperatedOnForExecutedPosition(licencePosition, null))
-        .thenReturn(ALREADY_OPERATED_ON);
+    when(licencePositionCorrectionService.blockFeatureIdsAlreadyOperatedOnForExecutedPosition(
+        correction,
+        licencePosition,
+        null
+    )).thenReturn(ALREADY_OPERATED_ON);
     when(subareaChangeStartFormValidator.hasErrors(
         any(SubareaChangeStartForm.class), any(BindingResult.class), eq(BLOCK_FEATURES), eq(ALREADY_OPERATED_ON)))
         .thenReturn(true);
@@ -179,8 +182,11 @@ class LicencePositionSubareaChangeStartControllerTest extends AbstractController
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(licencePosition);
     when(licencePositionSpatialService.getBlockFeaturesGoingIntoChange(correction, licencePosition, null))
         .thenReturn(BLOCK_FEATURES);
-    when(licencePositionCorrectionService.blockFeatureIdsAlreadyOperatedOnForExecutedPosition(licencePosition, null))
-        .thenReturn(ALREADY_OPERATED_ON);
+    when(licencePositionCorrectionService.blockFeatureIdsAlreadyOperatedOnForExecutedPosition(
+        correction,
+        licencePosition,
+        null
+    )).thenReturn(ALREADY_OPERATED_ON);
     when(subareaChangeStartFormValidator.hasErrors(
         any(SubareaChangeStartForm.class), any(BindingResult.class), eq(BLOCK_FEATURES), eq(ALREADY_OPERATED_ON)))
         .thenReturn(false);

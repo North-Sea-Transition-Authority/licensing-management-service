@@ -4,7 +4,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeoperation.LicencePositionChangeOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.UpdateChangeOperations;
@@ -13,6 +16,10 @@ import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOp
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeTestUtil;
 
 class PositionChangeTest {
+
+  private static final String MOVED_CHANGE_ID = UUID.randomUUID().toString();
+  private static final LicenceOperation MOVED_OPERATION =
+      LicenceOperation.newAdministratorChange().withOperator(200).build();
 
   @Test
   void fromLicencePositionChanges_liveChangeHasNoChangeType() {
@@ -179,6 +186,29 @@ class PositionChangeTest {
     assertThat(result).containsExactly(
         new PositionChange(
             liveChange.getId().toString(), 2, LicencePositionChangeType.UPDATE_CHANGE_OPERATIONS, List.of(correctedOperation)));
+  }
+
+  @ParameterizedTest
+  @MethodSource("stagedMovesInEitherOrder")
+  void foldChanges_whenALiveChangeIsMovedOntoThePosition_thenFoldsItsOperationsAtTheStagedOrder(
+      List<LicencePositionChangeType> stagedMove
+  ) {
+    var result = PositionChange.foldChanges(List.of(), stagedMove);
+
+    assertThat(result).containsExactly(new PositionChange(
+        MOVED_CHANGE_ID,
+        4,
+        LicencePositionChangeType.UPDATE_CHANGE_OPERATIONS,
+        List.of(MOVED_OPERATION)
+    ));
+  }
+
+  private static Stream<List<LicencePositionChangeType>> stagedMovesInEitherOrder() {
+    var operations = UpdateChangeOperations.buildUpdateChange(MOVED_CHANGE_ID, MOVED_OPERATION);
+    var changeOrder = LicencePositionChangeType.updateChangeOrder()
+        .withChangeId(MOVED_CHANGE_ID).withChangeOrder(4).build();
+
+    return Stream.of(List.of(operations, changeOrder), List.of(changeOrder, operations));
   }
 
   private static LicencePositionChangeOperation addOperation(LicenceOperation operation) {

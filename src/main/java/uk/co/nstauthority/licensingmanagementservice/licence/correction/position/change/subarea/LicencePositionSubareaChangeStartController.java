@@ -93,6 +93,7 @@ public class LicencePositionSubareaChangeStartController {
         .orElse(null);
     var blockFeatures = licencePositionSpatialService.getBlockFeaturesGoingIntoChange(correction, licencePosition, null);
     var featureIdsAlreadyOperatedOn = licencePositionCorrectionService.blockFeatureIdsAlreadyOperatedOnForExecutedPosition(
+        correction,
         licencePosition,
         positionCorrection
     );

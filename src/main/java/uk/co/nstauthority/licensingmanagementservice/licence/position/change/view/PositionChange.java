@@ -21,8 +21,18 @@ public record PositionChange(
     String changeId,
     Integer changeOrder,
     @Nullable String changeType,
-    List<LicenceOperation> operations
+    List<LicenceOperation> operations,
+    boolean movedAway
 ) {
+
+  public PositionChange(
+      String changeId,
+      Integer changeOrder,
+      @Nullable String changeType,
+      List<LicenceOperation> operations
+  ) {
+    this(changeId, changeOrder, changeType, operations, false);
+  }
 
   public static List<PositionChange> fromLicencePositionChanges(List<LicencePositionChange> changes) {
     return changes.stream()
@@ -37,7 +47,7 @@ public record PositionChange(
   }
 
   public static List<PositionChange> fromPayload(LicencePositionPayload payload) {
-    return fromCorrectionChanges(payload.changes());
+    return foldChanges(List.of(), payload.changes());
   }
 
   public static List<PositionChange> fromCorrectionChanges(List<LicencePositionChangeType> changes) {
@@ -45,6 +55,10 @@ public record PositionChange(
         .map(PositionChange::fromCorrectionChange)
         .sorted(Comparator.comparingLong(PositionChange::changeOrder))
         .toList();
+  }
+
+  public PositionChange asMovedAway() {
+    return new PositionChange(changeId, changeOrder, LicencePositionChangeType.REMOVE_CHANGE, operations, true);
   }
 
   public boolean isOrderable() {

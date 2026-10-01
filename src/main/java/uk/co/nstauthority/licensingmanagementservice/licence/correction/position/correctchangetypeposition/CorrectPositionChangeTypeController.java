@@ -4,6 +4,7 @@ import static org.springframework.web.servlet.mvc.method.annotation.MvcUriCompon
 
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Controller;
@@ -21,10 +22,11 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correct
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.OrderablePosition;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeorder.CorrectChangeOrderService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeorder.OrderableChange;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.util.DateUtil;
 
@@ -36,16 +38,16 @@ public class CorrectPositionChangeTypeController {
 
   private final CorrectPositionChangeTypeFormValidator correctPositionChangeTypeFormValidator;
   private final LicencePositionCorrectionService licencePositionCorrectionService;
-  private final LicencePositionService licencePositionService;
+  private final CorrectChangeOrderService correctChangeOrderService;
 
-  CorrectPositionChangeTypeController(
+  public CorrectPositionChangeTypeController(
       CorrectPositionChangeTypeFormValidator correctPositionChangeTypeFormValidator,
       LicencePositionCorrectionService licencePositionCorrectionService,
-      LicencePositionService licencePositionService
+      CorrectChangeOrderService correctChangeOrderService
   ) {
     this.correctPositionChangeTypeFormValidator = correctPositionChangeTypeFormValidator;
     this.licencePositionCorrectionService = licencePositionCorrectionService;
-    this.licencePositionService = licencePositionService;
+    this.correctChangeOrderService = correctChangeOrderService;
   }
 
   @GetMapping
@@ -55,13 +57,23 @@ public class CorrectPositionChangeTypeController {
       @PathVariable UUID changeId,
       @RequestAttribute("validatedCorrection") LicenceCorrection correction
   ) {
-    var licencePosition = licencePositionService
-        .getPositionForLicence(correction.getLicence(), licencePositionId);
+    var change = findChange(correctChangeOrderService.getOrderableChanges(correction, licencePositionId), changeId);
+    if (change.isEmpty()) {
+      return ReverseRouter.redirectToUrl(positionPageUrl(correction, licencePositionId));
+    }
+
+    var currentPosition = licencePositionCorrectionService.getOrderableDatePosition(correction, licencePositionId);
     var changeTypePositionMoveOptions = changeTypePositionMoveOptions(
-        licencePositionCorrectionService.getOrderableDatePositions(correction));
+        licencePositionCorrectionService.getOrderableDatePositionsExcluding(correction, licencePositionId)
+    );
 
     return correctChangeTypePositionMoveModelAndView(
-        new CorrectPositionChangeTypeForm(), licencePosition, correction, changeTypePositionMoveOptions);
+        new CorrectPositionChangeTypeForm(),
+        change.get(),
+        currentPosition,
+        correction,
+        changeTypePositionMoveOptions
+    );
   }
 
   @PostMapping
@@ -74,10 +86,15 @@ public class CorrectPositionChangeTypeController {
       BindingResult bindingResult,
       RedirectAttributes redirectAttributes
   ) {
-    var licencePosition = licencePositionService
-        .getPositionForLicence(correction.getLicence(), licencePositionId);
+    var change = findChange(correctChangeOrderService.getOrderableChanges(correction, licencePositionId), changeId);
+    if (change.isEmpty()) {
+      return ReverseRouter.redirectToUrl(positionPageUrl(correction, licencePositionId));
+    }
+
+    var currentPosition = licencePositionCorrectionService.getOrderableDatePosition(correction, licencePositionId);
     var changeTypePositionMoveOptions = changeTypePositionMoveOptions(
-        licencePositionCorrectionService.getOrderableDatePositions(correction));
+        licencePositionCorrectionService.getOrderableDatePositionsExcluding(correction, licencePositionId)
+    );
 
     if (correctPositionChangeTypeFormValidator.hasErrors(
         form,
@@ -85,25 +102,47 @@ public class CorrectPositionChangeTypeController {
         List.copyOf(changeTypePositionMoveOptions.keySet())
     )) {
       return correctChangeTypePositionMoveModelAndView(
-          form, licencePosition, correction, changeTypePositionMoveOptions);
+          form,
+          change.get(),
+          currentPosition,
+          correction,
+          changeTypePositionMoveOptions
+      );
     }
 
-    NotificationBanner.newSuccessBannerWithHeader("Change type position updated", redirectAttributes);
+    var selectedMove = form.getChangeTypePositionMove().getInputValue();
+
+    if (!CorrectPositionChangeTypeForm.OTHER_DATE_OPTION.equals(selectedMove)) {
+      correctChangeOrderService.moveChangeToPosition(
+          correction,
+          licencePositionId,
+          changeId,
+          UUID.fromString(selectedMove)
+      );
+    }
+
+    NotificationBanner.newSuccessBannerWithHeader(
+        "Position of %s updated".formatted(change.get().reference()),
+        redirectAttributes
+    );
 
     return ReverseRouter.redirectToUrl(correctionUrl(correction));
   }
 
   private ModelAndView correctChangeTypePositionMoveModelAndView(
       CorrectPositionChangeTypeForm form,
-      LicencePosition licencePosition,
+      OrderableChange change,
+      OrderablePosition currentPosition,
       LicenceCorrection correction,
       LinkedHashMap<String, String> changeTypePositionMoveOptions
   ) {
     return new ModelAndView("lms/licence/correction/change/moveChangeTypePosition")
-        .addObject("pageTitle", "Update position of change type")
-        .addObject("positionDate",
-            DateUtil.formatLongDateWithOrder(licencePosition.getPositionDate(), licencePosition.getPositionDateOrder()))
-        .addObject("positionReference", licencePosition.getLicenceTransaction().getRegulatorReference())
+        .addObject("pageTitle", buildPageTitle(change))
+        .addObject(
+            "positionDate",
+            DateUtil.formatLongDateWithOrder(currentPosition.effectiveDate(), currentPosition.effectiveDateOrder())
+        )
+        .addObject("positionReference", currentPosition.reference())
         .addObject("changeTypePositionMoveOptions", changeTypePositionMoveOptions)
         .addObject("form", form)
         .addObject("backLinkUrl", correctionUrl(correction));
@@ -112,6 +151,21 @@ public class CorrectPositionChangeTypeController {
   private String correctionUrl(LicenceCorrection correction) {
     return ReverseRouter.route(on(LicenceCorrectionController.class)
         .renderCorrection(correction.getId(), null));
+  }
+
+  private String positionPageUrl(LicenceCorrection correction, UUID licencePositionId) {
+    return licencePositionCorrectionService.findFirstAddedPositionCorrection(correction, licencePositionId)
+        .map(LicencePositionCorrection::getId)
+        .map(addedPositionCorrectionId -> ReverseRouter.route(on(LicenceCorrectionController.class)
+            .renderAddedPosition(correction.getId(), addedPositionCorrectionId, null)))
+        .orElseGet(() -> ReverseRouter.route(on(LicenceCorrectionController.class)
+            .renderLicencePosition(correction.getId(), licencePositionId, null)));
+  }
+
+  private static Optional<OrderableChange> findChange(List<OrderableChange> orderableChanges, UUID changeId) {
+    return orderableChanges.stream()
+        .filter(orderableChange -> orderableChange.id().equals(changeId))
+        .findFirst();
   }
 
   private static LinkedHashMap<String, String> changeTypePositionMoveOptions(
@@ -126,6 +180,10 @@ public class CorrectPositionChangeTypeController {
             (existing, duplicate) -> existing,
             LinkedHashMap::new
         ));
+  }
+
+  private static String buildPageTitle(OrderableChange change) {
+    return "Update position of %s".formatted(change.reference());
   }
 
 }

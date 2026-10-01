@@ -7,6 +7,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -21,6 +22,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
@@ -85,6 +87,25 @@ class LicencePositionIsNotRemovedInCorrectionRuleTest extends AbstractIntercepto
         HttpStatus.FORBIDDEN,
         "Licence position %s is removed.".formatted(POSITION_ID)
     ));
+  }
+
+  @Test
+  void check_whenPositionAddedInCorrection_rulePasses() throws NoSuchMethodException {
+    when(request.getAttribute("validatedCorrection")).thenReturn(CORRECTION);
+    when(request.getAttribute(HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE))
+        .thenReturn(Map.of("licencePositionId", POSITION_ID.toString()));
+    when(licencePositionCorrectionService.findFirstAddedPositionCorrection(CORRECTION, POSITION_ID))
+        .thenReturn(Optional.of(LicencePositionCorrectionTestUtil.newBuilder().build()));
+
+    var annotation = getAnnotation(
+        InterceptorRuleTestEndpoints.class.getDeclaredMethod("licencePositionIsNotRemovedInCorrection"),
+        LicencePositionIsNotRemovedInCorrection.class
+    );
+
+    var result = licencePositionIsNotRemovedInCorrectionRule.check(annotation, request, response);
+
+    assertThat(result.hasRulePassed()).isTrue();
+    verifyNoInteractions(licencePositionService, response);
   }
 
   private LicencePosition mockCorrectionAndPosition() {

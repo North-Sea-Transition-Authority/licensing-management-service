@@ -659,7 +659,7 @@ public final class LicencePositionChangeViewResolver {
       PositionChange change,
       Function<PositionChangeUrlContext, String> undoUrl
   ) {
-    if (urlContext == null || change.changeType() == null) {
+    if (urlContext == null || change.changeType() == null || change.movedAway()) {
       return null;
     }
 

@@ -121,6 +121,34 @@ class PolygonServiceTest {
   }
 
   @Test
+  void getPolygonIdToEsriJson() {
+    var feature = FeatureTestUtil.newBuilder().build();
+    var polygon1 = PolygonTestUtil.newBuilder().build();
+    var polygon2 = PolygonTestUtil.newBuilder().build();
+    var polygon1Line1 = LineTestUtil.newBuilder().withPolygon(polygon1).withDisplayOrder(1).build();
+    var polygon1Line2 = LineTestUtil.newBuilder().withPolygon(polygon1).withDisplayOrder(2).build();
+    var polygon2Line = LineTestUtil.newBuilder().withPolygon(polygon2).withDisplayOrder(1).build();
+    var entityBackedFeature = new EntityBackedFeature(
+        feature,
+        Map.of(polygon1, List.of(polygon1Line2, polygon1Line1), polygon2, List.of(polygon2Line))
+    );
+
+    when(grpcClientService.buildPolygon(
+        List.of(polygon1Line1.getEsriJson(), polygon1Line2.getEsriJson()),
+        feature.getCoordinateSystem(), false)
+    ).thenReturn("polygon 1 esriJson");
+    when(grpcClientService.buildPolygon(List.of(polygon2Line.getEsriJson()), feature.getCoordinateSystem(), false))
+        .thenReturn("polygon 2 esriJson");
+
+    var result = polygonService.getPolygonIdToEsriJson(entityBackedFeature);
+
+    assertThat(result).isEqualTo(Map.of(
+        polygon1.getId(), "polygon 1 esriJson",
+        polygon2.getId(), "polygon 2 esriJson"
+    ));
+  }
+
+  @Test
   void getPolygons() {
     when(polygonRepository.findAllByFeatureIn(FEATURES)).thenReturn(POLYGONS);
     assertThat(polygonService.getPolygons(FEATURES)).containsExactlyInAnyOrder(POLYGON_1, POLYGON_2);

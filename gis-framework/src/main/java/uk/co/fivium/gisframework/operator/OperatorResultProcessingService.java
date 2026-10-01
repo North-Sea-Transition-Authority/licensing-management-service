@@ -1,17 +1,20 @@
 package uk.co.fivium.gisframework.operator;
 
 import com.esri.core.geometry.Point;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import uk.co.fivium.gisframework.feature.EntityBackedFeature;
 import uk.co.fivium.gisframework.feature.Feature;
 import uk.co.fivium.gisframework.feature.FeatureService;
 import uk.co.fivium.gisframework.feature.Line;
@@ -94,6 +97,78 @@ public class OperatorResultProcessingService {
   }
 
   /**
+   * Creates a new feature from the input feature with some of its polygons cropped or removed. Polygons that are
+   * neither cropped nor removed are copied across unchanged. The input feature is left untouched.
+   *
+   * @param inputFeature               the feature to create the cropped feature from.
+   * @param polygonIdToCroppedEsriJson the EsriJSON each cropped polygon is replaced with, keyed by polygon id.
+   * @param removedPolygonIds          the ids of the polygons to leave out of the new feature.
+   * @return the new cropped feature.
+   */
+  @Transactional
+  public Feature processCroppedFeature(
+      EntityBackedFeature inputFeature,
+      Map<UUID, String> polygonIdToCroppedEsriJson,
+      Set<UUID> removedPolygonIds
+  ) {
+    var newFeature = new Feature();
+    List<Polygon> newPolygons = new ArrayList<>();
+    List<Line> newLineEntities = new ArrayList<>();
+    List<List<Line>> newPolygonLines = new ArrayList<>();
+    Map<UUID, List<Line>> croppedPolygonIdToLines = new HashMap<>();
+
+    for (var polygonToLines : inputFeature.polygonToLines().entrySet()) {
+      var inputPolygon = polygonToLines.getKey();
+      if (removedPolygonIds.contains(inputPolygon.getId())) {
+        continue;
+      }
+
+      var croppedEsriJson = polygonIdToCroppedEsriJson.get(inputPolygon.getId());
+      var polygonLines = croppedEsriJson == null
+          ? copyLines(polygonToLines.getValue())
+          : buildLinesWithParentAttributes(croppedEsriJson, polygonToLines.getValue());
+
+      var newPolygon = buildPolygon(List.of(inputPolygon), newFeature);
+      polygonLines.forEach(line -> line.setPolygon(newPolygon));
+
+      if (croppedEsriJson != null) {
+        croppedPolygonIdToLines.put(inputPolygon.getId(), polygonLines);
+      }
+      newPolygons.add(newPolygon);
+      newPolygonLines.add(polygonLines);
+      newLineEntities.addAll(polygonLines);
+    }
+
+    numberLines(newLineEntities);
+    croppedPolygonIdToLines.forEach((polygonId, lines) ->
+        validateLinesAreValid(lines, polygonIdToCroppedEsriJson.get(polygonId)));
+
+    var target = inputFeature.feature();
+    //TODO - EPGF-84: Take into account 3D shapes when calculating the area
+    var featureArea = newPolygonLines.stream()
+        .map(polygonLines -> grpcClientService.calculateArea(target.getCoordinateSystem(), polygonLines))
+        .reduce(BigDecimal.ZERO, BigDecimal::add);
+    copyFeatureProperties(target, newFeature, target.getFeatureName(), featureArea);
+
+    featureService.saveFeature(newFeature);
+    polygonService.savePolygons(newPolygons);
+    lineService.saveLines(newLineEntities);
+    return newFeature;
+  }
+
+  private List<Line> copyLines(List<Line> lines) {
+    return lines.stream()
+        .map(line -> {
+          var newLineEntity = new Line();
+          newLineEntity.setEsriJson(line.getEsriJson());
+          newLineEntity.setAttributes(new HashMap<>(line.getAttributes()));
+          newLineEntity.setNavigationType(line.getNavigationType());
+          return newLineEntity;
+        })
+        .collect(Collectors.toCollection(ArrayList::new));
+  }
+
+  /**
    * Creates new line entities for the output polygon, copying attributes from the parent line if a parent line can be
    * found for the output line. If no parent line can be found, a new line entity is created with no attributes.
    *
@@ -139,6 +214,7 @@ public class OperatorResultProcessingService {
    * and a connection order based on how they are connected. Lines are grouped by their polygon, and the polygon
    * groups are processed in top most then west most order: within a polygon the outer ring is numbered before its
    * inner rings, and the ring number and connection order continue on across rings and polygons.
+   *
    * @param unorderedLines the lines of the output polygon.
    */
   public void numberLines(List<Line> unorderedLines) {
@@ -236,19 +312,32 @@ public class OperatorResultProcessingService {
     var newFeature = new Feature();
     var target = inputFeatures.getFirst();
 
+    String featureName;
     if (inputFeatures.size() == 1) {
-      newFeature.setFeatureName("%s_%s".formatted(target.getFeatureName(), featureNameSuffix));
+      featureName = "%s_%s".formatted(target.getFeatureName(), featureNameSuffix);
     } else {
       //merge operation
-      newFeature.setFeatureName("mergeResult_%s".formatted(UUID.randomUUID().toString().substring(0, 4).toUpperCase()));
+      featureName = "mergeResult_%s".formatted(UUID.randomUUID().toString().substring(0, 4).toUpperCase());
     }
+
+    var featureArea = grpcClientService.calculateArea(target.getCoordinateSystem(), newLineEntities);
+    copyFeatureProperties(target, newFeature, featureName, featureArea);
+    return newFeature;
+  }
+
+  private void copyFeatureProperties(
+      Feature target,
+      Feature newFeature,
+      String featureName,
+      BigDecimal featureArea
+  ) {
+    newFeature.setFeatureName(featureName);
     newFeature.setCoordinateSystem(target.getCoordinateSystem());
-    newFeature.setFeatureArea(grpcClientService.calculateArea(newFeature.getCoordinateSystem(), newLineEntities));
+    newFeature.setFeatureArea(featureArea);
     newFeature.setAttributes(new HashMap<>(target.getAttributes()));
     newFeature.setParentFeature(target.getParentFeature());
     newFeature.setStartDate(null);
     newFeature.setEndDate(null);
-    return newFeature;
   }
 
   private Polygon buildPolygon(List<Polygon> inputPolygons, Feature newFeature) {

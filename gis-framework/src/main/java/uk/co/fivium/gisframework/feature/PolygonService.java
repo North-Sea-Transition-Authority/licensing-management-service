@@ -6,8 +6,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.co.fivium.gisframework.grpc.GrpcClientService;
@@ -100,21 +102,42 @@ public class PolygonService {
     polygonRepository.deleteAll();
   }
 
-  private List<String> getPolygonsAsEsriJson(EntityBackedFeature entityBackedFeature,
-                                             boolean projectToWgs84) {
-    List<String> polygonsAsEsriJson = new ArrayList<>();
+  /**
+   * Generates the EsriJSON polygon for each of a feature's polygons.
+   *
+   * @param entityBackedFeature the feature, along with its polygons and lines, whose polygons will be built as EsriJSON.
+   * @return the EsriJSON polygons, keyed by polygon id.
+   */
+  public Map<UUID, String> getPolygonIdToEsriJson(EntityBackedFeature entityBackedFeature) {
+    Map<UUID, String> polygonIdToEsriJson = new HashMap<>();
 
-    for (var lines : entityBackedFeature.polygonToLines().values()) {
-      polygonsAsEsriJson.add(
-          buildPolygonEsriJson(lines, entityBackedFeature.feature().getCoordinateSystem(), projectToWgs84));
+    for (var polygonToLines : entityBackedFeature.polygonToLines().entrySet()) {
+      polygonIdToEsriJson.put(
+          polygonToLines.getKey().getId(),
+          buildPolygonEsriJson(polygonToLines.getValue(), entityBackedFeature.feature().getCoordinateSystem(), false)
+      );
     }
 
-    return polygonsAsEsriJson;
+    return polygonIdToEsriJson;
   }
 
-  private String buildPolygonEsriJson(List<Line> lines, CoordinateSystem coordinateSystem, boolean projectToWgs84) {
-    var lineEsriJsons = lines
+  private List<String> getPolygonsAsEsriJson(
+      EntityBackedFeature entityBackedFeature,
+      boolean projectToWgs84
+  ) {
+    return entityBackedFeature.polygonToLines()
+        .values()
         .stream()
+        .map(lines -> buildPolygonEsriJson(lines, entityBackedFeature.feature().getCoordinateSystem(), projectToWgs84))
+        .toList();
+  }
+
+  private String buildPolygonEsriJson(
+      List<Line> lines,
+      CoordinateSystem coordinateSystem,
+      boolean projectToWgs84
+  ) {
+    var lineEsriJsons = lines.stream()
         .sorted(Comparator.comparing(Line::getDisplayOrder))
         .map(Line::getEsriJson)
         .toList();

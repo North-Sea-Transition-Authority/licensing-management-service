@@ -1,0 +1,13 @@
+syntax = "proto3";
+import "enums/IntersectionStatus.proto";
+
+package uk.co.fivium.grpc.gis;
+
+option java_multiple_files = true;
+option java_outer_classname = "PolygonCropResultProto";
+
+message PolygonCropResult {
+  string polygonId = 1;
+  IntersectionStatus status = 2;
+  string esriJsonCroppedPolygon = 3;
+}

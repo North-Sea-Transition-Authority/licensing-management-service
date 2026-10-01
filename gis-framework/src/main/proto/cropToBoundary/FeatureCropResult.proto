@@ -1,0 +1,14 @@
+syntax = "proto3";
+import "enums/IntersectionStatus.proto";
+import "cropToBoundary/PolygonCropResult.proto";
+
+package uk.co.fivium.grpc.gis;
+
+option java_multiple_files = true;
+option java_outer_classname = "FeatureCropResultProto";
+
+message FeatureCropResult {
+  string originalFeatureId = 1;
+  IntersectionStatus intersectionStatus = 2;
+  repeated PolygonCropResult polygonCropResults = 3;
+}

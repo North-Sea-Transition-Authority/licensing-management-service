@@ -23,10 +23,14 @@ import uk.co.fivium.grpc.gis.ChildLineMatch;
 import uk.co.fivium.grpc.gis.Coordinate;
 import uk.co.fivium.grpc.gis.CoordinateSystem;
 import uk.co.fivium.grpc.gis.CoordinatesToPolylineRequest;
+import uk.co.fivium.grpc.gis.CropToBoundaryRequest;
 import uk.co.fivium.grpc.gis.EsriJsonLineWithNavigationAndId;
 import uk.co.fivium.grpc.gis.EsriJsonPolygonLineWrappers;
 import uk.co.fivium.grpc.gis.EsriJsonPolygonLines;
+import uk.co.fivium.grpc.gis.EsriJsonPolygonWithId;
 import uk.co.fivium.grpc.gis.ExplodePolygonRequest;
+import uk.co.fivium.grpc.gis.FeatureCropResult;
+import uk.co.fivium.grpc.gis.FeaturePolygons;
 import uk.co.fivium.grpc.gis.FindNorthwestMostLineRequest;
 import uk.co.fivium.grpc.gis.FindParentLinesRequest;
 import uk.co.fivium.grpc.gis.GeneralizePolygonRequest;
@@ -44,6 +48,7 @@ import uk.co.fivium.grpc.gis.MigrateReferenceBlockResponse;
 import uk.co.fivium.grpc.gis.MultiPartToSinglePartRequest;
 import uk.co.fivium.grpc.gis.ParentLine;
 import uk.co.fivium.grpc.gis.PolygonContainsRequest;
+import uk.co.fivium.grpc.gis.PolygonCropResult;
 import uk.co.fivium.grpc.gis.ReferenceBlockValidationRequest;
 import uk.co.fivium.grpc.gis.SplitPolygonRequest;
 import uk.co.fivium.grpc.gis.TopologicallyEqualValidationRequest;
@@ -521,6 +526,53 @@ public class GrpcClientService {
 
     var response = arcgisClient.polygonContains(request);
     return response.getContains();
+  }
+
+  /**
+   * Crop features to the union of the boundary polygons.
+   *
+   * @param esriJsonBoundaryPolygons       The EsriJSON of the polygons that together form the boundary.
+   * @param featureIdToPolygonIdToEsriJson The EsriJSON of each feature's polygons, keyed by feature and polygon id.
+   * @return Per feature id, its intersection status along with the crop result of every polygon not fully inside the
+   *     boundary, keyed by polygon id.
+   */
+  public Map<UUID, FeatureCropResultDto> cropToBoundary(
+      List<String> esriJsonBoundaryPolygons,
+      Map<UUID, Map<UUID, String>> featureIdToPolygonIdToEsriJson
+  ) {
+    var featuresToBeCropped = featureIdToPolygonIdToEsriJson.entrySet().stream()
+        .map(featureEntry -> FeaturePolygons.newBuilder()
+            .setFeatureId(featureEntry.getKey().toString())
+            .addAllPolygons(featureEntry.getValue().entrySet().stream()
+                .map(polygonEntry -> EsriJsonPolygonWithId.newBuilder()
+                    .setId(polygonEntry.getKey().toString())
+                    .setEsriJsonPolygon(polygonEntry.getValue())
+                    .build())
+                .toList())
+            .build())
+        .toList();
+
+    var request = CropToBoundaryRequest.newBuilder()
+        .addAllEsriJsonBoundaryPolygons(esriJsonBoundaryPolygons)
+        .addAllFeaturesToBeCropped(featuresToBeCropped)
+        .build();
+
+    var response = arcgisClient.cropToBoundary(request);
+
+    Map<UUID, FeatureCropResultDto> featureIdToCropResult = new HashMap<>();
+    for (FeatureCropResult featureCropResult : response.getFeatureCropResultsList()) {
+      Map<UUID, PolygonCropResultDto> polygonIdToCropResult = new HashMap<>();
+      for (PolygonCropResult polygonCropResult : featureCropResult.getPolygonCropResultsList()) {
+        polygonIdToCropResult.put(
+            UUID.fromString(polygonCropResult.getPolygonId()),
+            new PolygonCropResultDto(polygonCropResult.getStatus(), polygonCropResult.getEsriJsonCroppedPolygon()));
+      }
+      featureIdToCropResult.put(
+          UUID.fromString(featureCropResult.getOriginalFeatureId()),
+          new FeatureCropResultDto(featureCropResult.getIntersectionStatus(), polygonIdToCropResult));
+    }
+
+    return featureIdToCropResult;
   }
 
   private Point getEsriPoint(Coordinate grpcPoint) {

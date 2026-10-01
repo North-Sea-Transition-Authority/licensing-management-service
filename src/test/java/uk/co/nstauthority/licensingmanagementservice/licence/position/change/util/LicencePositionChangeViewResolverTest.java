@@ -1562,7 +1562,6 @@ class LicencePositionChangeViewResolverTest {
         LicenceOperation.newBlockCreateOperation().withFeatureIds(List.of(FIRST_FEATURE_ID)).build(),
         LicenceOperation.newBlockRedefinitionOperation()
             .withReplacedFeatureIds(List.of(FIRST_FEATURE_ID))
-            .withOutputFeatureIds(List.of(SECOND_FEATURE_ID))
             .build(),
         LicenceOperation.newBlockEndOperation().withEndedFeatureIds(List.of(FIRST_FEATURE_ID)).build(),
         LicenceOperation.newSubareaCreateOperation()

@@ -478,7 +478,6 @@ class LicencePositionStateResolverTest {
         LicenceOperation.newBlockCreateOperation().withFeatureIds(Set.of(UUID.randomUUID())).build(),
         LicenceOperation.newBlockRedefinitionOperation()
             .withReplacedFeatureIds(Set.of(UUID.randomUUID()))
-            .withOutputFeatureIds(Set.of(UUID.randomUUID()))
             .build(),
         LicenceOperation.newBlockEndOperation().withEndedFeatureIds(Set.of(UUID.randomUUID())).build(),
         LicenceOperation.newSubAreaOperation().withBlockFeatureId(UUID.randomUUID()).build(),

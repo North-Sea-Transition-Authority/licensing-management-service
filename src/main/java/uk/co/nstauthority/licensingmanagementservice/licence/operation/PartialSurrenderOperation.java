@@ -28,12 +28,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
  * @param featureIdToSurrenderDetails The per-block surrender detail, keyed by the original block feature id. A featureId present
  *                                    in {@code surrenderedFeatureIds} but absent here means "surrender type not yet
  *                                    chosen".
- * @param outputFeatureIds The licence blocks held once this surrender has been submitted, and so the input feature set
- *                         for whatever spatial operation comes next. This is the point the surrender journey is
- *                         complete, not the point the correction carrying it is applied, so a surrender staged on an
- *                         earlier position takes effect on the positions after it straight away. Only blocks are
- *                         recorded here: what a licence holds is its blocks, and the subarea lists below take no part
- *                         in working that out.
  * @param replacedSubareas The subareas that were modified during this partial surrender.
  * @param outputSubareas The new sub areas as a result of this partial surrender.
  */
@@ -43,7 +37,6 @@ public record PartialSurrenderOperation(
     // aliased so partial surrenders persisted before the rename still deserialize
     @JsonAlias("featureIds") List<UUID> surrenderedFeatureIds,
     Map<UUID, SurrenderDetails> featureIdToSurrenderDetails,
-    List<UUID> outputFeatureIds,
     List<SubareaDetails> replacedSubareas,
     List<SubareaDetails> outputSubareas
 ) implements LicenceOperation {
@@ -57,8 +50,6 @@ public record PartialSurrenderOperation(
       throw new IllegalArgumentException("surrenderedFeatureIds must not be null or empty");
     }
     featureIdToSurrenderDetails = featureIdToSurrenderDetails == null ? Map.of() : Map.copyOf(featureIdToSurrenderDetails);
-    // operations persisted before output features existed have no such field, so absent reads as "no outputs yet"
-    outputFeatureIds = outputFeatureIds == null ? List.of() : List.copyOf(outputFeatureIds);
     replacedSubareas = replacedSubareas == null ? List.of() : List.copyOf(replacedSubareas);
     outputSubareas = outputSubareas == null ? List.of() : List.copyOf(outputSubareas);
   }
@@ -66,29 +57,16 @@ public record PartialSurrenderOperation(
   public PartialSurrenderOperation(
       @Nullable LocalDate surrenderDate,
       List<UUID> surrenderedFeatureIds,
-      @Nullable Map<UUID, SurrenderDetails> featureIdToSurrenderDetails,
-      @Nullable List<UUID> outputFeatureIds
+      @Nullable Map<UUID, SurrenderDetails> featureIdToSurrenderDetails
   ) {
     this(
         PARTIAL_SURRENDER_OPERATION_ID,
         surrenderDate,
         surrenderedFeatureIds,
         featureIdToSurrenderDetails,
-        outputFeatureIds,
         List.of(),
         List.of()
     );
-  }
-
-  /**
-   * A surrender that has not yet produced output features, which is how one starts out before it is complete.
-   */
-  public PartialSurrenderOperation(
-      @Nullable LocalDate surrenderDate,
-      List<UUID> surrenderedFeatureIds,
-      @Nullable Map<UUID, SurrenderDetails> featureIdToSurrenderDetails
-  ) {
-    this(surrenderDate, surrenderedFeatureIds, featureIdToSurrenderDetails, List.of());
   }
 
   /**
@@ -144,6 +122,26 @@ public record PartialSurrenderOperation(
       // TODO EPGF-192: Change when criteria for complete partial surrender exists
       return type == BlockSurrenderType.FULL_SURRENDER;
     }
+
+    /**
+     * A block's surrender takes effect once it is complete, or once its shape is recorded outright rather than held
+     * on a journey.
+     */
+    @JsonIgnore
+    public boolean takesEffect() {
+      return isComplete() || !hasCommandJourney();
+    }
+  }
+
+  /**
+   * A surrender takes effect on the licence only once every block it surrenders does, until then it leaves the licence
+   * as it was.
+   */
+  @JsonIgnore
+  public boolean takesEffect() {
+    return !surrenderedFeatureIds.isEmpty() && surrenderedFeatureIds.stream()
+        .map(featureIdToSurrenderDetails::get)
+        .allMatch(surrenderDetails -> surrenderDetails != null && surrenderDetails.takesEffect());
   }
 
   public boolean hasUpdateOccurred(PartialSurrenderOperation liveSurrender) {
@@ -192,7 +190,6 @@ public record PartialSurrenderOperation(
     private LocalDate surrenderDate;
     private Collection<UUID> surrenderedFeatureIds;
     private Map<UUID, SurrenderDetails> featureIdToSurrenderDetails;
-    private Collection<UUID> outputFeatureIds;
     private Collection<SubareaDetails> replacedSubareas;
     private Collection<SubareaDetails> outputSubareas;
 
@@ -208,11 +205,6 @@ public record PartialSurrenderOperation(
 
     public Builder withSurrenderDetails(Map<UUID, SurrenderDetails> featureIdToSurrenderDetails) {
       this.featureIdToSurrenderDetails = featureIdToSurrenderDetails;
-      return this;
-    }
-
-    public Builder withOutputFeatureIds(Collection<UUID> outputFeatureIds) {
-      this.outputFeatureIds = outputFeatureIds;
       return this;
     }
 
@@ -232,7 +224,6 @@ public record PartialSurrenderOperation(
           surrenderDate,
           surrenderedFeatureIds == null ? List.of() : surrenderedFeatureIds.stream().distinct().toList(),
           featureIdToSurrenderDetails == null ? Map.of() : featureIdToSurrenderDetails,
-          outputFeatureIds == null ? List.of() : outputFeatureIds.stream().distinct().toList(),
           replacedSubareas == null ? List.of() : replacedSubareas.stream().distinct().toList(),
           outputSubareas == null ? List.of() : outputSubareas.stream().distinct().toList()
       );

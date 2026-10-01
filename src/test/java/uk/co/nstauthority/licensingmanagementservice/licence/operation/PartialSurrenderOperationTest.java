@@ -9,8 +9,11 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderType;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation.SurrenderDetails;
@@ -163,30 +166,37 @@ class PartialSurrenderOperationTest {
   }
 
   @ParameterizedTest
-  @NullAndEmptySource
-  void constructor_whenOutputFeatureIdsNullOrEmpty_thenEmpty(List<UUID> outputFeatureIds) {
-    var operation = new PartialSurrenderOperation(SURRENDER_DATE, List.of(FIRST_FEATURE_ID), Map.of(), outputFeatureIds);
+  @MethodSource("surrendersAndWhetherTheyTakeEffect")
+  void takesEffect(
+      Map<UUID, SurrenderDetails> featureIdToSurrenderDetails,
+      boolean expected
+  ) {
+    var operation = new PartialSurrenderOperation(
+        SURRENDER_DATE,
+        List.of(FIRST_FEATURE_ID, SECOND_FEATURE_ID),
+        featureIdToSurrenderDetails
+    );
 
-    assertThat(operation.outputFeatureIds()).isEmpty();
+    assertThat(operation.takesEffect()).isEqualTo(expected);
   }
 
-  @Test
-  void build_whenOutputFeatureIdsGiven_thenDuplicatesAreCollapsed() {
-    var operation = LicenceOperation.newPartialSurrenderOperation()
-        .withSurrenderedFeatureIds(List.of(FIRST_FEATURE_ID))
-        .withOutputFeatureIds(List.of(SECOND_FEATURE_ID, SECOND_FEATURE_ID))
-        .build();
+  private static Stream<Arguments> surrendersAndWhetherTheyTakeEffect() {
+    var fullSurrender = surrenderDetails(BlockSurrenderType.FULL_SURRENDER);
+    var partialSurrenderOnAJourney = surrenderDetails(BlockSurrenderType.PARTIAL_SURRENDER);
+    var executedPartialSurrender = new SurrenderDetails(
+        BlockSurrenderType.PARTIAL_SURRENDER,
+        null,
+        List.of(),
+        List.of(UUID.randomUUID())
+    );
 
-    var expected = new PartialSurrenderOperation(null, List.of(FIRST_FEATURE_ID), Map.of(), List.of(SECOND_FEATURE_ID));
-    assertThat(operation).isEqualTo(expected);
-  }
-
-  @Test
-  void hasUpdateOccurred_whenOnlyTheOutputFeaturesDiffer_thenFalse() {
-    var live = new PartialSurrenderOperation(SURRENDER_DATE, List.of(FIRST_FEATURE_ID), Map.of(), List.of(SECOND_FEATURE_ID));
-    var corrected = new PartialSurrenderOperation(SURRENDER_DATE, List.of(FIRST_FEATURE_ID), Map.of(), List.of());
-
-    assertThat(corrected.hasUpdateOccurred(live)).isFalse();
+    return Stream.of(
+        Arguments.of(Map.of(), false),
+        Arguments.of(Map.of(FIRST_FEATURE_ID, fullSurrender), false),
+        Arguments.of(Map.of(FIRST_FEATURE_ID, fullSurrender, SECOND_FEATURE_ID, partialSurrenderOnAJourney), false),
+        Arguments.of(Map.of(FIRST_FEATURE_ID, fullSurrender, SECOND_FEATURE_ID, fullSurrender), true),
+        Arguments.of(Map.of(FIRST_FEATURE_ID, fullSurrender, SECOND_FEATURE_ID, executedPartialSurrender), true)
+    );
   }
 
   @Test
@@ -201,7 +211,7 @@ class PartialSurrenderOperationTest {
 
     var operation = new ObjectMapper().findAndRegisterModules().readValue(json, LicenceOperation.class);
 
-    var expected = new PartialSurrenderOperation(SURRENDER_DATE, List.of(FIRST_FEATURE_ID), Map.of(), List.of());
+    var expected = new PartialSurrenderOperation(SURRENDER_DATE, List.of(FIRST_FEATURE_ID), Map.of());
     assertThat(operation).isEqualTo(expected);
   }
 
@@ -227,8 +237,8 @@ class PartialSurrenderOperationTest {
     var expected = new PartialSurrenderOperation(
         SURRENDER_DATE,
         List.of(FIRST_FEATURE_ID),
-        Map.of(FIRST_FEATURE_ID, new SurrenderDetails(BlockSurrenderType.FULL_SURRENDER, null, List.of(FIRST_FEATURE_ID))),
-        List.of());
+        Map.of(FIRST_FEATURE_ID, new SurrenderDetails(BlockSurrenderType.FULL_SURRENDER, null, List.of(FIRST_FEATURE_ID)))
+    );
     assertThat(operation).isEqualTo(expected);
   }
 
@@ -257,7 +267,6 @@ class PartialSurrenderOperationTest {
         SURRENDER_DATE,
         List.of(FIRST_FEATURE_ID),
         Map.of(),
-        List.of(),
         null,
         null
     );
@@ -267,7 +276,6 @@ class PartialSurrenderOperationTest {
         SURRENDER_DATE,
         List.of(FIRST_FEATURE_ID),
         Map.of(),
-        List.of(),
         List.of(),
         List.of()
     );
@@ -300,7 +308,6 @@ class PartialSurrenderOperationTest {
         SURRENDER_DATE,
         List.of(FIRST_FEATURE_ID),
         Map.of(),
-        List.of(),
         List.of(FIRST_SUBAREA),
         List.of(SECOND_SUBAREA)
     );

@@ -3,8 +3,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.position.spatial;
 import static uk.co.nstauthority.licensingmanagementservice.licence.position.feature.LicenceBlockFeatureUtil.BLOCK_ORDER;
 
 import jakarta.annotation.Nullable;
-import java.util.Collection;
-import java.util.HashSet;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -15,18 +14,8 @@ import uk.co.fivium.gisframework.feature.FeatureService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
-import uk.co.nstauthority.licensingmanagementservice.licence.operation.AdministratorOperation;
-import uk.co.nstauthority.licensingmanagementservice.licence.operation.BlockCreateOperation;
-import uk.co.nstauthority.licensingmanagementservice.licence.operation.BlockEndOperation;
-import uk.co.nstauthority.licensingmanagementservice.licence.operation.BlockRedefinitionOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
-import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenseeOperation;
-import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
-import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquityOperation;
-import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaCreateOperation;
-import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaEndOperation;
-import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaOperation;
-import uk.co.nstauthority.licensingmanagementservice.licence.operation.TransferEquityOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaDetails;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionViewService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPosition;
@@ -72,12 +61,50 @@ public class LicencePositionSpatialService {
       @Nullable String changeId
   ) {
     return toBlockFeatures(
-        getFeatureIdsBeforeChange(
-            licencePositionViewService.getCorrectedChronologicalPositions(licenceCorrection, licencePositionId),
-            licencePositionId,
-            changeId
-        )
+        getSpatialStateGoingIntoChange(licenceCorrection, licencePositionId, changeId).blockFeatureIds()
     );
+  }
+
+  public List<SubareaDetails> getSubareasGoingIntoChange(
+      LicencePositionCorrection licencePositionCorrection,
+      UUID blockFeatureId,
+      @Nullable String changeId
+  ) {
+    return getSubareasGoingIntoChange(
+        licencePositionCorrection.getLicenceCorrection(),
+        licencePositionCorrection.getPositionId(),
+        blockFeatureId,
+        changeId
+    );
+  }
+
+  /**
+   * The subareas dividing up a block going into a change. A block kept in part by a partial surrender hands its
+   * subareas on to the features it was cut back to, each taking the subareas that lie on it.
+   */
+  public List<SubareaDetails> getSubareasGoingIntoChange(
+      LicenceCorrection licenceCorrection,
+      UUID licencePositionId,
+      UUID blockFeatureId,
+      @Nullable String changeId
+  ) {
+    return getSpatialStateGoingIntoChange(licenceCorrection, licencePositionId, changeId).subareasOf(blockFeatureId);
+  }
+
+  private SpatialState getSpatialStateGoingIntoChange(
+      LicenceCorrection licenceCorrection,
+      UUID licencePositionId,
+      @Nullable String changeId
+  ) {
+    var spatialState = new SpatialState();
+
+    getOperationsGoingIntoChange(
+        licencePositionViewService.getCorrectedChronologicalPositions(licenceCorrection, licencePositionId),
+        licencePositionId,
+        changeId
+    ).forEach(spatialState::apply);
+
+    return spatialState;
   }
 
   private List<Feature> toBlockFeatures(Set<UUID> featureIds) {
@@ -92,46 +119,23 @@ public class LicencePositionSpatialService {
         .toList();
   }
 
-  private static Set<UUID> getFeatureIdsBeforeChange(
+  private static List<LicenceOperation> getOperationsGoingIntoChange(
       List<ChronologicalPosition> chronologicalPositions,
       UUID positionId,
       @Nullable String changeId
   ) {
-    var featureIds = getFeatureIdsBefore(chronologicalPositions, positionId);
-
-    return chronologicalPositions.stream()
-        .filter(chronologicalPosition -> chronologicalPosition.id().equals(positionId))
-        .findFirst()
-        .map(chronologicalPosition -> getFeatureIdsAfterChanges(featureIds, chronologicalPosition.changes(), changeId))
-        .orElse(featureIds);
-  }
-
-  private static Set<UUID> getFeatureIdsBefore(List<ChronologicalPosition> chronologicalPositions, UUID positionId) {
-    var featureIds = Set.<UUID>of();
+    var operations = new ArrayList<LicenceOperation>();
 
     for (var chronologicalPosition : chronologicalPositions) {
       if (chronologicalPosition.id().equals(positionId)) {
-        return featureIds;
+        operations.addAll(getOperationsBefore(chronologicalPosition.changes(), changeId));
+        return operations;
       }
 
-      featureIds = getFeatureIdsAfterChanges(featureIds, chronologicalPosition.changes(), null);
+      operations.addAll(getOperationsBefore(chronologicalPosition.changes(), null));
     }
 
-    return featureIds;
-  }
-
-  private static Set<UUID> getFeatureIdsAfterChanges(
-      Set<UUID> featureIds,
-      List<PositionChange> changes,
-      @Nullable String stopBeforeChangeId
-  ) {
-    var currentFeatureIds = featureIds;
-
-    for (var operation : getOperationsBefore(changes, stopBeforeChangeId)) {
-      currentFeatureIds = getFeatureIdsAfterOperation(currentFeatureIds, operation);
-    }
-
-    return currentFeatureIds;
+    return operations;
   }
 
   private static List<LicenceOperation> getOperationsBefore(
@@ -143,53 +147,5 @@ public class LicencePositionSpatialService {
         .filter(change -> !Objects.equals(change.changeType(), LicencePositionChangeType.REMOVE_CHANGE))
         .flatMap(change -> change.operations().stream())
         .toList();
-  }
-
-  private static Set<UUID> getFeatureIdsAfterOperation(
-      Set<UUID> featureIdsBeforeOperation,
-      LicenceOperation currentOperation
-  ) {
-    return switch (currentOperation) {
-      case PartialSurrenderOperation partialSurrenderOperation ->
-          partialSurrenderOperation.outputFeatureIds().isEmpty()
-              ? featureIdsBeforeOperation
-              : Set.copyOf(partialSurrenderOperation.outputFeatureIds());
-      // A creation adds to what the licence holds rather than replacing it: most licences create
-      // their blocks once, but a few create more later, alongside blocks they already hold.
-      case BlockCreateOperation blockCreate -> union(featureIdsBeforeOperation, blockCreate.createdBlockFeatureIds());
-      // A redefinition swaps one description of the same ground for another, so the blocks it
-      // replaced stop being held and their successors start.
-      case BlockRedefinitionOperation blockRedefinition -> union(
-          difference(featureIdsBeforeOperation, blockRedefinition.replacedFeatureIds()),
-          blockRedefinition.outputFeatureIds());
-      case BlockEndOperation blockEnd -> difference(featureIdsBeforeOperation, blockEnd.endedFeatureIds());
-      case AdministratorOperation ignored -> featureIdsBeforeOperation;
-      case SetEquityOperation ignored -> featureIdsBeforeOperation;
-      case TransferEquityOperation ignored -> featureIdsBeforeOperation;
-      // The set carried here is the blocks the licence holds, and a subarea operation never
-      // changes which blocks those are -- only how the ground inside one is divided up.
-      case SubareaOperation ignored -> featureIdsBeforeOperation;
-      case LicenseeOperation ignored -> featureIdsBeforeOperation;
-      case SubareaCreateOperation ignored -> featureIdsBeforeOperation;
-      case SubareaEndOperation ignored -> featureIdsBeforeOperation;
-    };
-  }
-
-  private static Set<UUID> union(Set<UUID> featureIds, Collection<UUID> added) {
-    if (added.isEmpty()) {
-      return featureIds;
-    }
-    var combined = new HashSet<>(featureIds);
-    combined.addAll(added);
-    return Set.copyOf(combined);
-  }
-
-  private static Set<UUID> difference(Set<UUID> featureIds, Collection<UUID> removed) {
-    if (removed.isEmpty()) {
-      return featureIds;
-    }
-    var remaining = new HashSet<>(featureIds);
-    removed.forEach(remaining::remove);
-    return Set.copyOf(remaining);
   }
 }

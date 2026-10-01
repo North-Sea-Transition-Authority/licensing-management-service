@@ -6,12 +6,10 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.stream.Stream;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.co.fivium.gisframework.command.CommandJourneyService;
-import uk.co.fivium.gisframework.feature.Feature;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderType;
@@ -22,6 +20,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePos
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.transaction.LicenceTransactionService;
+import uk.co.nstauthority.licensingmanagementservice.testharness.LicencePositionFeatureTestHarnessService.SeededFeatures;
 
 @Service
 @Profile("test-harness")
@@ -94,16 +93,19 @@ class TestHarnessService {
 
     // a surrender needs blocks to surrender, so it is seeded once the features above exist
     if (licence.getType().isProduction()) {
-      generatePartialSurrenderPositionChange(licence, seededFeatures.retainedBlocks());
+      generatePartialSurrenderPositionChange(licence, seededFeatures);
     }
   }
 
   /**
-   * The seed operation above is the only spatial operation on the licence, so the blocks it retained are the blocks
+   * The block create above is the only spatial operation on the licence, so the blocks it created are the blocks
    * going into every later position. Two of them are needed, one for each type of surrender.
    */
-  private void generatePartialSurrenderPositionChange(Licence licence, List<Feature> retainedBlocks) {
-    if (retainedBlocks.size() < BLOCKS_TO_SURRENDER) {
+  private void generatePartialSurrenderPositionChange(
+      Licence licence,
+      SeededFeatures seededFeatures
+  ) {
+    if (seededFeatures.blocks().size() < BLOCKS_TO_SURRENDER) {
       return;
     }
 
@@ -112,18 +114,19 @@ class TestHarnessService {
     var penultimatePosition =
         executedChronologicalLicencePositions.get(executedChronologicalLicencePositions.size() - 2);
 
-    createPartialSurrenderChange(penultimatePosition, retainedBlocks);
+    createPartialSurrenderChange(penultimatePosition, seededFeatures);
   }
 
   /**
    * One block is given up entirely and the next is cut in half, so the surrender carries a block of each surrender
-   * type. Everything the licence still holds afterwards - the blocks the surrender left alone, and the half of the
-   * split block that was not surrendered - becomes its outputs.
+   * type. The licence goes on holding the blocks the surrender left alone, and the half of the split block that was not
+   * surrendered.
    */
   private void createPartialSurrenderChange(
       LicencePosition licencePosition,
-      List<Feature> incomingBlocks
+      SeededFeatures seededFeatures
   ) {
+    var incomingBlocks = seededFeatures.blocks();
     var fullySurrenderedBlock = incomingBlocks.getFirst();
     var partiallySurrenderedBlock = incomingBlocks.get(1);
 
@@ -137,14 +140,6 @@ class TestHarnessService {
     );
 
     commandJourneyService.deleteAllExcludingActiveFeatures(partialSurrenderCommandJourney.getId());
-
-    var outputFeatureIds = Stream.concat(
-            incomingBlocks.stream()
-                .skip(BLOCKS_TO_SURRENDER)
-                .map(Feature::getId),
-            Stream.of(splitBlock.retainedHalf().getId())
-        )
-        .toList();
 
     var fullSurrender = new SurrenderDetails(
         BlockSurrenderType.FULL_SURRENDER,
@@ -165,7 +160,6 @@ class TestHarnessService {
             fullySurrenderedBlock.getId(), fullSurrender,
             partiallySurrenderedBlock.getId(), partialSurrender
         ))
-        .withOutputFeatureIds(outputFeatureIds)
         .build();
 
     licencePositionChangeService.createLicencePositionChange(

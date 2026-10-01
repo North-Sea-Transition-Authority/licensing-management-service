@@ -103,6 +103,12 @@ public class Feature {
     this.featureArea = featureArea;
   }
 
+  /**
+   * Gets the parent feature.
+   *
+   * @deprecated This was intended for migration only.
+   */
+  @Deprecated(forRemoval = true)
   public Feature getParentFeature() {
     return parentFeature;
   }

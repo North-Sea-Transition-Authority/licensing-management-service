@@ -3,13 +3,10 @@ package uk.co.nstauthority.licensingmanagementservice.licence.correction.positio
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
 import jakarta.annotation.Nullable;
-import java.util.HashSet;
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
 import org.springframework.stereotype.Service;
-import uk.co.fivium.gisframework.feature.Feature;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
@@ -17,8 +14,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderTypeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.LicenceBlockFeatureUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.spatial.LicencePositionSpatialService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListItem;
 import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListLabel;
@@ -33,14 +28,11 @@ public class PartialSurrenderBlockSurrenderTypeTaskListSectionService
   static final int SECTION_ORDER = 20;
 
   private final PartialSurrenderCorrectionService partialSurrenderCorrectionService;
-  private final LicencePositionSpatialService licencePositionSpatialService;
 
   public PartialSurrenderBlockSurrenderTypeTaskListSectionService(
-      PartialSurrenderCorrectionService partialSurrenderCorrectionService,
-      LicencePositionSpatialService licencePositionSpatialService
+      PartialSurrenderCorrectionService partialSurrenderCorrectionService
   ) {
     this.partialSurrenderCorrectionService = partialSurrenderCorrectionService;
-    this.licencePositionSpatialService = licencePositionSpatialService;
   }
 
   @Override
@@ -48,31 +40,24 @@ public class PartialSurrenderBlockSurrenderTypeTaskListSectionService
     return switch (context) {
       case PartialSurrenderTaskListContext.Staged(var positionCorrection) -> getSection(
           partialSurrenderCorrectionService.getCommittedPartialSurrender(positionCorrection).orElse(null),
-          licencePositionSpatialService.getBlockFeaturesGoingIntoChange(
-              positionCorrection,
-              partialSurrenderCorrectionService.getCommittedPartialSurrenderChangeId(positionCorrection).orElse(null)),
           featureId -> blockSurrenderTypeUrl(positionCorrection, featureId));
       case PartialSurrenderTaskListContext.LiveChange(var correction, var licencePosition, var changeId) -> getSection(
           partialSurrenderCorrectionService
               .getSurrenderUnderCorrectionOrThrow(correction, licencePosition, changeId),
-          licencePositionSpatialService.getBlockFeaturesGoingIntoChange(correction, licencePosition, changeId),
           featureId -> correctingChangeBlockSurrenderTypeUrl(correction, licencePosition, changeId, featureId));
     };
   }
 
   private Optional<TaskListSection> getSection(
       @Nullable PartialSurrenderOperation operation,
-      List<Feature> surrenderableBlockFeatures,
       Function<UUID, String> blockSurrenderTypeUrl
   ) {
     if (operation == null || operation.surrenderedFeatureIds().isEmpty()) {
       return Optional.empty();
     }
 
-    var surrenderedIds = new HashSet<>(operation.surrenderedFeatureIds());
-    var items = surrenderableBlockFeatures.stream()
-        .filter(feature -> surrenderedIds.contains(feature.getId()))
-        .sorted(LicenceBlockFeatureUtil.BLOCK_ORDER)
+    // a block is listed even when the licence no longer holds it here, leaving validation to report the surrender
+    var items = partialSurrenderCorrectionService.getSurrenderedBlockFeatures(operation).stream()
         .map(feature -> new TaskListItem(
             "Block %s".formatted(feature.getFeatureName()),
             TaskListLabel.notStartedOrComplete(isBlockSurrenderComplete(operation, feature.getId())),

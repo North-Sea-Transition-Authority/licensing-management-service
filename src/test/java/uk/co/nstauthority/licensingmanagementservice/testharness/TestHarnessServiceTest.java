@@ -38,6 +38,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOp
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenseeOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquityOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaDetails;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaSurrenderOutcome;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.TransferEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionService;
@@ -78,6 +80,7 @@ class TestHarnessServiceTest {
   private static final Feature FULLY_SURRENDERED_SUBAREA = subarea("30/7a");
   private static final Feature PARTIALLY_SURRENDERED_SUBAREA = subarea("30/8a");
   private static final Feature UNTOUCHED_SUBAREA = subarea("30/9a");
+  private static final Feature CROPPED_SUBAREA = subarea("30/8a");
   private static final Feature SURRENDERED_HALF = FeatureTestUtil.builder()
       .withFeatureName("30/8 western half")
       .build();
@@ -139,13 +142,20 @@ class TestHarnessServiceTest {
     ));
   }
 
-  private void givenPartiallySurrenderedBlockSplit() {
+  private void givenPartiallySurrenderedBlockSplit(List<LicencePosition> positions) {
     var partialSurrenderCommandJourney = commandJourney(PARTIAL_SURRENDER_COMMAND_JOURNEY_ID);
     when(commandJourneyService.createAndAssignCommandJourney(List.of(PARTIALLY_SURRENDERED_BLOCK)))
         .thenReturn(partialSurrenderCommandJourney);
     when(licencePositionFeatureTestHarnessService
         .splitBlockInHalf(partialSurrenderCommandJourney, PARTIALLY_SURRENDERED_BLOCK))
         .thenReturn(new SplitBlock(SURRENDERED_HALF, RETAINED_HALF));
+    when(licencePositionFeatureTestHarnessService.cropSubareaToRetainedHalf(
+        PARTIALLY_SURRENDERED_SUBAREA, penultimate(positions).getPositionDate()))
+        .thenReturn(CROPPED_SUBAREA);
+  }
+
+  private static LicencePosition penultimate(List<LicencePosition> positions) {
+    return positions.get(positions.size() - 2);
   }
 
   private static Feature subarea(String name) {
@@ -183,7 +193,7 @@ class TestHarnessServiceTest {
     var positions = buildPositions(5);
     when(licencePositionService.getExecutedChronologicalLicencePositions(licence)).thenReturn(positions);
     givenSeededBlocks(licence);
-    givenPartiallySurrenderedBlockSplit();
+    givenPartiallySurrenderedBlockSplit(positions);
 
     testHarnessService.generateLicencePositions(licence, secondaryLicence);
 
@@ -220,7 +230,7 @@ class TestHarnessServiceTest {
     var positions = buildPositions(5);
     when(licencePositionService.getExecutedChronologicalLicencePositions(licence)).thenReturn(positions);
     givenSeededBlocks(licence);
-    givenPartiallySurrenderedBlockSplit();
+    givenPartiallySurrenderedBlockSplit(positions);
 
     testHarnessService.generateLicencePositions(licence, secondaryLicence);
 
@@ -248,7 +258,7 @@ class TestHarnessServiceTest {
     var positions = buildPositions(5);
     when(licencePositionService.getExecutedChronologicalLicencePositions(licence)).thenReturn(positions);
     givenSeededBlocks(licence);
-    givenPartiallySurrenderedBlockSplit();
+    givenPartiallySurrenderedBlockSplit(positions);
 
     testHarnessService.generateLicencePositions(licence, secondaryLicence);
 
@@ -270,7 +280,7 @@ class TestHarnessServiceTest {
     var positions = buildPositions(5);
     when(licencePositionService.getExecutedChronologicalLicencePositions(licence)).thenReturn(positions);
     givenSeededBlocks(licence);
-    givenPartiallySurrenderedBlockSplit();
+    givenPartiallySurrenderedBlockSplit(positions);
 
     testHarnessService.generateLicencePositions(licence, secondaryLicence);
 
@@ -280,16 +290,21 @@ class TestHarnessServiceTest {
     // penultimate = index size - 2 = 3
     assertThat(positionCaptor.getAllValues().getLast()).isEqualTo(positions.get(3));
 
+    var croppedSubarea = new SubareaDetails(CROPPED_SUBAREA.getId(), "30/8a", "a");
     var expectedFullSurrender = new PartialSurrenderOperation.SurrenderDetails(
         BlockSurrenderType.FULL_SURRENDER,
         null,
-        List.of(FULLY_SURRENDERED_BLOCK.getId())
+        List.of(FULLY_SURRENDERED_BLOCK.getId()),
+        List.of(),
+        Map.of()
     );
     var expectedPartialSurrender = new PartialSurrenderOperation.SurrenderDetails(
         BlockSurrenderType.PARTIAL_SURRENDER,
         null,
         List.of(SURRENDERED_HALF.getId()),
-        List.of(RETAINED_HALF.getId())
+        List.of(RETAINED_HALF.getId()),
+        Map.of(RETAINED_HALF.getId(), List.of(SubareaSurrenderOutcome.cropped(
+            new SubareaDetails(PARTIALLY_SURRENDERED_SUBAREA.getId(), "30/8a", "a"), croppedSubarea)))
     );
 
     // no surrender date - the change takes the date of the position it sits on

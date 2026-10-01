@@ -11,6 +11,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.apache.commons.collections.CollectionUtils;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationContext;
@@ -28,17 +29,13 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
  * @param featureIdToSurrenderDetails The per-block surrender detail, keyed by the original block feature id. A featureId present
  *                                    in {@code surrenderedFeatureIds} but absent here means "surrender type not yet
  *                                    chosen".
- * @param replacedSubareas The subareas that were modified during this partial surrender.
- * @param outputSubareas The new sub areas as a result of this partial surrender.
  */
 public record PartialSurrenderOperation(
     UUID id,
     @Nullable LocalDate surrenderDate,
     // aliased so partial surrenders persisted before the rename still deserialize
     @JsonAlias("featureIds") List<UUID> surrenderedFeatureIds,
-    Map<UUID, SurrenderDetails> featureIdToSurrenderDetails,
-    List<SubareaDetails> replacedSubareas,
-    List<SubareaDetails> outputSubareas
+    Map<UUID, SurrenderDetails> featureIdToSurrenderDetails
 ) implements LicenceOperation {
 
   // Fixed, as a position only ever carries one partial surrender.
@@ -50,8 +47,6 @@ public record PartialSurrenderOperation(
       throw new IllegalArgumentException("surrenderedFeatureIds must not be null or empty");
     }
     featureIdToSurrenderDetails = featureIdToSurrenderDetails == null ? Map.of() : Map.copyOf(featureIdToSurrenderDetails);
-    replacedSubareas = replacedSubareas == null ? List.of() : List.copyOf(replacedSubareas);
-    outputSubareas = outputSubareas == null ? List.of() : List.copyOf(outputSubareas);
   }
 
   public PartialSurrenderOperation(
@@ -59,14 +54,7 @@ public record PartialSurrenderOperation(
       List<UUID> surrenderedFeatureIds,
       @Nullable Map<UUID, SurrenderDetails> featureIdToSurrenderDetails
   ) {
-    this(
-        PARTIAL_SURRENDER_OPERATION_ID,
-        surrenderDate,
-        surrenderedFeatureIds,
-        featureIdToSurrenderDetails,
-        List.of(),
-        List.of()
-    );
+    this(PARTIAL_SURRENDER_OPERATION_ID, surrenderDate, surrenderedFeatureIds, featureIdToSurrenderDetails);
   }
 
   /**
@@ -87,21 +75,72 @@ public record PartialSurrenderOperation(
    *                           and works the parts kept out from its journey instead. A surrender carried across from
    *                           PEARS arrives with these already set, the successor blocks it left behind being the one
    *                           thing PEARS records about a surrender's shape.
+   * @param retainedFeatureIdToSubareas What the surrender did to each of the block's subareas, keyed by the retained
+   *                                    feature it is relative to. Empty for a full surrender, which keeps no part.
    */
   public record SurrenderDetails(
       BlockSurrenderType type,
       @Nullable UUID commandJourneyId,
       List<UUID> surrenderedFeatureIds,
-      List<UUID> retainedFeatureIds
+      List<UUID> retainedFeatureIds,
+      Map<UUID, List<SubareaSurrenderOutcome>> retainedFeatureIdToSubareas
   ) {
     public SurrenderDetails {
       surrenderedFeatureIds = surrenderedFeatureIds == null ? List.of() : surrenderedFeatureIds;
       // details persisted before retained features existed have no such field, so absent reads as "none recorded"
       retainedFeatureIds = retainedFeatureIds == null ? List.of() : List.copyOf(retainedFeatureIds);
+      retainedFeatureIdToSubareas = retainedFeatureIdToSubareas == null
+          ? Map.of()
+          : retainedFeatureIdToSubareas.entrySet().stream()
+              .collect(Collectors.toUnmodifiableMap(Map.Entry::getKey, entry -> List.copyOf(entry.getValue())));
+    }
+
+    public SurrenderDetails(
+        BlockSurrenderType type,
+        @Nullable UUID commandJourneyId,
+        List<UUID> surrenderedFeatureIds,
+        List<UUID> retainedFeatureIds
+    ) {
+      this(type, commandJourneyId, surrenderedFeatureIds, retainedFeatureIds, Map.of());
     }
 
     public SurrenderDetails(BlockSurrenderType type, @Nullable UUID commandJourneyId, List<UUID> surrenderedFeatureIds) {
       this(type, commandJourneyId, surrenderedFeatureIds, List.of());
+    }
+
+    public SurrenderDetails withSubareas(Map<UUID, List<SubareaSurrenderOutcome>> retainedFeatureIdToSubareas) {
+      return new SurrenderDetails(
+          type,
+          commandJourneyId,
+          surrenderedFeatureIds,
+          retainedFeatureIds,
+          retainedFeatureIdToSubareas
+      );
+    }
+
+    @JsonIgnore
+    public List<UUID> subareaFeatureIds() {
+      return allSubareaOutcomes()
+          .flatMap(outcome -> Stream.of(outcome.subarea(), outcome.croppedSubarea()))
+          .filter(Objects::nonNull)
+          .map(SubareaDetails::featureId)
+          .filter(Objects::nonNull)
+          .distinct()
+          .toList();
+    }
+
+    @JsonIgnore
+    public List<UUID> croppedSubareaFeatureIds() {
+      return allSubareaOutcomes()
+          .map(SubareaSurrenderOutcome::croppedSubarea)
+          .filter(Objects::nonNull)
+          .map(SubareaDetails::featureId)
+          .filter(Objects::nonNull)
+          .toList();
+    }
+
+    private Stream<SubareaSurrenderOutcome> allSubareaOutcomes() {
+      return retainedFeatureIdToSubareas.values().stream().flatMap(List::stream);
     }
 
     @JsonIgnore
@@ -190,8 +229,6 @@ public record PartialSurrenderOperation(
     private LocalDate surrenderDate;
     private Collection<UUID> surrenderedFeatureIds;
     private Map<UUID, SurrenderDetails> featureIdToSurrenderDetails;
-    private Collection<SubareaDetails> replacedSubareas;
-    private Collection<SubareaDetails> outputSubareas;
 
     public Builder withSurrenderDate(@Nullable LocalDate surrenderDate) {
       this.surrenderDate = surrenderDate;
@@ -208,24 +245,12 @@ public record PartialSurrenderOperation(
       return this;
     }
 
-    public Builder withReplacedSubareas(Collection<SubareaDetails> replacedSubareas) {
-      this.replacedSubareas = replacedSubareas;
-      return this;
-    }
-
-    public Builder withOutputSubareas(Collection<SubareaDetails> outputSubareas) {
-      this.outputSubareas = outputSubareas;
-      return this;
-    }
-
     public PartialSurrenderOperation build() {
       return new PartialSurrenderOperation(
           PARTIAL_SURRENDER_OPERATION_ID,
           surrenderDate,
           surrenderedFeatureIds == null ? List.of() : surrenderedFeatureIds.stream().distinct().toList(),
-          featureIdToSurrenderDetails == null ? Map.of() : featureIdToSurrenderDetails,
-          replacedSubareas == null ? List.of() : replacedSubareas.stream().distinct().toList(),
-          outputSubareas == null ? List.of() : outputSubareas.stream().distinct().toList()
+          featureIdToSurrenderDetails == null ? Map.of() : featureIdToSurrenderDetails
       );
     }
   }

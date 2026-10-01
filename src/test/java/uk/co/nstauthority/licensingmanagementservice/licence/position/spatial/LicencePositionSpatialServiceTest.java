@@ -35,6 +35,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation.SurrenderDetails;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaDetails;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaSurrenderOutcome;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionViewService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPosition;
@@ -1059,6 +1060,48 @@ class LicencePositionSpatialServiceTest {
         .getSubareasGoingIntoChange(LICENCE_CORRECTION, THIRD_POSITION_ID, BLOCK_30_1.getId(), null);
 
     assertThat(result).isEmpty();
+  }
+
+  @Test
+  void getSubareasGoingIntoChange_whenBlockPartiallySurrendered_thenEachRetainedPartHoldsTheSubareasOnIt() {
+    var firstRetainedFeatureId = UUID.randomUUID();
+    var secondRetainedFeatureId = UUID.randomUUID();
+    var croppedSubareaA = new SubareaDetails(UUID.randomUUID(), "Subarea A", "A");
+    var surrenderDetails = new SurrenderDetails(
+        BlockSurrenderType.PARTIAL_SURRENDER,
+        null,
+        List.of(UUID.randomUUID()),
+        List.of(firstRetainedFeatureId, secondRetainedFeatureId),
+        Map.of(
+            firstRetainedFeatureId, List.of(
+                SubareaSurrenderOutcome.relinquished(SUBAREA_A),
+                SubareaSurrenderOutcome.kept(SUBAREA_B)),
+            secondRetainedFeatureId, List.of(
+                SubareaSurrenderOutcome.cropped(SUBAREA_A, croppedSubareaA),
+                SubareaSurrenderOutcome.relinquished(SUBAREA_B))));
+    var surrender = surrenderOf(BLOCK_30_1.getId(), surrenderDetails);
+    givenPositions(
+        position(FIRST_POSITION_ID, 1,
+            blockCreateOf(BLOCK_30_1.getId(), BLOCK_30_2.getId()),
+            subareaCreateOn(BLOCK_30_1.getId(), SUBAREA_A, SUBAREA_B),
+            subareaCreateOn(BLOCK_30_2.getId(), SUBAREA_C)),
+        position(SECOND_POSITION_ID, 2, surrender),
+        position(THIRD_POSITION_ID, 3, subareaCreateOn(secondRetainedFeatureId, SUBAREA_C)),
+        position(FOURTH_POSITION_ID, 4));
+
+    var firstRetainedPartSubareas = licencePositionSpatialService
+        .getSubareasGoingIntoChange(LICENCE_CORRECTION, FOURTH_POSITION_ID, firstRetainedFeatureId, null);
+    var secondRetainedPartSubareas = licencePositionSpatialService
+        .getSubareasGoingIntoChange(LICENCE_CORRECTION, FOURTH_POSITION_ID, secondRetainedFeatureId, null);
+    var surrenderedBlockSubareas = licencePositionSpatialService
+        .getSubareasGoingIntoChange(LICENCE_CORRECTION, FOURTH_POSITION_ID, BLOCK_30_1.getId(), null);
+    var untouchedBlockSubareas = licencePositionSpatialService
+        .getSubareasGoingIntoChange(LICENCE_CORRECTION, FOURTH_POSITION_ID, BLOCK_30_2.getId(), null);
+
+    assertThat(firstRetainedPartSubareas).containsExactly(SUBAREA_B);
+    assertThat(secondRetainedPartSubareas).containsExactlyInAnyOrder(croppedSubareaA, SUBAREA_C);
+    assertThat(surrenderedBlockSubareas).isEmpty();
+    assertThat(untouchedBlockSubareas).containsExactly(SUBAREA_C);
   }
 
   @Test

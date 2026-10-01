@@ -15,6 +15,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderType;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation.SurrenderDetails;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaSurrenderOutcome;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeService;
@@ -120,7 +121,8 @@ class TestHarnessService {
   /**
    * One block is given up entirely and the next is cut in half, so the surrender carries a block of each surrender
    * type. The licence goes on holding the blocks the surrender left alone, and the half of the split block that was not
-   * surrendered.
+   * surrendered. The fully surrendered block's subarea is relinquished, and the split block's subarea is cropped back to
+   * the half kept, becoming that half's subarea.
    */
   private void createPartialSurrenderChange(
       LicencePosition licencePosition,
@@ -141,6 +143,11 @@ class TestHarnessService {
 
     commandJourneyService.deleteAllExcludingActiveFeatures(partialSurrenderCommandJourney.getId());
 
+    var croppedSubarea = SeededFeatures.toSubareaDetails(licencePositionFeatureTestHarnessService
+        .cropSubareaToRetainedHalf(
+            seededFeatures.subareaOf(partiallySurrenderedBlock),
+            licencePosition.getPositionDate()));
+
     var fullSurrender = new SurrenderDetails(
         BlockSurrenderType.FULL_SURRENDER,
         null,
@@ -151,7 +158,10 @@ class TestHarnessService {
         null,
         List.of(splitBlock.surrenderedHalf().getId()),
         List.of(splitBlock.retainedHalf().getId())
-    );
+    ).withSubareas(Map.of(
+        splitBlock.retainedHalf().getId(),
+        List.of(SubareaSurrenderOutcome.cropped(seededFeatures.subareaDetailsOf(partiallySurrenderedBlock), croppedSubarea))
+    ));
 
     // no surrender date - the change takes the date of the position it sits on
     LicenceOperation partialSurrenderOperation = LicenceOperation.newPartialSurrenderOperation()

@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.AdministratorOperation;
@@ -14,11 +15,13 @@ import uk.co.nstauthority.licensingmanagementservice.licence.operation.BlockRede
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenseeOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation.SurrenderDetails;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaCreateOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaDetails;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaEndOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaSurrenderOutcome;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.TransferEquityOperation;
 
 /**
@@ -74,7 +77,7 @@ class SpatialState {
 
   /**
    * A surrender that has not taken effect leaves the licence as it was. Once it has, the licence gives up the blocks
-   * surrendered and holds each part kept of them instead.
+   * surrendered and holds each part kept of them instead, with the subareas left on that part.
    */
   private void applySurrender(PartialSurrenderOperation surrender) {
     if (!surrender.takesEffect()) {
@@ -84,7 +87,17 @@ class SpatialState {
     blockIdToSubareas.keySet().removeAll(surrender.surrenderedFeatureIds());
     surrender.featureIdToSurrenderDetails().values().forEach(surrenderDetails -> surrenderDetails
         .retainedFeatureIds()
-        .forEach(retainedFeatureId -> addBlock(retainedFeatureId, List.of())));
+        .forEach(retainedFeatureId -> addBlock(retainedFeatureId, outputSubareasOf(surrenderDetails, retainedFeatureId))));
+  }
+
+  private static List<SubareaDetails> outputSubareasOf(
+      SurrenderDetails surrenderDetails,
+      UUID retainedFeatureId
+  ) {
+    return surrenderDetails.retainedFeatureIdToSubareas().getOrDefault(retainedFeatureId, List.of()).stream()
+        .map(SubareaSurrenderOutcome::outputSubarea)
+        .filter(Objects::nonNull)
+        .toList();
   }
 
   private void addBlock(

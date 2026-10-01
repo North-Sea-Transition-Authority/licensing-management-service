@@ -33,7 +33,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.PositionMove;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.PositionMoveDirection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.SameTransactionPositionLookup;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.PartialSurrenderCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeoperation.LicencePositionChangeOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.AddChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
@@ -83,9 +82,6 @@ class CorrectChangeOrderServiceTest {
 
   @Mock
   private LicencePositionChangeService licencePositionChangeService;
-
-  @Mock
-  private PartialSurrenderCorrectionService partialSurrenderCorrectionService;
 
   @InjectMocks
   private CorrectChangeOrderService correctChangeOrderService;
@@ -270,7 +266,7 @@ class CorrectChangeOrderServiceTest {
             "Cannot move change %s to licence position %s as it is already on it".formatted(CHANGE_A, POSITION_ID)
         );
 
-    verifyNoInteractions(licencePositionCorrectionService, partialSurrenderCorrectionService);
+    verifyNoInteractions(licencePositionCorrectionService);
   }
 
   @Test
@@ -287,7 +283,7 @@ class CorrectChangeOrderServiceTest {
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessage("Cannot move change %s as it is not on licence position %s".formatted(CHANGE_A, POSITION_ID));
 
-    verifyNoInteractions(licencePositionCorrectionService, partialSurrenderCorrectionService);
+    verifyNoInteractions(licencePositionCorrectionService);
   }
 
   @Test
@@ -317,8 +313,6 @@ class CorrectChangeOrderServiceTest {
         TARGET_POSITION_ID,
         List.of(new AddChange(CHANGE_A.toString(), 4, movedChange.operations()))
     );
-    verify(partialSurrenderCorrectionService)
-        .adjustPartialSurrenderBlocksFrom(CORRECTION, POSITION_ID, TARGET_POSITION_ID);
   }
 
   @Test
@@ -370,8 +364,6 @@ class CorrectChangeOrderServiceTest {
         TARGET_POSITION_ID,
         List.of(updateChange(CHANGE_A, liveOperation), new UpdateChangeOrder(CHANGE_A.toString(), 1))
     );
-    verify(partialSurrenderCorrectionService)
-        .adjustPartialSurrenderBlocksFrom(CORRECTION, POSITION_ID, TARGET_POSITION_ID);
   }
 
   @Test
@@ -497,8 +489,6 @@ class CorrectChangeOrderServiceTest {
 
     verify(licencePositionCorrectionService).dropStagedChangeAndOrder(sourceCorrection, CHANGE_A.toString());
     verify(licencePositionCorrectionService, never()).stageChangesOnPosition(any(), any(), any());
-    verify(partialSurrenderCorrectionService)
-        .adjustPartialSurrenderBlocksFrom(CORRECTION, POSITION_ID, TARGET_POSITION_ID);
   }
 
   @Test
@@ -563,13 +553,11 @@ class CorrectChangeOrderServiceTest {
     assertThat(result).isEqualTo(
         new MoveChangeToDateResult(MoveChangeToDateResult.Outcome.MOVED_TO_NEW_POSITION, TARGET_POSITION_ID));
 
-    var inOrder = inOrder(licencePositionCorrectionService, partialSurrenderCorrectionService);
+    var inOrder = inOrder(licencePositionCorrectionService);
     inOrder.verify(licencePositionCorrectionService)
         .correctPositionOrder(CORRECTION, TARGET_POSITION_ID, placementTargetId, PositionMoveDirection.BEFORE);
     inOrder.verify(licencePositionCorrectionService).stageChangesOnPosition(CORRECTION, TARGET_POSITION_ID, List.of(
         new AddChange(CHANGE_A.toString(), 1, movedChange.operations())));
-    inOrder.verify(partialSurrenderCorrectionService)
-        .adjustPartialSurrenderBlocksFrom(CORRECTION, POSITION_ID, TARGET_POSITION_ID);
   }
 
   @Test

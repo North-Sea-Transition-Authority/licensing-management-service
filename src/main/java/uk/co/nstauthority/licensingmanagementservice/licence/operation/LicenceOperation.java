@@ -142,17 +142,14 @@ public sealed interface LicenceOperation permits
   }
 
   /**
-   * The features an operation names, which is what the feature names on a change view are looked up
-   * by. A subarea whose PED_SUBAREAS.SI_ID was null has no feature to look up and carries its own
-   * name instead, so it drops out here rather than resolving to nothing.
+   * All featureIds linked to an operation, regardless of layer type.
    */
   static List<UUID> featureIds(LicenceOperation operation) {
     return switch (operation) {
-      case PartialSurrenderOperation partialSurrender -> Stream.of(
+      case PartialSurrenderOperation partialSurrender -> Stream.concat(
               partialSurrender.surrenderedFeatureIds().stream(),
-              subareaFeatureIds(partialSurrender.replacedSubareas()),
-              subareaFeatureIds(partialSurrender.outputSubareas()))
-          .flatMap(featureIds -> featureIds)
+              partialSurrender.featureIdToSurrenderDetails().values().stream()
+                  .flatMap(surrenderDetails -> surrenderDetails.subareaFeatureIds().stream()))
           .distinct()
           .toList();
       // The block as well as the subareas, since this feeds the feature names a change view shows

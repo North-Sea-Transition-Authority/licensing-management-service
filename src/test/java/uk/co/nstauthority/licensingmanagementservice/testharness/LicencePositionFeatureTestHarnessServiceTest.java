@@ -11,6 +11,8 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.Month;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -95,6 +97,10 @@ class LicencePositionFeatureTestHarnessServiceTest {
 
   private static final Map<String, String> BLOCK_ATTRIBUTES =
       Map.of("LAYER", "BLOCKS", "QUADRANT_NO", "30", "BLOCK_NO", "1");
+
+  private static final Map<String, String> SUBAREA_ATTRIBUTES = Map.of("LAYER", "SUBAREAS", "NAME", "30/1a");
+
+  private static final LocalDate SURRENDER_DATE = LocalDate.of(2026, Month.AUGUST, 1);
 
   private static final Feature BLOCK = FeatureTestUtil.builder()
       .withFeatureName("block 30/1")
@@ -212,6 +218,18 @@ class LicencePositionFeatureTestHarnessServiceTest {
   }
 
   @Test
+  void subareaDetailsOf() {
+    givenPositions(LicencePositionTestUtil.newBuilder().build());
+    givenSpatialDataCanBePersisted();
+
+    var seededFeatures = licencePositionFeatureTestHarnessService.createAndLinkFeatures(LICENCE);
+
+    var secondSubarea = seededFeatures.subareas().get(1);
+    assertThat(seededFeatures.subareaDetailsOf(seededFeatures.blocks().get(1)))
+        .isEqualTo(new SubareaDetails(secondSubarea.getId(), "30/2a", "a"));
+  }
+
+  @Test
   void createAndLinkFeatures_whenTheEarliestPositionHasNoChanges_thenTheSeedIsTheFirstChange() {
     var earliestPosition = LicencePositionTestUtil.newBuilder().build();
     givenPositions(earliestPosition);
@@ -313,6 +331,48 @@ class LicencePositionFeatureTestHarnessServiceTest {
     verify(featureJourneyStateService).deactivateFeatures(COMMAND_JOURNEY, List.of(BLOCK));
     verify(featureJourneyStateService).createFeatureJourneyStatesForCommandOutput(
         COMMAND_JOURNEY, splitCommand, List.of(splitBlock.surrenderedHalf(), splitBlock.retainedHalf()));
+  }
+
+  @Test
+  void cropSubareaToRetainedHalf_assertTheCroppedSubareaIsTheEasternHalfStartingOnTheSurrenderDate() {
+    givenFeaturesCanBePersisted();
+    var subarea = FeatureTestUtil.builder()
+        .withFeatureName("subarea 30/1a")
+        .withAttributes(SUBAREA_ATTRIBUTES)
+        .withFeatureArea(FEATURE_AREA)
+        .build();
+
+    var croppedSubarea = licencePositionFeatureTestHarnessService.cropSubareaToRetainedHalf(subarea, SURRENDER_DATE);
+
+    var expectedCroppedSubarea = expectedFeature("subarea 30/1a_2", SUBAREA_ATTRIBUTES);
+    expectedCroppedSubarea.setFeatureArea(FEATURE_AREA.divide(BigDecimal.TWO));
+    expectedCroppedSubarea.setStartDate(SURRENDER_DATE);
+    assertThat(croppedSubarea)
+        .usingRecursiveComparison()
+        .ignoringFields("id")
+        .isEqualTo(expectedCroppedSubarea);
+
+    verify(polygonService).savePolygon(polygonCaptor.capture());
+    verify(lineService).saveLines(linesCaptor.capture());
+    assertThat(linesCaptor.getValue())
+        .usingRecursiveFieldByFieldElementComparator()
+        .containsExactlyElementsOf(expectedLines(polygonCaptor.getValue(), EASTERN_HALF_EDGES));
+  }
+
+  @Test
+  void cropSubareaToRetainedHalf_assertTheOriginalSubareaEndsOnTheSurrenderDate() {
+    givenFeaturesCanBePersisted();
+    var subarea = FeatureTestUtil.builder()
+        .withAttributes(SUBAREA_ATTRIBUTES)
+        .withFeatureArea(FEATURE_AREA)
+        .build();
+
+    licencePositionFeatureTestHarnessService.cropSubareaToRetainedHalf(subarea, SURRENDER_DATE);
+
+    assertThat(subarea)
+        .extracting(Feature::getStartDate, Feature::getEndDate)
+        .containsExactly(null, SURRENDER_DATE);
+    verify(featureService).saveFeature(subarea);
   }
 
   @Test

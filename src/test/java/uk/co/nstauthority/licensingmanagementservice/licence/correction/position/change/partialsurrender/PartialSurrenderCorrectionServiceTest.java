@@ -8,6 +8,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDate;
@@ -15,6 +16,7 @@ import java.time.Month;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -25,16 +27,17 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.fivium.gisframework.command.CommandJourney;
 import uk.co.fivium.gisframework.command.CommandJourneyService;
+import uk.co.fivium.gisframework.feature.Feature;
 import uk.co.fivium.gisframework.feature.FeatureService;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.OrderablePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.AddChange;
@@ -45,6 +48,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.UpdateLicencePositionPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaDetails;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaSurrenderOutcome;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeService;
@@ -56,7 +61,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.spatial.Li
 @ExtendWith(MockitoExtension.class)
 class PartialSurrenderCorrectionServiceTest {
 
-  private static final Licence LICENCE = LicenceTestUtil.builder().build();
+  private static final Licence LICENCE = LicenceTestUtil.builder().withLicenceType(LicenceType.CARBON_STORAGE).build();
   private static final LicenceCorrection LICENCE_CORRECTION = LicenceCorrectionTestUtil.newBuilder()
       .withLicence(LICENCE)
       .build();
@@ -75,6 +80,10 @@ class PartialSurrenderCorrectionServiceTest {
       .withLicence(LICENCE)
       .build();
   private static final int ADMINISTRATOR_ID = 55;
+  private static final LicenceCorrection PRODUCTION_CORRECTION = LicenceCorrectionTestUtil.newBuilder()
+      .withLicence(LicenceTestUtil.builder().withLicenceType(LicenceType.SEAWARD_PRODUCTION).build())
+      .build();
+  private static final SubareaDetails SUBAREA = new SubareaDetails(UUID.randomUUID(), "Subarea A", "A");
 
   @Mock
   private LicencePositionCorrectionService licencePositionCorrectionService;
@@ -90,6 +99,9 @@ class PartialSurrenderCorrectionServiceTest {
 
   @Mock
   private CommandJourneyService commandJourneyService;
+
+  @Mock
+  private PartialSurrenderSubareaService partialSurrenderSubareaService;
 
   @InjectMocks
   private PartialSurrenderCorrectionService partialSurrenderCorrectionService;
@@ -110,6 +122,7 @@ class PartialSurrenderCorrectionServiceTest {
 
   private static LicencePositionCorrection positionCorrection(List<LicencePositionChangeType> changes) {
     return LicencePositionCorrectionTestUtil.newBuilder()
+        .withLicenceCorrection(LICENCE_CORRECTION)
         .withTargetLicencePosition(null)
         .withPayload(CreateLicencePositionPayloadTestUtil.newBuilder().withChanges(changes).build())
         .build();
@@ -137,6 +150,7 @@ class PartialSurrenderCorrectionServiceTest {
 
   private static LicencePositionCorrection updatePositionCorrection(List<LicencePositionChangeType> changes) {
     return LicencePositionCorrectionTestUtil.newBuilder()
+        .withLicenceCorrection(LICENCE_CORRECTION)
         .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
         .withTargetLicencePosition(LICENCE_POSITION)
         .withPayload(LicencePositionPayload.newUpdateLicencePositionPayload().withChanges(changes).build())
@@ -618,37 +632,6 @@ class PartialSurrenderCorrectionServiceTest {
   }
 
   @Test
-  void adjustPartialSurrenderBlocksFrom_adjustsEachCorrectedPositionFromTheEarlierOfTheTwoOnwards() {
-    var earlierPositionCorrection =
-        updatePositionCorrectionFor(LicencePositionTestUtil.newBuilder().build(), List.of());
-    var sourcePositionCorrection = updatePositionCorrectionFor(LICENCE_POSITION, List.of());
-    var targetPositionCorrection = updatePositionCorrectionFor(LATER_POSITION, List.of());
-    var uncorrectedPositionId = UUID.randomUUID();
-
-    when(licencePositionCorrectionService.getOrderableDatePositions(LICENCE_CORRECTION)).thenReturn(List.of(
-        orderablePosition(positionId(earlierPositionCorrection)),
-        orderablePosition(LICENCE_POSITION.getId()),
-        orderablePosition(uncorrectedPositionId),
-        orderablePosition(LATER_POSITION.getId())
-    ));
-    when(licencePositionCorrectionService.getPositionCorrections(LICENCE_CORRECTION))
-        .thenReturn(List.of(earlierPositionCorrection, sourcePositionCorrection, targetPositionCorrection));
-
-    partialSurrenderCorrectionService.adjustPartialSurrenderBlocksFrom(
-        LICENCE_CORRECTION,
-        LATER_POSITION.getId(),
-        LICENCE_POSITION.getId()
-    );
-
-    verify(licencePositionCorrectionService, never())
-        .getCommittedChangeOfType(earlierPositionCorrection, PartialSurrenderOperation.class);
-    verify(licencePositionCorrectionService)
-        .getCommittedChangeOfType(sourcePositionCorrection, PartialSurrenderOperation.class);
-    verify(licencePositionCorrectionService)
-        .getCommittedChangeOfType(targetPositionCorrection, PartialSurrenderOperation.class);
-  }
-
-  @Test
   void getSurrenderedBlockFeatureOrThrow_whenStaged_returnsTheFeature() {
     var operation = LicenceOperation.newPartialSurrenderOperation()
         .withSurrenderedFeatureIds(List.of(FIRST_FEATURE_ID))
@@ -931,6 +914,21 @@ class PartialSurrenderCorrectionServiceTest {
     assertThat(result).containsExactly(
         new PartialSurrenderChangeView.BlockRow("SHAPE 1", BlockSurrenderType.FULL_SURRENDER.getDisplayName()),
         new PartialSurrenderChangeView.BlockRow("Not available", null));
+  }
+
+  @Test
+  void getSurrenderedBlockFeatures() {
+    var surrender = LicenceOperation.newPartialSurrenderOperation()
+        .withSurrenderedFeatureIds(List.of(SECOND_FEATURE_ID, FIRST_FEATURE_ID))
+        .build();
+    var firstBlock = FeatureTestUtil.blockFeature(FIRST_FEATURE_ID, "30", 1);
+    var secondBlock = FeatureTestUtil.blockFeature(SECOND_FEATURE_ID, "30", 2);
+    when(featureService.getFeaturesByIds(List.of(SECOND_FEATURE_ID, FIRST_FEATURE_ID)))
+        .thenReturn(List.of(secondBlock, firstBlock));
+
+    var result = partialSurrenderCorrectionService.getSurrenderedBlockFeatures(surrender);
+
+    assertThat(result).containsExactly(firstBlock, secondBlock);
   }
 
   private void givenLiveSurrenderChange(PartialSurrenderOperation liveSurrender) {
@@ -1341,12 +1339,17 @@ class PartialSurrenderCorrectionServiceTest {
     var retainedPart = FeatureTestUtil.builder().withId(THIRD_FEATURE_ID).withFeatureName("SHAPE 1B").build();
     var recordedDetails = new PartialSurrenderOperation.SurrenderDetails(
         BlockSurrenderType.FULL_SURRENDER, null, List.of(FOURTH_FEATURE_ID));
+    var relinquishedSubarea = new SubareaDetails(UUID.randomUUID(), "Subarea A", "A");
+    var retainedFeatureIdToSubareas = Map.of(THIRD_FEATURE_ID, List.of(
+        SubareaSurrenderOutcome.relinquished(relinquishedSubarea),
+        SubareaSurrenderOutcome.kept(new SubareaDetails(UUID.randomUUID(), "Subarea B", "B"))));
     var staged = LicenceOperation.newPartialSurrenderOperation()
         .withSurrenderDate(surrenderDate)
         .withSurrenderedFeatureIds(List.of(FIRST_FEATURE_ID, FOURTH_FEATURE_ID))
         .withSurrenderDetails(Map.of(
             FIRST_FEATURE_ID, new PartialSurrenderOperation.SurrenderDetails(
-                BlockSurrenderType.PARTIAL_SURRENDER, FIRST_COMMAND_JOURNEY_ID, List.of(SECOND_FEATURE_ID)),
+                BlockSurrenderType.PARTIAL_SURRENDER, FIRST_COMMAND_JOURNEY_ID, List.of(SECOND_FEATURE_ID))
+                .withSubareas(retainedFeatureIdToSubareas),
             FOURTH_FEATURE_ID, recordedDetails))
         .build();
     when(commandJourneyService.getActiveFeatures(FIRST_COMMAND_JOURNEY_ID)).thenReturn(List.of(splitPart, retainedPart));
@@ -1358,7 +1361,11 @@ class PartialSurrenderCorrectionServiceTest {
         .withSurrenderedFeatureIds(List.of(FIRST_FEATURE_ID, FOURTH_FEATURE_ID))
         .withSurrenderDetails(Map.of(
             FIRST_FEATURE_ID, new PartialSurrenderOperation.SurrenderDetails(
-                BlockSurrenderType.PARTIAL_SURRENDER, null, List.of(SECOND_FEATURE_ID), List.of(THIRD_FEATURE_ID)),
+                BlockSurrenderType.PARTIAL_SURRENDER,
+                null,
+                List.of(SECOND_FEATURE_ID),
+                List.of(THIRD_FEATURE_ID),
+                retainedFeatureIdToSubareas),
             FOURTH_FEATURE_ID, recordedDetails))
         .build();
     assertThat(result).isEqualTo(expected);
@@ -1376,18 +1383,316 @@ class PartialSurrenderCorrectionServiceTest {
         .build();
   }
 
-  private static OrderablePosition orderablePosition(UUID positionId) {
-    return new OrderablePosition(positionId, LocalDate.of(2026, Month.JANUARY, 1), 1, "REF", false);
-  }
-
-  private static UUID positionId(LicencePositionCorrection licencePositionCorrection) {
-    return licencePositionCorrection.getPositionId();
-  }
-
   private static PartialSurrenderOperation fullSurrenderOf(UUID featureId) {
     return LicenceOperation.newPartialSurrenderOperation()
         .withSurrenderedFeatureIds(List.of(featureId))
         .withSurrenderDetails(Map.of(featureId, surrenderDetails(BlockSurrenderType.FULL_SURRENDER, FIRST_COMMAND_JOURNEY_ID)))
         .build();
+  }
+
+  @Test
+  void setSurrenderedFeatureIds_whenProductionLicence_thenTheBlocksSubareasAreProcessed() {
+    var surrenderedPart = FeatureTestUtil.builder().withFeatureName("SHAPE 1A").build();
+    var retainedPart = FeatureTestUtil.builder().withFeatureName("SHAPE 1B").build();
+    var existingOperation = surrenderOf(FIRST_FEATURE_ID, new PartialSurrenderOperation.SurrenderDetails(
+        BlockSurrenderType.PARTIAL_SURRENDER, FIRST_COMMAND_JOURNEY_ID, List.of()));
+    var stagedChange = AddChange.buildOperationsChange(List.of(existingOperation), 1);
+    var positionCorrection = productionPositionCorrection(List.of(stagedChange));
+    givenCommittedPartialSurrender(positionCorrection, existingOperation);
+    when(commandJourneyService.getActiveFeatures(FIRST_COMMAND_JOURNEY_ID)).thenReturn(List.of(surrenderedPart, retainedPart));
+    var selectedDetails = new PartialSurrenderOperation.SurrenderDetails(
+        BlockSurrenderType.PARTIAL_SURRENDER, FIRST_COMMAND_JOURNEY_ID, List.of(surrenderedPart.getId()));
+    var processedDetails = selectedDetails.withSubareas(Map.of(THIRD_FEATURE_ID, List.of(SubareaSurrenderOutcome.relinquished(SUBAREA))));
+    when(partialSurrenderSubareaService.processSubareas(
+        PRODUCTION_CORRECTION,
+        positionCorrection.getPositionId(),
+        stagedChange.changeId(),
+        FIRST_FEATURE_ID,
+        selectedDetails,
+        List.of(retainedPart.getId()),
+        null
+    )).thenReturn(processedDetails);
+
+    partialSurrenderCorrectionService.setSurrenderedFeatureIds(
+        positionCorrection, FIRST_FEATURE_ID, List.of(surrenderedPart.getId()));
+
+    verify(licencePositionCorrectionService)
+        .replaceAddChangeFor(eq(positionCorrection), eq(PartialSurrenderOperation.class), partialSurrenderOperationCaptor.capture());
+    assertThat(partialSurrenderOperationCaptor.getValue()).containsExactly(surrenderOf(FIRST_FEATURE_ID, processedDetails));
+  }
+
+  @Test
+  void commitPartialSurrender_whenABlockIsSurrenderedAsItWasBefore_thenItsStagedSubareasAreOfferedForReuse() {
+    var stagedDetails = new PartialSurrenderOperation.SurrenderDetails(
+        BlockSurrenderType.FULL_SURRENDER, FIRST_COMMAND_JOURNEY_ID, List.of(FIRST_FEATURE_ID))
+        .withSubareas(Map.of(THIRD_FEATURE_ID, List.of(SubareaSurrenderOutcome.relinquished(SUBAREA))));
+    var staged = surrenderOf(FIRST_FEATURE_ID, stagedDetails);
+    var stagedChange = AddChange.buildOperationsChange(List.of(staged), 1);
+    var positionCorrection = productionPositionCorrection(List.of(stagedChange));
+    givenCommittedPartialSurrender(positionCorrection, staged);
+    var resubmittedDetails = new PartialSurrenderOperation.SurrenderDetails(
+        BlockSurrenderType.FULL_SURRENDER, FIRST_COMMAND_JOURNEY_ID, List.of(FIRST_FEATURE_ID));
+    when(partialSurrenderSubareaService.processSubareas(
+        PRODUCTION_CORRECTION,
+        positionCorrection.getPositionId(),
+        stagedChange.changeId(),
+        FIRST_FEATURE_ID,
+        resubmittedDetails,
+        List.of(),
+        stagedDetails
+    )).thenReturn(stagedDetails);
+
+    partialSurrenderCorrectionService.commitPartialSurrender(
+        positionCorrection, surrenderOf(FIRST_FEATURE_ID, resubmittedDetails));
+
+    verify(licencePositionCorrectionService)
+        .replaceAddChangeFor(eq(positionCorrection), eq(PartialSurrenderOperation.class), partialSurrenderOperationCaptor.capture());
+    assertThat(partialSurrenderOperationCaptor.getValue()).containsExactly(staged);
+  }
+
+  @Test
+  void commitPartialSurrender_whenAStagedCroppedSubareaIsNoLongerReferenced_thenItIsDeleted() {
+    var croppedFeature = FeatureTestUtil.builder().build();
+    var staged = croppedSurrenderOf(FIRST_FEATURE_ID, croppedFeature);
+    var stagedChange = AddChange.buildOperationsChange(List.of(staged), 1);
+    var positionCorrection = productionPositionCorrection(List.of(stagedChange));
+    givenCommittedPartialSurrender(positionCorrection, staged);
+    var resubmittedDetails = new PartialSurrenderOperation.SurrenderDetails(
+        BlockSurrenderType.FULL_SURRENDER, FIRST_COMMAND_JOURNEY_ID, List.of(FIRST_FEATURE_ID));
+    when(partialSurrenderSubareaService.processSubareas(
+        PRODUCTION_CORRECTION,
+        positionCorrection.getPositionId(),
+        stagedChange.changeId(),
+        FIRST_FEATURE_ID,
+        resubmittedDetails,
+        List.of(),
+        null
+    )).thenReturn(resubmittedDetails.withSubareas(Map.of(THIRD_FEATURE_ID, List.of(SubareaSurrenderOutcome.relinquished(SUBAREA)))));
+    when(featureService.getFeaturesByIds(Set.of(croppedFeature.getId()))).thenReturn(List.of(croppedFeature));
+
+    partialSurrenderCorrectionService.commitPartialSurrender(
+        positionCorrection, surrenderOf(FIRST_FEATURE_ID, resubmittedDetails));
+
+    verify(featureService).deleteAll(List.of(croppedFeature));
+  }
+
+  @Test
+  void commitPartialSurrender_whenCarbonStorageLicence_thenSubareasAreNotProcessed() {
+    var positionCorrection = positionCorrection();
+
+    partialSurrenderCorrectionService.commitPartialSurrender(positionCorrection, fullSurrenderOf(FIRST_FEATURE_ID));
+
+    verifyNoInteractions(partialSurrenderSubareaService);
+  }
+
+  @Test
+  void correctExistingPartialSurrender_whenNothingStagedAndABlockIsSurrenderedAsItIsLive_thenTheLiveSubareasAreOfferedForReuse() {
+    var liveDetails = new PartialSurrenderOperation.SurrenderDetails(
+        BlockSurrenderType.FULL_SURRENDER, null, List.of(FIRST_FEATURE_ID))
+        .withSubareas(Map.of(THIRD_FEATURE_ID, List.of(SubareaSurrenderOutcome.relinquished(SUBAREA))));
+    givenLiveSurrenderChange(surrenderOf(FIRST_FEATURE_ID, liveDetails));
+    var positionCorrection = productionUpdatePositionCorrection(List.of());
+    givenProductionPositionCorrection(positionCorrection);
+    var correctedDetails = new PartialSurrenderOperation.SurrenderDetails(
+        BlockSurrenderType.FULL_SURRENDER, FIRST_COMMAND_JOURNEY_ID, List.of(FIRST_FEATURE_ID));
+    var processedDetails = correctedDetails.withSubareas(liveDetails.retainedFeatureIdToSubareas());
+    when(partialSurrenderSubareaService.processSubareas(
+        PRODUCTION_CORRECTION,
+        LICENCE_POSITION.getId(),
+        LIVE_CHANGE_ID,
+        FIRST_FEATURE_ID,
+        correctedDetails,
+        List.of(),
+        liveDetails
+    )).thenReturn(processedDetails);
+
+    partialSurrenderCorrectionService.correctExistingPartialSurrender(
+        PRODUCTION_CORRECTION, LICENCE_POSITION, LIVE_CHANGE_ID, surrenderOf(FIRST_FEATURE_ID, correctedDetails));
+
+    assertThat(positionCorrection.getPayload().changes())
+        .containsExactly(UpdateChangeOperations.buildUpdateChange(
+            LIVE_CHANGE_ID, surrenderOf(FIRST_FEATURE_ID, processedDetails)));
+  }
+
+  @Test
+  void correctExistingPartialSurrender_whenAStagedCroppedSubareaIsAlsoLive_thenItIsNotDeleted() {
+    var croppedSurrender = croppedSurrenderOf(FIRST_FEATURE_ID, FeatureTestUtil.builder().build());
+    givenLiveSurrenderChange(croppedSurrender);
+    var positionCorrection = productionUpdatePositionCorrection(
+        List.of(UpdateChangeOperations.buildUpdateChange(LIVE_CHANGE_ID, croppedSurrender)));
+    givenProductionPositionCorrection(positionCorrection);
+    givenCommittedPartialSurrender(positionCorrection, croppedSurrender);
+    var correctedDetails = new PartialSurrenderOperation.SurrenderDetails(
+        BlockSurrenderType.FULL_SURRENDER, FIRST_COMMAND_JOURNEY_ID, List.of(FIRST_FEATURE_ID));
+    when(partialSurrenderSubareaService.processSubareas(
+        PRODUCTION_CORRECTION,
+        LICENCE_POSITION.getId(),
+        LIVE_CHANGE_ID,
+        FIRST_FEATURE_ID,
+        correctedDetails,
+        List.of(),
+        null
+    )).thenReturn(correctedDetails.withSubareas(Map.of(THIRD_FEATURE_ID, List.of(SubareaSurrenderOutcome.relinquished(SUBAREA)))));
+
+    partialSurrenderCorrectionService.correctExistingPartialSurrender(
+        PRODUCTION_CORRECTION, LICENCE_POSITION, LIVE_CHANGE_ID, surrenderOf(FIRST_FEATURE_ID, correctedDetails));
+
+    verify(featureService, never()).deleteAll(any());
+  }
+
+  @Test
+  void setSurrenderedFeatureIds_whenAStagedCroppedSubareaIsAlsoLive_thenItIsNotDeleted() {
+    var croppedSurrender = croppedSurrenderOf(FIRST_FEATURE_ID, FeatureTestUtil.builder().build());
+    givenLiveSurrenderChange(croppedSurrender);
+    var positionCorrection = productionUpdatePositionCorrection(
+        List.of(UpdateChangeOperations.buildUpdateChange(LIVE_CHANGE_ID, croppedSurrender)));
+    givenCommittedPartialSurrender(positionCorrection, croppedSurrender);
+    var selectedDetails = new PartialSurrenderOperation.SurrenderDetails(
+        BlockSurrenderType.PARTIAL_SURRENDER, null, List.of(SECOND_FEATURE_ID));
+    when(partialSurrenderSubareaService.processSubareas(
+        PRODUCTION_CORRECTION,
+        positionCorrection.getPositionId(),
+        LIVE_CHANGE_ID,
+        FIRST_FEATURE_ID,
+        selectedDetails,
+        List.of(),
+        null
+    )).thenReturn(selectedDetails.withSubareas(Map.of(THIRD_FEATURE_ID, List.of(SubareaSurrenderOutcome.relinquished(SUBAREA)))));
+
+    partialSurrenderCorrectionService.setSurrenderedFeatureIds(
+        positionCorrection, FIRST_FEATURE_ID, List.of(SECOND_FEATURE_ID));
+
+    verify(featureService, never()).deleteAll(any());
+  }
+
+  @Test
+  void undoPartialSurrenderChange_whenTheSurrenderWasAddedByThisCorrection_thenDeletesItsCroppedSubareas() {
+    var croppedFeature = FeatureTestUtil.builder().build();
+    var addChange = AddChange.buildOperationsChange(List.of(croppedSurrenderOf(FIRST_FEATURE_ID, croppedFeature)), 1);
+    givenStagedChange(addChange);
+    when(featureService.getFeaturesByIds(Set.of(croppedFeature.getId()))).thenReturn(List.of(croppedFeature));
+
+    partialSurrenderCorrectionService.undoPartialSurrenderChange(LICENCE_CORRECTION, addChange.changeId());
+
+    verify(featureService).deleteAll(List.of(croppedFeature));
+  }
+
+  @Test
+  void undoPartialSurrenderChange_whenTheSurrenderCorrectsALiveChange_thenKeepsTheLiveCroppedSubareas() {
+    var croppedSurrender = croppedSurrenderOf(FIRST_FEATURE_ID, FeatureTestUtil.builder().build());
+    var updateChange = UpdateChangeOperations.buildUpdateChange(LIVE_CHANGE_ID, croppedSurrender);
+    givenStagedChange(updateChange);
+    givenLiveSurrenderChange(croppedSurrender);
+
+    partialSurrenderCorrectionService.undoPartialSurrenderChange(LICENCE_CORRECTION, updateChange.changeId());
+
+    verify(featureService, never()).deleteAll(any());
+  }
+
+  @Test
+  void revertPartialSurrenderCorrection_whenTheStagedSurrenderCroppedSubareas_thenDeletesThoseNotLive() {
+    var croppedFeature = FeatureTestUtil.builder().build();
+    var staged = croppedSurrenderOf(FIRST_FEATURE_ID, croppedFeature);
+    var positionCorrection = updatePositionCorrection(
+        List.of(UpdateChangeOperations.buildUpdateChange(LIVE_CHANGE_ID, staged)));
+    when(licencePositionCorrectionService.findUpdatePositionCorrection(LICENCE_CORRECTION, LICENCE_POSITION))
+        .thenReturn(Optional.of(positionCorrection));
+    givenCommittedPartialSurrender(positionCorrection, staged);
+    givenLiveSurrenderChange(fullSurrenderOf(FIRST_FEATURE_ID));
+    when(featureService.getFeaturesByIds(Set.of(croppedFeature.getId()))).thenReturn(List.of(croppedFeature));
+
+    partialSurrenderCorrectionService.revertPartialSurrenderCorrection(LICENCE_CORRECTION, LICENCE_POSITION, staged);
+
+    verify(featureService).deleteAll(List.of(croppedFeature));
+  }
+
+  @Test
+  void adjustPartialSurrenderBlocks_whenABlockWithCroppedSubareasIsNoLongerSurrenderable_thenItsCroppedSubareasAreDeleted() {
+    var croppedFeature = FeatureTestUtil.builder().build();
+    var croppedDetails = croppedSurrenderOf(FIRST_FEATURE_ID, croppedFeature).featureIdToSurrenderDetails()
+        .get(FIRST_FEATURE_ID);
+    var surrender = LicenceOperation.newPartialSurrenderOperation()
+        .withSurrenderedFeatureIds(List.of(FIRST_FEATURE_ID, SECOND_FEATURE_ID))
+        .withSurrenderDetails(Map.of(
+            FIRST_FEATURE_ID, croppedDetails,
+            SECOND_FEATURE_ID, surrenderDetails(BlockSurrenderType.FULL_SURRENDER, SECOND_COMMAND_JOURNEY_ID)))
+        .build();
+    var stagedChange = AddChange.buildOperationsChange(List.of(surrender), 1);
+    var positionCorrection = executedPositionCorrection(List.of(stagedChange));
+    givenCommittedPartialSurrender(positionCorrection, surrender);
+    when(licencePositionSpatialService.getBlockFeaturesGoingIntoChange(positionCorrection, stagedChange.changeId()))
+        .thenReturn(List.of(FeatureTestUtil.blockFeature(SECOND_FEATURE_ID, "30", 2)));
+    when(featureService.getFeaturesByIds(Set.of(croppedFeature.getId()))).thenReturn(List.of(croppedFeature));
+
+    partialSurrenderCorrectionService.adjustPartialSurrenderBlocks(positionCorrection);
+
+    verify(featureService).deleteAll(List.of(croppedFeature));
+  }
+
+  @Test
+  void adjustPartialSurrenderBlocks_whenARemovedBlocksCroppedSubareaIsAlsoLive_thenItIsNotDeleted() {
+    var croppedDetails = croppedSurrenderOf(FIRST_FEATURE_ID, FeatureTestUtil.builder().build())
+        .featureIdToSurrenderDetails()
+        .get(FIRST_FEATURE_ID);
+    var surrender = LicenceOperation.newPartialSurrenderOperation()
+        .withSurrenderedFeatureIds(List.of(FIRST_FEATURE_ID, SECOND_FEATURE_ID))
+        .withSurrenderDetails(Map.of(
+            FIRST_FEATURE_ID, croppedDetails,
+            SECOND_FEATURE_ID, surrenderDetails(BlockSurrenderType.FULL_SURRENDER, SECOND_COMMAND_JOURNEY_ID)))
+        .build();
+    var positionCorrection = updatePositionCorrection(
+        List.of(UpdateChangeOperations.buildUpdateChange(LIVE_CHANGE_ID, surrender)));
+    givenCommittedPartialSurrender(positionCorrection, surrender);
+    givenLiveSurrenderChange(surrender);
+    when(licencePositionSpatialService.getBlockFeaturesGoingIntoChange(positionCorrection, LIVE_CHANGE_ID))
+        .thenReturn(List.of(FeatureTestUtil.blockFeature(SECOND_FEATURE_ID, "30", 2)));
+
+    partialSurrenderCorrectionService.adjustPartialSurrenderBlocks(positionCorrection);
+
+    verify(featureService, never()).deleteAll(any());
+  }
+
+  private static PartialSurrenderOperation surrenderOf(
+      UUID featureId,
+      PartialSurrenderOperation.SurrenderDetails surrenderDetails
+  ) {
+    return LicenceOperation.newPartialSurrenderOperation()
+        .withSurrenderedFeatureIds(List.of(featureId))
+        .withSurrenderDetails(Map.of(featureId, surrenderDetails))
+        .build();
+  }
+
+  private static PartialSurrenderOperation croppedSurrenderOf(
+      UUID featureId,
+      Feature croppedFeature
+  ) {
+    var croppedSubarea = new SubareaDetails(croppedFeature.getId(), SUBAREA.name(), SUBAREA.shortName());
+    var retainedFeatureId = UUID.randomUUID();
+    return surrenderOf(featureId, new PartialSurrenderOperation.SurrenderDetails(
+        BlockSurrenderType.PARTIAL_SURRENDER, null, List.of(UUID.randomUUID()), List.of(retainedFeatureId))
+        .withSubareas(Map.of(retainedFeatureId, List.of(SubareaSurrenderOutcome.cropped(SUBAREA, croppedSubarea)))));
+  }
+
+  private static LicencePositionCorrection productionPositionCorrection(List<LicencePositionChangeType> changes) {
+    return LicencePositionCorrectionTestUtil.newBuilder()
+        .withLicenceCorrection(PRODUCTION_CORRECTION)
+        .withTargetLicencePosition(null)
+        .withPayload(CreateLicencePositionPayloadTestUtil.newBuilder().withChanges(changes).build())
+        .build();
+  }
+
+  private static LicencePositionCorrection productionUpdatePositionCorrection(List<LicencePositionChangeType> changes) {
+    return LicencePositionCorrectionTestUtil.newBuilder()
+        .withLicenceCorrection(PRODUCTION_CORRECTION)
+        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+        .withTargetLicencePosition(LICENCE_POSITION)
+        .withPayload(LicencePositionPayload.newUpdateLicencePositionPayload().withChanges(changes).build())
+        .build();
+  }
+
+  private void givenProductionPositionCorrection(LicencePositionCorrection positionCorrection) {
+    when(licencePositionCorrectionService.getOrBuildUpdatePositionCorrection(PRODUCTION_CORRECTION, LICENCE_POSITION))
+        .thenReturn(positionCorrection);
+    when(licencePositionCorrectionService.save(positionCorrection)).thenReturn(positionCorrection);
   }
 }

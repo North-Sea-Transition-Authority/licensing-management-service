@@ -19,7 +19,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.PositionMove;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.PositionMoveDirection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.PositionOrderingUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.PartialSurrenderCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.AddChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.UpdateChangeOperations;
@@ -37,20 +36,17 @@ public class CorrectChangeOrderService {
   private final LicencePositionCorrectionService licencePositionCorrectionService;
   private final LicencePositionService licencePositionService;
   private final LicencePositionChangeService licencePositionChangeService;
-  private final PartialSurrenderCorrectionService partialSurrenderCorrectionService;
 
   public CorrectChangeOrderService(
       LicencePositionViewService licencePositionViewService,
       LicencePositionCorrectionService licencePositionCorrectionService,
       LicencePositionService licencePositionService,
-      LicencePositionChangeService licencePositionChangeService,
-      PartialSurrenderCorrectionService partialSurrenderCorrectionService
+      LicencePositionChangeService licencePositionChangeService
   ) {
     this.licencePositionViewService = licencePositionViewService;
     this.licencePositionCorrectionService = licencePositionCorrectionService;
     this.licencePositionService = licencePositionService;
     this.licencePositionChangeService = licencePositionChangeService;
-    this.partialSurrenderCorrectionService = partialSurrenderCorrectionService;
   }
 
   public List<OrderableChange> getOrderableChanges(LicenceCorrection licenceCorrection, UUID positionId) {
@@ -133,12 +129,6 @@ public class CorrectChangeOrderService {
     } else {
       moveLiveChange(licenceCorrection, changeId, stagedChange, targetPositionId);
     }
-
-    partialSurrenderCorrectionService.adjustPartialSurrenderBlocksFrom(
-        licenceCorrection,
-        sourcePositionId,
-        targetPositionId
-    );
   }
 
   @Transactional

@@ -11,7 +11,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderType;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.LicenceBlockFeatureUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.spatial.LicencePositionSpatialService;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryCard;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryDataView;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryItem;
@@ -30,51 +29,40 @@ public class PartialSurrenderBlockSummarySectionService
   static final int SECTION_ORDER = 20;
 
   private final PartialSurrenderCorrectionService partialSurrenderCorrectionService;
-  private final LicencePositionSpatialService licencePositionSpatialService;
 
-  public PartialSurrenderBlockSummarySectionService(
-      PartialSurrenderCorrectionService partialSurrenderCorrectionService,
-      LicencePositionSpatialService licencePositionSpatialService
+  PartialSurrenderBlockSummarySectionService(
+      PartialSurrenderCorrectionService partialSurrenderCorrectionService
   ) {
     this.partialSurrenderCorrectionService = partialSurrenderCorrectionService;
-    this.licencePositionSpatialService = licencePositionSpatialService;
   }
 
   @Override
   public Optional<SummarySection> getSummarySection(PartialSurrenderSummaryContext context, ServiceUserDetail user) {
     return switch (context) {
-      case PartialSurrenderSummaryContext.Staged(var licencePositionCorrection) -> {
-        var stagedChangeId = partialSurrenderCorrectionService
-            .getCommittedPartialSurrenderChangeId(licencePositionCorrection)
-            .orElse(null);
-        yield partialSurrenderCorrectionService.getCommittedPartialSurrender(licencePositionCorrection)
-            .flatMap(surrender -> getSummarySection(
-                surrender,
-                licencePositionSpatialService.getBlockFeaturesGoingIntoChange(licencePositionCorrection, stagedChangeId),
-                "correction %s".formatted(licencePositionCorrection.getId())));
-      }
+      case PartialSurrenderSummaryContext.Staged(var licencePositionCorrection) ->
+          partialSurrenderCorrectionService.getCommittedPartialSurrender(licencePositionCorrection)
+              .flatMap(surrender -> getSummarySection(
+                  surrender,
+                  "correction %s".formatted(licencePositionCorrection.getId())));
       case PartialSurrenderSummaryContext.LiveChange(var correction, var licencePosition, var changeId) ->
           getSummarySection(
               partialSurrenderCorrectionService
                   .getSurrenderUnderCorrectionOrThrow(correction, licencePosition, changeId),
-              licencePositionSpatialService.getBlockFeaturesGoingIntoChange(correction, licencePosition, changeId),
               "change %s".formatted(changeId));
     };
   }
 
   private Optional<SummarySection> getSummarySection(
       PartialSurrenderOperation surrender,
-      List<Feature> surrenderableBlockFeatures,
       String surrenderSource
   ) {
     if (surrender.surrenderedFeatureIds().isEmpty()) {
       return Optional.empty();
     }
 
-    var labelsById = LicenceBlockFeatureUtil.toBlockCheckboxOptions(
-        surrenderableBlockFeatures
-    );
-    var featuresById = surrenderableBlockFeatures.stream()
+    var surrenderedBlockFeatures = partialSurrenderCorrectionService.getSurrenderedBlockFeatures(surrender);
+    var labelsById = LicenceBlockFeatureUtil.toBlockCheckboxOptions(surrenderedBlockFeatures);
+    var featuresById = surrenderedBlockFeatures.stream()
         .collect(Collectors.toMap(Feature::getId, feature -> feature));
 
     var blockItems = surrender.surrenderedFeatureIds().stream()
@@ -82,7 +70,7 @@ public class PartialSurrenderBlockSummarySectionService
           var feature = featuresById.get(featureId);
           if (feature == null) {
             throw new IllegalStateException(
-                "Surrendered feature %s not resolvable as a surrenderable block on %s"
+                "Surrendered feature %s not found for %s"
                     .formatted(featureId, surrenderSource));
           }
           return feature;

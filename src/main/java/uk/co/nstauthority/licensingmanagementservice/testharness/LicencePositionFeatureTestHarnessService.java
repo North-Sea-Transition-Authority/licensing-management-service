@@ -1,6 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.testharness;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -206,6 +207,28 @@ class LicencePositionFeatureTestHarnessService {
     return new SplitBlock(westernHalf, easternHalf);
   }
 
+  /**
+   * Cuts a subarea back to the half of its block that {@link #splitBlockInHalf} keeps, as a partial surrender of that
+   * block would. The original subarea is ended and the cropped one starts on the date of the surrender, as applying the
+   * surrender does.
+   *
+   * @return the cropped subarea
+   */
+  @Transactional
+  public Feature cropSubareaToRetainedHalf(
+      Feature subarea,
+      LocalDate surrenderDate
+  ) {
+    var croppedSubarea = createHalfBlock(subarea, MIDDLE_LONGITUDE, EASTERN_LONGITUDE, 2);
+    croppedSubarea.setStartDate(surrenderDate);
+    featureService.saveFeature(croppedSubarea);
+
+    subarea.setEndDate(surrenderDate);
+    featureService.saveFeature(subarea);
+
+    return croppedSubarea;
+  }
+
   // a split output keeps the attributes of the shape it came from, and is named after it
   private Feature createHalfBlock(
       Feature block,
@@ -237,6 +260,14 @@ class LicencePositionFeatureTestHarnessService {
       return blockIdToSubareas.values().stream()
           .flatMap(List::stream)
           .toList();
+    }
+
+    Feature subareaOf(Feature block) {
+      return blockIdToSubareas.get(block.getId()).getFirst();
+    }
+
+    SubareaDetails subareaDetailsOf(Feature block) {
+      return toSubareaDetails(subareaOf(block));
     }
 
     static SubareaDetails toSubareaDetails(Feature subarea) {

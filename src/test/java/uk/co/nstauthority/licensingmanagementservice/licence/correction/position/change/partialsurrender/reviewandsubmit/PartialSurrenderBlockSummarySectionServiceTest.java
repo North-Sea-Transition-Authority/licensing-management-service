@@ -1,6 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.reviewandsubmit;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
@@ -20,13 +21,11 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.PartialSurrenderCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderType;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.AddChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation.SurrenderDetails;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.FeatureTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.spatial.LicencePositionSpatialService;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryCard;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryDataView;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryItem;
@@ -46,9 +45,6 @@ class PartialSurrenderBlockSummarySectionServiceTest {
 
   @Mock
   private PartialSurrenderCorrectionService partialSurrenderCorrectionService;
-
-  @Mock
-  private LicencePositionSpatialService licencePositionSpatialService;
 
   @InjectMocks
   private PartialSurrenderBlockSummarySectionService partialSurrenderBlockSummarySectionService;
@@ -76,9 +72,7 @@ class PartialSurrenderBlockSummarySectionServiceTest {
 
     when(partialSurrenderCorrectionService.getCommittedPartialSurrender(positionCorrection))
         .thenReturn(Optional.of(staged));
-    var stagedChangeId = givenStagedSurrenderChangeId(positionCorrection, staged);
-    when(licencePositionSpatialService.getBlockFeaturesGoingIntoChange(positionCorrection, stagedChangeId))
-        .thenReturn(List.of(SECOND_BLOCK, FIRST_BLOCK));
+    when(partialSurrenderCorrectionService.getSurrenderedBlockFeatures(staged)).thenReturn(List.of(SECOND_BLOCK, FIRST_BLOCK));
 
     var result = partialSurrenderBlockSummarySectionService.getSummarySection(
         new PartialSurrenderSummaryContext.Staged(positionCorrection),
@@ -107,9 +101,7 @@ class PartialSurrenderBlockSummarySectionServiceTest {
 
     when(partialSurrenderCorrectionService.getCommittedPartialSurrender(positionCorrection))
         .thenReturn(Optional.of(staged));
-    var stagedChangeId = givenStagedSurrenderChangeId(positionCorrection, staged);
-    when(licencePositionSpatialService.getBlockFeaturesGoingIntoChange(positionCorrection, stagedChangeId))
-        .thenReturn(List.of(SECOND_BLOCK));
+    when(partialSurrenderCorrectionService.getSurrenderedBlockFeatures(staged)).thenReturn(List.of(SECOND_BLOCK));
     when(partialSurrenderCorrectionService.getRetainedFeatureIds(blockSurrender))
         .thenReturn(List.of(RETAINED_PART.getId()));
 
@@ -139,9 +131,7 @@ class PartialSurrenderBlockSummarySectionServiceTest {
 
     when(partialSurrenderCorrectionService.getCommittedPartialSurrender(positionCorrection))
         .thenReturn(Optional.of(staged));
-    var stagedChangeId = givenStagedSurrenderChangeId(positionCorrection, staged);
-    when(licencePositionSpatialService.getBlockFeaturesGoingIntoChange(positionCorrection, stagedChangeId))
-        .thenReturn(List.of(SECOND_BLOCK));
+    when(partialSurrenderCorrectionService.getSurrenderedBlockFeatures(staged)).thenReturn(List.of(SECOND_BLOCK));
     when(partialSurrenderCorrectionService.getRetainedFeatureIds(blockSurrender)).thenReturn(List.of());
 
     var result = partialSurrenderBlockSummarySectionService.getSummarySection(
@@ -168,9 +158,7 @@ class PartialSurrenderBlockSummarySectionServiceTest {
 
     when(partialSurrenderCorrectionService.getCommittedPartialSurrender(positionCorrection))
         .thenReturn(Optional.of(staged));
-    var stagedChangeId = givenStagedSurrenderChangeId(positionCorrection, staged);
-    when(licencePositionSpatialService.getBlockFeaturesGoingIntoChange(positionCorrection, stagedChangeId))
-        .thenReturn(List.of(SECOND_BLOCK));
+    when(partialSurrenderCorrectionService.getSurrenderedBlockFeatures(staged)).thenReturn(List.of(SECOND_BLOCK));
 
     var result = partialSurrenderBlockSummarySectionService.getSummarySection(
         new PartialSurrenderSummaryContext.Staged(positionCorrection),
@@ -195,9 +183,7 @@ class PartialSurrenderBlockSummarySectionServiceTest {
 
     when(partialSurrenderCorrectionService.getCommittedPartialSurrender(positionCorrection))
         .thenReturn(Optional.of(staged));
-    var stagedChangeId = givenStagedSurrenderChangeId(positionCorrection, staged);
-    when(licencePositionSpatialService.getBlockFeaturesGoingIntoChange(positionCorrection, stagedChangeId))
-        .thenReturn(List.of(FIRST_BLOCK));
+    when(partialSurrenderCorrectionService.getSurrenderedBlockFeatures(staged)).thenReturn(List.of(FIRST_BLOCK));
 
     var result = partialSurrenderBlockSummarySectionService.getSummarySection(
         new PartialSurrenderSummaryContext.Staged(positionCorrection),
@@ -213,30 +199,6 @@ class PartialSurrenderBlockSummarySectionServiceTest {
   }
 
   @Test
-  void getSummarySection_whenStagedSurrenderBlockOnlyResolvableAnchoredOnTheStagedChange_thenResolves() {
-    var positionCorrection = positionCorrection();
-    var staged = operation(
-        Map.of(FIRST_BLOCK.getId(), surrenderDetails(BlockSurrenderType.FULL_SURRENDER, List.of())));
-
-    when(partialSurrenderCorrectionService.getCommittedPartialSurrender(positionCorrection))
-        .thenReturn(Optional.of(staged));
-    var stagedChangeId = givenStagedSurrenderChangeId(positionCorrection, staged);
-    when(licencePositionSpatialService.getBlockFeaturesGoingIntoChange(positionCorrection, stagedChangeId))
-        .thenReturn(List.of(FIRST_BLOCK));
-
-    var result = partialSurrenderBlockSummarySectionService.getSummarySection(
-        new PartialSurrenderSummaryContext.Staged(positionCorrection),
-        null
-    );
-
-    var expected = new SummarySection(
-        PartialSurrenderBlockSummarySectionService.SECTION_ORDER,
-        List.of(expectedBlockItem(FIRST_BLOCK, expectedFullSurrenderCard(FIRST_BLOCK))));
-
-    assertThat(result).get().usingRecursiveComparison().isEqualTo(expected);
-  }
-
-  @Test
   void getSummarySection_whenCorrectingALiveChange_thenItemPerSurrenderedBlockShowingTypeAndMaps() {
     var correction = LicenceCorrectionTestUtil.newBuilder().build();
     var licencePosition = LicencePositionTestUtil.newBuilder().build();
@@ -244,11 +206,12 @@ class PartialSurrenderBlockSummarySectionServiceTest {
 
     var partialBlockSurrender =
         surrenderDetails(BlockSurrenderType.PARTIAL_SURRENDER, List.of(SURRENDERED_PART.getId()));
+    var surrenderUnderCorrection = operation(Map.of(
+        FIRST_BLOCK.getId(), surrenderDetails(BlockSurrenderType.FULL_SURRENDER, List.of()),
+        SECOND_BLOCK.getId(), partialBlockSurrender));
     when(partialSurrenderCorrectionService.getSurrenderUnderCorrectionOrThrow(correction, licencePosition, changeId))
-        .thenReturn(operation(Map.of(
-            FIRST_BLOCK.getId(), surrenderDetails(BlockSurrenderType.FULL_SURRENDER, List.of()),
-            SECOND_BLOCK.getId(), partialBlockSurrender)));
-    when(licencePositionSpatialService.getBlockFeaturesGoingIntoChange(correction, licencePosition, changeId))
+        .thenReturn(surrenderUnderCorrection);
+    when(partialSurrenderCorrectionService.getSurrenderedBlockFeatures(surrenderUnderCorrection))
         .thenReturn(List.of(SECOND_BLOCK, FIRST_BLOCK));
     when(partialSurrenderCorrectionService.getRetainedFeatureIds(partialBlockSurrender))
         .thenReturn(List.of(RETAINED_PART.getId()));
@@ -272,17 +235,23 @@ class PartialSurrenderBlockSummarySectionServiceTest {
     assertThat(result).get().usingRecursiveComparison().isEqualTo(expected);
   }
 
+  @Test
+  void getSummarySection_whenASurrenderedBlockIsNotFound_thenThrows() {
+    var positionCorrection = positionCorrection();
+    var staged = operation(Map.of(
+        FIRST_BLOCK.getId(), surrenderDetails(BlockSurrenderType.FULL_SURRENDER, List.of())));
 
+    when(partialSurrenderCorrectionService.getCommittedPartialSurrender(positionCorrection))
+        .thenReturn(Optional.of(staged));
+    when(partialSurrenderCorrectionService.getSurrenderedBlockFeatures(staged)).thenReturn(List.of());
 
-
-  private String givenStagedSurrenderChangeId(
-      LicencePositionCorrection positionCorrection,
-      PartialSurrenderOperation staged
-  ) {
-    var stagedChange = AddChange.buildOperationsChange(List.of(staged), 1);
-    when(partialSurrenderCorrectionService.getCommittedPartialSurrenderChangeId(positionCorrection))
-        .thenReturn(Optional.of(stagedChange.changeId()));
-    return stagedChange.changeId();
+    assertThatThrownBy(() -> partialSurrenderBlockSummarySectionService.getSummarySection(
+        new PartialSurrenderSummaryContext.Staged(positionCorrection),
+        null
+    ))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessage("Surrendered feature %s not found for correction %s"
+            .formatted(FIRST_BLOCK.getId(), positionCorrection.getId()));
   }
 
   private SurrenderDetails surrenderDetails(BlockSurrenderType type, List<UUID> surrenderedFeatureIds) {

@@ -225,7 +225,139 @@ class CorrectionReviewServiceTest {
         List.of(new ReviewChangeView(
             administratorChangeView(changeId, CORRECTED_JOINING_NAME, LicencePositionChangeType.UPDATE_CHANGE_OPERATIONS),
             administratorChangeView(changeId, JOINING_NAME, null),
-            1)))));
+            1,
+            null,
+            null)))));
+  }
+
+  @Test
+  void getReviewPositions_whenExecutedChangeMovedToAnotherPosition_thenBothPositionsShowTheMove() {
+    var sourcePosition = executedPosition();
+    var targetPositionId = UUID.randomUUID();
+    var changeId = UUID.randomUUID().toString();
+
+    var addCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withChangeType(LicencePositionCorrectionChangeType.ADD_POSITION)
+        .withTargetLicencePosition(null)
+        .withPayload(CreateLicencePositionPayloadTestUtil.newBuilder()
+            .withLicencePositionId(targetPositionId.toString())
+            .withCorrectionReference("COR-1")
+            .withChanges(List.of(UpdateChangeOperations.buildUpdateChange(
+                changeId,
+                LicenceOperation.newAdministratorChange().withOperator(JOINING_ID).build())))
+            .build())
+        .build();
+
+    var correctedPositions = List.of(
+        chronologicalPosition(sourcePosition.getId(), LocalDate.of(2026, Month.FEBRUARY, 1)),
+        ChronologicalPositionTestUtil.newBuilder()
+            .withId(targetPositionId)
+            .withReference("COR-1")
+            .withDate(LocalDate.of(2026, Month.MARCH, 1))
+            .withChanges(List.of(administratorChange(
+                changeId, 1, JOINING_ID, LicencePositionChangeType.UPDATE_CHANGE_OPERATIONS)))
+            .build());
+
+    var executedPositions = List.of(ChronologicalPositionTestUtil.newBuilder()
+        .withId(sourcePosition.getId())
+        .withDate(LocalDate.of(2026, Month.FEBRUARY, 1))
+        .withChanges(List.of(administratorChange(changeId, 1, JOINING_ID, null)))
+        .build());
+
+    var correctedTimeline = stubTimelines(List.of(addCorrection), Set.of(), correctedPositions, executedPositions);
+
+    var result = correctionReviewService.getReviewPositions(correctedTimeline, List.of());
+
+    assertThat(result).isEqualTo(List.of(
+        new ReviewPositionView(
+            sourcePosition.getId(),
+            "1 February 2026",
+            "REGULATOR_REFERENCE",
+            CorrectionMarker.POSITION_CORRECTED,
+            List.of(new ReviewChangeView(
+                administratorChangeView(changeId, JOINING_NAME, null),
+                null,
+                1,
+                null,
+                "1 March 2026 - COR-1"))),
+        new ReviewPositionView(
+            targetPositionId,
+            "1 March 2026",
+            "COR-1",
+            CorrectionMarker.POSITION_ADDED,
+            List.of(new ReviewChangeView(
+                administratorChangeView(changeId, JOINING_NAME, LicencePositionChangeType.UPDATE_CHANGE_OPERATIONS),
+                null,
+                1,
+                "1 February 2026 - REGULATOR_REFERENCE",
+                null)))));
+    assertThat(result)
+        .flatExtracting(ReviewPositionView::changes)
+        .extracting(ReviewChangeView::marker)
+        .containsExactly(CorrectionMarker.CHANGE_MOVED_TO, CorrectionMarker.CHANGE_MOVED_FROM);
+  }
+
+  @Test
+  void getReviewPositions_whenMovedChangeOperationsAlsoCorrected_thenTheChangeItWasCorrectedFromIsShown() {
+    var sourcePosition = executedPosition();
+    var targetPositionId = UUID.randomUUID();
+    var changeId = UUID.randomUUID().toString();
+
+    var addCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withChangeType(LicencePositionCorrectionChangeType.ADD_POSITION)
+        .withTargetLicencePosition(null)
+        .withPayload(CreateLicencePositionPayloadTestUtil.newBuilder()
+            .withLicencePositionId(targetPositionId.toString())
+            .withCorrectionReference("COR-1")
+            .withChanges(List.of(UpdateChangeOperations.buildUpdateChange(
+                changeId,
+                LicenceOperation.newAdministratorChange().withOperator(CORRECTED_JOINING_ID).build())))
+            .build())
+        .build();
+
+    var correctedPositions = List.of(
+        chronologicalPosition(sourcePosition.getId(), LocalDate.of(2026, Month.FEBRUARY, 1)),
+        ChronologicalPositionTestUtil.newBuilder()
+            .withId(targetPositionId)
+            .withReference("COR-1")
+            .withDate(LocalDate.of(2026, Month.MARCH, 1))
+            .withChanges(List.of(administratorChange(
+                changeId, 1, CORRECTED_JOINING_ID, LicencePositionChangeType.UPDATE_CHANGE_OPERATIONS)))
+            .build());
+
+    var executedPositions = List.of(ChronologicalPositionTestUtil.newBuilder()
+        .withId(sourcePosition.getId())
+        .withDate(LocalDate.of(2026, Month.FEBRUARY, 1))
+        .withChanges(List.of(administratorChange(changeId, 1, JOINING_ID, null)))
+        .build());
+
+    var correctedTimeline = stubTimelines(List.of(addCorrection), Set.of(), correctedPositions, executedPositions);
+
+    var result = correctionReviewService.getReviewPositions(correctedTimeline, List.of());
+
+    assertThat(result).isEqualTo(List.of(
+        new ReviewPositionView(
+            sourcePosition.getId(),
+            "1 February 2026",
+            "REGULATOR_REFERENCE",
+            CorrectionMarker.POSITION_CORRECTED,
+            List.of(new ReviewChangeView(
+                administratorChangeView(changeId, JOINING_NAME, null),
+                null,
+                1,
+                null,
+                "1 March 2026 - COR-1"))),
+        new ReviewPositionView(
+            targetPositionId,
+            "1 March 2026",
+            "COR-1",
+            CorrectionMarker.POSITION_ADDED,
+            List.of(new ReviewChangeView(
+                administratorChangeView(changeId, CORRECTED_JOINING_NAME, LicencePositionChangeType.UPDATE_CHANGE_OPERATIONS),
+                administratorChangeView(changeId, JOINING_NAME, null),
+                1,
+                "1 February 2026 - REGULATOR_REFERENCE",
+                null)))));
   }
 
   @Test
@@ -368,7 +500,7 @@ class CorrectionReviewServiceTest {
   }
 
   private static ReviewChangeView unchanged(LicencePositionChangeView change, int changeOrder) {
-    return new ReviewChangeView(change, null, changeOrder);
+    return new ReviewChangeView(change, null, changeOrder, null, null);
   }
 
   private static AdministratorChangeView administratorChangeView(

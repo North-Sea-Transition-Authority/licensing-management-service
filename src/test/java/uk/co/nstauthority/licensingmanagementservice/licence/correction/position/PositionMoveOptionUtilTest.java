@@ -51,6 +51,22 @@ class PositionMoveOptionUtilTest {
   }
 
   @Test
+  void buildInsertOptions_offersBeforeEachPositionAndAfterLast() {
+    var first = position("REF-A", 1);
+    var second = position("REF-B", 2);
+    var third = position("REF-C", 3);
+
+    var insertOptions = PositionMoveOptionUtil.buildInsertOptions(List.of(first, second, third));
+
+    assertThat(insertOptions).containsExactly(
+        entry(new PositionMove(PositionMoveDirection.BEFORE, first.id()).toFormValue(), "Before REF-A"),
+        entry(new PositionMove(PositionMoveDirection.BEFORE, second.id()).toFormValue(), "Before REF-B"),
+        entry(new PositionMove(PositionMoveDirection.BEFORE, third.id()).toFormValue(), "Before REF-C"),
+        entry(new PositionMove(PositionMoveDirection.AFTER, third.id()).toFormValue(), "After REF-C")
+    );
+  }
+
+  @Test
   void buildCurrentOrder_returnsRowsLatestFirst_flaggingTheMovedPosition() {
     var first = position("REF-FIRST", 1);
     var moved = position("REF-MOVED", 2);

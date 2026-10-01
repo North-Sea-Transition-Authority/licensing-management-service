@@ -1,6 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeorder;
 
 import jakarta.annotation.Nullable;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -15,6 +16,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceC
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.PositionMove;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.PositionMoveDirection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.PositionOrderingUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.PartialSurrenderCorrectionService;
@@ -137,6 +139,56 @@ public class CorrectChangeOrderService {
         sourcePositionId,
         targetPositionId
     );
+  }
+
+  @Transactional
+  public MoveChangeToDateResult moveChangeToDate(
+      LicenceCorrection licenceCorrection,
+      UUID sourcePositionId,
+      UUID changeId,
+      LocalDate positionDate,
+      @Nullable PositionMove placement
+  ) {
+    var sameTransactionPosition = licencePositionCorrectionService.findSameTransactionPositionOnDate(
+        licenceCorrection,
+        sourcePositionId,
+        positionDate
+    );
+    var matchingPositionId = sameTransactionPosition.matchingPositionId();
+
+    if (matchingPositionId != null) {
+      moveChangeToPosition(licenceCorrection, sourcePositionId, changeId, matchingPositionId);
+      return new MoveChangeToDateResult(MoveChangeToDateResult.Outcome.MOVED_TO_EXISTING_POSITION, matchingPositionId);
+    }
+
+    if (placement == null
+        && !licencePositionCorrectionService.getOrderablePositionsOnDate(licenceCorrection, positionDate).isEmpty()) {
+      return new MoveChangeToDateResult(MoveChangeToDateResult.Outcome.NEEDS_POSITION_ORDER, null);
+    }
+
+    var sourcePosition = licencePositionCorrectionService.getOrderableDatePosition(licenceCorrection, sourcePositionId);
+
+    var newPositionId = positionDate.equals(sourcePosition.effectiveDate())
+        ? licencePositionCorrectionService.addNewPosition(licenceCorrection, positionDate, sourcePosition.reference())
+        : licencePositionCorrectionService.addNewPosition(
+            licenceCorrection,
+            positionDate,
+            sourcePosition.reference(),
+            sameTransactionPosition.transactionId()
+        );
+
+    if (placement != null) {
+      licencePositionCorrectionService.correctPositionOrder(
+          licenceCorrection,
+          newPositionId,
+          placement.targetId(),
+          placement.direction()
+      );
+    }
+
+    moveChangeToPosition(licenceCorrection, sourcePositionId, changeId, newPositionId);
+
+    return new MoveChangeToDateResult(MoveChangeToDateResult.Outcome.MOVED_TO_NEW_POSITION, newPositionId);
   }
 
   private void moveLiveChange(

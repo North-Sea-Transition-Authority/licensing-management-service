@@ -68,11 +68,13 @@ public class CorrectionReviewService {
         organisationNames,
         featureNames
     );
-    var changeEdits = ChangeEdits.from(positionCorrections, executedContext);
+    var changeEdits = ChangeEdits.from(positionCorrections, correctedContext, executedContext);
+    var movedFromPositionIds = changeEdits.movedFromPositionIds();
 
     return correctedPositions.stream()
         .filter(position -> detailsByPositionId.containsKey(position.id())
-            || erroredPositionIds.contains(position.id()))
+            || erroredPositionIds.contains(position.id())
+            || movedFromPositionIds.contains(position.id()))
         .map(position -> ReviewPositionView.from(
             position, detailsByPositionId.get(position.id()), correctedContext, changeEdits))
         .toList();
@@ -98,7 +100,7 @@ public class CorrectionReviewService {
         licencePositionViewService.resolveFeatureNames(appliedPositions)
     );
 
-    var changeEdits = new ChangeEdits(Set.of(), Map.of());
+    var changeEdits = new ChangeEdits(Set.of(), Map.of(), Map.of());
 
     return appliedPositions.stream()
         .filter(position -> detailsByPositionId.containsKey(position.id()))

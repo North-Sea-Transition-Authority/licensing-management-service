@@ -52,6 +52,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.Lic
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.PositionChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.transaction.LicenceTransactionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.transaction.LicenceTransaction;
 
 @ExtendWith(MockitoExtension.class)
 class LicencePositionCorrectionServiceTest {
@@ -87,7 +88,8 @@ class LicencePositionCorrectionServiceTest {
 
   @Test
   void addNewPosition_whenNoExistingPositions_savesAddPositionCorrectionWithOrderOne() {
-    licencePositionCorrectionService.addNewPosition(LICENCE_CORRECTION, POSITION_DATE, CORRECTION_REFERENCE);
+    var newPositionId =
+        licencePositionCorrectionService.addNewPosition(LICENCE_CORRECTION, POSITION_DATE, CORRECTION_REFERENCE);
 
     verify(licencePositionCorrectionRepository).save(licencePositionCorrectionCaptor.capture());
     var saved = licencePositionCorrectionCaptor.getValue();
@@ -105,6 +107,17 @@ class LicencePositionCorrectionServiceTest {
     assertThat(payload.licencePositionId()).isNotNull();
     assertThat(payload.licenceTransactionId()).isNotNull();
     assertThat(payload.licencePositionId()).isNotEqualTo(payload.licenceTransactionId());
+    assertThat(newPositionId).hasToString(payload.licencePositionId());
+  }
+
+  @Test
+  void addNewPosition_whenGivenATransactionId_thenThePayloadUsesIt() {
+    var transactionId = UUID.randomUUID();
+
+    licencePositionCorrectionService.addNewPosition(
+        LICENCE_CORRECTION, POSITION_DATE, CORRECTION_REFERENCE, transactionId);
+
+    assertThat(captureSavedPayload().licenceTransactionId()).isEqualTo(transactionId.toString());
   }
 
   @Test
@@ -683,6 +696,123 @@ class LicencePositionCorrectionServiceTest {
 
     assertThat(licencePositionCorrectionService.getOrderableSameDatePositions(LICENCE_CORRECTION, addedId))
         .containsExactly(new OrderablePosition(addedId, POSITION_DATE, 1, "ADD-REF", true));
+  }
+
+  @Test
+  void getOrderablePositionsOnDate_returnsOnlyPositionsOnThatDateInOrderLeavingOutRemovedOnes() {
+    var secondId = UUID.randomUUID();
+    var firstId = UUID.randomUUID();
+    var removed = executedPosition(UUID.randomUUID(), POSITION_DATE, 3, "REF-REMOVED");
+    var addedId = UUID.randomUUID();
+
+    var addPayload = CreateLicencePositionPayloadTestUtil.newBuilder()
+        .withLicencePositionId(addedId.toString())
+        .withEffectiveDate(POSITION_DATE)
+        .withEffectiveDateOrder(4)
+        .withCorrectionReference("ADD-REF")
+        .build();
+
+    givenExecutedPositions(
+        executedPosition(secondId, POSITION_DATE, 2, "REF-SECOND"),
+        executedPosition(UUID.randomUUID(), POSITION_DATE.plusDays(1), 1, "REF-OTHER-DATE"),
+        executedPosition(firstId, POSITION_DATE, 1, "REF-FIRST"),
+        removed);
+    givenPositionCorrections(removeCorrectionFor(removed), addCorrectionFor(addPayload));
+
+    assertThat(licencePositionCorrectionService.getOrderablePositionsOnDate(LICENCE_CORRECTION, POSITION_DATE))
+        .containsExactly(
+            new OrderablePosition(firstId, POSITION_DATE, 1, "REF-FIRST", false),
+            new OrderablePosition(secondId, POSITION_DATE, 2, "REF-SECOND", false),
+            new OrderablePosition(addedId, POSITION_DATE, 4, "ADD-REF", true));
+  }
+
+  @Test
+  void findSameTransactionPositionOnDate_whenAnExecutedSourceHasASameTransactionPositionOnTheDate_thenFindsIt() {
+    var transaction = LicenceTransactionTestUtil.newBuilder().build();
+    var sourceId = UUID.randomUUID();
+    var matchId = UUID.randomUUID();
+    var targetDate = POSITION_DATE.plusDays(10);
+
+    givenExecutedPositions(
+        executedPosition(sourceId, POSITION_DATE, 1, transaction),
+        executedPosition(matchId, targetDate, 2, transaction));
+
+    var lookup = licencePositionCorrectionService
+        .findSameTransactionPositionOnDate(LICENCE_CORRECTION, sourceId, targetDate);
+
+    assertThat(lookup).isEqualTo(new SameTransactionPositionLookup(transaction.getId(), matchId));
+  }
+
+  @Test
+  void findSameTransactionPositionOnDate_whenTheDateIsTheSourcesOwnDate_thenDoesNotMatchTheSource() {
+    var transaction = LicenceTransactionTestUtil.newBuilder().build();
+    var sourceId = UUID.randomUUID();
+
+    givenExecutedPositions(executedPosition(sourceId, POSITION_DATE, 1, transaction));
+
+    var lookup = licencePositionCorrectionService
+        .findSameTransactionPositionOnDate(LICENCE_CORRECTION, sourceId, POSITION_DATE);
+
+    assertThat(lookup).isEqualTo(new SameTransactionPositionLookup(transaction.getId(), null));
+  }
+
+  @Test
+  void findSameTransactionPositionOnDate_whenAnotherSameTransactionPositionIsOnTheSourcesDate_thenFindsIt() {
+    var transaction = LicenceTransactionTestUtil.newBuilder().build();
+    var sourceId = UUID.randomUUID();
+    var matchId = UUID.randomUUID();
+
+    givenExecutedPositions(
+        executedPosition(sourceId, POSITION_DATE, 1, transaction),
+        executedPosition(matchId, POSITION_DATE, 2, transaction));
+
+    var lookup = licencePositionCorrectionService
+        .findSameTransactionPositionOnDate(LICENCE_CORRECTION, sourceId, POSITION_DATE);
+
+    assertThat(lookup).isEqualTo(new SameTransactionPositionLookup(transaction.getId(), matchId));
+  }
+
+  @Test
+  void findSameTransactionPositionOnDate_whenSameTransactionIsOnAnotherDateAndAnotherTransactionIsOnTheDate_thenFindsNothing() {
+    var transaction = LicenceTransactionTestUtil.newBuilder().build();
+    var sourceId = UUID.randomUUID();
+    var targetDate = POSITION_DATE.plusDays(10);
+
+    givenExecutedPositions(
+        executedPosition(sourceId, POSITION_DATE, 1, transaction),
+        executedPosition(UUID.randomUUID(), targetDate.plusDays(1), 1, transaction),
+        executedPosition(UUID.randomUUID(), targetDate, 1, LicenceTransactionTestUtil.newBuilder().build()));
+
+    var lookup = licencePositionCorrectionService
+        .findSameTransactionPositionOnDate(LICENCE_CORRECTION, sourceId, targetDate);
+
+    assertThat(lookup).isEqualTo(new SameTransactionPositionLookup(transaction.getId(), null));
+  }
+
+  @Test
+  void findSameTransactionPositionOnDate_whenTheSourceWasAddedInTheCorrection_thenUsesItsPayloadTransactionId() {
+    var transactionId = UUID.randomUUID();
+    var sourceId = UUID.randomUUID();
+    var matchId = UUID.randomUUID();
+    var targetDate = POSITION_DATE.plusDays(10);
+
+    var sourcePayload = CreateLicencePositionPayloadTestUtil.newBuilder()
+        .withLicencePositionId(sourceId.toString())
+        .withLicenceTransactionId(transactionId.toString())
+        .withEffectiveDate(POSITION_DATE)
+        .build();
+    var matchPayload = CreateLicencePositionPayloadTestUtil.newBuilder()
+        .withLicencePositionId(matchId.toString())
+        .withLicenceTransactionId(transactionId.toString())
+        .withEffectiveDate(targetDate)
+        .build();
+
+    givenPositionCorrections(addCorrectionFor(sourcePayload), addCorrectionFor(matchPayload));
+
+    var lookup = licencePositionCorrectionService
+        .findSameTransactionPositionOnDate(LICENCE_CORRECTION, sourceId, targetDate);
+
+    assertThat(lookup).isEqualTo(new SameTransactionPositionLookup(transactionId, matchId));
   }
 
   @Test
@@ -1266,12 +1396,22 @@ class LicencePositionCorrectionServiceTest {
   }
 
   private LicencePosition executedPosition(UUID id, LocalDate positionDate, int order, String reference) {
+    return executedPosition(
+        id, positionDate, order, LicenceTransactionTestUtil.newBuilder().withRegulatorReference(reference).build());
+  }
+
+  private LicencePosition executedPosition(
+      UUID id,
+      LocalDate positionDate,
+      int order,
+      LicenceTransaction licenceTransaction
+  ) {
     return LicencePositionTestUtil.newBuilder()
         .withId(id)
         .withLicence(LICENCE)
         .withPositionDate(positionDate)
         .withPositionOrder(order)
-        .withLicenceTransaction(LicenceTransactionTestUtil.newBuilder().withRegulatorReference(reference).build())
+        .withLicenceTransaction(licenceTransaction)
         .build();
   }
 

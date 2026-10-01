@@ -7,7 +7,7 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.time.Month;
 import java.time.ZoneOffset;
-import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -19,7 +19,7 @@ class CorrectPositionChangeTypeFormValidatorTest {
 
   private static final LocalDate TODAY = LocalDate.of(2024, Month.JUNE, 15);
   private static final String ALLOWED_MOVE = UUID.randomUUID().toString();
-  private static final List<String> ALLOWED_MOVES = List.of(ALLOWED_MOVE);
+  private static final Set<String> ALLOWED_MOVES = Set.of(ALLOWED_MOVE);
 
   private final CorrectPositionChangeTypeFormValidator validator = new CorrectPositionChangeTypeFormValidator(
       Clock.fixed(TODAY.atStartOfDay(ZoneOffset.UTC).toInstant(), ZoneOffset.UTC));
@@ -98,7 +98,7 @@ class CorrectPositionChangeTypeFormValidatorTest {
         .extracting(FieldError::getField, FieldError::getDefaultMessage)
         .containsExactly(
             tuple("correctPositionDate.dayInput.inputValue",
-                "Position date must be the same as or before 15 Jun 2024"),
+                "Position date must be the same as or before 15 June 2024"),
             tuple("correctPositionDate.monthInput.inputValue", ""),
             tuple("correctPositionDate.yearInput.inputValue", ""));
     assertThat(hasErrors).isTrue();
@@ -119,7 +119,7 @@ class CorrectPositionChangeTypeFormValidatorTest {
     form.getChangeTypePositionMove().setInputValue(CorrectPositionChangeTypeForm.OTHER_DATE_OPTION);
     form.getCorrectPositionDate().setDate(TODAY.minusYears(1));
 
-    var hasErrors = validator.hasErrors(form, bindingResult, List.of());
+    var hasErrors = validator.hasErrors(form, bindingResult, Set.of());
 
     assertThat(hasErrors).isFalse();
   }

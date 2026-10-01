@@ -14,7 +14,9 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.vie
 public record ReviewChangeView(
     LicencePositionChangeView change,
     @Nullable LicencePositionChangeView previousChange,
-    @Nullable Integer changeOrder
+    @Nullable Integer changeOrder,
+    @Nullable String movedFrom,
+    @Nullable String movedTo
 ) {
 
   private static final Comparator<ReviewChangeView> BY_CHANGE_ORDER =
@@ -22,6 +24,12 @@ public record ReviewChangeView(
 
   @Nullable
   public CorrectionMarker marker() {
+    if (movedFrom != null) {
+      return CorrectionMarker.CHANGE_MOVED_FROM;
+    }
+    if (movedTo != null) {
+      return CorrectionMarker.CHANGE_MOVED_TO;
+    }
     return change.marker();
   }
 
@@ -44,6 +52,8 @@ public record ReviewChangeView(
         null
     ).forEach((changeId, changeViews) -> changeViews.forEach(changeView -> changes.add(
         changeEdits.reviewChange(changeView, changeId, changeOrdersByChangeId.get(changeId)))));
+
+    changes.addAll(changeEdits.movedAwayChanges(position.id()));
 
     return changes.stream()
         .sorted(BY_CHANGE_ORDER)

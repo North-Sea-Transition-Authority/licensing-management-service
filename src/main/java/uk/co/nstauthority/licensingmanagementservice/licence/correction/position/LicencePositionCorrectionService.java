@@ -75,18 +75,27 @@ public class LicencePositionCorrectionService {
   }
 
   @Transactional
-  public void addNewPosition(
+  public UUID addNewPosition(
       LicenceCorrection licenceCorrection,
       LocalDate positionDate,
       String correctionReference
   ) {
+    return addNewPosition(licenceCorrection, positionDate, correctionReference, UUID.randomUUID());
+  }
+
+  @Transactional
+  public UUID addNewPosition(
+      LicenceCorrection licenceCorrection,
+      LocalDate positionDate,
+      String correctionReference,
+      UUID licenceTransactionId
+  ) {
     var newLicencePositionId = UUID.randomUUID().toString();
-    var newLicenceTransactionId = UUID.randomUUID().toString();
     var effectiveDateOrder = determineEffectiveDateOrder(licenceCorrection, positionDate);
 
     var payload = LicencePositionPayload.newCreateLicencePositionPayload()
         .withLicencePositionId(newLicencePositionId)
-        .withLicenceTransactionId(newLicenceTransactionId)
+        .withLicenceTransactionId(licenceTransactionId.toString())
         .withEffectiveDate(positionDate)
         .withEffectiveDateOrder(effectiveDateOrder)
         .withCorrectionReference(correctionReference)
@@ -100,6 +109,8 @@ public class LicencePositionCorrectionService {
     licenceCorrectionPosition.setPayload(payload);
 
     licencePositionCorrectionRepository.save(licenceCorrectionPosition);
+
+    return UUID.fromString(newLicencePositionId);
   }
 
   @Transactional
@@ -452,6 +463,38 @@ public class LicencePositionCorrectionService {
     return OrderablePositionUtil.sameDatePositions(allOrderablePositions, positionId);
   }
 
+  public List<OrderablePosition> getOrderablePositionsOnDate(
+      LicenceCorrection licenceCorrection,
+      LocalDate positionDate
+  ) {
+    return positionsOnDate(
+        OrderablePositionUtil.toOrderablePositions(loadCorrectionPositions(licenceCorrection)),
+        positionDate
+    );
+  }
+
+  public SameTransactionPositionLookup findSameTransactionPositionOnDate(
+      LicenceCorrection licenceCorrection,
+      UUID sourcePositionId,
+      LocalDate positionDate
+  ) {
+    var correctionPositions = loadCorrectionPositions(licenceCorrection);
+    var transactionIdsByPositionId = transactionIdsByPositionId(correctionPositions);
+
+    var transactionId = Optional.ofNullable(transactionIdsByPositionId.get(sourcePositionId))
+        .orElseThrow(() -> new LmsEntityNotFoundException("licencePosition", sourcePositionId));
+
+    var matchingPositionId = positionsOnDate(OrderablePositionUtil.toOrderablePositions(correctionPositions), positionDate)
+        .stream()
+        .map(OrderablePosition::id)
+        .filter(positionId -> !positionId.equals(sourcePositionId))
+        .filter(positionId -> transactionId.equals(transactionIdsByPositionId.get(positionId)))
+        .findFirst()
+        .orElse(null);
+
+    return new SameTransactionPositionLookup(transactionId, matchingPositionId);
+  }
+
   public List<OrderablePosition> getOrderableDatePositions(
       LicenceCorrection licenceCorrection
   ) {
@@ -789,6 +832,32 @@ public class LicencePositionCorrectionService {
         .orElse(0);
 
     return maxOrder + 1;
+  }
+
+  private static List<OrderablePosition> positionsOnDate(
+      List<OrderablePosition> orderablePositions,
+      LocalDate positionDate
+  ) {
+    return orderablePositions.stream()
+        .filter(position -> position.effectiveDate().equals(positionDate))
+        .sorted(Comparator.comparingInt(OrderablePosition::effectiveDateOrder))
+        .toList();
+  }
+
+  private static Map<UUID, UUID> transactionIdsByPositionId(CorrectionPositions correctionPositions) {
+    var transactionIdsByPositionId = new HashMap<UUID, UUID>();
+
+    correctionPositions.executedPositions().forEach(position ->
+        transactionIdsByPositionId.put(position.getId(), position.getLicenceTransaction().getId()));
+
+    correctionPositions.addCorrections().stream()
+        .map(correction -> (CreateLicencePositionPayload) correction.getPayload())
+        .forEach(payload -> transactionIdsByPositionId.put(
+            UUID.fromString(payload.licencePositionId()),
+            UUID.fromString(payload.licenceTransactionId())
+        ));
+
+    return transactionIdsByPositionId;
   }
 
   private CorrectionPositions loadCorrectionPositions(LicenceCorrection licenceCorrection) {

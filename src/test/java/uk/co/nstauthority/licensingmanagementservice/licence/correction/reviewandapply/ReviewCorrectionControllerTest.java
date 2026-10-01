@@ -330,7 +330,9 @@ class ReviewCorrectionControllerTest extends AbstractControllerTest {
                 null,
                 ChangeViewUrls.none()),
             null,
-            1)));
+            1,
+            null,
+            null)));
   }
 
   private void givenValidUserAndCorrectionPageWithPositionsAndErrors(

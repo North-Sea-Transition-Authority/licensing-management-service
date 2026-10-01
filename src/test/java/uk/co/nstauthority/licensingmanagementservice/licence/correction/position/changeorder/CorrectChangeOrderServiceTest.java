@@ -3,11 +3,14 @@ package uk.co.nstauthority.licensingmanagementservice.licence.correction.positio
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import java.time.LocalDate;
+import java.time.Month;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Optional;
@@ -26,7 +29,10 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.OrderablePosition;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.PositionMove;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.PositionMoveDirection;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.SameTransactionPositionLookup;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.PartialSurrenderCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeoperation.LicencePositionChangeOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.AddChange;
@@ -55,6 +61,9 @@ class CorrectChangeOrderServiceTest {
   private static final UUID CHANGE_C = UUID.randomUUID();
 
   private static final UUID TARGET_POSITION_ID = UUID.randomUUID();
+  private static final LocalDate NEW_POSITION_DATE = LocalDate.of(2026, Month.JUNE, 15);
+  private static final String SOURCE_REFERENCE = "REF-A";
+  private static final UUID TRANSACTION_ID = UUID.randomUUID();
   private static final LicencePosition SOURCE_POSITION = LicencePositionTestUtil.newBuilder()
       .withId(POSITION_ID).withLicence(LICENCE).build();
   private static final LicencePosition TARGET_POSITION = LicencePositionTestUtil.newBuilder()
@@ -490,6 +499,159 @@ class CorrectChangeOrderServiceTest {
     verify(licencePositionCorrectionService, never()).stageChangesOnPosition(any(), any(), any());
     verify(partialSurrenderCorrectionService)
         .adjustPartialSurrenderBlocksFrom(CORRECTION, POSITION_ID, TARGET_POSITION_ID);
+  }
+
+  @Test
+  void moveChangeToDate_whenAnotherPositionOnTheDateHasTheSameTransaction_thenMovesTheChangeOntoIt() {
+    when(licencePositionCorrectionService.findSameTransactionPositionOnDate(CORRECTION, POSITION_ID, NEW_POSITION_DATE))
+        .thenReturn(new SameTransactionPositionLookup(TRANSACTION_ID, TARGET_POSITION_ID));
+    var movedChange = givenAnAddedChangeOnTheSource();
+    givenEmptyAddedTarget();
+
+    var result = correctChangeOrderService.moveChangeToDate(CORRECTION, POSITION_ID, CHANGE_A, NEW_POSITION_DATE, null);
+
+    assertThat(result).isEqualTo(
+        new MoveChangeToDateResult(MoveChangeToDateResult.Outcome.MOVED_TO_EXISTING_POSITION, TARGET_POSITION_ID));
+    verify(licencePositionCorrectionService).stageChangesOnPosition(CORRECTION, TARGET_POSITION_ID, List.of(
+        new AddChange(CHANGE_A.toString(), 1, movedChange.operations())));
+    verify(licencePositionCorrectionService, never()).addNewPosition(any(), any(), any(), any());
+  }
+
+  @Test
+  void moveChangeToDate_whenOnlyOtherTransactionsAreOnTheDateAndNoPlacementIsGiven_thenNeedsThePositionOrder() {
+    givenNoSameTransactionPositionOnTheDate();
+    when(licencePositionCorrectionService.getOrderablePositionsOnDate(CORRECTION, NEW_POSITION_DATE))
+        .thenReturn(List.of(new OrderablePosition(UUID.randomUUID(), NEW_POSITION_DATE, 1, "REF-OTHER", false)));
+
+    var result = correctChangeOrderService.moveChangeToDate(CORRECTION, POSITION_ID, CHANGE_A, NEW_POSITION_DATE, null);
+
+    assertThat(result).isEqualTo(
+        new MoveChangeToDateResult(MoveChangeToDateResult.Outcome.NEEDS_POSITION_ORDER, null));
+    verify(licencePositionCorrectionService, never()).stageChangesOnPosition(any(), any(), any());
+    verify(licencePositionCorrectionService, never()).addNewPosition(any(), any(), any(), any());
+  }
+
+  @Test
+  void moveChangeToDate_whenTheDateIsEmptyAndTheChangeWasAddedInTheCorrection_thenMovesItOntoANewPosition() {
+    givenNoSameTransactionPositionOnTheDate();
+    when(licencePositionCorrectionService.getOrderablePositionsOnDate(CORRECTION, NEW_POSITION_DATE))
+        .thenReturn(List.of());
+    givenNewPositionAddedWithTheSourceReferenceAndTransaction();
+    var movedChange = givenAnAddedChangeOnTheSource();
+    givenEmptyAddedTarget();
+
+    var result = correctChangeOrderService.moveChangeToDate(CORRECTION, POSITION_ID, CHANGE_A, NEW_POSITION_DATE, null);
+
+    assertThat(result).isEqualTo(
+        new MoveChangeToDateResult(MoveChangeToDateResult.Outcome.MOVED_TO_NEW_POSITION, TARGET_POSITION_ID));
+    verify(licencePositionCorrectionService).stageChangesOnPosition(CORRECTION, TARGET_POSITION_ID, List.of(
+        new AddChange(CHANGE_A.toString(), 1, movedChange.operations())));
+    verify(licencePositionCorrectionService, never()).correctPositionOrder(any(), any(), any(), any());
+  }
+
+  @Test
+  void moveChangeToDate_whenAPlacementIsGiven_thenPlacesTheNewPositionBeforeMovingTheChangeOntoIt() {
+    var placementTargetId = UUID.randomUUID();
+    givenNoSameTransactionPositionOnTheDate();
+    givenNewPositionAddedWithTheSourceReferenceAndTransaction();
+    var movedChange = givenAnAddedChangeOnTheSource();
+    givenEmptyAddedTarget();
+
+    var result = correctChangeOrderService.moveChangeToDate(CORRECTION, POSITION_ID, CHANGE_A, NEW_POSITION_DATE,
+        new PositionMove(PositionMoveDirection.BEFORE, placementTargetId));
+
+    assertThat(result).isEqualTo(
+        new MoveChangeToDateResult(MoveChangeToDateResult.Outcome.MOVED_TO_NEW_POSITION, TARGET_POSITION_ID));
+
+    var inOrder = inOrder(licencePositionCorrectionService, partialSurrenderCorrectionService);
+    inOrder.verify(licencePositionCorrectionService)
+        .correctPositionOrder(CORRECTION, TARGET_POSITION_ID, placementTargetId, PositionMoveDirection.BEFORE);
+    inOrder.verify(licencePositionCorrectionService).stageChangesOnPosition(CORRECTION, TARGET_POSITION_ID, List.of(
+        new AddChange(CHANGE_A.toString(), 1, movedChange.operations())));
+    inOrder.verify(partialSurrenderCorrectionService)
+        .adjustPartialSurrenderBlocksFrom(CORRECTION, POSITION_ID, TARGET_POSITION_ID);
+  }
+
+  @Test
+  void moveChangeToDate_whenTheDateIsTheSourcePositionsDate_thenMovesItOntoANewPositionWithANewTransaction() {
+    givenNoSameTransactionPositionOnTheDate();
+    when(licencePositionCorrectionService.getOrderableDatePosition(CORRECTION, POSITION_ID))
+        .thenReturn(new OrderablePosition(POSITION_ID, NEW_POSITION_DATE, 1, SOURCE_REFERENCE, false));
+    when(licencePositionCorrectionService.addNewPosition(CORRECTION, NEW_POSITION_DATE, SOURCE_REFERENCE))
+        .thenReturn(TARGET_POSITION_ID);
+    var movedChange = givenAnAddedChangeOnTheSource();
+    givenEmptyAddedTarget();
+
+    var result = correctChangeOrderService.moveChangeToDate(CORRECTION, POSITION_ID, CHANGE_A, NEW_POSITION_DATE,
+        new PositionMove(PositionMoveDirection.AFTER, POSITION_ID));
+
+    assertThat(result).isEqualTo(
+        new MoveChangeToDateResult(MoveChangeToDateResult.Outcome.MOVED_TO_NEW_POSITION, TARGET_POSITION_ID));
+    verify(licencePositionCorrectionService, never()).addNewPosition(any(), any(), any(), any());
+    verify(licencePositionCorrectionService)
+        .correctPositionOrder(CORRECTION, TARGET_POSITION_ID, POSITION_ID, PositionMoveDirection.AFTER);
+    verify(licencePositionCorrectionService).stageChangesOnPosition(CORRECTION, TARGET_POSITION_ID, List.of(
+        new AddChange(CHANGE_A.toString(), 1, movedChange.operations())));
+  }
+
+  @Test
+  void moveChangeToDate_whenTheDateIsEmptyAndALiveChangeHasNoStagedEdits_thenMovesItOntoANewPosition() {
+    givenNoSameTransactionPositionOnTheDate();
+    when(licencePositionCorrectionService.getOrderablePositionsOnDate(CORRECTION, NEW_POSITION_DATE))
+        .thenReturn(List.of());
+    when(licencePositionViewService.getOrderableChangeLabels(CORRECTION, POSITION_ID))
+        .thenReturn(orderableLabels(CHANGE_A));
+    givenNewPositionAddedWithTheSourceReferenceAndTransaction();
+
+    var liveOperation = new SubareaOperation(UUID.randomUUID(), List.of(), List.of());
+    var sourceCorrection = updatePositionCorrection(List.of());
+    when(licencePositionCorrectionService.getOrBuildPositionCorrection(CORRECTION, POSITION_ID))
+        .thenReturn(sourceCorrection);
+    when(licencePositionCorrectionService.findStagedChange(sourceCorrection, CHANGE_A.toString()))
+        .thenReturn(Optional.empty());
+    when(licencePositionChangeService.getByIdOrThrow(CHANGE_A))
+        .thenReturn(liveChangeOn(SOURCE_POSITION, CHANGE_A, 1, liveOperation));
+    givenEmptyAddedTarget();
+
+    var result = correctChangeOrderService.moveChangeToDate(CORRECTION, POSITION_ID, CHANGE_A, NEW_POSITION_DATE, null);
+
+    assertThat(result).isEqualTo(
+        new MoveChangeToDateResult(MoveChangeToDateResult.Outcome.MOVED_TO_NEW_POSITION, TARGET_POSITION_ID));
+    verify(licencePositionCorrectionService).stageChangesOnPosition(CORRECTION, TARGET_POSITION_ID, List.of(
+        updateChange(CHANGE_A, liveOperation),
+        new UpdateChangeOrder(CHANGE_A.toString(), 1)));
+  }
+
+  private void givenNoSameTransactionPositionOnTheDate() {
+    when(licencePositionCorrectionService.findSameTransactionPositionOnDate(CORRECTION, POSITION_ID, NEW_POSITION_DATE))
+        .thenReturn(new SameTransactionPositionLookup(TRANSACTION_ID, null));
+  }
+
+  private void givenNewPositionAddedWithTheSourceReferenceAndTransaction() {
+    when(licencePositionCorrectionService.getOrderableDatePosition(CORRECTION, POSITION_ID))
+        .thenReturn(new OrderablePosition(POSITION_ID, NEW_POSITION_DATE.minusMonths(1), 1, SOURCE_REFERENCE, false));
+    when(licencePositionCorrectionService.addNewPosition(CORRECTION, NEW_POSITION_DATE, SOURCE_REFERENCE, TRANSACTION_ID))
+        .thenReturn(TARGET_POSITION_ID);
+  }
+
+  private AddChange givenAnAddedChangeOnTheSource() {
+    when(licencePositionViewService.getOrderableChangeLabels(CORRECTION, POSITION_ID))
+        .thenReturn(orderableLabels(CHANGE_A));
+
+    var movedChange = new AddChange(CHANGE_A.toString(), 2, List.of(subareaAddOperation(UUID.randomUUID())));
+    var sourceCorrection = addedPositionCorrection(List.of(movedChange));
+    when(licencePositionCorrectionService.getOrBuildPositionCorrection(CORRECTION, POSITION_ID))
+        .thenReturn(sourceCorrection);
+    when(licencePositionCorrectionService.findStagedChange(sourceCorrection, CHANGE_A.toString()))
+        .thenReturn(Optional.of(movedChange));
+    return movedChange;
+  }
+
+  private void givenEmptyAddedTarget() {
+    var targetCorrection = addedPositionCorrection(List.of());
+    when(licencePositionCorrectionService.getOrBuildPositionCorrection(CORRECTION, TARGET_POSITION_ID))
+        .thenReturn(targetCorrection);
+    when(licencePositionCorrectionService.getChangesForAddedPosition(targetCorrection)).thenReturn(List.of());
   }
 
   private void givenExecutedTargetChanges(LicencePosition targetPosition, List<PositionChange> changes) {

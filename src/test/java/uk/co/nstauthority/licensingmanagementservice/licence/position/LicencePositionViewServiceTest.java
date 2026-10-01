@@ -319,7 +319,7 @@ class LicencePositionViewServiceTest {
             "Shell Expro",
             changeId.toString(),
             null,
-            new ChangeViewUrls(null, null, null, null)
+            new ChangeViewUrls(null, null, null, null, null)
         ));
     assertThat(result.stateView())
         .isEqualTo(new LicencePositionStateView(
@@ -410,7 +410,7 @@ class LicencePositionViewServiceTest {
             "Current Name Ltd",
             changeId.toString(),
             null,
-            new ChangeViewUrls(null, null, null, null)
+            new ChangeViewUrls(null, null, null, null, null)
         ));
     assertThat(result.stateView())
         .isEqualTo(new LicencePositionStateView(
@@ -516,6 +516,7 @@ class LicencePositionViewServiceTest {
             null,
             ReverseRouter.route(on(RemovePartialSurrenderChangeController.class)
                 .renderUndoPartialSurrender(correctionId, changeId.toString(), null)),
+            null,
             null));
     assertThat(changeViewOfType(result, LicenceOperation.PARTIAL_SURRENDER)).isEqualTo(expected);
   }
@@ -1231,7 +1232,7 @@ class LicencePositionViewServiceTest {
     var result = licencePositionViewService.getCorrectionPositionPageView(correction, removed);
 
     var adminChange = (AdministratorChangeView) changeViewOfType(result, LicenceOperation.LICENCE_ADMINISTRATOR);
-    assertThat(adminChange.urls()).isEqualTo(new ChangeViewUrls(null, null, null, null));
+    assertThat(adminChange.urls()).isEqualTo(new ChangeViewUrls(null, null, null, null, null));
     assertThat(result.actions()).isEqualTo(LicencePositionPageView.Actions.none());
   }
 

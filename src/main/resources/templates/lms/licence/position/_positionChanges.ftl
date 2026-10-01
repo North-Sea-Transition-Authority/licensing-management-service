@@ -19,7 +19,16 @@
   <#local removeUrl = urls.remove()!''>
   <#local undoUrl = urls.undo()!''>
   <#local correctChangeOrderUrl = urls.correctChangeOrder()!''>
+  <#local correctPositionUrl = urls.correctPosition()!''>
+
   <@fdsSummaryList.summaryListCardActionList>
+    <#if correctPositionUrl?has_content>
+      <@fdsSummaryList.summaryListCardActionItem
+        itemUrl=springUrl(correctPositionUrl)
+        itemText="Change position"
+        itemScreenReaderText=screenReaderText
+      />
+    </#if>
     <#if correctUrl?has_content>
       <@fdsSummaryList.summaryListCardActionItem
         itemUrl=springUrl(correctUrl)

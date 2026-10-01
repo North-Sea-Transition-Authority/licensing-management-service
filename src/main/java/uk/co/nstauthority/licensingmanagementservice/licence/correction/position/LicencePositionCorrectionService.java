@@ -402,6 +402,12 @@ public class LicencePositionCorrectionService {
     return OrderablePositionUtil.sameDatePositions(allOrderablePositions, positionId);
   }
 
+  public List<OrderablePosition> getOrderableDatePositions(
+      LicenceCorrection licenceCorrection
+  ) {
+    return OrderablePositionUtil.toOrderablePositions(loadCorrectionPositions(licenceCorrection));
+  }
+
   @Transactional
   public void correctPositionOrder(
       LicenceCorrection licenceCorrection,

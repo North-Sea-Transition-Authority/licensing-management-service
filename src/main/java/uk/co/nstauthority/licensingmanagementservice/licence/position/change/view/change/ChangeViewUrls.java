@@ -6,11 +6,12 @@ public record ChangeViewUrls(
     @Nullable String correct,
     @Nullable String remove,
     @Nullable String undo,
-    @Nullable String correctChangeOrder
+    @Nullable String correctChangeOrder,
+    @Nullable String correctPosition
 ) {
 
   public static ChangeViewUrls none() {
-    return new ChangeViewUrls(null, null, null, null);
+    return new ChangeViewUrls(null, null, null, null, null);
   }
 
   public ChangeViewUrls merge(ChangeViewUrls other) {
@@ -18,7 +19,8 @@ public record ChangeViewUrls(
         correct != null ? correct : other.correct(),
         remove != null ? remove : other.remove(),
         undo != null ? undo : other.undo(),
-        correctChangeOrder != null ? correctChangeOrder : other.correctChangeOrder()
+        correctChangeOrder != null ? correctChangeOrder : other.correctChangeOrder(),
+        correctPosition != null ? correctPosition : other.correctPosition()
     );
   }
 }

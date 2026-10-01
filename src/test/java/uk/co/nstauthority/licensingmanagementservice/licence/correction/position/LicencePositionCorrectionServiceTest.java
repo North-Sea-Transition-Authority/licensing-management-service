@@ -684,6 +684,46 @@ class LicencePositionCorrectionServiceTest {
   }
 
   @Test
+  void getOrderableDatePositions_returnsPositionsOnEveryDate() {
+    var firstDateId = UUID.randomUUID();
+    var secondDateId = UUID.randomUUID();
+
+    givenExecutedPositions(
+        executedPosition(firstDateId, POSITION_DATE, 1, "REF-FIRST"),
+        executedPosition(secondDateId, POSITION_DATE.plusDays(1), 1, "REF-SECOND"));
+
+    assertThat(licencePositionCorrectionService.getOrderableDatePositions(LICENCE_CORRECTION))
+        .containsExactly(
+            new OrderablePosition(firstDateId, POSITION_DATE, 1, "REF-FIRST", false),
+            new OrderablePosition(secondDateId, POSITION_DATE.plusDays(1), 1, "REF-SECOND", false));
+  }
+
+  @Test
+  void getOrderableDatePositions_excludesRemovedPositionsAndIncludesAddedPositions() {
+    var keptId = UUID.randomUUID();
+    var removedId = UUID.randomUUID();
+    var addedId = UUID.randomUUID();
+
+    var kept = executedPosition(keptId, POSITION_DATE, 1, "REF-KEPT");
+    var removed = executedPosition(removedId, POSITION_DATE.plusDays(1), 1, "REF-REMOVED");
+
+    var addPayload = CreateLicencePositionPayloadTestUtil.newBuilder()
+        .withLicencePositionId(addedId.toString())
+        .withEffectiveDate(POSITION_DATE.plusDays(2))
+        .withEffectiveDateOrder(1)
+        .withCorrectionReference("ADD-REF")
+        .build();
+
+    givenExecutedPositions(kept, removed);
+    givenPositionCorrections(removeCorrectionFor(removed), addCorrectionFor(addPayload));
+
+    assertThat(licencePositionCorrectionService.getOrderableDatePositions(LICENCE_CORRECTION))
+        .containsExactly(
+            new OrderablePosition(keptId, POSITION_DATE, 1, "REF-KEPT", false),
+            new OrderablePosition(addedId, POSITION_DATE.plusDays(2), 1, "ADD-REF", true));
+  }
+
+  @Test
   void correctPositionOrder_whenMovedPositionNotOnSameDate_throwsAndWritesNothing() {
     var movedId = UUID.randomUUID();
     var targetId = UUID.randomUUID();

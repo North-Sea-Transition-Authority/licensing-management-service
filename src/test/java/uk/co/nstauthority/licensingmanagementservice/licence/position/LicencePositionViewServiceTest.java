@@ -13,6 +13,7 @@ import static org.springframework.web.servlet.mvc.method.annotation.MvcUriCompon
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.Month;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -617,6 +618,138 @@ class LicencePositionViewServiceTest {
         List.of(),
         List.of()));
     assertThat(result.licenceType()).isEqualTo(LICENCE.getType());
+  }
+
+  @Test
+  void getLatestPositionPageView_whenNoExecutedPositions_thenEmptyView() {
+    when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of());
+
+    var result = licencePositionViewService.getLatestPositionPageView(LICENCE, List.of(LicenceOperation.SET_EQUITY));
+
+    assertThat(result).isEqualTo(LicencePositionPageView.empty());
+  }
+
+  @Test
+  void getLatestPositionPageView_whenNoChangeTypes_thenLatestPositionIsUnfiltered() {
+    var older = executedPosition("REF-1", LocalDate.of(2026, Month.JANUARY, 1));
+    var newer = executedPosition("REF-2", LocalDate.of(2026, Month.JUNE, 1));
+    stubPositionsWithChanges(
+        List.of(older, newer),
+        List.of(
+            changeOn(older, 1, ADMINISTRATOR_OPERATION),
+            changeOn(newer, 1, setEquityOperation())
+        )
+    );
+
+    var result = licencePositionViewService.getLatestPositionPageView(LICENCE, List.of());
+
+    assertThat(result.selectedPositionId()).isEqualTo(newer.getId());
+    assertThat(result.timelineViews())
+        .extracting(LicencePositionTimelineView::regulatorReference)
+        .containsExactly("REF-2", "REF-1");
+    assertThat(result.orderedChangeViews())
+        .extracting(LicencePositionChangeView::type)
+        .containsExactly(LicenceOperation.SET_EQUITY);
+    assertThat(result.filterApplied()).isFalse();
+  }
+
+  @Test
+  void getLatestPositionPageView_whenChangeTypes_thenLatestMatchingPositionIsShownWithMatchingTimeline() {
+    var older = executedPosition("REF-1", LocalDate.of(2026, Month.JANUARY, 1));
+    var newer = executedPosition("REF-2", LocalDate.of(2026, Month.JUNE, 1));
+    stubPositionsWithChanges(
+        List.of(older, newer),
+        List.of(
+            changeOn(older, 1, ADMINISTRATOR_OPERATION),
+            changeOn(newer, 1, setEquityOperation())
+        )
+    );
+
+    var result = licencePositionViewService.getLatestPositionPageView(
+        LICENCE,
+        List.of(LicenceOperation.LICENCE_ADMINISTRATOR)
+    );
+
+    var expectedOptions = new LinkedHashMap<String, String>();
+    expectedOptions.put(LicenceOperation.LICENCE_ADMINISTRATOR, "Licence administrator change");
+    expectedOptions.put(LicenceOperation.SET_EQUITY, "Set equity");
+    assertThat(result.selectedPositionId()).isEqualTo(older.getId());
+    assertThat(result.timelineViews())
+        .extracting(LicencePositionTimelineView::regulatorReference)
+        .containsExactly("REF-1");
+    assertThat(result.orderedChangeViews())
+        .extracting(LicencePositionChangeView::type)
+        .containsExactly(LicenceOperation.LICENCE_ADMINISTRATOR);
+    assertThat(result.changeTypeOptions()).containsExactlyEntriesOf(expectedOptions);
+    assertThat(result.filterApplied()).isTrue();
+  }
+
+  @Test
+  void getLatestPositionPageView_whenNoPositionMatches_thenNoMatchingPositionsView() {
+    var position = executedPosition("REF-1", LocalDate.of(2026, Month.JANUARY, 1));
+    when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(position));
+    when(licencePositionChangeService.findByLicencePositionIn(List.of(position)))
+        .thenReturn(List.of(changeOn(position, 1, ADMINISTRATOR_OPERATION)));
+
+    var result = licencePositionViewService.getLatestPositionPageView(
+        LICENCE,
+        List.of(LicenceOperation.PARTIAL_SURRENDER)
+    );
+
+    assertThat(result).isEqualTo(LicencePositionPageView.noMatchingPositions(
+        LICENCE.getType(),
+        Map.of(LicenceOperation.LICENCE_ADMINISTRATOR, "Licence administrator change")
+    ));
+  }
+
+  @Test
+  void getPositionPageView_whenChangeTypes_thenOnlyMatchingChangeViewsAreShown() {
+    var position = executedPosition("REF-1", LocalDate.of(2026, Month.JANUARY, 1));
+    stubPositionsWithChanges(
+        List.of(position),
+        List.of(
+            changeOn(position, 1, ADMINISTRATOR_OPERATION),
+            changeOn(position, 2, setEquityOperation())
+        )
+    );
+
+    var result = licencePositionViewService.getPositionPageView(position, List.of(LicenceOperation.SET_EQUITY));
+
+    assertThat(result.orderedChangeViews())
+        .extracting(LicencePositionChangeView::type)
+        .containsExactly(LicenceOperation.SET_EQUITY);
+    assertThat(result.timelineViews())
+        .extracting(LicencePositionTimelineView::positionId)
+        .containsExactly(position.getId());
+    assertThat(result.filterApplied()).isTrue();
+  }
+
+  private static LicencePosition executedPosition(String reference, LocalDate positionDate) {
+    return LicencePositionTestUtil.newBuilder()
+        .withLicence(LICENCE)
+        .withLicenceTransaction(LicenceTransactionTestUtil.newBuilder().withRegulatorReference(reference).build())
+        .withPositionDate(positionDate)
+        .withPositionOrder(1)
+        .withStatus(LicencePositionStatus.EXECUTED)
+        .build();
+  }
+
+  private static LicencePositionChange changeOn(LicencePosition position, int changeOrder, LicenceOperation operation) {
+    return LicencePositionChangeTestUtil.newBuilder()
+        .withLicencePosition(position)
+        .withChangeOrder(changeOrder)
+        .withOperations(List.of(operation))
+        .build();
+  }
+
+  private static LicenceOperation setEquityOperation() {
+    return LicenceOperation.newSetEquityOperation().withTransferTo(1).withEquity(new BigDecimal("100")).build();
+  }
+
+  private void stubPositionsWithChanges(List<LicencePosition> positions, List<LicencePositionChange> changes) {
+    when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(positions);
+    when(licencePositionChangeService.findByLicencePositionIn(positions)).thenReturn(changes);
+    when(organisationUnitQueryService.getOrganisationNameHistoriesByIds(List.of(1))).thenReturn(Map.of());
   }
 
   @Test

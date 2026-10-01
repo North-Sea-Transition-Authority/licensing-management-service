@@ -2,6 +2,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.position;
 
 import jakarta.annotation.Nullable;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import uk.co.nstauthority.licensingmanagementservice.fds.error.ErrorSummaryItem;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
@@ -15,6 +16,9 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.vie
  * @param isAddedPosition true when the view represents a new position being added as part of a correction (which
  *                        has therefore not been executed), as opposed to an existing executed position or the read-only view
  * @param licenceType the type of the licence the position belongs to; null only for the empty view
+ * @param changeTypeOptions the change types the read-only timeline can be filtered by, keyed by type with the display
+ *                          name as the value; empty for every other view
+ * @param filterApplied true when the read-only timeline and change views have been filtered by change type
  */
 public record LicencePositionPageView(
     List<LicencePositionTimelineView> timelineViews,
@@ -27,7 +31,9 @@ public record LicencePositionPageView(
     boolean isAddedPosition,
     Actions actions,
     @Nullable LicenceType licenceType,
-    List<ErrorSummaryItem> errorSummaryItems
+    List<ErrorSummaryItem> errorSummaryItems,
+    Map<String, String> changeTypeOptions,
+    boolean filterApplied
 ) {
 
   /**
@@ -56,7 +62,9 @@ public record LicencePositionPageView(
         false,
         Actions.none(),
         null,
-        List.of()
+        List.of(),
+        Map.of(),
+        false
     );
   }
 
@@ -67,7 +75,9 @@ public record LicencePositionPageView(
       List<LicencePositionChangeView> orderedChangeViews,
       LicencePositionStateView stateView,
       UUID selectedPositionId,
-      LicenceType licenceType
+      LicenceType licenceType,
+      Map<String, String> changeTypeOptions,
+      boolean filterApplied
   ) {
     return new LicencePositionPageView(
         timelineViews,
@@ -80,7 +90,33 @@ public record LicencePositionPageView(
         false,
         Actions.none(),
         licenceType,
-        List.of()
+        List.of(),
+        changeTypeOptions,
+        filterApplied
+    );
+  }
+
+  /**
+   * The read-only view when the licence has positions but the change type filter leaves none of them.
+   */
+  public static LicencePositionPageView noMatchingPositions(
+      LicenceType licenceType,
+      Map<String, String> changeTypeOptions
+  ) {
+    return new LicencePositionPageView(
+        List.of(),
+        null,
+        null,
+        List.of(),
+        null,
+        false,
+        null,
+        false,
+        Actions.none(),
+        licenceType,
+        List.of(),
+        changeTypeOptions,
+        true
     );
   }
 
@@ -106,7 +142,9 @@ public record LicencePositionPageView(
         false,
         actions,
         licenceType,
-        errorSummaryItems
+        errorSummaryItems,
+        Map.of(),
+        false
     );
   }
 
@@ -132,7 +170,9 @@ public record LicencePositionPageView(
         true,
         actions,
         licenceType,
-        errorSummaryItems
+        errorSummaryItems,
+        Map.of(),
+        false
     );
   }
 

@@ -3,6 +3,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.position;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import uk.co.nstauthority.licensingmanagementservice.fds.error.ErrorSummaryItem;
@@ -31,7 +32,7 @@ class LicencePositionPageViewTest {
   void hasPositions_whenTimelineHasEntries_returnsTrue() {
     var pageView = new LicencePositionPageView(
         List.of(timelineView()), null, "REF-1" ,List.of(), null, false, null, false,
-        LicencePositionPageView.Actions.none(), LicenceType.CARBON_STORAGE, List.of());
+        LicencePositionPageView.Actions.none(), LicenceType.CARBON_STORAGE, List.of(), Map.of(), false);
 
     assertThat(pageView.hasPositions()).isTrue();
   }
@@ -39,7 +40,7 @@ class LicencePositionPageViewTest {
   @Test
   void isCarbonStorage_whenLicenceTypeCarbonStorage_returnsTrue() {
     var pageView = LicencePositionPageView.readOnly(
-        List.of(), "1 Jan 2026", "REF-1", List.of(), null, UUID.randomUUID(), LicenceType.CARBON_STORAGE);
+        List.of(), "1 Jan 2026", "REF-1", List.of(), null, UUID.randomUUID(), LicenceType.CARBON_STORAGE, Map.of(), false);
 
     assertThat(pageView.isCarbonStorage()).isTrue();
   }
@@ -47,7 +48,7 @@ class LicencePositionPageViewTest {
   @Test
   void isCarbonStorage_whenLicenceTypeNotCarbonStorage_returnsFalse() {
     var pageView = LicencePositionPageView.readOnly(
-        List.of(), "1 Jan 2026", "REF-1", List.of(), null, UUID.randomUUID(), LicenceType.SEAWARD_PRODUCTION);
+        List.of(), "1 Jan 2026", "REF-1", List.of(), null, UUID.randomUUID(), LicenceType.SEAWARD_PRODUCTION, Map.of(), false);
 
     assertThat(pageView.isCarbonStorage()).isFalse();
   }
@@ -64,7 +65,7 @@ class LicencePositionPageViewTest {
   @Test
   void readOnly_isNotEditableAndNotAdded() {
     var pageView = LicencePositionPageView.readOnly(
-        List.of(), "1 Jan 2026", "REF-1", List.of(), null, UUID.randomUUID(), LicenceType.SEAWARD_PRODUCTION);
+        List.of(), "1 Jan 2026", "REF-1", List.of(), null, UUID.randomUUID(), LicenceType.SEAWARD_PRODUCTION, Map.of(), false);
 
     assertThat(pageView.canEdit()).isFalse();
     assertThat(pageView.isAddedPosition()).isFalse();

@@ -39,6 +39,6 @@ class LicenceTimelinePositionTabTest {
 
     assertThat(licenceTimelinePositionTab.url(new LicenceTabContext(licence)))
         .isEqualTo(ReverseRouter.route(on(LicencePositionController.class)
-            .renderLicencePositionTimeline(licence, null)));
+            .renderLicencePositionTimeline(licence, null, null)));
   }
 }

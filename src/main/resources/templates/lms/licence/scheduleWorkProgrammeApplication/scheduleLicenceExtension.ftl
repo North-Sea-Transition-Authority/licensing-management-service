@@ -4,6 +4,7 @@
 <@defaultPage htmlTitle=pageTitle pageHeading=pageTitle pageSize=PageSize.TWO_THIRDS_COLUMN breadcrumbs=breadcrumbs errorSummaryItems=errorSummaryItems>
     <@fdsForm.htmlForm>
 
+        <#if currentTerm??>
         <@fdsSummaryList.summaryListCard headingText="Current Term Details" summaryListId="Current Term Details" >
             <@fdsSummaryList.summaryListRowNoAction keyText="Term">
                 ${currentTerm.getTermType().getDisplayName()}
@@ -23,6 +24,7 @@
                 </@fdsSummaryList.summaryListRowNoAction>
             </#if>
         </@fdsSummaryList.summaryListCard>
+        </#if>
 
         <#if canExtendMoreThanOneOption>
             <@fdsCheckbox.checkboxGroup

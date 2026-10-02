@@ -61,10 +61,8 @@ public class ExtensionRequestDetailsSummarySectionService
       String sectionName
   ) {
 
-    List<LicenceScheduleExtensionRequestView> extensionRequestViews = licenceScheduleExtensionService
-        .getLicenceScheduleExtensionViews(scheduleWorkProgrammeApplicationDetail);
-
-    var selectedItems = extensionRequestViews.stream().filter(LicenceScheduleExtensionRequestView::isRequested).toList();
+    List<LicenceScheduleExtensionRequestView> selectedItems = licenceScheduleExtensionService
+        .getRequestedExtensionViews(scheduleWorkProgrammeApplicationDetail);
 
     if (selectedItems.isEmpty()) {
       return SummaryItem.withCard(sectionName, SummaryCard.emptySummaryCard());

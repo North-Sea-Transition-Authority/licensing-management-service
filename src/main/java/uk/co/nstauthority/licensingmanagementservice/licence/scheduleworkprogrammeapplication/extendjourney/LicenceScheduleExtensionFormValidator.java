@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.Errors;
@@ -30,8 +31,12 @@ public class LicenceScheduleExtensionFormValidator {
         .getLicenceScheduleExtensionViews(scheduleWorkProgrammeApplicationDetail);
 
     initializeCheckboxes(form, extensionRequestViews);
+    filterOutNonExtendableSelections(form, extensionRequestViews);
 
-    if (form.getExtensionDuration().size() > 1) {
+    // Decide from what the page offered, not from what was posted, so a stale form cannot pass as a single option.
+    var hasSingleOption = extensionRequestViews.size() == 1;
+
+    if (!hasSingleOption) {
       validateTermOrPhaseSelected(form, bindingResult, extensionRequestViews);
     }
 
@@ -44,8 +49,7 @@ public class LicenceScheduleExtensionFormValidator {
 
           String key = entry.getKey();
           boolean isSelected = getSelectedStatus(form, key);
-          boolean isSingleValue = form.getExtensionDuration().size() == 1;
-          return isSelected || isSingleValue;
+          return isSelected || hasSingleOption;
         })
         .forEach(entry -> ThreeFieldDurationValidationUtil.validate(entry.getValue(), bindingResult));
 
@@ -75,6 +79,22 @@ public class LicenceScheduleExtensionFormValidator {
     }
 
     form.setExtensionDuration(submittedDurationMap);
+  }
+
+  private void filterOutNonExtendableSelections(
+      LicenceScheduleExtensionForm form,
+      List<LicenceScheduleExtensionRequestView> views
+  ) {
+    var extendableIds = views.stream()
+        .map(LicenceScheduleExtensionRequestView::id)
+        .collect(Collectors.toSet());
+
+    form.getSelectedTerm().keySet().retainAll(extendableIds);
+    form.getSelectedPhase().keySet().retainAll(extendableIds);
+
+    if (form.getExtensionDuration() != null) {
+      form.getExtensionDuration().keySet().retainAll(extendableIds);
+    }
   }
 
   private void validateTermOrPhaseSelected(

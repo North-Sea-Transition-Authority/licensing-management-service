@@ -67,23 +67,23 @@ public class LicenceScheduleExtensionService {
 
   public List<LicenceScheduleTermAndPhases> getExtendableTermAndPhases(LicenceScheduleDetail licenceScheduleDetail) {
     var today = LocalDate.now(clock);
-    List<LicenceScheduleTerm> currentOrFutureTerms = licenceScheduleTermService
+    List<LicenceScheduleTerm> terms = licenceScheduleTermService
         .getTermsByLicenceScheduleDetail(licenceScheduleDetail);
 
-    return currentOrFutureTerms
+    return terms
         .stream()
-        .map(term -> mapTermToExtendableTermAndPhases(term, currentOrFutureTerms, today))
+        .map(term -> mapTermToExtendableTermAndPhases(term, terms, today))
         .filter(Objects::nonNull)
         .toList();
   }
 
   private LicenceScheduleTermAndPhases mapTermToExtendableTermAndPhases(
       LicenceScheduleTerm term,
-      List<LicenceScheduleTerm> currentOrFutureTerms,
+      List<LicenceScheduleTerm> terms,
       LocalDate today
   ) {
     UUID termId = term.getId();
-    boolean isFinalTerm = isFinalTerm(term, currentOrFutureTerms);
+    boolean isFinalTerm = isFinalTerm(term, terms);
     boolean hasPhases = licenceSchedulePhaseRepository.existsByLicenceScheduleTermId(termId);
     boolean isTermWithoutPhases = isActiveTermWithoutPhases(term, today, isFinalTerm, hasPhases);
 
@@ -111,7 +111,7 @@ public class LicenceScheduleExtensionService {
       boolean hasPhases
   ) {
 
-    if (hasPhases) {
+    if (hasPhases || hasEnded(term.getEndDate(), today)) {
       return false;
     }
 
@@ -140,7 +140,7 @@ public class LicenceScheduleExtensionService {
 
     return licenceSchedulePhaseService.getPhasesByTerm(term)
                                       .stream()
-                                      .filter(phase -> hasNotEnded(phase.getEndDate(), today))
+                                      .filter(phase -> !hasEnded(phase.getEndDate(), today))
                                       .map(phase -> new LicenceScheduleTermAndPhases.PhaseDetails(
                                           phase.getId().toString(),
                                           phase.getPhaseType().getDisplayName()
@@ -190,6 +190,54 @@ public class LicenceScheduleExtensionService {
     });
 
     return licenceScheduleExtensionRequestViews;
+  }
+
+  public List<LicenceScheduleExtensionRequestView> getRequestedExtensionViews(
+      ScheduleWorkProgrammeApplicationDetail applicationDetail
+  ) {
+    return getAllExtensionRequestByScheduleWorkProgrammeApplicationDetails(applicationDetail)
+        .stream()
+        .sorted(Comparator.comparingInt(this::getTermOrder).thenComparingInt(this::getPhaseOrder))
+        .map(this::toRequestedView)
+        .toList();
+  }
+
+  private LicenceScheduleExtensionRequestView toRequestedView(LicenceScheduleExtensionRequest request) {
+    var phase = request.getLicenceSchedulePhase();
+    if (phase != null) {
+      return new LicenceScheduleExtensionRequestView(
+          phase.getId().toString(),
+          phase.getPhaseType().getDisplayName(),
+          true,
+          true,
+          request.getExtensionDuration()
+      );
+    }
+
+    var term = request.getLicenceScheduleTerm();
+    return new LicenceScheduleExtensionRequestView(
+        term.getId().toString(),
+        term.getTermType().getDisplayName(),
+        false,
+        true,
+        request.getExtensionDuration()
+    );
+  }
+
+  private int getTermOrder(LicenceScheduleExtensionRequest request) {
+    var phase = request.getLicenceSchedulePhase();
+    if (phase != null) {
+      return phase.getLicenceScheduleTerm().getTermType().getDisplayOrder();
+    }
+    return request.getLicenceScheduleTerm().getTermType().getDisplayOrder();
+  }
+
+  private int getPhaseOrder(LicenceScheduleExtensionRequest request) {
+    var phase = request.getLicenceSchedulePhase();
+    if (phase == null) {
+      return 0;
+    }
+    return phase.getPhaseType().getDisplayOrder();
   }
 
   public LicenceScheduleExtensionForm getlicenceScheduleExtensionForm(
@@ -252,8 +300,8 @@ public class LicenceScheduleExtensionService {
     return totalCount > 1;
   }
 
-  private boolean hasNotEnded(LocalDate endDate, LocalDate today) {
-    return !endDate.isBefore(today);
+  private boolean hasEnded(LocalDate endDate, LocalDate today) {
+    return !endDate.isAfter(today);
   }
 
   private boolean isFinalTerm(

@@ -14,7 +14,7 @@
 >
 
     <@licencePositionTimelineFilters.filters
-      changeTypeOptions=licencePositionPageView.changeTypeOptions()
+      filterOptions=licencePositionPageView.filterOptions()
       filterUrl=filterUrl
       clearFilterUrl=clearFilterUrl
     />

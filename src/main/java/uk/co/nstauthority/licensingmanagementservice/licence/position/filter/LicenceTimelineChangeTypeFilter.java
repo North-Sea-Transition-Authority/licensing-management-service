@@ -1,6 +1,5 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.position.filter;
 
-import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -10,11 +9,11 @@ import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOp
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPosition;
 
 /**
- * Filters the licence timeline by the type of change, which is the {@link LicenceOperation#type()} of the operations a
- * position's changes are made of.
+ * The types of change the licence timeline can be filtered by, which are the {@link LicenceOperation#type()}s of the
+ * operations a position's changes are made of.
  *
  * <p>Only the types shown as change cards can be filtered on. The block and subarea operations the PEARS migration
- * produces have no card, so they are never offered and never make a position match.
+ * produces have no card, so they are never offered.
  */
 public final class LicenceTimelineChangeTypeFilter {
 
@@ -54,19 +53,5 @@ public final class LicenceTimelineChangeTypeFilter {
             (first, second) -> first,
             LinkedHashMap::new
         ));
-  }
-
-  /**
-   * Whether the position has a change of any given type. An empty set of types is no filter, so every
-   * position matches.
-   */
-  public static boolean positionMatches(ChronologicalPosition chronologicalPosition, Collection<String> changeTypes) {
-    if (changeTypes.isEmpty()) {
-      return true;
-    }
-    return chronologicalPosition.changes().stream()
-        .flatMap(change -> change.operations().stream())
-        .map(LicenceOperation::type)
-        .anyMatch(changeTypes::contains);
   }
 }

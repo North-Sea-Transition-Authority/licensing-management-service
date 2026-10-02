@@ -1,12 +1,16 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.position;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasProperty;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
@@ -37,6 +41,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.overview.LicenceSum
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.AdministratorStateView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.LicencePositionStateView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.LicenseeStateView;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.filter.LicenceTimelineFilter;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.filter.LicenceTimelineFilterOptions;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.filter.LicenceTimelineFilterSession;
 import uk.co.nstauthority.licensingmanagementservice.licence.tab.TabbedLicencePageService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
@@ -57,6 +63,14 @@ class LicencePositionControllerTest extends AbstractControllerTest {
       .withLicenceReference("REF-1")
       .build();
   private static final UUID POSITION_ID = UUID.randomUUID();
+  private static final Integer ORGANISATION_ID = 10;
+  private static final Integer OTHER_ORGANISATION_ID = 11;
+  private static final LicenceTimelineFilterOptions FILTER_OPTIONS = new LicenceTimelineFilterOptions(
+      Map.of(LicenceOperation.SET_EQUITY, "Set equity"),
+      Map.of(String.valueOf(ORGANISATION_ID), "Shell plc", String.valueOf(OTHER_ORGANISATION_ID), "BP plc")
+  );
+  private static final LicenceTimelineFilter SET_EQUITY_FILTER =
+      new LicenceTimelineFilter(Set.of(LicenceOperation.SET_EQUITY), Set.of());
 
   @Autowired
   private LicenceOverviewService licenceOverviewService;
@@ -76,22 +90,29 @@ class LicencePositionControllerTest extends AbstractControllerTest {
 
   @Test
   void renderLicencePositionTimeline_whenFilterInSession_thenFilteredLatestPositionIsRendered() throws Exception {
-    var pageView = LicencePositionPageView.noMatchingPositions(
-        LICENCE.getType(),
-        Map.of(LicenceOperation.SET_EQUITY, "Set equity")
+    var filter = new LicenceTimelineFilter(
+        Set.of(LicenceOperation.SET_EQUITY),
+        Set.of(ORGANISATION_ID, OTHER_ORGANISATION_ID)
     );
+    var pageView = LicencePositionPageView.noMatchingPositions(LICENCE.getType(), FILTER_OPTIONS);
 
-    when(licencePositionViewService.getLatestPositionPageView(LICENCE, List.of(LicenceOperation.SET_EQUITY)))
-        .thenReturn(pageView);
+    when(licencePositionViewService.getLatestPositionPageView(LICENCE, filter)).thenReturn(pageView);
 
     mockMvc.perform(get(timelineUrl())
-            .sessionAttr(FILTER_SESSION_ATTRIBUTE, filterSession(LICENCE.getLicenceReference(), LicenceOperation.SET_EQUITY))
+            .sessionAttr(FILTER_SESSION_ATTRIBUTE, filterSession(LICENCE.getLicenceReference(), filter))
             .with(user(regulatorUser)))
         .andExpectAll(
             status().isOk(),
             view().name("lms/licence/position/licencePositions"),
             model().attribute("licencePositionPageView", pageView),
-            model().attribute("form", hasProperty("changeTypes", contains(LicenceOperation.SET_EQUITY))),
+            model().attribute("form", allOf(
+                hasProperty("changeTypes", contains(LicenceOperation.SET_EQUITY)),
+                hasProperty("organisationIds", containsInAnyOrder(ORGANISATION_ID, OTHER_ORGANISATION_ID))
+            )),
+            content().string(allOf(
+                containsString("<option value=\"10\" selected>Shell plc</option>"),
+                containsString("<option value=\"11\" selected>BP plc</option>")
+            )),
             model().attribute("filterUrl", timelineUrl()),
             model().attribute("clearFilterUrl", clearFiltersUrl())
         );
@@ -102,10 +123,11 @@ class LicencePositionControllerTest extends AbstractControllerTest {
       throws Exception {
     var pageView = LicencePositionPageView.empty();
 
-    when(licencePositionViewService.getLatestPositionPageView(LICENCE, List.of())).thenReturn(pageView);
+    when(licencePositionViewService.getLatestPositionPageView(LICENCE, LicenceTimelineFilter.empty()))
+        .thenReturn(pageView);
 
     mockMvc.perform(get(timelineUrl())
-            .sessionAttr(FILTER_SESSION_ATTRIBUTE, filterSession("OTHER-REF", LicenceOperation.SET_EQUITY))
+            .sessionAttr(FILTER_SESSION_ATTRIBUTE, filterSession("OTHER-REF", SET_EQUITY_FILTER))
             .with(user(regulatorUser)))
         .andExpectAll(
             status().isOk(),
@@ -120,7 +142,7 @@ class LicencePositionControllerTest extends AbstractControllerTest {
       throws Exception {
     var banner = NotificationBanner.newSuccessBanner().withHeadingContent("Correction COR-1 applied").build();
 
-    when(licencePositionViewService.getLatestPositionPageView(LICENCE, List.of()))
+    when(licencePositionViewService.getLatestPositionPageView(LICENCE, LicenceTimelineFilter.empty()))
         .thenReturn(LicencePositionPageView.empty());
 
     mockMvc.perform(get(timelineUrl())
@@ -139,29 +161,46 @@ class LicencePositionControllerTest extends AbstractControllerTest {
   }
 
   @Test
-  void filterLicencePositionTimeline_whenChangeTypesSubmitted_thenOnlyAvailableTypesAreHeldForTheLicence()
+  void filterLicencePositionTimeline_whenFiltersSubmitted_thenOnlyThoseOnTheLicenceAreHeldForTheLicence()
       throws Exception {
     var filterSession = new LicenceTimelineFilterSession();
 
-    when(licencePositionViewService.getChangeTypeOptions(LICENCE))
-        .thenReturn(Map.of(LicenceOperation.SET_EQUITY, "Set equity"));
+    when(licencePositionViewService.getFilterOptions(LICENCE)).thenReturn(FILTER_OPTIONS);
 
     mockMvc.perform(post(timelineUrl())
             .param("changeTypes", LicenceOperation.SET_EQUITY, "not-a-change-type")
+            .param("organisationIds", String.valueOf(ORGANISATION_ID), "999")
             .sessionAttr(FILTER_SESSION_ATTRIBUTE, filterSession)
             .with(csrf())
             .with(user(regulatorUser)))
         .andExpect(redirectedUrl(timelineUrl()));
 
-    assertThat(filterSession.getChangeTypes(LICENCE.getLicenceReference()))
-        .containsExactly(LicenceOperation.SET_EQUITY);
+    assertThat(filterSession.getFilter(LICENCE.getLicenceReference()))
+        .isEqualTo(new LicenceTimelineFilter(Set.of(LicenceOperation.SET_EQUITY), Set.of(ORGANISATION_ID)));
+  }
+
+  @Test
+  void filterLicencePositionTimeline_whenNothingOnTheLicenceSubmitted_thenLicenceFilterIsRemoved() throws Exception {
+    var filterSession = filterSession(LICENCE.getLicenceReference(), SET_EQUITY_FILTER);
+
+    when(licencePositionViewService.getFilterOptions(LICENCE)).thenReturn(FILTER_OPTIONS);
+
+    mockMvc.perform(post(timelineUrl())
+            .param("organisationIds", "999")
+            .sessionAttr(FILTER_SESSION_ATTRIBUTE, filterSession)
+            .with(csrf())
+            .with(user(regulatorUser)))
+        .andExpect(redirectedUrl(timelineUrl()));
+
+    assertThat(filterSession.isEmpty()).isTrue();
   }
 
   @Test
   void clearLicencePositionTimelineFilters_whenOtherLicencesFiltered_thenOnlyThisLicenceFilterIsCleared()
       throws Exception {
-    var filterSession = filterSession(LICENCE.getLicenceReference(), LicenceOperation.SET_EQUITY);
-    filterSession.update("OTHER-REF", Set.of(LicenceOperation.LICENSEE));
+    var otherLicenceFilter = new LicenceTimelineFilter(Set.of(), Set.of(ORGANISATION_ID));
+    var filterSession = filterSession(LICENCE.getLicenceReference(), SET_EQUITY_FILTER);
+    filterSession.update("OTHER-REF", otherLicenceFilter);
 
     mockMvc.perform(get(clearFiltersUrl())
             .sessionAttr(FILTER_SESSION_ATTRIBUTE, filterSession)
@@ -171,15 +210,15 @@ class LicencePositionControllerTest extends AbstractControllerTest {
             request().sessionAttribute(FILTER_SESSION_ATTRIBUTE, filterSession)
         );
 
-    assertThat(filterSession.getChangeTypes(LICENCE.getLicenceReference())).isEmpty();
-    assertThat(filterSession.getChangeTypes("OTHER-REF")).containsExactly(LicenceOperation.LICENSEE);
+    assertThat(filterSession.getFilter(LICENCE.getLicenceReference())).isEqualTo(LicenceTimelineFilter.empty());
+    assertThat(filterSession.getFilter("OTHER-REF")).isEqualTo(otherLicenceFilter);
   }
 
   @Test
   void clearLicencePositionTimelineFilters_whenNoOtherLicencesFiltered_thenFilterIsRemovedFromSession()
       throws Exception {
     mockMvc.perform(get(clearFiltersUrl())
-            .sessionAttr(FILTER_SESSION_ATTRIBUTE, filterSession(LICENCE.getLicenceReference(), LicenceOperation.SET_EQUITY))
+            .sessionAttr(FILTER_SESSION_ATTRIBUTE, filterSession(LICENCE.getLicenceReference(), SET_EQUITY_FILTER))
             .with(user(regulatorUser)))
         .andExpectAll(
             redirectedUrl(timelineUrl()),
@@ -215,17 +254,16 @@ class LicencePositionControllerTest extends AbstractControllerTest {
         LicencePositionPageView.Actions.none(),
         LICENCE.getType(),
         List.of(),
-        Map.of(LicenceOperation.SET_EQUITY, "Set equity"),
+        FILTER_OPTIONS,
         true
     );
 
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(position);
-    when(licencePositionViewService.getPositionPageView(position, List.of(LicenceOperation.SET_EQUITY)))
-        .thenReturn(pageView);
+    when(licencePositionViewService.getPositionPageView(position, SET_EQUITY_FILTER)).thenReturn(pageView);
 
     mockMvc.perform(get(ReverseRouter.route(on(LicencePositionController.class)
             .renderLicencePosition(LICENCE, POSITION_ID, null, null)))
-            .sessionAttr(FILTER_SESSION_ATTRIBUTE, filterSession(LICENCE.getLicenceReference(), LicenceOperation.SET_EQUITY))
+            .sessionAttr(FILTER_SESSION_ATTRIBUTE, filterSession(LICENCE.getLicenceReference(), SET_EQUITY_FILTER))
             .with(user(regulatorUser)))
         .andExpectAll(
             status().isOk(),
@@ -245,9 +283,9 @@ class LicencePositionControllerTest extends AbstractControllerTest {
         .clearLicencePositionTimelineFilters(LICENCE, null, null));
   }
 
-  private static LicenceTimelineFilterSession filterSession(String licenceReference, String changeType) {
+  private static LicenceTimelineFilterSession filterSession(String licenceReference, LicenceTimelineFilter filter) {
     var filterSession = new LicenceTimelineFilterSession();
-    filterSession.update(licenceReference, Set.of(changeType));
+    filterSession.update(licenceReference, filter);
     return filterSession;
   }
 }

@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -51,6 +52,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.vie
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.PositionChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ResolvedStates;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.filter.LicenceTimelineChangeTypeFilter;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.filter.LicenceTimelineFilter;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.filter.LicenceTimelineFilterOptions;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.util.DateUtil;
 
@@ -147,30 +150,32 @@ public class LicencePositionViewService {
   }
 
   public LicencePositionPageView getPositionPageView(LicencePosition licencePosition) {
-    return getPositionPageView(licencePosition, List.of());
+    return getPositionPageView(licencePosition, LicenceTimelineFilter.empty());
   }
 
   /**
-   * The read-only page view for a position, with the timeline and the position's change views limited to the given
-   * change types. An empty set of change types applies no filter.
+   * The read-only page view for a position, with the timeline limited to the positions the filter matches and the
+   * position's change views limited to the filter's change types. An empty filter applies no filter.
    */
-  public LicencePositionPageView getPositionPageView(LicencePosition licencePosition, List<String> changeTypes) {
+  public LicencePositionPageView getPositionPageView(LicencePosition licencePosition, LicenceTimelineFilter filter) {
     var executedChronologicalLicencePositions =
         licencePositionService.getExecutedChronologicalLicencePositions(licencePosition.getLicence());
+    var liveChronologicalPositions = getLiveChronologicalPositions(executedChronologicalLicencePositions);
 
     return getPositionPageView(
         licencePosition,
         executedChronologicalLicencePositions,
-        getLiveChronologicalPositions(executedChronologicalLicencePositions),
-        changeTypes
+        liveChronologicalPositions,
+        LicencePositionStateResolver.resolve(liveChronologicalPositions),
+        filter
     );
   }
 
   /**
-   * The read-only page view for the latest position on the licence with a change of the given types, or the latest
-   * position when no change types are given.
+   * The read-only page view for the latest position on the licence the filter matches, or the latest position when
+   * the filter is empty.
    */
-  public LicencePositionPageView getLatestPositionPageView(Licence licence, List<String> changeTypes) {
+  public LicencePositionPageView getLatestPositionPageView(Licence licence, LicenceTimelineFilter filter) {
     var executedChronologicalLicencePositions = licencePositionService.getExecutedChronologicalLicencePositions(licence);
 
     if (executedChronologicalLicencePositions.isEmpty()) {
@@ -178,18 +183,20 @@ public class LicencePositionViewService {
     }
 
     var liveChronologicalPositions = getLiveChronologicalPositions(executedChronologicalLicencePositions);
+    var resolvedStates = LicencePositionStateResolver.resolve(liveChronologicalPositions);
 
-    if (changeTypes.isEmpty()) {
+    if (filter.isEmpty()) {
       return getPositionPageView(
           executedChronologicalLicencePositions.getLast(),
           executedChronologicalLicencePositions,
           liveChronologicalPositions,
-          changeTypes
+          resolvedStates,
+          filter
       );
     }
 
     var latestMatchingPositionId = liveChronologicalPositions.reversed().stream()
-        .filter(position -> LicenceTimelineChangeTypeFilter.positionMatches(position, changeTypes))
+        .filter(position -> positionMatches(filter, position, resolvedStates))
         .map(ChronologicalPosition::id)
         .findFirst();
 
@@ -201,35 +208,41 @@ public class LicencePositionViewService {
             position,
             executedChronologicalLicencePositions,
             liveChronologicalPositions,
-            changeTypes
+            resolvedStates,
+            filter
         ))
         .orElseGet(() -> LicencePositionPageView.noMatchingPositions(
             licence.getType(),
-            LicenceTimelineChangeTypeFilter.getAvailableChangeTypeOptions(liveChronologicalPositions)
+            getFilterOptions(liveChronologicalPositions, getOrganisationNameContext(liveChronologicalPositions))
         ));
   }
 
-  public Map<String, String> getChangeTypeOptions(Licence licence) {
-    return LicenceTimelineChangeTypeFilter.getAvailableChangeTypeOptions(getLiveChronologicalPositions(licence));
+  public LicenceTimelineFilterOptions getFilterOptions(Licence licence) {
+    var liveChronologicalPositions = getLiveChronologicalPositions(licence);
+
+    return getFilterOptions(liveChronologicalPositions, getOrganisationNameContext(liveChronologicalPositions));
   }
 
   private LicencePositionPageView getPositionPageView(
       LicencePosition licencePosition,
       List<LicencePosition> executedChronologicalLicencePositions,
       List<ChronologicalPosition> liveChronologicalPositions,
-      List<String> changeTypes
+      ResolvedStates resolvedStates,
+      LicenceTimelineFilter filter
   ) {
     var licence = licencePosition.getLicence();
-    var resolvedStates = LicencePositionStateResolver.resolve(liveChronologicalPositions);
     var featureNames = resolveFeatureNames(liveChronologicalPositions);
     var nameContext = getOrganisationNameContext(liveChronologicalPositions);
     var positionDate = effectivePositionDate(liveChronologicalPositions, licencePosition.getId());
 
     var matchingPositionIds = liveChronologicalPositions.stream()
-        .filter(position -> LicenceTimelineChangeTypeFilter.positionMatches(position, changeTypes))
+        .filter(position -> positionMatches(filter, position, resolvedStates))
         .map(ChronologicalPosition::id)
         .collect(Collectors.toSet());
 
+    // Only the change type filter narrows the change views. A change view can merge several operations naming
+    // different organisations, so a matching position shows every one of its changes to the organisation filter.
+    var changeTypes = filter.changeTypes();
     var changeViews = LicencePositionChangeViewResolver.getChangeViews(
             licencePosition.getId(),
             liveChronologicalPositions,
@@ -260,8 +273,46 @@ public class LicencePositionViewService {
         ),
         licencePosition.getId(),
         licence.getType(),
-        LicenceTimelineChangeTypeFilter.getAvailableChangeTypeOptions(liveChronologicalPositions),
-        !changeTypes.isEmpty()
+        getFilterOptions(liveChronologicalPositions, nameContext),
+        !filter.isEmpty()
+    );
+  }
+
+  private static boolean positionMatches(
+      LicenceTimelineFilter filter,
+      ChronologicalPosition chronologicalPosition,
+      ResolvedStates resolvedStates
+  ) {
+    return filter.matches(
+        chronologicalPosition,
+        resolvedStates.previousState(chronologicalPosition.id()).administratorId()
+    );
+  }
+
+  /**
+   * Offers every organisation on the timeline by the name it goes by today, since the filter spans every position
+   * rather than the one being shown.
+   */
+  private static LicenceTimelineFilterOptions getFilterOptions(
+      List<ChronologicalPosition> chronologicalPositions,
+      OrganisationNameContext nameContext
+  ) {
+    var organisationOptions = resolveIds(chronologicalPositions, LicenceOperation::organisationIds).stream()
+        .map(organisationId -> Map.entry(
+            String.valueOf(organisationId),
+            nameContext.getNameForDate(organisationId, null, NOT_AVAILABLE)
+        ))
+        .sorted(Map.Entry.comparingByValue(String.CASE_INSENSITIVE_ORDER))
+        .collect(Collectors.toMap(
+            Map.Entry::getKey,
+            Map.Entry::getValue,
+            (first, second) -> first,
+            LinkedHashMap::new
+        ));
+
+    return new LicenceTimelineFilterOptions(
+        LicenceTimelineChangeTypeFilter.getAvailableChangeTypeOptions(chronologicalPositions),
+        organisationOptions
     );
   }
 

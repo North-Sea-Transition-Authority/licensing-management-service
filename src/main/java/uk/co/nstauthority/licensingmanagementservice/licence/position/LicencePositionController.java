@@ -3,6 +3,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.position;
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Controller;
@@ -16,6 +17,7 @@ import org.springframework.web.bind.support.SessionStatus;
 import org.springframework.web.servlet.ModelAndView;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.filter.LicenceTimelineFilter;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.filter.LicenceTimelineFilterForm;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.filter.LicenceTimelineFilterSession;
 import uk.co.nstauthority.licensingmanagementservice.licence.tab.TabbedLicencePageService;
@@ -51,10 +53,10 @@ public class LicencePositionController {
       @ModelAttribute(FILTER_SESSION_ATTRIBUTE) LicenceTimelineFilterSession filterSession,
       ServiceUserDetail user
   ) {
-    var changeTypes = filterSession.getChangeTypes(licence.getLicenceReference());
-    var licencePositionPageView = licencePositionViewService.getLatestPositionPageView(licence, changeTypes);
+    var filter = filterSession.getFilter(licence.getLicenceReference());
+    var licencePositionPageView = licencePositionViewService.getLatestPositionPageView(licence, filter);
 
-    return licencePositionsModelAndView(licence, licencePositionPageView, changeTypes, user);
+    return licencePositionsModelAndView(licence, licencePositionPageView, filter, user);
   }
 
   @GetMapping("/{licencePositionId}")
@@ -64,11 +66,11 @@ public class LicencePositionController {
       @ModelAttribute(FILTER_SESSION_ATTRIBUTE) LicenceTimelineFilterSession filterSession,
       ServiceUserDetail user
   ) {
-    var changeTypes = filterSession.getChangeTypes(licence.getLicenceReference());
+    var filter = filterSession.getFilter(licence.getLicenceReference());
     var licencePosition = licencePositionService.getPositionForLicence(licence, licencePositionId);
-    var licencePositionPageView = licencePositionViewService.getPositionPageView(licencePosition, changeTypes);
+    var licencePositionPageView = licencePositionViewService.getPositionPageView(licencePosition, filter);
 
-    return licencePositionsModelAndView(licence, licencePositionPageView, changeTypes, user);
+    return licencePositionsModelAndView(licence, licencePositionPageView, filter, user);
   }
 
   @PostMapping
@@ -77,13 +79,17 @@ public class LicencePositionController {
       @ModelAttribute("form") LicenceTimelineFilterForm form,
       @ModelAttribute(FILTER_SESSION_ATTRIBUTE) LicenceTimelineFilterSession filterSession
   ) {
-    // Only the change types on this licence can be filtered by, so anything else submitted is dropped.
-    var availableChangeTypes = licencePositionViewService.getChangeTypeOptions(licence).keySet();
+    // Only the change types and organisations on this licence can be filtered by, so anything else is dropped.
+    var filterOptions = licencePositionViewService.getFilterOptions(licence);
     var changeTypes = form.getChangeTypes().stream()
-        .filter(availableChangeTypes::contains)
+        .filter(filterOptions.changeTypeOptions()::containsKey)
+        .collect(Collectors.toSet());
+    var organisationIds = form.getOrganisationIds().stream()
+        .filter(Objects::nonNull)
+        .filter(organisationId -> filterOptions.organisationOptions().containsKey(String.valueOf(organisationId)))
         .collect(Collectors.toSet());
 
-    filterSession.update(licence.getLicenceReference(), changeTypes);
+    filterSession.update(licence.getLicenceReference(), new LicenceTimelineFilter(changeTypes, organisationIds));
 
     return ReverseRouter.redirect(on(LicencePositionController.class)
         .renderLicencePositionTimeline(licence, null, null));
@@ -113,11 +119,12 @@ public class LicencePositionController {
   private ModelAndView licencePositionsModelAndView(
       Licence licence,
       LicencePositionPageView licencePositionPageView,
-      List<String> changeTypes,
+      LicenceTimelineFilter filter,
       ServiceUserDetail user
   ) {
     var form = new LicenceTimelineFilterForm();
-    form.setChangeTypes(changeTypes);
+    form.setChangeTypes(List.copyOf(filter.changeTypes()));
+    form.setOrganisationIds(List.copyOf(filter.organisationIds()));
 
     var licencePositionsModelAndView = new ModelAndView("lms/licence/position/licencePositions")
         .addObject("licencePositionPageView", licencePositionPageView)

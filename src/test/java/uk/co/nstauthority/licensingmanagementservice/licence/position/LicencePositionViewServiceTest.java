@@ -16,6 +16,7 @@ import java.time.Month;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -74,6 +75,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.vie
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.NameHistoryEntryView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.OrganisationNameHistoryView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.FeatureTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.filter.LicenceTimelineFilter;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.filter.LicenceTimelineFilterOptions;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.transaction.LicenceTransactionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
@@ -736,24 +739,24 @@ class LicencePositionViewServiceTest {
   void getLatestPositionPageView_whenNoExecutedPositions_thenEmptyView() {
     when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of());
 
-    var result = licencePositionViewService.getLatestPositionPageView(LICENCE, List.of(LicenceOperation.SET_EQUITY));
+    var result = licencePositionViewService.getLatestPositionPageView(LICENCE, changeTypeFilter(LicenceOperation.SET_EQUITY));
 
     assertThat(result).isEqualTo(LicencePositionPageView.empty());
   }
 
   @Test
-  void getLatestPositionPageView_whenNoChangeTypes_thenLatestPositionIsUnfiltered() {
+  void getLatestPositionPageView_whenFilterEmpty_thenLatestPositionIsUnfiltered() {
     var older = executedPosition("REF-1", LocalDate.of(2026, Month.JANUARY, 1));
     var newer = executedPosition("REF-2", LocalDate.of(2026, Month.JUNE, 1));
     stubPositionsWithChanges(
         List.of(older, newer),
         List.of(
             changeOn(older, 1, ADMINISTRATOR_OPERATION),
-            changeOn(newer, 1, setEquityOperation())
+            changeOn(newer, 1, setEquityOperation(1))
         )
     );
 
-    var result = licencePositionViewService.getLatestPositionPageView(LICENCE, List.of());
+    var result = licencePositionViewService.getLatestPositionPageView(LICENCE, LicenceTimelineFilter.empty());
 
     assertThat(result.selectedPositionId()).isEqualTo(newer.getId());
     assertThat(result.timelineViews())
@@ -773,18 +776,18 @@ class LicencePositionViewServiceTest {
         List.of(older, newer),
         List.of(
             changeOn(older, 1, ADMINISTRATOR_OPERATION),
-            changeOn(newer, 1, setEquityOperation())
+            changeOn(newer, 1, setEquityOperation(1))
         )
     );
 
     var result = licencePositionViewService.getLatestPositionPageView(
         LICENCE,
-        List.of(LicenceOperation.LICENCE_ADMINISTRATOR)
+        changeTypeFilter(LicenceOperation.LICENCE_ADMINISTRATOR)
     );
 
-    var expectedOptions = new LinkedHashMap<String, String>();
-    expectedOptions.put(LicenceOperation.LICENCE_ADMINISTRATOR, "Licence administrator change");
-    expectedOptions.put(LicenceOperation.SET_EQUITY, "Set equity");
+    var expectedChangeTypeOptions = new LinkedHashMap<String, String>();
+    expectedChangeTypeOptions.put(LicenceOperation.LICENCE_ADMINISTRATOR, "Licence administrator change");
+    expectedChangeTypeOptions.put(LicenceOperation.SET_EQUITY, "Set equity");
     assertThat(result.selectedPositionId()).isEqualTo(older.getId());
     assertThat(result.timelineViews())
         .extracting(LicencePositionTimelineView::regulatorReference)
@@ -792,8 +795,54 @@ class LicencePositionViewServiceTest {
     assertThat(result.orderedChangeViews())
         .extracting(LicencePositionChangeView::type)
         .containsExactly(LicenceOperation.LICENCE_ADMINISTRATOR);
-    assertThat(result.changeTypeOptions()).containsExactlyEntriesOf(expectedOptions);
+    assertThat(result.filterOptions()).isEqualTo(new LicenceTimelineFilterOptions(
+        expectedChangeTypeOptions,
+        Map.of("1", "Not available")
+    ));
     assertThat(result.filterApplied()).isTrue();
+  }
+
+  @Test
+  void getLatestPositionPageView_whenOrganisation_thenLatestPositionInvolvingItIsShownWithMatchingTimeline() {
+    var older = executedPosition("REF-1", LocalDate.of(2026, Month.JANUARY, 1));
+    var newer = executedPosition("REF-2", LocalDate.of(2026, Month.JUNE, 1));
+    stubPositionsWithChanges(
+        List.of(older, newer),
+        List.of(
+            changeOn(older, 1, ADMINISTRATOR_OPERATION),
+            changeOn(newer, 1, setEquityOperation(2))
+        ),
+        List.of(1, 2)
+    );
+
+    var result = licencePositionViewService.getLatestPositionPageView(LICENCE, organisationFilter(1));
+
+    assertThat(result.selectedPositionId()).isEqualTo(older.getId());
+    assertThat(result.timelineViews())
+        .extracting(LicencePositionTimelineView::regulatorReference)
+        .containsExactly("REF-1");
+    assertThat(result.filterApplied()).isTrue();
+  }
+
+  @Test
+  void getLatestPositionPageView_whenOrganisationIsReplacedAsAdministrator_thenThatPositionIsShown() {
+    var older = executedPosition("REF-1", LocalDate.of(2026, Month.JANUARY, 1));
+    var newer = executedPosition("REF-2", LocalDate.of(2026, Month.JUNE, 1));
+    stubPositionsWithChanges(
+        List.of(older, newer),
+        List.of(
+            changeOn(older, 1, ADMINISTRATOR_OPERATION),
+            changeOn(newer, 1, LicenceOperation.newAdministratorChange().withOperator(2).build())
+        ),
+        List.of(1, 2)
+    );
+
+    var result = licencePositionViewService.getLatestPositionPageView(LICENCE, organisationFilter(1));
+
+    assertThat(result.selectedPositionId()).isEqualTo(newer.getId());
+    assertThat(result.timelineViews())
+        .extracting(LicencePositionTimelineView::regulatorReference)
+        .containsExactly("REF-2", "REF-1");
   }
 
   @Test
@@ -802,15 +851,20 @@ class LicencePositionViewServiceTest {
     when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(position));
     when(licencePositionChangeService.findByLicencePositionIn(List.of(position)))
         .thenReturn(List.of(changeOn(position, 1, ADMINISTRATOR_OPERATION)));
+    when(organisationUnitQueryService.getOrganisationNameHistoriesByIds(List.of(1)))
+        .thenReturn(Map.of(1, namePeriods("Admin Ltd")));
 
     var result = licencePositionViewService.getLatestPositionPageView(
         LICENCE,
-        List.of(LicenceOperation.PARTIAL_SURRENDER)
+        changeTypeFilter(LicenceOperation.PARTIAL_SURRENDER)
     );
 
     assertThat(result).isEqualTo(LicencePositionPageView.noMatchingPositions(
         LICENCE.getType(),
-        Map.of(LicenceOperation.LICENCE_ADMINISTRATOR, "Licence administrator change")
+        new LicenceTimelineFilterOptions(
+            Map.of(LicenceOperation.LICENCE_ADMINISTRATOR, "Licence administrator change"),
+            Map.of("1", "Admin Ltd")
+        )
     ));
   }
 
@@ -821,11 +875,11 @@ class LicencePositionViewServiceTest {
         List.of(position),
         List.of(
             changeOn(position, 1, ADMINISTRATOR_OPERATION),
-            changeOn(position, 2, setEquityOperation())
+            changeOn(position, 2, setEquityOperation(1))
         )
     );
 
-    var result = licencePositionViewService.getPositionPageView(position, List.of(LicenceOperation.SET_EQUITY));
+    var result = licencePositionViewService.getPositionPageView(position, changeTypeFilter(LicenceOperation.SET_EQUITY));
 
     assertThat(result.orderedChangeViews())
         .extracting(LicencePositionChangeView::type)
@@ -834,6 +888,57 @@ class LicencePositionViewServiceTest {
         .extracting(LicencePositionTimelineView::positionId)
         .containsExactly(position.getId());
     assertThat(result.filterApplied()).isTrue();
+  }
+
+  @Test
+  void getPositionPageView_whenOrganisation_thenEveryChangeViewIsShown() {
+    var position = executedPosition("REF-1", LocalDate.of(2026, Month.JANUARY, 1));
+    stubPositionsWithChanges(
+        List.of(position),
+        List.of(
+            changeOn(position, 1, ADMINISTRATOR_OPERATION),
+            changeOn(position, 2, setEquityOperation(2))
+        ),
+        List.of(1, 2)
+    );
+
+    var result = licencePositionViewService.getPositionPageView(position, organisationFilter(1));
+
+    assertThat(result.orderedChangeViews())
+        .extracting(LicencePositionChangeView::type)
+        .containsExactly(LicenceOperation.LICENCE_ADMINISTRATOR, LicenceOperation.SET_EQUITY);
+    assertThat(result.filterApplied()).isTrue();
+  }
+
+  @Test
+  void getFilterOptions() {
+    var position = executedPosition("REF-1", LocalDate.of(2026, Month.JANUARY, 1));
+    when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(position));
+    when(licencePositionChangeService.findByLicencePositionIn(List.of(position))).thenReturn(List.of(
+        changeOn(position, 1, ADMINISTRATOR_OPERATION),
+        changeOn(position, 2, LicenceOperation.newLicenseeOperation()
+            .withLicenseesToAdd(List.of(2))
+            .withLicenseesToRemove(List.of(3))
+            .build())
+    ));
+    when(organisationUnitQueryService.getOrganisationNameHistoriesByIds(List.of(1, 2, 3))).thenReturn(Map.of(
+        1, namePeriods("Zeta Energy",
+            namePeriod("Aardvark Oil", LocalDate.of(2000, Month.JANUARY, 1), LocalDate.of(2010, Month.JANUARY, 1))),
+        2, namePeriods("beta Petroleum"),
+        3, namePeriods("Alpha Resources")
+    ));
+
+    var result = licencePositionViewService.getFilterOptions(LICENCE);
+
+    var expectedChangeTypeOptions = new LinkedHashMap<String, String>();
+    expectedChangeTypeOptions.put(LicenceOperation.LICENCE_ADMINISTRATOR, "Licence administrator change");
+    expectedChangeTypeOptions.put(LicenceOperation.LICENSEE, "Licensee change");
+    var expectedOrganisationOptions = new LinkedHashMap<String, String>();
+    expectedOrganisationOptions.put("3", "Alpha Resources");
+    expectedOrganisationOptions.put("2", "beta Petroleum");
+    expectedOrganisationOptions.put("1", "Zeta Energy");
+    assertThat(result.changeTypeOptions()).containsExactlyEntriesOf(expectedChangeTypeOptions);
+    assertThat(result.organisationOptions()).containsExactlyEntriesOf(expectedOrganisationOptions);
   }
 
   private static LicencePosition executedPosition(String reference, LocalDate positionDate) {
@@ -854,14 +959,30 @@ class LicencePositionViewServiceTest {
         .build();
   }
 
-  private static LicenceOperation setEquityOperation() {
-    return LicenceOperation.newSetEquityOperation().withTransferTo(1).withEquity(new BigDecimal("100")).build();
+  private static LicenceOperation setEquityOperation(int transferTo) {
+    return LicenceOperation.newSetEquityOperation().withTransferTo(transferTo).withEquity(new BigDecimal("100")).build();
+  }
+
+  private static LicenceTimelineFilter changeTypeFilter(String changeType) {
+    return new LicenceTimelineFilter(Set.of(changeType), Set.of());
+  }
+
+  private static LicenceTimelineFilter organisationFilter(Integer organisationId) {
+    return new LicenceTimelineFilter(Set.of(), Set.of(organisationId));
   }
 
   private void stubPositionsWithChanges(List<LicencePosition> positions, List<LicencePositionChange> changes) {
+    stubPositionsWithChanges(positions, changes, List.of(1));
+  }
+
+  private void stubPositionsWithChanges(
+      List<LicencePosition> positions,
+      List<LicencePositionChange> changes,
+      List<Integer> organisationIds
+  ) {
     when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(positions);
     when(licencePositionChangeService.findByLicencePositionIn(positions)).thenReturn(changes);
-    when(organisationUnitQueryService.getOrganisationNameHistoriesByIds(List.of(1))).thenReturn(Map.of());
+    when(organisationUnitQueryService.getOrganisationNameHistoriesByIds(organisationIds)).thenReturn(Map.of());
   }
 
   @Test

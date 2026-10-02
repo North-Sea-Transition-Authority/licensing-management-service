@@ -2,43 +2,39 @@ package uk.co.nstauthority.licensingmanagementservice.licence.position.filter;
 
 import java.io.Serial;
 import java.io.Serializable;
-import java.util.Collection;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import org.springframework.web.bind.annotation.SessionAttributes;
 
 /**
- * The timeline change type filters a user has applied, held against the reference of the licence they were applied to
- * so each licence keeps its own filter.
+ * The timeline filters a user has applied, held against the reference of the licence they were applied to so each
+ * licence keeps its own filter.
  */
 @SessionAttributes("licenceTimelineFilterSession")
 public class LicenceTimelineFilterSession implements Serializable {
 
   @Serial
-  private static final long serialVersionUID = -2424384911829180541L;
+  private static final long serialVersionUID = 7318150235480963764L;
 
-  private final Map<String, List<String>> changeTypesByLicenceReference = new HashMap<>();
+  private final Map<String, LicenceTimelineFilter> filtersByLicenceReference = new HashMap<>();
 
-  public List<String> getChangeTypes(String licenceReference) {
-    return changeTypesByLicenceReference.getOrDefault(licenceReference, List.of());
+  public LicenceTimelineFilter getFilter(String licenceReference) {
+    return filtersByLicenceReference.getOrDefault(licenceReference, LicenceTimelineFilter.empty());
   }
 
-  public void update(String licenceReference, Collection<String> changeTypes) {
-    if (changeTypes.isEmpty()) {
+  public void update(String licenceReference, LicenceTimelineFilter filter) {
+    if (filter.isEmpty()) {
       clear(licenceReference);
       return;
     }
-
-    var uniqueSortedChangeTypes = changeTypes.stream().distinct().sorted().toList();
-    changeTypesByLicenceReference.put(licenceReference, uniqueSortedChangeTypes);
+    filtersByLicenceReference.put(licenceReference, filter);
   }
 
   public void clear(String licenceReference) {
-    changeTypesByLicenceReference.remove(licenceReference);
+    filtersByLicenceReference.remove(licenceReference);
   }
 
   public boolean isEmpty() {
-    return changeTypesByLicenceReference.isEmpty();
+    return filtersByLicenceReference.isEmpty();
   }
 }

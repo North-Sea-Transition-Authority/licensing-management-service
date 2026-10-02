@@ -8,6 +8,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -106,6 +107,43 @@ public class LicencePositionViewService {
         nameOrEmpty(organisationNames, currentState.administratorId()),
         nameOrEmpty(organisationNames, previousState.administratorId())
     );
+  }
+
+  public LicenseeChangeContext getLicenseeChangeContext(
+      LicenceCorrection licenceCorrection,
+      UUID licencePositionId
+  ) {
+    var chronologicalPositions = getCorrectedChronologicalPositions(licenceCorrection, licencePositionId);
+    var resolvedStates = LicencePositionStateResolver.resolve(chronologicalPositions);
+    var currentState = resolvedStates.currentState(licencePositionId);
+    var previousState = resolvedStates.previousState(licencePositionId);
+    var organisationNames = resolveOrganisationNames(chronologicalPositions);
+
+    return new LicenseeChangeContext(
+        getCurrentJoiningLicenseeIds(currentState.licenseeIds(), previousState.licenseeIds()),
+        getCurrentWithdrawingLicenseeIds(currentState.licenseeIds(), previousState.licenseeIds()),
+        previousState.licenseeIds(),
+        previousState.licenseeIds()
+            .stream()
+            .map(id -> nameOrEmpty(organisationNames, id))
+            .toList()
+    );
+  }
+
+  private List<Integer> getCurrentJoiningLicenseeIds(List<Integer> currentLicenseeIds, List<Integer> previousLicenseeIds) {
+    var previousLicenseeIdsSet = new HashSet<>(previousLicenseeIds);
+    return currentLicenseeIds
+        .stream()
+        .filter(id -> !previousLicenseeIdsSet.contains(id))
+        .toList();
+  }
+
+  private List<Integer> getCurrentWithdrawingLicenseeIds(List<Integer> currentLicenseeIds, List<Integer> previousLicenseeIds) {
+    var currentLicenseeIdsSet = new HashSet<>(currentLicenseeIds);
+    return previousLicenseeIds
+        .stream()
+        .filter(id -> !currentLicenseeIdsSet.contains(id))
+        .toList();
   }
 
   public LicencePositionPageView getPositionPageView(LicencePosition licencePosition) {

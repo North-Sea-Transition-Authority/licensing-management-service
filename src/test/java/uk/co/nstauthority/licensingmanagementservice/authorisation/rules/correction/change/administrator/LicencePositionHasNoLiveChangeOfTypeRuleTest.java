@@ -20,17 +20,17 @@ import uk.co.nstauthority.licensingmanagementservice.licence.operation.Administr
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeService;
 
 @ExtendWith(MockitoExtension.class)
-class LicencePositionHasNoLiveAdministratorChangeRuleTest extends AbstractInterceptorRuleTest {
+class LicencePositionHasNoLiveChangeOfTypeRuleTest extends AbstractInterceptorRuleTest {
 
   @Mock
   private LicencePositionChangeService licencePositionChangeService;
 
   @InjectMocks
-  private LicencePositionHasNoLiveAdministratorChangeRule rule;
+  private LicencePositionHasNoLiveChangeOfTypeRule rule;
 
   @Test
   void supports() {
-    assertThat(rule.supports()).isEqualTo(LicencePositionHasNoLiveAdministratorChange.class);
+    assertThat(rule.supports()).isEqualTo(LicencePositionHasNoLiveChangeOfType.class);
   }
 
   @Test
@@ -62,7 +62,7 @@ class LicencePositionHasNoLiveAdministratorChangeRuleTest extends AbstractInterc
     ).containsExactly(
         false,
         HttpStatus.CONFLICT,
-        "Licence position %s already has a live administrator change".formatted(positionId)
+        "Licence position %s already has a live AdministratorOperation".formatted(positionId)
     );
   }
 
@@ -71,10 +71,10 @@ class LicencePositionHasNoLiveAdministratorChangeRuleTest extends AbstractInterc
         .thenReturn(Map.of("licencePositionId", licencePositionId.toString()));
   }
 
-  private LicencePositionHasNoLiveAdministratorChange annotation() throws NoSuchMethodException {
+  private LicencePositionHasNoLiveChangeOfType annotation() throws NoSuchMethodException {
     return getAnnotation(
         InterceptorRuleTestEndpoints.class.getDeclaredMethod("licencePositionHasNoLiveAdministratorChange", UUID.class),
-        LicencePositionHasNoLiveAdministratorChange.class
+        LicencePositionHasNoLiveChangeOfType.class
     );
   }
 }

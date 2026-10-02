@@ -14,9 +14,10 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correct
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.LicencePositionIsNotRemovedInCorrection;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.LicencePositionChangeBelongsToPosition;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.LicencePositionChangeIsOfType;
-import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.administrator.LicencePositionHasNoLiveAdministratorChange;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.administrator.LicencePositionHasNoLiveChangeOfType;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.AdministratorOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenseeOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.TransferEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.overview.action.LicenceActionItem;
@@ -118,8 +119,14 @@ public class InterceptorRuleTestEndpoints {
   }
 
   @GetMapping("position/{licencePositionId}/has-no-live-administrator-change")
-  @LicencePositionHasNoLiveAdministratorChange
+  @LicencePositionHasNoLiveChangeOfType(value = AdministratorOperation.class)
   public ResponseEntity<String> licencePositionHasNoLiveAdministratorChange(@PathVariable UUID licencePositionId) {
+    return ResponseEntity.ok("licence position has no live change test endpoint");
+  }
+
+  @GetMapping("position/{licencePositionId}/has-no-live-licensee-change")
+  @LicencePositionHasNoLiveChangeOfType(value = LicenseeOperation.class)
+  public ResponseEntity<String> licencePositionHasNoLiveLicenseeChange(@PathVariable UUID licencePositionId) {
     return ResponseEntity.ok("licence position has no live change test endpoint");
   }
 

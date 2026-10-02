@@ -20,7 +20,7 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correct
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.LicencePositionIsNotRemovedInCorrection;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.LicencePositionChangeBelongsToPosition;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.LicencePositionChangeIsOfType;
-import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.administrator.LicencePositionHasNoLiveAdministratorChange;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.administrator.LicencePositionHasNoLiveChangeOfType;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitRestController;
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
@@ -70,7 +70,7 @@ public class LicencePositionAdministratorChangeController {
   }
 
   @GetMapping("/position/{licencePositionId}/add-administrator-change")
-  @LicencePositionHasNoLiveAdministratorChange
+  @LicencePositionHasNoLiveChangeOfType(value = AdministratorOperation.class)
   @LicencePositionIsNotRemovedInCorrection
   public ModelAndView renderForExecutedPosition(
       @PathVariable UUID correctionId,
@@ -99,7 +99,7 @@ public class LicencePositionAdministratorChangeController {
 
   @PostMapping("/position/{licencePositionId}/add-administrator-change")
   @LicencePositionIsNotRemovedInCorrection
-  @LicencePositionHasNoLiveAdministratorChange
+  @LicencePositionHasNoLiveChangeOfType(value = AdministratorOperation.class)
   public ModelAndView submitForExecutedPosition(
       @PathVariable UUID correctionId,
       @PathVariable UUID licencePositionId,

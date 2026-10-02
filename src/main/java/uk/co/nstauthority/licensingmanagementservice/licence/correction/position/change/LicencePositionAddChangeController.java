@@ -20,6 +20,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceC
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.administrator.LicencePositionAdministratorChangeController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.licensee.LicencePositionLicenseeChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.LicencePositionPartialSurrenderController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.setequity.LicencePositionSetEquityController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subarea.LicencePositionSubareaChangeStartController;
@@ -88,6 +89,8 @@ public class LicencePositionAddChangeController {
           .renderForExecutedPosition(correctionId, licencePositionId, null));
       case SUBAREA -> ReverseRouter.redirect(on(LicencePositionSubareaChangeStartController.class)
           .renderForExecutedPosition(correctionId, licencePositionId, null));
+      case LICENSEE -> ReverseRouter.redirect(on(LicencePositionLicenseeChangeController.class)
+          .renderForExecutedPosition(correctionId, licencePositionId, null));
     };
   }
 
@@ -126,6 +129,8 @@ public class LicencePositionAddChangeController {
       case PARTIAL_SURRENDER -> ReverseRouter.redirect(on(LicencePositionPartialSurrenderController.class)
           .renderForAddedPosition(correctionId, licencePositionCorrectionId, null));
       case SUBAREA -> ReverseRouter.redirect(on(LicencePositionSubareaChangeStartController.class)
+          .renderForAddedPosition(correctionId, licencePositionCorrectionId, null));
+      case LICENSEE -> ReverseRouter.redirect(on(LicencePositionLicenseeChangeController.class)
           .renderForAddedPosition(correctionId, licencePositionCorrectionId, null));
     };
   }

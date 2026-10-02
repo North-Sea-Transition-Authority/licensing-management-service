@@ -573,6 +573,116 @@ class LicencePositionViewServiceTest {
   }
 
   @Test
+  void getLicenseeChangeContext_emptyContext() {
+    var correction = LicenceCorrectionTestUtil.newBuilder().withLicence(LICENCE).build();
+    var position = LicencePositionTestUtil.newBuilder()
+        .withId(POSITION_ID).withLicence(LICENCE).withStatus(LicencePositionStatus.EXECUTED).build();
+
+    when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(position));
+    when(licencePositionChangeService.findByLicencePositionIn(List.of(position))).thenReturn(List.of());
+    when(licencePositionCorrectionService.getPositionCorrections(correction)).thenReturn(List.of());
+
+    var result = licencePositionViewService.getLicenseeChangeContext(correction, POSITION_ID);
+
+    assertThat(result.currentJoiningLicenseeIds()).isEmpty();
+    assertThat(result.currentWithdrawingLicenseeIds()).isEmpty();
+    assertThat(result.previousLicenseeIds()).isEmpty();
+    assertThat(result.previousLicenseeNames()).isEmpty();
+    verify(licencePositionService).getExecutedChronologicalLicencePositions(LICENCE);
+  }
+
+  @Test
+  void getLicenseeChangeContext_resolvesLicenseeNames() {
+    var correction = LicenceCorrectionTestUtil.newBuilder().withLicence(LICENCE).build();
+    var currentPosition = LicencePositionTestUtil.newBuilder()
+        .withId(POSITION_ID)
+        .withLicence(LICENCE)
+        .withStatus(LicencePositionStatus.EXECUTED)
+        .withPositionDate(LocalDate.of(2026, Month.JANUARY, 2))
+        .build();
+    var previousPosition = LicencePositionTestUtil.newBuilder()
+        .withId(new UUID(2,1))
+        .withLicence(LICENCE)
+        .withStatus(LicencePositionStatus.EXECUTED)
+        .withPositionDate(LocalDate.of(2026, Month.JANUARY, 1))
+        .build();
+    var operation = LicenceOperation.newLicenseeOperation().withLicenseesToAdd(List.of(1)).build();
+
+    var change1 = LicencePositionChangeTestUtil.newBuilder()
+        .withLicencePosition(currentPosition)
+        .build();
+    var change2 = LicencePositionChangeTestUtil.newBuilder()
+        .withLicencePosition(previousPosition)
+        .withOperations(List.of(operation))
+        .build();
+
+    when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE))
+        .thenReturn(List.of(previousPosition, currentPosition));
+    when(licencePositionChangeService.findByLicencePositionIn(List.of(previousPosition, currentPosition)))
+        .thenReturn(List.of(change1, change2));
+    when(licencePositionCorrectionService.getPositionCorrections(correction)).thenReturn(List.of());
+    when(organisationUnitQueryService.getOrganisationUnitNamesByIds(List.of(1)))
+        .thenReturn(Map.of(1, "Current Licensee"));
+
+    var result = licencePositionViewService.getLicenseeChangeContext(correction, POSITION_ID);
+
+    assertThat(result.currentJoiningLicenseeIds()).isEmpty();
+    assertThat(result.currentWithdrawingLicenseeIds()).isEmpty();
+    assertThat(result.previousLicenseeIds()).isEqualTo(List.of(1));
+    assertThat(result.previousLicenseeNames()).isEqualTo(List.of("Current Licensee"));
+  }
+
+  @Test
+  void getLicenseeChangeContext_resolvesCurrentIds() {
+    var correction = LicenceCorrectionTestUtil.newBuilder().withLicence(LICENCE).build();
+    var currentPosition = LicencePositionTestUtil.newBuilder()
+        .withId(POSITION_ID)
+        .withLicence(LICENCE)
+        .withStatus(LicencePositionStatus.EXECUTED)
+        .withPositionDate(LocalDate.of(2026, Month.JANUARY, 2))
+        .withPositionOrder(2)
+        .build();
+    var previousPosition = LicencePositionTestUtil.newBuilder()
+        .withId(new UUID(2,1))
+        .withLicence(LICENCE)
+        .withStatus(LicencePositionStatus.EXECUTED)
+        .withPositionDate(LocalDate.of(2026, Month.JANUARY, 1))
+        .withPositionOrder(1)
+        .build();
+
+    var currentOperation = LicenceOperation.newLicenseeOperation()
+        .withLicenseesToAdd(List.of(3, 4))
+        .withLicenseesToRemove(List.of(1, 2))
+        .build();
+    var previousOperation = LicenceOperation.newLicenseeOperation()
+        .withLicenseesToAdd(List.of(1, 2))
+        .build();
+
+    var change1 = LicencePositionChangeTestUtil.newBuilder()
+        .withLicencePosition(currentPosition)
+        .withOperations(List.of(currentOperation))
+        .build();
+    var change2 = LicencePositionChangeTestUtil.newBuilder()
+        .withLicencePosition(previousPosition)
+        .withOperations(List.of(previousOperation))
+        .build();
+
+    when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE))
+        .thenReturn(List.of(previousPosition, currentPosition));
+    when(licencePositionChangeService.findByLicencePositionIn(List.of(previousPosition, currentPosition)))
+        .thenReturn(List.of(change1, change2));
+    when(licencePositionCorrectionService.getPositionCorrections(correction)).thenReturn(List.of());
+    when(organisationUnitQueryService.getOrganisationUnitNamesByIds(List.of(1, 2, 3, 4)))
+        .thenReturn(Map.of());
+
+    var result = licencePositionViewService.getLicenseeChangeContext(correction, POSITION_ID);
+
+    assertThat(result.currentJoiningLicenseeIds()).isEqualTo(List.of(3, 4));
+    assertThat(result.currentWithdrawingLicenseeIds()).isEqualTo(List.of(1, 2));
+    assertThat(result.previousLicenseeIds()).isEqualTo(List.of(1, 2));
+  }
+
+  @Test
   void getPositionPageView_batchesAdministratorNameLookupIntoSingleRequest() {
     var position = LicencePositionTestUtil.newBuilder()
         .withLicence(LICENCE)

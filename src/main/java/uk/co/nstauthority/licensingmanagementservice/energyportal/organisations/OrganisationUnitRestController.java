@@ -1,5 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.energyportal.organisations;
 
+import java.util.HashSet;
+import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -29,6 +31,20 @@ public class OrganisationUnitRestController {
     return searchSelectorService.search(
         term,
         organisationUnitQueryService.searchOrganisationUnitsWithName(term)
+    );
+  }
+
+  @GetMapping("/organisation-units/search-constraints")
+  public RestSearchResult searchOrganisationUnitsWithConstraints(
+      @RequestParam(value = "term") String term,
+      @RequestParam(value = "include", defaultValue = "") List<String> includeNames,
+      @RequestParam(value = "exclude", defaultValue = "") List<String> excludeNames
+  ) {
+    var includeNameSet = new HashSet<>(includeNames);
+    var excludeNameSet = new HashSet<>(excludeNames);
+    return searchSelectorService.search(
+        term,
+        organisationUnitQueryService.searchOrganisationUnitsWithNameCompareToList(term, includeNameSet, excludeNameSet)
     );
   }
 }

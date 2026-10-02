@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.function.Function;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
+import org.springframework.web.util.UriComponentsBuilder;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 /**
@@ -34,9 +35,15 @@ public class SearchSelectorService {
     return buildSearchResult(results);
   }
 
-
   public static String route(Object methodCall) {
     return StringUtils.replace(ReverseRouter.route(methodCall), "?term", "");
+  }
+
+  public static String routeWithConstraints(Object methodCall) {
+    return UriComponentsBuilder.fromUriString(ReverseRouter.route(methodCall))
+        .replaceQueryParam("term")
+        .build()
+        .toUriString();
   }
 
   private RestSearchResult buildSearchResult(Collection<? extends SearchSelectable> selectableList) {

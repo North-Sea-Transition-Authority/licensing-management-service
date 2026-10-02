@@ -31,6 +31,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceC
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.administrator.LicencePositionAdministratorChangeController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.licensee.LicencePositionLicenseeChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.LicencePositionPartialSurrenderController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.setequity.LicencePositionSetEquityController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subarea.LicencePositionSubareaChangeStartController;
@@ -108,7 +109,8 @@ class LicencePositionAddChangeControllerTest extends AbstractControllerTest {
             model().attribute("changeTypeOptions", Map.of(
                 "SET_EQUITY", "Set equity",
                 "TRANSFER_EQUITY", "Transfer equity",
-                "PARTIAL_SURRENDER", "Partial surrender")),
+                "PARTIAL_SURRENDER", "Partial surrender",
+                "LICENSEE", "Licensee change")),
             model().attribute("backLinkUrl", ReverseRouter.route(on(LicenceCorrectionController.class)
                 .renderLicencePosition(CORRECTION_ID, POSITION_ID, null))));
   }
@@ -126,7 +128,8 @@ class LicencePositionAddChangeControllerTest extends AbstractControllerTest {
             model().attribute("changeTypeOptions", Map.of(
                 "ADMINISTRATOR", "Administrator change",
                 "PARTIAL_SURRENDER", "Partial surrender",
-                "SUBAREA", "Subarea change")));
+                "SUBAREA", "Subarea change",
+                "LICENSEE", "Licensee change")));
   }
 
   @Test
@@ -164,6 +167,30 @@ class LicencePositionAddChangeControllerTest extends AbstractControllerTest {
             status().isOk(),
             view().name(VIEW_NAME),
             model().attributeExists("form", "changeTypeOptions", "backLinkUrl"));
+  }
+
+  @Test
+  void submitForExecutedPosition_whenLicenseeChange_redirectsToLicenseeChangeForm() throws Exception {
+    var correction = givenCorrectionAllocatedToUser();
+    var licencePosition = executedPosition();
+    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder().build();
+    when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(licencePosition);
+    when(licencePositionCorrectionService.getOrBuildUpdatePositionCorrection(correction, licencePosition))
+        .thenReturn(positionCorrection);
+
+    var form = new AddPositionChangeForm();
+    form.setChangeType(AddPositionChangeType.LICENSEE.name());
+    when(addPositionChangeFormValidator.hasErrors(
+        eq(form), any(BindingResult.class), eq(correction), eq(positionCorrection)))
+        .thenReturn(false);
+
+    mockMvc.perform(post(ReverseRouter.route(on(LicencePositionAddChangeController.class)
+            .submitForExecutedPosition(CORRECTION_ID, POSITION_ID, null, null, null)))
+            .with(user(regulatorUser)).with(csrf())
+            .flashAttr("form", form))
+        .andExpect(status().is3xxRedirection())
+        .andExpect(redirectedUrl(ReverseRouter.route(on(LicencePositionLicenseeChangeController.class)
+            .renderForExecutedPosition(CORRECTION_ID, POSITION_ID, null))));
   }
 
   @Test
@@ -268,7 +295,8 @@ class LicencePositionAddChangeControllerTest extends AbstractControllerTest {
             model().attribute("changeTypeOptions", Map.of(
                 "SET_EQUITY", "Set equity",
                 "TRANSFER_EQUITY", "Transfer equity",
-                "PARTIAL_SURRENDER", "Partial surrender")),
+                "PARTIAL_SURRENDER", "Partial surrender",
+                "LICENSEE", "Licensee change")),
             model().attribute("backLinkUrl", ReverseRouter.route(on(LicenceCorrectionController.class)
                 .renderAddedPosition(CORRECTION_ID, POSITION_CORRECTION_ID, null))));
   }
@@ -286,7 +314,8 @@ class LicencePositionAddChangeControllerTest extends AbstractControllerTest {
             model().attribute("changeTypeOptions", Map.of(
                 "ADMINISTRATOR", "Administrator change",
                 "PARTIAL_SURRENDER", "Partial surrender",
-                "SUBAREA", "Subarea change")));
+                "SUBAREA", "Subarea change",
+                "LICENSEE", "Licensee change")));
   }
 
   @Test
@@ -322,6 +351,28 @@ class LicencePositionAddChangeControllerTest extends AbstractControllerTest {
             status().isOk(),
             view().name(VIEW_NAME),
             model().attributeExists("form", "changeTypeOptions", "backLinkUrl"));
+  }
+
+  @Test
+  void submitForAddedPosition_whenLicenseeChange_redirectsToLicenseeChangeForm() throws Exception {
+    var correction = givenCorrectionAllocatedToUser();
+    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder().build();
+    when(licencePositionCorrectionService.getPositionCorrectionForCorrection(POSITION_CORRECTION_ID, correction))
+        .thenReturn(positionCorrection);
+
+    var form = new AddPositionChangeForm();
+    form.setChangeType(AddPositionChangeType.LICENSEE.name());
+    when(addPositionChangeFormValidator.hasErrors(
+        eq(form), any(BindingResult.class), eq(correction), eq(positionCorrection)))
+        .thenReturn(false);
+
+    mockMvc.perform(post(ReverseRouter.route(on(LicencePositionAddChangeController.class)
+            .submitForAddedPosition(CORRECTION_ID, POSITION_CORRECTION_ID, null, null, null)))
+            .with(user(regulatorUser)).with(csrf())
+            .flashAttr("form", form))
+        .andExpect(status().is3xxRedirection())
+        .andExpect(redirectedUrl(ReverseRouter.route(on(LicencePositionLicenseeChangeController.class)
+            .renderForAddedPosition(CORRECTION_ID, POSITION_CORRECTION_ID, null))));
   }
 
   @Test

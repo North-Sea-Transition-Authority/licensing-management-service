@@ -1,6 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication;
 
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -20,4 +21,7 @@ public interface ScheduleWorkProgrammeApplicationDetailRepository
   int countByVersionNumberAndSubmittedDatetimeBetween(Integer versionNumber, Instant startOfYear, Instant endOfYear);
 
   List<ScheduleWorkProgrammeApplicationDetail> findAllByStatusIn(Set<ApplicationStatus> statuses);
+
+  List<ScheduleWorkProgrammeApplicationDetail> findAllByScheduleWorkProgrammeApplication_IdIn(
+      Collection<UUID> scheduleWorkProgrammeApplicationIds);
 }

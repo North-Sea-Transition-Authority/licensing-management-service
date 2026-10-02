@@ -1,5 +1,6 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.crosslicenceeventtracker;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -10,4 +11,6 @@ import uk.co.nstauthority.licensingmanagementservice.duplication.NotDuplicationS
 public interface LicenceEventCacheRepository extends JpaRepository<LicenceEventCache, UUID>, NotDuplicationSource {
 
   List<LicenceEventCache> getAllByLicenceId(Integer licenceId);
+
+  List<LicenceEventCache> findAllByOriginalEventIdIn(Collection<UUID> originalEventIds);
 }

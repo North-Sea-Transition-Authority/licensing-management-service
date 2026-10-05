@@ -5,21 +5,20 @@ import static org.springframework.web.servlet.mvc.method.annotation.MvcUriCompon
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.CorrectionLicenceIsType;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanViewCorrection;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.LicencePositionCorrectionBelongsToCorrection;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.LicencePositionIsNotRemovedInCorrection;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.position.LicencePositionBelongsToCorrectionLicence;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitRestController;
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
@@ -27,11 +26,11 @@ import uk.co.nstauthority.licensingmanagementservice.fds.searchselector.SearchSe
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.LicencePositionAddChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquityOperation;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.SetEquityRow;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
@@ -45,53 +44,47 @@ public class LicencePositionSetEquityController {
   private static final String SUMMARY_PAGE_TITLE = "Add licence equity";
 
   private final LicencePositionSetEquityFormValidator licencePositionSetEquityFormValidator;
-  private final LicencePositionCorrectionService licencePositionCorrectionService;
   private final SetEquityCorrectionService setEquityCorrectionService;
-  private final LicencePositionService licencePositionService;
   private final OrganisationUnitQueryService organisationUnitQueryService;
 
   public LicencePositionSetEquityController(
       LicencePositionSetEquityFormValidator licencePositionSetEquityFormValidator,
-      LicencePositionCorrectionService licencePositionCorrectionService,
       SetEquityCorrectionService setEquityCorrectionService,
-      LicencePositionService licencePositionService, OrganisationUnitQueryService organisationUnitQueryService
+      OrganisationUnitQueryService organisationUnitQueryService
   ) {
     this.licencePositionSetEquityFormValidator = licencePositionSetEquityFormValidator;
-    this.licencePositionCorrectionService = licencePositionCorrectionService;
     this.setEquityCorrectionService = setEquityCorrectionService;
-    this.licencePositionService = licencePositionService;
     this.organisationUnitQueryService = organisationUnitQueryService;
   }
 
   @GetMapping("/position/{licencePositionId}/set-equity")
   @LicencePositionIsNotRemovedInCorrection
+  @LicencePositionBelongsToCorrectionLicence
   public ModelAndView renderForExecutedPosition(
-      @PathVariable UUID correctionId,
-      @PathVariable UUID licencePositionId,
-      @RequestAttribute("validatedCorrection") LicenceCorrection correction
+      LicenceCorrection correction,
+      LicencePosition licencePosition
   ) {
     return setEquityModelAndView(
         correction,
         new LicencePositionSetEquityForm(),
-        executedChangeUrl(correctionId, licencePositionId));
+        executedChangeUrl(correction, licencePosition));
   }
 
   @PostMapping("/position/{licencePositionId}/set-equity")
   @LicencePositionIsNotRemovedInCorrection
+  @LicencePositionBelongsToCorrectionLicence
   public ModelAndView submitForExecutedPosition(
-      @PathVariable UUID correctionId,
-      @PathVariable UUID licencePositionId,
-      @RequestAttribute("validatedCorrection") LicenceCorrection correction,
+      LicenceCorrection correction,
+      LicencePosition licencePosition,
       @ModelAttribute("form") LicencePositionSetEquityForm form,
       BindingResult bindingResult,
       RedirectAttributes redirectAttributes
   ) {
-    var licencePosition = licencePositionService.getPositionForLicence(correction.getLicence(), licencePositionId);
     var operations = new ArrayList<>(
         setEquityCorrectionService.getCommittedSetEquityOperationsForExecutedPosition(correction, licencePosition));
 
     if (licencePositionSetEquityFormValidator.hasErrors(form, bindingResult, operations)) {
-      return setEquityModelAndView(correction, form, executedChangeUrl(correctionId, licencePositionId));
+      return setEquityModelAndView(correction, form, executedChangeUrl(correction, licencePosition));
     }
 
     operations.add(toOperation(form));
@@ -99,151 +92,143 @@ public class LicencePositionSetEquityController {
 
     NotificationBanner.newSuccessBannerWithHeader("Equity set updated", redirectAttributes);
     return ReverseRouter.redirect(on(this.getClass())
-        .renderSummaryForExecutedPosition(correctionId, licencePositionId, null));
+        .renderSummaryForExecutedPosition(correction, licencePosition));
   }
 
   @GetMapping("/position/{licencePositionId}/set-equity/summary")
   @LicencePositionIsNotRemovedInCorrection
+  @LicencePositionBelongsToCorrectionLicence
   public ModelAndView renderSummaryForExecutedPosition(
-      @PathVariable UUID correctionId,
-      @PathVariable UUID licencePositionId,
-      @RequestAttribute("validatedCorrection") LicenceCorrection correction
+      LicenceCorrection correction,
+      LicencePosition licencePosition
   ) {
-    var licencePosition = licencePositionService.getPositionForLicence(correction.getLicence(), licencePositionId);
     var operations = setEquityCorrectionService.getCommittedSetEquityOperationsForExecutedPosition(correction, licencePosition);
 
     var removeUrls = operations.stream()
         .map(operation -> ReverseRouter.route(on(this.getClass())
-            .removeForExecutedPosition(correctionId, licencePositionId, operation.transferTo(), null)))
+            .removeForExecutedPosition(correction, licencePosition, operation.transferTo())))
         .toList();
 
     return setEquitySummaryModelAndView(
         correction,
         operations,
-        ReverseRouter.route(on(this.getClass()).renderForExecutedPosition(correctionId, licencePositionId, null)),
-        executedPositionUrl(correctionId, licencePositionId),
-        ReverseRouter.route(on(this.getClass()).submitSummaryForExecutedPosition(correctionId, licencePositionId, null)),
+        ReverseRouter.route(on(this.getClass()).renderForExecutedPosition(correction, licencePosition)),
+        executedPositionUrl(correction, licencePosition),
+        ReverseRouter.route(on(this.getClass()).submitSummaryForExecutedPosition(correction, licencePosition)),
         removeUrls);
   }
 
   @PostMapping("/position/{licencePositionId}/set-equity/summary")
   @LicencePositionIsNotRemovedInCorrection
+  @LicencePositionBelongsToCorrectionLicence
   public ModelAndView submitSummaryForExecutedPosition(
-      @PathVariable UUID correctionId,
-      @PathVariable UUID licencePositionId,
-      @RequestAttribute("validatedCorrection") LicenceCorrection correction
+      LicenceCorrection correction,
+      LicencePosition licencePosition
   ) {
     return ReverseRouter.redirect(on(LicenceCorrectionController.class)
-        .renderLicencePosition(correctionId, licencePositionId, null));
+        .renderLicencePosition(correction, licencePosition));
   }
 
   @LicencePositionIsNotRemovedInCorrection
+  @LicencePositionBelongsToCorrectionLicence
   @PostMapping("/position/{licencePositionId}/set-equity/remove")
   public ModelAndView removeForExecutedPosition(
-      @PathVariable UUID correctionId,
-      @PathVariable UUID licencePositionId,
-      @RequestParam Integer transferTo,
-      @RequestAttribute("validatedCorrection") LicenceCorrection correction
+      LicenceCorrection correction,
+      LicencePosition licencePosition,
+      @RequestParam Integer transferTo
   ) {
-    var licencePosition = licencePositionService.getPositionForLicence(correction.getLicence(), licencePositionId);
     var operations = withoutOrganisation(
         setEquityCorrectionService.getCommittedSetEquityOperationsForExecutedPosition(correction, licencePosition), transferTo
     );
 
     setEquityCorrectionService.commitSetEquityForExecutedPosition(correction, licencePosition, operations);
     return ReverseRouter.redirect(on(this.getClass())
-        .renderSummaryForExecutedPosition(correctionId, licencePositionId, null));
+        .renderSummaryForExecutedPosition(correction, licencePosition));
   }
 
   @GetMapping("/added-position/{licencePositionCorrectionId}/set-equity")
+  @LicencePositionCorrectionBelongsToCorrection
   public ModelAndView renderForAddedPosition(
-      @PathVariable UUID correctionId,
-      @PathVariable UUID licencePositionCorrectionId,
-      @RequestAttribute("validatedCorrection") LicenceCorrection correction
+      LicenceCorrection correction,
+      LicencePositionCorrection licencePositionCorrection
   ) {
     return setEquityModelAndView(
         correction,
         new LicencePositionSetEquityForm(),
-        addedChangeChooserUrl(correctionId, licencePositionCorrectionId));
+        addedChangeChooserUrl(correction, licencePositionCorrection));
   }
 
   @PostMapping("/added-position/{licencePositionCorrectionId}/set-equity")
+  @LicencePositionCorrectionBelongsToCorrection
   public ModelAndView submitForAddedPosition(
-      @PathVariable UUID correctionId,
-      @PathVariable UUID licencePositionCorrectionId,
-      @RequestAttribute("validatedCorrection") LicenceCorrection correction,
+      LicenceCorrection correction,
+      LicencePositionCorrection licencePositionCorrection,
       @ModelAttribute("form") LicencePositionSetEquityForm form,
       BindingResult bindingResult,
       RedirectAttributes redirectAttributes
   ) {
-    var positionCorrection = licencePositionCorrectionService
-        .getPositionCorrectionForCorrection(licencePositionCorrectionId, correction);
-    var operations = new ArrayList<>(setEquityCorrectionService.getCommittedSetEquityOperations(positionCorrection));
+    var operations = new ArrayList<>(setEquityCorrectionService.getCommittedSetEquityOperations(licencePositionCorrection));
 
     if (licencePositionSetEquityFormValidator.hasErrors(form, bindingResult, operations)) {
-      return setEquityModelAndView(correction, form, addedChangeChooserUrl(correctionId, licencePositionCorrectionId));
+      return setEquityModelAndView(correction, form, addedChangeChooserUrl(correction, licencePositionCorrection));
     }
 
     operations.add(toOperation(form));
-    setEquityCorrectionService.commitSetEquity(positionCorrection, operations);
+    setEquityCorrectionService.commitSetEquity(licencePositionCorrection, operations);
 
     NotificationBanner.newSuccessBanner()
         .withHeadingContent("Equity set updated")
         .applyTo(redirectAttributes);
     return ReverseRouter.redirect(on(this.getClass())
-        .renderSummaryForAddedPosition(correctionId, licencePositionCorrectionId, null));
+        .renderSummaryForAddedPosition(correction, licencePositionCorrection));
   }
 
   @GetMapping("/added-position/{licencePositionCorrectionId}/set-equity/summary")
+  @LicencePositionCorrectionBelongsToCorrection
   public ModelAndView renderSummaryForAddedPosition(
-      @PathVariable UUID correctionId,
-      @PathVariable UUID licencePositionCorrectionId,
-      @RequestAttribute("validatedCorrection") LicenceCorrection correction
+      LicenceCorrection correction,
+      LicencePositionCorrection licencePositionCorrection
   ) {
-    var positionCorrection = licencePositionCorrectionService
-        .getPositionCorrectionForCorrection(licencePositionCorrectionId, correction);
-    var operations = setEquityCorrectionService.getCommittedSetEquityOperations(positionCorrection);
+    var operations = setEquityCorrectionService.getCommittedSetEquityOperations(licencePositionCorrection);
 
     var removeUrls = operations.stream()
         .map(operation -> ReverseRouter.route(on(this.getClass())
-            .removeForAddedPosition(correctionId, licencePositionCorrectionId, operation.transferTo(), null)))
+            .removeForAddedPosition(correction, licencePositionCorrection, operation.transferTo())))
         .toList();
 
     return setEquitySummaryModelAndView(
         correction,
         operations,
-        ReverseRouter.route(on(this.getClass()).renderForAddedPosition(correctionId, licencePositionCorrectionId, null)),
-        addedPositionUrl(correctionId, licencePositionCorrectionId),
+        ReverseRouter.route(on(this.getClass()).renderForAddedPosition(correction, licencePositionCorrection)),
+        addedPositionUrl(correction, licencePositionCorrection),
         ReverseRouter.route(on(this.getClass())
-            .submitSummaryForAddedPosition(correctionId, licencePositionCorrectionId, null)),
+            .submitSummaryForAddedPosition(correction, licencePositionCorrection)),
         removeUrls);
   }
 
   @PostMapping("/added-position/{licencePositionCorrectionId}/set-equity/summary")
+  @LicencePositionCorrectionBelongsToCorrection
   public ModelAndView submitSummaryForAddedPosition(
-      @PathVariable UUID correctionId,
-      @PathVariable UUID licencePositionCorrectionId,
-      @RequestAttribute("validatedCorrection") LicenceCorrection correction
+      LicenceCorrection correction,
+      LicencePositionCorrection licencePositionCorrection
   ) {
     return ReverseRouter.redirect(on(LicenceCorrectionController.class)
-        .renderAddedPosition(correctionId, licencePositionCorrectionId, null));
+        .renderAddedPosition(correction, licencePositionCorrection));
   }
 
   @PostMapping("/added-position/{licencePositionCorrectionId}/set-equity/remove")
+  @LicencePositionCorrectionBelongsToCorrection
   public ModelAndView removeForAddedPosition(
-      @PathVariable UUID correctionId,
-      @PathVariable UUID licencePositionCorrectionId,
-      @RequestParam Integer transferTo,
-      @RequestAttribute("validatedCorrection") LicenceCorrection correction
+      LicenceCorrection correction,
+      LicencePositionCorrection licencePositionCorrection,
+      @RequestParam Integer transferTo
   ) {
-    var positionCorrection = licencePositionCorrectionService
-        .getPositionCorrectionForCorrection(licencePositionCorrectionId, correction);
     var operations = withoutOrganisation(setEquityCorrectionService
-        .getCommittedSetEquityOperations(positionCorrection), transferTo);
+        .getCommittedSetEquityOperations(licencePositionCorrection), transferTo);
 
-    setEquityCorrectionService.commitSetEquity(positionCorrection, operations);
+    setEquityCorrectionService.commitSetEquity(licencePositionCorrection, operations);
     return ReverseRouter.redirect(on(this.getClass())
-        .renderSummaryForAddedPosition(correctionId, licencePositionCorrectionId, null));
+        .renderSummaryForAddedPosition(correction, licencePositionCorrection));
   }
 
   private SetEquityOperation toOperation(LicencePositionSetEquityForm form) {
@@ -301,24 +286,24 @@ public class LicencePositionSetEquityController {
         .addObject("removeUrls", removeUrls);
   }
 
-  private String executedPositionUrl(UUID correctionId, UUID licencePositionId) {
+  private String executedPositionUrl(LicenceCorrection correction, LicencePosition licencePosition) {
     return ReverseRouter.route(on(LicenceCorrectionController.class)
-        .renderLicencePosition(correctionId, licencePositionId, null));
+        .renderLicencePosition(correction, licencePosition));
   }
 
-  private String addedPositionUrl(UUID correctionId, UUID licencePositionCorrectionId) {
+  private String addedPositionUrl(LicenceCorrection correction, LicencePositionCorrection licencePositionCorrection) {
     return ReverseRouter.route(on(LicenceCorrectionController.class)
-        .renderAddedPosition(correctionId, licencePositionCorrectionId, null));
+        .renderAddedPosition(correction, licencePositionCorrection));
   }
 
-  private String executedChangeUrl(UUID correctionId, UUID licencePositionId) {
+  private String executedChangeUrl(LicenceCorrection correction, LicencePosition licencePosition) {
     return ReverseRouter.route(on(LicencePositionAddChangeController.class)
-        .renderForExecutedPosition(correctionId, licencePositionId, null));
+        .renderForExecutedPosition(correction, licencePosition));
   }
 
-  private String addedChangeChooserUrl(UUID correctionId, UUID licencePositionCorrectionId) {
+  private String addedChangeChooserUrl(LicenceCorrection correction, LicencePositionCorrection licencePositionCorrection) {
     return ReverseRouter.route(on(LicencePositionAddChangeController.class)
-        .renderForAddedPosition(correctionId, licencePositionCorrectionId, null));
+        .renderForAddedPosition(correction, licencePositionCorrection));
   }
 
 }

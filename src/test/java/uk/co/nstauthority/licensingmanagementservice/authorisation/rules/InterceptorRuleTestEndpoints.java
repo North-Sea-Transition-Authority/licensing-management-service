@@ -12,10 +12,13 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correct
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanViewCorrection;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserHasCorrectorRoleForCorrection;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.LicencePositionCanBeReinstantiated;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.LicencePositionCorrectionBelongsToCorrection;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.LicencePositionIsNotRemovedInCorrection;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.LicencePositionChangeBelongsToPosition;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.LicencePositionChangeIsOfType;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.administrator.LicencePositionHasNoLiveChangeOfType;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.position.LicencePositionBelongsToCorrectionLicence;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.position.LicencePositionBelongsToLicence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.AdministratorOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenseeOperation;
@@ -162,6 +165,24 @@ public class InterceptorRuleTestEndpoints {
   @LicencePositionIsNotRemovedInCorrection
   public ResponseEntity<String> licencePositionIsNotRemovedInCorrection() {
     return ResponseEntity.ok("licence position is not removed in correction test endpoint");
+  }
+
+  @GetMapping("licence/{licenceId}/position/{licencePositionId}/belongs-to-licence")
+  @LicencePositionBelongsToLicence
+  public ResponseEntity<String> licencePositionBelongsToLicence() {
+    return ResponseEntity.ok("licence position belongs to licence test endpoint");
+  }
+
+  @GetMapping("correction/{correctionId}/position/{licencePositionId}/belongs-to-correction-licence")
+  @LicencePositionBelongsToCorrectionLicence
+  public ResponseEntity<String> licencePositionBelongsToCorrectionLicence() {
+    return ResponseEntity.ok("licence position belongs to correction licence test endpoint");
+  }
+
+  @GetMapping("correction/{correctionId}/position-correction/{licencePositionCorrectionId}/belongs-to-correction")
+  @LicencePositionCorrectionBelongsToCorrection
+  public ResponseEntity<String> licencePositionCorrectionBelongsToCorrection() {
+    return ResponseEntity.ok("licence position correction belongs to correction test endpoint");
   }
 
   @GetMapping("has-corrector-role-for-correction/{correctionId}")

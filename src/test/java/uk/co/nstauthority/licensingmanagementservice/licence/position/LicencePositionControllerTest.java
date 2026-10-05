@@ -23,6 +23,7 @@ import static uk.co.nstauthority.licensingmanagementservice.util.RedirectedToLog
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -228,8 +229,9 @@ class LicencePositionControllerTest extends AbstractControllerTest {
 
   @Test
   void renderLicencePosition_whenNotLoggedIn() throws Exception {
+    var position = LicencePositionTestUtil.newBuilder().withId(POSITION_ID).withLicence(LICENCE).build();
     mockMvc.perform(get(ReverseRouter.route(on(LicencePositionController.class)
-            .renderLicencePosition(LICENCE, POSITION_ID, null, null))))
+            .renderLicencePosition(LICENCE, position, null, null))))
         .andExpect(redirectionToLoginUrl());
   }
 
@@ -258,11 +260,11 @@ class LicencePositionControllerTest extends AbstractControllerTest {
         true
     );
 
-    when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(position);
+    when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(position));
     when(licencePositionViewService.getPositionPageView(position, SET_EQUITY_FILTER)).thenReturn(pageView);
 
     mockMvc.perform(get(ReverseRouter.route(on(LicencePositionController.class)
-            .renderLicencePosition(LICENCE, POSITION_ID, null, null)))
+            .renderLicencePosition(LICENCE, position, null, null)))
             .sessionAttr(FILTER_SESSION_ATTRIBUTE, filterSession(LICENCE.getLicenceReference(), SET_EQUITY_FILTER))
             .with(user(regulatorUser)))
         .andExpectAll(
@@ -271,6 +273,21 @@ class LicencePositionControllerTest extends AbstractControllerTest {
             // the timeline tab shows the same header as every other licence tab
             model().attribute("licenceOverviewView", licenceOverviewService.getLicenceOverviewView(LICENCE)),
             model().attribute("licencePositionPageView", pageView)
+        );
+  }
+
+  @Test
+  void renderLicencePosition_whenPositionBelongsToAnotherLicence_thenNotFound() throws Exception {
+    var licence = LicenceTestUtil.builder().withId(123).build();
+    var position = LicencePositionTestUtil.newBuilder().withLicence(licence).withId(POSITION_ID).build();
+
+    when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(position));
+
+    mockMvc.perform(get(ReverseRouter.route(on(LicencePositionController.class)
+            .renderLicencePosition(LICENCE, position, null, null)))
+            .with(user(regulatorUser)))
+        .andExpect(
+            status().isNotFound()
         );
   }
 

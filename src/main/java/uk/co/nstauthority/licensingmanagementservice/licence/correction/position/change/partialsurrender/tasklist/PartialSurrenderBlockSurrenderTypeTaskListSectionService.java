@@ -14,6 +14,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderTypeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListItem;
 import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListLabel;
@@ -41,10 +42,10 @@ public class PartialSurrenderBlockSurrenderTypeTaskListSectionService
       case PartialSurrenderTaskListContext.Staged(var positionCorrection) -> getSection(
           partialSurrenderCorrectionService.getCommittedPartialSurrender(positionCorrection).orElse(null),
           featureId -> blockSurrenderTypeUrl(positionCorrection, featureId));
-      case PartialSurrenderTaskListContext.LiveChange(var correction, var licencePosition, var changeId) -> getSection(
+      case PartialSurrenderTaskListContext.LiveChange(var correction, var licencePosition, var change) -> getSection(
           partialSurrenderCorrectionService
-              .getSurrenderUnderCorrectionOrThrow(correction, licencePosition, changeId),
-          featureId -> correctingChangeBlockSurrenderTypeUrl(correction, licencePosition, changeId, featureId));
+              .getSurrenderUnderCorrectionOrThrow(correction, licencePosition, change.getId().toString()),
+          featureId -> correctingChangeBlockSurrenderTypeUrl(correction, licencePosition, change, featureId));
     };
   }
 
@@ -76,25 +77,23 @@ public class PartialSurrenderBlockSurrenderTypeTaskListSectionService
 
   private String blockSurrenderTypeUrl(LicencePositionCorrection positionCorrection, UUID featureId) {
     return ReverseRouter.route(on(BlockSurrenderTypeController.class).renderSurrenderTypeForm(
-        positionCorrection.getLicenceCorrection().getId(),
-        positionCorrection.getId(),
-        featureId,
-        null
+        positionCorrection.getLicenceCorrection(),
+        positionCorrection,
+        featureId
     ));
   }
 
   private String correctingChangeBlockSurrenderTypeUrl(
       LicenceCorrection correction,
       LicencePosition licencePosition,
-      String changeId,
+      LicencePositionChange change,
       UUID featureId
   ) {
     return ReverseRouter.route(on(BlockSurrenderTypeController.class).renderSurrenderTypeFormForCorrectingChange(
-        correction.getId(),
-        licencePosition.getId(),
-        changeId,
-        featureId,
-        null
+        correction,
+        licencePosition,
+        change,
+        featureId
     ));
   }
 }

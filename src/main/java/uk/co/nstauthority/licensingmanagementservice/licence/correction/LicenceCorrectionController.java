@@ -2,20 +2,21 @@ package uk.co.nstauthority.licensingmanagementservice.licence.correction;
 
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
-import java.util.UUID;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.LogWorkAreaItemView;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanViewCorrection;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.LicencePositionCorrectionBelongsToCorrection;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.position.LicencePositionBelongsToCorrectionLicence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.AddLicencePositionCorrectionController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.reviewandapply.ReviewCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.update.UpdateCorrectionGeneralDetailsController;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionPageView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionViewService;
@@ -52,12 +53,9 @@ public class LicenceCorrectionController {
   }
 
   @GetMapping("/{correctionId}")
-  public ModelAndView renderCorrection(
-      @PathVariable UUID correctionId,
-      @RequestAttribute("validatedCorrection") LicenceCorrection licenceCorrection
-  ) {
+  public ModelAndView renderCorrection(LicenceCorrection licenceCorrection) {
     if (isCorrectionApplied(licenceCorrection)) {
-      return appliedCorrectionRedirect(correctionId);
+      return appliedCorrectionRedirect(licenceCorrection);
     }
 
     var licence = licenceCorrection.getLicence();
@@ -70,44 +68,39 @@ public class LicenceCorrectionController {
 
     if (!executedLicencePositions.isEmpty()) {
       return ReverseRouter.redirect(on(this.getClass()).renderLicencePosition(
-          correctionId, executedLicencePositions.getLast().getId(), licenceCorrection));
+          licenceCorrection, executedLicencePositions.getLast()));
     }
 
-    return ReverseRouter.redirect(on(this.getClass()).renderAddedPosition(
-        correctionId, addedPositions.getLast().getId(), licenceCorrection));
+    return ReverseRouter.redirect(on(this.getClass()).renderAddedPosition(licenceCorrection, addedPositions.getLast()));
   }
 
   @GetMapping("/{correctionId}/{licencePositionId}")
+  @LicencePositionBelongsToCorrectionLicence
   public ModelAndView renderLicencePosition(
-      @PathVariable UUID correctionId,
-      @PathVariable UUID licencePositionId,
-      @RequestAttribute("validatedCorrection") LicenceCorrection licenceCorrection
+      LicenceCorrection licenceCorrection,
+      LicencePosition licencePosition
   ) {
     if (isCorrectionApplied(licenceCorrection)) {
-      return appliedCorrectionRedirect(correctionId);
+      return appliedCorrectionRedirect(licenceCorrection);
     }
 
-    var licence = licenceCorrection.getLicence();
-    var licencePosition = licencePositionService.getPositionForLicence(licence, licencePositionId);
     var licencePositionPageView = licencePositionViewService.getCorrectionPositionPageView(licenceCorrection, licencePosition);
 
     return licencePositionsModelAndView(licenceCorrection, licencePositionPageView);
   }
 
   @GetMapping("/{correctionId}/added-positions/{licencePositionCorrectionId}")
+  @LicencePositionCorrectionBelongsToCorrection
   public ModelAndView renderAddedPosition(
-      @PathVariable UUID correctionId,
-      @PathVariable UUID licencePositionCorrectionId,
-      @RequestAttribute("validatedCorrection") LicenceCorrection licenceCorrection
+      LicenceCorrection licenceCorrection,
+      LicencePositionCorrection licencePositionCorrection
   ) {
     if (isCorrectionApplied(licenceCorrection)) {
-      return appliedCorrectionRedirect(correctionId);
+      return appliedCorrectionRedirect(licenceCorrection);
     }
 
-    var positionCorrection = licencePositionCorrectionService
-        .getPositionCorrectionForCorrection(licencePositionCorrectionId, licenceCorrection);
-    var licencePositionPageView = licencePositionViewService
-        .getCorrectionAddedPositionPageView(licenceCorrection, positionCorrection);
+    var licencePositionPageView =
+        licencePositionViewService.getCorrectionAddedPositionPageView(licenceCorrection, licencePositionCorrection);
 
     return licencePositionsModelAndView(licenceCorrection, licencePositionPageView);
   }
@@ -116,9 +109,9 @@ public class LicenceCorrectionController {
     return LicenceCorrectionStatus.COMPLETE.equals(licenceCorrection.getStatus());
   }
 
-  private static ModelAndView appliedCorrectionRedirect(UUID correctionId) {
+  private static ModelAndView appliedCorrectionRedirect(LicenceCorrection correction) {
     return ReverseRouter.redirect(on(ReviewCorrectionController.class)
-        .renderReviewCorrection(correctionId, null));
+        .renderReviewCorrection(correction));
   }
 
   private ModelAndView licencePositionsModelAndView(
@@ -134,14 +127,14 @@ public class LicenceCorrectionController {
         .addObject("correctionDetails", correctionDetailsViewService.getDetailsView(licenceCorrection))
         .addObject("addPositionUrl",
             ReverseRouter.route(on(AddLicencePositionCorrectionController.class)
-                .renderAddLicencePositionCorrection(licenceCorrection.getId(), null)))
+                .renderAddLicencePositionCorrection(licenceCorrection)))
         .addObject("updateGeneralDetailsUrl",
             ReverseRouter.route(on(UpdateCorrectionGeneralDetailsController.class)
-                .renderUpdateGeneralDetails(licenceCorrection.getId(), null)))
+                .renderUpdateGeneralDetails(licenceCorrection)))
         .addObject("cancelCorrectionUrl", ReverseRouter.route(on(LicenceCorrectionCancelController.class)
-            .renderCancelCorrection(licenceCorrection.getId(), null)))
+            .renderCancelCorrection(licenceCorrection)))
         .addObject("reviewCorrectionUrl", ReverseRouter.route(on(ReviewCorrectionController.class)
-            .renderReviewCorrection(licenceCorrection.getId(), null)));
+            .renderReviewCorrection(licenceCorrection)));
   }
 
 }

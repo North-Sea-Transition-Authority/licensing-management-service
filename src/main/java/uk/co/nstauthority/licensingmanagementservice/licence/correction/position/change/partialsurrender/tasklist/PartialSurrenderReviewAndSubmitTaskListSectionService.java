@@ -29,14 +29,12 @@ public class PartialSurrenderReviewAndSubmitTaskListSectionService
     return switch (context) {
       case PartialSurrenderTaskListContext.Staged(var positionCorrection) ->
           ReverseRouter.route(on(PartialSurrenderTaskListController.class).renderReviewAndSubmit(
-              positionCorrection.getLicenceCorrection().getId(),
-              positionCorrection.getId(),
-              null,
+              positionCorrection.getLicenceCorrection(),
+              positionCorrection,
               null));
-      case PartialSurrenderTaskListContext.LiveChange(var correction, var licencePosition, var changeId) ->
+      case PartialSurrenderTaskListContext.LiveChange(var correction, var licencePosition, var change) ->
           ReverseRouter.route(on(PartialSurrenderTaskListController.class)
-              .renderReviewAndSubmitForCorrectingChange(
-                  correction.getId(), licencePosition.getId(), changeId, null, null));
+              .renderReviewAndSubmitForCorrectingChange(correction, licencePosition, change, null));
     };
   }
 }

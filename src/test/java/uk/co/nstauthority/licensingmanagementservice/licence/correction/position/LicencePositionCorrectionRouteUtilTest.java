@@ -4,14 +4,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
-import java.util.UUID;
 import org.junit.jupiter.api.Test;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 class LicencePositionCorrectionRouteUtilTest {
 
-  private static final UUID LICENCE_CORRECTION_ID = UUID.randomUUID();
+  private static final LicenceCorrection LICENCE_CORRECTION = LicenceCorrectionTestUtil.newBuilder().build();
 
   @Test
   void getPositionPageUrl_addedPosition() {
@@ -19,10 +20,10 @@ class LicencePositionCorrectionRouteUtilTest {
         .withChangeType(LicencePositionCorrectionChangeType.ADD_POSITION)
         .build();
 
-    var result = LicencePositionCorrectionRouteUtil.getPositionPageUrl(LICENCE_CORRECTION_ID, positionCorrection);
+    var result = LicencePositionCorrectionRouteUtil.getPositionPageUrl(LICENCE_CORRECTION, positionCorrection);
 
     assertThat(result).isEqualTo(ReverseRouter.route(on(LicenceCorrectionController.class)
-        .renderAddedPosition(LICENCE_CORRECTION_ID, positionCorrection.getId(), null))
+        .renderAddedPosition(LICENCE_CORRECTION, positionCorrection))
     );
   }
 
@@ -32,10 +33,10 @@ class LicencePositionCorrectionRouteUtilTest {
         .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
         .build();
 
-    var result = LicencePositionCorrectionRouteUtil.getPositionPageUrl(LICENCE_CORRECTION_ID, positionCorrection);
+    var result = LicencePositionCorrectionRouteUtil.getPositionPageUrl(LICENCE_CORRECTION, positionCorrection);
 
     assertThat(result).isEqualTo(ReverseRouter.route(on(LicenceCorrectionController.class)
-        .renderLicencePosition(LICENCE_CORRECTION_ID, positionCorrection.getTargetLicencePosition().getId(), null))
+        .renderLicencePosition(LICENCE_CORRECTION, positionCorrection.getTargetLicencePosition()))
     );
   }
 
@@ -45,7 +46,7 @@ class LicencePositionCorrectionRouteUtilTest {
         .withChangeType(LicencePositionCorrectionChangeType.REMOVE_POSITION)
         .build();
 
-    assertThatThrownBy(() -> LicencePositionCorrectionRouteUtil.getPositionPageUrl(LICENCE_CORRECTION_ID, positionCorrection))
+    assertThatThrownBy(() -> LicencePositionCorrectionRouteUtil.getPositionPageUrl(LICENCE_CORRECTION, positionCorrection))
         .isInstanceOf(IllegalStateException.class)
         .hasMessage("Licence position correction %s removes a position so cannot have changes made against it"
             .formatted(positionCorrection.getId())

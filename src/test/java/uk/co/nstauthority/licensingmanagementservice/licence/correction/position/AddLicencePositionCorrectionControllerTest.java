@@ -44,18 +44,22 @@ class AddLicencePositionCorrectionControllerTest extends AbstractControllerTest 
 
   private static final Licence LICENCE = LicenceTestUtil.builder().build();
   private static final UUID CORRECTION_ID = UUID.randomUUID();
+  private static final LicenceCorrection CORRECTION = LicenceCorrectionTestUtil.newBuilder()
+      .withId(CORRECTION_ID)
+      .withLicence(LICENCE)
+      .build();
   private static final LocalDate POSITION_DATE = LocalDate.of(2026, Month.JUNE, 1);
   private static final String REGULATOR_REFERENCE = "TEST-REF";
   private static final String PAGE_TITLE = "Add a position";
   private static final String VIEW_NAME = "lms/licence/correction/addPosition";
 
   private final String backLinkUrl = ReverseRouter.route(on(LicenceCorrectionController.class)
-      .renderCorrection(CORRECTION_ID, null));
+      .renderCorrection(CORRECTION));
 
   @Test
   void renderAddLicencePositionCorrection_whenNotLoggedIn() throws Exception {
     mockMvc.perform(get(ReverseRouter.route(on(AddLicencePositionCorrectionController.class)
-            .renderAddLicencePositionCorrection(CORRECTION_ID, null))))
+            .renderAddLicencePositionCorrection(CORRECTION))))
         .andExpect(redirectionToLoginUrl());
   }
 
@@ -64,7 +68,7 @@ class AddLicencePositionCorrectionControllerTest extends AbstractControllerTest 
     givenCorrectionAllocatedToUser();
 
     mockMvc.perform(get(ReverseRouter.route(on(AddLicencePositionCorrectionController.class)
-            .renderAddLicencePositionCorrection(CORRECTION_ID, null)))
+            .renderAddLicencePositionCorrection(CORRECTION)))
             .with(user(regulatorUser)))
         .andExpectAll(
             status().isOk(),
@@ -80,7 +84,7 @@ class AddLicencePositionCorrectionControllerTest extends AbstractControllerTest 
     givenCorrectionNotAllocatedToUser();
 
     mockMvc.perform(get(ReverseRouter.route(on(AddLicencePositionCorrectionController.class)
-            .renderAddLicencePositionCorrection(CORRECTION_ID, null)))
+            .renderAddLicencePositionCorrection(CORRECTION)))
             .with(user(regulatorUser)))
         .andExpect(status().isForbidden());
   }
@@ -88,7 +92,7 @@ class AddLicencePositionCorrectionControllerTest extends AbstractControllerTest 
   @Test
   void addLicencePositionCorrection_whenNotLoggedIn() throws Exception {
     mockMvc.perform(post(ReverseRouter.route(on(AddLicencePositionCorrectionController.class)
-            .addLicencePositionCorrection(CORRECTION_ID, null, null, null, null)))
+            .addLicencePositionCorrection(CORRECTION, null, null, null)))
             .with(csrf()))
         .andExpect(redirectionToLoginUrl());
   }
@@ -105,7 +109,7 @@ class AddLicencePositionCorrectionControllerTest extends AbstractControllerTest 
         .thenReturn(false);
 
     mockMvc.perform(post(ReverseRouter.route(on(AddLicencePositionCorrectionController.class)
-            .addLicencePositionCorrection(CORRECTION_ID, null, null, null, null)))
+            .addLicencePositionCorrection(CORRECTION, null, null, null)))
             .with(user(regulatorUser))
             .with(csrf())
             .flashAttr("form", form))
@@ -130,7 +134,7 @@ class AddLicencePositionCorrectionControllerTest extends AbstractControllerTest 
         .thenReturn(true);
 
     mockMvc.perform(post(ReverseRouter.route(on(AddLicencePositionCorrectionController.class)
-            .addLicencePositionCorrection(CORRECTION_ID, null, null, null, null)))
+            .addLicencePositionCorrection(CORRECTION, null, null, null)))
             .with(user(regulatorUser))
             .with(csrf())
             .flashAttr("form", form))
@@ -150,7 +154,7 @@ class AddLicencePositionCorrectionControllerTest extends AbstractControllerTest 
     givenCorrectionNotAllocatedToUser();
 
     mockMvc.perform(post(ReverseRouter.route(on(AddLicencePositionCorrectionController.class)
-            .addLicencePositionCorrection(CORRECTION_ID, null, null, null, null)))
+            .addLicencePositionCorrection(CORRECTION, null, null, null)))
             .with(user(regulatorUser))
             .with(csrf()))
         .andExpect(status().isForbidden());
@@ -160,13 +164,9 @@ class AddLicencePositionCorrectionControllerTest extends AbstractControllerTest 
   }
 
   private LicenceCorrection givenCorrectionAllocatedToUser() {
-    var correction = LicenceCorrectionTestUtil.newBuilder()
-        .withId(CORRECTION_ID)
-        .withLicence(LICENCE)
-        .build();
     when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
-        .thenReturn(Optional.of(correction));
-    return correction;
+        .thenReturn(Optional.of(CORRECTION));
+    return CORRECTION;
   }
 
   private void givenCorrectionNotAllocatedToUser() {

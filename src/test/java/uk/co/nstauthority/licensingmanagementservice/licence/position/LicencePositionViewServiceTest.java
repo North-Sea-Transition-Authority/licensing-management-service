@@ -145,7 +145,7 @@ class LicencePositionViewServiceTest {
         (PartialSurrenderChangeView) changeViewOfType(result, LicenceOperation.PARTIAL_SURRENDER);
     assertThat(surrenderChange.urls().correct())
         .isEqualTo(ReverseRouter.route(on(PartialSurrenderTaskListController.class)
-            .renderForCorrectingChange(correctionId, POSITION_ID, changeId.toString(), null, null)));
+            .renderForCorrectingChange(correction, executed, liveSurrenderChange, null)));
   }
 
   @Test
@@ -174,7 +174,7 @@ class LicencePositionViewServiceTest {
         (PartialSurrenderChangeView) changeViewOfType(result, LicenceOperation.PARTIAL_SURRENDER);
     assertThat(surrenderChange.urls().correct())
         .isEqualTo(ReverseRouter.route(on(PartialSurrenderTaskListController.class)
-            .renderTaskList(correctionId, updateCorrection.getId(), null, null)));
+            .renderTaskList(correction, updateCorrection, null)));
   }
 
   @Test
@@ -519,7 +519,7 @@ class LicencePositionViewServiceTest {
             null,
             null,
             ReverseRouter.route(on(RemovePartialSurrenderChangeController.class)
-                .renderUndoPartialSurrender(correctionId, changeId.toString(), null)),
+                .renderUndoPartialSurrender(correction, changeId.toString())),
             null,
             null));
     assertThat(changeViewOfType(result, LicenceOperation.PARTIAL_SURRENDER)).isEqualTo(expected);
@@ -1012,7 +1012,7 @@ class LicencePositionViewServiceTest {
 
     assertThat(result.actions().addChangeUrl())
         .isEqualTo(ReverseRouter.route(on(LicencePositionAddChangeController.class)
-            .renderForExecutedPosition(correction.getId(), executed.getId(), null)));
+            .renderForExecutedPosition(correction, executed)));
     assertThat(result.canEdit()).isTrue();
     assertThat(result.timelineViews())
         .extracting(LicencePositionTimelineView::regulatorReference, LicencePositionTimelineView::addedInThisCorrection)
@@ -1049,7 +1049,7 @@ class LicencePositionViewServiceTest {
 
     assertThat(result.actions().addChangeUrl())
         .isEqualTo(ReverseRouter.route(on(LicencePositionAddChangeController.class)
-            .renderForAddedPosition(correction.getId(), positionCorrection.getId(), null)));
+            .renderForAddedPosition(correction, positionCorrection)));
     assertThat(result.orderedChangeViews()).isEmpty();
     assertThat(result.stateView()).isEqualTo(new LicencePositionStateView(
         new AdministratorStateView(""),
@@ -1091,11 +1091,11 @@ class LicencePositionViewServiceTest {
     var adminChange = (AdministratorChangeView) changeViewOfType(result, LicenceOperation.LICENCE_ADMINISTRATOR);
     assertThat(adminChange.urls().correct())
         .isEqualTo(ReverseRouter.route(on(LicencePositionAdministratorChangeController.class)
-            .renderForExecutedPosition(correctionId, POSITION_ID, null)));
+            .renderForExecutedPosition(correction, executed)));
     // The page-level "Add change" action stays available even when an administrator change is present.
     assertThat(result.actions().addChangeUrl())
         .isEqualTo(ReverseRouter.route(on(LicencePositionAddChangeController.class)
-            .renderForExecutedPosition(correctionId, POSITION_ID, null)));
+            .renderForExecutedPosition(correction, executed)));
   }
 
   @Test
@@ -1123,7 +1123,7 @@ class LicencePositionViewServiceTest {
     var adminChange = (AdministratorChangeView) changeViewOfType(result, LicenceOperation.LICENCE_ADMINISTRATOR);
     assertThat(adminChange.urls().correct())
         .isEqualTo(ReverseRouter.route(on(LicencePositionAdministratorChangeController.class)
-            .renderForCorrectingChange(correctionId, POSITION_ID, changeId.toString(), null)));
+            .renderForCorrectingChange(correction, executed, committedChange)));
   }
 
   @Test
@@ -1474,7 +1474,7 @@ class LicencePositionViewServiceTest {
     var adminChange = (AdministratorChangeView) changeViewOfType(result, LicenceOperation.LICENCE_ADMINISTRATOR);
     assertThat(adminChange.urls().correct())
         .isEqualTo(ReverseRouter.route(on(LicencePositionAdministratorChangeController.class)
-            .renderForAddedPosition(correctionId, positionCorrection.getId(), null)));
+            .renderForAddedPosition(correction, positionCorrection)));
   }
 
   @Test
@@ -2098,10 +2098,10 @@ class LicencePositionViewServiceTest {
 
     var expectedCorrectOrderUrl1 = ReverseRouter.route(
         on(uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionOrderChangeController.class)
-            .renderCorrectionLicencePositionOrder(correctionId, pos1Id, null));
+            .renderCorrectionLicencePositionOrder(correction, pos1Id));
     var expectedCorrectOrderUrl2 = ReverseRouter.route(
         on(uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionOrderChangeController.class)
-            .renderCorrectionLicencePositionOrder(correctionId, pos2Id, null));
+            .renderCorrectionLicencePositionOrder(correction, pos2Id));
 
     assertThat(result.timelineViews())
         .extracting(

@@ -20,11 +20,6 @@ public interface LicencePositionCorrectionRepository
       LicencePositionCorrectionChangeType changeType
   );
 
-  Optional<LicencePositionCorrection> findByIdAndLicenceCorrection(
-      UUID id,
-      LicenceCorrection licenceCorrection
-  );
-
   boolean existsByLicenceCorrectionAndTargetLicencePositionAndChangeType(
       LicenceCorrection licenceCorrection,
       LicencePosition licencePosition,

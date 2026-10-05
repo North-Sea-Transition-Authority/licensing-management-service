@@ -16,7 +16,6 @@ import static uk.co.nstauthority.licensingmanagementservice.authentication.TestU
 import static uk.co.nstauthority.licensingmanagementservice.util.RedirectedToLoginUrlMatcher.redirectionToLoginUrl;
 
 import java.util.Optional;
-import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
@@ -39,7 +38,7 @@ class LicenceCorrectionCancelControllerTest extends AbstractControllerTest {
   @Test
   void renderCancelCorrection_whenNotLoggedIn_redirectToLogin() throws Exception {
     mockMvc.perform(get(ReverseRouter.route(on(LicenceCorrectionCancelController.class)
-            .renderCancelCorrection(UUID.randomUUID(), null))))
+            .renderCancelCorrection(correction))))
         .andExpect(redirectionToLoginUrl());
   }
 
@@ -49,7 +48,7 @@ class LicenceCorrectionCancelControllerTest extends AbstractControllerTest {
         .thenReturn(Optional.empty());
 
     mockMvc.perform(get(ReverseRouter.route(on(LicenceCorrectionCancelController.class)
-            .renderCancelCorrection(correction.getId(), null)))
+            .renderCancelCorrection(correction)))
             .with(user(regulatorUser)))
         .andExpect(status().isForbidden());
   }
@@ -60,19 +59,19 @@ class LicenceCorrectionCancelControllerTest extends AbstractControllerTest {
         .thenReturn(Optional.of(correction));
 
     mockMvc.perform(get(ReverseRouter.route(on(LicenceCorrectionCancelController.class)
-            .renderCancelCorrection(correction.getId(), null)))
+            .renderCancelCorrection(correction)))
             .with(user(regulatorUser)))
         .andExpect(status().isOk())
         .andExpect(view().name("lms/licence/correction/cancelCorrection"))
         .andExpect(model().attribute("correctionReference", correction.getCorrectionReference()))
         .andExpect(model().attribute("cancelUrl", ReverseRouter.route(on(LicenceCorrectionController.class)
-            .renderCorrection(correction.getId(), null))));
+            .renderCorrection(correction))));
   }
 
   @Test
   void processCancelCorrection_whenNotLoggedIn_redirectToLogin() throws Exception {
     mockMvc.perform(post(ReverseRouter.route(on(LicenceCorrectionCancelController.class)
-            .processCancelCorrection(UUID.randomUUID(), null, null)))
+            .processCancelCorrection(correction, null)))
         .with(csrf()))
         .andExpect(redirectionToLoginUrl());
   }
@@ -83,7 +82,7 @@ class LicenceCorrectionCancelControllerTest extends AbstractControllerTest {
         .thenReturn(Optional.empty());
 
     mockMvc.perform(post(ReverseRouter.route(on(LicenceCorrectionCancelController.class)
-            .processCancelCorrection(correction.getId(), null, null)))
+            .processCancelCorrection(correction, null)))
             .with(user(regulatorUser))
             .with(csrf()))
         .andExpect(status().isForbidden());
@@ -98,7 +97,7 @@ class LicenceCorrectionCancelControllerTest extends AbstractControllerTest {
     when(tabbedLicencePageService.getDefaultTabUrl(correction.getLicence())).thenReturn(DEFAULT_TAB_URL);
 
     mockMvc.perform(post(ReverseRouter.route(on(LicenceCorrectionCancelController.class)
-            .processCancelCorrection(correction.getId(), null, null)))
+            .processCancelCorrection(correction, null)))
             .with(user(regulatorUser))
             .with(csrf()))
         .andExpect(status().is3xxRedirection())

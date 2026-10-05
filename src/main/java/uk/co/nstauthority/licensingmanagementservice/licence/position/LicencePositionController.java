@@ -4,18 +4,17 @@ import static org.springframework.web.servlet.mvc.method.annotation.MvcUriCompon
 
 import java.util.List;
 import java.util.Objects;
-import java.util.UUID;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.SessionAttributes;
 import org.springframework.web.bind.support.SessionStatus;
 import org.springframework.web.servlet.ModelAndView;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.position.LicencePositionBelongsToLicence;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.filter.LicenceTimelineFilter;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.filter.LicenceTimelineFilterForm;
@@ -32,18 +31,15 @@ public class LicencePositionController {
 
   private final LicenceTimelinePositionTab licenceTimelinePositionTab;
   private final TabbedLicencePageService tabbedLicencePageService;
-  private final LicencePositionService licencePositionService;
   private final LicencePositionViewService licencePositionViewService;
 
   LicencePositionController(
       LicenceTimelinePositionTab licenceTimelinePositionTab,
       TabbedLicencePageService tabbedLicencePageService,
-      LicencePositionService licencePositionService,
       LicencePositionViewService licencePositionViewService
   ) {
     this.licenceTimelinePositionTab = licenceTimelinePositionTab;
     this.tabbedLicencePageService = tabbedLicencePageService;
-    this.licencePositionService = licencePositionService;
     this.licencePositionViewService = licencePositionViewService;
   }
 
@@ -60,14 +56,14 @@ public class LicencePositionController {
   }
 
   @GetMapping("/{licencePositionId}")
+  @LicencePositionBelongsToLicence
   public ModelAndView renderLicencePosition(
       Licence licence,
-      @PathVariable UUID licencePositionId,
+      LicencePosition licencePosition,
       @ModelAttribute(FILTER_SESSION_ATTRIBUTE) LicenceTimelineFilterSession filterSession,
       ServiceUserDetail user
   ) {
     var filter = filterSession.getFilter(licence.getLicenceReference());
-    var licencePosition = licencePositionService.getPositionForLicence(licence, licencePositionId);
     var licencePositionPageView = licencePositionViewService.getPositionPageView(licencePosition, filter);
 
     return licencePositionsModelAndView(licence, licencePositionPageView, filter, user);

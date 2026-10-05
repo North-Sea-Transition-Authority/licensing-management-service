@@ -39,7 +39,7 @@ import uk.co.nstauthority.licensingmanagementservice.util.DateUtil;
 @ActiveProfiles("test")
 class ReinstateLicencePositionCorrectionControllerTest extends AbstractControllerTest {
 
-  private static final Licence LICENCE = LicenceTestUtil.builder().build();
+  private static final Licence LICENCE = LicenceTestUtil.builder().withId(10).build();
   private static final UUID CORRECTION_ID = UUID.randomUUID();
   private static final UUID POSITION_ID = UUID.randomUUID();
   private static final LocalDate POSITION_DATE = LocalDate.of(2026, Month.JUNE, 1);
@@ -56,12 +56,12 @@ class ReinstateLicencePositionCorrectionControllerTest extends AbstractControlle
       .build();
 
   private final String cancelUrl = ReverseRouter.route(on(LicenceCorrectionController.class)
-      .renderCorrection(CORRECTION_ID, null));
+      .renderCorrection(CORRECTION));
 
   @Test
   void renderReinstatePosition_whenNotLoggedIn() throws Exception {
     mockMvc.perform(get(ReverseRouter.route(on(ReinstateLicencePositionCorrectionController.class)
-            .renderReinstatePosition(CORRECTION_ID, POSITION_ID, null))))
+            .renderReinstatePosition(CORRECTION, POSITION))))
         .andExpect(redirectionToLoginUrl());
   }
 
@@ -69,9 +69,10 @@ class ReinstateLicencePositionCorrectionControllerTest extends AbstractControlle
   void renderReinstatePosition_whenEligible() throws Exception {
     var correction = givenCorrectionAllocatedToUser();
     givenPositionReinstatable(correction, true);
+    when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(POSITION));
 
     mockMvc.perform(get(ReverseRouter.route(on(ReinstateLicencePositionCorrectionController.class)
-            .renderReinstatePosition(CORRECTION_ID, POSITION_ID, null)))
+            .renderReinstatePosition(CORRECTION, POSITION)))
             .with(user(regulatorUser)))
         .andExpectAll(
             status().isOk(),
@@ -87,7 +88,7 @@ class ReinstateLicencePositionCorrectionControllerTest extends AbstractControlle
     givenCorrectionNotAllocatedToUser();
     var reasonNotAllocated = String.format("Licence correction %s is not assigned to wuaId 1", CORRECTION_ID);
     mockMvc.perform(get(ReverseRouter.route(on(ReinstateLicencePositionCorrectionController.class)
-            .renderReinstatePosition(CORRECTION_ID, POSITION_ID, null)))
+            .renderReinstatePosition(CORRECTION, POSITION)))
             .with(user(regulatorUser)))
         .andExpectAll(
             status().isForbidden(),
@@ -103,7 +104,7 @@ class ReinstateLicencePositionCorrectionControllerTest extends AbstractControlle
 
     var reasonNotReinstatable = String.format("Licence position %s is not marked for deletion and cannot be reinstated", POSITION_ID);
     mockMvc.perform(get(ReverseRouter.route(on(ReinstateLicencePositionCorrectionController.class)
-            .renderReinstatePosition(CORRECTION_ID, POSITION_ID, null)))
+            .renderReinstatePosition(CORRECTION, POSITION)))
             .with(user(regulatorUser)))
         .andExpectAll(
             status().isForbidden(),
@@ -114,7 +115,7 @@ class ReinstateLicencePositionCorrectionControllerTest extends AbstractControlle
   @Test
   void reinstatePosition_whenNotLoggedIn() throws Exception {
     mockMvc.perform(post(ReverseRouter.route(on(ReinstateLicencePositionCorrectionController.class)
-            .reinstatePosition(CORRECTION_ID, POSITION_ID, null, null)))
+            .reinstatePosition(CORRECTION, POSITION, null)))
             .with(csrf()))
         .andExpect(redirectionToLoginUrl());
   }
@@ -123,9 +124,10 @@ class ReinstateLicencePositionCorrectionControllerTest extends AbstractControlle
   void reinstatePosition_whenEligible() throws Exception {
     var correction = givenCorrectionAllocatedToUser();
     var position = givenPositionReinstatable(correction, true);
+    when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(POSITION));
 
     mockMvc.perform(post(ReverseRouter.route(on(ReinstateLicencePositionCorrectionController.class)
-            .reinstatePosition(CORRECTION_ID, POSITION_ID, null, null)))
+            .reinstatePosition(CORRECTION, POSITION, null)))
             .with(user(regulatorUser))
             .with(csrf()))
         .andExpectAll(
@@ -145,7 +147,7 @@ class ReinstateLicencePositionCorrectionControllerTest extends AbstractControlle
 
     var reasonNotAllocated = String.format("Licence correction %s is not assigned to wuaId 1", CORRECTION_ID);
     mockMvc.perform(post(ReverseRouter.route(on(ReinstateLicencePositionCorrectionController.class)
-            .reinstatePosition(CORRECTION_ID, POSITION_ID, null, null)))
+            .reinstatePosition(CORRECTION, POSITION, null)))
             .with(user(regulatorUser))
             .with(csrf()))
         .andExpectAll(
@@ -163,7 +165,7 @@ class ReinstateLicencePositionCorrectionControllerTest extends AbstractControlle
 
     var reasonNotReinstatable = String.format("Licence position %s is not marked for deletion and cannot be reinstated", POSITION_ID);
     mockMvc.perform(post(ReverseRouter.route(on(ReinstateLicencePositionCorrectionController.class)
-            .reinstatePosition(CORRECTION_ID, POSITION_ID, null, null)))
+            .reinstatePosition(CORRECTION, POSITION, null)))
             .with(user(regulatorUser))
             .with(csrf()))
         .andExpectAll(
@@ -185,6 +187,7 @@ class ReinstateLicencePositionCorrectionControllerTest extends AbstractControlle
 
     when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
         .thenReturn(Optional.of(CORRECTION));
+    when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(CORRECTION));
     return CORRECTION;
   }
 

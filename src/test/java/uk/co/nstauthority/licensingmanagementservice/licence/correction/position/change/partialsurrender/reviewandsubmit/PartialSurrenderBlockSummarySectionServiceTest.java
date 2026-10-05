@@ -34,6 +34,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaDe
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaSurrenderOutcome;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.FeatureTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.spatial.LicencePositionSpatialService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
@@ -527,10 +528,9 @@ class PartialSurrenderBlockSummarySectionServiceTest {
       Feature block
   ) {
     return ReverseRouter.route(on(PartialSurrenderDefineAreaController.class).renderDefineArea(
-        positionCorrection.getLicenceCorrection().getId(),
-        positionCorrection.getId(),
-        block.getId(),
-        null
+        positionCorrection.getLicenceCorrection(),
+        positionCorrection,
+        block.getId()
     ));
   }
 
@@ -539,10 +539,9 @@ class PartialSurrenderBlockSummarySectionServiceTest {
       Feature block
   ) {
     return ReverseRouter.route(on(BlockSurrenderTypeController.class).renderSurrenderTypeForm(
-        positionCorrection.getLicenceCorrection().getId(),
-        positionCorrection.getId(),
-        block.getId(),
-        null
+        positionCorrection.getLicenceCorrection(),
+        positionCorrection,
+        block.getId()
     ));
   }
 
@@ -553,11 +552,10 @@ class PartialSurrenderBlockSummarySectionServiceTest {
       Feature block
   ) {
     return ReverseRouter.route(on(BlockSurrenderTypeController.class).renderSurrenderTypeFormForCorrectingChange(
-        correction.getId(),
-        licencePosition.getId(),
-        changeId,
-        block.getId(),
-        null
+        correction,
+        licencePosition,
+        new LicencePositionChange(UUID.fromString(changeId)),
+        block.getId()
     ));
   }
 }

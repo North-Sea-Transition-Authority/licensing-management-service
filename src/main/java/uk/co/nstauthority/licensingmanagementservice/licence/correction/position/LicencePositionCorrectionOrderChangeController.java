@@ -11,7 +11,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
@@ -39,16 +38,14 @@ public class LicencePositionCorrectionOrderChangeController {
 
   @GetMapping
   public ModelAndView renderCorrectionLicencePositionOrder(
-      @PathVariable UUID correctionId,
-      @PathVariable UUID licencePositionId,
-      @RequestAttribute("validatedCorrection") LicenceCorrection correction
+      LicenceCorrection correction,
+      @PathVariable UUID licencePositionId
   ) {
     var orderedPositions = licencePositionCorrectionService.getOrderableSameDatePositions(correction, licencePositionId);
     var moveOptions = PositionMoveOptionUtil.buildMoveOptions(orderedPositions, licencePositionId);
 
     if (moveOptions.isEmpty()) {
-      return ReverseRouter.redirect(on(LicenceCorrectionController.class)
-          .renderCorrection(correction.getId(), null));
+      return ReverseRouter.redirect(on(LicenceCorrectionController.class).renderCorrection(correction));
     }
 
     return correctPositionCorrectionOrderModelAndView(
@@ -57,9 +54,8 @@ public class LicencePositionCorrectionOrderChangeController {
 
   @PostMapping
   public ModelAndView correctLicencePositionCorrectionOrder(
-      @PathVariable UUID correctionId,
+      LicenceCorrection correction,
       @PathVariable UUID licencePositionId,
-      @RequestAttribute("validatedCorrection") LicenceCorrection correction,
       @ModelAttribute("form") CorrectPositionOrderForm form,
       BindingResult bindingResult,
       RedirectAttributes redirectAttributes
@@ -78,8 +74,7 @@ public class LicencePositionCorrectionOrderChangeController {
 
     NotificationBanner.newSuccessBannerWithHeader("Licence position order updated", redirectAttributes);
 
-    return ReverseRouter.redirect(on(LicenceCorrectionController.class)
-        .renderCorrection(correction.getId(), null));
+    return ReverseRouter.redirect(on(LicenceCorrectionController.class).renderCorrection(correction));
   }
 
   private ModelAndView correctPositionCorrectionOrderModelAndView(
@@ -96,8 +91,7 @@ public class LicencePositionCorrectionOrderChangeController {
         .addObject("positionMoveOptions", moveOptions)
         .addObject("currentPositionOrder", PositionMoveOptionUtil.buildCurrentOrder(orderedPositions, positionBeingMovedId))
         .addObject("singleOutcome", moveOptions.size() == 1)
-        .addObject("backLinkUrl", ReverseRouter.route(on(LicenceCorrectionController.class)
-            .renderCorrection(correction.getId(), null)));
+        .addObject("backLinkUrl", ReverseRouter.route(on(LicenceCorrectionController.class).renderCorrection(correction)));
   }
 
   private String buildPageTitle(

@@ -2,69 +2,59 @@ package uk.co.nstauthority.licensingmanagementservice.licence.correction.positio
 
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
-import java.util.UUID;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanViewCorrection;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.position.LicencePositionBelongsToCorrectionLicence;
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.PartialSurrenderCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @Controller
 @RequestMapping("/licence-corrections/{correctionId}/positions/{licencePositionId}/correct-position-date")
 @InvokingUserCanViewCorrection
+@LicencePositionBelongsToCorrectionLicence
 public class CorrectPositionDateController {
 
   private final CorrectPositionDateFormValidator correctPositionDateFormValidator;
   private final LicencePositionCorrectionService licencePositionCorrectionService;
-  private final LicencePositionService licencePositionService;
   private final PartialSurrenderCorrectionService partialSurrenderCorrectionService;
 
   public CorrectPositionDateController(
           CorrectPositionDateFormValidator correctPositionDateFormValidator,
           LicencePositionCorrectionService licencePositionCorrectionService,
-          LicencePositionService licencePositionService,
           PartialSurrenderCorrectionService partialSurrenderCorrectionService
   ) {
     this.correctPositionDateFormValidator = correctPositionDateFormValidator;
     this.licencePositionCorrectionService = licencePositionCorrectionService;
-    this.licencePositionService = licencePositionService;
     this.partialSurrenderCorrectionService = partialSurrenderCorrectionService;
   }
 
   @GetMapping
   public ModelAndView renderCorrectLicencePositionCorrectionDate(
-          @PathVariable UUID correctionId,
-          @PathVariable UUID licencePositionId,
-          @RequestAttribute("validatedCorrection") LicenceCorrection correction
+          LicenceCorrection correction,
+          LicencePosition licencePosition
   ) {
-    var licencePosition = licencePositionService.getPositionForLicence(correction.getLicence(), licencePositionId);
     return correctPositionCorrectionDateModelAndView(correction, licencePosition, new CorrectPositionDateForm());
   }
 
   @PostMapping
   ModelAndView correctLicencePositionCorrectionDate(
-      @PathVariable UUID correctionId,
-      @PathVariable UUID licencePositionId,
-      @RequestAttribute("validatedCorrection") LicenceCorrection correction,
+      LicenceCorrection correction,
+      LicencePosition licencePosition,
       @ModelAttribute("form") CorrectPositionDateForm form,
       BindingResult bindingResult,
       RedirectAttributes redirectAttributes
   ) {
-    var licencePosition = licencePositionService.getPositionForLicence(correction.getLicence(), licencePositionId);
-
     if (correctPositionDateFormValidator.hasErrors(form, bindingResult)) {
       return correctPositionCorrectionDateModelAndView(correction, licencePosition, form);
     }
@@ -81,8 +71,7 @@ public class CorrectPositionDateController {
         .withHeadingContent("Licence position correction date updated")
         .applyTo(redirectAttributes);
 
-    return ReverseRouter.redirect(on(LicenceCorrectionController.class)
-        .renderCorrection(correction.getId(), null));
+    return ReverseRouter.redirect(on(LicenceCorrectionController.class).renderCorrection(correction));
   }
 
   private ModelAndView correctPositionCorrectionDateModelAndView(
@@ -97,7 +86,6 @@ public class CorrectPositionDateController {
         .addObject("currentPositionDate", licencePosition.getFormattedPositionDate())
         .addObject("form", form)
         .addObject("backLinkUrl",
-            ReverseRouter.route(on(LicenceCorrectionController.class)
-                .renderCorrection(correction.getId(), null)));
+            ReverseRouter.route(on(LicenceCorrectionController.class).renderCorrection(correction)));
   }
 }

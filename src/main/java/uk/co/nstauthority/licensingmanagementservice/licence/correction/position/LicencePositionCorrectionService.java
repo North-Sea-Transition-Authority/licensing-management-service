@@ -56,6 +56,10 @@ public class LicencePositionCorrectionService {
     this.licencePositionChangeService = licencePositionChangeService;
   }
 
+  public Optional<LicencePositionCorrection> findById(UUID licencePositionCorrectionId) {
+    return licencePositionCorrectionRepository.findById(licencePositionCorrectionId);
+  }
+
   public Optional<LicencePositionCorrection> findUpdatePositionCorrection(
       LicenceCorrection licenceCorrection,
       LicencePosition licencePosition
@@ -182,15 +186,6 @@ public class LicencePositionCorrectionService {
       LicencePosition licencePosition
   ) {
     return isPositionRemovedInCorrection(licenceCorrection, licencePosition);
-  }
-
-  public LicencePositionCorrection getPositionCorrectionForCorrection(
-      UUID licencePositionCorrectionId,
-      LicenceCorrection licenceCorrection
-  ) {
-    return licencePositionCorrectionRepository
-        .findByIdAndLicenceCorrection(licencePositionCorrectionId, licenceCorrection)
-        .orElseThrow(() -> new LmsEntityNotFoundException("licencePositionCorrection", licencePositionCorrectionId));
   }
 
   @Transactional

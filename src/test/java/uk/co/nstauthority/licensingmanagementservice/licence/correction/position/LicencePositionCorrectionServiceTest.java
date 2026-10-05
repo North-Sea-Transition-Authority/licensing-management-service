@@ -180,33 +180,6 @@ class LicencePositionCorrectionServiceTest {
   }
 
   @Test
-  void getPositionCorrectionForCorrection_whenFound_returnsCorrection() {
-    var positionCorrectionId = UUID.randomUUID();
-    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
-        .withId(positionCorrectionId)
-        .build();
-
-    when(licencePositionCorrectionRepository.findByIdAndLicenceCorrection(positionCorrectionId, LICENCE_CORRECTION))
-        .thenReturn(Optional.of(positionCorrection));
-
-    assertThat(licencePositionCorrectionService
-        .getPositionCorrectionForCorrection(positionCorrectionId, LICENCE_CORRECTION))
-        .isEqualTo(positionCorrection);
-  }
-
-  @Test
-  void getPositionCorrectionForCorrection_whenNotFound_throws() {
-    var positionCorrectionId = UUID.randomUUID();
-
-    when(licencePositionCorrectionRepository.findByIdAndLicenceCorrection(positionCorrectionId, LICENCE_CORRECTION))
-        .thenReturn(Optional.empty());
-
-    assertThatThrownBy(() -> licencePositionCorrectionService
-        .getPositionCorrectionForCorrection(positionCorrectionId, LICENCE_CORRECTION))
-        .isInstanceOf(LmsEntityNotFoundException.class);
-  }
-
-  @Test
   void undoPositionCorrection_deletesCorrection() {
     licencePositionCorrectionService.undoPositionCorrection(POSITION_CORRECTION);
     verify(licencePositionCorrectionRepository).delete(POSITION_CORRECTION);

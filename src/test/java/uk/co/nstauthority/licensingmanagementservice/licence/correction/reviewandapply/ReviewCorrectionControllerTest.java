@@ -96,7 +96,7 @@ class ReviewCorrectionControllerTest extends AbstractControllerTest {
   @Test
   void renderReviewCorrection_whenNotLoggedIn_thenRedirectToLogin() throws Exception {
     mockMvc.perform(get(ReverseRouter.route(on(ReviewCorrectionController.class)
-            .renderReviewCorrection(CORRECTION_ID, null))))
+            .renderReviewCorrection(correction))))
         .andExpect(redirectionToLoginUrl());
   }
 
@@ -106,7 +106,7 @@ class ReviewCorrectionControllerTest extends AbstractControllerTest {
         .thenReturn(Optional.empty());
 
     mockMvc.perform(get(ReverseRouter.route(on(ReviewCorrectionController.class)
-            .renderReviewCorrection(CORRECTION_ID, null)))
+            .renderReviewCorrection(correction)))
             .with(user(regulatorUser)))
         .andExpect(status().isForbidden());
   }
@@ -122,7 +122,7 @@ class ReviewCorrectionControllerTest extends AbstractControllerTest {
         .thenReturn(Optional.of(cancelledCorrection));
 
     mockMvc.perform(get(ReverseRouter.route(on(ReviewCorrectionController.class)
-            .renderReviewCorrection(CORRECTION_ID, null)))
+            .renderReviewCorrection(correction)))
             .with(user(regulatorUser)))
         .andExpect(status().isForbidden());
   }
@@ -135,7 +135,7 @@ class ReviewCorrectionControllerTest extends AbstractControllerTest {
     givenValidUserAndCorrectionPageWithPositionsAndErrors(List.of(), List.of(blockingError));
 
     var modelAndView = mockMvc.perform(get(ReverseRouter.route(on(ReviewCorrectionController.class)
-            .renderReviewCorrection(CORRECTION_ID, null)))
+            .renderReviewCorrection(correction)))
             .with(user(regulatorUser)))
         .andExpectAll(
             status().isOk(),
@@ -155,7 +155,7 @@ class ReviewCorrectionControllerTest extends AbstractControllerTest {
     givenValidUserAndCorrectionPageWithPositionsAndErrors(positions, List.of());
 
     mockMvc.perform(get(ReverseRouter.route(on(ReviewCorrectionController.class)
-            .renderReviewCorrection(CORRECTION_ID, null)))
+            .renderReviewCorrection(correction)))
             .with(user(regulatorUser)))
         .andExpectAll(
             status().isOk(),
@@ -168,7 +168,7 @@ class ReviewCorrectionControllerTest extends AbstractControllerTest {
             model().attribute("canApply", true),
             model().attribute("errorSummaryItems", List.of()),
             model().attribute("backLinkUrl", ReverseRouter.route(on(LicenceCorrectionController.class)
-                .renderCorrection(CORRECTION_ID, null)))
+                .renderCorrection(correction)))
         );
   }
 
@@ -177,7 +177,7 @@ class ReviewCorrectionControllerTest extends AbstractControllerTest {
     givenValidUserAndCorrectionPageWithPositionsAndErrors(List.of(), List.of());
 
     mockMvc.perform(get(ReverseRouter.route(on(ReviewCorrectionController.class)
-            .renderReviewCorrection(CORRECTION_ID, null)))
+            .renderReviewCorrection(correction)))
             .with(user(regulatorUser)))
         .andExpectAll(
             status().isOk(),
@@ -207,7 +207,7 @@ class ReviewCorrectionControllerTest extends AbstractControllerTest {
     when(correctionReviewService.getAppliedPositions(completeCorrection)).thenReturn(List.of(appliedPosition));
 
     mockMvc.perform(get(ReverseRouter.route(on(ReviewCorrectionController.class)
-            .renderReviewCorrection(CORRECTION_ID, null)))
+            .renderReviewCorrection(correction)))
             .with(user(regulatorUser)))
         .andExpectAll(
             status().isOk(),
@@ -226,7 +226,7 @@ class ReviewCorrectionControllerTest extends AbstractControllerTest {
   @Test
   void processApplyCorrection_whenNotLoggedIn_redirectToLogin() throws Exception {
     mockMvc.perform(post(ReverseRouter.route(on(ReviewCorrectionController.class)
-            .processApplyCorrection(CORRECTION_ID, null, null)))
+            .processApplyCorrection(correction, null)))
             .with(csrf()))
         .andExpect(redirectionToLoginUrl());
   }
@@ -237,7 +237,7 @@ class ReviewCorrectionControllerTest extends AbstractControllerTest {
         .thenReturn(Optional.empty());
 
     mockMvc.perform(post(ReverseRouter.route(on(ReviewCorrectionController.class)
-            .processApplyCorrection(CORRECTION_ID, null, null)))
+            .processApplyCorrection(correction, null)))
             .with(user(regulatorUser))
             .with(csrf()))
         .andExpect(status().isForbidden());
@@ -256,7 +256,7 @@ class ReviewCorrectionControllerTest extends AbstractControllerTest {
         .thenReturn(Optional.of(completeCorrection));
 
     mockMvc.perform(post(ReverseRouter.route(on(ReviewCorrectionController.class)
-            .processApplyCorrection(CORRECTION_ID, null, null)))
+            .processApplyCorrection(correction, null)))
             .with(user(regulatorUser))
             .with(csrf()))
         .andExpect(status().isForbidden());
@@ -275,7 +275,7 @@ class ReviewCorrectionControllerTest extends AbstractControllerTest {
     when(correctionApplyService.applyCorrection(correction)).thenReturn(List.of(blockingError));
 
     var modelAndView = mockMvc.perform(post(ReverseRouter.route(on(ReviewCorrectionController.class)
-            .processApplyCorrection(CORRECTION_ID, null, null)))
+            .processApplyCorrection(correction, null)))
             .with(user(regulatorUser))
             .with(csrf()))
         .andExpectAll(
@@ -298,7 +298,7 @@ class ReviewCorrectionControllerTest extends AbstractControllerTest {
     when(tabbedLicencePageService.getDefaultTabUrl(correction.getLicence())).thenReturn(DEFAULT_TAB_URL);
 
     mockMvc.perform(post(ReverseRouter.route(on(ReviewCorrectionController.class)
-            .processApplyCorrection(CORRECTION_ID, null, null)))
+            .processApplyCorrection(correction, null)))
             .with(user(regulatorUser))
             .with(csrf()))
         .andExpectAll(

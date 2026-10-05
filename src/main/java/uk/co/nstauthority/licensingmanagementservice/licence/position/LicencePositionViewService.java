@@ -343,19 +343,18 @@ public class LicencePositionViewService {
     var nameContext = getOrganisationNameContext(allChronologicalPositions);
     var positionDate = effectivePositionDate(allChronologicalPositions, licencePosition.getId());
 
-    var stagedPositionCorrectionId = updatedCorrections.stream()
+    var stagedPositionCorrection = updatedCorrections.stream()
         .filter(positionCorrection -> positionCorrection.getTargetLicencePosition().getId()
             .equals(licencePosition.getId()))
-        .map(LicencePositionCorrection::getId)
         .findFirst()
         .orElse(null);
 
     var urlContext = currentPositionRemoved
         ? null
         : PositionChangeUrlContext.forExecutedPosition(
-            licenceCorrection.getId(),
-            licencePosition.getId(),
-            stagedPositionCorrectionId);
+            licenceCorrection,
+            licencePosition,
+            stagedPositionCorrection);
 
     var changeViews = LicencePositionChangeViewResolver.getChangeViews(
         licencePosition.getId(),
@@ -369,7 +368,7 @@ public class LicencePositionViewService {
     var actions = currentPositionRemoved
         ? LicencePositionPageView.Actions.none()
         : new LicencePositionPageView.Actions(ReverseRouter.route(on(LicencePositionAddChangeController.class)
-          .renderForExecutedPosition(licenceCorrection.getId(), licencePosition.getId(), null)));
+          .renderForExecutedPosition(licenceCorrection, licencePosition)));
 
     var validationPositions = currentPositionRemoved
         ? allChronologicalPositions.stream()
@@ -442,11 +441,11 @@ public class LicencePositionViewService {
         resolvedStates,
         nameContext.getNamesForDate(positionDate),
         featureNames,
-        PositionChangeUrlContext.forAddedPosition(licenceCorrection.getId(), positionCorrection.getId())
+        PositionChangeUrlContext.forAddedPosition(licenceCorrection, positionCorrection)
     );
 
     var addChangeUrl = ReverseRouter.route(on(LicencePositionAddChangeController.class)
-        .renderForAddedPosition(licenceCorrection.getId(), positionCorrection.getId(), null));
+        .renderForAddedPosition(licenceCorrection, positionCorrection));
 
     var actions = new LicencePositionPageView.Actions(addChangeUrl);
 
@@ -833,13 +832,13 @@ public class LicencePositionViewService {
           var timelineViewBuilder = LicencePositionTimelineView.builder()
               .withPositionId(addedPositionId)
               .withUrl(ReverseRouter.route(on(LicenceCorrectionController.class)
-                  .renderAddedPosition(licenceCorrection.getId(), licencePositionCorrection.getId(), null)))
+                  .renderAddedPosition(licenceCorrection, licencePositionCorrection)))
               .withRegulatorReference(payload.correctionReference())
               .withFormattedPositionDate(DateUtil.formatLongDateWithOrder(effectiveDate, payload.effectiveDateOrder()))
               .withAddedInThisCorrection(true)
               .withHasError(invalidPositionIds.contains(addedPositionId))
               .withUndoUrl(ReverseRouter.route(on(UndoLicencePositionCorrectionController.class)
-                  .renderUndoPosition(licenceCorrection.getId(), licencePositionCorrection.getId(), null)));
+                  .renderUndoPosition(licenceCorrection, licencePositionCorrection)));
 
           if (sameDateCount.getOrDefault(effectiveDate, 0L) > 1) {
             timelineViewBuilder.withCorrectOrderUrl(getCorrectOrderPositionUrl(licenceCorrection, addedPositionId));
@@ -852,27 +851,27 @@ public class LicencePositionViewService {
 
   private String getPositionUrl(LicencePosition licencePosition) {
     return ReverseRouter.route(on(LicencePositionController.class)
-        .renderLicencePosition(licencePosition.getLicence(), licencePosition.getId(), null, null));
+        .renderLicencePosition(licencePosition.getLicence(), licencePosition, null, null));
   }
 
   private String getCorrectionPositionUrl(LicenceCorrection correction, LicencePosition position) {
     return ReverseRouter.route(on(LicenceCorrectionController.class)
-        .renderLicencePosition(correction.getId(), position.getId(), correction));
+        .renderLicencePosition(correction, position));
   }
 
   private String getRemovePositionUrl(LicenceCorrection correction, LicencePosition position) {
     return ReverseRouter.route(on(RemoveExecutedLicencePositionCorrectionController.class)
-        .renderRemovePosition(correction.getId(), position.getId(), null));
+        .renderRemovePosition(correction, position));
   }
 
   private String getReinstatePositionUrl(LicenceCorrection correction, LicencePosition position) {
     return ReverseRouter.route(on(ReinstateLicencePositionCorrectionController.class)
-        .renderReinstatePosition(correction.getId(), position.getId(), null));
+        .renderReinstatePosition(correction, position));
   }
 
   private String getCorrectDatePositionUrl(LicenceCorrection correction, LicencePosition position) {
     return ReverseRouter.route(on(CorrectPositionDateController.class)
-        .renderCorrectLicencePositionCorrectionDate(correction.getId(), position.getId(), null));
+        .renderCorrectLicencePositionCorrectionDate(correction, position));
   }
 
   private String getCorrectOrderPositionUrl(LicenceCorrection correction, LicencePosition position) {
@@ -881,7 +880,7 @@ public class LicencePositionViewService {
 
   private String getCorrectOrderPositionUrl(LicenceCorrection correction, UUID positionId) {
     return ReverseRouter.route(on(LicencePositionCorrectionOrderChangeController.class)
-        .renderCorrectionLicencePositionOrder(correction.getId(), positionId, null));
+        .renderCorrectionLicencePositionOrder(correction, positionId));
   }
 
   private String effectiveReference(

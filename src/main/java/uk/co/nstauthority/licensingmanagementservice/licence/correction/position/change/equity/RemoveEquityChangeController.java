@@ -2,12 +2,10 @@ package uk.co.nstauthority.licensingmanagementservice.licence.correction.positio
 
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
-import java.util.UUID;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
@@ -15,6 +13,7 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correct
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.LicencePositionIsNotRemovedInCorrection;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.LicencePositionChangeBelongsToPosition;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.LicencePositionChangeIsOfType;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.position.LicencePositionBelongsToCorrectionLicence;
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
@@ -23,7 +22,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.TransferEquityOperation;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @Controller
@@ -37,59 +37,52 @@ public class RemoveEquityChangeController {
 
   private final LicencePositionCorrectionService licencePositionCorrectionService;
   private final EquityChangeService equityChangeService;
-  private final LicencePositionService licencePositionService;
 
   public RemoveEquityChangeController(
       LicencePositionCorrectionService licencePositionCorrectionService,
-      EquityChangeService equityChangeService,
-      LicencePositionService licencePositionService
+      EquityChangeService equityChangeService
   ) {
     this.licencePositionCorrectionService = licencePositionCorrectionService;
     this.equityChangeService = equityChangeService;
-    this.licencePositionService = licencePositionService;
   }
 
   @GetMapping("/position/{licencePositionId}/change/{changeId}/remove-equity-change")
   @LicencePositionIsNotRemovedInCorrection
   @LicencePositionChangeBelongsToPosition
   @LicencePositionChangeIsOfType({SetEquityOperation.class, TransferEquityOperation.class})
+  @LicencePositionBelongsToCorrectionLicence
   public ModelAndView renderRemoveExecutedEquityChange(
-      @PathVariable UUID correctionId,
-      @PathVariable UUID licencePositionId,
-      @PathVariable String changeId,
-      @RequestAttribute("validatedCorrection") LicenceCorrection correction
+      LicenceCorrection correction,
+      LicencePosition licencePosition,
+      LicencePositionChange change
   ) {
-    var licencePosition = licencePositionService.getPositionForLicence(correction.getLicence(), licencePositionId);
-
-    return removeEquityChangeModelAndView(correction, licencePosition.getId(), changeId);
+    return removeEquityChangeModelAndView(correction, licencePosition, change.getId().toString());
   }
 
   @PostMapping("/position/{licencePositionId}/change/{changeId}/remove-equity-change")
   @LicencePositionChangeBelongsToPosition
   @LicencePositionIsNotRemovedInCorrection
   @LicencePositionChangeIsOfType({SetEquityOperation.class, TransferEquityOperation.class})
+  @LicencePositionBelongsToCorrectionLicence
   public ModelAndView removeEquityChange(
-      @PathVariable UUID correctionId,
-      @PathVariable UUID licencePositionId,
-      @PathVariable String changeId,
-      @RequestAttribute("validatedCorrection") LicenceCorrection correction,
+      LicenceCorrection correction,
+      LicencePosition licencePosition,
+      LicencePositionChange change,
       RedirectAttributes redirectAttributes
   ) {
-    var licencePosition = licencePositionService.getPositionForLicence(correction.getLicence(), licencePositionId);
 
-    equityChangeService.removeExistingEquityChange(licencePosition, correction, changeId);
+    equityChangeService.removeExistingEquityChange(licencePosition, correction, change.getId().toString());
 
     NotificationBanner.newSuccessBannerWithHeader("Beneficial interest change removed", redirectAttributes);
 
     return ReverseRouter.redirect(on(LicenceCorrectionController.class)
-        .renderLicencePosition(correction.getId(), licencePositionId, null));
+        .renderLicencePosition(correction, licencePosition));
   }
 
   @GetMapping("/change/{changeId}/undo-equity-change")
   public ModelAndView renderUndoEquityChange(
-      @PathVariable UUID correctionId,
-      @PathVariable String changeId,
-      @RequestAttribute("validatedCorrection") LicenceCorrection correction
+      LicenceCorrection correction,
+      @PathVariable String changeId
   ) {
     var positionCorrection = licencePositionCorrectionService
         .getPositionCorrectionContainingChange(correction, changeId);
@@ -99,9 +92,8 @@ public class RemoveEquityChangeController {
 
   @PostMapping("/change/{changeId}/undo-equity-change")
   public ModelAndView undoEquityChange(
-      @PathVariable UUID correctionId,
+      LicenceCorrection correction,
       @PathVariable String changeId,
-      @RequestAttribute("validatedCorrection") LicenceCorrection correction,
       RedirectAttributes redirectAttributes
   ) {
     var positionCorrection = licencePositionCorrectionService
@@ -113,15 +105,15 @@ public class RemoveEquityChangeController {
 
     if (positionCorrection.getChangeType() == LicencePositionCorrectionChangeType.ADD_POSITION) {
       return ReverseRouter.redirect(on(LicenceCorrectionController.class)
-          .renderAddedPosition(correction.getId(), positionCorrection.getId(), null));
+          .renderAddedPosition(correction, positionCorrection));
     }
     return ReverseRouter.redirect(on(LicenceCorrectionController.class)
-        .renderLicencePosition(correction.getId(), positionCorrection.getTargetLicencePosition().getId(), null));
+        .renderLicencePosition(correction, positionCorrection.getTargetLicencePosition()));
   }
 
   private ModelAndView removeEquityChangeModelAndView(
       LicenceCorrection correction,
-      UUID licencePositionId,
+      LicencePosition licencePosition,
       String changeId
   ) {
     var equityChangeContext = equityChangeService.getExecutedEquityChangeContext(changeId);
@@ -132,7 +124,7 @@ public class RemoveEquityChangeController {
         .addObject("setEquityRows", equityChangeContext.setEquityRows())
         .addObject("transferEquityRows", equityChangeContext.transferEquityRows())
         .addObject("cancelUrl", ReverseRouter.route(on(LicenceCorrectionController.class)
-            .renderLicencePosition(correction.getId(), licencePositionId, null)));
+            .renderLicencePosition(correction, licencePosition)));
   }
 
   private ModelAndView undoEquityChangeModelAndView(
@@ -153,9 +145,9 @@ public class RemoveEquityChangeController {
   private String positionPageRoute(LicenceCorrection correction, LicencePositionCorrection positionCorrection) {
     if (positionCorrection.getChangeType() == LicencePositionCorrectionChangeType.ADD_POSITION) {
       return ReverseRouter.route(on(LicenceCorrectionController.class)
-          .renderAddedPosition(correction.getId(), positionCorrection.getId(), null));
+          .renderAddedPosition(correction, positionCorrection));
     }
     return ReverseRouter.route(on(LicenceCorrectionController.class)
-        .renderLicencePosition(correction.getId(), positionCorrection.getTargetLicencePosition().getId(), null));
+        .renderLicencePosition(correction, positionCorrection.getTargetLicencePosition()));
   }
 }

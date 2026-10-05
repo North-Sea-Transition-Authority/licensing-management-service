@@ -10,10 +10,12 @@ import java.time.Instant;
 import java.util.UUID;
 import org.hibernate.annotations.UuidGenerator;
 import org.hibernate.envers.Audited;
+import uk.co.nstauthority.licensingmanagementservice.endpointvalidation.PathVariableEntity;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 
 @Audited
 @Entity(name = "licence_corrections")
+@PathVariableEntity(pathVariableName = "correctionId")
 public class LicenceCorrection {
 
   @Id

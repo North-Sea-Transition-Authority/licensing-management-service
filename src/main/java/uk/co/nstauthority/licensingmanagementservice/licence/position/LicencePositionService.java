@@ -3,6 +3,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.position;
 import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -41,6 +42,10 @@ public class LicencePositionService {
     licencePosition.setStatus(LicencePositionStatus.EXECUTED);
 
     return licencePositionRepository.save(licencePosition);
+  }
+
+  public Optional<LicencePosition> findById(UUID licencePositionId) {
+    return licencePositionRepository.findById(licencePositionId);
   }
 
   public LicencePosition getPositionForLicence(Licence licence, UUID licencePositionId) {

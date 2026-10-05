@@ -8,16 +8,16 @@ import org.springframework.stereotype.Controller;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.CorrectionLicenceIsType;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanViewCorrection;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.LicencePositionCorrectionBelongsToCorrection;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.LicencePositionIsNotRemovedInCorrection;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.administrator.LicencePositionHasNoLiveChangeOfType;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.position.LicencePositionBelongsToCorrectionLicence;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitRestController;
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
 import uk.co.nstauthority.licensingmanagementservice.fds.searchselector.SearchSelectorService;
@@ -26,10 +26,9 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenseeOperation;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionViewService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicenseeChangeContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionLicenseeChangeUtil;
@@ -44,36 +43,29 @@ public class LicencePositionLicenseeChangeController {
 
   private final LicenceFormService licenceFormService;
   private final LicenseeChangeFormValidator licenseeChangeFormValidator;
-  private final LicencePositionService licencePositionService;
   private final LicencePositionViewService licencePositionViewService;
   private final LicenseeChangeService licenseeChangeService;
-  private final LicencePositionCorrectionService licencePositionCorrectionService;
 
   LicencePositionLicenseeChangeController(
       LicenceFormService licenceFormService,
       LicenseeChangeFormValidator licenseeChangeFormValidator,
-      LicencePositionService licencePositionService,
       LicencePositionViewService licencePositionViewService,
-      LicenseeChangeService licenseeChangeService,
-      LicencePositionCorrectionService licencePositionCorrectionService
+      LicenseeChangeService licenseeChangeService
   ) {
     this.licenceFormService = licenceFormService;
     this.licenseeChangeFormValidator = licenseeChangeFormValidator;
-    this.licencePositionService = licencePositionService;
     this.licencePositionViewService = licencePositionViewService;
     this.licenseeChangeService = licenseeChangeService;
-    this.licencePositionCorrectionService = licencePositionCorrectionService;
   }
 
   @GetMapping("/position/{licencePositionId}/add-licensee-change")
   @LicencePositionHasNoLiveChangeOfType(value = LicenseeOperation.class)
   @LicencePositionIsNotRemovedInCorrection
+  @LicencePositionBelongsToCorrectionLicence
   public ModelAndView renderForExecutedPosition(
-      @PathVariable UUID correctionId,
-      @PathVariable UUID licencePositionId,
-      @RequestAttribute("validatedCorrection") LicenceCorrection correction
+      LicenceCorrection correction,
+      LicencePosition licencePosition
   ) {
-    var licencePosition = licencePositionService.getPositionForLicence(correction.getLicence(), licencePositionId);
     var licenseeChangeContext = licencePositionViewService.getLicenseeChangeContext(
         correction,
         licencePosition.getId()
@@ -83,7 +75,7 @@ public class LicencePositionLicenseeChangeController {
 
     return getLicenseeChangeModelAndView(
         form,
-        executedCancelUrl(correctionId, licencePositionId),
+        executedCancelUrl(correction, licencePosition),
         licenseeChangeContext.previousLicenseeNames()
     );
   }
@@ -91,15 +83,14 @@ public class LicencePositionLicenseeChangeController {
   @PostMapping("/position/{licencePositionId}/add-licensee-change")
   @LicencePositionHasNoLiveChangeOfType(value = LicenseeOperation.class)
   @LicencePositionIsNotRemovedInCorrection
+  @LicencePositionBelongsToCorrectionLicence
   public ModelAndView submitForExecutedPosition(
-      @PathVariable UUID correctionId,
-      @PathVariable UUID licencePositionId,
-      @RequestAttribute("validatedCorrection") LicenceCorrection correction,
+      LicenceCorrection correction,
+      LicencePosition licencePosition,
       @ModelAttribute("form") LicenseeChangeForm form,
       BindingResult bindingResult,
       RedirectAttributes redirectAttributes
   ) {
-    var licencePosition = licencePositionService.getPositionForLicence(correction.getLicence(), licencePositionId);
     var licenseeChangeContext = licencePositionViewService.getLicenseeChangeContext(
         correction,
         licencePosition.getId()
@@ -108,7 +99,7 @@ public class LicencePositionLicenseeChangeController {
     if (licenseeChangeFormValidator.hasErrors(form, bindingResult, licenseeChangeContext.previousLicenseeIds())) {
       return getLicenseeChangeModelAndView(
           form,
-          executedCancelUrl(correctionId, licencePositionId),
+          executedCancelUrl(correction, licencePosition),
           licenseeChangeContext.previousLicenseeNames()
       );
     }
@@ -122,43 +113,35 @@ public class LicencePositionLicenseeChangeController {
 
     NotificationBanner.newSuccessBannerWithHeader("Licensee change added", redirectAttributes);
     return ReverseRouter.redirect(on(LicenceCorrectionController.class)
-        .renderLicencePosition(correctionId, licencePositionId, null));
+        .renderLicencePosition(correction, licencePosition));
   }
 
   @GetMapping("/added-position/{licencePositionCorrectionId}/add-licensee-change")
+  @LicencePositionCorrectionBelongsToCorrection
   public ModelAndView renderForAddedPosition(
-      @PathVariable UUID correctionId,
-      @PathVariable UUID licencePositionCorrectionId,
-      @RequestAttribute("validatedCorrection") LicenceCorrection correction
+      LicenceCorrection correction,
+      LicencePositionCorrection licencePositionCorrection
   ) {
-    var licencePositionCorrection = licencePositionCorrectionService.getPositionCorrectionForCorrection(
-        licencePositionCorrectionId,
-        correction
-    );
     var licenseeChangeContext = getAddedPositionLicenseeChangeContext(correction, licencePositionCorrection);
 
     var form = LicencePositionLicenseeChangeUtil.populateLicenseeForm(licenseeChangeContext);
 
     return getLicenseeChangeModelAndView(
         form,
-        addedCancelUrl(correctionId, licencePositionCorrectionId),
+        addedCancelUrl(correction, licencePositionCorrection),
         licenseeChangeContext.previousLicenseeNames()
     );
   }
 
   @PostMapping("/added-position/{licencePositionCorrectionId}/add-licensee-change")
+  @LicencePositionCorrectionBelongsToCorrection
   public ModelAndView submitForAddedPosition(
-      @PathVariable UUID correctionId,
-      @PathVariable UUID licencePositionCorrectionId,
-      @RequestAttribute("validatedCorrection") LicenceCorrection correction,
+      LicenceCorrection correction,
+      LicencePositionCorrection licencePositionCorrection,
       @ModelAttribute("form") LicenseeChangeForm form,
       BindingResult bindingResult,
       RedirectAttributes redirectAttributes
   ) {
-    var licencePositionCorrection = licencePositionCorrectionService.getPositionCorrectionForCorrection(
-        licencePositionCorrectionId,
-        correction
-    );
     var licenseeChangeContext = getAddedPositionLicenseeChangeContext(correction, licencePositionCorrection);
 
     if (licenseeChangeFormValidator.hasErrors(
@@ -168,7 +151,7 @@ public class LicencePositionLicenseeChangeController {
     )) {
       return getLicenseeChangeModelAndView(
           form,
-          addedCancelUrl(correctionId, licencePositionCorrectionId),
+          addedCancelUrl(correction, licencePositionCorrection),
           licenseeChangeContext.previousLicenseeNames()
       );
     }
@@ -181,7 +164,7 @@ public class LicencePositionLicenseeChangeController {
 
     NotificationBanner.newSuccessBannerWithHeader("Licensee change added", redirectAttributes);
     return ReverseRouter.redirect(on(LicenceCorrectionController.class)
-        .renderAddedPosition(correctionId, licencePositionCorrectionId, null));
+        .renderAddedPosition(correction, licencePositionCorrection));
   }
 
 
@@ -231,13 +214,13 @@ public class LicencePositionLicenseeChangeController {
     }
   }
 
-  private String executedCancelUrl(UUID correctionId, UUID licencePositionId) {
+  private String executedCancelUrl(LicenceCorrection correction, LicencePosition licencePosition) {
     return ReverseRouter.route(on(LicenceCorrectionController.class)
-        .renderLicencePosition(correctionId, licencePositionId, null));
+        .renderLicencePosition(correction, licencePosition));
   }
 
-  private String addedCancelUrl(UUID correctionId, UUID licencePositionCorrectionId) {
+  private String addedCancelUrl(LicenceCorrection correction, LicencePositionCorrection licencePositionCorrection) {
     return ReverseRouter.route(on(LicenceCorrectionController.class)
-        .renderAddedPosition(correctionId, licencePositionCorrectionId, null));
+        .renderAddedPosition(correction, licencePositionCorrection));
   }
 }

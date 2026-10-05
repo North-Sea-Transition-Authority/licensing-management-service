@@ -56,18 +56,22 @@ class CorrectionSummaryControllerTest extends AbstractControllerTest {
 
   @Test
   void renderCorrectionSummary_whenNotLoggedIn_thenRedirectToLogin() throws Exception {
+    var correction = buildCorrection(LicenceCorrectionStatus.IN_PROGRESS);
+
     mockMvc.perform(get(ReverseRouter.route(on(CorrectionSummaryController.class)
-            .renderCorrectionSummary(CORRECTION_ID, null))))
+            .renderCorrectionSummary(correction))))
         .andExpect(redirectionToLoginUrl());
   }
 
   @Test
   void renderCorrectionSummary_whenUserOnlyHasCorrectorRoleForOtherLicenceType_thenForbidden() throws Exception {
-    givenCorrectionExists(buildCorrection(LicenceCorrectionStatus.IN_PROGRESS));
+    var correction = buildCorrection(LicenceCorrectionStatus.IN_PROGRESS);
+
+    givenCorrectionExists(correction);
     givenRegulatorUserHasRole(Role.CARBON_STORAGE_LICENCE_CORRECTOR);
 
     mockMvc.perform(get(ReverseRouter.route(on(CorrectionSummaryController.class)
-            .renderCorrectionSummary(CORRECTION_ID, null)))
+            .renderCorrectionSummary(correction)))
             .with(user(regulatorUser)))
         .andExpect(status().isForbidden());
 
@@ -76,11 +80,13 @@ class CorrectionSummaryControllerTest extends AbstractControllerTest {
 
   @Test
   void renderCorrectionSummary_whenCorrectionIsCancelled_thenForbidden() throws Exception {
-    givenCorrectionExists(buildCorrection(LicenceCorrectionStatus.CANCELLED));
+    var correction = buildCorrection(LicenceCorrectionStatus.CANCELLED);
+
+    givenCorrectionExists(correction);
     givenRegulatorUserHasRole(Role.PRODUCTION_LICENCE_CORRECTOR);
 
     mockMvc.perform(get(ReverseRouter.route(on(CorrectionSummaryController.class)
-            .renderCorrectionSummary(CORRECTION_ID, null)))
+            .renderCorrectionSummary(correction)))
             .with(user(regulatorUser)))
         .andExpect(status().isForbidden());
 
@@ -106,7 +112,7 @@ class CorrectionSummaryControllerTest extends AbstractControllerTest {
     when(correctionSummaryService.getSummaryPositions(correction)).thenReturn(positions);
 
     mockMvc.perform(get(ReverseRouter.route(on(CorrectionSummaryController.class)
-            .renderCorrectionSummary(CORRECTION_ID, null)))
+            .renderCorrectionSummary(correction)))
             .with(user(regulatorUser)))
         .andExpectAll(
             status().isOk(),

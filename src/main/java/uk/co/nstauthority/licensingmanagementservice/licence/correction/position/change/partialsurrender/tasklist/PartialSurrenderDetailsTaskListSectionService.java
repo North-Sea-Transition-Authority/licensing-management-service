@@ -75,20 +75,20 @@ public class PartialSurrenderDetailsTaskListSectionService
     return switch (context) {
       case PartialSurrenderTaskListContext.Staged(var positionCorrection) ->
           surrenderDetailsUrl(positionCorrection);
-      case PartialSurrenderTaskListContext.LiveChange(var correction, var licencePosition, var changeId) ->
+      case PartialSurrenderTaskListContext.LiveChange(var correction, var licencePosition, var change) ->
           ReverseRouter.route(on(LicencePositionPartialSurrenderController.class)
-              .renderForCorrectingChange(correction.getId(), licencePosition.getId(), changeId, null));
+              .renderForCorrectingChange(correction, licencePosition, change));
     };
   }
 
   private String surrenderDetailsUrl(LicencePositionCorrection positionCorrection) {
-    var correctionId = positionCorrection.getLicenceCorrection().getId();
+    var correction = positionCorrection.getLicenceCorrection();
 
     return switch (positionCorrection.getChangeType()) {
       case ADD_POSITION -> ReverseRouter.route(on(LicencePositionPartialSurrenderController.class)
-          .renderForAddedPosition(correctionId, positionCorrection.getId(), null));
+          .renderForAddedPosition(correction, positionCorrection));
       case UPDATE_POSITION -> ReverseRouter.route(on(LicencePositionPartialSurrenderController.class)
-          .renderForExecutedPosition(correctionId, positionCorrection.getTargetLicencePosition().getId(), null));
+          .renderForExecutedPosition(correction, positionCorrection.getTargetLicencePosition()));
       case REMOVE_POSITION -> throw new IllegalStateException(
           "Licence position correction %s removes a position so cannot carry a partial surrender"
               .formatted(positionCorrection.getId()));

@@ -2,14 +2,11 @@ package uk.co.nstauthority.licensingmanagementservice.licence.correction.positio
 
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
-import java.util.UUID;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
@@ -39,16 +36,14 @@ public class AddLicencePositionCorrectionController {
 
   @GetMapping
   public ModelAndView renderAddLicencePositionCorrection(
-      @PathVariable UUID correctionId,
-      @RequestAttribute("validatedCorrection") LicenceCorrection correction
+      LicenceCorrection correction
   ) {
     return addLicencePositionCorrectionModelAndView(correction, new AddLicencePositionCorrectionForm());
   }
 
   @PostMapping
   ModelAndView addLicencePositionCorrection(
-      @PathVariable UUID correctionId,
-      @RequestAttribute("validatedCorrection") LicenceCorrection correction,
+      LicenceCorrection correction,
       @ModelAttribute("form") AddLicencePositionCorrectionForm form,
       BindingResult bindingResult,
       RedirectAttributes redirectAttributes
@@ -68,7 +63,7 @@ public class AddLicencePositionCorrectionController {
         .applyTo(redirectAttributes);
 
     return ReverseRouter.redirect(on(LicenceCorrectionController.class)
-        .renderCorrection(correction.getId(), null));
+        .renderCorrection(correction));
   }
 
   private ModelAndView addLicencePositionCorrectionModelAndView(
@@ -80,6 +75,6 @@ public class AddLicencePositionCorrectionController {
         .addObject("form", form)
         .addObject("backLinkUrl",
             ReverseRouter.route(on(LicenceCorrectionController.class)
-                .renderCorrection(correction.getId(), null)));
+                .renderCorrection(correction)));
   }
 }

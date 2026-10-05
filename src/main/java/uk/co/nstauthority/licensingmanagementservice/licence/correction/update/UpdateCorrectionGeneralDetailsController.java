@@ -3,14 +3,11 @@ package uk.co.nstauthority.licensingmanagementservice.licence.correction.update;
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
 import java.util.Map;
-import java.util.UUID;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
@@ -44,10 +41,7 @@ public class UpdateCorrectionGeneralDetailsController {
   }
 
   @GetMapping
-  public ModelAndView renderUpdateGeneralDetails(
-      @PathVariable UUID correctionId,
-      @RequestAttribute("validatedCorrection") LicenceCorrection correction
-  ) {
+  public ModelAndView renderUpdateGeneralDetails(LicenceCorrection correction) {
     var form = UpdateCorrectionGeneralDetailsForm.from(correction);
     var allocatableUsers = updateCorrectionGeneralDetailsService.getAllocatableUsers(correction.getLicence());
 
@@ -56,8 +50,7 @@ public class UpdateCorrectionGeneralDetailsController {
 
   @PostMapping
   ModelAndView updateGeneralDetails(
-      @PathVariable UUID correctionId,
-      @RequestAttribute("validatedCorrection") LicenceCorrection correction,
+      LicenceCorrection correction,
       @ModelAttribute("form") UpdateCorrectionGeneralDetailsForm form,
       BindingResult bindingResult,
       ServiceUserDetail user,
@@ -87,8 +80,7 @@ public class UpdateCorrectionGeneralDetailsController {
       return ReverseRouter.redirect(on(WorkAreaController.class).getWorkArea(null, null));
     }
 
-    return ReverseRouter.redirect(on(LicenceCorrectionController.class)
-        .renderCorrection(correction.getId(), null));
+    return ReverseRouter.redirect(on(LicenceCorrectionController.class).renderCorrection(correction));
   }
 
   private ModelAndView updateGeneralDetailsModelAndView(
@@ -101,7 +93,6 @@ public class UpdateCorrectionGeneralDetailsController {
         .addObject("form", form)
         .addObject("allocatableUsers", allocatableUsers)
         .addObject("backLinkUrl",
-            ReverseRouter.route(on(LicenceCorrectionController.class)
-                .renderCorrection(correction.getId(), null)));
+            ReverseRouter.route(on(LicenceCorrectionController.class).renderCorrection(correction)));
   }
 }

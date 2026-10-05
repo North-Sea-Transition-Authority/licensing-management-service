@@ -48,6 +48,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeorder.CorrectChangeOrderService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeorder.MoveChangeToDateResult;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeorder.OrderableChange;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
@@ -115,10 +116,10 @@ class CorrectPositionChangeTypeControllerTest extends AbstractControllerTest {
       .build();
 
   private final String correctionUrl = ReverseRouter.route(on(LicenceCorrectionController.class)
-      .renderCorrection(CORRECTION_ID, null));
+      .renderCorrection(CORRECTION));
 
   private final String executedPositionUrl = ReverseRouter.route(on(LicenceCorrectionController.class)
-      .renderLicencePosition(CORRECTION_ID, POSITION_ID, null));
+      .renderLicencePosition(CORRECTION, new LicencePosition(POSITION_ID)));
 
   private final String changeTypePageUrl = ReverseRouter.route(on(CorrectPositionChangeTypeController.class)
       .renderMoveChangeTypePosition(CORRECTION_ID, POSITION_ID, CHANGE_ID, null));
@@ -233,7 +234,7 @@ class CorrectPositionChangeTypeControllerTest extends AbstractControllerTest {
         .andExpectAll(
             status().is3xxRedirection(),
             redirectedUrl(ReverseRouter.route(on(CorrectChangeOrderController.class)
-                .renderCorrectChangeOrder(CORRECTION_ID, OTHER_POSITION_ID, CHANGE_ID, null))),
+                .renderCorrectChangeOrder(CORRECTION, OTHER_POSITION_ID, CHANGE_ID))),
             notificationBanner(CHANGE_TYPE_POSITION_UPDATED_BANNER)
         );
   }

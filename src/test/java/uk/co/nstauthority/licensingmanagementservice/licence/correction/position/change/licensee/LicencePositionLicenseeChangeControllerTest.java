@@ -36,11 +36,13 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeoperation.LicencePositionChangeOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.LicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenseeOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicenseeChangeContext;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
@@ -59,10 +61,23 @@ class LicencePositionLicenseeChangeControllerTest extends AbstractControllerTest
   private LicenseeChangeService licenseeChangeService;
 
   private static final Licence LICENCE = LicenceTestUtil.builder()
+      .withId(1)
       .withLicenceType(LicenceType.SEAWARD_PRODUCTION).build();
   private static final UUID CORRECTION_ID = UUID.randomUUID();
   private static final UUID POSITION_ID = UUID.randomUUID();
   private static final UUID POSITION_CORRECTION_ID = UUID.randomUUID();
+  private static final LicenceCorrection CORRECTION = LicenceCorrectionTestUtil.newBuilder()
+      .withId(CORRECTION_ID)
+      .withLicence(LICENCE)
+      .build();
+  private static final LicencePosition POSITION = LicencePositionTestUtil.newBuilder()
+      .withId(POSITION_ID)
+      .withLicence(LICENCE)
+      .build();
+  private static final LicencePositionCorrection POSITION_CORRECTION = LicencePositionCorrectionTestUtil.newBuilder()
+      .withId(POSITION_CORRECTION_ID)
+      .withLicenceCorrection(CORRECTION)
+      .build();
   private static final List<Integer> CURRENT_JOINING_LICENSEES = List.of(4, 5, 6);
   private static final List<Integer> CURRENT_WITHDRAWING_LICENSEES = List.of(2, 3);
   private static final List<Integer> PREVIOUS_LICENSEES = List.of(1, 2, 3);
@@ -72,28 +87,28 @@ class LicencePositionLicenseeChangeControllerTest extends AbstractControllerTest
   private static final String VIEW_NAME = "lms/licence/correction/change/licenseeChange";
 
   private final String executedCancelUrl = ReverseRouter.route(on(LicenceCorrectionController.class)
-      .renderLicencePosition(CORRECTION_ID, POSITION_ID, null));
+      .renderLicencePosition(CORRECTION, POSITION));
 
   private final String addedCancelUrl = ReverseRouter.route(on(LicenceCorrectionController.class)
-      .renderAddedPosition(CORRECTION_ID, POSITION_CORRECTION_ID, null));
+      .renderAddedPosition(CORRECTION, POSITION_CORRECTION));
 
   private final String executedRedirectUrl = ReverseRouter.route(on(LicenceCorrectionController.class)
-      .renderLicencePosition(CORRECTION_ID, POSITION_ID, null));
+      .renderLicencePosition(CORRECTION, POSITION));
 
   private final String addedRedirectUrl = ReverseRouter.route(on(LicenceCorrectionController.class)
-      .renderAddedPosition(CORRECTION_ID, POSITION_CORRECTION_ID, null));
+      .renderAddedPosition(CORRECTION, POSITION_CORRECTION));
 
   @Test
   void renderForExecutedPosition_whenNotLoggedIn() throws Exception {
     mockMvc.perform(get(ReverseRouter.route(on(LicencePositionLicenseeChangeController.class)
-            .renderForExecutedPosition(CORRECTION_ID, POSITION_ID, null))))
+            .renderForExecutedPosition(CORRECTION, POSITION))))
         .andExpect(redirectionToLoginUrl());
   }
 
   @Test
   void submitForExecutedPosition_whenNotLoggedIn() throws Exception {
     mockMvc.perform(post(ReverseRouter.route(on(LicencePositionLicenseeChangeController.class)
-            .renderForExecutedPosition(CORRECTION_ID, POSITION_ID, null)))
+            .renderForExecutedPosition(CORRECTION, POSITION)))
             .with(csrf()))
         .andExpect(redirectionToLoginUrl());
   }
@@ -103,7 +118,7 @@ class LicencePositionLicenseeChangeControllerTest extends AbstractControllerTest
     givenCorrectionNotAllocatedToUser();
 
     mockMvc.perform(get(ReverseRouter.route(on(LicencePositionLicenseeChangeController.class)
-            .renderForExecutedPosition(CORRECTION_ID, POSITION_ID, null)))
+            .renderForExecutedPosition(CORRECTION, POSITION)))
             .with(user(regulatorUser)))
         .andExpect(status().isForbidden());
   }
@@ -113,7 +128,7 @@ class LicencePositionLicenseeChangeControllerTest extends AbstractControllerTest
     givenCorrectionNotAllocatedToUser();
 
     mockMvc.perform(post(ReverseRouter.route(on(LicencePositionLicenseeChangeController.class)
-            .renderForExecutedPosition(CORRECTION_ID, POSITION_ID, null)))
+            .renderForExecutedPosition(CORRECTION, POSITION)))
             .with(user(regulatorUser))
             .with(csrf()))
         .andExpect(status().isForbidden());
@@ -122,14 +137,14 @@ class LicencePositionLicenseeChangeControllerTest extends AbstractControllerTest
   @Test
   void renderForAddedPosition_whenNotLoggedIn() throws Exception {
     mockMvc.perform(get(ReverseRouter.route(on(LicencePositionLicenseeChangeController.class)
-            .renderForAddedPosition(CORRECTION_ID, POSITION_ID, null))))
+            .renderForAddedPosition(CORRECTION, POSITION_CORRECTION))))
         .andExpect(redirectionToLoginUrl());
   }
 
   @Test
   void submitForAddedPosition_whenNotLoggedIn() throws Exception {
     mockMvc.perform(post(ReverseRouter.route(on(LicencePositionLicenseeChangeController.class)
-            .renderForAddedPosition(CORRECTION_ID, POSITION_ID, null)))
+            .renderForAddedPosition(CORRECTION, POSITION_CORRECTION)))
             .with(csrf()))
         .andExpect(redirectionToLoginUrl());
   }
@@ -139,7 +154,7 @@ class LicencePositionLicenseeChangeControllerTest extends AbstractControllerTest
     givenCorrectionNotAllocatedToUser();
 
     mockMvc.perform(get(ReverseRouter.route(on(LicencePositionLicenseeChangeController.class)
-            .renderForAddedPosition(CORRECTION_ID, POSITION_ID, null)))
+            .renderForAddedPosition(CORRECTION, POSITION_CORRECTION)))
             .with(user(regulatorUser)))
         .andExpect(status().isForbidden());
   }
@@ -149,7 +164,7 @@ class LicencePositionLicenseeChangeControllerTest extends AbstractControllerTest
     givenCorrectionNotAllocatedToUser();
 
     mockMvc.perform(post(ReverseRouter.route(on(LicencePositionLicenseeChangeController.class)
-            .renderForAddedPosition(CORRECTION_ID, POSITION_ID, null)))
+            .renderForAddedPosition(CORRECTION, POSITION_CORRECTION)))
             .with(user(regulatorUser))
             .with(csrf()))
         .andExpect(status().isForbidden());
@@ -161,12 +176,12 @@ class LicencePositionLicenseeChangeControllerTest extends AbstractControllerTest
     var position = LicencePositionTestUtil.newBuilder().withId(POSITION_ID).withLicence(LICENCE).build();
     var previousLicenseeNames = LICENSEE_CHANGE_CONTEXT.previousLicenseeNames();
 
-    when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(position);
+    when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(position));
     when(licencePositionViewService.getLicenseeChangeContext(correction, POSITION_ID)).thenReturn(LICENSEE_CHANGE_CONTEXT);
 
 
     mockMvc.perform(get(ReverseRouter.route(on(LicencePositionLicenseeChangeController.class)
-        .renderForExecutedPosition(CORRECTION_ID, POSITION_ID, null)))
+        .renderForExecutedPosition(CORRECTION, POSITION)))
         .with(user(regulatorUser)))
         .andExpectAll(
             status().isOk(),
@@ -196,11 +211,11 @@ class LicencePositionLicenseeChangeControllerTest extends AbstractControllerTest
         List.of()
     );
 
-    when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(position);
+    when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(position));
     when(licencePositionViewService.getLicenseeChangeContext(correction, POSITION_ID)).thenReturn(licenseeChangeContext);
 
     mockMvc.perform(get(ReverseRouter.route(on(LicencePositionLicenseeChangeController.class)
-            .renderForExecutedPosition(CORRECTION_ID, POSITION_ID, null)))
+            .renderForExecutedPosition(CORRECTION, POSITION)))
             .with(user(regulatorUser)))
         .andExpectAll(
             status().isOk(),
@@ -217,11 +232,11 @@ class LicencePositionLicenseeChangeControllerTest extends AbstractControllerTest
         .setJoiningOrganisationIds(List.of("4", "5", "6"))
         .setWithdrawingOrganisationIds(List.of("2", "3"));
 
-    when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(position);
+    when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(position));
     when(licencePositionViewService.getLicenseeChangeContext(correction, POSITION_ID)).thenReturn(LICENSEE_CHANGE_CONTEXT);
 
     var model = mockMvc.perform(get(ReverseRouter.route(on(LicencePositionLicenseeChangeController.class)
-            .renderForExecutedPosition(CORRECTION_ID, POSITION_ID, null)))
+            .renderForExecutedPosition(CORRECTION, POSITION)))
             .with(user(regulatorUser)))
         .andExpect(status().isOk())
         .andReturn()
@@ -237,13 +252,13 @@ class LicencePositionLicenseeChangeControllerTest extends AbstractControllerTest
     var position = LicencePositionTestUtil.newBuilder().withId(POSITION_ID).withLicence(LICENCE).build();
     var form = new LicenseeChangeForm();
 
-    when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(position);
+    when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(position));
     when(licencePositionViewService.getLicenseeChangeContext(correction, POSITION_ID)).thenReturn(LICENSEE_CHANGE_CONTEXT);
     when(licenseeChangeFormValidator.hasErrors(eq(form), any(BindingResult.class), eq(LICENSEE_CHANGE_CONTEXT.previousLicenseeIds())))
         .thenReturn(true);
 
     mockMvc.perform(post(ReverseRouter.route(on(LicencePositionLicenseeChangeController.class)
-            .submitForExecutedPosition(CORRECTION_ID, POSITION_ID, null, null, null, null)))
+            .submitForExecutedPosition(CORRECTION, POSITION, null, null, null)))
             .with(user(regulatorUser))
             .with(csrf())
             .flashAttr("form", form))
@@ -263,7 +278,7 @@ class LicencePositionLicenseeChangeControllerTest extends AbstractControllerTest
         .setJoiningOrganisationIds(List.of("4", "5", "6"))
         .setWithdrawingOrganisationIds(List.of("2", "3"));
 
-    when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(position);
+    when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(position));
     when(licencePositionViewService.getLicenseeChangeContext(correction, POSITION_ID)).thenReturn(
         LICENSEE_CHANGE_CONTEXT);
     when(licenseeChangeFormValidator.hasErrors(eq(form), any(BindingResult.class),
@@ -271,7 +286,7 @@ class LicencePositionLicenseeChangeControllerTest extends AbstractControllerTest
         .thenReturn(false);
 
     mockMvc.perform(post(ReverseRouter.route(on(LicencePositionLicenseeChangeController.class)
-            .submitForExecutedPosition(CORRECTION_ID, POSITION_ID, null, null, null, null)))
+            .submitForExecutedPosition(CORRECTION, POSITION, null, null, null)))
             .with(user(regulatorUser))
             .with(csrf())
             .flashAttr("form", form))
@@ -308,6 +323,8 @@ class LicencePositionLicenseeChangeControllerTest extends AbstractControllerTest
         .withOperations(List.of(operation))
         .build();
     var existing = LicencePositionCorrectionTestUtil.newBuilder()
+        .withId(POSITION_CORRECTION_ID)
+        .withLicenceCorrection(correction)
         .withPayload(LicencePositionPayload.newCreateLicencePositionPayload().
             withChanges(List.of(addChange))
             .withLicencePositionId(String.valueOf(POSITION_ID))
@@ -318,12 +335,12 @@ class LicencePositionLicenseeChangeControllerTest extends AbstractControllerTest
         .setWithdrawingOrganisationIds(List.of("2", "3"));
     var previousLicenseeNames = LICENSEE_CHANGE_CONTEXT.previousLicenseeNames();
 
-    when(licencePositionCorrectionService.getPositionCorrectionForCorrection(POSITION_CORRECTION_ID, correction))
-        .thenReturn(existing);
+    when(licencePositionCorrectionService.findById(POSITION_CORRECTION_ID))
+        .thenReturn(Optional.of(existing));
     when(licencePositionViewService.getLicenseeChangeContext(eq(correction), any())).thenReturn(LICENSEE_CHANGE_CONTEXT);
 
     var model = mockMvc.perform(get(ReverseRouter.route(on(LicencePositionLicenseeChangeController.class)
-            .renderForAddedPosition(CORRECTION_ID, POSITION_CORRECTION_ID, null)))
+            .renderForAddedPosition(CORRECTION, POSITION_CORRECTION)))
             .with(user(regulatorUser)))
         .andExpectAll(
             status().isOk(),
@@ -351,20 +368,22 @@ class LicencePositionLicenseeChangeControllerTest extends AbstractControllerTest
   void submitForAddedPosition_formInvalid() throws Exception {
     var correction = givenCorrectionAllocatedToUser();
     var licencePositionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withId(POSITION_CORRECTION_ID)
+        .withLicenceCorrection(correction)
         .withPayload(LicencePositionPayload.newCreateLicencePositionPayload()
             .withLicencePositionId(String.valueOf(POSITION_ID))
             .build())
         .build();
     var form = new LicenseeChangeForm();
 
-    when(licencePositionCorrectionService.getPositionCorrectionForCorrection(POSITION_CORRECTION_ID, correction))
-        .thenReturn(licencePositionCorrection);
+    when(licencePositionCorrectionService.findById(POSITION_CORRECTION_ID))
+        .thenReturn(Optional.of(licencePositionCorrection));
     when(licencePositionViewService.getLicenseeChangeContext(correction, POSITION_ID)).thenReturn(LICENSEE_CHANGE_CONTEXT);
     when(licenseeChangeFormValidator.hasErrors(eq(form), any(BindingResult.class), eq(LICENSEE_CHANGE_CONTEXT.previousLicenseeIds())))
         .thenReturn(true);
 
     mockMvc.perform(post(ReverseRouter.route(on(LicencePositionLicenseeChangeController.class)
-            .submitForAddedPosition(CORRECTION_ID, POSITION_CORRECTION_ID, null, null, null, null)))
+            .submitForAddedPosition(CORRECTION, POSITION_CORRECTION, null, null, null)))
             .with(user(regulatorUser))
             .with(csrf())
             .flashAttr("form", form))
@@ -379,6 +398,8 @@ class LicencePositionLicenseeChangeControllerTest extends AbstractControllerTest
   void submitForAddedPosition_formValid() throws Exception {
     var correction = givenCorrectionAllocatedToUser();
     var licencePositionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withId(POSITION_CORRECTION_ID)
+        .withLicenceCorrection(correction)
         .withPayload(LicencePositionPayload.newCreateLicencePositionPayload()
             .withLicencePositionId(String.valueOf(POSITION_ID))
             .build())
@@ -387,14 +408,14 @@ class LicencePositionLicenseeChangeControllerTest extends AbstractControllerTest
         .setJoiningOrganisationIds(List.of("4", "5", "6"))
         .setWithdrawingOrganisationIds(List.of("2", "3"));
 
-    when(licencePositionCorrectionService.getPositionCorrectionForCorrection(POSITION_CORRECTION_ID, correction))
-        .thenReturn(licencePositionCorrection);
+    when(licencePositionCorrectionService.findById(POSITION_CORRECTION_ID))
+        .thenReturn(Optional.of(licencePositionCorrection));
     when(licencePositionViewService.getLicenseeChangeContext(correction, POSITION_ID)).thenReturn(LICENSEE_CHANGE_CONTEXT);
     when(licenseeChangeFormValidator.hasErrors(eq(form), any(BindingResult.class),eq(LICENSEE_CHANGE_CONTEXT.previousLicenseeIds())))
         .thenReturn(false);
 
     mockMvc.perform(post(ReverseRouter.route(on(LicencePositionLicenseeChangeController.class)
-            .submitForAddedPosition(CORRECTION_ID, POSITION_CORRECTION_ID, null, null, null, null)))
+            .submitForAddedPosition(CORRECTION, POSITION_CORRECTION, null, null, null)))
             .with(user(regulatorUser))
             .with(csrf())
             .flashAttr("form", form))
@@ -420,6 +441,7 @@ class LicencePositionLicenseeChangeControllerTest extends AbstractControllerTest
         .build();
     when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
         .thenReturn(Optional.of(correction));
+    when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(correction));
     return correction;
   }
 

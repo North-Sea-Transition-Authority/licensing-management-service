@@ -48,7 +48,7 @@ class CorrectPositionDateControllerTest extends AbstractControllerTest {
   @MockitoBean
   private PartialSurrenderCorrectionService partialSurrenderCorrectionService;
 
-  private static final Licence LICENCE = LicenceTestUtil.builder().build();
+  private static final Licence LICENCE = LicenceTestUtil.builder().withId(10).build();
   private static final UUID CORRECTION_ID = UUID.randomUUID();
   private static final UUID POSITION_ID = UUID.randomUUID();
   private static final LocalDate POSITION_DATE = LocalDate.of(2026, Month.JUNE, 1);
@@ -62,22 +62,22 @@ class CorrectPositionDateControllerTest extends AbstractControllerTest {
 
 
   private final String backLinkUrl = ReverseRouter.route(on(LicenceCorrectionController.class)
-      .renderCorrection(CORRECTION_ID, null));
+      .renderCorrection(CORRECTION));
 
   @Test
   void renderCorrectPositionDate_whenNotLoggedIn() throws Exception {
     mockMvc.perform(get(ReverseRouter.route(on(CorrectPositionDateController.class)
-            .renderCorrectLicencePositionCorrectionDate(CORRECTION_ID, POSITION_ID, null))))
+            .renderCorrectLicencePositionCorrectionDate(CORRECTION, POSITION))))
         .andExpect(redirectionToLoginUrl());
   }
 
   @Test
   void renderCorrectPositionDate_whenAllocatedToUser() throws Exception {
     givenCorrectionAllocatedToUser();
-    when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(POSITION);
+    when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(POSITION));
 
     mockMvc.perform(get(ReverseRouter.route(on(CorrectPositionDateController.class)
-            .renderCorrectLicencePositionCorrectionDate(CORRECTION_ID, POSITION_ID, null)))
+            .renderCorrectLicencePositionCorrectionDate(CORRECTION, POSITION)))
             .with(user(regulatorUser)))
         .andExpectAll(
             status().isOk(),
@@ -95,7 +95,7 @@ class CorrectPositionDateControllerTest extends AbstractControllerTest {
     givenCorrectionNotAllocatedToUser();
 
     mockMvc.perform(get(ReverseRouter.route(on(CorrectPositionDateController.class)
-            .renderCorrectLicencePositionCorrectionDate(CORRECTION_ID, POSITION_ID, null)))
+            .renderCorrectLicencePositionCorrectionDate(CORRECTION, POSITION)))
             .with(user(regulatorUser)))
         .andExpect(status().isForbidden());
   }
@@ -103,7 +103,7 @@ class CorrectPositionDateControllerTest extends AbstractControllerTest {
   @Test
   void correctPositionDate_whenNotLoggedIn() throws Exception {
     mockMvc.perform(post(ReverseRouter.route(on(CorrectPositionDateController.class)
-            .correctLicencePositionCorrectionDate(CORRECTION_ID, POSITION_ID, null, null, null, null)))
+            .correctLicencePositionCorrectionDate(CORRECTION, POSITION, null, null, null)))
             .with(csrf()))
         .andExpect(redirectionToLoginUrl());
   }
@@ -116,12 +116,12 @@ class CorrectPositionDateControllerTest extends AbstractControllerTest {
 
     var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder().build();
     when(correctPositionDateFormValidator.hasErrors(eq(form), any(BindingResult.class))).thenReturn(false);
-    when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(POSITION);
+    when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(POSITION));
     when(licencePositionCorrectionService.correctPositionDate(correction, POSITION, POSITION_DATE))
         .thenReturn(positionCorrection);
 
     mockMvc.perform(post(ReverseRouter.route(on(CorrectPositionDateController.class)
-            .correctLicencePositionCorrectionDate(CORRECTION_ID, POSITION_ID, null, null, null, null)))
+            .correctLicencePositionCorrectionDate(CORRECTION, POSITION, null, null, null)))
             .with(user(regulatorUser))
             .with(csrf())
             .flashAttr("form", form))
@@ -143,10 +143,10 @@ class CorrectPositionDateControllerTest extends AbstractControllerTest {
     var form = new CorrectPositionDateForm();
 
     when(correctPositionDateFormValidator.hasErrors(eq(form), any(BindingResult.class))).thenReturn(true);
-    when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(POSITION);
+    when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(POSITION));
 
     mockMvc.perform(post(ReverseRouter.route(on(CorrectPositionDateController.class)
-            .correctLicencePositionCorrectionDate(CORRECTION_ID, POSITION_ID, null, null, null, null)))
+            .correctLicencePositionCorrectionDate(CORRECTION, POSITION, null, null, null)))
             .with(user(regulatorUser))
             .with(csrf())
             .flashAttr("form", form))
@@ -169,7 +169,7 @@ class CorrectPositionDateControllerTest extends AbstractControllerTest {
     givenCorrectionNotAllocatedToUser();
 
     mockMvc.perform(post(ReverseRouter.route(on(CorrectPositionDateController.class)
-            .correctLicencePositionCorrectionDate(CORRECTION_ID, POSITION_ID, null, null, null, null)))
+            .correctLicencePositionCorrectionDate(CORRECTION, POSITION, null, null, null)))
             .with(user(regulatorUser))
             .with(csrf()))
         .andExpect(status().isForbidden());
@@ -182,6 +182,7 @@ class CorrectPositionDateControllerTest extends AbstractControllerTest {
   private LicenceCorrection givenCorrectionAllocatedToUser() {
     when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
         .thenReturn(Optional.of(CORRECTION));
+    when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(CORRECTION));
     return CORRECTION;
   }
 

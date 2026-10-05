@@ -17,6 +17,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.administrator.RemoveAdministratorChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.equity.RemoveEquityChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.RemovePartialSurrenderChangeController;
@@ -34,7 +38,9 @@ import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquity
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaDetails;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.TransferEquityOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPositionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.PositionChange;
@@ -70,6 +76,11 @@ class LicencePositionChangeViewResolverTest {
   private static final int TRANSFER_TO_ID = 600;
   private static final String TRANSFER_FROM_NAME = "Transfer From Org Ltd";
   private static final String TRANSFER_TO_NAME = "Transfer To Org Ltd";
+
+  private static final LicenceCorrection CORRECTION = LicenceCorrectionTestUtil.newBuilder().build();
+  private static final LicencePosition LICENCE_POSITION = LicencePositionTestUtil.newBuilder().build();
+  private static final LicencePositionCorrection POSITION_CORRECTION =
+      LicencePositionCorrectionTestUtil.newBuilder().build();
 
   @Test
   void getChangeViews_filtersChangesNotOnCurrentPosition() {
@@ -253,7 +264,7 @@ class LicencePositionChangeViewResolverTest {
   void buildAdministratorChange_whenUntouchedExecutedChange_populatesRemoveNotUndo() {
     var view = adminChangeView(
         null,
-        PositionChangeUrlContext.forExecutedPosition(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID())
+        PositionChangeUrlContext.forExecutedPosition(CORRECTION, LICENCE_POSITION, POSITION_CORRECTION)
     );
 
     assertThat(view.urls().correct()).contains("correct-administrator-change");
@@ -265,7 +276,7 @@ class LicencePositionChangeViewResolverTest {
   void buildAdministratorChange_whenExecutedUpdateChange_populatesCorrectAndUndoNotRemove() {
     var view = adminChangeView(
         LicencePositionChangeType.UPDATE_CHANGE_OPERATIONS,
-        PositionChangeUrlContext.forExecutedPosition(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID())
+        PositionChangeUrlContext.forExecutedPosition(CORRECTION, LICENCE_POSITION, POSITION_CORRECTION)
     );
 
     assertThat(view.urls().correct()).contains("correct-administrator-change");
@@ -277,7 +288,7 @@ class LicencePositionChangeViewResolverTest {
   void buildAdministratorChange_whenAddChange_populatesUndoNotRemove() {
     var view = adminChangeView(
         LicencePositionChangeType.ADD_CHANGE,
-        PositionChangeUrlContext.forExecutedPosition(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID())
+        PositionChangeUrlContext.forExecutedPosition(CORRECTION, LICENCE_POSITION, POSITION_CORRECTION)
     );
 
     assertThat(view.urls().correct()).contains("add-administrator-change");
@@ -289,7 +300,7 @@ class LicencePositionChangeViewResolverTest {
   void buildAdministratorChange_whenRemoveChange_populatesUndoOnly() {
     var view = adminChangeView(
         LicencePositionChangeType.REMOVE_CHANGE,
-        PositionChangeUrlContext.forExecutedPosition(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID())
+        PositionChangeUrlContext.forExecutedPosition(CORRECTION, LICENCE_POSITION, POSITION_CORRECTION)
     );
 
     assertThat(view.urls().correct()).isNull();
@@ -308,7 +319,7 @@ class LicencePositionChangeViewResolverTest {
 
     var view = adminChangeViewFor(
         movedAwayChange,
-        PositionChangeUrlContext.forExecutedPosition(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID())
+        PositionChangeUrlContext.forExecutedPosition(CORRECTION, LICENCE_POSITION, POSITION_CORRECTION)
     );
 
     assertThat(view.urls()).hasAllNullFieldsOrProperties();
@@ -318,7 +329,7 @@ class LicencePositionChangeViewResolverTest {
   void buildAdministratorChange_whenAddedPosition_populatesUndoNotRemove() {
     var view = adminChangeView(
         LicencePositionChangeType.ADD_CHANGE,
-        PositionChangeUrlContext.forAddedPosition(UUID.randomUUID(), UUID.randomUUID())
+        PositionChangeUrlContext.forAddedPosition(CORRECTION, POSITION_CORRECTION)
     );
 
     assertThat(view.urls().remove()).isNull();
@@ -480,10 +491,10 @@ class LicencePositionChangeViewResolverTest {
 
   @Test
   void buildSetEquityChangeView_whenExecutedAddChange_buildsViewWithRowChangeTypeUpdateAndUndoUrls() {
-    var correctionId = UUID.randomUUID();
-    var licencePositionId = UUID.randomUUID();
+    var correction = LicenceCorrectionTestUtil.newBuilder().build();
+    var licencePosition = LicencePositionTestUtil.newBuilder().build();
     var changeId = UUID.randomUUID().toString();
-    var urlContext = PositionChangeUrlContext.forExecutedPosition(correctionId, licencePositionId, UUID.randomUUID());
+    var urlContext = PositionChangeUrlContext.forExecutedPosition(correction, licencePosition, POSITION_CORRECTION);
 
     var view = setEquityChangeView(changeId, LicencePositionChangeType.ADD_CHANGE, urlContext);
 
@@ -492,38 +503,38 @@ class LicencePositionChangeViewResolverTest {
         LicencePositionChangeType.ADD_CHANGE,
         new ChangeViewUrls(
             ReverseRouter.route(on(LicencePositionSetEquityController.class)
-                .renderSummaryForExecutedPosition(correctionId, licencePositionId, null)),
+                .renderSummaryForExecutedPosition(correction, licencePosition)),
             null,
             ReverseRouter.route(on(RemoveEquityChangeController.class)
-                .renderUndoEquityChange(correctionId, changeId, null)),
+                .renderUndoEquityChange(correction, changeId)),
             null,
-            correctPositionUrl(correctionId, SET_EQUITY_POSITION_ID, UUID.fromString(changeId))
+            correctPositionUrl(correction.getId(), SET_EQUITY_POSITION_ID, UUID.fromString(changeId))
         )
     ));
   }
 
   @Test
   void buildSetEquityChangeView_whenExecutedUpdateChangeOperations_buildsUpdateUrlToExecutedSummary() {
-    var correctionId = UUID.randomUUID();
-    var licencePositionId = UUID.randomUUID();
-    var urlContext = PositionChangeUrlContext.forExecutedPosition(correctionId, licencePositionId, UUID.randomUUID());
+    var correction = LicenceCorrectionTestUtil.newBuilder().build();
+    var licencePosition = LicencePositionTestUtil.newBuilder().build();
+    var urlContext = PositionChangeUrlContext.forExecutedPosition(correction, licencePosition, POSITION_CORRECTION);
 
     var view = setEquityChangeView(LicencePositionChangeType.UPDATE_CHANGE_OPERATIONS, urlContext);
 
     assertThat(view.urls().correct()).isEqualTo(ReverseRouter.route(on(LicencePositionSetEquityController.class)
-        .renderSummaryForExecutedPosition(correctionId, licencePositionId, null)));
+        .renderSummaryForExecutedPosition(correction, licencePosition)));
   }
 
   @Test
   void buildSetEquityChangeView_whenAddedPositionAddChange_buildsUpdateUrlToAddedSummary() {
-    var correctionId = UUID.randomUUID();
-    var licencePositionCorrectionId = UUID.randomUUID();
-    var urlContext = PositionChangeUrlContext.forAddedPosition(correctionId, licencePositionCorrectionId);
+    var correction = LicenceCorrectionTestUtil.newBuilder().build();
+    var licencePositionCorrection = LicencePositionCorrectionTestUtil.newBuilder().build();
+    var urlContext = PositionChangeUrlContext.forAddedPosition(correction, licencePositionCorrection);
 
     var view = setEquityChangeView(LicencePositionChangeType.ADD_CHANGE, urlContext);
 
     assertThat(view.urls().correct()).isEqualTo(ReverseRouter.route(on(LicencePositionSetEquityController.class)
-        .renderSummaryForAddedPosition(correctionId, licencePositionCorrectionId, null)));
+        .renderSummaryForAddedPosition(correction, licencePositionCorrection)));
   }
 
   @Test
@@ -534,7 +545,7 @@ class LicencePositionChangeViewResolverTest {
 
   @Test
   void buildSetEquityChangeView_whenUntouchedExecutedChange_hasNoUpdateUrl() {
-    var urlContext = PositionChangeUrlContext.forExecutedPosition(UUID.randomUUID(), UUID.randomUUID(), null);
+    var urlContext = PositionChangeUrlContext.forExecutedPosition(CORRECTION, LICENCE_POSITION, null);
     var view = setEquityChangeView(null, urlContext);
 
     assertThat(view.urls().correct()).isNull();
@@ -542,7 +553,7 @@ class LicencePositionChangeViewResolverTest {
 
   @Test
   void buildSetEquityChangeView_whenUntouchedExecutedChange_populatesRemoveNotUndo() {
-    var urlContext = PositionChangeUrlContext.forExecutedPosition(UUID.randomUUID(), UUID.randomUUID(), null);
+    var urlContext = PositionChangeUrlContext.forExecutedPosition(CORRECTION, LICENCE_POSITION, null);
     var view = setEquityChangeView(null, urlContext);
 
     assertThat(view.urls().remove()).contains("remove-equity-change");
@@ -551,7 +562,7 @@ class LicencePositionChangeViewResolverTest {
 
   @Test
   void buildSetEquityChangeView_whenExecutedUpdateChange_populatesUndoNotRemove() {
-    var urlContext = PositionChangeUrlContext.forExecutedPosition(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID());
+    var urlContext = PositionChangeUrlContext.forExecutedPosition(CORRECTION, LICENCE_POSITION, POSITION_CORRECTION);
     var view = setEquityChangeView(LicencePositionChangeType.UPDATE_CHANGE_OPERATIONS, urlContext);
 
     assertThat(view.urls().remove()).isNull();
@@ -560,7 +571,7 @@ class LicencePositionChangeViewResolverTest {
 
   @Test
   void buildSetEquityChangeView_whenAddChange_populatesUndoNotRemove() {
-    var urlContext = PositionChangeUrlContext.forExecutedPosition(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID());
+    var urlContext = PositionChangeUrlContext.forExecutedPosition(CORRECTION, LICENCE_POSITION, POSITION_CORRECTION);
     var view = setEquityChangeView(LicencePositionChangeType.ADD_CHANGE, urlContext);
 
     assertThat(view.urls().remove()).isNull();
@@ -569,7 +580,7 @@ class LicencePositionChangeViewResolverTest {
 
   @Test
   void buildSetEquityChangeView_whenRemoveChange_populatesUndoOnly() {
-    var urlContext = PositionChangeUrlContext.forExecutedPosition(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID());
+    var urlContext = PositionChangeUrlContext.forExecutedPosition(CORRECTION, LICENCE_POSITION, POSITION_CORRECTION);
     var view = setEquityChangeView(LicencePositionChangeType.REMOVE_CHANGE, urlContext);
 
     assertThat(view.urls().remove()).isNull();
@@ -578,7 +589,7 @@ class LicencePositionChangeViewResolverTest {
 
   @Test
   void buildSetEquityChangeView_whenAddedPosition_populatesUndoNotRemove() {
-    var urlContext = PositionChangeUrlContext.forAddedPosition(UUID.randomUUID(), UUID.randomUUID());
+    var urlContext = PositionChangeUrlContext.forAddedPosition(CORRECTION, POSITION_CORRECTION);
     var view = setEquityChangeView(LicencePositionChangeType.ADD_CHANGE, urlContext);
 
     assertThat(view.urls().remove()).isNull();
@@ -598,7 +609,7 @@ class LicencePositionChangeViewResolverTest {
     var previousPosition = LicencePositionTestUtil.newBuilder().withPositionOrder(1).build();
     var currentPosition = LicencePositionTestUtil.newBuilder().withPositionOrder(2).build();
     var changeId = UUID.randomUUID();
-    var urlContext = PositionChangeUrlContext.forAddedPosition(previousPosition.getId(), currentPosition.getId());
+    var urlContext = PositionChangeUrlContext.forAddedPosition(CORRECTION, POSITION_CORRECTION);
 
     var previousChronological = ChronologicalPositionTestUtil.live(
         previousPosition,
@@ -634,7 +645,7 @@ class LicencePositionChangeViewResolverTest {
             BigDecimal.valueOf(30), null)),
         null,
         new ChangeViewUrls(null, null, null, null,
-            correctPositionUrl(previousPosition.getId(), currentPosition.getId(), changeId))
+            correctPositionUrl(CORRECTION.getId(), currentPosition.getId(), changeId))
     );
 
     assertThat(view).isEqualTo(expected);
@@ -650,7 +661,7 @@ class LicencePositionChangeViewResolverTest {
   void getChangeViews_whenTransferEquityOrganisationNamesNotFound_usesEmptyNames() {
     var previousPosition = LicencePositionTestUtil.newBuilder().withPositionOrder(1).build();
     var currentPosition = LicencePositionTestUtil.newBuilder().withPositionOrder(2).build();
-    var urlContext = PositionChangeUrlContext.forAddedPosition(previousPosition.getId(), currentPosition.getId());
+    var urlContext = PositionChangeUrlContext.forAddedPosition(CORRECTION, POSITION_CORRECTION);
 
     var previousChronological = ChronologicalPositionTestUtil.live(
         previousPosition,
@@ -682,26 +693,26 @@ class LicencePositionChangeViewResolverTest {
 
   @Test
   void buildTransferEquityChangeView_whenExecutedAddChange_buildsUpdateUrlToExecutedSummary() {
-    var correctionId = UUID.randomUUID();
-    var licencePositionId = UUID.randomUUID();
-    var urlContext = PositionChangeUrlContext.forExecutedPosition(correctionId, licencePositionId, UUID.randomUUID());
+    var correction = LicenceCorrectionTestUtil.newBuilder().build();
+    var licencePosition = LicencePositionTestUtil.newBuilder().build();
+    var urlContext = PositionChangeUrlContext.forExecutedPosition(correction, licencePosition, POSITION_CORRECTION);
 
     var view = transferEquityChangeView(LicencePositionChangeType.ADD_CHANGE, urlContext, null);
 
     assertThat(view.urls().correct()).isEqualTo(ReverseRouter.route(on(LicencePositionTransferEquityController.class)
-        .renderSummaryForExecutedPosition(correctionId, licencePositionId, null)));
+        .renderSummaryForExecutedPosition(correction, licencePosition)));
   }
 
   @Test
   void buildTransferEquityChangeView_whenAddedPositionUpdateChangeOperations_buildsUpdateUrlToAddedSummary() {
-    var correctionId = UUID.randomUUID();
-    var licencePositionCorrectionId = UUID.randomUUID();
-    var urlContext = PositionChangeUrlContext.forAddedPosition(correctionId, licencePositionCorrectionId);
+    var correction = LicenceCorrectionTestUtil.newBuilder().build();
+    var licencePositionCorrection = LicencePositionCorrectionTestUtil.newBuilder().build();
+    var urlContext = PositionChangeUrlContext.forAddedPosition(correction, licencePositionCorrection);
 
     var view = transferEquityChangeView(LicencePositionChangeType.UPDATE_CHANGE_OPERATIONS, urlContext, null);
 
     assertThat(view.urls().correct()).isEqualTo(ReverseRouter.route(on(LicencePositionTransferEquityController.class)
-        .renderSummaryForAddedPosition(correctionId, licencePositionCorrectionId, null)));
+        .renderSummaryForAddedPosition(correction, licencePositionCorrection)));
   }
 
   @Test
@@ -712,7 +723,7 @@ class LicencePositionChangeViewResolverTest {
 
   @Test
   void buildTransferEquityChangeView_whenUntouchedExecutedChange_hasNoUpdateUrl() {
-    var urlContext = PositionChangeUrlContext.forExecutedPosition(UUID.randomUUID(), UUID.randomUUID(), null);
+    var urlContext = PositionChangeUrlContext.forExecutedPosition(CORRECTION, LICENCE_POSITION, null);
     var view = transferEquityChangeView(null, urlContext, null);
 
     assertThat(view.urls().correct()).isNull();
@@ -720,7 +731,7 @@ class LicencePositionChangeViewResolverTest {
 
   @Test
   void buildTransferEquityChangeView_whenUntouchedExecutedChange_populatesRemoveNotUndo() {
-    var urlContext = PositionChangeUrlContext.forExecutedPosition(UUID.randomUUID(), UUID.randomUUID(), null);
+    var urlContext = PositionChangeUrlContext.forExecutedPosition(CORRECTION, LICENCE_POSITION, null);
     var view = transferEquityChangeView(null, urlContext, null);
 
     assertThat(view.urls().remove()).contains("remove-equity-change");
@@ -729,7 +740,7 @@ class LicencePositionChangeViewResolverTest {
 
   @Test
   void buildTransferEquityChangeView_whenExecutedAddChange_populatesUndoNotRemove() {
-    var urlContext = PositionChangeUrlContext.forExecutedPosition(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID());
+    var urlContext = PositionChangeUrlContext.forExecutedPosition(CORRECTION, LICENCE_POSITION, POSITION_CORRECTION);
     var view = transferEquityChangeView(LicencePositionChangeType.ADD_CHANGE, urlContext, null);
 
     assertThat(view.urls().remove()).isNull();
@@ -955,61 +966,66 @@ class LicencePositionChangeViewResolverTest {
 
   @Test
   void getChangeViews_whenPartialSurrenderIsAnUntouchedLiveChange_linksToTheTaskListForThatChange() {
-    var correctionId = UUID.randomUUID();
+    var correction = LicenceCorrectionTestUtil.newBuilder().build();
     var positionId = UUID.randomUUID();
+    var licencePosition = LicencePositionTestUtil.newBuilder().withId(positionId).build();
     var changeId = UUID.randomUUID().toString();
+    var change = LicencePositionChangeTestUtil.newBuilder().withId(UUID.fromString(changeId)).build();
 
     var result = partialSurrenderChangeView(
         positionId, changeId, null,
-        PositionChangeUrlContext.forExecutedPosition(correctionId, positionId, null)
+        PositionChangeUrlContext.forExecutedPosition(correction, licencePosition, null)
     );
 
     assertThat(result.urls().correct()).isEqualTo(
         ReverseRouter.route(on(PartialSurrenderTaskListController.class)
-            .renderForCorrectingChange(correctionId, positionId, changeId, null, null)));
+            .renderForCorrectingChange(correction, licencePosition, change, null)));
   }
 
   @Test
   void getChangeViews_whenPartialSurrenderIsAlreadyCorrected_linksToTheStagedTaskList() {
-    var correctionId = UUID.randomUUID();
+    var correction = LicenceCorrectionTestUtil.newBuilder().build();
     var positionId = UUID.randomUUID();
-    var positionCorrectionId = UUID.randomUUID();
+    var licencePosition = LicencePositionTestUtil.newBuilder().withId(positionId).build();
+    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder().build();
 
     var result = partialSurrenderChangeView(
         positionId, UUID.randomUUID().toString(),
         LicencePositionChangeType.UPDATE_CHANGE_OPERATIONS,
-        PositionChangeUrlContext.forExecutedPosition(correctionId, positionId, positionCorrectionId)
+        PositionChangeUrlContext.forExecutedPosition(correction, licencePosition, positionCorrection)
     );
 
     assertThat(result.urls().correct()).isEqualTo(
         ReverseRouter.route(on(PartialSurrenderTaskListController.class)
-            .renderTaskList(correctionId, positionCorrectionId, null, null)));
+            .renderTaskList(correction, positionCorrection, null)));
   }
 
   @Test
   void getChangeViews_whenPartialSurrenderStagedAsAnAddChange_linksToTheStagedTaskList() {
-    var correctionId = UUID.randomUUID();
+    var correction = LicenceCorrectionTestUtil.newBuilder().build();
     var positionId = UUID.randomUUID();
-    var positionCorrectionId = UUID.randomUUID();
+    var licencePosition = LicencePositionTestUtil.newBuilder().withId(positionId).build();
+    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder().build();
 
     var result = partialSurrenderChangeView(
         positionId, UUID.randomUUID().toString(), LicencePositionChangeType.ADD_CHANGE,
-        PositionChangeUrlContext.forExecutedPosition(correctionId, positionId, positionCorrectionId)
+        PositionChangeUrlContext.forExecutedPosition(correction, licencePosition, positionCorrection)
     );
 
     assertThat(result.urls().correct()).isEqualTo(
         ReverseRouter.route(on(PartialSurrenderTaskListController.class)
-            .renderTaskList(correctionId, positionCorrectionId, null, null)));
+            .renderTaskList(correction, positionCorrection, null)));
   }
 
   @Test
   void getChangeViews_whenPartialSurrenderIsRemoved_hasNoCorrectUrl() {
-    var correctionId = UUID.randomUUID();
+    var correction = LicenceCorrectionTestUtil.newBuilder().build();
     var positionId = UUID.randomUUID();
+    var licencePosition = LicencePositionTestUtil.newBuilder().withId(positionId).build();
 
     var result = partialSurrenderChangeView(
         positionId, UUID.randomUUID().toString(), LicencePositionChangeType.REMOVE_CHANGE,
-        PositionChangeUrlContext.forExecutedPosition(correctionId, positionId, UUID.randomUUID())
+        PositionChangeUrlContext.forExecutedPosition(correction, licencePosition, POSITION_CORRECTION)
     );
 
     assertThat(result.urls().correct()).isNull();
@@ -1017,39 +1033,42 @@ class LicencePositionChangeViewResolverTest {
 
   @Test
   void getChangeViews_whenPartialSurrenderOnAnAddedPosition_linksToTheStagedTaskList() {
-    var correctionId = UUID.randomUUID();
+    var correction = LicenceCorrectionTestUtil.newBuilder().build();
     var positionId = UUID.randomUUID();
-    var positionCorrectionId = UUID.randomUUID();
+    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder().build();
 
     var result = partialSurrenderChangeView(
         positionId, UUID.randomUUID().toString(), LicencePositionChangeType.ADD_CHANGE,
-        PositionChangeUrlContext.forAddedPosition(correctionId, positionCorrectionId)
+        PositionChangeUrlContext.forAddedPosition(correction, positionCorrection)
     );
 
     assertThat(result.urls().correct()).isEqualTo(
         ReverseRouter.route(on(PartialSurrenderTaskListController.class)
-            .renderTaskList(correctionId, positionCorrectionId, null, null)));
+            .renderTaskList(correction, positionCorrection, null)));
   }
 
   @Test
   void getChangeViews_whenPartialSurrenderIsAnUntouchedLiveChange_populatesRemoveNotUndo() {
-    var correctionId = UUID.randomUUID();
+    var correction = LicenceCorrectionTestUtil.newBuilder().build();
     var positionId = UUID.randomUUID();
+    var licencePosition = LicencePositionTestUtil.newBuilder().withId(positionId).build();
     var changeId = UUID.randomUUID().toString();
+    var change = LicencePositionChangeTestUtil.newBuilder().withId(UUID.fromString(changeId)).build();
 
     var result = partialSurrenderChangeView(
         positionId, changeId, null,
-        PositionChangeUrlContext.forExecutedPosition(correctionId, positionId, null)
+        PositionChangeUrlContext.forExecutedPosition(correction, licencePosition, null)
     );
 
     assertThat(result.urls()).isEqualTo(new ChangeViewUrls(
         ReverseRouter.route(on(PartialSurrenderTaskListController.class)
-            .renderForCorrectingChange(correctionId, positionId, changeId, null, null)),
+            .renderForCorrectingChange(correction, licencePosition, change, null)),
         ReverseRouter.route(on(RemovePartialSurrenderChangeController.class)
-            .renderRemoveExecutedPartialSurrender(correctionId, positionId, changeId, null)),
+            .renderRemoveExecutedPartialSurrender(
+                correction, licencePosition, change)),
         null,
         null,
-        correctPositionUrl(correctionId, positionId, UUID.fromString(changeId))));
+        correctPositionUrl(correction.getId(), positionId, UUID.fromString(changeId))));
   }
 
   @ParameterizedTest
@@ -1062,50 +1081,51 @@ class LicencePositionChangeViewResolverTest {
       String changeType,
       boolean correctable
   ) {
-    var correctionId = UUID.randomUUID();
+    var correction = LicenceCorrectionTestUtil.newBuilder().build();
     var positionId = UUID.randomUUID();
+    var licencePosition = LicencePositionTestUtil.newBuilder().withId(positionId).build();
     var changeId = UUID.randomUUID().toString();
-    var positionCorrectionId = UUID.randomUUID();
+    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder().build();
 
     var result = partialSurrenderChangeView(
         positionId, changeId, changeType,
-        PositionChangeUrlContext.forExecutedPosition(correctionId, positionId, positionCorrectionId)
+        PositionChangeUrlContext.forExecutedPosition(correction, licencePosition, positionCorrection)
     );
 
     var correctUrl = correctable
         ? ReverseRouter.route(on(PartialSurrenderTaskListController.class)
-            .renderTaskList(correctionId, positionCorrectionId, null, null))
+            .renderTaskList(correction, positionCorrection, null))
         : null;
 
     assertThat(result.urls()).isEqualTo(new ChangeViewUrls(
         correctUrl,
         null,
         ReverseRouter.route(on(RemovePartialSurrenderChangeController.class)
-            .renderUndoPartialSurrender(correctionId, changeId, null)),
+            .renderUndoPartialSurrender(correction, changeId)),
         null,
-        correctable ? correctPositionUrl(correctionId, positionId, UUID.fromString(changeId)) : null));
+        correctable ? correctPositionUrl(correction.getId(), positionId, UUID.fromString(changeId)) : null));
   }
 
   @Test
   void getChangeViews_whenPartialSurrenderIsOnAnAddedPosition_populatesUndoNotRemove() {
-    var correctionId = UUID.randomUUID();
+    var correction = LicenceCorrectionTestUtil.newBuilder().build();
     var positionId = UUID.randomUUID();
     var changeId = UUID.randomUUID().toString();
-    var positionCorrectionId = UUID.randomUUID();
+    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder().build();
 
     var result = partialSurrenderChangeView(
         positionId, changeId, LicencePositionChangeType.ADD_CHANGE,
-        PositionChangeUrlContext.forAddedPosition(correctionId, positionCorrectionId)
+        PositionChangeUrlContext.forAddedPosition(correction, positionCorrection)
     );
 
     assertThat(result.urls()).isEqualTo(new ChangeViewUrls(
         ReverseRouter.route(on(PartialSurrenderTaskListController.class)
-            .renderTaskList(correctionId, positionCorrectionId, null, null)),
+            .renderTaskList(correction, positionCorrection, null)),
         null,
         ReverseRouter.route(on(RemovePartialSurrenderChangeController.class)
-            .renderUndoPartialSurrender(correctionId, changeId, null)),
+            .renderUndoPartialSurrender(correction, changeId)),
         null,
-        correctPositionUrl(correctionId, positionId, UUID.fromString(changeId))));
+        correctPositionUrl(correction.getId(), positionId, UUID.fromString(changeId))));
   }
 
   @Test
@@ -1192,16 +1212,21 @@ class LicencePositionChangeViewResolverTest {
 
   @Test
   void getChangeViews_whenMultipleOrderableChangeTypes_populatesCorrectChangeOrderUrlForEachChange() {
-    var correctionId = UUID.randomUUID();
+    var correction = LicenceCorrectionTestUtil.newBuilder().build();
     var positionId = UUID.randomUUID();
+    var licencePosition = LicencePositionTestUtil.newBuilder().withId(positionId).build();
     var setEquityChangeId = UUID.randomUUID();
     var partialSurrenderChangeId = UUID.randomUUID();
+    var setEquityLiveChange = LicencePositionChangeTestUtil.newBuilder().withId(setEquityChangeId).build();
+    var partialSurrenderLiveChange = LicencePositionChangeTestUtil.newBuilder()
+        .withId(partialSurrenderChangeId)
+        .build();
 
     var result = changeOrderChangeViews(
         positionId,
-        List.of(setEquityChange(setEquityChangeId.toString(), null),
-            partialSurrenderChange(partialSurrenderChangeId.toString(), null)),
-        PositionChangeUrlContext.forExecutedPosition(correctionId, positionId, null)
+        List.of(setEquityChange(setEquityChangeId.toString()),
+            partialSurrenderChange(partialSurrenderChangeId.toString())),
+        PositionChangeUrlContext.forExecutedPosition(correction, licencePosition, null)
     );
 
     assertThat(result)
@@ -1210,27 +1235,28 @@ class LicencePositionChangeViewResolverTest {
             new ChangeViewUrls(
                 null,
                 ReverseRouter.route(on(RemoveEquityChangeController.class).renderRemoveExecutedEquityChange(
-                    correctionId, positionId, setEquityChangeId.toString(), null)),
+                    correction, licencePosition, setEquityLiveChange)),
                 null,
                 ReverseRouter.route(on(CorrectChangeOrderController.class)
-                    .renderCorrectChangeOrder(correctionId, positionId, setEquityChangeId, null)),
-                correctPositionUrl(correctionId, positionId, setEquityChangeId)),
+                    .renderCorrectChangeOrder(correction, positionId, setEquityChangeId)),
+                correctPositionUrl(correction.getId(), positionId, setEquityChangeId)),
             new ChangeViewUrls(
                 ReverseRouter.route(on(PartialSurrenderTaskListController.class).renderForCorrectingChange(
-                    correctionId, positionId, partialSurrenderChangeId.toString(), null, null)),
+                    correction, licencePosition, partialSurrenderLiveChange, null)),
                 ReverseRouter.route(on(RemovePartialSurrenderChangeController.class)
                     .renderRemoveExecutedPartialSurrender(
-                        correctionId, positionId, partialSurrenderChangeId.toString(), null)),
+                        correction, licencePosition, partialSurrenderLiveChange)),
                 null,
                 ReverseRouter.route(on(CorrectChangeOrderController.class)
-                    .renderCorrectChangeOrder(correctionId, positionId, partialSurrenderChangeId, null)),
-                correctPositionUrl(correctionId, positionId, partialSurrenderChangeId)));
+                    .renderCorrectChangeOrder(correction, positionId, partialSurrenderChangeId)),
+                correctPositionUrl(correction.getId(), positionId, partialSurrenderChangeId)));
   }
 
   @Test
   void getChangeViews_whenTwoSubareaChanges_retainsBothCardsInOrderWithOwnReorderUrls() {
-    var correctionId = UUID.randomUUID();
+    var correction = LicenceCorrectionTestUtil.newBuilder().build();
     var positionId = UUID.randomUUID();
+    var licencePosition = LicencePositionTestUtil.newBuilder().withId(positionId).build();
     var firstChangeId = UUID.randomUUID();
     var secondChangeId = UUID.randomUUID();
 
@@ -1240,7 +1266,7 @@ class LicencePositionChangeViewResolverTest {
             new PositionChange(firstChangeId.toString(), 1, null, List.of(new SubareaOperation(FIRST_FEATURE_ID, List.of(), List.of()))),
             new PositionChange(secondChangeId.toString(), 2, null, List.of(new SubareaOperation(SECOND_FEATURE_ID, List.of(), List.of())))
         ),
-        PositionChangeUrlContext.forExecutedPosition(correctionId, positionId, null)
+        PositionChangeUrlContext.forExecutedPosition(correction, licencePosition, null)
     );
 
     assertThat(result)
@@ -1248,24 +1274,26 @@ class LicencePositionChangeViewResolverTest {
         .containsExactly(
             tuple(LicenceOperation.SUBAREA, new ChangeViewUrls(null, null, null,
                 ReverseRouter.route(on(CorrectChangeOrderController.class)
-                    .renderCorrectChangeOrder(correctionId, positionId, firstChangeId, null)),
-                correctPositionUrl(correctionId, positionId, firstChangeId))),
+                    .renderCorrectChangeOrder(correction, positionId, firstChangeId)),
+                correctPositionUrl(correction.getId(), positionId, firstChangeId))),
             tuple(LicenceOperation.SUBAREA, new ChangeViewUrls(null, null, null,
                 ReverseRouter.route(on(CorrectChangeOrderController.class)
-                    .renderCorrectChangeOrder(correctionId, positionId, secondChangeId, null)),
-                correctPositionUrl(correctionId, positionId, secondChangeId))));
+                    .renderCorrectChangeOrder(correction, positionId, secondChangeId)),
+                correctPositionUrl(correction.getId(), positionId, secondChangeId))));
   }
 
   @Test
   void getChangeViews_whenOnlyOneOrderableChangeType_hasNoCorrectChangeOrderUrl() {
-    var correctionId = UUID.randomUUID();
+    var correction = LicenceCorrectionTestUtil.newBuilder().build();
     var positionId = UUID.randomUUID();
+    var licencePosition = LicencePositionTestUtil.newBuilder().withId(positionId).build();
     var changeId = UUID.randomUUID();
+    var change = LicencePositionChangeTestUtil.newBuilder().withId(changeId).build();
 
     var result = changeOrderChangeViews(
         positionId,
-        List.of(setEquityChange(changeId.toString(), null)),
-        PositionChangeUrlContext.forExecutedPosition(correctionId, positionId, null)
+        List.of(setEquityChange(changeId.toString())),
+        PositionChangeUrlContext.forExecutedPosition(correction, licencePosition, null)
     );
 
     assertThat(result)
@@ -1274,10 +1302,10 @@ class LicencePositionChangeViewResolverTest {
         .isEqualTo(new ChangeViewUrls(
             null,
             ReverseRouter.route(on(RemoveEquityChangeController.class).renderRemoveExecutedEquityChange(
-                correctionId, positionId, changeId.toString(), null)),
+                correction, licencePosition, change)),
             null,
             null,
-            correctPositionUrl(correctionId, positionId, changeId)));
+            correctPositionUrl(correction.getId(), positionId, changeId)));
   }
 
   @ParameterizedTest
@@ -1285,16 +1313,18 @@ class LicencePositionChangeViewResolverTest {
   void getChangeViews_whenAHiddenChangeAccompaniesASingleOrderableChange_hasNoCorrectChangeOrderUrl(
       LicenceOperation hiddenOperation
   ) {
-    var correctionId = UUID.randomUUID();
+    var correction = LicenceCorrectionTestUtil.newBuilder().build();
     var positionId = UUID.randomUUID();
+    var licencePosition = LicencePositionTestUtil.newBuilder().withId(positionId).build();
     var changeId = UUID.randomUUID();
+    var change = LicencePositionChangeTestUtil.newBuilder().withId(changeId).build();
 
     var result = changeOrderChangeViews(
         positionId,
         List.of(
-            setEquityChange(changeId.toString(), null),
+            setEquityChange(changeId.toString()),
             new PositionChange(UUID.randomUUID().toString(), 2, null, List.of(hiddenOperation))),
-        PositionChangeUrlContext.forExecutedPosition(correctionId, positionId, null)
+        PositionChangeUrlContext.forExecutedPosition(correction, licencePosition, null)
     );
 
     assertThat(result)
@@ -1303,24 +1333,25 @@ class LicencePositionChangeViewResolverTest {
         .isEqualTo(new ChangeViewUrls(
             null,
             ReverseRouter.route(on(RemoveEquityChangeController.class).renderRemoveExecutedEquityChange(
-                correctionId, positionId, changeId.toString(), null)),
+                correction, licencePosition, change)),
             null,
             null,
-            correctPositionUrl(correctionId, positionId, changeId)));
+            correctPositionUrl(correction.getId(), positionId, changeId)));
   }
 
   @Test
   void getChangeViews_whenChangeIsRemoved_hasNoCorrectChangeOrderUrlForThatChange() {
-    var correctionId = UUID.randomUUID();
+    var correction = LicenceCorrectionTestUtil.newBuilder().build();
     var positionId = UUID.randomUUID();
+    var licencePosition = LicencePositionTestUtil.newBuilder().withId(positionId).build();
     var administratorChangeId = UUID.randomUUID();
 
     var result = changeOrderChangeViews(
         positionId,
-        List.of(setEquityChange(UUID.randomUUID().toString(), null),
-            partialSurrenderChange(UUID.randomUUID().toString(), null),
+        List.of(setEquityChange(UUID.randomUUID().toString()),
+            partialSurrenderChange(UUID.randomUUID().toString()),
             administratorChange(administratorChangeId.toString(), LicencePositionChangeType.REMOVE_CHANGE)),
-        PositionChangeUrlContext.forExecutedPosition(correctionId, positionId, null)
+        PositionChangeUrlContext.forExecutedPosition(correction, licencePosition, null)
     );
 
     assertThat(result)
@@ -1331,7 +1362,7 @@ class LicencePositionChangeViewResolverTest {
             null,
             null,
             ReverseRouter.route(on(RemoveAdministratorChangeController.class)
-                .renderUndoAdminChange(correctionId, administratorChangeId.toString(), null)),
+                .renderUndoAdminChange(correction, administratorChangeId.toString())),
             null,
             null));
   }
@@ -1342,8 +1373,8 @@ class LicencePositionChangeViewResolverTest {
 
     var result = changeOrderChangeViews(
         positionId,
-        List.of(setEquityChange(UUID.randomUUID().toString(), null),
-            partialSurrenderChange(UUID.randomUUID().toString(), null)),
+        List.of(setEquityChange(UUID.randomUUID().toString()),
+            partialSurrenderChange(UUID.randomUUID().toString())),
         null
     );
 
@@ -1385,25 +1416,27 @@ class LicencePositionChangeViewResolverTest {
         .build();
   }
 
-  private static PositionChange setEquityChange(String changeId, String changeType) {
+  private static PositionChange setEquityChange(String changeId) {
     return PositionChangeTestUtil.newBuilder()
         .withChangeId(changeId)
         .withChangeOrder(2)
-        .withChangeType(changeType)
         .withSetEquityOperation(SET_EQUITY_ORG_ID, BigDecimal.valueOf(75))
         .build();
   }
 
-  private static PositionChange partialSurrenderChange(String changeId, String changeType) {
-    return new PositionChange(changeId, 3, changeType,
-        List.of(LicenceOperation.newPartialSurrenderOperation()
+  private static PositionChange partialSurrenderChange(String changeId) {
+    return PositionChangeTestUtil.newBuilder()
+        .withChangeId(changeId)
+        .withChangeOrder(3)
+        .withOperations(List.of(LicenceOperation.newPartialSurrenderOperation()
             .withSurrenderedFeatureIds(List.of(FIRST_FEATURE_ID))
             .withSurrenderDetails(Map.of(FIRST_FEATURE_ID, new SurrenderDetails(
                 BlockSurrenderType.FULL_SURRENDER,
                 UUID.randomUUID(),
                 List.of(FIRST_FEATURE_ID)
             )))
-            .build()));
+            .build()))
+        .build();
   }
 
   @Test
@@ -1412,8 +1445,8 @@ class LicencePositionChangeViewResolverTest {
 
     var result = changeOrderChangeViews(positionId, List.of(
         administratorChange(UUID.randomUUID().toString(), null),
-        setEquityChange(UUID.randomUUID().toString(), null),
-        partialSurrenderChange(UUID.randomUUID().toString(), null)), null);
+        setEquityChange(UUID.randomUUID().toString()),
+        partialSurrenderChange(UUID.randomUUID().toString())), null);
 
     assertThat(result)
         .extracting(LicencePositionChangeView::type)
@@ -1428,8 +1461,8 @@ class LicencePositionChangeViewResolverTest {
     var positionId = UUID.randomUUID();
 
     var result = changeOrderChangeViews(positionId, List.of(
-        setEquityChange(UUID.randomUUID().toString(), null),
-        setEquityChange(UUID.randomUUID().toString(), null)), null);
+        setEquityChange(UUID.randomUUID().toString()),
+        setEquityChange(UUID.randomUUID().toString())), null);
 
     var expectedView = new SetEquityChangeView(
         List.of(new SetEquityRow(SET_EQUITY_ORG_NAME, BigDecimal.valueOf(75))),
@@ -1448,7 +1481,7 @@ class LicencePositionChangeViewResolverTest {
         .withId(positionId)
         .withChanges(List.of(
             administratorChange(administratorChangeId, null),
-            setEquityChange(setEquityChangeId, null)))
+            setEquityChange(setEquityChangeId)))
         .build());
 
     var result = LicencePositionChangeViewResolver.getChangeViewsByChangeId(

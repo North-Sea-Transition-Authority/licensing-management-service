@@ -32,6 +32,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOp
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.FeatureTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListItem;
@@ -51,6 +53,9 @@ class PartialSurrenderBlockSurrenderTypeTaskListSectionServiceTest {
       .withId(POSITION_ID)
       .build();
   private static final String LIVE_CHANGE_ID = UUID.randomUUID().toString();
+  private static final LicencePositionChange LIVE_CHANGE = LicencePositionChangeTestUtil.newBuilder()
+      .withId(UUID.fromString(LIVE_CHANGE_ID))
+      .build();
   private static final ServiceUserDetail USER = ServiceUserDetailTestUtil.newBuilder().build();
   private static final Feature FIRST_BLOCK = FeatureTestUtil.blockFeature(UUID.randomUUID(), "30", 1);
   private static final Feature SECOND_BLOCK = FeatureTestUtil.blockFeature(UUID.randomUUID(), "30", 2);
@@ -148,7 +153,7 @@ class PartialSurrenderBlockSurrenderTypeTaskListSectionServiceTest {
   }
 
   private PartialSurrenderTaskListContext.LiveChange liveChangeContext() {
-    return new PartialSurrenderTaskListContext.LiveChange(CORRECTION, POSITION, LIVE_CHANGE_ID);
+    return new PartialSurrenderTaskListContext.LiveChange(CORRECTION, POSITION, LIVE_CHANGE);
   }
 
   private void givenSurrenderUnderCorrection(PartialSurrenderOperation operation, List<Feature> surrenderedBlocks) {
@@ -163,7 +168,7 @@ class PartialSurrenderBlockSurrenderTypeTaskListSectionServiceTest {
         label,
         ReverseRouter.route(
             on(BlockSurrenderTypeController.class).renderSurrenderTypeFormForCorrectingChange(
-                CORRECTION_ID, POSITION_ID, LIVE_CHANGE_ID, block.getId(), null)));
+                CORRECTION, POSITION, LIVE_CHANGE, block.getId())));
   }
 
   private void givenStagedSurrender(
@@ -207,6 +212,6 @@ class PartialSurrenderBlockSurrenderTypeTaskListSectionServiceTest {
         "Block %s".formatted(block.getFeatureName()),
         label,
         ReverseRouter.route(on(BlockSurrenderTypeController.class).renderSurrenderTypeForm(
-            CORRECTION_ID, positionCorrection.getId(), block.getId(), null)));
+            CORRECTION, positionCorrection, block.getId())));
   }
 }

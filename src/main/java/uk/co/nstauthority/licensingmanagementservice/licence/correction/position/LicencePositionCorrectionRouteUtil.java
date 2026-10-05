@@ -2,7 +2,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.correction.positio
 
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
-import java.util.UUID;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.util.IllegalUtilClassInstantiationException;
@@ -13,12 +13,12 @@ public class LicencePositionCorrectionRouteUtil {
     throw new IllegalUtilClassInstantiationException(this.getClass());
   }
 
-  public static String getPositionPageUrl(UUID correctionId, LicencePositionCorrection positionCorrection) {
+  public static String getPositionPageUrl(LicenceCorrection correction, LicencePositionCorrection positionCorrection) {
     return switch (positionCorrection.getChangeType()) {
       case ADD_POSITION -> ReverseRouter.route(on(LicenceCorrectionController.class)
-          .renderAddedPosition(correctionId, positionCorrection.getId(), null));
+          .renderAddedPosition(correction, positionCorrection));
       case UPDATE_POSITION -> ReverseRouter.route(on(LicenceCorrectionController.class)
-          .renderLicencePosition(correctionId, positionCorrection.getTargetLicencePosition().getId(), null));
+          .renderLicencePosition(correction, positionCorrection.getTargetLicencePosition()));
       case REMOVE_POSITION -> throw new IllegalStateException(
           "Licence position correction %s removes a position so cannot have changes made against it"
               .formatted(positionCorrection.getId()));

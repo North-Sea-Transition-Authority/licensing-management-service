@@ -6,12 +6,10 @@ import jakarta.annotation.Nullable;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Objects;
-import java.util.UUID;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
@@ -19,6 +17,7 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correct
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanViewCorrection;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.LicencePositionChangeBelongsToPosition;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.LicencePositionChangeIsOfType;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.position.LicencePositionBelongsToCorrectionLicence;
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
@@ -27,7 +26,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.PartialSurrenderChangeView;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.util.DateUtil;
@@ -47,30 +47,25 @@ public class RemovePartialSurrenderChangeController {
 
   private final LicencePositionCorrectionService licencePositionCorrectionService;
   private final PartialSurrenderCorrectionService partialSurrenderCorrectionService;
-  private final LicencePositionService licencePositionService;
 
   public RemovePartialSurrenderChangeController(
       LicencePositionCorrectionService licencePositionCorrectionService,
-      PartialSurrenderCorrectionService partialSurrenderCorrectionService,
-      LicencePositionService licencePositionService
+      PartialSurrenderCorrectionService partialSurrenderCorrectionService
   ) {
     this.licencePositionCorrectionService = licencePositionCorrectionService;
     this.partialSurrenderCorrectionService = partialSurrenderCorrectionService;
-    this.licencePositionService = licencePositionService;
   }
 
   @GetMapping("/position/{licencePositionId}/change/{changeId}/remove-partial-surrender")
   @LicencePositionChangeBelongsToPosition
   @LicencePositionChangeIsOfType(PartialSurrenderOperation.class)
+  @LicencePositionBelongsToCorrectionLicence
   public ModelAndView renderRemoveExecutedPartialSurrender(
-      @PathVariable UUID correctionId,
-      @PathVariable UUID licencePositionId,
-      @PathVariable String changeId,
-      @RequestAttribute("validatedCorrection") LicenceCorrection correction
+      LicenceCorrection correction,
+      LicencePosition licencePosition,
+      LicencePositionChange change
   ) {
-    var licencePosition = licencePositionService.getPositionForLicence(correction.getLicence(), licencePositionId);
-
-    var executedSurrender = partialSurrenderCorrectionService.getLiveSurrenderOrThrow(changeId);
+    var executedSurrender = partialSurrenderCorrectionService.getLiveSurrenderOrThrow(change.getId().toString());
     var blockRows = partialSurrenderCorrectionService.getBlockRows(executedSurrender);
 
     var surrenderDate = Objects.requireNonNullElseGet(
@@ -78,7 +73,7 @@ public class RemovePartialSurrenderChangeController {
         () -> licencePositionCorrectionService.getEffectivePositionDate(correction, licencePosition));
 
     var cancelUrl = ReverseRouter.route(on(LicenceCorrectionController.class)
-        .renderLicencePosition(correction.getId(), licencePosition.getId(), null));
+        .renderLicencePosition(correction, licencePosition));
 
     return confirmationModelAndView(
         surrenderDate, blockRows, REMOVE_PAGE_TITLE, REMOVE_PRIMARY_BUTTON_TEXT, cancelUrl);
@@ -87,28 +82,25 @@ public class RemovePartialSurrenderChangeController {
   @PostMapping("/position/{licencePositionId}/change/{changeId}/remove-partial-surrender")
   @LicencePositionChangeBelongsToPosition
   @LicencePositionChangeIsOfType(PartialSurrenderOperation.class)
+  @LicencePositionBelongsToCorrectionLicence
   public ModelAndView removePartialSurrender(
-      @PathVariable UUID correctionId,
-      @PathVariable UUID licencePositionId,
-      @PathVariable String changeId,
-      @RequestAttribute("validatedCorrection") LicenceCorrection correction,
+      LicenceCorrection correction,
+      LicencePosition licencePosition,
+      LicencePositionChange change,
       RedirectAttributes redirectAttributes
   ) {
-    var licencePosition = licencePositionService.getPositionForLicence(correction.getLicence(), licencePositionId);
-
-    partialSurrenderCorrectionService.removeExistingPartialSurrender(licencePosition, correction, changeId);
+    partialSurrenderCorrectionService.removeExistingPartialSurrender(licencePosition, correction, change.getId().toString());
 
     NotificationBanner.newSuccessBannerWithHeader("Partial surrender removed", redirectAttributes);
 
     return ReverseRouter.redirect(on(LicenceCorrectionController.class)
-        .renderLicencePosition(correction.getId(), licencePositionId, null));
+        .renderLicencePosition(correction, licencePosition));
   }
 
   @GetMapping("/change/{changeId}/undo-partial-surrender")
   public ModelAndView renderUndoPartialSurrender(
-      @PathVariable UUID correctionId,
-      @PathVariable String changeId,
-      @RequestAttribute("validatedCorrection") LicenceCorrection correction
+      LicenceCorrection correction,
+      @PathVariable String changeId
   ) {
     var positionCorrection = licencePositionCorrectionService
         .getPositionCorrectionContainingChange(correction, changeId);
@@ -130,9 +122,8 @@ public class RemovePartialSurrenderChangeController {
 
   @PostMapping("/change/{changeId}/undo-partial-surrender")
   public ModelAndView undoPartialSurrender(
-      @PathVariable UUID correctionId,
+      LicenceCorrection correction,
       @PathVariable String changeId,
-      @RequestAttribute("validatedCorrection") LicenceCorrection correction,
       RedirectAttributes redirectAttributes
   ) {
     var positionCorrection = licencePositionCorrectionService
@@ -165,11 +156,10 @@ public class RemovePartialSurrenderChangeController {
       LicencePositionCorrection positionCorrection
   ) {
     if (positionCorrection.getChangeType() == LicencePositionCorrectionChangeType.ADD_POSITION) {
-      return ReverseRouter.route(on(LicenceCorrectionController.class)
-          .renderAddedPosition(correction.getId(), positionCorrection.getId(), null));
+      return ReverseRouter.route(on(LicenceCorrectionController.class).renderAddedPosition(correction, positionCorrection));
     }
 
     return ReverseRouter.route(on(LicenceCorrectionController.class)
-        .renderLicencePosition(correction.getId(), positionCorrection.getTargetLicencePosition().getId(), null));
+        .renderLicencePosition(correction, positionCorrection.getTargetLicencePosition()));
   }
 }

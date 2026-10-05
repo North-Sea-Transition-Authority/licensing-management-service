@@ -372,7 +372,7 @@ class PearsLicenceWritebackEndpointIntegrationTest {
 
   /**
    * Three positions on two dates, the first setting an administrator and the last moving it to
-   * another organisation, with a subarea operation in between that still builds a position.
+   * another organisation, with a retention area operation in between that still builds a position.
    */
   private LicenceOperationHistory pearsHistory() {
     return PearsHistoryTestUtil.history("P", 1)
@@ -380,7 +380,7 @@ class PearsLicenceWritebackEndpointIntegrationTest {
         .administratorSet(11)
         .and()
         .position(2, "XPT/2", FIRST_POSITION_DATE, 9)
-        .operationWithoutPayload("PED_SUBAREA_CHANGE")
+        .operationWithoutPayload("PED_RETENTION_AREA_CHANGE")
         .and()
         .position(3, "XPT/3", LAST_POSITION_DATE, 2)
         .administratorTransfer(11, 22)

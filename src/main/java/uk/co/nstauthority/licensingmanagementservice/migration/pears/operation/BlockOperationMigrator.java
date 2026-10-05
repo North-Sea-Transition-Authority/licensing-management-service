@@ -1,7 +1,6 @@
 package uk.co.nstauthority.licensingmanagementservice.migration.pears.operation;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -11,11 +10,11 @@ import java.util.UUID;
 import java.util.stream.Stream;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
-import uk.co.fivium.gisframework.feature.Feature;
-import uk.co.fivium.gisframework.feature.FeatureService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderType;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaDetails;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaSurrenderOutcome;
 import uk.co.nstauthority.licensingmanagementservice.migration.pears.PearsLicenceHistory;
 import uk.co.nstauthority.licensingmanagementservice.migration.pears.PearsPosition;
 import uk.co.nstauthority.licensingmanagementservice.migration.pears.history.PearsOperation;
@@ -46,10 +45,10 @@ import uk.co.nstauthority.licensingmanagementservice.migration.pears.history.Pea
 @Order(200)
 class BlockOperationMigrator implements PearsOperationMigrator {
 
-  private final FeatureService featureService;
+  private final PearsFeatureResolver featureResolver;
 
-  BlockOperationMigrator(FeatureService featureService) {
-    this.featureService = featureService;
+  BlockOperationMigrator(PearsFeatureResolver featureResolver) {
+    this.featureResolver = featureResolver;
   }
 
   @Override
@@ -75,7 +74,10 @@ class BlockOperationMigrator implements PearsOperationMigrator {
   }
 
   @Override
-  public List<MigratedChange> migrate(PearsLicenceHistory history, MigrationNotes notes) {
+  public List<MigratedChange> migrate(
+      PearsLicenceHistory history,
+      MigrationNotes notes
+  ) {
     var changes = new ArrayList<MigratedChange>();
     for (PearsPosition position : history.positions()) {
       changes.addAll(positionChanges(position, notes));
@@ -101,7 +103,7 @@ class BlockOperationMigrator implements PearsOperationMigrator {
       return List.of();
     }
 
-    var featureIdsBySiId = resolveFeatures(blockOperations, notes);
+    var featureIdsBySiId = featureResolver.resolve(siIds(blockOperations), notes);
     var changes = new ArrayList<MigratedChange>();
 
     // Keyed by the block given up, holding the successors PEARS says it left behind, which are the parts the
@@ -109,6 +111,13 @@ class BlockOperationMigrator implements PearsOperationMigrator {
     var surrenderedBlockIdToNewBlockIds = new LinkedHashMap<UUID, List<UUID>>();
     var redefined = new LinkedHashSet<UUID>();
     var redefinitionOutputs = new LinkedHashSet<UUID>();
+
+    // The subareas redrawn along with the ground, folded into whichever of the two changes redrew it. A surrender's
+    // are keyed by the block given up and then by the part of it kept; a redefinition's outputs by the block they
+    // were carried onto.
+    var surrenderedSubareaOutcomes = new LinkedHashMap<UUID, Map<UUID, List<SubareaSurrenderOutcome>>>();
+    var redefinedSubareas = new LinkedHashSet<SubareaDetails>();
+    var redefinitionOutputSubareas = new LinkedHashMap<UUID, Set<SubareaDetails>>();
 
     // The operations that gave ground up and that redrew it, in PEARS' order, so the one change each is folded into
     // stands at the first of them.
@@ -120,11 +129,14 @@ class BlockOperationMigrator implements PearsOperationMigrator {
         redefined,
         redefinitionOutputs,
         surrenderKeys,
-        redefinitionKeys
+        redefinitionKeys,
+        surrenderedSubareaOutcomes,
+        redefinedSubareas,
+        redefinitionOutputSubareas
     );
 
     for (var operation : blockOperations) {
-      var at = keyOf(operation);
+      var at = PearsOperationKey.of(operation);
 
       // A block operation with no blocks acts on nothing, so every branch below would fall through
       // it without a word. That is the one way this migrator can drop something in silence, and it
@@ -163,20 +175,28 @@ class BlockOperationMigrator implements PearsOperationMigrator {
     }
 
     if (!redefined.isEmpty()) {
-      changes.add(MigratedChange.from(new PearsPositionKey(position.transactionId()), firstOf(redefinitionKeys),
+      changes.add(MigratedChange.from(
+          new PearsPositionKey(position.transactionId()),
+          firstOf(redefinitionKeys),
           List.of(LicenceOperation.newBlockRedefinitionOperation()
               .withReplacedFeatureIds(redefined)
               .withOutputFeatureIds(redefinitionOutputs)
-              .build())));
+              .withReplacedSubareas(redefinedSubareas)
+              .withOutputSubareas(redefinitionOutputSubareas)
+              .build())
+      ));
     }
 
     if (!surrenderedBlockIdToNewBlockIds.isEmpty()) {
-      changes.add(MigratedChange.from(new PearsPositionKey(position.transactionId()), firstOf(surrenderKeys),
+      changes.add(MigratedChange.from(
+          new PearsPositionKey(position.transactionId()),
+          firstOf(surrenderKeys),
           List.of(LicenceOperation.newPartialSurrenderOperation()
               .withSurrenderDate(position.positionDate())
               .withSurrenderedFeatureIds(surrenderedBlockIdToNewBlockIds.keySet())
-              .withSurrenderDetails(surrenderDetails(surrenderedBlockIdToNewBlockIds))
-              .build())));
+              .withSurrenderDetails(surrenderDetails(surrenderedBlockIdToNewBlockIds, surrenderedSubareaOutcomes))
+              .build())
+      ));
     }
 
     return changes;
@@ -184,6 +204,11 @@ class BlockOperationMigrator implements PearsOperationMigrator {
 
   /**
    * Blocks created outright, emitted as a change of their own.
+   *
+   * <p>A block arrives covered by its subareas, and those go on the creation rather than becoming a
+   * change of their own -- nothing happened to them that did not happen to the block. Every later
+   * subarea change is {@code SubareaOperationMigrator}'s, which is why it leaves PED_BLOCK_CREATE
+   * alone.
    */
   private static void addBlockCreation(
       PearsOperation.BlockCreate create,
@@ -202,12 +227,51 @@ class BlockOperationMigrator implements PearsOperationMigrator {
     changes.add(MigratedChange.from(
         new PearsPositionKey(position.transactionId()),
         at,
-        List.of(LicenceOperation.newBlockCreateOperation().withFeatureIds(created).build())
+        List.of(LicenceOperation.newBlockCreateOperation()
+            .withFeatureIds(created)
+            .withCreatedSubareas(createdSubareas(create, featureIdsBySiId, notes, at))
+            .build())
     ));
   }
 
   /**
+   * The subareas the created blocks arrived covered by. PEARS names none of them in the operation's
+   * payload, so these came out of the block rows {@code licence-history.sql} resolved.
+   */
+  private static Map<UUID, Set<SubareaDetails>> createdSubareas(
+      PearsOperation.BlockCreate create,
+      Map<Integer, UUID> featureIdsBySiId,
+      MigrationNotes notes,
+      PearsOperationKey at
+  ) {
+    var subareasByBlock = new LinkedHashMap<UUID, Set<SubareaDetails>>();
+    for (var entry : create.subareaEntries()) {
+      var output = entry.output();
+      var blockFeatureId = output == null || output.blockSiId() == null
+          ? null
+          : featureIdsBySiId.get(output.blockSiId());
+      if (output != null && blockFeatureId == null) {
+        notes.unmapped("subarea a block arrived with sits on a block that could not be resolved", at.operationId());
+        continue;
+      }
+      addOutputSubarea(
+          subareasByBlock,
+          blockFeatureId,
+          entry,
+          featureIdsBySiId,
+          notes,
+          at,
+          "subarea a block arrived with could not be resolved"
+      );
+    }
+    return subareasByBlock;
+  }
+
+  /**
    * Blocks ended outright, emitted as a change of their own.
+   *
+   * <p>Ending a block ends every subarea on it, which goes on the same change for the same reason a creation's
+   * subareas do: nothing happened to them that did not happen to the block.
    */
   private static void addBlockEnd(
       PearsOperation.BlockEnd end,
@@ -223,10 +287,28 @@ class BlockOperationMigrator implements PearsOperationMigrator {
       return;
     }
 
+    var endedSubareas = new LinkedHashSet<SubareaDetails>();
+    for (var entry : end.subareaEntries()) {
+      var subarea = subareaDetails(
+          entry,
+          entry.input(),
+          featureIdsBySiId,
+          notes,
+          at,
+          "subarea ended with its block could not be resolved"
+      );
+      if (subarea != null) {
+        endedSubareas.add(subarea);
+      }
+    }
+
     changes.add(MigratedChange.from(
         new PearsPositionKey(position.transactionId()),
         at,
-        List.of(LicenceOperation.newBlockEndOperation().withEndedFeatureIds(ended).build())
+        List.of(LicenceOperation.newBlockEndOperation()
+            .withEndedFeatureIds(ended)
+            .withEndedSubareas(endedSubareas)
+            .build())
     ));
   }
 
@@ -239,11 +321,18 @@ class BlockOperationMigrator implements PearsOperationMigrator {
       Set<UUID> redefined,
       Set<UUID> redefinitionOutputs,
       Set<PearsOperationKey> surrenderKeys,
-      Set<PearsOperationKey> redefinitionKeys
+      Set<PearsOperationKey> redefinitionKeys,
+      Map<UUID, Map<UUID, List<SubareaSurrenderOutcome>>> surrenderedSubareaOutcomes,
+      Set<SubareaDetails> redefinedSubareas,
+      Map<UUID, Set<SubareaDetails>> redefinitionOutputSubareas
   ) {}
 
   /**
    * One block change, folded a block at a time into the surrender and the redefinition the position emits once each.
+   *
+   * <p>The subareas on each block entry are folded into whichever of the two that entry went to. Only the ones carried
+   * from the old block to the new belong here: a subarea added or dropped while the block was being redrawn is a
+   * change to that subarea in its own right, and {@code SubareaOperationMigrator} makes it one.
    */
   private static void addBlockChange(
       PearsOperation.BlockChange change,
@@ -255,6 +344,7 @@ class BlockOperationMigrator implements PearsOperationMigrator {
     // Worked out across the whole operation rather than per entry: a change names one entry per
     // successor, so a block broken into parts is only a surrender if they leave the block short.
     var surrenderedInputSiIds = change.surrenderedInputSiIds();
+    var subareasByBlockEntry = carriedSubareasByBlockEntry(change.subareaEntries());
 
     for (var entry : change.entries()) {
       var input = featureId(entry.input(), featureIdsBySiId);
@@ -265,18 +355,186 @@ class BlockOperationMigrator implements PearsOperationMigrator {
         continue;
       }
 
+      var subareas = subareasByBlockEntry.getOrDefault(entry.seq(), List.of());
+      // A block entry names one successor, which is the block its subareas were carried onto.
+      var successor = outputs.isEmpty() ? null : outputs.getFirst();
+      if (successor == null && !subareas.isEmpty()) {
+        notes.unmapped("subareas a block change carried onto a successor that could not be resolved", at.operationId());
+      }
+
+      var resolved = new ResolvedBlockEntry(input, outputs, successor, subareas);
       if (surrenderedInputSiIds.contains(entry.input().siId())) {
-        accumulator.surrendered().merge(input, outputs, (existing, added) ->
-            Stream.concat(existing.stream(), added.stream()).distinct().toList());
-        accumulator.surrenderKeys().add(at);
+        addSurrenderedEntry(resolved, featureIdsBySiId, accumulator, notes, at);
       } else {
-        if (accumulator.redefined().add(input)) {
-          notes.note("block change that gave up no area, carried across as a redefinition");
-        }
-        accumulator.redefinitionOutputs().addAll(outputs);
-        accumulator.redefinitionKeys().add(at);
+        addRedefinedEntry(resolved, featureIdsBySiId, accumulator, notes, at);
       }
     }
+  }
+
+  /**
+   * One block entry of a block change, with its blocks resolved to features and the subareas it carried.
+   */
+  private record ResolvedBlockEntry(
+      UUID input,
+      List<UUID> outputs,
+      UUID successor,
+      List<PearsOperation.SubareaEntry> subareas
+  ) {}
+
+  private static void addSurrenderedEntry(
+      ResolvedBlockEntry entry,
+      Map<Integer, UUID> featureIdsBySiId,
+      BlockChangeAccumulator accumulator,
+      MigrationNotes notes,
+      PearsOperationKey at
+  ) {
+    accumulator.surrendered().merge(entry.input(), entry.outputs(), (existing, added) ->
+        Stream.concat(existing.stream(), added.stream()).distinct().toList());
+    accumulator.surrenderKeys().add(at);
+    if (entry.successor() != null && !entry.subareas().isEmpty()) {
+      addSurrenderOutcomes(
+          entry.subareas(),
+          featureIdsBySiId,
+          accumulator.surrenderedSubareaOutcomes()
+              .computeIfAbsent(entry.input(), ignored -> new LinkedHashMap<>())
+              .computeIfAbsent(entry.successor(), ignored -> new ArrayList<>()),
+          notes,
+          at
+      );
+    }
+  }
+
+  private static void addRedefinedEntry(
+      ResolvedBlockEntry entry,
+      Map<Integer, UUID> featureIdsBySiId,
+      BlockChangeAccumulator accumulator,
+      MigrationNotes notes,
+      PearsOperationKey at
+  ) {
+    if (accumulator.redefined().add(entry.input())) {
+      notes.note("block change that gave up no area, carried across as a redefinition");
+    }
+    accumulator.redefinitionOutputs().addAll(entry.outputs());
+    accumulator.redefinitionKeys().add(at);
+    for (var subarea : entry.subareas()) {
+      var replaced = subareaDetails(
+          subarea,
+          subarea.input(),
+          featureIdsBySiId,
+          notes,
+          at,
+          "subarea version a block change carried across could not be resolved"
+      );
+      if (replaced != null) {
+        accumulator.redefinedSubareas().add(replaced);
+      }
+      if (entry.successor() != null) {
+        addOutputSubarea(
+            accumulator.redefinitionOutputSubareas(),
+            entry.successor(),
+            subarea,
+            featureIdsBySiId,
+            notes,
+            at,
+            "subarea a block change carried onto its successor could not be resolved"
+        );
+      }
+    }
+  }
+
+  /**
+   * The subareas a block change carried from one block to its successor, by the block entry that carried them.
+   *
+   * <p>Keyed by block entry rather than by block because a block broken into two successors gives two entries naming
+   * the one block they replaced, and each successor keeps its own share of the subareas.
+   */
+  private static Map<Integer, List<PearsOperation.SubareaEntry>> carriedSubareasByBlockEntry(
+      List<PearsOperation.SubareaEntry> subareaEntries
+  ) {
+    var byBlockEntry = new LinkedHashMap<Integer, List<PearsOperation.SubareaEntry>>();
+    for (var entry : subareaEntries) {
+      if (entry.isCarriedWithItsBlock() && entry.blockEntrySeq() != null) {
+        byBlockEntry.computeIfAbsent(entry.blockEntrySeq(), ignored -> new ArrayList<>()).add(entry);
+      }
+    }
+    return byBlockEntry;
+  }
+
+  /**
+   * What a surrender did to each subarea carried onto one part of a block kept. PEARS re-cuts a subarea onto the
+   * successor as a new version, so one whose version changed is cropped to it; one PEARS carried as it was is kept.
+   */
+  private static void addSurrenderOutcomes(
+      List<PearsOperation.SubareaEntry> subareaEntries,
+      Map<Integer, UUID> featureIdsBySiId,
+      List<SubareaSurrenderOutcome> outcomes,
+      MigrationNotes notes,
+      PearsOperationKey at
+  ) {
+    for (var entry : subareaEntries) {
+      var replaced = subareaDetails(
+          entry,
+          entry.input(),
+          featureIdsBySiId,
+          notes,
+          at,
+          "subarea version a block change carried across could not be resolved"
+      );
+      var output = subareaDetails(
+          entry,
+          entry.output(),
+          featureIdsBySiId,
+          notes,
+          at,
+          "subarea a block change carried onto its successor could not be resolved"
+      );
+      if (replaced == null && output == null) {
+        continue;
+      }
+      if (replaced == null || replaced.equals(output)) {
+        outcomes.add(SubareaSurrenderOutcome.kept(replaced == null ? output : replaced));
+      } else if (output == null) {
+        outcomes.add(SubareaSurrenderOutcome.relinquished(replaced));
+      } else {
+        outcomes.add(SubareaSurrenderOutcome.cropped(replaced, output));
+      }
+    }
+  }
+
+  private static void addOutputSubarea(
+      Map<UUID, Set<SubareaDetails>> subareasByBlock,
+      UUID blockFeatureId,
+      PearsOperation.SubareaEntry entry,
+      Map<Integer, UUID> featureIdsBySiId,
+      MigrationNotes notes,
+      PearsOperationKey at,
+      String reason
+  ) {
+    var details = subareaDetails(entry, entry.output(), featureIdsBySiId, notes, at, reason);
+    if (details != null) {
+      subareasByBlock.computeIfAbsent(blockFeatureId, ignored -> new LinkedHashSet<>()).add(details);
+    }
+  }
+
+  /**
+   * One side of a subarea, as the operation will hold it.
+   */
+  private static SubareaDetails subareaDetails(
+      PearsOperation.SubareaEntry entry,
+      PearsOperation.Subarea subarea,
+      Map<Integer, UUID> featureIdsBySiId,
+      MigrationNotes notes,
+      PearsOperationKey at,
+      String reason
+  ) {
+    if (subarea == null) {
+      return null;
+    }
+    var featureId = subarea.siId() == null ? null : featureIdsBySiId.get(subarea.siId());
+    if (featureId == null) {
+      notes.unmapped(reason, at.operationId());
+    }
+    return new SubareaDetails(featureId, subarea.name(), entry.shortName());
   }
 
   /**
@@ -301,12 +559,20 @@ class BlockOperationMigrator implements PearsOperationMigrator {
    * behind, which is what the licence retained.
    */
   private static Map<UUID, PartialSurrenderOperation.SurrenderDetails> surrenderDetails(
-      Map<UUID, List<UUID>> retainedBySurrenderedBlock
+      Map<UUID, List<UUID>> retainedBySurrenderedBlock,
+      Map<UUID, Map<UUID, List<SubareaSurrenderOutcome>>> subareaOutcomesBySurrenderedBlock
   ) {
     var details = new LinkedHashMap<UUID, PartialSurrenderOperation.SurrenderDetails>();
-    retainedBySurrenderedBlock.forEach((featureId, retained) -> details.put(featureId,
+    retainedBySurrenderedBlock.forEach((featureId, retained) -> details.put(
+        featureId,
         new PartialSurrenderOperation.SurrenderDetails(
-            BlockSurrenderType.PARTIAL_SURRENDER, null, List.of(), retained)));
+            BlockSurrenderType.PARTIAL_SURRENDER,
+            null,
+            List.of(),
+            retained,
+            subareaOutcomesBySurrenderedBlock.getOrDefault(featureId, Map.of())
+        )
+    ));
     return details;
   }
 
@@ -316,41 +582,46 @@ class BlockOperationMigrator implements PearsOperationMigrator {
         .toList();
   }
 
-  /**
-   * The features every block in this position names, looked up in one go rather than one block at a
-   * time. A block's si_id in PEARS is the legacy id of the feature the GIS migration made from it.
-   */
-  private Map<Integer, UUID> resolveFeatures(List<PearsOperation> blockOperations, MigrationNotes notes) {
+  private static Set<Integer> siIds(List<PearsOperation> blockOperations) {
     var siIds = new LinkedHashSet<Integer>();
     for (var operation : blockOperations) {
       for (var entry : entriesOf(operation)) {
         addSiId(siIds, entry.input());
         addSiId(siIds, entry.output());
       }
-    }
-
-    if (siIds.isEmpty()) {
-      return Map.of();
-    }
-
-    var featureIdsBySiId = new HashMap<Integer, UUID>();
-    for (Feature feature : featureService.findAllByLegacyIdIn(siIds)) {
-      featureIdsBySiId.put(feature.getLegacyId(), feature.getId());
-    }
-
-    for (var siId : siIds) {
-      if (!featureIdsBySiId.containsKey(siId)) {
-        notes.note("PEARS block has no migrated GIS feature, so no position can hold it");
+      for (var entry : subareaEntriesOf(operation)) {
+        addSubareaSiId(siIds, entry.input());
+        addSubareaSiId(siIds, entry.output());
       }
     }
-
-    return featureIdsBySiId;
+    return siIds;
   }
 
-  private static void addSiId(Set<Integer> siIds, PearsOperation.Block block) {
+  private static void addSiId(
+      Set<Integer> siIds,
+      PearsOperation.Block block
+  ) {
     if (block != null && block.siId() != null) {
       siIds.add(block.siId());
     }
+  }
+
+  private static void addSubareaSiId(
+      Set<Integer> siIds,
+      PearsOperation.Subarea subarea
+  ) {
+    if (subarea != null && subarea.siId() != null) {
+      siIds.add(subarea.siId());
+    }
+  }
+
+  private static List<PearsOperation.SubareaEntry> subareaEntriesOf(PearsOperation operation) {
+    return switch (operation) {
+      case PearsOperation.BlockCreate create -> create.subareaEntries();
+      case PearsOperation.BlockChange change -> change.subareaEntries();
+      case PearsOperation.BlockEnd end -> end.subareaEntries();
+      default -> List.of();
+    };
   }
 
   private static List<PearsOperation.BlockEntry> entriesOf(PearsOperation operation) {
@@ -398,14 +669,13 @@ class BlockOperationMigrator implements PearsOperationMigrator {
     return List.copyOf(featureIds);
   }
 
-  private static UUID featureId(PearsOperation.Block block, Map<Integer, UUID> featureIdsBySiId) {
+  private static UUID featureId(
+      PearsOperation.Block block,
+      Map<Integer, UUID> featureIdsBySiId
+  ) {
     if (block == null || block.siId() == null) {
       return null;
     }
     return featureIdsBySiId.get(block.siId());
-  }
-
-  private static PearsOperationKey keyOf(PearsOperation operation) {
-    return new PearsOperationKey(operation.header().operationSequence(), operation.header().operationId());
   }
 }

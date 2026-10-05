@@ -59,14 +59,13 @@ class PearsLicenceService {
 
     try (var connection = dataSource.getConnection();
          var statement = connection.prepareStatement(sql)) {
-      statement.setString(1, licenceType);
-      statement.setInt(2, licenceNumber);
-      statement.setString(3, licenceType);
-      statement.setInt(4, licenceNumber);
-      statement.setString(5, licenceType);
-      statement.setInt(6, licenceNumber);
-      statement.setString(7, licenceType);
-      statement.setInt(8, licenceNumber);
+      // Every bind is a (licence type, licence number) pair, counted off the query so a new filter
+      // cannot be missed. The file holds no question mark outside its binds.
+      var binds = sql.chars().filter(character -> character == '?').count();
+      for (var bind = 1; bind < binds; bind += 2) {
+        statement.setString(bind, licenceType);
+        statement.setInt(bind + 1, licenceNumber);
+      }
 
       try (var resultSet = statement.executeQuery()) {
         if (!resultSet.next()) {

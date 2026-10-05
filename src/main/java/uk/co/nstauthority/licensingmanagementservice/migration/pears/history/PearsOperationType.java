@@ -20,6 +20,12 @@ public final class PearsOperationType {
 
   public static final String PED_BLOCK_END = "PED_BLOCK_END";
 
+  public static final String PED_SUBAREA_CREATE = "PED_SUBAREA_CREATE";
+
+  public static final String PED_SUBAREA_CHANGE = "PED_SUBAREA_CHANGE";
+
+  public static final String PED_SUBAREA_END = "PED_SUBAREA_END";
+
   private PearsOperationType() {
     throw new IllegalStateException("Utility class should not be instantiated.");
   }

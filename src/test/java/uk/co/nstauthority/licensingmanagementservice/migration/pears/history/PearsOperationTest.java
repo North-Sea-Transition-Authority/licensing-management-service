@@ -52,7 +52,8 @@ class PearsOperationTest {
     var change = blockChange(List.of(
         entry(REPLACED_SI_ID, "100", "60"),
         entry(REPLACED_SI_ID, "100", "40"),
-        entry(SECOND_REPLACED_SI_ID, "100", "70")));
+        entry(SECOND_REPLACED_SI_ID, "100", "70")
+    ));
 
     var result = change.surrenderedInputSiIds();
 
@@ -63,7 +64,8 @@ class PearsOperationTest {
   void surrenderedInputSiIds_whenASuccessorAreaIsMissing_thenTheBlockGaveUpNothing() {
     var change = blockChange(List.of(
         entry(REPLACED_SI_ID, "100", "60"),
-        entry(REPLACED_SI_ID, "100", null)));
+        entry(REPLACED_SI_ID, "100", null)
+    ));
 
     var result = change.surrenderedInputSiIds();
 
@@ -79,22 +81,138 @@ class PearsOperationTest {
     assertThat(result).isEmpty();
   }
 
+  static Stream<Arguments> carriedWithItsBlock() {
+    return Stream.of(
+        arguments(PearsOperation.EntryType.TRANSFER, false, false, true),
+        arguments(PearsOperation.EntryType.SET, true, true, false),
+        arguments(PearsOperation.EntryType.REMOVE, true, true, false),
+        arguments(null, true, true, true),
+        arguments(null, true, false, false),
+        arguments(null, false, true, false)
+    );
+  }
+
+  @ParameterizedTest(name = "{0}, input present {1}, output present {2}")
+  @MethodSource("carriedWithItsBlock")
+  void isCarriedWithItsBlock(
+      PearsOperation.EntryType type,
+      boolean hasInput,
+      boolean hasOutput,
+      boolean expected
+  ) {
+    var entry = subareaEntry(type, hasInput, hasOutput);
+
+    var result = entry.isCarriedWithItsBlock();
+
+    assertThat(result).isEqualTo(expected);
+  }
+
+  static Stream<Arguments> outputSide() {
+    return Stream.of(
+        arguments(PearsOperation.EntryType.SET, false, false, true),
+        arguments(PearsOperation.EntryType.TRANSFER, false, false, true),
+        arguments(PearsOperation.EntryType.REMOVE, true, true, false),
+        arguments(null, false, true, true),
+        arguments(null, true, false, false)
+    );
+  }
+
+  @ParameterizedTest(name = "{0}, input present {1}, output present {2}")
+  @MethodSource("outputSide")
+  void hasOutputSide(
+      PearsOperation.EntryType type,
+      boolean hasInput,
+      boolean hasOutput,
+      boolean expected
+  ) {
+    var entry = subareaEntry(type, hasInput, hasOutput);
+
+    var result = entry.hasOutputSide();
+
+    assertThat(result).isEqualTo(expected);
+  }
+
+  static Stream<Arguments> inputSide() {
+    return Stream.of(
+        arguments(PearsOperation.EntryType.REMOVE, false, false, true),
+        arguments(PearsOperation.EntryType.TRANSFER, false, false, true),
+        arguments(PearsOperation.EntryType.SET, true, true, false),
+        arguments(null, true, false, true),
+        arguments(null, false, true, false)
+    );
+  }
+
+  @ParameterizedTest(name = "{0}, input present {1}, output present {2}")
+  @MethodSource("inputSide")
+  void hasInputSide(
+      PearsOperation.EntryType type,
+      boolean hasInput,
+      boolean hasOutput,
+      boolean expected
+  ) {
+    var entry = subareaEntry(type, hasInput, hasOutput);
+
+    var result = entry.hasInputSide();
+
+    assertThat(result).isEqualTo(expected);
+  }
+
+  private static PearsOperation.SubareaEntry subareaEntry(
+      PearsOperation.EntryType type,
+      boolean hasInput,
+      boolean hasOutput
+  ) {
+    return new PearsOperation.SubareaEntry(
+        type,
+        null,
+        "SA",
+        hasInput ? new PearsOperation.Subarea(739101, "Subarea", REPLACED_SI_ID, null) : null,
+        hasOutput ? new PearsOperation.Subarea(739102, "Subarea", SECOND_REPLACED_SI_ID, null) : null
+    );
+  }
+
   private static PearsOperation.BlockChange blockChange(List<PearsOperation.BlockEntry> entries) {
     return new PearsOperation.BlockChange(
-        new PearsOperation.Header(15188, "XPT/1", LocalDate.of(1964, Month.SEPTEMBER, 18), 6, 1000, 1,
-            PearsOperation.OperationStatus.LIVE, null, null),
-        entries);
+        new PearsOperation.Header(
+            15188,
+            "XPT/1",
+            LocalDate.of(1964, Month.SEPTEMBER, 18),
+            6,
+            1000,
+            1,
+            PearsOperation.OperationStatus.LIVE,
+            null,
+            null
+        ),
+        entries,
+        List.of()
+    );
   }
 
-  private static PearsOperation.BlockEntry entry(int replacedSiId, String replacedArea, String successorArea) {
+  private static PearsOperation.BlockEntry entry(
+      int replacedSiId,
+      String replacedArea,
+      String successorArea
+  ) {
     return new PearsOperation.BlockEntry(
         PearsOperation.EntryType.TRANSFER,
+        null,
         block(replacedSiId, replacedArea),
-        block(replacedSiId + 500_000, successorArea));
+        block(replacedSiId + 500_000, successorArea)
+    );
   }
 
-  private static PearsOperation.Block block(int siId, String areaKm2) {
+  private static PearsOperation.Block block(
+      int siId,
+      String areaKm2
+  ) {
     return new PearsOperation.Block(
-        siId, null, null, null, null, areaKm2 == null ? null : new BigDecimal(areaKm2));
+        siId,
+        null,
+        null,
+        null,
+        null,
+        areaKm2 == null ? null : new BigDecimal(areaKm2)
+    );
   }
 }

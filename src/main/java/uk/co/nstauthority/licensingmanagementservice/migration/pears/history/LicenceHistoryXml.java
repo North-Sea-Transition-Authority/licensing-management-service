@@ -38,6 +38,10 @@ interface LicenceHistoryXml {
    *                         as, {@code operation}: the query emits this section for block operations
    *                         and still withholds their payload, because the geometry inside it is the
    *                         bulk of a document and the identity here is all the migration reads.
+   * @param subareaEntries   the subareas the operation acted on, on the same terms as
+   *                         {@code blockEntries}. Present on a subarea operation and on a block
+   *                         operation alike, since a block operation makes and ends subareas without
+   *                         ever naming them in its own payload.
    */
   record Entry(
       @JsonProperty(required = true)
@@ -56,7 +60,29 @@ interface LicenceHistoryXml {
       @JacksonXmlProperty(localName = "OPERATION") Operation operation,
 
       @JacksonXmlElementWrapper(localName = "BLOCK_ENTRY_LIST")
-      @JacksonXmlProperty(localName = "BLOCK_ENTRY_LIST") List<BlockEntry> blockEntries
+      @JacksonXmlProperty(localName = "BLOCK_ENTRY_LIST") List<BlockEntry> blockEntries,
+
+      @JacksonXmlElementWrapper(localName = "SUBAREA_ENTRY_LIST")
+      @JacksonXmlProperty(localName = "SUBAREA_ENTRY_LIST") List<SubareaEntry> subareaEntries
+  ) {
+  }
+
+  /**
+   * The before and after of a single subarea on a block operation.
+   * Identity of the subarea is both the si_id and the name, as not all legacy subareas have a si_id.
+   */
+  record SubareaEntry(
+      @JacksonXmlProperty(isAttribute = true, localName = "entry_type") String entryType,
+      @JacksonXmlProperty(isAttribute = true, localName = "block_entry_seq") Integer blockEntrySeq,
+      @JacksonXmlProperty(isAttribute = true, localName = "subarea_short_name") String subareaShortName,
+      @JacksonXmlProperty(isAttribute = true, localName = "output_subarea_name") String outputSubareaName,
+      @JacksonXmlProperty(isAttribute = true, localName = "output_subarea_si_id") Integer outputSubareaSiId,
+      @JacksonXmlProperty(isAttribute = true, localName = "output_block_ref") String outputBlockRef,
+      @JacksonXmlProperty(isAttribute = true, localName = "output_block_si_id") Integer outputBlockSiId,
+      @JacksonXmlProperty(isAttribute = true, localName = "input_subarea_name") String inputSubareaName,
+      @JacksonXmlProperty(isAttribute = true, localName = "input_subarea_si_id") Integer inputSubareaSiId,
+      @JacksonXmlProperty(isAttribute = true, localName = "input_block_ref") String inputBlockRef,
+      @JacksonXmlProperty(isAttribute = true, localName = "input_block_si_id") Integer inputBlockSiId
   ) {
   }
 
@@ -66,6 +92,7 @@ interface LicenceHistoryXml {
    */
   record BlockEntry(
       @JacksonXmlProperty(isAttribute = true, localName = "entry_type") String entryType,
+      @JacksonXmlProperty(isAttribute = true, localName = "entry_seq") Integer entrySeq,
       @JacksonXmlProperty(isAttribute = true, localName = "output_quadrant_no") String outputQuadrantNo,
       @JacksonXmlProperty(isAttribute = true, localName = "output_block_no") String outputBlockNo,
       @JacksonXmlProperty(isAttribute = true, localName = "output_block_suffix") String outputBlockSuffix,

@@ -29,11 +29,11 @@ class PearsOperationMapper {
   static PearsOperation toOperation(LicenceHistoryXml.Entry entry) {
     var operation = entry.operation();
 
-    // A block operation carries its blocks instead of a payload, so it is recognised before the
-    // missing payload is taken to mean nothing is known about it.
-    var blockOperation = toBlockOperation(entry);
-    if (blockOperation != null) {
-      return blockOperation;
+    // A spatial operation carries its blocks and subareas instead of a payload, so it is
+    // recognised before the missing payload is taken to mean nothing is known about it.
+    var spatialOperation = toSpatialOperation(entry);
+    if (spatialOperation != null) {
+      return spatialOperation;
     }
 
     // No payload means the query did not fetch this type's XML, so the entry's attributes are all
@@ -62,18 +62,65 @@ class PearsOperationMapper {
       default -> new PearsOperation.Unrecognised(header, entry.opType(), attributes);
     };
   }
-  
-  private static PearsOperation toBlockOperation(LicenceHistoryXml.Entry entry) {
+
+  private static PearsOperation toSpatialOperation(LicenceHistoryXml.Entry entry) {
     var header = header(entry, Map.of());
     return switch (entry.opType()) {
       case PearsOperationType.PED_BLOCK_CREATE ->
-          new PearsOperation.BlockCreate(header, blockEntries(entry));
+          new PearsOperation.BlockCreate(header, blockEntries(entry), subareaEntries(entry));
       case PearsOperationType.PED_BLOCK_CHANGE ->
-          new PearsOperation.BlockChange(header, blockEntries(entry));
+          new PearsOperation.BlockChange(header, blockEntries(entry), subareaEntries(entry));
       case PearsOperationType.PED_BLOCK_END ->
-          new PearsOperation.BlockEnd(header, blockEntries(entry));
+          new PearsOperation.BlockEnd(header, blockEntries(entry), subareaEntries(entry));
+      case PearsOperationType.PED_SUBAREA_CREATE ->
+          new PearsOperation.SubareaCreate(header, subareaEntries(entry));
+      case PearsOperationType.PED_SUBAREA_CHANGE ->
+          new PearsOperation.SubareaChange(header, subareaEntries(entry));
+      case PearsOperationType.PED_SUBAREA_END ->
+          new PearsOperation.SubareaEnd(header, subareaEntries(entry));
       default -> null;
     };
+  }
+
+  private static List<PearsOperation.SubareaEntry> subareaEntries(LicenceHistoryXml.Entry entry) {
+    if (entry.subareaEntries() == null) {
+      return List.of();
+    }
+    return entry.subareaEntries().stream()
+        .map(PearsOperationMapper::subareaEntry)
+        .toList();
+  }
+
+  private static PearsOperation.SubareaEntry subareaEntry(LicenceHistoryXml.SubareaEntry subareaEntry) {
+    return new PearsOperation.SubareaEntry(
+        entryType(subareaEntry.entryType()),
+        subareaEntry.blockEntrySeq(),
+        subareaEntry.subareaShortName(),
+        subarea(
+            subareaEntry.inputSubareaSiId(),
+            subareaEntry.inputSubareaName(),
+            subareaEntry.inputBlockSiId(),
+            subareaEntry.inputBlockRef()
+        ),
+        subarea(
+            subareaEntry.outputSubareaSiId(),
+            subareaEntry.outputSubareaName(),
+            subareaEntry.outputBlockSiId(),
+            subareaEntry.outputBlockRef()
+        )
+    );
+  }
+
+  private static PearsOperation.Subarea subarea(
+      Integer siId,
+      String name,
+      Integer blockSiId,
+      String blockRef
+  ) {
+    if (siId == null && blockSiId == null) {
+      return null;
+    }
+    return new PearsOperation.Subarea(siId, name, blockSiId, blockRef);
   }
 
   private static List<PearsOperation.BlockEntry> blockEntries(LicenceHistoryXml.Entry entry) {
@@ -84,10 +131,24 @@ class PearsOperationMapper {
     for (var blockEntry : entry.blockEntries()) {
       entries.add(new PearsOperation.BlockEntry(
           entryType(blockEntry.entryType()),
-          block(blockEntry.inputSiId(), blockEntry.inputBlockRef(), blockEntry.inputQuadrantNo(),
-              blockEntry.inputBlockNo(), blockEntry.inputBlockSuffix(), blockEntry.inputAreaKm2()),
-          block(blockEntry.outputSiId(), blockEntry.outputBlockRef(), blockEntry.outputQuadrantNo(),
-              blockEntry.outputBlockNo(), blockEntry.outputBlockSuffix(), blockEntry.outputAreaKm2())));
+          blockEntry.entrySeq(),
+          block(
+              blockEntry.inputSiId(),
+              blockEntry.inputBlockRef(),
+              blockEntry.inputQuadrantNo(),
+              blockEntry.inputBlockNo(),
+              blockEntry.inputBlockSuffix(),
+              blockEntry.inputAreaKm2()
+          ),
+          block(
+              blockEntry.outputSiId(),
+              blockEntry.outputBlockRef(),
+              blockEntry.outputQuadrantNo(),
+              blockEntry.outputBlockNo(),
+              blockEntry.outputBlockSuffix(),
+              blockEntry.outputAreaKm2()
+          )
+      ));
     }
     return entries;
   }
@@ -108,7 +169,13 @@ class PearsOperationMapper {
       return null;
     }
     return new PearsOperation.Block(
-        siId, ref, quadrantNo, blockNo, blockSuffix, areaKm2);
+        siId,
+        ref,
+        quadrantNo,
+        blockNo,
+        blockSuffix,
+        areaKm2
+    );
   }
 
   /**

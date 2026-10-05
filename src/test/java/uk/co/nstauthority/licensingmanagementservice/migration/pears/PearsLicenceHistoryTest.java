@@ -36,7 +36,7 @@ class PearsLicenceHistoryTest {
   void reconstruct_whenATransactionOnlyDidWorkThisMigrationIgnores_thenItIsStillAPosition() {
     var history = PearsLicenceHistory.reconstruct(PearsHistoryTestUtil.history("P", 8)
         .position(1, "XPT/1", FIRST_DATE, 6)
-        .operationWithoutPayload("PED_SUBAREA_CHANGE")
+        .operationWithoutPayload("PED_RETENTION_AREA_CHANGE")
         .and()
         .position(2, "XPT/2", FIRST_DATE, 9)
         .companyList(PearsCompanyListType.BENEFICIAL_INTEREST, 11)

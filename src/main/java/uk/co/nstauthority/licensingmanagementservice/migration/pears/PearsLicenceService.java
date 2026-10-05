@@ -63,6 +63,10 @@ class PearsLicenceService {
       statement.setInt(2, licenceNumber);
       statement.setString(3, licenceType);
       statement.setInt(4, licenceNumber);
+      statement.setString(5, licenceType);
+      statement.setInt(6, licenceNumber);
+      statement.setString(7, licenceType);
+      statement.setInt(8, licenceNumber);
 
       try (var resultSet = statement.executeQuery()) {
         if (!resultSet.next()) {

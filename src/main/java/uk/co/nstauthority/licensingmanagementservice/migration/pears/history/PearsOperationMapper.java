@@ -1,5 +1,6 @@
 package uk.co.nstauthority.licensingmanagementservice.migration.pears.history;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -28,6 +29,13 @@ class PearsOperationMapper {
   static PearsOperation toOperation(LicenceHistoryXml.Entry entry) {
     var operation = entry.operation();
 
+    // A block operation carries its blocks instead of a payload, so it is recognised before the
+    // missing payload is taken to mean nothing is known about it.
+    var blockOperation = toBlockOperation(entry);
+    if (blockOperation != null) {
+      return blockOperation;
+    }
+
     // No payload means the query did not fetch this type's XML, so the entry's attributes are all
     // there is to go on -- including for the event date, which lives inside the payload.
     if (operation == null) {
@@ -53,6 +61,54 @@ class PearsOperationMapper {
           );
       default -> new PearsOperation.Unrecognised(header, entry.opType(), attributes);
     };
+  }
+  
+  private static PearsOperation toBlockOperation(LicenceHistoryXml.Entry entry) {
+    var header = header(entry, Map.of());
+    return switch (entry.opType()) {
+      case PearsOperationType.PED_BLOCK_CREATE ->
+          new PearsOperation.BlockCreate(header, blockEntries(entry));
+      case PearsOperationType.PED_BLOCK_CHANGE ->
+          new PearsOperation.BlockChange(header, blockEntries(entry));
+      case PearsOperationType.PED_BLOCK_END ->
+          new PearsOperation.BlockEnd(header, blockEntries(entry));
+      default -> null;
+    };
+  }
+
+  private static List<PearsOperation.BlockEntry> blockEntries(LicenceHistoryXml.Entry entry) {
+    if (entry.blockEntries() == null) {
+      return List.of();
+    }
+    var entries = new ArrayList<PearsOperation.BlockEntry>(entry.blockEntries().size());
+    for (var blockEntry : entry.blockEntries()) {
+      entries.add(new PearsOperation.BlockEntry(
+          entryType(blockEntry.entryType()),
+          block(blockEntry.inputSiId(), blockEntry.inputBlockRef(), blockEntry.inputQuadrantNo(),
+              blockEntry.inputBlockNo(), blockEntry.inputBlockSuffix(), blockEntry.inputAreaKm2()),
+          block(blockEntry.outputSiId(), blockEntry.outputBlockRef(), blockEntry.outputQuadrantNo(),
+              blockEntry.outputBlockNo(), blockEntry.outputBlockSuffix(), blockEntry.outputAreaKm2())));
+    }
+    return entries;
+  }
+
+  /**
+   * One side of a block entry, or null where the operation did not have one -- a SET has no input
+   * and a REMOVE leaves no output, and the query emits nothing at all for the side that is absent.
+   */
+  private static PearsOperation.Block block(
+      Integer siId,
+      String ref,
+      String quadrantNo,
+      String blockNo,
+      String blockSuffix,
+      BigDecimal areaKm2
+  ) {
+    if (siId == null && quadrantNo == null && blockNo == null) {
+      return null;
+    }
+    return new PearsOperation.Block(
+        siId, ref, quadrantNo, blockNo, blockSuffix, areaKm2);
   }
 
   /**

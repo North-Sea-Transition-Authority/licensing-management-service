@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import java.io.StringReader;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -85,7 +86,7 @@ class LicenceHistoryReaderTest {
   void read_whenAnOperationHasNoPayload_thenItIsReadAsOmitted() throws Exception {
     var xml = PearsHistoryTestUtil.history("P", 8)
         .position(15188, "XPT/1", POSITION_DATE, 6)
-        .operationWithoutPayload("PED_BLOCK_CREATE")
+        .operationWithoutPayload("PED_SUBAREA_CHANGE")
         .and()
         .toXml();
 
@@ -94,7 +95,7 @@ class LicenceHistoryReaderTest {
     var expected = new PearsOperation.Omitted(
         new PearsOperation.Header(
             15188, "XPT/1", POSITION_DATE, 6, 1000, 1, PearsOperation.OperationStatus.LIVE, null, null),
-        "PED_BLOCK_CREATE");
+        "PED_SUBAREA_CHANGE");
 
     assertThat(history.operations()).usingRecursiveComparison().isEqualTo(java.util.List.of(expected));
   }
@@ -138,11 +139,42 @@ class LicenceHistoryReaderTest {
 
     var history = LicenceHistoryReader.read(new StringReader(xml));
 
+    // The blocks a block operation acted on reach the reader as a sibling of OPERATION, shredded out
+    // by the query. The geometry inside the payload is not bound at all, which is the point here.
     assertThat(history.operations())
         .singleElement()
-        .isInstanceOf(PearsOperation.Unrecognised.class)
-        .extracting(PearsOperation::typeName)
-        .isEqualTo("PED_BLOCK_CREATE");
+        .isInstanceOfSatisfying(PearsOperation.BlockCreate.class, create ->
+            assertThat(create.entries()).isEmpty());
+  }
+
+  @Test
+  void read_whenABlockOperationHoldsBlockEntries_thenBothSidesAreRead() throws Exception {
+    var xml = """
+        <LICENCE_OPERATION_HISTORY licence_type="P" licence_no="8" operation_count="1">
+          <OPERATION_ENTRY tran_id="15188" regulator_reference="XPT/1" position_date="1964-09-18"
+                           position_sequence="6" op_id="1000" op_seq="1" op_status="LIVE"
+                           op_type="PED_BLOCK_CHANGE">
+            <BLOCK_ENTRY_LIST>
+              <BLOCK_ENTRY entry_type="TRANSFER"
+                           output_quadrant_no="47" output_block_no="10" output_block_suffix="a"
+                           output_block_ref="47/10a" output_si_id="739120" output_area_km2="117.4"
+                           input_quadrant_no="47" input_block_no="10"
+                           input_block_ref="47/10" input_si_id="739051" input_area_km2="184.1"/>
+            </BLOCK_ENTRY_LIST>
+          </OPERATION_ENTRY>
+        </LICENCE_OPERATION_HISTORY>""";
+
+    var history = LicenceHistoryReader.read(new StringReader(xml));
+
+    var expected = new PearsOperation.BlockChange(
+        new PearsOperation.Header(
+            15188, "XPT/1", POSITION_DATE, 6, 1000, 1, PearsOperation.OperationStatus.LIVE, null, null),
+        java.util.List.of(new PearsOperation.BlockEntry(
+            PearsOperation.EntryType.TRANSFER,
+            new PearsOperation.Block(739051, "47/10", "47", "10", null, new BigDecimal("184.1")),
+            new PearsOperation.Block(739120, "47/10a", "47", "10", "a", new BigDecimal("117.4")))));
+
+    assertThat(history.operations()).usingRecursiveComparison().isEqualTo(java.util.List.of(expected));
   }
 
   @Test

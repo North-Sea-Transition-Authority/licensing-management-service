@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.CorrectionLicenceIsType;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanRemoveLicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanViewCorrection;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserHasCorrectorRoleForCorrection;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.LicencePositionCanBeReinstantiated;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.LicencePositionIsNotRemovedInCorrection;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.LicencePositionChangeBelongsToPosition;
@@ -161,5 +162,11 @@ public class InterceptorRuleTestEndpoints {
   @LicencePositionIsNotRemovedInCorrection
   public ResponseEntity<String> licencePositionIsNotRemovedInCorrection() {
     return ResponseEntity.ok("licence position is not removed in correction test endpoint");
+  }
+
+  @GetMapping("has-corrector-role-for-correction/{correctionId}")
+  @InvokingUserHasCorrectorRoleForCorrection
+  public ResponseEntity<String> invokingUserHasCorrectorRoleForCorrection(@PathVariable UUID correctionId) {
+    return ResponseEntity.ok("has corrector role for correction test endpoint");
   }
 }

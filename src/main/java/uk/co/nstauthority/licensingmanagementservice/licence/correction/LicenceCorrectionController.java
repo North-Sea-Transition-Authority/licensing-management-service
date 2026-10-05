@@ -11,8 +11,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.LogWorkAreaItemView;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanViewCorrection;
-import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserService;
-import uk.co.nstauthority.licensingmanagementservice.energyportal.user.WebUserAccountId;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.AddLicencePositionCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
@@ -37,20 +35,20 @@ public class LicenceCorrectionController {
   private final LicencePositionViewService licencePositionViewService;
   private final LicencePositionCorrectionService licencePositionCorrectionService;
   private final LicenceService licenceService;
-  private final EnergyPortalUserService energyPortalUserService;
+  private final CorrectionDetailsViewService correctionDetailsViewService;
 
   public LicenceCorrectionController(
       LicencePositionService licencePositionService,
       LicencePositionViewService licencePositionViewService,
       LicencePositionCorrectionService licencePositionCorrectionService,
       LicenceService licenceService,
-      EnergyPortalUserService energyPortalUserService
+      CorrectionDetailsViewService correctionDetailsViewService
   ) {
     this.licencePositionService = licencePositionService;
     this.licencePositionViewService = licencePositionViewService;
     this.licencePositionCorrectionService = licencePositionCorrectionService;
     this.licenceService = licenceService;
-    this.energyPortalUserService = energyPortalUserService;
+    this.correctionDetailsViewService = correctionDetailsViewService;
   }
 
   @GetMapping("/{correctionId}")
@@ -128,17 +126,12 @@ public class LicenceCorrectionController {
       LicencePositionPageView licencePositionPageView
   ) {
     var licence =  licenceCorrection.getLicence();
-    var allocatedToUserDetail = energyPortalUserService.getByWuaId(
-        WebUserAccountId.from(licenceCorrection.getAllocatedToWuaId()),
-        "Get correction allocated to user details"
-    );
 
     return new ModelAndView("lms/licence/correction/viewCorrection")
         .addObject("pageTitle", "%s - licence correction".formatted(licence.getLicenceReference()))
         .addObject("pageCaption", licenceService.getLicencePageCaption(licence))
         .addObject("licencePositionPageView", licencePositionPageView)
-        .addObject("correction", licenceCorrection)
-        .addObject("allocatedToUser", allocatedToUserDetail.displayName())
+        .addObject("correctionDetails", correctionDetailsViewService.getDetailsView(licenceCorrection))
         .addObject("addPositionUrl",
             ReverseRouter.route(on(AddLicencePositionCorrectionController.class)
                 .renderAddLicencePositionCorrection(licenceCorrection.getId(), null)))

@@ -22,8 +22,6 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
-import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserService;
-import uk.co.nstauthority.licensingmanagementservice.energyportal.user.WebUserAccountId;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.AddLicencePositionCorrectionController;
@@ -41,14 +39,13 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.vie
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.LicencePositionStateView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.LicenseeStateView;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
-import uk.co.nstauthority.licensingmanagementservice.util.EnergyPortalUserTestUtil;
 
 @ContextConfiguration(classes = LicenceCorrectionController.class)
 @ActiveProfiles("test")
 class LicenceCorrectionControllerTest extends AbstractControllerTest {
 
   @MockitoBean
-  private EnergyPortalUserService energyPortalUserService;
+  private CorrectionDetailsViewService correctionDetailsViewService;
 
   private static final UUID CORRECTION_ID = UUID.randomUUID();
   private static final UUID POSITION_CORRECTION_ID = UUID.randomUUID();
@@ -58,8 +55,15 @@ class LicenceCorrectionControllerTest extends AbstractControllerTest {
   private static final String PAGE_CAPTION = "Licence - P1234";
   private static final LicenceType LICENCE_TYPE = LicenceType.SEAWARD_PRODUCTION;
   private static final long ALLOCATED_TO_WUA_ID = 123L;
-  private static final String USER_LOOKUP_PURPOSE = "Get correction allocated to user details";
   private static final String PAGE_TITLE = "%s - licence correction".formatted(LICENCE_REFERENCE);
+  private static final CorrectionDetailsView CORRECTION_DETAILS = new CorrectionDetailsView(
+      CORRECTION_REFERENCE,
+      REASON,
+      "Jane Doe",
+      LicenceCorrectionStatus.IN_PROGRESS.getDisplayName(),
+      LICENCE_REFERENCE,
+      "5 June 2026"
+  );
 
   @Test
   void renderCorrection_whenNotLoggedIn() throws Exception {
@@ -82,19 +86,12 @@ class LicenceCorrectionControllerTest extends AbstractControllerTest {
         .withAllocatedToWuaId(ALLOCATED_TO_WUA_ID)
         .build();
 
-    var allocatedToUser = EnergyPortalUserTestUtil.newBuilder()
-        .withWebUserAccountId(ALLOCATED_TO_WUA_ID)
-        .withForename("Jane")
-        .withSurname("Doe")
-        .buildJson();
-
     when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
         .thenReturn(Optional.of(correction));
     when(licenceService.getLicencePageCaption(licence)).thenReturn(PAGE_CAPTION);
     when(licencePositionService.getExecutedChronologicalLicencePositions(licence)).thenReturn(List.of());
     when(licencePositionCorrectionService.getAddedLicencePositionCorrections(correction)).thenReturn(List.of());
-    when(energyPortalUserService.getByWuaId(WebUserAccountId.from(ALLOCATED_TO_WUA_ID), USER_LOOKUP_PURPOSE))
-        .thenReturn(allocatedToUser);
+    when(correctionDetailsViewService.getDetailsView(correction)).thenReturn(CORRECTION_DETAILS);
 
     mockMvc.perform(get(ReverseRouter.route(on(LicenceCorrectionController.class)
             .renderCorrection(CORRECTION_ID, null)))
@@ -104,8 +101,7 @@ class LicenceCorrectionControllerTest extends AbstractControllerTest {
             view().name("lms/licence/correction/viewCorrection"),
             model().attribute("pageTitle", PAGE_TITLE),
             model().attribute("pageCaption", PAGE_CAPTION),
-            model().attribute("correction", correction),
-            model().attribute("allocatedToUser", allocatedToUser.displayName()),
+            model().attribute("correctionDetails", CORRECTION_DETAILS),
             model().attribute("addPositionUrl",
                 ReverseRouter.route(on(AddLicencePositionCorrectionController.class)
                     .renderAddLicencePositionCorrection(CORRECTION_ID, null))),
@@ -191,11 +187,6 @@ class LicenceCorrectionControllerTest extends AbstractControllerTest {
         .withReason(REASON)
         .withAllocatedToWuaId(ALLOCATED_TO_WUA_ID)
         .build();
-    var allocatedToUser = EnergyPortalUserTestUtil.newBuilder()
-        .withWebUserAccountId(ALLOCATED_TO_WUA_ID)
-        .withForename("Jane")
-        .withSurname("Doe")
-        .buildJson();
     var position = LicencePositionTestUtil.newBuilder().build();
     var pageView = LicencePositionPageView.fromExecutedPosition(
         List.of(),
@@ -214,8 +205,7 @@ class LicenceCorrectionControllerTest extends AbstractControllerTest {
     when(licenceService.getLicencePageCaption(licence)).thenReturn(PAGE_CAPTION);
     when(licencePositionService.getPositionForLicence(licence, position.getId())).thenReturn(position);
     when(licencePositionViewService.getCorrectionPositionPageView(correction, position)).thenReturn(pageView);
-    when(energyPortalUserService.getByWuaId(WebUserAccountId.from(ALLOCATED_TO_WUA_ID), USER_LOOKUP_PURPOSE))
-        .thenReturn(allocatedToUser);
+    when(correctionDetailsViewService.getDetailsView(correction)).thenReturn(CORRECTION_DETAILS);
 
     mockMvc.perform(get(ReverseRouter.route(on(LicenceCorrectionController.class)
             .renderLicencePosition(CORRECTION_ID, position.getId(), null)))
@@ -225,8 +215,7 @@ class LicenceCorrectionControllerTest extends AbstractControllerTest {
             view().name("lms/licence/correction/viewCorrection"),
             model().attribute("pageTitle", PAGE_TITLE),
             model().attribute("pageCaption", PAGE_CAPTION),
-            model().attribute("correction", correction),
-            model().attribute("allocatedToUser", allocatedToUser.displayName()),
+            model().attribute("correctionDetails", CORRECTION_DETAILS),
             model().attribute("licencePositionPageView", pageView),
             model().attribute("cancelCorrectionUrl", ReverseRouter.route(on(LicenceCorrectionCancelController.class)
                 .renderCancelCorrection(CORRECTION_ID, null)))
@@ -270,11 +259,6 @@ class LicenceCorrectionControllerTest extends AbstractControllerTest {
         .withReason(REASON)
         .withAllocatedToWuaId(ALLOCATED_TO_WUA_ID)
         .build();
-    var allocatedToUser = EnergyPortalUserTestUtil.newBuilder()
-        .withWebUserAccountId(ALLOCATED_TO_WUA_ID)
-        .withForename("Jane")
-        .withSurname("Doe")
-        .buildJson();
     var position = LicencePositionTestUtil.newBuilder().build();
     var pageView = LicencePositionPageView.fromExecutedPosition(
         List.of(LicencePositionTimelineView.builder()
@@ -309,8 +293,7 @@ class LicenceCorrectionControllerTest extends AbstractControllerTest {
     when(licenceService.getLicencePageCaption(licence)).thenReturn(PAGE_CAPTION);
     when(licencePositionService.getPositionForLicence(licence, position.getId())).thenReturn(position);
     when(licencePositionViewService.getCorrectionPositionPageView(correction, position)).thenReturn(pageView);
-    when(energyPortalUserService.getByWuaId(WebUserAccountId.from(ALLOCATED_TO_WUA_ID), USER_LOOKUP_PURPOSE))
-        .thenReturn(allocatedToUser);
+    when(correctionDetailsViewService.getDetailsView(correction)).thenReturn(CORRECTION_DETAILS);
 
     mockMvc.perform(get(ReverseRouter.route(on(LicenceCorrectionController.class)
             .renderLicencePosition(CORRECTION_ID, position.getId(), null)))
@@ -320,8 +303,7 @@ class LicenceCorrectionControllerTest extends AbstractControllerTest {
             view().name("lms/licence/correction/viewCorrection"),
             model().attribute("pageTitle", PAGE_TITLE),
             model().attribute("pageCaption", PAGE_CAPTION),
-            model().attribute("correction", correction),
-            model().attribute("allocatedToUser", allocatedToUser.displayName()),
+            model().attribute("correctionDetails", CORRECTION_DETAILS),
             model().attribute("licencePositionPageView", pageView),
             model().attribute("cancelCorrectionUrl", ReverseRouter.route(on(LicenceCorrectionCancelController.class)
                 .renderCancelCorrection(CORRECTION_ID, null))));
@@ -340,11 +322,6 @@ class LicenceCorrectionControllerTest extends AbstractControllerTest {
         .withReason(REASON)
         .withAllocatedToWuaId(ALLOCATED_TO_WUA_ID)
         .build();
-    var allocatedToUser = EnergyPortalUserTestUtil.newBuilder()
-        .withWebUserAccountId(ALLOCATED_TO_WUA_ID)
-        .withForename("Jane")
-        .withSurname("Doe")
-        .buildJson();
     var positionCorrection = new LicencePositionCorrection();
     var pageView = LicencePositionPageView.fromAddedPosition(
         List.of(),
@@ -364,8 +341,7 @@ class LicenceCorrectionControllerTest extends AbstractControllerTest {
         .thenReturn(positionCorrection);
     when(licenceService.getLicencePageCaption(licence)).thenReturn(PAGE_CAPTION);
     when(licencePositionViewService.getCorrectionAddedPositionPageView(correction, positionCorrection)).thenReturn(pageView);
-    when(energyPortalUserService.getByWuaId(WebUserAccountId.from(ALLOCATED_TO_WUA_ID), USER_LOOKUP_PURPOSE))
-        .thenReturn(allocatedToUser);
+    when(correctionDetailsViewService.getDetailsView(correction)).thenReturn(CORRECTION_DETAILS);
 
     mockMvc.perform(get(ReverseRouter.route(on(LicenceCorrectionController.class)
             .renderAddedPosition(CORRECTION_ID, POSITION_CORRECTION_ID, null)))
@@ -375,8 +351,7 @@ class LicenceCorrectionControllerTest extends AbstractControllerTest {
             view().name("lms/licence/correction/viewCorrection"),
             model().attribute("pageTitle", PAGE_TITLE),
             model().attribute("pageCaption", PAGE_CAPTION),
-            model().attribute("correction", correction),
-            model().attribute("allocatedToUser", allocatedToUser.displayName()),
+            model().attribute("correctionDetails", CORRECTION_DETAILS),
             model().attribute("licencePositionPageView", pageView),
             model().attribute("cancelCorrectionUrl", ReverseRouter.route(on(LicenceCorrectionCancelController.class)
                 .renderCancelCorrection(CORRECTION_ID, null)))

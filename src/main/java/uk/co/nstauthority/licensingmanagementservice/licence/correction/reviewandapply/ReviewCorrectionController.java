@@ -14,10 +14,9 @@ import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.CorrectionHasStatus;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanViewCorrection;
-import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserService;
-import uk.co.nstauthority.licensingmanagementservice.energyportal.user.WebUserAccountId;
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.CorrectionDetailsViewService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
@@ -25,7 +24,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationError;
 import uk.co.nstauthority.licensingmanagementservice.licence.tab.TabbedLicencePageService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
-import uk.co.nstauthority.licensingmanagementservice.util.DateUtil;
 
 @Controller
 @RequestMapping("/licence-corrections/{correctionId}/review")
@@ -36,7 +34,7 @@ public class ReviewCorrectionController {
   private static final String POSITIONS = "positions";
   private static final String CAN_APPLY = "canApply";
 
-  private final EnergyPortalUserService energyPortalUserService;
+  private final CorrectionDetailsViewService correctionDetailsViewService;
   private final LicenceService licenceService;
   private final CorrectedTimelineService correctedTimelineService;
   private final CorrectionReviewService correctionReviewService;
@@ -45,7 +43,7 @@ public class ReviewCorrectionController {
   private final TabbedLicencePageService tabbedLicencePageService;
 
   public ReviewCorrectionController(
-      EnergyPortalUserService energyPortalUserService,
+      CorrectionDetailsViewService correctionDetailsViewService,
       LicenceService licenceService,
       CorrectedTimelineService correctedTimelineService,
       CorrectionReviewService correctionReviewService,
@@ -53,7 +51,7 @@ public class ReviewCorrectionController {
       CorrectionApplyService correctionApplyService,
       TabbedLicencePageService tabbedLicencePageService
   ) {
-    this.energyPortalUserService = energyPortalUserService;
+    this.correctionDetailsViewService = correctionDetailsViewService;
     this.licenceService = licenceService;
     this.correctedTimelineService = correctedTimelineService;
     this.correctionReviewService = correctionReviewService;
@@ -129,11 +127,6 @@ public class ReviewCorrectionController {
       LicenceCorrection licenceCorrection,
       boolean isCorrectionApplied
   ) {
-    var allocatedToUserDetail = energyPortalUserService.getByWuaId(
-        WebUserAccountId.from(licenceCorrection.getAllocatedToWuaId()),
-        "Get correction allocated to user details"
-    );
-
     var backLinkUrl = isCorrectionApplied
         ? tabbedLicencePageService.getDefaultTabUrl(licenceCorrection.getLicence())
         : ReverseRouter.route(on(LicenceCorrectionController.class).renderCorrection(correctionId, null));
@@ -144,8 +137,7 @@ public class ReviewCorrectionController {
             ? "Correction %s".formatted(licenceCorrection.getCorrectionReference())
             : "Do you want to apply this correction?")
         .addObject("correction", licenceCorrection)
-        .addObject("allocatedToUser", allocatedToUserDetail.displayName())
-        .addObject("createdDate", DateUtil.formatLongDate(licenceCorrection.getCreatedInstant()))
+        .addObject("correctionDetails", correctionDetailsViewService.getDetailsView(licenceCorrection))
         .addObject("isCorrectionApplied", isCorrectionApplied)
         .addObject("backLinkUrl", backLinkUrl);
   }

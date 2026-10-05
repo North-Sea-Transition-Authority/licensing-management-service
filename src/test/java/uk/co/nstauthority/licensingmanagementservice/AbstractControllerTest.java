@@ -37,6 +37,7 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correct
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.CorrectionLicenceIsTypeRule;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanRemoveLicencePositionInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanViewCorrectionInterceptorRule;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserHasCorrectorRoleForCorrectionInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.LicencePositionCanBeReinstantiatedRule;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.LicencePositionIsNotRemovedInCorrectionRule;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.InvokingUserCanAccessScheduleApplicationInterceptorRule;
@@ -137,7 +138,8 @@ import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.W
     LicencePositionCanBeReinstantiatedRule.class,
     CorrectionHasStatusInterceptorRule.class,
     CorrectionLicenceIsTypeRule.class,
-    LicencePositionIsNotRemovedInCorrectionRule.class
+    LicencePositionIsNotRemovedInCorrectionRule.class,
+    InvokingUserHasCorrectorRoleForCorrectionInterceptorRule.class
 })
 @EnableConfigurationProperties({
     SamlProperties.class,

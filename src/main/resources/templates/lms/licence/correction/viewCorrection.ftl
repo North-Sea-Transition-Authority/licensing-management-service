@@ -11,9 +11,9 @@
   errorSummaryItems=licencePositionPageView.errorSummaryItems()
 >
   <@correctionDetailsCard.correctionDetailsCard
-    correction=correction
-    allocatedToUser=allocatedToUser
+    details=correctionDetails
     updateUrl=updateGeneralDetailsUrl
+    showCreatedDate=false
   />
 
   <@fdsAction.buttonGroup>

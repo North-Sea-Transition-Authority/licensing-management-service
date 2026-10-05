@@ -106,6 +106,10 @@ public class LicenceCorrectionService {
     return licenceCorrectionRepository.existsByLicenceAndStatus(licence, LicenceCorrectionStatus.IN_PROGRESS);
   }
 
+  public Optional<LicenceCorrection> findById(UUID correctionId) {
+    return licenceCorrectionRepository.findById(correctionId);
+  }
+
   public Optional<LicenceCorrection> findByIdAndAllocatedToWuaId(UUID correctionId, ServiceUserDetail user) {
     return licenceCorrectionRepository.findByIdAndAllocatedToWuaId(correctionId, user.wuaId());
   }

@@ -170,6 +170,16 @@ class LicenceCorrectionServiceTest {
   }
 
   @Test
+  void findById() {
+    var correction = LicenceCorrectionTestUtil.newBuilder().build();
+    when(licenceCorrectionRepository.findById(correction.getId())).thenReturn(Optional.of(correction));
+
+    var result = licenceCorrectionService.findById(correction.getId());
+
+    assertThat(result).contains(correction);
+  }
+
+  @Test
   void findByIdAndAllocatedToWuaId_whenFound() {
     var correctionId = UUID.randomUUID();
     var correction = LicenceCorrectionTestUtil.newBuilder()

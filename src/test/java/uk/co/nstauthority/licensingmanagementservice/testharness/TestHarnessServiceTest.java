@@ -41,6 +41,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquity
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaDetails;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaSurrenderOutcome;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.TransferEquityOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.LicenceCleardownService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
@@ -77,10 +78,10 @@ class TestHarnessServiceTest {
   private static final Feature FULLY_SURRENDERED_BLOCK = FeatureTestUtil.blockFeature(UUID.randomUUID(), "30", 7);
   private static final Feature PARTIALLY_SURRENDERED_BLOCK = FeatureTestUtil.blockFeature(UUID.randomUUID(), "30", 8);
   private static final Feature UNTOUCHED_BLOCK = FeatureTestUtil.blockFeature(UUID.randomUUID(), "30", 9);
-  private static final Feature FULLY_SURRENDERED_SUBAREA = subarea("30/7a");
-  private static final Feature PARTIALLY_SURRENDERED_SUBAREA = subarea("30/8a");
-  private static final Feature UNTOUCHED_SUBAREA = subarea("30/9a");
-  private static final Feature CROPPED_SUBAREA = subarea("30/8a");
+  private static final Feature FULLY_SURRENDERED_SUBAREA = subarea("ALL");
+  private static final Feature PARTIALLY_SURRENDERED_SUBAREA = subarea("ALL");
+  private static final Feature UNTOUCHED_SUBAREA = subarea("ALL");
+  private static final Feature CROPPED_SUBAREA = subarea("ALL");
   private static final Feature SURRENDERED_HALF = FeatureTestUtil.builder()
       .withFeatureName("30/8 western half")
       .build();
@@ -96,7 +97,7 @@ class TestHarnessServiceTest {
   private LicencePositionService licencePositionService;
 
   @Mock
-  private LicencePositionTestHarnessService licencePositionTestHarnessService;
+  private LicenceCleardownService licenceCleardownService;
 
   @Mock
   private LicencePositionChangeService licencePositionChangeService;
@@ -127,7 +128,7 @@ class TestHarnessServiceTest {
   @BeforeEach
   void setUp() {
     testHarnessService = new TestHarnessService(
-        licenceTransactionService, licencePositionService, licencePositionTestHarnessService,
+        licenceTransactionService, licencePositionService, licenceCleardownService,
         licencePositionChangeService, licencePositionFeatureTestHarnessService, commandJourneyService, CLOCK);
   }
 
@@ -197,8 +198,8 @@ class TestHarnessServiceTest {
 
     testHarnessService.generateLicencePositions(licence, secondaryLicence);
 
-    verify(licencePositionTestHarnessService).clearPositionsForLicence(licence);
-    verify(licencePositionTestHarnessService).clearPositionsForLicence(secondaryLicence);
+    verify(licenceCleardownService).clear(licence);
+    verify(licenceCleardownService).clear(secondaryLicence);
 
     verify(licenceTransactionService, times(9)).createLicenceTransaction(anyString());
     verify(licencePositionService, times(11))
@@ -290,7 +291,7 @@ class TestHarnessServiceTest {
     // penultimate = index size - 2 = 3
     assertThat(positionCaptor.getAllValues().getLast()).isEqualTo(positions.get(3));
 
-    var croppedSubarea = new SubareaDetails(CROPPED_SUBAREA.getId(), "30/8a", "a");
+    var croppedSubarea = new SubareaDetails(CROPPED_SUBAREA.getId(), "ALL", "ALL");
     var expectedFullSurrender = new PartialSurrenderOperation.SurrenderDetails(
         BlockSurrenderType.FULL_SURRENDER,
         null,
@@ -304,7 +305,7 @@ class TestHarnessServiceTest {
         List.of(SURRENDERED_HALF.getId()),
         List.of(RETAINED_HALF.getId()),
         Map.of(RETAINED_HALF.getId(), List.of(SubareaSurrenderOutcome.cropped(
-            new SubareaDetails(PARTIALLY_SURRENDERED_SUBAREA.getId(), "30/8a", "a"), croppedSubarea)))
+            new SubareaDetails(PARTIALLY_SURRENDERED_SUBAREA.getId(), "ALL", "ALL"), croppedSubarea)))
     );
 
     // no surrender date - the change takes the date of the position it sits on

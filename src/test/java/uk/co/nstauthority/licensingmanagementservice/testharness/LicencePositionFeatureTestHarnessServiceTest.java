@@ -104,7 +104,7 @@ class LicencePositionFeatureTestHarnessServiceTest {
   private static final Map<String, String> BLOCK_ATTRIBUTES =
       Map.of("LAYER", "BLOCKS", "QUADRANT_NO", "30", "BLOCK_NO", "1");
 
-  private static final Map<String, String> SUBAREA_ATTRIBUTES = Map.of("LAYER", "SUBAREAS", "NAME", "30/1a");
+  private static final Map<String, String> SUBAREA_ATTRIBUTES = Map.of("LAYER", "SUBAREAS", "NAME", "ALL");
 
   private static final LocalDate SURRENDER_DATE = LocalDate.of(2026, Month.AUGUST, 1);
 
@@ -169,7 +169,7 @@ class LicencePositionFeatureTestHarnessServiceTest {
     );
     var subarea1a = expectedFeature(
         "test harness for P1 2",
-        Map.of("LAYER", "SUBAREAS", "NAME", "30/1a")
+        Map.of("LAYER", "SUBAREAS", "NAME", "ALL")
     );
     var block2 = expectedFeature(
         "test harness for P1 3",
@@ -177,7 +177,7 @@ class LicencePositionFeatureTestHarnessServiceTest {
     );
     var subarea2a = expectedFeature(
         "test harness for P1 4",
-        Map.of("LAYER", "SUBAREAS", "NAME", "30/2a")
+        Map.of("LAYER", "SUBAREAS", "NAME", "ALL")
     );
     var block3 = expectedFeature(
         "test harness for P1 5",
@@ -185,7 +185,7 @@ class LicencePositionFeatureTestHarnessServiceTest {
     );
     var subarea3a = expectedFeature(
         "test harness for P1 6",
-        Map.of("LAYER", "SUBAREAS", "NAME", "30/3a")
+        Map.of("LAYER", "SUBAREAS", "NAME", "ALL")
     );
 
     assertThat(featureCaptor.getAllValues())
@@ -222,9 +222,9 @@ class LicencePositionFeatureTestHarnessServiceTest {
     var expectedOperation = LicenceOperation.newBlockCreateOperation()
         .withFeatureIds(blocks.stream().map(Feature::getId).toList())
         .withCreatedSubareas(Map.of(
-            blocks.get(0).getId(), List.of(new SubareaDetails(subareas.get(0).getId(), "30/1a", "a")),
-            blocks.get(1).getId(), List.of(new SubareaDetails(subareas.get(1).getId(), "30/2a", "a")),
-            blocks.get(2).getId(), List.of(new SubareaDetails(subareas.get(2).getId(), "30/3a", "a"))
+            blocks.get(0).getId(), List.of(new SubareaDetails(subareas.get(0).getId(), "ALL", "ALL")),
+            blocks.get(1).getId(), List.of(new SubareaDetails(subareas.get(1).getId(), "ALL", "ALL")),
+            blocks.get(2).getId(), List.of(new SubareaDetails(subareas.get(2).getId(), "ALL", "ALL"))
         ))
         .build();
 
@@ -248,7 +248,7 @@ class LicencePositionFeatureTestHarnessServiceTest {
 
     var secondSubarea = seededFeatures.subareas().get(1);
     assertThat(seededFeatures.subareaDetailsOf(seededFeatures.blocks().get(1)))
-        .isEqualTo(new SubareaDetails(secondSubarea.getId(), "30/2a", "a"));
+        .isEqualTo(new SubareaDetails(secondSubarea.getId(), "ALL", "ALL"));
   }
 
   @Test

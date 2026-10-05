@@ -1,11 +1,13 @@
 package uk.co.nstauthority.licensingmanagementservice.summary;
 
 import java.util.List;
+import java.util.stream.Stream;
 
 public record SummaryCard(
     String displayName,
     SummaryCardType summaryCardType,
-    Object summaryData
+    Object summaryData,
+    List<SummaryCardAction> actions
 ) {
 
   public static SummaryCard simpleSummaryCardWithHeading(String displayName,
@@ -13,7 +15,8 @@ public record SummaryCard(
     return new SummaryCard(
         displayName,
         SummaryCardType.SIMPLE_SUMMARY,
-        summaryData
+        summaryData,
+        List.of()
     );
   }
 
@@ -25,7 +28,8 @@ public record SummaryCard(
     return new SummaryCard(
         null,
         SummaryCardType.EMPTY_SUMMARY,
-        null
+        null,
+        List.of()
     );
   }
 
@@ -40,7 +44,8 @@ public record SummaryCard(
     return new SummaryCard(
         displayName,
         SummaryCardType.TABLE_SUMMARY,
-        summaryData
+        summaryData,
+        List.of()
     );
   }
 
@@ -52,7 +57,8 @@ public record SummaryCard(
     return new SummaryCard(
         heading,
         SummaryCardType.FILES_SUMMARY,
-        fileViews
+        fileViews,
+        List.of()
     );
   }
 
@@ -63,7 +69,17 @@ public record SummaryCard(
     return new SummaryCard(
         heading,
         SummaryCardType.FILES_AND_DETAILS_SUMMARY,
-        summaryFileAndDetailsView
+        summaryFileAndDetailsView,
+        List.of()
+    );
+  }
+
+  public SummaryCard withAction(SummaryCardAction action) {
+    return new SummaryCard(
+        displayName,
+        summaryCardType,
+        summaryData,
+        Stream.concat(actions.stream(), Stream.of(action)).toList()
     );
   }
 }

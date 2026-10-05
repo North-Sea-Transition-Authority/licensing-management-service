@@ -274,6 +274,34 @@ class PearsLicenceWritebackEndpointIntegrationTest {
   }
 
   @Test
+  void overwriteLicencePositionsFromPears_whenStoredOperationsCannotBeDeserialised_thenTheyAreStillCleared() {
+    transactionTemplate.executeWithoutResult(status -> {
+      entityManager.createNativeQuery(
+              "UPDATE lms.licence_position_changes SET operations = '[{\"type\":\"REMOVED_OPERATION\"}]'::jsonb WHERE id = :id")
+          .setParameter("id", firstPositionChange.getId())
+          .executeUpdate();
+      entityManager.createNativeQuery(
+              "UPDATE lms.licence_position_corrections SET payload = '{\"type\":\"removed-payload\"}'::jsonb WHERE id = :id")
+          .setParameter("id", inProgressPositionCorrection.getId())
+          .executeUpdate();
+    });
+    when(pearsLicenceService.licenceHistory(eq("P"), eq(1), anySet())).thenReturn(pearsHistory());
+
+    var response = writeback("P1", LicenceWritebackResult.class);
+
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+
+    assertThat(licencePositionChangeRepository.findAll())
+        .extracting(LicencePositionChange::getId)
+        .contains(otherLicencePositionChange.getId())
+        .doesNotContain(firstPositionChange.getId(), secondPositionChange.getId(), draftPositionChange.getId());
+
+    assertThat(licencePositionCorrectionRepository.findAll())
+        .extracting(LicencePositionCorrection::getId)
+        .containsExactly(otherLicencePositionCorrection.getId());
+  }
+
+  @Test
   void overwriteLicencePositionsFromPears_whenAPositionCannotBeSaved_thenNothingIsDeleted() {
     when(pearsLicenceService.licenceHistory(eq("P"), eq(1), anySet())).thenReturn(pearsHistory());
     doThrow(new IllegalStateException("Could not create licence transaction"))

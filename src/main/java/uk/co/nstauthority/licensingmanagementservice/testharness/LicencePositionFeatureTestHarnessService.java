@@ -46,6 +46,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.Fe
 class LicencePositionFeatureTestHarnessService {
 
   private static final String QUADRANT_NUMBER = "30";
+  private static final String SUBAREA_NAME = "ALL";
   private static final int FIRST_CHANGE_ORDER = 1;
 
   private static final CoordinateSystem COORDINATE_SYSTEM = CoordinateSystem.ED50;
@@ -167,7 +168,7 @@ class LicencePositionFeatureTestHarnessService {
 
       var subareas = new ArrayList<Feature>();
       for (var subareaIndex = 1; subareaIndex <= featureLayout.subareasPerBlock(); subareaIndex++) {
-        subareas.add(createFeature(licence, shapeIndex + subareaIndex, subareaAttributes(blockIndex, subareaIndex)));
+        subareas.add(createFeature(licence, shapeIndex + subareaIndex, subareaAttributes()));
       }
       blockIdToSubareas.put(block.getId(), subareas);
     }
@@ -271,7 +272,7 @@ class LicencePositionFeatureTestHarnessService {
 
     static SubareaDetails toSubareaDetails(Feature subarea) {
       var name = subarea.getAttributes().get(FeatureAttribute.NAME.name());
-      return new SubareaDetails(subarea.getId(), name, name.substring(name.length() - 1));
+      return new SubareaDetails(subarea.getId(), name, name);
     }
   }
 
@@ -355,15 +356,11 @@ class LicencePositionFeatureTestHarnessService {
     );
   }
 
-  private Map<String, String> subareaAttributes(int blockNumber, int subareaIndex) {
+  private Map<String, String> subareaAttributes() {
     return Map.of(
         FeatureAttribute.LAYER.name(), Layer.SUBAREAS.name(),
-        FeatureAttribute.NAME.name(), "%s/%s%s".formatted(QUADRANT_NUMBER, blockNumber, subareaSuffix(subareaIndex))
+        FeatureAttribute.NAME.name(), SUBAREA_NAME
     );
-  }
-
-  private static String subareaSuffix(int subareaIndex) {
-    return String.valueOf((char) ('a' + subareaIndex - 1));
   }
 
   private record FeatureLayout(int blockCount, int subareasPerBlock) {

@@ -6,11 +6,26 @@
 
 <#-- @ftlvariable name="summaryDataView" type="uk.co.nstauthority.licensingmanagementservice.summary.SummaryDataView" -->
 
-<#macro simpleSummary summaryDataView summaryHeading>
+<#macro simpleSummary summaryDataView summaryHeading actions=[]>
+  <#local cardActions>
+    <#if actions?has_content>
+      <@fdsSummaryList.summaryListCardActionList>
+        <#list actions as action>
+          <@fdsSummaryList.summaryListCardActionItem
+            itemUrl=springUrl(action.url())
+            itemText=action.text()
+            itemScreenReaderText=summaryHeading
+          />
+        </#list>
+      </@fdsSummaryList.summaryListCardActionList>
+    </#if>
+  </#local>
   <@fdsSummaryList.summaryListCard
     headingText=summaryHeading
     headingSize="h3"
-    summaryListId="summary-data-card-list">
+    summaryListId="summary-data-card-list"
+    cardActionsContent=cardActions
+  >
     <#list summaryDataView.keyValues() as keyValue>
       <@fdsSummaryList.summaryListRowNoAction keyText=keyValue.key()>
         <#if keyValue.summaryValueType() == "STRING_VALUE">

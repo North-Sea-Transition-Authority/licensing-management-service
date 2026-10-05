@@ -16,6 +16,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation.SurrenderDetails;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaSurrenderOutcome;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.LicenceCleardownService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeService;
@@ -42,7 +43,7 @@ class TestHarnessService {
 
   private final LicenceTransactionService licenceTransactionService;
   private final LicencePositionService licencePositionService;
-  private final LicencePositionTestHarnessService licencePositionTestHarnessService;
+  private final LicenceCleardownService licenceCleardownService;
   private final LicencePositionChangeService licencePositionChangeService;
   private final LicencePositionFeatureTestHarnessService licencePositionFeatureTestHarnessService;
   private final CommandJourneyService commandJourneyService;
@@ -51,7 +52,7 @@ class TestHarnessService {
   TestHarnessService(
       LicenceTransactionService licenceTransactionService,
       LicencePositionService licencePositionService,
-      LicencePositionTestHarnessService licencePositionTestHarnessService,
+      LicenceCleardownService licenceCleardownService,
       LicencePositionChangeService licencePositionChangeService,
       LicencePositionFeatureTestHarnessService licencePositionFeatureTestHarnessService,
       CommandJourneyService commandJourneyService,
@@ -59,7 +60,7 @@ class TestHarnessService {
   ) {
     this.licenceTransactionService = licenceTransactionService;
     this.licencePositionService = licencePositionService;
-    this.licencePositionTestHarnessService = licencePositionTestHarnessService;
+    this.licenceCleardownService = licenceCleardownService;
     this.licencePositionChangeService = licencePositionChangeService;
     this.licencePositionFeatureTestHarnessService = licencePositionFeatureTestHarnessService;
     this.commandJourneyService = commandJourneyService;
@@ -68,9 +69,9 @@ class TestHarnessService {
 
   @Transactional
   public void generateLicencePositions(Licence licence, Licence secondaryLicence) {
-    // clear any existing positions and changes
-    licencePositionTestHarnessService.clearPositionsForLicence(licence);
-    licencePositionTestHarnessService.clearPositionsForLicence(secondaryLicence);
+    // clear everything on both licences
+    licenceCleardownService.clear(licence);
+    licenceCleardownService.clear(secondaryLicence);
 
     var now = LocalDate.now(clock);
     generateSameDateLicencePositions(licence, now);

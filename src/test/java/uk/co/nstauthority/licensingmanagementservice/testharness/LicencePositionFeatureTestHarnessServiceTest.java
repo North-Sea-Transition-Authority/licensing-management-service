@@ -41,6 +41,7 @@ import uk.co.fivium.grpc.gis.CoordinateSystem;
 import uk.co.fivium.grpc.gis.LineNavigationType;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaDetails;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
@@ -56,6 +57,11 @@ import uk.co.nstauthority.licensingmanagementservice.testharness.LicencePosition
 class LicencePositionFeatureTestHarnessServiceTest {
 
   private static final Licence LICENCE = LicenceTestUtil.builder().withLicenceReference("P1").build();
+
+  private static final Licence CARBON_STORAGE_LICENCE = LicenceTestUtil.builder()
+      .withLicenceReference("CS1")
+      .withLicenceType(LicenceType.CARBON_STORAGE)
+      .build();
 
   private static final UUID COMMAND_JOURNEY_ID = UUID.randomUUID();
 
@@ -185,6 +191,22 @@ class LicencePositionFeatureTestHarnessServiceTest {
     assertThat(featureCaptor.getAllValues())
         .usingRecursiveFieldByFieldElementComparatorIgnoringFields("id")
         .containsExactly(block1, subarea1a, block2, subarea2a, block3, subarea3a);
+  }
+
+  @Test
+  void createAndLinkFeatures_whenCarbonStorageLicence_thenOneBlockWithNoSubareasIsCreated() {
+    givenPositions(CARBON_STORAGE_LICENCE, LicencePositionTestUtil.newBuilder().build());
+    givenSpatialDataCanBePersisted();
+
+    var seededFeatures = licencePositionFeatureTestHarnessService.createAndLinkFeatures(CARBON_STORAGE_LICENCE);
+
+    verify(featureService).saveFeature(featureCaptor.capture());
+    assertThat(featureCaptor.getValue())
+        .usingRecursiveComparison()
+        .ignoringFields("id")
+        .isEqualTo(expectedFeature("test harness for CS1 1",
+            Map.of("LAYER", "BLOCKS", "QUADRANT_NO", "30", "BLOCK_NO", "1")));
+    assertThat(seededFeatures.subareas()).isEmpty();
   }
 
   @Test
@@ -406,7 +428,11 @@ class LicencePositionFeatureTestHarnessServiceTest {
   }
 
   private void givenPositions(LicencePosition... licencePositions) {
-    when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE))
+    givenPositions(LICENCE, licencePositions);
+  }
+
+  private void givenPositions(Licence licence, LicencePosition... licencePositions) {
+    when(licencePositionService.getExecutedChronologicalLicencePositions(licence))
         .thenReturn(List.of(licencePositions));
   }
 

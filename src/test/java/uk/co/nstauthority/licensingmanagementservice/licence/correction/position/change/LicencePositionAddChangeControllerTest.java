@@ -33,11 +33,15 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.administrator.LicencePositionAdministratorChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.licensee.LicencePositionLicenseeChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.LicencePositionPartialSurrenderController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.PartialSurrenderCorrectionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.SingleBlockSurrender;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.definearea.PartialSurrenderDefineAreaController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.setequity.LicencePositionSetEquityController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subarea.LicencePositionSubareaChangeStartController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.transferequity.LicencePositionTransferEquityController;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.FeatureTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @ContextConfiguration(classes = LicencePositionAddChangeController.class)
@@ -46,6 +50,9 @@ class LicencePositionAddChangeControllerTest extends AbstractControllerTest {
 
   @MockitoBean
   private AddPositionChangeFormValidator addPositionChangeFormValidator;
+
+  @MockitoBean
+  private PartialSurrenderCorrectionService partialSurrenderCorrectionService;
 
   private static final Licence LICENCE = LicenceTestUtil.builder()
       .withLicenceReference("P/1")
@@ -420,13 +427,16 @@ class LicencePositionAddChangeControllerTest extends AbstractControllerTest {
   }
 
   @Test
-  void submitForExecutedPosition_whenPartialSurrender_redirectsToSurrenderDetailsForm() throws Exception {
+  void submitForExecutedPosition_whenPartialSurrenderOfMoreThanOneBlock_redirectsToSurrenderDetailsForm()
+      throws Exception {
     var correction = givenCorrectionAllocatedToUser();
     var licencePosition = executedPosition();
     var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder().build();
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(licencePosition);
     when(licencePositionCorrectionService.getOrBuildUpdatePositionCorrection(correction, licencePosition))
         .thenReturn(positionCorrection);
+    when(partialSurrenderCorrectionService.stageSingleBlockSurrenderForExecutedPosition(correction, licencePosition))
+        .thenReturn(Optional.empty());
 
     var form = new AddPositionChangeForm();
     form.setChangeType(AddPositionChangeType.PARTIAL_SURRENDER.name());
@@ -441,6 +451,35 @@ class LicencePositionAddChangeControllerTest extends AbstractControllerTest {
         .andExpect(status().is3xxRedirection())
         .andExpect(redirectedUrl(ReverseRouter.route(on(LicencePositionPartialSurrenderController.class)
             .renderForExecutedPosition(CORRECTION_ID, POSITION_ID, null))));
+  }
+
+  @Test
+  void submitForExecutedPosition_whenPartialSurrenderOfASingleBlock_redirectsToDefineAreaForTheStagedSurrender()
+      throws Exception {
+    var correction = givenCorrectionAllocatedToUser();
+    var licencePosition = executedPosition();
+    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder().build();
+    var stagedPositionCorrection = LicencePositionCorrectionTestUtil.newBuilder().withId(POSITION_CORRECTION_ID).build();
+    var block = FeatureTestUtil.builder().build();
+    when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(licencePosition);
+    when(licencePositionCorrectionService.getOrBuildUpdatePositionCorrection(correction, licencePosition))
+        .thenReturn(positionCorrection);
+    when(partialSurrenderCorrectionService.stageSingleBlockSurrenderForExecutedPosition(correction, licencePosition))
+        .thenReturn(Optional.of(new SingleBlockSurrender(stagedPositionCorrection, block)));
+
+    var form = new AddPositionChangeForm();
+    form.setChangeType(AddPositionChangeType.PARTIAL_SURRENDER.name());
+    when(addPositionChangeFormValidator.hasErrors(
+        eq(form), any(BindingResult.class), eq(correction), eq(positionCorrection)))
+        .thenReturn(false);
+
+    mockMvc.perform(post(ReverseRouter.route(on(LicencePositionAddChangeController.class)
+            .submitForExecutedPosition(CORRECTION_ID, POSITION_ID, null, null, null)))
+            .with(user(regulatorUser)).with(csrf())
+            .flashAttr("form", form))
+        .andExpect(status().is3xxRedirection())
+        .andExpect(redirectedUrl(ReverseRouter.route(on(PartialSurrenderDefineAreaController.class)
+            .renderDefineArea(CORRECTION_ID, POSITION_CORRECTION_ID, block.getId(), null))));
   }
 
   @Test
@@ -468,11 +507,14 @@ class LicencePositionAddChangeControllerTest extends AbstractControllerTest {
   }
 
   @Test
-  void submitForAddedPosition_whenPartialSurrender_redirectsToSurrenderDetailsForm() throws Exception {
+  void submitForAddedPosition_whenPartialSurrenderOfMoreThanOneBlock_redirectsToSurrenderDetailsForm()
+      throws Exception {
     var correction = givenCorrectionAllocatedToUser();
     var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder().build();
     when(licencePositionCorrectionService.getPositionCorrectionForCorrection(POSITION_CORRECTION_ID, correction))
         .thenReturn(positionCorrection);
+    when(partialSurrenderCorrectionService.stageSingleBlockSurrenderForAddedPosition(positionCorrection))
+        .thenReturn(Optional.empty());
 
     var form = new AddPositionChangeForm();
     form.setChangeType(AddPositionChangeType.PARTIAL_SURRENDER.name());
@@ -487,6 +529,32 @@ class LicencePositionAddChangeControllerTest extends AbstractControllerTest {
         .andExpect(status().is3xxRedirection())
         .andExpect(redirectedUrl(ReverseRouter.route(on(LicencePositionPartialSurrenderController.class)
             .renderForAddedPosition(CORRECTION_ID, POSITION_CORRECTION_ID, null))));
+  }
+
+  @Test
+  void submitForAddedPosition_whenPartialSurrenderOfASingleBlock_redirectsToDefineAreaForTheStagedSurrender()
+      throws Exception {
+    var correction = givenCorrectionAllocatedToUser();
+    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder().withId(POSITION_CORRECTION_ID).build();
+    var block = FeatureTestUtil.builder().build();
+    when(licencePositionCorrectionService.getPositionCorrectionForCorrection(POSITION_CORRECTION_ID, correction))
+        .thenReturn(positionCorrection);
+    when(partialSurrenderCorrectionService.stageSingleBlockSurrenderForAddedPosition(positionCorrection))
+        .thenReturn(Optional.of(new SingleBlockSurrender(positionCorrection, block)));
+
+    var form = new AddPositionChangeForm();
+    form.setChangeType(AddPositionChangeType.PARTIAL_SURRENDER.name());
+    when(addPositionChangeFormValidator.hasErrors(
+        eq(form), any(BindingResult.class), eq(correction), eq(positionCorrection)))
+        .thenReturn(false);
+
+    mockMvc.perform(post(ReverseRouter.route(on(LicencePositionAddChangeController.class)
+            .submitForAddedPosition(CORRECTION_ID, POSITION_CORRECTION_ID, null, null, null)))
+            .with(user(regulatorUser)).with(csrf())
+            .flashAttr("form", form))
+        .andExpect(status().is3xxRedirection())
+        .andExpect(redirectedUrl(ReverseRouter.route(on(PartialSurrenderDefineAreaController.class)
+            .renderDefineArea(CORRECTION_ID, POSITION_CORRECTION_ID, block.getId(), null))));
   }
 
   @Test

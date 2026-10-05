@@ -1,6 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
@@ -34,25 +35,30 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.validation.BindingResult;
+import uk.co.fivium.gisframework.feature.CoordinateSystemUtils;
 import uk.co.fivium.gisframework.feature.Feature;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.LicencePositionAddChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderType;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.definearea.PartialSurrenderDefineAreaController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.tasklist.PartialSurrenderTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.AddChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.LicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation.SurrenderDetails;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.PartialSurrenderChangeView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.FeatureTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.spatial.LicencePositionSpatialService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
@@ -570,6 +576,102 @@ class LicencePositionPartialSurrenderControllerTest extends AbstractControllerTe
   }
 
   @Test
+  void renderForCorrectingChange_whenSingleBlock_rendersTheStartCorrectionPageWithoutStagingAnything() throws Exception {
+    var correction = givenCorrectionAllocatedToUser();
+    var licencePosition = executedPosition();
+    var surrenderedHalfId = UUID.randomUUID();
+    var liveSurrender = LicenceOperation.newPartialSurrenderOperation()
+        .withSurrenderedFeatureIds(List.of(BLOCK_30_1A.getId()))
+        .withSurrenderDetails(Map.of(BLOCK_30_1A.getId(),
+            new SurrenderDetails(BlockSurrenderType.PARTIAL_SURRENDER, null, List.of(surrenderedHalfId))))
+        .build();
+    var blockRows = List.of(new PartialSurrenderChangeView.BlockRow("30/1a", "Partial surrender"));
+
+    when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(licencePosition);
+    givenNoUpdatePositionCorrection(correction, licencePosition);
+    givenLiveSurrender(liveSurrender);
+    when(partialSurrenderCorrectionService.findSingleBlockNotOperatedOn(
+        correction, licencePosition, null, LIVE_CHANGE_ID))
+        .thenReturn(Optional.of(BLOCK_30_1A));
+    when(partialSurrenderCorrectionService.getBlockRows(liveSurrender)).thenReturn(blockRows);
+
+    mockMvc.perform(get(ReverseRouter.route(on(LicencePositionPartialSurrenderController.class)
+            .renderForCorrectingChange(CORRECTION_ID, POSITION_ID, LIVE_CHANGE_ID, null)))
+            .with(user(regulatorUser)))
+        .andExpectAll(
+            status().isOk(),
+            view().name("lms/licence/correction/change/partialSurrender/startSingleBlockPartialSurrenderCorrection"),
+            model().attribute("pageTitle", "Are you sure you want to correct this partial surrender?"),
+            model().attribute("pageCaption", "P/1"),
+            model().attribute("blockRows", blockRows),
+            model().attribute("surrenderedFeatureIds", List.of(surrenderedHalfId)),
+            model().attribute("srsWkid", CoordinateSystemUtils.getWkid(BLOCK_30_1A.getCoordinateSystem())),
+            model().attribute("startCorrectionUrl", startCorrectionUrl()),
+            model().attribute("backLinkUrl", ReverseRouter.route(on(LicenceCorrectionController.class)
+                .renderLicencePosition(CORRECTION_ID, POSITION_ID, null))));
+
+    verify(partialSurrenderCorrectionService, never()).correctExistingPartialSurrender(any(), any(), any(), any());
+    verify(partialSurrenderCorrectionService, never()).getOrCreatePartialSurrenderDetails(any(), any(), any());
+  }
+
+  @Test
+  void renderForCorrectingChange_whenSingleBlockLiveSurrenderHasNoSurrenderedAreas_thenMapsTheBlock() throws Exception {
+    var correction = givenCorrectionAllocatedToUser();
+    var licencePosition = executedPosition();
+    var liveSurrender = surrenderOf(BLOCK_30_1A);
+
+    when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(licencePosition);
+    givenNoUpdatePositionCorrection(correction, licencePosition);
+    givenLiveSurrender(liveSurrender);
+    when(partialSurrenderCorrectionService.findSingleBlockNotOperatedOn(
+        correction, licencePosition, null, LIVE_CHANGE_ID))
+        .thenReturn(Optional.of(BLOCK_30_1A));
+
+    mockMvc.perform(get(ReverseRouter.route(on(LicencePositionPartialSurrenderController.class)
+            .renderForCorrectingChange(CORRECTION_ID, POSITION_ID, LIVE_CHANGE_ID, null)))
+            .with(user(regulatorUser)))
+        .andExpectAll(
+            status().isOk(),
+            model().attribute("surrenderedFeatureIds", List.of(BLOCK_30_1A.getId())));
+  }
+
+  @Test
+  void startCorrectingSingleBlockChange_whenSingleBlock_stagesTheCorrectionAndRedirectsToDefineArea() throws Exception {
+    var correction = givenCorrectionAllocatedToUser();
+    var licencePosition = executedPosition();
+    var committedPositionCorrection = updatePositionCorrection(licencePosition);
+
+    when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(licencePosition);
+    when(partialSurrenderCorrectionService.stageSingleBlockCorrectionOfLiveChange(
+        correction, licencePosition, LIVE_CHANGE_ID))
+        .thenReturn(Optional.of(new SingleBlockSurrender(committedPositionCorrection, BLOCK_30_1A)));
+
+    mockMvc.perform(post(startCorrectionUrl())
+            .with(user(regulatorUser))
+            .with(csrf()))
+        .andExpect(status().is3xxRedirection())
+        .andExpect(redirectedUrl(defineAreaUrl()));
+  }
+
+  @Test
+  void startCorrectingSingleBlockChange_whenNoLongerSingleBlock_throws() {
+    var correction = givenCorrectionAllocatedToUser();
+    var licencePosition = executedPosition();
+
+    when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(licencePosition);
+    when(partialSurrenderCorrectionService.stageSingleBlockCorrectionOfLiveChange(
+        correction, licencePosition, LIVE_CHANGE_ID))
+        .thenReturn(Optional.empty());
+
+    assertThatThrownBy(() -> mockMvc.perform(post(startCorrectionUrl())
+        .with(user(regulatorUser))
+        .with(csrf())))
+        .hasRootCauseInstanceOf(IllegalStateException.class)
+        .rootCause()
+        .hasMessage("Change %s no longer has a single block to correct".formatted(LIVE_CHANGE_ID));
+  }
+
+  @Test
   void submitForCorrectingChange_whenInvalid_rendersFormAndCorrectsNothing() throws Exception {
     var correction = givenCorrectionAllocatedToUser();
     var licencePosition = executedPosition();
@@ -997,6 +1099,16 @@ class LicencePositionPartialSurrenderControllerTest extends AbstractControllerTe
   private static String addChangeUrlForAddedPosition() {
     return ReverseRouter.route(on(LicencePositionAddChangeController.class)
         .renderForAddedPosition(CORRECTION_ID, POSITION_CORRECTION_ID, null));
+  }
+
+  private static String defineAreaUrl() {
+    return ReverseRouter.route(on(PartialSurrenderDefineAreaController.class)
+        .renderDefineArea(CORRECTION_ID, POSITION_CORRECTION_ID, LicencePositionPartialSurrenderControllerTest.BLOCK_30_1A.getId(), null));
+  }
+
+  private static String startCorrectionUrl() {
+    return ReverseRouter.route(on(LicencePositionPartialSurrenderController.class)
+        .startCorrectingSingleBlockChange(CORRECTION_ID, POSITION_ID, LIVE_CHANGE_ID, null));
   }
 
   private static String taskListUrl() {

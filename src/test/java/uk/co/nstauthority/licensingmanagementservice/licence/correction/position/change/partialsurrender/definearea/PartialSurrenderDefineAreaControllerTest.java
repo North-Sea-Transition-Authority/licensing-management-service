@@ -35,6 +35,7 @@ import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionChangeType;
@@ -153,6 +154,61 @@ class PartialSurrenderDefineAreaControllerTest extends AbstractControllerTest {
   }
 
   @Test
+  void renderDefineArea_whenSingleBlockOnAddedPosition_backLinkGoesToAddChange() throws Exception {
+    var positionCorrection = givenBlockSurrender(List.of(), List.of(FEATURE));
+
+    when(partialSurrenderCorrectionService.findSingleBlockNotOperatedOn(positionCorrection))
+        .thenReturn(Optional.of(FEATURE));
+
+    mockMvc.perform(get(defineAreaUrl())
+            .with(user(regulatorUser)))
+        .andExpectAll(
+            status().isOk(),
+            view().name(VIEW_NAME),
+            model().attribute("backLinkUrl", ReverseRouter.route(on(LicenceCorrectionController.class)
+                .renderAddedPosition(CORRECTION_ID, POSITION_CORRECTION_ID, null)))
+        );
+  }
+
+  @Test
+  void renderDefineArea_whenSingleBlockOnExecutedPosition_backLinkGoesToAddChange() throws Exception {
+    var positionCorrection = correctingPositionCorrection();
+
+    givenBlockSurrender(LICENCE, positionCorrection, List.of(), List.of(FEATURE));
+    when(partialSurrenderCorrectionService.findSingleBlockNotOperatedOn(positionCorrection))
+        .thenReturn(Optional.of(FEATURE));
+
+    mockMvc.perform(get(defineAreaUrl())
+            .with(user(regulatorUser)))
+        .andExpectAll(
+            status().isOk(),
+            view().name(VIEW_NAME),
+            model().attribute("backLinkUrl", ReverseRouter.route(on(LicenceCorrectionController.class)
+                .renderLicencePosition(CORRECTION_ID, POSITION_ID, null)))
+        );
+  }
+
+  @Test
+  void renderDefineArea_whenSingleBlockCorrectingAnExecutedChange_backLinkGoesToThePosition() throws Exception {
+    var positionCorrection = correctingPositionCorrection();
+
+    givenBlockSurrender(LICENCE, positionCorrection, List.of(), List.of(FEATURE));
+    when(partialSurrenderCorrectionService.findSingleBlockNotOperatedOn(positionCorrection))
+        .thenReturn(Optional.of(FEATURE));
+    when(partialSurrenderCorrectionService.findCorrectedLiveChangeId(positionCorrection))
+        .thenReturn(Optional.of(LIVE_CHANGE_ID));
+
+    mockMvc.perform(get(defineAreaUrl())
+            .with(user(regulatorUser)))
+        .andExpectAll(
+            status().isOk(),
+            view().name(VIEW_NAME),
+            model().attribute("backLinkUrl", ReverseRouter.route(on(LicenceCorrectionController.class)
+                .renderLicencePosition(CORRECTION_ID, POSITION_ID, null)))
+        );
+  }
+
+  @Test
   void defineArea_whenBlockNotSplit_rendersFormWithError() throws Exception {
     givenBlockSurrenderWithActiveFeatures();
 
@@ -219,6 +275,52 @@ class PartialSurrenderDefineAreaControllerTest extends AbstractControllerTest {
 
     verify(partialSurrenderCorrectionService)
         .setSurrenderedFeatureIds(positionCorrection, FEATURE_ID, Set.of(FIRST_AREA.getId()));
+  }
+
+  @Test
+  void selectAreas_whenSingleBlock_savesAndRedirectsToReviewAndSubmit() throws Exception {
+    var positionCorrection = givenBlockSurrender(List.of(), List.of(FIRST_AREA, SECOND_AREA));
+
+    when(partialSurrenderSelectAreasFormValidator.hasErrors(
+        any(PartialSurrenderSelectAreasForm.class),
+        any(BindingResult.class),
+        eq(List.of(FIRST_AREA, SECOND_AREA))
+    )).thenReturn(false);
+    when(partialSurrenderCorrectionService.findSingleBlockNotOperatedOn(positionCorrection))
+        .thenReturn(Optional.of(FEATURE));
+
+    mockMvc.perform(post(selectAreasUrl())
+            .param("surrenderedFeatureIds", FIRST_AREA.getId().toString())
+            .with(user(regulatorUser)).with(csrf()))
+        .andExpect(status().is3xxRedirection())
+        .andExpect(redirectedUrl(ReverseRouter.route(on(PartialSurrenderTaskListController.class)
+            .renderReviewAndSubmit(CORRECTION_ID, POSITION_CORRECTION_ID, null, null))));
+
+    verify(partialSurrenderCorrectionService)
+        .setSurrenderedFeatureIds(positionCorrection, FEATURE_ID, Set.of(FIRST_AREA.getId()));
+  }
+
+  @Test
+  void selectAreas_whenSingleBlockCorrectingAnExecutedChange_redirectsToCorrectingReviewAndSubmit() throws Exception {
+    var positionCorrection = correctingPositionCorrection();
+    givenBlockSurrender(LICENCE, positionCorrection, List.of(), List.of(FIRST_AREA, SECOND_AREA));
+
+    when(partialSurrenderSelectAreasFormValidator.hasErrors(
+        any(PartialSurrenderSelectAreasForm.class),
+        any(BindingResult.class),
+        eq(List.of(FIRST_AREA, SECOND_AREA))
+    )).thenReturn(false);
+    when(partialSurrenderCorrectionService.findSingleBlockNotOperatedOn(positionCorrection))
+        .thenReturn(Optional.of(FEATURE));
+    when(partialSurrenderCorrectionService.findCorrectedLiveChangeId(positionCorrection))
+        .thenReturn(Optional.of(LIVE_CHANGE_ID));
+
+    mockMvc.perform(post(selectAreasUrl())
+            .param("surrenderedFeatureIds", FIRST_AREA.getId().toString())
+            .with(user(regulatorUser)).with(csrf()))
+        .andExpect(status().is3xxRedirection())
+        .andExpect(redirectedUrl(ReverseRouter.route(on(PartialSurrenderTaskListController.class)
+            .renderReviewAndSubmitForCorrectingChange(CORRECTION_ID, POSITION_ID, LIVE_CHANGE_ID, null, null))));
   }
 
   @Test

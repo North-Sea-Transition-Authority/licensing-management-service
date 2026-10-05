@@ -31,7 +31,7 @@
       primaryButtonText="Submit"
       <#--TODO: enable when we can submit partial surrenders-->
       primaryDisabledButton=true
-      secondaryLinkText="Back to task list"
+      secondaryLinkText=backLinkText
       linkSecondaryAction=true
       linkSecondaryActionUrl=springUrl(backLinkUrl)
     />

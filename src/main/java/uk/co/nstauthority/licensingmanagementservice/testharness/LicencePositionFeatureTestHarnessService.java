@@ -29,6 +29,7 @@ import uk.co.fivium.gisframework.feature.PolygonService;
 import uk.co.fivium.grpc.gis.CoordinateSystem;
 import uk.co.fivium.grpc.gis.LineNavigationType;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.BlockCreateOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaDetails;
@@ -45,9 +46,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.Fe
 class LicencePositionFeatureTestHarnessService {
 
   private static final String QUADRANT_NUMBER = "30";
-  private static final int BLOCKS_PER_LICENCE = 3;
-  private static final int SUBAREAS_PER_BLOCK = 1;
-  private static final int SHAPES_PER_BLOCK = 1 + SUBAREAS_PER_BLOCK;
   private static final int FIRST_CHANGE_ORDER = 1;
 
   private static final CoordinateSystem COORDINATE_SYSTEM = CoordinateSystem.ED50;
@@ -157,17 +155,18 @@ class LicencePositionFeatureTestHarnessService {
   }
 
   private SeededFeatures createFeaturesForLicence(Licence licence) {
+    var featureLayout = FeatureLayout.of(licence.getType());
     var blocks = new ArrayList<Feature>();
     var blockIdToSubareas = new LinkedHashMap<UUID, List<Feature>>();
 
-    for (var blockIndex = 1; blockIndex <= BLOCKS_PER_LICENCE; blockIndex++) {
-      var shapeIndex = (blockIndex - 1) * SHAPES_PER_BLOCK + 1;
+    for (var blockIndex = 1; blockIndex <= featureLayout.blockCount(); blockIndex++) {
+      var shapeIndex = (blockIndex - 1) * featureLayout.shapesPerBlock() + 1;
 
       var block = createFeature(licence, shapeIndex, blockAttributes(blockIndex));
       blocks.add(block);
 
       var subareas = new ArrayList<Feature>();
-      for (var subareaIndex = 1; subareaIndex <= SUBAREAS_PER_BLOCK; subareaIndex++) {
+      for (var subareaIndex = 1; subareaIndex <= featureLayout.subareasPerBlock(); subareaIndex++) {
         subareas.add(createFeature(licence, shapeIndex + subareaIndex, subareaAttributes(blockIndex, subareaIndex)));
       }
       blockIdToSubareas.put(block.getId(), subareas);
@@ -365,5 +364,19 @@ class LicencePositionFeatureTestHarnessService {
 
   private static String subareaSuffix(int subareaIndex) {
     return String.valueOf((char) ('a' + subareaIndex - 1));
+  }
+
+  private record FeatureLayout(int blockCount, int subareasPerBlock) {
+
+    private static final FeatureLayout CARBON_STORAGE = new FeatureLayout(1, 0);
+    private static final FeatureLayout BLOCKS_WITH_SUBAREAS = new FeatureLayout(3, 1);
+
+    static FeatureLayout of(LicenceType licenceType) {
+      return LicenceType.CARBON_STORAGE == licenceType ? CARBON_STORAGE : BLOCKS_WITH_SUBAREAS;
+    }
+
+    int shapesPerBlock() {
+      return 1 + subareasPerBlock;
+    }
   }
 }

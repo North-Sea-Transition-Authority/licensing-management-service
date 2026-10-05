@@ -3,6 +3,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.correction.positio
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -20,8 +21,11 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionRouteUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.LicencePositionPartialSurrenderController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.PartialSurrenderCorrectionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.definearea.PartialSurrenderDefineAreaController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.reviewandsubmit.PartialSurrenderSummaryContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.reviewandsubmit.PartialSurrenderSummarySectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayload;
@@ -41,6 +45,9 @@ public class PartialSurrenderTaskListController {
 
   public static final String TASK_LIST_PAGE_TITLE = "Partial surrender";
   public static final String REVIEW_AND_SUBMIT_PAGE_TITLE = "Review and submit";
+
+  private static final String BACK_LINK_TEXT = "Back";
+  private static final String BACK_TO_TASK_LIST_LINK_TEXT = "Back to task list";
 
   private final LicencePositionCorrectionService licencePositionCorrectionService;
   private final PartialSurrenderCorrectionService partialSurrenderCorrectionService;
@@ -84,13 +91,19 @@ public class PartialSurrenderTaskListController {
           null));
     }
 
+    var singleBlock = partialSurrenderCorrectionService.findSingleBlockNotOperatedOn(positionCorrection);
+    if (singleBlock.isPresent()) {
+      return ReverseRouter.redirect(on(PartialSurrenderDefineAreaController.class)
+          .renderDefineArea(correctionId, licencePositionCorrectionId, singleBlock.get().getId(), null));
+    }
+
     return taskListModelAndView(
         correction,
         partialSurrenderTaskListService.getTaskListSections(
             new PartialSurrenderTaskListContext.Staged(positionCorrection), user),
         positionReference(positionCorrection),
         DateUtil.formatLongDate(licencePositionCorrectionService.resolveEffectiveDate(positionCorrection)),
-        positionUrl(correctionId, positionCorrection));
+        LicencePositionCorrectionRouteUtil.getPositionPageUrl(correctionId, positionCorrection));
   }
 
   @GetMapping("/position/{licencePositionId}/change/{changeId}/partial-surrender/task-list")
@@ -105,6 +118,18 @@ public class PartialSurrenderTaskListController {
       ServiceUserDetail user
   ) {
     var licencePosition = licencePositionService.getPositionForLicence(correction.getLicence(), licencePositionId);
+    var positionCorrection = licencePositionCorrectionService
+        .findUpdatePositionCorrection(correction, licencePosition)
+        .orElse(null);
+
+    // If only a single block, go to the PartialSurrenderController to stage a single block correction
+    if (partialSurrenderCorrectionService
+        .findSingleBlockNotOperatedOn(correction, licencePosition, positionCorrection, changeId)
+        .isPresent()
+    ) {
+      return ReverseRouter.redirect(on(LicencePositionPartialSurrenderController.class)
+          .renderForCorrectingChange(correctionId, licencePositionId, changeId, null));
+    }
 
     return taskListModelAndView(
         correction,
@@ -127,6 +152,7 @@ public class PartialSurrenderTaskListController {
         .getPositionCorrectionForCorrection(licencePositionCorrectionId, correction);
     var taskListUrl = ReverseRouter.route(on(PartialSurrenderTaskListController.class)
         .renderTaskList(correctionId, licencePositionCorrectionId, null, null));
+    var singleBlockSelectAreasUrl = singleBlockSelectAreasUrl(correctionId, licencePositionCorrection);
     var sections = partialSurrenderSummarySectionService.getSummarySections(
         new PartialSurrenderSummaryContext.Staged(licencePositionCorrection),
         user
@@ -137,7 +163,8 @@ public class PartialSurrenderTaskListController {
         licencePositionCorrectionId,
         sections,
         partialSurrenderCorrectionService.allSurrenderedBlocksAreFull(licencePositionCorrection),
-        taskListUrl);
+        singleBlockSelectAreasUrl.orElse(taskListUrl),
+        singleBlockSelectAreasUrl.isPresent() ? BACK_LINK_TEXT : BACK_TO_TASK_LIST_LINK_TEXT);
   }
 
   @GetMapping("/position/{licencePositionId}/change/{changeId}/partial-surrender/review-and-submit")
@@ -155,6 +182,13 @@ public class PartialSurrenderTaskListController {
     var surrender = partialSurrenderCorrectionService.getSurrenderUnderCorrectionOrThrow(correction, licencePosition, changeId);
     var taskListUrl = ReverseRouter.route(on(PartialSurrenderTaskListController.class)
         .renderForCorrectingChange(correctionId, licencePositionId, changeId, null, null));
+    var singleBlockSelectAreasUrl = licencePositionCorrectionService
+        .findUpdatePositionCorrection(correction, licencePosition)
+        .filter(positionCorrection -> partialSurrenderCorrectionService.findCorrectedLiveChangeId(positionCorrection)
+            .filter(changeId::equals)
+            .isPresent())
+        .flatMap(positionCorrection -> singleBlockSelectAreasUrl(correctionId, positionCorrection));
+
     var sections = partialSurrenderSummarySectionService.getSummarySections(
         new PartialSurrenderSummaryContext.LiveChange(correction, licencePosition, changeId),
         user
@@ -165,8 +199,15 @@ public class PartialSurrenderTaskListController {
         changeId,
         sections,
         partialSurrenderCorrectionService.allSurrenderedBlocksAreFull(surrender),
-        taskListUrl
+        singleBlockSelectAreasUrl.orElse(taskListUrl),
+        singleBlockSelectAreasUrl.isPresent() ? BACK_LINK_TEXT : BACK_TO_TASK_LIST_LINK_TEXT
     );
+  }
+
+  private Optional<String> singleBlockSelectAreasUrl(UUID correctionId, LicencePositionCorrection positionCorrection) {
+    return partialSurrenderCorrectionService.findSingleBlockNotOperatedOn(positionCorrection)
+        .map(block -> ReverseRouter.route(on(PartialSurrenderDefineAreaController.class)
+            .renderSelectAreas(correctionId, positionCorrection.getId(), block.getId(), null)));
   }
 
   private ModelAndView taskListModelAndView(
@@ -190,7 +231,8 @@ public class PartialSurrenderTaskListController {
       Object accordionId,
       List<SummarySection> summarySections,
       boolean allSurrenderedBlocksAreFull,
-      String backLinkUrl
+      String backLinkUrl,
+      String backLinkText
   ) {
     return new ModelAndView("lms/licence/correction/change/partialSurrender/partialSurrenderReviewAndSubmit")
         .addObject("pageTitle", REVIEW_AND_SUBMIT_PAGE_TITLE)
@@ -198,7 +240,8 @@ public class PartialSurrenderTaskListController {
         .addObject("accordionId", accordionId)
         .addObject("summarySections", summarySections)
         .addObject("allSurrenderedBlocksAreFull", allSurrenderedBlocksAreFull)
-        .addObject("backLinkUrl", backLinkUrl);
+        .addObject("backLinkUrl", backLinkUrl)
+        .addObject("backLinkText", backLinkText);
   }
 
   private String positionReference(LicencePositionCorrection positionCorrection) {
@@ -206,18 +249,6 @@ public class PartialSurrenderTaskListController {
       case CreateLicencePositionPayload create -> create.correctionReference();
       case UpdateLicencePositionPayload ignored ->
           positionCorrection.getTargetLicencePosition().getLicenceTransaction().getRegulatorReference();
-    };
-  }
-
-  private String positionUrl(UUID correctionId, LicencePositionCorrection positionCorrection) {
-    return switch (positionCorrection.getChangeType()) {
-      case ADD_POSITION -> ReverseRouter.route(on(LicenceCorrectionController.class)
-          .renderAddedPosition(correctionId, positionCorrection.getId(), null));
-      case UPDATE_POSITION -> ReverseRouter.route(on(LicenceCorrectionController.class)
-          .renderLicencePosition(correctionId, positionCorrection.getTargetLicencePosition().getId(), null));
-      case REMOVE_POSITION -> throw new IllegalStateException(
-          "Licence position correction %s removes a position so cannot carry a partial surrender"
-              .formatted(positionCorrection.getId()));
     };
   }
 }

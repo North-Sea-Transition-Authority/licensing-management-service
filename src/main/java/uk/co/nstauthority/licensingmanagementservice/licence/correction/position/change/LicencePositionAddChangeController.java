@@ -22,6 +22,9 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.administrator.LicencePositionAdministratorChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.licensee.LicencePositionLicenseeChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.LicencePositionPartialSurrenderController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.PartialSurrenderCorrectionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.SingleBlockSurrender;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.definearea.PartialSurrenderDefineAreaController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.setequity.LicencePositionSetEquityController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subarea.LicencePositionSubareaChangeStartController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.transferequity.LicencePositionTransferEquityController;
@@ -39,15 +42,18 @@ public class LicencePositionAddChangeController {
   private final AddPositionChangeFormValidator addPositionChangeFormValidator;
   private final LicencePositionCorrectionService licencePositionCorrectionService;
   private final LicencePositionService licencePositionService;
+  private final PartialSurrenderCorrectionService partialSurrenderCorrectionService;
 
   public LicencePositionAddChangeController(
       AddPositionChangeFormValidator addPositionChangeFormValidator,
       LicencePositionCorrectionService licencePositionCorrectionService,
-      LicencePositionService licencePositionService
+      LicencePositionService licencePositionService,
+      PartialSurrenderCorrectionService partialSurrenderCorrectionService
   ) {
     this.addPositionChangeFormValidator = addPositionChangeFormValidator;
     this.licencePositionCorrectionService = licencePositionCorrectionService;
     this.licencePositionService = licencePositionService;
+    this.partialSurrenderCorrectionService = partialSurrenderCorrectionService;
   }
 
   @GetMapping("/position/{licencePositionId}/add-change")
@@ -85,8 +91,11 @@ public class LicencePositionAddChangeController {
           .renderForExecutedPosition(correctionId, licencePositionId, null));
       case TRANSFER_EQUITY -> ReverseRouter.redirect(on(LicencePositionTransferEquityController.class)
           .renderForExecutedPosition(correctionId, licencePositionId, null));
-      case PARTIAL_SURRENDER -> ReverseRouter.redirect(on(LicencePositionPartialSurrenderController.class)
-          .renderForExecutedPosition(correctionId, licencePositionId, null));
+      case PARTIAL_SURRENDER -> partialSurrenderCorrectionService
+          .stageSingleBlockSurrenderForExecutedPosition(correction, licencePosition)
+          .map(singleBlockSurrender -> redirectToDefineArea(correctionId, singleBlockSurrender))
+          .orElseGet(() -> ReverseRouter.redirect(on(LicencePositionPartialSurrenderController.class)
+              .renderForExecutedPosition(correctionId, licencePositionId, null)));
       case SUBAREA -> ReverseRouter.redirect(on(LicencePositionSubareaChangeStartController.class)
           .renderForExecutedPosition(correctionId, licencePositionId, null));
       case LICENSEE -> ReverseRouter.redirect(on(LicencePositionLicenseeChangeController.class)
@@ -126,8 +135,11 @@ public class LicencePositionAddChangeController {
           .renderForAddedPosition(correctionId, licencePositionCorrectionId, null));
       case TRANSFER_EQUITY -> ReverseRouter.redirect(on(LicencePositionTransferEquityController.class)
           .renderForAddedPosition(correctionId, licencePositionCorrectionId, null));
-      case PARTIAL_SURRENDER -> ReverseRouter.redirect(on(LicencePositionPartialSurrenderController.class)
-          .renderForAddedPosition(correctionId, licencePositionCorrectionId, null));
+      case PARTIAL_SURRENDER -> partialSurrenderCorrectionService
+          .stageSingleBlockSurrenderForAddedPosition(positionCorrection)
+          .map(singleBlockSurrender -> redirectToDefineArea(correctionId, singleBlockSurrender))
+          .orElseGet(() -> ReverseRouter.redirect(on(LicencePositionPartialSurrenderController.class)
+              .renderForAddedPosition(correctionId, licencePositionCorrectionId, null)));
       case SUBAREA -> ReverseRouter.redirect(on(LicencePositionSubareaChangeStartController.class)
           .renderForAddedPosition(correctionId, licencePositionCorrectionId, null));
       case LICENSEE -> ReverseRouter.redirect(on(LicencePositionLicenseeChangeController.class)
@@ -146,6 +158,15 @@ public class LicencePositionAddChangeController {
         .addObject("form", form)
         .addObject("changeTypeOptions", availableChangeTypeOptions(correction))
         .addObject("backLinkUrl", backLinkUrl);
+  }
+
+  private ModelAndView redirectToDefineArea(UUID correctionId, SingleBlockSurrender singleBlockSurrender) {
+    return ReverseRouter.redirect(on(PartialSurrenderDefineAreaController.class).renderDefineArea(
+        correctionId,
+        singleBlockSurrender.licencePositionCorrection().getId(),
+        singleBlockSurrender.block().getId(),
+        null
+    ));
   }
 
   private String executedBackUrl(UUID correctionId, UUID licencePositionId) {

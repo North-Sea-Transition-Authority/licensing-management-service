@@ -23,7 +23,9 @@ import uk.co.nstauthority.licensingmanagementservice.fds.error.ErrorSummaryItem;
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionRouteUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.PartialSurrenderCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderTypeController;
@@ -187,6 +189,20 @@ public class PartialSurrenderDefineAreaController {
     NotificationBanner.newSuccessBannerWithHeader("Areas to surrender saved", redirectAttributes);
 
     //TODO - EPGF-183: redirect to ended subareas when implemented
+    if (partialSurrenderCorrectionService.findSingleBlockNotOperatedOn(positionCorrection).isPresent()) {
+      return partialSurrenderCorrectionService.findCorrectedLiveChangeId(positionCorrection)
+          .map(changeId -> ReverseRouter.redirect(on(PartialSurrenderTaskListController.class)
+              .renderReviewAndSubmitForCorrectingChange(
+                  correctionId,
+                  positionCorrection.getTargetLicencePosition().getId(),
+                  changeId,
+                  null,
+                  null)))
+          .orElseGet(() -> ReverseRouter.redirect(on(PartialSurrenderTaskListController.class)
+              .renderReviewAndSubmit(correctionId, licencePositionCorrectionId, null, null)));
+    }
+
+    //TODO - EPGF-183: redirect to ended subareas when implemented
     return ReverseRouter.redirect(on(PartialSurrenderTaskListController.class)
         .renderTaskList(correctionId, licencePositionCorrectionId, null, null)
     );
@@ -207,7 +223,24 @@ public class PartialSurrenderDefineAreaController {
         .addObject("srsWkid", CoordinateSystemUtils.getWkid(coordinateSystem))
         .addObject("pageCaption", correction.getLicence().getLicenceReference())
         .addObject("pageTitle", DEFINE_AREA_PAGE_TITLE)
-        .addObject("backLinkUrl", surrenderTypeUrl(correctionId, positionCorrection, featureId));
+        .addObject("backLinkUrl", defineAreaBackLinkUrl(correctionId, positionCorrection, featureId));
+  }
+
+  private String defineAreaBackLinkUrl(
+      UUID correctionId,
+      LicencePositionCorrection positionCorrection,
+      UUID featureId
+  ) {
+    if (partialSurrenderCorrectionService.findSingleBlockNotOperatedOn(positionCorrection).isEmpty()) {
+      return surrenderTypeUrl(correctionId, positionCorrection, featureId);
+    }
+
+    if (partialSurrenderCorrectionService.findCorrectedLiveChangeId(positionCorrection).isPresent()) {
+      return ReverseRouter.route(on(LicenceCorrectionController.class)
+          .renderLicencePosition(correctionId, positionCorrection.getTargetLicencePosition().getId(), null));
+    }
+
+    return LicencePositionCorrectionRouteUtil.getPositionPageUrl(correctionId, positionCorrection);
   }
 
   /**

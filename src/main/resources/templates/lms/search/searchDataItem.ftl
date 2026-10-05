@@ -14,14 +14,31 @@
     <#assign tagContent=""/>
   </#if>
 
-  <@fdsResultList.resultListItem
-    linkHeadingText=dataView.linkHeadingText()!""
-    linkHeadingUrl=springUrl(dataView.linkHeadingUrl())
-    captionHeadingText=dataView.captionText()!""
-    itemTag=tagContent
-  >
-    <@contextHeaderSummaryDataView.summaryDataView dataView.dataItemRows()/>
-  </@fdsResultList.resultListItem>
+  <#if dataView.linkHeadingUrl()?has_content>
+    <@fdsResultList.resultListItem
+      linkHeadingText=dataView.linkHeadingText()!""
+      linkHeadingUrl=springUrl(dataView.linkHeadingUrl())
+      captionHeadingText=dataView.captionText()!""
+      itemTag=tagContent
+    >
+      <@contextHeaderSummaryDataView.summaryDataView dataView.dataItemRows()/>
+    </@fdsResultList.resultListItem>
+  <#else>
+    <li class="fds-result-list__item">
+      <div class="fds-result-list__content">
+        <h3 class="fds-result-list__content-heading">
+          <span class="govuk-!-font-size-24">${dataView.linkHeadingText()!""}</span>
+          <#if dataView.captionText()?has_content>
+            <span class="govuk-caption-m">${dataView.captionText()}</span>
+          </#if>
+        </h3>
+        <div class="fds-result-list__tag">
+          ${tagContent}
+        </div>
+      </div>
+      <@contextHeaderSummaryDataView.summaryDataView dataView.dataItemRows()/>
+    </li>
+  </#if>
 </#macro>
 
 <#macro selectableResultListItem dataItem path>

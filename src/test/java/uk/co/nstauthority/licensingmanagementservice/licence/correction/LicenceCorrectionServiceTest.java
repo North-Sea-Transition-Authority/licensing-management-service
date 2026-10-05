@@ -10,6 +10,7 @@ import static org.mockito.Mockito.when;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -212,6 +213,18 @@ class LicenceCorrectionServiceTest {
         .thenReturn(List.of(correction));
 
     var result = licenceCorrectionService.getAllInProgressCorrectionsForUser(USER);
+
+    assertThat(result).containsExactly(correction);
+  }
+
+  @Test
+  void getCorrectionsForSearch() {
+    var correction = LicenceCorrectionTestUtil.newBuilder().build();
+    when(licenceCorrectionRepository.findAllByStatusIn(
+        EnumSet.of(LicenceCorrectionStatus.IN_PROGRESS, LicenceCorrectionStatus.COMPLETE)
+    )).thenReturn(List.of(correction));
+
+    var result = licenceCorrectionService.getCorrectionsForSearch();
 
     assertThat(result).containsExactly(correction);
   }

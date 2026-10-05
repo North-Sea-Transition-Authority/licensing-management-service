@@ -12,10 +12,12 @@ import static uk.co.nstauthority.licensingmanagementservice.util.RedirectedToLog
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
+import uk.co.nstauthority.licensingmanagementservice.query.SearchResultItem;
 
 @ContextConfiguration(classes = LicenceCorrectionSearchController.class)
 class LicenceCorrectionSearchControllerTest extends AbstractControllerTest {
@@ -29,6 +31,9 @@ class LicenceCorrectionSearchControllerTest extends AbstractControllerTest {
       .withWuaId(ORGANISATION_USER_WUA_ID)
       .build();
 
+  @MockitoBean
+  private LicenceCorrectionSearchService licenceCorrectionSearchService;
+
   @Test
   void renderCorrectionSearch_whenNotLoggedIn_thenRedirectToLoginPage() throws Exception {
     mockMvc.perform(get(RENDER_CORRECTION_SEARCH_ROUTE))
@@ -37,7 +42,15 @@ class LicenceCorrectionSearchControllerTest extends AbstractControllerTest {
 
   @Test
   void renderCorrectionSearch_whenUserIsInRegulatorTeam_thenRendersSearchPage() throws Exception {
+    var searchItems = List.of(
+        SearchResultItem.newBuilder()
+            .withId("correction-id")
+            .withLinkHeadingText("COR-1")
+            .build()
+    );
+
     when(teamQueryService.userIsInRegulatorTeam(regulatorUser.wuaId())).thenReturn(true);
+    when(licenceCorrectionSearchService.getSearchItems()).thenReturn(searchItems);
 
     mockMvc.perform(
             get(RENDER_CORRECTION_SEARCH_ROUTE)
@@ -45,7 +58,7 @@ class LicenceCorrectionSearchControllerTest extends AbstractControllerTest {
         )
         .andExpect(status().isOk())
         .andExpect(view().name("lms/licence/correction/search/correctionSearch"))
-        .andExpect(model().attribute("searchItems", List.of()));
+        .andExpect(model().attribute("searchItems", searchItems));
   }
 
   @Test

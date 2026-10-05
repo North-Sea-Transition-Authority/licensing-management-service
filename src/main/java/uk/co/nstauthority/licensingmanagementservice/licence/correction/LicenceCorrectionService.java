@@ -4,6 +4,7 @@ import jakarta.transaction.Transactional;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Collection;
+import java.util.EnumSet;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -117,6 +118,12 @@ public class LicenceCorrectionService {
   public Collection<LicenceCorrection> getAllInProgressCorrectionsForUser(ServiceUserDetail user) {
     return licenceCorrectionRepository
         .findAllByStatusAndAllocatedToWuaId(LicenceCorrectionStatus.IN_PROGRESS, user.wuaId());
+  }
+
+  public Collection<LicenceCorrection> getCorrectionsForSearch() {
+    return licenceCorrectionRepository.findAllByStatusIn(
+        EnumSet.of(LicenceCorrectionStatus.IN_PROGRESS, LicenceCorrectionStatus.COMPLETE)
+    );
   }
 
   public LicenceCorrection getInProgressCorrectionOrThrow(Licence licence) {

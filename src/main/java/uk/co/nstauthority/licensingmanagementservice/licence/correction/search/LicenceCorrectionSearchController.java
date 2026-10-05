@@ -1,6 +1,5 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.correction.search;
 
-import java.util.List;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -12,9 +11,15 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.IsMembe
 @IsMemberOfRegulatorTeam
 public class LicenceCorrectionSearchController {
 
+  private final LicenceCorrectionSearchService licenceCorrectionSearchService;
+
+  LicenceCorrectionSearchController(LicenceCorrectionSearchService licenceCorrectionSearchService) {
+    this.licenceCorrectionSearchService = licenceCorrectionSearchService;
+  }
+
   @GetMapping
   public ModelAndView renderCorrectionSearch() {
     return new ModelAndView("lms/licence/correction/search/correctionSearch")
-        .addObject("searchItems", List.of());
+        .addObject("searchItems", licenceCorrectionSearchService.getSearchItems());
   }
 }

@@ -8,6 +8,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 import jakarta.persistence.EntityManager;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.Month;
 import java.util.List;
@@ -163,7 +164,13 @@ class PearsLicenceWritebackEndpointIntegrationTest {
       otherLicencePositionChange = persist(positionChange(otherLicencePosition));
 
       inProgressCorrection = persist(correction(licence, "CORRECTION-1", LicenceCorrectionStatus.IN_PROGRESS));
-      completeCorrection = persist(correction(licence, "CORRECTION-2", LicenceCorrectionStatus.COMPLETE));
+      completeCorrection = persist(LicenceCorrectionTestUtil.newBuilder()
+          .withId(null)
+          .withLicence(licence)
+          .withCorrectionReference("CORRECTION-2")
+          .withStatus(LicenceCorrectionStatus.COMPLETE)
+          .withCompletedInstant(Instant.parse("2026-06-06T10:00:00Z"))
+          .build());
       otherLicenceCorrection = persist(correction(otherLicence, "CORRECTION-3", LicenceCorrectionStatus.IN_PROGRESS));
 
       inProgressPositionCorrection = persist(positionCorrection(inProgressCorrection, firstPosition));

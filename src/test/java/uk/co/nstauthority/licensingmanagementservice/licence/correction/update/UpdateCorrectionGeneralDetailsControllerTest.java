@@ -90,6 +90,7 @@ class UpdateCorrectionGeneralDetailsControllerTest extends AbstractControllerTes
 
     when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
         .thenReturn(Optional.of(completedCorrection));
+    when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(completedCorrection));
 
     mockMvc.perform(get(ReverseRouter.route(on(UpdateCorrectionGeneralDetailsController.class)
             .renderUpdateGeneralDetails(correction)))
@@ -101,6 +102,7 @@ class UpdateCorrectionGeneralDetailsControllerTest extends AbstractControllerTes
   void renderUpdateGeneralDetails_whenAllocatedToUser_assertModelAndView() throws Exception {
     when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
         .thenReturn(Optional.of(correction));
+    when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(correction));
     when(updateCorrectionGeneralDetailsService.getAllocatableUsers(correction.getLicence()))
         .thenReturn(ALLOCATABLE_USERS);
 
@@ -161,6 +163,7 @@ class UpdateCorrectionGeneralDetailsControllerTest extends AbstractControllerTes
 
     when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
         .thenReturn(Optional.of(correction));
+    when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(correction));
     when(updateCorrectionGeneralDetailsService.getAllocatableUsers(correction.getLicence()))
         .thenReturn(ALLOCATABLE_USERS);
     when(updateCorrectionGeneralDetailsFormValidator
@@ -194,6 +197,7 @@ class UpdateCorrectionGeneralDetailsControllerTest extends AbstractControllerTes
 
     when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
         .thenReturn(Optional.of(correction));
+    when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(correction));
     when(updateCorrectionGeneralDetailsService.getAllocatableUsers(correction.getLicence()))
         .thenReturn(ALLOCATABLE_USERS);
     when(updateCorrectionGeneralDetailsFormValidator
@@ -220,6 +224,7 @@ class UpdateCorrectionGeneralDetailsControllerTest extends AbstractControllerTes
 
     when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
         .thenReturn(Optional.of(correction));
+    when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(correction));
     when(updateCorrectionGeneralDetailsService.getAllocatableUsers(correction.getLicence()))
         .thenReturn(ALLOCATABLE_USERS);
     when(updateCorrectionGeneralDetailsFormValidator

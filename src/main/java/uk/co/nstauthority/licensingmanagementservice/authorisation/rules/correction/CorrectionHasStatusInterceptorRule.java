@@ -10,11 +10,18 @@ import org.springframework.web.server.ResponseStatusException;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.SecurityRuleResult;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.AccessInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
 
 @Component
 @Order(9)
 public class CorrectionHasStatusInterceptorRule implements AccessInterceptorRule {
+
+  private final LicenceCorrectionService licenceCorrectionService;
+
+  public CorrectionHasStatusInterceptorRule(LicenceCorrectionService licenceCorrectionService) {
+    this.licenceCorrectionService = licenceCorrectionService;
+  }
 
   @Override
   public Class<? extends Annotation> supports() {
@@ -36,7 +43,15 @@ public class CorrectionHasStatusInterceptorRule implements AccessInterceptorRule
       );
     }
 
-    var correction = (LicenceCorrection) request.getAttribute("validatedCorrection");
+    var correctionId = getPathVariableEntityIdFromRequest(request, LicenceCorrection.class);
+    var correction = licenceCorrectionService.findById(correctionId).orElse(null);
+
+    if (correction == null) {
+      return SecurityRuleResult.checkFailedWithStatusAndMessage(
+          HttpStatus.NOT_FOUND,
+          "Licence correction %s not found".formatted(correctionId)
+      );
+    }
 
     for (LicenceCorrectionStatus status : correctionHasStatus.value()) {
       if (status.equals(correction.getStatus())) {

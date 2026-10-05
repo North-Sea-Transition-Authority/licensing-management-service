@@ -57,7 +57,6 @@ public class InvokingUserCanViewCorrectionInterceptorRule implements AccessInter
       );
     }
 
-    request.setAttribute("validatedCorrection", correction);
     return SecurityRuleResult.continueAsNormal();
   }
 }

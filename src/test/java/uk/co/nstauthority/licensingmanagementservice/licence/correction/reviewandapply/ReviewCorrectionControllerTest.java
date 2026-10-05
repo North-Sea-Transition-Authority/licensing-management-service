@@ -120,6 +120,7 @@ class ReviewCorrectionControllerTest extends AbstractControllerTest {
 
     when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
         .thenReturn(Optional.of(cancelledCorrection));
+    when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(cancelledCorrection));
 
     mockMvc.perform(get(ReverseRouter.route(on(ReviewCorrectionController.class)
             .renderReviewCorrection(correction)))
@@ -201,6 +202,7 @@ class ReviewCorrectionControllerTest extends AbstractControllerTest {
 
     when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
         .thenReturn(Optional.of(completeCorrection));
+    when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(completeCorrection));
     when(licenceService.getLicencePageCaption(completeCorrection.getLicence())).thenReturn(PAGE_CAPTION);
     when(tabbedLicencePageService.getDefaultTabUrl(completeCorrection.getLicence())).thenReturn(DEFAULT_TAB_URL);
     when(correctionDetailsViewService.getDetailsView(completeCorrection)).thenReturn(CORRECTION_DETAILS);
@@ -254,6 +256,7 @@ class ReviewCorrectionControllerTest extends AbstractControllerTest {
 
     when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
         .thenReturn(Optional.of(completeCorrection));
+    when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(completeCorrection));
 
     mockMvc.perform(post(ReverseRouter.route(on(ReviewCorrectionController.class)
             .processApplyCorrection(correction, null)))
@@ -295,6 +298,7 @@ class ReviewCorrectionControllerTest extends AbstractControllerTest {
   void processApplyCorrection_whenApplied_thenRedirectToTheLicenceWithASuccessBanner() throws Exception {
     when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
         .thenReturn(Optional.of(correction));
+    when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(correction));
     when(tabbedLicencePageService.getDefaultTabUrl(correction.getLicence())).thenReturn(DEFAULT_TAB_URL);
 
     mockMvc.perform(post(ReverseRouter.route(on(ReviewCorrectionController.class)
@@ -337,6 +341,7 @@ class ReviewCorrectionControllerTest extends AbstractControllerTest {
   ) {
     when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
         .thenReturn(Optional.of(correction));
+    when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(correction));
     when(licenceService.getLicencePageCaption(correction.getLicence())).thenReturn(PAGE_CAPTION);
     when(correctionDetailsViewService.getDetailsView(correction)).thenReturn(CORRECTION_DETAILS);
     when(correctedTimelineService.getCorrectedTimeline(correction)).thenReturn(correctedTimeline);

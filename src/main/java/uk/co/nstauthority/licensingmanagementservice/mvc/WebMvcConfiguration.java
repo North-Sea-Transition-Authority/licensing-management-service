@@ -20,7 +20,6 @@ import uk.co.nstauthority.licensingmanagementservice.document.DocumentTemplateAr
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceArgumentResolver;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationTypeArgumentResolver;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetailArgumentResolver;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionArgumentResolver;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailArgumentResolver;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityArgumentResolver;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetailArgumentResolver;
@@ -45,7 +44,6 @@ public class WebMvcConfiguration implements WebMvcConfigurer {
   private final LicenceContinuationApplicationDetailArgumentResolver licenceContinuationApplicationDetailArgumentResolver;
   private final DocumentTemplateArgumentResolver  documentTemplateArgumentResolver;
   private final ApplicationTypeArgumentResolver applicationTypeArgumentResolver;
-  private final LicenceCorrectionArgumentResolver licenceCorrectionArgumentResolver;
   private final List<HandlerMethodEntityResolver<?>> handlerMethodEntityResolvers;
 
   public WebMvcConfiguration(
@@ -61,7 +59,6 @@ public class WebMvcConfiguration implements WebMvcConfigurer {
       LicenceContinuationApplicationDetailArgumentResolver licenceContinuationApplicationDetailArgumentResolver,
       DocumentTemplateArgumentResolver documentTemplateArgumentResolver,
       ApplicationTypeArgumentResolver applicationTypeArgumentResolver,
-      LicenceCorrectionArgumentResolver licenceCorrectionArgumentResolver,
       List<HandlerMethodEntityResolver<?>> handlerMethodEntityResolvers
   ) {
     this.serviceUserDetailArgumentResolver = serviceUserDetailArgumentResolver;
@@ -76,7 +73,6 @@ public class WebMvcConfiguration implements WebMvcConfigurer {
     this.licenceContinuationApplicationDetailArgumentResolver = licenceContinuationApplicationDetailArgumentResolver;
     this.documentTemplateArgumentResolver = documentTemplateArgumentResolver;
     this.applicationTypeArgumentResolver = applicationTypeArgumentResolver;
-    this.licenceCorrectionArgumentResolver = licenceCorrectionArgumentResolver;
     this.handlerMethodEntityResolvers = handlerMethodEntityResolvers;
   }
 
@@ -130,7 +126,6 @@ public class WebMvcConfiguration implements WebMvcConfigurer {
     resolvers.add(licenceContinuationApplicationDetailArgumentResolver);
     resolvers.add(documentTemplateArgumentResolver);
     resolvers.add(applicationTypeArgumentResolver);
-    resolvers.add(licenceCorrectionArgumentResolver);
     resolvers.addAll(handlerMethodEntityResolvers);
   }
 }

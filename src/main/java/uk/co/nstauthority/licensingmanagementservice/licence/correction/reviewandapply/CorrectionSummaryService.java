@@ -20,7 +20,7 @@ public class CorrectionSummaryService {
   }
 
   public List<ReviewPositionView> getSummaryPositions(LicenceCorrection licenceCorrection) {
-    if (LicenceCorrectionStatus.COMPLETE.equals(licenceCorrection.getStatus())) {
+    if (licenceCorrection.isComplete()) {
       return correctionReviewService.getAppliedPositions(licenceCorrection);
     }
 

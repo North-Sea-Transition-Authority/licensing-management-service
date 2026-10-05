@@ -57,6 +57,7 @@ class LicenceCorrectionCancelControllerTest extends AbstractControllerTest {
   void renderCancelCorrection_whenAllocatedToUser_assertModelAndView() throws Exception {
     when(licenceCorrectionService.findByIdAndAllocatedToWuaId(correction.getId(), regulatorUser))
         .thenReturn(Optional.of(correction));
+    when(licenceCorrectionService.findById(correction.getId())).thenReturn(Optional.of(correction));
 
     mockMvc.perform(get(ReverseRouter.route(on(LicenceCorrectionCancelController.class)
             .renderCancelCorrection(correction)))
@@ -94,6 +95,7 @@ class LicenceCorrectionCancelControllerTest extends AbstractControllerTest {
   void processCancelCorrection_whenAllocatedToUser_assertRedirection() throws Exception {
     when(licenceCorrectionService.findByIdAndAllocatedToWuaId(correction.getId(), regulatorUser))
         .thenReturn(Optional.of(correction));
+    when(licenceCorrectionService.findById(correction.getId())).thenReturn(Optional.of(correction));
     when(tabbedLicencePageService.getDefaultTabUrl(correction.getLicence())).thenReturn(DEFAULT_TAB_URL);
 
     mockMvc.perform(post(ReverseRouter.route(on(LicenceCorrectionCancelController.class)

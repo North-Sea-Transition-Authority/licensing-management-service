@@ -41,7 +41,7 @@ public enum TopNavigationItem implements Displayable {
       "Corrections",
       35,
       ReleasePhase.LMS2,
-      ReverseRouter.route(on(LicenceCorrectionSearchController.class).renderCorrectionSearch()),
+      ReverseRouter.route(on(LicenceCorrectionSearchController.class).renderCorrectionSearch(null)),
       true
   ),
   EVENT_TRACKER(

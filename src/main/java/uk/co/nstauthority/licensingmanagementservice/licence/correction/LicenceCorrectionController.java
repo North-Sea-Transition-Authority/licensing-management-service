@@ -54,7 +54,7 @@ public class LicenceCorrectionController {
 
   @GetMapping("/{correctionId}")
   public ModelAndView renderCorrection(LicenceCorrection licenceCorrection) {
-    if (isCorrectionApplied(licenceCorrection)) {
+    if (licenceCorrection.isComplete()) {
       return appliedCorrectionRedirect(licenceCorrection);
     }
 
@@ -80,7 +80,7 @@ public class LicenceCorrectionController {
       LicenceCorrection licenceCorrection,
       LicencePosition licencePosition
   ) {
-    if (isCorrectionApplied(licenceCorrection)) {
+    if (licenceCorrection.isComplete()) {
       return appliedCorrectionRedirect(licenceCorrection);
     }
 
@@ -95,7 +95,7 @@ public class LicenceCorrectionController {
       LicenceCorrection licenceCorrection,
       LicencePositionCorrection licencePositionCorrection
   ) {
-    if (isCorrectionApplied(licenceCorrection)) {
+    if (licenceCorrection.isComplete()) {
       return appliedCorrectionRedirect(licenceCorrection);
     }
 
@@ -103,10 +103,6 @@ public class LicenceCorrectionController {
         licencePositionViewService.getCorrectionAddedPositionPageView(licenceCorrection, licencePositionCorrection);
 
     return licencePositionsModelAndView(licenceCorrection, licencePositionPageView);
-  }
-
-  private static boolean isCorrectionApplied(LicenceCorrection licenceCorrection) {
-    return LicenceCorrectionStatus.COMPLETE.equals(licenceCorrection.getStatus());
   }
 
   private static ModelAndView appliedCorrectionRedirect(LicenceCorrection correction) {

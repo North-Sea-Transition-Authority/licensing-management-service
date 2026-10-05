@@ -124,11 +124,13 @@ class PartialSurrenderDefineAreaControllerTest extends AbstractControllerTest {
   @Test
   void renderDefineArea_whenLicenceTypeIsNotAllowed_forbidden() throws Exception {
     var notAllowedLicence = LicenceTestUtil.builder().withLicenceType(LicenceType.GAS_STORAGE).build();
+    var notAllowedCorrection = LicenceCorrectionTestUtil.newBuilder()
+        .withId(CORRECTION_ID)
+        .withLicence(notAllowedLicence)
+        .build();
     when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
-        .thenReturn(Optional.of(LicenceCorrectionTestUtil.newBuilder()
-            .withId(CORRECTION_ID)
-            .withLicence(notAllowedLicence)
-            .build()));
+        .thenReturn(Optional.of(notAllowedCorrection));
+    when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(notAllowedCorrection));
 
     mockMvc.perform(get(defineAreaUrl())
             .with(user(regulatorUser)))

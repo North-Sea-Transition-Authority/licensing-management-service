@@ -69,7 +69,6 @@ public class InvokingUserHasCorrectorRoleForCorrectionInterceptorRule implements
       );
     }
 
-    request.setAttribute("validatedCorrection", correction);
     return SecurityRuleResult.continueAsNormal();
   }
 }

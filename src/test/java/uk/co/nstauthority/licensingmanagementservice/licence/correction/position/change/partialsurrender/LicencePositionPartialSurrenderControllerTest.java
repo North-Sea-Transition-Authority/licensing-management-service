@@ -135,11 +135,13 @@ class LicencePositionPartialSurrenderControllerTest extends AbstractControllerTe
   @EnumSource(value = LicenceType.class, mode = EnumSource.Mode.EXCLUDE, names = {"CARBON_STORAGE", "LANDWARD_PRODUCTION", "SEAWARD_PRODUCTION" })
   void renderForExecutedPosition_whenLicenceTypeIsNotAllowed_forbidden(LicenceType licenceType) throws Exception {
     var notAllowedLicence = LicenceTestUtil.builder().withLicenceType(licenceType).build();
+    var notAllowedCorrection = LicenceCorrectionTestUtil.newBuilder()
+        .withId(CORRECTION_ID)
+        .withLicence(notAllowedLicence)
+        .build();
     when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
-        .thenReturn(Optional.of(LicenceCorrectionTestUtil.newBuilder()
-            .withId(CORRECTION_ID)
-            .withLicence(notAllowedLicence)
-            .build()));
+        .thenReturn(Optional.of(notAllowedCorrection));
+    when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(notAllowedCorrection));
 
     mockMvc.perform(get(ReverseRouter.route(on(LicencePositionPartialSurrenderController.class)
             .renderForExecutedPosition(CORRECTION, POSITION)))

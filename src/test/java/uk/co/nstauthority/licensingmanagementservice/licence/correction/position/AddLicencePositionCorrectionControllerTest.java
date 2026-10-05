@@ -166,6 +166,7 @@ class AddLicencePositionCorrectionControllerTest extends AbstractControllerTest 
   private LicenceCorrection givenCorrectionAllocatedToUser() {
     when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
         .thenReturn(Optional.of(CORRECTION));
+    when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(CORRECTION));
     return CORRECTION;
   }
 

@@ -15,7 +15,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.ModelAndView;
@@ -67,7 +66,7 @@ public class CorrectPositionChangeTypeController {
       @PathVariable UUID correctionId,
       @PathVariable UUID licencePositionId,
       @PathVariable UUID changeId,
-      @RequestAttribute("validatedCorrection") LicenceCorrection correction
+      LicenceCorrection correction
   ) {
     var change = findChange(correction, licencePositionId, changeId);
     if (change.isEmpty()) {
@@ -91,7 +90,7 @@ public class CorrectPositionChangeTypeController {
       @PathVariable UUID correctionId,
       @PathVariable UUID licencePositionId,
       @PathVariable UUID changeId,
-      @RequestAttribute("validatedCorrection") LicenceCorrection correction,
+      LicenceCorrection correction,
       @ModelAttribute("form") CorrectPositionChangeTypeForm form,
       BindingResult bindingResult,
       RedirectAttributes redirectAttributes
@@ -149,7 +148,7 @@ public class CorrectPositionChangeTypeController {
       @PathVariable UUID licencePositionId,
       @PathVariable UUID changeId,
       @RequestParam(name = "positionDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate positionDate,
-      @RequestAttribute("validatedCorrection") LicenceCorrection correction
+      LicenceCorrection correction
   ) {
     var change = findChange(correction, licencePositionId, changeId);
     if (change.isEmpty()) {
@@ -179,7 +178,7 @@ public class CorrectPositionChangeTypeController {
       @PathVariable UUID licencePositionId,
       @PathVariable UUID changeId,
       @RequestParam(name = "positionDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate positionDate,
-      @RequestAttribute("validatedCorrection") LicenceCorrection correction,
+      LicenceCorrection correction,
       @ModelAttribute("form") CorrectPositionOrderForm form,
       BindingResult bindingResult,
       RedirectAttributes redirectAttributes

@@ -105,11 +105,13 @@ class LicencePositionSubareaChangeStartControllerTest extends AbstractController
   @Test
   void renderForExecutedPosition_whenLicenceIsNotProduction_forbidden() throws Exception {
     var carbonStorageLicence = LicenceTestUtil.builder().withLicenceType(LicenceType.CARBON_STORAGE).build();
+    var notAllowedCorrection = LicenceCorrectionTestUtil.newBuilder()
+        .withId(CORRECTION_ID)
+        .withLicence(carbonStorageLicence)
+        .build();
     when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
-        .thenReturn(Optional.of(LicenceCorrectionTestUtil.newBuilder()
-            .withId(CORRECTION_ID)
-            .withLicence(carbonStorageLicence)
-            .build()));
+        .thenReturn(Optional.of(notAllowedCorrection));
+    when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(notAllowedCorrection));
 
     mockMvc.perform(get(ReverseRouter.route(on(LicencePositionSubareaChangeStartController.class)
             .renderForExecutedPosition(CORRECTION, POSITION)))

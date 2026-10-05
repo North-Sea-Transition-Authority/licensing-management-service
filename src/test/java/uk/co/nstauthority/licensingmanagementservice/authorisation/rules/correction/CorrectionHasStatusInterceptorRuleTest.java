@@ -5,20 +5,30 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.servlet.HandlerMapping;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.SecurityRuleResult;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.AbstractInterceptorRuleTest;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
 
 class CorrectionHasStatusInterceptorRuleTest extends AbstractInterceptorRuleTest {
+
+  @Mock
+  private LicenceCorrectionService licenceCorrectionService;
 
   @InjectMocks
   private CorrectionHasStatusInterceptorRule rule;
@@ -34,7 +44,7 @@ class CorrectionHasStatusInterceptorRuleTest extends AbstractInterceptorRuleTest
         .withStatus(LicenceCorrectionStatus.IN_PROGRESS)
         .build();
 
-    when(request.getAttribute("validatedCorrection")).thenReturn(correction);
+    givenCorrectionExists(correction);
 
     var annotation = getAnnotation(
         CorrectionHasStatusInterceptorRuleTest.class.getDeclaredMethod("correctionHasStatus_oneStatus"),
@@ -53,7 +63,7 @@ class CorrectionHasStatusInterceptorRuleTest extends AbstractInterceptorRuleTest
         .withStatus(LicenceCorrectionStatus.COMPLETE)
         .build();
 
-    when(request.getAttribute("validatedCorrection")).thenReturn(correction);
+    givenCorrectionExists(correction);
 
     var annotation = getAnnotation(
         CorrectionHasStatusInterceptorRuleTest.class.getDeclaredMethod("correctionHasStatus_oneStatus"),
@@ -78,7 +88,7 @@ class CorrectionHasStatusInterceptorRuleTest extends AbstractInterceptorRuleTest
         .withStatus(status)
         .build();
 
-    when(request.getAttribute("validatedCorrection")).thenReturn(correction);
+    givenCorrectionExists(correction);
 
     var annotation = getAnnotation(
         CorrectionHasStatusInterceptorRuleTest.class.getDeclaredMethod("correctionHasStatus_manyStatuses"),
@@ -101,6 +111,32 @@ class CorrectionHasStatusInterceptorRuleTest extends AbstractInterceptorRuleTest
     assertThatThrownBy(() -> rule.check(annotation, request, response))
         .isInstanceOf(ResponseStatusException.class)
         .hasMessage("500 INTERNAL_SERVER_ERROR \"No statuses provided to security annotation\"");
+  }
+
+  @Test
+  void check_whenCorrectionNotFound_thenNotFound() throws NoSuchMethodException {
+    var correctionId = UUID.randomUUID();
+    when(request.getAttribute(HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE))
+        .thenReturn(Map.of("correctionId", correctionId.toString()));
+    when(licenceCorrectionService.findById(correctionId)).thenReturn(Optional.empty());
+
+    var annotation = getAnnotation(
+        CorrectionHasStatusInterceptorRuleTest.class.getDeclaredMethod("correctionHasStatus_oneStatus"),
+        CorrectionHasStatus.class
+    );
+
+    var interceptorResult = rule.check(annotation, request, response);
+
+    assertThat(interceptorResult).isEqualTo(SecurityRuleResult.checkFailedWithStatusAndMessage(
+        HttpStatus.NOT_FOUND,
+        "Licence correction %s not found".formatted(correctionId)
+    ));
+  }
+
+  private void givenCorrectionExists(LicenceCorrection correction) {
+    when(request.getAttribute(HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE))
+        .thenReturn(Map.of("correctionId", correction.getId().toString()));
+    when(licenceCorrectionService.findById(correction.getId())).thenReturn(Optional.of(correction));
   }
 
   @GetMapping("correction-has-status-one-status/{correctionId}")

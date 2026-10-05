@@ -62,7 +62,7 @@ public class ReviewCorrectionController {
   public ModelAndView renderReviewCorrection(
       LicenceCorrection licenceCorrection
   ) {
-    if (LicenceCorrectionStatus.COMPLETE.equals(licenceCorrection.getStatus())) {
+    if (licenceCorrection.isComplete()) {
       return licencePositionsModelAndView(licenceCorrection, true)
           .addObject(POSITIONS, correctionReviewService.getAppliedPositions(licenceCorrection))
           .addObject(CAN_APPLY, false)

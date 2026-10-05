@@ -37,6 +37,8 @@ public class LicenceCorrection {
 
   private Instant createdInstant;
 
+  private Instant completedInstant;
+
   public LicenceCorrection() {
 
   }
@@ -95,5 +97,17 @@ public class LicenceCorrection {
 
   public void setCreatedInstant(Instant createdInstant) {
     this.createdInstant = createdInstant;
+  }
+
+  public Instant getCompletedInstant() {
+    return completedInstant;
+  }
+
+  public void setCompletedInstant(Instant completedInstant) {
+    this.completedInstant = completedInstant;
+  }
+
+  public boolean isComplete() {
+    return LicenceCorrectionStatus.COMPLETE.equals(status);
   }
 }

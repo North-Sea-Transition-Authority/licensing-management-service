@@ -1,8 +1,6 @@
 package uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
@@ -72,7 +70,6 @@ class InvokingUserHasCorrectorRoleForCorrectionInterceptorRuleTest extends Abstr
     var interceptorResult = rule.check(getAnnotation(), request, response);
 
     assertThat(interceptorResult).isEqualTo(SecurityRuleResult.continueAsNormal());
-    verify(request).setAttribute("validatedCorrection", correction);
     verifyNoInteractions(response);
   }
 
@@ -97,7 +94,6 @@ class InvokingUserHasCorrectorRoleForCorrectionInterceptorRuleTest extends Abstr
     var interceptorResult = rule.check(getAnnotation(), request, response);
 
     assertThat(interceptorResult).isEqualTo(expectedForbiddenResult(correction));
-    verify(request, never()).setAttribute("validatedCorrection", correction);
   }
 
   private static Stream<Arguments> mismatchedCorrectorRoleParams() {
@@ -116,7 +112,6 @@ class InvokingUserHasCorrectorRoleForCorrectionInterceptorRuleTest extends Abstr
     var interceptorResult = rule.check(getAnnotation(), request, response);
 
     assertThat(interceptorResult).isEqualTo(expectedForbiddenResult(correction));
-    verify(request, never()).setAttribute("validatedCorrection", correction);
   }
 
   @Test
@@ -131,7 +126,6 @@ class InvokingUserHasCorrectorRoleForCorrectionInterceptorRuleTest extends Abstr
     var interceptorResult = rule.check(getAnnotation(), request, response);
 
     assertThat(interceptorResult).isEqualTo(expectedForbiddenResult(correction));
-    verify(request, never()).setAttribute("validatedCorrection", correction);
   }
 
   @Test

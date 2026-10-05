@@ -1,35 +1,26 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.correction;
 
-import org.springframework.core.MethodParameter;
+import java.util.Optional;
+import java.util.UUID;
 import org.springframework.stereotype.Component;
-import org.springframework.web.bind.support.WebDataBinderFactory;
-import org.springframework.web.context.request.NativeWebRequest;
-import org.springframework.web.context.request.ServletWebRequest;
-import org.springframework.web.method.support.HandlerMethodArgumentResolver;
-import org.springframework.web.method.support.ModelAndViewContainer;
+import uk.co.nstauthority.licensingmanagementservice.argumentresolver.HandlerMethodEntityResolver;
 
 @Component
-public class LicenceCorrectionArgumentResolver implements HandlerMethodArgumentResolver {
+public class LicenceCorrectionArgumentResolver implements HandlerMethodEntityResolver<LicenceCorrection> {
 
-  public static final String VALIDATED_CORRECTION = "validatedCorrection";
+  private final LicenceCorrectionService licenceCorrectionService;
 
-  @Override
-  public boolean supportsParameter(MethodParameter parameter) {
-    return parameter.getParameterType().equals(LicenceCorrection.class);
+  LicenceCorrectionArgumentResolver(LicenceCorrectionService licenceCorrectionService) {
+    this.licenceCorrectionService = licenceCorrectionService;
   }
 
   @Override
-  public Object resolveArgument(MethodParameter parameter,
-                                ModelAndViewContainer mavContainer,
-                                NativeWebRequest webRequest,
-                                WebDataBinderFactory binderFactory) {
-    var correction = ((ServletWebRequest) webRequest).getRequest().getAttribute(VALIDATED_CORRECTION);
-    if (correction == null) {
-      throw new IllegalStateException(
-          "No %s on request. Is @InvokingUserCanViewCorrection missing?".formatted(VALIDATED_CORRECTION)
-      );
-    }
-    return correction;
+  public Class<LicenceCorrection> entityClass() {
+    return LicenceCorrection.class;
   }
 
+  @Override
+  public Optional<LicenceCorrection> resolve(String id) {
+    return licenceCorrectionService.findById(UUID.fromString(id));
+  }
 }

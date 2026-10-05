@@ -87,6 +87,7 @@ public class LicenceCorrectionService {
   @Transactional
   public void completeCorrection(LicenceCorrection licenceCorrection) {
     licenceCorrection.setStatus(LicenceCorrectionStatus.COMPLETE);
+    licenceCorrection.setCompletedInstant(Instant.now(clock));
     licenceCorrectionRepository.save(licenceCorrection);
   }
 

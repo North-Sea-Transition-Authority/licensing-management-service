@@ -267,18 +267,26 @@ class LicenceCorrectionServiceTest {
 
   @Test
   void completeCorrection() {
+    var correctionId = UUID.randomUUID();
     var correction = LicenceCorrectionTestUtil.newBuilder()
+        .withId(correctionId)
+        .withLicence(LICENCE)
         .withStatus(LicenceCorrectionStatus.IN_PROGRESS)
         .build();
 
     licenceCorrectionService.completeCorrection(correction);
 
+    var expectedCorrection = LicenceCorrectionTestUtil.newBuilder()
+        .withId(correctionId)
+        .withLicence(LICENCE)
+        .withStatus(LicenceCorrectionStatus.COMPLETE)
+        .withCompletedInstant(CLOCK.instant())
+        .build();
+
     verify(licenceCorrectionRepository).save(licenceCorrectionCaptor.capture());
-    var persistedCorrection = licenceCorrectionCaptor.getValue();
-    assertThat(persistedCorrection)
+    assertThat(licenceCorrectionCaptor.getValue())
         .usingRecursiveComparison()
-        .isEqualTo(correction);
-    assertThat(persistedCorrection.getStatus()).isEqualTo(LicenceCorrectionStatus.COMPLETE);
+        .isEqualTo(expectedCorrection);
   }
 
   @Test

@@ -4,6 +4,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
+import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.IsMemberOfRegulatorTeam;
 
 @Controller
@@ -18,8 +19,8 @@ public class LicenceCorrectionSearchController {
   }
 
   @GetMapping
-  public ModelAndView renderCorrectionSearch() {
+  public ModelAndView renderCorrectionSearch(ServiceUserDetail user) {
     return new ModelAndView("lms/licence/correction/search/correctionSearch")
-        .addObject("searchItems", licenceCorrectionSearchService.getSearchItems());
+        .addObject("searchItems", licenceCorrectionSearchService.getSearchItems(user));
   }
 }

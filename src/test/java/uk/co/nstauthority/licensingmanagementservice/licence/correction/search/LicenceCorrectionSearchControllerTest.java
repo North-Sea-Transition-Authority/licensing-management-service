@@ -23,7 +23,7 @@ import uk.co.nstauthority.licensingmanagementservice.query.SearchResultItem;
 class LicenceCorrectionSearchControllerTest extends AbstractControllerTest {
 
   private static final String RENDER_CORRECTION_SEARCH_ROUTE =
-      ReverseRouter.route(on(LicenceCorrectionSearchController.class).renderCorrectionSearch());
+      ReverseRouter.route(on(LicenceCorrectionSearchController.class).renderCorrectionSearch(null));
 
   private static final Long ORGANISATION_USER_WUA_ID = 2L;
 
@@ -50,7 +50,7 @@ class LicenceCorrectionSearchControllerTest extends AbstractControllerTest {
     );
 
     when(teamQueryService.userIsInRegulatorTeam(regulatorUser.wuaId())).thenReturn(true);
-    when(licenceCorrectionSearchService.getSearchItems()).thenReturn(searchItems);
+    when(licenceCorrectionSearchService.getSearchItems(regulatorUser)).thenReturn(searchItems);
 
     mockMvc.perform(
             get(RENDER_CORRECTION_SEARCH_ROUTE)

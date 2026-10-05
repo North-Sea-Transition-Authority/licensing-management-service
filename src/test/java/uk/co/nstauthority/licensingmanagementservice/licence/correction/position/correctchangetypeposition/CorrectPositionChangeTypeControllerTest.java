@@ -547,6 +547,7 @@ class CorrectPositionChangeTypeControllerTest extends AbstractControllerTest {
   private void givenCorrectionAllocatedToUser() {
     when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
         .thenReturn(Optional.of(CORRECTION));
+    when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(CORRECTION));
   }
 
   private void givenCorrectionNotAllocatedToUser() {

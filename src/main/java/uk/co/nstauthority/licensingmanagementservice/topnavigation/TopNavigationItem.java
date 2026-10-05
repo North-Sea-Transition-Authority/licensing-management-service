@@ -6,6 +6,7 @@ import java.util.HashSet;
 import java.util.Set;
 import uk.co.nstauthority.licensingmanagementservice.document.search.DocumentTemplateSearchController;
 import uk.co.nstauthority.licensingmanagementservice.licence.contact.LicenceContactController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.search.LicenceCorrectionSearchController;
 import uk.co.nstauthority.licensingmanagementservice.licence.crosslicenceeventtracker.CrossLicenceEventTrackerController;
 import uk.co.nstauthority.licensingmanagementservice.licence.search.LicenceSearchController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
@@ -35,6 +36,12 @@ public enum TopNavigationItem implements Displayable {
       30,
       ReleasePhase.LMS1,
       ReverseRouter.route(on(LicenceSearchController.class).renderSearchPage(null, null))
+  ),
+  CORRECTIONS(
+      "Corrections",
+      35,
+      ReleasePhase.LMS2,
+      ReverseRouter.route(on(LicenceCorrectionSearchController.class).renderCorrectionSearch())
   ),
   EVENT_TRACKER(
       "Event Tracker",

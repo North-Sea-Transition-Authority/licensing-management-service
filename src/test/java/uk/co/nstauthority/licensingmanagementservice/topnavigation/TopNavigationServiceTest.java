@@ -61,6 +61,7 @@ class TopNavigationServiceTest {
         TopNavigationItem.WORK_AREA,
         TopNavigationItem.TEAMS,
         TopNavigationItem.LICENCES,
+        TopNavigationItem.CORRECTIONS,
         TopNavigationItem.EVENT_TRACKER,
         TopNavigationItem.LICENCE_CONTACTS,
         TopNavigationItem.DOCUMENT_LIBRARY
@@ -79,6 +80,7 @@ class TopNavigationServiceTest {
         TopNavigationItem.WORK_AREA,
         TopNavigationItem.TEAMS,
         TopNavigationItem.LICENCES,
+        TopNavigationItem.CORRECTIONS,
         TopNavigationItem.EVENT_TRACKER,
         TopNavigationItem.LICENCE_CONTACTS
     );
@@ -94,6 +96,7 @@ class TopNavigationServiceTest {
         TopNavigationItem.WORK_AREA,
         TopNavigationItem.TEAMS,
         TopNavigationItem.LICENCES,
+        TopNavigationItem.CORRECTIONS,
         TopNavigationItem.EVENT_TRACKER,
         TopNavigationItem.LICENCE_CONTACTS
     );

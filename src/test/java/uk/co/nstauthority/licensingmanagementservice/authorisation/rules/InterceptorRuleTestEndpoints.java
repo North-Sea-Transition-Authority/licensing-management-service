@@ -190,4 +190,10 @@ public class InterceptorRuleTestEndpoints {
   public ResponseEntity<String> invokingUserHasCorrectorRoleForCorrection(@PathVariable UUID correctionId) {
     return ResponseEntity.ok("has corrector role for correction test endpoint");
   }
+
+  @GetMapping("is-member-of-regulator-team")
+  @IsMemberOfRegulatorTeam
+  public ResponseEntity<String> isMemberOfRegulatorTeam() {
+    return ResponseEntity.ok("is member of regulator team test endpoint");
+  }
 }

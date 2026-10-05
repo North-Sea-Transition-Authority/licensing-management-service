@@ -96,7 +96,23 @@ class TopNavigationServiceTest {
         TopNavigationItem.WORK_AREA,
         TopNavigationItem.TEAMS,
         TopNavigationItem.LICENCES,
-        TopNavigationItem.CORRECTIONS,
+        TopNavigationItem.EVENT_TRACKER,
+        TopNavigationItem.LICENCE_CONTACTS
+    );
+  }
+
+  @Test
+  void getTopNavigationItems_whenUserIsInNonRegulatorTeam_thenDoesntIncludeCorrections() {
+    var teamRole = getTeamRole(TeamType.ORGANISATION, Role.MANAGE_TEAM);
+
+    givenLoggedInUserWithRoles(Set.of(teamRole));
+
+    var topNavigationItems = serviceWithPhaseProfiles("enable-lms1", "enable-lms2").getTopNavigationItems();
+
+    assertThat(topNavigationItems).containsExactly(
+        TopNavigationItem.WORK_AREA,
+        TopNavigationItem.TEAMS,
+        TopNavigationItem.LICENCES,
         TopNavigationItem.EVENT_TRACKER,
         TopNavigationItem.LICENCE_CONTACTS
     );

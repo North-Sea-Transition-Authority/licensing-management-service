@@ -29,6 +29,7 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.AccessHandler
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.HasAnyRoleInTeamTypeInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.HasRolesInTeamTypeInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.InvokingUserCanStartApplicationInterceptorRule;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.IsMemberOfRegulatorTeamInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.LicenceActionEndPointInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.LogWorkAreaItemViewInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.continuationapplication.ContinuationApplicationHasStatusInterceptorRule;
@@ -154,7 +155,8 @@ import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.W
     LicencePositionBelongsToCorrectionLicenceRule.class,
     LicencePositionCorrectionBelongsToCorrectionRule.class,
     LicenceCorrectionArgumentResolver.class,
-    InvokingUserHasCorrectorRoleForCorrectionInterceptorRule.class
+    InvokingUserHasCorrectorRoleForCorrectionInterceptorRule.class,
+    IsMemberOfRegulatorTeamInterceptorRule.class
 })
 @EnableConfigurationProperties({
     SamlProperties.class,

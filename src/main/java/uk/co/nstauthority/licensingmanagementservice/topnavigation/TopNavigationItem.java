@@ -41,7 +41,8 @@ public enum TopNavigationItem implements Displayable {
       "Corrections",
       35,
       ReleasePhase.LMS2,
-      ReverseRouter.route(on(LicenceCorrectionSearchController.class).renderCorrectionSearch())
+      ReverseRouter.route(on(LicenceCorrectionSearchController.class).renderCorrectionSearch()),
+      true
   ),
   EVENT_TRACKER(
       "Event Tracker",
@@ -71,6 +72,7 @@ public enum TopNavigationItem implements Displayable {
   private final String url;
   private final TeamType requiredTeamType;
   private final Set<Role> requiredRoles;
+  private final boolean regulatorOnly;
 
   TopNavigationItem(String displayName, int displayOrder, ReleasePhase releasePhase, String url,
                     TeamType requiredTeamType, Set<Role> requiredRoles) {
@@ -80,15 +82,27 @@ public enum TopNavigationItem implements Displayable {
     this.url = url;
     this.requiredTeamType = requiredTeamType;
     this.requiredRoles = requiredRoles;
+    this.regulatorOnly = false;
   }
 
   TopNavigationItem(String displayName, int displayOrder, ReleasePhase releasePhase, String url) {
+    this(displayName, displayOrder, releasePhase, url, false);
+  }
+
+  TopNavigationItem(
+      String displayName,
+      int displayOrder,
+      ReleasePhase releasePhase,
+      String url,
+      boolean regulatorOnly
+  ) {
     this.displayName = displayName;
     this.displayOrder = displayOrder;
     this.releasePhase = releasePhase;
     this.url = url;
     this.requiredTeamType = null;
     this.requiredRoles = Set.of();
+    this.regulatorOnly = regulatorOnly;
   }
 
   @Override
@@ -115,5 +129,9 @@ public enum TopNavigationItem implements Displayable {
 
   public Set<Role> getRequiredRoles() {
     return requiredRoles;
+  }
+
+  public boolean isRegulatorOnly() {
+    return regulatorOnly;
   }
 }

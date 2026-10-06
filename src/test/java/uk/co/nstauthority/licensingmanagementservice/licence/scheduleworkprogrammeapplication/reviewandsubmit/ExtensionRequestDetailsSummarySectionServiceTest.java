@@ -52,7 +52,7 @@ class ExtensionRequestDetailsSummarySectionServiceTest {
 
     var extensionView = createExtensionView(PhaseType.PHASE_A.getDisplayName());
 
-    when(licenceScheduleExtensionService.getLicenceScheduleExtensionViews(scheduleWorkProgrammeApplicationDetail))
+    when(licenceScheduleExtensionService.getRequestedExtensionViews(scheduleWorkProgrammeApplicationDetail))
         .thenReturn(List.of(extensionView));
 
     var summaryDataView = getLicenceSummaryData();
@@ -69,7 +69,7 @@ class ExtensionRequestDetailsSummarySectionServiceTest {
   void getLicenceSummaryItem_withTermExtension() {
     var extensionView = createExtensionView(TermType.INITIAL.getDisplayName());
 
-    when(licenceScheduleExtensionService.getLicenceScheduleExtensionViews(scheduleWorkProgrammeApplicationDetail))
+    when(licenceScheduleExtensionService.getRequestedExtensionViews(scheduleWorkProgrammeApplicationDetail))
         .thenReturn(List.of(extensionView));
 
     SummaryDataView summaryDataView = getLicenceSummaryData();
@@ -86,7 +86,7 @@ class ExtensionRequestDetailsSummarySectionServiceTest {
     var phaseExtensionView = createExtensionView(PhaseType.PHASE_A.getDisplayName());
     var termExtensionView = createExtensionView(TermType.INITIAL.getDisplayName());
 
-    when(licenceScheduleExtensionService.getLicenceScheduleExtensionViews(scheduleWorkProgrammeApplicationDetail))
+    when(licenceScheduleExtensionService.getRequestedExtensionViews(scheduleWorkProgrammeApplicationDetail))
         .thenReturn(List.of(phaseExtensionView, termExtensionView));
 
     SummaryDataView summaryDataView = getLicenceSummaryData();
@@ -117,7 +117,6 @@ class ExtensionRequestDetailsSummarySectionServiceTest {
         LicenceScheduleExtensionRequestView.class);
     when(licenceScheduleExtensionRequestView.displayName()).thenReturn(displayNameFormat);
     when(licenceScheduleExtensionRequestView.duration()).thenReturn(new ThreeFieldDuration(2, 2, 2));
-    when(licenceScheduleExtensionRequestView.isRequested()).thenReturn(true);
     return licenceScheduleExtensionRequestView;
   }
 
@@ -154,7 +153,7 @@ class ExtensionRequestDetailsSummarySectionServiceTest {
 
     when(swpApplicationRequestPurposeService.getRequestPurpose(scheduleWorkProgrammeApplicationDetail))
         .thenReturn(Optional.of(requestPurpose));
-    when(licenceScheduleExtensionService.getLicenceScheduleExtensionViews(scheduleWorkProgrammeApplicationDetail))
+    when(licenceScheduleExtensionService.getRequestedExtensionViews(scheduleWorkProgrammeApplicationDetail))
         .thenReturn(List.of());
 
     var result = extensionRequestDetailsSummarySectionService.getSummarySection(
@@ -170,7 +169,7 @@ class ExtensionRequestDetailsSummarySectionServiceTest {
 
     when(swpApplicationRequestPurposeService.getRequestPurpose(scheduleWorkProgrammeApplicationDetail))
         .thenReturn(Optional.of(requestPurpose));
-    when(licenceScheduleExtensionService.getLicenceScheduleExtensionViews(scheduleWorkProgrammeApplicationDetail))
+    when(licenceScheduleExtensionService.getRequestedExtensionViews(scheduleWorkProgrammeApplicationDetail))
         .thenReturn(List.of());
 
     var result = extensionRequestDetailsSummarySectionService.getSummarySection(

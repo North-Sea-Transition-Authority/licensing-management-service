@@ -2,16 +2,14 @@ package uk.co.nstauthority.licensingmanagementservice.licence.correction.positio
 
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
-import java.util.UUID;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanViewCorrection;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.LicencePositionCorrectionBelongsToCorrection;
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
@@ -22,6 +20,7 @@ import uk.co.nstauthority.licensingmanagementservice.util.DateUtil;
 @Controller
 @RequestMapping("/licence-corrections/{correctionId}/positions/{licencePositionCorrectionId}/undo")
 @InvokingUserCanViewCorrection
+@LicencePositionCorrectionBelongsToCorrection
 public class UndoLicencePositionCorrectionController {
 
   private static final String PAGE_TITLE = "Are you sure you want to undo this position?";
@@ -36,34 +35,25 @@ public class UndoLicencePositionCorrectionController {
 
   @GetMapping
   public ModelAndView renderUndoPosition(
-      @PathVariable UUID correctionId,
-      @PathVariable UUID licencePositionCorrectionId,
-      @RequestAttribute("validatedCorrection") LicenceCorrection licenceCorrection
+      LicenceCorrection licenceCorrection,
+      LicencePositionCorrection licencePositionCorrection
   ) {
-    var positionCorrection = licencePositionCorrectionService
-        .getPositionCorrectionForCorrection(licencePositionCorrectionId, licenceCorrection);
-
-    return undoPositionModelAndView(licenceCorrection, positionCorrection);
+    return undoPositionModelAndView(licenceCorrection, licencePositionCorrection);
   }
 
   @PostMapping
   ModelAndView undoPosition(
-      @PathVariable UUID correctionId,
-      @PathVariable UUID licencePositionCorrectionId,
-      @RequestAttribute("validatedCorrection") LicenceCorrection licenceCorrection,
+      LicenceCorrection licenceCorrection,
+      LicencePositionCorrection licencePositionCorrection,
       RedirectAttributes redirectAttributes
   ) {
-    var positionCorrection = licencePositionCorrectionService
-        .getPositionCorrectionForCorrection(licencePositionCorrectionId, licenceCorrection);
-
-    licencePositionCorrectionService.undoPositionCorrection(positionCorrection);
+    licencePositionCorrectionService.undoPositionCorrection(licencePositionCorrection);
 
     NotificationBanner.newSuccessBanner()
         .withHeadingContent("Licence correction position undone")
         .applyTo(redirectAttributes);
 
-    return ReverseRouter.redirect(on(LicenceCorrectionController.class)
-        .renderCorrection(licenceCorrection.getId(), null));
+    return ReverseRouter.redirect(on(LicenceCorrectionController.class).renderCorrection(licenceCorrection));
   }
 
   private ModelAndView undoPositionModelAndView(
@@ -77,7 +67,6 @@ public class UndoLicencePositionCorrectionController {
         .addObject("positionDate", DateUtil.formatLongDate(positionDate))
         .addObject("correctionReference", payload.correctionReference())
         .addObject("cancelUrl",
-            ReverseRouter.route(on(LicenceCorrectionController.class)
-                .renderCorrection(correction.getId(), null)));
+            ReverseRouter.route(on(LicenceCorrectionController.class).renderCorrection(correction)));
   }
 }

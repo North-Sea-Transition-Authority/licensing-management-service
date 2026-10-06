@@ -24,8 +24,20 @@ public record ReviewPositionView(
         position.id(),
         position.positionName(),
         details != null ? details.correctionReference() : position.reference(),
-        details != null ? CorrectionMarker.forPosition(details.changeType()) : null,
+        marker(position, details, changeEdits),
         ReviewChangeView.forPosition(position, correctedContext, changeEdits)
     );
+  }
+
+  @Nullable
+  private static CorrectionMarker marker(
+      ChronologicalPosition position,
+      @Nullable CorrectionReviewService.PositionDetails details,
+      ChangeEdits changeEdits
+  ) {
+    if (details != null) {
+      return CorrectionMarker.forPosition(details.changeType());
+    }
+    return changeEdits.movedFromPositionIds().contains(position.id()) ? CorrectionMarker.POSITION_CORRECTED : null;
   }
 }

@@ -19,6 +19,8 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.InjectMocks;
@@ -350,6 +352,102 @@ class LicenceScheduleExtensionServiceTest {
     assertThat(result).hasSize(1);
     LicenceScheduleTermAndPhases resultEntry = result.get(0);
     assertThat(resultEntry.phases()).hasSize(1);
+  }
+
+  @ParameterizedTest
+  @CsvSource({"-1, false", "0, false", "1, true"})
+  void getExtendableTermAndPhases_whenANonFinalTermWithoutPhasesEndsRelativeToToday_thenOnlyOfferedIfNotEnded(
+      int endDateOffsetDays,
+      boolean expectedToBeOffered
+  ) {
+    mockClock();
+    var licenceScheduleDetail = new LicenceScheduleDetail();
+    var initialTerm = term(TermType.INITIAL, TODAY.minusYears(4), TODAY.plusDays(endDateOffsetDays));
+    var finalFutureTerm = term(TermType.SECOND, TODAY.plusYears(1), TODAY.plusYears(5));
+
+    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail))
+        .thenReturn(List.of(initialTerm, finalFutureTerm));
+    when(licenceSchedulePhaseRepository.existsByLicenceScheduleTermId(initialTerm.getId())).thenReturn(false);
+    when(licenceSchedulePhaseRepository.existsByLicenceScheduleTermId(finalFutureTerm.getId())).thenReturn(false);
+
+    var result = licenceScheduleExtensionService.getExtendableTermAndPhases(licenceScheduleDetail);
+
+    var expected = expectedToBeOffered
+        ? List.of(new LicenceScheduleTermAndPhases(
+            initialTerm.getId().toString(), TermType.INITIAL.getDisplayName(), Collections.emptyList()))
+        : List.of();
+    assertThat(result).isEqualTo(expected);
+  }
+
+  @Test
+  void getExtendableTermAndPhases_whenEveryPhaseOfAPhasedTermHasEnded_thenTheTermIsNotShown() {
+    mockClock();
+    var licenceScheduleDetail = new LicenceScheduleDetail();
+    var phasedTerm = term(TermType.INITIAL, TODAY.minusYears(4), TODAY.plusYears(1));
+    var finalFutureTerm = term(TermType.SECOND, TODAY.plusYears(1).plusDays(1), TODAY.plusYears(5));
+    var phaseEndedYesterday = LicenceSchedulePhaseTestUtil.builder()
+        .withId(UUID.randomUUID())
+        .withPhaseType(PhaseType.PHASE_A)
+        .withStartDate(TODAY.minusYears(4))
+        .withEndDate(TODAY.minusDays(1))
+        .build();
+    var phaseEndingToday = LicenceSchedulePhaseTestUtil.builder()
+        .withId(UUID.randomUUID())
+        .withPhaseType(PhaseType.PHASE_B)
+        .withStartDate(TODAY.minusDays(1))
+        .withEndDate(TODAY)
+        .build();
+
+    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail))
+        .thenReturn(List.of(phasedTerm, finalFutureTerm));
+    when(licenceSchedulePhaseRepository.existsByLicenceScheduleTermId(phasedTerm.getId())).thenReturn(true);
+    when(licenceSchedulePhaseRepository.existsByLicenceScheduleTermId(finalFutureTerm.getId())).thenReturn(false);
+    when(licenceSchedulePhaseService.getPhasesByTerm(phasedTerm)).thenReturn(List.of(phaseEndedYesterday, phaseEndingToday));
+
+    var result = licenceScheduleExtensionService.getExtendableTermAndPhases(licenceScheduleDetail);
+
+    assertThat(result).isEmpty();
+  }
+
+  @Test
+  void getRequestedExtensionViews_includesRequestsOnEndedPeriodsInScheduleOrder() {
+    var initialTerm = term(TermType.INITIAL, TODAY.minusYears(4), TODAY.minusDays(1));
+    var secondTerm = term(TermType.SECOND, TODAY, TODAY.plusYears(4));
+    var phaseB = LicenceSchedulePhaseTestUtil.builder()
+        .withId(UUID.randomUUID())
+        .withLicenceScheduleTerm(secondTerm)
+        .withPhaseType(PhaseType.PHASE_B)
+        .build();
+
+    var phaseRequest = new LicenceScheduleExtensionRequest();
+    phaseRequest.setLicenceSchedulePhase(phaseB);
+    phaseRequest.setExtensionDuration(new ThreeFieldDuration(0, 6, 0));
+    var endedTermRequest = new LicenceScheduleExtensionRequest();
+    endedTermRequest.setLicenceScheduleTerm(initialTerm);
+    endedTermRequest.setExtensionDuration(new ThreeFieldDuration(1, 0, 0));
+
+    when(licenceScheduleExtensionRepository.findAllByScheduleWorkProgrammeApplicationDetails(
+        scheduleWorkProgrammeApplicationDetail))
+        .thenReturn(List.of(phaseRequest, endedTermRequest));
+
+    var result = licenceScheduleExtensionService.getRequestedExtensionViews(scheduleWorkProgrammeApplicationDetail);
+
+    assertThat(result).containsExactly(
+        new LicenceScheduleExtensionRequestView(
+            initialTerm.getId().toString(), TermType.INITIAL.getDisplayName(), false, true,
+            new ThreeFieldDuration(1, 0, 0)),
+        new LicenceScheduleExtensionRequestView(
+            phaseB.getId().toString(), PhaseType.PHASE_B.getDisplayName(), true, true,
+            new ThreeFieldDuration(0, 6, 0)));
+  }
+
+  private LicenceScheduleTerm term(TermType termType, LocalDate startDate, LocalDate endDate) {
+    return LicenceScheduleTermTestUtil.builder()
+        .withId(UUID.randomUUID())
+        .withTermType(termType)
+        .withStartDate(startDate)
+        .withEndDate(endDate)
+        .build();
   }
 
   private void mockClock() {

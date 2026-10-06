@@ -28,6 +28,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.FeatureTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.spatial.LicencePositionSpatialService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
@@ -77,7 +78,7 @@ class PartialSurrenderDetailsTaskListSectionServiceTest {
     assertThat(section).contains(expectedSection(
         TaskListLabel.COMPLETE,
         ReverseRouter.route(on(LicencePositionPartialSurrenderController.class)
-            .renderForAddedPosition(CORRECTION_ID, POSITION_CORRECTION_ID, null))));
+            .renderForAddedPosition(CORRECTION, positionCorrection))));
   }
 
   @Test
@@ -91,7 +92,7 @@ class PartialSurrenderDetailsTaskListSectionServiceTest {
     assertThat(section).contains(expectedSection(
         TaskListLabel.COMPLETE,
         ReverseRouter.route(on(LicencePositionPartialSurrenderController.class)
-            .renderForExecutedPosition(CORRECTION_ID, POSITION_ID, null))));
+            .renderForExecutedPosition(CORRECTION, POSITION))));
   }
 
   @Test
@@ -105,7 +106,7 @@ class PartialSurrenderDetailsTaskListSectionServiceTest {
     assertThat(section).contains(expectedSection(
         TaskListLabel.NOT_COMPLETE,
         ReverseRouter.route(on(LicencePositionPartialSurrenderController.class)
-            .renderForExecutedPosition(CORRECTION_ID, POSITION_ID, null))));
+            .renderForExecutedPosition(CORRECTION, POSITION))));
   }
 
   @Test
@@ -119,20 +120,20 @@ class PartialSurrenderDetailsTaskListSectionServiceTest {
     assertThat(section).contains(expectedSection(
         TaskListLabel.NOT_COMPLETE,
         ReverseRouter.route(on(LicencePositionPartialSurrenderController.class)
-            .renderForExecutedPosition(CORRECTION_ID, POSITION_ID, null))));
+            .renderForExecutedPosition(CORRECTION, POSITION))));
   }
 
   @Test
   void getSection_whenCorrectingALiveChangeWithNothingStaged_thenLinksToTheCorrectChangePage() {
-    var liveChangeId = UUID.randomUUID().toString();
-    var context = new PartialSurrenderTaskListContext.LiveChange(CORRECTION, POSITION, liveChangeId);
+    var liveChange = LicencePositionChangeTestUtil.newBuilder().build();
+    var context = new PartialSurrenderTaskListContext.LiveChange(CORRECTION, POSITION, liveChange);
 
     var section = partialSurrenderDetailsTaskListSectionService.getSection(context, USER);
 
     assertThat(section).contains(expectedSection(
         TaskListLabel.COMPLETE,
         ReverseRouter.route(on(LicencePositionPartialSurrenderController.class)
-            .renderForCorrectingChange(CORRECTION_ID, POSITION_ID, liveChangeId, null))));
+            .renderForCorrectingChange(CORRECTION, POSITION, liveChange))));
   }
 
   @Test

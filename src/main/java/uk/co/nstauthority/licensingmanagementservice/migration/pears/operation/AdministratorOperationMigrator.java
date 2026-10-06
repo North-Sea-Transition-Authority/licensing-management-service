@@ -138,9 +138,7 @@ class AdministratorOperationMigrator implements PearsOperationMigrator {
       return null;
     }
 
-    return new AdministratorSet(
-        new PearsOperationKey(operation.header().operationSequence(), operationId),
-        Math.toIntExact(joining.id()));
+    return new AdministratorSet(PearsOperationKey.of(operation), Math.toIntExact(joining.id()));
   }
 
   private static boolean isAdministratorList(PearsOperation operation) {

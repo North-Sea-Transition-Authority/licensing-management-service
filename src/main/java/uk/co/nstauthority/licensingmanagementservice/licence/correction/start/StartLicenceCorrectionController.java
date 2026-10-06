@@ -75,8 +75,7 @@ public class StartLicenceCorrectionController {
         .withHeadingContent("Licence correction started")
         .applyTo(redirectAttributes);
 
-    return ReverseRouter.redirect(on(LicenceCorrectionController.class)
-        .renderCorrection(correction.getId(), null));
+    return ReverseRouter.redirect(on(LicenceCorrectionController.class).renderCorrection(correction));
   }
 
   private ModelAndView startLicenceCorrectionModelAndView(Licence licence, StartLicenceCorrectionForm form) {

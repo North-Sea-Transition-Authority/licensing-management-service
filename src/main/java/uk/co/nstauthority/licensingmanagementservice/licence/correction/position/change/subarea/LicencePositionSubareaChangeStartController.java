@@ -8,25 +8,26 @@ import org.springframework.stereotype.Controller;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import uk.co.fivium.gisframework.feature.Feature;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.CorrectionLicenceIsType;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanViewCorrection;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.LicencePositionCorrectionBelongsToCorrection;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.LicencePositionIsNotRemovedInCorrection;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.position.LicencePositionBelongsToCorrectionLicence;
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.LicencePositionAddChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaOperation;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.LicenceBlockFeatureUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.spatial.LicencePositionSpatialService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
@@ -40,20 +41,17 @@ public class LicencePositionSubareaChangeStartController {
   private static final String PAGE_TITLE = "Subarea change";
   private static final String SAVED_BANNER = "Subarea change saved";
 
-  private final LicencePositionService licencePositionService;
   private final LicencePositionSpatialService licencePositionSpatialService;
   private final LicencePositionCorrectionService licencePositionCorrectionService;
   private final SubareaChangeService subareaChangeService;
   private final SubareaChangeStartFormValidator subareaChangeStartFormValidator;
 
   public LicencePositionSubareaChangeStartController(
-      LicencePositionService licencePositionService,
       LicencePositionSpatialService licencePositionSpatialService,
       LicencePositionCorrectionService licencePositionCorrectionService,
       SubareaChangeService subareaChangeService,
       SubareaChangeStartFormValidator subareaChangeStartFormValidator
   ) {
-    this.licencePositionService = licencePositionService;
     this.licencePositionSpatialService = licencePositionSpatialService;
     this.licencePositionCorrectionService = licencePositionCorrectionService;
     this.subareaChangeService = subareaChangeService;
@@ -62,37 +60,35 @@ public class LicencePositionSubareaChangeStartController {
 
   @GetMapping("/position/{licencePositionId}/subarea-change")
   @LicencePositionIsNotRemovedInCorrection
+  @LicencePositionBelongsToCorrectionLicence
   public ModelAndView renderForExecutedPosition(
-      @PathVariable UUID correctionId,
-      @PathVariable UUID licencePositionId,
-      @RequestAttribute("validatedCorrection") LicenceCorrection correction
+      LicenceCorrection correction,
+      LicencePosition licencePosition
   ) {
-    var licencePosition = licencePositionService.getPositionForLicence(correction.getLicence(), licencePositionId);
-
     return getSubareaChangeModelAndView(
         correction,
         new SubareaChangeStartForm(),
         licencePositionSpatialService.getBlockFeaturesGoingIntoChange(correction, licencePosition, null),
-        executedChangeUrl(correctionId, licencePositionId)
+        executedChangeUrl(correction, licencePosition)
     );
   }
 
   @PostMapping("/position/{licencePositionId}/subarea-change")
   @LicencePositionIsNotRemovedInCorrection
+  @LicencePositionBelongsToCorrectionLicence
   public ModelAndView submitForExecutedPosition(
-      @PathVariable UUID correctionId,
-      @PathVariable UUID licencePositionId,
-      @RequestAttribute("validatedCorrection") LicenceCorrection correction,
+      LicenceCorrection correction,
+      LicencePosition licencePosition,
       @ModelAttribute("form") SubareaChangeStartForm form,
       BindingResult bindingResult,
       RedirectAttributes redirectAttributes
   ) {
-    var licencePosition = licencePositionService.getPositionForLicence(correction.getLicence(), licencePositionId);
     var positionCorrection = licencePositionCorrectionService
         .findUpdatePositionCorrection(correction, licencePosition)
         .orElse(null);
     var blockFeatures = licencePositionSpatialService.getBlockFeaturesGoingIntoChange(correction, licencePosition, null);
     var featureIdsAlreadyOperatedOn = licencePositionCorrectionService.blockFeatureIdsAlreadyOperatedOnForExecutedPosition(
+        correction,
         licencePosition,
         positionCorrection
     );
@@ -107,7 +103,7 @@ public class LicencePositionSubareaChangeStartController {
           correction,
           form,
           blockFeatures,
-          executedChangeUrl(correctionId, licencePositionId)
+          executedChangeUrl(correction, licencePosition)
       );
     }
 
@@ -115,40 +111,35 @@ public class LicencePositionSubareaChangeStartController {
 
     NotificationBanner.newSuccessBannerWithHeader(SAVED_BANNER, redirectAttributes);
     return ReverseRouter.redirect(on(LicenceCorrectionController.class)
-        .renderLicencePosition(correctionId, licencePositionId, null));
+        .renderLicencePosition(correction, licencePosition));
   }
 
   @GetMapping("/added-position/{licencePositionCorrectionId}/subarea-change")
+  @LicencePositionCorrectionBelongsToCorrection
   public ModelAndView renderForAddedPosition(
-      @PathVariable UUID correctionId,
-      @PathVariable UUID licencePositionCorrectionId,
-      @RequestAttribute("validatedCorrection") LicenceCorrection correction
+      LicenceCorrection correction,
+      LicencePositionCorrection licencePositionCorrection
   ) {
-    var positionCorrection = licencePositionCorrectionService
-        .getPositionCorrectionForCorrection(licencePositionCorrectionId, correction);
-
     return getSubareaChangeModelAndView(
         correction,
         new SubareaChangeStartForm(),
-        licencePositionSpatialService.getBlockFeaturesGoingIntoChange(positionCorrection, null),
-        addedChangeUrl(correctionId, licencePositionCorrectionId)
+        licencePositionSpatialService.getBlockFeaturesGoingIntoChange(licencePositionCorrection, null),
+        addedChangeUrl(correction, licencePositionCorrection)
     );
   }
 
   @PostMapping("/added-position/{licencePositionCorrectionId}/subarea-change")
+  @LicencePositionCorrectionBelongsToCorrection
   public ModelAndView submitForAddedPosition(
-      @PathVariable UUID correctionId,
-      @PathVariable UUID licencePositionCorrectionId,
-      @RequestAttribute("validatedCorrection") LicenceCorrection correction,
+      LicenceCorrection correction,
+      LicencePositionCorrection licencePositionCorrection,
       @ModelAttribute("form") SubareaChangeStartForm form,
       BindingResult bindingResult,
       RedirectAttributes redirectAttributes
   ) {
-    var positionCorrection = licencePositionCorrectionService
-        .getPositionCorrectionForCorrection(licencePositionCorrectionId, correction);
-    var blockFeatures = licencePositionSpatialService.getBlockFeaturesGoingIntoChange(positionCorrection, null);
+    var blockFeatures = licencePositionSpatialService.getBlockFeaturesGoingIntoChange(licencePositionCorrection, null);
     var featureIdsAlreadyOperatedOn = licencePositionCorrectionService.blockFeatureIdsAlreadyOperatedOnForAddedPosition(
-        positionCorrection
+        licencePositionCorrection
     );
 
     if (subareaChangeStartFormValidator.hasErrors(form, bindingResult, blockFeatures, featureIdsAlreadyOperatedOn)) {
@@ -156,15 +147,15 @@ public class LicencePositionSubareaChangeStartController {
           correction,
           form,
           blockFeatures,
-          addedChangeUrl(correctionId, licencePositionCorrectionId)
+          addedChangeUrl(correction, licencePositionCorrection)
       );
     }
 
-    subareaChangeService.commitSubareaChange(positionCorrection, toOperation(form));
+    subareaChangeService.commitSubareaChange(licencePositionCorrection, toOperation(form));
 
     NotificationBanner.newSuccessBannerWithHeader(SAVED_BANNER, redirectAttributes);
     return ReverseRouter.redirect(on(LicenceCorrectionController.class)
-        .renderAddedPosition(correctionId, licencePositionCorrectionId, null));
+        .renderAddedPosition(correction, licencePositionCorrection));
   }
 
   private SubareaOperation toOperation(SubareaChangeStartForm form) {
@@ -187,13 +178,13 @@ public class LicencePositionSubareaChangeStartController {
         .addObject("backLinkUrl", backLinkUrl);
   }
 
-  private String executedChangeUrl(UUID correctionId, UUID licencePositionId) {
+  private String executedChangeUrl(LicenceCorrection correction, LicencePosition licencePosition) {
     return ReverseRouter.route(on(LicencePositionAddChangeController.class)
-        .renderForExecutedPosition(correctionId, licencePositionId, null));
+        .renderForExecutedPosition(correction, licencePosition));
   }
 
-  private String addedChangeUrl(UUID correctionId, UUID licencePositionCorrectionId) {
+  private String addedChangeUrl(LicenceCorrection correction, LicencePositionCorrection licencePositionCorrection) {
     return ReverseRouter.route(on(LicencePositionAddChangeController.class)
-        .renderForAddedPosition(correctionId, licencePositionCorrectionId, null));
+        .renderForAddedPosition(correction, licencePositionCorrection));
   }
 }

@@ -8,6 +8,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 import jakarta.persistence.EntityManager;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.Month;
 import java.util.List;
@@ -163,7 +164,13 @@ class PearsLicenceWritebackEndpointIntegrationTest {
       otherLicencePositionChange = persist(positionChange(otherLicencePosition));
 
       inProgressCorrection = persist(correction(licence, "CORRECTION-1", LicenceCorrectionStatus.IN_PROGRESS));
-      completeCorrection = persist(correction(licence, "CORRECTION-2", LicenceCorrectionStatus.COMPLETE));
+      completeCorrection = persist(LicenceCorrectionTestUtil.newBuilder()
+          .withId(null)
+          .withLicence(licence)
+          .withCorrectionReference("CORRECTION-2")
+          .withStatus(LicenceCorrectionStatus.COMPLETE)
+          .withCompletedInstant(Instant.parse("2026-06-06T10:00:00Z"))
+          .build());
       otherLicenceCorrection = persist(correction(otherLicence, "CORRECTION-3", LicenceCorrectionStatus.IN_PROGRESS));
 
       inProgressPositionCorrection = persist(positionCorrection(inProgressCorrection, firstPosition));
@@ -274,6 +281,34 @@ class PearsLicenceWritebackEndpointIntegrationTest {
   }
 
   @Test
+  void overwriteLicencePositionsFromPears_whenStoredOperationsCannotBeDeserialised_thenTheyAreStillCleared() {
+    transactionTemplate.executeWithoutResult(status -> {
+      entityManager.createNativeQuery(
+              "UPDATE lms.licence_position_changes SET operations = '[{\"type\":\"REMOVED_OPERATION\"}]'::jsonb WHERE id = :id")
+          .setParameter("id", firstPositionChange.getId())
+          .executeUpdate();
+      entityManager.createNativeQuery(
+              "UPDATE lms.licence_position_corrections SET payload = '{\"type\":\"removed-payload\"}'::jsonb WHERE id = :id")
+          .setParameter("id", inProgressPositionCorrection.getId())
+          .executeUpdate();
+    });
+    when(pearsLicenceService.licenceHistory(eq("P"), eq(1), anySet())).thenReturn(pearsHistory());
+
+    var response = writeback("P1", LicenceWritebackResult.class);
+
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+
+    assertThat(licencePositionChangeRepository.findAll())
+        .extracting(LicencePositionChange::getId)
+        .contains(otherLicencePositionChange.getId())
+        .doesNotContain(firstPositionChange.getId(), secondPositionChange.getId(), draftPositionChange.getId());
+
+    assertThat(licencePositionCorrectionRepository.findAll())
+        .extracting(LicencePositionCorrection::getId)
+        .containsExactly(otherLicencePositionCorrection.getId());
+  }
+
+  @Test
   void overwriteLicencePositionsFromPears_whenAPositionCannotBeSaved_thenNothingIsDeleted() {
     when(pearsLicenceService.licenceHistory(eq("P"), eq(1), anySet())).thenReturn(pearsHistory());
     doThrow(new IllegalStateException("Could not create licence transaction"))
@@ -337,7 +372,7 @@ class PearsLicenceWritebackEndpointIntegrationTest {
 
   /**
    * Three positions on two dates, the first setting an administrator and the last moving it to
-   * another organisation, with a block operation in between that still builds a position.
+   * another organisation, with a retention area operation in between that still builds a position.
    */
   private LicenceOperationHistory pearsHistory() {
     return PearsHistoryTestUtil.history("P", 1)
@@ -345,7 +380,7 @@ class PearsLicenceWritebackEndpointIntegrationTest {
         .administratorSet(11)
         .and()
         .position(2, "XPT/2", FIRST_POSITION_DATE, 9)
-        .operationWithoutPayload("PED_BLOCK_CREATE")
+        .operationWithoutPayload("PED_RETENTION_AREA_CHANGE")
         .and()
         .position(3, "XPT/3", LAST_POSITION_DATE, 2)
         .administratorTransfer(11, 22)

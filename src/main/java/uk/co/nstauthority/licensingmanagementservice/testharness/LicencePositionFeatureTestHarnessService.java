@@ -1,13 +1,16 @@
 package uk.co.nstauthority.licensingmanagementservice.testharness;
 
-import jakarta.annotation.Nullable;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
@@ -26,10 +29,10 @@ import uk.co.fivium.gisframework.feature.PolygonService;
 import uk.co.fivium.grpc.gis.CoordinateSystem;
 import uk.co.fivium.grpc.gis.LineNavigationType;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderType;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.BlockCreateOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
-import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
-import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation.SurrenderDetails;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaDetails;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
@@ -43,9 +46,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.Fe
 class LicencePositionFeatureTestHarnessService {
 
   private static final String QUADRANT_NUMBER = "30";
-  private static final int BLOCKS_PER_LICENCE = 4;
-  private static final int SUBAREAS_PER_BLOCK = 2;
-  private static final int SHAPES_PER_BLOCK = 1 + SUBAREAS_PER_BLOCK;
+  private static final String SUBAREA_NAME = "ALL";
   private static final int FIRST_CHANGE_ORDER = 1;
 
   private static final CoordinateSystem COORDINATE_SYSTEM = CoordinateSystem.ED50;
@@ -94,21 +95,18 @@ class LicencePositionFeatureTestHarnessService {
 
     var hasSeededFeatures = licencePositionChangeService.findByLicencePositionIn(licencePositions)
         .stream()
-        .map(change -> LicencePositionChangeOperationUtil.findOperation(change, PartialSurrenderOperation.class))
+        .map(change -> LicencePositionChangeOperationUtil.findOperation(change, BlockCreateOperation.class))
         .flatMap(Optional::stream)
-        .anyMatch(partialSurrender -> !partialSurrender.outputFeatureIds().isEmpty());
+        .anyMatch(blockCreate -> !blockCreate.createdBlockFeatureIds().isEmpty());
 
     return new LicencePositionFeatureSeedState(licencePositions.size(), hasSeededFeatures);
   }
 
   /**
-   * Creates the spatial data a licence holds and anchors it to the timeline with a spatial operation on the earliest
-   * position, from which every later position derives its own features. That operation is a partial surrender because
-   * it is the only spatial operation that exists so far - in time it will be a block create. A surrender has to
-   * surrender something, so one extra block is created and fully surrendered by the seed operation, leaving the licence
-   * holding the rest.
+   * Creates the spatial data a licence holds and anchors it to the timeline with a block create on the earliest
+   * position, from which every later position derives its own features.
    *
-   * @return the features created and the blocks the licence is left holding
+   * @return the blocks and subareas created
    */
   @Transactional
   public SeededFeatures createAndLinkFeatures(Licence licence) {
@@ -116,7 +114,7 @@ class LicencePositionFeatureTestHarnessService {
 
     var licencePositions = licencePositionService.getExecutedChronologicalLicencePositions(licence);
     if (licencePositions.isEmpty()) {
-      return new SeededFeatures(List.of(), List.of());
+      return new SeededFeatures(List.of(), Map.of());
     }
 
     var seededFeatures = createFeaturesForLicence(licence);
@@ -124,7 +122,7 @@ class LicencePositionFeatureTestHarnessService {
 
     licencePositionChangeService.createLicencePositionChange(
         seedPosition,
-        List.of(seedSpatialOperation(seededFeatures.surrenderedBlock(), seededFeatures.retainedBlocks())),
+        List.of(seedSpatialOperation(seededFeatures)),
         nextChangeOrder(seedPosition),
         LicencePositionChangeStatus.CONSENTED
     );
@@ -146,37 +144,36 @@ class LicencePositionFeatureTestHarnessService {
     return highestExistingOrder.isPresent() ? highestExistingOrder.getAsInt() + 1 : FIRST_CHANGE_ORDER;
   }
 
-  private LicenceOperation seedSpatialOperation(Feature surrenderedBlock, List<Feature> retainedBlocks) {
-    // no surrender date - the change takes the date of the position it sits on
-    return LicenceOperation.newPartialSurrenderOperation()
-        .withSurrenderedFeatureIds(List.of(surrenderedBlock.getId()))
-        .withSurrenderDetails(Map.of(surrenderedBlock.getId(), new SurrenderDetails(
-            BlockSurrenderType.FULL_SURRENDER, null, List.of(surrenderedBlock.getId()))))
-        .withOutputFeatureIds(retainedBlocks.stream().map(Feature::getId).toList())
+  private LicenceOperation seedSpatialOperation(SeededFeatures seededFeatures) {
+    return LicenceOperation.newBlockCreateOperation()
+        .withFeatureIds(seededFeatures.blocks().stream().map(Feature::getId).toList())
+        .withCreatedSubareas(seededFeatures.blockIdToSubareas().entrySet().stream()
+            .collect(Collectors.toMap(
+                Map.Entry::getKey,
+                entry -> entry.getValue().stream().map(SeededFeatures::toSubareaDetails).toList()
+            )))
         .build();
   }
 
   private SeededFeatures createFeaturesForLicence(Licence licence) {
+    var featureLayout = FeatureLayout.of(licence.getType());
     var blocks = new ArrayList<Feature>();
-    var subareas = new ArrayList<Feature>();
+    var blockIdToSubareas = new LinkedHashMap<UUID, List<Feature>>();
 
-    for (var blockIndex = 1; blockIndex <= BLOCKS_PER_LICENCE; blockIndex++) {
-      var shapeIndex = (blockIndex - 1) * SHAPES_PER_BLOCK + 1;
+    for (var blockIndex = 1; blockIndex <= featureLayout.blockCount(); blockIndex++) {
+      var shapeIndex = (blockIndex - 1) * featureLayout.shapesPerBlock() + 1;
 
-      var block = createFeature(licence, shapeIndex, blockAttributes(blockIndex), null);
+      var block = createFeature(licence, shapeIndex, blockAttributes(blockIndex));
       blocks.add(block);
 
-      for (var subareaIndex = 1; subareaIndex <= SUBAREAS_PER_BLOCK; subareaIndex++) {
-        subareas.add(createFeature(
-            licence,
-            shapeIndex + subareaIndex,
-            subareaAttributes(blockIndex, subareaIndex),
-            block
-        ));
+      var subareas = new ArrayList<Feature>();
+      for (var subareaIndex = 1; subareaIndex <= featureLayout.subareasPerBlock(); subareaIndex++) {
+        subareas.add(createFeature(licence, shapeIndex + subareaIndex, subareaAttributes()));
       }
+      blockIdToSubareas.put(block.getId(), subareas);
     }
 
-    return new SeededFeatures(blocks, subareas);
+    return new SeededFeatures(blocks, blockIdToSubareas);
   }
 
   /**
@@ -210,7 +207,29 @@ class LicencePositionFeatureTestHarnessService {
     return new SplitBlock(westernHalf, easternHalf);
   }
 
-  // a split output keeps the attributes and parent of the shape it came from, and is named after it
+  /**
+   * Cuts a subarea back to the half of its block that {@link #splitBlockInHalf} keeps, as a partial surrender of that
+   * block would. The original subarea is ended and the cropped one starts on the date of the surrender, as applying the
+   * surrender does.
+   *
+   * @return the cropped subarea
+   */
+  @Transactional
+  public Feature cropSubareaToRetainedHalf(
+      Feature subarea,
+      LocalDate surrenderDate
+  ) {
+    var croppedSubarea = createHalfBlock(subarea, MIDDLE_LONGITUDE, EASTERN_LONGITUDE, 2);
+    croppedSubarea.setStartDate(surrenderDate);
+    featureService.saveFeature(croppedSubarea);
+
+    subarea.setEndDate(surrenderDate);
+    featureService.saveFeature(subarea);
+
+    return croppedSubarea;
+  }
+
+  // a split output keeps the attributes of the shape it came from, and is named after it
   private Feature createHalfBlock(
       Feature block,
       String westernLongitude,
@@ -220,28 +239,40 @@ class LicencePositionFeatureTestHarnessService {
     return createShape(
         "%s_%s".formatted(block.getFeatureName(), splitPartNumber),
         Map.copyOf(block.getAttributes()),
-        block.getParentFeature(),
         block.getFeatureArea().divide(BigDecimal.TWO),
         rectangleEdges(westernLongitude, easternLongitude)
     );
   }
 
   /**
-   * The blocks are kept apart from their subareas because only the blocks are named by the seed operation. The seed
-   * operation fully surrenders the first block, so the licence is left holding the rest.
+   * The blocks are kept apart from their subareas because the block create names the two separately.
    */
-  record SeededFeatures(List<Feature> blocks, List<Feature> subareas) {
+  record SeededFeatures(
+      List<Feature> blocks,
+      Map<UUID, List<Feature>> blockIdToSubareas
+  ) {
 
     int count() {
-      return blocks.size() + subareas.size();
+      return blocks.size() + subareas().size();
     }
 
-    Feature surrenderedBlock() {
-      return blocks.getFirst();
+    List<Feature> subareas() {
+      return blockIdToSubareas.values().stream()
+          .flatMap(List::stream)
+          .toList();
     }
 
-    List<Feature> retainedBlocks() {
-      return blocks.stream().skip(1).toList();
+    Feature subareaOf(Feature block) {
+      return blockIdToSubareas.get(block.getId()).getFirst();
+    }
+
+    SubareaDetails subareaDetailsOf(Feature block) {
+      return toSubareaDetails(subareaOf(block));
+    }
+
+    static SubareaDetails toSubareaDetails(Feature subarea) {
+      var name = subarea.getAttributes().get(FeatureAttribute.NAME.name());
+      return new SubareaDetails(subarea.getId(), name, name);
     }
   }
 
@@ -251,13 +282,11 @@ class LicencePositionFeatureTestHarnessService {
   private Feature createFeature(
       Licence licence,
       int shapeIndex,
-      Map<String, String> attributes,
-      Feature parentFeature
+      Map<String, String> attributes
   ) {
     return createShape(
         "test harness for %s %s".formatted(licence.getLicenceReference(), shapeIndex),
         attributes,
-        parentFeature,
         FEATURE_AREA,
         rectangleEdges(WESTERN_LONGITUDE, EASTERN_LONGITUDE)
     );
@@ -270,7 +299,6 @@ class LicencePositionFeatureTestHarnessService {
   private Feature createShape(
       String featureName,
       Map<String, String> attributes,
-      @Nullable Feature parentFeature,
       BigDecimal featureArea,
       List<String> edges
   ) {
@@ -279,7 +307,6 @@ class LicencePositionFeatureTestHarnessService {
     feature.setCoordinateSystem(COORDINATE_SYSTEM);
     feature.setFeatureArea(featureArea);
     feature.setAttributes(attributes);
-    feature.setParentFeature(parentFeature);
     featureService.saveFeature(feature);
 
     var polygon = new Polygon();
@@ -329,14 +356,24 @@ class LicencePositionFeatureTestHarnessService {
     );
   }
 
-  private Map<String, String> subareaAttributes(int blockNumber, int subareaIndex) {
+  private Map<String, String> subareaAttributes() {
     return Map.of(
         FeatureAttribute.LAYER.name(), Layer.SUBAREAS.name(),
-        FeatureAttribute.NAME.name(), "%s/%s%s".formatted(QUADRANT_NUMBER, blockNumber, subareaSuffix(subareaIndex))
+        FeatureAttribute.NAME.name(), SUBAREA_NAME
     );
   }
 
-  private static String subareaSuffix(int subareaIndex) {
-    return String.valueOf((char) ('a' + subareaIndex - 1));
+  private record FeatureLayout(int blockCount, int subareasPerBlock) {
+
+    private static final FeatureLayout CARBON_STORAGE = new FeatureLayout(1, 0);
+    private static final FeatureLayout BLOCKS_WITH_SUBAREAS = new FeatureLayout(3, 1);
+
+    static FeatureLayout of(LicenceType licenceType) {
+      return LicenceType.CARBON_STORAGE == licenceType ? CARBON_STORAGE : BLOCKS_WITH_SUBAREAS;
+    }
+
+    int shapesPerBlock() {
+      return 1 + subareasPerBlock;
+    }
   }
 }

@@ -2,12 +2,9 @@ package uk.co.nstauthority.licensingmanagementservice.licence.correction;
 
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
-import java.util.UUID;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
@@ -33,18 +30,18 @@ class LicenceCorrectionCancelController {
   }
 
   @GetMapping
-  ModelAndView renderCancelCorrection(@PathVariable UUID correctionId,
-                                      @RequestAttribute("validatedCorrection") LicenceCorrection licenceCorrection) {
+  ModelAndView renderCancelCorrection(LicenceCorrection licenceCorrection) {
     return new ModelAndView("lms/licence/correction/cancelCorrection")
         .addObject("correctionReference", licenceCorrection.getCorrectionReference())
         .addObject("cancelUrl", ReverseRouter.route(on(LicenceCorrectionController.class)
-            .renderCorrection(correctionId, null)));
+            .renderCorrection(licenceCorrection)));
   }
 
   @PostMapping
-  ModelAndView processCancelCorrection(@PathVariable UUID correctionId,
-                                       @RequestAttribute("validatedCorrection") LicenceCorrection licenceCorrection,
-                                       RedirectAttributes redirectAttributes) {
+  ModelAndView processCancelCorrection(
+      LicenceCorrection licenceCorrection,
+      RedirectAttributes redirectAttributes
+  ) {
     licenceCorrectionService.cancelCorrection(licenceCorrection);
     NotificationBanner.newSuccessBannerWithHeader(
         "Correction %s cancelled".formatted(licenceCorrection.getCorrectionReference()),

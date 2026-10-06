@@ -9,7 +9,7 @@ import uk.co.fivium.formlibrary.validator.string.StringInputValidator;
 @Service
 public class CorrectPositionOrderFormValidator {
 
-  boolean hasErrors(CorrectPositionOrderForm form, Errors errors, Set<String> allowedMoves) {
+  public boolean hasErrors(CorrectPositionOrderForm form, Errors errors, Set<String> allowedMoves) {
     StringInputValidator.builder().validate(form.getPositionMove(), errors);
 
     var value = form.getPositionMove().getInputValue();

@@ -31,7 +31,10 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceC
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.AdministratorChangeContext;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @ContextConfiguration(classes = RemoveAdministratorChangeController.class)
@@ -41,21 +44,32 @@ class RemoveAdministratorChangeControllerTest extends AbstractControllerTest {
   @MockitoBean
   private AdministratorChangeService administratorChangeService;
 
-  private static final Licence LICENCE = LicenceTestUtil.builder().build();
+  private static final Licence LICENCE = LicenceTestUtil.builder().withId(1).build();
   private static final UUID CORRECTION_ID = UUID.randomUUID();
   private static final UUID POSITION_ID = UUID.randomUUID();
   private static final String CHANGE_ID = UUID.randomUUID().toString();
+  private static final LicencePositionChange CHANGE = LicencePositionChangeTestUtil.newBuilder()
+      .withId(UUID.fromString(CHANGE_ID))
+      .build();
   private static final String PAGE_TITLE = "Are you sure you want to remove this licence administrator change?";
   private static final String UNDO_PAGE_TITLE = "Are you sure you want to undo this licence administrator change?";
   private static final String VIEW_NAME = "lms/licence/correction/change/removeAdministratorChange";
+  private static final LicenceCorrection CORRECTION = LicenceCorrectionTestUtil.newBuilder()
+      .withId(CORRECTION_ID)
+      .withLicence(LICENCE)
+      .build();
+  private static final LicencePosition POSITION = LicencePositionTestUtil.newBuilder()
+      .withId(POSITION_ID)
+      .withLicence(LICENCE)
+      .build();
 
   private final String positionUrl = ReverseRouter.route(on(LicenceCorrectionController.class)
-      .renderLicencePosition(CORRECTION_ID, POSITION_ID, null));
+      .renderLicencePosition(CORRECTION, POSITION));
 
   @Test
   void renderRemoveExecutedAdminChange_whenNotLoggedIn() throws Exception {
     mockMvc.perform(get(ReverseRouter.route(on(RemoveAdministratorChangeController.class)
-            .renderRemoveExecutedAdminChange(CORRECTION_ID, POSITION_ID, CHANGE_ID, null))))
+            .renderRemoveExecutedAdminChange(CORRECTION, POSITION, CHANGE))))
         .andExpect(redirectionToLoginUrl());
   }
 
@@ -64,7 +78,7 @@ class RemoveAdministratorChangeControllerTest extends AbstractControllerTest {
     givenCorrectionNotAllocatedToUser();
 
     mockMvc.perform(get(ReverseRouter.route(on(RemoveAdministratorChangeController.class)
-            .renderRemoveExecutedAdminChange(CORRECTION_ID, POSITION_ID, CHANGE_ID, null)))
+            .renderRemoveExecutedAdminChange(CORRECTION, POSITION, CHANGE)))
             .with(user(regulatorUser)))
         .andExpect(status().isForbidden());
   }
@@ -75,11 +89,13 @@ class RemoveAdministratorChangeControllerTest extends AbstractControllerTest {
     var position = LicencePositionTestUtil.newBuilder().withId(POSITION_ID).withLicence(LICENCE).build();
 
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(position);
+    when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(position));
+    when(licencePositionChangeService.findById(CHANGE.getId())).thenReturn(Optional.of(CHANGE));
     when(licencePositionViewService.getAdministratorChangeContext(correction, POSITION_ID))
         .thenReturn(new AdministratorChangeContext(789, 456, "Joining Admin Org", "Withdrawing Admin Org"));
 
     mockMvc.perform(get(ReverseRouter.route(on(RemoveAdministratorChangeController.class)
-            .renderRemoveExecutedAdminChange(CORRECTION_ID, POSITION_ID, CHANGE_ID, null)))
+            .renderRemoveExecutedAdminChange(correction, position, CHANGE)))
             .with(user(regulatorUser)))
         .andExpectAll(
             status().isOk(),
@@ -94,7 +110,7 @@ class RemoveAdministratorChangeControllerTest extends AbstractControllerTest {
   @Test
   void removeAdministratorChange_whenNotLoggedIn() throws Exception {
     mockMvc.perform(post(ReverseRouter.route(on(RemoveAdministratorChangeController.class)
-            .removeAdministratorChange(CORRECTION_ID, POSITION_ID, CHANGE_ID, null, null)))
+            .removeAdministratorChange(CORRECTION, POSITION, CHANGE, null)))
             .with(csrf()))
         .andExpect(redirectionToLoginUrl());
   }
@@ -105,9 +121,11 @@ class RemoveAdministratorChangeControllerTest extends AbstractControllerTest {
     var position = LicencePositionTestUtil.newBuilder().withId(POSITION_ID).withLicence(LICENCE).build();
 
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(position);
+    when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(position));
+    when(licencePositionChangeService.findById(CHANGE.getId())).thenReturn(Optional.of(CHANGE));
 
     mockMvc.perform(post(ReverseRouter.route(on(RemoveAdministratorChangeController.class)
-            .removeAdministratorChange(CORRECTION_ID, POSITION_ID, CHANGE_ID, null, null)))
+            .removeAdministratorChange(correction, position, CHANGE, null)))
             .with(user(regulatorUser))
             .with(csrf()))
         .andExpectAll(
@@ -126,7 +144,7 @@ class RemoveAdministratorChangeControllerTest extends AbstractControllerTest {
     givenCorrectionNotAllocatedToUser();
 
     mockMvc.perform(post(ReverseRouter.route(on(RemoveAdministratorChangeController.class)
-            .removeAdministratorChange(CORRECTION_ID, POSITION_ID, CHANGE_ID, null, null)))
+            .removeAdministratorChange(CORRECTION, POSITION, CHANGE, null)))
             .with(user(regulatorUser))
             .with(csrf()))
         .andExpect(status().isForbidden());
@@ -139,7 +157,7 @@ class RemoveAdministratorChangeControllerTest extends AbstractControllerTest {
     givenCorrectionNotAllocatedToUser();
 
     mockMvc.perform(get(ReverseRouter.route(on(RemoveAdministratorChangeController.class)
-            .renderUndoAdminChange(CORRECTION_ID, CHANGE_ID, null)))
+            .renderUndoAdminChange(CORRECTION, CHANGE_ID)))
             .with(user(regulatorUser)))
         .andExpect(status().isForbidden());
   }
@@ -159,7 +177,7 @@ class RemoveAdministratorChangeControllerTest extends AbstractControllerTest {
         .thenReturn(new AdministratorChangeContext(789, 456, "Joining Admin Org", "Withdrawing Admin Org"));
 
     mockMvc.perform(get(ReverseRouter.route(on(RemoveAdministratorChangeController.class)
-            .renderUndoAdminChange(CORRECTION_ID, CHANGE_ID, null)))
+            .renderUndoAdminChange(correction, CHANGE_ID)))
             .with(user(regulatorUser)))
         .andExpectAll(
             status().isOk(),
@@ -175,7 +193,7 @@ class RemoveAdministratorChangeControllerTest extends AbstractControllerTest {
   @Test
   void undoAdminChange_whenNotLoggedIn() throws Exception {
     mockMvc.perform(post(ReverseRouter.route(on(RemoveAdministratorChangeController.class)
-            .undoAdminChange(CORRECTION_ID, CHANGE_ID, null, null)))
+            .undoAdminChange(CORRECTION, CHANGE_ID, null)))
             .with(csrf()))
         .andExpect(redirectionToLoginUrl());
   }
@@ -193,7 +211,7 @@ class RemoveAdministratorChangeControllerTest extends AbstractControllerTest {
         .thenReturn(positionCorrection);
 
     mockMvc.perform(post(ReverseRouter.route(on(RemoveAdministratorChangeController.class)
-            .undoAdminChange(CORRECTION_ID, CHANGE_ID, null, null)))
+            .undoAdminChange(correction, CHANGE_ID, null)))
             .with(user(regulatorUser))
             .with(csrf()))
         .andExpectAll(
@@ -214,6 +232,7 @@ class RemoveAdministratorChangeControllerTest extends AbstractControllerTest {
         .build();
     when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
         .thenReturn(Optional.of(correction));
+    when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(correction));
     return correction;
   }
 

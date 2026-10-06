@@ -15,6 +15,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
+import uk.co.nstauthority.licensingmanagementservice.licence.crosslicenceeventtracker.CrossLicenceEventTrackerService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailStatus;
@@ -35,6 +36,7 @@ public class ScheduleWorkProgrammeApplicationService {
   private final ApplicationAccessService applicationAccessService;
   private final TeamManagementService teamManagementService;
   private final ScheduleWorkProgrammeApplicationSubmittedNotificationService applicationSubmittedNotificationService;
+  private final CrossLicenceEventTrackerService crossLicenceEventTrackerService;
 
   public ScheduleWorkProgrammeApplicationService(
       ScheduleWorkProgrammeApplicationRepository scheduleWorkProgrammeApplicationRepository,
@@ -43,7 +45,8 @@ public class ScheduleWorkProgrammeApplicationService {
       Clock clock,
       ApplicationAccessService applicationAccessService,
       TeamManagementService teamManagementService,
-      ScheduleWorkProgrammeApplicationSubmittedNotificationService applicationSubmittedNotificationService) {
+      ScheduleWorkProgrammeApplicationSubmittedNotificationService applicationSubmittedNotificationService,
+      CrossLicenceEventTrackerService crossLicenceEventTrackerService) {
     this.scheduleWorkProgrammeApplicationRepository = scheduleWorkProgrammeApplicationRepository;
     this.scheduleWorkProgrammeApplicationDetailRepository = scheduleWorkProgrammeApplicationDetailRepository;
     this.licenceScheduleDetailService = licenceScheduleDetailService;
@@ -51,6 +54,7 @@ public class ScheduleWorkProgrammeApplicationService {
     this.applicationAccessService = applicationAccessService;
     this.teamManagementService = teamManagementService;
     this.applicationSubmittedNotificationService = applicationSubmittedNotificationService;
+    this.crossLicenceEventTrackerService = crossLicenceEventTrackerService;
   }
 
   @Transactional
@@ -213,6 +217,8 @@ public class ScheduleWorkProgrammeApplicationService {
     scheduleWorkProgrammeApplicationDetail.setSubmittedByWuaId(user.wuaId());
 
     scheduleWorkProgrammeApplicationDetailRepository.save(scheduleWorkProgrammeApplicationDetail);
+
+    crossLicenceEventTrackerService.refreshApplicationCache(scheduleWorkProgrammeApplication);
 
     applicationSubmittedNotificationService.sendNewApplicationSubmittedEmails(scheduleWorkProgrammeApplicationDetail);
 

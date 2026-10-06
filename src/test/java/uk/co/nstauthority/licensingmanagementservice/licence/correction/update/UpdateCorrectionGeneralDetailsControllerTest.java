@@ -66,7 +66,7 @@ class UpdateCorrectionGeneralDetailsControllerTest extends AbstractControllerTes
   @Test
   void renderUpdateGeneralDetails_whenNotLoggedIn_redirectToLogin() throws Exception {
     mockMvc.perform(get(ReverseRouter.route(on(UpdateCorrectionGeneralDetailsController.class)
-            .renderUpdateGeneralDetails(CORRECTION_ID, null))))
+            .renderUpdateGeneralDetails(correction))))
         .andExpect(redirectionToLoginUrl());
   }
 
@@ -76,7 +76,7 @@ class UpdateCorrectionGeneralDetailsControllerTest extends AbstractControllerTes
         .thenReturn(Optional.empty());
 
     mockMvc.perform(get(ReverseRouter.route(on(UpdateCorrectionGeneralDetailsController.class)
-            .renderUpdateGeneralDetails(CORRECTION_ID, null)))
+            .renderUpdateGeneralDetails(correction)))
             .with(user(regulatorUser)))
         .andExpect(status().isForbidden());
   }
@@ -90,9 +90,10 @@ class UpdateCorrectionGeneralDetailsControllerTest extends AbstractControllerTes
 
     when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
         .thenReturn(Optional.of(completedCorrection));
+    when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(completedCorrection));
 
     mockMvc.perform(get(ReverseRouter.route(on(UpdateCorrectionGeneralDetailsController.class)
-            .renderUpdateGeneralDetails(CORRECTION_ID, null)))
+            .renderUpdateGeneralDetails(correction)))
             .with(user(regulatorUser)))
         .andExpect(status().isForbidden());
   }
@@ -101,11 +102,12 @@ class UpdateCorrectionGeneralDetailsControllerTest extends AbstractControllerTes
   void renderUpdateGeneralDetails_whenAllocatedToUser_assertModelAndView() throws Exception {
     when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
         .thenReturn(Optional.of(correction));
+    when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(correction));
     when(updateCorrectionGeneralDetailsService.getAllocatableUsers(correction.getLicence()))
         .thenReturn(ALLOCATABLE_USERS);
 
     var result = mockMvc.perform(get(ReverseRouter.route(on(UpdateCorrectionGeneralDetailsController.class)
-            .renderUpdateGeneralDetails(CORRECTION_ID, null)))
+            .renderUpdateGeneralDetails(correction)))
             .with(user(regulatorUser)))
         .andExpectAll(
             status().isOk(),
@@ -113,7 +115,7 @@ class UpdateCorrectionGeneralDetailsControllerTest extends AbstractControllerTes
             model().attribute("pageTitle", PAGE_TITLE),
             model().attribute("allocatableUsers", ALLOCATABLE_USERS),
             model().attribute("backLinkUrl", ReverseRouter.route(on(LicenceCorrectionController.class)
-                .renderCorrection(CORRECTION_ID, null)))
+                .renderCorrection(correction)))
         )
         .andReturn();
 
@@ -131,7 +133,7 @@ class UpdateCorrectionGeneralDetailsControllerTest extends AbstractControllerTes
   @Test
   void updateGeneralDetails_whenNotLoggedIn_redirectToLogin() throws Exception {
     mockMvc.perform(post(ReverseRouter.route(on(UpdateCorrectionGeneralDetailsController.class)
-            .updateGeneralDetails(CORRECTION_ID, null, null, null, null, null)))
+            .updateGeneralDetails(correction, null, null, null, null)))
             .with(csrf()))
         .andExpect(redirectionToLoginUrl());
   }
@@ -142,7 +144,7 @@ class UpdateCorrectionGeneralDetailsControllerTest extends AbstractControllerTes
         .thenReturn(Optional.empty());
 
     mockMvc.perform(post(ReverseRouter.route(on(UpdateCorrectionGeneralDetailsController.class)
-            .updateGeneralDetails(CORRECTION_ID, null, null, null, null, null)))
+            .updateGeneralDetails(correction, null, null, null, null)))
             .with(user(regulatorUser))
             .with(csrf()))
         .andExpect(status().isForbidden());
@@ -161,6 +163,7 @@ class UpdateCorrectionGeneralDetailsControllerTest extends AbstractControllerTes
 
     when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
         .thenReturn(Optional.of(correction));
+    when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(correction));
     when(updateCorrectionGeneralDetailsService.getAllocatableUsers(correction.getLicence()))
         .thenReturn(ALLOCATABLE_USERS);
     when(updateCorrectionGeneralDetailsFormValidator
@@ -168,14 +171,14 @@ class UpdateCorrectionGeneralDetailsControllerTest extends AbstractControllerTes
         .thenReturn(false);
 
     mockMvc.perform(post(ReverseRouter.route(on(UpdateCorrectionGeneralDetailsController.class)
-            .updateGeneralDetails(CORRECTION_ID, null, null, null, null, null)))
+            .updateGeneralDetails(correction, null, null, null, null)))
             .with(user(regulatorUser))
             .with(csrf())
             .flashAttr("form", form))
         .andExpectAll(
             status().is3xxRedirection(),
             redirectedUrl(ReverseRouter.route(on(LicenceCorrectionController.class)
-                .renderCorrection(CORRECTION_ID, null))),
+                .renderCorrection(correction))),
             notificationBanner(NotificationBanner.newSuccessBanner()
                 .withHeadingContent("Licence correction details updated")
                 .build())
@@ -194,6 +197,7 @@ class UpdateCorrectionGeneralDetailsControllerTest extends AbstractControllerTes
 
     when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
         .thenReturn(Optional.of(correction));
+    when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(correction));
     when(updateCorrectionGeneralDetailsService.getAllocatableUsers(correction.getLicence()))
         .thenReturn(ALLOCATABLE_USERS);
     when(updateCorrectionGeneralDetailsFormValidator
@@ -201,7 +205,7 @@ class UpdateCorrectionGeneralDetailsControllerTest extends AbstractControllerTes
         .thenReturn(false);
 
     mockMvc.perform(post(ReverseRouter.route(on(UpdateCorrectionGeneralDetailsController.class)
-            .updateGeneralDetails(CORRECTION_ID, null, null, null, null, null)))
+            .updateGeneralDetails(correction, null, null, null, null)))
             .with(user(regulatorUser))
             .with(csrf())
             .flashAttr("form", form))
@@ -220,6 +224,7 @@ class UpdateCorrectionGeneralDetailsControllerTest extends AbstractControllerTes
 
     when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
         .thenReturn(Optional.of(correction));
+    when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(correction));
     when(updateCorrectionGeneralDetailsService.getAllocatableUsers(correction.getLicence()))
         .thenReturn(ALLOCATABLE_USERS);
     when(updateCorrectionGeneralDetailsFormValidator
@@ -227,7 +232,7 @@ class UpdateCorrectionGeneralDetailsControllerTest extends AbstractControllerTes
         .thenReturn(true);
 
     mockMvc.perform(post(ReverseRouter.route(on(UpdateCorrectionGeneralDetailsController.class)
-            .updateGeneralDetails(CORRECTION_ID, null, null, null, null, null)))
+            .updateGeneralDetails(correction, null, null, null, null)))
             .with(user(regulatorUser))
             .with(csrf())
             .flashAttr("form", form))

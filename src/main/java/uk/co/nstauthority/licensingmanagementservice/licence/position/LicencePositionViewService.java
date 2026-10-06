@@ -8,6 +8,8 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -49,6 +51,9 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.vie
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.LicencePositionState;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.PositionChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ResolvedStates;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.filter.LicenceTimelineChangeTypeFilter;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.filter.LicenceTimelineFilter;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.filter.LicenceTimelineFilterOptions;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.util.DateUtil;
 
@@ -107,27 +112,159 @@ public class LicencePositionViewService {
     );
   }
 
+  public LicenseeChangeContext getLicenseeChangeContext(
+      LicenceCorrection licenceCorrection,
+      UUID licencePositionId
+  ) {
+    var chronologicalPositions = getCorrectedChronologicalPositions(licenceCorrection, licencePositionId);
+    var resolvedStates = LicencePositionStateResolver.resolve(chronologicalPositions);
+    var currentState = resolvedStates.currentState(licencePositionId);
+    var previousState = resolvedStates.previousState(licencePositionId);
+    var organisationNames = resolveOrganisationNames(chronologicalPositions);
+
+    return new LicenseeChangeContext(
+        getCurrentJoiningLicenseeIds(currentState.licenseeIds(), previousState.licenseeIds()),
+        getCurrentWithdrawingLicenseeIds(currentState.licenseeIds(), previousState.licenseeIds()),
+        previousState.licenseeIds(),
+        previousState.licenseeIds()
+            .stream()
+            .map(id -> nameOrEmpty(organisationNames, id))
+            .toList()
+    );
+  }
+
+  private List<Integer> getCurrentJoiningLicenseeIds(List<Integer> currentLicenseeIds, List<Integer> previousLicenseeIds) {
+    var previousLicenseeIdsSet = new HashSet<>(previousLicenseeIds);
+    return currentLicenseeIds
+        .stream()
+        .filter(id -> !previousLicenseeIdsSet.contains(id))
+        .toList();
+  }
+
+  private List<Integer> getCurrentWithdrawingLicenseeIds(List<Integer> currentLicenseeIds, List<Integer> previousLicenseeIds) {
+    var currentLicenseeIdsSet = new HashSet<>(currentLicenseeIds);
+    return previousLicenseeIds
+        .stream()
+        .filter(id -> !currentLicenseeIdsSet.contains(id))
+        .toList();
+  }
+
   public LicencePositionPageView getPositionPageView(LicencePosition licencePosition) {
-    var licence = licencePosition.getLicence();
+    return getPositionPageView(licencePosition, LicenceTimelineFilter.empty());
+  }
+
+  /**
+   * The read-only page view for a position, with the timeline limited to the positions the filter matches and the
+   * position's change views limited to the filter's change types. An empty filter applies no filter.
+   */
+  public LicencePositionPageView getPositionPageView(LicencePosition licencePosition, LicenceTimelineFilter filter) {
+    var executedChronologicalLicencePositions =
+        licencePositionService.getExecutedChronologicalLicencePositions(licencePosition.getLicence());
+    var liveChronologicalPositions = getLiveChronologicalPositions(executedChronologicalLicencePositions);
+
+    return getPositionPageView(
+        licencePosition,
+        executedChronologicalLicencePositions,
+        liveChronologicalPositions,
+        LicencePositionStateResolver.resolve(liveChronologicalPositions),
+        filter
+    );
+  }
+
+  /**
+   * The read-only page view for the latest position on the licence the filter matches, or the latest position when
+   * the filter is empty.
+   */
+  public LicencePositionPageView getLatestPositionPageView(Licence licence, LicenceTimelineFilter filter) {
     var executedChronologicalLicencePositions = licencePositionService.getExecutedChronologicalLicencePositions(licence);
+
+    if (executedChronologicalLicencePositions.isEmpty()) {
+      return LicencePositionPageView.empty();
+    }
+
     var liveChronologicalPositions = getLiveChronologicalPositions(executedChronologicalLicencePositions);
     var resolvedStates = LicencePositionStateResolver.resolve(liveChronologicalPositions);
+
+    if (filter.isEmpty()) {
+      return getPositionPageView(
+          executedChronologicalLicencePositions.getLast(),
+          executedChronologicalLicencePositions,
+          liveChronologicalPositions,
+          resolvedStates,
+          filter
+      );
+    }
+
+    var latestMatchingPositionId = liveChronologicalPositions.reversed().stream()
+        .filter(position -> positionMatches(filter, position, resolvedStates))
+        .map(ChronologicalPosition::id)
+        .findFirst();
+
+    return latestMatchingPositionId
+        .flatMap(positionId -> executedChronologicalLicencePositions.stream()
+            .filter(position -> position.getId().equals(positionId))
+            .findFirst())
+        .map(position -> getPositionPageView(
+            position,
+            executedChronologicalLicencePositions,
+            liveChronologicalPositions,
+            resolvedStates,
+            filter
+        ))
+        .orElseGet(() -> LicencePositionPageView.noMatchingPositions(
+            licence.getType(),
+            getFilterOptions(liveChronologicalPositions, getOrganisationNameContext(liveChronologicalPositions))
+        ));
+  }
+
+  public LicenceTimelineFilterOptions getFilterOptions(Licence licence) {
+    var liveChronologicalPositions = getLiveChronologicalPositions(licence);
+
+    return getFilterOptions(liveChronologicalPositions, getOrganisationNameContext(liveChronologicalPositions));
+  }
+
+  private LicencePositionPageView getPositionPageView(
+      LicencePosition licencePosition,
+      List<LicencePosition> executedChronologicalLicencePositions,
+      List<ChronologicalPosition> liveChronologicalPositions,
+      ResolvedStates resolvedStates,
+      LicenceTimelineFilter filter
+  ) {
+    var licence = licencePosition.getLicence();
     var featureNames = resolveFeatureNames(liveChronologicalPositions);
     var nameContext = getOrganisationNameContext(liveChronologicalPositions);
     var positionDate = effectivePositionDate(liveChronologicalPositions, licencePosition.getId());
 
-    return LicencePositionPageView.readOnly(
-        getReadOnlyTimelineView(executedChronologicalLicencePositions, nameContext.getNamesForDate(positionDate), resolvedStates),
-        licencePosition.getFormattedPositionDate(),
-        licencePosition.getLicenceTransaction().getRegulatorReference(),
-        LicencePositionChangeViewResolver.getChangeViews(
+    var matchingPositionIds = liveChronologicalPositions.stream()
+        .filter(position -> positionMatches(filter, position, resolvedStates))
+        .map(ChronologicalPosition::id)
+        .collect(Collectors.toSet());
+
+    // Only the change type filter narrows the change views. A change view can merge several operations naming
+    // different organisations, so a matching position shows every one of its changes to the organisation filter.
+    var changeTypes = filter.changeTypes();
+    var changeViews = LicencePositionChangeViewResolver.getChangeViews(
             licencePosition.getId(),
             liveChronologicalPositions,
             resolvedStates,
             nameContext.getNamesForDate(positionDate),
             featureNames,
             null
+        )
+        .stream()
+        .filter(changeView -> changeTypes.isEmpty() || changeTypes.contains(changeView.type()))
+        .toList();
+
+    return LicencePositionPageView.readOnly(
+        getReadOnlyTimelineView(
+            executedChronologicalLicencePositions,
+            matchingPositionIds,
+            nameContext.getNamesForDate(positionDate),
+            resolvedStates
         ),
+        licencePosition.getFormattedPositionDate(),
+        licencePosition.getLicenceTransaction().getRegulatorReference(),
+        changeViews,
         LicencePositionStateViewResolver.getStateView(
             licencePosition.getId(),
             resolvedStates,
@@ -135,7 +272,47 @@ public class LicencePositionViewService {
             positionDate
         ),
         licencePosition.getId(),
-        licence.getType()
+        licence.getType(),
+        getFilterOptions(liveChronologicalPositions, nameContext),
+        !filter.isEmpty()
+    );
+  }
+
+  private static boolean positionMatches(
+      LicenceTimelineFilter filter,
+      ChronologicalPosition chronologicalPosition,
+      ResolvedStates resolvedStates
+  ) {
+    return filter.matches(
+        chronologicalPosition,
+        resolvedStates.previousState(chronologicalPosition.id()).administratorId()
+    );
+  }
+
+  /**
+   * Offers every organisation on the timeline by the name it goes by today, since the filter spans every position
+   * rather than the one being shown.
+   */
+  private static LicenceTimelineFilterOptions getFilterOptions(
+      List<ChronologicalPosition> chronologicalPositions,
+      OrganisationNameContext nameContext
+  ) {
+    var organisationOptions = resolveIds(chronologicalPositions, LicenceOperation::organisationIds).stream()
+        .map(organisationId -> Map.entry(
+            String.valueOf(organisationId),
+            nameContext.getNameForDate(organisationId, null, NOT_AVAILABLE)
+        ))
+        .sorted(Map.Entry.comparingByValue(String.CASE_INSENSITIVE_ORDER))
+        .collect(Collectors.toMap(
+            Map.Entry::getKey,
+            Map.Entry::getValue,
+            (first, second) -> first,
+            LinkedHashMap::new
+        ));
+
+    return new LicenceTimelineFilterOptions(
+        LicenceTimelineChangeTypeFilter.getAvailableChangeTypeOptions(chronologicalPositions),
+        organisationOptions
     );
   }
 
@@ -166,19 +343,18 @@ public class LicencePositionViewService {
     var nameContext = getOrganisationNameContext(allChronologicalPositions);
     var positionDate = effectivePositionDate(allChronologicalPositions, licencePosition.getId());
 
-    var stagedPositionCorrectionId = updatedCorrections.stream()
+    var stagedPositionCorrection = updatedCorrections.stream()
         .filter(positionCorrection -> positionCorrection.getTargetLicencePosition().getId()
             .equals(licencePosition.getId()))
-        .map(LicencePositionCorrection::getId)
         .findFirst()
         .orElse(null);
 
     var urlContext = currentPositionRemoved
         ? null
         : PositionChangeUrlContext.forExecutedPosition(
-            licenceCorrection.getId(),
-            licencePosition.getId(),
-            stagedPositionCorrectionId);
+            licenceCorrection,
+            licencePosition,
+            stagedPositionCorrection);
 
     var changeViews = LicencePositionChangeViewResolver.getChangeViews(
         licencePosition.getId(),
@@ -192,7 +368,7 @@ public class LicencePositionViewService {
     var actions = currentPositionRemoved
         ? LicencePositionPageView.Actions.none()
         : new LicencePositionPageView.Actions(ReverseRouter.route(on(LicencePositionAddChangeController.class)
-          .renderForExecutedPosition(licenceCorrection.getId(), licencePosition.getId(), null)));
+          .renderForExecutedPosition(licenceCorrection, licencePosition)));
 
     var validationPositions = currentPositionRemoved
         ? allChronologicalPositions.stream()
@@ -215,7 +391,8 @@ public class LicencePositionViewService {
             removedPositionIds,
             updatedPositionPayloadsByTargetId,
             addedPositionCorrections,
-            invalidPositionIds
+            invalidPositionIds,
+            movedAwayPositionIds(allChronologicalPositions)
         ),
         licencePosition.getFormattedPositionDate(),
         licencePosition.getLicenceTransaction().getRegulatorReference(),
@@ -264,11 +441,11 @@ public class LicencePositionViewService {
         resolvedStates,
         nameContext.getNamesForDate(positionDate),
         featureNames,
-        PositionChangeUrlContext.forAddedPosition(licenceCorrection.getId(), positionCorrection.getId())
+        PositionChangeUrlContext.forAddedPosition(licenceCorrection, positionCorrection)
     );
 
     var addChangeUrl = ReverseRouter.route(on(LicencePositionAddChangeController.class)
-        .renderForAddedPosition(licenceCorrection.getId(), positionCorrection.getId(), null));
+        .renderForAddedPosition(licenceCorrection, positionCorrection));
 
     var actions = new LicencePositionPageView.Actions(addChangeUrl);
 
@@ -287,7 +464,8 @@ public class LicencePositionViewService {
             removedPositionIds,
             updatedPositionPayloadsByTargetId,
             addedPositionCorrections,
-            invalidPositionIds
+            invalidPositionIds,
+            movedAwayPositionIds(allChronologicalPositions)
         ),
         DateUtil.formatLongDate(payload.effectiveDate()),
         payload.correctionReference(),
@@ -354,15 +532,18 @@ public class LicencePositionViewService {
 
   public Map<UUID, String> getOrderableChangeLabels(LicenceCorrection licenceCorrection, UUID licencePositionId) {
     var chronologicalPositions = getCorrectedChronologicalPositions(licenceCorrection, licencePositionId);
-    var currentChanges = chronologicalPositions.stream()
-        .filter(chronologicalPosition -> chronologicalPosition.id().equals(licencePositionId))
-        .flatMap(chronologicalPosition -> chronologicalPosition.changes().stream())
-        .toList();
 
     return LicencePositionChangeViewResolver.getOrderableChangeLabels(
-        currentChanges,
+        changesOn(chronologicalPositions, licencePositionId),
         resolveFeatureNames(chronologicalPositions)
     );
+  }
+
+  private List<PositionChange> changesOn(List<ChronologicalPosition> chronologicalPositions, UUID positionId) {
+    return chronologicalPositions.stream()
+        .filter(chronologicalPosition -> chronologicalPosition.id().equals(positionId))
+        .flatMap(chronologicalPosition -> chronologicalPosition.changes().stream())
+        .toList();
   }
 
   private List<ChronologicalPosition> getCorrectedChronologicalPositions(
@@ -375,6 +556,9 @@ public class LicencePositionViewService {
     var liveChangesByPositionId = getLiveChangesByPositionId(executedChronologicalLicencePositions);
 
     var correctedPayloadsByPositionId = updatedPositionPayloadsByTargetId(updatedCorrections);
+    var updatedChangePositionIds = LicencePositionCorrectionService.getUpdatedChangePositionIds(
+        Stream.concat(updatedCorrections.stream(), addedCorrections.stream()).toList()
+    );
 
     var chronologicalPositions = new ArrayList<ChronologicalPosition>();
 
@@ -386,9 +570,16 @@ public class LicencePositionViewService {
         .forEach(position -> {
           var correctedPayload = correctedPayloadsByPositionId.get(position.getId());
           var changes = PositionChange.foldChanges(
-              liveChangesByPositionId.getOrDefault(position.getId(), List.of()),
-              correctedPayload != null ? correctedPayload.changes() : List.of()
-          );
+                  liveChangesByPositionId.getOrDefault(position.getId(), List.of()),
+                  correctedPayload != null ? correctedPayload.changes() : List.of()
+              )
+              .stream()
+              .map(change -> LicencePositionCorrectionService.isMovedAway(
+                  change.changeId(),
+                  position.getId(),
+                  updatedChangePositionIds
+              ) ? change.asMovedAway() : change)
+              .toList();
           chronologicalPositions.add(ChronologicalPosition.fromLicencePosition(
               position,
               effectiveReference(position, correctedPayloadsByPositionId),
@@ -404,6 +595,13 @@ public class LicencePositionViewService {
 
     chronologicalPositions.sort(CHRONOLOGICAL_POSITION_COMPARATOR);
     return chronologicalPositions;
+  }
+
+  private static Set<UUID> movedAwayPositionIds(List<ChronologicalPosition> chronologicalPositions) {
+    return chronologicalPositions.stream()
+        .filter(ChronologicalPosition::hasMovedAwayChange)
+        .map(ChronologicalPosition::id)
+        .collect(Collectors.toSet());
   }
 
   private static Set<UUID> invalidPositionIds(List<PositionValidationError> validationErrors) {
@@ -497,11 +695,13 @@ public class LicencePositionViewService {
 
   private List<LicencePositionTimelineView> getReadOnlyTimelineView(
       List<LicencePosition> chronologicalLicencePositions,
+      Set<UUID> matchingPositionIds,
       Map<Integer, String> namesForDate,
       ResolvedStates resolvedStates
   ) {
     return chronologicalLicencePositions.stream()
         .filter(position -> position.getStatus() == LicencePositionStatus.EXECUTED)
+        .filter(position -> matchingPositionIds.contains(position.getId()))
         .map(licencePosition -> new TimelineEntry(
             licencePosition.getPositionDate(),
             licencePosition.getPositionDateOrder(),
@@ -525,7 +725,8 @@ public class LicencePositionViewService {
       Set<UUID> removedPositionIds,
       Map<UUID, UpdateLicencePositionPayload> correctedPayloadsByPositionId,
       List<LicencePositionCorrection> addedCorrections,
-      Set<UUID> invalidPositionIds
+      Set<UUID> invalidPositionIds,
+      Set<UUID> movedAwayPositionIds
   ) {
 
     var sameDateCount = sameDateCountByEffectiveDate(
@@ -538,7 +739,8 @@ public class LicencePositionViewService {
             removedPositionIds,
             correctedPayloadsByPositionId,
             sameDateCount,
-            invalidPositionIds
+            invalidPositionIds,
+            movedAwayPositionIds
         );
     var addedPositions = getAddedPositionEntries(licenceCorrection, addedCorrections, sameDateCount, invalidPositionIds);
 
@@ -573,7 +775,8 @@ public class LicencePositionViewService {
       Set<UUID> removedPositionIds,
       Map<UUID, UpdateLicencePositionPayload> correctedPayloadsByPositionId,
       Map<LocalDate, Long> sameDateCount,
-      Set<UUID> invalidPositionIds
+      Set<UUID> invalidPositionIds,
+      Set<UUID> movedAwayPositionIds
   ) {
     return licencePositions.stream()
         .filter(position -> position.getStatus() == LicencePositionStatus.EXECUTED)
@@ -588,7 +791,9 @@ public class LicencePositionViewService {
           var timelineViewBuilder = baseTimelineViewBuilder(
               licencePosition, getCorrectionPositionUrl(licenceCorrection, licencePosition), null, null)
               .withFormattedPositionDate(DateUtil.formatLongDateWithOrder(effectiveDate, effectiveDateOrder))
-              .withCorrectedInThisCorrection(hasPendingCorrection(correctedPayload))
+              .withCorrectedInThisCorrection(
+                  hasPendingCorrection(correctedPayload) || movedAwayPositionIds.contains(licencePosition.getId())
+              )
               .withRemovedInThisCorrection(removed)
               .withHasError(invalidPositionIds.contains(licencePosition.getId()));
 
@@ -627,13 +832,13 @@ public class LicencePositionViewService {
           var timelineViewBuilder = LicencePositionTimelineView.builder()
               .withPositionId(addedPositionId)
               .withUrl(ReverseRouter.route(on(LicenceCorrectionController.class)
-                  .renderAddedPosition(licenceCorrection.getId(), licencePositionCorrection.getId(), null)))
+                  .renderAddedPosition(licenceCorrection, licencePositionCorrection)))
               .withRegulatorReference(payload.correctionReference())
               .withFormattedPositionDate(DateUtil.formatLongDateWithOrder(effectiveDate, payload.effectiveDateOrder()))
               .withAddedInThisCorrection(true)
               .withHasError(invalidPositionIds.contains(addedPositionId))
               .withUndoUrl(ReverseRouter.route(on(UndoLicencePositionCorrectionController.class)
-                  .renderUndoPosition(licenceCorrection.getId(), licencePositionCorrection.getId(), null)));
+                  .renderUndoPosition(licenceCorrection, licencePositionCorrection)));
 
           if (sameDateCount.getOrDefault(effectiveDate, 0L) > 1) {
             timelineViewBuilder.withCorrectOrderUrl(getCorrectOrderPositionUrl(licenceCorrection, addedPositionId));
@@ -646,27 +851,27 @@ public class LicencePositionViewService {
 
   private String getPositionUrl(LicencePosition licencePosition) {
     return ReverseRouter.route(on(LicencePositionController.class)
-        .renderLicencePosition(licencePosition.getLicence(), licencePosition.getId(), null));
+        .renderLicencePosition(licencePosition.getLicence(), licencePosition, null, null));
   }
 
   private String getCorrectionPositionUrl(LicenceCorrection correction, LicencePosition position) {
     return ReverseRouter.route(on(LicenceCorrectionController.class)
-        .renderLicencePosition(correction.getId(), position.getId(), correction));
+        .renderLicencePosition(correction, position));
   }
 
   private String getRemovePositionUrl(LicenceCorrection correction, LicencePosition position) {
     return ReverseRouter.route(on(RemoveExecutedLicencePositionCorrectionController.class)
-        .renderRemovePosition(correction.getId(), position.getId(), null));
+        .renderRemovePosition(correction, position));
   }
 
   private String getReinstatePositionUrl(LicenceCorrection correction, LicencePosition position) {
     return ReverseRouter.route(on(ReinstateLicencePositionCorrectionController.class)
-        .renderReinstatePosition(correction.getId(), position.getId(), null));
+        .renderReinstatePosition(correction, position));
   }
 
   private String getCorrectDatePositionUrl(LicenceCorrection correction, LicencePosition position) {
     return ReverseRouter.route(on(CorrectPositionDateController.class)
-        .renderCorrectLicencePositionCorrectionDate(correction.getId(), position.getId(), null));
+        .renderCorrectLicencePositionCorrectionDate(correction, position));
   }
 
   private String getCorrectOrderPositionUrl(LicenceCorrection correction, LicencePosition position) {
@@ -675,7 +880,7 @@ public class LicencePositionViewService {
 
   private String getCorrectOrderPositionUrl(LicenceCorrection correction, UUID positionId) {
     return ReverseRouter.route(on(LicencePositionCorrectionOrderChangeController.class)
-        .renderCorrectionLicencePositionOrder(correction.getId(), positionId, null));
+        .renderCorrectionLicencePositionOrder(correction, positionId));
   }
 
   private String effectiveReference(

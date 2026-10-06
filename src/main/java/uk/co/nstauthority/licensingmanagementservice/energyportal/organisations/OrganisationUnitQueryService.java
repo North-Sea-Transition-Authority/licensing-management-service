@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -176,5 +177,33 @@ public class OrganisationUnitQueryService {
         .map(OrganisationUnitJson::from)
         .sorted(Comparator.comparing(OrganisationUnitJson::name))
         .toList();
+  }
+
+  public List<OrganisationUnitJson> searchOrganisationUnitsWithNameCompareToList(
+      String organisationName,
+      Set<String> includeNames,
+      Set<String> excludeNames
+  ) {
+    return organisationApi.searchOrganisationUnits(
+          organisationName,
+          ORGANISATION_UNITS_PROJECTION_ROOT,
+          new RequestPurpose("Search organisation units by name"),
+          CorrelationIdUtil.getLogCorrelationId()
+      )
+      .stream()
+      .filter(unit -> !BooleanUtils.isTrue(unit.getIsDuplicate()))
+      .filter(organisationUnit -> filterByList(organisationUnit, includeNames, excludeNames))
+      .map(OrganisationUnitJson::from)
+      .sorted(Comparator.comparing(OrganisationUnitJson::name))
+      .toList();
+  }
+
+  private boolean filterByList(OrganisationUnit unit, Set<String> includeNames, Set<String> excludeNames) {
+    if (!includeNames.isEmpty()) {
+      return includeNames.contains(unit.getName());
+    } else if (!excludeNames.isEmpty()) {
+      return !excludeNames.contains(unit.getName());
+    }
+    return true;
   }
 }

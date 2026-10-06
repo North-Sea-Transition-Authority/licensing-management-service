@@ -14,6 +14,7 @@ public class LicenceCorrectionTestUtil {
   private LicenceCorrectionStatus status = LicenceCorrectionStatus.IN_PROGRESS;
   private Long allocatedToWuaId = 0L;
   private Instant createdInstant = Instant.parse("2026-06-05T10:00:00Z");
+  private Instant completedInstant;
 
   public static LicenceCorrectionTestUtil newBuilder() {
     return new LicenceCorrectionTestUtil();
@@ -54,6 +55,11 @@ public class LicenceCorrectionTestUtil {
     return this;
   }
 
+  public LicenceCorrectionTestUtil withCompletedInstant(Instant completedInstant) {
+    this.completedInstant = completedInstant;
+    return this;
+  }
+
   public LicenceCorrection build() {
     var licenceCorrection = new LicenceCorrection(id);
     licenceCorrection.setLicence(licence);
@@ -62,6 +68,7 @@ public class LicenceCorrectionTestUtil {
     licenceCorrection.setStatus(status);
     licenceCorrection.setAllocatedToWuaId(allocatedToWuaId);
     licenceCorrection.setCreatedInstant(createdInstant);
+    licenceCorrection.setCompletedInstant(completedInstant);
 
     return licenceCorrection;
   }

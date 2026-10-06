@@ -4,14 +4,16 @@ import { describe, expect, it, vi } from "vitest";
 import MapWithTextualDescription
   from "@/components/textualDescription/MapWithTextualDescription.vue";
 
-const { getTextualDescriptionMock, getFeaturesMock } = vi.hoisted(() => ({
+const { getTextualDescriptionMock, getFeaturesMock, getOutlineNodesMock } = vi.hoisted(() => ({
   getTextualDescriptionMock: vi.fn(),
   getFeaturesMock: vi.fn(),
+  getOutlineNodesMock: vi.fn(),
 }));
 
 vi.mock("@/api/features.api", () => ({
   getTextualDescription: getTextualDescriptionMock,
   getFeatures: getFeaturesMock,
+  getOutlineNodes: getOutlineNodesMock,
 }));
 
 // Registers <ol-map> as a slotless labelled <div>. Because the stub does not render its default slot,
@@ -36,6 +38,7 @@ describe("mapWithTextualDescription", () => {
       "<div class=\"gis-textual-description\"><p>Subarea 30/1a is bounded by the following coordinates:</p></div>",
     );
     getFeaturesMock.mockResolvedValue([]);
+    getOutlineNodesMock.mockResolvedValue([]);
 
     render(MapWithTextualDescription, {
       props: { ...baseProps },
@@ -51,5 +54,7 @@ describe("mapWithTextualDescription", () => {
     expect(
       screen.getByLabelText("A map displaying TODO: EPGF-78 insert displayed shape names here"),
     ).toBeInTheDocument();
+    expect(getFeaturesMock).toHaveBeenCalledWith(baseProps.featuresUrl);
+    expect(getOutlineNodesMock).toHaveBeenCalledWith(baseProps.outlineNodesUrl);
   });
 });

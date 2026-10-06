@@ -44,25 +44,36 @@ class UndoLicencePositionCorrectionControllerTest extends AbstractControllerTest
   private static final String CORRECTION_REFERENCE = "CORR-123";
   private static final String PAGE_TITLE = "Are you sure you want to undo this position?";
   private static final String VIEW_NAME = "lms/licence/correction/undoPosition";
+  private static final LicenceCorrection CORRECTION = LicenceCorrectionTestUtil.newBuilder()
+      .withId(CORRECTION_ID)
+      .withLicence(LICENCE)
+      .build();
+  private static final LicencePositionCorrection POSITION_CORRECTION = LicencePositionCorrectionTestUtil.newBuilder()
+      .withId(POSITION_CORRECTION_ID)
+      .withLicenceCorrection(CORRECTION)
+      .withPayload(LicencePositionPayload.newCreateLicencePositionPayload()
+          .withEffectiveDate(POSITION_DATE)
+          .withCorrectionReference(CORRECTION_REFERENCE)
+          .build())
+      .build();
 
   private final String cancelUrl = ReverseRouter.route(on(LicenceCorrectionController.class)
-      .renderCorrection(CORRECTION_ID, null));
+      .renderCorrection(CORRECTION));
 
   @Test
   void renderUndoPosition_whenNotLoggedIn() throws Exception {
     mockMvc.perform(get(ReverseRouter.route(on(UndoLicencePositionCorrectionController.class)
-            .renderUndoPosition(CORRECTION_ID, POSITION_CORRECTION_ID, null))))
+            .renderUndoPosition(CORRECTION, POSITION_CORRECTION))))
         .andExpect(redirectionToLoginUrl());
   }
 
   @Test
   void renderUndoPosition_whenAllocatedToUser() throws Exception {
-    var correction = givenCorrectionAllocatedToUser();
-    when(licencePositionCorrectionService.getPositionCorrectionForCorrection(POSITION_CORRECTION_ID, correction))
-        .thenReturn(positionCorrection());
+    givenCorrectionAllocatedToUser();
+    when(licencePositionCorrectionService.findById(POSITION_CORRECTION_ID)).thenReturn(Optional.of(POSITION_CORRECTION));
 
     mockMvc.perform(get(ReverseRouter.route(on(UndoLicencePositionCorrectionController.class)
-            .renderUndoPosition(CORRECTION_ID, POSITION_CORRECTION_ID, null)))
+            .renderUndoPosition(CORRECTION, POSITION_CORRECTION)))
             .with(user(regulatorUser)))
         .andExpectAll(
             status().isOk(),
@@ -79,7 +90,7 @@ class UndoLicencePositionCorrectionControllerTest extends AbstractControllerTest
     givenCorrectionNotAllocatedToUser();
 
     mockMvc.perform(get(ReverseRouter.route(on(UndoLicencePositionCorrectionController.class)
-            .renderUndoPosition(CORRECTION_ID, POSITION_CORRECTION_ID, null)))
+            .renderUndoPosition(CORRECTION, POSITION_CORRECTION)))
             .with(user(regulatorUser)))
         .andExpect(status().isForbidden());
   }
@@ -87,20 +98,18 @@ class UndoLicencePositionCorrectionControllerTest extends AbstractControllerTest
   @Test
   void undoPosition_whenNotLoggedIn() throws Exception {
     mockMvc.perform(post(ReverseRouter.route(on(UndoLicencePositionCorrectionController.class)
-            .undoPosition(CORRECTION_ID, POSITION_CORRECTION_ID, null, null)))
+            .undoPosition(CORRECTION, POSITION_CORRECTION, null)))
             .with(csrf()))
         .andExpect(redirectionToLoginUrl());
   }
 
   @Test
   void undoPosition_whenAllocatedToUser() throws Exception {
-    var correction = givenCorrectionAllocatedToUser();
-    var positionCorrection = positionCorrection();
-    when(licencePositionCorrectionService.getPositionCorrectionForCorrection(POSITION_CORRECTION_ID, correction))
-        .thenReturn(positionCorrection);
+    givenCorrectionAllocatedToUser();
+    when(licencePositionCorrectionService.findById(POSITION_CORRECTION_ID)).thenReturn(Optional.of(POSITION_CORRECTION));
 
     mockMvc.perform(post(ReverseRouter.route(on(UndoLicencePositionCorrectionController.class)
-            .undoPosition(CORRECTION_ID, POSITION_CORRECTION_ID, null, null)))
+            .undoPosition(CORRECTION, POSITION_CORRECTION, null)))
             .with(user(regulatorUser))
             .with(csrf()))
         .andExpectAll(
@@ -111,7 +120,7 @@ class UndoLicencePositionCorrectionControllerTest extends AbstractControllerTest
                 .build())
         );
 
-    verify(licencePositionCorrectionService).undoPositionCorrection(positionCorrection);
+    verify(licencePositionCorrectionService).undoPositionCorrection(POSITION_CORRECTION);
   }
 
   @Test
@@ -119,7 +128,7 @@ class UndoLicencePositionCorrectionControllerTest extends AbstractControllerTest
     givenCorrectionNotAllocatedToUser();
 
     mockMvc.perform(post(ReverseRouter.route(on(UndoLicencePositionCorrectionController.class)
-            .undoPosition(CORRECTION_ID, POSITION_CORRECTION_ID, null, null)))
+            .undoPosition(CORRECTION, POSITION_CORRECTION, null)))
             .with(user(regulatorUser))
             .with(csrf()))
         .andExpect(status().isForbidden());
@@ -127,23 +136,10 @@ class UndoLicencePositionCorrectionControllerTest extends AbstractControllerTest
     verifyNoInteractions(licencePositionCorrectionService);
   }
 
-  private LicencePositionCorrection positionCorrection() {
-    return LicencePositionCorrectionTestUtil.newBuilder()
-        .withPayload(LicencePositionPayload.newCreateLicencePositionPayload()
-            .withEffectiveDate(POSITION_DATE)
-            .withCorrectionReference(CORRECTION_REFERENCE)
-            .build())
-        .build();
-  }
-
-  private LicenceCorrection givenCorrectionAllocatedToUser() {
-    var correction = LicenceCorrectionTestUtil.newBuilder()
-        .withId(CORRECTION_ID)
-        .withLicence(LICENCE)
-        .build();
+  private void givenCorrectionAllocatedToUser() {
     when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
-        .thenReturn(Optional.of(correction));
-    return correction;
+        .thenReturn(Optional.of(CORRECTION));
+    when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(CORRECTION));
   }
 
   private void givenCorrectionNotAllocatedToUser() {

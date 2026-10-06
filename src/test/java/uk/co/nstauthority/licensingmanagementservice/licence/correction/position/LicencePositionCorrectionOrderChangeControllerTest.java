@@ -56,12 +56,12 @@ class LicencePositionCorrectionOrderChangeControllerTest extends AbstractControl
       .withId(CORRECTION_ID).withLicence(LICENCE).build();
 
   private final String backLinkUrl = ReverseRouter.route(on(LicenceCorrectionController.class)
-      .renderCorrection(CORRECTION_ID, null));
+      .renderCorrection(CORRECTION));
 
   @Test
   void renderCorrectPositionOrder_whenNotLoggedIn() throws Exception {
     mockMvc.perform(get(ReverseRouter.route(on(LicencePositionCorrectionOrderChangeController.class)
-            .renderCorrectionLicencePositionOrder(CORRECTION_ID, POSITION_ID, null))))
+            .renderCorrectionLicencePositionOrder(CORRECTION, POSITION_ID))))
         .andExpect(redirectionToLoginUrl());
   }
 
@@ -72,7 +72,7 @@ class LicencePositionCorrectionOrderChangeControllerTest extends AbstractControl
         .thenReturn(List.of(orderable(POSITION_ID, 1, "REF-A"), orderable(OTHER_POSITION_ID, 2, "REF-B")));
 
     mockMvc.perform(get(ReverseRouter.route(on(LicencePositionCorrectionOrderChangeController.class)
-            .renderCorrectionLicencePositionOrder(CORRECTION_ID, POSITION_ID, null)))
+            .renderCorrectionLicencePositionOrder(CORRECTION, POSITION_ID)))
             .with(user(regulatorUser)))
         .andExpectAll(
             status().isOk(),
@@ -96,7 +96,7 @@ class LicencePositionCorrectionOrderChangeControllerTest extends AbstractControl
             orderable(UUID.randomUUID(), 3, "REF-C")));
 
     mockMvc.perform(get(ReverseRouter.route(on(LicencePositionCorrectionOrderChangeController.class)
-            .renderCorrectionLicencePositionOrder(CORRECTION_ID, POSITION_ID, null)))
+            .renderCorrectionLicencePositionOrder(CORRECTION, POSITION_ID)))
             .with(user(regulatorUser)))
         .andExpectAll(
             status().isOk(),
@@ -126,7 +126,7 @@ class LicencePositionCorrectionOrderChangeControllerTest extends AbstractControl
         new PositionMove(PositionMoveDirection.AFTER, lastId).toFormValue(), "After REF-LAST");
 
     mockMvc.perform(get(ReverseRouter.route(on(LicencePositionCorrectionOrderChangeController.class)
-            .renderCorrectionLicencePositionOrder(CORRECTION_ID, POSITION_ID, null)))
+            .renderCorrectionLicencePositionOrder(CORRECTION, POSITION_ID)))
             .with(user(regulatorUser)))
         .andExpectAll(
             status().isOk(),
@@ -147,7 +147,7 @@ class LicencePositionCorrectionOrderChangeControllerTest extends AbstractControl
         .thenReturn(List.of(orderable(POSITION_ID, 1, "REF-A")));
 
     mockMvc.perform(get(ReverseRouter.route(on(LicencePositionCorrectionOrderChangeController.class)
-            .renderCorrectionLicencePositionOrder(CORRECTION_ID, POSITION_ID, null)))
+            .renderCorrectionLicencePositionOrder(CORRECTION, POSITION_ID)))
             .with(user(regulatorUser)))
         .andExpectAll(
             status().is3xxRedirection(),
@@ -160,7 +160,7 @@ class LicencePositionCorrectionOrderChangeControllerTest extends AbstractControl
     givenCorrectionNotAllocatedToUser();
 
     mockMvc.perform(get(ReverseRouter.route(on(LicencePositionCorrectionOrderChangeController.class)
-            .renderCorrectionLicencePositionOrder(CORRECTION_ID, POSITION_ID, null)))
+            .renderCorrectionLicencePositionOrder(CORRECTION, POSITION_ID)))
             .with(user(regulatorUser)))
         .andExpect(status().isForbidden());
   }
@@ -168,7 +168,7 @@ class LicencePositionCorrectionOrderChangeControllerTest extends AbstractControl
   @Test
   void correctPositionOrder_whenNotLoggedIn() throws Exception {
     mockMvc.perform(post(ReverseRouter.route(on(LicencePositionCorrectionOrderChangeController.class)
-            .correctLicencePositionCorrectionOrder(CORRECTION_ID, POSITION_ID, null, null, null, null)))
+            .correctLicencePositionCorrectionOrder(CORRECTION, POSITION_ID, null, null, null)))
             .with(csrf()))
         .andExpect(redirectionToLoginUrl());
   }
@@ -185,7 +185,7 @@ class LicencePositionCorrectionOrderChangeControllerTest extends AbstractControl
     when(correctPositionOrderFormValidator.hasErrors(eq(form), any(), any())).thenReturn(false);
 
     mockMvc.perform(post(ReverseRouter.route(on(LicencePositionCorrectionOrderChangeController.class)
-            .correctLicencePositionCorrectionOrder(CORRECTION_ID, POSITION_ID, null, null, null, null)))
+            .correctLicencePositionCorrectionOrder(CORRECTION, POSITION_ID, null, null, null)))
             .with(user(regulatorUser))
             .with(csrf())
             .flashAttr("form", form))
@@ -211,7 +211,7 @@ class LicencePositionCorrectionOrderChangeControllerTest extends AbstractControl
     when(correctPositionOrderFormValidator.hasErrors(eq(form), any(), any())).thenReturn(true);
 
     mockMvc.perform(post(ReverseRouter.route(on(LicencePositionCorrectionOrderChangeController.class)
-            .correctLicencePositionCorrectionOrder(CORRECTION_ID, POSITION_ID, null, null, null, null)))
+            .correctLicencePositionCorrectionOrder(CORRECTION, POSITION_ID, null, null, null)))
             .with(user(regulatorUser))
             .with(csrf())
             .flashAttr("form", form))
@@ -234,7 +234,7 @@ class LicencePositionCorrectionOrderChangeControllerTest extends AbstractControl
     givenCorrectionNotAllocatedToUser();
 
     mockMvc.perform(post(ReverseRouter.route(on(LicencePositionCorrectionOrderChangeController.class)
-            .correctLicencePositionCorrectionOrder(CORRECTION_ID, POSITION_ID, null, null, null, null)))
+            .correctLicencePositionCorrectionOrder(CORRECTION, POSITION_ID, null, null, null)))
             .with(user(regulatorUser))
             .with(csrf()))
         .andExpect(status().isForbidden());
@@ -246,6 +246,7 @@ class LicencePositionCorrectionOrderChangeControllerTest extends AbstractControl
   private void givenCorrectionAllocatedToUser() {
     when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
         .thenReturn(Optional.of(CORRECTION));
+    when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(CORRECTION));
   }
 
   private void givenCorrectionNotAllocatedToUser() {

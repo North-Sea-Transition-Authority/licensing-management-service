@@ -13,7 +13,9 @@
     <#if summaryCard.summaryCardType() == "SIMPLE_SUMMARY">
       <@simpleSummary.simpleSummary
         summaryDataView=summaryCard.summaryData()
-        summaryHeading=summaryCard.displayName()!""/>
+        summaryHeading=summaryCard.displayName()!""
+        actions=summaryCard.actions()
+      />
     <#elseif summaryCard.summaryCardType() == "FILES_SUMMARY">
       <@filesSummary.summary
         fileViews=summaryCard.summaryData()

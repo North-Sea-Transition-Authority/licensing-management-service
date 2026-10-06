@@ -7,6 +7,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -19,8 +20,10 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.Interce
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
@@ -33,6 +36,9 @@ class LicencePositionIsNotRemovedInCorrectionRuleTest extends AbstractIntercepto
       LICENCE).build();
   private static final LicencePosition POSITION = LicencePositionTestUtil.newBuilder().withId(POSITION_ID).withLicence(
       LICENCE).build();
+
+  @Mock
+  private LicenceCorrectionService licenceCorrectionService;
 
   @Mock
   private LicencePositionCorrectionService licencePositionCorrectionService;
@@ -87,13 +93,59 @@ class LicencePositionIsNotRemovedInCorrectionRuleTest extends AbstractIntercepto
     ));
   }
 
-  private LicencePosition mockCorrectionAndPosition() {
+  @Test
+  void check_whenPositionAddedInCorrection_rulePasses() throws NoSuchMethodException {
+    givenCorrectionExists();
+    when(licencePositionCorrectionService.findFirstAddedPositionCorrection(CORRECTION, POSITION_ID))
+        .thenReturn(Optional.of(LicencePositionCorrectionTestUtil.newBuilder().build()));
 
-    when(request.getAttribute("validatedCorrection")).thenReturn(CORRECTION);
-    when(request.getAttribute(HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE))
-        .thenReturn(Map.of("licencePositionId", POSITION_ID.toString()));
+    var annotation = getAnnotation(
+        InterceptorRuleTestEndpoints.class.getDeclaredMethod("licencePositionIsNotRemovedInCorrection"),
+        LicencePositionIsNotRemovedInCorrection.class
+    );
+
+    var result = licencePositionIsNotRemovedInCorrectionRule.check(annotation, request, response);
+
+    assertThat(result.hasRulePassed()).isTrue();
+    verifyNoInteractions(licencePositionService, response);
+  }
+
+  @Test
+  void check_whenCorrectionNotFound_thenNotFound() throws NoSuchMethodException {
+    stubPathVariables();
+    when(licenceCorrectionService.findById(CORRECTION.getId())).thenReturn(Optional.empty());
+
+    var annotation = getAnnotation(
+        InterceptorRuleTestEndpoints.class.getDeclaredMethod("licencePositionIsNotRemovedInCorrection"),
+        LicencePositionIsNotRemovedInCorrection.class
+    );
+
+    var result = licencePositionIsNotRemovedInCorrectionRule.check(annotation, request, response);
+
+    assertThat(result).isEqualTo(SecurityRuleResult.checkFailedWithStatusAndMessage(
+        HttpStatus.NOT_FOUND,
+        "Licence correction %s not found".formatted(CORRECTION.getId())
+    ));
+    verifyNoInteractions(licencePositionService, licencePositionCorrectionService);
+  }
+
+  private LicencePosition mockCorrectionAndPosition() {
+    givenCorrectionExists();
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(POSITION);
 
     return POSITION;
+  }
+
+  private void givenCorrectionExists() {
+    stubPathVariables();
+    when(licenceCorrectionService.findById(CORRECTION.getId())).thenReturn(Optional.of(CORRECTION));
+  }
+
+  private void stubPathVariables() {
+    when(request.getAttribute(HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE))
+        .thenReturn(Map.of(
+            "correctionId", CORRECTION.getId().toString(),
+            "licencePositionId", POSITION_ID.toString()
+        ));
   }
 }

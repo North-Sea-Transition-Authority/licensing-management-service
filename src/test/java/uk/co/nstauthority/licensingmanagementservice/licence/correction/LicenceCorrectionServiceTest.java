@@ -10,6 +10,7 @@ import static org.mockito.Mockito.when;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -170,6 +171,16 @@ class LicenceCorrectionServiceTest {
   }
 
   @Test
+  void findById() {
+    var correction = LicenceCorrectionTestUtil.newBuilder().build();
+    when(licenceCorrectionRepository.findById(correction.getId())).thenReturn(Optional.of(correction));
+
+    var result = licenceCorrectionService.findById(correction.getId());
+
+    assertThat(result).contains(correction);
+  }
+
+  @Test
   void findByIdAndAllocatedToWuaId_whenFound() {
     var correctionId = UUID.randomUUID();
     var correction = LicenceCorrectionTestUtil.newBuilder()
@@ -202,6 +213,18 @@ class LicenceCorrectionServiceTest {
         .thenReturn(List.of(correction));
 
     var result = licenceCorrectionService.getAllInProgressCorrectionsForUser(USER);
+
+    assertThat(result).containsExactly(correction);
+  }
+
+  @Test
+  void getCorrectionsForSearch() {
+    var correction = LicenceCorrectionTestUtil.newBuilder().build();
+    when(licenceCorrectionRepository.findAllByStatusIn(
+        EnumSet.of(LicenceCorrectionStatus.IN_PROGRESS, LicenceCorrectionStatus.COMPLETE)
+    )).thenReturn(List.of(correction));
+
+    var result = licenceCorrectionService.getCorrectionsForSearch();
 
     assertThat(result).containsExactly(correction);
   }
@@ -244,18 +267,26 @@ class LicenceCorrectionServiceTest {
 
   @Test
   void completeCorrection() {
+    var correctionId = UUID.randomUUID();
     var correction = LicenceCorrectionTestUtil.newBuilder()
+        .withId(correctionId)
+        .withLicence(LICENCE)
         .withStatus(LicenceCorrectionStatus.IN_PROGRESS)
         .build();
 
     licenceCorrectionService.completeCorrection(correction);
 
+    var expectedCorrection = LicenceCorrectionTestUtil.newBuilder()
+        .withId(correctionId)
+        .withLicence(LICENCE)
+        .withStatus(LicenceCorrectionStatus.COMPLETE)
+        .withCompletedInstant(CLOCK.instant())
+        .build();
+
     verify(licenceCorrectionRepository).save(licenceCorrectionCaptor.capture());
-    var persistedCorrection = licenceCorrectionCaptor.getValue();
-    assertThat(persistedCorrection)
+    assertThat(licenceCorrectionCaptor.getValue())
         .usingRecursiveComparison()
-        .isEqualTo(correction);
-    assertThat(persistedCorrection.getStatus()).isEqualTo(LicenceCorrectionStatus.COMPLETE);
+        .isEqualTo(expectedCorrection);
   }
 
   @Test

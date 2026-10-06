@@ -1,6 +1,6 @@
 <#include '../../layout/layout.ftl'>
 
-<#macro correctionDetailsCard correction allocatedToUser createdDate="" updateUrl="">
+<#macro correctionDetailsCard details updateUrl="" showCreatedDate=true>
   <#assign cardActions>
     <#if updateUrl?has_content>
       <@fdsSummaryList.summaryListCardActionList>
@@ -19,23 +19,23 @@
     cardActionsContent=cardActions
   >
     <@fdsSummaryList.summaryListRowNoAction keyText="Correction reference">
-      ${correction.getCorrectionReference()}
+      ${details.correctionReference()}
     </@fdsSummaryList.summaryListRowNoAction>
     <@fdsSummaryList.summaryListRowNoAction keyText="Reason for correction">
-      ${correction.getReason()}
+      ${details.reason()}
     </@fdsSummaryList.summaryListRowNoAction>
     <@fdsSummaryList.summaryListRowNoAction keyText="Allocated to">
-      ${allocatedToUser}
+      ${details.allocatedToUserName()}
     </@fdsSummaryList.summaryListRowNoAction>
     <@fdsSummaryList.summaryListRowNoAction keyText="Status">
-      ${correction.getStatus().displayName}
+      ${details.statusDisplayName()}
     </@fdsSummaryList.summaryListRowNoAction>
     <@fdsSummaryList.summaryListRowNoAction keyText="Licence reference">
-      ${correction.getLicence().getLicenceReference()}
+      ${details.licenceReference()}
     </@fdsSummaryList.summaryListRowNoAction>
-    <#if createdDate?has_content>
+    <#if showCreatedDate>
       <@fdsSummaryList.summaryListRowNoAction keyText="Created">
-        ${createdDate}
+        ${details.createdDate()}
       </@fdsSummaryList.summaryListRowNoAction>
     </#if>
   </@fdsSummaryList.summaryListCard>

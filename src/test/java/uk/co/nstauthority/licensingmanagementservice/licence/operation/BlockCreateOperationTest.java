@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -23,7 +24,7 @@ class BlockCreateOperationTest {
   void constructor_whenIdNull_thenThrows() {
     var featureIds = List.of(FIRST_FEATURE_ID);
 
-    assertThatThrownBy(() -> new BlockCreateOperation(null, featureIds, List.of()))
+    assertThatThrownBy(() -> new BlockCreateOperation(null, featureIds, Map.of()))
         .isInstanceOf(NullPointerException.class)
         .hasMessageContaining("id");
   }
@@ -31,7 +32,7 @@ class BlockCreateOperationTest {
   @ParameterizedTest
   @NullAndEmptySource
   void constructor_whenFeatureIdsNullOrEmpty_thenEmpty(List<UUID> featureIds) {
-    var operation = new BlockCreateOperation(UUID.randomUUID(), featureIds, List.of());
+    var operation = new BlockCreateOperation(UUID.randomUUID(), featureIds, Map.of());
 
     assertThat(operation.createdBlockFeatureIds()).isEmpty();
   }
@@ -40,29 +41,29 @@ class BlockCreateOperationTest {
   void constructor_whenUsingConvenienceConstructor_thenGeneratesRandomId() {
     var featureIds = List.of(FIRST_FEATURE_ID);
 
-    var first = new BlockCreateOperation(featureIds, List.of());
-    var second = new BlockCreateOperation(featureIds, List.of());
+    var first = new BlockCreateOperation(featureIds, Map.of());
+    var second = new BlockCreateOperation(featureIds, Map.of());
 
     assertThat(first.id()).isNotEqualTo(second.id());
   }
 
   @Test
   void type() {
-    var operation = new BlockCreateOperation(List.of(FIRST_FEATURE_ID), List.of());
+    var operation = new BlockCreateOperation(List.of(FIRST_FEATURE_ID), Map.of());
 
     assertThat(operation.type()).isEqualTo(LicenceOperation.BLOCK_CREATE);
   }
 
   @Test
   void displayName() {
-    var operation = new BlockCreateOperation(List.of(FIRST_FEATURE_ID), List.of());
+    var operation = new BlockCreateOperation(List.of(FIRST_FEATURE_ID), Map.of());
 
     assertThat(operation.displayName()).isEqualTo("Blocks created");
   }
 
   @Test
   void validate() {
-    var operation = new BlockCreateOperation(List.of(FIRST_FEATURE_ID), List.of());
+    var operation = new BlockCreateOperation(List.of(FIRST_FEATURE_ID), Map.of());
 
     var result = operation.validate(PositionValidationContextTestUtil.newBuilder().build());
 
@@ -71,14 +72,14 @@ class BlockCreateOperationTest {
 
   @Test
   void featureIds() {
-    var operation = new BlockCreateOperation(List.of(FIRST_FEATURE_ID, SECOND_FEATURE_ID), List.of());
+    var operation = new BlockCreateOperation(List.of(FIRST_FEATURE_ID, SECOND_FEATURE_ID), Map.of());
 
     assertThat(LicenceOperation.featureIds(operation)).containsExactly(FIRST_FEATURE_ID, SECOND_FEATURE_ID);
   }
 
   @Test
   void organisationIds() {
-    var operation = new BlockCreateOperation(List.of(FIRST_FEATURE_ID), List.of());
+    var operation = new BlockCreateOperation(List.of(FIRST_FEATURE_ID), Map.of());
 
     assertThat(LicenceOperation.organisationIds(operation)).isEmpty();
   }
@@ -99,7 +100,7 @@ class BlockCreateOperationTest {
         .withFeatureIds(List.of(FIRST_FEATURE_ID, SECOND_FEATURE_ID))
         .build();
 
-    var expected = new BlockCreateOperation(operation.id(), List.of(FIRST_FEATURE_ID, SECOND_FEATURE_ID), List.of());
+    var expected = new BlockCreateOperation(operation.id(), List.of(FIRST_FEATURE_ID, SECOND_FEATURE_ID), Map.of());
     assertThat(operation).isEqualTo(expected);
   }
 
@@ -109,23 +110,33 @@ class BlockCreateOperationTest {
         .withFeatureIds(List.of(FIRST_FEATURE_ID, FIRST_FEATURE_ID))
         .build();
 
-    var expected = new BlockCreateOperation(operation.id(), List.of(FIRST_FEATURE_ID), List.of());
+    var expected = new BlockCreateOperation(operation.id(), List.of(FIRST_FEATURE_ID), Map.of());
     assertThat(operation).isEqualTo(expected);
   }
 
   @ParameterizedTest
   @NullAndEmptySource
-  void constructor_whenCreatedSubareasNullOrEmpty_thenEmpty(List<SubareaDetails> createdSubareas) {
+  void constructor_whenCreatedSubareasNullOrEmpty_thenEmpty(Map<UUID, List<SubareaDetails>> createdSubareas) {
     var operation = new BlockCreateOperation(UUID.randomUUID(), List.of(FIRST_FEATURE_ID), createdSubareas);
 
-    assertThat(operation.createdSubareas()).isEmpty();
+    assertThat(operation.createdBlockFeatureIdToSubareas()).isEmpty();
+  }
+
+  @Test
+  void createdSubareas_thenReturnsTheSubareasOfEveryBlock() {
+    var operation = new BlockCreateOperation(
+        List.of(FIRST_FEATURE_ID, SECOND_FEATURE_ID),
+        Map.of(FIRST_FEATURE_ID, List.of(FIRST_SUBAREA), SECOND_FEATURE_ID, List.of(SECOND_SUBAREA))
+    );
+
+    assertThat(operation.createdSubareas()).containsExactlyInAnyOrder(FIRST_SUBAREA, SECOND_SUBAREA);
   }
 
   @Test
   void featureIds_whenCreatedSubareasGiven_thenIncludesTheirFeatureIdsSkippingThoseWithout() {
     var operation = new BlockCreateOperation(
         List.of(FIRST_FEATURE_ID),
-        List.of(FIRST_SUBAREA, UNSCRIBED_SUBAREA)
+        Map.of(FIRST_FEATURE_ID, List.of(FIRST_SUBAREA, UNSCRIBED_SUBAREA))
     );
 
     assertThat(LicenceOperation.featureIds(operation)).containsExactly(FIRST_FEATURE_ID, FIRST_SUBAREA.featureId());
@@ -135,21 +146,34 @@ class BlockCreateOperationTest {
   void build_whenCreatedSubareaRepeated_thenDeduplicated() {
     var operation = LicenceOperation.newBlockCreateOperation()
         .withFeatureIds(List.of(FIRST_FEATURE_ID))
-        .withCreatedSubareas(List.of(FIRST_SUBAREA, FIRST_SUBAREA, SECOND_SUBAREA))
+        .withCreatedSubareas(Map.of(FIRST_FEATURE_ID, List.of(FIRST_SUBAREA, FIRST_SUBAREA, SECOND_SUBAREA)))
         .build();
 
     var expected = new BlockCreateOperation(
         operation.id(),
         List.of(FIRST_FEATURE_ID),
-        List.of(FIRST_SUBAREA, SECOND_SUBAREA)
+        Map.of(FIRST_FEATURE_ID, List.of(FIRST_SUBAREA, SECOND_SUBAREA))
     );
     assertThat(operation).isEqualTo(expected);
   }
 
   @Test
+  void serialise_whenCreatedSubareasGiven_thenReadsBackTheSame() throws Exception {
+    var objectMapper = new ObjectMapper().findAndRegisterModules();
+    var operation = new BlockCreateOperation(
+        List.of(FIRST_FEATURE_ID),
+        Map.of(FIRST_FEATURE_ID, List.of(FIRST_SUBAREA, UNSCRIBED_SUBAREA))
+    );
+
+    var result = objectMapper.readValue(objectMapper.writeValueAsString(operation), LicenceOperation.class);
+
+    assertThat(result).isEqualTo(operation);
+  }
+
+  @Test
   void serialise_thenCreatedBlockFeatureIdsWrittenAsFeatureIds() throws Exception {
     var objectMapper = new ObjectMapper().findAndRegisterModules();
-    var operation = new BlockCreateOperation(List.of(FIRST_FEATURE_ID), List.of());
+    var operation = new BlockCreateOperation(List.of(FIRST_FEATURE_ID), Map.of());
 
     var json = objectMapper.readTree(objectMapper.writeValueAsString(operation));
 
@@ -171,7 +195,7 @@ class BlockCreateOperationTest {
     var expected = new BlockCreateOperation(
         UUID.fromString("00000000-0000-0000-0000-000000000001"),
         List.of(FIRST_FEATURE_ID),
-        List.of()
+        Map.of()
     );
     assertThat(operation).isEqualTo(expected);
   }

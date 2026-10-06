@@ -11,6 +11,7 @@ import jakarta.persistence.NamedEntityGraph;
 import java.time.LocalDate;
 import java.util.UUID;
 import org.hibernate.envers.Audited;
+import uk.co.nstauthority.licensingmanagementservice.endpointvalidation.PathVariableEntity;
 import uk.co.nstauthority.licensingmanagementservice.hibernate.AssignedOrGeneratedUuid;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.transaction.LicenceTransaction;
@@ -18,6 +19,7 @@ import uk.co.nstauthority.licensingmanagementservice.util.DateUtil;
 
 @Audited
 @Entity(name = "licence_positions")
+@PathVariableEntity(pathVariableName = "licencePositionId")
 @NamedEntityGraph(
     name = "licencePosition",
     attributeNodes = {

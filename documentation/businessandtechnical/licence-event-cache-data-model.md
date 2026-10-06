@@ -20,7 +20,8 @@ mean joining the event supertype, six child tables and the term and phase hierar
 page load.
 
 `licence_event_cache` is a **flat, denormalised copy** of the events that screen shows, written
-when a schedule is applied and read directly afterwards.
+when a schedule is applied — and, for a narrower set of columns, when a schedule amendment
+application is submitted (§4.5) — then read directly afterwards.
 
 **It is a read model, not a source of truth.** Nothing in the service treats it as
 authoritative, and it is never the right table to answer a question about what a licence
@@ -53,16 +54,18 @@ flowchart TB
     LS["<b>licence_schedules</b><br/>id · licence_id"]
     LSD["<b>licence_schedule_details</b><br/>id · status<br/><i>only the ACTIVE version is ever cached</i>"]
     SE["<b>schedule_events</b><br/>id · event_type · original_event_id<br/><i>see the schedules data model</i>"]
-    CACHE["<b>licence_event_cache</b><br/>id · licence_id · licence_reference · original_event_id<br/>event_type · current_term_phase · next_term_phase<br/>activity_type · event_date<br/><i>one row per logical event — rebuilt on apply</i>"]
+    SWPA["<b>schedule_work_programme_applications</b><br/>id · application_reference · steward_wua_id<br/><i>see the applications data model — schedule amendment only</i>"]
+    CACHE["<b>licence_event_cache</b><br/>id · licence_id · licence_reference · original_event_id<br/>event_type · current_term_phase · next_term_phase<br/>activity_type · event_date<br/>application_id · application_type · steward_wua_id<br/><i>one row per logical event per application — rebuilt on apply, application columns refreshed on submission</i>"]
 
     LIC -- "1 : 1" --> LS
     LS -- "1 : many" --> LSD
     LS -- "1 : many" --> SE
     LIC -- "1 : many" --> CACHE
     SE -. "original_event_id — no foreign key" .-> CACHE
+    SWPA -. "application_id — no foreign key<br/>(set on submission, §4.5)" .-> CACHE
 ```
 
-The dotted edge is the one that matters: it is a value correspondence, not a constraint.
+The dotted edges are the ones that matter: they are value correspondences, not constraints.
 
 ---
 
@@ -79,13 +82,16 @@ next_term_phase    TEXT             ← display text, not an enum value
 activity_type      TEXT             ← display text, not an enum value
 event_date         DATE
 quad_block         TEXT             ← never populated (§4.3)
-steward_wua_id     BIGINT           ← never populated (§4.3)
-application_id     UUID             ← never populated (§4.3)
-application_type   TEXT             ← never populated (§4.3)
+steward_wua_id     BIGINT           ← §4.5 — schedule amendment applications only
+application_id     UUID             ← §4.5 — schedule amendment applications only
+application_type   TEXT             ← §4.5 — schedule amendment applications only
 ```
 
-Rows are identified within a licence by `original_event_id` — that is the key the refresh
-matches on — but **no unique index enforces it**.
+Rows are identified within a licence by `original_event_id` — that is the key the schedule
+refresh matches on — but **no unique index enforces it**, and since §4.5 it is no longer just a
+theoretical gap: a term, phase or activity with more than one application currently targeting
+it will legitimately have more than one row sharing an `original_event_id`, one per
+application.
 
 ### 3.1 The text columns hold display strings
 
@@ -110,14 +116,22 @@ Two consequences:
 
 ## 4. When and how it is refreshed
 
-### 4.1 The only trigger
+### 4.1 The two triggers
 
-The cache is rebuilt for one licence at the moment a **schedule version is applied** — the
-step that moves a draft to `ACTIVE` and the previous version to `REPLACED`. There is no
-scheduled rebuild, no rebuild on licence import, and no way to refresh it other than applying
-a schedule.
+The cache rows themselves — one per term, phase and work programme activity — are rebuilt for
+one licence at the moment a **schedule version is applied**, the step that moves a draft to
+`ACTIVE` and the previous version to `REPLACED`. There is no scheduled rebuild and no rebuild
+on licence import.
 
 It is always rebuilt from the **`ACTIVE`** version. Draft content is never cached.
+
+A second, narrower trigger exists for the application-linked columns only
+(`application_id`, `application_type`, `steward_wua_id`): **submitting a schedule amendment
+application** (§4.5). That trigger never creates or updates a term, phase or activity row's own
+data — it only stamps application details onto rows that already exist, or forks a new row when
+one is already claimed by a different application. A licence whose schedule was applied
+before an application referencing one of its events was submitted will show that application's
+data without any schedule apply happening in between.
 
 ### 4.2 What the refresh writes
 
@@ -138,14 +152,16 @@ null, because it is not anchored to a position in the sequence.
 Rates, other schedule events and licence expiry are **never cached**, even though `event_type`
 has values for them (§5.1).
 
-### 4.3 Four columns are never populated
+### 4.3 `quad_block` is never populated
 
-`quad_block`, `steward_wua_id`, `application_id` and `application_type` exist in the table and
-are never written by the service. Every row has them null.
+`quad_block` exists in the table and is never written by the service. Every row has it null.
 
-They anticipate showing application and geographic context on the tracker, which is not built.
-Treat them as reserved: a query filtering or grouping on them returns nothing useful today, and
-their being null says nothing about the licence.
+It anticipates showing geographic context on the tracker, which is not built. Treat it as
+reserved: a query filtering or grouping on it returns nothing useful today, and its being null
+says nothing about the licence.
+
+`steward_wua_id`, `application_id` and `application_type` are written, but only in the
+circumstances described in §4.5 — do not assume they follow the same "always null" rule.
 
 ### 4.4 A term that gains phases loses its own row
 
@@ -155,6 +171,41 @@ previously had none, the refresh **deletes** the term's cache row.
 
 This is the only delete the refresh performs. In particular, removing an event from the
 schedule does not remove its cache row (§6).
+
+### 4.5 Application columns are refreshed separately, and only for schedule amendment applications
+
+**Submitting** a schedule amendment application (the extension and amendment journey described
+in `licence-applications-data-model.md`) triggers a second, narrower refresh, independent of
+§4.1–§4.4. It does not touch every cache row for the licence, and it does not run for
+continuation applications.
+
+It works out which events the application concerns by reading the application's own extension
+and amendment requests — one row per term, phase or work programme activity the applicant
+asked to change — and taking each one's `original_event_id`. For every cache row matching one
+of those ids:
+
+- If the row is not yet linked to an application, or is already linked to *this* application,
+  `application_id`, `application_type` and `steward_wua_id` are written onto it in place.
+- If the row is already linked to a **different** application — two applications concurrently
+  targeting the same term, phase or activity — the existing row is left untouched and a **new**
+  row is inserted, copying that row's licence, event and schedule-position data and carrying the
+  new application's id, type and steward instead. This is what makes duplicate
+  `original_event_id`s a real occurrence rather than a schema-only possibility (§3).
+
+Several things a reader is likely to assume, and shouldn't:
+
+- **`application_type` is always `SCHEDULE_AMENDMENT_APPLICATION`** in practice — no other
+  application type reaches this refresh (§5.2).
+- **`steward_wua_id` is a submission-time snapshot, not the current steward.** It is copied from
+  the application's own `steward_wua_id` at the moment of submission, which is usually still
+  null — a steward is normally allocated only after submission. Allocating or reassigning a
+  steward afterwards does not trigger another refresh, so the cached value can be stale or
+  simply absent even once a steward is assigned (§6).
+- **An event that has never been through a schedule apply is not touched.** This refresh only
+  updates or forks rows that already exist; it never inserts a row for a term, phase or activity
+  that §4.1's schedule-apply trigger hasn't cached yet.
+- Deleting, withdrawing or otherwise changing the status of the application afterwards does not
+  clear or update what was written here (§6).
 
 ---
 
@@ -183,7 +234,16 @@ lists are maintained separately and the display names differ.
 
 ### 5.2 `application_type`
 
-Would hold the application type name if the column were ever written (§4.3). It is not.
+Persisted as the Java constant name, the same convention as `event_type` (§5.1). Only written
+by the application refresh described in §4.5.
+
+| Value | Applies when |
+|---|---|
+| `SCHEDULE_AMENDMENT_APPLICATION` | a cache row is linked to a submitted extension and amendment application (§4.5) |
+| `CONTINUATION_APPLICATION` | never — continuation applications do not populate `application_id` or `application_type` |
+
+A row with `application_type` set but `application_id` null, or the reverse, would be
+inconsistent with how the refresh writes them — the two are always set together.
 
 ---
 
@@ -199,9 +259,17 @@ only delete is the term-gains-phases case. Nothing else prunes it. So:
 - **A change made anywhere other than an apply is invisible to the cache.** Correcting a
   licence reference, for example, does not update `licence_reference` here until the next time
   that licence's schedule is applied.
+- **`application_id`, `application_type` and `steward_wua_id` are a submission-time snapshot
+  (§4.5), not a live link.** Allocating or reassigning a steward, recording a decision,
+  withdrawing or deleting the application — none of these trigger another refresh, so what is
+  cached can silently drift from the application's current state. In particular, do not read a
+  populated `steward_wua_id` as "the steward currently assigned"; it may be stale, and it is
+  usually null anyway (§4.5).
 
-The cache is therefore a snapshot of each licence at the time of its last schedule apply — and
-different licences will be at different ages.
+The cache is therefore a snapshot of each licence at the time of its last schedule apply, plus,
+where a schedule amendment application has been submitted since, a further snapshot of that
+application taken at submission — and different licences, and different rows within the same
+licence, will be at different ages.
 
 ---
 
@@ -224,19 +292,25 @@ last refreshed, which the table has no column for. Revision metadata lives in th
 1. **Never use this table to answer a question about a licence schedule.** It is a read model
    for one screen, rebuilt only on apply, with no referential integrity and known staleness
    (§6). Query the schedule tables instead.
-2. **Four columns are always null** — `quad_block`, `steward_wua_id`, `application_id`,
-   `application_type` (§4.3).
+2. **`quad_block` is always null** (§4.3). `steward_wua_id`, `application_id` and
+   `application_type` are null far more often than not, but are not reliably null — they are
+   written for submitted schedule amendment applications (§4.5).
 3. **Three text columns hold display strings, not enum values** (§3.1). They cannot be joined
    to the schedule tables' enum columns, and `next_term_phase` uses an empty string rather
    than null for "none".
-4. **`original_event_id` has no foreign key** and is not unique. A cache row can outlive the
-   event it describes, and nothing in the schema prevents duplicates.
+4. **`original_event_id` has no foreign key** and is not unique — and, since §4.5, it is
+   expected to repeat when more than one application currently targets the same term, phase or
+   activity. A cache row can also outlive the event it describes.
 5. **Rates, other schedule events and expiry dates are absent**, so the tracker is not a
    complete view of a schedule's dated items.
 6. **Rows are not deleted when events are**, with the single exception of a term that gains
    phases (§4.4).
 7. **`licence_reference` is a copy.** It is correct as of the licence's last schedule apply,
    not as of now.
+8. **The application-linked columns are a submission-time snapshot, not a live link** (§4.5).
+   They are only ever populated for schedule amendment applications, never for continuations,
+   and nothing refreshes them again after submission — not steward allocation, not a decision,
+   not withdrawal or deletion.
 
 ---
 

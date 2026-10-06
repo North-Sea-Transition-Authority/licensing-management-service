@@ -4,14 +4,15 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { SupportedWkid } from "@/coordinate-system-utils";
 import MergePage from "@/pages/MergePage.vue";
 
-const { getFeaturesMock } = vi.hoisted(() => ({
+const { getFeaturesMock, getOutlineNodesMock } = vi.hoisted(() => ({
   getFeaturesMock: vi.fn(),
+  getOutlineNodesMock: vi.fn(),
 }));
 
 vi.mock("@/api/features.api", () => ({
   getFeatures: getFeaturesMock,
   getTextualDescription: vi.fn(),
-  getOutlineNodes: vi.fn(),
+  getOutlineNodes: getOutlineNodesMock,
 }));
 
 function feature(featureId: string, featureName: string): Feature {
@@ -23,7 +24,7 @@ function feature(featureId: string, featureName: string): Feature {
 
 // Stubs BaseMap, exposing the wired features and refresh counter without exercising OpenLayers.
 const baseMapStub = {
-  props: ["srsWkid", "features", "outlineNodesUrl", "refreshCounter", "selectedFeatureIds"],
+  props: ["srsWkid", "features", "outlineNodes", "refreshCounter", "selectedFeatureIds"],
   template: `<div><p data-testid="selected-feature-ids">{{ JSON.stringify(selectedFeatureIds) }}</p></div>`,
 };
 
@@ -78,6 +79,7 @@ describe("mergePage", () => {
       feature("feature-1", "Block A"),
       feature("feature-2", "Block B"),
     ]);
+    getOutlineNodesMock.mockReset().mockResolvedValue([]);
   });
 
   it("renders a checkbox for each loaded feature", async () => {
@@ -87,11 +89,12 @@ describe("mergePage", () => {
     expect(screen.getByRole("checkbox", { name: "Block B" })).toBeInTheDocument();
   });
 
-  it("loads the features from the url built from the command journey id", async () => {
+  it("loads the features and outline nodes from the urls built from the command journey id", async () => {
     renderPage();
 
     await waitFor(() => {
       expect(getFeaturesMock).toHaveBeenCalledWith("/api/gis-framework/command-journey-features/journey-1");
+      expect(getOutlineNodesMock).toHaveBeenCalledWith("/api/gis-framework/command-journey-outline-nodes/journey-1");
     });
   });
 

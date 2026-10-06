@@ -23,7 +23,7 @@ steps:
         # We can only mount volume caches into the working directory, so all steps which use Gradle must have
         # the GRADLE_USER_HOME environment variable pointing here.
         - ./gradle_cache
-        - ./sonar_cache
+#        - ./sonar_cache -- temporarily commented out as was causing issues on drone.
         - ./trivy_cache
 
   - name: fetch-fds-submodule
@@ -77,7 +77,7 @@ steps:
   - name: build-gis-java-backend
     image: quay.io/testcontainers/dind-drone-plugin
     privileged: true
-    depends_on: [ detect-gis-changes ]
+    depends_on: [ gis-frontend-visual-tests ]
     environment:
       TZ: Europe/London
       CI_WORKSPACE: /drone/src
@@ -319,7 +319,7 @@ steps:
       mount:
         - ./node_modules
         - ./gradle_cache
-        - ./sonar_cache
+#        - ./sonar_cache  -- temporarily commented out as was causing issues on drone.
         - ./trivy_cache
 
   - name: slack
@@ -396,7 +396,7 @@ steps:
         # We can only mount volume caches into the working directory, so all steps which use Gradle must have
         # the GRADLE_USER_HOME environment variable pointing here.
         - ./gradle_cache
-        - ./sonar_cache
+#        - ./sonar_cache -- temporarily commented out as was causing issues on drone.
 
   - name: fetch-fds-submodule
     image: alpine/git:v2.26.2
@@ -450,7 +450,7 @@ steps:
   - name: build-gis-java-backend
     image: quay.io/testcontainers/dind-drone-plugin
     privileged: true
-    depends_on: [ detect-gis-changes ]
+    depends_on: [ gis-frontend-visual-tests ]
     environment:
       TZ: Europe/London
       CI_WORKSPACE: /drone/src
@@ -550,7 +550,7 @@ steps:
       mount:
         - ./node_modules
         - ./gradle_cache
-        - ./sonar_cache
+#        - ./sonar_cache -- temporarily commented out as was causing issues on drone.
 
 trigger:
   event:

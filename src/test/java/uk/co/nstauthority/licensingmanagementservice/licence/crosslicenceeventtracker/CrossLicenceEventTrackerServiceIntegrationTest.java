@@ -6,12 +6,14 @@ import static org.mockito.Mockito.when;
 
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.co.fivium.energyportalapi.client.organisation.OrganisationApi;
+import uk.co.fivium.energyportalapi.client.user.UserApi;
 import uk.co.fivium.energyportalapi.generated.types.OrganisationUnit;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
@@ -19,12 +21,18 @@ import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisation;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.ScheduleEventType;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplication;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamRole;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
+import uk.co.nstauthority.licensingmanagementservice.util.EnergyPortalUserTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.util.IntegrationTest;
 
 @Transactional
@@ -42,6 +50,9 @@ class CrossLicenceEventTrackerServiceIntegrationTest {
 
   @MockitoBean
   private OrganisationApi organisationApi;
+
+  @MockitoBean
+  private UserApi userApi;
 
   private final ServiceUserDetail industryUser = ServiceUserDetailTestUtil.newBuilder().withWuaId(9100L).build();
 
@@ -78,6 +89,65 @@ class CrossLicenceEventTrackerServiceIntegrationTest {
     assertThat(row.get(3).sortValue()).isEqualTo("2030-01-01");
     assertThat(row.get(5).value()).isEqualTo("");
     assertThat(row.get(6).value()).isEqualTo("12/3");
+  }
+
+  @Test
+  void getEventTrackerTable_whenEventLinkedToApplication_thenApplicationStatusAndStewardArePopulated() {
+    var licence = LicenceTestUtil.builder()
+        .withId(9020)
+        .withLicenceType(LicenceType.SEAWARD_PRODUCTION)
+        .withLicenceNumber("987")
+        .withLicenceReference("P 987")
+        .build();
+    entityManager.persist(licence);
+
+    var licenceSchedule = LicenceScheduleTestUtil.createLicenceSchedule(null, licence);
+    entityManager.persist(licenceSchedule);
+
+    var application = new ScheduleWorkProgrammeApplication();
+    application.setLicenceSchedule(licenceSchedule);
+    application.setStewardWuaId(9300L);
+    application.setApplicationReference("LMS/EAA/2040/1");
+    entityManager.persist(application);
+    entityManager.flush();
+
+    var applicationDetail = new ScheduleWorkProgrammeApplicationDetail();
+    applicationDetail.setScheduleWorkProgrammeApplication(application);
+    applicationDetail.setVersionNumber(1);
+    applicationDetail.setStatus(ApplicationStatus.SUBMITTED);
+    applicationDetail.setCreatedDatetime(Instant.now());
+    entityManager.persist(applicationDetail);
+
+    var eventCache = new LicenceEventCache();
+    eventCache.setLicenceId(licence.getId());
+    eventCache.setLicenceReference(licence.getLicenceReference());
+    eventCache.setEventType(ScheduleEventType.TERM);
+    eventCache.setEventDate(LocalDate.of(2040, 1, 1));
+    eventCache.setApplicationId(application.getId());
+    eventCache.setApplicationType(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION);
+    eventCache.setStewardWuaId(9300L);
+    entityManager.persist(eventCache);
+
+    entityManager.flush();
+
+    var steward = EnergyPortalUserTestUtil.newBuilder()
+        .withWebUserAccountId(9300L)
+        .withForename("Steve")
+        .withSurname("Steward")
+        .build();
+    when(userApi.searchUsersByIds(any(), any(), any())).thenReturn(List.of(steward));
+
+    var result = crossLicenceEventTrackerService.getEventTrackerTable(new EventTrackerForm(), industryUser);
+
+    assertThat(result.tableRows()).hasSize(2);
+
+    var row = result.tableRows().get(1).rowValues();
+    assertThat(row.get(0).value()).isEqualTo("P 987 (LMS/EAA/2040/1)");
+    assertThat(row.get(0).link()).isEqualTo(
+        "licence/schedule-work-programme-application/%s/overview".formatted(applicationDetail.getId())
+    );
+    assertThat(row.get(4).value()).isEqualTo("Submitted");
+    assertThat(row.get(7).value()).isEqualTo("Steve Steward");
   }
 
   @Test

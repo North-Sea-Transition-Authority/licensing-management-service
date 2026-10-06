@@ -48,7 +48,8 @@ class SummaryCardTest {
             new SummaryCard(
                 "display name",
                 SummaryCardType.SIMPLE_SUMMARY,
-                SUMMARY_DATA_VIEW
+                SUMMARY_DATA_VIEW,
+                List.of()
             )
         );
   }
@@ -60,7 +61,8 @@ class SummaryCardTest {
             new SummaryCard(
                 null,
                 SummaryCardType.SIMPLE_SUMMARY,
-                SUMMARY_DATA_VIEW
+                SUMMARY_DATA_VIEW,
+                List.of()
             )
         );
   }
@@ -72,7 +74,8 @@ class SummaryCardTest {
             new SummaryCard(
                 null,
                 SummaryCardType.EMPTY_SUMMARY,
-                null
+                null,
+                List.of()
             )
         );
   }
@@ -85,7 +88,8 @@ class SummaryCardTest {
                 new SummaryCard(
                     null,
                     SummaryCardType.EMPTY_SUMMARY,
-                    null
+                    null,
+                    List.of()
                 )
             )
         );
@@ -98,7 +102,8 @@ class SummaryCardTest {
             new SummaryCard(
                 "display name",
                 SummaryCardType.TABLE_SUMMARY,
-                summaryTableView
+                summaryTableView,
+                List.of()
             )
         );
   }
@@ -110,7 +115,8 @@ class SummaryCardTest {
             new SummaryCard(
                 null,
                 SummaryCardType.TABLE_SUMMARY,
-                summaryTableView
+                summaryTableView,
+                List.of()
             )
         );
   }
@@ -122,7 +128,8 @@ class SummaryCardTest {
             new SummaryCard(
                 "display name",
                 SummaryCardType.FILES_SUMMARY,
-                SUMMARY_FILE_VIEWS
+                SUMMARY_FILE_VIEWS,
+                List.of()
             )
         );
   }
@@ -134,7 +141,28 @@ class SummaryCardTest {
             new SummaryCard(
                 "display name",
                 SummaryCardType.FILES_AND_DETAILS_SUMMARY,
-                SUMMARY_FILE_AND_DETAILS_VIEW
+                SUMMARY_FILE_AND_DETAILS_VIEW,
+                List.of()
+            )
+        );
+  }
+
+  @Test
+  void withAction() {
+    var firstAction = new SummaryCardAction("Change", "/change");
+    var secondAction = new SummaryCardAction("Remove", "/remove");
+
+    var result = SummaryCard.simpleSummaryCardWithHeading("display name", SUMMARY_DATA_VIEW)
+        .withAction(firstAction)
+        .withAction(secondAction);
+
+    assertThat(result)
+        .isEqualTo(
+            new SummaryCard(
+                "display name",
+                SummaryCardType.SIMPLE_SUMMARY,
+                SUMMARY_DATA_VIEW,
+                List.of(firstAction, secondAction)
             )
         );
   }

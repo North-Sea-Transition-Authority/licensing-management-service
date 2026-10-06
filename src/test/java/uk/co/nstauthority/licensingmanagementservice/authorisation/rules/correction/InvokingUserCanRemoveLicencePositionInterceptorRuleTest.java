@@ -7,6 +7,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -19,6 +20,7 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.Interce
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
@@ -28,6 +30,9 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePos
 class InvokingUserCanRemoveLicencePositionInterceptorRuleTest extends AbstractInterceptorRuleTest {
 
   private static final Licence LICENCE = LicenceTestUtil.builder().build();
+
+  @Mock
+  private LicenceCorrectionService licenceCorrectionService;
 
   @Mock
   private LicencePositionCorrectionService licencePositionCorrectionService;
@@ -83,14 +88,41 @@ class InvokingUserCanRemoveLicencePositionInterceptorRuleTest extends AbstractIn
     );
   }
 
+  @Test
+  void check_whenCorrectionNotFound_thenNotFound() throws NoSuchMethodException {
+    var correctionId = UUID.randomUUID();
+    when(request.getAttribute(HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE))
+        .thenReturn(Map.of(
+            "correctionId", correctionId.toString(),
+            "licencePositionId", UUID.randomUUID().toString()
+        ));
+    when(licenceCorrectionService.findById(correctionId)).thenReturn(Optional.empty());
+
+    var annotation = getAnnotation(
+        InterceptorRuleTestEndpoints.class.getDeclaredMethod("canRemoveLicencePosition"),
+        InvokingUserCanRemoveLicencePosition.class
+    );
+
+    var result = invokingUserCanRemoveLicencePositionInterceptorRule.check(annotation, request, response);
+
+    assertThat(result).isEqualTo(SecurityRuleResult.checkFailedWithStatusAndMessage(
+        HttpStatus.NOT_FOUND,
+        "Licence correction %s not found".formatted(correctionId)
+    ));
+    verifyNoInteractions(licencePositionService, licencePositionCorrectionService);
+  }
+
   private LicencePosition mockCorrectionAndPosition() {
     var positionId = UUID.randomUUID();
     var correction = LicenceCorrectionTestUtil.newBuilder().withLicence(LICENCE).build();
     var position = LicencePositionTestUtil.newBuilder().withId(positionId).withLicence(LICENCE).build();
 
-    when(request.getAttribute("validatedCorrection")).thenReturn(correction);
     when(request.getAttribute(HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE))
-        .thenReturn(Map.of("licencePositionId", positionId.toString()));
+        .thenReturn(Map.of(
+            "correctionId", correction.getId().toString(),
+            "licencePositionId", positionId.toString()
+        ));
+    when(licenceCorrectionService.findById(correction.getId())).thenReturn(Optional.of(correction));
     when(licencePositionService.getPositionForLicence(LICENCE, positionId)).thenReturn(position);
 
     return position;

@@ -34,6 +34,24 @@ public class PositionMoveOptionUtil {
     return moveOptions;
   }
 
+  public static LinkedHashMap<String, String> buildInsertOptions(List<? extends Orderable> orderedItems) {
+    var insertOptions = new LinkedHashMap<String, String>();
+    for (var item : orderedItems) {
+      insertOptions.put(
+          new PositionMove(PositionMoveDirection.BEFORE, item.id()).toFormValue(),
+          "Before " + item.reference()
+      );
+    }
+    if (!orderedItems.isEmpty()) {
+      var lastItem = orderedItems.getLast();
+      insertOptions.put(
+          new PositionMove(PositionMoveDirection.AFTER, lastItem.id()).toFormValue(),
+          "After " + lastItem.reference()
+      );
+    }
+    return insertOptions;
+  }
+
   private static void addMoveOptionIfItChangesOrder(
       LinkedHashMap<String, String> moveOptions,
       List<UUID> currentSequenceIds,

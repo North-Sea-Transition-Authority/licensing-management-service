@@ -181,22 +181,4 @@ class LicencePositionChangeServiceTest {
             .withStatus(LicencePositionChangeStatus.CONSENTED)
             .build());
   }
-
-  @Test
-  void deleteForPositions_whenEmpty() {
-    licencePositionChangeService.deleteForPositions(List.of());
-
-    verifyNoInteractions(licencePositionChangeRepository);
-  }
-
-  @Test
-  void deleteForPositions() {
-    var positions = List.of(LicencePositionTestUtil.newBuilder().build());
-    var changes = List.of(new LicencePositionChange(), new LicencePositionChange());
-    when(licencePositionChangeRepository.findByLicencePositionIn(positions)).thenReturn(changes);
-
-    licencePositionChangeService.deleteForPositions(positions);
-
-    verify(licencePositionChangeRepository).deleteAll(changes);
-  }
 }

@@ -11,6 +11,8 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.Month;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -39,9 +41,9 @@ import uk.co.fivium.grpc.gis.CoordinateSystem;
 import uk.co.fivium.grpc.gis.LineNavigationType;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderType;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
-import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation.SurrenderDetails;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaDetails;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
@@ -49,13 +51,17 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.Lic
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.FeatureTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.LicenceBlockFeatureUtil;
 import uk.co.nstauthority.licensingmanagementservice.testharness.LicencePositionFeatureTestHarnessService.SeededFeatures;
 
 @ExtendWith(MockitoExtension.class)
 class LicencePositionFeatureTestHarnessServiceTest {
 
   private static final Licence LICENCE = LicenceTestUtil.builder().withLicenceReference("P1").build();
+
+  private static final Licence CARBON_STORAGE_LICENCE = LicenceTestUtil.builder()
+      .withLicenceReference("CS1")
+      .withLicenceType(LicenceType.CARBON_STORAGE)
+      .build();
 
   private static final UUID COMMAND_JOURNEY_ID = UUID.randomUUID();
 
@@ -98,6 +104,10 @@ class LicencePositionFeatureTestHarnessServiceTest {
   private static final Map<String, String> BLOCK_ATTRIBUTES =
       Map.of("LAYER", "BLOCKS", "QUADRANT_NO", "30", "BLOCK_NO", "1");
 
+  private static final Map<String, String> SUBAREA_ATTRIBUTES = Map.of("LAYER", "SUBAREAS", "NAME", "ALL");
+
+  private static final LocalDate SURRENDER_DATE = LocalDate.of(2026, Month.AUGUST, 1);
+
   private static final Feature BLOCK = FeatureTestUtil.builder()
       .withFeatureName("block 30/1")
       .withAttributes(BLOCK_ATTRIBUTES)
@@ -139,84 +149,106 @@ class LicencePositionFeatureTestHarnessServiceTest {
   @Captor
   private ArgumentCaptor<Collection<Line>> linesCaptor;
 
+  @Captor
+  private ArgumentCaptor<List<LicenceOperation>> operationsCaptor;
+
   @Test
-  void createAndLinkFeatures_assertFourBlocksAndTwoSubareasPerBlockAreCreatedForTheLicence() {
+  void createAndLinkFeatures_assertThreeBlocksAndASubareaPerBlockAreCreatedForTheLicence() {
     givenPositions(LicencePositionTestUtil.newBuilder().build());
     givenSpatialDataCanBePersisted();
 
     var seededFeatures = licencePositionFeatureTestHarnessService.createAndLinkFeatures(LICENCE);
 
-    assertThat(seededFeatures.count()).isEqualTo(12);
+    assertThat(seededFeatures.count()).isEqualTo(6);
 
-    verify(featureService, times(12)).saveFeature(featureCaptor.capture());
+    verify(featureService, times(6)).saveFeature(featureCaptor.capture());
 
-    var block1 = expectedFeature("test harness for P1 1",
-        Map.of("LAYER", "BLOCKS", "QUADRANT_NO", "30", "BLOCK_NO", "1"), null);
-    var subarea1a = expectedFeature("test harness for P1 2",
-        Map.of("LAYER", "SUBAREAS", "NAME", "30/1a"), block1);
-    var subarea1b = expectedFeature("test harness for P1 3",
-        Map.of("LAYER", "SUBAREAS", "NAME", "30/1b"), block1);
-    var block2 = expectedFeature("test harness for P1 4",
-        Map.of("LAYER", "BLOCKS", "QUADRANT_NO", "30", "BLOCK_NO", "2"), null);
-    var subarea2a = expectedFeature("test harness for P1 5",
-        Map.of("LAYER", "SUBAREAS", "NAME", "30/2a"), block2);
-    var subarea2b = expectedFeature("test harness for P1 6",
-        Map.of("LAYER", "SUBAREAS", "NAME", "30/2b"), block2);
-    var block3 = expectedFeature("test harness for P1 7",
-        Map.of("LAYER", "BLOCKS", "QUADRANT_NO", "30", "BLOCK_NO", "3"), null);
-    var subarea3a = expectedFeature("test harness for P1 8",
-        Map.of("LAYER", "SUBAREAS", "NAME", "30/3a"), block3);
-    var subarea3b = expectedFeature("test harness for P1 9",
-        Map.of("LAYER", "SUBAREAS", "NAME", "30/3b"), block3);
-    var block4 = expectedFeature("test harness for P1 10",
-        Map.of("LAYER", "BLOCKS", "QUADRANT_NO", "30", "BLOCK_NO", "4"), null);
-    var subarea4a = expectedFeature("test harness for P1 11",
-        Map.of("LAYER", "SUBAREAS", "NAME", "30/4a"), block4);
-    var subarea4b = expectedFeature("test harness for P1 12",
-        Map.of("LAYER", "SUBAREAS", "NAME", "30/4b"), block4);
+    var block1 = expectedFeature(
+        "test harness for P1 1",
+        Map.of("LAYER", "BLOCKS", "QUADRANT_NO", "30", "BLOCK_NO", "1")
+    );
+    var subarea1a = expectedFeature(
+        "test harness for P1 2",
+        Map.of("LAYER", "SUBAREAS", "NAME", "ALL")
+    );
+    var block2 = expectedFeature(
+        "test harness for P1 3",
+        Map.of("LAYER", "BLOCKS", "QUADRANT_NO", "30", "BLOCK_NO", "2")
+    );
+    var subarea2a = expectedFeature(
+        "test harness for P1 4",
+        Map.of("LAYER", "SUBAREAS", "NAME", "ALL")
+    );
+    var block3 = expectedFeature(
+        "test harness for P1 5",
+        Map.of("LAYER", "BLOCKS", "QUADRANT_NO", "30", "BLOCK_NO", "3")
+    );
+    var subarea3a = expectedFeature(
+        "test harness for P1 6",
+        Map.of("LAYER", "SUBAREAS", "NAME", "ALL")
+    );
 
     assertThat(featureCaptor.getAllValues())
-        .usingRecursiveFieldByFieldElementComparatorIgnoringFields("id", "parentFeature.id")
-        .containsExactly(block1, subarea1a, subarea1b, block2, subarea2a, subarea2b,
-            block3, subarea3a, subarea3b, block4, subarea4a, subarea4b);
+        .usingRecursiveFieldByFieldElementComparatorIgnoringFields("id")
+        .containsExactly(block1, subarea1a, block2, subarea2a, block3, subarea3a);
   }
 
   @Test
-  void createAndLinkFeatures_assertTheEarliestPositionSurrendersTheFirstBlockAndOutputsTheRemainingBlocks() {
+  void createAndLinkFeatures_whenCarbonStorageLicence_thenOneBlockWithNoSubareasIsCreated() {
+    givenPositions(CARBON_STORAGE_LICENCE, LicencePositionTestUtil.newBuilder().build());
+    givenSpatialDataCanBePersisted();
+
+    var seededFeatures = licencePositionFeatureTestHarnessService.createAndLinkFeatures(CARBON_STORAGE_LICENCE);
+
+    verify(featureService).saveFeature(featureCaptor.capture());
+    assertThat(featureCaptor.getValue())
+        .usingRecursiveComparison()
+        .ignoringFields("id")
+        .isEqualTo(expectedFeature("test harness for CS1 1",
+            Map.of("LAYER", "BLOCKS", "QUADRANT_NO", "30", "BLOCK_NO", "1")));
+    assertThat(seededFeatures.subareas()).isEmpty();
+  }
+
+  @Test
+  void createAndLinkFeatures_assertTheEarliestPositionCreatesTheBlocksAndTheirSubareas() {
     var earliestPosition = LicencePositionTestUtil.newBuilder().build();
     givenPositions(earliestPosition, LicencePositionTestUtil.newBuilder().build());
     givenSpatialDataCanBePersisted();
 
-    licencePositionFeatureTestHarnessService.createAndLinkFeatures(LICENCE);
+    var seededFeatures = licencePositionFeatureTestHarnessService.createAndLinkFeatures(LICENCE);
 
-    verify(featureService, times(12)).saveFeature(featureCaptor.capture());
-    var blocks = featureCaptor.getAllValues().stream().filter(LicenceBlockFeatureUtil::isLicenceBlock).toList();
-    var surrenderedBlock = blocks.getFirst();
-    var retainedBlockIds = blocks.stream().skip(1).map(Feature::getId).toList();
-
-    var expectedOperation = LicenceOperation.newPartialSurrenderOperation()
-        .withSurrenderedFeatureIds(List.of(surrenderedBlock.getId()))
-        .withSurrenderDetails(Map.of(surrenderedBlock.getId(), new SurrenderDetails(
-            BlockSurrenderType.FULL_SURRENDER, null, List.of(surrenderedBlock.getId()))))
-        .withOutputFeatureIds(retainedBlockIds)
+    var blocks = seededFeatures.blocks();
+    var subareas = seededFeatures.subareas();
+    var expectedOperation = LicenceOperation.newBlockCreateOperation()
+        .withFeatureIds(blocks.stream().map(Feature::getId).toList())
+        .withCreatedSubareas(Map.of(
+            blocks.get(0).getId(), List.of(new SubareaDetails(subareas.get(0).getId(), "ALL", "ALL")),
+            blocks.get(1).getId(), List.of(new SubareaDetails(subareas.get(1).getId(), "ALL", "ALL")),
+            blocks.get(2).getId(), List.of(new SubareaDetails(subareas.get(2).getId(), "ALL", "ALL"))
+        ))
         .build();
 
     verify(licencePositionChangeService).createLicencePositionChange(
-        earliestPosition, List.of(expectedOperation), 1, LicencePositionChangeStatus.CONSENTED);
+        eq(earliestPosition),
+        operationsCaptor.capture(),
+        eq(1),
+        eq(LicencePositionChangeStatus.CONSENTED)
+    );
+    assertThat(operationsCaptor.getValue())
+        .usingRecursiveFieldByFieldElementComparatorIgnoringFields("id")
+        .containsExactly(expectedOperation);
   }
 
   @Test
-  void createAndLinkFeatures_assertTheRetainedBlocksAreTheSeededBlocksWithoutTheSurrenderedOne() {
+  void subareaDetailsOf() {
     givenPositions(LicencePositionTestUtil.newBuilder().build());
     givenSpatialDataCanBePersisted();
 
     var seededFeatures = licencePositionFeatureTestHarnessService.createAndLinkFeatures(LICENCE);
 
-    verify(featureService, times(12)).saveFeature(featureCaptor.capture());
-    var blocks = featureCaptor.getAllValues().stream().filter(LicenceBlockFeatureUtil::isLicenceBlock).toList();
-
-    assertThat(seededFeatures.surrenderedBlock()).isEqualTo(blocks.getFirst());
-    assertThat(seededFeatures.retainedBlocks()).isEqualTo(blocks.subList(1, blocks.size()));
+    var secondSubarea = seededFeatures.subareas().get(1);
+    assertThat(seededFeatures.subareaDetailsOf(seededFeatures.blocks().get(1)))
+        .isEqualTo(new SubareaDetails(secondSubarea.getId(), "ALL", "ALL"));
   }
 
   @Test
@@ -253,9 +285,9 @@ class LicencePositionFeatureTestHarnessServiceTest {
 
     licencePositionFeatureTestHarnessService.createAndLinkFeatures(LICENCE);
 
-    verify(featureService, times(12)).saveFeature(featureCaptor.capture());
-    verify(polygonService, times(12)).savePolygon(polygonCaptor.capture());
-    verify(lineService, times(12)).saveLines(linesCaptor.capture());
+    verify(featureService, times(6)).saveFeature(featureCaptor.capture());
+    verify(polygonService, times(6)).savePolygon(polygonCaptor.capture());
+    verify(lineService, times(6)).saveLines(linesCaptor.capture());
 
     var expectedPolygons = featureCaptor.getAllValues().stream()
         .map(LicencePositionFeatureTestHarnessServiceTest::expectedPolygon)
@@ -276,7 +308,7 @@ class LicencePositionFeatureTestHarnessServiceTest {
     when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of());
 
     assertThat(licencePositionFeatureTestHarnessService.createAndLinkFeatures(LICENCE))
-        .isEqualTo(new SeededFeatures(List.of(), List.of()));
+        .isEqualTo(new SeededFeatures(List.of(), Map.of()));
 
     verifyNoInteractions(featureService, polygonService, lineService);
   }
@@ -324,16 +356,58 @@ class LicencePositionFeatureTestHarnessServiceTest {
   }
 
   @Test
-  void getSeedState_whenASpatialOperationHasOutputFeatures_thenFeaturesAreAlreadySeeded() {
-    givenSeedOperationWithOutputs(List.of(UUID.randomUUID()));
+  void cropSubareaToRetainedHalf_assertTheCroppedSubareaIsTheEasternHalfStartingOnTheSurrenderDate() {
+    givenFeaturesCanBePersisted();
+    var subarea = FeatureTestUtil.builder()
+        .withFeatureName("subarea 30/1a")
+        .withAttributes(SUBAREA_ATTRIBUTES)
+        .withFeatureArea(FEATURE_AREA)
+        .build();
+
+    var croppedSubarea = licencePositionFeatureTestHarnessService.cropSubareaToRetainedHalf(subarea, SURRENDER_DATE);
+
+    var expectedCroppedSubarea = expectedFeature("subarea 30/1a_2", SUBAREA_ATTRIBUTES);
+    expectedCroppedSubarea.setFeatureArea(FEATURE_AREA.divide(BigDecimal.TWO));
+    expectedCroppedSubarea.setStartDate(SURRENDER_DATE);
+    assertThat(croppedSubarea)
+        .usingRecursiveComparison()
+        .ignoringFields("id")
+        .isEqualTo(expectedCroppedSubarea);
+
+    verify(polygonService).savePolygon(polygonCaptor.capture());
+    verify(lineService).saveLines(linesCaptor.capture());
+    assertThat(linesCaptor.getValue())
+        .usingRecursiveFieldByFieldElementComparator()
+        .containsExactlyElementsOf(expectedLines(polygonCaptor.getValue(), EASTERN_HALF_EDGES));
+  }
+
+  @Test
+  void cropSubareaToRetainedHalf_assertTheOriginalSubareaEndsOnTheSurrenderDate() {
+    givenFeaturesCanBePersisted();
+    var subarea = FeatureTestUtil.builder()
+        .withAttributes(SUBAREA_ATTRIBUTES)
+        .withFeatureArea(FEATURE_AREA)
+        .build();
+
+    licencePositionFeatureTestHarnessService.cropSubareaToRetainedHalf(subarea, SURRENDER_DATE);
+
+    assertThat(subarea)
+        .extracting(Feature::getStartDate, Feature::getEndDate)
+        .containsExactly(null, SURRENDER_DATE);
+    verify(featureService).saveFeature(subarea);
+  }
+
+  @Test
+  void getSeedState_whenABlockCreateHasCreatedBlocks_thenFeaturesAreAlreadySeeded() {
+    givenSeedOperationCreating(List.of(UUID.randomUUID()));
 
     assertThat(licencePositionFeatureTestHarnessService.getSeedState(LICENCE))
         .isEqualTo(new LicencePositionFeatureSeedState(1, true));
   }
 
   @Test
-  void getSeedState_whenTheOnlySpatialOperationHasNoOutputFeatures_thenFeaturesAreNotSeeded() {
-    givenSeedOperationWithOutputs(List.of());
+  void getSeedState_whenTheOnlyBlockCreateHasCreatedNoBlocks_thenFeaturesAreNotSeeded() {
+    givenSeedOperationCreating(List.of());
 
     assertThat(licencePositionFeatureTestHarnessService.getSeedState(LICENCE))
         .isEqualTo(new LicencePositionFeatureSeedState(1, false));
@@ -354,15 +428,18 @@ class LicencePositionFeatureTestHarnessServiceTest {
   }
 
   private void givenPositions(LicencePosition... licencePositions) {
-    when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE))
+    givenPositions(LICENCE, licencePositions);
+  }
+
+  private void givenPositions(Licence licence, LicencePosition... licencePositions) {
+    when(licencePositionService.getExecutedChronologicalLicencePositions(licence))
         .thenReturn(List.of(licencePositions));
   }
 
-  private void givenSeedOperationWithOutputs(List<UUID> outputFeatureIds) {
+  private void givenSeedOperationCreating(List<UUID> createdBlockFeatureIds) {
     var licencePosition = LicencePositionTestUtil.newBuilder().build();
-    var operation = LicenceOperation.newPartialSurrenderOperation()
-        .withSurrenderedFeatureIds(List.of(UUID.randomUUID()))
-        .withOutputFeatureIds(outputFeatureIds)
+    var operation = LicenceOperation.newBlockCreateOperation()
+        .withFeatureIds(createdBlockFeatureIds)
         .build();
 
     givenPositions(licencePosition);
@@ -380,18 +457,20 @@ class LicencePositionFeatureTestHarnessServiceTest {
   }
 
   private static Feature expectedHalfBlock(String featureName) {
-    var halfBlock = expectedFeature(featureName, BLOCK_ATTRIBUTES, null);
+    var halfBlock = expectedFeature(featureName, BLOCK_ATTRIBUTES);
     halfBlock.setFeatureArea(FEATURE_AREA.divide(BigDecimal.TWO));
     return halfBlock;
   }
 
-  private static Feature expectedFeature(String featureName, Map<String, String> attributes, Feature parentFeature) {
+  private static Feature expectedFeature(
+      String featureName,
+      Map<String, String> attributes
+  ) {
     var feature = new Feature();
     feature.setFeatureName(featureName);
     feature.setCoordinateSystem(CoordinateSystem.ED50);
     feature.setFeatureArea(FEATURE_AREA);
     feature.setAttributes(attributes);
-    feature.setParentFeature(parentFeature);
     return feature;
   }
 

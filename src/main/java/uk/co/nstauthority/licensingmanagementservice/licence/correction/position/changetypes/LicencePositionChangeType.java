@@ -81,6 +81,15 @@ public sealed interface LicencePositionChangeType
         .toList();
   }
 
+  static List<LicencePositionChangeType> removeAllChangesById(
+      Collection<LicencePositionChangeType> changes,
+      String changeId
+  ) {
+    return changes.stream()
+        .filter(change -> !changeId.equals(change.changeId()))
+        .toList();
+  }
+
   @JsonIgnore
   default boolean isUpdateChangeOrder() {
     return this instanceof UpdateChangeOrder;

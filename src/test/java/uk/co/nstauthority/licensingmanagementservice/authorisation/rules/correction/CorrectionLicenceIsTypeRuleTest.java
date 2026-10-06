@@ -5,19 +5,28 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.servlet.HandlerMapping;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.SecurityRuleResult;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.AbstractInterceptorRuleTest;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.InterceptorRuleTestEndpoints;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
 
 class CorrectionLicenceIsTypeRuleTest extends AbstractInterceptorRuleTest {
+
+  @Mock
+  private LicenceCorrectionService licenceCorrectionService;
 
   @InjectMocks
   private CorrectionLicenceIsTypeRule rule;
@@ -29,8 +38,7 @@ class CorrectionLicenceIsTypeRuleTest extends AbstractInterceptorRuleTest {
 
   @Test
   void check_whenLicenceIsExpectedType_continueAsNormal() throws NoSuchMethodException {
-    when(request.getAttribute("validatedCorrection"))
-        .thenReturn(correctionWithLicenceType(LicenceType.CARBON_STORAGE));
+    givenCorrectionExists(correctionWithLicenceType(LicenceType.CARBON_STORAGE));
 
     var annotation = getAnnotation(
         InterceptorRuleTestEndpoints.class.getDeclaredMethod("correctionLicenceIsType"),
@@ -45,8 +53,7 @@ class CorrectionLicenceIsTypeRuleTest extends AbstractInterceptorRuleTest {
 
   @Test
   void check_whenLicenceIsOneOfMultipleExpectedTypes_continueAsNormal() throws NoSuchMethodException {
-    when(request.getAttribute("validatedCorrection"))
-        .thenReturn(correctionWithLicenceType(LicenceType.CARBON_STORAGE));
+    givenCorrectionExists(correctionWithLicenceType(LicenceType.CARBON_STORAGE));
 
     var annotation = getAnnotation(
         InterceptorRuleTestEndpoints.class.getDeclaredMethod("correctionLicenceIsType_multipleTypes"),
@@ -61,8 +68,7 @@ class CorrectionLicenceIsTypeRuleTest extends AbstractInterceptorRuleTest {
 
   @Test
   void check_whenLicenceIsNotExpectedType_forbidden() throws NoSuchMethodException {
-    when(request.getAttribute("validatedCorrection"))
-        .thenReturn(correctionWithLicenceType(LicenceType.GAS_STORAGE));
+    givenCorrectionExists(correctionWithLicenceType(LicenceType.GAS_STORAGE));
 
     var annotation = getAnnotation(
         InterceptorRuleTestEndpoints.class.getDeclaredMethod("correctionLicenceIsType"),
@@ -91,6 +97,32 @@ class CorrectionLicenceIsTypeRuleTest extends AbstractInterceptorRuleTest {
         .isInstanceOf(ResponseStatusException.class)
         .hasMessageContaining("No licence types provided to security annotation")
         .matches(e -> ((ResponseStatusException) e).getStatusCode().is5xxServerError());
+  }
+
+  @Test
+  void check_whenCorrectionNotFound_thenNotFound() throws NoSuchMethodException {
+    var correctionId = UUID.randomUUID();
+    when(request.getAttribute(HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE))
+        .thenReturn(Map.of("correctionId", correctionId.toString()));
+    when(licenceCorrectionService.findById(correctionId)).thenReturn(Optional.empty());
+
+    var annotation = getAnnotation(
+        InterceptorRuleTestEndpoints.class.getDeclaredMethod("correctionLicenceIsType"),
+        CorrectionLicenceIsType.class
+    );
+
+    var result = rule.check(annotation, request, response);
+
+    assertThat(result).isEqualTo(SecurityRuleResult.checkFailedWithStatusAndMessage(
+        HttpStatus.NOT_FOUND,
+        "Licence correction %s not found".formatted(correctionId)
+    ));
+  }
+
+  private void givenCorrectionExists(LicenceCorrection correction) {
+    when(request.getAttribute(HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE))
+        .thenReturn(Map.of("correctionId", correction.getId().toString()));
+    when(licenceCorrectionService.findById(correction.getId())).thenReturn(Optional.of(correction));
   }
 
   private LicenceCorrection correctionWithLicenceType(LicenceType licenceType) {

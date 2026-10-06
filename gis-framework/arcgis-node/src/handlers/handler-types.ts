@@ -14,3 +14,4 @@ export type GetLineStartAndEndPointsHandler = ArcGisServiceHandlers["getLineStar
 export type ValidatePolygonReconstructionFromPolylinesHandler = ArcGisServiceHandlers["validatePolygonReconstructionFromPolylines"];
 export type PolygonContainsHandler = ArcGisServiceHandlers["polygonContains"];
 export type MultiPartToSinglePartHandler = ArcGisServiceHandlers["multiPartToSinglePart"];
+export type CropToBoundaryHandler = ArcGisServiceHandlers["cropToBoundary"];

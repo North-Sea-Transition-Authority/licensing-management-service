@@ -28,7 +28,7 @@ public class LicenceTimelinePositionTab implements LicenceTab {
 
   @Override
   public String url(LicenceTabContext context) {
-    return ReverseRouter.route(on(LicencePositionController.class).renderLicencePositionTimeline(context.licence(), null));
+    return ReverseRouter.route(on(LicencePositionController.class).renderLicencePositionTimeline(context.licence(), null, null));
   }
 
 }

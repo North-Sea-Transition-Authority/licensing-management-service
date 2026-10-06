@@ -31,10 +31,10 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
-import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserService;
-import uk.co.nstauthority.licensingmanagementservice.energyportal.user.WebUserAccountId;
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.CorrectionDetailsView;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.CorrectionDetailsViewService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.CorrectionMarker;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
@@ -47,15 +47,13 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.vie
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.ChangeViewUrls;
 import uk.co.nstauthority.licensingmanagementservice.licence.tab.TabbedLicencePageService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
-import uk.co.nstauthority.licensingmanagementservice.util.DateUtil;
-import uk.co.nstauthority.licensingmanagementservice.util.EnergyPortalUserTestUtil;
 
 @ContextConfiguration(classes = ReviewCorrectionController.class)
 @ActiveProfiles("test")
 class ReviewCorrectionControllerTest extends AbstractControllerTest {
 
   @MockitoBean
-  private EnergyPortalUserService energyPortalUserService;
+  private CorrectionDetailsViewService correctionDetailsViewService;
 
   @MockitoBean
   private CorrectedTimelineService correctedTimelineService;
@@ -77,7 +75,14 @@ class ReviewCorrectionControllerTest extends AbstractControllerTest {
   private static final String PAGE_TITLE = "Do you want to apply this correction?";
   private static final String DEFAULT_TAB_URL = "/licences/1/default-tab";
   private static final long ALLOCATED_TO_WUA_ID = 123L;
-  private static final String USER_LOOKUP_PURPOSE = "Get correction allocated to user details";
+  private static final CorrectionDetailsView CORRECTION_DETAILS = new CorrectionDetailsView(
+      "COR-1",
+      "a reason",
+      "Jane Doe",
+      LicenceCorrectionStatus.IN_PROGRESS.getDisplayName(),
+      "P1234",
+      "5 June 2026"
+  );
 
   private final LicenceCorrection correction = LicenceCorrectionTestUtil.newBuilder()
       .withId(CORRECTION_ID)
@@ -91,7 +96,7 @@ class ReviewCorrectionControllerTest extends AbstractControllerTest {
   @Test
   void renderReviewCorrection_whenNotLoggedIn_thenRedirectToLogin() throws Exception {
     mockMvc.perform(get(ReverseRouter.route(on(ReviewCorrectionController.class)
-            .renderReviewCorrection(CORRECTION_ID, null))))
+            .renderReviewCorrection(correction))))
         .andExpect(redirectionToLoginUrl());
   }
 
@@ -101,7 +106,7 @@ class ReviewCorrectionControllerTest extends AbstractControllerTest {
         .thenReturn(Optional.empty());
 
     mockMvc.perform(get(ReverseRouter.route(on(ReviewCorrectionController.class)
-            .renderReviewCorrection(CORRECTION_ID, null)))
+            .renderReviewCorrection(correction)))
             .with(user(regulatorUser)))
         .andExpect(status().isForbidden());
   }
@@ -115,9 +120,10 @@ class ReviewCorrectionControllerTest extends AbstractControllerTest {
 
     when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
         .thenReturn(Optional.of(cancelledCorrection));
+    when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(cancelledCorrection));
 
     mockMvc.perform(get(ReverseRouter.route(on(ReviewCorrectionController.class)
-            .renderReviewCorrection(CORRECTION_ID, null)))
+            .renderReviewCorrection(correction)))
             .with(user(regulatorUser)))
         .andExpect(status().isForbidden());
   }
@@ -130,7 +136,7 @@ class ReviewCorrectionControllerTest extends AbstractControllerTest {
     givenValidUserAndCorrectionPageWithPositionsAndErrors(List.of(), List.of(blockingError));
 
     var modelAndView = mockMvc.perform(get(ReverseRouter.route(on(ReviewCorrectionController.class)
-            .renderReviewCorrection(CORRECTION_ID, null)))
+            .renderReviewCorrection(correction)))
             .with(user(regulatorUser)))
         .andExpectAll(
             status().isOk(),
@@ -145,17 +151,12 @@ class ReviewCorrectionControllerTest extends AbstractControllerTest {
 
   @Test
   void renderReviewCorrection_whenAllocatedToUser_thenRenderReviewPage() throws Exception {
-    var allocatedToUser = EnergyPortalUserTestUtil.newBuilder()
-        .withWebUserAccountId(ALLOCATED_TO_WUA_ID)
-        .withForename("Jane")
-        .withSurname("Doe")
-        .buildJson();
     var positions = List.of(reviewPosition());
 
     givenValidUserAndCorrectionPageWithPositionsAndErrors(positions, List.of());
 
     mockMvc.perform(get(ReverseRouter.route(on(ReviewCorrectionController.class)
-            .renderReviewCorrection(CORRECTION_ID, null)))
+            .renderReviewCorrection(correction)))
             .with(user(regulatorUser)))
         .andExpectAll(
             status().isOk(),
@@ -163,13 +164,12 @@ class ReviewCorrectionControllerTest extends AbstractControllerTest {
             model().attribute("pageTitle", PAGE_TITLE),
             model().attribute("pageCaption", PAGE_CAPTION),
             model().attribute("correction", correction),
-            model().attribute("allocatedToUser", allocatedToUser.displayName()),
-            model().attribute("createdDate", DateUtil.formatLongDate(correction.getCreatedInstant())),
+            model().attribute("correctionDetails", CORRECTION_DETAILS),
             model().attribute("positions", positions),
             model().attribute("canApply", true),
             model().attribute("errorSummaryItems", List.of()),
             model().attribute("backLinkUrl", ReverseRouter.route(on(LicenceCorrectionController.class)
-                .renderCorrection(CORRECTION_ID, null)))
+                .renderCorrection(correction)))
         );
   }
 
@@ -178,7 +178,7 @@ class ReviewCorrectionControllerTest extends AbstractControllerTest {
     givenValidUserAndCorrectionPageWithPositionsAndErrors(List.of(), List.of());
 
     mockMvc.perform(get(ReverseRouter.route(on(ReviewCorrectionController.class)
-            .renderReviewCorrection(CORRECTION_ID, null)))
+            .renderReviewCorrection(correction)))
             .with(user(regulatorUser)))
         .andExpectAll(
             status().isOk(),
@@ -202,16 +202,14 @@ class ReviewCorrectionControllerTest extends AbstractControllerTest {
 
     when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
         .thenReturn(Optional.of(completeCorrection));
+    when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(completeCorrection));
     when(licenceService.getLicencePageCaption(completeCorrection.getLicence())).thenReturn(PAGE_CAPTION);
     when(tabbedLicencePageService.getDefaultTabUrl(completeCorrection.getLicence())).thenReturn(DEFAULT_TAB_URL);
-    when(energyPortalUserService.getByWuaId(WebUserAccountId.from(ALLOCATED_TO_WUA_ID), USER_LOOKUP_PURPOSE))
-        .thenReturn(EnergyPortalUserTestUtil.newBuilder()
-            .withWebUserAccountId(ALLOCATED_TO_WUA_ID)
-            .buildJson());
+    when(correctionDetailsViewService.getDetailsView(completeCorrection)).thenReturn(CORRECTION_DETAILS);
     when(correctionReviewService.getAppliedPositions(completeCorrection)).thenReturn(List.of(appliedPosition));
 
     mockMvc.perform(get(ReverseRouter.route(on(ReviewCorrectionController.class)
-            .renderReviewCorrection(CORRECTION_ID, null)))
+            .renderReviewCorrection(correction)))
             .with(user(regulatorUser)))
         .andExpectAll(
             status().isOk(),
@@ -230,7 +228,7 @@ class ReviewCorrectionControllerTest extends AbstractControllerTest {
   @Test
   void processApplyCorrection_whenNotLoggedIn_redirectToLogin() throws Exception {
     mockMvc.perform(post(ReverseRouter.route(on(ReviewCorrectionController.class)
-            .processApplyCorrection(CORRECTION_ID, null, null)))
+            .processApplyCorrection(correction, null)))
             .with(csrf()))
         .andExpect(redirectionToLoginUrl());
   }
@@ -241,7 +239,7 @@ class ReviewCorrectionControllerTest extends AbstractControllerTest {
         .thenReturn(Optional.empty());
 
     mockMvc.perform(post(ReverseRouter.route(on(ReviewCorrectionController.class)
-            .processApplyCorrection(CORRECTION_ID, null, null)))
+            .processApplyCorrection(correction, null)))
             .with(user(regulatorUser))
             .with(csrf()))
         .andExpect(status().isForbidden());
@@ -258,9 +256,10 @@ class ReviewCorrectionControllerTest extends AbstractControllerTest {
 
     when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
         .thenReturn(Optional.of(completeCorrection));
+    when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(completeCorrection));
 
     mockMvc.perform(post(ReverseRouter.route(on(ReviewCorrectionController.class)
-            .processApplyCorrection(CORRECTION_ID, null, null)))
+            .processApplyCorrection(correction, null)))
             .with(user(regulatorUser))
             .with(csrf()))
         .andExpect(status().isForbidden());
@@ -279,7 +278,7 @@ class ReviewCorrectionControllerTest extends AbstractControllerTest {
     when(correctionApplyService.applyCorrection(correction)).thenReturn(List.of(blockingError));
 
     var modelAndView = mockMvc.perform(post(ReverseRouter.route(on(ReviewCorrectionController.class)
-            .processApplyCorrection(CORRECTION_ID, null, null)))
+            .processApplyCorrection(correction, null)))
             .with(user(regulatorUser))
             .with(csrf()))
         .andExpectAll(
@@ -299,10 +298,11 @@ class ReviewCorrectionControllerTest extends AbstractControllerTest {
   void processApplyCorrection_whenApplied_thenRedirectToTheLicenceWithASuccessBanner() throws Exception {
     when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
         .thenReturn(Optional.of(correction));
+    when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(correction));
     when(tabbedLicencePageService.getDefaultTabUrl(correction.getLicence())).thenReturn(DEFAULT_TAB_URL);
 
     mockMvc.perform(post(ReverseRouter.route(on(ReviewCorrectionController.class)
-            .processApplyCorrection(CORRECTION_ID, null, null)))
+            .processApplyCorrection(correction, null)))
             .with(user(regulatorUser))
             .with(csrf()))
         .andExpectAll(
@@ -330,7 +330,9 @@ class ReviewCorrectionControllerTest extends AbstractControllerTest {
                 null,
                 ChangeViewUrls.none()),
             null,
-            1)));
+            1,
+            null,
+            null)));
   }
 
   private void givenValidUserAndCorrectionPageWithPositionsAndErrors(
@@ -339,13 +341,9 @@ class ReviewCorrectionControllerTest extends AbstractControllerTest {
   ) {
     when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
         .thenReturn(Optional.of(correction));
+    when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(correction));
     when(licenceService.getLicencePageCaption(correction.getLicence())).thenReturn(PAGE_CAPTION);
-    when(energyPortalUserService.getByWuaId(WebUserAccountId.from(ALLOCATED_TO_WUA_ID), USER_LOOKUP_PURPOSE))
-        .thenReturn(EnergyPortalUserTestUtil.newBuilder()
-            .withWebUserAccountId(ALLOCATED_TO_WUA_ID)
-            .withForename("Jane")
-            .withSurname("Doe")
-            .buildJson());
+    when(correctionDetailsViewService.getDetailsView(correction)).thenReturn(CORRECTION_DETAILS);
     when(correctedTimelineService.getCorrectedTimeline(correction)).thenReturn(correctedTimeline);
     when(correctionReviewService.getReviewPositions(correctedTimeline, blockingErrors)).thenReturn(positions);
     when(licencePositionValidationService.validate(

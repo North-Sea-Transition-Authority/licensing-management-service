@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -358,6 +359,44 @@ class CorrectionApplyServiceTest {
     assertThat(liveChange)
         .extracting(LicencePositionChange::getOperations, LicencePositionChange::getChangeOrder)
         .containsExactly(List.of(OPERATION), 4);
+  }
+
+  @Test
+  void applyCorrection_whenALiveChangeIsStagedOnAnotherPosition_thenItsRowIsMovedThereAtTheStagedOrder() {
+    var livePosition = LicencePositionTestUtil.newBuilder().build();
+    var targetPosition = LicencePositionTestUtil.newBuilder().build();
+    var liveChange = LicencePositionChangeTestUtil.newBuilder()
+        .withLicencePosition(livePosition)
+        .withChangeOrder(2)
+        .build();
+    var movedChangeId = liveChange.getId().toString();
+    List<LicencePositionChangeType> stagedMove = List.of(
+        LicencePositionChangeType.updateChangeOperations()
+            .withChangeId(movedChangeId)
+            .withOperations(List.of(addOperation(OPERATION)))
+            .build(),
+        LicencePositionChangeType.updateChangeOrder()
+            .withChangeId(movedChangeId)
+            .withChangeOrder(6)
+            .build()
+    );
+
+    stubTimeline(List.of(updatePositionCorrection(targetPosition, null, stagedMove)), List.of());
+    when(licencePositionChangeService.findById(liveChange.getId())).thenReturn(Optional.of(liveChange));
+
+    correctionApplyService.applyCorrection(licenceCorrection);
+
+    verify(licencePositionChangeRepository, times(2)).save(liveChange);
+    verify(licencePositionChangeService, never())
+        .createLicencePositionChange(any(), any(), any(), anyInt(), any());
+    assertThat(liveChange)
+        .extracting(
+            LicencePositionChange::getId,
+            LicencePositionChange::getLicencePosition,
+            LicencePositionChange::getOperations,
+            LicencePositionChange::getChangeOrder
+        )
+        .containsExactly(UUID.fromString(movedChangeId), targetPosition, List.of(OPERATION), 6);
   }
 
   @Test

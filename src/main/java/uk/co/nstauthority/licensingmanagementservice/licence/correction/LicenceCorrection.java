@@ -10,10 +10,12 @@ import java.time.Instant;
 import java.util.UUID;
 import org.hibernate.annotations.UuidGenerator;
 import org.hibernate.envers.Audited;
+import uk.co.nstauthority.licensingmanagementservice.endpointvalidation.PathVariableEntity;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 
 @Audited
 @Entity(name = "licence_corrections")
+@PathVariableEntity(pathVariableName = "correctionId")
 public class LicenceCorrection {
 
   @Id
@@ -34,6 +36,8 @@ public class LicenceCorrection {
   private Long allocatedToWuaId;
 
   private Instant createdInstant;
+
+  private Instant completedInstant;
 
   public LicenceCorrection() {
 
@@ -93,5 +97,17 @@ public class LicenceCorrection {
 
   public void setCreatedInstant(Instant createdInstant) {
     this.createdInstant = createdInstant;
+  }
+
+  public Instant getCompletedInstant() {
+    return completedInstant;
+  }
+
+  public void setCompletedInstant(Instant completedInstant) {
+    this.completedInstant = completedInstant;
+  }
+
+  public boolean isComplete() {
+    return LicenceCorrectionStatus.COMPLETE.equals(status);
   }
 }

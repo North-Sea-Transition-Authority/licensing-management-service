@@ -29,6 +29,7 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.AccessHandler
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.HasAnyRoleInTeamTypeInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.HasRolesInTeamTypeInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.InvokingUserCanStartApplicationInterceptorRule;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.IsMemberOfRegulatorTeamInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.LicenceActionEndPointInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.LogWorkAreaItemViewInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.continuationapplication.ContinuationApplicationHasStatusInterceptorRule;
@@ -37,8 +38,12 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correct
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.CorrectionLicenceIsTypeRule;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanRemoveLicencePositionInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanViewCorrectionInterceptorRule;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserHasCorrectorRoleForCorrectionInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.LicencePositionCanBeReinstantiatedRule;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.LicencePositionCorrectionBelongsToCorrectionRule;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.LicencePositionIsNotRemovedInCorrectionRule;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.position.LicencePositionBelongsToCorrectionLicenceRule;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.position.LicencePositionBelongsToLicenceRule;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.InvokingUserCanAccessScheduleApplicationInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.ScheduleAmendmentApplicationHasStatusInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationActionEndPointInterceptorRule;
@@ -61,13 +66,18 @@ import uk.co.nstauthority.licensingmanagementservice.licence.application.Applica
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationTypeArgumentResolver;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetailArgumentResolver;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionArgumentResolver;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionArgumentResolver;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.overview.LicenceSummaryCardService;
 import uk.co.nstauthority.licensingmanagementservice.licence.overview.action.LicenceActionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionArgumentResolver;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionViewService;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeArgumentResolver;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleStateService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailArgumentResolver;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailService;
@@ -137,7 +147,16 @@ import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.W
     LicencePositionCanBeReinstantiatedRule.class,
     CorrectionHasStatusInterceptorRule.class,
     CorrectionLicenceIsTypeRule.class,
-    LicencePositionIsNotRemovedInCorrectionRule.class
+    LicencePositionIsNotRemovedInCorrectionRule.class,
+    LicencePositionArgumentResolver.class,
+    LicencePositionCorrectionArgumentResolver.class,
+    LicencePositionChangeArgumentResolver.class,
+    LicencePositionBelongsToLicenceRule.class,
+    LicencePositionBelongsToCorrectionLicenceRule.class,
+    LicencePositionCorrectionBelongsToCorrectionRule.class,
+    LicenceCorrectionArgumentResolver.class,
+    InvokingUserHasCorrectorRoleForCorrectionInterceptorRule.class,
+    IsMemberOfRegulatorTeamInterceptorRule.class
 })
 @EnableConfigurationProperties({
     SamlProperties.class,
@@ -231,6 +250,9 @@ public abstract class AbstractControllerTest {
 
   @MockitoBean
   protected LicencePositionViewService licencePositionViewService;
+
+  @MockitoBean
+  protected LicencePositionChangeService licencePositionChangeService;
 
   @Autowired
   protected TopNavigationService topNavigationService;

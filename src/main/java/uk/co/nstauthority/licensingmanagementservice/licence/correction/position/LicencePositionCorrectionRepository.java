@@ -1,6 +1,5 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.correction.position;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -16,16 +15,9 @@ public interface LicencePositionCorrectionRepository
 
   List<LicencePositionCorrection> findByLicenceCorrection(LicenceCorrection licenceCorrection);
 
-  List<LicencePositionCorrection> findAllByLicenceCorrectionIn(Collection<LicenceCorrection> licenceCorrections);
-
   List<LicencePositionCorrection> findByLicenceCorrectionAndChangeType(
       LicenceCorrection licenceCorrection,
       LicencePositionCorrectionChangeType changeType
-  );
-
-  Optional<LicencePositionCorrection> findByIdAndLicenceCorrection(
-      UUID id,
-      LicenceCorrection licenceCorrection
   );
 
   boolean existsByLicenceCorrectionAndTargetLicencePositionAndChangeType(

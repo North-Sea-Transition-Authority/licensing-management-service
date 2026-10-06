@@ -38,7 +38,10 @@ import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOp
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenseeOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquityOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaDetails;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaSurrenderOutcome;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.TransferEquityOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.LicenceCleardownService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
@@ -72,10 +75,13 @@ class TestHarnessServiceTest {
   private static final LicenceTransaction SAME_TRANSACTION = LicenceTransactionTestUtil.newBuilder().build();
   private static final LicenceTransaction CROSS_TRANSACTION = LicenceTransactionTestUtil.newBuilder().build();
 
-  private static final Feature SEED_SURRENDERED_BLOCK = FeatureTestUtil.blockFeature(UUID.randomUUID(), "30", 6);
   private static final Feature FULLY_SURRENDERED_BLOCK = FeatureTestUtil.blockFeature(UUID.randomUUID(), "30", 7);
   private static final Feature PARTIALLY_SURRENDERED_BLOCK = FeatureTestUtil.blockFeature(UUID.randomUUID(), "30", 8);
   private static final Feature UNTOUCHED_BLOCK = FeatureTestUtil.blockFeature(UUID.randomUUID(), "30", 9);
+  private static final Feature FULLY_SURRENDERED_SUBAREA = subarea("ALL");
+  private static final Feature PARTIALLY_SURRENDERED_SUBAREA = subarea("ALL");
+  private static final Feature UNTOUCHED_SUBAREA = subarea("ALL");
+  private static final Feature CROPPED_SUBAREA = subarea("ALL");
   private static final Feature SURRENDERED_HALF = FeatureTestUtil.builder()
       .withFeatureName("30/8 western half")
       .build();
@@ -91,7 +97,7 @@ class TestHarnessServiceTest {
   private LicencePositionService licencePositionService;
 
   @Mock
-  private LicencePositionTestHarnessService licencePositionTestHarnessService;
+  private LicenceCleardownService licenceCleardownService;
 
   @Mock
   private LicencePositionChangeService licencePositionChangeService;
@@ -122,24 +128,41 @@ class TestHarnessServiceTest {
   @BeforeEach
   void setUp() {
     testHarnessService = new TestHarnessService(
-        licenceTransactionService, licencePositionService, licencePositionTestHarnessService,
+        licenceTransactionService, licencePositionService, licenceCleardownService,
         licencePositionChangeService, licencePositionFeatureTestHarnessService, commandJourneyService, CLOCK);
   }
 
-  // the seed surrenders the first of the blocks it creates, leaving the licence holding the other three
   private void givenSeededBlocks(Licence licence) {
     when(licencePositionFeatureTestHarnessService.createAndLinkFeatures(licence)).thenReturn(new SeededFeatures(
-        List.of(SEED_SURRENDERED_BLOCK, FULLY_SURRENDERED_BLOCK, PARTIALLY_SURRENDERED_BLOCK, UNTOUCHED_BLOCK),
-        List.of()));
+        List.of(FULLY_SURRENDERED_BLOCK, PARTIALLY_SURRENDERED_BLOCK, UNTOUCHED_BLOCK),
+        Map.of(
+            FULLY_SURRENDERED_BLOCK.getId(), List.of(FULLY_SURRENDERED_SUBAREA),
+            PARTIALLY_SURRENDERED_BLOCK.getId(), List.of(PARTIALLY_SURRENDERED_SUBAREA),
+            UNTOUCHED_BLOCK.getId(), List.of(UNTOUCHED_SUBAREA)
+        )
+    ));
   }
 
-  private void givenPartiallySurrenderedBlockSplit() {
+  private void givenPartiallySurrenderedBlockSplit(List<LicencePosition> positions) {
     var partialSurrenderCommandJourney = commandJourney(PARTIAL_SURRENDER_COMMAND_JOURNEY_ID);
     when(commandJourneyService.createAndAssignCommandJourney(List.of(PARTIALLY_SURRENDERED_BLOCK)))
         .thenReturn(partialSurrenderCommandJourney);
     when(licencePositionFeatureTestHarnessService
         .splitBlockInHalf(partialSurrenderCommandJourney, PARTIALLY_SURRENDERED_BLOCK))
         .thenReturn(new SplitBlock(SURRENDERED_HALF, RETAINED_HALF));
+    when(licencePositionFeatureTestHarnessService.cropSubareaToRetainedHalf(
+        PARTIALLY_SURRENDERED_SUBAREA, penultimate(positions).getPositionDate()))
+        .thenReturn(CROPPED_SUBAREA);
+  }
+
+  private static LicencePosition penultimate(List<LicencePosition> positions) {
+    return positions.get(positions.size() - 2);
+  }
+
+  private static Feature subarea(String name) {
+    return FeatureTestUtil.builder()
+        .withAttributes(Map.of("LAYER", "SUBAREAS", "NAME", name))
+        .build();
   }
 
   private static CommandJourney commandJourney(UUID id) {
@@ -171,12 +194,12 @@ class TestHarnessServiceTest {
     var positions = buildPositions(5);
     when(licencePositionService.getExecutedChronologicalLicencePositions(licence)).thenReturn(positions);
     givenSeededBlocks(licence);
-    givenPartiallySurrenderedBlockSplit();
+    givenPartiallySurrenderedBlockSplit(positions);
 
     testHarnessService.generateLicencePositions(licence, secondaryLicence);
 
-    verify(licencePositionTestHarnessService).clearPositionsForLicence(licence);
-    verify(licencePositionTestHarnessService).clearPositionsForLicence(secondaryLicence);
+    verify(licenceCleardownService).clear(licence);
+    verify(licenceCleardownService).clear(secondaryLicence);
 
     verify(licenceTransactionService, times(9)).createLicenceTransaction(anyString());
     verify(licencePositionService, times(11))
@@ -208,7 +231,7 @@ class TestHarnessServiceTest {
     var positions = buildPositions(5);
     when(licencePositionService.getExecutedChronologicalLicencePositions(licence)).thenReturn(positions);
     givenSeededBlocks(licence);
-    givenPartiallySurrenderedBlockSplit();
+    givenPartiallySurrenderedBlockSplit(positions);
 
     testHarnessService.generateLicencePositions(licence, secondaryLicence);
 
@@ -236,7 +259,7 @@ class TestHarnessServiceTest {
     var positions = buildPositions(5);
     when(licencePositionService.getExecutedChronologicalLicencePositions(licence)).thenReturn(positions);
     givenSeededBlocks(licence);
-    givenPartiallySurrenderedBlockSplit();
+    givenPartiallySurrenderedBlockSplit(positions);
 
     testHarnessService.generateLicencePositions(licence, secondaryLicence);
 
@@ -258,7 +281,7 @@ class TestHarnessServiceTest {
     var positions = buildPositions(5);
     when(licencePositionService.getExecutedChronologicalLicencePositions(licence)).thenReturn(positions);
     givenSeededBlocks(licence);
-    givenPartiallySurrenderedBlockSplit();
+    givenPartiallySurrenderedBlockSplit(positions);
 
     testHarnessService.generateLicencePositions(licence, secondaryLicence);
 
@@ -268,16 +291,21 @@ class TestHarnessServiceTest {
     // penultimate = index size - 2 = 3
     assertThat(positionCaptor.getAllValues().getLast()).isEqualTo(positions.get(3));
 
+    var croppedSubarea = new SubareaDetails(CROPPED_SUBAREA.getId(), "ALL", "ALL");
     var expectedFullSurrender = new PartialSurrenderOperation.SurrenderDetails(
         BlockSurrenderType.FULL_SURRENDER,
         null,
-        List.of(FULLY_SURRENDERED_BLOCK.getId())
+        List.of(FULLY_SURRENDERED_BLOCK.getId()),
+        List.of(),
+        Map.of()
     );
     var expectedPartialSurrender = new PartialSurrenderOperation.SurrenderDetails(
         BlockSurrenderType.PARTIAL_SURRENDER,
         null,
         List.of(SURRENDERED_HALF.getId()),
-        List.of(RETAINED_HALF.getId())
+        List.of(RETAINED_HALF.getId()),
+        Map.of(RETAINED_HALF.getId(), List.of(SubareaSurrenderOutcome.cropped(
+            new SubareaDetails(PARTIALLY_SURRENDERED_SUBAREA.getId(), "ALL", "ALL"), croppedSubarea)))
     );
 
     // no surrender date - the change takes the date of the position it sits on
@@ -287,19 +315,20 @@ class TestHarnessServiceTest {
             FULLY_SURRENDERED_BLOCK.getId(), expectedFullSurrender,
             PARTIALLY_SURRENDERED_BLOCK.getId(), expectedPartialSurrender
         ))
-        .withOutputFeatureIds(List.of(UNTOUCHED_BLOCK.getId(), RETAINED_HALF.getId()))
         .build();
     assertThat(operationsCaptor.getAllValues().getLast()).containsExactly(expectedSurrender);
     verify(commandJourneyService).deleteAllExcludingActiveFeatures(PARTIAL_SURRENDER_COMMAND_JOURNEY_ID);
   }
 
   @Test
-  void generateLicencePositions_whenPrimaryIsProductionWithOnlyOneBlockLeftAfterTheSeed_addsNoPartialSurrender() {
+  void generateLicencePositions_whenPrimaryIsProductionWithFewerThanTwoSeededBlocks_addsNoPartialSurrender() {
     var licence = production(1);
     var secondaryLicence = carbonStorage(2);
     when(licencePositionService.getExecutedChronologicalLicencePositions(licence)).thenReturn(buildPositions(5));
     when(licencePositionFeatureTestHarnessService.createAndLinkFeatures(licence)).thenReturn(new SeededFeatures(
-        List.of(SEED_SURRENDERED_BLOCK, FULLY_SURRENDERED_BLOCK), List.of()));
+        List.of(FULLY_SURRENDERED_BLOCK),
+        Map.of(FULLY_SURRENDERED_BLOCK.getId(), List.of(FULLY_SURRENDERED_SUBAREA))
+    ));
 
     testHarnessService.generateLicencePositions(licence, secondaryLicence);
 

@@ -42,6 +42,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.PartialSurrenderChangeView;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
@@ -50,12 +52,16 @@ import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 class RemovePartialSurrenderChangeControllerTest extends AbstractControllerTest {
 
   private static final Licence LICENCE = LicenceTestUtil.builder()
+      .withId(1)
       .withLicenceType(LicenceType.SEAWARD_PRODUCTION)
       .withLicenceReference("P/1")
       .build();
   private static final UUID CORRECTION_ID = UUID.randomUUID();
   private static final UUID POSITION_ID = UUID.randomUUID();
   private static final String CHANGE_ID = UUID.randomUUID().toString();
+  private static final LicencePositionChange CHANGE = LicencePositionChangeTestUtil.newBuilder()
+      .withId(UUID.fromString(CHANGE_ID))
+      .build();
   private static final String REMOVE_PAGE_TITLE = "Are you sure you want to remove this partial surrender?";
   private static final String UNDO_PAGE_TITLE = "Are you sure you want to undo this partial surrender?";
   private static final String VIEW_NAME =
@@ -64,17 +70,25 @@ class RemovePartialSurrenderChangeControllerTest extends AbstractControllerTest 
       List.of(new PartialSurrenderChangeView.BlockRow("30/1", "Full surrender"));
   private static final LocalDate SURRENDER_DATE = LocalDate.of(2026, Month.JUNE, 5);
   private static final LocalDate POSITION_DATE = LocalDate.of(2026, Month.JANUARY, 1);
+  private static final LicenceCorrection CORRECTION = LicenceCorrectionTestUtil.newBuilder()
+      .withId(CORRECTION_ID)
+      .withLicence(LICENCE)
+      .build();
+  private static final LicencePosition POSITION = LicencePositionTestUtil.newBuilder()
+      .withId(POSITION_ID)
+      .withLicence(LICENCE)
+      .build();
 
   @MockitoBean
   private PartialSurrenderCorrectionService partialSurrenderCorrectionService;
 
   private final String positionUrl = ReverseRouter.route(on(LicenceCorrectionController.class)
-      .renderLicencePosition(CORRECTION_ID, POSITION_ID, null));
+      .renderLicencePosition(CORRECTION, POSITION));
 
   @Test
   void renderRemoveExecutedPartialSurrender_whenNotLoggedIn() throws Exception {
     mockMvc.perform(get(ReverseRouter.route(on(RemovePartialSurrenderChangeController.class)
-            .renderRemoveExecutedPartialSurrender(CORRECTION_ID, POSITION_ID, CHANGE_ID, null))))
+            .renderRemoveExecutedPartialSurrender(CORRECTION, POSITION, CHANGE))))
         .andExpect(redirectionToLoginUrl());
   }
 
@@ -83,7 +97,7 @@ class RemovePartialSurrenderChangeControllerTest extends AbstractControllerTest 
     givenCorrectionNotAllocatedToUser();
 
     mockMvc.perform(get(ReverseRouter.route(on(RemovePartialSurrenderChangeController.class)
-            .renderRemoveExecutedPartialSurrender(CORRECTION_ID, POSITION_ID, CHANGE_ID, null)))
+            .renderRemoveExecutedPartialSurrender(CORRECTION, POSITION, CHANGE)))
             .with(user(regulatorUser)))
         .andExpect(status().isForbidden());
   }
@@ -92,14 +106,16 @@ class RemovePartialSurrenderChangeControllerTest extends AbstractControllerTest 
   @EnumSource(value = LicenceType.class, mode = EnumSource.Mode.EXCLUDE, names = {"CARBON_STORAGE", "LANDWARD_PRODUCTION", "SEAWARD_PRODUCTION" })
   void renderRemoveExecutedPartialSurrender_whenLicenceTypeIsNotAllowed_forbidden(LicenceType licenceType) throws Exception {
     var notAllowedLicence = LicenceTestUtil.builder().withLicenceType(licenceType).build();
+    var notAllowedCorrection = LicenceCorrectionTestUtil.newBuilder()
+        .withId(CORRECTION_ID)
+        .withLicence(notAllowedLicence)
+        .build();
     when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
-        .thenReturn(Optional.of(LicenceCorrectionTestUtil.newBuilder()
-            .withId(CORRECTION_ID)
-            .withLicence(notAllowedLicence)
-            .build()));
+        .thenReturn(Optional.of(notAllowedCorrection));
+    when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(notAllowedCorrection));
 
     mockMvc.perform(get(ReverseRouter.route(on(RemovePartialSurrenderChangeController.class)
-            .renderRemoveExecutedPartialSurrender(CORRECTION_ID, POSITION_ID, CHANGE_ID, null)))
+            .renderRemoveExecutedPartialSurrender(CORRECTION, POSITION, CHANGE)))
             .with(user(regulatorUser)))
         .andExpect(status().isForbidden());
   }
@@ -108,6 +124,7 @@ class RemovePartialSurrenderChangeControllerTest extends AbstractControllerTest 
   @EnumSource(value = LicenceType.class, mode = EnumSource.Mode.INCLUDE, names = {"CARBON_STORAGE", "LANDWARD_PRODUCTION", "SEAWARD_PRODUCTION" })
   void renderRemoveExecutedPartialSurrender_whenLicenceTypeIsAllowed_ok(LicenceType licenceType) throws Exception {
     var allowedLicence = LicenceTestUtil.builder()
+        .withId(2)
         .withLicenceType(licenceType)
         .withLicenceReference("P/1")
         .build();
@@ -117,12 +134,14 @@ class RemovePartialSurrenderChangeControllerTest extends AbstractControllerTest 
         .build();
     when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
         .thenReturn(Optional.of(correction));
+    when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(correction));
     var position = LicencePositionTestUtil.newBuilder().withId(POSITION_ID).withLicence(allowedLicence).build();
-    when(licencePositionService.getPositionForLicence(allowedLicence, POSITION_ID)).thenReturn(position);
+    when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(position));
+    when(licencePositionChangeService.findById(CHANGE.getId())).thenReturn(Optional.of(CHANGE));
     givenExecutedSurrender(SURRENDER_DATE);
 
     mockMvc.perform(get(ReverseRouter.route(on(RemovePartialSurrenderChangeController.class)
-            .renderRemoveExecutedPartialSurrender(CORRECTION_ID, POSITION_ID, CHANGE_ID, null)))
+            .renderRemoveExecutedPartialSurrender(correction, position, CHANGE)))
             .with(user(regulatorUser)))
         .andExpect(status().isOk());
   }
@@ -132,11 +151,12 @@ class RemovePartialSurrenderChangeControllerTest extends AbstractControllerTest 
     var correction = givenCorrectionAllocatedToUser();
     var position = positionWithId();
 
-    when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(position);
+    when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(position));
+    when(licencePositionChangeService.findById(CHANGE.getId())).thenReturn(Optional.of(CHANGE));
     givenExecutedSurrender(SURRENDER_DATE);
 
     mockMvc.perform(get(ReverseRouter.route(on(RemovePartialSurrenderChangeController.class)
-            .renderRemoveExecutedPartialSurrender(CORRECTION_ID, POSITION_ID, CHANGE_ID, null)))
+            .renderRemoveExecutedPartialSurrender(correction, position, CHANGE)))
             .with(user(regulatorUser)))
         .andExpectAll(
             status().isOk(),
@@ -157,13 +177,14 @@ class RemovePartialSurrenderChangeControllerTest extends AbstractControllerTest 
     var correction = givenCorrectionAllocatedToUser();
     var position = positionWithId();
 
-    when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(position);
+    when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(position));
+    when(licencePositionChangeService.findById(CHANGE.getId())).thenReturn(Optional.of(CHANGE));
     givenExecutedSurrender(null);
     when(licencePositionCorrectionService.getEffectivePositionDate(correction, position))
         .thenReturn(POSITION_DATE);
 
     mockMvc.perform(get(ReverseRouter.route(on(RemovePartialSurrenderChangeController.class)
-            .renderRemoveExecutedPartialSurrender(CORRECTION_ID, POSITION_ID, CHANGE_ID, null)))
+            .renderRemoveExecutedPartialSurrender(correction, position, CHANGE)))
             .with(user(regulatorUser)))
         .andExpectAll(
             status().isOk(),
@@ -175,7 +196,7 @@ class RemovePartialSurrenderChangeControllerTest extends AbstractControllerTest 
   @Test
   void removePartialSurrender_whenNotLoggedIn() throws Exception {
     mockMvc.perform(post(ReverseRouter.route(on(RemovePartialSurrenderChangeController.class)
-            .removePartialSurrender(CORRECTION_ID, POSITION_ID, CHANGE_ID, null, null)))
+            .removePartialSurrender(CORRECTION, POSITION, CHANGE, null)))
             .with(csrf()))
         .andExpect(redirectionToLoginUrl());
   }
@@ -185,7 +206,7 @@ class RemovePartialSurrenderChangeControllerTest extends AbstractControllerTest 
     givenCorrectionNotAllocatedToUser();
 
     mockMvc.perform(post(ReverseRouter.route(on(RemovePartialSurrenderChangeController.class)
-            .removePartialSurrender(CORRECTION_ID, POSITION_ID, CHANGE_ID, null, null)))
+            .removePartialSurrender(CORRECTION, POSITION, CHANGE, null)))
             .with(user(regulatorUser))
             .with(csrf()))
         .andExpect(status().isForbidden());
@@ -198,10 +219,11 @@ class RemovePartialSurrenderChangeControllerTest extends AbstractControllerTest 
     var correction = givenCorrectionAllocatedToUser();
     var position = positionWithId();
 
-    when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(position);
+    when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(position));
+    when(licencePositionChangeService.findById(CHANGE.getId())).thenReturn(Optional.of(CHANGE));
 
     mockMvc.perform(post(ReverseRouter.route(on(RemovePartialSurrenderChangeController.class)
-            .removePartialSurrender(CORRECTION_ID, POSITION_ID, CHANGE_ID, null, null)))
+            .removePartialSurrender(correction, position, CHANGE, null)))
             .with(user(regulatorUser))
             .with(csrf()))
         .andExpectAll(
@@ -218,7 +240,7 @@ class RemovePartialSurrenderChangeControllerTest extends AbstractControllerTest 
   @Test
   void renderUndoPartialSurrender_whenNotLoggedIn() throws Exception {
     mockMvc.perform(get(ReverseRouter.route(on(RemovePartialSurrenderChangeController.class)
-            .renderUndoPartialSurrender(CORRECTION_ID, CHANGE_ID, null))))
+            .renderUndoPartialSurrender(CORRECTION, CHANGE_ID))))
         .andExpect(redirectionToLoginUrl());
   }
 
@@ -227,7 +249,7 @@ class RemovePartialSurrenderChangeControllerTest extends AbstractControllerTest 
     givenCorrectionNotAllocatedToUser();
 
     mockMvc.perform(get(ReverseRouter.route(on(RemovePartialSurrenderChangeController.class)
-            .renderUndoPartialSurrender(CORRECTION_ID, CHANGE_ID, null)))
+            .renderUndoPartialSurrender(CORRECTION, CHANGE_ID)))
             .with(user(regulatorUser)))
         .andExpect(status().isForbidden());
   }
@@ -242,7 +264,7 @@ class RemovePartialSurrenderChangeControllerTest extends AbstractControllerTest 
     givenStagedSurrender(positionCorrection, SURRENDER_DATE);
 
     mockMvc.perform(get(ReverseRouter.route(on(RemovePartialSurrenderChangeController.class)
-            .renderUndoPartialSurrender(CORRECTION_ID, CHANGE_ID, null)))
+            .renderUndoPartialSurrender(correction, CHANGE_ID)))
             .with(user(regulatorUser)))
         .andExpectAll(
             status().isOk(),
@@ -268,7 +290,7 @@ class RemovePartialSurrenderChangeControllerTest extends AbstractControllerTest 
     when(licencePositionCorrectionService.resolveEffectiveDate(positionCorrection)).thenReturn(POSITION_DATE);
 
     mockMvc.perform(get(ReverseRouter.route(on(RemovePartialSurrenderChangeController.class)
-            .renderUndoPartialSurrender(CORRECTION_ID, CHANGE_ID, null)))
+            .renderUndoPartialSurrender(correction, CHANGE_ID)))
             .with(user(regulatorUser)))
         .andExpectAll(
             status().isOk(),
@@ -291,19 +313,19 @@ class RemovePartialSurrenderChangeControllerTest extends AbstractControllerTest 
     givenStagedSurrender(positionCorrection, SURRENDER_DATE);
 
     mockMvc.perform(get(ReverseRouter.route(on(RemovePartialSurrenderChangeController.class)
-            .renderUndoPartialSurrender(CORRECTION_ID, CHANGE_ID, null)))
+            .renderUndoPartialSurrender(correction, CHANGE_ID)))
             .with(user(regulatorUser)))
         .andExpectAll(
             status().isOk(),
             model().attribute("cancelUrl", ReverseRouter.route(on(LicenceCorrectionController.class)
-                .renderAddedPosition(CORRECTION_ID, positionCorrection.getId(), null)))
+                .renderAddedPosition(correction, positionCorrection)))
         );
   }
 
   @Test
   void undoPartialSurrender_whenNotLoggedIn() throws Exception {
     mockMvc.perform(post(ReverseRouter.route(on(RemovePartialSurrenderChangeController.class)
-            .undoPartialSurrender(CORRECTION_ID, CHANGE_ID, null, null)))
+            .undoPartialSurrender(CORRECTION, CHANGE_ID, null)))
             .with(csrf()))
         .andExpect(redirectionToLoginUrl());
   }
@@ -313,7 +335,7 @@ class RemovePartialSurrenderChangeControllerTest extends AbstractControllerTest 
     givenCorrectionNotAllocatedToUser();
 
     mockMvc.perform(post(ReverseRouter.route(on(RemovePartialSurrenderChangeController.class)
-            .undoPartialSurrender(CORRECTION_ID, CHANGE_ID, null, null)))
+            .undoPartialSurrender(CORRECTION, CHANGE_ID, null)))
             .with(user(regulatorUser))
             .with(csrf()))
         .andExpect(status().isForbidden());
@@ -329,7 +351,7 @@ class RemovePartialSurrenderChangeControllerTest extends AbstractControllerTest 
         .thenReturn(executedPositionCorrection());
 
     mockMvc.perform(post(ReverseRouter.route(on(RemovePartialSurrenderChangeController.class)
-            .undoPartialSurrender(CORRECTION_ID, CHANGE_ID, null, null)))
+            .undoPartialSurrender(correction, CHANGE_ID, null)))
             .with(user(regulatorUser))
             .with(csrf()))
         .andExpectAll(
@@ -382,6 +404,7 @@ class RemovePartialSurrenderChangeControllerTest extends AbstractControllerTest 
         .build();
     when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
         .thenReturn(Optional.of(correction));
+    when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(correction));
     return correction;
   }
 

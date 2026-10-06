@@ -4,6 +4,7 @@ import jakarta.transaction.Transactional;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Collection;
+import java.util.EnumSet;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -86,6 +87,7 @@ public class LicenceCorrectionService {
   @Transactional
   public void completeCorrection(LicenceCorrection licenceCorrection) {
     licenceCorrection.setStatus(LicenceCorrectionStatus.COMPLETE);
+    licenceCorrection.setCompletedInstant(Instant.now(clock));
     licenceCorrectionRepository.save(licenceCorrection);
   }
 
@@ -106,6 +108,10 @@ public class LicenceCorrectionService {
     return licenceCorrectionRepository.existsByLicenceAndStatus(licence, LicenceCorrectionStatus.IN_PROGRESS);
   }
 
+  public Optional<LicenceCorrection> findById(UUID correctionId) {
+    return licenceCorrectionRepository.findById(correctionId);
+  }
+
   public Optional<LicenceCorrection> findByIdAndAllocatedToWuaId(UUID correctionId, ServiceUserDetail user) {
     return licenceCorrectionRepository.findByIdAndAllocatedToWuaId(correctionId, user.wuaId());
   }
@@ -113,6 +119,12 @@ public class LicenceCorrectionService {
   public Collection<LicenceCorrection> getAllInProgressCorrectionsForUser(ServiceUserDetail user) {
     return licenceCorrectionRepository
         .findAllByStatusAndAllocatedToWuaId(LicenceCorrectionStatus.IN_PROGRESS, user.wuaId());
+  }
+
+  public Collection<LicenceCorrection> getCorrectionsForSearch() {
+    return licenceCorrectionRepository.findAllByStatusIn(
+        EnumSet.of(LicenceCorrectionStatus.IN_PROGRESS, LicenceCorrectionStatus.COMPLETE)
+    );
   }
 
   public LicenceCorrection getInProgressCorrectionOrThrow(Licence licence) {

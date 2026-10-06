@@ -1,6 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.extendjourney;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -8,12 +9,14 @@ import static org.mockito.Mockito.when;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.validation.FieldError;
 import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFieldDurationInput;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplication;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
@@ -162,6 +165,54 @@ class LicenceScheduleExtensionFormValidatorTest {
     durationInput.setMonths("1");
     durationInput.setDays("1");
     return durationInput;
+  }
+
+  @Test
+  void isValid_whenAStaleFormSelectsATermThatCanNoLongerBeExtended_assertItIsRemovedFromTheForm() {
+    var endedTermId = UUID.randomUUID().toString();
+    var liveTermId = UUID.randomUUID().toString();
+    when(licenceScheduleExtensionFormService.getLicenceScheduleExtensionViews(scheduleWorkProgrammeApplicationDetail))
+        .thenReturn(List.of(new LicenceScheduleExtensionRequestView(liveTermId, "Second term", false, false, null)));
+
+    var form = new LicenceScheduleExtensionForm();
+    form.setSelectedTerm(new HashMap<>(Map.of(endedTermId, true, liveTermId, true)));
+    form.setExtensionDuration(new HashMap<>(Map.of(
+        endedTermId, createValidDurationInput("extensionDuration[%s]".formatted(endedTermId)),
+        liveTermId, createValidDurationInput("extensionDuration[%s]".formatted(liveTermId))
+    )));
+    var bindingResult = ValidatorTestingUtil.getBindingResult(form);
+
+    var isValid = licenceScheduleExtensionFormValidator.isValid(form, bindingResult, scheduleWorkProgrammeApplicationDetail);
+
+    assertThat(isValid).isTrue();
+    assertThat(form.getSelectedTerm()).containsOnlyKeys(liveTermId);
+    assertThat(form.getExtensionDuration()).containsOnlyKeys(liveTermId);
+  }
+
+  @Test
+  void isValid_whenAStaleFormOnlySelectsAnEndedTerm_assertSelectionRequiredRatherThanSavingALiveTerm() {
+    var endedTermId = UUID.randomUUID().toString();
+    var secondTermId = UUID.randomUUID().toString();
+    var thirdTermId = UUID.randomUUID().toString();
+    when(licenceScheduleExtensionFormService.getLicenceScheduleExtensionViews(scheduleWorkProgrammeApplicationDetail))
+        .thenReturn(List.of(
+            new LicenceScheduleExtensionRequestView(secondTermId, "Second Term", false, false, null),
+            new LicenceScheduleExtensionRequestView(thirdTermId, "Third Term", false, false, null)));
+
+    var form = new LicenceScheduleExtensionForm();
+    form.setSelectedTerm(new HashMap<>(Map.of(endedTermId, true, secondTermId, false)));
+    form.setExtensionDuration(new HashMap<>(Map.of(
+        endedTermId, createValidDurationInput("extensionDuration[%s]".formatted(endedTermId)),
+        secondTermId, createValidDurationInput("extensionDuration[%s]".formatted(secondTermId))
+    )));
+    var bindingResult = ValidatorTestingUtil.getBindingResult(form);
+
+    var isValid = licenceScheduleExtensionFormValidator.isValid(form, bindingResult, scheduleWorkProgrammeApplicationDetail);
+
+    assertThat(isValid).isFalse();
+    assertThat(bindingResult.getFieldErrors())
+        .extracting(FieldError::getField, FieldError::getDefaultMessage)
+        .containsExactly(tuple("selectedTerm", "Select at least one term to request extension"));
   }
 
   private LicenceScheduleExtensionRequestView createMockView(String id, boolean isPhase) {

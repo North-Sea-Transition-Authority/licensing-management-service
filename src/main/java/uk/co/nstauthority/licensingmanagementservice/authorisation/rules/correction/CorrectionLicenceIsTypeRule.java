@@ -11,10 +11,17 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.SecurityRuleR
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.AccessInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionService;
 
 @Component
 @Order(9)
 public class CorrectionLicenceIsTypeRule implements AccessInterceptorRule {
+
+  private final LicenceCorrectionService licenceCorrectionService;
+
+  public CorrectionLicenceIsTypeRule(LicenceCorrectionService licenceCorrectionService) {
+    this.licenceCorrectionService = licenceCorrectionService;
+  }
 
   @Override
   public Class<? extends Annotation> supports() {
@@ -36,7 +43,16 @@ public class CorrectionLicenceIsTypeRule implements AccessInterceptorRule {
       );
     }
 
-    var correction = (LicenceCorrection) request.getAttribute("validatedCorrection");
+    var correctionId = getPathVariableEntityIdFromRequest(request, LicenceCorrection.class);
+    var correction = licenceCorrectionService.findById(correctionId).orElse(null);
+
+    if (correction == null) {
+      return SecurityRuleResult.checkFailedWithStatusAndMessage(
+          HttpStatus.NOT_FOUND,
+          "Licence correction %s not found".formatted(correctionId)
+      );
+    }
+
     var licence = correction.getLicence();
 
     for (LicenceType type : licenceIsType.value()) {

@@ -35,11 +35,15 @@ public class TopNavigationService {
 
     var user = userDetailService.getUserDetail();
     var usersRoles = teamQueryService.getTeamRolesForUser(user.wuaId());
+    var userIsInRegulatorTeam = usersRoles.stream()
+        .anyMatch(teamRole -> teamRole.getTeam().getTeamType().isRegulator());
 
     return EnumSet.allOf(TopNavigationItem.class)
         .stream()
         // Hide items whose release phase is not yet switched on
         .filter(item -> featureFlagService.isEnabled(item.getReleasePhase()))
+        // Hide regulator-only items from users outside a regulator team
+        .filter(item -> !item.isRegulatorOnly() || userIsInRegulatorTeam)
         .filter(item ->
             // For nav items that can appear for any team
             item.getRequiredTeamType() == null

@@ -69,7 +69,7 @@ public enum LicenceType implements Displayable {
     return managedByLms;
   }
 
-  public Boolean isProduction() {
+  public boolean isProduction() {
     return this == LANDWARD_PRODUCTION || this == SEAWARD_PRODUCTION;
   }
 

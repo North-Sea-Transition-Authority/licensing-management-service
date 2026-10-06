@@ -124,6 +124,32 @@ class TransferEquityCorrectionServiceTest {
   }
 
   @Test
+  void getEquityHoldingsForCorrection_whenAChangeIsRemoved_thenIgnoresItsOperations() {
+    var currentPosition = mock(ChronologicalPosition.class);
+    when(currentPosition.id()).thenReturn(POSITION_ID);
+    var setChange = new PositionChange(
+        UUID.randomUUID().toString(),
+        1,
+        null,
+        List.of(new SetEquityOperation(1, BigDecimal.valueOf(100)))
+    );
+    var removedChange = new PositionChange(
+        UUID.randomUUID().toString(),
+        2,
+        LicencePositionChangeType.REMOVE_CHANGE,
+        List.of(new TransferEquityOperation(1, 2, BigDecimal.valueOf(30), true))
+    );
+    when(currentPosition.changes()).thenReturn(List.of(setChange, removedChange));
+
+    when(licencePositionViewService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, POSITION_ID))
+        .thenReturn(List.of(currentPosition));
+
+    var result = transferEquityCorrectionService.getEquityHoldingsForCorrection(LICENCE_CORRECTION, POSITION_ID);
+
+    assertThat(result).isEqualTo(Map.of(1, BigDecimal.valueOf(100)));
+  }
+
+  @Test
   void getEquityHoldingsForCorrection_stopsProcessingAfterCurrentPositionIsReached() {
     var earlierPosition = mock(ChronologicalPosition.class);
     when(earlierPosition.id()).thenReturn(UUID.randomUUID());

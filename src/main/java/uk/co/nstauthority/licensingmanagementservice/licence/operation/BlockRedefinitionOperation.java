@@ -1,9 +1,12 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.operation;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationError;
 
@@ -21,20 +24,19 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
  *
  * <p>Redrawing a block redraws the subareas on it, each becoming its own new shape against the
  * successor block. PEARS raises no subarea operation for that, so the subareas are recorded here
- * rather than as a change beside this one. They take no part in the replay -- what a licence holds
- * is its blocks -- and are here as the record of what the redefinition did.
+ * rather than as a change beside this one.
  *
- * @param replacedFeatureIds        the blocks that ended
- * @param outputFeatureIds          the blocks that took their place
- * @param replacedSubareas the subarea versions that ended with them
- * @param outputSubareas   the subarea versions that took their place
+ * @param replacedFeatureIds         the blocks that ended
+ * @param outputFeatureIds           the blocks that took their place
+ * @param replacedSubareas           the subarea versions that ended with them
+ * @param outputFeatureIdToSubareas  the subarea versions that took their place, keyed by the output block each is on
  */
 public record BlockRedefinitionOperation(
     UUID id,
     List<UUID> replacedFeatureIds,
     List<UUID> outputFeatureIds,
     List<SubareaDetails> replacedSubareas,
-    List<SubareaDetails> outputSubareas
+    Map<UUID, List<SubareaDetails>> outputFeatureIdToSubareas
 ) implements LicenceOperation {
 
   public BlockRedefinitionOperation {
@@ -42,16 +44,26 @@ public record BlockRedefinitionOperation(
     replacedFeatureIds = replacedFeatureIds == null ? List.of() : List.copyOf(replacedFeatureIds);
     outputFeatureIds = outputFeatureIds == null ? List.of() : List.copyOf(outputFeatureIds);
     replacedSubareas = replacedSubareas == null ? List.of() : List.copyOf(replacedSubareas);
-    outputSubareas = outputSubareas == null ? List.of() : List.copyOf(outputSubareas);
+    outputFeatureIdToSubareas = outputFeatureIdToSubareas == null
+        ? Map.of()
+        : outputFeatureIdToSubareas.entrySet().stream()
+            .collect(Collectors.toUnmodifiableMap(Map.Entry::getKey, entry -> List.copyOf(entry.getValue())));
   }
 
   public BlockRedefinitionOperation(
       List<UUID> replacedFeatureIds,
       List<UUID> outputFeatureIds,
       List<SubareaDetails> replacedSubareas,
-      List<SubareaDetails> outputSubareas
+      Map<UUID, List<SubareaDetails>> outputFeatureIdToSubareas
   ) {
-    this(UUID.randomUUID(), replacedFeatureIds, outputFeatureIds, replacedSubareas, outputSubareas);
+    this(UUID.randomUUID(), replacedFeatureIds, outputFeatureIds, replacedSubareas, outputFeatureIdToSubareas);
+  }
+
+  @JsonIgnore
+  public List<SubareaDetails> outputSubareas() {
+    return outputFeatureIdToSubareas.values().stream()
+        .flatMap(List::stream)
+        .toList();
   }
 
   @Override
@@ -74,7 +86,7 @@ public record BlockRedefinitionOperation(
     private Collection<UUID> replacedFeatureIds;
     private Collection<UUID> outputFeatureIds;
     private Collection<SubareaDetails> replacedSubareas;
-    private Collection<SubareaDetails> outputSubareas;
+    private Map<UUID, ? extends Collection<SubareaDetails>> outputFeatureIdToSubareas;
 
     public Builder withReplacedFeatureIds(Collection<UUID> replacedFeatureIds) {
       this.replacedFeatureIds = replacedFeatureIds;
@@ -91,8 +103,8 @@ public record BlockRedefinitionOperation(
       return this;
     }
 
-    public Builder withOutputSubareas(Collection<SubareaDetails> outputSubareas) {
-      this.outputSubareas = outputSubareas;
+    public Builder withOutputSubareas(Map<UUID, ? extends Collection<SubareaDetails>> outputFeatureIdToSubareas) {
+      this.outputFeatureIdToSubareas = outputFeatureIdToSubareas;
       return this;
     }
 
@@ -101,7 +113,11 @@ public record BlockRedefinitionOperation(
           replacedFeatureIds == null ? List.of() : replacedFeatureIds.stream().distinct().toList(),
           outputFeatureIds == null ? List.of() : outputFeatureIds.stream().distinct().toList(),
           replacedSubareas == null ? List.of() : replacedSubareas.stream().distinct().toList(),
-          outputSubareas == null ? List.of() : outputSubareas.stream().distinct().toList());
+          outputFeatureIdToSubareas == null
+              ? Map.of()
+              : outputFeatureIdToSubareas.entrySet().stream()
+                  .collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().stream().distinct().toList()))
+      );
     }
   }
 }

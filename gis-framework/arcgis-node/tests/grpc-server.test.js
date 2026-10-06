@@ -7,6 +7,7 @@ import {main} from "../src/grpc-server";
 import {buildPolygonHandler} from "../src/handlers/build-polygon-handler.ts";
 import {calculateAreaHandler} from "../src/handlers/calculate-area-operator-handler.ts";
 import {coordinatesToPolylineHandler} from "../src/handlers/coordinates-to-polyline-handler.ts";
+import {cropToBoundaryHandler} from "../src/handlers/crop-to-boundary-handler.ts";
 import {explodePolygonHandler} from "../src/handlers/explode-polygon-handler.ts";
 import {findNorthwestMostLineHandler} from "../src/handlers/find-northwest-most-line-handler.ts";
 import {findParentLinesHandler} from "../src/handlers/find-parent-lines-handler.ts";
@@ -128,6 +129,7 @@ describe("main()", () => {
         calculateArea: calculateAreaHandler,
         coordinatesToPolyline: coordinatesToPolylineHandler,
         polygonContains: polygonContainsHandler,
+        cropToBoundary: cropToBoundaryHandler,
         migrateBlockOrSubarea,
         validateBlockAndSubarea,
         validateTopologicallyEqual,

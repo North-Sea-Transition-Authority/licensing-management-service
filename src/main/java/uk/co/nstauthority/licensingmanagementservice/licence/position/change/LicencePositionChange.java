@@ -10,12 +10,14 @@ import java.util.UUID;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.envers.Audited;
 import org.hibernate.type.SqlTypes;
+import uk.co.nstauthority.licensingmanagementservice.endpointvalidation.PathVariableEntity;
 import uk.co.nstauthority.licensingmanagementservice.hibernate.AssignedOrGeneratedUuid;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 
 @Audited
 @Entity(name = "licence_position_changes")
+@PathVariableEntity(pathVariableName = "changeId")
 public class LicencePositionChange {
 
   @Id

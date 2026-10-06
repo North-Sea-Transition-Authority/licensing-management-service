@@ -164,8 +164,6 @@ public class LicenceActionService {
     if (licenceCorrectionService.hasOpenCorrection(licence)) {
       return false;
     }
-    return LicenceCorrectionRoles.getRequiredRoleForLicenceType(licence.getType())
-        .map(userRoles::contains)
-        .orElse(false);
+    return LicenceCorrectionRoles.hasCorrectorRole(licence.getType(), userRoles);
   }
 }

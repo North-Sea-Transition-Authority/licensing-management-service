@@ -12,6 +12,8 @@ public enum CorrectionMarker {
 
   CHANGE_ADDED("Added change", "govuk-tag--green"),
   CHANGE_CORRECTED("Corrected change", "govuk-tag--blue"),
+  CHANGE_MOVED_FROM("Moved from", "govuk-tag--purple"),
+  CHANGE_MOVED_TO("Moved to", "govuk-tag--pink"),
   CHANGE_REMOVED("Removed", "govuk-tag--red");
 
   private final String label;

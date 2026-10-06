@@ -40,6 +40,8 @@ import "mergeAndGeneralizeLines/MergeAndGeneralizeLinesRequest.proto";
 import "mergeAndGeneralizeLines/MergeAndGeneralizeLinesResponse.proto";
 import "polygonContains/PolygonContainsRequest.proto";
 import "polygonContains/PolygonContainsResponse.proto";
+import "cropToBoundary/CropToBoundaryRequest.proto";
+import "cropToBoundary/CropToBoundaryResponse.proto";
 
 option java_multiple_files = true;
 option java_outer_classname = "ArcGisServiceProto";
@@ -64,4 +66,5 @@ service ArcGisService {
   rpc generalizePolygon (GeneralizePolygonRequest) returns (GeneralizePolygonResponse) {};
   rpc mergeAndGeneralizeLines (MergeAndGeneralizeLinesRequest) returns (MergeAndGeneralizeLinesResponse) {};
   rpc polygonContains (PolygonContainsRequest) returns (PolygonContainsResponse) {};
+  rpc cropToBoundary (CropToBoundaryRequest) returns (CropToBoundaryResponse) {};
 }

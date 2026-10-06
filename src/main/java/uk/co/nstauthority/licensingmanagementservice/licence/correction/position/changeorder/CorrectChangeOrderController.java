@@ -11,7 +11,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
@@ -20,11 +19,11 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correct
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.PositionMove;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.PositionMoveDirection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.PositionMoveOptionUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @Controller
@@ -49,10 +48,9 @@ public class CorrectChangeOrderController {
 
   @GetMapping
   public ModelAndView renderCorrectChangeOrder(
-      @PathVariable UUID correctionId,
+      LicenceCorrection correction,
       @PathVariable UUID licencePositionId,
-      @PathVariable UUID changeId,
-      @RequestAttribute("validatedCorrection") LicenceCorrection correction
+      @PathVariable UUID changeId
   ) {
     var orderedChanges = correctChangeOrderService.getOrderableChanges(correction, licencePositionId);
     var moveOptions = PositionMoveOptionUtil.buildMoveOptions(orderedChanges, changeId);
@@ -68,10 +66,9 @@ public class CorrectChangeOrderController {
 
   @PostMapping
   public ModelAndView correctChangeOrder(
-      @PathVariable UUID correctionId,
+      LicenceCorrection correction,
       @PathVariable UUID licencePositionId,
       @PathVariable UUID changeId,
-      @RequestAttribute("validatedCorrection") LicenceCorrection correction,
       @ModelAttribute("form") CorrectChangeOrderForm form,
       BindingResult bindingResult,
       RedirectAttributes redirectAttributes
@@ -100,11 +97,10 @@ public class CorrectChangeOrderController {
 
   private String positionPageUrl(LicenceCorrection correction, UUID licencePositionId) {
     return licencePositionCorrectionService.findFirstAddedPositionCorrection(correction, licencePositionId)
-        .map(LicencePositionCorrection::getId)
-        .map(addedPositionCorrectionId -> ReverseRouter.route(on(LicenceCorrectionController.class)
-            .renderAddedPosition(correction.getId(), addedPositionCorrectionId, null)))
+        .map(addedPositionCorrection -> ReverseRouter.route(on(LicenceCorrectionController.class)
+            .renderAddedPosition(correction, addedPositionCorrection)))
         .orElseGet(() -> ReverseRouter.route(on(LicenceCorrectionController.class)
-            .renderLicencePosition(correction.getId(), licencePositionId, null)));
+            .renderLicencePosition(correction, new LicencePosition(licencePositionId))));
   }
 
   private ModelAndView correctChangeOrderModelAndView(

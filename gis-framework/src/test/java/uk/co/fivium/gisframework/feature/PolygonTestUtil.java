@@ -16,7 +16,7 @@ public class PolygonTestUtil {
     private Feature feature = FeatureTestUtil.newBuilder().build();
     private Map<String, Object> attributes = Map.of();
     private Long startDepth = 0L;
-    private Long endDepth = 100L;
+    private Long endDepth = -100L;
 
     public Builder withId(UUID id) {
       this.id = id;

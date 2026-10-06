@@ -1,6 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.correction;
 
 import java.util.Optional;
+import java.util.Set;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 
@@ -17,5 +18,11 @@ public final class LicenceCorrectionRoles {
       return Optional.of(Role.PRODUCTION_LICENCE_CORRECTOR);
     }
     return Optional.empty();
+  }
+
+  public static boolean hasCorrectorRole(LicenceType licenceType, Set<Role> roles) {
+    return getRequiredRoleForLicenceType(licenceType)
+        .map(roles::contains)
+        .orElse(false);
   }
 }

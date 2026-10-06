@@ -11,6 +11,7 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.UuidGenerator;
 import org.hibernate.envers.Audited;
 import org.hibernate.type.SqlTypes;
+import uk.co.nstauthority.licensingmanagementservice.endpointvalidation.PathVariableEntity;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.LicencePositionPayload;
@@ -18,6 +19,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePos
 
 @Audited
 @Entity(name = "licence_position_corrections")
+@PathVariableEntity(pathVariableName = "licencePositionCorrectionId")
 public class LicencePositionCorrection {
 
   @Id

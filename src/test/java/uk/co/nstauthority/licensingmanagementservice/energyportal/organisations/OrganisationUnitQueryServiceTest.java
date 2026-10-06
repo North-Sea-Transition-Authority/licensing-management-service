@@ -12,15 +12,18 @@ import java.time.Month;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import uk.co.fivium.energyportalapi.client.RequestPurpose;
 import uk.co.fivium.energyportalapi.client.organisation.OrganisationApi;
 import uk.co.fivium.energyportalapi.generated.types.OrganisationGroup;
 import uk.co.fivium.energyportalapi.generated.types.OrganisationNameHistory;
 import uk.co.fivium.energyportalapi.generated.types.OrganisationUnit;
+import uk.co.nstauthority.licensingmanagementservice.correlationid.CorrelationIdUtil;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationNamePeriods.OrganisationNamePeriod;
 
 @ExtendWith(MockitoExtension.class)
@@ -122,6 +125,133 @@ class OrganisationUnitQueryServiceTest {
     assertThat(organisationUnitQueryService.searchOrganisationUnitsWithName("org name"))
         .usingRecursiveComparison()
         .isEqualTo(List.of(orgUnitJson, orgUnitJson2));
+  }
+
+  @Test
+  void searchOrganisationUnitsWithNameCompareToList_includeFromList() {
+    var organisationUnit = new OrganisationUnit();
+    organisationUnit.setOrganisationUnitId(1);
+    organisationUnit.setName("org name1");
+
+    var organisationUnit2 = new OrganisationUnit();
+    organisationUnit2.setOrganisationUnitId(2);
+    organisationUnit2.setName("org name2");
+
+    var organisationUnit3 = new OrganisationUnit();
+    organisationUnit3.setOrganisationUnitId(3);
+    organisationUnit3.setName("org name3");
+
+    var orgUnitJson = new OrganisationUnitJson(
+        organisationUnit.getOrganisationUnitId(),
+        organisationUnit.getName()
+    );
+
+    var orgUnitJson2 = new OrganisationUnitJson(
+        organisationUnit2.getOrganisationUnitId(),
+        organisationUnit2.getName()
+    );
+
+    var previousNames = Set.of("org name1", "org name2");
+
+    when(organisationApi.searchOrganisationUnits(
+        "org name",
+        ORGANISATION_UNITS_PROJECTION_ROOT,
+        new RequestPurpose("Search organisation units by name"),
+        CorrelationIdUtil.getLogCorrelationId()
+        )
+    ).thenReturn(List.of(organisationUnit, organisationUnit2, organisationUnit3));
+
+    assertThat(organisationUnitQueryService.searchOrganisationUnitsWithNameCompareToList(
+        "org name",
+        previousNames,
+        Set.of()
+    ))
+        .usingRecursiveComparison()
+        .isEqualTo(List.of(orgUnitJson, orgUnitJson2));
+  }
+
+  @Test
+  void searchOrganisationUnitsWithNameCompareToList_excludeFromList() {
+    var organisationUnit = new OrganisationUnit();
+    organisationUnit.setOrganisationUnitId(1);
+    organisationUnit.setName("org name1");
+
+    var organisationUnit2 = new OrganisationUnit();
+    organisationUnit2.setOrganisationUnitId(2);
+    organisationUnit2.setName("org name2");
+
+    var organisationUnit3 = new OrganisationUnit();
+    organisationUnit3.setOrganisationUnitId(3);
+    organisationUnit3.setName("org name3");
+
+    var orgUnitJson3 = new OrganisationUnitJson(
+        organisationUnit3.getOrganisationUnitId(),
+        organisationUnit3.getName()
+    );
+
+    var previousNames = Set.of("org name1", "org name2");
+
+    when(organisationApi.searchOrganisationUnits(
+            "org name",
+            ORGANISATION_UNITS_PROJECTION_ROOT,
+            new RequestPurpose("Search organisation units by name"),
+            CorrelationIdUtil.getLogCorrelationId()
+        )
+    ).thenReturn(List.of(organisationUnit, organisationUnit2, organisationUnit3));
+
+    assertThat(organisationUnitQueryService.searchOrganisationUnitsWithNameCompareToList(
+        "org name",
+        Set.of(),
+        previousNames
+    ))
+        .usingRecursiveComparison()
+        .isEqualTo(List.of(orgUnitJson3));
+  }
+
+  @Test
+  void searchOrganisationUnitsWithNameCompareToList_emptyLists() {
+    var organisationUnit = new OrganisationUnit();
+    organisationUnit.setOrganisationUnitId(1);
+    organisationUnit.setName("org name1");
+
+    var organisationUnit2 = new OrganisationUnit();
+    organisationUnit2.setOrganisationUnitId(2);
+    organisationUnit2.setName("org name2");
+
+    var organisationUnit3 = new OrganisationUnit();
+    organisationUnit3.setOrganisationUnitId(3);
+    organisationUnit3.setName("org name3");
+
+    var orgUnitJson = new OrganisationUnitJson(
+        organisationUnit.getOrganisationUnitId(),
+        organisationUnit.getName()
+    );
+
+    var orgUnitJson2 = new OrganisationUnitJson(
+        organisationUnit2.getOrganisationUnitId(),
+        organisationUnit2.getName()
+    );
+
+    var orgUnitJson3 = new OrganisationUnitJson(
+        organisationUnit3.getOrganisationUnitId(),
+        organisationUnit3.getName()
+    );
+
+    when(organisationApi.searchOrganisationUnits(
+            "org name",
+            ORGANISATION_UNITS_PROJECTION_ROOT,
+            new RequestPurpose("Search organisation units by name"),
+            CorrelationIdUtil.getLogCorrelationId()
+        )
+    ).thenReturn(List.of(organisationUnit, organisationUnit2, organisationUnit3));
+
+    assertThat(organisationUnitQueryService.searchOrganisationUnitsWithNameCompareToList(
+        "org name",
+        Set.of(),
+        Set.of()
+    ))
+        .usingRecursiveComparison()
+        .isEqualTo(List.of(orgUnitJson, orgUnitJson2, orgUnitJson3));
   }
 
   @Test

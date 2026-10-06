@@ -10,10 +10,12 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.time.format.ResolverStyle;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -23,13 +25,19 @@ import org.jooq.DSLContext;
 import org.jooq.impl.DSL;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
+import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserJson;
+import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserService;
+import uk.co.nstauthority.licensingmanagementservice.energyportal.user.WebUserAccountId;
+import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.fds.table.SortableTableRow;
 import uk.co.nstauthority.licensingmanagementservice.fds.table.SortableTableValue;
 import uk.co.nstauthority.licensingmanagementservice.fds.table.SortableTableView;
 import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplication;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.OrganisationUnit;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.overview.LicenceScheduleTabController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
@@ -41,6 +49,12 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.S
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivity;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityDateOption;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityService;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplication;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetailRepository;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.amendjourney.LicenceWorkProgrammeAmendmentRepository;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.extendjourney.LicenceScheduleExtensionRepository;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overview.ScheduleWorkProgrammeApplicationOverviewController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.teams.RegulatorRoleService;
 import uk.co.nstauthority.licensingmanagementservice.util.FilterUtil;
@@ -52,6 +66,8 @@ public class CrossLicenceEventTrackerService {
   private static final DateTimeFormatter EVENT_DATE_FILTER_FORMAT = DateTimeFormatter.ofPattern("dd/MM/uuuu")
       .withResolverStyle(ResolverStyle.STRICT);
 
+  private static final String GET_STEWARDS_PURPOSE = "Fetch stewards for cross licence event tracker";
+
   private final LicenceScheduleTermService licenceScheduleTermService;
   private final LicenceSchedulePhaseService licenceSchedulePhaseService;
   private final LicenceEventCacheRepository licenceEventCacheRepository;
@@ -60,6 +76,10 @@ public class CrossLicenceEventTrackerService {
   private final WorkProgrammeActivityService workProgrammeActivityService;
   private final DSLContext dslContext;
   private final RegulatorRoleService regulatorRoleService;
+  private final ScheduleWorkProgrammeApplicationDetailRepository scheduleWorkProgrammeApplicationDetailRepository;
+  private final LicenceScheduleExtensionRepository licenceScheduleExtensionRepository;
+  private final LicenceWorkProgrammeAmendmentRepository licenceWorkProgrammeAmendmentRepository;
+  private final EnergyPortalUserService energyPortalUserService;
 
   public CrossLicenceEventTrackerService(
       LicenceScheduleTermService licenceScheduleTermService,
@@ -69,7 +89,11 @@ public class CrossLicenceEventTrackerService {
       LicenceResponsibleOrganisationService licenceResponsibleOrganisationService,
       WorkProgrammeActivityService workProgrammeActivityService,
       DSLContext dslContext,
-      RegulatorRoleService regulatorRoleService
+      RegulatorRoleService regulatorRoleService,
+      ScheduleWorkProgrammeApplicationDetailRepository scheduleWorkProgrammeApplicationDetailRepository,
+      LicenceScheduleExtensionRepository licenceScheduleExtensionRepository,
+      LicenceWorkProgrammeAmendmentRepository licenceWorkProgrammeAmendmentRepository,
+      EnergyPortalUserService energyPortalUserService
   ) {
     this.licenceScheduleTermService = licenceScheduleTermService;
     this.licenceSchedulePhaseService = licenceSchedulePhaseService;
@@ -79,6 +103,10 @@ public class CrossLicenceEventTrackerService {
     this.workProgrammeActivityService = workProgrammeActivityService;
     this.dslContext = dslContext;
     this.regulatorRoleService = regulatorRoleService;
+    this.scheduleWorkProgrammeApplicationDetailRepository = scheduleWorkProgrammeApplicationDetailRepository;
+    this.licenceScheduleExtensionRepository = licenceScheduleExtensionRepository;
+    this.licenceWorkProgrammeAmendmentRepository = licenceWorkProgrammeAmendmentRepository;
+    this.energyPortalUserService = energyPortalUserService;
   }
 
   public SortableTableView getEventTrackerTable(EventTrackerForm form, ServiceUserDetail user) {
@@ -99,6 +127,9 @@ public class CrossLicenceEventTrackerService {
     var licenseesByLicenceId = toLicenseeNamesByLicenceId(responsibleOrganisationsByLicence);
     var licenseeOrgUnitIdsByLicenceId = getLicenceIdToLicenseeOrgUnitIdMap(responsibleOrganisationsByLicence);
 
+    var latestApplicationDetailByApplicationId = getLatestApplicationDetailsByApplicationId(eventCaches);
+    var stewardNameByWuaId = getStewardNamesByWuaId(eventCaches);
+
     var isRegulator = regulatorRoleService.isRegulator(user);
 
     var tableBuilder = SortableTableView.sortableTableBuilder()
@@ -117,9 +148,52 @@ public class CrossLicenceEventTrackerService {
     eventCaches.stream()
         .filter(eventCache -> matchesLicenseeCondition(eventCache, licenseeOrgUnitIdsByLicenceId, form, isRegulator))
         .sorted(Comparator.comparing(LicenceEventCache::getEventDate, Comparator.nullsLast(Comparator.naturalOrder())))
-        .forEach(eventCache -> tableBuilder.addRow(toRow(eventCache, licenseesByLicenceId)));
+        .forEach(eventCache -> tableBuilder.addRow(
+            toRow(eventCache, licenseesByLicenceId, latestApplicationDetailByApplicationId, stewardNameByWuaId)
+        ));
 
     return tableBuilder.build();
+  }
+
+  private Map<UUID, ScheduleWorkProgrammeApplicationDetail> getLatestApplicationDetailsByApplicationId(
+      List<LicenceEventCache> eventCaches
+  ) {
+    var applicationIds = eventCaches.stream()
+        .map(LicenceEventCache::getApplicationId)
+        .filter(Objects::nonNull)
+        .distinct()
+        .toList();
+
+    if (applicationIds.isEmpty()) {
+      return Map.of();
+    }
+
+    return scheduleWorkProgrammeApplicationDetailRepository.findAllByScheduleWorkProgrammeApplication_IdIn(applicationIds)
+        .stream()
+        .collect(Collectors.groupingBy(
+            detail -> detail.getScheduleWorkProgrammeApplication().getId(),
+            Collectors.collectingAndThen(
+                Collectors.maxBy(Comparator.comparing(ScheduleWorkProgrammeApplicationDetail::getVersionNumber)),
+                Optional::get
+            )
+        ));
+  }
+
+  private Map<Long, String> getStewardNamesByWuaId(List<LicenceEventCache> eventCaches) {
+    var stewardWuaIds = eventCaches.stream()
+        .map(LicenceEventCache::getStewardWuaId)
+        .filter(Objects::nonNull)
+        .distinct()
+        .map(WebUserAccountId::from)
+        .toList();
+
+    if (stewardWuaIds.isEmpty()) {
+      return Map.of();
+    }
+
+    return energyPortalUserService.findByWuaIds(stewardWuaIds, GET_STEWARDS_PURPOSE)
+        .stream()
+        .collect(StreamUtil.toLinkedHashMap(EnergyPortalUserJson::webUserAccountId, EnergyPortalUserJson::displayName));
   }
 
   private Condition getLicenceTypeCondition(EventTrackerForm form) {
@@ -197,7 +271,12 @@ public class CrossLicenceEventTrackerService {
         ));
   }
 
-  private SortableTableRow toRow(LicenceEventCache eventCache, Map<Integer, List<String>> licenseesByLicenceId) {
+  private SortableTableRow toRow(
+      LicenceEventCache eventCache,
+      Map<Integer, List<String>> licenseesByLicenceId,
+      Map<UUID, ScheduleWorkProgrammeApplicationDetail> latestApplicationDetailByApplicationId,
+      Map<Long, String> stewardNameByWuaId
+  ) {
     var eventDate = eventCache.getEventDate() != null
         ? DateFormatUtil.convertToDisplayText(eventCache.getEventDate())
         : "";
@@ -209,22 +288,55 @@ public class CrossLicenceEventTrackerService {
         : "";
     var licensees = String.join(", ", licenseesByLicenceId.getOrDefault(eventCache.getLicenceId(), List.of()));
 
-    var licenceLink = StringUtils.removeStart(
-        ReverseRouter.route(on(LicenceScheduleTabController.class)
-            .renderLicenceOverview(eventCache.getLicenceId(), null, null, null)),
-        "/"
-    );
+    var latestApplicationDetail = Optional.ofNullable(eventCache.getApplicationId())
+        .map(latestApplicationDetailByApplicationId::get);
+
+    var applicationStatus = latestApplicationDetail
+        .map(ScheduleWorkProgrammeApplicationDetail::getStatus)
+        .map(ApplicationStatus::getDisplayName)
+        .orElse("");
+
+    var steward = Optional.ofNullable(eventCache.getStewardWuaId())
+        .map(stewardNameByWuaId::get)
+        .orElse("");
+
+    var licenceValue = latestApplicationDetail
+        .map(detail -> "%s (%s)".formatted(
+            eventCache.getLicenceReference(),
+            detail.getScheduleWorkProgrammeApplication().getApplicationReference()
+        ))
+        .orElse(eventCache.getLicenceReference());
+
+    var licenceLink = latestApplicationDetail
+        .map(detail -> applicationOverviewLink(detail.getId()))
+        .orElseGet(() -> licenceOverviewLink(eventCache.getLicenceId()));
 
     return SortableTableRow.builder()
-        .withValue(new SortableTableValue(eventCache.getLicenceReference(), null, licenceLink, List.of()))
+        .withValue(new SortableTableValue(licenceValue, null, licenceLink, List.of()))
         .withValue(getTermPhaseTransition(eventCache))
         .withValue(workProgrammeActivity)
         .withValue(new SortableTableValue(eventDate, eventDateSort, null, List.of()))
-        .withValue("")
+        .withValue(applicationStatus)
         .withValue(licensees)
         .withValue(Objects.toString(eventCache.getQuadBlock(), ""))
-        .withValue("")
+        .withValue(steward)
         .build();
+  }
+
+  private String licenceOverviewLink(Integer licenceId) {
+    return StringUtils.removeStart(
+        ReverseRouter.route(on(LicenceScheduleTabController.class)
+            .renderLicenceOverview(licenceId, null, null, null)),
+        "/"
+    );
+  }
+
+  private String applicationOverviewLink(UUID scheduleWorkProgrammeApplicationDetailId) {
+    return StringUtils.removeStart(
+        ReverseRouter.route(on(ScheduleWorkProgrammeApplicationOverviewController.class)
+            .renderOverview(scheduleWorkProgrammeApplicationDetailId, null, null)),
+        "/"
+    );
   }
 
   private String getTermPhaseTransition(LicenceEventCache eventCache) {
@@ -250,6 +362,126 @@ public class CrossLicenceEventTrackerService {
     refreshLicenceTerms(licence, terms, phases, existingEventCaches);
     refreshLicencePhases(licence, terms, phases, existingEventCaches);
     refreshWorkProgrammeActivities(licence, workProgrammeActivities, terms, phases, existingEventCaches);
+  }
+
+  @Transactional
+  public void refreshApplicationCache(LicenceApplication licenceApplication) {
+    if (!(licenceApplication instanceof ScheduleWorkProgrammeApplication scheduleWorkProgrammeApplication)) {
+      return;
+    }
+
+    var applicationDetail = scheduleWorkProgrammeApplicationDetailRepository
+        .getFirstByScheduleWorkProgrammeApplicationOrderByVersionNumberDesc(scheduleWorkProgrammeApplication)
+        .orElseThrow(() -> new LmsEntityNotFoundException(
+            "schedule work programme application detail", scheduleWorkProgrammeApplication.getId()));
+
+    var relatedEvents = getRelatedEvents(applicationDetail);
+    if (relatedEvents.originalEventIds().isEmpty()) {
+      return;
+    }
+
+    var relatedEventCaches = licenceEventCacheRepository.findAllByOriginalEventIdIn(relatedEvents.originalEventIds());
+
+    var eventCachesToSave = relatedEventCaches.stream()
+        .filter(eventCache -> canForkEventCache(
+            eventCache, scheduleWorkProgrammeApplication, relatedEvents.originalEventIdsWithoutDurationUpdate()
+        ))
+        .map(eventCache -> applyApplicationToEventCache(eventCache, scheduleWorkProgrammeApplication))
+        .toList();
+
+    licenceEventCacheRepository.saveAll(eventCachesToSave);
+  }
+
+  private RelatedEvents getRelatedEvents(ScheduleWorkProgrammeApplicationDetail applicationDetail) {
+    var originalEventIds = new HashSet<UUID>();
+    var termOrPhaseLinkedActivityOriginalEventIds = new HashSet<UUID>();
+
+    licenceScheduleExtensionRepository.findAllByScheduleWorkProgrammeApplicationDetails(applicationDetail)
+        .forEach(request -> {
+          if (request.getLicenceScheduleTerm() != null) {
+            var term = request.getLicenceScheduleTerm();
+            originalEventIds.add(term.getOriginalEventId());
+            workProgrammeActivityService.getAllActivitiesLinkedTo(term).forEach(activity -> {
+              originalEventIds.add(activity.getOriginalEventId());
+              termOrPhaseLinkedActivityOriginalEventIds.add(activity.getOriginalEventId());
+            });
+          }
+          if (request.getLicenceSchedulePhase() != null) {
+            var phase = request.getLicenceSchedulePhase();
+            originalEventIds.add(phase.getOriginalEventId());
+            workProgrammeActivityService.getAllActivitiesLinkedTo(phase).forEach(activity -> {
+              originalEventIds.add(activity.getOriginalEventId());
+              termOrPhaseLinkedActivityOriginalEventIds.add(activity.getOriginalEventId());
+            });
+          }
+        });
+
+    // A work programme activity requested for amendment without a duration change (e.g. only additional
+    // information) should not fork a competing row when another application already holds it - unlike an
+    // activity whose due date is genuinely changing, showing it as a distinct version would be misleading.
+    // This never overrides an activity reached via its term or phase (above), which forks unconditionally.
+    var originalEventIdsWithoutDurationUpdate = new HashSet<UUID>();
+
+    licenceWorkProgrammeAmendmentRepository.findAllByScheduleWorkProgrammeApplicationDetails(applicationDetail)
+        .forEach(request -> {
+          var activityOriginalEventId = request.getWorkProgrammeActivity().getOriginalEventId();
+          originalEventIds.add(activityOriginalEventId);
+
+          if (request.getWorkProgrammeExtensionDuration() == null) {
+            originalEventIdsWithoutDurationUpdate.add(activityOriginalEventId);
+          }
+        });
+
+    originalEventIdsWithoutDurationUpdate.removeAll(termOrPhaseLinkedActivityOriginalEventIds);
+
+    return new RelatedEvents(originalEventIds, originalEventIdsWithoutDurationUpdate);
+  }
+
+  private boolean canForkEventCache(
+      LicenceEventCache eventCache,
+      ScheduleWorkProgrammeApplication application,
+      Set<UUID> originalEventIdsWithoutDurationUpdate
+  ) {
+    return !isClaimedByAnotherApplication(eventCache, application)
+        || !originalEventIdsWithoutDurationUpdate.contains(eventCache.getOriginalEventId());
+  }
+
+  // If the row already belongs to a different application, it must be preserved for that application, so the
+  // current application's data is written to a new row against the same event rather than overwriting it.
+  private LicenceEventCache applyApplicationToEventCache(
+      LicenceEventCache eventCache,
+      ScheduleWorkProgrammeApplication application
+  ) {
+    var targetEventCache = isClaimedByAnotherApplication(eventCache, application)
+        ? copyEventCacheForNewApplication(eventCache)
+        : eventCache;
+
+    targetEventCache.setApplicationId(application.getId());
+    targetEventCache.setApplicationType(application.getApplicationType());
+    targetEventCache.setStewardWuaId(application.getStewardWuaId());
+
+    return targetEventCache;
+  }
+
+  private record RelatedEvents(Set<UUID> originalEventIds, Set<UUID> originalEventIdsWithoutDurationUpdate) {
+  }
+
+  private boolean isClaimedByAnotherApplication(LicenceEventCache eventCache, ScheduleWorkProgrammeApplication application) {
+    return eventCache.getApplicationId() != null && !eventCache.getApplicationId().equals(application.getId());
+  }
+
+  private LicenceEventCache copyEventCacheForNewApplication(LicenceEventCache eventCache) {
+    var newEventCache = new LicenceEventCache();
+    newEventCache.setLicenceId(eventCache.getLicenceId());
+    newEventCache.setLicenceReference(eventCache.getLicenceReference());
+    newEventCache.setOriginalEventId(eventCache.getOriginalEventId());
+    newEventCache.setEventType(eventCache.getEventType());
+    newEventCache.setCurrentTermPhase(eventCache.getCurrentTermPhase());
+    newEventCache.setNextTermPhase(eventCache.getNextTermPhase());
+    newEventCache.setActivityType(eventCache.getActivityType());
+    newEventCache.setEventDate(eventCache.getEventDate());
+    newEventCache.setQuadBlock(eventCache.getQuadBlock());
+    return newEventCache;
   }
 
   private void refreshLicenceTerms(

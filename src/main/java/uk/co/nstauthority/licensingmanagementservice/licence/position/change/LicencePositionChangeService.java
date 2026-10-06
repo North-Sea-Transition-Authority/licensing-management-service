@@ -81,16 +81,6 @@ public class LicencePositionChangeService {
     return licencePositionChange;
   }
 
-  @Transactional
-  public void deleteForPositions(Collection<LicencePosition> licencePositions) {
-    if (licencePositions.isEmpty()) {
-      return;
-    }
-
-    var licencePositionChanges = licencePositionChangeRepository.findByLicencePositionIn(licencePositions);
-    licencePositionChangeRepository.deleteAll(licencePositionChanges);
-  }
-
   private LicencePositionChange newLicencePositionChange(
       UUID licencePositionChangeId,
       LicencePosition licencePosition,

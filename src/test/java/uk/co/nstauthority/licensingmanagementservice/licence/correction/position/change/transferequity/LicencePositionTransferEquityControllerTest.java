@@ -42,6 +42,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.LicencePositionAddChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.TransferEquityOperation;
@@ -68,23 +69,40 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
 
   private static final String LICENCE_REFERENCE = "CS/2026/1";
   private static final Licence LICENCE = LicenceTestUtil.builder()
+      .withId(1)
       .withLicenceType(LicenceType.CARBON_STORAGE)
       .withLicenceReference(LICENCE_REFERENCE)
       .build();
   private static final UUID CORRECTION_ID = UUID.randomUUID();
   private static final UUID POSITION_CORRECTION_ID = UUID.randomUUID();
   private static final UUID POSITION_ID = UUID.randomUUID();
+  private static final LicenceCorrection CORRECTION = LicenceCorrectionTestUtil.newBuilder()
+      .withId(CORRECTION_ID)
+      .withLicence(LICENCE)
+      .build();
+  private static final LicencePosition POSITION = LicencePositionTestUtil.newBuilder()
+      .withId(POSITION_ID)
+      .withLicence(LICENCE)
+      .build();
+  private static final LicencePositionCorrection POSITION_CORRECTION = LicencePositionCorrectionTestUtil.newBuilder()
+      .withId(POSITION_CORRECTION_ID)
+      .withLicenceCorrection(CORRECTION)
+      .build();
 
   private LicenceCorrection givenCorrectionAllocatedToUser() {
     var correction = LicenceCorrectionTestUtil.newBuilder().withId(CORRECTION_ID).withLicence(LICENCE).build();
     when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
         .thenReturn(Optional.of(correction));
+    when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(correction));
     return correction;
   }
 
   @Test
   void renderForAddedPosition_whenAllocated_rendersFormWithAllAttributes() throws Exception {
-    givenCorrectionAllocatedToUser();
+    var correction = givenCorrectionAllocatedToUser();
+    var positionCorrection = addedPositionCorrection(correction);
+    when(licencePositionCorrectionService.findById(POSITION_CORRECTION_ID))
+        .thenReturn(Optional.of(positionCorrection));
 
     mockMvc.perform(get(addedFormUrl()).with(user(regulatorUser)))
         .andExpectAll(
@@ -102,9 +120,9 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
   @Test
   void renderForAddedPosition_whenTransfersAlreadyAdded_backLinkIsSummary() throws Exception {
     var correction = givenCorrectionAllocatedToUser();
-    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder().build();
-    when(licencePositionCorrectionService.getPositionCorrectionForCorrection(POSITION_CORRECTION_ID, correction))
-        .thenReturn(positionCorrection);
+    var positionCorrection = addedPositionCorrection(correction);
+    when(licencePositionCorrectionService.findById(POSITION_CORRECTION_ID))
+        .thenReturn(Optional.of(positionCorrection));
     when(transferEquityCorrectionService.getCommittedTransferEquityOperations(positionCorrection))
         .thenReturn(List.of(transferOp(1, 2, 40, null)));
 
@@ -124,9 +142,9 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
   @Test
   void submitForAddedPosition_whenValidAndTransferorRetainsEquity_redirectsToSummary() throws Exception {
     var correction = givenCorrectionAllocatedToUser();
-    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder().build();
-    when(licencePositionCorrectionService.getPositionCorrectionForCorrection(POSITION_CORRECTION_ID, correction))
-        .thenReturn(positionCorrection);
+    var positionCorrection = addedPositionCorrection(correction);
+    when(licencePositionCorrectionService.findById(POSITION_CORRECTION_ID))
+        .thenReturn(Optional.of(positionCorrection));
     when(transferEquityCorrectionService.getCommittedTransferEquityOperations(positionCorrection))
         .thenReturn(List.of(transferOp(1, 2, 40, null)));
     var equityHoldings = Map.of(1, BigDecimal.valueOf(60));
@@ -146,9 +164,9 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
   @Test
   void submitForAddedPosition_whenValidAndTransferorHoldsNoEquity_redirectsToWithdraw() throws Exception {
     var correction = givenCorrectionAllocatedToUser();
-    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder().build();
-    when(licencePositionCorrectionService.getPositionCorrectionForCorrection(POSITION_CORRECTION_ID, correction))
-        .thenReturn(positionCorrection);
+    var positionCorrection = addedPositionCorrection(correction);
+    when(licencePositionCorrectionService.findById(POSITION_CORRECTION_ID))
+        .thenReturn(Optional.of(positionCorrection));
     when(transferEquityCorrectionService.getCommittedTransferEquityOperations(positionCorrection))
         .thenReturn(List.of(transferOp(1, 2, 100, null)));
     var equityHoldings = Map.of(1, BigDecimal.ZERO);
@@ -168,9 +186,9 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
   @Test
   void submitForAddedPosition_whenInvalid_rendersFormWithPreselectedOrganisationsAndDoesNotPersist() throws Exception {
     var correction = givenCorrectionAllocatedToUser();
-    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder().build();
-    when(licencePositionCorrectionService.getPositionCorrectionForCorrection(POSITION_CORRECTION_ID, correction))
-        .thenReturn(positionCorrection);
+    var positionCorrection = addedPositionCorrection(correction);
+    when(licencePositionCorrectionService.findById(POSITION_CORRECTION_ID))
+        .thenReturn(Optional.of(positionCorrection));
     var equityHoldings = Map.of(1, BigDecimal.valueOf(60));
     when(transferEquityCorrectionService.getEquityHoldingsForAddedPosition(correction, positionCorrection))
         .thenReturn(equityHoldings);
@@ -200,10 +218,10 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
   @Test
   void renderWithdrawForAddedPosition_rendersWithdrawPageWithAllAttributes() throws Exception {
     var correction = givenCorrectionAllocatedToUser();
-    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder().build();
+    var positionCorrection = addedPositionCorrection(correction);
     var operation = transferOp(1, 2, 100, Boolean.TRUE);
-    when(licencePositionCorrectionService.getPositionCorrectionForCorrection(POSITION_CORRECTION_ID, correction))
-        .thenReturn(positionCorrection);
+    when(licencePositionCorrectionService.findById(POSITION_CORRECTION_ID))
+        .thenReturn(Optional.of(positionCorrection));
     when(transferEquityCorrectionService.getCommittedTransferEquityOperations(positionCorrection))
         .thenReturn(List.of(operation));
     when(transferEquityCorrectionService.getTransferEquityViews(List.of(operation)))
@@ -225,10 +243,10 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
   @Test
   void renderWithdrawForAddedPosition_whenUnanswered_preselectsNothing() throws Exception {
     var correction = givenCorrectionAllocatedToUser();
-    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder().build();
+    var positionCorrection = addedPositionCorrection(correction);
     var operation = transferOp(1, 2, 100, null);
-    when(licencePositionCorrectionService.getPositionCorrectionForCorrection(POSITION_CORRECTION_ID, correction))
-        .thenReturn(positionCorrection);
+    when(licencePositionCorrectionService.findById(POSITION_CORRECTION_ID))
+        .thenReturn(Optional.of(positionCorrection));
     when(transferEquityCorrectionService.getCommittedTransferEquityOperations(positionCorrection))
         .thenReturn(List.of(operation));
     when(transferEquityCorrectionService.getTransferEquityViews(List.of(operation)))
@@ -243,9 +261,9 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
   @Test
   void renderWithdrawForAddedPosition_whenIndexOutOfRange_redirectsToSummary() throws Exception {
     var correction = givenCorrectionAllocatedToUser();
-    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder().build();
-    when(licencePositionCorrectionService.getPositionCorrectionForCorrection(POSITION_CORRECTION_ID, correction))
-        .thenReturn(positionCorrection);
+    var positionCorrection = addedPositionCorrection(correction);
+    when(licencePositionCorrectionService.findById(POSITION_CORRECTION_ID))
+        .thenReturn(Optional.of(positionCorrection));
     when(transferEquityCorrectionService.getCommittedTransferEquityOperations(positionCorrection))
         .thenReturn(List.of());
 
@@ -257,9 +275,9 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
   @Test
   void submitWithdrawForAddedPosition_whenValid_persistsRetentionAndRedirectsToSummary() throws Exception {
     var correction = givenCorrectionAllocatedToUser();
-    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder().build();
-    when(licencePositionCorrectionService.getPositionCorrectionForCorrection(POSITION_CORRECTION_ID, correction))
-        .thenReturn(positionCorrection);
+    var positionCorrection = addedPositionCorrection(correction);
+    when(licencePositionCorrectionService.findById(POSITION_CORRECTION_ID))
+        .thenReturn(Optional.of(positionCorrection));
     when(transferEquityCorrectionService.getCommittedTransferEquityOperations(positionCorrection))
         .thenReturn(List.of(transferOp(1, 2, 100, null)));
 
@@ -276,10 +294,10 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
   @Test
   void submitWithdrawForAddedPosition_whenInvalid_rendersWithdrawPageAndDoesNotPersist() throws Exception {
     var correction = givenCorrectionAllocatedToUser();
-    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder().build();
+    var positionCorrection = addedPositionCorrection(correction);
     var operation = transferOp(1, 2, 100, null);
-    when(licencePositionCorrectionService.getPositionCorrectionForCorrection(POSITION_CORRECTION_ID, correction))
-        .thenReturn(positionCorrection);
+    when(licencePositionCorrectionService.findById(POSITION_CORRECTION_ID))
+        .thenReturn(Optional.of(positionCorrection));
     when(transferEquityCorrectionService.getCommittedTransferEquityOperations(positionCorrection))
         .thenReturn(List.of(operation));
     when(transferEquityCorrectionService.getTransferEquityViews(List.of(operation)))
@@ -303,11 +321,11 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
   @Test
   void renderSummaryForAddedPosition_rendersSummaryWithAllAttributes() throws Exception {
     var correction = givenCorrectionAllocatedToUser();
-    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder().build();
+    var positionCorrection = addedPositionCorrection(correction);
     var operations = List.of(transferOp(1, 2, 100, true));
     var views = List.of(new TransferEquityHoldingView("From Org", "To Org", BigDecimal.valueOf(100), true));
-    when(licencePositionCorrectionService.getPositionCorrectionForCorrection(POSITION_CORRECTION_ID, correction))
-        .thenReturn(positionCorrection);
+    when(licencePositionCorrectionService.findById(POSITION_CORRECTION_ID))
+        .thenReturn(Optional.of(positionCorrection));
     when(transferEquityCorrectionService.getCommittedTransferEquityOperations(positionCorrection))
         .thenReturn(operations);
     when(transferEquityCorrectionService.getTransferEquityViews(operations)).thenReturn(views);
@@ -332,10 +350,10 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
   @Test
   void renderSummaryForAddedPosition_whenTransferorRetainsEquity_marksWithdrawalNotApplicable() throws Exception {
     var correction = givenCorrectionAllocatedToUser();
-    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder().build();
+    var positionCorrection = addedPositionCorrection(correction);
     var operations = List.of(transferOp(1, 2, 40, null));
-    when(licencePositionCorrectionService.getPositionCorrectionForCorrection(POSITION_CORRECTION_ID, correction))
-        .thenReturn(positionCorrection);
+    when(licencePositionCorrectionService.findById(POSITION_CORRECTION_ID))
+        .thenReturn(Optional.of(positionCorrection));
     when(transferEquityCorrectionService.getCommittedTransferEquityOperations(positionCorrection))
         .thenReturn(operations);
     when(transferEquityCorrectionService.getTransferEquityViews(operations))
@@ -351,9 +369,9 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
   @Test
   void removeForAddedPosition_removesFromCorrectionAndRedirectsToSummary() throws Exception {
     var correction = givenCorrectionAllocatedToUser();
-    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder().build();
-    when(licencePositionCorrectionService.getPositionCorrectionForCorrection(POSITION_CORRECTION_ID, correction))
-        .thenReturn(positionCorrection);
+    var positionCorrection = addedPositionCorrection(correction);
+    when(licencePositionCorrectionService.findById(POSITION_CORRECTION_ID))
+        .thenReturn(Optional.of(positionCorrection));
 
     mockMvc.perform(post(addedRemoveUrl(0)).with(user(regulatorUser)).with(csrf()))
         .andExpect(status().is3xxRedirection())
@@ -381,6 +399,7 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
         .build();
     when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
         .thenReturn(Optional.of(correction));
+    when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(correction));
 
     mockMvc.perform(get(addedFormUrl()).with(user(regulatorUser)))
         .andExpect(status().isForbidden());
@@ -391,6 +410,8 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
   @Test
   void renderForExecutedPosition_whenAllocated_rendersFormWithPositionBackLink() throws Exception {
     givenCorrectionAllocatedToUser();
+    var licencePosition = executedPosition();
+    when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(licencePosition));
 
     mockMvc.perform(get(executedFormUrl()).with(user(regulatorUser)))
         .andExpectAll(
@@ -410,6 +431,7 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
     var correction = givenCorrectionAllocatedToUser();
     var licencePosition = executedPosition();
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(licencePosition);
+    when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(licencePosition));
     when(transferEquityCorrectionService.getCommittedTransferEquityOperationsForExecutedPosition(correction, licencePosition))
         .thenReturn(List.of(transferOp(1, 2, 40, null)));
 
@@ -431,6 +453,7 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
     var correction = givenCorrectionAllocatedToUser();
     var licencePosition = executedPosition();
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(licencePosition);
+    when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(licencePosition));
     when(transferEquityCorrectionService.getCommittedTransferEquityOperationsForExecutedPosition(correction, licencePosition))
         .thenReturn(List.of(transferOp(1, 2, 100, null)));
     var equityHoldings = Map.of(1, BigDecimal.ZERO);
@@ -452,6 +475,7 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
     var correction = givenCorrectionAllocatedToUser();
     var licencePosition = executedPosition();
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(licencePosition);
+    when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(licencePosition));
     when(transferEquityCorrectionService.getCommittedTransferEquityOperationsForExecutedPosition(correction, licencePosition))
         .thenReturn(List.of(transferOp(1, 2, 40, null)));
     var equityHoldings = Map.of(1, BigDecimal.valueOf(60));
@@ -473,6 +497,7 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
     var correction = givenCorrectionAllocatedToUser();
     var licencePosition = executedPosition();
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(licencePosition);
+    when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(licencePosition));
     when(transferEquityCorrectionService.getCommittedTransferEquityOperationsForExecutedPosition(correction, licencePosition))
         .thenReturn(List.of(transferOp(1, 2, 100, null)));
 
@@ -494,6 +519,7 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
     var operations = List.of(transferOp(1, 2, 100, true));
     var views = List.of(new TransferEquityHoldingView("From Org", "To Org", BigDecimal.valueOf(100), true));
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(licencePosition);
+    when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(licencePosition));
     when(transferEquityCorrectionService.getCommittedTransferEquityOperationsForExecutedPosition(correction, licencePosition))
         .thenReturn(operations);
     when(transferEquityCorrectionService.getTransferEquityViews(operations)).thenReturn(views);
@@ -520,6 +546,7 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
     var correction = givenCorrectionAllocatedToUser();
     var licencePosition = executedPosition();
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(licencePosition);
+    when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(licencePosition));
     var equityHoldings = Map.of(1, BigDecimal.valueOf(60));
     when(transferEquityCorrectionService.getEquityHoldingsForCorrection(correction, POSITION_ID))
         .thenReturn(equityHoldings);
@@ -552,6 +579,7 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
     var correction = givenCorrectionAllocatedToUser();
     var licencePosition = executedPosition();
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(licencePosition);
+    when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(licencePosition));
     var equityHoldings = Map.of(1, BigDecimal.valueOf(60));
     when(transferEquityCorrectionService.getEquityHoldingsForCorrection(correction, POSITION_ID))
         .thenReturn(equityHoldings);
@@ -572,6 +600,7 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
     var licencePosition = executedPosition();
     var operation = transferOp(1, 2, 100, true);
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(licencePosition);
+    when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(licencePosition));
     when(transferEquityCorrectionService.getCommittedTransferEquityOperationsForExecutedPosition(correction, licencePosition))
         .thenReturn(List.of(operation));
     when(transferEquityCorrectionService.getTransferEquityViews(List.of(operation)))
@@ -595,6 +624,7 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
     var correction = givenCorrectionAllocatedToUser();
     var licencePosition = executedPosition();
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(licencePosition);
+    when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(licencePosition));
     when(transferEquityCorrectionService.getCommittedTransferEquityOperationsForExecutedPosition(correction, licencePosition))
         .thenReturn(List.of());
 
@@ -608,6 +638,7 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
     var correction = givenCorrectionAllocatedToUser();
     var licencePosition = executedPosition();
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(licencePosition);
+    when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(licencePosition));
     when(transferEquityCorrectionService.getCommittedTransferEquityOperationsForExecutedPosition(correction, licencePosition))
         .thenReturn(List.of());
 
@@ -627,6 +658,7 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
     var licencePosition = executedPosition();
     var operation = transferOp(1, 2, 100, null);
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(licencePosition);
+    when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(licencePosition));
     when(transferEquityCorrectionService.getCommittedTransferEquityOperationsForExecutedPosition(correction, licencePosition))
         .thenReturn(List.of(operation));
     when(transferEquityCorrectionService.getTransferEquityViews(List.of(operation)))
@@ -653,6 +685,7 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
     var correction = givenCorrectionAllocatedToUser();
     var licencePosition = executedPosition();
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(licencePosition);
+    when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(licencePosition));
 
     mockMvc.perform(post(executedRemoveUrl(0)).with(user(regulatorUser)).with(csrf()))
         .andExpect(status().is3xxRedirection())
@@ -667,6 +700,7 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
     var licencePosition = executedPosition();
     var operations = List.of(transferOp(1, 2, 40, null));
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(licencePosition);
+    when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(licencePosition));
     when(transferEquityCorrectionService.getCommittedTransferEquityOperationsForExecutedPosition(correction, licencePosition))
         .thenReturn(operations);
     when(transferEquityCorrectionService.getTransferEquityViews(operations))
@@ -682,9 +716,9 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
   @Test
   void submitWithdrawForAddedPosition_whenIndexOutOfRange_redirectsToSummaryAndDoesNotPersist() throws Exception {
     var correction = givenCorrectionAllocatedToUser();
-    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder().build();
-    when(licencePositionCorrectionService.getPositionCorrectionForCorrection(POSITION_CORRECTION_ID, correction))
-        .thenReturn(positionCorrection);
+    var positionCorrection = addedPositionCorrection(correction);
+    when(licencePositionCorrectionService.findById(POSITION_CORRECTION_ID))
+        .thenReturn(Optional.of(positionCorrection));
     when(transferEquityCorrectionService.getCommittedTransferEquityOperations(positionCorrection))
         .thenReturn(List.of());
 
@@ -722,62 +756,69 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
         .build();
   }
 
+  private LicencePositionCorrection addedPositionCorrection(LicenceCorrection correction) {
+    return LicencePositionCorrectionTestUtil.newBuilder()
+        .withId(POSITION_CORRECTION_ID)
+        .withLicenceCorrection(correction)
+        .build();
+  }
+
   private static String licenseeOrgUnitUrl() {
     return SearchSelectorService.route(on(OrganisationUnitRestController.class).searchOrganisationUnits(null));
   }
 
   private static String addedFormUrl() {
     return ReverseRouter.route(on(LicencePositionTransferEquityController.class)
-        .renderForAddedPosition(CORRECTION_ID, POSITION_CORRECTION_ID, null));
+        .renderForAddedPosition(CORRECTION, POSITION_CORRECTION));
   }
 
   private static String addedSummaryUrl() {
     return ReverseRouter.route(on(LicencePositionTransferEquityController.class)
-        .renderSummaryForAddedPosition(CORRECTION_ID, POSITION_CORRECTION_ID, null));
+        .renderSummaryForAddedPosition(CORRECTION, POSITION_CORRECTION));
   }
 
   private static String addedWithdrawUrl(int index) {
     return ReverseRouter.route(on(LicencePositionTransferEquityController.class)
-        .renderWithdrawForAddedPosition(CORRECTION_ID, POSITION_CORRECTION_ID, index, null));
+        .renderWithdrawForAddedPosition(CORRECTION, POSITION_CORRECTION, index));
   }
 
   private static String addedRemoveUrl(int index) {
     return ReverseRouter.route(on(LicencePositionTransferEquityController.class)
-        .removeForAddedPosition(CORRECTION_ID, POSITION_CORRECTION_ID, index, null));
+        .removeForAddedPosition(CORRECTION, POSITION_CORRECTION, index));
   }
 
   private static String addedChangeChooserUrl() {
     return ReverseRouter.route(on(LicencePositionAddChangeController.class)
-        .renderForAddedPosition(CORRECTION_ID, POSITION_CORRECTION_ID, null));
+        .renderForAddedPosition(CORRECTION, POSITION_CORRECTION));
   }
 
   private static String addedPositionUrl() {
     return ReverseRouter.route(on(LicenceCorrectionController.class)
-        .renderAddedPosition(CORRECTION_ID, POSITION_CORRECTION_ID, null));
+        .renderAddedPosition(CORRECTION, POSITION_CORRECTION));
   }
 
   private static String executedFormUrl() {
     return ReverseRouter.route(on(LicencePositionTransferEquityController.class)
-        .renderForExecutedPosition(CORRECTION_ID, POSITION_ID, null));
+        .renderForExecutedPosition(CORRECTION, POSITION));
   }
 
   private static String executedSummaryUrl() {
     return ReverseRouter.route(on(LicencePositionTransferEquityController.class)
-        .renderSummaryForExecutedPosition(CORRECTION_ID, POSITION_ID, null));
+        .renderSummaryForExecutedPosition(CORRECTION, POSITION));
   }
 
   private static String executedWithdrawUrl(int index) {
     return ReverseRouter.route(on(LicencePositionTransferEquityController.class)
-        .renderWithdrawForExecutedPosition(CORRECTION_ID, POSITION_ID, index, null));
+        .renderWithdrawForExecutedPosition(CORRECTION, POSITION, index));
   }
 
   private static String executedRemoveUrl(int index) {
     return ReverseRouter.route(on(LicencePositionTransferEquityController.class)
-        .removeForExecutedPosition(CORRECTION_ID, POSITION_ID, index, null));
+        .removeForExecutedPosition(CORRECTION, POSITION, index));
   }
 
   private static String executedPositionUrl() {
     return ReverseRouter.route(on(LicenceCorrectionController.class)
-        .renderLicencePosition(CORRECTION_ID, POSITION_ID, null));
+        .renderLicencePosition(CORRECTION, POSITION));
   }
 }

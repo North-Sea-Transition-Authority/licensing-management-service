@@ -26,6 +26,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
+import uk.co.nstauthority.licensingmanagementservice.licence.crosslicenceeventtracker.CrossLicenceEventTrackerService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailService;
@@ -60,6 +61,9 @@ class ScheduleWorkProgrammeApplicationServiceTest {
 
   @Mock
   private ScheduleWorkProgrammeApplicationSubmittedNotificationService applicationSubmittedNotificationService;
+
+  @Mock
+  private CrossLicenceEventTrackerService crossLicenceEventTrackerService;
 
   @InjectMocks
   private ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService;
@@ -242,6 +246,7 @@ class ScheduleWorkProgrammeApplicationServiceTest {
     assertThat(savedDetail.getSubmittedDatetime()).isEqualTo(Instant.now(clock));
 
     verify(applicationSubmittedNotificationService).sendNewApplicationSubmittedEmails(scheduleWorkProgrammeApplicationDetail);
+    verify(crossLicenceEventTrackerService).refreshApplicationCache(savedApplication);
   }
 
   @Test

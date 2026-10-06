@@ -14,6 +14,18 @@ public final class PearsOperationType {
 
   public static final String CONSORTIUM_LIST_CHANGE = "CONSORTIUM_LIST_CHANGE";
 
+  public static final String PED_BLOCK_CREATE = "PED_BLOCK_CREATE";
+
+  public static final String PED_BLOCK_CHANGE = "PED_BLOCK_CHANGE";
+
+  public static final String PED_BLOCK_END = "PED_BLOCK_END";
+
+  public static final String PED_SUBAREA_CREATE = "PED_SUBAREA_CREATE";
+
+  public static final String PED_SUBAREA_CHANGE = "PED_SUBAREA_CHANGE";
+
+  public static final String PED_SUBAREA_END = "PED_SUBAREA_END";
+
   private PearsOperationType() {
     throw new IllegalStateException("Utility class should not be instantiated.");
   }

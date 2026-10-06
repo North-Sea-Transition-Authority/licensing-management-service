@@ -4,27 +4,31 @@ import static org.springframework.web.servlet.mvc.method.annotation.MvcUriCompon
 
 import java.util.Arrays;
 import java.util.Map;
-import java.util.UUID;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanViewCorrection;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.LicencePositionCorrectionBelongsToCorrection;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.LicencePositionIsNotRemovedInCorrection;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.position.LicencePositionBelongsToCorrectionLicence;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.administrator.LicencePositionAdministratorChangeController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.licensee.LicencePositionLicenseeChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.LicencePositionPartialSurrenderController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.PartialSurrenderCorrectionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.SingleBlockSurrender;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.definearea.PartialSurrenderDefineAreaController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.setequity.LicencePositionSetEquityController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subarea.LicencePositionSubareaChangeStartController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.transferequity.LicencePositionTransferEquityController;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.util.enumutil.DisplayableEnumOptionUtil;
 
@@ -37,96 +41,102 @@ public class LicencePositionAddChangeController {
 
   private final AddPositionChangeFormValidator addPositionChangeFormValidator;
   private final LicencePositionCorrectionService licencePositionCorrectionService;
-  private final LicencePositionService licencePositionService;
+  private final PartialSurrenderCorrectionService partialSurrenderCorrectionService;
 
   public LicencePositionAddChangeController(
       AddPositionChangeFormValidator addPositionChangeFormValidator,
       LicencePositionCorrectionService licencePositionCorrectionService,
-      LicencePositionService licencePositionService
+      PartialSurrenderCorrectionService partialSurrenderCorrectionService
   ) {
     this.addPositionChangeFormValidator = addPositionChangeFormValidator;
     this.licencePositionCorrectionService = licencePositionCorrectionService;
-    this.licencePositionService = licencePositionService;
+    this.partialSurrenderCorrectionService = partialSurrenderCorrectionService;
   }
 
   @GetMapping("/position/{licencePositionId}/add-change")
   @LicencePositionIsNotRemovedInCorrection
+  @LicencePositionBelongsToCorrectionLicence
   public ModelAndView renderForExecutedPosition(
-      @PathVariable UUID correctionId,
-      @PathVariable UUID licencePositionId,
-      @RequestAttribute("validatedCorrection") LicenceCorrection correction
+      LicenceCorrection correction,
+      LicencePosition licencePosition
   ) {
     return addChangeModelAndView(correction, new AddPositionChangeForm(),
-        executedBackUrl(correctionId, licencePositionId));
+        executedBackUrl(correction, licencePosition));
   }
 
   @PostMapping("/position/{licencePositionId}/add-change")
   @LicencePositionIsNotRemovedInCorrection
+  @LicencePositionBelongsToCorrectionLicence
   public ModelAndView submitForExecutedPosition(
-      @PathVariable UUID correctionId,
-      @PathVariable UUID licencePositionId,
-      @RequestAttribute("validatedCorrection") LicenceCorrection correction,
+      LicenceCorrection correction,
+      LicencePosition licencePosition,
       @ModelAttribute("form") AddPositionChangeForm form,
       BindingResult bindingResult
   ) {
-    var licencePosition = licencePositionService.getPositionForLicence(correction.getLicence(), licencePositionId);
     var positionCorrection = licencePositionCorrectionService
         .getOrBuildUpdatePositionCorrection(correction, licencePosition);
 
     if (addPositionChangeFormValidator.hasErrors(form, bindingResult, correction, positionCorrection)) {
-      return addChangeModelAndView(correction, form, executedBackUrl(correctionId, licencePositionId));
+      return addChangeModelAndView(correction, form, executedBackUrl(correction, licencePosition));
     }
 
     return switch (AddPositionChangeType.valueOf(form.getChangeType())) {
       case ADMINISTRATOR -> ReverseRouter.redirect(on(LicencePositionAdministratorChangeController.class)
-          .renderForExecutedPosition(correctionId, licencePositionId, null));
+          .renderForExecutedPosition(correction, licencePosition));
       case SET_EQUITY -> ReverseRouter.redirect(on(LicencePositionSetEquityController.class)
-          .renderForExecutedPosition(correctionId, licencePositionId, null));
+          .renderForExecutedPosition(correction, licencePosition));
       case TRANSFER_EQUITY -> ReverseRouter.redirect(on(LicencePositionTransferEquityController.class)
-          .renderForExecutedPosition(correctionId, licencePositionId, null));
-      case PARTIAL_SURRENDER -> ReverseRouter.redirect(on(LicencePositionPartialSurrenderController.class)
-          .renderForExecutedPosition(correctionId, licencePositionId, null));
+          .renderForExecutedPosition(correction, licencePosition));
+      case PARTIAL_SURRENDER -> partialSurrenderCorrectionService
+          .stageSingleBlockSurrenderForExecutedPosition(correction, licencePosition)
+          .map(singleBlockSurrender -> redirectToDefineArea(correction, singleBlockSurrender))
+          .orElseGet(() -> ReverseRouter.redirect(on(LicencePositionPartialSurrenderController.class)
+              .renderForExecutedPosition(correction, licencePosition)));
       case SUBAREA -> ReverseRouter.redirect(on(LicencePositionSubareaChangeStartController.class)
-          .renderForExecutedPosition(correctionId, licencePositionId, null));
+          .renderForExecutedPosition(correction, licencePosition));
+      case LICENSEE -> ReverseRouter.redirect(on(LicencePositionLicenseeChangeController.class)
+          .renderForExecutedPosition(correction, licencePosition));
     };
   }
 
   @GetMapping("/added-position/{licencePositionCorrectionId}/add-change")
+  @LicencePositionCorrectionBelongsToCorrection
   public ModelAndView renderForAddedPosition(
-      @PathVariable UUID correctionId,
-      @PathVariable UUID licencePositionCorrectionId,
-      @RequestAttribute("validatedCorrection") LicenceCorrection correction
+      LicenceCorrection correction,
+      LicencePositionCorrection licencePositionCorrection
   ) {
     return addChangeModelAndView(correction, new AddPositionChangeForm(),
-        addedBackUrl(correctionId, licencePositionCorrectionId));
+        addedBackUrl(correction, licencePositionCorrection));
   }
 
   @PostMapping("/added-position/{licencePositionCorrectionId}/add-change")
+  @LicencePositionCorrectionBelongsToCorrection
   public ModelAndView submitForAddedPosition(
-      @PathVariable UUID correctionId,
-      @PathVariable UUID licencePositionCorrectionId,
-      @RequestAttribute("validatedCorrection") LicenceCorrection correction,
+      LicenceCorrection correction,
+      LicencePositionCorrection licencePositionCorrection,
       @ModelAttribute("form") AddPositionChangeForm form,
       BindingResult bindingResult
   ) {
-    var positionCorrection = licencePositionCorrectionService
-        .getPositionCorrectionForCorrection(licencePositionCorrectionId, correction);
-
-    if (addPositionChangeFormValidator.hasErrors(form, bindingResult, correction, positionCorrection)) {
-      return addChangeModelAndView(correction, form, addedBackUrl(correctionId, licencePositionCorrectionId));
+    if (addPositionChangeFormValidator.hasErrors(form, bindingResult, correction, licencePositionCorrection)) {
+      return addChangeModelAndView(correction, form, addedBackUrl(correction, licencePositionCorrection));
     }
 
     return switch (AddPositionChangeType.valueOf(form.getChangeType())) {
       case ADMINISTRATOR -> ReverseRouter.redirect(on(LicencePositionAdministratorChangeController.class)
-          .renderForAddedPosition(correctionId, licencePositionCorrectionId, null));
+          .renderForAddedPosition(correction, licencePositionCorrection));
       case SET_EQUITY -> ReverseRouter.redirect(on(LicencePositionSetEquityController.class)
-          .renderForAddedPosition(correctionId, licencePositionCorrectionId, null));
+          .renderForAddedPosition(correction, licencePositionCorrection));
       case TRANSFER_EQUITY -> ReverseRouter.redirect(on(LicencePositionTransferEquityController.class)
-          .renderForAddedPosition(correctionId, licencePositionCorrectionId, null));
-      case PARTIAL_SURRENDER -> ReverseRouter.redirect(on(LicencePositionPartialSurrenderController.class)
-          .renderForAddedPosition(correctionId, licencePositionCorrectionId, null));
+          .renderForAddedPosition(correction, licencePositionCorrection));
+      case PARTIAL_SURRENDER -> partialSurrenderCorrectionService
+          .stageSingleBlockSurrenderForAddedPosition(licencePositionCorrection)
+          .map(singleBlockSurrender -> redirectToDefineArea(correction, singleBlockSurrender))
+          .orElseGet(() -> ReverseRouter.redirect(on(LicencePositionPartialSurrenderController.class)
+              .renderForAddedPosition(correction, licencePositionCorrection)));
       case SUBAREA -> ReverseRouter.redirect(on(LicencePositionSubareaChangeStartController.class)
-          .renderForAddedPosition(correctionId, licencePositionCorrectionId, null));
+          .renderForAddedPosition(correction, licencePositionCorrection));
+      case LICENSEE -> ReverseRouter.redirect(on(LicencePositionLicenseeChangeController.class)
+          .renderForAddedPosition(correction, licencePositionCorrection));
     };
   }
 
@@ -143,14 +153,22 @@ public class LicencePositionAddChangeController {
         .addObject("backLinkUrl", backLinkUrl);
   }
 
-  private String executedBackUrl(UUID correctionId, UUID licencePositionId) {
-    return ReverseRouter.route(on(LicenceCorrectionController.class)
-        .renderLicencePosition(correctionId, licencePositionId, null));
+  private ModelAndView redirectToDefineArea(LicenceCorrection correction, SingleBlockSurrender singleBlockSurrender) {
+    return ReverseRouter.redirect(on(PartialSurrenderDefineAreaController.class).renderDefineArea(
+        correction,
+        singleBlockSurrender.licencePositionCorrection(),
+        singleBlockSurrender.block().getId()
+    ));
   }
 
-  private String addedBackUrl(UUID correctionId, UUID licencePositionCorrectionId) {
+  private String executedBackUrl(LicenceCorrection correction, LicencePosition licencePosition) {
     return ReverseRouter.route(on(LicenceCorrectionController.class)
-        .renderAddedPosition(correctionId, licencePositionCorrectionId, null));
+        .renderLicencePosition(correction, licencePosition));
+  }
+
+  private String addedBackUrl(LicenceCorrection correction, LicencePositionCorrection licencePositionCorrection) {
+    return ReverseRouter.route(on(LicenceCorrectionController.class)
+        .renderAddedPosition(correction, licencePositionCorrection));
   }
 
   private Map<String, String> availableChangeTypeOptions(LicenceCorrection correction) {

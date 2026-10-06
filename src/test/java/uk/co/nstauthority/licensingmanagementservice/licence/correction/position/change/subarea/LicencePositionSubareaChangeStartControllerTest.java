@@ -57,6 +57,18 @@ class LicencePositionSubareaChangeStartControllerTest extends AbstractController
   private static final UUID POSITION_ID = UUID.randomUUID();
   private static final UUID POSITION_CORRECTION_ID = UUID.randomUUID();
   private static final String VIEW_NAME = "lms/licence/correction/change/subarea/startSubareaChange";
+  private static final LicenceCorrection CORRECTION = LicenceCorrectionTestUtil.newBuilder()
+      .withId(CORRECTION_ID)
+      .withLicence(LICENCE)
+      .build();
+  private static final LicencePosition POSITION = LicencePositionTestUtil.newBuilder()
+      .withId(POSITION_ID)
+      .withLicence(LICENCE)
+      .build();
+  private static final LicencePositionCorrection POSITION_CORRECTION = LicencePositionCorrectionTestUtil.newBuilder()
+      .withId(POSITION_CORRECTION_ID)
+      .withLicenceCorrection(CORRECTION)
+      .build();
 
   private static final Feature BLOCK_30_1 = FeatureTestUtil.builder().withFeatureName("30/1").build();
   private static final Feature BLOCK_30_2 = FeatureTestUtil.builder().withFeatureName("30/2").build();
@@ -85,7 +97,7 @@ class LicencePositionSubareaChangeStartControllerTest extends AbstractController
         .thenReturn(Optional.empty());
 
     mockMvc.perform(get(ReverseRouter.route(on(LicencePositionSubareaChangeStartController.class)
-            .renderForExecutedPosition(CORRECTION_ID, POSITION_ID, null)))
+            .renderForExecutedPosition(CORRECTION, POSITION)))
             .with(user(regulatorUser)))
         .andExpect(status().isForbidden());
   }
@@ -93,14 +105,16 @@ class LicencePositionSubareaChangeStartControllerTest extends AbstractController
   @Test
   void renderForExecutedPosition_whenLicenceIsNotProduction_forbidden() throws Exception {
     var carbonStorageLicence = LicenceTestUtil.builder().withLicenceType(LicenceType.CARBON_STORAGE).build();
+    var notAllowedCorrection = LicenceCorrectionTestUtil.newBuilder()
+        .withId(CORRECTION_ID)
+        .withLicence(carbonStorageLicence)
+        .build();
     when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
-        .thenReturn(Optional.of(LicenceCorrectionTestUtil.newBuilder()
-            .withId(CORRECTION_ID)
-            .withLicence(carbonStorageLicence)
-            .build()));
+        .thenReturn(Optional.of(notAllowedCorrection));
+    when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(notAllowedCorrection));
 
     mockMvc.perform(get(ReverseRouter.route(on(LicencePositionSubareaChangeStartController.class)
-            .renderForExecutedPosition(CORRECTION_ID, POSITION_ID, null)))
+            .renderForExecutedPosition(CORRECTION, POSITION)))
             .with(user(regulatorUser)))
         .andExpect(status().isForbidden());
   }
@@ -110,6 +124,7 @@ class LicencePositionSubareaChangeStartControllerTest extends AbstractController
     var correction = givenCorrectionAllocatedToUser();
     var licencePosition = executedPosition();
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(licencePosition);
+    when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(licencePosition));
     when(licencePositionCorrectionService.findUpdatePositionCorrection(correction, licencePosition))
         .thenReturn(Optional.empty());
     when(licencePositionCorrectionService.getCommittedChangeOfType(null, SubareaOperation.class))
@@ -118,7 +133,7 @@ class LicencePositionSubareaChangeStartControllerTest extends AbstractController
         .thenReturn(BLOCK_FEATURES);
 
     mockMvc.perform(get(ReverseRouter.route(on(LicencePositionSubareaChangeStartController.class)
-            .renderForExecutedPosition(CORRECTION_ID, POSITION_ID, null)))
+            .renderForExecutedPosition(correction, licencePosition)))
             .with(user(regulatorUser)))
         .andExpectAll(
             status().isOk(),
@@ -134,11 +149,12 @@ class LicencePositionSubareaChangeStartControllerTest extends AbstractController
     var correction = givenCorrectionAllocatedToUser();
     var licencePosition = executedPosition();
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(licencePosition);
+    when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(licencePosition));
     when(licencePositionSpatialService.getBlockFeaturesGoingIntoChange(correction, licencePosition, null))
         .thenReturn(BLOCK_FEATURES);
 
     var result = mockMvc.perform(get(ReverseRouter.route(on(LicencePositionSubareaChangeStartController.class)
-            .renderForExecutedPosition(CORRECTION_ID, POSITION_ID, null)))
+            .renderForExecutedPosition(correction, licencePosition)))
             .with(user(regulatorUser)))
         .andExpect(status().isOk())
         .andReturn();
@@ -152,16 +168,20 @@ class LicencePositionSubareaChangeStartControllerTest extends AbstractController
     var correction = givenCorrectionAllocatedToUser();
     var licencePosition = executedPosition();
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(licencePosition);
+    when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(licencePosition));
     when(licencePositionSpatialService.getBlockFeaturesGoingIntoChange(correction, licencePosition, null))
         .thenReturn(BLOCK_FEATURES);
-    when(licencePositionCorrectionService.blockFeatureIdsAlreadyOperatedOnForExecutedPosition(licencePosition, null))
-        .thenReturn(ALREADY_OPERATED_ON);
+    when(licencePositionCorrectionService.blockFeatureIdsAlreadyOperatedOnForExecutedPosition(
+        correction,
+        licencePosition,
+        null
+    )).thenReturn(ALREADY_OPERATED_ON);
     when(subareaChangeStartFormValidator.hasErrors(
         any(SubareaChangeStartForm.class), any(BindingResult.class), eq(BLOCK_FEATURES), eq(ALREADY_OPERATED_ON)))
         .thenReturn(true);
 
     mockMvc.perform(post(ReverseRouter.route(on(LicencePositionSubareaChangeStartController.class)
-            .submitForExecutedPosition(CORRECTION_ID, POSITION_ID, null, null, null, null)))
+            .submitForExecutedPosition(correction, licencePosition, null, null, null)))
             .with(user(regulatorUser)).with(csrf()))
         .andExpectAll(
             status().isOk(),
@@ -177,10 +197,14 @@ class LicencePositionSubareaChangeStartControllerTest extends AbstractController
     var correction = givenCorrectionAllocatedToUser();
     var licencePosition = executedPosition();
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(licencePosition);
+    when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(licencePosition));
     when(licencePositionSpatialService.getBlockFeaturesGoingIntoChange(correction, licencePosition, null))
         .thenReturn(BLOCK_FEATURES);
-    when(licencePositionCorrectionService.blockFeatureIdsAlreadyOperatedOnForExecutedPosition(licencePosition, null))
-        .thenReturn(ALREADY_OPERATED_ON);
+    when(licencePositionCorrectionService.blockFeatureIdsAlreadyOperatedOnForExecutedPosition(
+        correction,
+        licencePosition,
+        null
+    )).thenReturn(ALREADY_OPERATED_ON);
     when(subareaChangeStartFormValidator.hasErrors(
         any(SubareaChangeStartForm.class), any(BindingResult.class), eq(BLOCK_FEATURES), eq(ALREADY_OPERATED_ON)))
         .thenReturn(false);
@@ -189,12 +213,12 @@ class LicencePositionSubareaChangeStartControllerTest extends AbstractController
     form.setFeatureId(BLOCK_30_1.getId().toString());
 
     mockMvc.perform(post(ReverseRouter.route(on(LicencePositionSubareaChangeStartController.class)
-            .submitForExecutedPosition(CORRECTION_ID, POSITION_ID, null, null, null, null)))
+            .submitForExecutedPosition(correction, licencePosition, null, null, null)))
             .with(user(regulatorUser)).with(csrf())
             .flashAttr("form", form))
         .andExpect(status().is3xxRedirection())
         .andExpect(redirectedUrl(ReverseRouter.route(on(LicenceCorrectionController.class)
-            .renderLicencePosition(CORRECTION_ID, POSITION_ID, null))));
+            .renderLicencePosition(correction, licencePosition))));
 
     verify(subareaChangeService)
         .commitSubareaChangeForExecutedPosition(eq(correction), eq(licencePosition), subareaOperationCaptor.capture());
@@ -207,16 +231,16 @@ class LicencePositionSubareaChangeStartControllerTest extends AbstractController
   @Test
   void renderForAddedPosition_rendersFormWithBlockOptions() throws Exception {
     var correction = givenCorrectionAllocatedToUser();
-    var positionCorrection = addedPositionCorrection();
-    when(licencePositionCorrectionService.getPositionCorrectionForCorrection(POSITION_CORRECTION_ID, correction))
-        .thenReturn(positionCorrection);
+    var positionCorrection = addedPositionCorrection(correction);
+    when(licencePositionCorrectionService.findById(POSITION_CORRECTION_ID))
+        .thenReturn(Optional.of(positionCorrection));
     when(licencePositionCorrectionService.getCommittedChangeOfType(positionCorrection, SubareaOperation.class))
         .thenReturn(Optional.empty());
     when(licencePositionSpatialService.getBlockFeaturesGoingIntoChange(positionCorrection, null))
         .thenReturn(BLOCK_FEATURES);
 
     mockMvc.perform(get(ReverseRouter.route(on(LicencePositionSubareaChangeStartController.class)
-            .renderForAddedPosition(CORRECTION_ID, POSITION_CORRECTION_ID, null)))
+            .renderForAddedPosition(correction, positionCorrection)))
             .with(user(regulatorUser)))
         .andExpectAll(
             status().isOk(),
@@ -228,9 +252,9 @@ class LicencePositionSubareaChangeStartControllerTest extends AbstractController
   @Test
   void submitForAddedPosition_whenInvalid_rendersFormAndCommitsNothing() throws Exception {
     var correction = givenCorrectionAllocatedToUser();
-    var positionCorrection = addedPositionCorrection();
-    when(licencePositionCorrectionService.getPositionCorrectionForCorrection(POSITION_CORRECTION_ID, correction))
-        .thenReturn(positionCorrection);
+    var positionCorrection = addedPositionCorrection(correction);
+    when(licencePositionCorrectionService.findById(POSITION_CORRECTION_ID))
+        .thenReturn(Optional.of(positionCorrection));
     when(licencePositionSpatialService.getBlockFeaturesGoingIntoChange(positionCorrection, null))
         .thenReturn(BLOCK_FEATURES);
     when(licencePositionCorrectionService.blockFeatureIdsAlreadyOperatedOnForAddedPosition(positionCorrection))
@@ -240,7 +264,7 @@ class LicencePositionSubareaChangeStartControllerTest extends AbstractController
         .thenReturn(true);
 
     mockMvc.perform(post(ReverseRouter.route(on(LicencePositionSubareaChangeStartController.class)
-            .submitForAddedPosition(CORRECTION_ID, POSITION_CORRECTION_ID, null, null, null, null)))
+            .submitForAddedPosition(correction, positionCorrection, null, null, null)))
             .with(user(regulatorUser)).with(csrf()))
         .andExpectAll(
             status().isOk(),
@@ -254,9 +278,9 @@ class LicencePositionSubareaChangeStartControllerTest extends AbstractController
   @Test
   void submitForAddedPosition_whenValid_commitsAndRedirectsToAddedPosition() throws Exception {
     var correction = givenCorrectionAllocatedToUser();
-    var positionCorrection = addedPositionCorrection();
-    when(licencePositionCorrectionService.getPositionCorrectionForCorrection(POSITION_CORRECTION_ID, correction))
-        .thenReturn(positionCorrection);
+    var positionCorrection = addedPositionCorrection(correction);
+    when(licencePositionCorrectionService.findById(POSITION_CORRECTION_ID))
+        .thenReturn(Optional.of(positionCorrection));
     when(licencePositionSpatialService.getBlockFeaturesGoingIntoChange(positionCorrection, null))
         .thenReturn(BLOCK_FEATURES);
     when(licencePositionCorrectionService.blockFeatureIdsAlreadyOperatedOnForAddedPosition(positionCorrection))
@@ -269,12 +293,12 @@ class LicencePositionSubareaChangeStartControllerTest extends AbstractController
     form.setFeatureId(BLOCK_30_2.getId().toString());
 
     mockMvc.perform(post(ReverseRouter.route(on(LicencePositionSubareaChangeStartController.class)
-            .submitForAddedPosition(CORRECTION_ID, POSITION_CORRECTION_ID, null, null, null, null)))
+            .submitForAddedPosition(correction, positionCorrection, null, null, null)))
             .with(user(regulatorUser)).with(csrf())
             .flashAttr("form", form))
         .andExpect(status().is3xxRedirection())
         .andExpect(redirectedUrl(ReverseRouter.route(on(LicenceCorrectionController.class)
-            .renderAddedPosition(CORRECTION_ID, POSITION_CORRECTION_ID, null))));
+            .renderAddedPosition(correction, positionCorrection))));
 
     verify(subareaChangeService).commitSubareaChange(eq(positionCorrection), subareaOperationCaptor.capture());
     assertThat(subareaOperationCaptor.getValue())
@@ -287,6 +311,7 @@ class LicencePositionSubareaChangeStartControllerTest extends AbstractController
     var correction = LicenceCorrectionTestUtil.newBuilder().withId(CORRECTION_ID).withLicence(LICENCE).build();
     when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
         .thenReturn(Optional.of(correction));
+    when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(correction));
     return correction;
   }
 
@@ -297,19 +322,20 @@ class LicencePositionSubareaChangeStartControllerTest extends AbstractController
         .build();
   }
 
-  private LicencePositionCorrection addedPositionCorrection() {
+  private LicencePositionCorrection addedPositionCorrection(LicenceCorrection correction) {
     return LicencePositionCorrectionTestUtil.newBuilder()
         .withId(POSITION_CORRECTION_ID)
+        .withLicenceCorrection(correction)
         .build();
   }
 
   private static String addChangeUrlForExecutedPosition() {
     return ReverseRouter.route(on(LicencePositionAddChangeController.class)
-        .renderForExecutedPosition(CORRECTION_ID, POSITION_ID, null));
+        .renderForExecutedPosition(CORRECTION, POSITION));
   }
 
   private static String addChangeUrlForAddedPosition() {
     return ReverseRouter.route(on(LicencePositionAddChangeController.class)
-        .renderForAddedPosition(CORRECTION_ID, POSITION_CORRECTION_ID, null));
+        .renderForAddedPosition(CORRECTION, POSITION_CORRECTION));
   }
 }

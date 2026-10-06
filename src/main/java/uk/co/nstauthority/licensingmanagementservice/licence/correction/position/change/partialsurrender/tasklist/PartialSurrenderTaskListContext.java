@@ -3,6 +3,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.correction.positio
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
 
 /**
  * Scopes the task list sections to a partial surrender. Sections are typed against this context rather than
@@ -14,7 +15,7 @@ public sealed interface PartialSurrenderTaskListContext {
   record Staged(LicencePositionCorrection positionCorrection) implements PartialSurrenderTaskListContext {
   }
 
-  record LiveChange(LicenceCorrection correction, LicencePosition licencePosition, String changeId)
+  record LiveChange(LicenceCorrection correction, LicencePosition licencePosition, LicencePositionChange change)
       implements PartialSurrenderTaskListContext {
   }
 }

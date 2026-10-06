@@ -19,6 +19,8 @@ import static uk.co.nstauthority.licensingmanagementservice.util.NotificationBan
 import static uk.co.nstauthority.licensingmanagementservice.util.RedirectedToLoginUrlMatcher.redirectionToLoginUrl;
 
 import java.util.Collections;
+import java.util.Map;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
@@ -182,7 +184,10 @@ class TestHarnessControllerTest extends AbstractControllerTest {
     when(licenceService.findLicenceByIdOrThrow(LICENCE_ID)).thenReturn(LICENCE);
     when(licencePositionFeatureTestHarnessService.getSeedState(LICENCE)).thenReturn(SEED_STATE);
     when(licencePositionFeatureTestHarnessService.createAndLinkFeatures(LICENCE))
-        .thenReturn(new SeededFeatures(Collections.nCopies(4, new Feature()), Collections.nCopies(8, new Feature())));
+        .thenReturn(new SeededFeatures(
+            Collections.nCopies(4, new Feature()),
+            Map.of(UUID.randomUUID(), Collections.nCopies(8, new Feature()))
+        ));
 
     var form = new LicencePositionFeatureTestHarnessForm();
     form.getLicenceId().setInputValue(LICENCE_ID.toString());

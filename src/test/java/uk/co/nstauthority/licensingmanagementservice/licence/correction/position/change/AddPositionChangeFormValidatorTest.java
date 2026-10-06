@@ -23,6 +23,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.PartialSurrenderCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.AdministratorOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenseeOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeService;
@@ -159,6 +160,34 @@ class AddPositionChangeFormValidatorTest {
     assertThat(ValidatorTestingUtil.getErrorsFieldsAndMessages(errors))
         .containsOnly(entry("changeType",
             Collections.singletonList("Administrator change has already been added to this position")));
+  }
+
+  @Test
+  void hasErrors_whenLicenseeChangeAndNoneExistsForPosition_thenNoErrors() {
+    form.setChangeType(AddPositionChangeType.LICENSEE.name());
+    when(licencePositionChangeService.changeExists(positionCorrection.getTargetLicencePosition().getId(), LicenseeOperation.class))
+        .thenReturn(false);
+
+    var result = addPositionChangeFormValidator.hasErrors(
+        form, errors, correctionForLicenceType(LicenceType.SEAWARD_PRODUCTION), positionCorrection);
+
+    assertThat(result).isFalse();
+    assertThat(errors.hasErrors()).isFalse();
+  }
+
+  @Test
+  void hasErrors_whenLicenseeChangeAlreadyExistsForPosition_thenErrorWithMessage() {
+    form.setChangeType(AddPositionChangeType.LICENSEE.name());
+    when(licencePositionChangeService.changeExists(positionCorrection.getTargetLicencePosition().getId(), LicenseeOperation.class))
+        .thenReturn(true);
+
+    var result = addPositionChangeFormValidator.hasErrors(
+        form, errors, correctionForLicenceType(LicenceType.SEAWARD_PRODUCTION), positionCorrection);
+
+    assertThat(result).isTrue();
+    assertThat(ValidatorTestingUtil.getErrorsFieldsAndMessages(errors))
+        .containsOnly(entry("changeType",
+            Collections.singletonList("Licensee change has already been added to this position")));
   }
 
   @ParameterizedTest

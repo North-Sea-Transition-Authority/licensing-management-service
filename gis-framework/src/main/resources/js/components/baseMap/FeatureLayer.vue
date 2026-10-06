@@ -27,6 +27,7 @@ interface Props {
   selectedFillColor?: [number, number, number],
   selectedStrokeColor?: [number, number, number, number],
   selectedFeatureIds?: string[],
+  refitOnFeaturesChange?: boolean,
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -34,6 +35,7 @@ const props = withDefaults(defineProps<Props>(), {
   strokeColor: () => [0, 0, 0, 1], // black
   selectedStrokeColor: () => [212, 53, 28, 1], // red
   selectedFillColor: () => [212, 53, 28], // red
+  refitOnFeaturesChange: true,
 });
 
 const featureLabelFont = "18px \"GDS Transport\"";
@@ -42,6 +44,7 @@ const vectorSourceRef = ref<InstanceType<typeof OlSourceVector> | null>(null);
 // Set when the features load before the map has a size, so the fit can be retried once it gets one.
 let pendingExtent: Extent | null = null;
 let sizeListenerKey: EventsKey | null = null;
+let hasFitted = false;
 
 watch(
   [() => props.features, vectorSourceRef],
@@ -52,7 +55,9 @@ watch(
     }
     source.clear();
     source.addFeatures(props.features);
-    fitToExtent(source);
+    if (props.refitOnFeaturesChange || !hasFitted) {
+      fitToExtent(source);
+    }
   },
   { immediate: true },
 );
@@ -120,6 +125,7 @@ function fit(map: Map, extent: Extent) {
   map.getView().fit(extent, {
     padding: [50, 50, 50, 50],
   });
+  hasFitted = true;
 }
 
 onUnmounted(() => {

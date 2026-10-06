@@ -19,7 +19,16 @@
   <#local removeUrl = urls.remove()!''>
   <#local undoUrl = urls.undo()!''>
   <#local correctChangeOrderUrl = urls.correctChangeOrder()!''>
+  <#local correctPositionUrl = urls.correctPosition()!''>
+
   <@fdsSummaryList.summaryListCardActionList>
+    <#if correctPositionUrl?has_content>
+      <@fdsSummaryList.summaryListCardActionItem
+        itemUrl=springUrl(correctPositionUrl)
+        itemText="Change position"
+        itemScreenReaderText=screenReaderText
+      />
+    </#if>
     <#if correctUrl?has_content>
       <@fdsSummaryList.summaryListCardActionItem
         itemUrl=springUrl(correctUrl)
@@ -187,6 +196,14 @@
     cardActionsContent=cardActions
   >
     <div>
+      <#if correction?has_content && correction.movedFrom()??>
+        <@transferEquityHoldingsHeading>Moved from</@transferEquityHoldingsHeading>
+        <p class="govuk-body govuk-!-margin-top-2">${correction.movedFrom()}</p>
+      </#if>
+      <#if correction?has_content && correction.movedTo()??>
+        <@transferEquityHoldingsHeading>Moved to</@transferEquityHoldingsHeading>
+        <p class="govuk-body govuk-!-margin-top-2">${correction.movedTo()}</p>
+      </#if>
       <#if correction?has_content && correction.previousChange()??>
         <@transferEquityHoldingsHeading>Before correction</@transferEquityHoldingsHeading>
         <@transferEquityRows change=correction.previousChange()/>
@@ -282,7 +299,21 @@
   </@fdsSummaryList.summaryListRowNoAction>
 </#macro>
 
+<#macro movedRows correction>
+  <#if correction?has_content && correction.movedFrom()??>
+    <@fdsSummaryList.summaryListRowNoAction keyText="Moved from">
+      ${correction.movedFrom()}
+    </@fdsSummaryList.summaryListRowNoAction>
+  </#if>
+  <#if correction?has_content && correction.movedTo()??>
+    <@fdsSummaryList.summaryListRowNoAction keyText="Moved to">
+      ${correction.movedTo()}
+    </@fdsSummaryList.summaryListRowNoAction>
+  </#if>
+</#macro>
+
 <#macro correctionRows correction>
+  <@movedRows correction=correction/>
   <#if correction?has_content && correction.previousChange()??>
     <@beforeCorrectionRow previousChange=correction.previousChange()/>
   </#if>

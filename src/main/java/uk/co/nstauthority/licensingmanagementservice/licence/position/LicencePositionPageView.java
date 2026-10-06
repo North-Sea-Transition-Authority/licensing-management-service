@@ -7,6 +7,7 @@ import uk.co.nstauthority.licensingmanagementservice.fds.error.ErrorSummaryItem;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.LicencePositionChangeView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.LicencePositionStateView;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.filter.LicenceTimelineFilterOptions;
 
 /**
  * View model for a licence position page (read-only, correction, or added-position view).
@@ -15,6 +16,9 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.vie
  * @param isAddedPosition true when the view represents a new position being added as part of a correction (which
  *                        has therefore not been executed), as opposed to an existing executed position or the read-only view
  * @param licenceType the type of the licence the position belongs to; null only for the empty view
+ * @param filterOptions the change types and organisations the read-only timeline can be filtered by; none for every
+ *                      other view
+ * @param filterApplied true when the read-only timeline has been filtered
  */
 public record LicencePositionPageView(
     List<LicencePositionTimelineView> timelineViews,
@@ -27,7 +31,9 @@ public record LicencePositionPageView(
     boolean isAddedPosition,
     Actions actions,
     @Nullable LicenceType licenceType,
-    List<ErrorSummaryItem> errorSummaryItems
+    List<ErrorSummaryItem> errorSummaryItems,
+    LicenceTimelineFilterOptions filterOptions,
+    boolean filterApplied
 ) {
 
   /**
@@ -56,7 +62,9 @@ public record LicencePositionPageView(
         false,
         Actions.none(),
         null,
-        List.of()
+        List.of(),
+        LicenceTimelineFilterOptions.none(),
+        false
     );
   }
 
@@ -67,7 +75,9 @@ public record LicencePositionPageView(
       List<LicencePositionChangeView> orderedChangeViews,
       LicencePositionStateView stateView,
       UUID selectedPositionId,
-      LicenceType licenceType
+      LicenceType licenceType,
+      LicenceTimelineFilterOptions filterOptions,
+      boolean filterApplied
   ) {
     return new LicencePositionPageView(
         timelineViews,
@@ -80,7 +90,33 @@ public record LicencePositionPageView(
         false,
         Actions.none(),
         licenceType,
-        List.of()
+        List.of(),
+        filterOptions,
+        filterApplied
+    );
+  }
+
+  /**
+   * The read-only view when the licence has positions but the filter leaves none of them.
+   */
+  public static LicencePositionPageView noMatchingPositions(
+      LicenceType licenceType,
+      LicenceTimelineFilterOptions filterOptions
+  ) {
+    return new LicencePositionPageView(
+        List.of(),
+        null,
+        null,
+        List.of(),
+        null,
+        false,
+        null,
+        false,
+        Actions.none(),
+        licenceType,
+        List.of(),
+        filterOptions,
+        true
     );
   }
 
@@ -106,7 +142,9 @@ public record LicencePositionPageView(
         false,
         actions,
         licenceType,
-        errorSummaryItems
+        errorSummaryItems,
+        LicenceTimelineFilterOptions.none(),
+        false
     );
   }
 
@@ -132,7 +170,9 @@ public record LicencePositionPageView(
         true,
         actions,
         licenceType,
-        errorSummaryItems
+        errorSummaryItems,
+        LicenceTimelineFilterOptions.none(),
+        false
     );
   }
 

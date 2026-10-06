@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -14,10 +15,13 @@ import static org.mockito.Mockito.when;
 import com.esri.core.geometry.Point;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -26,6 +30,7 @@ import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import uk.co.fivium.gisframework.feature.EntityBackedFeature;
 import uk.co.fivium.gisframework.feature.Feature;
 import uk.co.fivium.gisframework.feature.FeatureService;
 import uk.co.fivium.gisframework.feature.FeatureTestUtil;
@@ -63,6 +68,9 @@ class OperatorResultProcessingServiceTest {
 
   @Captor
   private ArgumentCaptor<Polygon> polygonCaptor;
+
+  @Captor
+  private ArgumentCaptor<Collection<Polygon>> polygonsCaptor;
 
   @InjectMocks
   private OperatorResultProcessingService operatorResultProcessingService;
@@ -574,5 +582,128 @@ class OperatorResultProcessingServiceTest {
         );
 
     verify(grpcClientService).validatePolygonReconstructionFromPolylines(lines, outputPolygonEsriJson);
+  }
+
+  @Test
+  void processCroppedFeature_whenPolygonsKeptCroppedAndRemoved_savesNewFeatureWithKeptAndCroppedPolygons() {
+    var parentFeature = FeatureTestUtil.newBuilder().build();
+    var inputFeature = FeatureTestUtil.newBuilder()
+        .withFeatureName("Subarea A")
+        .withCoordinateSystem(CoordinateSystem.ED50)
+        .withAttributes(FEATURE_ATTRIBUTES)
+        .withParentFeature(parentFeature)
+        .withStartDate(START_DATE)
+        .build();
+    var keptPolygon = PolygonTestUtil.newBuilder()
+        .withFeature(inputFeature)
+        .withAttributes(Map.of("polygon", "kept"))
+        .withStartDepth(1L)
+        .withEndDepth(2L)
+        .build();
+    var croppedPolygon = PolygonTestUtil.newBuilder()
+        .withFeature(inputFeature)
+        .withAttributes(Map.of("polygon", "cropped"))
+        .withStartDepth(3L)
+        .withEndDepth(4L)
+        .build();
+    var removedPolygon = PolygonTestUtil.newBuilder().withFeature(inputFeature).build();
+    var keptLine = LineTestUtil.newBuilder()
+        .withPolygon(keptPolygon)
+        .withEsriJson("kept line")
+        .withAttributes(Map.of("line", "kept"))
+        .withNavigationType(LineNavigationType.GEODESIC)
+        .build();
+    var croppedParentLineId = UUID.randomUUID();
+    var croppedParentLine = LineTestUtil.newBuilder()
+        .withId(croppedParentLineId)
+        .withPolygon(croppedPolygon)
+        .withAttributes(Map.of("line", "cropped parent"))
+        .withNavigationType(LineNavigationType.LOXODROME)
+        .build();
+    var removedLine = LineTestUtil.newBuilder().withPolygon(removedPolygon).build();
+
+    Map<Polygon, List<Line>> polygonToLines = new LinkedHashMap<>();
+    polygonToLines.put(keptPolygon, List.of(keptLine));
+    polygonToLines.put(croppedPolygon, List.of(croppedParentLine));
+    polygonToLines.put(removedPolygon, List.of(removedLine));
+
+    when(grpcClientService.explodePolygon("cropped polygon")).thenReturn(List.of("cropped line"));
+    when(grpcClientService.findParentLines(List.of(croppedParentLine), List.of("cropped line")))
+        .thenReturn(new FindParentLineResponse(Map.of("cropped line", croppedParentLineId), List.of()));
+    when(grpcClientService.validatePolygonReconstructionFromPolylines(any(), eq("cropped polygon"))).thenReturn(true);
+    when(grpcClientService.calculateArea(
+        eq(CoordinateSystem.ED50),
+        argThat(lines -> lines.size() == 1 && "kept line".equals(lines.getFirst().getEsriJson()))
+    ))
+        .thenReturn(BigDecimal.ONE);
+    when(grpcClientService.calculateArea(
+        eq(CoordinateSystem.ED50),
+        argThat(lines -> lines.size() == 1 && "cropped line".equals(lines.getFirst().getEsriJson()))
+    ))
+        .thenReturn(BigDecimal.TEN);
+
+    var result = operatorResultProcessingService.processCroppedFeature(
+        new EntityBackedFeature(inputFeature, polygonToLines),
+        Map.of(croppedPolygon.getId(), "cropped polygon"),
+        Set.of(removedPolygon.getId())
+    );
+
+    var expectedFeature = FeatureTestUtil.newBuilder()
+        .withFeatureName("Subarea A")
+        .withCoordinateSystem(CoordinateSystem.ED50)
+        .withAttributes(FEATURE_ATTRIBUTES)
+        .withFeatureArea(BigDecimal.valueOf(11))
+        .withParentFeature(parentFeature)
+        .withStartDate(null)
+        .withEndDate(null)
+        .build();
+    verify(featureService).saveFeature(featureCaptor.capture());
+    assertThat(featureCaptor.getValue()).isSameAs(result);
+    assertThat(result).usingRecursiveComparison()
+        .ignoringFields("id", "legacyId")
+        .isEqualTo(expectedFeature);
+
+    verify(polygonService).savePolygons(polygonsCaptor.capture());
+    assertThat(polygonsCaptor.getValue())
+        .extracting(Polygon::getFeature, Polygon::getAttributes, Polygon::getStartDepth, Polygon::getEndDepth)
+        .containsExactly(
+            tuple(result, Map.of("polygon", "kept"), 1L, 2L),
+            tuple(result, Map.of("polygon", "cropped"), 3L, 4L)
+        );
+    var savedPolygons = List.copyOf(polygonsCaptor.getValue());
+
+    verify(lineService).saveLines(linesCaptor.capture());
+    assertThat(linesCaptor.getValue())
+        .extracting(Line::getPolygon, Line::getEsriJson, Line::getAttributes, Line::getNavigationType)
+        .containsExactly(
+            tuple(savedPolygons.get(0), "kept line", Map.of("line", "kept"), LineNavigationType.GEODESIC),
+            tuple(savedPolygons.get(1), "cropped line", Map.of("line", "cropped parent"), LineNavigationType.LOXODROME)
+        );
+  }
+
+  @Test
+  void processCroppedFeature_whenCroppedLinesCannotReconstructCroppedPolygon_throwsException() {
+    var croppedPolygon = PolygonTestUtil.newBuilder().withFeature(FEATURE).build();
+    var croppedParentLineId = UUID.randomUUID();
+    var croppedParentLine = LineTestUtil.newBuilder()
+        .withId(croppedParentLineId)
+        .withPolygon(croppedPolygon)
+        .build();
+    var entityBackedFeature = new EntityBackedFeature(FEATURE, Map.of(croppedPolygon, List.of(croppedParentLine)));
+    var polygonIdToCroppedEsriJson = Map.of(croppedPolygon.getId(), "cropped polygon");
+
+    when(grpcClientService.explodePolygon("cropped polygon")).thenReturn(List.of("cropped line"));
+    when(grpcClientService.findParentLines(List.of(croppedParentLine), List.of("cropped line")))
+        .thenReturn(new FindParentLineResponse(Map.of("cropped line", croppedParentLineId), List.of()));
+    when(grpcClientService.validatePolygonReconstructionFromPolylines(any(), eq("cropped polygon"))).thenReturn(false);
+
+    assertThatThrownBy(() -> operatorResultProcessingService.processCroppedFeature(
+        entityBackedFeature,
+        polygonIdToCroppedEsriJson,
+        Set.of()
+    ))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessage(
+            "Cannot generate valid polygon from processed lines with EsriJSON: [cropped line]");
   }
 }

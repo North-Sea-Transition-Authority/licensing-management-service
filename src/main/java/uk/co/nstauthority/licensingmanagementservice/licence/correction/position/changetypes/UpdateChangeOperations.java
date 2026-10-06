@@ -15,14 +15,24 @@ public record UpdateChangeOperations(
   }
 
   public static UpdateChangeOperations buildUpdateChange(String originalChangeId, LicenceOperation operation) {
-    var updateOperation = LicencePositionChangeOperation.newLicencePositionUpdateOperation()
-        .withOperationId(operation.id())
-        .withOperation(operation)
-        .build();
+    return buildUpdateChange(originalChangeId, List.of(operation));
+  }
+
+  public static UpdateChangeOperations buildUpdateChange(
+      String originalChangeId,
+      List<? extends LicenceOperation> operations
+  ) {
+    var updateOperations = operations.stream()
+        .<LicencePositionChangeOperation>map(operation -> LicencePositionChangeOperation
+            .newLicencePositionUpdateOperation()
+            .withOperationId(operation.id())
+            .withOperation(operation)
+            .build())
+        .toList();
 
     return LicencePositionChangeType.updateChangeOperations()
         .withChangeId(originalChangeId)
-        .withOperations(List.of(updateOperation))
+        .withOperations(updateOperations)
         .build();
   }
 

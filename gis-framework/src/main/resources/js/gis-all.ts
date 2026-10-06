@@ -5,6 +5,7 @@ import MergePage from "./pages/MergePage.vue";
 import SplitByCoordinateEntryPage from "./pages/SplitByCoordinateEntryPage.vue";
 import SplitByPointAndClickPage from "./pages/SplitByPointAndClickPage.vue";
 import MapWithTextualDescription from "./components/textualDescription/MapWithTextualDescription.vue";
+import DepthMapPage from "./pages/DepthMapPage.vue";
 import "ol/ol.css";
 import "vue3-openlayers/vue3-openlayers.css";
 
@@ -82,4 +83,16 @@ for (const element of document.querySelectorAll<HTMLElement>("[data-gis-componen
   })
     .use(OpenLayersMap)
     .mount(element);
+}
+
+for (const element of document.querySelectorAll<HTMLElement>("[data-gis-component='gis-depth-map']")) {
+  createApp(DepthMapPage, {
+    commandJourneyId: element.dataset.gisCommandJourneyId,
+    srsWkid: Number(element.dataset.gisSrsWkid),
+    featuresBaseUrl: element.dataset.gisFeaturesBaseUrl,
+    outlineNodesBaseUrl: element.dataset.gisOutlineNodesBaseUrl,
+    textualDescriptionUrl: element.dataset.gisTextualDescriptionUrl,
+    includeNstaQuadrants: element.dataset.gisIncludeNstaQuadrants === "true",
+    includeNstaBlocks: element.dataset.gisIncludeNstaBlocks === "true",
+  }).use(OpenLayersMap).mount(element);
 }

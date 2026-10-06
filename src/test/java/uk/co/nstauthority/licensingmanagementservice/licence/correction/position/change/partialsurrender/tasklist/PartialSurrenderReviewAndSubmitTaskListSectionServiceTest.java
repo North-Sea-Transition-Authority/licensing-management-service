@@ -11,6 +11,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListItem;
@@ -28,18 +29,17 @@ class PartialSurrenderReviewAndSubmitTaskListSectionServiceTest {
 
   @Test
   void getSection_whenCorrectingALiveChangeWithNothingStaged_thenLinksToTheReviewPageForThatChange() {
-    var liveChangeId = UUID.randomUUID().toString();
-    var context = new PartialSurrenderTaskListContext.LiveChange(
-        LicenceCorrectionTestUtil.newBuilder().withId(CORRECTION_ID).build(),
-        LicencePositionTestUtil.newBuilder().withId(POSITION_ID).build(),
-        liveChangeId);
+    var liveChange = LicencePositionChangeTestUtil.newBuilder().build();
+    var correction = LicenceCorrectionTestUtil.newBuilder().withId(CORRECTION_ID).build();
+    var position = LicencePositionTestUtil.newBuilder().withId(POSITION_ID).build();
+    var context = new PartialSurrenderTaskListContext.LiveChange(correction, position, liveChange);
 
     var section = partialSurrenderReviewAndSubmitTaskListSectionService.getSection(
         context, ServiceUserDetailTestUtil.newBuilder().build());
 
     assertThat(section).contains(expectedSection(
         ReverseRouter.route(on(PartialSurrenderTaskListController.class)
-            .renderReviewAndSubmitForCorrectingChange(CORRECTION_ID, POSITION_ID, liveChangeId, null, null))));
+            .renderReviewAndSubmitForCorrectingChange(correction, position, liveChange, null))));
   }
 
   @Test
@@ -55,7 +55,7 @@ class PartialSurrenderReviewAndSubmitTaskListSectionServiceTest {
 
     assertThat(section).contains(expectedSection(
         ReverseRouter.route(on(PartialSurrenderTaskListController.class)
-            .renderReviewAndSubmit(CORRECTION_ID, POSITION_CORRECTION_ID, null, null))));
+            .renderReviewAndSubmit(positionCorrection.getLicenceCorrection(), positionCorrection, null))));
   }
 
   private TaskListSection expectedSection(String reviewAndSubmitUrl) {

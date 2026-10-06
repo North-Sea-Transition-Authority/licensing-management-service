@@ -1,0 +1,12 @@
+syntax = "proto3";
+import "cropToBoundary/FeaturePolygons.proto";
+
+package uk.co.fivium.grpc.gis;
+
+option java_multiple_files = true;
+option java_outer_classname = "CropToBoundaryRequestProto";
+
+message CropToBoundaryRequest {
+  repeated string esriJsonBoundaryPolygons = 1;
+  repeated FeaturePolygons featuresToBeCropped = 2;
+}

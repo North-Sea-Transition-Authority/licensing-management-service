@@ -1,49 +1,43 @@
-package uk.co.nstauthority.licensingmanagementservice.migration.pears;
+package uk.co.nstauthority.licensingmanagementservice.licence.position;
 
+import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
+import java.util.List;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionRepository;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionRepository;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionRepository;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeService;
 import uk.co.nstauthority.licensingmanagementservice.licence.transaction.LicenceTransactionRepository;
 
 /**
- * Takes a licence back to holding nothing, so it can be rebuilt from PEARS. Everything it holds
- * goes, executed or not, corrections included.
+ * Takes a licence back to holding nothing, so it can be rebuilt. Everything it holds goes,
+ * executed or not, corrections included.
  */
 @Service
-@ConditionalOnPearsDataSource
-class LicenceCleardownService {
+public class LicenceCleardownService {
 
   private final LicencePositionRepository licencePositionRepository;
   private final LicenceCorrectionRepository licenceCorrectionRepository;
-  private final LicencePositionChangeService licencePositionChangeService;
-  private final LicencePositionCorrectionRepository licencePositionCorrectionRepository;
   private final LicenceTransactionRepository licenceTransactionRepository;
+  private final EntityManager entityManager;
 
   LicenceCleardownService(
       LicencePositionRepository licencePositionRepository,
       LicenceCorrectionRepository licenceCorrectionRepository,
-      LicencePositionChangeService licencePositionChangeService,
-      LicencePositionCorrectionRepository licencePositionCorrectionRepository,
-      LicenceTransactionRepository licenceTransactionRepository
+      LicenceTransactionRepository licenceTransactionRepository,
+      EntityManager entityManager
   ) {
     this.licencePositionRepository = licencePositionRepository;
     this.licenceCorrectionRepository = licenceCorrectionRepository;
-    this.licencePositionChangeService = licencePositionChangeService;
-    this.licencePositionCorrectionRepository = licencePositionCorrectionRepository;
     this.licenceTransactionRepository = licenceTransactionRepository;
+    this.entityManager = entityManager;
   }
 
   @Transactional
-  void clear(Licence licence) {
+  public void clear(Licence licence) {
     var licencePositions = licencePositionRepository.findByLicence(licence);
     var licenceCorrections = licenceCorrectionRepository.findAllByLicence(licence);
-    var licencePositionCorrections = licencePositionCorrectionRepository.findAllByLicenceCorrectionIn(licenceCorrections);
 
     var licenceTransactions = licencePositions.stream().map(LicencePosition::getLicenceTransaction).distinct().toList();
     var licencePositionIds = licencePositions.stream().map(LicencePosition::getId).collect(Collectors.toSet());
@@ -60,10 +54,38 @@ class LicenceCleardownService {
         .filter(licenceTransaction -> !heldTransactionIds.contains(licenceTransaction.getId()))
         .toList();
 
-    licencePositionChangeService.deleteForPositions(licencePositions);
-    licencePositionCorrectionRepository.deleteAll(licencePositionCorrections);
+    deleteChangesOf(licencePositions);
+    deletePositionCorrectionsOf(licenceCorrections);
     licenceCorrectionRepository.deleteAll(licenceCorrections);
     licencePositionRepository.deleteAll(licencePositions);
     licenceTransactionRepository.deleteAll(unheldLicenceTransactions);
+  }
+
+  /**
+   * A bulk delete never loads the rows, so operations stored in a shape that no longer
+   * deserialises are cleared all the same. It is not audited.
+   */
+  private void deleteChangesOf(List<LicencePosition> licencePositions) {
+    if (licencePositions.isEmpty()) {
+      return;
+    }
+
+    entityManager.createQuery("DELETE FROM licence_position_changes c WHERE c.licencePosition IN :licencePositions")
+        .setParameter("licencePositions", licencePositions)
+        .executeUpdate();
+  }
+
+  /**
+   * A bulk delete never loads the rows, so payloads stored in a shape that no longer
+   * deserialises are cleared all the same. It is not audited.
+   */
+  private void deletePositionCorrectionsOf(List<LicenceCorrection> licenceCorrections) {
+    if (licenceCorrections.isEmpty()) {
+      return;
+    }
+
+    entityManager.createQuery("DELETE FROM licence_position_corrections c WHERE c.licenceCorrection IN :licenceCorrections")
+        .setParameter("licenceCorrections", licenceCorrections)
+        .executeUpdate();
   }
 }

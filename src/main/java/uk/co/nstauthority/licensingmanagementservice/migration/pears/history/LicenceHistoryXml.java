@@ -34,6 +34,14 @@ interface LicenceHistoryXml {
    * @param opType           required; the operation's type, carried as an attribute so an operation
    *                         whose payload was not fetched is still known by type
    * @param operation        null where {@code licence-history.sql} did not fetch this type's XML
+   * @param blockEntries     the blocks a block operation acted on. Populated instead of, not as well
+   *                         as, {@code operation}: the query emits this section for block operations
+   *                         and still withholds their payload, because the geometry inside it is the
+   *                         bulk of a document and the identity here is all the migration reads.
+   * @param subareaEntries   the subareas the operation acted on, on the same terms as
+   *                         {@code blockEntries}. Present on a subarea operation and on a block
+   *                         operation alike, since a block operation makes and ends subareas without
+   *                         ever naming them in its own payload.
    */
   record Entry(
       @JsonProperty(required = true)
@@ -49,7 +57,54 @@ interface LicenceHistoryXml {
       @JacksonXmlProperty(isAttribute = true, localName = "op_status") String opStatus,
       @JsonProperty(required = true)
       @JacksonXmlProperty(isAttribute = true, localName = "op_type") String opType,
-      @JacksonXmlProperty(localName = "OPERATION") Operation operation
+      @JacksonXmlProperty(localName = "OPERATION") Operation operation,
+
+      @JacksonXmlElementWrapper(localName = "BLOCK_ENTRY_LIST")
+      @JacksonXmlProperty(localName = "BLOCK_ENTRY_LIST") List<BlockEntry> blockEntries,
+
+      @JacksonXmlElementWrapper(localName = "SUBAREA_ENTRY_LIST")
+      @JacksonXmlProperty(localName = "SUBAREA_ENTRY_LIST") List<SubareaEntry> subareaEntries
+  ) {
+  }
+
+  /**
+   * The before and after of a single subarea on a block operation.
+   * Identity of the subarea is both the si_id and the name, as not all legacy subareas have a si_id.
+   */
+  record SubareaEntry(
+      @JacksonXmlProperty(isAttribute = true, localName = "entry_type") String entryType,
+      @JacksonXmlProperty(isAttribute = true, localName = "block_entry_seq") Integer blockEntrySeq,
+      @JacksonXmlProperty(isAttribute = true, localName = "subarea_short_name") String subareaShortName,
+      @JacksonXmlProperty(isAttribute = true, localName = "output_subarea_name") String outputSubareaName,
+      @JacksonXmlProperty(isAttribute = true, localName = "output_subarea_si_id") Integer outputSubareaSiId,
+      @JacksonXmlProperty(isAttribute = true, localName = "output_block_ref") String outputBlockRef,
+      @JacksonXmlProperty(isAttribute = true, localName = "output_block_si_id") Integer outputBlockSiId,
+      @JacksonXmlProperty(isAttribute = true, localName = "input_subarea_name") String inputSubareaName,
+      @JacksonXmlProperty(isAttribute = true, localName = "input_subarea_si_id") Integer inputSubareaSiId,
+      @JacksonXmlProperty(isAttribute = true, localName = "input_block_ref") String inputBlockRef,
+      @JacksonXmlProperty(isAttribute = true, localName = "input_block_si_id") Integer inputBlockSiId
+  ) {
+  }
+
+  /**
+   * The before and after of a single block on a block operation.
+   *
+   */
+  record BlockEntry(
+      @JacksonXmlProperty(isAttribute = true, localName = "entry_type") String entryType,
+      @JacksonXmlProperty(isAttribute = true, localName = "entry_seq") Integer entrySeq,
+      @JacksonXmlProperty(isAttribute = true, localName = "output_quadrant_no") String outputQuadrantNo,
+      @JacksonXmlProperty(isAttribute = true, localName = "output_block_no") String outputBlockNo,
+      @JacksonXmlProperty(isAttribute = true, localName = "output_block_suffix") String outputBlockSuffix,
+      @JacksonXmlProperty(isAttribute = true, localName = "output_block_ref") String outputBlockRef,
+      @JacksonXmlProperty(isAttribute = true, localName = "output_si_id") Integer outputSiId,
+      @JacksonXmlProperty(isAttribute = true, localName = "output_area_km2") BigDecimal outputAreaKm2,
+      @JacksonXmlProperty(isAttribute = true, localName = "input_quadrant_no") String inputQuadrantNo,
+      @JacksonXmlProperty(isAttribute = true, localName = "input_block_no") String inputBlockNo,
+      @JacksonXmlProperty(isAttribute = true, localName = "input_block_suffix") String inputBlockSuffix,
+      @JacksonXmlProperty(isAttribute = true, localName = "input_block_ref") String inputBlockRef,
+      @JacksonXmlProperty(isAttribute = true, localName = "input_si_id") Integer inputSiId,
+      @JacksonXmlProperty(isAttribute = true, localName = "input_area_km2") BigDecimal inputAreaKm2
   ) {
   }
 

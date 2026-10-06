@@ -1,8 +1,8 @@
 # Licence Schedule Reminders — Data Model and Sending Behaviour
 
 How the Licensing Management Service (LMS) records the deadline reminder emails it sends to
-licensees, what decides whether a reminder goes out, and the enumerated values that appear in
-the data.
+licensees, what decides whether a reminder goes out, how reminders that could not be delivered
+or could not be addressed are reported, and the enumerated values that appear in the data.
 
 This document describes the *database* behaviour only. It assumes no access to the LMS
 codebase. All table and column names below are the live PostgreSQL names.
@@ -23,12 +23,22 @@ deadlines falling inside a notice window, and queues one email per recipient org
 reason: **its rows are what stop the same reminder being sent again on the next run.** It is
 not a list of upcoming deadlines, and it is not a delivery log.
 
+A second job runs later the same morning, finds reminder emails that could not be delivered,
+and reports them in one email to the regulator's approvals mailbox. `licence_reminder_bounces`
+records which batches have already been reported, so each is reported once (§6).
+
+A licensee with no licence contact cannot be sent a reminder at all. The reminder job reports
+those gaps to the regulator's licence contacts managers instead, and
+`licence_reminder_missing_contacts` records which have already been reported (§7).
+
 | Term | Meaning |
 |---|---|
 | **Deadline** | A date in a schedule worth warning about — a term or phase end, a work programme activity due date, an other schedule event date, or the licence expiry date |
 | **Notice window** | The period before a deadline during which the reminder should go out (§5) |
 | **Batch** | The set of deadlines that went out together in a single email to a single recipient |
-| **Recipient organisation** | The Energy Portal organisation responsible for the licence; the reminder goes to its submitters |
+| **Recipient organisation** | The Energy Portal organisation responsible for the licence (the licensee); the reminder goes to that licensee's `licence_contact.contact_email` |
+| **Bounce** | A reminder email that the notification service has given up trying to deliver (§6.1) |
+| **Missing contact** | A due deadline on a licence where one of the licensees has no `licence_contact` row, so no reminder can be sent to it (§7) |
 
 ---
 
@@ -38,10 +48,20 @@ not a list of upcoming deadlines, and it is not a delivery log.
 licences (id INTEGER)                schedule_events (id UUID, original_event_id)
         │                                     │
         │ licence_id                          │ schedule_event_id
-        └──────────────┬──────────────────────┘
-                       ▼
-               licence_reminders
-        one row per (deadline, recipient organisation) already queued
+        ├──────────────┬──────────────────────┘
+        │              ▼
+        │      licence_reminders
+        │   one row per (deadline, recipient organisation) already queued
+        │              ┊
+        │              ┊ notification_batch_reference (no foreign key)
+        │              ▼
+        │  licence_reminder_bounces
+        │   one row per batch already reported as undelivered
+        │
+        │ licence_id
+        ▼
+licence_reminder_missing_contacts
+one row per (deadline, licensee with no contact) already reported
 ```
 
 `licence_reminders` is a satellite of `schedule_events`, in the same sense as `event_comments`
@@ -59,16 +79,30 @@ flowchart TB
     LS["<b>licence_schedules</b><br/>id · licence_id"]
     SE["<b>schedule_events</b><br/>id · licence_schedule_id · event_type · original_event_id<br/><i>see the schedules data model</i>"]
     REM["<b>licence_reminders</b><br/>id · schedule_event_id · original_event_id · reminder_type<br/>licence_id · responsible_organisation_id · deadline_date<br/>notice_period · notification_batch_reference · queued_at<br/><i>one row per deadline per recipient organisation</i>"]
+    MC["<b>licence_reminder_missing_contacts</b><br/>id · licence_id · responsible_organisation_id · original_event_id<br/>reminder_type · deadline_date · reported_at<br/><i>one row per deadline per licensee with no contact</i>"]
+
+    subgraph BATCH["keyed on notification_batch_reference"]
+        direction LR
+        BNC["<b>licence_reminder_bounces</b><br/>id · notification_batch_reference · reported_at<br/><i>one row per reported batch</i>"]
+        NLN["<b>notification_library_notifications</b><br/>domain_reference_id · domain_reference_type<br/>status · recipient · failure_reason<br/><i>owned by the notification service</i>"]
+    end
 
     LIC -- "1 : 1" --> LS
     LS -- "1 : many" --> SE
     SE -- "1 : many" --> REM
     LIC -- "1 : many" --> REM
+    LIC -- "1 : many" --> MC
+    REM -. "batch" .-> BNC
+    REM -. "batch" .-> NLN
 ```
 
 The edge from `licences` is a real foreign key, not a shortcut through the schedule: the row
 records which licence the reminder was about, and for licence expiry reminders that is the
-only event link there is (§4.1).
+only event link there is (§4.1). The two dotted edges are matches on
+`notification_batch_reference`, with no foreign key behind them (§6).
+
+`licence_reminder_missing_contacts` hangs off `licences` only. It carries `original_event_id`
+but has no `schedule_event_id` and no foreign key to `schedule_events` (§7).
 
 ---
 
@@ -78,11 +112,11 @@ only event link there is (§4.1).
 id                           UUID PK
 schedule_event_id            UUID             → schedule_events.id  (nullable)
 original_event_id            UUID             (nullable)
-reminder_type                TEXT NOT NULL    ← §6.1
+reminder_type                TEXT NOT NULL    ← §8.1
 licence_id                   INTEGER NOT NULL → licences.id
 responsible_organisation_id  INTEGER NOT NULL ← Energy Portal organisation
 deadline_date                DATE NOT NULL
-notice_period                TEXT NOT NULL    ← §6.2
+notice_period                TEXT NOT NULL    ← §8.2
 notification_batch_reference UUID NOT NULL
 queued_at                    TIMESTAMPTZ NOT NULL
 ```
@@ -102,11 +136,15 @@ completion flag; the presence of a row is the whole of the state.
 ### 3.1 `notification_batch_reference`
 
 One email can cover several deadlines. All the rows written for that email share a
-`notification_batch_reference`, generated fresh per batch, and a batch is one
-`(recipient organisation, deadline date, reminder type)` combination.
+`notification_batch_reference`, generated fresh per batch. A batch is one
+`(licence, recipient organisation, deadline date)` combination: every deadline on that licence
+falling on the same date goes out in one email to that licensee, whatever its `reminder_type`.
+So a single batch can mix, say, a phase end and a work programme activity due on the same day.
 
-This is the only link between a row and the message it went out in — there is no email table
-in LMS. To reconstruct what a licensee actually received:
+This is the only link between a row and the message it went out in. The email itself is held
+by the notification service in `notification_library_notifications`, whose
+`domain_reference_id` is the batch reference as text (§6.1). To reconstruct what a licensee was
+sent:
 
 ```sql
 SELECT r.notification_batch_reference, r.queued_at, r.reminder_type,
@@ -122,6 +160,9 @@ ORDER BY r.queued_at DESC, r.notification_batch_reference;
 
 Three gates, in order. A deadline that fails any of them produces no row at all, so **the
 absence of a row is not evidence that a deadline does not exist.**
+
+Before any of them apply, the job only runs at all in an environment where the LMS1 release
+phase is switched on. Where it is not, the job does nothing and writes no rows.
 
 1. **The deadline falls inside the notice window** — `deadline_date` is on or after today and
    on or before today plus the notice period (§5).
@@ -186,12 +227,157 @@ gap slightly larger than the notice period at month boundaries is expected.
 
 ---
 
-## 6. Enumerated values
+## 6. Bounces — reminders that could not be delivered
+
+A second job runs every morning an hour after the reminder job. It looks for reminder emails
+that could not be delivered and have not yet been reported, and sends one email to the
+regulator's approvals mailbox listing each of them: licence reference, licensee, recipient
+address, reminder type, deadline date and failure reason. Like the reminder job, it only runs
+in an environment where the LMS1 release phase is switched on.
+
+### 6.1 Where delivery status comes from
+
+LMS does not hold the delivery status of a reminder itself. Emails are queued with a shared
+notification service, which records each one in `notification_library_notifications` and
+polls GOV.UK Notify for its progress. A reminder email's row there has:
+
+| Column | Value for a reminder email |
+|---|---|
+| `domain_reference_type` | `LICENCE_REMINDER` |
+| `domain_reference_id` | the batch's `notification_batch_reference`, as text |
+| `recipient` | the address the reminder was sent to |
+| `status` | the notification service's status — see below |
+| `failure_reason` | why it failed, when it did |
+
+A reminder counts as **bounced** when its `status` is `FAILED_NOT_SENT`. That is the
+notification service's final "given up" status, reached in two ways:
+
+| What GOV.UK Notify reported | Outcome |
+|---|---|
+| A permanent failure (for example an address that does not exist) | `FAILED_NOT_SENT` straight away |
+| A temporary or technical failure | Retried; becomes `FAILED_NOT_SENT` only once the service's retry period has run out |
+
+`failure_reason` tells the two apart. Successful delivery ends as `SENT`; an email still in
+flight stays `SENT_TO_NOTIFY` until the next poll.
+
+The bounce report email is itself held in the same table, with `domain_reference_type`
+`LICENCE_REMINDER_BOUNCE` and a `domain_reference_id` that is generated for the report and
+stored nowhere in LMS.
+
+### 6.2 `licence_reminder_bounces`
+
+```
+id                           UUID PK
+notification_batch_reference UUID NOT NULL  UNIQUE
+reported_at                  TIMESTAMPTZ NOT NULL
+```
+
+One row per batch that has been included in a bounce report. **Its only job is to stop the
+same batch being reported again**, in the same way `licence_reminders` stops a deadline being
+reminded again. Rows are inserted and never updated or deleted.
+
+| Column | What it means |
+|---|---|
+| `notification_batch_reference` | The batch that bounced — matches `licence_reminders.notification_batch_reference`, with no foreign key. Unique (`licence_reminder_bounces_batch_unique`), so a batch is reported at most once. |
+| `reported_at` | When the bounce job ran and included the batch in its report |
+
+A batch with several deadlines produces several lines in the report email but a single row
+here. All the batches in one report share the same `reported_at`.
+
+To list bounced reminders, including those not yet reported:
+
+```sql
+SELECT r.licence_id, r.responsible_organisation_id, r.reminder_type, r.deadline_date,
+       n.recipient, n.failure_reason, b.reported_at
+FROM licence_reminders r
+JOIN notification_library_notifications n
+  ON n.domain_reference_id = r.notification_batch_reference::text
+ AND n.domain_reference_type = 'LICENCE_REMINDER'
+LEFT JOIN licence_reminder_bounces b
+  ON b.notification_batch_reference = r.notification_batch_reference
+WHERE n.status = 'FAILED_NOT_SENT'
+ORDER BY r.licence_id, r.deadline_date;
+```
+
+A null `reported_at` means the bounce has not been reported yet.
+
+---
+
+## 7. Missing contacts — licensees that cannot be reminded
+
+A reminder goes to a licensee's `licence_contact.contact_email`, and a licensee has at most one
+contact. When a licensee on a licence has no `licence_contact` row, there is nowhere to send
+its reminder: **no `licence_reminders` row is written for it, and no email goes out.**
+
+Instead, at the end of each reminder run, the job takes the deadlines that passed the window
+and status gates (§4) and finds every licensee on those licences that has no contact. It sends
+one email listing them — licence reference, licensee, reminder type and deadline date — to
+every user holding the Licence contacts manager role in the regulator's licence management
+team, so a contact can be added before the deadline passes.
+
+Reporting a missing contact never affects the reminders themselves. If the report fails, the
+reminders already queued in that run stand, and the failure leaves no rows in this table.
+
+### 7.1 `licence_reminder_missing_contacts`
+
+```
+id                           UUID PK
+licence_id                   INTEGER NOT NULL → licences.id
+responsible_organisation_id  INTEGER NOT NULL ← Energy Portal organisation
+original_event_id            UUID             (nullable)
+reminder_type                TEXT NOT NULL    ← §8.1
+deadline_date                DATE NOT NULL
+reported_at                  TIMESTAMPTZ NOT NULL
+```
+
+One row per **(deadline, licensee with no contact)** that has been reported. Like
+`licence_reminders`, **its only job is to stop the same gap being reported again on the next
+run.** Rows are inserted and never updated or deleted.
+
+| Column | What it means |
+|---|---|
+| `licence_id` | The licence the deadline is on |
+| `responsible_organisation_id` | The licensee with no contact |
+| `original_event_id` | The logical schedule event, as in `licence_reminders`. **Null for `LICENCE_EXPIRY`**, for the same reason (§4.1). |
+| `reminder_type` | The kind of deadline (§8.1) |
+| `deadline_date` | The date the licensee would have been warned about |
+| `reported_at` | When the reminder job ran and included the gap in its report. All the gaps in one report share it. |
+
+There is no `schedule_event_id` and no `notice_period`, unlike `licence_reminders`.
+
+Uniqueness follows the same split as §4.2, through two partial unique indexes:
+
+| Index | Keys on | Applies when |
+|---|---|---|
+| `licence_reminder_missing_contacts_event_unique` | `original_event_id`, `responsible_organisation_id`, `deadline_date` | `original_event_id IS NOT NULL` |
+| `licence_reminder_missing_contacts_licence_unique` | `licence_id`, `reminder_type`, `responsible_organisation_id`, `deadline_date` | `original_event_id IS NULL` |
+
+So, as with reminders, a gap that survives a schedule update is not reported again, but a gap
+whose deadline date moves is.
+
+### 7.2 What a row does and does not tell you
+
+| Situation | Row here? | Row in `licence_reminders`? |
+|---|---|---|
+| Licensee has a contact | No | Yes, once queued |
+| Licensee has no contact, and there is at least one licence contacts manager | Yes | No |
+| Licensee has no contact, but **no one holds the licence contacts manager role** | **No** — nothing is written, so the gap is reported on a later run once a manager exists, provided the deadline is still inside the notice window | No |
+| A contact is added after the gap was reported | The row stays | Yes, on the next run, if the deadline is still inside the notice window |
+| Licence is not `EXTANT` | No | No |
+
+A reported gap is never closed off. Whether a contact was later added has to be checked against
+`licence_contact` and `licence_reminders`, not here.
+
+---
+
+## 8. Enumerated values
 
 Both are persisted as the Java constant name in a `TEXT` column — no lookup table, no `CHECK`
 constraint. The lists describe what the service writes rather than what the schema guarantees.
+`reminder_type` takes the same values in `licence_reminders` and
+`licence_reminder_missing_contacts`; `notice_period` appears only in `licence_reminders`.
 
-### 6.1 `reminder_type`
+### 8.1 `reminder_type`
 
 | Value | Deadline |
 |---|---|
@@ -200,7 +386,7 @@ constraint. The lists describe what the service writes rather than what the sche
 | `OTHER_SCHEDULE_EVENT` | An other schedule event falling due |
 | `LICENCE_EXPIRY` | The licence expiring |
 
-### 6.2 `notice_period`
+### 8.2 `notice_period`
 
 | Value | Meaning |
 |---|---|
@@ -213,24 +399,26 @@ reminder for a deadline already warned about.
 
 ---
 
-## 7. Audit history (Hibernate Envers)
+## 9. Audit history (Hibernate Envers)
 
-`licence_reminders_aud` holds the same data columns plus:
+`licence_reminders_aud`, `licence_reminder_bounces_aud` and
+`licence_reminder_missing_contacts_aud` hold the same data columns as their tables, plus:
 
 - `rev` — revision number, FK to `audit_revisions.rev`
 - `revtype` — `0` = insert, `1` = update, `2` = delete
 
-Since rows are only ever inserted, the audit table is of limited use here — it duplicates what
-`queued_at` already records. Revision metadata lives in the shared `audit_revisions` table
-described in the schedules data model.
+Since rows are only ever inserted, the audit tables are of limited use here — they duplicate
+what `queued_at` and `reported_at` already record. Revision metadata lives in the shared
+`audit_revisions` table described in the schedules data model.
 
 ---
 
-## 8. Caveats and known gotchas
+## 10. Caveats and known gotchas
 
-1. **A row means an email was queued, not delivered or read.** Delivery happens outside LMS
-   and nothing is written back. There is no bounced, failed or opened state, and a row is
-   written even if delivery later fails.
+1. **A `licence_reminders` row means an email was queued, not delivered or read.** The row is
+   written before the email is sent, and is never updated afterwards. Delivery status lives
+   only in the notification service's `notification_library_notifications` (§6.1), and there
+   is no opened or read state anywhere.
 2. **This is not a list of upcoming deadlines.** It only contains deadlines already warned
    about, for licences that were `EXTANT` at the moment the job ran. To find what is coming
    up, query the schedule; to find what has been warned about, query here.
@@ -248,12 +436,32 @@ described in the schedules data model.
 6. **Rows survive the event they refer to.** Deleting a work programme activity from the
    schedule does not remove reminders already sent about it, and nothing marks them as
    orphaned.
-7. **Organisation identifiers are external.** `responsible_organisation_id` is an Energy
+7. **No rows are written unless the LMS1 release phase is switched on** in that environment
+   (§4). Until then the job is skipped entirely, so an empty table says nothing about the
+   deadlines in the schedules.
+8. **Organisation identifiers are external.** `responsible_organisation_id` is an Energy
    Portal organisation id. LMS stores no name for it.
+9. **A bounce only appears once the notification service has given up.** A temporary failure
+   is retried first, so an email that went out this morning may not count as bounced for some
+   time. Until then it is neither in a report nor in `licence_reminder_bounces`. Do not read
+   "no bounce row" as "delivered" — check `notification_library_notifications.status`, as the
+   query in §6.2 does.
+10. **A `licence_reminder_bounces` row means a bounce was reported, not that anyone received
+    the report.** The report email goes through the same notification service and could
+    itself fail. Nothing reports that failure, and the batch is still marked as reported.
+11. **A licensee with no contact has no `licence_reminders` row at all.** Its due deadlines
+    appear in `licence_reminder_missing_contacts` instead (§7), so a query for "who was
+    reminded about this deadline" must check both tables to tell "not reminded because no
+    contact" from "not due".
+12. **A missing-contact row is not removed when a contact is added.** It records that the gap
+    was reported, not that it is still open (§7.2).
+13. **A missing contact is only recorded if someone was told.** When no user holds the licence
+    contacts manager role, the gap is not reported and no row is written. It is picked up on a
+    later run, but only while the deadline is still inside the notice window.
 
 ---
 
-## 9. Reference: current columns per table
+## 11. Reference: current columns per table
 
 **`licence_reminders`**
 `id`, `schedule_event_id`, `original_event_id`, `reminder_type`, `licence_id`,
@@ -263,3 +471,17 @@ described in the schedules data model.
 Indexes beyond the primary key: `licence_reminders_batch_idx` on
 `notification_batch_reference`, `licence_reminders_licence_idx` on `licence_id`, plus the two
 partial unique indexes in §4.2.
+
+**`licence_reminder_bounces`**
+`id`, `notification_batch_reference`, `reported_at`
+
+Constraints beyond the primary key: `licence_reminder_bounces_batch_unique` on
+`notification_batch_reference`.
+
+**`licence_reminder_missing_contacts`**
+`id`, `licence_id`, `responsible_organisation_id`, `original_event_id`, `reminder_type`,
+`deadline_date`, `reported_at`
+
+Foreign key: `licence_reminder_missing_contacts_licence_fk` on `licence_id` → `licences.id`.
+Indexes beyond the primary key: `licence_reminder_missing_contacts_licence_idx` on
+`licence_id`, plus the two partial unique indexes in §7.1.

@@ -1,0 +1,109 @@
+package uk.co.nstauthority.licensingmanagementservice.licence.eventreminder;
+
+import java.time.Clock;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
+import org.springframework.stereotype.Service;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventreference.ScheduleEvent;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermService;
+
+@Service
+public class TermOrPhaseEndDeadlineServiceEvent implements EventReminderDeadlineSource {
+
+  private final Clock clock;
+  private final LicenceScheduleTermService licenceScheduleTermService;
+  private final LicenceSchedulePhaseService licenceSchedulePhaseService;
+
+  public TermOrPhaseEndDeadlineServiceEvent(
+      Clock clock,
+      LicenceScheduleTermService licenceScheduleTermService,
+      LicenceSchedulePhaseService licenceSchedulePhaseService
+  ) {
+    this.clock = clock;
+    this.licenceScheduleTermService = licenceScheduleTermService;
+    this.licenceSchedulePhaseService = licenceSchedulePhaseService;
+  }
+
+  @Override
+  public List<EventReminderDeadline> getDeadlinesDueReminder() {
+    var noticePeriod = ReminderType.TERM_OR_PHASE_END.getNoticePeriod();
+    var today = LocalDate.now(clock);
+    var latestEndDate = noticePeriod.getLatestDeadlineDate(today);
+
+    var candidateTerms = licenceScheduleTermService.getTermsEndingBetweenOnActiveSchedules(today, latestEndDate);
+
+    var candidatePhases = licenceSchedulePhaseService.getPhasesEndingBetweenOnActiveSchedules(today, latestEndDate);
+
+    if (candidateTerms.isEmpty() && candidatePhases.isEmpty()) {
+      return List.of();
+    }
+
+    var finalTermIds = candidateTerms.isEmpty()
+        ? Set.<UUID>of()
+        : getFinalTermIds(getScheduleDetails(candidateTerms));
+
+    var deadlines = new ArrayList<EventReminderDeadline>();
+
+    candidateTerms.stream()
+        .filter(term -> !finalTermIds.contains(term.getId()))
+        .map(term -> toDeadline(term, term.getEndDate(), term.getTermType().getDisplayName()))
+        .forEach(deadlines::add);
+
+    candidatePhases.stream()
+        .filter(phase -> !endsWithItsTerm(phase))
+        .map(phase -> toDeadline(phase, phase.getEndDate(), phase.getPhaseType().getDisplayName()))
+        .forEach(deadlines::add);
+
+    return deadlines;
+  }
+
+  private Set<LicenceScheduleDetail> getScheduleDetails(List<LicenceScheduleTerm> candidateTerms) {
+    return candidateTerms.stream()
+        .map(LicenceScheduleTerm::getLicenceScheduleDetail)
+        .collect(Collectors.toSet());
+  }
+
+  private Set<UUID> getFinalTermIds(Collection<LicenceScheduleDetail> activeScheduleDetails) {
+    return licenceScheduleTermService.getTermsByLicenceScheduleDetails(activeScheduleDetails)
+        .stream()
+        .collect(Collectors.groupingBy(
+            LicenceScheduleTerm::getLicenceScheduleDetail,
+            Collectors.maxBy(Comparator.comparingInt(term -> term.getTermType().getDisplayOrder()))))
+        .values()
+        .stream()
+        .flatMap(Optional::stream)
+        .map(LicenceScheduleTerm::getId)
+        .collect(Collectors.toSet());
+  }
+
+  private boolean endsWithItsTerm(LicenceSchedulePhase phase) {
+    var term = phase.getLicenceScheduleTerm();
+
+    return term != null && term.getEndDate() != null && term.getEndDate().equals(phase.getEndDate());
+  }
+
+  private EventReminderDeadline toDeadline(
+      ScheduleEvent scheduleEvent,
+      LocalDate deadlineDate,
+      String displayName
+  ) {
+    return new EventReminderDeadline(
+        scheduleEvent,
+        scheduleEvent.getOriginalEventId(),
+        scheduleEvent.getLicenceSchedule().getLicence(),
+        deadlineDate,
+        displayName,
+        ReminderType.TERM_OR_PHASE_END);
+  }
+}

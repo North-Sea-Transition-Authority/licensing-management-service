@@ -2,13 +2,13 @@
 name: changing-documented-licence-areas
 description: >
   Required reading before changing anything under the licence packages — licence/schedule,
-  licence/scheduleworkprogrammeapplication, licence/continuation, licence/reminder,
+  licence/scheduleworkprogrammeapplication, licence/continuation, licence/eventreminder,
   licence/crosslicenceeventtracker, licence/status, licence/contact,
   licence/licenceresponsibleorganisation or the PEARS refresh — a Flyway migration, an @Entity,
   a persisted enum, or the application code that decides what gets written: status transitions,
   date and reference calculation, duplication behaviour, which questions a journey asks,
-  reminder sending rules, event cache refresh, what the licence sync overwrites or deletes,
-  file usage types, document templates and team scoping. Five documents
+  reminder sending, bounce and missing-contact reporting, event cache refresh, what the licence
+  sync overwrites or deletes, file usage types, document templates and team scoping. Five documents
   in documentation/businessandtechnical/ describe both the schema and that behaviour to people
   outside the team, nothing regenerates them, and keeping them true is part of the change.
   Also use when asked whether those documents still match the code.
@@ -26,7 +26,7 @@ confirm that is still the case:
 | `licences-and-responsible-organisations-data-model.md` | `licences`, `licence_statuses`, `licence_responsible_organisations`, `licence_contact` — the licence record itself, its status history, its licensees, and the hourly PEARS refresh that maintains them |
 | `licence-schedules-data-model.md` | `licence_schedules`, `licence_schedule_details` and the seven schedule content tables, plus `schedule_events`, `event_comments` and `work_programme_activity_statuses` |
 | `licence-applications-data-model.md` | `schedule_work_programme_applications` and `licence_continuation_applications`, their detail tables, and every request, requirement and record-of-decision table hanging off them |
-| `licence-schedule-reminders-data-model.md` | `licence_reminders` — which schedule deadlines have been warned about, and what decides whether a reminder is sent |
+| `licence-schedule-reminders-data-model.md` | `licence_reminders`, `licence_reminder_bounces`, `licence_reminder_missing_contacts` — which schedule deadlines have been warned about, what decides whether a reminder is sent, and how undelivered reminders and licensees with no contact are reported |
 | `licence-event-cache-data-model.md` | `licence_event_cache` — the denormalised read model behind the cross licence event tracker, and when it is rebuilt |
 
 The split is deliberate: reminders, the event tracker cache and the licence record itself are
@@ -80,6 +80,9 @@ single migration being written. Some of what they claim:
   the file usage type strings, and which document template each family uses.
 - That a reminder is withheld entirely for a licence that is not `EXTANT`, and that a deadline
   surviving a schedule update is not warned about a second time.
+- That a bounce is reported once per batch only after the notification service gives up, and
+  that a missing contact is recorded only when a licence contacts manager exists to be told and
+  is never cleared when a contact is added.
 - That the tracker cache is rebuilt only when a schedule is applied, holds no rates, other
   events or expiry dates, and has four columns nothing ever writes.
 - That the hourly PEARS refresh overwrites licences field for field but never deletes one,
@@ -121,7 +124,7 @@ You are, if the change touches any of:
 | Versioning and copying | the `duplication` package, `DuplicationSource` / `NotDuplicationSource`, `@DuplicateThisOnUpdate`, `original_event_id` handling |
 | What a journey asks | `SwpApplicationRequestPurposeService`, `OtherRequirementsVisibilityResolverService`, `LicenceTypeFeature` and the licence type rules |
 | The licence record and its licensees | `PearsLicenceRefreshService`, `LicenceScheduledJobService`, `PearsResponsibleOrganisationRefreshService`, `LicenceStatusService`, and anything touching `managed_by_lms` |
-| Reminder sending | the `licence/reminder` package — the deadline sources, `ReminderSuppressionService`, `ReminderType`, `NoticePeriod`, and the uniqueness keys that stop a repeat send |
+| Reminder sending and reporting | the `licence/eventreminder` package — the deadline sources, `EventReminderSuppressionService`, `ReminderType`, `NoticePeriod`, the uniqueness keys that stop a repeat send, recipient resolution from `licence_contact`, `EventReminderBounceService`, `EventReminderMissingContactService`, and the LMS1 gate on both jobs |
 | Event cache refresh | `CrossLicenceEventTrackerService.refreshScheduleCache` and anything that changes which events it writes, or adds a second caller |
 | Cross-cutting bindings | `FileUsageType`, `LicenceScheduleFileUsageType`, `ApplicationLetterService` and document template types, `TeamType.EXTERNAL_CONTRIBUTORS` scoping |
 
@@ -157,7 +160,7 @@ Each document has its own baseline and its own code paths. Substitute accordingl
 | `licences-and-responsible-organisations-data-model.md` | `licence/status`, `licence/contact`, `licence/licenceresponsibleorganisation`, and `licence/*.java` for the licence record and the refresh services |
 | `licence-schedules-data-model.md` | `licence/schedule` |
 | `licence-applications-data-model.md` | `licence/scheduleworkprogrammeapplication`, `licence/continuation` |
-| `licence-schedule-reminders-data-model.md` | `licence/reminder` |
+| `licence-schedule-reminders-data-model.md` | `licence/eventreminder` |
 | `licence-event-cache-data-model.md` | `licence/crosslicenceeventtracker` |
 
 The two derived documents have a second dependency that the paths above will not show: both
@@ -262,6 +265,8 @@ one document.
 | File usage types, document templates, team scope ids | The files and letters section, and the external contributors section |
 | A new deadline source, or a change to what makes a reminder due | The reminders document — the per-type deadline table, the three gates, and the notice window |
 | A change to reminder uniqueness, notice period or suppression | The reminders document's uniqueness section, and the claim that a deadline surviving a schedule update is not re-reminded |
+| How reminders are batched or addressed | The reminders document's batch section and the recipient definition in its glossary |
+| What counts as a bounce, who is told, or when a bounce or missing contact is recorded | The reminders document's bounces and missing contacts sections, the missing contacts "what a row does and does not tell you" table, and the caveats that repeat them |
 | Which events the tracker cache writes, or a second caller of the refresh | The event cache document — the refresh trigger, the table of what is written, and the list of event types never cached |
 | Starting to populate a cache column that was previously always null | The event cache document's "never populated" section and its caveat — a straight deletion, not an edit |
 | What the PEARS refresh writes, deletes or leaves alone | The licences document's refresh section, and the `managed_by_lms` rules that decide what may be deleted |

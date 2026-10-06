@@ -8,6 +8,13 @@
   pageSize=PageSize.FULL_COLUMN
   extendContainerWidth=true
 >
+  <@fdsNotificationBanner.notificationBannerInfo fullWidth=true bannerTitleText="Licence management service - Contacts database">
+    <p class="govuk-body">
+      The NSTA has started developing a more extensive and integrated replacement for PEARS which will be the conduit
+      for the management of all licences associated with petroleum, carbon capture, and gas storage activities.
+      The first stage is this launch of the LMS Contacts Database, which you are now required to populate.
+    </p>
+  </@fdsNotificationBanner.notificationBannerInfo>
   <#if canStartApplication>
       <@fdsAction.link linkText="Start application" linkUrl=springUrl(startApplicationUrl) linkClass="govuk-button"/>
   </#if>

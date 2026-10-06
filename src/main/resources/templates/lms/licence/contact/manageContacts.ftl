@@ -7,6 +7,22 @@
   pageSize=PageSize.FULL_COLUMN
   extendContainerWidth=true
 >
+    <@fdsNotificationBanner.notificationBannerInfo fullWidth=true bannerTitleText="Provision of contact details">
+        <p class="govuk-body">
+            As per the licence clause titled "Provision of contact details to Ministers/OGA" each licensee is
+            required to provide contact details relevant to each individual licence and ensure this information is kept up
+            to date.
+        </p>
+        <p class="govuk-body">
+            Our preference for the individual licence contact details, is for a generic email address thereby giving
+            individual companies control over access and not limiting contact to a sole individual, with a need to
+            regularly update.
+        </p>
+        <p class="govuk-body">
+            The contact details supplied will be used by the NSTA to send any licence reminder, notices and other
+            documents as required.
+        </p>
+    </@fdsNotificationBanner.notificationBannerInfo>
     <div class="lms-sticky-filters">
         <@fdsSearch.searchPage>
             <@fdsSearch.searchFilter>

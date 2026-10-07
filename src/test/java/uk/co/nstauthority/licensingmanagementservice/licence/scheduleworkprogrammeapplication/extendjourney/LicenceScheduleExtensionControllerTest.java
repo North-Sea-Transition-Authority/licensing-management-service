@@ -16,6 +16,7 @@ import static org.springframework.web.servlet.mvc.method.annotation.MvcUriCompon
 import static uk.co.nstauthority.licensingmanagementservice.authentication.TestUserProvider.user;
 
 import java.time.LocalDate;
+import java.time.Month;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -116,7 +117,7 @@ class LicenceScheduleExtensionControllerTest extends AbstractControllerTest {
       LicenceScheduleTerm licenceScheduleTerm = new LicenceScheduleTerm();
       licenceScheduleTerm.setTermType(TermType.APPRAISAL);
       licenceScheduleTerm.setId(UUID.randomUUID());
-    licenceScheduleTerm.setEndDate(LocalDate.of(1,1,1));
+    licenceScheduleTerm.setEndDate(LocalDate.of(1,Month.JANUARY,1));
 
     when(licenceScheduleStateService.getCurrentTerm(any(LicenceScheduleDetail.class))).thenReturn(licenceScheduleTerm);    when(licenceScheduleExtensionFormValidator.isValid(any(), any(), any())).thenReturn(false);
     when(licenceScheduleExtensionService.getlicenceScheduleExtensionForm(any())).thenReturn(new LicenceScheduleExtensionForm());
@@ -155,10 +156,10 @@ class LicenceScheduleExtensionControllerTest extends AbstractControllerTest {
     LicenceScheduleTerm licenceScheduleTerm = new LicenceScheduleTerm();
     licenceScheduleTerm.setTermType(TermType.APPRAISAL);
     licenceScheduleTerm.setId(UUID.randomUUID());
-    licenceScheduleTerm.setEndDate(LocalDate.of(1,1,1));
+    licenceScheduleTerm.setEndDate(LocalDate.of(1,Month.JANUARY,1));
 
     LicenceSchedulePhase currentPhase = new LicenceSchedulePhase();
-    LocalDate phaseEndDate = LocalDate.of(2026, 12, 31);
+    LocalDate phaseEndDate = LocalDate.of(2026, Month.DECEMBER, 31);
     currentPhase.setEndDate(phaseEndDate);
 
     String expectedPhaseEndDateDisplay = DateFormatUtil.convertToDisplayText(phaseEndDate);
@@ -220,7 +221,7 @@ class LicenceScheduleExtensionControllerTest extends AbstractControllerTest {
       LicenceScheduleTerm licenceScheduleTerm = new LicenceScheduleTerm();
       licenceScheduleTerm.setTermType(TermType.INITIAL);
       licenceScheduleTerm.setId(UUID.randomUUID());
-      licenceScheduleTerm.setEndDate(LocalDate.of(1,1,1));
+      licenceScheduleTerm.setEndDate(LocalDate.of(1,Month.JANUARY,1));
 
     when(licenceScheduleStateService.getCurrentTerm(any(LicenceScheduleDetail.class))).thenReturn(licenceScheduleTerm);    when(licenceScheduleExtensionFormValidator.isValid(any(), any(), any())).thenReturn(false);
     when(licenceScheduleExtensionFormValidator.isValid(any(), any(), any())).thenReturn(false);

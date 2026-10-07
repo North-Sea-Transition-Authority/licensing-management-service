@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.time.Clock;
 import java.time.LocalDate;
+import java.time.Month;
 import java.time.ZoneId;
 import java.time.format.DateTimeParseException;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,7 +36,7 @@ class DevelopmentClockConfigurationTest {
   void clock_whenOverrideDateIsValidIsoDate_returnsFixedClockAtMidnightOnThatDate() {
     var clock = developmentClockConfiguration.clock("2027-03-15");
 
-    var expectedInstant = LocalDate.of(2027, 3, 15)
+    var expectedInstant = LocalDate.of(2027, Month.MARCH, 15)
         .atStartOfDay(ZoneId.systemDefault())
         .toInstant();
 

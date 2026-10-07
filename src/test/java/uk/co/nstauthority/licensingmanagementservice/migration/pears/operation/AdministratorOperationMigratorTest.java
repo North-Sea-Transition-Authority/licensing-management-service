@@ -3,6 +3,7 @@ package uk.co.nstauthority.licensingmanagementservice.migration.pears.operation;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.LocalDate;
+import java.time.Month;
 import java.util.List;
 import java.util.function.Consumer;
 import org.junit.jupiter.api.BeforeEach;
@@ -16,8 +17,8 @@ import uk.co.nstauthority.licensingmanagementservice.migration.pears.history.Pea
 
 class AdministratorOperationMigratorTest {
 
-  private static final LocalDate FIRST_DATE = LocalDate.of(1964, 9, 18);
-  private static final LocalDate LAST_DATE = LocalDate.of(1972, 3, 1);
+  private static final LocalDate FIRST_DATE = LocalDate.of(1964, Month.SEPTEMBER, 18);
+  private static final LocalDate LAST_DATE = LocalDate.of(1972, Month.MARCH, 1);
 
   private final AdministratorOperationMigrator administratorOperationMigrator = new AdministratorOperationMigrator();
 

@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.Month;
 import java.time.ZoneId;
 import org.junit.jupiter.api.Test;
 
@@ -11,14 +12,14 @@ class DateFormatUtilTest {
 
   @Test
   void testFormatFromLocalDate() {
-    var localDate = LocalDate.of(1990, 1, 1);
+    var localDate = LocalDate.of(1990, Month.JANUARY, 1);
     var formattedLocalDate = DateFormatUtil.convertToDisplayText(localDate);
     assertEquals("1 January 1990", formattedLocalDate);
   }
 
   @Test
   void testFormatFromInstantWithTime() {
-    var instant = LocalDateTime.of(1990, 1, 1, 10, 6, 30)
+    var instant = LocalDateTime.of(1990, Month.JANUARY, 1, 10, 6, 30)
         .atZone(ZoneId.systemDefault())
         .toInstant();
     var formattedInstantWithTime = DateFormatUtil.convertToDisplayTextWithTime(instant);

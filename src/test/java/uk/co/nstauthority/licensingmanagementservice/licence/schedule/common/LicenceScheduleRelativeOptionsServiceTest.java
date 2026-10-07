@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDate;
+import java.time.Month;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -99,7 +100,7 @@ class LicenceScheduleRelativeOptionsServiceTest {
     var secondTerm = new LicenceScheduleTerm();
     secondTerm.setId(UUID.randomUUID());
     secondTerm.setTermType(TermType.SECOND);
-    secondTerm.setStartDate(LocalDate.of(2024, 1, 1));
+    secondTerm.setStartDate(LocalDate.of(2024, Month.JANUARY, 1));
 
     when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail))
         .thenReturn(List.of(secondTerm, initialTerm));
@@ -107,12 +108,12 @@ class LicenceScheduleRelativeOptionsServiceTest {
     var phaseA = new LicenceSchedulePhase();
     phaseA.setId(UUID.randomUUID());
     phaseA.setPhaseType(PhaseType.PHASE_A);
-    phaseA.setStartDate(LocalDate.of(2024, 6, 1));
+    phaseA.setStartDate(LocalDate.of(2024, Month.JUNE, 1));
 
     var phaseB = new LicenceSchedulePhase();
     phaseB.setId(UUID.randomUUID());
     phaseB.setPhaseType(PhaseType.PHASE_B);
-    phaseB.setStartDate(LocalDate.of(2024, 12, 1));
+    phaseB.setStartDate(LocalDate.of(2024, Month.DECEMBER, 1));
 
     when(licenceSchedulePhaseService.getPhasesByTerm(initialTerm)).thenReturn(List.of(phaseB, phaseA));
 

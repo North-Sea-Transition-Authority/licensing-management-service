@@ -7,6 +7,8 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.time.LocalDate;
+import java.time.Month;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -353,7 +355,7 @@ class DocumentLinkingServiceTest {
     var licenceSchedule = LicenceScheduleTestUtil.createLicenceSchedule(licence);
     var scheduleDetail = LicenceScheduleTestUtil.createLicenceScheduleDetail(licenceSchedule);
     var applicationDetail = LicenceContinuationApplicationTestUtil.createLicenceContinuationApplicationDetail(scheduleDetail);
-    var nextStartDate = java.time.LocalDate.of(2026, 6, 1);
+    var nextStartDate = LocalDate.of(2026, Month.JUNE, 1);
 
     when(licenceContinuationService.getLatestLicenceContinuationApplicationDetailByApplicationIdOrThrow(APPLICATION_ID))
         .thenReturn(applicationDetail);

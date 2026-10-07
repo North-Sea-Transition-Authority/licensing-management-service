@@ -6,6 +6,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDate;
+import java.time.Month;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -63,7 +64,7 @@ class LicenceStartDateServiceTest {
     form.getLicenceStartDate().setMonth(1);
     form.getLicenceStartDate().setYear(2025);
 
-    var date = LocalDate.of(2025, 1, 1);
+    var date = LocalDate.of(2025, Month.JANUARY, 1);
 
     licenceStartDateService.saveOrUpdateLicenceStartDateFromForm(form, licenceScheduleDetail);
 
@@ -88,7 +89,7 @@ class LicenceStartDateServiceTest {
     form.getLicenceStartDate().setMonth(1);
     form.getLicenceStartDate().setYear(2025);
 
-    var date = LocalDate.of(2025, 1, 1);
+    var date = LocalDate.of(2025, Month.JANUARY, 1);
 
     when(licenceScheduleDetailService.createNewLicenceScheduleEntitiesForLicence(licence)).thenReturn(licenceScheduleDetail);
 
@@ -109,7 +110,7 @@ class LicenceStartDateServiceTest {
   void getLicenceStartDateForm() {
     var licenceScheduleDetail = new LicenceScheduleDetail();
 
-    var startDate = LocalDate.of(2025, 1, 1);
+    var startDate = LocalDate.of(2025, Month.JANUARY, 1);
 
     var licenceStartDate = new LicenceStartDate();
     licenceStartDate.setStartDate(startDate);

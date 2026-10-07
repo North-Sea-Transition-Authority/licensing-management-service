@@ -17,6 +17,7 @@ import static uk.co.nstauthority.licensingmanagementservice.authentication.TestU
 import static uk.co.nstauthority.licensingmanagementservice.licence.continuation.requirementjourney.LicenceContinuationWpaRequirementController.PAGE_TITLE;
 
 import java.time.LocalDate;
+import java.time.Month;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
@@ -68,7 +69,7 @@ class LicenceContinuationWpaRequirementControllerTest extends AbstractController
 
     workProgrammeActivityView = new WorkProgrammeActivityView(
         "activity-id",
-        LocalDate.of(2026, 5, 10).toString(),
+        LocalDate.of(2026, Month.MAY, 10).toString(),
         WorkProgrammeActivityCategory.WELL_TEST.getDisplayName(),
         "Test Description",
         WorkProgrammeActivityCategory.WELL_TEST.getDisplayName(),

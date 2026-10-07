@@ -3,6 +3,7 @@ package uk.co.nstauthority.licensingmanagementservice.components.duration;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.LocalDate;
+import java.time.Month;
 import org.junit.jupiter.api.Test;
 
 class ThreeFieldDurationDisplayUtilTest {
@@ -45,16 +46,16 @@ class ThreeFieldDurationDisplayUtilTest {
   @Test
   void convertDatesToDurationDisplayText() {
     assertThat(ThreeFieldDurationDisplayUtil.convertDatesToDurationDisplayText(
-        LocalDate.of(2020, 1, 1),
-        LocalDate.of(2022, 3, 3)
+        LocalDate.of(2020, Month.JANUARY, 1),
+        LocalDate.of(2022, Month.MARCH, 3)
     )).isEqualTo("2 years 2 months 3 days");
   }
 
   @Test
   void convertDatesToDurationDisplayText_exactYears() {
     assertThat(ThreeFieldDurationDisplayUtil.convertDatesToDurationDisplayText(
-        LocalDate.of(2020, 1, 1),
-        LocalDate.of(2022, 1, 1)
+        LocalDate.of(2020, Month.JANUARY, 1),
+        LocalDate.of(2022, Month.JANUARY, 1)
     )).isEqualTo("2 years 1 day");
   }
 
@@ -62,14 +63,14 @@ class ThreeFieldDurationDisplayUtilTest {
   void convertDatesToDurationDisplayText_nullStartDate() {
     assertThat(ThreeFieldDurationDisplayUtil.convertDatesToDurationDisplayText(
         null,
-        LocalDate.of(2022, 1, 1)
+        LocalDate.of(2022, Month.JANUARY, 1)
     )).isEmpty();
   }
 
   @Test
   void convertDatesToDurationDisplayText_nullEndDate() {
     assertThat(ThreeFieldDurationDisplayUtil.convertDatesToDurationDisplayText(
-        LocalDate.of(2020, 1, 1),
+        LocalDate.of(2020, Month.JANUARY, 1),
         null
     )).isEmpty();
   }

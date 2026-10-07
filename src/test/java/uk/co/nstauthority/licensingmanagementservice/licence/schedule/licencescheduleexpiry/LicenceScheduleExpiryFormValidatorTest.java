@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDate;
+import java.time.Month;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -34,7 +35,7 @@ class LicenceScheduleExpiryFormValidatorTest {
   void setUp() {
     licenceScheduleDetail = new LicenceScheduleDetail();
     licenceStartDate = new LicenceStartDate();
-    licenceStartDate.setStartDate(LocalDate.of(2025, 1, 1));
+    licenceStartDate.setStartDate(LocalDate.of(2025, Month.JANUARY, 1));
 
     when(licenceStartDateService.getByLicenceScheduleDetailOrThrow(licenceScheduleDetail)).thenReturn(licenceStartDate);
   }
@@ -42,7 +43,7 @@ class LicenceScheduleExpiryFormValidatorTest {
   @Test
   void isValid_valid_dateProvided() {
     var form = new LicenceScheduleExpiryForm();
-    form.getExpiryDate().setDate(LocalDate.of(2026, 1, 1));
+    form.getExpiryDate().setDate(LocalDate.of(2026, Month.JANUARY, 1));
 
     var bindingResult = ValidatorTestingUtil.getBindingResult(form);
     assertThat(licenceScheduleExpiryFormValidator.isValid(form, bindingResult, licenceScheduleDetail)).isTrue();
@@ -60,7 +61,7 @@ class LicenceScheduleExpiryFormValidatorTest {
   @Test
   void isValid_invalid_expiryDateBeforeLicenceStartDate() {
     var form = new LicenceScheduleExpiryForm();
-    form.getExpiryDate().setDate(LocalDate.of(2024, 1, 1));
+    form.getExpiryDate().setDate(LocalDate.of(2024, Month.JANUARY, 1));
 
     var bindingResult = ValidatorTestingUtil.getBindingResult(form);
     assertThat(licenceScheduleExpiryFormValidator.isValid(form, bindingResult, licenceScheduleDetail)).isFalse();

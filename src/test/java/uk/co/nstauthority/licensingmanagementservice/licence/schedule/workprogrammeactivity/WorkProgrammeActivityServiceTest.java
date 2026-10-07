@@ -9,6 +9,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDate;
+import java.time.Month;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -152,7 +153,7 @@ class WorkProgrammeActivityServiceTest {
   @Test
   void getWorkProgrammeActivitiesAfterDate() {
     var detail = new LicenceScheduleDetail();
-    var date = LocalDate.of(2026, 1, 1);
+    var date = LocalDate.of(2026, Month.JANUARY, 1);
 
     workProgrammeActivityService.getWorkProgrammeActivitiesAfterDate(detail, date);
 
@@ -225,7 +226,7 @@ class WorkProgrammeActivityServiceTest {
 
   @Test
   void getLicenceWorkProgramActivitiesViews_mapsAllFieldsCorrectly() {
-    LocalDate fixedDate = LocalDate.of(2026, 5, 10);
+    LocalDate fixedDate = LocalDate.of(2026, Month.MAY, 10);
     WorkProgrammeActivity workProgrammeActivity = mock(WorkProgrammeActivity.class);
 
     when(workProgrammeActivity.getId()).thenReturn(ACTIVITY_ID);
@@ -255,7 +256,7 @@ class WorkProgrammeActivityServiceTest {
 
   @Test
   void resolveDueDate_whenWithinPhase_returnsPhaseEndDate() {
-    LocalDate phaseEndDate = LocalDate.of(2027, 1, 1);
+    LocalDate phaseEndDate = LocalDate.of(2027, Month.JANUARY, 1);
     WorkProgrammeActivity workProgrammeActivity = mock(WorkProgrammeActivity.class);
     LicenceSchedulePhase mockPhase = mock(LicenceSchedulePhase.class);
 
@@ -270,7 +271,7 @@ class WorkProgrammeActivityServiceTest {
 
   @Test
   void resolveDueDate_whenWithinTerm_returnsTermEndDate() {
-    LocalDate termEndDate = LocalDate.of(2028, 6, 15);
+    LocalDate termEndDate = LocalDate.of(2028, Month.JUNE, 15);
     WorkProgrammeActivity workProgrammeActivity = mock(WorkProgrammeActivity.class);
     LicenceScheduleTerm mockTerm = mock(LicenceScheduleTerm.class);
 
@@ -285,7 +286,7 @@ class WorkProgrammeActivityServiceTest {
 
   @Test
   void resolveDueDate_whenRelativeDate_returnsDueDate() {
-    LocalDate fixedDate = LocalDate.of(2026, 12, 31);
+    LocalDate fixedDate = LocalDate.of(2026, Month.DECEMBER, 31);
     WorkProgrammeActivity workProgrammeActivity = mock(WorkProgrammeActivity.class);
 
     when(workProgrammeActivity.getDateOption()).thenReturn(WorkProgrammeActivityDateOption.RELATIVE_DATE);
@@ -326,7 +327,7 @@ class WorkProgrammeActivityServiceTest {
     when(workProgrammeActivity.getDateOption()).thenReturn(WorkProgrammeActivityDateOption.RELATIVE_DATE);
     when(workProgrammeActivity.getCategory()).thenReturn(WorkProgrammeActivityCategory.WELL_TEST);
     when(workProgrammeActivity.getOtherCategoryName()).thenReturn(null);
-    when(workProgrammeActivity.getDueDate()).thenReturn(LocalDate.of(2026, 5, 10));
+    when(workProgrammeActivity.getDueDate()).thenReturn(LocalDate.of(2026, Month.MAY, 10));
     when(workProgrammeActivity.getDescription()).thenReturn("Test Description");
     when(workProgrammeActivity.getCommitment()).thenReturn(WorkProgrammeActivityCommitment.FIRM);
     when(workProgrammeActivityStatusService.getLatestStatusFor(workProgrammeActivity)).thenReturn(workProgrammeActivityStatus);
@@ -339,8 +340,8 @@ class WorkProgrammeActivityServiceTest {
 
   @Test
   void getRelativeDateActivitiesDueBetweenOnActiveSchedules() {
-    var earliestDueDate = LocalDate.of(2026, 9, 14);
-    var latestDueDate = LocalDate.of(2027, 3, 17);
+    var earliestDueDate = LocalDate.of(2026, Month.SEPTEMBER, 14);
+    var latestDueDate = LocalDate.of(2027, Month.MARCH, 17);
 
     workProgrammeActivityService.getRelativeDateActivitiesDueBetweenOnActiveSchedules(earliestDueDate, latestDueDate);
 

@@ -7,6 +7,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDate;
+import java.time.Month;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -198,8 +199,8 @@ class LicenceScheduleTermServiceTest {
 
   @Test
   void getTermsEndingBetweenOnActiveSchedules() {
-    var earliestEndDate = LocalDate.of(2026, 9, 14);
-    var latestEndDate = LocalDate.of(2027, 3, 17);
+    var earliestEndDate = LocalDate.of(2026, Month.SEPTEMBER, 14);
+    var latestEndDate = LocalDate.of(2027, Month.MARCH, 17);
 
     licenceScheduleTermService.getTermsEndingBetweenOnActiveSchedules(earliestEndDate, latestEndDate);
 

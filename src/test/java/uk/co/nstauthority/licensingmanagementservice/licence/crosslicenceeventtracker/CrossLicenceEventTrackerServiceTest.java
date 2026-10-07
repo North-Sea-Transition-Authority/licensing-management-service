@@ -9,6 +9,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDate;
+import java.time.Month;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -93,11 +94,11 @@ class CrossLicenceEventTrackerServiceTest {
         LicenceScheduleTestUtil.createLicenceSchedule(licence)
     );
 
-    var initialTerm = buildTerm(TermType.INITIAL, LocalDate.of(2030, 1, 1));
-    var secondTerm = buildTerm(TermType.SECOND, LocalDate.of(2035, 1, 1));
-    var thirdTerm = buildTerm(TermType.THIRD, LocalDate.of(2040, 1, 1));
+    var initialTerm = buildTerm(TermType.INITIAL, LocalDate.of(2030, Month.JANUARY, 1));
+    var secondTerm = buildTerm(TermType.SECOND, LocalDate.of(2035, Month.JANUARY, 1));
+    var thirdTerm = buildTerm(TermType.THIRD, LocalDate.of(2040, Month.JANUARY, 1));
 
-    var phaseOfSecondTerm = buildPhase(secondTerm, PhaseType.PHASE_A, LocalDate.of(2032, 1, 1));
+    var phaseOfSecondTerm = buildPhase(secondTerm, PhaseType.PHASE_A, LocalDate.of(2032, Month.JANUARY, 1));
 
     when(licenceEventCacheRepository.getAllByLicenceId(licence.getId())).thenReturn(List.of());
     when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail))
@@ -142,7 +143,7 @@ class CrossLicenceEventTrackerServiceTest {
         LicenceScheduleTestUtil.createLicenceSchedule(licence)
     );
 
-    var initialTerm = buildTerm(TermType.INITIAL, LocalDate.of(2030, 1, 1));
+    var initialTerm = buildTerm(TermType.INITIAL, LocalDate.of(2030, Month.JANUARY, 1));
 
     var existingCacheId = UUID.randomUUID();
     var existingCache = new LicenceEventCache();
@@ -172,8 +173,8 @@ class CrossLicenceEventTrackerServiceTest {
         LicenceScheduleTestUtil.createLicenceSchedule(licence)
     );
 
-    var initialTerm = buildTerm(TermType.INITIAL, LocalDate.of(2030, 1, 1));
-    var phaseA = buildPhase(initialTerm, PhaseType.PHASE_A, LocalDate.of(2027, 1, 1));
+    var initialTerm = buildTerm(TermType.INITIAL, LocalDate.of(2030, Month.JANUARY, 1));
+    var phaseA = buildPhase(initialTerm, PhaseType.PHASE_A, LocalDate.of(2027, Month.JANUARY, 1));
 
     var staleTermCache = new LicenceEventCache();
     staleTermCache.setId(UUID.randomUUID());
@@ -203,11 +204,11 @@ class CrossLicenceEventTrackerServiceTest {
         LicenceScheduleTestUtil.createLicenceSchedule(licence)
     );
 
-    var initialTerm = buildTerm(TermType.INITIAL, LocalDate.of(2030, 1, 1));
-    var secondTerm = buildTerm(TermType.SECOND, LocalDate.of(2035, 1, 1));
+    var initialTerm = buildTerm(TermType.INITIAL, LocalDate.of(2030, Month.JANUARY, 1));
+    var secondTerm = buildTerm(TermType.SECOND, LocalDate.of(2035, Month.JANUARY, 1));
 
-    var phaseA = buildPhase(initialTerm, PhaseType.PHASE_A, LocalDate.of(2027, 1, 1));
-    var phaseB = buildPhase(initialTerm, PhaseType.PHASE_B, LocalDate.of(2028, 1, 1));
+    var phaseA = buildPhase(initialTerm, PhaseType.PHASE_A, LocalDate.of(2027, Month.JANUARY, 1));
+    var phaseB = buildPhase(initialTerm, PhaseType.PHASE_B, LocalDate.of(2028, Month.JANUARY, 1));
 
     when(licenceEventCacheRepository.getAllByLicenceId(licence.getId())).thenReturn(List.of());
     when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail))
@@ -242,9 +243,9 @@ class CrossLicenceEventTrackerServiceTest {
         LicenceScheduleTestUtil.createLicenceSchedule(licence)
     );
 
-    var initialTerm = buildTerm(TermType.INITIAL, LocalDate.of(2030, 1, 1));
-    var secondTerm = buildTerm(TermType.SECOND, LocalDate.of(2035, 1, 1));
-    var phase = buildPhase(initialTerm, PhaseType.PHASE_A, LocalDate.of(2028, 6, 1));
+    var initialTerm = buildTerm(TermType.INITIAL, LocalDate.of(2030, Month.JANUARY, 1));
+    var secondTerm = buildTerm(TermType.SECOND, LocalDate.of(2035, Month.JANUARY, 1));
+    var phase = buildPhase(initialTerm, PhaseType.PHASE_A, LocalDate.of(2028, Month.JUNE, 1));
 
     var withinTermActivity = buildWorkProgrammeActivity(
         WorkProgrammeActivityCategory.DRILL_WELL, null, WorkProgrammeActivityDateOption.WITHIN_A_TERM, initialTerm, null, null
@@ -254,7 +255,7 @@ class CrossLicenceEventTrackerServiceTest {
     );
     var relativeDateActivity = buildWorkProgrammeActivity(
         WorkProgrammeActivityCategory.OTHER_ACTIVITY, "Custom activity", WorkProgrammeActivityDateOption.RELATIVE_DATE,
-        null, null, LocalDate.of(2029, 3, 15)
+        null, null, LocalDate.of(2029, Month.MARCH, 15)
     );
 
     when(licenceEventCacheRepository.getAllByLicenceId(licence.getId())).thenReturn(List.of());
@@ -304,7 +305,7 @@ class CrossLicenceEventTrackerServiceTest {
     var application = buildApplication();
     var applicationDetail = new ScheduleWorkProgrammeApplicationDetail();
 
-    var term = buildTerm(TermType.INITIAL, LocalDate.of(2030, 1, 1));
+    var term = buildTerm(TermType.INITIAL, LocalDate.of(2030, Month.JANUARY, 1));
     var extensionRequest = new LicenceScheduleExtensionRequest();
     extensionRequest.setLicenceScheduleTerm(term);
 
@@ -356,7 +357,7 @@ class CrossLicenceEventTrackerServiceTest {
     existingCache.setLicenceReference("P 111");
     existingCache.setEventType(ScheduleEventType.WORK_PROGRAMME_ACTIVITY);
     existingCache.setActivityType("Drill well");
-    existingCache.setEventDate(LocalDate.of(2030, 1, 1));
+    existingCache.setEventDate(LocalDate.of(2030, Month.JANUARY, 1));
     existingCache.setApplicationId(UUID.randomUUID());
     existingCache.setApplicationType(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION);
 
@@ -432,7 +433,7 @@ class CrossLicenceEventTrackerServiceTest {
     var application = buildApplication();
     var applicationDetail = new ScheduleWorkProgrammeApplicationDetail();
 
-    var term = buildTerm(TermType.INITIAL, LocalDate.of(2030, 1, 1));
+    var term = buildTerm(TermType.INITIAL, LocalDate.of(2030, Month.JANUARY, 1));
     var extensionRequest = new LicenceScheduleExtensionRequest();
     extensionRequest.setLicenceScheduleTerm(term);
 
@@ -488,7 +489,7 @@ class CrossLicenceEventTrackerServiceTest {
     var application = buildApplication();
     var applicationDetail = new ScheduleWorkProgrammeApplicationDetail();
 
-    var term = buildTerm(TermType.INITIAL, LocalDate.of(2030, 1, 1));
+    var term = buildTerm(TermType.INITIAL, LocalDate.of(2030, Month.JANUARY, 1));
     var extensionRequest = new LicenceScheduleExtensionRequest();
     extensionRequest.setLicenceScheduleTerm(term);
 
@@ -538,8 +539,8 @@ class CrossLicenceEventTrackerServiceTest {
     var application = buildApplication();
     var applicationDetail = new ScheduleWorkProgrammeApplicationDetail();
 
-    var term = buildTerm(TermType.INITIAL, LocalDate.of(2030, 1, 1));
-    var phase = buildPhase(term, PhaseType.PHASE_A, LocalDate.of(2028, 1, 1));
+    var term = buildTerm(TermType.INITIAL, LocalDate.of(2030, Month.JANUARY, 1));
+    var phase = buildPhase(term, PhaseType.PHASE_A, LocalDate.of(2028, Month.JANUARY, 1));
     var extensionRequest = new LicenceScheduleExtensionRequest();
     extensionRequest.setLicenceSchedulePhase(phase);
 

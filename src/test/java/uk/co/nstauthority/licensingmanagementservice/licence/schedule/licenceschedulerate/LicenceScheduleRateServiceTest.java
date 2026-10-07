@@ -7,6 +7,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDate;
+import java.time.Month;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -83,8 +84,8 @@ class LicenceScheduleRateServiceTest {
   @Test
   void getLicenceScheduleRatesByTerm_termDateRange() {
     term.setLicenceScheduleDetail(new LicenceScheduleDetail());
-    term.setStartDate(LocalDate.of(2025, 1, 1));
-    term.setEndDate(LocalDate.of(2025, 12, 31));
+    term.setStartDate(LocalDate.of(2025, Month.JANUARY, 1));
+    term.setEndDate(LocalDate.of(2025, Month.DECEMBER, 31));
 
     when(licenceScheduleRateRepository.findAllByLicenceScheduleTermAndRateDefinitionOption(term, RateDefinitionOption.TERM))
         .thenReturn(List.of());
@@ -122,8 +123,8 @@ class LicenceScheduleRateServiceTest {
   @Test
   void getLicenceScheduleRatesByPhase_phaseDateRange() {
     phase.setLicenceScheduleDetail(new LicenceScheduleDetail());
-    phase.setStartDate(LocalDate.of(2025, 1, 1));
-    phase.setEndDate(LocalDate.of(2025, 12, 31));
+    phase.setStartDate(LocalDate.of(2025, Month.JANUARY, 1));
+    phase.setEndDate(LocalDate.of(2025, Month.DECEMBER, 31));
     phase.setPhaseType(PhaseType.PHASE_B);
 
     when(licenceScheduleRateRepository.findAllByLicenceSchedulePhaseAndRateDefinitionOption(phase, RateDefinitionOption.PHASE))
@@ -181,7 +182,7 @@ class LicenceScheduleRateServiceTest {
   @Test
   void getRatesAfterDate() {
     var detail = new LicenceScheduleDetail();
-    var date = LocalDate.of(2026, 1, 1);
+    var date = LocalDate.of(2026, Month.JANUARY, 1);
 
     licenceScheduleRateService.getRatesAfterDate(detail, date);
 

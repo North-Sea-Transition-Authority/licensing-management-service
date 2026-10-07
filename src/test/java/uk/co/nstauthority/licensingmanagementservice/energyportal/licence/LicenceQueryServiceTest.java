@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDate;
+import java.time.Month;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
@@ -92,7 +93,7 @@ class LicenceQueryServiceTest {
 
   @Test
   void getEpaLicenceData_whenLicenceHasEndDate_thenEndDateIsMapped() {
-    var endDate = LocalDate.of(2025, 6, 1);
+    var endDate = LocalDate.of(2025, Month.JUNE, 1);
 
     var portalLicence = new uk.co.fivium.energyportalapi.generated.types.Licence(
         1,

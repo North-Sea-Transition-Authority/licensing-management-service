@@ -20,6 +20,7 @@ import static org.springframework.web.servlet.mvc.method.annotation.MvcUriCompon
 import static uk.co.nstauthority.licensingmanagementservice.authentication.TestUserProvider.user;
 
 import java.time.LocalDate;
+import java.time.Month;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -257,7 +258,7 @@ class RecordWorkProgrammeAmendmentDetailsControllerTest extends AbstractControll
     activity.setDescription("Drill well to 3,000m");
     activity.setCategory(WorkProgrammeActivityCategory.DRILL_WELL);
     activity.setCommitment(WorkProgrammeActivityCommitment.FIRM);
-    activity.setDueDate(LocalDate.of(2026, 7, 27));
+    activity.setDueDate(LocalDate.of(2026, Month.JULY, 27));
     return activity;
   }
 }

@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import java.time.LocalDate;
+import java.time.Month;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -97,7 +98,7 @@ class LicenceScheduleCalculationServiceIntegrationTest {
     licenceScheduleCalculationService.calculateAndSaveLicenceScheduleDates(licenceScheduleDetail);
 
     licenceScheduleTerm.setStartDate(licenceStartDate.getStartDate());
-    licenceScheduleTerm.setEndDate(LocalDate.of(2025, 12, 31));
+    licenceScheduleTerm.setEndDate(LocalDate.of(2025, Month.DECEMBER, 31));
 
     licenceScheduleTerm2.setStartDate(licenceScheduleTerm.getEndDate().plusDays(1));
     licenceScheduleTerm2.setEndDate(licenceScheduleTerm.getEndDate().plusYears(1));
@@ -106,7 +107,7 @@ class LicenceScheduleCalculationServiceIntegrationTest {
     licenceScheduleTerm3.setEndDate(licenceScheduleTerm2.getEndDate().plusYears(1));
 
     licenceSchedulePhase.setStartDate(licenceStartDate.getStartDate());
-    licenceSchedulePhase.setEndDate(LocalDate.of(2025, 1, 31));
+    licenceSchedulePhase.setEndDate(LocalDate.of(2025, Month.JANUARY, 31));
 
     licenceSchedulePhase2.setStartDate(licenceSchedulePhase.getEndDate().plusDays(1));
     licenceSchedulePhase2.setEndDate(licenceSchedulePhase.getEndDate().plusMonths(1));
@@ -186,7 +187,7 @@ class LicenceScheduleCalculationServiceIntegrationTest {
 
     licenceStartDate = new LicenceStartDate();
     licenceStartDate.setLicenceScheduleDetail(licenceScheduleDetail);
-    licenceStartDate.setStartDate(LocalDate.of(2025, 1, 1));
+    licenceStartDate.setStartDate(LocalDate.of(2025, Month.JANUARY, 1));
 
     em.persist(licenceStartDate);
 

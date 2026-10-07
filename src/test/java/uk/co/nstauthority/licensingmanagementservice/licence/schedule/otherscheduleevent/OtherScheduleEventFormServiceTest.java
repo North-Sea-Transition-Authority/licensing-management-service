@@ -5,6 +5,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDate;
+import java.time.Month;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -358,7 +359,7 @@ class OtherScheduleEventFormServiceTest {
     when(licenceScheduleTermService.getTermByIdOrThrow(termId)).thenReturn(new LicenceScheduleTerm());
 
     var event = new OtherScheduleEvent();
-    event.setEventDate(LocalDate.of(2025, 1, 1));
+    event.setEventDate(LocalDate.of(2025, Month.JANUARY, 1));
 
     otherScheduleEventFormService.saveEventFromForm(form, licenceScheduleDetail, event, USER);
 
@@ -431,7 +432,7 @@ class OtherScheduleEventFormServiceTest {
     when(licenceSchedulePhaseService.getPhaseByIdOrThrow(phaseId)).thenReturn(new LicenceSchedulePhase());
 
     var event = new OtherScheduleEvent();
-    event.setEventDate(LocalDate.of(2025, 1, 1));
+    event.setEventDate(LocalDate.of(2025, Month.JANUARY, 1));
 
     otherScheduleEventFormService.saveEventFromForm(form, licenceScheduleDetail, event, USER);
 

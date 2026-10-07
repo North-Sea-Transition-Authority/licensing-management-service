@@ -10,6 +10,7 @@ import static org.mockito.Mockito.when;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.Month;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
@@ -370,8 +371,8 @@ class RecordDurationChangesServiceTest {
 
   @Test
   void getSummaryViews_whenTheEarlierPeriodIsExtendedByWhatThisOneLoses_thenThisEndDateDoesNotMove() {
-    var initial = term(TermType.INITIAL, LocalDate.of(2034, 1, 1), LocalDate.of(2038, 2, 1), 4);
-    var second = term(TermType.SECOND, LocalDate.of(2038, 2, 2), LocalDate.of(2039, 3, 2), 1);
+    var initial = term(TermType.INITIAL, LocalDate.of(2034, Month.JANUARY, 1), LocalDate.of(2038, Month.FEBRUARY, 1), 4);
+    var second = term(TermType.SECOND, LocalDate.of(2038, Month.FEBRUARY, 2), LocalDate.of(2039, Month.MARCH, 2), 1);
     mockSchedule(List.of(initial, second));
     mockRecordedChanges(
         List.of(extensionFor(initial, new ThreeFieldDuration(1, 0, 0))),
@@ -458,23 +459,23 @@ class RecordDurationChangesServiceTest {
   }
 
   private LicenceScheduleTerm initialTerm() {
-    return term(TermType.INITIAL, LocalDate.of(2024, 1, 1), LocalDate.of(2027, 12, 31), 4);
+    return term(TermType.INITIAL, LocalDate.of(2024, Month.JANUARY, 1), LocalDate.of(2027, Month.DECEMBER, 31), 4);
   }
 
   private LicenceScheduleTerm endedInitialTerm() {
-    return term(TermType.INITIAL, LocalDate.of(2020, 1, 1), LocalDate.of(2023, 12, 31), 4);
+    return term(TermType.INITIAL, LocalDate.of(2020, Month.JANUARY, 1), LocalDate.of(2023, Month.DECEMBER, 31), 4);
   }
 
   private LicenceScheduleTerm secondTerm() {
-    return term(TermType.SECOND, LocalDate.of(2028, 1, 1), LocalDate.of(2031, 12, 31), 4);
+    return term(TermType.SECOND, LocalDate.of(2028, Month.JANUARY, 1), LocalDate.of(2031, Month.DECEMBER, 31), 4);
   }
 
   private LicenceScheduleTerm currentSecondTerm() {
-    return term(TermType.SECOND, LocalDate.of(2024, 1, 1), LocalDate.of(2027, 12, 31), 4);
+    return term(TermType.SECOND, LocalDate.of(2024, Month.JANUARY, 1), LocalDate.of(2027, Month.DECEMBER, 31), 4);
   }
 
   private LicenceScheduleTerm thirdTerm() {
-    return term(TermType.THIRD, LocalDate.of(2032, 1, 1), LocalDate.of(2049, 12, 31), 18);
+    return term(TermType.THIRD, LocalDate.of(2032, Month.JANUARY, 1), LocalDate.of(2049, Month.DECEMBER, 31), 18);
   }
 
   private LicenceScheduleTerm term(TermType termType, LocalDate startDate, LocalDate endDate, int years) {
@@ -489,11 +490,11 @@ class RecordDurationChangesServiceTest {
   }
 
   private LicenceSchedulePhase phaseA(LicenceScheduleTerm term) {
-    return phase(term, PhaseType.PHASE_A, LocalDate.of(2024, 1, 1), LocalDate.of(2025, 12, 31));
+    return phase(term, PhaseType.PHASE_A, LocalDate.of(2024, Month.JANUARY, 1), LocalDate.of(2025, Month.DECEMBER, 31));
   }
 
   private LicenceSchedulePhase phaseB(LicenceScheduleTerm term) {
-    return phase(term, PhaseType.PHASE_B, LocalDate.of(2026, 1, 1), LocalDate.of(2027, 12, 31));
+    return phase(term, PhaseType.PHASE_B, LocalDate.of(2026, Month.JANUARY, 1), LocalDate.of(2027, Month.DECEMBER, 31));
   }
 
   private LicenceSchedulePhase phase(

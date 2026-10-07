@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 
 import java.time.LocalDate;
+import java.time.Month;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import uk.co.nstauthority.licensingmanagementservice.migration.pears.history.LicenceOperationHistory;
@@ -13,8 +14,8 @@ import uk.co.nstauthority.licensingmanagementservice.migration.pears.history.Pea
 
 class PearsLicenceHistoryTest {
 
-  private static final LocalDate FIRST_DATE = LocalDate.of(1964, 9, 18);
-  private static final LocalDate LAST_DATE = LocalDate.of(1972, 3, 1);
+  private static final LocalDate FIRST_DATE = LocalDate.of(1964, Month.SEPTEMBER, 18);
+  private static final LocalDate LAST_DATE = LocalDate.of(1972, Month.MARCH, 1);
 
   @Test
   void reconstruct_whenATransactionMadeSeveralOperations_thenTheyAreOnePosition() {

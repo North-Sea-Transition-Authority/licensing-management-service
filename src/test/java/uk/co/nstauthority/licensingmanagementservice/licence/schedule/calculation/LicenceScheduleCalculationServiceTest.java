@@ -8,6 +8,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDate;
+import java.time.Month;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -83,7 +84,7 @@ class LicenceScheduleCalculationServiceTest {
     var licenceScheduleDetail = new LicenceScheduleDetail();
 
     var licenceStartDate = new LicenceStartDate();
-    licenceStartDate.setStartDate(LocalDate.of(2025, 1, 1));
+    licenceStartDate.setStartDate(LocalDate.of(2025, Month.JANUARY, 1));
 
     var licenceScheduleTerm = new LicenceScheduleTerm();
     licenceScheduleTerm.setTermType(TermType.INITIAL);
@@ -125,7 +126,7 @@ class LicenceScheduleCalculationServiceTest {
         LicenceScheduleTerm::getEndDate
     ).containsExactly(
         licenceStartDate.getStartDate(),
-        LocalDate.of(2025, 12, 31)
+        LocalDate.of(2025, Month.DECEMBER, 31)
     );
 
     assertThat(termResult.get(1)).extracting(
@@ -133,7 +134,7 @@ class LicenceScheduleCalculationServiceTest {
         LicenceScheduleTerm::getEndDate
     ).containsExactly(
         licenceStartDate.getStartDate().plusYears(1),
-        LocalDate.of(2025, 12, 31).plusYears(1)
+        LocalDate.of(2025, Month.DECEMBER, 31).plusYears(1)
     );
 
     assertThat(termResult.get(2)).extracting(
@@ -141,7 +142,7 @@ class LicenceScheduleCalculationServiceTest {
         LicenceScheduleTerm::getEndDate
     ).containsExactly(
         licenceStartDate.getStartDate().plusYears(2),
-        LocalDate.of(2025, 12, 31).plusYears(2)
+        LocalDate.of(2025, Month.DECEMBER, 31).plusYears(2)
     );
 
     verify(licenceSchedulePhaseService).saveLicenceSchedulePhases(licenceSchedulePhaseArgumentCaptor.capture());
@@ -153,7 +154,7 @@ class LicenceScheduleCalculationServiceTest {
         LicenceSchedulePhase::getEndDate
     ).containsExactly(
         licenceStartDate.getStartDate(),
-        LocalDate.of(2025, 1, 31)
+        LocalDate.of(2025, Month.JANUARY, 31)
     );
   }
 
@@ -161,7 +162,7 @@ class LicenceScheduleCalculationServiceTest {
   void calculateAndSavePhaseDatesForTerm() {
     var licenceScheduleTerm = new LicenceScheduleTerm();
     licenceScheduleTerm.setTermType(TermType.INITIAL);
-    licenceScheduleTerm.setStartDate(LocalDate.of(2025, 1, 1));
+    licenceScheduleTerm.setStartDate(LocalDate.of(2025, Month.JANUARY, 1));
 
     var licenceSchedulePhase = new LicenceSchedulePhase();
     licenceSchedulePhase.setPhaseType(PhaseType.PHASE_A);
@@ -185,7 +186,7 @@ class LicenceScheduleCalculationServiceTest {
         LicenceSchedulePhase::getEndDate
     ).containsExactly(
         licenceScheduleTerm.getStartDate(),
-        LocalDate.of(2025, 1, 31)
+        LocalDate.of(2025, Month.JANUARY, 31)
     );
 
     assertThat(phaseResult.get(1)).extracting(
@@ -193,7 +194,7 @@ class LicenceScheduleCalculationServiceTest {
         LicenceSchedulePhase::getEndDate
     ).containsExactly(
         licenceScheduleTerm.getStartDate().plusMonths(1),
-        LocalDate.of(2025, 2, 28)
+        LocalDate.of(2025, Month.FEBRUARY, 28)
     );
   }
 
@@ -201,7 +202,7 @@ class LicenceScheduleCalculationServiceTest {
   void calculateAndSavePhaseDatesForTermNoPhasesToCalculate() {
     var licenceScheduleTerm = new LicenceScheduleTerm();
     licenceScheduleTerm.setTermType(TermType.SECOND);
-    licenceScheduleTerm.setStartDate(LocalDate.of(2025, 1, 1));
+    licenceScheduleTerm.setStartDate(LocalDate.of(2025, Month.JANUARY, 1));
 
     var licenceSchedulePhase = new LicenceSchedulePhase();
     licenceSchedulePhase.setPhaseType(PhaseType.PHASE_A);
@@ -222,7 +223,7 @@ class LicenceScheduleCalculationServiceTest {
   @Test
   void calculateAndSaveWorkProgrammeActivityDatesForTerm() {
     var licenceScheduleTerm = new LicenceScheduleTerm();
-    licenceScheduleTerm.setStartDate(LocalDate.of(2025, 1, 1));
+    licenceScheduleTerm.setStartDate(LocalDate.of(2025, Month.JANUARY, 1));
 
     var activity = new WorkProgrammeActivity();
     activity.setRelativeDuration(new ThreeFieldDuration(0, 1, 0));
@@ -242,8 +243,8 @@ class LicenceScheduleCalculationServiceTest {
 
     var result = workProgrammeActivityArgumentCaptor.getValue();
 
-    assertThat(result.getFirst()).extracting(WorkProgrammeActivity::getDueDate).isEqualTo(LocalDate.of(2025, 2, 1));
-    assertThat(result.get(1)).extracting(WorkProgrammeActivity::getDueDate).isEqualTo(LocalDate.of(2026, 1, 2));
+    assertThat(result.getFirst()).extracting(WorkProgrammeActivity::getDueDate).isEqualTo(LocalDate.of(2025, Month.FEBRUARY, 1));
+    assertThat(result.get(1)).extracting(WorkProgrammeActivity::getDueDate).isEqualTo(LocalDate.of(2026, Month.JANUARY, 2));
   }
 
   @Test
@@ -264,7 +265,7 @@ class LicenceScheduleCalculationServiceTest {
   @Test
   void calculateAndSaveWorkProgrammeActivityDatesForPhase() {
     var licenceSchedulePhase = new LicenceSchedulePhase();
-    licenceSchedulePhase.setStartDate(LocalDate.of(2025, 1, 1));
+    licenceSchedulePhase.setStartDate(LocalDate.of(2025, Month.JANUARY, 1));
 
     var activity = new WorkProgrammeActivity();
     activity.setRelativeDuration(new ThreeFieldDuration(0, 1, 0));
@@ -284,8 +285,8 @@ class LicenceScheduleCalculationServiceTest {
 
     var result = workProgrammeActivityArgumentCaptor.getValue();
 
-    assertThat(result.getFirst()).extracting(WorkProgrammeActivity::getDueDate).isEqualTo(LocalDate.of(2025, 2, 1));
-    assertThat(result.get(1)).extracting(WorkProgrammeActivity::getDueDate).isEqualTo(LocalDate.of(2025, 1, 2));
+    assertThat(result.getFirst()).extracting(WorkProgrammeActivity::getDueDate).isEqualTo(LocalDate.of(2025, Month.FEBRUARY, 1));
+    assertThat(result.get(1)).extracting(WorkProgrammeActivity::getDueDate).isEqualTo(LocalDate.of(2025, Month.JANUARY, 2));
   }
 
   @Test
@@ -306,7 +307,7 @@ class LicenceScheduleCalculationServiceTest {
   @Test
   void calculateAndSaveRateStartDatesForTerm_linkedDates() {
     var licenceScheduleTerm = new LicenceScheduleTerm();
-    licenceScheduleTerm.setStartDate(LocalDate.of(2025, 1, 1));
+    licenceScheduleTerm.setStartDate(LocalDate.of(2025, Month.JANUARY, 1));
 
     var rate = new LicenceScheduleRate();
 
@@ -332,7 +333,7 @@ class LicenceScheduleCalculationServiceTest {
   @Test
   void calculateAndSaveRateStartDatesForTerm_relativeDates() {
     var licenceScheduleTerm = new LicenceScheduleTerm();
-    licenceScheduleTerm.setStartDate(LocalDate.of(2025, 1, 1));
+    licenceScheduleTerm.setStartDate(LocalDate.of(2025, Month.JANUARY, 1));
 
     var startDateRate = new LicenceScheduleRate();
     startDateRate.setRateRelativeDateOption(RateRelativeDateOption.ON_START_DATE);
@@ -364,7 +365,7 @@ class LicenceScheduleCalculationServiceTest {
   @Test
   void calculateAndSaveRateStartDatesForPhase_linkedDates() {
     var licenceSchedulePhase = new LicenceSchedulePhase();
-    licenceSchedulePhase.setStartDate(LocalDate.of(2025, 1, 1));
+    licenceSchedulePhase.setStartDate(LocalDate.of(2025, Month.JANUARY, 1));
 
     var rate = new LicenceScheduleRate();
 
@@ -390,7 +391,7 @@ class LicenceScheduleCalculationServiceTest {
   @Test
   void calculateAndSaveRateStartDatesForPhase_relativeDates() {
     var licenceSchedulePhase = new LicenceSchedulePhase();
-    licenceSchedulePhase.setStartDate(LocalDate.of(2025, 1, 1));
+    licenceSchedulePhase.setStartDate(LocalDate.of(2025, Month.JANUARY, 1));
 
     var startDateRate = new LicenceScheduleRate();
     startDateRate.setRateRelativeDateOption(RateRelativeDateOption.ON_START_DATE);
@@ -422,7 +423,7 @@ class LicenceScheduleCalculationServiceTest {
   @Test
   void calculateAndSaveOtherScheduleEventDatesForTerm() {
     var licenceScheduleTerm = new LicenceScheduleTerm();
-    licenceScheduleTerm.setStartDate(LocalDate.of(2025, 1, 1));
+    licenceScheduleTerm.setStartDate(LocalDate.of(2025, Month.JANUARY, 1));
 
     var event = new OtherScheduleEvent();
     event.setRelativeDuration(new ThreeFieldDuration(0, 1, 0));
@@ -442,8 +443,8 @@ class LicenceScheduleCalculationServiceTest {
 
     var result = otherScheduleEventArgumentCaptor.getValue();
 
-    assertThat(result.getFirst()).extracting(OtherScheduleEvent::getEventDate).isEqualTo(LocalDate.of(2025, 2, 1));
-    assertThat(result.get(1)).extracting(OtherScheduleEvent::getEventDate).isEqualTo(LocalDate.of(2026, 1, 2));
+    assertThat(result.getFirst()).extracting(OtherScheduleEvent::getEventDate).isEqualTo(LocalDate.of(2025, Month.FEBRUARY, 1));
+    assertThat(result.get(1)).extracting(OtherScheduleEvent::getEventDate).isEqualTo(LocalDate.of(2026, Month.JANUARY, 2));
   }
 
   @Test
@@ -464,7 +465,7 @@ class LicenceScheduleCalculationServiceTest {
   @Test
   void calculateAndSaveOtherScheduleEventDatesForPhase() {
     var licenceSchedulePhase = new LicenceSchedulePhase();
-    licenceSchedulePhase.setStartDate(LocalDate.of(2025, 1, 1));
+    licenceSchedulePhase.setStartDate(LocalDate.of(2025, Month.JANUARY, 1));
 
     var event = new OtherScheduleEvent();
     event.setRelativeDuration(new ThreeFieldDuration(0, 1, 0));
@@ -484,8 +485,8 @@ class LicenceScheduleCalculationServiceTest {
 
     var result = otherScheduleEventArgumentCaptor.getValue();
 
-    assertThat(result.getFirst()).extracting(OtherScheduleEvent::getEventDate).isEqualTo(LocalDate.of(2025, 2, 1));
-    assertThat(result.get(1)).extracting(OtherScheduleEvent::getEventDate).isEqualTo(LocalDate.of(2025, 1, 2));
+    assertThat(result.getFirst()).extracting(OtherScheduleEvent::getEventDate).isEqualTo(LocalDate.of(2025, Month.FEBRUARY, 1));
+    assertThat(result.get(1)).extracting(OtherScheduleEvent::getEventDate).isEqualTo(LocalDate.of(2025, Month.JANUARY, 2));
   }
 
   @Test
@@ -505,56 +506,56 @@ class LicenceScheduleCalculationServiceTest {
 
   @Test
   void calculateDurationEndDate_yearDuration() {
-    var startDate = LocalDate.of(2025, 1, 1);
+    var startDate = LocalDate.of(2025, Month.JANUARY, 1);
 
     var duration = new ThreeFieldDuration(1, 0, 0);
 
-    assertThat(licenceScheduleCalculationService.calculateDurationEndDate(startDate, duration)).isEqualTo(LocalDate.of(2025, 12, 31));
+    assertThat(licenceScheduleCalculationService.calculateDurationEndDate(startDate, duration)).isEqualTo(LocalDate.of(2025, Month.DECEMBER, 31));
   }
 
   @Test
   void calculateDurationEndDate_monthDuration() {
-    var startDate = LocalDate.of(2025, 1, 1);
+    var startDate = LocalDate.of(2025, Month.JANUARY, 1);
 
     var duration = new ThreeFieldDuration(0, 1, 0);
 
-    assertThat(licenceScheduleCalculationService.calculateDurationEndDate(startDate, duration)).isEqualTo(LocalDate.of(2025, 1, 31));
+    assertThat(licenceScheduleCalculationService.calculateDurationEndDate(startDate, duration)).isEqualTo(LocalDate.of(2025, Month.JANUARY, 31));
   }
 
   @Test
   void calculateDurationEndDate_dayDuration() {
-    var startDate = LocalDate.of(2025, 1, 1);
+    var startDate = LocalDate.of(2025, Month.JANUARY, 1);
 
     var duration = new ThreeFieldDuration(0, 0, 1);
 
-    assertThat(licenceScheduleCalculationService.calculateDurationEndDate(startDate, duration)).isEqualTo(LocalDate.of(2025, 1, 2));
+    assertThat(licenceScheduleCalculationService.calculateDurationEndDate(startDate, duration)).isEqualTo(LocalDate.of(2025, Month.JANUARY, 2));
   }
 
   @Test
   void calculateRelativeStartDueDate_yearDuration() {
-    var startDate = LocalDate.of(2025, 1, 1);
+    var startDate = LocalDate.of(2025, Month.JANUARY, 1);
 
     var duration = new ThreeFieldDuration(1, 0, 0);
 
-    assertThat(licenceScheduleCalculationService.calculateRelativeStartDueDate(startDate, duration)).isEqualTo(LocalDate.of(2026, 1, 1));
+    assertThat(licenceScheduleCalculationService.calculateRelativeStartDueDate(startDate, duration)).isEqualTo(LocalDate.of(2026, Month.JANUARY, 1));
   }
 
   @Test
   void calculateRelativeStartDueDate_monthDuration() {
-    var startDate = LocalDate.of(2025, 1, 1);
+    var startDate = LocalDate.of(2025, Month.JANUARY, 1);
 
     var duration = new ThreeFieldDuration(0, 1, 0);
 
-    assertThat(licenceScheduleCalculationService.calculateRelativeStartDueDate(startDate, duration)).isEqualTo(LocalDate.of(2025, 2, 1));
+    assertThat(licenceScheduleCalculationService.calculateRelativeStartDueDate(startDate, duration)).isEqualTo(LocalDate.of(2025, Month.FEBRUARY, 1));
   }
 
   @Test
   void calculateRelativeStartDueDate_dayDuration() {
-    var startDate = LocalDate.of(2025, 1, 1);
+    var startDate = LocalDate.of(2025, Month.JANUARY, 1);
 
     var duration = new ThreeFieldDuration(0, 0, 1);
 
-    assertThat(licenceScheduleCalculationService.calculateRelativeStartDueDate(startDate, duration)).isEqualTo(LocalDate.of(2025, 1, 2));
+    assertThat(licenceScheduleCalculationService.calculateRelativeStartDueDate(startDate, duration)).isEqualTo(LocalDate.of(2025, Month.JANUARY, 2));
   }
 
   @Test
@@ -574,8 +575,8 @@ class LicenceScheduleCalculationServiceTest {
 
     var term = new LicenceScheduleTerm();
     term.setTermType(TermType.INITIAL);
-    term.setStartDate(LocalDate.of(2025, 1, 1));
-    term.setEndDate(LocalDate.of(2025, 12, 31));
+    term.setStartDate(LocalDate.of(2025, Month.JANUARY, 1));
+    term.setEndDate(LocalDate.of(2025, Month.DECEMBER, 31));
 
     var rate = new LicenceScheduleRate();
     rate.setId(UUID.randomUUID());
@@ -591,8 +592,8 @@ class LicenceScheduleCalculationServiceTest {
         StartEndDates::startDate,
         StartEndDates::endDate
     ).containsExactly(
-        LocalDate.of(2025, 1, 1),
-        LocalDate.of(2025, 12, 31)
+        LocalDate.of(2025, Month.JANUARY, 1),
+        LocalDate.of(2025, Month.DECEMBER, 31)
     );
   }
 
@@ -601,8 +602,8 @@ class LicenceScheduleCalculationServiceTest {
     var licenceScheduleDetail = new LicenceScheduleDetail();
 
     var phase = new LicenceSchedulePhase();
-    phase.setStartDate(LocalDate.of(2025, 1, 1));
-    phase.setEndDate(LocalDate.of(2025, 6, 30));
+    phase.setStartDate(LocalDate.of(2025, Month.JANUARY, 1));
+    phase.setEndDate(LocalDate.of(2025, Month.JUNE, 30));
 
     var rate = new LicenceScheduleRate();
     rate.setId(UUID.randomUUID());
@@ -618,8 +619,8 @@ class LicenceScheduleCalculationServiceTest {
         StartEndDates::startDate,
         StartEndDates::endDate
     ).containsExactly(
-        LocalDate.of(2025, 1, 1),
-        LocalDate.of(2025, 6, 30)
+        LocalDate.of(2025, Month.JANUARY, 1),
+        LocalDate.of(2025, Month.JUNE, 30)
     );
   }
 
@@ -629,12 +630,12 @@ class LicenceScheduleCalculationServiceTest {
 
     var term = new LicenceScheduleTerm();
     term.setTermType(TermType.INITIAL);
-    term.setEndDate(LocalDate.of(2025, 12, 31));
+    term.setEndDate(LocalDate.of(2025, Month.DECEMBER, 31));
 
     var rate = new LicenceScheduleRate();
     rate.setId(UUID.randomUUID());
     rate.setRateDefinitionOption(RateDefinitionOption.CUSTOM_PERIOD);
-    rate.setStartDate(LocalDate.of(2025, 3, 1));
+    rate.setStartDate(LocalDate.of(2025, Month.MARCH, 1));
 
     when(licenceScheduleRateService.getLicenceScheduleRates(licenceScheduleDetail)).thenReturn(List.of(rate));
     when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail))
@@ -647,8 +648,8 @@ class LicenceScheduleCalculationServiceTest {
         StartEndDates::startDate,
         StartEndDates::endDate
     ).containsExactly(
-        LocalDate.of(2025, 3, 1),
-        LocalDate.of(2025, 12, 31)
+        LocalDate.of(2025, Month.MARCH, 1),
+        LocalDate.of(2025, Month.DECEMBER, 31)
     );
   }
 
@@ -658,13 +659,13 @@ class LicenceScheduleCalculationServiceTest {
 
     var term1 = new LicenceScheduleTerm();
     term1.setTermType(TermType.INITIAL);
-    term1.setStartDate(LocalDate.of(2025, 1, 1));
-    term1.setEndDate(LocalDate.of(2025, 12, 31));
+    term1.setStartDate(LocalDate.of(2025, Month.JANUARY, 1));
+    term1.setEndDate(LocalDate.of(2025, Month.DECEMBER, 31));
 
     var term2 = new LicenceScheduleTerm();
     term2.setTermType(TermType.SECOND);
-    term2.setStartDate(LocalDate.of(2026, 1, 1));
-    term2.setEndDate(LocalDate.of(2026, 12, 31));
+    term2.setStartDate(LocalDate.of(2026, Month.JANUARY, 1));
+    term2.setEndDate(LocalDate.of(2026, Month.DECEMBER, 31));
 
     var rate1 = new LicenceScheduleRate();
     rate1.setId(UUID.randomUUID());
@@ -684,15 +685,15 @@ class LicenceScheduleCalculationServiceTest {
         StartEndDates::startDate,
         StartEndDates::endDate
     ).containsExactly(
-        LocalDate.of(2025, 1, 1),
-        LocalDate.of(2025, 12, 31)
+        LocalDate.of(2025, Month.JANUARY, 1),
+        LocalDate.of(2025, Month.DECEMBER, 31)
     );
     assertThat(result.get(rate2.getId())).extracting(
         StartEndDates::startDate,
         StartEndDates::endDate
     ).containsExactly(
-        LocalDate.of(2026, 1, 1),
-        LocalDate.of(2026, 12, 31)
+        LocalDate.of(2026, Month.JANUARY, 1),
+        LocalDate.of(2026, Month.DECEMBER, 31)
     );
   }
 
@@ -701,12 +702,12 @@ class LicenceScheduleCalculationServiceTest {
     var licenceScheduleDetail = new LicenceScheduleDetail();
 
     var phase1 = new LicenceSchedulePhase();
-    phase1.setStartDate(LocalDate.of(2025, 1, 1));
-    phase1.setEndDate(LocalDate.of(2025, 6, 30));
+    phase1.setStartDate(LocalDate.of(2025, Month.JANUARY, 1));
+    phase1.setEndDate(LocalDate.of(2025, Month.JUNE, 30));
 
     var phase2 = new LicenceSchedulePhase();
-    phase2.setStartDate(LocalDate.of(2025, 7, 1));
-    phase2.setEndDate(LocalDate.of(2025, 12, 31));
+    phase2.setStartDate(LocalDate.of(2025, Month.JULY, 1));
+    phase2.setEndDate(LocalDate.of(2025, Month.DECEMBER, 31));
 
     var rate1 = new LicenceScheduleRate();
     rate1.setId(UUID.randomUUID());
@@ -726,15 +727,15 @@ class LicenceScheduleCalculationServiceTest {
         StartEndDates::startDate,
         StartEndDates::endDate
     ).containsExactly(
-        LocalDate.of(2025, 1, 1),
-        LocalDate.of(2025, 6, 30)
+        LocalDate.of(2025, Month.JANUARY, 1),
+        LocalDate.of(2025, Month.JUNE, 30)
     );
     assertThat(result.get(rate2.getId())).extracting(
         StartEndDates::startDate,
         StartEndDates::endDate
     ).containsExactly(
-        LocalDate.of(2025, 7, 1),
-        LocalDate.of(2025, 12, 31)
+        LocalDate.of(2025, Month.JULY, 1),
+        LocalDate.of(2025, Month.DECEMBER, 31)
     );
   }
 
@@ -744,13 +745,13 @@ class LicenceScheduleCalculationServiceTest {
 
     var term1 = new LicenceScheduleTerm();
     term1.setTermType(TermType.INITIAL);
-    term1.setStartDate(LocalDate.of(2025, 1, 1));
-    term1.setEndDate(LocalDate.of(2025, 12, 31));
+    term1.setStartDate(LocalDate.of(2025, Month.JANUARY, 1));
+    term1.setEndDate(LocalDate.of(2025, Month.DECEMBER, 31));
 
     var term2 = new LicenceScheduleTerm();
     term2.setTermType(TermType.SECOND);
-    term2.setStartDate(LocalDate.of(2026, 1, 1));
-    term2.setEndDate(LocalDate.of(2026, 12, 31));
+    term2.setStartDate(LocalDate.of(2026, Month.JANUARY, 1));
+    term2.setEndDate(LocalDate.of(2026, Month.DECEMBER, 31));
 
     var rate = new LicenceScheduleRate();
     rate.setId(UUID.randomUUID());
@@ -765,8 +766,8 @@ class LicenceScheduleCalculationServiceTest {
         StartEndDates::startDate,
         StartEndDates::endDate
     ).containsExactly(
-        LocalDate.of(2025, 1, 1),
-        LocalDate.of(2025, 12, 31)
+        LocalDate.of(2025, Month.JANUARY, 1),
+        LocalDate.of(2025, Month.DECEMBER, 31)
     );
   }
 
@@ -775,8 +776,8 @@ class LicenceScheduleCalculationServiceTest {
     var licenceScheduleDetail = new LicenceScheduleDetail();
 
     var phase = new LicenceSchedulePhase();
-    phase.setStartDate(LocalDate.of(2025, 1, 1));
-    phase.setEndDate(LocalDate.of(2025, 6, 30));
+    phase.setStartDate(LocalDate.of(2025, Month.JANUARY, 1));
+    phase.setEndDate(LocalDate.of(2025, Month.JUNE, 30));
 
     var rate = new LicenceScheduleRate();
     rate.setId(UUID.randomUUID());
@@ -791,8 +792,8 @@ class LicenceScheduleCalculationServiceTest {
         StartEndDates::startDate,
         StartEndDates::endDate
     ).containsExactly(
-        LocalDate.of(2025, 1, 1),
-        LocalDate.of(2025, 6, 30)
+        LocalDate.of(2025, Month.JANUARY, 1),
+        LocalDate.of(2025, Month.JUNE, 30)
     );
   }
 
@@ -802,13 +803,13 @@ class LicenceScheduleCalculationServiceTest {
 
     var term = new LicenceScheduleTerm();
     term.setTermType(TermType.INITIAL);
-    term.setStartDate(LocalDate.of(2025, 7, 1));
-    term.setEndDate(LocalDate.of(2025, 12, 31));
+    term.setStartDate(LocalDate.of(2025, Month.JULY, 1));
+    term.setEndDate(LocalDate.of(2025, Month.DECEMBER, 31));
 
     var customRate = new LicenceScheduleRate();
     customRate.setId(UUID.randomUUID());
     customRate.setRateDefinitionOption(RateDefinitionOption.CUSTOM_PERIOD);
-    customRate.setStartDate(LocalDate.of(2025, 1, 1));
+    customRate.setStartDate(LocalDate.of(2025, Month.JANUARY, 1));
 
     var termRate = new LicenceScheduleRate();
     termRate.setId(UUID.randomUUID());
@@ -824,8 +825,8 @@ class LicenceScheduleCalculationServiceTest {
         StartEndDates::startDate,
         StartEndDates::endDate
     ).containsExactly(
-        LocalDate.of(2025, 1, 1),
-        LocalDate.of(2025, 6, 30)
+        LocalDate.of(2025, Month.JANUARY, 1),
+        LocalDate.of(2025, Month.JUNE, 30)
     );
   }
 
@@ -835,13 +836,13 @@ class LicenceScheduleCalculationServiceTest {
 
     var term1 = new LicenceScheduleTerm();
     term1.setTermType(TermType.INITIAL);
-    term1.setStartDate(LocalDate.of(2025, 1, 1));
-    term1.setEndDate(LocalDate.of(2025, 12, 31));
+    term1.setStartDate(LocalDate.of(2025, Month.JANUARY, 1));
+    term1.setEndDate(LocalDate.of(2025, Month.DECEMBER, 31));
 
     var term2 = new LicenceScheduleTerm();
     term2.setTermType(TermType.SECOND);
-    term2.setStartDate(LocalDate.of(2026, 1, 1));
-    term2.setEndDate(LocalDate.of(2026, 12, 31));
+    term2.setStartDate(LocalDate.of(2026, Month.JANUARY, 1));
+    term2.setEndDate(LocalDate.of(2026, Month.DECEMBER, 31));
 
     var rate1 = new LicenceScheduleRate();
     rate1.setId(UUID.randomUUID());

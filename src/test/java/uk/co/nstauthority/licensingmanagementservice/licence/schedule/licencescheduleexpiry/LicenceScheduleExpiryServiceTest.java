@@ -5,6 +5,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDate;
+import java.time.Month;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -55,7 +56,7 @@ class LicenceScheduleExpiryServiceTest {
   @Test
   void saveExpiryFromForm() {
     var form = new LicenceScheduleExpiryForm();
-    form.getExpiryDate().setDate(LocalDate.of(2026, 1, 1));
+    form.getExpiryDate().setDate(LocalDate.of(2026, Month.JANUARY, 1));
     form.setComments("Comments");
 
     licenceScheduleExpiryService.saveExpiryFromForm(form, licenceScheduleDetail, new LicenceScheduleExpiry());
@@ -78,7 +79,7 @@ class LicenceScheduleExpiryServiceTest {
   @Test
   void saveExpiryFromForm_existingExpiry_doesntOverwriteLicenceSchedule() {
     var form = new LicenceScheduleExpiryForm();
-    form.getExpiryDate().setDate(LocalDate.of(2026, 1, 1));
+    form.getExpiryDate().setDate(LocalDate.of(2026, Month.JANUARY, 1));
     form.setComments("Comments");
 
     var expiry = new LicenceScheduleExpiry();
@@ -127,7 +128,7 @@ class LicenceScheduleExpiryServiceTest {
   @Test
   void getExpiryForm() {
     var expiry = new LicenceScheduleExpiry();
-    expiry.setExpiryDate(LocalDate.of(2026, 1, 1));
+    expiry.setExpiryDate(LocalDate.of(2026, Month.JANUARY, 1));
     expiry.setComments("Comments");
 
     assertThat(licenceScheduleExpiryService.getExpiryForm(expiry)).extracting(

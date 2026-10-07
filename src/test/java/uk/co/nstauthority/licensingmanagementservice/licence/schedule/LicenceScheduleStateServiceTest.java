@@ -8,6 +8,7 @@ import static org.mockito.Mockito.when;
 
 import java.time.Clock;
 import java.time.LocalDate;
+import java.time.Month;
 import java.time.ZoneId;
 import java.util.Collections;
 import java.util.List;
@@ -59,19 +60,19 @@ class LicenceScheduleStateServiceTest {
     var scheduleDetail = LicenceScheduleTestUtil.createLicenceScheduleDetail(licenceSchedule);
 
     var currentTerm = LicenceScheduleTermTestUtil.builder()
-        .withStartDate(LocalDate.of(2025, 1, 1))
-        .withEndDate(LocalDate.of(2030, 1, 1))
+        .withStartDate(LocalDate.of(2025, Month.JANUARY, 1))
+        .withEndDate(LocalDate.of(2030, Month.JANUARY, 1))
         .build();
     var currentPhase = LicenceSchedulePhaseTestUtil.builder()
-        .withStartDate(LocalDate.of(2025, 1, 1))
-        .withEndDate(LocalDate.of(2026, 1, 1))
+        .withStartDate(LocalDate.of(2025, Month.JANUARY, 1))
+        .withEndDate(LocalDate.of(2026, Month.JANUARY, 1))
         .build();
     var nextPhase = LicenceSchedulePhaseTestUtil.builder()
-        .withStartDate(LocalDate.of(2026, 1, 1))
-        .withEndDate(LocalDate.of(2027, 1, 1))
+        .withStartDate(LocalDate.of(2026, Month.JANUARY, 1))
+        .withEndDate(LocalDate.of(2027, Month.JANUARY, 1))
         .build();
 
-    when(clock.instant()).thenReturn(LocalDate.of(2025, 6, 1).atStartOfDay(ZoneId.systemDefault()).toInstant());
+    when(clock.instant()).thenReturn(LocalDate.of(2025, Month.JUNE, 1).atStartOfDay(ZoneId.systemDefault()).toInstant());
     when(clock.getZone()).thenReturn(ZoneId.systemDefault());
 
     when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(scheduleDetail)).thenReturn(List.of(currentTerm));
@@ -80,7 +81,7 @@ class LicenceScheduleStateServiceTest {
 
     var result = licenceScheduleStateService.getNextTermPhaseStartDate(scheduleDetail);
 
-    assertThat(result).hasValue(LocalDate.of(2026, 1, 1));
+    assertThat(result).hasValue(LocalDate.of(2026, Month.JANUARY, 1));
   }
 
   @Test
@@ -90,19 +91,19 @@ class LicenceScheduleStateServiceTest {
     var scheduleDetail = LicenceScheduleTestUtil.createLicenceScheduleDetail(licenceSchedule);
 
     var currentTerm = LicenceScheduleTermTestUtil.builder()
-        .withStartDate(LocalDate.of(2025, 1, 1))
-        .withEndDate(LocalDate.of(2030, 1, 1))
+        .withStartDate(LocalDate.of(2025, Month.JANUARY, 1))
+        .withEndDate(LocalDate.of(2030, Month.JANUARY, 1))
         .build();
     var currentPhase = LicenceSchedulePhaseTestUtil.builder()
-        .withStartDate(LocalDate.of(2025, 1, 1))
-        .withEndDate(LocalDate.of(2030, 1, 1))
+        .withStartDate(LocalDate.of(2025, Month.JANUARY, 1))
+        .withEndDate(LocalDate.of(2030, Month.JANUARY, 1))
         .build();
     var nextTerm = LicenceScheduleTermTestUtil.builder()
-        .withStartDate(LocalDate.of(2030, 1, 1))
-        .withEndDate(LocalDate.of(2035, 1, 1))
+        .withStartDate(LocalDate.of(2030, Month.JANUARY, 1))
+        .withEndDate(LocalDate.of(2035, Month.JANUARY, 1))
         .build();
 
-    when(clock.instant()).thenReturn(LocalDate.of(2025, 6, 1).atStartOfDay(ZoneId.systemDefault()).toInstant());
+    when(clock.instant()).thenReturn(LocalDate.of(2025, Month.JUNE, 1).atStartOfDay(ZoneId.systemDefault()).toInstant());
     when(clock.getZone()).thenReturn(ZoneId.systemDefault());
 
     when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(scheduleDetail)).thenReturn(List.of(currentTerm, nextTerm));
@@ -112,7 +113,7 @@ class LicenceScheduleStateServiceTest {
 
     var result = licenceScheduleStateService.getNextTermPhaseStartDate(scheduleDetail);
 
-    assertThat(result).hasValue(LocalDate.of(2030, 1, 1));
+    assertThat(result).hasValue(LocalDate.of(2030, Month.JANUARY, 1));
   }
 
   @Test
@@ -145,22 +146,22 @@ class LicenceScheduleStateServiceTest {
 
   @Test
   void getScheduleState_WhenNextPhaseIsInSameTerm_NextTermRemainsCurrentTerm() {
-    when(clock.instant()).thenReturn(LocalDate.of(2025, 6, 1).atStartOfDay(ZoneId.systemDefault()).toInstant());
+    when(clock.instant()).thenReturn(LocalDate.of(2025, Month.JUNE, 1).atStartOfDay(ZoneId.systemDefault()).toInstant());
     when(clock.getZone()).thenReturn(ZoneId.systemDefault());
 
     var detail = new LicenceScheduleDetail();
 
     var currentTerm = new LicenceScheduleTerm();
-    currentTerm.setStartDate(LocalDate.of(2025, 1, 1));
-    currentTerm.setEndDate(LocalDate.of(2030, 1, 1));
+    currentTerm.setStartDate(LocalDate.of(2025, Month.JANUARY, 1));
+    currentTerm.setEndDate(LocalDate.of(2030, Month.JANUARY, 1));
 
     var currentPhase = new LicenceSchedulePhase();
-    currentPhase.setStartDate(LocalDate.of(2025, 1, 1));
-    currentPhase.setEndDate(LocalDate.of(2026, 1, 1));
+    currentPhase.setStartDate(LocalDate.of(2025, Month.JANUARY, 1));
+    currentPhase.setEndDate(LocalDate.of(2026, Month.JANUARY, 1));
 
     var nextPhaseInSameTerm = new LicenceSchedulePhase();
-    nextPhaseInSameTerm.setStartDate(LocalDate.of(2026, 1, 1));
-    nextPhaseInSameTerm.setEndDate(LocalDate.of(2027, 1, 1));
+    nextPhaseInSameTerm.setStartDate(LocalDate.of(2026, Month.JANUARY, 1));
+    nextPhaseInSameTerm.setEndDate(LocalDate.of(2027, Month.JANUARY, 1));
 
     var terms = List.of(currentTerm);
     var phases = List.of(currentPhase, nextPhaseInSameTerm);
@@ -178,26 +179,26 @@ class LicenceScheduleStateServiceTest {
 
   @Test
   void getScheduleState_WhenCurrentTermOutOfPhases_JumpsToNextTermAndItsFirstPhase() {
-    when(clock.instant()).thenReturn(LocalDate.of(2025, 6, 1).atStartOfDay(ZoneId.systemDefault()).toInstant());
+    when(clock.instant()).thenReturn(LocalDate.of(2025, Month.JUNE, 1).atStartOfDay(ZoneId.systemDefault()).toInstant());
     when(clock.getZone()).thenReturn(ZoneId.systemDefault());
 
     var detail = new LicenceScheduleDetail();
 
     var currentTerm = new LicenceScheduleTerm();
-    currentTerm.setStartDate(LocalDate.of(2025, 1, 1));
-    currentTerm.setEndDate(LocalDate.of(2030, 1, 1));
+    currentTerm.setStartDate(LocalDate.of(2025, Month.JANUARY, 1));
+    currentTerm.setEndDate(LocalDate.of(2030, Month.JANUARY, 1));
 
     var nextTerm = new LicenceScheduleTerm();
-    nextTerm.setStartDate(LocalDate.of(2030, 1, 1));
-    nextTerm.setEndDate(LocalDate.of(2035, 1, 1));
+    nextTerm.setStartDate(LocalDate.of(2030, Month.JANUARY, 1));
+    nextTerm.setEndDate(LocalDate.of(2035, Month.JANUARY, 1));
 
     var currentPhase = new LicenceSchedulePhase();
-    currentPhase.setStartDate(LocalDate.of(2025, 1, 1));
-    currentPhase.setEndDate(LocalDate.of(2030, 1, 1));
+    currentPhase.setStartDate(LocalDate.of(2025, Month.JANUARY, 1));
+    currentPhase.setEndDate(LocalDate.of(2030, Month.JANUARY, 1));
 
     var firstPhaseOfNextTerm = new LicenceSchedulePhase();
-    firstPhaseOfNextTerm.setStartDate(LocalDate.of(2030, 1, 1));
-    firstPhaseOfNextTerm.setEndDate(LocalDate.of(2032, 1, 1));
+    firstPhaseOfNextTerm.setStartDate(LocalDate.of(2030, Month.JANUARY, 1));
+    firstPhaseOfNextTerm.setEndDate(LocalDate.of(2032, Month.JANUARY, 1));
 
     when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(detail)).thenReturn(List.of(currentTerm, nextTerm));
     when(licenceSchedulePhaseService.getPhasesByTerm(currentTerm)).thenReturn(List.of(currentPhase));
@@ -214,22 +215,22 @@ class LicenceScheduleStateServiceTest {
 
   @Test
   void getScheduleState_WhenNoNextPhase_FindsNextTerm() {
-    when(clock.instant()).thenReturn(LocalDate.of(2025, 6, 1).atStartOfDay(ZoneId.systemDefault()).toInstant());
+    when(clock.instant()).thenReturn(LocalDate.of(2025, Month.JUNE, 1).atStartOfDay(ZoneId.systemDefault()).toInstant());
     when(clock.getZone()).thenReturn(ZoneId.systemDefault());
 
     var detail = new LicenceScheduleDetail();
 
     var currentTerm = new LicenceScheduleTerm();
-    currentTerm.setStartDate(LocalDate.of(2025, 1, 1));
-    currentTerm.setEndDate(LocalDate.of(2030, 1, 1));
+    currentTerm.setStartDate(LocalDate.of(2025, Month.JANUARY, 1));
+    currentTerm.setEndDate(LocalDate.of(2030, Month.JANUARY, 1));
 
     var nextTerm = new LicenceScheduleTerm();
-    nextTerm.setStartDate(LocalDate.of(2030, 1, 1));
-    nextTerm.setEndDate(LocalDate.of(2035, 1, 1));
+    nextTerm.setStartDate(LocalDate.of(2030, Month.JANUARY, 1));
+    nextTerm.setEndDate(LocalDate.of(2035, Month.JANUARY, 1));
 
     var currentPhase = new LicenceSchedulePhase();
-    currentPhase.setStartDate(LocalDate.of(2025, 1, 1));
-    currentPhase.setEndDate(LocalDate.of(2030, 1, 1));
+    currentPhase.setStartDate(LocalDate.of(2025, Month.JANUARY, 1));
+    currentPhase.setEndDate(LocalDate.of(2030, Month.JANUARY, 1));
 
     var terms = List.of(currentTerm, nextTerm);
     var phases = List.of(currentPhase);
@@ -249,18 +250,18 @@ class LicenceScheduleStateServiceTest {
 
   @Test
   void getScheduleState_WhenNoPhasesInCurrentTerm_FindsNextTerm() {
-    when(clock.instant()).thenReturn(LocalDate.of(2025, 6, 1).atStartOfDay(ZoneId.systemDefault()).toInstant());
+    when(clock.instant()).thenReturn(LocalDate.of(2025, Month.JUNE, 1).atStartOfDay(ZoneId.systemDefault()).toInstant());
     when(clock.getZone()).thenReturn(ZoneId.systemDefault());
 
     var detail = new LicenceScheduleDetail();
 
     var currentTerm = new LicenceScheduleTerm();
-    currentTerm.setStartDate(LocalDate.of(2025, 1, 1));
-    currentTerm.setEndDate(LocalDate.of(2030, 1, 1));
+    currentTerm.setStartDate(LocalDate.of(2025, Month.JANUARY, 1));
+    currentTerm.setEndDate(LocalDate.of(2030, Month.JANUARY, 1));
 
     var nextTerm = new LicenceScheduleTerm();
-    nextTerm.setStartDate(LocalDate.of(2030, 1, 1));
-    nextTerm.setEndDate(LocalDate.of(2035, 1, 1));
+    nextTerm.setStartDate(LocalDate.of(2030, Month.JANUARY, 1));
+    nextTerm.setEndDate(LocalDate.of(2035, Month.JANUARY, 1));
 
     var terms = List.of(currentTerm, nextTerm);
 
@@ -306,17 +307,17 @@ class LicenceScheduleStateServiceTest {
 
   @Test
   void hasCurrentWorkProgrammeActivities_whenCurrentPhaseIsNotNull_delegatesToPhaseExistsQuery() {
-    when(clock.instant()).thenReturn(LocalDate.of(2025, 6, 1).atStartOfDay(ZoneId.systemDefault()).toInstant());
+    when(clock.instant()).thenReturn(LocalDate.of(2025, Month.JUNE, 1).atStartOfDay(ZoneId.systemDefault()).toInstant());
     when(clock.getZone()).thenReturn(ZoneId.systemDefault());
 
     var detail = new LicenceScheduleDetail();
     var term = new LicenceScheduleTerm();
-    term.setStartDate(LocalDate.of(2025, 1, 1));
-    term.setEndDate(LocalDate.of(2030, 1, 1));
+    term.setStartDate(LocalDate.of(2025, Month.JANUARY, 1));
+    term.setEndDate(LocalDate.of(2030, Month.JANUARY, 1));
 
     var phase = new LicenceSchedulePhase();
-    phase.setStartDate(LocalDate.of(2025, 1, 1));
-    phase.setEndDate(LocalDate.of(2026, 1, 1));
+    phase.setStartDate(LocalDate.of(2025, Month.JANUARY, 1));
+    phase.setEndDate(LocalDate.of(2026, Month.JANUARY, 1));
 
     when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(detail)).thenReturn(List.of(term));
     when(licenceSchedulePhaseService.getPhasesByTerm(term)).thenReturn(List.of(phase));
@@ -327,13 +328,13 @@ class LicenceScheduleStateServiceTest {
 
   @Test
   void hasCurrentWorkProgrammeActivities_whenCurrentPhaseIsNullAndTermIsNotNull_delegatesToTermExistsQuery() {
-    when(clock.instant()).thenReturn(LocalDate.of(2025, 6, 1).atStartOfDay(ZoneId.systemDefault()).toInstant());
+    when(clock.instant()).thenReturn(LocalDate.of(2025, Month.JUNE, 1).atStartOfDay(ZoneId.systemDefault()).toInstant());
     when(clock.getZone()).thenReturn(ZoneId.systemDefault());
 
     var detail = new LicenceScheduleDetail();
     var term = new LicenceScheduleTerm();
-    term.setStartDate(LocalDate.of(2025, 1, 1));
-    term.setEndDate(LocalDate.of(2030, 1, 1));
+    term.setStartDate(LocalDate.of(2025, Month.JANUARY, 1));
+    term.setEndDate(LocalDate.of(2030, Month.JANUARY, 1));
 
     when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(detail)).thenReturn(List.of(term));
     when(licenceSchedulePhaseService.getPhasesByTerm(term)).thenReturn(Collections.emptyList());
@@ -353,17 +354,17 @@ class LicenceScheduleStateServiceTest {
 
   @Test
   void getCurrentWorkProgrammeActivitiesViews_whenCurrentPhaseIsNotNull_returnsViewsForPhase() {
-    when(clock.instant()).thenReturn(LocalDate.of(2025, 6, 1).atStartOfDay(ZoneId.systemDefault()).toInstant());
+    when(clock.instant()).thenReturn(LocalDate.of(2025, Month.JUNE, 1).atStartOfDay(ZoneId.systemDefault()).toInstant());
     when(clock.getZone()).thenReturn(ZoneId.systemDefault());
 
     var detail = new LicenceScheduleDetail();
     var term = new LicenceScheduleTerm();
-    term.setStartDate(LocalDate.of(2025, 1, 1));
-    term.setEndDate(LocalDate.of(2030, 1, 1));
+    term.setStartDate(LocalDate.of(2025, Month.JANUARY, 1));
+    term.setEndDate(LocalDate.of(2030, Month.JANUARY, 1));
 
     var phase = new LicenceSchedulePhase();
-    phase.setStartDate(LocalDate.of(2025, 1, 1));
-    phase.setEndDate(LocalDate.of(2026, 1, 1));
+    phase.setStartDate(LocalDate.of(2025, Month.JANUARY, 1));
+    phase.setEndDate(LocalDate.of(2026, Month.JANUARY, 1));
 
     var view = mock(WorkProgrammeActivityView.class);
 
@@ -376,13 +377,13 @@ class LicenceScheduleStateServiceTest {
 
   @Test
   void getCurrentWorkProgrammeActivitiesViews_whenCurrentPhaseIsNullAndTermIsNotNull_returnsViewsForTerm() {
-    when(clock.instant()).thenReturn(LocalDate.of(2025, 6, 1).atStartOfDay(ZoneId.systemDefault()).toInstant());
+    when(clock.instant()).thenReturn(LocalDate.of(2025, Month.JUNE, 1).atStartOfDay(ZoneId.systemDefault()).toInstant());
     when(clock.getZone()).thenReturn(ZoneId.systemDefault());
 
     var detail = new LicenceScheduleDetail();
     var term = new LicenceScheduleTerm();
-    term.setStartDate(LocalDate.of(2025, 1, 1));
-    term.setEndDate(LocalDate.of(2030, 1, 1));
+    term.setStartDate(LocalDate.of(2025, Month.JANUARY, 1));
+    term.setEndDate(LocalDate.of(2030, Month.JANUARY, 1));
 
     var view = mock(WorkProgrammeActivityView.class);
 

@@ -7,6 +7,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDate;
+import java.time.Month;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -530,7 +531,7 @@ class RecordWorkProgrammeAmendmentDetailsServiceTest {
     activity.setDescription(description);
     activity.setCategory(WorkProgrammeActivityCategory.DRILL_WELL);
     activity.setCommitment(WorkProgrammeActivityCommitment.FIRM);
-    activity.setDueDate(LocalDate.of(2026, 7, 27));
+    activity.setDueDate(LocalDate.of(2026, Month.JULY, 27));
     return activity;
   }
 

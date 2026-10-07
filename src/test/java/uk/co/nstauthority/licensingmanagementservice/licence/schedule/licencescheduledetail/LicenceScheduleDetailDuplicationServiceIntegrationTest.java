@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import java.time.LocalDate;
+import java.time.Month;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -247,13 +248,13 @@ class LicenceScheduleDetailDuplicationServiceIntegrationTest {
 
     licenceStartDate = new LicenceStartDate();
     licenceStartDate.setLicenceScheduleDetail(oldLicenceScheduleDetail);
-    licenceStartDate.setStartDate(LocalDate.of(2025, 1, 1));
+    licenceStartDate.setStartDate(LocalDate.of(2025, Month.JANUARY, 1));
 
     em.persist(licenceStartDate);
 
     licenceScheduleExpiry = new LicenceScheduleExpiry();
     licenceScheduleExpiry.setLicenceScheduleDetail(oldLicenceScheduleDetail);
-    licenceScheduleExpiry.setExpiryDate(LocalDate.of(2050, 1, 1));
+    licenceScheduleExpiry.setExpiryDate(LocalDate.of(2050, Month.JANUARY, 1));
     licenceScheduleExpiry.setLicenceSchedule(licenceSchedule);
 
     em.persist(licenceScheduleExpiry);

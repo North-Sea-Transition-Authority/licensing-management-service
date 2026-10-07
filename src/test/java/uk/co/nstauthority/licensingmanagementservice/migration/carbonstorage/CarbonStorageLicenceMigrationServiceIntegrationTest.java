@@ -357,7 +357,7 @@ class CarbonStorageLicenceMigrationServiceIntegrationTest {
         .isEqualTo(LocalDate.of(2021, Month.JUNE, 1).atStartOfDay(ZoneOffset.UTC).toInstant());
 
     var startDate = licenceStartDateRepository.findByLicenceScheduleDetail(scheduleDetail).orElseThrow();
-    assertThat(startDate.getStartDate()).isEqualTo(LocalDate.of(2020, 1, 1));
+    assertThat(startDate.getStartDate()).isEqualTo(LocalDate.of(2020, Month.JANUARY, 1));
 
     var terms = licenceScheduleTermRepository.findAllByLicenceScheduleDetail(scheduleDetail);
     assertThat(terms).hasSize(1);
@@ -365,8 +365,8 @@ class CarbonStorageLicenceMigrationServiceIntegrationTest {
     var term = terms.get(0);
     assertThat(term.getTermType()).isEqualTo(TermType.INITIAL_CS);
     assertThat(term.getTermDuration()).isEqualTo(new ThreeFieldDuration(5, 0, 0));
-    assertThat(term.getStartDate()).isEqualTo(LocalDate.of(2020, 1, 1));
-    assertThat(term.getEndDate()).isEqualTo(LocalDate.of(2024, 12, 31));
+    assertThat(term.getStartDate()).isEqualTo(LocalDate.of(2020, Month.JANUARY, 1));
+    assertThat(term.getEndDate()).isEqualTo(LocalDate.of(2024, Month.DECEMBER, 31));
   }
 
   @Test

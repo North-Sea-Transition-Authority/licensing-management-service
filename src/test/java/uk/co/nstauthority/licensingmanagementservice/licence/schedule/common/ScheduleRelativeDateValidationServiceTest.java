@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDate;
+import java.time.Month;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -106,14 +107,14 @@ class ScheduleRelativeDateValidationServiceTest {
   @Test
   void validateRelativeDateBeforeEndOfSchedule_relativeDateBeforeFinalTermEnd_relativeToTerm_noErrors() {
     var termId = UUID.randomUUID();
-    var termStartDate = LocalDate.of(2020, 1, 1);
-    var finalTermEndDate = LocalDate.of(2030, 12, 31);
+    var termStartDate = LocalDate.of(2020, Month.JANUARY, 1);
+    var finalTermEndDate = LocalDate.of(2030, Month.DECEMBER, 31);
 
     var initialTerm = LicenceScheduleTermTestUtil.builder()
         .withId(UUID.randomUUID())
         .withTermType(TermType.INITIAL)
-        .withStartDate(LocalDate.of(2015, 1, 1))
-        .withEndDate(LocalDate.of(2019, 12, 31))
+        .withStartDate(LocalDate.of(2015, Month.JANUARY, 1))
+        .withEndDate(LocalDate.of(2019, Month.DECEMBER, 31))
         .build();
 
     var finalTerm = LicenceScheduleTermTestUtil.builder()
@@ -127,7 +128,7 @@ class ScheduleRelativeDateValidationServiceTest {
         .thenReturn(List.of(initialTerm, finalTerm));
 
     when(licenceScheduleCalculationService.calculateRelativeStartDueDate(eq(termStartDate), any(ThreeFieldDuration.class)))
-        .thenReturn(LocalDate.of(2025, 1, 1));
+        .thenReturn(LocalDate.of(2025, Month.JANUARY, 1));
 
     var errors = new MapBindingResult(new HashMap<>(), "form");
 
@@ -144,8 +145,8 @@ class ScheduleRelativeDateValidationServiceTest {
   @Test
   void validateRelativeDateBeforeEndOfSchedule_relativeDateOnFinalTermEnd_relativeToTerm_rejectsFields() {
     var termId = UUID.randomUUID();
-    var termStartDate = LocalDate.of(2020, 1, 1);
-    var finalTermEndDate = LocalDate.of(2030, 12, 31);
+    var termStartDate = LocalDate.of(2020, Month.JANUARY, 1);
+    var finalTermEndDate = LocalDate.of(2030, Month.DECEMBER, 31);
 
     var term = LicenceScheduleTermTestUtil.builder()
         .withId(termId)
@@ -180,8 +181,8 @@ class ScheduleRelativeDateValidationServiceTest {
   @Test
   void validateRelativeDateBeforeEndOfSchedule_relativeDateAfterFinalTermEnd_relativeToTerm_rejectsFields() {
     var termId = UUID.randomUUID();
-    var termStartDate = LocalDate.of(2020, 1, 1);
-    var finalTermEndDate = LocalDate.of(2025, 12, 31);
+    var termStartDate = LocalDate.of(2020, Month.JANUARY, 1);
+    var finalTermEndDate = LocalDate.of(2025, Month.DECEMBER, 31);
 
     var term = LicenceScheduleTermTestUtil.builder()
         .withId(termId)
@@ -194,7 +195,7 @@ class ScheduleRelativeDateValidationServiceTest {
         .thenReturn(List.of(term));
 
     when(licenceScheduleCalculationService.calculateRelativeStartDueDate(eq(termStartDate), any(ThreeFieldDuration.class)))
-        .thenReturn(LocalDate.of(2026, 1, 1));
+        .thenReturn(LocalDate.of(2026, Month.JANUARY, 1));
 
     var errors = new MapBindingResult(new HashMap<>(), "form");
 
@@ -216,13 +217,13 @@ class ScheduleRelativeDateValidationServiceTest {
   @Test
   void validateRelativeDateBeforeEndOfSchedule_relativeDateBeforeFinalTermEnd_relativeToPhase_noErrors() {
     var phaseId = UUID.randomUUID();
-    var phaseStartDate = LocalDate.of(2021, 6, 1);
-    var finalTermEndDate = LocalDate.of(2030, 12, 31);
+    var phaseStartDate = LocalDate.of(2021, Month.JUNE, 1);
+    var finalTermEndDate = LocalDate.of(2030, Month.DECEMBER, 31);
 
     var term = LicenceScheduleTermTestUtil.builder()
         .withId(UUID.randomUUID())
         .withTermType(TermType.INITIAL)
-        .withStartDate(LocalDate.of(2020, 1, 1))
+        .withStartDate(LocalDate.of(2020, Month.JANUARY, 1))
         .withEndDate(finalTermEndDate)
         .build();
 
@@ -236,7 +237,7 @@ class ScheduleRelativeDateValidationServiceTest {
 
     when(licenceSchedulePhaseService.getPhaseByIdOrThrow(phaseId)).thenReturn(phase);
     when(licenceScheduleCalculationService.calculateRelativeStartDueDate(eq(phaseStartDate), any(ThreeFieldDuration.class)))
-        .thenReturn(LocalDate.of(2025, 1, 1));
+        .thenReturn(LocalDate.of(2025, Month.JANUARY, 1));
 
     var errors = new MapBindingResult(new HashMap<>(), "form");
 
@@ -253,13 +254,13 @@ class ScheduleRelativeDateValidationServiceTest {
   @Test
   void validateRelativeDateBeforeEndOfSchedule_relativeDateAfterFinalTermEnd_relativeToPhase_rejectsFields() {
     var phaseId = UUID.randomUUID();
-    var phaseStartDate = LocalDate.of(2021, 6, 1);
-    var finalTermEndDate = LocalDate.of(2025, 12, 31);
+    var phaseStartDate = LocalDate.of(2021, Month.JUNE, 1);
+    var finalTermEndDate = LocalDate.of(2025, Month.DECEMBER, 31);
 
     var term = LicenceScheduleTermTestUtil.builder()
         .withId(UUID.randomUUID())
         .withTermType(TermType.INITIAL)
-        .withStartDate(LocalDate.of(2020, 1, 1))
+        .withStartDate(LocalDate.of(2020, Month.JANUARY, 1))
         .withEndDate(finalTermEndDate)
         .build();
 
@@ -273,7 +274,7 @@ class ScheduleRelativeDateValidationServiceTest {
 
     when(licenceSchedulePhaseService.getPhaseByIdOrThrow(phaseId)).thenReturn(phase);
     when(licenceScheduleCalculationService.calculateRelativeStartDueDate(eq(phaseStartDate), any(ThreeFieldDuration.class)))
-        .thenReturn(LocalDate.of(2026, 6, 1));
+        .thenReturn(LocalDate.of(2026, Month.JUNE, 1));
 
     var errors = new MapBindingResult(new HashMap<>(), "form");
 
@@ -295,21 +296,21 @@ class ScheduleRelativeDateValidationServiceTest {
   @Test
   void validateRelativeDateBeforeEndOfSchedule_withMultipleTerms_usesFinalTermEndDate() {
     var termId = UUID.randomUUID();
-    var finalTermStartDate = LocalDate.of(2025, 1, 1);
-    var finalTermEndDate = LocalDate.of(2035, 12, 31);
+    var finalTermStartDate = LocalDate.of(2025, Month.JANUARY, 1);
+    var finalTermEndDate = LocalDate.of(2035, Month.DECEMBER, 31);
 
     var initialTerm = LicenceScheduleTermTestUtil.builder()
         .withId(UUID.randomUUID())
         .withTermType(TermType.INITIAL)  // displayOrder 10
-        .withStartDate(LocalDate.of(2015, 1, 1))
-        .withEndDate(LocalDate.of(2019, 12, 31))
+        .withStartDate(LocalDate.of(2015, Month.JANUARY, 1))
+        .withEndDate(LocalDate.of(2019, Month.DECEMBER, 31))
         .build();
 
     var secondTerm = LicenceScheduleTermTestUtil.builder()
         .withId(UUID.randomUUID())
         .withTermType(TermType.SECOND)  // displayOrder 20
-        .withStartDate(LocalDate.of(2020, 1, 1))
-        .withEndDate(LocalDate.of(2024, 12, 31))
+        .withStartDate(LocalDate.of(2020, Month.JANUARY, 1))
+        .withEndDate(LocalDate.of(2024, Month.DECEMBER, 31))
         .build();
 
     var thirdTerm = LicenceScheduleTermTestUtil.builder()
@@ -324,7 +325,7 @@ class ScheduleRelativeDateValidationServiceTest {
 
     // Relative date falls after the non-final terms' end dates but before the final term end
     when(licenceScheduleCalculationService.calculateRelativeStartDueDate(eq(finalTermStartDate), any(ThreeFieldDuration.class)))
-        .thenReturn(LocalDate.of(2030, 1, 1));
+        .thenReturn(LocalDate.of(2030, Month.JANUARY, 1));
 
     var errors = new MapBindingResult(new HashMap<>(), "form");
 
@@ -697,8 +698,8 @@ class ScheduleRelativeDateValidationServiceTest {
     var term = LicenceScheduleTermTestUtil.builder()
         .withId(termId)
         .withTermType(TermType.INITIAL)
-        .withStartDate(LocalDate.of(2020, 1, 1))
-        .withEndDate(LocalDate.of(2025, 12, 31))
+        .withStartDate(LocalDate.of(2020, Month.JANUARY, 1))
+        .withEndDate(LocalDate.of(2025, Month.DECEMBER, 31))
         .build();
 
     when(licenceScheduleTermService.getTermByIdOrThrow(termId)).thenReturn(term);
@@ -721,14 +722,14 @@ class ScheduleRelativeDateValidationServiceTest {
     var term = LicenceScheduleTermTestUtil.builder()
         .withId(termId)
         .withTermType(TermType.INITIAL)
-        .withStartDate(LocalDate.of(2020, 1, 1))
-        .withEndDate(LocalDate.of(2025, 12, 31))
+        .withStartDate(LocalDate.of(2020, Month.JANUARY, 1))
+        .withEndDate(LocalDate.of(2025, Month.DECEMBER, 31))
         .build();
 
     when(licenceScheduleTermService.getTermByIdOrThrow(termId)).thenReturn(term);
 
     var ratesMap = new LinkedHashMap<UUID, StartEndDates>();
-    ratesMap.put(UUID.randomUUID(), new StartEndDates(LocalDate.of(2021, 1, 1), LocalDate.of(2030, 12, 31)));
+    ratesMap.put(UUID.randomUUID(), new StartEndDates(LocalDate.of(2021, Month.JANUARY, 1), LocalDate.of(2030, Month.DECEMBER, 31)));
     when(licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail))
         .thenReturn(ratesMap);
 
@@ -748,14 +749,14 @@ class ScheduleRelativeDateValidationServiceTest {
     var term = LicenceScheduleTermTestUtil.builder()
         .withId(termId)
         .withTermType(TermType.INITIAL)
-        .withStartDate(LocalDate.of(2020, 1, 1))
-        .withEndDate(LocalDate.of(2025, 12, 31))
+        .withStartDate(LocalDate.of(2020, Month.JANUARY, 1))
+        .withEndDate(LocalDate.of(2025, Month.DECEMBER, 31))
         .build();
 
     when(licenceScheduleTermService.getTermByIdOrThrow(termId)).thenReturn(term);
 
     var ratesMap = new LinkedHashMap<UUID, StartEndDates>();
-    ratesMap.put(UUID.randomUUID(), new StartEndDates(LocalDate.of(2019, 1, 1), LocalDate.of(2026, 12, 31)));
+    ratesMap.put(UUID.randomUUID(), new StartEndDates(LocalDate.of(2019, Month.JANUARY, 1), LocalDate.of(2026, Month.DECEMBER, 31)));
     when(licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail))
         .thenReturn(ratesMap);
 
@@ -779,14 +780,14 @@ class ScheduleRelativeDateValidationServiceTest {
     var term = LicenceScheduleTermTestUtil.builder()
         .withId(termId)
         .withTermType(TermType.INITIAL)
-        .withStartDate(LocalDate.of(2020, 1, 1))
-        .withEndDate(LocalDate.of(2025, 12, 31))
+        .withStartDate(LocalDate.of(2020, Month.JANUARY, 1))
+        .withEndDate(LocalDate.of(2025, Month.DECEMBER, 31))
         .build();
 
     when(licenceScheduleTermService.getTermByIdOrThrow(termId)).thenReturn(term);
 
     var ratesMap = new LinkedHashMap<UUID, StartEndDates>();
-    ratesMap.put(existingRateId, new StartEndDates(LocalDate.of(2019, 1, 1), LocalDate.of(2026, 12, 31)));
+    ratesMap.put(existingRateId, new StartEndDates(LocalDate.of(2019, Month.JANUARY, 1), LocalDate.of(2026, Month.DECEMBER, 31)));
     when(licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail))
         .thenReturn(ratesMap);
 
@@ -810,14 +811,14 @@ class ScheduleRelativeDateValidationServiceTest {
     var term = LicenceScheduleTermTestUtil.builder()
         .withId(termId)
         .withTermType(TermType.INITIAL)
-        .withStartDate(LocalDate.of(2020, 1, 1))
-        .withEndDate(LocalDate.of(2025, 12, 31))
+        .withStartDate(LocalDate.of(2020, Month.JANUARY, 1))
+        .withEndDate(LocalDate.of(2025, Month.DECEMBER, 31))
         .build();
 
     when(licenceScheduleTermService.getTermByIdOrThrow(termId)).thenReturn(term);
 
     var ratesMap = new LinkedHashMap<UUID, StartEndDates>();
-    ratesMap.put(overlappingRateId, new StartEndDates(LocalDate.of(2019, 1, 1), LocalDate.of(2026, 12, 31)));
+    ratesMap.put(overlappingRateId, new StartEndDates(LocalDate.of(2019, Month.JANUARY, 1), LocalDate.of(2026, Month.DECEMBER, 31)));
     when(licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail))
         .thenReturn(ratesMap);
 
@@ -839,8 +840,8 @@ class ScheduleRelativeDateValidationServiceTest {
 
     var phase = LicenceSchedulePhaseTestUtil.builder()
         .withId(phaseId)
-        .withStartDate(LocalDate.of(2021, 1, 1))
-        .withEndDate(LocalDate.of(2023, 12, 31))
+        .withStartDate(LocalDate.of(2021, Month.JANUARY, 1))
+        .withEndDate(LocalDate.of(2023, Month.DECEMBER, 31))
         .build();
 
     when(licenceSchedulePhaseService.getPhaseByIdOrThrow(phaseId)).thenReturn(phase);
@@ -862,14 +863,14 @@ class ScheduleRelativeDateValidationServiceTest {
 
     var phase = LicenceSchedulePhaseTestUtil.builder()
         .withId(phaseId)
-        .withStartDate(LocalDate.of(2021, 1, 1))
-        .withEndDate(LocalDate.of(2023, 12, 31))
+        .withStartDate(LocalDate.of(2021, Month.JANUARY, 1))
+        .withEndDate(LocalDate.of(2023, Month.DECEMBER, 31))
         .build();
 
     when(licenceSchedulePhaseService.getPhaseByIdOrThrow(phaseId)).thenReturn(phase);
 
     var ratesMap = new LinkedHashMap<UUID, StartEndDates>();
-    ratesMap.put(UUID.randomUUID(), new StartEndDates(LocalDate.of(2022, 1, 1), LocalDate.of(2025, 12, 31)));
+    ratesMap.put(UUID.randomUUID(), new StartEndDates(LocalDate.of(2022, Month.JANUARY, 1), LocalDate.of(2025, Month.DECEMBER, 31)));
     when(licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail))
         .thenReturn(ratesMap);
 
@@ -888,14 +889,14 @@ class ScheduleRelativeDateValidationServiceTest {
 
     var phase = LicenceSchedulePhaseTestUtil.builder()
         .withId(phaseId)
-        .withStartDate(LocalDate.of(2021, 1, 1))
-        .withEndDate(LocalDate.of(2023, 12, 31))
+        .withStartDate(LocalDate.of(2021, Month.JANUARY, 1))
+        .withEndDate(LocalDate.of(2023, Month.DECEMBER, 31))
         .build();
 
     when(licenceSchedulePhaseService.getPhaseByIdOrThrow(phaseId)).thenReturn(phase);
 
     var ratesMap = new LinkedHashMap<UUID, StartEndDates>();
-    ratesMap.put(UUID.randomUUID(), new StartEndDates(LocalDate.of(2020, 1, 1), LocalDate.of(2025, 12, 31)));
+    ratesMap.put(UUID.randomUUID(), new StartEndDates(LocalDate.of(2020, Month.JANUARY, 1), LocalDate.of(2025, Month.DECEMBER, 31)));
     when(licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail))
         .thenReturn(ratesMap);
 
@@ -918,14 +919,14 @@ class ScheduleRelativeDateValidationServiceTest {
 
     var phase = LicenceSchedulePhaseTestUtil.builder()
         .withId(phaseId)
-        .withStartDate(LocalDate.of(2021, 1, 1))
-        .withEndDate(LocalDate.of(2023, 12, 31))
+        .withStartDate(LocalDate.of(2021, Month.JANUARY, 1))
+        .withEndDate(LocalDate.of(2023, Month.DECEMBER, 31))
         .build();
 
     when(licenceSchedulePhaseService.getPhaseByIdOrThrow(phaseId)).thenReturn(phase);
 
     var ratesMap = new LinkedHashMap<UUID, StartEndDates>();
-    ratesMap.put(existingRateId, new StartEndDates(LocalDate.of(2020, 1, 1), LocalDate.of(2025, 12, 31)));
+    ratesMap.put(existingRateId, new StartEndDates(LocalDate.of(2020, Month.JANUARY, 1), LocalDate.of(2025, Month.DECEMBER, 31)));
     when(licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail))
         .thenReturn(ratesMap);
 
@@ -948,14 +949,14 @@ class ScheduleRelativeDateValidationServiceTest {
 
     var phase = LicenceSchedulePhaseTestUtil.builder()
         .withId(phaseId)
-        .withStartDate(LocalDate.of(2021, 1, 1))
-        .withEndDate(LocalDate.of(2023, 12, 31))
+        .withStartDate(LocalDate.of(2021, Month.JANUARY, 1))
+        .withEndDate(LocalDate.of(2023, Month.DECEMBER, 31))
         .build();
 
     when(licenceSchedulePhaseService.getPhaseByIdOrThrow(phaseId)).thenReturn(phase);
 
     var ratesMap = new LinkedHashMap<UUID, StartEndDates>();
-    ratesMap.put(overlappingRateId, new StartEndDates(LocalDate.of(2020, 1, 1), LocalDate.of(2025, 12, 31)));
+    ratesMap.put(overlappingRateId, new StartEndDates(LocalDate.of(2020, Month.JANUARY, 1), LocalDate.of(2025, Month.DECEMBER, 31)));
     when(licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail))
         .thenReturn(ratesMap);
 
@@ -979,8 +980,8 @@ class ScheduleRelativeDateValidationServiceTest {
     var term = LicenceScheduleTermTestUtil.builder()
         .withId(relativeEventId)
         .withTermType(TermType.INITIAL)
-        .withStartDate(LocalDate.of(2020, 1, 1))
-        .withEndDate(LocalDate.of(2025, 12, 31))
+        .withStartDate(LocalDate.of(2020, Month.JANUARY, 1))
+        .withEndDate(LocalDate.of(2025, Month.DECEMBER, 31))
         .build();
 
     when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail))
@@ -1004,19 +1005,19 @@ class ScheduleRelativeDateValidationServiceTest {
     form.setRateRelativeDateOption(RateRelativeDateOption.ON_START_DATE);
     form.setRelativeEventId(relativeEventId.toString());
 
-    var termStartDate = LocalDate.of(2020, 1, 1);
+    var termStartDate = LocalDate.of(2020, Month.JANUARY, 1);
     var term = LicenceScheduleTermTestUtil.builder()
         .withId(relativeEventId)
         .withTermType(TermType.INITIAL)
         .withStartDate(termStartDate)
-        .withEndDate(LocalDate.of(2025, 12, 31))
+        .withEndDate(LocalDate.of(2025, Month.DECEMBER, 31))
         .build();
 
     when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail))
         .thenReturn(List.of(term));
 
     var ratesMap = new LinkedHashMap<UUID, StartEndDates>();
-    ratesMap.put(UUID.randomUUID(), new StartEndDates(termStartDate, LocalDate.of(2025, 12, 31)));
+    ratesMap.put(UUID.randomUUID(), new StartEndDates(termStartDate, LocalDate.of(2025, Month.DECEMBER, 31)));
     when(licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail))
         .thenReturn(ratesMap);
 
@@ -1038,23 +1039,23 @@ class ScheduleRelativeDateValidationServiceTest {
     form.setRelativeEventId(relativeEventId.toString());
     form.getRelativeDuration().setFromThreeFieldDuration(new ThreeFieldDuration(2, 0, 0));
 
-    var termStartDate = LocalDate.of(2020, 1, 1);
+    var termStartDate = LocalDate.of(2020, Month.JANUARY, 1);
     var term = LicenceScheduleTermTestUtil.builder()
         .withId(relativeEventId)
         .withTermType(TermType.INITIAL)
         .withStartDate(termStartDate)
-        .withEndDate(LocalDate.of(2025, 12, 31))
+        .withEndDate(LocalDate.of(2025, Month.DECEMBER, 31))
         .build();
 
     when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail))
         .thenReturn(List.of(term));
 
-    var calculatedStartDate = LocalDate.of(2022, 1, 1);
+    var calculatedStartDate = LocalDate.of(2022, Month.JANUARY, 1);
     when(licenceScheduleCalculationService.calculateRelativeStartDueDate(eq(termStartDate), any(ThreeFieldDuration.class)))
         .thenReturn(calculatedStartDate);
 
     var ratesMap = new LinkedHashMap<UUID, StartEndDates>();
-    ratesMap.put(UUID.randomUUID(), new StartEndDates(calculatedStartDate, LocalDate.of(2025, 12, 31)));
+    ratesMap.put(UUID.randomUUID(), new StartEndDates(calculatedStartDate, LocalDate.of(2025, Month.DECEMBER, 31)));
     when(licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail))
         .thenReturn(ratesMap);
 
@@ -1078,19 +1079,19 @@ class ScheduleRelativeDateValidationServiceTest {
     form.setRateRelativeDateOption(RateRelativeDateOption.ON_START_DATE);
     form.setRelativeEventId(relativeEventId.toString());
 
-    var termStartDate = LocalDate.of(2020, 1, 1);
+    var termStartDate = LocalDate.of(2020, Month.JANUARY, 1);
     var term = LicenceScheduleTermTestUtil.builder()
         .withId(relativeEventId)
         .withTermType(TermType.INITIAL)
         .withStartDate(termStartDate)
-        .withEndDate(LocalDate.of(2025, 12, 31))
+        .withEndDate(LocalDate.of(2025, Month.DECEMBER, 31))
         .build();
 
     when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail))
         .thenReturn(List.of(term));
 
     var ratesMap = new LinkedHashMap<UUID, StartEndDates>();
-    ratesMap.put(existingRateId, new StartEndDates(termStartDate, LocalDate.of(2025, 12, 31)));
+    ratesMap.put(existingRateId, new StartEndDates(termStartDate, LocalDate.of(2025, Month.DECEMBER, 31)));
     when(licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail))
         .thenReturn(ratesMap);
 
@@ -1116,12 +1117,12 @@ class ScheduleRelativeDateValidationServiceTest {
     form.setRateRelativeDateOption(RateRelativeDateOption.ON_START_DATE);
     form.setRelativeEventId(relativeEventId.toString());
 
-    var termStartDate = LocalDate.of(2022, 6, 1);
+    var termStartDate = LocalDate.of(2022, Month.JUNE, 1);
     var term = LicenceScheduleTermTestUtil.builder()
         .withId(relativeEventId)
         .withTermType(TermType.INITIAL)
         .withStartDate(termStartDate)
-        .withEndDate(LocalDate.of(2025, 12, 31))
+        .withEndDate(LocalDate.of(2025, Month.DECEMBER, 31))
         .build();
 
     when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail))
@@ -1129,7 +1130,7 @@ class ScheduleRelativeDateValidationServiceTest {
 
     // Existing rate covers 2020-2030; the proposed start date (2022-06-01) falls within it
     var ratesMap = new LinkedHashMap<UUID, StartEndDates>();
-    ratesMap.put(existingRateId, new StartEndDates(LocalDate.of(2020, 1, 1), LocalDate.of(2030, 12, 31)));
+    ratesMap.put(existingRateId, new StartEndDates(LocalDate.of(2020, Month.JANUARY, 1), LocalDate.of(2030, Month.DECEMBER, 31)));
     when(licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail))
         .thenReturn(ratesMap);
 
@@ -1158,19 +1159,19 @@ class ScheduleRelativeDateValidationServiceTest {
     form.setRateRelativeDateOption(RateRelativeDateOption.ON_START_DATE);
     form.setRelativeEventId(relativeEventId.toString());
 
-    var termStartDate = LocalDate.of(2022, 6, 1);
+    var termStartDate = LocalDate.of(2022, Month.JUNE, 1);
     var term = LicenceScheduleTermTestUtil.builder()
         .withId(relativeEventId)
         .withTermType(TermType.INITIAL)
         .withStartDate(termStartDate)
-        .withEndDate(LocalDate.of(2025, 12, 31))
+        .withEndDate(LocalDate.of(2025, Month.DECEMBER, 31))
         .build();
 
     when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail))
         .thenReturn(List.of(term));
 
     var ratesMap = new LinkedHashMap<UUID, StartEndDates>();
-    ratesMap.put(existingRateId, new StartEndDates(LocalDate.of(2020, 1, 1), LocalDate.of(2030, 12, 31)));
+    ratesMap.put(existingRateId, new StartEndDates(LocalDate.of(2020, Month.JANUARY, 1), LocalDate.of(2030, Month.DECEMBER, 31)));
     when(licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail))
         .thenReturn(ratesMap);
 
@@ -1190,12 +1191,12 @@ class ScheduleRelativeDateValidationServiceTest {
 
   @Test
   void validatePhaseLengthUpdate_newPhase_endsWithinInitialTerm_noErrors() {
-    var initialTermStartDate = LocalDate.of(2020, 1, 1);
+    var initialTermStartDate = LocalDate.of(2020, Month.JANUARY, 1);
     var initialTerm = LicenceScheduleTermTestUtil.builder()
         .withId(UUID.randomUUID())
         .withTermType(TermType.INITIAL)
         .withStartDate(initialTermStartDate)
-        .withEndDate(LocalDate.of(2025, 12, 31))
+        .withEndDate(LocalDate.of(2025, Month.DECEMBER, 31))
         .build();
 
     when(licenceSchedulePhaseService.getPhasesByLicenceScheduleDetail(licenceScheduleDetail))
@@ -1203,7 +1204,7 @@ class ScheduleRelativeDateValidationServiceTest {
     when(licenceScheduleTermService.getTermByLicenceScheduleDetailAndTermTypeOrThrow(licenceScheduleDetail, TermType.INITIAL))
         .thenReturn(initialTerm);
     when(licenceScheduleCalculationService.calculateDurationEndDate(eq(initialTermStartDate), any(ThreeFieldDuration.class)))
-        .thenReturn(LocalDate.of(2020, 12, 31));
+        .thenReturn(LocalDate.of(2020, Month.DECEMBER, 31));
 
     var form = new LicenceSchedulePhaseForm();
     form.setPhaseType(PhaseType.PHASE_A);
@@ -1218,12 +1219,12 @@ class ScheduleRelativeDateValidationServiceTest {
 
   @Test
   void validatePhaseLengthUpdate_newPhase_endsAfterInitialTerm_rejectsFields() {
-    var initialTermStartDate = LocalDate.of(2020, 1, 1);
+    var initialTermStartDate = LocalDate.of(2020, Month.JANUARY, 1);
     var initialTerm = LicenceScheduleTermTestUtil.builder()
         .withId(UUID.randomUUID())
         .withTermType(TermType.INITIAL)
         .withStartDate(initialTermStartDate)
-        .withEndDate(LocalDate.of(2020, 12, 31))
+        .withEndDate(LocalDate.of(2020, Month.DECEMBER, 31))
         .build();
 
     when(licenceSchedulePhaseService.getPhasesByLicenceScheduleDetail(licenceScheduleDetail))
@@ -1231,7 +1232,7 @@ class ScheduleRelativeDateValidationServiceTest {
     when(licenceScheduleTermService.getTermByLicenceScheduleDetailAndTermTypeOrThrow(licenceScheduleDetail, TermType.INITIAL))
         .thenReturn(initialTerm);
     when(licenceScheduleCalculationService.calculateDurationEndDate(eq(initialTermStartDate), any(ThreeFieldDuration.class)))
-        .thenReturn(LocalDate.of(2021, 1, 1));
+        .thenReturn(LocalDate.of(2021, Month.JANUARY, 1));
 
     var form = new LicenceSchedulePhaseForm();
     form.setPhaseType(PhaseType.PHASE_A);
@@ -1296,12 +1297,12 @@ class ScheduleRelativeDateValidationServiceTest {
 
   @Test
   void validatePhaseLengthUpdate_existingPhase_lengthenedByYearsOnly_endsAfterInitialTerm_rejectsFields() {
-    var initialTermStartDate = LocalDate.of(2020, 1, 1);
+    var initialTermStartDate = LocalDate.of(2020, Month.JANUARY, 1);
     var initialTerm = LicenceScheduleTermTestUtil.builder()
         .withId(UUID.randomUUID())
         .withTermType(TermType.INITIAL)
         .withStartDate(initialTermStartDate)
-        .withEndDate(LocalDate.of(2020, 12, 31))
+        .withEndDate(LocalDate.of(2020, Month.DECEMBER, 31))
         .build();
 
     var existingPhase = LicenceSchedulePhaseTestUtil.builder()
@@ -1315,7 +1316,7 @@ class ScheduleRelativeDateValidationServiceTest {
     when(licenceScheduleTermService.getTermByLicenceScheduleDetailAndTermTypeOrThrow(licenceScheduleDetail, TermType.INITIAL))
         .thenReturn(initialTerm);
     when(licenceScheduleCalculationService.calculateDurationEndDate(eq(initialTermStartDate), any(ThreeFieldDuration.class)))
-        .thenReturn(LocalDate.of(2022, 1, 1));
+        .thenReturn(LocalDate.of(2022, Month.JANUARY, 1));
 
     var form = new LicenceSchedulePhaseForm();
     form.setPhaseType(PhaseType.PHASE_A);
@@ -1335,12 +1336,12 @@ class ScheduleRelativeDateValidationServiceTest {
 
   @Test
   void validatePhaseLengthUpdate_existingPhase_lengthened_endsWithinInitialTerm_noErrors() {
-    var initialTermStartDate = LocalDate.of(2020, 1, 1);
+    var initialTermStartDate = LocalDate.of(2020, Month.JANUARY, 1);
     var initialTerm = LicenceScheduleTermTestUtil.builder()
         .withId(UUID.randomUUID())
         .withTermType(TermType.INITIAL)
         .withStartDate(initialTermStartDate)
-        .withEndDate(LocalDate.of(2021, 12, 31))
+        .withEndDate(LocalDate.of(2021, Month.DECEMBER, 31))
         .build();
 
     var existingPhase = LicenceSchedulePhaseTestUtil.builder()
@@ -1354,7 +1355,7 @@ class ScheduleRelativeDateValidationServiceTest {
     when(licenceScheduleTermService.getTermByLicenceScheduleDetailAndTermTypeOrThrow(licenceScheduleDetail, TermType.INITIAL))
         .thenReturn(initialTerm);
     when(licenceScheduleCalculationService.calculateDurationEndDate(eq(initialTermStartDate), any(ThreeFieldDuration.class)))
-        .thenReturn(LocalDate.of(2021, 1, 1));
+        .thenReturn(LocalDate.of(2021, Month.JANUARY, 1));
 
     var form = new LicenceSchedulePhaseForm();
     form.setPhaseType(PhaseType.PHASE_A);
@@ -1370,12 +1371,12 @@ class ScheduleRelativeDateValidationServiceTest {
 
   @Test
   void validatePhaseLengthUpdate_existingPhase_lengthened_endsAfterInitialTerm_rejectsFields() {
-    var initialTermStartDate = LocalDate.of(2020, 1, 1);
+    var initialTermStartDate = LocalDate.of(2020, Month.JANUARY, 1);
     var initialTerm = LicenceScheduleTermTestUtil.builder()
         .withId(UUID.randomUUID())
         .withTermType(TermType.INITIAL)
         .withStartDate(initialTermStartDate)
-        .withEndDate(LocalDate.of(2020, 12, 31))
+        .withEndDate(LocalDate.of(2020, Month.DECEMBER, 31))
         .build();
 
     var existingPhase = LicenceSchedulePhaseTestUtil.builder()
@@ -1389,7 +1390,7 @@ class ScheduleRelativeDateValidationServiceTest {
     when(licenceScheduleTermService.getTermByLicenceScheduleDetailAndTermTypeOrThrow(licenceScheduleDetail, TermType.INITIAL))
         .thenReturn(initialTerm);
     when(licenceScheduleCalculationService.calculateDurationEndDate(eq(initialTermStartDate), any(ThreeFieldDuration.class)))
-        .thenReturn(LocalDate.of(2021, 1, 1));
+        .thenReturn(LocalDate.of(2021, Month.JANUARY, 1));
 
     var form = new LicenceSchedulePhaseForm();
     form.setPhaseType(PhaseType.PHASE_A);
@@ -1410,13 +1411,13 @@ class ScheduleRelativeDateValidationServiceTest {
 
   @Test
   void validatePhaseLengthUpdate_multiplePhases_usesFinalPhaseEndDate_rejectsFields() {
-    var initialTermStartDate = LocalDate.of(2020, 1, 1);
+    var initialTermStartDate = LocalDate.of(2020, Month.JANUARY, 1);
     var initialTerm = LicenceScheduleTermTestUtil.builder()
         .withId(UUID.randomUUID())
         .withTermType(TermType.INITIAL)
         .withStartDate(initialTermStartDate)
         // Ends after phase A but before the (updated) phase B end date
-        .withEndDate(LocalDate.of(2021, 6, 30))
+        .withEndDate(LocalDate.of(2021, Month.JUNE, 30))
         .build();
 
     var phaseA = LicenceSchedulePhaseTestUtil.builder()
@@ -1436,9 +1437,9 @@ class ScheduleRelativeDateValidationServiceTest {
     when(licenceScheduleTermService.getTermByLicenceScheduleDetailAndTermTypeOrThrow(licenceScheduleDetail, TermType.INITIAL))
         .thenReturn(initialTerm);
 
-    var phaseAEndDate = LocalDate.of(2020, 12, 31);
+    var phaseAEndDate = LocalDate.of(2020, Month.DECEMBER, 31);
     var phaseBStartDate = phaseAEndDate.plusDays(1);
-    var phaseBEndDate = LocalDate.of(2022, 1, 1);
+    var phaseBEndDate = LocalDate.of(2022, Month.JANUARY, 1);
 
     when(licenceScheduleCalculationService.calculateDurationEndDate(
         initialTermStartDate, new ThreeFieldDuration(1, 0, 0)))
@@ -1490,18 +1491,18 @@ class ScheduleRelativeDateValidationServiceTest {
   void doesFinalPhaseEndDateMatchEndOfInitialTerm_whenFinalPhaseEndDateMatchesInitialTermEndDate_returnsTrue() {
     licenceScheduleDetail.getLicenceSchedule().getLicence().setType(LicenceType.SEAWARD_PRODUCTION);
 
-    var initialTermEndDate = LocalDate.of(2021, 12, 31);
+    var initialTermEndDate = LocalDate.of(2021, Month.DECEMBER, 31);
     var initialTerm = LicenceScheduleTermTestUtil.builder()
         .withId(UUID.randomUUID())
         .withTermType(TermType.INITIAL)
-        .withStartDate(LocalDate.of(2020, 1, 1))
+        .withStartDate(LocalDate.of(2020, Month.JANUARY, 1))
         .withEndDate(initialTermEndDate)
         .build();
 
     var phaseA = LicenceSchedulePhaseTestUtil.builder()
         .withId(UUID.randomUUID())
         .withPhaseType(PhaseType.PHASE_A)
-        .withEndDate(LocalDate.of(2020, 12, 31))
+        .withEndDate(LocalDate.of(2020, Month.DECEMBER, 31))
         .build();
 
     var phaseB = LicenceSchedulePhaseTestUtil.builder()
@@ -1528,14 +1529,14 @@ class ScheduleRelativeDateValidationServiceTest {
     var initialTerm = LicenceScheduleTermTestUtil.builder()
         .withId(UUID.randomUUID())
         .withTermType(TermType.INITIAL)
-        .withStartDate(LocalDate.of(2020, 1, 1))
-        .withEndDate(LocalDate.of(2021, 12, 31))
+        .withStartDate(LocalDate.of(2020, Month.JANUARY, 1))
+        .withEndDate(LocalDate.of(2021, Month.DECEMBER, 31))
         .build();
 
     var finalPhase = LicenceSchedulePhaseTestUtil.builder()
         .withId(UUID.randomUUID())
         .withPhaseType(PhaseType.PHASE_A)
-        .withEndDate(LocalDate.of(2021, 6, 30))
+        .withEndDate(LocalDate.of(2021, Month.JUNE, 30))
         .build();
 
     when(licenceTypeFeatureService.arePhasesCaptured(LicenceType.SEAWARD_PRODUCTION)).thenReturn(true);
@@ -1562,7 +1563,7 @@ class ScheduleRelativeDateValidationServiceTest {
   @Test
   void doesExpiryDateMatchEndOfFinalTerm_whenNoTerms_returnsTrue() {
     var expiry = new LicenceScheduleExpiry();
-    expiry.setExpiryDate(LocalDate.of(2025, 12, 31));
+    expiry.setExpiryDate(LocalDate.of(2025, Month.DECEMBER, 31));
 
     when(licenceScheduleExpiryService.getExpiryForLicenceScheduleDetail(licenceScheduleDetail))
         .thenReturn(Optional.of(expiry));
@@ -1576,7 +1577,7 @@ class ScheduleRelativeDateValidationServiceTest {
 
   @Test
   void doesExpiryDateMatchEndOfFinalTerm_whenExpiryDateMatchesFinalTermEndDate_returnsTrue() {
-    var finalTermEndDate = LocalDate.of(2025, 12, 31);
+    var finalTermEndDate = LocalDate.of(2025, Month.DECEMBER, 31);
 
     var expiry = new LicenceScheduleExpiry();
     expiry.setExpiryDate(finalTermEndDate);
@@ -1584,14 +1585,14 @@ class ScheduleRelativeDateValidationServiceTest {
     var initialTerm = LicenceScheduleTermTestUtil.builder()
         .withId(UUID.randomUUID())
         .withTermType(TermType.INITIAL)
-        .withStartDate(LocalDate.of(2020, 1, 1))
-        .withEndDate(LocalDate.of(2024, 12, 31))
+        .withStartDate(LocalDate.of(2020, Month.JANUARY, 1))
+        .withEndDate(LocalDate.of(2024, Month.DECEMBER, 31))
         .build();
 
     var finalTerm = LicenceScheduleTermTestUtil.builder()
         .withId(UUID.randomUUID())
         .withTermType(TermType.SECOND)
-        .withStartDate(LocalDate.of(2025, 1, 1))
+        .withStartDate(LocalDate.of(2025, Month.JANUARY, 1))
         .withEndDate(finalTermEndDate)
         .build();
 
@@ -1608,13 +1609,13 @@ class ScheduleRelativeDateValidationServiceTest {
   @Test
   void doesExpiryDateMatchEndOfFinalTerm_whenExpiryDateDoesNotMatchFinalTermEndDate_returnsFalse() {
     var expiry = new LicenceScheduleExpiry();
-    expiry.setExpiryDate(LocalDate.of(2026, 6, 30));
+    expiry.setExpiryDate(LocalDate.of(2026, Month.JUNE, 30));
 
     var finalTerm = LicenceScheduleTermTestUtil.builder()
         .withId(UUID.randomUUID())
         .withTermType(TermType.INITIAL)
-        .withStartDate(LocalDate.of(2020, 1, 1))
-        .withEndDate(LocalDate.of(2025, 12, 31))
+        .withStartDate(LocalDate.of(2020, Month.JANUARY, 1))
+        .withEndDate(LocalDate.of(2025, Month.DECEMBER, 31))
         .build();
 
     when(licenceScheduleExpiryService.getExpiryForLicenceScheduleDetail(licenceScheduleDetail))
@@ -1629,8 +1630,8 @@ class ScheduleRelativeDateValidationServiceTest {
 
   private LocalDate setupShortenedTermMocks(LicenceScheduleTerm licenceScheduleTerm) {
     var licenceStartDate = new LicenceStartDate();
-    licenceStartDate.setStartDate(LocalDate.of(2020, 1, 1));
-    var newEndDate = LocalDate.of(2023, 12, 31);
+    licenceStartDate.setStartDate(LocalDate.of(2020, Month.JANUARY, 1));
+    var newEndDate = LocalDate.of(2023, Month.DECEMBER, 31);
 
     when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail))
         .thenReturn(List.of(licenceScheduleTerm));
@@ -1644,8 +1645,8 @@ class ScheduleRelativeDateValidationServiceTest {
 
   private LocalDate setupTermRemovalMocks(LicenceScheduleTerm termToRemove, LicenceScheduleTerm remainingTerm) {
     var licenceStartDate = new LicenceStartDate();
-    licenceStartDate.setStartDate(LocalDate.of(2020, 1, 1));
-    var newEndDate = LocalDate.of(2023, 12, 31);
+    licenceStartDate.setStartDate(LocalDate.of(2020, Month.JANUARY, 1));
+    var newEndDate = LocalDate.of(2023, Month.DECEMBER, 31);
 
     when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail))
         .thenReturn(List.of(termToRemove, remainingTerm));

@@ -1,6 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.position;
 
 import java.time.LocalDate;
+import java.time.Month;
 import java.util.UUID;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
@@ -12,7 +13,7 @@ public class LicencePositionTestUtil {
   private UUID id = UUID.randomUUID();
   private Licence licence = LicenceTestUtil.builder().build();
   private LicenceTransaction transaction = LicenceTransactionTestUtil.newBuilder().build();
-  private LocalDate positionDate = LocalDate.of(2026, 1, 1);
+  private LocalDate positionDate = LocalDate.of(2026, Month.JANUARY, 1);
   private int positionOrder = 1;
   private LicencePositionStatus status = LicencePositionStatus.EXECUTED;
 

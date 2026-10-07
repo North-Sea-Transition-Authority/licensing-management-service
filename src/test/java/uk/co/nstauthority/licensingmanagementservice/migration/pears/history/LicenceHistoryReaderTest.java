@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import java.io.StringReader;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.Month;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -14,7 +15,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 class LicenceHistoryReaderTest {
 
-  private static final LocalDate POSITION_DATE = LocalDate.of(1964, 9, 18);
+  private static final LocalDate POSITION_DATE = LocalDate.of(1964, Month.SEPTEMBER, 18);
 
   @Test
   void read_whenAdministratorIsSet_thenTheConsortiumListIsRead() throws Exception {

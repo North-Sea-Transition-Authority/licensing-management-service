@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.entry;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.LocalDate;
+import java.time.Month;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -20,7 +21,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSu
 
 class PartialSurrenderOperationTest {
 
-  private static final LocalDate SURRENDER_DATE = LocalDate.of(2026, 8, 1);
+  private static final LocalDate SURRENDER_DATE = LocalDate.of(2026, Month.AUGUST, 1);
   private static final UUID FIRST_FEATURE_ID = UUID.randomUUID();
   private static final UUID SECOND_FEATURE_ID = UUID.randomUUID();
   private static final UUID COMMAND_JOURNEY_ID = UUID.randomUUID();

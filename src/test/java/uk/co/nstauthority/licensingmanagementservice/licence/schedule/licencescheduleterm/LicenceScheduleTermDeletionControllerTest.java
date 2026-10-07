@@ -13,6 +13,7 @@ import static org.springframework.web.servlet.mvc.method.annotation.MvcUriCompon
 import static uk.co.nstauthority.licensingmanagementservice.authentication.TestUserProvider.user;
 
 import java.time.LocalDate;
+import java.time.Month;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -69,8 +70,8 @@ class LicenceScheduleTermDeletionControllerTest extends AbstractControllerTest {
     licenceScheduleTerm.setLicenceScheduleDetail(licenceScheduleDetail);
     licenceScheduleTerm.setTermType(TermType.INITIAL);
     licenceScheduleTerm.setTermDuration(new ThreeFieldDuration(1, 0, 0));
-    licenceScheduleTerm.setStartDate(LocalDate.of(2025, 1, 1));
-    licenceScheduleTerm.setEndDate(LocalDate.of(2025, 12, 31));
+    licenceScheduleTerm.setStartDate(LocalDate.of(2025, Month.JANUARY, 1));
+    licenceScheduleTerm.setEndDate(LocalDate.of(2025, Month.DECEMBER, 31));
   }
 
   @Test

@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.Month;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import uk.co.nstauthority.licensingmanagementservice.util.enumutil.Displayable;
@@ -15,7 +16,7 @@ class SummaryUtilTest {
   private static final String INTEGER_VALUE_AS_STRING = "2";
   private static final Boolean BOOLEAN_VALUE = false;
   private static final String BOOLEAN_VALUE_AS_STRING = "No";
-  private static final LocalDate LOCAL_DATE_VALUE = LocalDate.of(2025, 4, 15);
+  private static final LocalDate LOCAL_DATE_VALUE = LocalDate.of(2025, Month.APRIL, 15);
   private static final String LOCAL_DATE_VALUE_AS_STRING = "15 Apr 2025";
   private static final BigDecimal BIG_DECIMAL_VALUE = new BigDecimal("1234567890.123450000");
   private static final String BIG_DECIMAL_VALUE_AS_STRING = "1234567890.12345";

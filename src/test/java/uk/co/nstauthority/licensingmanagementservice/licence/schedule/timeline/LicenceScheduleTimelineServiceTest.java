@@ -7,6 +7,7 @@ import static org.springframework.web.servlet.mvc.method.annotation.MvcUriCompon
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDate;
+import java.time.Month;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
@@ -147,12 +148,12 @@ class LicenceScheduleTimelineServiceTest {
   @Test
   void getTimelineSummaryCardView() {
     var licenceStartDate = new LicenceStartDate();
-    licenceStartDate.setStartDate(LocalDate.of(2025, 1, 1));
+    licenceStartDate.setStartDate(LocalDate.of(2025, Month.JANUARY, 1));
 
     when(licenceStartDateService.getByLicenceScheduleDetailOrThrow(licenceScheduleDetail)).thenReturn(licenceStartDate);
 
     var licenceExpiryDate = new LicenceScheduleExpiry();
-    licenceExpiryDate.setExpiryDate(LocalDate.of(2026, 1, 1));
+    licenceExpiryDate.setExpiryDate(LocalDate.of(2026, Month.JANUARY, 1));
 
     when(licenceScheduleExpiryService.getExpiryForLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(Optional.of(licenceExpiryDate));
     when(licenceTypeRulesResolver.canShowLicenceRoundIssuedOn(licence.getType())).thenReturn(true);
@@ -187,7 +188,7 @@ class LicenceScheduleTimelineServiceTest {
   @Test
   void getTimelineSummaryCardView_blankExpiryDate() {
     var licenceStartDate = new LicenceStartDate();
-    licenceStartDate.setStartDate(LocalDate.of(2025, 1, 1));
+    licenceStartDate.setStartDate(LocalDate.of(2025, Month.JANUARY, 1));
 
     when(licenceStartDateService.getByLicenceScheduleDetailOrThrow(licenceScheduleDetail)).thenReturn(licenceStartDate);
 
@@ -220,8 +221,8 @@ class LicenceScheduleTimelineServiceTest {
 
   @Test
   void getTimelineSummaryCardView_withLicenceEndDate() {
-    var startDate = LocalDate.of(2025, 1, 1);
-    var endDate = LocalDate.of(2027, 1, 1);
+    var startDate = LocalDate.of(2025, Month.JANUARY, 1);
+    var endDate = LocalDate.of(2027, Month.JANUARY, 1);
     licence.setEndDate(endDate);
 
     var licenceStartDate = new LicenceStartDate();
@@ -244,7 +245,7 @@ class LicenceScheduleTimelineServiceTest {
   @Test
   void getTimelineSummaryCardView_withNoLicenceEndDate() {
     var licenceStartDate = new LicenceStartDate();
-    licenceStartDate.setStartDate(LocalDate.of(2025, 1, 1));
+    licenceStartDate.setStartDate(LocalDate.of(2025, Month.JANUARY, 1));
 
     when(licenceStartDateService.getByLicenceScheduleDetailOrThrow(licenceScheduleDetail)).thenReturn(licenceStartDate);
     when(licenceScheduleExpiryService.getExpiryForLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(Optional.empty());
@@ -262,8 +263,8 @@ class LicenceScheduleTimelineServiceTest {
 
   @Test
   void getTimelineSummaryCardView_withFinalTerm() {
-    var startDate = LocalDate.of(2025, 1, 1);
-    var finalTermEndDate = LocalDate.of(2026, 1, 1);
+    var startDate = LocalDate.of(2025, Month.JANUARY, 1);
+    var finalTermEndDate = LocalDate.of(2026, Month.JANUARY, 1);
 
     var licenceStartDate = new LicenceStartDate();
     licenceStartDate.setStartDate(startDate);
@@ -290,7 +291,7 @@ class LicenceScheduleTimelineServiceTest {
   @Test
   void getTimelineSummaryCardView_withNoTerms() {
     var licenceStartDate = new LicenceStartDate();
-    licenceStartDate.setStartDate(LocalDate.of(2025, 1, 1));
+    licenceStartDate.setStartDate(LocalDate.of(2025, Month.JANUARY, 1));
 
     when(licenceStartDateService.getByLicenceScheduleDetailOrThrow(licenceScheduleDetail)).thenReturn(licenceStartDate);
     when(licenceScheduleExpiryService.getExpiryForLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(Optional.empty());
@@ -421,7 +422,7 @@ class LicenceScheduleTimelineServiceTest {
 
   @Test
   void getEditableLicenceScheduleEventViews() {
-    when(clock.instant()).thenReturn(LocalDate.of(2026, 7, 16).atStartOfDay(ZoneId.systemDefault()).toInstant());
+    when(clock.instant()).thenReturn(LocalDate.of(2026, Month.JULY, 16).atStartOfDay(ZoneId.systemDefault()).toInstant());
     when(clock.getZone()).thenReturn(ZoneId.systemDefault());
 
     var midPhaseActivity = new WorkProgrammeActivity();
@@ -430,7 +431,7 @@ class LicenceScheduleTimelineServiceTest {
     midPhaseActivity.setCategory(WorkProgrammeActivityCategory.DRILL_WELL);
     midPhaseActivity.setCommitment(WorkProgrammeActivityCommitment.FIRM);
     midPhaseActivity.setDescription("description");
-    midPhaseActivity.setDueDate(LocalDate.of(2025, 2, 1));
+    midPhaseActivity.setDueDate(LocalDate.of(2025, Month.FEBRUARY, 1));
 
     var midPhaseActivityStatus = new WorkProgrammeActivityStatus();
     midPhaseActivityStatus.setScheduleEvent(midPhaseActivity);
@@ -439,7 +440,7 @@ class LicenceScheduleTimelineServiceTest {
     var midPhaseActivityView = new TimelineWorkProgrammeActivityView(
         TimelineWorkProgrammeActivityView.getCategoryAndCommitmentString(midPhaseActivity),
         "description",
-        LocalDate.of(2025, 2, 1),
+        LocalDate.of(2025, Month.FEBRUARY, 1),
         "1 February 2025",
         ReverseRouter.route(on(WorkProgrammeActivityController.class)
             .renderUpdateActivityForm(midPhaseActivity.getId(), null)),
@@ -485,7 +486,7 @@ class LicenceScheduleTimelineServiceTest {
     midTerm2Activity.setCategory(WorkProgrammeActivityCategory.EARLY_RISK_ASSESSMENT);
     midTerm2Activity.setCommitment(WorkProgrammeActivityCommitment.FIRM);
     midTerm2Activity.setDescription("description");
-    midTerm2Activity.setDueDate(LocalDate.of(2026, 2, 1));
+    midTerm2Activity.setDueDate(LocalDate.of(2026, Month.FEBRUARY, 1));
 
     var midTerm2ActivityStatus = new WorkProgrammeActivityStatus();
     midTerm2ActivityStatus.setScheduleEvent(midTerm2Activity);
@@ -494,7 +495,7 @@ class LicenceScheduleTimelineServiceTest {
     var midTerm2ActivityView = new TimelineWorkProgrammeActivityView(
         TimelineWorkProgrammeActivityView.getCategoryAndCommitmentString(midTerm2Activity),
         "description",
-        LocalDate.of(2026, 2, 1),
+        LocalDate.of(2026, Month.FEBRUARY, 1),
         "1 February 2026",
         ReverseRouter.route(on(WorkProgrammeActivityController.class)
             .renderUpdateActivityForm(midTerm2Activity.getId(), null)),
@@ -539,12 +540,12 @@ class LicenceScheduleTimelineServiceTest {
     midPhaseEvent.setOriginalEventId(midPhaseEvent.getId());
     midPhaseEvent.setCategory(OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT);
     midPhaseEvent.setDescription("description");
-    midPhaseEvent.setEventDate(LocalDate.of(2025, 2, 1));
+    midPhaseEvent.setEventDate(LocalDate.of(2025, Month.FEBRUARY, 1));
 
     var midPhaseEventView = new TimelineOtherScheduleEventView(
         OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT.getDisplayName(),
         "description",
-        LocalDate.of(2025, 2, 1),
+        LocalDate.of(2025, Month.FEBRUARY, 1),
         "1 February 2025",
         ReverseRouter.route(on(OtherScheduleEventController.class)
             .renderUpdateEventForm(midPhaseEvent.getId())),
@@ -580,12 +581,12 @@ class LicenceScheduleTimelineServiceTest {
     midTerm2Event.setOriginalEventId(midTerm2Event.getId());
     midTerm2Event.setCategory(OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT);
     midTerm2Event.setDescription("description");
-    midTerm2Event.setEventDate(LocalDate.of(2026, 2, 1));
+    midTerm2Event.setEventDate(LocalDate.of(2026, Month.FEBRUARY, 1));
 
     var midTerm2EventView = new TimelineOtherScheduleEventView(
         OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT.getDisplayName(),
         "description",
-        LocalDate.of(2026, 2, 1),
+        LocalDate.of(2026, Month.FEBRUARY, 1),
         "1 February 2026",
         ReverseRouter.route(on(OtherScheduleEventController.class)
             .renderUpdateEventForm(midTerm2Event.getId())),
@@ -622,8 +623,8 @@ class LicenceScheduleTimelineServiceTest {
     phase.setLicenceScheduleDetail(licenceScheduleDetail);
     phase.setPhaseType(PhaseType.PHASE_A);
     phase.setPhaseDuration(new ThreeFieldDuration(1, 0, 0));
-    phase.setStartDate(LocalDate.of(2025, 1, 1));
-    phase.setEndDate(LocalDate.of(2025, 12, 31));
+    phase.setStartDate(LocalDate.of(2025, Month.JANUARY, 1));
+    phase.setEndDate(LocalDate.of(2025, Month.DECEMBER, 31));
 
     endOfPhaseActivity.setDateOption(WorkProgrammeActivityDateOption.WITHIN_A_PHASE);
     endOfPhaseActivity.setLicenceSchedulePhase(phase);
@@ -674,8 +675,8 @@ class LicenceScheduleTimelineServiceTest {
     term.setLicenceScheduleDetail(licenceScheduleDetail);
     term.setTermType(TermType.INITIAL);
     term.setTermDuration(new ThreeFieldDuration(1, 0, 0));
-    term.setStartDate(LocalDate.of(2025, 1, 1));
-    term.setEndDate(LocalDate.of(2025, 12, 31));
+    term.setStartDate(LocalDate.of(2025, Month.JANUARY, 1));
+    term.setEndDate(LocalDate.of(2025, Month.DECEMBER, 31));
 
     phase.setLicenceScheduleTerm(term);
 
@@ -698,8 +699,8 @@ class LicenceScheduleTimelineServiceTest {
     term2.setLicenceScheduleDetail(licenceScheduleDetail);
     term2.setTermType(TermType.SECOND);
     term2.setTermDuration(new ThreeFieldDuration(1, 0, 0));
-    term2.setStartDate(LocalDate.of(2026, 1, 1));
-    term2.setEndDate(LocalDate.of(2026, 12, 31));
+    term2.setStartDate(LocalDate.of(2026, Month.JANUARY, 1));
+    term2.setEndDate(LocalDate.of(2026, Month.DECEMBER, 31));
 
     endOfTerm2Activity.setDateOption(WorkProgrammeActivityDateOption.WITHIN_A_TERM);
     endOfTerm2Activity.setLicenceScheduleTerm(term2);
@@ -788,7 +789,7 @@ class LicenceScheduleTimelineServiceTest {
 
   @Test
   void getEditableLicenceScheduleEventViews_noEditPermissions() {
-    when(clock.instant()).thenReturn(LocalDate.of(2026, 7, 16).atStartOfDay(ZoneId.systemDefault()).toInstant());
+    when(clock.instant()).thenReturn(LocalDate.of(2026, Month.JULY, 16).atStartOfDay(ZoneId.systemDefault()).toInstant());
     when(clock.getZone()).thenReturn(ZoneId.systemDefault());
 
     var midPhaseActivity = new WorkProgrammeActivity();
@@ -797,7 +798,7 @@ class LicenceScheduleTimelineServiceTest {
     midPhaseActivity.setCategory(WorkProgrammeActivityCategory.DRILL_WELL);
     midPhaseActivity.setCommitment(WorkProgrammeActivityCommitment.CONDITIONAL);
     midPhaseActivity.setDescription("description");
-    midPhaseActivity.setDueDate(LocalDate.of(2025, 2, 1));
+    midPhaseActivity.setDueDate(LocalDate.of(2025, Month.FEBRUARY, 1));
 
     var midPhaseActivityStatus = new WorkProgrammeActivityStatus();
     midPhaseActivityStatus.setScheduleEvent(midPhaseActivity);
@@ -806,7 +807,7 @@ class LicenceScheduleTimelineServiceTest {
     var midPhaseActivityView = new TimelineWorkProgrammeActivityView(
         TimelineWorkProgrammeActivityView.getCategoryAndCommitmentString(midPhaseActivity),
         "description",
-        LocalDate.of(2025, 2, 1),
+        LocalDate.of(2025, Month.FEBRUARY, 1),
         "1 February 2025",
         "",
         "",
@@ -848,7 +849,7 @@ class LicenceScheduleTimelineServiceTest {
     midTerm2Activity.setCategory(WorkProgrammeActivityCategory.EARLY_RISK_ASSESSMENT);
     midTerm2Activity.setCommitment(WorkProgrammeActivityCommitment.CONTINGENT);
     midTerm2Activity.setDescription("description");
-    midTerm2Activity.setDueDate(LocalDate.of(2026, 2, 1));
+    midTerm2Activity.setDueDate(LocalDate.of(2026, Month.FEBRUARY, 1));
 
     var midTerm2ActivityStatus = new WorkProgrammeActivityStatus();
     midTerm2ActivityStatus.setScheduleEvent(midTerm2Activity);
@@ -857,7 +858,7 @@ class LicenceScheduleTimelineServiceTest {
     var midTerm2ActivityView = new TimelineWorkProgrammeActivityView(
         TimelineWorkProgrammeActivityView.getCategoryAndCommitmentString(midTerm2Activity),
         "description",
-        LocalDate.of(2026, 2, 1),
+        LocalDate.of(2026, Month.FEBRUARY, 1),
         "1 February 2026",
         "",
         "",
@@ -898,12 +899,12 @@ class LicenceScheduleTimelineServiceTest {
     midPhaseEvent.setOriginalEventId(midPhaseEvent.getId());
     midPhaseEvent.setCategory(OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT);
     midPhaseEvent.setDescription("description");
-    midPhaseEvent.setEventDate(LocalDate.of(2025, 2, 1));
+    midPhaseEvent.setEventDate(LocalDate.of(2025, Month.FEBRUARY, 1));
 
     var midPhaseEventView = new TimelineOtherScheduleEventView(
         OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT.getDisplayName(),
         "description",
-        LocalDate.of(2025, 2, 1),
+        LocalDate.of(2025, Month.FEBRUARY, 1),
         "1 February 2025",
         "",
         "",
@@ -935,12 +936,12 @@ class LicenceScheduleTimelineServiceTest {
     midTerm2Event.setOriginalEventId(midTerm2Event.getId());
     midTerm2Event.setCategory(OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT);
     midTerm2Event.setDescription("description");
-    midTerm2Event.setEventDate(LocalDate.of(2026, 2, 1));
+    midTerm2Event.setEventDate(LocalDate.of(2026, Month.FEBRUARY, 1));
 
     var midTerm2EventView = new TimelineOtherScheduleEventView(
         OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT.getDisplayName(),
         "description",
-        LocalDate.of(2026, 2, 1),
+        LocalDate.of(2026, Month.FEBRUARY, 1),
         "1 February 2026",
         "",
         "",
@@ -973,8 +974,8 @@ class LicenceScheduleTimelineServiceTest {
     phase.setLicenceScheduleDetail(licenceScheduleDetail);
     phase.setPhaseType(PhaseType.PHASE_A);
     phase.setPhaseDuration(new ThreeFieldDuration(1, 0, 0));
-    phase.setStartDate(LocalDate.of(2025, 1, 1));
-    phase.setEndDate(LocalDate.of(2025, 12, 31));
+    phase.setStartDate(LocalDate.of(2025, Month.JANUARY, 1));
+    phase.setEndDate(LocalDate.of(2025, Month.DECEMBER, 31));
 
     endOfPhaseActivity.setDateOption(WorkProgrammeActivityDateOption.WITHIN_A_PHASE);
     endOfPhaseActivity.setLicenceSchedulePhase(phase);
@@ -1023,8 +1024,8 @@ class LicenceScheduleTimelineServiceTest {
     term.setLicenceScheduleDetail(licenceScheduleDetail);
     term.setTermType(TermType.INITIAL);
     term.setTermDuration(new ThreeFieldDuration(1, 0, 0));
-    term.setStartDate(LocalDate.of(2025, 1, 1));
-    term.setEndDate(LocalDate.of(2025, 12, 31));
+    term.setStartDate(LocalDate.of(2025, Month.JANUARY, 1));
+    term.setEndDate(LocalDate.of(2025, Month.DECEMBER, 31));
 
     phase.setLicenceScheduleTerm(term);
 
@@ -1047,8 +1048,8 @@ class LicenceScheduleTimelineServiceTest {
     term2.setLicenceScheduleDetail(licenceScheduleDetail);
     term2.setTermType(TermType.SECOND);
     term2.setTermDuration(new ThreeFieldDuration(1, 0, 0));
-    term2.setStartDate(LocalDate.of(2026, 1, 1));
-    term2.setEndDate(LocalDate.of(2026, 12, 31));
+    term2.setStartDate(LocalDate.of(2026, Month.JANUARY, 1));
+    term2.setEndDate(LocalDate.of(2026, Month.DECEMBER, 31));
 
     endOfTerm2Activity.setDateOption(WorkProgrammeActivityDateOption.WITHIN_A_TERM);
     endOfTerm2Activity.setLicenceScheduleTerm(term2);
@@ -1133,7 +1134,7 @@ class LicenceScheduleTimelineServiceTest {
 
   @Test
   void getEditableLicenceScheduleEventViews_rateFilterEnabled() {
-    when(clock.instant()).thenReturn(LocalDate.of(2026, 7, 16).atStartOfDay(ZoneId.systemDefault()).toInstant());
+    when(clock.instant()).thenReturn(LocalDate.of(2026, Month.JULY, 16).atStartOfDay(ZoneId.systemDefault()).toInstant());
     when(clock.getZone()).thenReturn(ZoneId.systemDefault());
 
     var midPhaseActivity = new WorkProgrammeActivity();
@@ -1142,7 +1143,7 @@ class LicenceScheduleTimelineServiceTest {
     midPhaseActivity.setCategory(WorkProgrammeActivityCategory.DRILL_WELL);
     midPhaseActivity.setCommitment(WorkProgrammeActivityCommitment.CONDITIONAL);
     midPhaseActivity.setDescription("description");
-    midPhaseActivity.setDueDate(LocalDate.of(2025, 2, 1));
+    midPhaseActivity.setDueDate(LocalDate.of(2025, Month.FEBRUARY, 1));
 
     var midPhaseActivityStatus = new WorkProgrammeActivityStatus();
     midPhaseActivityStatus.setScheduleEvent(midPhaseActivity);
@@ -1151,7 +1152,7 @@ class LicenceScheduleTimelineServiceTest {
     var midPhaseActivityView = new TimelineWorkProgrammeActivityView(
         TimelineWorkProgrammeActivityView.getCategoryAndCommitmentString(midPhaseActivity),
         "description",
-        LocalDate.of(2025, 2, 1),
+        LocalDate.of(2025, Month.FEBRUARY, 1),
         "1 February 2025",
         ReverseRouter.route(on(WorkProgrammeActivityController.class)
             .renderUpdateActivityForm(midPhaseActivity.getId(), null)),
@@ -1197,7 +1198,7 @@ class LicenceScheduleTimelineServiceTest {
     midTerm2Activity.setCategory(WorkProgrammeActivityCategory.EARLY_RISK_ASSESSMENT);
     midTerm2Activity.setCommitment(WorkProgrammeActivityCommitment.FIRM);
     midTerm2Activity.setDescription("description");
-    midTerm2Activity.setDueDate(LocalDate.of(2026, 2, 1));
+    midTerm2Activity.setDueDate(LocalDate.of(2026, Month.FEBRUARY, 1));
 
     var midTerm2ActivityStatus = new WorkProgrammeActivityStatus();
     midTerm2ActivityStatus.setScheduleEvent(midTerm2Activity);
@@ -1206,7 +1207,7 @@ class LicenceScheduleTimelineServiceTest {
     var midTerm2ActivityView = new TimelineWorkProgrammeActivityView(
         TimelineWorkProgrammeActivityView.getCategoryAndCommitmentString(midTerm2Activity),
         "description",
-        LocalDate.of(2026, 2, 1),
+        LocalDate.of(2026, Month.FEBRUARY, 1),
         "1 February 2026",
         ReverseRouter.route(on(WorkProgrammeActivityController.class)
             .renderUpdateActivityForm(midTerm2Activity.getId(), null)),
@@ -1251,12 +1252,12 @@ class LicenceScheduleTimelineServiceTest {
     midPhaseEvent.setOriginalEventId(midPhaseEvent.getId());
     midPhaseEvent.setCategory(OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT);
     midPhaseEvent.setDescription("description");
-    midPhaseEvent.setEventDate(LocalDate.of(2025, 2, 1));
+    midPhaseEvent.setEventDate(LocalDate.of(2025, Month.FEBRUARY, 1));
 
     var midPhaseEventView = new TimelineOtherScheduleEventView(
         OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT.getDisplayName(),
         "description",
-        LocalDate.of(2025, 2, 1),
+        LocalDate.of(2025, Month.FEBRUARY, 1),
         "1 February 2025",
         ReverseRouter.route(on(OtherScheduleEventController.class)
             .renderUpdateEventForm(midPhaseEvent.getId())),
@@ -1292,12 +1293,12 @@ class LicenceScheduleTimelineServiceTest {
     midTerm2Event.setOriginalEventId(midTerm2Event.getId());
     midTerm2Event.setCategory(OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT);
     midTerm2Event.setDescription("description");
-    midTerm2Event.setEventDate(LocalDate.of(2026, 2, 1));
+    midTerm2Event.setEventDate(LocalDate.of(2026, Month.FEBRUARY, 1));
 
     var midTerm2EventView = new TimelineOtherScheduleEventView(
         OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT.getDisplayName(),
         "description",
-        LocalDate.of(2026, 2, 1),
+        LocalDate.of(2026, Month.FEBRUARY, 1),
         "1 February 2026",
         ReverseRouter.route(on(OtherScheduleEventController.class)
             .renderUpdateEventForm(midTerm2Event.getId())),
@@ -1334,8 +1335,8 @@ class LicenceScheduleTimelineServiceTest {
     phase.setLicenceScheduleDetail(licenceScheduleDetail);
     phase.setPhaseType(PhaseType.PHASE_A);
     phase.setPhaseDuration(new ThreeFieldDuration(1, 0, 0));
-    phase.setStartDate(LocalDate.of(2025, 1, 1));
-    phase.setEndDate(LocalDate.of(2025, 12, 31));
+    phase.setStartDate(LocalDate.of(2025, Month.JANUARY, 1));
+    phase.setEndDate(LocalDate.of(2025, Month.DECEMBER, 31));
 
     endOfPhaseActivity.setDateOption(WorkProgrammeActivityDateOption.WITHIN_A_PHASE);
     endOfPhaseActivity.setLicenceSchedulePhase(phase);
@@ -1372,8 +1373,8 @@ class LicenceScheduleTimelineServiceTest {
     term.setLicenceScheduleDetail(licenceScheduleDetail);
     term.setTermType(TermType.INITIAL);
     term.setTermDuration(new ThreeFieldDuration(1, 0, 0));
-    term.setStartDate(LocalDate.of(2025, 1, 1));
-    term.setEndDate(LocalDate.of(2025, 12, 31));
+    term.setStartDate(LocalDate.of(2025, Month.JANUARY, 1));
+    term.setEndDate(LocalDate.of(2025, Month.DECEMBER, 31));
 
     phase.setLicenceScheduleTerm(term);
 
@@ -1396,8 +1397,8 @@ class LicenceScheduleTimelineServiceTest {
     term2.setLicenceScheduleDetail(licenceScheduleDetail);
     term2.setTermType(TermType.SECOND);
     term2.setTermDuration(new ThreeFieldDuration(1, 0, 0));
-    term2.setStartDate(LocalDate.of(2026, 1, 1));
-    term2.setEndDate(LocalDate.of(2026, 12, 31));
+    term2.setStartDate(LocalDate.of(2026, Month.JANUARY, 1));
+    term2.setEndDate(LocalDate.of(2026, Month.DECEMBER, 31));
 
     endOfTerm2Activity.setDateOption(WorkProgrammeActivityDateOption.WITHIN_A_TERM);
     endOfTerm2Activity.setLicenceScheduleTerm(term2);
@@ -1475,7 +1476,7 @@ class LicenceScheduleTimelineServiceTest {
 
   @Test
   void getEditableLicenceScheduleEventViews_workProgrammeActivityFilterEnabled() {
-    when(clock.instant()).thenReturn(LocalDate.of(2026, 7, 16).atStartOfDay(ZoneId.systemDefault()).toInstant());
+    when(clock.instant()).thenReturn(LocalDate.of(2026, Month.JULY, 16).atStartOfDay(ZoneId.systemDefault()).toInstant());
     when(clock.getZone()).thenReturn(ZoneId.systemDefault());
 
     var midPhaseActivity = new WorkProgrammeActivity();
@@ -1484,7 +1485,7 @@ class LicenceScheduleTimelineServiceTest {
     midPhaseActivity.setCategory(WorkProgrammeActivityCategory.DRILL_WELL);
     midPhaseActivity.setCommitment(WorkProgrammeActivityCommitment.FIRM);
     midPhaseActivity.setDescription("description");
-    midPhaseActivity.setDueDate(LocalDate.of(2025, 2, 1));
+    midPhaseActivity.setDueDate(LocalDate.of(2025, Month.FEBRUARY, 1));
 
     var midPhaseActivityStatus = new WorkProgrammeActivityStatus();
     midPhaseActivityStatus.setScheduleEvent(midPhaseActivity);
@@ -1507,7 +1508,7 @@ class LicenceScheduleTimelineServiceTest {
     midTerm2Activity.setCategory(WorkProgrammeActivityCategory.EARLY_RISK_ASSESSMENT);
     midTerm2Activity.setCommitment(WorkProgrammeActivityCommitment.FIRM);
     midTerm2Activity.setDescription("description");
-    midTerm2Activity.setDueDate(LocalDate.of(2026, 2, 1));
+    midTerm2Activity.setDueDate(LocalDate.of(2026, Month.FEBRUARY, 1));
 
     var midTerm2ActivityStatus = new WorkProgrammeActivityStatus();
     midTerm2ActivityStatus.setScheduleEvent(midTerm2Activity);
@@ -1529,12 +1530,12 @@ class LicenceScheduleTimelineServiceTest {
     midPhaseEvent.setOriginalEventId(midPhaseEvent.getId());
     midPhaseEvent.setCategory(OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT);
     midPhaseEvent.setDescription("description");
-    midPhaseEvent.setEventDate(LocalDate.of(2025, 2, 1));
+    midPhaseEvent.setEventDate(LocalDate.of(2025, Month.FEBRUARY, 1));
 
     var midPhaseEventView = new TimelineOtherScheduleEventView(
         OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT.getDisplayName(),
         "description",
-        LocalDate.of(2025, 2, 1),
+        LocalDate.of(2025, Month.FEBRUARY, 1),
         "1 February 2025",
         ReverseRouter.route(on(OtherScheduleEventController.class)
             .renderUpdateEventForm(midPhaseEvent.getId())),
@@ -1570,12 +1571,12 @@ class LicenceScheduleTimelineServiceTest {
     midTerm2Event.setOriginalEventId(midTerm2Event.getId());
     midTerm2Event.setCategory(OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT);
     midTerm2Event.setDescription("description");
-    midTerm2Event.setEventDate(LocalDate.of(2026, 2, 1));
+    midTerm2Event.setEventDate(LocalDate.of(2026, Month.FEBRUARY, 1));
 
     var midTerm2EventView = new TimelineOtherScheduleEventView(
         OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT.getDisplayName(),
         "description",
-        LocalDate.of(2026, 2, 1),
+        LocalDate.of(2026, Month.FEBRUARY, 1),
         "1 February 2026",
         ReverseRouter.route(on(OtherScheduleEventController.class)
             .renderUpdateEventForm(midTerm2Event.getId())),
@@ -1612,8 +1613,8 @@ class LicenceScheduleTimelineServiceTest {
     phase.setLicenceScheduleDetail(licenceScheduleDetail);
     phase.setPhaseType(PhaseType.PHASE_A);
     phase.setPhaseDuration(new ThreeFieldDuration(1, 0, 0));
-    phase.setStartDate(LocalDate.of(2025, 1, 1));
-    phase.setEndDate(LocalDate.of(2025, 12, 31));
+    phase.setStartDate(LocalDate.of(2025, Month.JANUARY, 1));
+    phase.setEndDate(LocalDate.of(2025, Month.DECEMBER, 31));
 
     endOfPhaseActivity.setDateOption(WorkProgrammeActivityDateOption.WITHIN_A_PHASE);
     endOfPhaseActivity.setLicenceSchedulePhase(phase);
@@ -1664,8 +1665,8 @@ class LicenceScheduleTimelineServiceTest {
     term.setLicenceScheduleDetail(licenceScheduleDetail);
     term.setTermType(TermType.INITIAL);
     term.setTermDuration(new ThreeFieldDuration(1, 0, 0));
-    term.setStartDate(LocalDate.of(2025, 1, 1));
-    term.setEndDate(LocalDate.of(2025, 12, 31));
+    term.setStartDate(LocalDate.of(2025, Month.JANUARY, 1));
+    term.setEndDate(LocalDate.of(2025, Month.DECEMBER, 31));
 
     phase.setLicenceScheduleTerm(term);
 
@@ -1688,8 +1689,8 @@ class LicenceScheduleTimelineServiceTest {
     term2.setLicenceScheduleDetail(licenceScheduleDetail);
     term2.setTermType(TermType.SECOND);
     term2.setTermDuration(new ThreeFieldDuration(1, 0, 0));
-    term2.setStartDate(LocalDate.of(2026, 1, 1));
-    term2.setEndDate(LocalDate.of(2026, 12, 31));
+    term2.setStartDate(LocalDate.of(2026, Month.JANUARY, 1));
+    term2.setEndDate(LocalDate.of(2026, Month.DECEMBER, 31));
 
     endOfTerm2Activity.setDateOption(WorkProgrammeActivityDateOption.WITHIN_A_TERM);
     endOfTerm2Activity.setLicenceScheduleTerm(term2);
@@ -1781,7 +1782,7 @@ class LicenceScheduleTimelineServiceTest {
 
   @Test
   void getEditableLicenceScheduleEventViews_otherEventFilterEnabled() {
-    when(clock.instant()).thenReturn(LocalDate.of(2026, 7, 16).atStartOfDay(ZoneId.systemDefault()).toInstant());
+    when(clock.instant()).thenReturn(LocalDate.of(2026, Month.JULY, 16).atStartOfDay(ZoneId.systemDefault()).toInstant());
     when(clock.getZone()).thenReturn(ZoneId.systemDefault());
 
     var midPhaseActivity = new WorkProgrammeActivity();
@@ -1790,7 +1791,7 @@ class LicenceScheduleTimelineServiceTest {
     midPhaseActivity.setCategory(WorkProgrammeActivityCategory.DRILL_WELL);
     midPhaseActivity.setCommitment(WorkProgrammeActivityCommitment.FIRM);
     midPhaseActivity.setDescription("description");
-    midPhaseActivity.setDueDate(LocalDate.of(2025, 2, 1));
+    midPhaseActivity.setDueDate(LocalDate.of(2025, Month.FEBRUARY, 1));
 
     var midPhaseActivityStatus = new WorkProgrammeActivityStatus();
     midPhaseActivityStatus.setScheduleEvent(midPhaseActivity);
@@ -1799,7 +1800,7 @@ class LicenceScheduleTimelineServiceTest {
     var midPhaseActivityView = new TimelineWorkProgrammeActivityView(
         TimelineWorkProgrammeActivityView.getCategoryAndCommitmentString(midPhaseActivity),
         "description",
-        LocalDate.of(2025, 2, 1),
+        LocalDate.of(2025, Month.FEBRUARY, 1),
         "1 February 2025",
         ReverseRouter.route(on(WorkProgrammeActivityController.class)
             .renderUpdateActivityForm(midPhaseActivity.getId(), null)),
@@ -1845,7 +1846,7 @@ class LicenceScheduleTimelineServiceTest {
     midTerm2Activity.setCategory(WorkProgrammeActivityCategory.EARLY_RISK_ASSESSMENT);
     midTerm2Activity.setCommitment(WorkProgrammeActivityCommitment.FIRM);
     midTerm2Activity.setDescription("description");
-    midTerm2Activity.setDueDate(LocalDate.of(2026, 2, 1));
+    midTerm2Activity.setDueDate(LocalDate.of(2026, Month.FEBRUARY, 1));
 
     var midTerm2ActivityStatus = new WorkProgrammeActivityStatus();
     midTerm2ActivityStatus.setScheduleEvent(midTerm2Activity);
@@ -1854,7 +1855,7 @@ class LicenceScheduleTimelineServiceTest {
     var midTerm2ActivityView = new TimelineWorkProgrammeActivityView(
         TimelineWorkProgrammeActivityView.getCategoryAndCommitmentString(midTerm2Activity),
         "description",
-        LocalDate.of(2026, 2, 1),
+        LocalDate.of(2026, Month.FEBRUARY, 1),
         "1 February 2026",
         ReverseRouter.route(on(WorkProgrammeActivityController.class)
             .renderUpdateActivityForm(midTerm2Activity.getId(), null)),
@@ -1899,7 +1900,7 @@ class LicenceScheduleTimelineServiceTest {
     midPhaseEvent.setOriginalEventId(midPhaseEvent.getId());
     midPhaseEvent.setCategory(OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT);
     midPhaseEvent.setDescription("description");
-    midPhaseEvent.setEventDate(LocalDate.of(2025, 2, 1));
+    midPhaseEvent.setEventDate(LocalDate.of(2025, Month.FEBRUARY, 1));
 
     var endOfPhaseEvent = new OtherScheduleEvent();
     endOfPhaseEvent.setId(UUID.randomUUID());
@@ -1912,7 +1913,7 @@ class LicenceScheduleTimelineServiceTest {
     midTerm2Event.setOriginalEventId(midTerm2Event.getId());
     midTerm2Event.setCategory(OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT);
     midTerm2Event.setDescription("description");
-    midTerm2Event.setEventDate(LocalDate.of(2026, 2, 1));
+    midTerm2Event.setEventDate(LocalDate.of(2026, Month.FEBRUARY, 1));
 
     var endOfTerm2Event = new OtherScheduleEvent();
     endOfTerm2Event.setId(UUID.randomUUID());
@@ -1926,8 +1927,8 @@ class LicenceScheduleTimelineServiceTest {
     phase.setLicenceScheduleDetail(licenceScheduleDetail);
     phase.setPhaseType(PhaseType.PHASE_A);
     phase.setPhaseDuration(new ThreeFieldDuration(1, 0, 0));
-    phase.setStartDate(LocalDate.of(2025, 1, 1));
-    phase.setEndDate(LocalDate.of(2025, 12, 31));
+    phase.setStartDate(LocalDate.of(2025, Month.JANUARY, 1));
+    phase.setEndDate(LocalDate.of(2025, Month.DECEMBER, 31));
 
     endOfPhaseActivity.setDateOption(WorkProgrammeActivityDateOption.WITHIN_A_PHASE);
     endOfPhaseActivity.setLicenceSchedulePhase(phase);
@@ -1978,8 +1979,8 @@ class LicenceScheduleTimelineServiceTest {
     term.setLicenceScheduleDetail(licenceScheduleDetail);
     term.setTermType(TermType.INITIAL);
     term.setTermDuration(new ThreeFieldDuration(1, 0, 0));
-    term.setStartDate(LocalDate.of(2025, 1, 1));
-    term.setEndDate(LocalDate.of(2025, 12, 31));
+    term.setStartDate(LocalDate.of(2025, Month.JANUARY, 1));
+    term.setEndDate(LocalDate.of(2025, Month.DECEMBER, 31));
 
     phase.setLicenceScheduleTerm(term);
 
@@ -2002,8 +2003,8 @@ class LicenceScheduleTimelineServiceTest {
     term2.setLicenceScheduleDetail(licenceScheduleDetail);
     term2.setTermType(TermType.SECOND);
     term2.setTermDuration(new ThreeFieldDuration(1, 0, 0));
-    term2.setStartDate(LocalDate.of(2026, 1, 1));
-    term2.setEndDate(LocalDate.of(2026, 12, 31));
+    term2.setStartDate(LocalDate.of(2026, Month.JANUARY, 1));
+    term2.setEndDate(LocalDate.of(2026, Month.DECEMBER, 31));
 
     endOfTerm2Activity.setDateOption(WorkProgrammeActivityDateOption.WITHIN_A_TERM);
     endOfTerm2Activity.setLicenceScheduleTerm(term2);
@@ -2095,7 +2096,7 @@ class LicenceScheduleTimelineServiceTest {
 
   @Test
   void getLicenceScheduleEventViewsForOverview_userHasWpStatusPermissions() {
-    when(clock.instant()).thenReturn(LocalDate.of(2026, 7, 16).atStartOfDay(ZoneId.systemDefault()).toInstant());
+    when(clock.instant()).thenReturn(LocalDate.of(2026, Month.JULY, 16).atStartOfDay(ZoneId.systemDefault()).toInstant());
     when(clock.getZone()).thenReturn(ZoneId.systemDefault());
 
     var midPhaseActivity = new WorkProgrammeActivity();
@@ -2104,7 +2105,7 @@ class LicenceScheduleTimelineServiceTest {
     midPhaseActivity.setCategory(WorkProgrammeActivityCategory.DRILL_WELL);
     midPhaseActivity.setCommitment(WorkProgrammeActivityCommitment.CONTINGENT);
     midPhaseActivity.setDescription("description");
-    midPhaseActivity.setDueDate(LocalDate.of(2025, 2, 1));
+    midPhaseActivity.setDueDate(LocalDate.of(2025, Month.FEBRUARY, 1));
 
     var midPhaseActivityStatus = new WorkProgrammeActivityStatus();
     midPhaseActivityStatus.setScheduleEvent(midPhaseActivity);
@@ -2113,7 +2114,7 @@ class LicenceScheduleTimelineServiceTest {
     var midPhaseActivityView = new TimelineWorkProgrammeActivityView(
         TimelineWorkProgrammeActivityView.getCategoryAndCommitmentString(midPhaseActivity),
         "description",
-        LocalDate.of(2025, 2, 1),
+        LocalDate.of(2025, Month.FEBRUARY, 1),
         "1 February 2025",
         "",
         "",
@@ -2159,7 +2160,7 @@ class LicenceScheduleTimelineServiceTest {
     midTerm2Activity.setCategory(WorkProgrammeActivityCategory.EARLY_RISK_ASSESSMENT);
     midTerm2Activity.setCommitment(WorkProgrammeActivityCommitment.CONTINGENT);
     midTerm2Activity.setDescription("description");
-    midTerm2Activity.setDueDate(LocalDate.of(2026, 2, 1));
+    midTerm2Activity.setDueDate(LocalDate.of(2026, Month.FEBRUARY, 1));
 
     var midTerm2ActivityStatus = new WorkProgrammeActivityStatus();
     midTerm2ActivityStatus.setScheduleEvent(midTerm2Activity);
@@ -2168,7 +2169,7 @@ class LicenceScheduleTimelineServiceTest {
     var midTerm2ActivityView = new TimelineWorkProgrammeActivityView(
         TimelineWorkProgrammeActivityView.getCategoryAndCommitmentString(midTerm2Activity),
         "description",
-        LocalDate.of(2026, 2, 1),
+        LocalDate.of(2026, Month.FEBRUARY, 1),
         "1 February 2026",
         "",
         "",
@@ -2214,8 +2215,8 @@ class LicenceScheduleTimelineServiceTest {
     phase.setLicenceScheduleDetail(licenceScheduleDetail);
     phase.setPhaseType(PhaseType.PHASE_A);
     phase.setPhaseDuration(new ThreeFieldDuration(1, 0, 0));
-    phase.setStartDate(LocalDate.of(2025, 1, 1));
-    phase.setEndDate(LocalDate.of(2025, 12, 31));
+    phase.setStartDate(LocalDate.of(2025, Month.JANUARY, 1));
+    phase.setEndDate(LocalDate.of(2025, Month.DECEMBER, 31));
 
     endOfPhaseActivity.setDateOption(WorkProgrammeActivityDateOption.WITHIN_A_PHASE);
     endOfPhaseActivity.setLicenceSchedulePhase(phase);
@@ -2261,8 +2262,8 @@ class LicenceScheduleTimelineServiceTest {
     term.setLicenceScheduleDetail(licenceScheduleDetail);
     term.setTermType(TermType.INITIAL);
     term.setTermDuration(new ThreeFieldDuration(1, 0, 0));
-    term.setStartDate(LocalDate.of(2025, 1, 1));
-    term.setEndDate(LocalDate.of(2025, 12, 31));
+    term.setStartDate(LocalDate.of(2025, Month.JANUARY, 1));
+    term.setEndDate(LocalDate.of(2025, Month.DECEMBER, 31));
 
     phase.setLicenceScheduleTerm(term);
 
@@ -2285,8 +2286,8 @@ class LicenceScheduleTimelineServiceTest {
     term2.setLicenceScheduleDetail(licenceScheduleDetail);
     term2.setTermType(TermType.SECOND);
     term2.setTermDuration(new ThreeFieldDuration(1, 0, 0));
-    term2.setStartDate(LocalDate.of(2026, 1, 1));
-    term2.setEndDate(LocalDate.of(2026, 12, 31));
+    term2.setStartDate(LocalDate.of(2026, Month.JANUARY, 1));
+    term2.setEndDate(LocalDate.of(2026, Month.DECEMBER, 31));
 
     endOfTerm2Activity.setDateOption(WorkProgrammeActivityDateOption.WITHIN_A_TERM);
     endOfTerm2Activity.setLicenceScheduleTerm(term2);
@@ -2373,7 +2374,7 @@ class LicenceScheduleTimelineServiceTest {
 
   @Test
   void getLicenceScheduleEventViewsForOverview_userDoesNotHaveWpStatusPermissions_userIsNotRegulator() {
-    when(clock.instant()).thenReturn(LocalDate.of(2026, 7, 16).atStartOfDay(ZoneId.systemDefault()).toInstant());
+    when(clock.instant()).thenReturn(LocalDate.of(2026, Month.JULY, 16).atStartOfDay(ZoneId.systemDefault()).toInstant());
     when(clock.getZone()).thenReturn(ZoneId.systemDefault());
 
     var midPhaseActivity = new WorkProgrammeActivity();
@@ -2382,12 +2383,12 @@ class LicenceScheduleTimelineServiceTest {
     midPhaseActivity.setCategory(WorkProgrammeActivityCategory.DRILL_WELL);
     midPhaseActivity.setCommitment(WorkProgrammeActivityCommitment.FIRM);
     midPhaseActivity.setDescription("description");
-    midPhaseActivity.setDueDate(LocalDate.of(2025, 2, 1));
+    midPhaseActivity.setDueDate(LocalDate.of(2025, Month.FEBRUARY, 1));
 
     var midPhaseActivityView = new TimelineWorkProgrammeActivityView(
         TimelineWorkProgrammeActivityView.getCategoryAndCommitmentString(midPhaseActivity),
         "description",
-        LocalDate.of(2025, 2, 1),
+        LocalDate.of(2025, Month.FEBRUARY, 1),
         "1 February 2025",
         "",
         "",
@@ -2425,12 +2426,12 @@ class LicenceScheduleTimelineServiceTest {
     midTerm2Activity.setCategory(WorkProgrammeActivityCategory.EARLY_RISK_ASSESSMENT);
     midTerm2Activity.setCommitment(WorkProgrammeActivityCommitment.FIRM);
     midTerm2Activity.setDescription("description");
-    midTerm2Activity.setDueDate(LocalDate.of(2026, 2, 1));
+    midTerm2Activity.setDueDate(LocalDate.of(2026, Month.FEBRUARY, 1));
 
     var midTerm2ActivityView = new TimelineWorkProgrammeActivityView(
         TimelineWorkProgrammeActivityView.getCategoryAndCommitmentString(midTerm2Activity),
         "description",
-        LocalDate.of(2026, 2, 1),
+        LocalDate.of(2026, Month.FEBRUARY, 1),
         "1 February 2026",
         "",
         "",
@@ -2468,8 +2469,8 @@ class LicenceScheduleTimelineServiceTest {
     phase.setLicenceScheduleDetail(licenceScheduleDetail);
     phase.setPhaseType(PhaseType.PHASE_A);
     phase.setPhaseDuration(new ThreeFieldDuration(1, 0, 0));
-    phase.setStartDate(LocalDate.of(2025, 1, 1));
-    phase.setEndDate(LocalDate.of(2025, 12, 31));
+    phase.setStartDate(LocalDate.of(2025, Month.JANUARY, 1));
+    phase.setEndDate(LocalDate.of(2025, Month.DECEMBER, 31));
 
     endOfPhaseActivity.setDateOption(WorkProgrammeActivityDateOption.WITHIN_A_PHASE);
     endOfPhaseActivity.setLicenceSchedulePhase(phase);
@@ -2515,8 +2516,8 @@ class LicenceScheduleTimelineServiceTest {
     term.setLicenceScheduleDetail(licenceScheduleDetail);
     term.setTermType(TermType.INITIAL);
     term.setTermDuration(new ThreeFieldDuration(1, 0, 0));
-    term.setStartDate(LocalDate.of(2025, 1, 1));
-    term.setEndDate(LocalDate.of(2025, 12, 31));
+    term.setStartDate(LocalDate.of(2025, Month.JANUARY, 1));
+    term.setEndDate(LocalDate.of(2025, Month.DECEMBER, 31));
 
     phase.setLicenceScheduleTerm(term);
 
@@ -2539,8 +2540,8 @@ class LicenceScheduleTimelineServiceTest {
     term2.setLicenceScheduleDetail(licenceScheduleDetail);
     term2.setTermType(TermType.SECOND);
     term2.setTermDuration(new ThreeFieldDuration(1, 0, 0));
-    term2.setStartDate(LocalDate.of(2026, 1, 1));
-    term2.setEndDate(LocalDate.of(2026, 12, 31));
+    term2.setStartDate(LocalDate.of(2026, Month.JANUARY, 1));
+    term2.setEndDate(LocalDate.of(2026, Month.DECEMBER, 31));
 
     endOfTerm2Activity.setDateOption(WorkProgrammeActivityDateOption.WITHIN_A_TERM);
     endOfTerm2Activity.setLicenceScheduleTerm(term2);
@@ -2611,7 +2612,7 @@ class LicenceScheduleTimelineServiceTest {
 
   @Test
   void getEditableLicenceScheduleEventViews_commentsArePopulatedOnViews() {
-    when(clock.instant()).thenReturn(LocalDate.of(2026, 7, 16).atStartOfDay(ZoneId.systemDefault()).toInstant());
+    when(clock.instant()).thenReturn(LocalDate.of(2026, Month.JULY, 16).atStartOfDay(ZoneId.systemDefault()).toInstant());
     when(clock.getZone()).thenReturn(ZoneId.systemDefault());
 
     var term = new LicenceScheduleTerm();
@@ -2620,8 +2621,8 @@ class LicenceScheduleTimelineServiceTest {
     term.setLicenceScheduleDetail(licenceScheduleDetail);
     term.setTermType(TermType.INITIAL);
     term.setTermDuration(new ThreeFieldDuration(1, 0, 0));
-    term.setStartDate(LocalDate.of(2025, 1, 1));
-    term.setEndDate(LocalDate.of(2025, 12, 31));
+    term.setStartDate(LocalDate.of(2025, Month.JANUARY, 1));
+    term.setEndDate(LocalDate.of(2025, Month.DECEMBER, 31));
     term.setOriginalEventId(term.getId());
 
     var wpa = new WorkProgrammeActivity();
@@ -2630,7 +2631,7 @@ class LicenceScheduleTimelineServiceTest {
     wpa.setCategory(WorkProgrammeActivityCategory.DRILL_WELL);
     wpa.setCommitment(WorkProgrammeActivityCommitment.CONTINGENT);
     wpa.setDescription("WPA description");
-    wpa.setDueDate(LocalDate.of(2025, 6, 1));
+    wpa.setDueDate(LocalDate.of(2025, Month.JUNE, 1));
 
     var wpaStatus = new WorkProgrammeActivityStatus();
     wpaStatus.setScheduleEvent(wpa);
@@ -2643,14 +2644,14 @@ class LicenceScheduleTimelineServiceTest {
     rate.setLicenceScheduleTerm(term);
     rate.setOriginalEventId(rate.getId());
     rate.setRentalRate(new BigDecimal("3.00"));
-    rate.setStartDate(LocalDate.of(2025, 1, 1));
+    rate.setStartDate(LocalDate.of(2025, Month.JANUARY, 1));
 
     var otherEvent = new OtherScheduleEvent();
     otherEvent.setId(UUID.randomUUID());
     otherEvent.setCategory(OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT);
     otherEvent.setDescription("Event description");
     otherEvent.setOriginalEventId(otherEvent.getId());
-    otherEvent.setEventDate(LocalDate.of(2025, 9, 1));
+    otherEvent.setEventDate(LocalDate.of(2025, Month.SEPTEMBER, 1));
 
     var termComment = new EventCommentView("Term note", "Author A", "1 January 2025 12:00:00", "");
     var wpaComment = new EventCommentView("WPA note", "Author B", "2 January 2025 12:00:00", "");
@@ -2718,7 +2719,7 @@ class LicenceScheduleTimelineServiceTest {
 
   @Test
   void getEditableLicenceScheduleEventViews_whenLicenceHasEndedOnDate_thenProgressDateUsesLicenceEndDate() {
-    licence.setEndDate(LocalDate.of(2027, 6, 1));
+    licence.setEndDate(LocalDate.of(2027, Month.JUNE, 1));
 
     var term = new LicenceScheduleTerm();
     term.setId(UUID.randomUUID());
@@ -2726,8 +2727,8 @@ class LicenceScheduleTimelineServiceTest {
     term.setLicenceScheduleDetail(licenceScheduleDetail);
     term.setTermType(TermType.INITIAL);
     term.setTermDuration(new ThreeFieldDuration(1, 0, 0));
-    term.setStartDate(LocalDate.of(2026, 1, 1));
-    term.setEndDate(LocalDate.of(2026, 12, 31));
+    term.setStartDate(LocalDate.of(2026, Month.JANUARY, 1));
+    term.setEndDate(LocalDate.of(2026, Month.DECEMBER, 31));
 
     when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(term));
     when(licenceSchedulePhaseService.getPhasesByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of());
@@ -2756,7 +2757,7 @@ class LicenceScheduleTimelineServiceTest {
     // production, so a phase's `licenceScheduleTerm` association is a *different* Java object than the
     // matching entry in the terms list, even though it represents the same row. Grouping/looking up by
     // entity reference (rather than by ID) would silently drop the phase from the timeline.
-    when(clock.instant()).thenReturn(LocalDate.of(2026, 7, 16).atStartOfDay(ZoneId.systemDefault()).toInstant());
+    when(clock.instant()).thenReturn(LocalDate.of(2026, Month.JULY, 16).atStartOfDay(ZoneId.systemDefault()).toInstant());
     when(clock.getZone()).thenReturn(ZoneId.systemDefault());
 
     var termId = UUID.randomUUID();
@@ -2767,15 +2768,15 @@ class LicenceScheduleTimelineServiceTest {
     term.setLicenceScheduleDetail(licenceScheduleDetail);
     term.setTermType(TermType.INITIAL);
     term.setTermDuration(new ThreeFieldDuration(1, 0, 0));
-    term.setStartDate(LocalDate.of(2025, 1, 1));
-    term.setEndDate(LocalDate.of(2025, 12, 31));
+    term.setStartDate(LocalDate.of(2025, Month.JANUARY, 1));
+    term.setEndDate(LocalDate.of(2025, Month.DECEMBER, 31));
 
     var termLoadedInAnotherSession = new LicenceScheduleTerm();
     termLoadedInAnotherSession.setId(termId);
     termLoadedInAnotherSession.setLicenceScheduleDetail(licenceScheduleDetail);
     termLoadedInAnotherSession.setTermType(TermType.INITIAL);
-    termLoadedInAnotherSession.setStartDate(LocalDate.of(2025, 1, 1));
-    termLoadedInAnotherSession.setEndDate(LocalDate.of(2025, 12, 31));
+    termLoadedInAnotherSession.setStartDate(LocalDate.of(2025, Month.JANUARY, 1));
+    termLoadedInAnotherSession.setEndDate(LocalDate.of(2025, Month.DECEMBER, 31));
 
     var phase = new LicenceSchedulePhase();
     phase.setId(UUID.randomUUID());
@@ -2784,8 +2785,8 @@ class LicenceScheduleTimelineServiceTest {
     phase.setLicenceScheduleTerm(termLoadedInAnotherSession);
     phase.setPhaseType(PhaseType.PHASE_A);
     phase.setPhaseDuration(new ThreeFieldDuration(1, 0, 0));
-    phase.setStartDate(LocalDate.of(2025, 1, 1));
-    phase.setEndDate(LocalDate.of(2025, 12, 31));
+    phase.setStartDate(LocalDate.of(2025, Month.JANUARY, 1));
+    phase.setEndDate(LocalDate.of(2025, Month.DECEMBER, 31));
 
     when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(term));
     when(licenceSchedulePhaseService.getPhasesByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(phase));

@@ -13,6 +13,7 @@ import static org.springframework.web.servlet.mvc.method.annotation.MvcUriCompon
 import static uk.co.nstauthority.licensingmanagementservice.authentication.TestUserProvider.user;
 
 import java.time.LocalDate;
+import java.time.Month;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -65,8 +66,8 @@ class LicenceSchedulePhaseDeletionControllerTest extends AbstractControllerTest 
     licenceSchedulePhase.setLicenceScheduleDetail(licenceScheduleDetail);
     licenceSchedulePhase.setPhaseType(PhaseType.PHASE_A);
     licenceSchedulePhase.setPhaseDuration(new ThreeFieldDuration(1, 0, 0));
-    licenceSchedulePhase.setStartDate(LocalDate.of(2025, 1, 1));
-    licenceSchedulePhase.setEndDate(LocalDate.of(2025, 12, 31));
+    licenceSchedulePhase.setStartDate(LocalDate.of(2025, Month.JANUARY, 1));
+    licenceSchedulePhase.setEndDate(LocalDate.of(2025, Month.DECEMBER, 31));
   }
 
   @Test

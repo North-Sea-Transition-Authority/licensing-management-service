@@ -6,6 +6,7 @@ import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.Month;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -188,7 +189,7 @@ class LicenceScheduleRateFormServiceTest {
     when(licenceScheduleTermService.getTermByIdOrThrow(termId)).thenReturn(new LicenceScheduleTerm());
 
     var rate = new LicenceScheduleRate();
-    rate.setStartDate(LocalDate.of(2025, 1, 1));
+    rate.setStartDate(LocalDate.of(2025, Month.JANUARY, 1));
 
     licenceScheduleRateFormService.saveRateFromForm(form, licenceScheduleDetail, rate, USER);
 
@@ -255,7 +256,7 @@ class LicenceScheduleRateFormServiceTest {
     when(licenceSchedulePhaseService.getPhaseByIdOrThrow(phaseId)).thenReturn(new LicenceSchedulePhase());
 
     var rate = new LicenceScheduleRate();
-    rate.setStartDate(LocalDate.of(2025, 1, 1));
+    rate.setStartDate(LocalDate.of(2025, Month.JANUARY, 1));
 
     licenceScheduleRateFormService.saveRateFromForm(form, licenceScheduleDetail, rate, USER);
 

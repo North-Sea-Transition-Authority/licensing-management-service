@@ -13,6 +13,7 @@ import static org.springframework.web.servlet.mvc.method.annotation.MvcUriCompon
 import static uk.co.nstauthority.licensingmanagementservice.authentication.TestUserProvider.user;
 
 import java.time.LocalDate;
+import java.time.Month;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -58,7 +59,7 @@ class OtherScheduleEventDeletionControllerTest extends AbstractControllerTest {
     otherScheduleEvent.setLicenceScheduleDetail(licenceScheduleDetail);
     otherScheduleEvent.setCategory(OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT);
     otherScheduleEvent.setDescription("description");
-    otherScheduleEvent.setEventDate(LocalDate.of(2025, 1, 1));
+    otherScheduleEvent.setEventDate(LocalDate.of(2025, Month.JANUARY, 1));
   }
 
   @Test

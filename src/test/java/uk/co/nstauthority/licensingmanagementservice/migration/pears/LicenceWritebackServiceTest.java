@@ -8,6 +8,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDate;
+import java.time.Month;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -39,7 +40,7 @@ import uk.co.nstauthority.licensingmanagementservice.migration.pears.operation.P
 @ExtendWith(MockitoExtension.class)
 class LicenceWritebackServiceTest {
 
-  private static final LocalDate POSITION_DATE = LocalDate.of(1964, 9, 18);
+  private static final LocalDate POSITION_DATE = LocalDate.of(1964, Month.SEPTEMBER, 18);
 
   @Mock
   private LicenceTransactionService licenceTransactionService;

@@ -13,6 +13,7 @@ import static org.springframework.web.servlet.mvc.method.annotation.MvcUriCompon
 import static uk.co.nstauthority.licensingmanagementservice.authentication.TestUserProvider.user;
 
 import java.time.LocalDate;
+import java.time.Month;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -56,7 +57,7 @@ class WorkProgrammeActivityDeletionControllerTest extends AbstractControllerTest
     workProgrammeActivity.setCategory(WorkProgrammeActivityCategory.DRILL_WELL);
     workProgrammeActivity.setDescription("description");
     workProgrammeActivity.setCommitment(WorkProgrammeActivityCommitment.FIRM);
-    workProgrammeActivity.setDueDate(LocalDate.of(2025, 1, 1));
+    workProgrammeActivity.setDueDate(LocalDate.of(2025, Month.JANUARY, 1));
   }
 
   @Test

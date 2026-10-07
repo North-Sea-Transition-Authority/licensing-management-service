@@ -7,6 +7,7 @@ import static uk.co.nstauthority.licensingmanagementservice.licence.schedule.oth
 import static uk.co.nstauthority.licensingmanagementservice.licence.schedule.otherscheduleevent.OtherScheduleEventDateOption.WITHIN_A_TERM;
 
 import java.time.LocalDate;
+import java.time.Month;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -122,7 +123,7 @@ class OtherScheduleEventServiceTest {
   @Test
   void getEventsAfterDate() {
     var detail = new LicenceScheduleDetail();
-    var date = LocalDate.of(2026, 1, 1);
+    var date = LocalDate.of(2026, Month.JANUARY, 1);
 
     otherScheduleEventService.getEventsAfterDate(detail, date);
 
@@ -190,12 +191,12 @@ class OtherScheduleEventServiceTest {
   @Test
   void hasEventWithinScheduleWindow_whenEventDatedWithinCurrentToNextTermWindow_returnsTrue() {
     var currentTerm = new LicenceScheduleTerm();
-    currentTerm.setStartDate(LocalDate.of(2026, 1, 1));
-    currentTerm.setEndDate(LocalDate.of(2028, 1, 1));
+    currentTerm.setStartDate(LocalDate.of(2026, Month.JANUARY, 1));
+    currentTerm.setEndDate(LocalDate.of(2028, Month.JANUARY, 1));
 
     var nextTerm = new LicenceScheduleTerm();
-    nextTerm.setStartDate(LocalDate.of(2028, 1, 1));
-    nextTerm.setEndDate(LocalDate.of(2030, 1, 1));
+    nextTerm.setStartDate(LocalDate.of(2028, Month.JANUARY, 1));
+    nextTerm.setEndDate(LocalDate.of(2030, Month.JANUARY, 1));
 
     var state = new ScheduleState(currentTerm, null, nextTerm, null);
 
@@ -203,7 +204,7 @@ class OtherScheduleEventServiceTest {
     event.setCategory(OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT);
 
     var detail = new LicenceScheduleDetail();
-    when(otherScheduleEventRepository.findAllByLicenceScheduleDetailAndEventDateBetween(detail, LocalDate.of(2026, 1, 1), LocalDate.of(2030, 1, 1))).thenReturn(List.of(event));
+    when(otherScheduleEventRepository.findAllByLicenceScheduleDetailAndEventDateBetween(detail, LocalDate.of(2026, Month.JANUARY, 1), LocalDate.of(2030, Month.JANUARY, 1))).thenReturn(List.of(event));
 
     assertThat(otherScheduleEventService.hasEventWithinScheduleWindow(
         detail, OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT, state))
@@ -213,10 +214,10 @@ class OtherScheduleEventServiceTest {
   @Test
   void hasEventWithinScheduleWindow_whenOnlyOtherCategoryEventsInWindow_returnsFalse() {
     var currentTerm = new LicenceScheduleTerm();
-    currentTerm.setStartDate(LocalDate.of(2026, 1, 1));
+    currentTerm.setStartDate(LocalDate.of(2026, Month.JANUARY, 1));
 
     var nextTerm = new LicenceScheduleTerm();
-    nextTerm.setEndDate(LocalDate.of(2030, 1, 1));
+    nextTerm.setEndDate(LocalDate.of(2030, Month.JANUARY, 1));
 
     var state = new ScheduleState(currentTerm, null, nextTerm, null);
 
@@ -224,7 +225,7 @@ class OtherScheduleEventServiceTest {
     otherCategoryEvent.setCategory(OtherScheduleEventCategory.OTHER_ACTIVITY);
 
     var detail = new LicenceScheduleDetail();
-    when(otherScheduleEventRepository.findAllByLicenceScheduleDetailAndEventDateBetween(detail, LocalDate.of(2026, 1, 1), LocalDate.of(2030, 1, 1))).thenReturn(List.of(otherCategoryEvent));
+    when(otherScheduleEventRepository.findAllByLicenceScheduleDetailAndEventDateBetween(detail, LocalDate.of(2026, Month.JANUARY, 1), LocalDate.of(2030, Month.JANUARY, 1))).thenReturn(List.of(otherCategoryEvent));
 
     assertThat(otherScheduleEventService.hasEventWithinScheduleWindow(
         detail, OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT, state))
@@ -234,31 +235,31 @@ class OtherScheduleEventServiceTest {
   @Test
   void resolveOtherScheduleEventDate_whenWithinATerm_thenTheTermEndDate() {
     var term = new LicenceScheduleTerm();
-    term.setEndDate(LocalDate.of(2027, 3, 31));
+    term.setEndDate(LocalDate.of(2027, Month.MARCH, 31));
     var event = new OtherScheduleEvent();
     event.setDateOption(OtherScheduleEventDateOption.WITHIN_A_TERM);
     event.setLicenceScheduleTerm(term);
 
-    assertThat(otherScheduleEventService.resolveOtherScheduleEventDate(event)).isEqualTo(LocalDate.of(2027, 3, 31));
+    assertThat(otherScheduleEventService.resolveOtherScheduleEventDate(event)).isEqualTo(LocalDate.of(2027, Month.MARCH, 31));
   }
 
   @Test
   void resolveOtherScheduleEventDate_whenWithinAPhase_thenThePhaseEndDate() {
     var phase = new LicenceSchedulePhase();
-    phase.setEndDate(LocalDate.of(2027, 3, 31));
+    phase.setEndDate(LocalDate.of(2027, Month.MARCH, 31));
     var event = new OtherScheduleEvent();
     event.setDateOption(OtherScheduleEventDateOption.WITHIN_A_PHASE);
     event.setLicenceSchedulePhase(phase);
 
-    assertThat(otherScheduleEventService.resolveOtherScheduleEventDate(event)).isEqualTo(LocalDate.of(2027, 3, 31));
+    assertThat(otherScheduleEventService.resolveOtherScheduleEventDate(event)).isEqualTo(LocalDate.of(2027, Month.MARCH, 31));
   }
 
   @Test
   void resolveOtherScheduleEventDate_whenARelativeDate_thenTheCalculatedEventDate() {
     var event = new OtherScheduleEvent();
     event.setDateOption(OtherScheduleEventDateOption.RELATIVE_DATE);
-    event.setEventDate(LocalDate.of(2027, 3, 31));
+    event.setEventDate(LocalDate.of(2027, Month.MARCH, 31));
 
-    assertThat(otherScheduleEventService.resolveOtherScheduleEventDate(event)).isEqualTo(LocalDate.of(2027, 3, 31));
+    assertThat(otherScheduleEventService.resolveOtherScheduleEventDate(event)).isEqualTo(LocalDate.of(2027, Month.MARCH, 31));
   }
 }

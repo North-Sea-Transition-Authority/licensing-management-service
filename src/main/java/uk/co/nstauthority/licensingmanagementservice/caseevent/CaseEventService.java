@@ -4,11 +4,14 @@ import jakarta.annotation.Nullable;
 import jakarta.transaction.Transactional;
 import java.time.Clock;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.audit.AuditRevisionUtil;
 import uk.co.nstauthority.licensingmanagementservice.authentication.UserDetailService;
+import uk.co.nstauthority.licensingmanagementservice.caseevent.payload.CaseAllocationPayload;
 import uk.co.nstauthority.licensingmanagementservice.caseevent.payload.CaseEventPayload;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserJson;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserService;
@@ -20,6 +23,7 @@ public class CaseEventService {
 
   static final String CASE_EVENT_USER_PURPOSE = "Fetch user names for application case events";
   static final String SYSTEM_USER_DISPLAY_NAME = "System";
+  static final String ALLOCATED_TO_KEY = "Allocated to";
 
   private final CaseEventRepository caseEventRepository;
   private final UserDetailService userDetailService;
@@ -67,7 +71,7 @@ public class CaseEventService {
 
     // One call to the Energy Portal for every user, rather than one per event.
     var usersByWuaId = energyPortalUserService.getEnergyPortalUserMap(
-        getDisplayUserWuaIds(caseEvents),
+        getUserWuaIds(caseEvents),
         CASE_EVENT_USER_PURPOSE
     );
 
@@ -76,13 +80,20 @@ public class CaseEventService {
         .toList();
   }
 
-  private List<WebUserAccountId> getDisplayUserWuaIds(List<CaseEvent> caseEvents) {
-    var wuaIds = new ArrayList<WebUserAccountId>();
-    for (var caseEvent : caseEvents) {
-      var wuaId = getDisplayUserWuaId(caseEvent);
-      if (wuaId != null && !wuaIds.contains(WebUserAccountId.from(wuaId))) {
-        wuaIds.add(WebUserAccountId.from(wuaId));
-      }
+  private List<WebUserAccountId> getUserWuaIds(List<CaseEvent> caseEvents) {
+    return caseEvents.stream()
+        .flatMap(caseEvent -> getWuaIdsOnEvent(caseEvent).stream())
+        .filter(Objects::nonNull)
+        .distinct()
+        .map(WebUserAccountId::from)
+        .toList();
+  }
+
+  private static List<Long> getWuaIdsOnEvent(CaseEvent caseEvent) {
+    var wuaIds = new ArrayList<Long>();
+    wuaIds.add(getDisplayUserWuaId(caseEvent));
+    if (caseEvent.getPayload() instanceof CaseAllocationPayload(Long allocatedToWuaId)) {
+      wuaIds.add(allocatedToWuaId);
     }
     return wuaIds;
   }
@@ -107,6 +118,7 @@ public class CaseEventService {
   ) {
     return new CaseEventView(
         caseEvent.getEventType(),
+        getDetails(caseEvent.getPayload(), usersByWuaId),
         getEventBy(caseEvent, usersByWuaId),
         caseEvent.getEventInstant()
     );
@@ -117,7 +129,22 @@ public class CaseEventService {
       return SYSTEM_USER_DISPLAY_NAME;
     }
 
-    var user = usersByWuaId.get(WebUserAccountId.from(getDisplayUserWuaId(caseEvent)));
+    return getUserDisplayText(getDisplayUserWuaId(caseEvent), usersByWuaId);
+  }
+
+  private static Map<String, String> getDetails(
+      CaseEventPayload payload,
+      Map<WebUserAccountId, EnergyPortalUserJson> usersByWuaId
+  ) {
+    var details = new LinkedHashMap<String, String>();
+    if (payload instanceof CaseAllocationPayload(Long allocatedToWuaId)) {
+      details.put(ALLOCATED_TO_KEY, getUserDisplayText(allocatedToWuaId, usersByWuaId));
+    }
+    return details;
+  }
+
+  private static String getUserDisplayText(Long wuaId, Map<WebUserAccountId, EnergyPortalUserJson> usersByWuaId) {
+    var user = usersByWuaId.get(WebUserAccountId.from(wuaId));
     if (user == null) {
       return null;
     }

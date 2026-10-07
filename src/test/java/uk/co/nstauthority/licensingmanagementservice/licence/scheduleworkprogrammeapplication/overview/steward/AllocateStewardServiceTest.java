@@ -18,6 +18,9 @@ import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import uk.co.nstauthority.licensingmanagementservice.caseevent.CaseEventService;
+import uk.co.nstauthority.licensingmanagementservice.caseevent.CaseEventType;
+import uk.co.nstauthority.licensingmanagementservice.caseevent.payload.CaseAllocationPayload;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserJson;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserService;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.WebUserAccountId;
@@ -57,6 +60,9 @@ class AllocateStewardServiceTest {
 
   @Mock
   private StewardAssignedNotificationService stewardAssignedNotificationService;
+
+  @Mock
+  private CaseEventService caseEventService;
 
   @InjectMocks
   private AllocateStewardService allocateStewardService;
@@ -140,6 +146,24 @@ class AllocateStewardServiceTest {
 
     verify(scheduleWorkProgrammeApplicationRepository).save(applicationCaptor.capture());
     assertThat(applicationCaptor.getValue().getStewardWuaId()).isEqualTo(STEWARD_WUA_ID);
+  }
+
+  @Test
+  void saveSteward_recordsCaseAllocatedEventForNewSteward() {
+    var application = stubApplication();
+    application.setStewardWuaId(STEWARD_WUA_ID);
+
+    when(scheduleWorkProgrammeApplicationDetailRepository
+        .getFirstByScheduleWorkProgrammeApplicationOrderByVersionNumberDesc(application))
+        .thenReturn(Optional.empty());
+
+    allocateStewardService.saveSteward(application, NEW_STEWARD_WUA_ID);
+
+    verify(caseEventService).recordCaseEvent(
+        CaseEventType.STEWARD_ALLOCATED,
+        application,
+        new CaseAllocationPayload(NEW_STEWARD_WUA_ID)
+    );
   }
 
   @Test

@@ -1,12 +1,14 @@
 package uk.co.nstauthority.licensingmanagementservice.caseevent;
 
 import java.time.Instant;
+import java.util.Map;
 import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryCard;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryDataView;
 
 public record CaseEventView(
     CaseEventType eventType,
+    Map<String, String> details,
     String eventBy,
     Instant eventInstant
 ) {
@@ -15,12 +17,14 @@ public record CaseEventView(
   static final String DATE_KEY = "Date";
 
   public SummaryCard toSummaryCard() {
-    return SummaryCard.simpleSummaryCardWithHeading(
-        eventType.getDisplayName(),
-        SummaryDataView.newBuilder()
-            .addStringValue(EVENT_BY_KEY, eventBy)
-            .addStringValue(DATE_KEY, DateFormatUtil.convertToDisplayTextWithTime(eventInstant))
-            .build()
-    );
+    var summaryData = SummaryDataView.newBuilder();
+    for (var detail : details.entrySet()) {
+      summaryData.addStringValue(detail.getKey(), detail.getValue());
+    }
+    summaryData
+        .addStringValue(EVENT_BY_KEY, eventBy)
+        .addStringValue(DATE_KEY, DateFormatUtil.convertToDisplayTextWithTime(eventInstant));
+
+    return SummaryCard.simpleSummaryCardWithHeading(eventType.getDisplayName(), summaryData.build());
   }
 }

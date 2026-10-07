@@ -14,6 +14,7 @@ import static uk.co.nstauthority.licensingmanagementservice.authentication.TestU
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.context.ContextConfiguration;
@@ -162,6 +163,7 @@ class ScheduleWorkProgrammeApplicationOverviewControllerTest extends AbstractCon
 
     var caseEventView = new CaseEventView(
         CaseEventType.APPLICATION_SUBMITTED,
+        Map.of(),
         "John Smith",
         Instant.parse("2026-09-24T10:15:30Z")
     );

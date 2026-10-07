@@ -5,6 +5,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.springframework.stereotype.Service;
+import uk.co.nstauthority.licensingmanagementservice.caseevent.CaseEventService;
+import uk.co.nstauthority.licensingmanagementservice.caseevent.CaseEventType;
+import uk.co.nstauthority.licensingmanagementservice.caseevent.payload.CaseAllocationPayload;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserJson;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserService;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.WebUserAccountId;
@@ -30,6 +33,7 @@ class AllocateStewardService {
   private final ScheduleWorkProgrammeApplicationDetailRepository scheduleWorkProgrammeApplicationDetailRepository;
   private final ClearDownWorkAreaLogService clearDownWorkAreaLogService;
   private final StewardAssignedNotificationService stewardAssignedNotificationService;
+  private final CaseEventService caseEventService;
 
   AllocateStewardService(
       TeamQueryService teamQueryService,
@@ -37,7 +41,8 @@ class AllocateStewardService {
       ScheduleWorkProgrammeApplicationRepository scheduleWorkProgrammeApplicationRepository,
       ScheduleWorkProgrammeApplicationDetailRepository scheduleWorkProgrammeApplicationDetailRepository,
       ClearDownWorkAreaLogService clearDownWorkAreaLogService,
-      StewardAssignedNotificationService stewardAssignedNotificationService
+      StewardAssignedNotificationService stewardAssignedNotificationService,
+      CaseEventService caseEventService
   ) {
     this.teamQueryService = teamQueryService;
     this.energyPortalUserService = energyPortalUserService;
@@ -45,6 +50,7 @@ class AllocateStewardService {
     this.scheduleWorkProgrammeApplicationDetailRepository = scheduleWorkProgrammeApplicationDetailRepository;
     this.clearDownWorkAreaLogService = clearDownWorkAreaLogService;
     this.stewardAssignedNotificationService = stewardAssignedNotificationService;
+    this.caseEventService = caseEventService;
   }
 
   Map<String, String> getStewardOptions(LicenceType licenceType) {
@@ -78,6 +84,11 @@ class AllocateStewardService {
   public void saveSteward(ScheduleWorkProgrammeApplication application, Long stewardWuaId) {
     application.setStewardWuaId(stewardWuaId);
     scheduleWorkProgrammeApplicationRepository.save(application);
+    caseEventService.recordCaseEvent(
+        CaseEventType.STEWARD_ALLOCATED,
+        application,
+        new CaseAllocationPayload(stewardWuaId)
+    );
     scheduleWorkProgrammeApplicationDetailRepository
         .getFirstByScheduleWorkProgrammeApplicationOrderByVersionNumberDesc(application)
         .ifPresent(detail -> {

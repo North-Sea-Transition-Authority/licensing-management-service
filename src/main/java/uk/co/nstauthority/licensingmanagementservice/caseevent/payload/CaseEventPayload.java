@@ -9,9 +9,8 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 @JsonSubTypes({
-    @JsonSubTypes.Type(value = CaseNotePayload.class, name = CaseEventPayload.CASE_NOTE)
+    @JsonSubTypes.Type(value = CaseNotePayload.class, name = "case-note"),
+    @JsonSubTypes.Type(value = CaseAllocationPayload.class, name = "case-allocation")
 })
-public sealed interface CaseEventPayload permits CaseNotePayload {
-
-  String CASE_NOTE = "case-note";
+public sealed interface CaseEventPayload permits CaseNotePayload, CaseAllocationPayload {
 }

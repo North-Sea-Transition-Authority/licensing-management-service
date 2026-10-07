@@ -22,6 +22,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.audit.AuditRevisionUtil;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.authentication.UserDetailService;
+import uk.co.nstauthority.licensingmanagementservice.caseevent.payload.CaseAllocationPayload;
 import uk.co.nstauthority.licensingmanagementservice.caseevent.payload.CaseNotePayload;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserService;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.WebUserAccountId;
@@ -164,11 +165,57 @@ class CaseEventServiceTest {
 
     assertThat(result).containsExactly(
         new CaseEventView(
-            CaseEventType.APPLICATION_SUBMITTED, "Proxy User (proxy.user@example.com)", proxyEventInstant),
+            CaseEventType.APPLICATION_SUBMITTED, Map.of(), "Proxy User (proxy.user@example.com)",
+            proxyEventInstant),
         new CaseEventView(
-            CaseEventType.APPLICATION_SUBMITTED, "Real User (real.user@example.com)", userEventInstant),
+            CaseEventType.APPLICATION_SUBMITTED, Map.of(), "Real User (real.user@example.com)",
+            userEventInstant),
         new CaseEventView(
-            CaseEventType.APPLICATION_SUBMITTED, CaseEventService.SYSTEM_USER_DISPLAY_NAME, systemEventInstant)
+            CaseEventType.APPLICATION_SUBMITTED, Map.of(), CaseEventService.SYSTEM_USER_DISPLAY_NAME,
+            systemEventInstant)
+    );
+  }
+
+  @Test
+  void getCaseEventViews_whenAllocationEvent_thenShowsAllocatedToUser() {
+    var eventInstant = Instant.parse("2026-09-24T12:00:00Z");
+    var allocationEvent = new CaseEvent(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION, APPLICATION_ID,
+        CaseEventType.STEWARD_ALLOCATED, eventInstant, new CaseEventUser(10L, null, false),
+        new CaseAllocationPayload(30L));
+
+    when(caseEventRepository.findByApplicationTypeAndApplicationIdOrderByEventInstantDesc(
+        ApplicationType.SCHEDULE_AMENDMENT_APPLICATION, APPLICATION_ID))
+        .thenReturn(List.of(allocationEvent));
+
+    var caseManager = EnergyPortalUserTestUtil.newBuilder()
+        .withWebUserAccountId(10L)
+        .withForename("Case")
+        .withSurname("Manager")
+        .withEmailAddress("case.manager@example.com")
+        .buildJson();
+    var steward = EnergyPortalUserTestUtil.newBuilder()
+        .withWebUserAccountId(30L)
+        .withForename("John")
+        .withSurname("Steward")
+        .withEmailAddress("john.steward@example.com")
+        .buildJson();
+    when(energyPortalUserService.getEnergyPortalUserMap(
+        List.of(WebUserAccountId.from(10L), WebUserAccountId.from(30L)),
+        CaseEventService.CASE_EVENT_USER_PURPOSE))
+        .thenReturn(Map.of(
+            WebUserAccountId.from(10L), caseManager,
+            WebUserAccountId.from(30L), steward
+        ));
+
+    var result = caseEventService.getCaseEventViews(application);
+
+    assertThat(result).containsExactly(
+        new CaseEventView(
+            CaseEventType.STEWARD_ALLOCATED,
+            Map.of(CaseEventService.ALLOCATED_TO_KEY, "John Steward (john.steward@example.com)"),
+            "Case Manager (case.manager@example.com)",
+            eventInstant
+        )
     );
   }
 

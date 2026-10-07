@@ -6,13 +6,19 @@ import jakarta.persistence.EntityManager;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.support.TransactionTemplate;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.caseevent.casenote.CaseNoteRepository;
 import uk.co.nstauthority.licensingmanagementservice.caseevent.casenote.CaseNoteService;
+import uk.co.nstauthority.licensingmanagementservice.caseevent.payload.CaseAllocationPayload;
+import uk.co.nstauthority.licensingmanagementservice.caseevent.payload.CaseEventPayload;
 import uk.co.nstauthority.licensingmanagementservice.caseevent.payload.CaseNotePayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplication;
@@ -75,14 +81,14 @@ class CaseEventIntegrationTest {
     });
   }
 
-  @Test
-  void payload_isSavedAsJsonAndReadBackAsTheSameType() {
+  @ParameterizedTest
+  @MethodSource("payloads")
+  void payload_isSavedAsJsonAndReadBackAsTheSameType(CaseEventType eventType, CaseEventPayload payload) {
     transactionTemplate.executeWithoutResult(status -> {
-      var payload = new CaseNotePayload(UUID.randomUUID());
       caseEventRepository.save(new CaseEvent(
           application.getApplicationType(),
           application.getId(),
-          CaseEventType.CASE_NOTE_ADDED,
+          eventType,
           Instant.parse("2026-09-01T09:00:00Z"),
           CaseEventUser.system(),
           payload
@@ -144,6 +150,13 @@ class CaseEventIntegrationTest {
         CaseEventUser.system(),
         null
     ));
+  }
+
+  private static Stream<Arguments> payloads() {
+    return Stream.of(
+        Arguments.of(CaseEventType.CASE_NOTE_ADDED, new CaseNotePayload(UUID.randomUUID())),
+        Arguments.of(CaseEventType.STEWARD_ALLOCATED, new CaseAllocationPayload(123L))
+    );
   }
 
   private void insertRawPayload(String json) {

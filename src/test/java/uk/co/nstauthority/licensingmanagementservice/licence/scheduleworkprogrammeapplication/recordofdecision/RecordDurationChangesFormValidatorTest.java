@@ -1,6 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.recordofdecision;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
@@ -128,7 +129,7 @@ class RecordDurationChangesFormValidatorTest {
   }
 
   @Test
-  void isValid_whenEverythingIsMaintained_assertNoErrors() {
+  void isValid_whenEverythingIsMaintained_assertNoExtensionErrorOnFirstExtendablePeriod() {
     var form = formWith(
         change(INITIAL_ID, DurationChangeType.MAINTAIN, 0, 0, 0),
         change(SECOND_ID, DurationChangeType.MAINTAIN, 0, 0, 0),
@@ -138,15 +139,43 @@ class RecordDurationChangesFormValidatorTest {
 
     var isValid = recordDurationChangesFormValidator.isValid(form, bindingResult, applicationDetail);
 
-    assertThat(isValid).isTrue();
+    assertThat(isValid).isFalse();
+    assertThat(bindingResult.getFieldErrors())
+        .extracting(FieldError::getField, FieldError::getDefaultMessage)
+        .containsExactly(tuple(
+            "changeType[%s]".formatted(INITIAL_ID),
+            RecordDurationChangesFormValidator.NO_EXTENSION_ERROR_MESSAGE));
+  }
+
+  @Test
+  void isValid_whenNoLivePeriodCanBeExtended_assertNoExtensionErrorOnFirstLivePeriod() {
+    var form = formWith(
+        change(INITIAL_ID, null, 0, 0, 0),
+        change(SECOND_ID, null, 0, 0, 0),
+        change(THIRD_ID, DurationChangeType.MAINTAIN, 0, 0, 0));
+    var bindingResult = new BeanPropertyBindingResult(form, "form");
+    when(recordDurationChangesService.getDurationChangeViews(applicationDetail))
+        .thenReturn(List.of(
+            view(INITIAL_ID, TermType.INITIAL, false, false, true),
+            view(SECOND_ID, TermType.SECOND, false, false, true),
+            view(THIRD_ID, TermType.THIRD, false, false)));
+
+    var isValid = recordDurationChangesFormValidator.isValid(form, bindingResult, applicationDetail);
+
+    assertThat(isValid).isFalse();
+    assertThat(bindingResult.getFieldErrors())
+        .extracting(FieldError::getField, FieldError::getDefaultMessage)
+        .containsExactly(tuple(
+            "changeType[%s]".formatted(THIRD_ID),
+            RecordDurationChangesFormValidator.NO_EXTENSION_ERROR_MESSAGE));
   }
 
   @Test
   void isValid_whenAnEndedPeriodHasNoAnswer_assertNoErrorsAndItIsTreatedAsMaintained() {
     var form = formWith(
         change(INITIAL_ID, null, 0, 0, 0),
-        change(SECOND_ID, DurationChangeType.MAINTAIN, 0, 0, 0),
-        change(THIRD_ID, DurationChangeType.MAINTAIN, 0, 0, 0));
+        change(SECOND_ID, DurationChangeType.EXTEND, 1, 0, 0),
+        change(THIRD_ID, DurationChangeType.REDUCE, 1, 0, 0));
     var bindingResult = new BeanPropertyBindingResult(form, "form");
     mockViewsWithEndedInitialTerm();
 
@@ -160,8 +189,8 @@ class RecordDurationChangesFormValidatorTest {
   void isValid_whenAnEndedPeriodIsPostedAsReduced_assertNoErrorsAndItIsTreatedAsMaintained() {
     var form = formWith(
         change(INITIAL_ID, DurationChangeType.REDUCE, 1, 0, 0),
-        change(SECOND_ID, DurationChangeType.MAINTAIN, 0, 0, 0),
-        change(THIRD_ID, DurationChangeType.MAINTAIN, 0, 0, 0));
+        change(SECOND_ID, DurationChangeType.EXTEND, 1, 0, 0),
+        change(THIRD_ID, DurationChangeType.REDUCE, 1, 0, 0));
     var bindingResult = new BeanPropertyBindingResult(form, "form");
     mockViewsWithEndedInitialTerm();
 

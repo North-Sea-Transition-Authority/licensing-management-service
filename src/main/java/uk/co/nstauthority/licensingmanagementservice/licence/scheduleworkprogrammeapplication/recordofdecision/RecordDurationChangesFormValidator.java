@@ -21,6 +21,9 @@ public class RecordDurationChangesFormValidator {
       "The reduction of %s must be less than its current duration of %s";
   static final String TOTAL_MISMATCH_ERROR_MESSAGE =
       "The total reduction of %s must equal the total extension of %s";
+  static final String NO_EXTENSION_ERROR_MESSAGE =
+      "Select at least one term or phase to extend. If no duration is changing, answer No to " +
+          "'Is there a change to a phase/term duration?'";
 
   private final RecordDurationChangesService recordDurationChangesService;
 
@@ -41,6 +44,10 @@ public class RecordDurationChangesFormValidator {
 
     if (!bindingResult.hasErrors()) {
       views.forEach(view -> validateReductionFitsInPeriod(form, bindingResult, view));
+    }
+
+    if (!bindingResult.hasErrors()) {
+      validateAtLeastOneExtension(form, bindingResult, views);
     }
 
     if (!bindingResult.hasErrors()) {
@@ -124,6 +131,36 @@ public class RecordDurationChangesFormValidator {
         "%s.years".formatted(reductionInput.getFieldName()),
         "reduceDuration.tooLong",
         REDUCTION_TOO_LONG_ERROR_MESSAGE.formatted(view.displayName(), view.currentDuration()));
+  }
+
+  private void validateAtLeastOneExtension(
+      RecordDurationChangesForm form,
+      BindingResult bindingResult,
+      List<RecordDurationChangeView> views
+  ) {
+    var hasExtension = views.stream()
+        .anyMatch(view -> form.getChangeType().get(view.id()) == DurationChangeType.EXTEND);
+
+    if (hasExtension || views.isEmpty()) {
+      return;
+    }
+
+    var errorView = getViewForNoExtensionError(views);
+
+    bindingResult.rejectValue(
+        "changeType[%s]".formatted(errorView.id()),
+        "changeType.noExtension",
+        NO_EXTENSION_ERROR_MESSAGE);
+  }
+
+  private RecordDurationChangeView getViewForNoExtensionError(List<RecordDurationChangeView> views) {
+    for (var view : views) {
+      if (!view.hasEnded()) {
+        return view;
+      }
+    }
+
+    return views.getFirst();
   }
 
   private void validateTotalsBalance(

@@ -14,9 +14,8 @@
             to date.
         </p>
         <p class="govuk-body">
-            Our preference for the individual licence contact details, is for a generic email address thereby giving
-            individual companies control over access and not limiting contact to a sole individual, with a need to
-            regularly update.
+            Our preference for the individual licence contact details is for a generic email address,
+            thereby giving individual companies control over access and not limiting contact to a sole individual.
         </p>
         <p class="govuk-body">
             The contact details supplied will be used by the NSTA to send any licence reminder, notices and other

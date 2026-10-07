@@ -51,7 +51,7 @@ public class StewardAssignedNotificationService {
     }
 
     var overviewController = on(ScheduleWorkProgrammeApplicationOverviewController.class);
-    var overviewUrl = ReverseRouter.route(overviewController.renderOverview(applicationDetail.getId(), null, null));
+    var overviewUrl = ReverseRouter.route(overviewController.renderOverview(applicationDetail.getId(), null, null, null));
     var applicationUrl = LmsAbsoluteUrlUtil.getAbsoluteUrl(overviewUrl);
 
     var mergedTemplate = emailService.getTemplate(GovukNotifyTemplate.STEWARD_ASSIGNED_TO_APPLICATION_V1)

@@ -59,7 +59,7 @@ public class RecordOfDecisionTaskListController {
 
     var context = new RecordOfDecisionTaskListContext(scheduleWorkProgrammeApplicationDetail);
     var viewApplicationUrl = ReverseRouter.route(on(ScheduleWorkProgrammeApplicationOverviewController.class)
-        .renderOverview(scheduleWorkProgrammeApplicationDetailId, null, null));
+        .renderOverview(scheduleWorkProgrammeApplicationDetailId, null, null, null));
 
     var modelAndView = new ModelAndView("lms/licence/scheduleWorkProgrammeApplication/recordOfDecisionTaskList")
         .addObject("pageTitle", PAGE_TITLE)

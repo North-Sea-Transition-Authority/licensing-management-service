@@ -109,7 +109,7 @@ class ScheduleWorkProgrammeApplicationSubmittedNotificationServiceTest {
     );
 
     var expectedOverviewUrl = ReverseRouter.route(
-        on(ScheduleWorkProgrammeApplicationOverviewController.class).renderOverview(applicationDetail.getId(), null, null)
+        on(ScheduleWorkProgrammeApplicationOverviewController.class).renderOverview(applicationDetail.getId(), null, null, null)
     );
 
     var email = mergedTemplateCaptor.getValue();

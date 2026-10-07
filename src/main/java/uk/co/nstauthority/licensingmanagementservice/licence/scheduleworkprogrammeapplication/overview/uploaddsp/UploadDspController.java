@@ -133,6 +133,6 @@ public class UploadDspController {
         .addObject("form", form)
         .addObject("fileUploadAttributes", fileUploadAttributes)
         .addObject("backUrl", ReverseRouter.route(on(ScheduleWorkProgrammeApplicationOverviewController.class)
-            .renderOverview(applicationDetail.getId(), null, null)));
+            .renderOverview(applicationDetail.getId(), null, null, null)));
   }
 }

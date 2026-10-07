@@ -110,7 +110,7 @@ class AllocateStewardControllerTest extends AbstractControllerTest {
         )
         .andExpect(status().is3xxRedirection())
         .andExpect(redirectedUrl(ReverseRouter.route(on(ScheduleWorkProgrammeApplicationOverviewController.class)
-                .renderOverview(applicationDetailId, null, null))));
+                .renderOverview(applicationDetailId, null, null, null))));
   }
 
   @Test

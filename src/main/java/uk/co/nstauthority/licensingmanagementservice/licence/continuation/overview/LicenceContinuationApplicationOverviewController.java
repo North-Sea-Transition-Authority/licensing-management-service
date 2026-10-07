@@ -2,6 +2,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.continuation.overv
 
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
+import java.util.List;
 import java.util.UUID;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.ResponseEntity;
@@ -104,7 +105,7 @@ public class LicenceContinuationApplicationOverviewController {
         .addObject("accordionId", applicationDetail.getId())
         .addObject("isReviewer", isReviewer)
         .addObject("applicationActions", applicationActions)
-        .addObject("availableTabs", OverviewTab.values())
+        .addObject("availableTabs", List.of(OverviewTab.OVERVIEW, OverviewTab.LETTER))
         .addObject("selectedTab", tab)
         .addObject("controllerUrl",
             ReverseRouter.route(on(LicenceContinuationApplicationOverviewController.class).renderOverview(

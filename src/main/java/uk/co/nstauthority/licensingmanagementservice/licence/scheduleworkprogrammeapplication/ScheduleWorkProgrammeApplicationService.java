@@ -10,6 +10,8 @@ import java.util.UUID;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
+import uk.co.nstauthority.licensingmanagementservice.caseevent.CaseEventService;
+import uk.co.nstauthority.licensingmanagementservice.caseevent.CaseEventType;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService;
@@ -37,6 +39,7 @@ public class ScheduleWorkProgrammeApplicationService {
   private final TeamManagementService teamManagementService;
   private final ScheduleWorkProgrammeApplicationSubmittedNotificationService applicationSubmittedNotificationService;
   private final CrossLicenceEventTrackerService crossLicenceEventTrackerService;
+  private final CaseEventService caseEventService;
 
   public ScheduleWorkProgrammeApplicationService(
       ScheduleWorkProgrammeApplicationRepository scheduleWorkProgrammeApplicationRepository,
@@ -46,7 +49,8 @@ public class ScheduleWorkProgrammeApplicationService {
       ApplicationAccessService applicationAccessService,
       TeamManagementService teamManagementService,
       ScheduleWorkProgrammeApplicationSubmittedNotificationService applicationSubmittedNotificationService,
-      CrossLicenceEventTrackerService crossLicenceEventTrackerService) {
+      CrossLicenceEventTrackerService crossLicenceEventTrackerService,
+      CaseEventService caseEventService) {
     this.scheduleWorkProgrammeApplicationRepository = scheduleWorkProgrammeApplicationRepository;
     this.scheduleWorkProgrammeApplicationDetailRepository = scheduleWorkProgrammeApplicationDetailRepository;
     this.licenceScheduleDetailService = licenceScheduleDetailService;
@@ -55,6 +59,7 @@ public class ScheduleWorkProgrammeApplicationService {
     this.teamManagementService = teamManagementService;
     this.applicationSubmittedNotificationService = applicationSubmittedNotificationService;
     this.crossLicenceEventTrackerService = crossLicenceEventTrackerService;
+    this.caseEventService = caseEventService;
   }
 
   @Transactional
@@ -219,6 +224,7 @@ public class ScheduleWorkProgrammeApplicationService {
     scheduleWorkProgrammeApplicationDetailRepository.save(scheduleWorkProgrammeApplicationDetail);
 
     crossLicenceEventTrackerService.refreshApplicationCache(scheduleWorkProgrammeApplication);
+    caseEventService.recordCaseEvent(CaseEventType.APPLICATION_SUBMITTED, scheduleWorkProgrammeApplication, null);
 
     applicationSubmittedNotificationService.sendNewApplicationSubmittedEmails(scheduleWorkProgrammeApplicationDetail);
 

@@ -185,16 +185,16 @@ public class ScheduleAndWorkProgrammeApplicationWorkAreaService implements WorkA
       case DRAFT -> ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class)
           .getTaskList(applicationDetail.getId(), null, null));
 
-      case ApplicationStatus.ISSUE_DECISION -> ReverseRouter.route(decisionIssuer
+      case ISSUE_DECISION -> ReverseRouter.route(decisionIssuer
           ? on(ApplicationLetterController.class).renderEditLetterOverview(
               ApplicationType.SCHEDULE_AMENDMENT_APPLICATION,
               applicationDetail.getScheduleWorkProgrammeApplication().getId()
           )
           : on(ScheduleWorkProgrammeApplicationOverviewController.class)
-              .renderOverview(applicationDetail.getId(), null, null));
+              .renderOverview(applicationDetail.getId(), null, null, null));
 
       default -> ReverseRouter.route(on(ScheduleWorkProgrammeApplicationOverviewController.class)
-          .renderOverview(applicationDetail.getId(), null, null));
+          .renderOverview(applicationDetail.getId(), null, null, null));
     };
 
     var transactionDateTime = applicationDetail.getStatus() == ApplicationStatus.DRAFT

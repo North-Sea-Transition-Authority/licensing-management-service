@@ -72,7 +72,7 @@ public class AllocateStewardController {
     );
 
     return ReverseRouter.redirect(on(ScheduleWorkProgrammeApplicationOverviewController.class)
-        .renderOverview(applicationDetail.getId(), null, null));
+        .renderOverview(applicationDetail.getId(), null, null, null));
   }
 
   private ModelAndView getModelAndView(
@@ -88,6 +88,6 @@ public class AllocateStewardController {
         .addObject("stewardOptions", stewardOptions)
         .addObject("caption", licence.getType().getDisplayName())
         .addObject("backUrl", ReverseRouter.route(on(ScheduleWorkProgrammeApplicationOverviewController.class)
-            .renderOverview(applicationDetail.getId(), null, null)));
+            .renderOverview(applicationDetail.getId(), null, null, null)));
   }
 }

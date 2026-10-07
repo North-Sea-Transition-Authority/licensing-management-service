@@ -334,7 +334,7 @@ public class CrossLicenceEventTrackerService {
   private String applicationOverviewLink(UUID scheduleWorkProgrammeApplicationDetailId) {
     return StringUtils.removeStart(
         ReverseRouter.route(on(ScheduleWorkProgrammeApplicationOverviewController.class)
-            .renderOverview(scheduleWorkProgrammeApplicationDetailId, null, null)),
+            .renderOverview(scheduleWorkProgrammeApplicationDetailId, null, null, null)),
         "/"
     );
   }

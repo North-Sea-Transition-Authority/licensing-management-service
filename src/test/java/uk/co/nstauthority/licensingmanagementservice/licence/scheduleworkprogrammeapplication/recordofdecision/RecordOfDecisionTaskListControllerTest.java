@@ -126,7 +126,7 @@ class RecordOfDecisionTaskListControllerTest extends AbstractControllerTest {
 
     var workAreaUrl = ReverseRouter.route(on(WorkAreaController.class).getWorkArea(null, null));
     var viewApplicationUrl = ReverseRouter.route(on(ScheduleWorkProgrammeApplicationOverviewController.class)
-        .renderOverview(applicationDetailId, null, null));
+        .renderOverview(applicationDetailId, null, null, null));
 
     mockMvc.perform(
             get(ReverseRouter.route(on(RecordOfDecisionTaskListController.class)

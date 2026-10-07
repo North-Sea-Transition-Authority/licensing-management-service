@@ -194,7 +194,7 @@ class ScheduleAndWorkProgrammeApplicationWorkAreaServiceTest {
         .extracting(SearchResultItem::linkHeadingUrl)
         .containsExactly(
             ReverseRouter.route(on(ScheduleWorkProgrammeApplicationOverviewController.class)
-                .renderOverview(scheduleWorkProgrammeApplicationDetail1.getId(), null, null)),
+                .renderOverview(scheduleWorkProgrammeApplicationDetail1.getId(), null, null, null)),
             ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class)
                 .getTaskList(scheduleWorkProgrammeApplicationDetail2.getId(), null, null))
         );
@@ -239,7 +239,7 @@ class ScheduleAndWorkProgrammeApplicationWorkAreaServiceTest {
                     scheduleWorkProgrammeApplicationDetail1.getScheduleWorkProgrammeApplication().getApplicationReference(),
                     ApplicationType.SCHEDULE_AMENDMENT_APPLICATION.getDisplayName().toLowerCase()),
                 ReverseRouter.route(on(ScheduleWorkProgrammeApplicationOverviewController.class)
-                    .renderOverview(scheduleWorkProgrammeApplicationDetail1.getId(), null, null)),
+                    .renderOverview(scheduleWorkProgrammeApplicationDetail1.getId(), null, null, null)),
                 String.format("Submitted %s", DateFormatUtil.convertToDisplayTextWithTime(testInstant)),
                 List.of(summaryDataView),
                 testInstant
@@ -290,7 +290,7 @@ class ScheduleAndWorkProgrammeApplicationWorkAreaServiceTest {
         .extracting(SearchResultItem::linkHeadingUrl)
         .containsExactly(
             ReverseRouter.route(on(ScheduleWorkProgrammeApplicationOverviewController.class)
-                .renderOverview(scheduleWorkProgrammeApplicationDetail1.getId(), null, null))
+                .renderOverview(scheduleWorkProgrammeApplicationDetail1.getId(), null, null, null))
         );
   }
 
@@ -757,7 +757,7 @@ class ScheduleAndWorkProgrammeApplicationWorkAreaServiceTest {
             tuple(
                 scheduleWorkProgrammeApplicationDetail1.getId().toString(),
                 ReverseRouter.route(on(ScheduleWorkProgrammeApplicationOverviewController.class)
-                    .renderOverview(scheduleWorkProgrammeApplicationDetail1.getId(), null, null))
+                    .renderOverview(scheduleWorkProgrammeApplicationDetail1.getId(), null, null, null))
             )
         );
   }

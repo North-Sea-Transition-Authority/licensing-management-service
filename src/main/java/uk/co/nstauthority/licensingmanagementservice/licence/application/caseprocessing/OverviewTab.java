@@ -3,7 +3,8 @@ package uk.co.nstauthority.licensingmanagementservice.licence.application.casepr
 public enum OverviewTab {
 
   OVERVIEW("Overview", "overview", "overview"),
-  LETTER("Letter", "letter", "letter");
+  LETTER("Letter", "letter", "letter"),
+  CASE_EVENTS("Case events", "case-events", "case-events");
 
   private final String label;
   private final String value;

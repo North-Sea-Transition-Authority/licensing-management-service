@@ -22,6 +22,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
+import uk.co.nstauthority.licensingmanagementservice.caseevent.CaseEventService;
+import uk.co.nstauthority.licensingmanagementservice.caseevent.CaseEventType;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService;
@@ -64,6 +66,9 @@ class ScheduleWorkProgrammeApplicationServiceTest {
 
   @Mock
   private CrossLicenceEventTrackerService crossLicenceEventTrackerService;
+
+  @Mock
+  private CaseEventService caseEventService;
 
   @InjectMocks
   private ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService;
@@ -247,6 +252,7 @@ class ScheduleWorkProgrammeApplicationServiceTest {
 
     verify(applicationSubmittedNotificationService).sendNewApplicationSubmittedEmails(scheduleWorkProgrammeApplicationDetail);
     verify(crossLicenceEventTrackerService).refreshApplicationCache(savedApplication);
+    verify(caseEventService).recordCaseEvent(CaseEventType.APPLICATION_SUBMITTED, savedApplication, null);
   }
 
   @Test

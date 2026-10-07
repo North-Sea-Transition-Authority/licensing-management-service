@@ -123,7 +123,7 @@ class LicenceContinuationApplicationOverviewControllerTest extends AbstractContr
         .andExpect(model().attribute("accordionId", applicationDetailId))
         .andExpect(model().attribute("applicationActions", List.of()))
         .andExpect(model().attribute("letterIssueSummarySection", (Object) null))
-        .andExpect(model().attribute("availableTabs", OverviewTab.values()))
+        .andExpect(model().attribute("availableTabs", List.of(OverviewTab.OVERVIEW, OverviewTab.LETTER)))
         .andExpect(model().attribute("selectedTab", OverviewTab.OVERVIEW))
         .andExpect(model().attributeExists("controllerUrl"));
   }

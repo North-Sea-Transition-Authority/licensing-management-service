@@ -63,7 +63,7 @@ public class ScheduleWorkProgrammeApplicationSubmittedNotificationService {
     }
 
     var overviewController = on(ScheduleWorkProgrammeApplicationOverviewController.class);
-    var overviewUrl = ReverseRouter.route(overviewController.renderOverview(applicationDetail.getId(), null, null));
+    var overviewUrl = ReverseRouter.route(overviewController.renderOverview(applicationDetail.getId(), null, null, null));
     var applicationUrl = LmsAbsoluteUrlUtil.getAbsoluteUrl(overviewUrl);
 
     var template = emailService.getTemplate(GovukNotifyTemplate.NEW_SCHEDULE_AMENDMENT_APPLICATION_SUBMITTED_V1)

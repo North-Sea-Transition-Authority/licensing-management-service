@@ -8,12 +8,16 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.InjectMocks;
@@ -30,10 +34,12 @@ import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplicationDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatusType;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceOrganisationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisation;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisationService;
+import uk.co.nstauthority.licensingmanagementservice.licence.status.LicenceStatusService;
 import uk.co.nstauthority.licensingmanagementservice.teams.RegulatorRoleService;
 
 @ExtendWith(MockitoExtension.class)
@@ -71,6 +77,9 @@ class LicenceContactServiceTest {
 
   @Mock
   private RegulatorRoleService regulatorRoleService;
+
+  @Mock
+  private LicenceStatusService licenceStatusService;
 
   @InjectMocks
   private LicenceContactService licenceContactService;
@@ -133,6 +142,7 @@ class LicenceContactServiceTest {
     when(licenceOrganisationService.getUsersOrgUnits(user)).thenReturn(List.of(ORG_UNIT));
     when(licenceResponsibleOrganisationService.getAllByResponsibleOrganisationIdIn(Set.of(ORG_ID)))
         .thenReturn(List.of(licensee()));
+    givenExtantLicences(licensee());
     when(licenceContactRepository.findAllByLicensee_ResponsibleOrganisationIdIn(Set.of(ORG_ID)))
         .thenReturn(List.of());
 
@@ -152,6 +162,7 @@ class LicenceContactServiceTest {
     when(licenceOrganisationService.getUsersOrgUnits(user)).thenReturn(List.of(ORG_UNIT));
     when(licenceResponsibleOrganisationService.getAllByResponsibleOrganisationIdIn(Set.of(ORG_ID)))
         .thenReturn(List.of(licensee));
+    givenExtantLicences(licensee);
     when(licenceContactRepository.findAllByLicensee_ResponsibleOrganisationIdIn(Set.of(ORG_ID)))
         .thenReturn(List.of(contact(licensee, "licensing@example.com")));
 
@@ -167,6 +178,7 @@ class LicenceContactServiceTest {
     when(licenceOrganisationService.getUsersOrgUnits(user)).thenReturn(List.of(ORG_UNIT));
     when(licenceResponsibleOrganisationService.getAllByResponsibleOrganisationIdIn(Set.of(ORG_ID)))
         .thenReturn(List.of(licensee()));
+    givenExtantLicences(licensee());
     when(licenceContactRepository.findAllByLicensee_ResponsibleOrganisationIdIn(Set.of(ORG_ID)))
         .thenReturn(List.of());
 
@@ -191,6 +203,7 @@ class LicenceContactServiceTest {
   void getRegulatorContactsTable_whenLicenseeHasContact_showsEmailAndNoActionColumn() {
     var licensee = licensee();
     when(licenceResponsibleOrganisationService.getAll()).thenReturn(List.of(licensee));
+    givenExtantLicences(licensee);
     when(organisationUnitQueryService.getOrganisationUnitNamesByIds(List.of(ORG_ID)))
         .thenReturn(Map.of(ORG_ID, SHELL_U_K_LIMITED));
     when(licenceContactRepository.findAllByLicensee_ResponsibleOrganisationIdIn(List.of(ORG_ID)))
@@ -211,6 +224,7 @@ class LicenceContactServiceTest {
   void getRegulatorContactsTable_whenUserCanManage_hasActionLink() {
     var licensee = licensee();
     when(licenceResponsibleOrganisationService.getAll()).thenReturn(List.of(licensee));
+    givenExtantLicences(licensee);
     when(organisationUnitQueryService.getOrganisationUnitNamesByIds(List.of(ORG_ID)))
         .thenReturn(Map.of(ORG_ID, SHELL_U_K_LIMITED));
     when(licenceContactRepository.findAllByLicensee_ResponsibleOrganisationIdIn(List.of(ORG_ID)))
@@ -227,6 +241,7 @@ class LicenceContactServiceTest {
   void getRegulatorContactsTable_whenLicenseeHasNoContact_showsNotAssigned() {
     var licensee = licensee();
     when(licenceResponsibleOrganisationService.getAll()).thenReturn(List.of(licensee));
+    givenExtantLicences(licensee);
     when(organisationUnitQueryService.getOrganisationUnitNamesByIds(List.of(ORG_ID)))
         .thenReturn(Map.of(ORG_ID, SHELL_U_K_LIMITED));
     when(licenceContactRepository.findAllByLicensee_ResponsibleOrganisationIdIn(List.of(ORG_ID)))
@@ -246,6 +261,7 @@ class LicenceContactServiceTest {
     when(licenceOrganisationService.getUsersOrgUnits(user)).thenReturn(List.of(ORG_UNIT));
     when(licenceResponsibleOrganisationService.getAllByResponsibleOrganisationIdIn(Set.of(ORG_ID)))
         .thenReturn(List.of(licensee(), otherOrgLicensee));
+    givenExtantLicences(licensee(), otherOrgLicensee);
     when(licenceContactRepository.findAllByLicensee_ResponsibleOrganisationIdIn(Set.of(ORG_ID)))
         .thenReturn(List.of());
 
@@ -267,6 +283,7 @@ class LicenceContactServiceTest {
     when(licenceOrganisationService.getUsersOrgUnits(user)).thenReturn(List.of(ORG_UNIT));
     when(licenceResponsibleOrganisationService.getAllByResponsibleOrganisationIdIn(Set.of(ORG_ID)))
         .thenReturn(List.of(licenseeWithContact, licenseeWithoutContact));
+    givenExtantLicences(licenseeWithContact, licenseeWithoutContact);
     when(licenceContactRepository.findAllByLicensee_ResponsibleOrganisationIdIn(Set.of(ORG_ID)))
         .thenReturn(List.of(contact(licenseeWithContact, "licensing@example.com")));
 
@@ -288,6 +305,7 @@ class LicenceContactServiceTest {
     when(licenceOrganisationService.getUsersOrgUnits(user)).thenReturn(List.of(ORG_UNIT));
     when(licenceResponsibleOrganisationService.getAllByResponsibleOrganisationIdIn(Set.of(ORG_ID)))
         .thenReturn(List.of(licenseeWithContact, licenseeWithoutContact));
+    givenExtantLicences(licenseeWithContact, licenseeWithoutContact);
     when(licenceContactRepository.findAllByLicensee_ResponsibleOrganisationIdIn(Set.of(ORG_ID)))
         .thenReturn(List.of(contact(licenseeWithContact, "licensing@example.com")));
 
@@ -307,6 +325,7 @@ class LicenceContactServiceTest {
     var shellLicensee = licensee();
     var otherOrgLicensee = licenseeForOrg(otherLicence(), 20);
     when(licenceResponsibleOrganisationService.getAll()).thenReturn(List.of(shellLicensee, otherOrgLicensee));
+    givenExtantLicences(shellLicensee, otherOrgLicensee);
     when(organisationUnitQueryService.getOrganisationUnitNamesByIds(List.of(ORG_ID, 20)))
         .thenReturn(Map.of(ORG_ID, SHELL_U_K_LIMITED, 20, "BP Exploration"));
     when(licenceContactRepository.findAllByLicensee_ResponsibleOrganisationIdIn(List.of(ORG_ID, 20)))
@@ -328,6 +347,7 @@ class LicenceContactServiceTest {
     var shellLicensee = licensee();
     var otherOrgLicensee = licenseeForOrg(otherLicence(), 20);
     when(licenceResponsibleOrganisationService.getAll()).thenReturn(List.of(shellLicensee, otherOrgLicensee));
+    givenExtantLicences(shellLicensee, otherOrgLicensee);
     when(organisationUnitQueryService.getOrganisationUnitNamesByIds(List.of(ORG_ID, 20)))
         .thenReturn(Map.of(ORG_ID, SHELL_U_K_LIMITED, 20, "BP Exploration"));
     when(licenceContactRepository.findAllByLicensee_ResponsibleOrganisationIdIn(List.of(ORG_ID, 20)))
@@ -343,6 +363,67 @@ class LicenceContactServiceTest {
     assertThat(tableView.tableJson())
         .contains(SHELL_U_K_LIMITED)
         .doesNotContain("BP Exploration");
+    assertThat(tableView.contactCount()).isEqualTo(1);
+  }
+
+  @ParameterizedTest
+  @EnumSource(value = LicenceStatusType.class, names = "EXTANT", mode = EnumSource.Mode.EXCLUDE)
+  void getRegulatorContactsTable_whenLicenceNotExtant_excludesLicence(LicenceStatusType status) {
+    var extantLicensee = licensee();
+    var nonExtantLicensee = licenseeForOrg(otherLicence(), 20);
+    when(licenceResponsibleOrganisationService.getAll()).thenReturn(List.of(extantLicensee, nonExtantLicensee));
+    when(licenceStatusService.getCurrentStatusesByLicenceId(List.of(LICENCE, otherLicence())))
+        .thenReturn(Map.of(LICENCE_ID, LicenceStatusType.EXTANT, 2, status));
+    when(organisationUnitQueryService.getOrganisationUnitNamesByIds(List.of(ORG_ID)))
+        .thenReturn(Map.of(ORG_ID, SHELL_U_K_LIMITED));
+    when(licenceContactRepository.findAllByLicensee_ResponsibleOrganisationIdIn(List.of(ORG_ID)))
+        .thenReturn(List.of());
+
+    var tableView = licenceContactService.getRegulatorContactsTable(true, new LicenceContactFilterForm());
+
+    assertThat(tableView.tableJson())
+        .contains("P 123")
+        .doesNotContain("P 456");
+    assertThat(tableView.contactCount()).isEqualTo(1);
+  }
+
+  @Test
+  void getRegulatorContactsTable_whenLicenceHasNoStatus_excludesLicence() {
+    var extantLicensee = licensee();
+    var noStatusLicensee = licenseeForOrg(otherLicence(), 20);
+    when(licenceResponsibleOrganisationService.getAll()).thenReturn(List.of(extantLicensee, noStatusLicensee));
+    when(licenceStatusService.getCurrentStatusesByLicenceId(List.of(LICENCE, otherLicence())))
+        .thenReturn(Map.of(LICENCE_ID, LicenceStatusType.EXTANT));
+    when(organisationUnitQueryService.getOrganisationUnitNamesByIds(List.of(ORG_ID)))
+        .thenReturn(Map.of(ORG_ID, SHELL_U_K_LIMITED));
+    when(licenceContactRepository.findAllByLicensee_ResponsibleOrganisationIdIn(List.of(ORG_ID)))
+        .thenReturn(List.of());
+
+    var tableView = licenceContactService.getRegulatorContactsTable(true, new LicenceContactFilterForm());
+
+    assertThat(tableView.tableJson())
+        .contains("P 123")
+        .doesNotContain("P 456");
+    assertThat(tableView.contactCount()).isEqualTo(1);
+  }
+
+  @Test
+  void getIndustryContactsTable_whenLicenceNotExtant_excludesLicence() {
+    var extantLicensee = licensee();
+    var nonExtantLicensee = licenseeOnLicence(otherLicence());
+    when(licenceOrganisationService.getUsersOrgUnits(user)).thenReturn(List.of(ORG_UNIT));
+    when(licenceResponsibleOrganisationService.getAllByResponsibleOrganisationIdIn(Set.of(ORG_ID)))
+        .thenReturn(List.of(extantLicensee, nonExtantLicensee));
+    when(licenceStatusService.getCurrentStatusesByLicenceId(List.of(LICENCE, otherLicence())))
+        .thenReturn(Map.of(LICENCE_ID, LicenceStatusType.EXTANT, 2, LicenceStatusType.SURRENDERED));
+    when(licenceContactRepository.findAllByLicensee_ResponsibleOrganisationIdIn(Set.of(ORG_ID)))
+        .thenReturn(List.of());
+
+    var tableView = licenceContactService.getIndustryContactsTable(user, true, new LicenceContactFilterForm());
+
+    assertThat(tableView.tableJson())
+        .contains("P 123")
+        .doesNotContain("P 456");
     assertThat(tableView.contactCount()).isEqualTo(1);
   }
 
@@ -460,6 +541,7 @@ class LicenceContactServiceTest {
     when(organisationUnitQueryService.getOrganisationUnitNameById(ORG_ID)).thenReturn(Optional.of(SHELL_U_K_LIMITED));
     when(licenceResponsibleOrganisationService.getAllByResponsibleOrganisationIdIn(Set.of(ORG_ID)))
         .thenReturn(List.of(currentLicensee, otherLicensee));
+    givenExtantLicences(otherLicensee);
     when(licenceContactRepository.findAllByLicensee_ResponsibleOrganisationIdIn(Set.of(ORG_ID)))
         .thenReturn(List.of(contact(otherLicensee, "other@example.com")));
 
@@ -533,6 +615,7 @@ class LicenceContactServiceTest {
     when(licenceOrganisationService.getScopedOrgUnitNameOrThrow(user, ORG_ID)).thenReturn(SHELL_U_K_LIMITED);
     when(licenceResponsibleOrganisationService.getAllByResponsibleOrganisationIdIn(Set.of(ORG_ID)))
         .thenReturn(List.of(currentLicensee, otherLicensee));
+    givenExtantLicences(otherLicensee);
     when(licenceContactRepository.findAllByLicensee_ResponsibleOrganisationIdIn(Set.of(ORG_ID)))
         .thenReturn(List.of(contact(otherLicensee, "other@example.com")));
 
@@ -550,12 +633,31 @@ class LicenceContactServiceTest {
     when(licenceOrganisationService.getScopedOrgUnitNameOrThrow(user, ORG_ID)).thenReturn(SHELL_U_K_LIMITED);
     when(licenceResponsibleOrganisationService.getAllByResponsibleOrganisationIdIn(Set.of(ORG_ID)))
         .thenReturn(List.of(currentLicensee, otherLicensee));
+    givenExtantLicences(otherLicensee);
     when(licenceContactRepository.findAllByLicensee_ResponsibleOrganisationIdIn(Set.of(ORG_ID)))
         .thenReturn(List.of());
 
     var licenceIds = licenceContactService.getAllLicenceIdsHeldByLicensee(user, LICENCE_ID, ORG_ID);
 
     assertThat(licenceIds).containsExactly(LICENCE_ID, 2);
+  }
+
+  @Test
+  void getOtherLicencesHeldByLicensee_whenOtherLicenceNotExtant_excludesIt() {
+    var currentLicensee = licensee();
+    var nonExtantLicensee = licenseeOnLicence(otherLicence());
+
+    when(licenceOrganisationService.getScopedOrgUnitNameOrThrow(user, ORG_ID)).thenReturn(SHELL_U_K_LIMITED);
+    when(licenceResponsibleOrganisationService.getAllByResponsibleOrganisationIdIn(Set.of(ORG_ID)))
+        .thenReturn(List.of(currentLicensee, nonExtantLicensee));
+    when(licenceStatusService.getCurrentStatusesByLicenceId(List.of(otherLicence())))
+        .thenReturn(Map.of(2, LicenceStatusType.EXPIRED));
+    when(licenceContactRepository.findAllByLicensee_ResponsibleOrganisationIdIn(Set.of(ORG_ID)))
+        .thenReturn(List.of());
+
+    var candidates = licenceContactService.getOtherLicencesHeldByLicensee(user, LICENCE_ID, ORG_ID);
+
+    assertThat(candidates).isEmpty();
   }
 
   @Test
@@ -624,6 +726,15 @@ class LicenceContactServiceTest {
     licensee.setResponsibleOrganisationId(ORG_ID);
     licensee.setManagedByLms(false);
     return licensee;
+  }
+
+  private void givenExtantLicences(LicenceResponsibleOrganisation... licensees) {
+    var licences = Arrays.stream(licensees)
+        .map(LicenceResponsibleOrganisation::getLicence)
+        .toList();
+    var statusByLicenceId = licences.stream()
+        .collect(Collectors.toMap(Licence::getId, licence -> LicenceStatusType.EXTANT));
+    when(licenceStatusService.getCurrentStatusesByLicenceId(licences)).thenReturn(statusByLicenceId);
   }
 
   private LicenceApplicationDetail applicationDetail(Licence licence, Integer responsibleOrganisationUnitId) {

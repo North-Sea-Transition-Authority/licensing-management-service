@@ -213,8 +213,17 @@ The row is keyed on the licensee pair, not on the licence, so a licence with thr
 organisations can have up to three contacts, and asking for "the contact for a licence" is
 ambiguous unless the organisation is specified.
 
-Contacts arrive from the Energy Portal on a message subscription rather than through the hourly
-refresh, so a contact can change without any other part of this document changing.
+Contacts are written from two places, neither of them the hourly refresh, so a contact can
+change without any other part of this document changing (§7.2):
+
+| Source | Which licences it writes for |
+|---|---|
+| Energy Portal contact messages | any licence, whatever its status |
+| Licence contacts managers editing contacts in LMS | licences whose current status (§4) is `EXTANT`, the only ones LMS lists for them |
+
+A non-`EXTANT` licence can therefore still have a contact, either from before the licence
+stopped being extant or from an Energy Portal message. That row is not removed when the status
+changes, and LMS no longer lists it for its users.
 
 ---
 
@@ -252,8 +261,10 @@ otherwise remove every other licence's organisations.
 
 ### 7.2 Contacts
 
-`licence_contact` is maintained separately, from Energy Portal contact messages rather than the
-hourly refresh.
+`licence_contact` is maintained separately from the hourly refresh. Energy Portal contact
+messages write it, and so do licence contacts managers in LMS, who can set one contact address
+on several of a licensee's licences at once. LMS users are only shown, and only offered to
+update, licences that are currently `EXTANT` (§6).
 
 ### 7.3 Migration-loaded data
 
@@ -365,6 +376,9 @@ by meaningful editorial changes.
 9. **Organisation and user identifiers are external.** LMS stores no organisation names and no
    user names or email addresses for them; `licence_contact.contact_email` is the only address
    held anywhere in this document, and it belongs to the licensee, not to a person record.
+10. **A contact on a non-`EXTANT` licence may be stale.** LMS users only manage contacts for
+    extant licences, but a contact is never removed when a licence stops being extant. Join to
+    the current status (§4) before treating a `licence_contact` row as maintained (§6).
 
 ---
 

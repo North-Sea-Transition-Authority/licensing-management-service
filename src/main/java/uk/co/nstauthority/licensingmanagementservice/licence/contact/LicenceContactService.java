@@ -24,9 +24,11 @@ import uk.co.nstauthority.licensingmanagementservice.fds.table.SortableTableView
 import uk.co.nstauthority.licensingmanagementservice.fds.table.Tag;
 import uk.co.nstauthority.licensingmanagementservice.fds.table.TagColour;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplicationDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatusType;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceOrganisationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisation;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisationService;
+import uk.co.nstauthority.licensingmanagementservice.licence.status.LicenceStatusService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.teams.RegulatorRoleService;
 import uk.co.nstauthority.licensingmanagementservice.util.FilterUtil;
@@ -41,6 +43,7 @@ public class LicenceContactService {
   private final OrganisationGroupQueryService organisationGroupQueryService;
   private final LicenceContactEmailService licenceContactEmailService;
   private final RegulatorRoleService regulatorRoleService;
+  private final LicenceStatusService licenceStatusService;
 
   public LicenceContactService(
       LicenceContactRepository licenceContactRepository,
@@ -49,7 +52,8 @@ public class LicenceContactService {
       OrganisationUnitQueryService organisationUnitQueryService,
       OrganisationGroupQueryService organisationGroupQueryService,
       LicenceContactEmailService licenceContactEmailService,
-      RegulatorRoleService regulatorRoleService
+      RegulatorRoleService regulatorRoleService,
+      LicenceStatusService licenceStatusService
   ) {
     this.licenceContactRepository = licenceContactRepository;
     this.licenceResponsibleOrganisationService = licenceResponsibleOrganisationService;
@@ -58,6 +62,7 @@ public class LicenceContactService {
     this.organisationGroupQueryService = organisationGroupQueryService;
     this.licenceContactEmailService = licenceContactEmailService;
     this.regulatorRoleService = regulatorRoleService;
+    this.licenceStatusService = licenceStatusService;
   }
 
   public LicenceContactsTableView getIndustryContactsTable(
@@ -69,12 +74,13 @@ public class LicenceContactService {
     var nameByOrgUnitId = usersOrgUnits.stream()
         .collect(Collectors.toMap(OrganisationUnitJson::organisationUnitId, OrganisationUnitJson::name, (a, b) -> a));
     var orgUnitIds = nameByOrgUnitId.keySet();
-    var licensees = licenceResponsibleOrganisationService.getAllByResponsibleOrganisationIdIn(orgUnitIds);
+    var licensees = filterToExtantLicences(
+        licenceResponsibleOrganisationService.getAllByResponsibleOrganisationIdIn(orgUnitIds));
     return buildContactsTable(licensees, nameByOrgUnitId, orgUnitIds, canManage, filterForm);
   }
 
   public LicenceContactsTableView getRegulatorContactsTable(boolean canManage, LicenceContactFilterForm filterForm) {
-    var licensees = licenceResponsibleOrganisationService.getAll();
+    var licensees = filterToExtantLicences(licenceResponsibleOrganisationService.getAll());
     var orgUnitIds = licensees.stream()
         .map(LicenceResponsibleOrganisation::getResponsibleOrganisationId)
         .distinct()
@@ -85,6 +91,17 @@ public class LicenceContactService {
 
   public List<LicenceContact> getContactsForLicensees(Collection<LicenceResponsibleOrganisation> licensees) {
     return licenceContactRepository.findAllByLicenseeIn(licensees);
+  }
+
+  private List<LicenceResponsibleOrganisation> filterToExtantLicences(List<LicenceResponsibleOrganisation> licensees) {
+    var licences = licensees.stream()
+        .map(LicenceResponsibleOrganisation::getLicence)
+        .toList();
+    var statusByLicenceId = licenceStatusService.getCurrentStatusesByLicenceId(licences);
+
+    return licensees.stream()
+        .filter(licensee -> statusByLicenceId.get(licensee.getLicence().getId()) == LicenceStatusType.EXTANT)
+        .toList();
   }
 
   public boolean hasContactForLicensee(LicenceApplicationDetail applicationDetail) {
@@ -254,8 +271,12 @@ public class LicenceContactService {
         .stream()
         .collect(Collectors.toMap(LicenceContact::getLicensee, LicenceContact::getContactEmail));
 
-    return licenceResponsibleOrganisationService.getAllByResponsibleOrganisationIdIn(Set.of(organisationId)).stream()
+    var otherLicensees = licenceResponsibleOrganisationService.getAllByResponsibleOrganisationIdIn(Set.of(organisationId))
+        .stream()
         .filter(licensee -> !licensee.getLicence().getId().equals(currentLicenceId))
+        .toList();
+
+    return filterToExtantLicences(otherLicensees).stream()
         .map(licensee -> new BulkContactCandidate(
             licensee.getLicence().getId(),
             licensee.getLicence().getLicenceReference(),

@@ -31,7 +31,7 @@ java {
 }
 
 def fileUploadLibraryVersion = 'v3.0.0'
-def epmqVersion = 'v4.17.0'
+def epmqVersion = 'v4.17.1'
 
 repositories {
   mavenCentral()

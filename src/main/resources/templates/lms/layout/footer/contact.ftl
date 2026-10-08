@@ -16,8 +16,8 @@ pageSize=PageSize.FULL_COLUMN
       <@fdsSummaryList.summaryListCard summaryListId="business-contact-details" headingText="${serviceBranding.mnemonic()} business support">
           <@fdsSummaryList.summaryListRowNoAction keyText="Email">
               <@fdsAction.link
-              linkText="example@xyz.com"
-              linkUrl="mailto:example@xyz.com?subject=${serviceBranding.name()} - Support"
+              linkText=customerBranding.businessSupportEmail()
+              linkUrl="mailto:${customerBranding.businessSupportEmail()}?subject=${serviceBranding.name()} - Support"
               />
           </@fdsSummaryList.summaryListRowNoAction>
       </@fdsSummaryList.summaryListCard>

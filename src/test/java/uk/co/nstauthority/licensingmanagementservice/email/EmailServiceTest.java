@@ -35,7 +35,7 @@ class EmailServiceTest {
 
   private static final CustomerConfigurationProperties CUSTOMER_CONFIGURATION_PROPERTIES
       = new CustomerConfigurationProperties(
-      "name", "mnemonic", "contactEmail", "approvals@nstauthority.co.uk"
+      "name", "mnemonic", "contactEmail", "approvals@nstauthority.co.uk", "business@nstauthority.co.uk"
   );
 
   private static final String WORK_AREA_URL = "http://localhost:8080/lms/work-area";

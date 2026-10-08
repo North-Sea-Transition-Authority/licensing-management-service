@@ -73,7 +73,8 @@ class EventReminderBounceServiceTest {
   @BeforeEach
   void setUp() {
     var customerConfigurationProperties = new CustomerConfigurationProperties(
-        "North Sea Transition Authority", "NSTA", "https://example.com/privacy", APPROVALS_EMAIL);
+        "North Sea Transition Authority", "NSTA", "https://example.com/privacy", APPROVALS_EMAIL,
+        "business@nstauthority.co.uk");
 
     eventReminderBounceService = new EventReminderBounceService(
         clock,

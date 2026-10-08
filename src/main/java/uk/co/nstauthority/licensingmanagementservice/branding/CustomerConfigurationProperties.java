@@ -10,5 +10,6 @@ public record CustomerConfigurationProperties(
     @NotNull String name,
     @NotNull String mnemonic,
     @NotNull String privacyPolicyUrl,
-    @NotNull String approvalsContactEmail
+    @NotNull String approvalsContactEmail,
+    @NotNull String businessSupportEmail
 ) {}

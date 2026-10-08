@@ -3,9 +3,9 @@ import OpenLayersMap from "vue3-openlayers";
 import TextualDescription from "./components/textualDescription/TextualDescription.vue";
 import MergePage from "./pages/MergePage.vue";
 import SplitByCoordinateEntryPage from "./pages/SplitByCoordinateEntryPage.vue";
+import MapActionsPage from "./pages/MapActionsPage.vue";
 import SplitByPointAndClickPage from "./pages/SplitByPointAndClickPage.vue";
 import MapWithTextualDescription from "./components/textualDescription/MapWithTextualDescription.vue";
-import DepthMapPage from "./pages/DepthMapPage.vue";
 import "ol/ol.css";
 import "vue3-openlayers/vue3-openlayers.css";
 
@@ -85,8 +85,8 @@ for (const element of document.querySelectorAll<HTMLElement>("[data-gis-componen
     .mount(element);
 }
 
-for (const element of document.querySelectorAll<HTMLElement>("[data-gis-component='gis-depth-map']")) {
-  createApp(DepthMapPage, {
+for (const element of document.querySelectorAll<HTMLElement>("[data-gis-component='gis-map-actions']")) {
+  createApp(MapActionsPage, {
     commandJourneyId: element.dataset.gisCommandJourneyId,
     srsWkid: Number(element.dataset.gisSrsWkid),
     featuresBaseUrl: element.dataset.gisFeaturesBaseUrl,

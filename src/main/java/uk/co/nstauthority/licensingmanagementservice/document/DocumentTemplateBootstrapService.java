@@ -1,6 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.document;
 
 import java.util.List;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.apache.commons.collections4.CollectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,7 +13,7 @@ import uk.co.fivium.digitaldocumentlibrary.document.DocumentTemplateDto;
 import uk.co.fivium.digitaldocumentlibrary.document.DocumentTemplateService;
 
 @Service
-class DocumentTemplateBootstrapService {
+public class DocumentTemplateBootstrapService {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(DocumentTemplateBootstrapService.class);
 
@@ -31,8 +32,10 @@ class DocumentTemplateBootstrapService {
     this.templateProviders = templateProviders;
   }
 
+  // Instances starting together would otherwise both see a template as missing and both try to insert it
   @EventListener(ApplicationReadyEvent.class)
-  void onApplicationReadyEvent() {
+  @SchedulerLock(name = "documentTemplateBootstrap", lockAtMostFor = "PT10M")
+  public void onApplicationReadyEvent() {
     List<DocumentTemplate> allTemplates = templateProviders.stream()
         .map(DocumentTemplateProvider::getTemplate)
         .toList();

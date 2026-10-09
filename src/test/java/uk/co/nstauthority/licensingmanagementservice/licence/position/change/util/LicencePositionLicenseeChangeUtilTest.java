@@ -17,7 +17,7 @@ class LicencePositionLicenseeChangeUtilTest {
   private static final List<Integer> LICENSEES_TO_REMOVE= List.of(1);
 
   @Test
-  void upsertAddAdminChange_whenNoAdminChangeExists_appendsAddChange() {
+  void upsertAddLicenseeChange_whenNoLicenseeChangeExists_appendsAddChange() {
     var result = LicencePositionLicenseeChangeUtil.upsertAddLicenseeChange(List.of(), LICENSEES_TO_ADD, LICENSEES_TO_REMOVE);
 
     assertThat(result).hasSize(1);
@@ -26,7 +26,7 @@ class LicencePositionLicenseeChangeUtilTest {
   }
 
   @Test
-  void upsertAddAdminChange_whenAdminChangeExists_replacesOperatorInPlace() {
+  void upsertAddLicenseeChange_whenAdminLicenseeExists_replacesOperatorInPlace() {
     var existing = licenseeAddChange();
 
     var result = LicencePositionLicenseeChangeUtil.upsertAddLicenseeChange(List.of(existing), List.of(5, 6), List.of(10));
@@ -74,7 +74,7 @@ class LicencePositionLicenseeChangeUtilTest {
   }
 
   private List<Integer> licenseesToAddOf(LicencePositionChangeType change) {
-    var addOperation = (LicencePositionAddOperation) ( change).operations().getFirst();
+    var addOperation = (LicencePositionAddOperation) (change).operations().getFirst();
     return ((LicenseeOperation) addOperation.operation()).licenseesToAdd();
   }
 }

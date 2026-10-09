@@ -7,7 +7,10 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceC
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.LicencePositionPayload;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenseeOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionChangeOperationUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionLicenseeChangeUtil;
 
 @Service
@@ -39,6 +42,35 @@ public class LicenseeChangeService {
         .getOrBuildUpdatePositionCorrection(licenceCorrection, licencePosition);
 
     stageLicenseeChange(positionCorrection, joiningLicenseeIds, withdrawingLicenseeIds);
+  }
+
+  @Transactional
+  public void correctExistingLicenseeChange(
+      LicencePosition licencePosition,
+      LicenceCorrection licenceCorrection,
+      List<Integer> joiningLicenseeIds,
+      List<Integer> withdrawingLicenseeIds,
+      String originalChangeId
+  ) {
+    var positionCorrection = licencePositionCorrectionService
+        .getOrBuildUpdatePositionCorrection(licenceCorrection, licencePosition);
+
+    var payload = positionCorrection.getPayload();
+
+    var licenseeOperation = LicenceOperation.newLicenseeOperation()
+        .withLicenseesToAdd(joiningLicenseeIds)
+        .withLicenseesToRemove(withdrawingLicenseeIds)
+        .build();
+
+    var changes = LicencePositionChangeOperationUtil.upsertUpdateChange(
+        payload.changes(),
+        LicenseeOperation.class,
+        originalChangeId,
+        licenseeOperation
+    );
+
+    positionCorrection.setPayload(LicencePositionPayload.withChanges(payload, changes));
+    licencePositionCorrectionService.save(positionCorrection);
   }
 
   private void stageLicenseeChange(

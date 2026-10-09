@@ -45,6 +45,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenseeO
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicenseeChangeContext;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @ContextConfiguration(classes = LicencePositionLicenseeChangeController.class)
@@ -394,6 +395,7 @@ class LicencePositionLicenseeChangeControllerTest extends AbstractControllerTest
             model().attribute("cancelUrl", addedCancelUrl)
         );
   }
+
   @Test
   void submitForAddedPosition_formValid() throws Exception {
     var correction = givenCorrectionAllocatedToUser();
@@ -431,6 +433,137 @@ class LicencePositionLicenseeChangeControllerTest extends AbstractControllerTest
         licencePositionCorrection,
         CURRENT_JOINING_LICENSEES,
         CURRENT_WITHDRAWING_LICENSEES
+    );
+  }
+
+  @Test
+  void renderForCorrectingChange() throws Exception {
+    var correction = givenCorrectionAllocatedToUser();
+    var licenseeOperation = new LicenseeOperation(
+        LicenseeOperation.LICENSEE_OPERATION_ID,
+        CURRENT_JOINING_LICENSEES,
+        CURRENT_WITHDRAWING_LICENSEES
+    );
+    var change = LicencePositionChangeTestUtil.newBuilder()
+        .withId(UUID.randomUUID())
+        .withChangeOrder(1)
+        .withOperations(List.of(licenseeOperation))
+        .build();
+    var expectedForm = new LicenseeChangeForm()
+        .setJoiningOrganisationIds(List.of("4", "5", "6"))
+        .setWithdrawingOrganisationIds(List.of("2", "3"));
+    var previousLicenseeNames = LICENSEE_CHANGE_CONTEXT.previousLicenseeNames();
+
+    when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(POSITION));
+    when(licencePositionChangeService.findById(change.getId())).thenReturn(Optional.of(change));
+    when(licencePositionViewService.getLicenseeChangeContext(correction, POSITION_ID)).thenReturn(LICENSEE_CHANGE_CONTEXT);
+
+    var model = mockMvc.perform(get(ReverseRouter.route(on(LicencePositionLicenseeChangeController.class)
+            .renderForCorrectingChange(correction, POSITION, change)))
+            .with(user(regulatorUser)))
+        .andExpectAll(
+            status().isOk(),
+            view().name(VIEW_NAME),
+            model().attribute("previousLicenseeNames", previousLicenseeNames),
+            model().attribute("pageTitle", PAGE_TITLE),
+            model().attribute("cancelUrl", executedCancelUrl),
+            model().attributeExists("preselectedJoiningOrgUnits"),
+            model().attributeExists("preselectedWithdrawingOrgUnits"),
+            model().attribute("joiningOrganisationUnitSearchEndpoint",
+                SearchSelectorService.routeWithConstraints(on(OrganisationUnitRestController.class)
+                    .searchOrganisationUnitsWithConstraints(null, null, previousLicenseeNames))),
+            model().attribute("withdrawingOrganisationUnitSearchEndpoint",
+                SearchSelectorService.routeWithConstraints(on(OrganisationUnitRestController.class)
+                    .searchOrganisationUnitsWithConstraints(null, previousLicenseeNames, null)))
+        )
+        .andReturn()
+        .getModelAndView()
+        .getModel();
+
+    assertThat(model.get("form")).usingRecursiveComparison().isEqualTo(expectedForm);
+  }
+
+  @Test
+  void submitForCorrectingChange_formInvalid() throws Exception {
+    var correction = givenCorrectionAllocatedToUser();
+    var position = LicencePositionTestUtil.newBuilder().withId(POSITION_ID).withLicence(LICENCE).build();
+    var form = new LicenseeChangeForm();
+    var licenseeOperation = new LicenseeOperation(
+        LicenseeOperation.LICENSEE_OPERATION_ID,
+        CURRENT_JOINING_LICENSEES,
+        CURRENT_WITHDRAWING_LICENSEES
+    );
+    var change = LicencePositionChangeTestUtil.newBuilder()
+        .withId(UUID.randomUUID())
+        .withChangeOrder(1)
+        .withOperations(List.of(licenseeOperation))
+        .build();
+
+    when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(position);
+    when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(position));
+    when(licencePositionChangeService.findById(change.getId())).thenReturn(Optional.of(change));
+    when(licencePositionViewService.getLicenseeChangeContext(correction, POSITION_ID)).thenReturn(LICENSEE_CHANGE_CONTEXT);
+    when(licenseeChangeFormValidator.hasErrors(eq(form), any(BindingResult.class), eq(LICENSEE_CHANGE_CONTEXT.previousLicenseeIds())))
+        .thenReturn(true);
+
+    mockMvc.perform(post(ReverseRouter.route(on(LicencePositionLicenseeChangeController.class)
+            .submitForCorrectingChange(correction, position, change, null, null, null)))
+            .with(user(regulatorUser))
+            .with(csrf())
+            .flashAttr("form", form))
+        .andExpectAll(
+            status().isOk(),
+            view().name(VIEW_NAME),
+            model().attribute("form", form),
+            model().attribute("cancelUrl", executedCancelUrl)
+        );
+  }
+
+  @Test
+  void submitForCorrectingChange_formValid() throws Exception {
+    var correction = givenCorrectionAllocatedToUser();
+    var position = LicencePositionTestUtil.newBuilder().withId(POSITION_ID).withLicence(LICENCE).build();
+    var form = new LicenseeChangeForm()
+        .setJoiningOrganisationIds(List.of("4", "5", "6"))
+        .setWithdrawingOrganisationIds(List.of("2", "3"));
+    var licenseeOperation = new LicenseeOperation(
+        LicenseeOperation.LICENSEE_OPERATION_ID,
+        CURRENT_JOINING_LICENSEES,
+        CURRENT_WITHDRAWING_LICENSEES
+    );
+    var change = LicencePositionChangeTestUtil.newBuilder()
+        .withId(UUID.randomUUID())
+        .withChangeOrder(1)
+        .withOperations(List.of(licenseeOperation))
+        .build();
+
+    when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(position);
+    when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(position));
+    when(licencePositionChangeService.findById(change.getId())).thenReturn(Optional.of(change));
+    when(licencePositionViewService.getLicenseeChangeContext(correction, POSITION_ID)).thenReturn(
+        LICENSEE_CHANGE_CONTEXT);
+    when(licenseeChangeFormValidator.hasErrors(eq(form), any(BindingResult.class),
+        eq(LICENSEE_CHANGE_CONTEXT.previousLicenseeIds())))
+        .thenReturn(false);
+
+    mockMvc.perform(post(ReverseRouter.route(on(LicencePositionLicenseeChangeController.class)
+            .submitForCorrectingChange(correction, position, change, null, null, null)))
+            .with(user(regulatorUser))
+            .with(csrf())
+            .flashAttr("form", form))
+        .andExpectAll(
+            status().is3xxRedirection(),
+            redirectedUrl(executedRedirectUrl),
+            notificationBanner(NotificationBanner.newSuccessBanner()
+                .withHeadingContent("Licensee change corrected")
+                .build())
+        );
+    verify(licenseeChangeService).correctExistingLicenseeChange(
+        position,
+        correction,
+        CURRENT_JOINING_LICENSEES,
+        CURRENT_WITHDRAWING_LICENSEES,
+        change.getId().toString()
     );
   }
 

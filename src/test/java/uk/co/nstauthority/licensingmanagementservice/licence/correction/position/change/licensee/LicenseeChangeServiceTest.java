@@ -5,6 +5,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -51,7 +52,7 @@ class LicenseeChangeServiceTest {
   }
 
   @Test
-  void addLicenseeChangeForExistingLicencePosition_existingCorrection() {
+  void addLicenseeChangeForExistingLicencePosition() {
     var licencePosition = LicencePositionTestUtil.newBuilder().withPositionOrder(10).build();
     var licenceCorrection = LicenceCorrectionTestUtil.newBuilder().withCorrectionReference("correctionReference").build();
     var joiningLicenseeIds = List.of(2, 3, 4);
@@ -67,6 +68,38 @@ class LicenseeChangeServiceTest {
         licenceCorrection,
         joiningLicenseeIds,
         withdrawingLicenseeIds
+    );
+
+    ArgumentCaptor<LicencePositionCorrection> captor = ArgumentCaptor.forClass(LicencePositionCorrection.class);
+    verify(licencePositionCorrectionService).save(captor.capture());
+
+    var positionCorrection = captor.getValue();
+    var expectedLicenseeOperation = (LicenseeOperation)
+        positionCorrection.getPayload().changes().getFirst().operations().getFirst().operation();
+    assertThat(positionCorrection.getPayload().changes()).hasSize(1);
+    assertThat(expectedLicenseeOperation.licenseesToAdd()).isEqualTo(joiningLicenseeIds);
+    assertThat(expectedLicenseeOperation.licenseesToRemove()).isEqualTo(withdrawingLicenseeIds);
+  }
+
+  @Test
+  void correctExistingLicenseeChange() {
+    var licencePosition = LicencePositionTestUtil.newBuilder().withPositionOrder(10).build();
+    var licenceCorrection = LicenceCorrectionTestUtil.newBuilder().withCorrectionReference("correctionReference").build();
+    var joiningLicenseeIds = List.of(2, 3, 4);
+    var withdrawingLicenseeIds = List.of(1);
+    var changeId = UUID.randomUUID().toString();
+    var payload = UpdateLicencePositionPayloadTestUtil.newBuilder().build();
+    var licencePositionCorrection = LicencePositionCorrectionTestUtil.newBuilder().withPayload(payload).build();
+
+    when(licencePositionCorrectionService.getOrBuildUpdatePositionCorrection(licenceCorrection, licencePosition))
+        .thenReturn(licencePositionCorrection);
+
+    licenseeChangeService.correctExistingLicenseeChange(
+        licencePosition,
+        licenceCorrection,
+        joiningLicenseeIds,
+        withdrawingLicenseeIds,
+        changeId
     );
 
     ArgumentCaptor<LicencePositionCorrection> captor = ArgumentCaptor.forClass(LicencePositionCorrection.class);

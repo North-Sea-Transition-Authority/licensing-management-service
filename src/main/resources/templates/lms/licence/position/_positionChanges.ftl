@@ -121,11 +121,17 @@
 
 <#macro licenseeChange change summaryListId="licensee" correction="">
   <#assign headingText>
-      <@changeHeading change=change headingText="Licensee change" correction=correction/>
+    <@changeHeading change=change headingText="Licensee change" correction=correction/>
   </#assign>
+
+  <#assign cardActions>
+    <@changeCardActions screenReaderText="licensee change" urls=change.urls()/>
+  </#assign>
+
   <@fdsSummaryList.summaryListCard
-  headingText=headingText
-  summaryListId=summaryListId
+    headingText=headingText
+    summaryListId=summaryListId
+    cardActionsContent=cardActions
   >
     <@licenseeRows change=change/>
   </@fdsSummaryList.summaryListCard>

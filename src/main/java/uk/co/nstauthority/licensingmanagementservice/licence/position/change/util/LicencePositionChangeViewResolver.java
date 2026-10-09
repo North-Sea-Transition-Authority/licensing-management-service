@@ -17,6 +17,7 @@ import java.util.function.Function;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.administrator.LicencePositionAdministratorChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.administrator.RemoveAdministratorChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.equity.RemoveEquityChangeController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.licensee.LicencePositionLicenseeChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.RemovePartialSurrenderChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.tasklist.PartialSurrenderTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.setequity.LicencePositionSetEquityController;
@@ -291,6 +292,7 @@ public final class LicencePositionChangeViewResolver {
               licenseeOperation,
               change,
               context.organisationNames(),
+              context.urlContext(),
               correctChangeOrderUrl,
               correctPositionUrl
           );
@@ -306,6 +308,7 @@ public final class LicencePositionChangeViewResolver {
       LicenseeOperation operation,
       PositionChange change,
       Map<Integer, String> organisationNames,
+      @Nullable PositionChangeUrlContext urlContext,
       @Nullable String correctChangeOrderUrl,
       @Nullable String correctPositionUrl
   ) {
@@ -317,7 +320,7 @@ public final class LicencePositionChangeViewResolver {
         licenseeToRemoveNames,
         licenseeToAddNames,
         change.changeType(),
-        new ChangeViewUrls(null, null, null, correctChangeOrderUrl, correctPositionUrl)
+        new ChangeViewUrls(licenseeCorrectChangeUrl(urlContext, change), null, null, correctChangeOrderUrl, correctPositionUrl)
     );
   }
 
@@ -554,6 +557,24 @@ public final class LicencePositionChangeViewResolver {
     }
     return ReverseRouter.route(on(CorrectChangeOrderController.class)
         .renderCorrectChangeOrder(urlContext.correction(), currentPositionId, UUID.fromString(change.changeId())));
+  }
+
+  @Nullable
+  private static String licenseeCorrectChangeUrl(
+      @Nullable PositionChangeUrlContext urlContext,
+      PositionChange change
+  ) {
+    if (urlContext == null) {
+      return null;
+    }
+
+    return correctChangeUrl(urlContext, change, new CorrectChangeRoutes(
+        ctx -> ReverseRouter.route(on(LicencePositionLicenseeChangeController.class)
+            .renderForAddedPosition(ctx.correction(), ctx.positionCorrection())),
+        ctx -> ReverseRouter.route(on(LicencePositionLicenseeChangeController.class)
+            .renderForExecutedPosition(ctx.correction(), ctx.licencePosition())),
+        ctx -> ReverseRouter.route(on(LicencePositionLicenseeChangeController.class)
+            .renderForCorrectingChange(ctx.correction(), ctx.licencePosition(), changeEntity(change)))));
   }
 
   @Nullable

@@ -164,6 +164,73 @@ class LicencePositionChangeViewResolverTest {
   }
 
   @Test
+  void buildLicenseeChange_whenNoUrlContext_hasNoUrls() {
+    var view = licenseeChangeView(LicencePositionChangeType.UPDATE_CHANGE_OPERATIONS, null);
+
+    assertThat(view.urls().correct()).isNull();
+    assertThat(view.urls().remove()).isNull();
+    assertThat(view.urls().undo()).isNull();
+  }
+
+
+  @Test
+  void buildLicenseeChange_withCorrectChange_hasCorrectUrl() {
+    var view = licenseeChangeView(
+        LicencePositionChangeType.UPDATE_CHANGE_OPERATIONS,
+        PositionChangeUrlContext.forExecutedPosition(CORRECTION, LICENCE_POSITION, POSITION_CORRECTION)
+    );
+
+    assertThat(view.urls().correct()).contains("correct-licensee-change");
+    assertThat(view.urls().remove()).isNull();
+    assertThat(view.urls().undo()).isNull();
+  }
+
+  @Test
+  void buildLicenseeChange_withAddChange_hasCorrectUrl() {
+    var view = licenseeChangeView(
+        LicencePositionChangeType.ADD_CHANGE,
+        PositionChangeUrlContext.forExecutedPosition(CORRECTION, LICENCE_POSITION, POSITION_CORRECTION)
+    );
+
+    assertThat(view.urls().correct()).contains("add-licensee-change");
+    assertThat(view.urls().remove()).isNull();
+    assertThat(view.urls().undo()).isNull();
+  }
+
+  private LicenseeChangeView licenseeChangeView(String changeType, PositionChangeUrlContext urlContext) {
+    var currentLicencePosition = LicencePositionTestUtil.newBuilder().build();
+
+    var change = new PositionChange(
+        UUID.randomUUID().toString(),
+        1,
+        changeType,
+        List.of(LicenceOperation
+            .newLicenseeOperation()
+            .withLicenseesToAdd(List.of(JOINING_ID, 2, 3))
+            .withLicenseesToRemove(List.of(WITHDRAWING_ID))
+            .build())
+    );
+    var currentChronologicalPosition = ChronologicalPosition.fromLicencePosition(
+        currentLicencePosition,
+        currentLicencePosition.getLicenceTransaction().getRegulatorReference(),
+        currentLicencePosition.getPositionDate(),
+        currentLicencePosition.getPositionDateOrder(),
+        List.of(change));
+
+    var chronologicalPositions = List.of(currentChronologicalPosition);
+    var result = LicencePositionChangeViewResolver.getChangeViews(
+        currentLicencePosition.getId(),
+        chronologicalPositions,
+        LicencePositionStateResolver.resolve(chronologicalPositions),
+        Map.of(JOINING_ID, JOINING_NAME, 2, "secondJoin", 3, "thirdJoin", WITHDRAWING_ID, WITHDRAWING_NAME),
+        Map.of(),
+        urlContext
+    );
+
+    return (LicenseeChangeView) byType(result, LicenceOperation.LICENSEE);
+  }
+
+  @Test
   void buildAdministratorChange() {
     var currentLicencePosition = LicencePositionTestUtil.newBuilder().withPositionOrder(2).build();
     var previousLicencePosition = LicencePositionTestUtil.newBuilder().withPositionOrder(1).build();

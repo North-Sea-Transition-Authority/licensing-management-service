@@ -1,11 +1,17 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.operation;
 
+import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
+
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.administrator.LicencePositionAdministratorChangeController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.administrator.RemoveAdministratorChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationError;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.ChangeUrlTarget;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.LicencePositionState;
+import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 public record AdministratorOperation(
     UUID id,
@@ -55,6 +61,39 @@ public record AdministratorOperation(
   @Override
   public LicencePositionState applyState(LicencePositionState licencePositionState) {
     return licencePositionState.withAdministratorId(operatorId);
+  }
+
+  @Override
+  public OperationRoutes getOperationUrls() {
+    return new OperationRoutes() {
+      @Override
+      public String correct(ChangeUrlTarget target) {
+        if (target.addedPosition()) {
+          return ReverseRouter.route(on(LicencePositionAdministratorChangeController.class)
+              .renderForAddedPosition(target.correction(), target.positionCorrection()));
+        }
+        return switch (target.state()) {
+          case ADDED -> ReverseRouter.route(on(LicencePositionAdministratorChangeController.class)
+              .renderForExecutedPosition(target.correction(), target.licencePosition()));
+          case LIVE, OPERATIONS_UPDATED, ORDER_UPDATED ->
+              ReverseRouter.route(on(LicencePositionAdministratorChangeController.class)
+                  .renderForCorrectingChange(target.correction(), target.licencePosition(), target.changeEntity()));
+          case REMOVED -> null;
+        };
+      }
+
+      @Override
+      public String remove(ChangeUrlTarget target) {
+        return ReverseRouter.route(on(RemoveAdministratorChangeController.class)
+            .renderRemoveExecutedAdminChange(target.correction(), target.licencePosition(), target.changeEntity()));
+      }
+
+      @Override
+      public String undo(ChangeUrlTarget target) {
+        return ReverseRouter.route(on(RemoveAdministratorChangeController.class)
+            .renderUndoAdminChange(target.correction(), target.changeId()));
+      }
+    };
   }
 
   public static class Builder {

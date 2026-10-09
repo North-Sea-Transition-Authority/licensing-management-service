@@ -1,14 +1,19 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.operation;
 
+import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
+
 import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.setequity.LicencePositionSetEquityController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.EquityOperationRule;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationError;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.ChangeUrlTarget;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.LicencePositionState;
+import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 public record SetEquityOperation(
     Integer transferTo,
@@ -58,6 +63,33 @@ public record SetEquityOperation(
     var equityByOrganisationId = new HashMap<>(licencePositionState.equityByOrganisationId());
     equityByOrganisationId.put(transferTo, equity);
     return licencePositionState.withEquityByOrganisationId(equityByOrganisationId);
+  }
+
+  @Override
+  public OperationRoutes getOperationUrls() {
+    return new OperationRoutes() {
+      @Override
+      public String correct(ChangeUrlTarget target) {
+        if (!OperationRoutes.isStagedEquityChange(target)) {
+          return null;
+        }
+        return target.addedPosition()
+            ? ReverseRouter.route(on(LicencePositionSetEquityController.class)
+            .renderSummaryForAddedPosition(target.correction(), target.positionCorrection()))
+            : ReverseRouter.route(on(LicencePositionSetEquityController.class)
+            .renderSummaryForExecutedPosition(target.correction(), target.licencePosition()));
+      }
+
+      @Override
+      public String remove(ChangeUrlTarget target) {
+        return OperationRoutes.removeEquityChange(target);
+      }
+
+      @Override
+      public String undo(ChangeUrlTarget target) {
+        return OperationRoutes.undoEquityChange(target);
+      }
+    };
   }
 
   public static class Builder {

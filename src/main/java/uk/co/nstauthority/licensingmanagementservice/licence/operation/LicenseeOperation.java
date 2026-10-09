@@ -1,13 +1,18 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.operation;
 
+import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
+
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.licensee.LicencePositionLicenseeChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationError;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.ChangeUrlTarget;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.LicencePositionState;
+import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 public record LicenseeOperation(
     UUID id,
@@ -40,6 +45,37 @@ public record LicenseeOperation(
   @Override
   public LicencePositionState applyState(LicencePositionState licencePositionState) {
     return licencePositionState.withLicenseeIds(licenseesToAdd, licenseesToRemove);
+  }
+
+  @Override
+  public OperationRoutes getOperationUrls() {
+    return new OperationRoutes() {
+      @Override
+      public String correct(ChangeUrlTarget target) {
+        if (target.addedPosition()) {
+          return ReverseRouter.route(on(LicencePositionLicenseeChangeController.class)
+              .renderForAddedPosition(target.correction(), target.positionCorrection()));
+        }
+        return switch (target.state()) {
+          case ADDED -> ReverseRouter.route(on(LicencePositionLicenseeChangeController.class)
+              .renderForExecutedPosition(target.correction(), target.licencePosition()));
+          case LIVE, OPERATIONS_UPDATED, ORDER_UPDATED ->
+              ReverseRouter.route(on(LicencePositionLicenseeChangeController.class)
+                  .renderForCorrectingChange(target.correction(), target.licencePosition(), target.changeEntity()));
+          case REMOVED -> null;
+        };
+      }
+
+      @Override
+      public String remove(ChangeUrlTarget target) {
+        return null;
+      }
+
+      @Override
+      public String undo(ChangeUrlTarget target) {
+        return null;
+      }
+    };
   }
 
   public static class Builder {

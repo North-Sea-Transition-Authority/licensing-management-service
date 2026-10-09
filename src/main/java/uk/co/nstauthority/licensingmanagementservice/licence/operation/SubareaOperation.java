@@ -65,6 +65,11 @@ public record SubareaOperation(
   }
 
   @Override
+  public OperationRoutes getOperationUrls() {
+    return OperationRoutes.none();
+  }
+
+  @Override
   public Set<UUID> featureIds() {
     return Stream.of(
             Stream.of(blockFeatureId),

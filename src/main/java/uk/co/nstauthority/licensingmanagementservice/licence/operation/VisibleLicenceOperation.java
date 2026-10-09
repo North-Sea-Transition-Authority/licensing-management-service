@@ -1,5 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.operation;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 /**
  * An operation that is shown on a position as a change view.
  *
@@ -14,5 +16,8 @@ public sealed interface VisibleLicenceOperation extends LicenceOperation permits
     PartialSurrenderOperation,
     SubareaOperation,
     LicenseeOperation {
+
+  @JsonIgnore
+  OperationRoutes getOperationUrls();
 
 }

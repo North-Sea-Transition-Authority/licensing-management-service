@@ -1,5 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.operation;
 
+import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
+
 import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.annotation.Nullable;
@@ -13,10 +15,14 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.commons.collections.CollectionUtils;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.RemovePartialSurrenderChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderType;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.tasklist.PartialSurrenderTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationError;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.ChangeUrlTarget;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.LicencePositionState;
+import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 /**
  * Partial surrender operation.
@@ -255,6 +261,36 @@ public record PartialSurrenderOperation(
         .map(SubareaSurrenderOutcome::outputSubarea)
         .filter(Objects::nonNull)
         .toList();
+  }
+
+  @Override
+  public OperationRoutes getOperationUrls() {
+    return new OperationRoutes() {
+      @Override
+      public String correct(ChangeUrlTarget target) {
+        if (target.addedPosition()) {
+          return OperationRoutes.stagedPartialSurrenderTaskList(target);
+        }
+        return switch (target.state()) {
+          case ADDED, OPERATIONS_UPDATED -> OperationRoutes.stagedPartialSurrenderTaskList(target);
+          case LIVE, ORDER_UPDATED -> ReverseRouter.route(on(PartialSurrenderTaskListController.class)
+              .renderForCorrectingChange(target.correction(), target.licencePosition(), target.changeEntity(), null));
+          case REMOVED -> null;
+        };
+      }
+
+      @Override
+      public String remove(ChangeUrlTarget target) {
+        return ReverseRouter.route(on(RemovePartialSurrenderChangeController.class)
+            .renderRemoveExecutedPartialSurrender(target.correction(), target.licencePosition(), target.changeEntity()));
+      }
+
+      @Override
+      public String undo(ChangeUrlTarget target) {
+        return ReverseRouter.route(on(RemovePartialSurrenderChangeController.class)
+            .renderUndoPartialSurrender(target.correction(), target.changeId()));
+      }
+    };
   }
 
   @Override

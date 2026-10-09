@@ -1,8 +1,12 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.operation;
 
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
+import static uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionChangeUtil.NOT_AVAILABLE;
 
+import jakarta.annotation.Nullable;
+import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -10,8 +14,13 @@ import java.util.stream.Stream;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.licensee.LicencePositionLicenseeChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationError;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeViewContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.ChangeUrlTarget;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.LicencePositionState;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.PositionChange;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.ChangeViewUrls;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.LicencePositionChangeView;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.LicenseeChangeView;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 public record LicenseeOperation(
@@ -48,6 +57,24 @@ public record LicenseeOperation(
   }
 
   @Override
+  public LicencePositionChangeView getChangeView(
+      PositionChange change,
+      LicencePositionState previousState,
+      @Nullable LocalDate currentPositionDate,
+      LicencePositionChangeViewContext context,
+      ChangeViewUrls urls
+  ) {
+    var organisationNames = context.organisationNames();
+
+    return new LicenseeChangeView(
+        licenseeIdToNames(licenseesToRemove, organisationNames),
+        licenseeIdToNames(licenseesToAdd, organisationNames),
+        change.changeType(),
+        urls
+    );
+  }
+
+  @Override
   public OperationRoutes getOperationUrls() {
     return new OperationRoutes() {
       @Override
@@ -76,6 +103,13 @@ public record LicenseeOperation(
         return null;
       }
     };
+  }
+
+  private static List<String> licenseeIdToNames(List<Integer> licenseeIds, Map<Integer, String> organisationNames) {
+    return licenseeIds
+        .stream()
+        .map(licenseeId -> organisationNames.getOrDefault(licenseeId, NOT_AVAILABLE))
+        .toList();
   }
 
   public static class Builder {

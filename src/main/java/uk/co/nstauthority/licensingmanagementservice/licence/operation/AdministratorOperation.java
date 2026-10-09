@@ -1,7 +1,10 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.operation;
 
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
+import static uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionChangeUtil.NOT_AVAILABLE;
 
+import jakarta.annotation.Nullable;
+import java.time.LocalDate;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
@@ -9,8 +12,13 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.administrator.RemoveAdministratorChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationError;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeViewContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.ChangeUrlTarget;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.LicencePositionState;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.PositionChange;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.AdministratorChangeView;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.ChangeViewUrls;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.LicencePositionChangeView;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 public record AdministratorOperation(
@@ -61,6 +69,27 @@ public record AdministratorOperation(
   @Override
   public LicencePositionState applyState(LicencePositionState licencePositionState) {
     return licencePositionState.withAdministratorId(operatorId);
+  }
+
+  @Override
+  public LicencePositionChangeView getChangeView(
+      PositionChange change,
+      LicencePositionState previousState,
+      @Nullable LocalDate currentPositionDate,
+      LicencePositionChangeViewContext context,
+      ChangeViewUrls urls
+  ) {
+    var organisationNames = context.organisationNames();
+    var withdrawingId = previousState.administratorId();
+    var withdrawingName = (withdrawingId == null) ? null : organisationNames.getOrDefault(withdrawingId, NOT_AVAILABLE);
+
+    return new AdministratorChangeView(
+        withdrawingName,
+        organisationNames.getOrDefault(operatorId, NOT_AVAILABLE),
+        change.changeId(),
+        change.changeType(),
+        urls
+    );
   }
 
   @Override

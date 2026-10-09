@@ -1,6 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.operation;
 
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
+import static uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionChangeUtil.NOT_AVAILABLE;
 
 import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -20,9 +21,15 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.tasklist.PartialSurrenderTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationError;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeViewContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.ChangeUrlTarget;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.LicencePositionState;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.PositionChange;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.ChangeViewUrls;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.LicencePositionChangeView;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.PartialSurrenderChangeView;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
+import uk.co.nstauthority.licensingmanagementservice.util.DateUtil;
 
 /**
  * Partial surrender operation.
@@ -261,6 +268,33 @@ public record PartialSurrenderOperation(
         .map(SubareaSurrenderOutcome::outputSubarea)
         .filter(Objects::nonNull)
         .toList();
+  }
+
+  @Override
+  public LicencePositionChangeView getChangeView(
+      PositionChange change,
+      LicencePositionState previousState,
+      @Nullable LocalDate currentPositionDate,
+      LicencePositionChangeViewContext context,
+      ChangeViewUrls urls
+  ) {
+    var surrenderDate = this.surrenderDate() != null ? this.surrenderDate() : currentPositionDate;
+
+    var featureNames = context.featureNames();
+    var blockRows = surrenderedFeatureIds()
+        .stream()
+        .map(featureId -> new PartialSurrenderChangeView.BlockRow(
+            featureNames.getOrDefault(featureId, NOT_AVAILABLE),
+            Objects.requireNonNullElse(surrenderTypeDisplayName(featureId), NOT_AVAILABLE)
+        ))
+        .toList();
+
+    return new PartialSurrenderChangeView(
+        surrenderDate == null ? null : DateUtil.formatLongDate(surrenderDate),
+        blockRows,
+        change.changeType(),
+        urls
+    );
   }
 
   @Override

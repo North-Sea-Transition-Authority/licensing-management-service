@@ -3,13 +3,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.position.change.vi
 import jakarta.annotation.Nullable;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.CorrectionMarker;
 
-public sealed interface LicencePositionChangeView permits
-    AdministratorChangeView,
-    SetEquityChangeView,
-    TransferEquityChangeView,
-    PartialSurrenderChangeView,
-    SubareaChangeView,
-    LicenseeChangeView {
+public interface LicencePositionChangeView {
 
   @Nullable
   String changeType();

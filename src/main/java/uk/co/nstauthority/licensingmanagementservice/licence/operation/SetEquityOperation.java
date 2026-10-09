@@ -1,9 +1,13 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.operation;
 
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
+import static uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionChangeUtil.NOT_AVAILABLE;
 
+import jakarta.annotation.Nullable;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
@@ -11,8 +15,14 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.EquityOperationRule;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationError;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeViewContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.ChangeUrlTarget;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.LicencePositionState;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.PositionChange;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.ChangeViewUrls;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.LicencePositionChangeView;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.SetEquityChangeView;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.SetEquityRow;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 public record SetEquityOperation(
@@ -63,6 +73,23 @@ public record SetEquityOperation(
     var equityByOrganisationId = new HashMap<>(licencePositionState.equityByOrganisationId());
     equityByOrganisationId.put(transferTo, equity);
     return licencePositionState.withEquityByOrganisationId(equityByOrganisationId);
+  }
+
+  @Override
+  public LicencePositionChangeView getChangeView(
+      PositionChange change,
+      LicencePositionState previousState,
+      @Nullable LocalDate currentPositionDate,
+      LicencePositionChangeViewContext context,
+      ChangeViewUrls urls
+  ) {
+    var organisationNames = context.organisationNames();
+
+    return new SetEquityChangeView(
+        List.of(new SetEquityRow(organisationNames.getOrDefault(transferTo, NOT_AVAILABLE), equity)),
+        change.changeType(),
+        urls
+    );
   }
 
   @Override

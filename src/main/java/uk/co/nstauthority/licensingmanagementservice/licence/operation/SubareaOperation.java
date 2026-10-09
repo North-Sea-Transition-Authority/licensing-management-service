@@ -1,5 +1,9 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.operation;
 
+import static uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionChangeUtil.NOT_AVAILABLE;
+
+import jakarta.annotation.Nullable;
+import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
@@ -10,7 +14,12 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationError;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeViewContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.LicencePositionState;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.PositionChange;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.ChangeViewUrls;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.LicencePositionChangeView;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.SubareaChangeView;
 
 /**
  * Subarea operation contains information identifying what subareas were changed.
@@ -62,6 +71,21 @@ public record SubareaOperation(
     return licencePositionState
         .withoutSubareas(blockFeatureId, replacedSubareas)
         .withSubareas(blockFeatureId, outputSubareas);
+  }
+
+  @Override
+  public LicencePositionChangeView getChangeView(
+      PositionChange change,
+      LicencePositionState previousState,
+      @Nullable LocalDate currentPositionDate,
+      LicencePositionChangeViewContext context,
+      ChangeViewUrls urls
+  ) {
+    return new SubareaChangeView(
+        context.featureNames().getOrDefault(blockFeatureId, NOT_AVAILABLE),
+        change.changeType(),
+        urls
+    );
   }
 
   @Override

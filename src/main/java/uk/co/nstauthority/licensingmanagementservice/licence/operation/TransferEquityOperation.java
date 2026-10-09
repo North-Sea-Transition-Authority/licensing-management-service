@@ -1,10 +1,14 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.operation;
 
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
+import static uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionChangeUtil.NOT_AVAILABLE;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import jakarta.annotation.Nullable;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
@@ -14,8 +18,14 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.EquityOperationRule;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationError;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeViewContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.ChangeUrlTarget;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.LicencePositionState;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.PositionChange;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.ChangeViewUrls;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.LicencePositionChangeView;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.TransferEquityChangeHoldingView;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.TransferEquityChangeView;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -102,6 +112,34 @@ public record TransferEquityOperation(
     }
 
     return licencePositionState.withEquityByOrganisationId(equityByOrganisationId);
+  }
+
+  @Override
+  public LicencePositionChangeView getChangeView(
+      PositionChange change,
+      LicencePositionState previousState,
+      @Nullable LocalDate currentPositionDate,
+      LicencePositionChangeViewContext context,
+      ChangeViewUrls urls
+  ) {
+    var organisationNames = context.organisationNames();
+    var startingEquityByOrganisationId = previousState.equityByOrganisationId();
+    var resultingEquityByOrganisationId = applyState(previousState).equityByOrganisationId();
+
+    return new TransferEquityChangeView(
+        List.of(new TransferEquityChangeHoldingView(
+            organisationNames.getOrDefault(transferFrom, NOT_AVAILABLE),
+            startingEquityByOrganisationId.getOrDefault(transferFrom, BigDecimal.ZERO),
+            resultingEquityByOrganisationId.getOrDefault(transferFrom, BigDecimal.ZERO),
+            organisationNames.getOrDefault(transferTo, NOT_AVAILABLE),
+            startingEquityByOrganisationId.getOrDefault(transferTo, BigDecimal.ZERO),
+            resultingEquityByOrganisationId.getOrDefault(transferTo, BigDecimal.ZERO),
+            equity,
+            retainBeneficialInterest
+        )),
+        change.changeType(),
+        urls
+    );
   }
 
   @Override

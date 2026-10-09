@@ -36,7 +36,7 @@ public record PartialSurrenderOperation(
     // aliased so partial surrenders persisted before the rename still deserialize
     @JsonAlias("featureIds") List<UUID> surrenderedFeatureIds,
     Map<UUID, SurrenderDetails> featureIdToSurrenderDetails
-) implements LicenceOperation {
+) implements VisibleLicenceOperation, GeospatialLicenceOperation {
 
   // Fixed, as a position only ever carries one partial surrender.
   public static final UUID PARTIAL_SURRENDER_OPERATION_ID = new UUID(0L, 1L);
@@ -222,6 +222,15 @@ public record PartialSurrenderOperation(
   public PositionValidationError validate(PositionValidationContext positionValidationContext) {
     //TODO EPGF-205: identify when a partial surrender results in an invalid licence position
     return null;
+  }
+
+  @Override
+  public Set<UUID> featureIds() {
+    return Stream.concat(
+            surrenderedFeatureIds.stream(),
+            featureIdToSurrenderDetails.values().stream()
+                .flatMap(surrenderDetails -> surrenderDetails.subareaFeatureIds().stream()))
+        .collect(Collectors.toSet());
   }
 
   public static class Builder {

@@ -6,8 +6,10 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationError;
 
@@ -26,7 +28,7 @@ public record BlockCreateOperation(
     UUID id,
     @JsonProperty("featureIds") List<UUID> createdBlockFeatureIds,
     Map<UUID, List<SubareaDetails>> createdBlockFeatureIdToSubareas
-) implements LicenceOperation {
+) implements HiddenLicenceOperation, GeospatialLicenceOperation {
 
   public BlockCreateOperation {
     Objects.requireNonNull(id, "id must not be null");
@@ -64,6 +66,12 @@ public record BlockCreateOperation(
   @Override
   public PositionValidationError validate(PositionValidationContext positionValidationContext) {
     return null;
+  }
+
+  @Override
+  public Set<UUID> featureIds() {
+    return Stream.concat(createdBlockFeatureIds.stream(), SubareaDetails.featureIds(createdSubareas()).stream())
+        .collect(Collectors.toSet());
   }
 
   public static class Builder {

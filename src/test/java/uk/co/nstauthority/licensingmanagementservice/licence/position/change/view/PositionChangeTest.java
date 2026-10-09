@@ -8,6 +8,8 @@ import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.NullSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeoperation.LicencePositionChangeOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.UpdateChangeOperations;
@@ -209,6 +211,107 @@ class PositionChangeTest {
         .withChangeId(MOVED_CHANGE_ID).withChangeOrder(4).build();
 
     return Stream.of(List.of(operations, changeOrder), List.of(changeOrder, operations));
+  }
+
+  @ParameterizedTest
+  @MethodSource("hiddenOperationLists")
+  void isHidden_whenEveryOperationIsHidden_thenTrue(List<LicenceOperation> operations) {
+    var change = PositionChangeTestUtil.newBuilder()
+        .withOperations(operations)
+        .build();
+
+    var result = change.isHidden();
+
+    assertThat(result).isTrue();
+  }
+
+  @ParameterizedTest
+  @MethodSource("operationListsWithAVisibleOperation")
+  void isHidden_whenAnyOperationIsVisible_thenFalse(List<LicenceOperation> operations) {
+    var change = PositionChangeTestUtil.newBuilder()
+        .withOperations(operations)
+        .build();
+
+    var result = change.isHidden();
+
+    assertThat(result).isFalse();
+  }
+
+  @ParameterizedTest
+  @NullSource
+  @ValueSource(strings = {
+      LicencePositionChangeType.ADD_CHANGE,
+      LicencePositionChangeType.UPDATE_CHANGE_OPERATIONS,
+      LicencePositionChangeType.UPDATE_CHANGE_ORDER
+  })
+  void canBeReordered_whenNotRemovedAndHasAVisibleOperation_thenTrue(String changeType) {
+    var change = PositionChangeTestUtil.newBuilder()
+        .withChangeType(changeType)
+        .withOperations(List.of(visibleOperation(), hiddenOperation()))
+        .build();
+
+    var result = change.canBeReordered();
+
+    assertThat(result).isTrue();
+  }
+
+  @Test
+  void canBeReordered_whenChangeIsRemoved_thenFalse() {
+    var change = PositionChangeTestUtil.newBuilder()
+        .withChangeType(LicencePositionChangeType.REMOVE_CHANGE)
+        .withOperations(List.of(visibleOperation()))
+        .build();
+
+    var result = change.canBeReordered();
+
+    assertThat(result).isFalse();
+  }
+
+  @Test
+  void canBeReordered_whenChangeIsHidden_thenFalse() {
+    var change = PositionChangeTestUtil.newBuilder()
+        .withChangeType(LicencePositionChangeType.ADD_CHANGE)
+        .withOperations(List.of(hiddenOperation()))
+        .build();
+
+    var result = change.canBeReordered();
+
+    assertThat(result).isFalse();
+  }
+
+  @Test
+  void canBeReordered_whenChangeIsMovedAway_thenFalse() {
+    var change = PositionChangeTestUtil.newBuilder()
+        .withOperations(List.of(visibleOperation()))
+        .build()
+        .asMovedAway();
+
+    var result = change.canBeReordered();
+
+    assertThat(result).isFalse();
+  }
+
+  private static Stream<List<LicenceOperation>> hiddenOperationLists() {
+    return Stream.of(
+        List.of(),
+        List.of(hiddenOperation()),
+        List.of(hiddenOperation(), LicenceOperation.newBlockEndOperation().build())
+    );
+  }
+
+  private static Stream<List<LicenceOperation>> operationListsWithAVisibleOperation() {
+    return Stream.of(
+        List.of(visibleOperation()),
+        List.of(hiddenOperation(), visibleOperation())
+    );
+  }
+
+  private static LicenceOperation hiddenOperation() {
+    return LicenceOperation.newBlockCreateOperation().build();
+  }
+
+  private static LicenceOperation visibleOperation() {
+    return LicenceOperation.newAdministratorChange().withOperator(100).build();
   }
 
   private static LicencePositionChangeOperation addOperation(LicenceOperation operation) {

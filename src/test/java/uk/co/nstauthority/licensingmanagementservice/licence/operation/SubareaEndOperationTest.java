@@ -83,8 +83,8 @@ class SubareaEndOperationTest {
         List.of(FIRST_SUBAREA, SECOND_SUBAREA, new SubareaDetails(FIRST_SUBAREA_FEATURE_ID, null, "A2"))
     );
 
-    assertThat(LicenceOperation.featureIds(operation))
-        .containsExactly(BLOCK_FEATURE_ID, FIRST_SUBAREA_FEATURE_ID, SECOND_SUBAREA_FEATURE_ID);
+    assertThat(operation.featureIds())
+        .containsExactlyInAnyOrder(BLOCK_FEATURE_ID, FIRST_SUBAREA_FEATURE_ID, SECOND_SUBAREA_FEATURE_ID);
   }
 
   @Test
@@ -94,14 +94,14 @@ class SubareaEndOperationTest {
         List.of(FIRST_SUBAREA, new SubareaDetails(null, "Unscribed", "U"))
     );
 
-    assertThat(LicenceOperation.featureIds(operation)).containsExactly(BLOCK_FEATURE_ID, FIRST_SUBAREA_FEATURE_ID);
+    assertThat(operation.featureIds()).containsExactlyInAnyOrder(BLOCK_FEATURE_ID, FIRST_SUBAREA_FEATURE_ID);
   }
 
   @Test
   void organisationIds() {
     var operation = new SubareaEndOperation(BLOCK_FEATURE_ID, List.of(FIRST_SUBAREA));
 
-    assertThat(LicenceOperation.organisationIds(operation)).isEmpty();
+    assertThat(operation.organisationUnitIds()).isEmpty();
   }
 
   @Test

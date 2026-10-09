@@ -6,6 +6,7 @@ import static uk.co.nstauthority.licensingmanagementservice.licence.position.cha
 import jakarta.annotation.Nullable;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -39,6 +40,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.UpdateLicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.LicencePositionValidationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationError;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.GeospatialLicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeService;
@@ -297,7 +299,7 @@ public class LicencePositionViewService {
       List<ChronologicalPosition> chronologicalPositions,
       OrganisationNameContext nameContext
   ) {
-    var organisationOptions = resolveIds(chronologicalPositions, LicenceOperation::organisationIds).stream()
+    var organisationOptions = resolveIds(chronologicalPositions, LicenceOperation::organisationUnitIds).stream()
         .map(organisationId -> Map.entry(
             String.valueOf(organisationId),
             nameContext.getNameForDate(organisationId, null, NOT_AVAILABLE)
@@ -615,7 +617,7 @@ public class LicencePositionViewService {
    * can name an organisation that has since given up its interest.
    */
   private OrganisationNameContext getOrganisationNameContext(List<ChronologicalPosition> chronologicalPositions) {
-    var organisationIds = resolveIds(chronologicalPositions, LicenceOperation::organisationIds);
+    var organisationIds = resolveIds(chronologicalPositions, LicenceOperation::organisationUnitIds);
 
     return OrganisationNameContext.from(organisationUnitQueryService.getOrganisationNameHistoriesByIds(organisationIds));
   }
@@ -634,7 +636,7 @@ public class LicencePositionViewService {
   }
 
   public Map<Integer, String> resolveOrganisationNames(List<ChronologicalPosition> chronologicalPositions) {
-    var organisationIds = resolveIds(chronologicalPositions, LicenceOperation::organisationIds);
+    var organisationIds = resolveIds(chronologicalPositions, LicenceOperation::organisationUnitIds);
 
     if (organisationIds.isEmpty()) {
       return Collections.emptyMap();
@@ -644,7 +646,14 @@ public class LicencePositionViewService {
   }
 
   public Map<UUID, String> resolveFeatureNames(List<ChronologicalPosition> chronologicalPositions) {
-    var featureIds = resolveIds(chronologicalPositions, LicenceOperation::featureIds);
+    var featureIds = chronologicalPositions.stream()
+        .flatMap(chronologicalPosition -> chronologicalPosition.changes().stream())
+        .flatMap(change -> change.operations().stream())
+        .filter(GeospatialLicenceOperation.class::isInstance)
+        .map(GeospatialLicenceOperation.class::cast)
+        .flatMap(geospatialLicenceOperation -> geospatialLicenceOperation.featureIds().stream())
+        .filter(Objects::nonNull)
+        .collect(Collectors.toSet());
 
     if (featureIds.isEmpty()) {
       return Collections.emptyMap();
@@ -657,13 +666,13 @@ public class LicencePositionViewService {
 
   private static <I> List<I> resolveIds(
       List<ChronologicalPosition> chronologicalPositions,
-      Function<LicenceOperation, List<I>> idExtractor
+      Function<LicenceOperation, Collection<I>> idExtractor
   ) {
     return chronologicalPositions.stream()
         .flatMap(chronologicalPosition -> chronologicalPosition.changes().stream())
         .flatMap(change -> change.operations().stream())
         .map(idExtractor)
-        .flatMap(List::stream)
+        .flatMap(Collection::stream)
         .filter(Objects::nonNull)
         .distinct()
         .toList();
@@ -715,8 +724,6 @@ public class LicencePositionViewService {
         .sorted(TIMELINE_ORDER_COMPARATOR)
         .map(TimelineEntry::view)
         .toList();
-
-
   }
 
   private List<LicencePositionTimelineView> getCorrectionTimelineView(
@@ -728,7 +735,6 @@ public class LicencePositionViewService {
       Set<UUID> invalidPositionIds,
       Set<UUID> movedAwayPositionIds
   ) {
-
     var sameDateCount = sameDateCountByEffectiveDate(
         licencePositions, removedPositionIds, correctedPayloadsByPositionId, addedCorrections);
 

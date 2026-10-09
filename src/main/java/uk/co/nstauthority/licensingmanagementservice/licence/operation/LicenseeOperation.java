@@ -1,7 +1,10 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.operation;
 
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationError;
 
@@ -9,7 +12,7 @@ public record LicenseeOperation(
     UUID id,
     List<Integer> licenseesToAdd,
     List<Integer> licenseesToRemove
-) implements LicenceOperation {
+) implements VisibleLicenceOperation {
 
   public static final UUID LICENSEE_OPERATION_ID = new UUID(0L, 0L);
 
@@ -21,6 +24,11 @@ public record LicenseeOperation(
   @Override
   public String displayName() {
     return "Licensee change";
+  }
+
+  @Override
+  public Set<Integer> organisationUnitIds() {
+    return Stream.concat(licenseesToAdd.stream(), licenseesToRemove.stream()).collect(Collectors.toSet());
   }
 
   @Override

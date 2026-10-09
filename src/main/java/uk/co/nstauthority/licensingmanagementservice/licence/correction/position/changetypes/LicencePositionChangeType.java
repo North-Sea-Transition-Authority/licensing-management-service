@@ -8,6 +8,8 @@ import java.util.Collection;
 import java.util.List;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeoperation.LicencePositionChangeOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquityOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.TransferEquityOperation;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
@@ -59,7 +61,8 @@ public sealed interface LicencePositionChangeType
 
   static boolean containsEquityOperation(LicencePositionChangeType change) {
     return LicencePositionChangeType.operationsOf(change).stream()
-        .anyMatch(LicenceOperation::isEquityOperation);
+        .anyMatch(operation -> operation instanceof SetEquityOperation
+            || operation instanceof TransferEquityOperation);
   }
 
   static List<LicenceOperation> operationsOf(LicencePositionChangeType change) {

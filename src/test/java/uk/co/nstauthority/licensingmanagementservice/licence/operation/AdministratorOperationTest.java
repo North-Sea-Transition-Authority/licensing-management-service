@@ -64,4 +64,13 @@ class AdministratorOperationTest {
 
     assertThat(operation.validate(context)).isNull();
   }
+
+  @Test
+  void organisationUnitIds() {
+    var operation = LicenceOperation.newAdministratorChange().withOperator(100).build();
+
+    var result = operation.organisationUnitIds();
+
+    assertThat(result).containsExactly(100);
+  }
 }

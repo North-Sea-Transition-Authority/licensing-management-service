@@ -1,6 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.operation;
 
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationError;
@@ -8,7 +9,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 public record AdministratorOperation(
     UUID id,
     Integer operatorId
-) implements LicenceOperation {
+) implements VisibleLicenceOperation {
 
   public static final UUID ADMINISTRATOR_OPERATION_ID = new UUID(0L, 0L);
 
@@ -24,6 +25,11 @@ public record AdministratorOperation(
   @Override
   public String displayName() {
     return "Licence administrator change";
+  }
+
+  @Override
+  public Set<Integer> organisationUnitIds() {
+    return Set.of(operatorId);
   }
 
   @Override

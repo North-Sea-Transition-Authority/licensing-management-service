@@ -3,7 +3,10 @@ package uk.co.nstauthority.licensingmanagementservice.licence.operation;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import java.math.BigDecimal;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.EquityOperationRule;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationError;
@@ -14,7 +17,7 @@ public record TransferEquityOperation(
     Integer transferTo,
     BigDecimal equity,
     Boolean retainBeneficialInterest
-) implements LicenceOperation {
+) implements VisibleLicenceOperation {
 
   public TransferEquityOperation {
     Objects.requireNonNull(transferFrom, "transferFrom must not be null");
@@ -35,6 +38,11 @@ public record TransferEquityOperation(
   @Override
   public UUID id() {
     return UUID.randomUUID();
+  }
+
+  @Override
+  public Set<Integer> organisationUnitIds() {
+    return Stream.of(transferFrom, transferTo).collect(Collectors.toSet());
   }
 
   @Override

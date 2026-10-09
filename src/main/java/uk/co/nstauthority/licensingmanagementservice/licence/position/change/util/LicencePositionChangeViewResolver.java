@@ -163,7 +163,7 @@ public final class LicencePositionChangeViewResolver {
         .flatMap(chronologicalPosition -> chronologicalPosition.changes().stream())
         .toList();
 
-    var canReorder = currentPositionChanges.stream().filter(LicencePositionChangeViewResolver::canBeReordered).count() > 1;
+    var canReorder = currentPositionChanges.stream().filter(PositionChange::canBeReordered).count() > 1;
 
     return viewsByChange(
         currentPositionId,
@@ -181,7 +181,7 @@ public final class LicencePositionChangeViewResolver {
   ) {
     var labels = new LinkedHashMap<UUID, String>();
     changes.stream()
-        .filter(LicencePositionChangeViewResolver::canBeReordered)
+        .filter(PositionChange::canBeReordered)
         .forEach(positionChange -> labels.put(
             UUID.fromString(positionChange.changeId()),
             orderableChangeLabel(positionChange, featureNames))
@@ -207,19 +207,6 @@ public final class LicencePositionChangeViewResolver {
         .filter(Objects::nonNull)
         .findFirst()
         .orElse(null);
-  }
-
-  private static boolean canBeReordered(PositionChange change) {
-    return change.isOrderable() && !isHiddenChange(change);
-  }
-
-  private static boolean isHiddenChange(PositionChange change) {
-    return change.operations().stream().allMatch(operation ->
-        operation instanceof BlockCreateOperation
-            || operation instanceof BlockRedefinitionOperation
-            || operation instanceof BlockEndOperation
-            || operation instanceof SubareaCreateOperation
-            || operation instanceof SubareaEndOperation);
   }
 
   /**
@@ -538,7 +525,7 @@ public final class LicencePositionChangeViewResolver {
       PositionChange change,
       UUID currentPositionId
   ) {
-    if (urlContext == null || !canBeReordered(change)) {
+    if (urlContext == null || !change.canBeReordered()) {
       return null;
     }
     return ReverseRouter.route(on(CorrectPositionChangeTypeController.class)
@@ -552,7 +539,7 @@ public final class LicencePositionChangeViewResolver {
       PositionChange change,
       UUID currentPositionId
   ) {
-    if (urlContext == null || !canBeReordered(change)) {
+    if (urlContext == null || !change.canBeReordered()) {
       return null;
     }
     return ReverseRouter.route(on(CorrectChangeOrderController.class)

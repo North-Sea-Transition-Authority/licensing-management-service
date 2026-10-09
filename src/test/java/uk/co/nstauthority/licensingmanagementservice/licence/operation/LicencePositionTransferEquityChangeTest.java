@@ -55,4 +55,13 @@ class LicencePositionTransferEquityChangeTest {
     assertThat(operation.equity()).isEqualByComparingTo(BigDecimal.valueOf(40));
     assertThat(operation.retainBeneficialInterest()).isTrue();
   }
+
+  @Test
+  void organisationUnitIds() {
+    var operation = new TransferEquityOperation(1, 2, BigDecimal.TEN, null);
+
+    var result = operation.organisationUnitIds();
+
+    assertThat(result).containsExactlyInAnyOrder(1, 2);
+  }
 }

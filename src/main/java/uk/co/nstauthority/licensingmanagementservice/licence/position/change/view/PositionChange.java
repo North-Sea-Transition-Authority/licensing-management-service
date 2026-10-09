@@ -14,7 +14,9 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.LicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationError;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.HiddenLicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.VisibleLicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
 
 public record PositionChange(
@@ -32,6 +34,13 @@ public record PositionChange(
       List<LicenceOperation> operations
   ) {
     this(changeId, changeOrder, changeType, operations, false);
+  }
+
+  public List<VisibleLicenceOperation> visibleLicenceOperations() {
+    return operations.stream()
+        .filter(VisibleLicenceOperation.class::isInstance)
+        .map(VisibleLicenceOperation.class::cast)
+        .toList();
   }
 
   public static List<PositionChange> fromLicencePositionChanges(List<LicencePositionChange> changes) {
@@ -61,8 +70,12 @@ public record PositionChange(
     return new PositionChange(changeId, changeOrder, LicencePositionChangeType.REMOVE_CHANGE, operations, true);
   }
 
-  public boolean isOrderable() {
-    return !Objects.equals(changeType, LicencePositionChangeType.REMOVE_CHANGE) && !operations.isEmpty();
+  public boolean canBeReordered() {
+    return !LicencePositionChangeType.REMOVE_CHANGE.equals(changeType) && !isHidden();
+  }
+
+  public boolean isHidden() {
+    return operations().stream().allMatch(HiddenLicenceOperation.class::isInstance);
   }
 
   public List<PositionValidationError> validate(PositionValidationContext positionValidationContext) {

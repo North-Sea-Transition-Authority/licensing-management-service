@@ -3,7 +3,10 @@ package uk.co.nstauthority.licensingmanagementservice.licence.operation;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationError;
 
@@ -20,7 +23,7 @@ public record BlockEndOperation(
     UUID id,
     List<UUID> endedFeatureIds,
     List<SubareaDetails> endedSubareas
-) implements LicenceOperation {
+) implements HiddenLicenceOperation, GeospatialLicenceOperation {
 
   public BlockEndOperation {
     Objects.requireNonNull(id, "id must not be null");
@@ -45,6 +48,12 @@ public record BlockEndOperation(
   @Override
   public PositionValidationError validate(PositionValidationContext positionValidationContext) {
     return null;
+  }
+
+  @Override
+  public Set<UUID> featureIds() {
+    return Stream.concat(endedFeatureIds.stream(), SubareaDetails.featureIds(endedSubareas).stream())
+        .collect(Collectors.toSet());
   }
 
   public static class Builder {

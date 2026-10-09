@@ -27,4 +27,13 @@ class SetEquityOperationTest {
         .isInstanceOf(NullPointerException.class)
         .hasMessageContaining("equity");
   }
+
+  @Test
+  void organisationUnitIds() {
+    var operation = new SetEquityOperation(123, BigDecimal.TEN);
+
+    var result = operation.organisationUnitIds();
+
+    assertThat(result).containsExactly(123);
+  }
 }

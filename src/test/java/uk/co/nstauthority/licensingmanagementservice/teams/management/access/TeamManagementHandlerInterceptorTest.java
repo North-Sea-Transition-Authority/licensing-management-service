@@ -1,7 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.teams.management.access;
 
-import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.Mockito.when;
 
 import jakarta.servlet.http.HttpServletRequest;

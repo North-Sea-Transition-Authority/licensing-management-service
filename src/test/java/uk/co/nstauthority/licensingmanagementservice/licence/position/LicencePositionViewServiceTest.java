@@ -507,7 +507,7 @@ class LicencePositionViewServiceTest {
     when(licencePositionChangeService.findByLicencePositionIn(List.of(executed)))
         .thenReturn(List.of(liveSurrenderChange));
     when(licencePositionCorrectionService.getPositionCorrections(correction)).thenReturn(List.of(removeCorrection));
-    when(featureService.getFeaturesByIds(List.of(SURRENDERED_BLOCK.getId()))).thenReturn(List.of(SURRENDERED_BLOCK));
+    when(featureService.getFeaturesByIds(Set.of(SURRENDERED_BLOCK.getId()))).thenReturn(List.of(SURRENDERED_BLOCK));
 
     var result = licencePositionViewService.getCorrectionPositionPageView(correction, executed);
 
@@ -1937,7 +1937,7 @@ class LicencePositionViewServiceTest {
 
     when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(position));
     when(licencePositionChangeService.findByLicencePositionIn(List.of(position))).thenReturn(List.of(change));
-    when(featureService.getFeaturesByIds(List.of(firstBlock.getId(), secondBlock.getId())))
+    when(featureService.getFeaturesByIds(Set.of(firstBlock.getId(), secondBlock.getId())))
         .thenReturn(List.of(firstBlock, secondBlock));
 
     var result = licencePositionViewService.getPositionPageView(position);
@@ -1970,7 +1970,7 @@ class LicencePositionViewServiceTest {
 
     when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(position));
     when(licencePositionChangeService.findByLicencePositionIn(List.of(position))).thenReturn(List.of(change));
-    when(featureService.getFeaturesByIds(List.of(subarea.getId()))).thenReturn(List.of(subarea));
+    when(featureService.getFeaturesByIds(Set.of(subarea.getId()))).thenReturn(List.of(subarea));
 
     var result = licencePositionViewService.getPositionPageView(position);
 
@@ -2012,7 +2012,7 @@ class LicencePositionViewServiceTest {
     when(licencePositionCorrectionService.getPositionCorrections(correction)).thenReturn(List.of());
     when(licencePositionChangeService.findByLicencePositionIn(List.of(position)))
         .thenReturn(List.of(firstChange, secondChange));
-    when(featureService.getFeaturesByIds(List.of(firstBlock.getId(), secondBlock.getId())))
+    when(featureService.getFeaturesByIds(Set.of(firstBlock.getId(), secondBlock.getId())))
         .thenReturn(List.of(firstBlock, secondBlock));
 
     var result = licencePositionViewService.getOrderableChangeLabels(correction, positionId);

@@ -96,15 +96,15 @@ class BlockRedefinitionOperationTest {
         Map.of()
     );
 
-    assertThat(LicenceOperation.featureIds(operation))
-        .containsExactly(FIRST_FEATURE_ID, SECOND_FEATURE_ID, THIRD_FEATURE_ID);
+    assertThat(operation.featureIds())
+        .containsExactlyInAnyOrder(FIRST_FEATURE_ID, SECOND_FEATURE_ID, THIRD_FEATURE_ID);
   }
 
   @Test
   void organisationIds() {
     var operation = new BlockRedefinitionOperation(List.of(FIRST_FEATURE_ID), List.of(SECOND_FEATURE_ID), List.of(), Map.of());
 
-    assertThat(LicenceOperation.organisationIds(operation)).isEmpty();
+    assertThat(operation.organisationUnitIds()).isEmpty();
   }
 
   @Test
@@ -207,7 +207,7 @@ class BlockRedefinitionOperationTest {
         Map.of(SECOND_FEATURE_ID, List.of(SECOND_SUBAREA, FIRST_SUBAREA))
     );
 
-    assertThat(LicenceOperation.featureIds(operation)).containsExactly(
+    assertThat(operation.featureIds()).containsExactlyInAnyOrder(
         FIRST_FEATURE_ID,
         SECOND_FEATURE_ID,
         FIRST_SUBAREA.featureId(),

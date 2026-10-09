@@ -2,6 +2,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.operation;
 
 import java.math.BigDecimal;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.EquityOperationRule;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationContext;
@@ -10,7 +11,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 public record SetEquityOperation(
     Integer transferTo,
     BigDecimal equity
-) implements LicenceOperation {
+) implements VisibleLicenceOperation {
 
   public SetEquityOperation {
     Objects.requireNonNull(transferTo, "transferTo must not be null");
@@ -30,6 +31,11 @@ public record SetEquityOperation(
   @Override
   public UUID id() {
     return UUID.randomUUID();
+  }
+
+  @Override
+  public Set<Integer> organisationUnitIds() {
+    return Set.of(transferTo);
   }
 
   @Override

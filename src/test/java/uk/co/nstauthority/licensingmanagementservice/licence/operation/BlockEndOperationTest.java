@@ -72,14 +72,14 @@ class BlockEndOperationTest {
   void featureIds() {
     var operation = new BlockEndOperation(List.of(FIRST_FEATURE_ID, SECOND_FEATURE_ID), List.of());
 
-    assertThat(LicenceOperation.featureIds(operation)).containsExactly(FIRST_FEATURE_ID, SECOND_FEATURE_ID);
+    assertThat(operation.featureIds()).containsExactlyInAnyOrder(FIRST_FEATURE_ID, SECOND_FEATURE_ID);
   }
 
   @Test
   void organisationIds() {
     var operation = new BlockEndOperation(List.of(FIRST_FEATURE_ID), List.of());
 
-    assertThat(LicenceOperation.organisationIds(operation)).isEmpty();
+    assertThat(operation.organisationUnitIds()).isEmpty();
   }
 
   @ParameterizedTest
@@ -127,7 +127,7 @@ class BlockEndOperationTest {
         List.of(FIRST_SUBAREA, UNSCRIBED_SUBAREA)
     );
 
-    assertThat(LicenceOperation.featureIds(operation)).containsExactly(FIRST_FEATURE_ID, FIRST_SUBAREA.featureId());
+    assertThat(operation.featureIds()).containsExactlyInAnyOrder(FIRST_FEATURE_ID, FIRST_SUBAREA.featureId());
   }
 
   @Test

@@ -1,7 +1,11 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.operation;
 
 import jakarta.annotation.Nullable;
+import java.util.Collection;
+import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * Record of the key information that identify a subarea.
@@ -16,4 +20,12 @@ public record SubareaDetails(
     @Nullable String name,
     String shortName
 ) {
+
+  public static Set<UUID> featureIds(Collection<SubareaDetails> subareas) {
+    return subareas.stream()
+        .map(SubareaDetails::featureId)
+        .filter(Objects::nonNull)
+        .collect(Collectors.toSet());
+  }
+
 }

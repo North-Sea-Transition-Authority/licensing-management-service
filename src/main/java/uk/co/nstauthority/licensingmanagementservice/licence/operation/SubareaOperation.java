@@ -3,7 +3,11 @@ package uk.co.nstauthority.licensingmanagementservice.licence.operation;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationError;
 
@@ -19,7 +23,7 @@ public record SubareaOperation(
     UUID blockFeatureId,
     List<SubareaDetails> replacedSubareas,
     List<SubareaDetails> outputSubareas
-) implements LicenceOperation {
+) implements VisibleLicenceOperation, GeospatialLicenceOperation {
 
   public SubareaOperation {
     Objects.requireNonNull(id, "id must not be null");
@@ -50,6 +54,17 @@ public record SubareaOperation(
   public PositionValidationError validate(PositionValidationContext positionValidationContext) {
     //TODO - LMS2-164: identify when a subarea change results in an invalid licence position
     return null;
+  }
+
+  @Override
+  public Set<UUID> featureIds() {
+    return Stream.of(
+            Stream.of(blockFeatureId),
+            SubareaDetails.featureIds(replacedSubareas).stream(),
+            SubareaDetails.featureIds(outputSubareas).stream()
+        )
+        .flatMap(Function.identity())
+        .collect(Collectors.toSet());
   }
 
   public static class Builder {

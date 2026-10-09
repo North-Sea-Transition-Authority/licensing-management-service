@@ -3,7 +3,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.position.filter;
 import jakarta.annotation.Nullable;
 import java.io.Serial;
 import java.io.Serializable;
-import java.util.List;
+import java.util.Collection;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Stream;
@@ -61,14 +61,14 @@ public record LicenceTimelineFilter(Set<String> changeTypes, Set<Integer> organi
         .anyMatch(organisationIds::contains);
   }
 
-  private static List<Integer> involvedOrganisationIds(
+  private static Collection<Integer> involvedOrganisationIds(
       LicenceOperation operation,
       @Nullable Integer outgoingAdministratorId
   ) {
     if (operation instanceof AdministratorOperation && outgoingAdministratorId != null) {
-      return Stream.concat(LicenceOperation.organisationIds(operation).stream(), Stream.of(outgoingAdministratorId))
+      return Stream.concat(operation.organisationUnitIds().stream(), Stream.of(outgoingAdministratorId))
           .toList();
     }
-    return LicenceOperation.organisationIds(operation);
+    return operation.organisationUnitIds();
   }
 }

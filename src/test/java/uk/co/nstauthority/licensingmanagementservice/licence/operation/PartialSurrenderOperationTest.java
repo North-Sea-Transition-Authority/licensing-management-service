@@ -315,7 +315,7 @@ class PartialSurrenderOperationTest {
         .withSurrenderDetails(Map.of(FIRST_FEATURE_ID, details))
         .build();
 
-    assertThat(LicenceOperation.featureIds(operation)).containsExactly(
+    assertThat(operation.featureIds()).containsExactlyInAnyOrder(
         FIRST_FEATURE_ID,
         FIRST_SUBAREA.featureId(),
         SECOND_SUBAREA.featureId(),

@@ -1,7 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.position.change.view;
 
-import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class PositionStateTestUtil {
 
@@ -17,6 +17,6 @@ public class PositionStateTestUtil {
   }
 
   public LicencePositionState build() {
-    return new LicencePositionState(administratorId, List.of(), Map.of());
+    return new LicencePositionState(administratorId, Set.of(), Map.of(), Map.of());
   }
 }

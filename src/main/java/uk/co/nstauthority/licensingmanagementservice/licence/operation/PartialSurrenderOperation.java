@@ -16,6 +16,7 @@ import org.apache.commons.collections.CollectionUtils;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationError;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.LicencePositionState;
 
 /**
  * Partial surrender operation.
@@ -222,6 +223,38 @@ public record PartialSurrenderOperation(
   public PositionValidationError validate(PositionValidationContext positionValidationContext) {
     //TODO EPGF-205: identify when a partial surrender results in an invalid licence position
     return null;
+  }
+
+  /**
+   * A surrender that has not taken effect leaves the licence as it was. Once it has, the licence gives up the blocks
+   * surrendered and holds each part kept of them instead, with the subareas left on that part.
+   */
+  @Override
+  public LicencePositionState applyState(LicencePositionState licencePositionState) {
+    if (!takesEffect()) {
+      return licencePositionState;
+    }
+
+    var updatedState = licencePositionState.withoutBlocks(surrenderedFeatureIds);
+    for (var surrenderDetails : featureIdToSurrenderDetails.values()) {
+      for (var retainedFeatureId : surrenderDetails.retainedFeatureIds()) {
+        updatedState = updatedState.withBlock(
+            retainedFeatureId,
+            outputSubareasOf(surrenderDetails, retainedFeatureId)
+        );
+      }
+    }
+    return updatedState;
+  }
+
+  private static List<SubareaDetails> outputSubareasOf(
+      SurrenderDetails surrenderDetails,
+      UUID retainedFeatureId
+  ) {
+    return surrenderDetails.retainedFeatureIdToSubareas().getOrDefault(retainedFeatureId, List.of()).stream()
+        .map(SubareaSurrenderOutcome::outputSubarea)
+        .filter(Objects::nonNull)
+        .toList();
   }
 
   @Override

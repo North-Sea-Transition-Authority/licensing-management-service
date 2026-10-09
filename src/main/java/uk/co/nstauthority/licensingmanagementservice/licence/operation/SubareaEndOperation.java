@@ -9,6 +9,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationError;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.LicencePositionState;
 
 /**
  * Subareas leaving a block the licence keeps.
@@ -45,6 +46,11 @@ public record SubareaEndOperation(
   @Override
   public PositionValidationError validate(PositionValidationContext positionValidationContext) {
     return null;
+  }
+
+  @Override
+  public LicencePositionState applyState(LicencePositionState licencePositionState) {
+    return licencePositionState.withoutSubareas(blockFeatureId, endedSubareas);
   }
 
   @Override

@@ -12,6 +12,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationError;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.LicencePositionState;
 
 /**
  * Blocks redrawn without any ground being given up.
@@ -82,6 +83,22 @@ public record BlockRedefinitionOperation(
   @Override
   public PositionValidationError validate(PositionValidationContext positionValidationContext) {
     return null;
+  }
+
+  /**
+   * Swaps the replaced blocks for their successors. The replaced blocks go first, so a block that is both replaced and
+   * output is still held.
+   */
+  @Override
+  public LicencePositionState applyState(LicencePositionState licencePositionState) {
+    var updatedState = licencePositionState.withoutBlocks(replacedFeatureIds);
+    for (var blockFeatureId : outputFeatureIds) {
+      updatedState = updatedState.withBlock(
+          blockFeatureId,
+          outputFeatureIdToSubareas.getOrDefault(blockFeatureId, List.of())
+      );
+    }
+    return updatedState;
   }
 
   @Override

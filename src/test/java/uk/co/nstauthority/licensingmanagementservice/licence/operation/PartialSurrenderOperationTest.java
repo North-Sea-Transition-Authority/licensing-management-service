@@ -18,6 +18,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderType;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation.SurrenderDetails;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.LicencePositionState;
 
 class PartialSurrenderOperationTest {
 
@@ -340,5 +341,57 @@ class PartialSurrenderOperationTest {
     var result = objectMapper.readValue(objectMapper.writeValueAsString(operation), LicenceOperation.class);
 
     assertThat(result).isEqualTo(operation);
+  }
+
+  @Test
+  void applyState_whenSurrenderTakesEffect_thenSurrenderedBlocksSwappedForThePartsKeptWithTheirSubareas() {
+    var keptBlockId = UUID.randomUUID();
+    var retainedFeatureId = UUID.randomUUID();
+    var state = LicencePositionState.EMPTY
+        .withBlock(FIRST_FEATURE_ID, List.of(FIRST_SUBAREA, SECOND_SUBAREA, UNSCRIBED_SUBAREA))
+        .withBlock(SECOND_FEATURE_ID, List.of())
+        .withBlock(keptBlockId, List.of());
+    var partialSurrenderDetails = new SurrenderDetails(
+        BlockSurrenderType.PARTIAL_SURRENDER,
+        null,
+        List.of(),
+        List.of(retainedFeatureId),
+        Map.of(retainedFeatureId, List.of(
+            SubareaSurrenderOutcome.relinquished(FIRST_SUBAREA),
+            SubareaSurrenderOutcome.cropped(SECOND_SUBAREA, CROPPED_SUBAREA),
+            SubareaSurrenderOutcome.kept(UNSCRIBED_SUBAREA)
+        ))
+    );
+    var fullSurrenderDetails = new SurrenderDetails(
+        BlockSurrenderType.FULL_SURRENDER,
+        null,
+        List.of(SECOND_FEATURE_ID)
+    );
+    var operation = new PartialSurrenderOperation(
+        SURRENDER_DATE,
+        List.of(FIRST_FEATURE_ID, SECOND_FEATURE_ID),
+        Map.of(FIRST_FEATURE_ID, partialSurrenderDetails, SECOND_FEATURE_ID, fullSurrenderDetails)
+    );
+
+    var result = operation.applyState(state);
+
+    var expected = LicencePositionState.EMPTY
+        .withBlock(keptBlockId, List.of())
+        .withBlock(retainedFeatureId, List.of(CROPPED_SUBAREA, UNSCRIBED_SUBAREA));
+    assertThat(result).usingRecursiveComparison().isEqualTo(expected);
+  }
+
+  @Test
+  void applyState_whenSurrenderHasNotTakenEffect_thenUnchanged() {
+    var state = LicencePositionState.EMPTY.withBlock(FIRST_FEATURE_ID, List.of(FIRST_SUBAREA));
+    var operation = new PartialSurrenderOperation(
+        SURRENDER_DATE,
+        List.of(FIRST_FEATURE_ID),
+        Map.of(FIRST_FEATURE_ID, surrenderDetails(BlockSurrenderType.PARTIAL_SURRENDER))
+    );
+
+    var result = operation.applyState(state);
+
+    assertThat(result).usingRecursiveComparison().isEqualTo(state);
   }
 }

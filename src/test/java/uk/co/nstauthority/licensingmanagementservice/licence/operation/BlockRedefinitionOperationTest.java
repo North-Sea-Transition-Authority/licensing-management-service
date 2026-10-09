@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationContextTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.LicencePositionState;
 
 class BlockRedefinitionOperationTest {
 
@@ -247,5 +248,43 @@ class BlockRedefinitionOperationTest {
     var result = objectMapper.readValue(objectMapper.writeValueAsString(operation), LicenceOperation.class);
 
     assertThat(result).isEqualTo(operation);
+  }
+
+  @Test
+  void applyState_whenBlocksRedefined_thenReplacedBlocksSwappedForTheirSuccessors() {
+    var keptBlockId = UUID.randomUUID();
+    var state = LicencePositionState.EMPTY
+        .withBlock(FIRST_FEATURE_ID, List.of(FIRST_SUBAREA))
+        .withBlock(keptBlockId, List.of());
+    var operation = new BlockRedefinitionOperation(
+        List.of(FIRST_FEATURE_ID),
+        List.of(SECOND_FEATURE_ID, THIRD_FEATURE_ID),
+        List.of(FIRST_SUBAREA),
+        Map.of(SECOND_FEATURE_ID, List.of(SECOND_SUBAREA))
+    );
+
+    var result = operation.applyState(state);
+
+    var expected = LicencePositionState.EMPTY
+        .withBlock(keptBlockId, List.of())
+        .withBlock(SECOND_FEATURE_ID, List.of(SECOND_SUBAREA))
+        .withBlock(THIRD_FEATURE_ID, List.of());
+    assertThat(result).usingRecursiveComparison().isEqualTo(expected);
+  }
+
+  @Test
+  void applyState_whenABlockIsBothReplacedAndOutput_thenHeldWithOnlyItsOutputSubareas() {
+    var state = LicencePositionState.EMPTY.withBlock(FIRST_FEATURE_ID, List.of(FIRST_SUBAREA));
+    var operation = new BlockRedefinitionOperation(
+        List.of(FIRST_FEATURE_ID),
+        List.of(FIRST_FEATURE_ID),
+        List.of(FIRST_SUBAREA),
+        Map.of(FIRST_FEATURE_ID, List.of(SECOND_SUBAREA))
+    );
+
+    var result = operation.applyState(state);
+
+    var expected = LicencePositionState.EMPTY.withBlock(FIRST_FEATURE_ID, List.of(SECOND_SUBAREA));
+    assertThat(result).usingRecursiveComparison().isEqualTo(expected);
   }
 }

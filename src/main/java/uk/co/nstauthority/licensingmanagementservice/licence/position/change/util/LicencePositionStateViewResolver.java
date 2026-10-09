@@ -37,6 +37,7 @@ public final class LicencePositionStateViewResolver {
     var licenseeNames = currentState.licenseeIds()
         .stream()
         .map(id -> nameContext.getNameForDate(id, positionDate, NOT_AVAILABLE))
+        .sorted(String.CASE_INSENSITIVE_ORDER)
         .toList();
 
     return new LicencePositionStateView(

@@ -9,7 +9,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -123,31 +122,30 @@ public class LicencePositionViewService {
     var currentState = resolvedStates.currentState(licencePositionId);
     var previousState = resolvedStates.previousState(licencePositionId);
     var organisationNames = resolveOrganisationNames(chronologicalPositions);
+    var previousLicenseeIds = List.copyOf(previousState.licenseeIds());
 
     return new LicenseeChangeContext(
         getCurrentJoiningLicenseeIds(currentState.licenseeIds(), previousState.licenseeIds()),
         getCurrentWithdrawingLicenseeIds(currentState.licenseeIds(), previousState.licenseeIds()),
-        previousState.licenseeIds(),
-        previousState.licenseeIds()
+        previousLicenseeIds,
+        previousLicenseeIds
             .stream()
             .map(id -> nameOrEmpty(organisationNames, id))
             .toList()
     );
   }
 
-  private List<Integer> getCurrentJoiningLicenseeIds(List<Integer> currentLicenseeIds, List<Integer> previousLicenseeIds) {
-    var previousLicenseeIdsSet = new HashSet<>(previousLicenseeIds);
+  private List<Integer> getCurrentJoiningLicenseeIds(Set<Integer> currentLicenseeIds, Set<Integer> previousLicenseeIds) {
     return currentLicenseeIds
         .stream()
-        .filter(id -> !previousLicenseeIdsSet.contains(id))
+        .filter(id -> !previousLicenseeIds.contains(id))
         .toList();
   }
 
-  private List<Integer> getCurrentWithdrawingLicenseeIds(List<Integer> currentLicenseeIds, List<Integer> previousLicenseeIds) {
-    var currentLicenseeIdsSet = new HashSet<>(currentLicenseeIds);
+  private List<Integer> getCurrentWithdrawingLicenseeIds(Set<Integer> currentLicenseeIds, Set<Integer> previousLicenseeIds) {
     return previousLicenseeIds
         .stream()
-        .filter(id -> !currentLicenseeIdsSet.contains(id))
+        .filter(id -> !currentLicenseeIds.contains(id))
         .toList();
   }
 

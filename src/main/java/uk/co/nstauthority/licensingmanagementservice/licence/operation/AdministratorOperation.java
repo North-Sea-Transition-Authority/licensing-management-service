@@ -5,6 +5,7 @@ import java.util.Set;
 import java.util.UUID;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationError;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.LicencePositionState;
 
 public record AdministratorOperation(
     UUID id,
@@ -49,6 +50,11 @@ public record AdministratorOperation(
     }
 
     return null;
+  }
+
+  @Override
+  public LicencePositionState applyState(LicencePositionState licencePositionState) {
+    return licencePositionState.withAdministratorId(operatorId);
   }
 
   public static class Builder {

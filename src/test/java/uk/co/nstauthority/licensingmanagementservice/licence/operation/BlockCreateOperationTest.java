@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationContextTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.LicencePositionState;
 
 class BlockCreateOperationTest {
 
@@ -198,5 +199,22 @@ class BlockCreateOperationTest {
         Map.of()
     );
     assertThat(operation).isEqualTo(expected);
+  }
+
+  @Test
+  void applyState_whenBlocksCreated_thenAddedWithTheSubareasTheyArriveWith() {
+    var heldBlockId = UUID.randomUUID();
+    var state = LicencePositionState.EMPTY.withBlock(heldBlockId, List.of());
+    var operation = new BlockCreateOperation(
+        List.of(FIRST_FEATURE_ID, SECOND_FEATURE_ID),
+        Map.of(FIRST_FEATURE_ID, List.of(FIRST_SUBAREA, SECOND_SUBAREA))
+    );
+
+    var result = operation.applyState(state);
+
+    var expected = state
+        .withBlock(FIRST_FEATURE_ID, List.of(FIRST_SUBAREA, SECOND_SUBAREA))
+        .withBlock(SECOND_FEATURE_ID, List.of());
+    assertThat(result).usingRecursiveComparison().isEqualTo(expected);
   }
 }

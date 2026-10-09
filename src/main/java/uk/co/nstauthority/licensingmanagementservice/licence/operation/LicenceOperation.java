@@ -8,6 +8,7 @@ import java.util.Set;
 import java.util.UUID;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationError;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.LicencePositionState;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
@@ -79,6 +80,8 @@ public sealed interface LicenceOperation permits HiddenLicenceOperation, Visible
 
   @Nullable
   PositionValidationError validate(PositionValidationContext positionValidationContext);
+
+  LicencePositionState applyState(LicencePositionState licencePositionState);
 
   default Set<Integer> organisationUnitIds() {
     return Set.of();

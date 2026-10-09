@@ -8,6 +8,7 @@ import java.time.Month;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -39,7 +40,7 @@ class LicencePositionStateViewResolverTest {
     equityByOrganisationId.put(2, new BigDecimal("35"));
     equityByOrganisationId.put(3, new BigDecimal("25"));
 
-    var state = new LicencePositionState(CURRENT_ADMIN_ID, List.of(11, 12), equityByOrganisationId);
+    var state = new LicencePositionState(CURRENT_ADMIN_ID, Set.of(11, 12), equityByOrganisationId, Map.of());
 
     var nameHistories = Map.of(
         CURRENT_ADMIN_ID, heldSince(CURRENT_ADMIN_NAME),
@@ -101,7 +102,7 @@ class LicencePositionStateViewResolverTest {
     );
 
     assertThat(result.licenseeStateView())
-        .isEqualTo(new LicenseeStateView(List.of("organisationOne", "Not available")));
+        .isEqualTo(new LicenseeStateView(List.of("Not available", "organisationOne")));
   }
 
   @Test
@@ -140,7 +141,7 @@ class LicencePositionStateViewResolverTest {
   void getStateView_whenOrganisationsRenamed_returnsNameHistoriesSortedByOrganisationName() {
     var currentPositionId = UUID.randomUUID();
 
-    var state = new LicencePositionState(CURRENT_ADMIN_ID, List.of(11), Map.of(1, new BigDecimal("100")));
+    var state = new LicencePositionState(CURRENT_ADMIN_ID, Set.of(11), Map.of(1, new BigDecimal("100")), Map.of());
 
     var nameHistories = Map.of(
         CURRENT_ADMIN_ID, new OrganisationNamePeriods("zeta admin", List.of(

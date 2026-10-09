@@ -2,6 +2,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.operation;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import java.math.BigDecimal;
+import java.util.HashMap;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
@@ -10,6 +11,7 @@ import java.util.stream.Stream;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.EquityOperationRule;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationError;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.LicencePositionState;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record TransferEquityOperation(
@@ -68,6 +70,33 @@ public record TransferEquityOperation(
     }
 
     return null;
+  }
+
+  @Override
+  public LicencePositionState applyState(LicencePositionState licencePositionState) {
+    var equityByOrganisationId = new HashMap<>(licencePositionState.equityByOrganisationId());
+
+    var isAddingEquity = equity.signum() > 0;
+    if (!isAddingEquity) {
+      return licencePositionState.withEquityByOrganisationId(equityByOrganisationId);
+    }
+    var availableEquity = equityByOrganisationId.getOrDefault(transferFrom, BigDecimal.ZERO).max(BigDecimal.ZERO);
+    var transferEquity = equity.min(availableEquity);
+    var remainingEquity = availableEquity.subtract(transferEquity);
+
+    var retainsInterest = Boolean.TRUE.equals(retainBeneficialInterest);
+
+    if (remainingEquity.signum() <= 0 && !retainsInterest) {
+      equityByOrganisationId.remove(transferFrom);
+    } else {
+      equityByOrganisationId.put(transferFrom, remainingEquity);
+    }
+
+    if (transferEquity.signum() > 0) {
+      equityByOrganisationId.merge(transferTo, transferEquity, BigDecimal::add);
+    }
+
+    return licencePositionState.withEquityByOrganisationId(equityByOrganisationId);
   }
 
   public static class Builder {

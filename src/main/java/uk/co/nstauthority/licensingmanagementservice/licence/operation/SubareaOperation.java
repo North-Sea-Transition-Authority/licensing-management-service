@@ -10,6 +10,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationError;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.LicencePositionState;
 
 /**
  * Subarea operation contains information identifying what subareas were changed.
@@ -54,6 +55,13 @@ public record SubareaOperation(
   public PositionValidationError validate(PositionValidationContext positionValidationContext) {
     //TODO - LMS2-164: identify when a subarea change results in an invalid licence position
     return null;
+  }
+
+  @Override
+  public LicencePositionState applyState(LicencePositionState licencePositionState) {
+    return licencePositionState
+        .withoutSubareas(blockFeatureId, replacedSubareas)
+        .withSubareas(blockFeatureId, outputSubareas);
   }
 
   @Override

@@ -13,12 +13,12 @@ import uk.co.fivium.gisframework.feature.Feature;
 import uk.co.fivium.gisframework.feature.FeatureService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
-import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaDetails;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionViewService;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionStateResolver;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPosition;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.LicencePositionState;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.PositionChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.LicenceBlockFeatureUtil;
 
@@ -61,7 +61,7 @@ public class LicencePositionSpatialService {
       @Nullable String changeId
   ) {
     return toBlockFeatures(
-        getSpatialStateGoingIntoChange(licenceCorrection, licencePositionId, changeId).blockFeatureIds()
+        getStateGoingIntoChange(licenceCorrection, licencePositionId, changeId).blockFeatureIds()
     );
   }
 
@@ -88,23 +88,26 @@ public class LicencePositionSpatialService {
       UUID blockFeatureId,
       @Nullable String changeId
   ) {
-    return getSpatialStateGoingIntoChange(licenceCorrection, licencePositionId, changeId).subareasOf(blockFeatureId);
+    return getStateGoingIntoChange(licenceCorrection, licencePositionId, changeId).subareasOf(blockFeatureId);
   }
 
-  private SpatialState getSpatialStateGoingIntoChange(
+  private LicencePositionState getStateGoingIntoChange(
       LicenceCorrection licenceCorrection,
       UUID licencePositionId,
       @Nullable String changeId
   ) {
-    var spatialState = new SpatialState();
+    var state = LicencePositionState.EMPTY;
 
-    getOperationsGoingIntoChange(
+    var changes = getChangesGoingIntoChange(
         licencePositionViewService.getCorrectedChronologicalPositions(licenceCorrection, licencePositionId),
         licencePositionId,
         changeId
-    ).forEach(spatialState::apply);
+    );
+    for (var change : changes) {
+      state = LicencePositionStateResolver.applyChange(state, change);
+    }
 
-    return spatialState;
+    return state;
   }
 
   private List<Feature> toBlockFeatures(Set<UUID> featureIds) {
@@ -119,33 +122,31 @@ public class LicencePositionSpatialService {
         .toList();
   }
 
-  private static List<LicenceOperation> getOperationsGoingIntoChange(
+  private static List<PositionChange> getChangesGoingIntoChange(
       List<ChronologicalPosition> chronologicalPositions,
       UUID positionId,
       @Nullable String changeId
   ) {
-    var operations = new ArrayList<LicenceOperation>();
+    var changes = new ArrayList<PositionChange>();
 
     for (var chronologicalPosition : chronologicalPositions) {
       if (chronologicalPosition.id().equals(positionId)) {
-        operations.addAll(getOperationsBefore(chronologicalPosition.changes(), changeId));
-        return operations;
+        changes.addAll(getChangesBefore(chronologicalPosition.changes(), changeId));
+        return changes;
       }
 
-      operations.addAll(getOperationsBefore(chronologicalPosition.changes(), null));
+      changes.addAll(getChangesBefore(chronologicalPosition.changes(), null));
     }
 
-    return operations;
+    return changes;
   }
 
-  private static List<LicenceOperation> getOperationsBefore(
+  private static List<PositionChange> getChangesBefore(
       List<PositionChange> changes,
       @Nullable String stopBeforeChangeId
   ) {
     return changes.stream()
         .takeWhile(change -> !Objects.equals(change.changeId(), stopBeforeChangeId))
-        .filter(change -> !Objects.equals(change.changeType(), LicencePositionChangeType.REMOVE_CHANGE))
-        .flatMap(change -> change.operations().stream())
         .toList();
   }
 }

@@ -1,8 +1,6 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.position.change.util;
 
-import java.math.BigDecimal;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Objects;
@@ -10,18 +8,7 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.UUID;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
-import uk.co.nstauthority.licensingmanagementservice.licence.operation.AdministratorOperation;
-import uk.co.nstauthority.licensingmanagementservice.licence.operation.BlockCreateOperation;
-import uk.co.nstauthority.licensingmanagementservice.licence.operation.BlockEndOperation;
-import uk.co.nstauthority.licensingmanagementservice.licence.operation.BlockRedefinitionOperation;
-import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
-import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenseeOperation;
-import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquityOperation;
-import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaCreateOperation;
-import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaEndOperation;
-import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaOperation;
-import uk.co.nstauthority.licensingmanagementservice.licence.operation.TransferEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.LicencePositionState;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.PositionChange;
@@ -72,11 +59,12 @@ public final class LicencePositionStateResolver {
     return currentState;
   }
 
-  static LicencePositionState applyChange(LicencePositionState state, PositionChange change) {
+  public static LicencePositionState applyChange(LicencePositionState state, PositionChange change) {
     if (Objects.equals(change.changeType(), LicencePositionChangeType.REMOVE_CHANGE)) {
       return state;
     }
 
+    // TODO: refactor as part of https://fivium.atlassian.net/browse/LMS2-243
     var setEquityOperations = change.operations().stream()
         .filter(SetEquityOperation.class::isInstance)
         .map(SetEquityOperation.class::cast)
@@ -91,77 +79,25 @@ public final class LicencePositionStateResolver {
     }
 
     for (var operation : change.operations()) {
+      // TODO: refactor as part of https://fivium.atlassian.net/browse/LMS2-243
       if (operation instanceof SetEquityOperation) {
         continue;
       }
-      currentState = applyOperation(currentState, operation);
+      currentState = operation.applyState(currentState);
     }
     return currentState;
   }
 
-  private static LicencePositionState applyOperation(LicencePositionState state, LicenceOperation operation) {
-    //TODO extend the switch statement as other operation types are added
-    return switch (operation) {
-      case AdministratorOperation administratorOperation ->
-          state.withAdministratorId(administratorOperation.operatorId());
-      case TransferEquityOperation transferEquityOperation ->
-          applyTransferEquity(state, transferEquityOperation);
-      case SetEquityOperation setEquityOperation -> state;
-      case PartialSurrenderOperation partialSurrenderOperation -> state;
-      case SubareaOperation subareaOperation -> state;
-      case LicenseeOperation licenseeOperation ->
-          state.withLicenseeIds(licenseeOperation.licenseesToAdd(), licenseeOperation.licenseesToRemove());
-      // Spatial operations change which blocks a licence holds, not the administrator or equity
-      // state this resolves.
-      case SubareaCreateOperation ignored -> state;
-      case SubareaEndOperation ignored -> state;
-      case BlockCreateOperation ignored -> state;
-      case BlockRedefinitionOperation ignored -> state;
-      case BlockEndOperation ignored -> state;
-    };
-  }
-
+  // TODO: refactor as part of https://fivium.atlassian.net/browse/LMS2-243
   private static LicencePositionState applySetEquityChange(
       LicencePositionState state,
       List<SetEquityOperation> setEquityOperations
   ) {
-    var equityByOrganisationId = new HashMap<>(state.equityByOrganisationId());
+    var currentState = state;
     for (var setEquityOperation : setEquityOperations) {
-      equityByOrganisationId.put(setEquityOperation.transferTo(), setEquityOperation.equity());
+      currentState = setEquityOperation.applyState(currentState);
     }
-    return state.withEquityByOrganisationId(equityByOrganisationId);
+    return currentState;
   }
 
-  static LicencePositionState applyTransferEquity(
-      LicencePositionState state,
-      TransferEquityOperation transferEquityOperation
-  ) {
-    var equityByOrganisationId = new HashMap<>(state.equityByOrganisationId());
-
-    var transferFrom = transferEquityOperation.transferFrom();
-    var transferTo = transferEquityOperation.transferTo();
-    var requestedEquity = transferEquityOperation.equity();
-
-    var isAddingEquity = requestedEquity.signum() > 0;
-    if (!isAddingEquity) {
-      return state.withEquityByOrganisationId(equityByOrganisationId);
-    }
-    var availableEquity = equityByOrganisationId.getOrDefault(transferFrom, BigDecimal.ZERO).max(BigDecimal.ZERO);
-    var transferEquity = requestedEquity.min(availableEquity);
-    var remainingEquity = availableEquity.subtract(transferEquity);
-
-    var retainsInterest = Boolean.TRUE.equals(transferEquityOperation.retainBeneficialInterest());
-
-    if (remainingEquity.signum() <= 0 && !retainsInterest) {
-      equityByOrganisationId.remove(transferFrom);
-    } else {
-      equityByOrganisationId.put(transferFrom, remainingEquity);
-    }
-
-    if (transferEquity.signum() > 0) {
-      equityByOrganisationId.merge(transferTo, transferEquity, BigDecimal::add);
-    }
-
-    return state.withEquityByOrganisationId(equityByOrganisationId);
-  }
 }

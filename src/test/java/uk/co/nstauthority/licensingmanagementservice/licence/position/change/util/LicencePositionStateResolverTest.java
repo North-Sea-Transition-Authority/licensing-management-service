@@ -48,8 +48,8 @@ class LicencePositionStateResolverTest {
 
     var result = LicencePositionStateResolver.resolve(List.of(earlierChronological, latestChronological));
 
-    assertThat(result.currentState(FIRST_POSITION.getId()).licenseeIds()).isEqualTo(List.of(1, 2, 3));
-    assertThat(result.currentState(SECOND_POSITION.getId()).licenseeIds()).isEqualTo(List.of(2, 3, 4));
+    assertThat(result.currentState(FIRST_POSITION.getId()).licenseeIds()).isEqualTo(Set.of(1, 2, 3));
+    assertThat(result.currentState(SECOND_POSITION.getId()).licenseeIds()).isEqualTo(Set.of(2, 3, 4));
   }
 
   @Test
@@ -74,7 +74,7 @@ class LicencePositionStateResolverTest {
     );
 
     // THIRD_POSITION has no change of its own, so it carries the licensees forward from the SECOND_POSITION
-    assertThat(result.currentState(THIRD_POSITION.getId()).licenseeIds()).isEqualTo(List.of(1, 2, 3, 4));
+    assertThat(result.currentState(THIRD_POSITION.getId()).licenseeIds()).isEqualTo(Set.of(1, 2, 3, 4));
   }
 
   @Test
@@ -103,8 +103,8 @@ class LicencePositionStateResolverTest {
         List.of(earlierChronological, currentChronological, laterChronological)
     );
 
-    assertThat(result.currentState(current.getId()).licenseeIds()).isEqualTo(List.of(1, 2));
-    assertThat(result.currentState(THIRD_POSITION.getId()).licenseeIds()).isEqualTo(List.of(1, 2));
+    assertThat(result.currentState(current.getId()).licenseeIds()).isEqualTo(Set.of(1, 2));
+    assertThat(result.currentState(THIRD_POSITION.getId()).licenseeIds()).isEqualTo(Set.of(1, 2));
   }
 
   @Test
@@ -123,7 +123,7 @@ class LicencePositionStateResolverTest {
 
     var previousState = result.previousState(SECOND_POSITION.getId());
 
-    assertThat(previousState.licenseeIds()).isEqualTo(List.of(1, 2, 3));
+    assertThat(previousState.licenseeIds()).isEqualTo(Set.of(1, 2, 3));
   }
 
   @Test
@@ -451,7 +451,7 @@ class LicencePositionStateResolverTest {
 
   @ParameterizedTest
   @MethodSource("spatialOperations")
-  void resolveStates_whenAPositionCarriesASpatialOperation_thenTheStateIsUnaffected(
+  void resolveStates_whenAPositionCarriesASpatialOperation_thenTheOrganisationStateIsUnaffected(
       LicenceOperation spatialOperation
   ) {
     var earlier = LicencePositionTestUtil.newBuilder().withPositionOrder(1).build();
@@ -469,8 +469,34 @@ class LicencePositionStateResolverTest {
 
     assertThat(result.currentState(current.getId()))
         .usingRecursiveComparison()
+        .ignoringFields("blockFeatureIdToSubareas")
         .withComparatorForType(BigDecimal::compareTo, BigDecimal.class)
-        .isEqualTo(new LicencePositionState(1, List.of(), Map.of(1, new BigDecimal("60"), 2, new BigDecimal("40"))));
+        .isEqualTo(
+            new LicencePositionState(1, Set.of(), Map.of(1, new BigDecimal("60"), 2, new BigDecimal("40")), Map.of())
+        );
+  }
+
+  @Test
+  void resolveStates_whenBlocksAreCreatedAndEndedAcrossPositions_thenTheStateHoldsTheRemainingBlocks() {
+    var keptBlockId = UUID.randomUUID();
+    var endedBlockId = UUID.randomUUID();
+    var earlier = LicencePositionTestUtil.newBuilder().withPositionOrder(1).build();
+    var current = LicencePositionTestUtil.newBuilder().withPositionOrder(2).build();
+
+    var earlierChronological = ChronologicalPositionTestUtil.live(
+        earlier,
+        LicenceOperation.newBlockCreateOperation().withFeatureIds(Set.of(keptBlockId, endedBlockId)).build()
+    );
+    var currentChronological = ChronologicalPositionTestUtil.live(
+        current,
+        LicenceOperation.newBlockEndOperation().withEndedFeatureIds(Set.of(endedBlockId)).build()
+    );
+
+    var result = LicencePositionStateResolver.resolve(List.of(earlierChronological, currentChronological));
+
+    assertThat(result.previousState(current.getId()).blockFeatureIds())
+        .containsExactlyInAnyOrder(keptBlockId, endedBlockId);
+    assertThat(result.currentState(current.getId()).blockFeatureIds()).containsExactly(keptBlockId);
   }
 
   private static Stream<LicenceOperation> spatialOperations() {

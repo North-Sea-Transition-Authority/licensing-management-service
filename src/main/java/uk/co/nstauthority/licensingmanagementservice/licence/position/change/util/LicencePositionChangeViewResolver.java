@@ -445,7 +445,7 @@ public final class LicencePositionChangeViewResolver {
 
     var startingEquityByOrganisationId = previousState.equityByOrganisationId();
     var resultingEquityByOrganisationId =
-        LicencePositionStateResolver.applyTransferEquity(previousState, operation).equityByOrganisationId();
+        operation.applyState(previousState).equityByOrganisationId();
 
     return new TransferEquityChangeView(
         List.of(new TransferEquityChangeHoldingView(

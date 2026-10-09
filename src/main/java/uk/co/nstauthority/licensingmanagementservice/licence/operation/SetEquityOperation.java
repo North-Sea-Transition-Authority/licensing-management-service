@@ -1,12 +1,14 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.operation;
 
 import java.math.BigDecimal;
+import java.util.HashMap;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.EquityOperationRule;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationError;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.LicencePositionState;
 
 public record SetEquityOperation(
     Integer transferTo,
@@ -49,6 +51,13 @@ public record SetEquityOperation(
 
     //TODO LMS2-131: identify when a correction to a CS beneficial interest results in an invalid licence position
     return null;
+  }
+
+  @Override
+  public LicencePositionState applyState(LicencePositionState licencePositionState) {
+    var equityByOrganisationId = new HashMap<>(licencePositionState.equityByOrganisationId());
+    equityByOrganisationId.put(transferTo, equity);
+    return licencePositionState.withEquityByOrganisationId(equityByOrganisationId);
   }
 
   public static class Builder {

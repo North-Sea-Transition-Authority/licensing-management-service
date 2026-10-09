@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationContextTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.LicencePositionState;
 
 class SubareaOperationTest {
 
@@ -134,5 +135,17 @@ class SubareaOperationTest {
 
     var expected = new SubareaOperation(operation.id(), BLOCK_FEATURE_ID, List.of(), List.of());
     assertThat(operation).isEqualTo(expected);
+  }
+
+  @Test
+  void applyState() {
+    var keptSubarea = new SubareaDetails(UUID.randomUUID(), "Kept", "K");
+    var state = LicencePositionState.EMPTY.withBlock(BLOCK_FEATURE_ID, List.of(REPLACED_SUBAREA, keptSubarea));
+    var operation = new SubareaOperation(BLOCK_FEATURE_ID, List.of(REPLACED_SUBAREA), List.of(OUTPUT_SUBAREA));
+
+    var result = operation.applyState(state);
+
+    var expected = LicencePositionState.EMPTY.withBlock(BLOCK_FEATURE_ID, List.of(keptSubarea, OUTPUT_SUBAREA));
+    assertThat(result).usingRecursiveComparison().isEqualTo(expected);
   }
 }

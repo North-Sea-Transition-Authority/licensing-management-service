@@ -102,7 +102,7 @@ class ScheduleWorkAreaServiceTest {
         licence2, List.of(new OrganisationUnit(3, org1))
     ));
 
-    var workAreaItems = scheduleWorkAreaService.getWorkAreaItems(new WorkAreaFilterForm(), serviceUserDetail);
+    var workAreaItems = scheduleWorkAreaService.getAllWorkItems(new WorkAreaFilterForm(), serviceUserDetail);
 
     assertThat(workAreaItems)
         .extracting(
@@ -139,7 +139,7 @@ class ScheduleWorkAreaServiceTest {
   }
 
   @Test
-  void getWorkAreaItems_filteredByLicenceReference() {
+  void getAllWorkItems_filteredByLicenceReference() {
     var serviceUserDetail = ServiceUserDetailTestUtil.newBuilder().build();
     var testInstant = Instant.now(clock);
 
@@ -176,7 +176,7 @@ class ScheduleWorkAreaServiceTest {
 
     var workAreaFilter = new WorkAreaFilterForm();
     workAreaFilter.setLicenceReference("2");
-    var workAreaItems = scheduleWorkAreaService.getWorkAreaItems(workAreaFilter, serviceUserDetail);
+    var workAreaItems = scheduleWorkAreaService.getAllWorkItems(workAreaFilter, serviceUserDetail);
 
     assertThat(workAreaItems)
         .extracting(
@@ -202,7 +202,7 @@ class ScheduleWorkAreaServiceTest {
   }
 
   @Test
-  void getWorkAreaItems_filteredByLicenceType() {
+  void getAllWorkItems_filteredByLicenceType() {
     var serviceUserDetail = ServiceUserDetailTestUtil.newBuilder().build();
     var testInstant = Instant.now(clock);
 
@@ -237,7 +237,7 @@ class ScheduleWorkAreaServiceTest {
 
     var workAreaFilter = new WorkAreaFilterForm();
     workAreaFilter.setLicenceTypes(List.of(LicenceType.SEAWARD_PRODUCTION.name()));
-    var workAreaItems = scheduleWorkAreaService.getWorkAreaItems(workAreaFilter, serviceUserDetail);
+    var workAreaItems = scheduleWorkAreaService.getAllWorkItems(workAreaFilter, serviceUserDetail);
 
     assertThat(workAreaItems)
         .extracting(SearchResultItem::id)
@@ -245,7 +245,7 @@ class ScheduleWorkAreaServiceTest {
   }
 
   @Test
-  void getWorkAreaItems_filteredByLicenseeOrgUnitId_matching() {
+  void getAllWorkItems_filteredByLicenseeOrgUnitId_matching() {
     var serviceUserDetail = ServiceUserDetailTestUtil.newBuilder().build();
     var testInstant = Instant.now(clock);
 
@@ -272,7 +272,7 @@ class ScheduleWorkAreaServiceTest {
 
     var workAreaFilter = new WorkAreaFilterForm();
     workAreaFilter.setLicenseeOrgUnitId(2);
-    var workAreaItems = scheduleWorkAreaService.getWorkAreaItems(workAreaFilter, serviceUserDetail);
+    var workAreaItems = scheduleWorkAreaService.getAllWorkItems(workAreaFilter, serviceUserDetail);
 
     assertThat(workAreaItems)
         .extracting(SearchResultItem::id)
@@ -280,7 +280,7 @@ class ScheduleWorkAreaServiceTest {
   }
 
   @Test
-  void getWorkAreaItems_filteredByLicenseeOrgGroupId_matching() {
+  void getAllWorkItems_filteredByLicenseeOrgGroupId_matching() {
     var serviceUserDetail = ServiceUserDetailTestUtil.newBuilder().build();
     var testInstant = Instant.now(clock);
 
@@ -309,7 +309,7 @@ class ScheduleWorkAreaServiceTest {
 
     var workAreaFilter = new WorkAreaFilterForm();
     workAreaFilter.setLicenseeOrgGroupId(99);
-    var workAreaItems = scheduleWorkAreaService.getWorkAreaItems(workAreaFilter, serviceUserDetail);
+    var workAreaItems = scheduleWorkAreaService.getAllWorkItems(workAreaFilter, serviceUserDetail);
 
     assertThat(workAreaItems)
         .extracting(SearchResultItem::id)
@@ -317,7 +317,7 @@ class ScheduleWorkAreaServiceTest {
   }
 
   @Test
-  void getWorkAreaItems_whenApplicationReferenceFilterApplied_thenExcluded() {
+  void getAllWorkItems_whenApplicationReferenceFilterApplied_thenExcluded() {
     var serviceUserDetail = ServiceUserDetailTestUtil.newBuilder().build();
     var licence = LicenceTestUtil.builder().withId(1).withLicenceType(LicenceType.CARBON_STORAGE).withLicenceReference("CS001").build();
     var detail = LicenceScheduleTestUtil.licenceScheduleDetailBuilder(LicenceScheduleTestUtil.createLicenceSchedule(licence))
@@ -327,13 +327,13 @@ class ScheduleWorkAreaServiceTest {
 
     var workAreaFilter = new WorkAreaFilterForm();
     workAreaFilter.setApplicationReference("LMS/EEA/001");
-    var workAreaItems = scheduleWorkAreaService.getWorkAreaItems(workAreaFilter, serviceUserDetail);
+    var workAreaItems = scheduleWorkAreaService.getAllWorkItems(workAreaFilter, serviceUserDetail);
 
     assertThat(workAreaItems).isEmpty();
   }
 
   @Test
-  void getWorkAreaItems_whenApplicationTypeFilterApplied_thenExcluded() {
+  void getAllWorkItems_whenApplicationTypeFilterApplied_thenExcluded() {
     var serviceUserDetail = ServiceUserDetailTestUtil.newBuilder().build();
     var licence = LicenceTestUtil.builder().withId(1).withLicenceType(LicenceType.CARBON_STORAGE).withLicenceReference("CS001").build();
     var detail = LicenceScheduleTestUtil.licenceScheduleDetailBuilder(LicenceScheduleTestUtil.createLicenceSchedule(licence))
@@ -343,13 +343,13 @@ class ScheduleWorkAreaServiceTest {
 
     var workAreaFilter = new WorkAreaFilterForm();
     workAreaFilter.setApplicationTypes(List.of(ApplicationType.CONTINUATION_APPLICATION.name()));
-    var workAreaItems = scheduleWorkAreaService.getWorkAreaItems(workAreaFilter, serviceUserDetail);
+    var workAreaItems = scheduleWorkAreaService.getAllWorkItems(workAreaFilter, serviceUserDetail);
 
     assertThat(workAreaItems).isEmpty();
   }
 
   @Test
-  void getWorkAreaItems_whenApplicationStatusFilterApplied_thenExcluded() {
+  void getAllWorkItems_whenApplicationStatusFilterApplied_thenExcluded() {
     var serviceUserDetail = ServiceUserDetailTestUtil.newBuilder().build();
     var licence = LicenceTestUtil.builder().withId(1).withLicenceType(LicenceType.CARBON_STORAGE).withLicenceReference("CS001").build();
     var detail = LicenceScheduleTestUtil.licenceScheduleDetailBuilder(LicenceScheduleTestUtil.createLicenceSchedule(licence))
@@ -359,13 +359,13 @@ class ScheduleWorkAreaServiceTest {
 
     var workAreaFilter = new WorkAreaFilterForm();
     workAreaFilter.setApplicationStatuses(List.of(ApplicationStatus.DRAFT.name()));
-    var workAreaItems = scheduleWorkAreaService.getWorkAreaItems(workAreaFilter, serviceUserDetail);
+    var workAreaItems = scheduleWorkAreaService.getAllWorkItems(workAreaFilter, serviceUserDetail);
 
     assertThat(workAreaItems).isEmpty();
   }
 
   @Test
-  void getWorkAreaItems_whenItemNotYetViewed_showsNewBadge() {
+  void getAllWorkItems_whenItemNotYetViewed_showsNewBadge() {
     var serviceUserDetail = ServiceUserDetailTestUtil.newBuilder().build();
     var testInstant = Instant.now(clock);
     var licence = LicenceTestUtil.builder().withId(1).withLicenceType(LicenceType.CARBON_STORAGE).withLicenceReference("CS001").build();
@@ -376,7 +376,7 @@ class ScheduleWorkAreaServiceTest {
     when(workAreaItemViewService.getWorkAreaItemLogsForUser(any(), any())).thenReturn(List.of());
     when(licenceResponsibleOrganisationService.getResponsibleOrganisationsByLicences(any())).thenReturn(Map.of(licence, List.of()));
 
-    var workAreaItems = scheduleWorkAreaService.getWorkAreaItems(new WorkAreaFilterForm(), serviceUserDetail);
+    var workAreaItems = scheduleWorkAreaService.getAllWorkItems(new WorkAreaFilterForm(), serviceUserDetail);
 
     assertThat(workAreaItems)
         .extracting(SearchResultItem::hasNewLabel)
@@ -388,7 +388,7 @@ class ScheduleWorkAreaServiceTest {
   }
 
   @Test
-  void getWorkAreaItems_whenItemAlreadyViewed_doesNotShowNewBadge() {
+  void getAllWorkItems_whenItemAlreadyViewed_doesNotShowNewBadge() {
     var serviceUserDetail = ServiceUserDetailTestUtil.newBuilder().build();
     var testInstant = Instant.now(clock);
     var licence = LicenceTestUtil.builder().withId(1).withLicenceType(LicenceType.CARBON_STORAGE).withLicenceReference("CS001").build();
@@ -404,7 +404,7 @@ class ScheduleWorkAreaServiceTest {
         )));
     when(licenceResponsibleOrganisationService.getResponsibleOrganisationsByLicences(any())).thenReturn(Map.of(licence, List.of()));
 
-    var workAreaItems = scheduleWorkAreaService.getWorkAreaItems(new WorkAreaFilterForm(), serviceUserDetail);
+    var workAreaItems = scheduleWorkAreaService.getAllWorkItems(new WorkAreaFilterForm(), serviceUserDetail);
 
     assertThat(workAreaItems)
         .extracting(SearchResultItem::hasNewLabel)

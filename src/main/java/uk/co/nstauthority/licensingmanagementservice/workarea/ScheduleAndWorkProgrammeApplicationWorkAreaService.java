@@ -51,6 +51,7 @@ public class ScheduleAndWorkProgrammeApplicationWorkAreaService implements WorkA
   private final WorkAreaItemViewService workAreaItemViewService;
   private final RegulatorRoleService regulatorRoleService;
   private final TeamQueryService teamQueryService;
+  private final ApplicationWorkAreaService applicationWorkAreaService;
   private final LicenceResponsibleOrganisationService licenceResponsibleOrganisationService;
   private final OrganisationGroupQueryService organisationGroupQueryService;
   private final EnergyPortalUserService energyPortalUserService;
@@ -61,6 +62,7 @@ public class ScheduleAndWorkProgrammeApplicationWorkAreaService implements WorkA
       WorkAreaItemViewService workAreaItemViewService,
       RegulatorRoleService regulatorRoleService,
       TeamQueryService teamQueryService,
+      ApplicationWorkAreaService applicationWorkAreaService,
       LicenceResponsibleOrganisationService licenceResponsibleOrganisationService,
       OrganisationGroupQueryService organisationGroupQueryService,
       EnergyPortalUserService energyPortalUserService
@@ -70,6 +72,7 @@ public class ScheduleAndWorkProgrammeApplicationWorkAreaService implements WorkA
     this.workAreaItemViewService = workAreaItemViewService;
     this.regulatorRoleService = regulatorRoleService;
     this.teamQueryService = teamQueryService;
+    this.applicationWorkAreaService = applicationWorkAreaService;
     this.licenceResponsibleOrganisationService = licenceResponsibleOrganisationService;
     this.organisationGroupQueryService = organisationGroupQueryService;
     this.energyPortalUserService = energyPortalUserService;
@@ -81,9 +84,25 @@ public class ScheduleAndWorkProgrammeApplicationWorkAreaService implements WorkA
   }
 
   @Override
-  public List<SearchResultItem> getWorkAreaItems(
+  public List<SearchResultItem> getMyWorkItems(
       WorkAreaFilterForm workAreaFilterForm,
       ServiceUserDetail serviceUserDetail
+  ) {
+    return getWorkAreaItems(workAreaFilterForm, serviceUserDetail, true);
+  }
+
+  @Override
+  public List<SearchResultItem> getAllWorkItems(
+      WorkAreaFilterForm workAreaFilterForm,
+      ServiceUserDetail serviceUserDetail
+  ) {
+    return getWorkAreaItems(workAreaFilterForm, serviceUserDetail, false);
+  }
+
+  private List<SearchResultItem> getWorkAreaItems(
+      WorkAreaFilterForm workAreaFilterForm,
+      ServiceUserDetail serviceUserDetail,
+      boolean myWorkOnly
   ) {
     var userTeamRoles = teamQueryService.getTeamRolesForUser(serviceUserDetail.wuaId());
     var isRegulator = regulatorRoleService.isRegulator(userTeamRoles);
@@ -92,6 +111,9 @@ public class ScheduleAndWorkProgrammeApplicationWorkAreaService implements WorkA
         regulatorRoleService.isDecisionIssuer(userTeamRoles),
         isRegulator ? regulatorRoleService.getStewardOrCaseManagerLicenceTypes(userTeamRoles) : Set.of()
     );
+
+    // TODO LMS1-689: regulators see everything in My work until their rules are defined
+    var restrictToMyWork = myWorkOnly && !isRegulator;
 
     var allApplicationDetails = scheduleWorkProgrammeApplicationService
         .getAllScheduleWorkProgrammeApplicationDetailsByStatuses(ApplicationStatus.getSearchableStatuses());
@@ -125,11 +147,13 @@ public class ScheduleAndWorkProgrammeApplicationWorkAreaService implements WorkA
             applicationDetail,
             licenceByApplicationDetail.get(applicationDetail),
             workAreaFilterForm,
+            serviceUserDetail.wuaId(),
             userTeamRoles,
             responsibleOrganisations,
             orgUnitToGroupMap,
             licenseeGroupOrgUnitIds,
-            regulatorRoles
+            regulatorRoles,
+            restrictToMyWork
         ))
         .toList();
 
@@ -243,11 +267,13 @@ public class ScheduleAndWorkProgrammeApplicationWorkAreaService implements WorkA
       ScheduleWorkProgrammeApplicationDetail applicationDetail,
       Licence licence,
       WorkAreaFilterForm filterForm,
+      Long wuaId,
       Set<TeamRole> userTeamRoles,
       Map<Licence, List<OrganisationUnit>> responsibleOrganisations,
       Map<Integer, Integer> orgUnitToGroupMap,
       List<Integer> licenseeGroupOrgUnitIds,
-      RegulatorRoles regulatorRoles
+      RegulatorRoles regulatorRoles,
+      boolean restrictToMyWork
   ) {
     if (!FilterUtil.matchesTextInput(licence.getLicenceReference(), filterForm.getLicenceReference())) {
       return false;
@@ -290,6 +316,11 @@ public class ScheduleAndWorkProgrammeApplicationWorkAreaService implements WorkA
     var licenceOrgUnitGroupMap = licenceUnitIds.stream()
         .filter(orgUnitToGroupMap::containsKey)
         .collect(Collectors.toMap(Function.identity(), orgUnitToGroupMap::get));
+
+    if (restrictToMyWork
+        && !applicationWorkAreaService.isMyWork(applicationDetail, licenceOrgUnitGroupMap, wuaId, userTeamRoles)) {
+      return false;
+    }
 
     var hasIndustryAccess = applicationAccessService.userHasIndustryAccessToApplication(
         applicationDetail,

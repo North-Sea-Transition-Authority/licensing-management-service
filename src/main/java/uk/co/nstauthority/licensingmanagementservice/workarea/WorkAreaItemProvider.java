@@ -11,5 +11,7 @@ import uk.co.nstauthority.licensingmanagementservice.query.SearchResultItem;
  */
 public interface WorkAreaItemProvider extends PhaseGated {
 
-  List<SearchResultItem> getWorkAreaItems(WorkAreaFilterForm workAreaFilterForm, ServiceUserDetail serviceUserDetail);
+  List<SearchResultItem> getMyWorkItems(WorkAreaFilterForm workAreaFilterForm, ServiceUserDetail serviceUserDetail);
+
+  List<SearchResultItem> getAllWorkItems(WorkAreaFilterForm workAreaFilterForm, ServiceUserDetail serviceUserDetail);
 }

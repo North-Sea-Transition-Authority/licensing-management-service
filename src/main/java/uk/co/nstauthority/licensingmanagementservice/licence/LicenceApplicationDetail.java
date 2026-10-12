@@ -14,6 +14,10 @@ public interface LicenceApplicationDetail {
 
   Instant getSubmittedDatetime();
 
+  Long getCreatedByWuaId();
+
+  Long getSubmittedByWuaId();
+
   /** True once submitted, and stays true if later withdrawn or closed. */
   default boolean hasBeenSubmitted() {
     return getSubmittedDatetime() != null;

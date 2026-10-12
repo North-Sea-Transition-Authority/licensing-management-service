@@ -54,10 +54,10 @@ class WorkAreaServiceTest {
     when(scheduleWorkAreaService.getReleaseFeature()).thenReturn(ReleaseFeature.MANAGE_SCHEDULE);
     when(scheduleAndWorkProgrammeApplicationWorkAreaService.getReleaseFeature())
         .thenReturn(ReleaseFeature.SCHEDULE_APPLICATION);
-    when(scheduleWorkAreaService.getWorkAreaItems(form, user)).thenReturn(List.of(oldestItem, newestItem));
-    when(scheduleAndWorkProgrammeApplicationWorkAreaService.getWorkAreaItems(form, user)).thenReturn(List.of(middleItem));
+    when(scheduleWorkAreaService.getAllWorkItems(form, user)).thenReturn(List.of(oldestItem, newestItem));
+    when(scheduleAndWorkProgrammeApplicationWorkAreaService.getAllWorkItems(form, user)).thenReturn(List.of(middleItem));
 
-    var workAreaResults = workAreaService.getWorkAreaResults(form, user);
+    var workAreaResults = workAreaService.getAllWorkResults(form, user);
 
     assertThat(workAreaResults).containsExactly(newestItem, middleItem, oldestItem);
 

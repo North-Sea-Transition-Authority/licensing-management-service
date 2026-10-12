@@ -12,7 +12,7 @@ import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.
 @Service
 public class IndustryRoleService {
 
-  private static final Set<Role> EDITOR_SUBMITTER_ROLES = Set.of(Role.APPLICATION_EDITOR, Role.APPLICATION_SUBMITTER);
+  public static final Set<Role> EDITOR_SUBMITTER_ROLES = Set.of(Role.APPLICATION_EDITOR, Role.APPLICATION_SUBMITTER);
 
   private final OrganisationUnitQueryService organisationUnitQueryService;
   private final OrganisationGroupQueryService organisationGroupQueryService;

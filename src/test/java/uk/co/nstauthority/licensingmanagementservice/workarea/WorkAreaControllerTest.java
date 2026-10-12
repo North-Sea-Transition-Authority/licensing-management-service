@@ -20,11 +20,13 @@ import org.junit.jupiter.api.Test;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
+import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisationgroup.OrganisationGroupRestController;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitRestController;
 import uk.co.nstauthority.licensingmanagementservice.fds.searchselector.SearchSelectorService;
+import uk.co.nstauthority.licensingmanagementservice.fds.tab.FdsBackendTab;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.SelectApplicationTypeController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.query.SearchResultItem;
@@ -79,7 +81,7 @@ class WorkAreaControllerTest extends AbstractControllerTest {
         searchResultItem3
     );
 
-    when(workAreaService.getWorkAreaResults(any(), any()))
+    when(workAreaService.getMyWorkResults(any(), any()))
         .thenReturn(searchResultItems);
 
     var modelAndView = mockMvc.perform(
@@ -214,5 +216,69 @@ class WorkAreaControllerTest extends AbstractControllerTest {
                 ReverseRouter.route(
                     on(WorkAreaController.class)
                         .getWorkArea(null, null))));
+  }
+
+  @Test
+  void getAllWork_whenNotLoggedIn_thenRedirectToLoginUrl() throws Exception {
+    mockMvc.perform(get(ReverseRouter.route(on(WorkAreaController.class).getAllWork(null, null))))
+        .andExpect(redirectionToLoginUrl());
+  }
+
+  @Test
+  void getWorkArea_whenLoggedIn_thenMyWorkTabIsCurrent() throws Exception {
+    mockMvc.perform(
+            get(ReverseRouter.route(on(WorkAreaController.class).getWorkArea(null, null)))
+                .with(user(regulatorUser))
+        )
+        .andExpect(status().isOk())
+        .andExpect(model().attribute("tabs", getExpectedTabs()))
+        .andExpect(model().attribute("currentTab", getExpectedTabs().get(0)));
+  }
+
+  @Test
+  void getAllWork_whenLoggedIn_thenExpectAllWorkItemsAndTab() throws Exception {
+    var searchResultItems = List.of(
+        SearchResultItem.newBuilder().withLinkHeadingUrl("https://www.test.fivium/1").build(),
+        SearchResultItem.newBuilder().withLinkHeadingUrl("https://www.test.fivium/2").build()
+    );
+
+    when(workAreaService.getAllWorkResults(any(WorkAreaFilterForm.class), any(ServiceUserDetail.class)))
+        .thenReturn(searchResultItems);
+
+    mockMvc.perform(
+            get(ReverseRouter.route(on(WorkAreaController.class).getAllWork(null, null)))
+                .with(user(regulatorUser))
+        )
+        .andExpect(status().isOk())
+        .andExpect(view().name("lms/workarea/workArea"))
+        .andExpect(model().attribute("workAreaItems", searchResultItems))
+        .andExpect(model().attribute("tabs", getExpectedTabs()))
+        .andExpect(model().attribute("currentTab", getExpectedTabs().get(1)))
+        .andExpect(model().attribute("clearFilterUrl",
+            ReverseRouter.route(on(WorkAreaController.class).clearAllWorkFilters(null, null))));
+  }
+
+  @Test
+  void renderAllWorkResults_loggedIn_updateAndRedirectToAllWork() throws Exception {
+    mockMvc.perform(post(ReverseRouter.route(on(WorkAreaController.class).renderAllWorkResults(null, null)))
+            .with(user(regulatorUser))
+            .with(csrf()))
+        .andExpect(status().is3xxRedirection())
+        .andExpect(redirectedUrl(ReverseRouter.route(on(WorkAreaController.class).getAllWork(null, null))));
+  }
+
+  @Test
+  void clearAllWorkFilters_loggedIn_clearSessionAndRedirectToAllWork() throws Exception {
+    mockMvc.perform(get(ReverseRouter.route(on(WorkAreaController.class).clearAllWorkFilters(null, null)))
+            .with(user(regulatorUser)))
+        .andExpect(status().is3xxRedirection())
+        .andExpect(redirectedUrl(ReverseRouter.route(on(WorkAreaController.class).getAllWork(null, null))));
+  }
+
+  private List<FdsBackendTab> getExpectedTabs() {
+    return List.of(
+        new FdsBackendTab("My work", "my-work", ReverseRouter.route(on(WorkAreaController.class).getWorkArea(null, null))),
+        new FdsBackendTab("All work", "all-work", ReverseRouter.route(on(WorkAreaController.class).getAllWork(null, null)))
+    );
   }
 }

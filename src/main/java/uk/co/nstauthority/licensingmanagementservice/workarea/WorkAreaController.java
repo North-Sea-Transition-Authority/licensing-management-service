@@ -2,6 +2,7 @@ package uk.co.nstauthority.licensingmanagementservice.workarea;
 
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
+import java.util.List;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -17,6 +18,7 @@ import uk.co.nstauthority.licensingmanagementservice.energyportal.organisationgr
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitRestController;
 import uk.co.nstauthority.licensingmanagementservice.fds.searchselector.SearchSelectorService;
+import uk.co.nstauthority.licensingmanagementservice.fds.tab.FdsBackendTab;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
@@ -24,6 +26,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.application.SelectA
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.phasedrelease.FeatureFlagService;
 import uk.co.nstauthority.licensingmanagementservice.phasedrelease.ReleaseFeature;
+import uk.co.nstauthority.licensingmanagementservice.query.SearchResultItem;
 import uk.co.nstauthority.licensingmanagementservice.teams.IndustryRoleService;
 import uk.co.nstauthority.licensingmanagementservice.teams.RegulatorRoleService;
 import uk.co.nstauthority.licensingmanagementservice.util.enumutil.DisplayableEnumOptionUtil;
@@ -33,6 +36,8 @@ import uk.co.nstauthority.licensingmanagementservice.util.enumutil.DisplayableEn
 @SessionAttributes("workAreaSession")
 public class WorkAreaController {
   public static final String WORK_AREA_PAGE_NAME = "Work area";
+  private static final String MY_WORK_TAB_ANCHOR = "my-work";
+  private static final String ALL_WORK_TAB_ANCHOR = "all-work";
 
   private final WorkAreaService workAreaService;
   private final IndustryRoleService industryRoleService;
@@ -59,7 +64,26 @@ public class WorkAreaController {
 
   @GetMapping
   public ModelAndView getWorkArea(@ModelAttribute("workAreaSession") WorkAreaSession workAreaSession, ServiceUserDetail user) {
-    return getModelAndView(workAreaSession.getWorkAreaFilterForm(), user);
+    var form = workAreaSession.getWorkAreaFilterForm();
+    return getModelAndView(
+        form,
+        user,
+        MY_WORK_TAB_ANCHOR,
+        workAreaService.getMyWorkResults(form, user),
+        getClearFilterUrl()
+    );
+  }
+
+  @GetMapping("/all-work")
+  public ModelAndView getAllWork(@ModelAttribute("workAreaSession") WorkAreaSession workAreaSession, ServiceUserDetail user) {
+    var form = workAreaSession.getWorkAreaFilterForm();
+    return getModelAndView(
+        form,
+        user,
+        ALL_WORK_TAB_ANCHOR,
+        workAreaService.getAllWorkResults(form, user),
+        getAllWorkClearFilterUrl()
+    );
   }
 
   @PostMapping
@@ -67,6 +91,13 @@ public class WorkAreaController {
                                      @ModelAttribute("workAreaSession") WorkAreaSession workAreaSession) {
     workAreaSession.update(form);
     return ReverseRouter.redirect(on(WorkAreaController.class).getWorkArea(null, null));
+  }
+
+  @PostMapping("/all-work")
+  ModelAndView renderAllWorkResults(@ModelAttribute("form") WorkAreaFilterForm form,
+                                    @ModelAttribute("workAreaSession") WorkAreaSession workAreaSession) {
+    workAreaSession.update(form);
+    return ReverseRouter.redirect(on(WorkAreaController.class).getAllWork(null, null));
   }
 
   @GetMapping("/clear-filters")
@@ -77,16 +108,46 @@ public class WorkAreaController {
     return ReverseRouter.redirect(on(WorkAreaController.class).getWorkArea(null, null));
   }
 
+  @GetMapping("/all-work/clear-filters")
+  public ModelAndView clearAllWorkFilters(@ModelAttribute("workAreaSession") WorkAreaSession workAreaSession,
+                                          SessionStatus sessionStatus) {
+    sessionStatus.setComplete();
+    workAreaSession.clearSession();
+    return ReverseRouter.redirect(on(WorkAreaController.class).getAllWork(null, null));
+  }
+
   @ModelAttribute("workAreaSession")
   private WorkAreaSession getWorkAreaSessionWithDefaultFilters(@ModelAttribute("form") WorkAreaFilterForm form) {
     return new WorkAreaSession(form);
   }
 
-  private @NotNull ModelAndView getModelAndView(WorkAreaFilterForm form, ServiceUserDetail user) {
+  private String getClearFilterUrl() {
+    return ReverseRouter.route(on(WorkAreaController.class).clearWorkAreaFilters(null, null));
+  }
+
+  private String getAllWorkClearFilterUrl() {
+    return ReverseRouter.route(on(WorkAreaController.class).clearAllWorkFilters(null, null));
+  }
+
+  private @NotNull ModelAndView getModelAndView(
+      WorkAreaFilterForm form,
+      ServiceUserDetail user,
+      String currentTabAnchor,
+      List<SearchResultItem> workAreaItems,
+      String clearFilterUrl
+  ) {
+
+    var tabs = getTabs();
+    var currentTab = tabs.stream()
+        .filter(tab -> tab.anchor().equals(currentTabAnchor))
+        .findFirst()
+        .orElseThrow();
 
     return new ModelAndView("lms/workarea/workArea")
         .addObject("pageTitle", WORK_AREA_PAGE_NAME)
-        .addObject("workAreaItems", workAreaService.getWorkAreaResults(form, user))
+        .addObject("tabs", tabs)
+        .addObject("currentTab", currentTab)
+        .addObject("workAreaItems", workAreaItems)
         .addObject("canStartApplication",
             featureFlagService.isEnabled(ReleaseFeature.START_APPLICATION)
                 && industryRoleService.userHasEditorOrSubmitterRole(user.wuaId()))
@@ -106,7 +167,21 @@ public class WorkAreaController {
             SearchSelectorService.route(on(OrganisationGroupRestController.class).getOrganisationGroupSearchResults(null)))
         .addObject("preSelectedLicenseeGroupOrgUnit",
             organisationGroupQueryService.getOrganisationGroupSelectOption(form.getLicenseeOrgGroupId()))
-        .addObject("clearFilterUrl",
-        ReverseRouter.route(on(WorkAreaController.class).clearWorkAreaFilters(null, null)));
+        .addObject("clearFilterUrl", clearFilterUrl);
+  }
+
+  private List<FdsBackendTab> getTabs() {
+    return List.of(
+        new FdsBackendTab(
+            "My work",
+            MY_WORK_TAB_ANCHOR,
+            ReverseRouter.route(on(WorkAreaController.class).getWorkArea(null, null))
+        ),
+        new FdsBackendTab(
+            "All work",
+            ALL_WORK_TAB_ANCHOR,
+            ReverseRouter.route(on(WorkAreaController.class).getAllWork(null, null))
+        )
+    );
   }
 }

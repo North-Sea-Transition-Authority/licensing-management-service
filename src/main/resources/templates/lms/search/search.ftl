@@ -21,26 +21,30 @@
         </#if>
 
         <@fdsSearch.searchPageContent>
-            <#if searchResults?has_content>
-                <@fdsResultList.resultList resultCount=searchResults?size>
-                    <#list searchResults as searchResult>
-                      <@searchDataItem.resultListItem dataView=searchResult/>
-                    </#list>
-                </@fdsResultList.resultList>
-            <#elseif !hasSearchBeenInvoked>
-                <@fdsInsetText.insetText>
-                    To search, add some filters and click the 'Filter results' button.
-                </@fdsInsetText.insetText>
-            <#else>
-                <h3 class="govuk-heading-s">There are no matching results</h3>
-                <p class="govuk-body">Improve your results by:</p>
-                <ul class="govuk-list govuk-list--bullet">
-                    <li>removing filters</li>
-                    <li>double-checking your spelling</li>
-                    <li>using fewer keywords</li>
-                    <li>searching for something less specific</li>
-                </ul>
-            </#if>
+            <@searchResultList searchResults=searchResults hasSearchBeenInvoked=hasSearchBeenInvoked/>
         </@fdsSearch.searchPageContent>
     </@fdsSearch.searchPage>
+</#macro>
+
+<#macro searchResultList searchResults=[] hasSearchBeenInvoked=false>
+    <#if searchResults?has_content>
+        <@fdsResultList.resultList resultCount=searchResults?size>
+            <#list searchResults as searchResult>
+              <@searchDataItem.resultListItem dataView=searchResult/>
+            </#list>
+        </@fdsResultList.resultList>
+    <#elseif !hasSearchBeenInvoked>
+        <@fdsInsetText.insetText>
+            To search, add some filters and click the 'Filter results' button.
+        </@fdsInsetText.insetText>
+    <#else>
+        <h3 class="govuk-heading-s">There are no matching results</h3>
+        <p class="govuk-body">Improve your results by:</p>
+        <ul class="govuk-list govuk-list--bullet">
+            <li>removing filters</li>
+            <li>double-checking your spelling</li>
+            <li>using fewer keywords</li>
+            <li>searching for something less specific</li>
+        </ul>
+    </#if>
 </#macro>

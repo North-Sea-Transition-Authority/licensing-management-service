@@ -44,6 +44,7 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
   private final ApplicationAccessService applicationAccessService;
   private final RegulatorRoleService regulatorRoleService;
   private final TeamQueryService teamQueryService;
+  private final ApplicationWorkAreaService applicationWorkAreaService;
   private final WorkAreaItemViewService workAreaItemViewService;
   private final LicenceResponsibleOrganisationService licenceResponsibleOrganisationService;
   private final OrganisationGroupQueryService organisationGroupQueryService;
@@ -53,6 +54,7 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
       ApplicationAccessService applicationAccessService,
       RegulatorRoleService regulatorRoleService,
       TeamQueryService teamQueryService,
+      ApplicationWorkAreaService applicationWorkAreaService,
       WorkAreaItemViewService workAreaItemViewService,
       LicenceResponsibleOrganisationService licenceResponsibleOrganisationService,
       OrganisationGroupQueryService organisationGroupQueryService
@@ -61,6 +63,7 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
     this.applicationAccessService = applicationAccessService;
     this.regulatorRoleService = regulatorRoleService;
     this.teamQueryService = teamQueryService;
+    this.applicationWorkAreaService = applicationWorkAreaService;
     this.workAreaItemViewService = workAreaItemViewService;
     this.licenceResponsibleOrganisationService = licenceResponsibleOrganisationService;
     this.organisationGroupQueryService = organisationGroupQueryService;
@@ -72,9 +75,25 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
   }
 
   @Override
-  public List<SearchResultItem> getWorkAreaItems(
+  public List<SearchResultItem> getMyWorkItems(
       WorkAreaFilterForm workAreaFilterForm,
       ServiceUserDetail serviceUserDetail
+  ) {
+    return getWorkAreaItems(workAreaFilterForm, serviceUserDetail, true);
+  }
+
+  @Override
+  public List<SearchResultItem> getAllWorkItems(
+      WorkAreaFilterForm workAreaFilterForm,
+      ServiceUserDetail serviceUserDetail
+  ) {
+    return getWorkAreaItems(workAreaFilterForm, serviceUserDetail, false);
+  }
+
+  private List<SearchResultItem> getWorkAreaItems(
+      WorkAreaFilterForm workAreaFilterForm,
+      ServiceUserDetail serviceUserDetail,
+      boolean myWorkOnly
   ) {
     var userTeamRoles = teamQueryService.getTeamRolesForUser(serviceUserDetail.wuaId());
     var regulatorRoles = new RegulatorRoles(
@@ -83,6 +102,9 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
         regulatorRoleService.isContinuationReviewer(userTeamRoles),
         regulatorRoleService.isDecisionIssuer(userTeamRoles)
     );
+
+    // TODO LMS1-689: regulators see everything in My work until their rules are defined
+    var restrictToMyWork = myWorkOnly && !regulatorRoles.regulator();
 
     var allApplicationDetails = licenceContinuationService
         .getAllContinuationApplicationDetailsByStatuses(ApplicationStatus.getSearchableStatuses());
@@ -114,11 +136,13 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
             applicationDetail,
             licenceByApplicationDetail.get(applicationDetail),
             workAreaFilterForm,
+            serviceUserDetail.wuaId(),
             userTeamRoles,
             responsibleOrganisations,
             orgUnitToGroupMap,
             licenseeGroupOrgUnitIds,
-            regulatorRoles
+            regulatorRoles,
+            restrictToMyWork
         ))
         .map(applicationDetail ->
             createWorkAreaItem(
@@ -216,11 +240,13 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
       LicenceContinuationApplicationDetail applicationDetail,
       Licence licence,
       WorkAreaFilterForm filterForm,
+      Long wuaId,
       Set<TeamRole> userTeamRoles,
       Map<Licence, List<OrganisationUnit>> responsibleOrganisations,
       Map<Integer, Integer> orgUnitToGroupMap,
       List<Integer> licenseeGroupOrgUnitIds,
-      RegulatorRoles regulatorRoles
+      RegulatorRoles regulatorRoles,
+      boolean restrictToMyWork
   ) {
     if (!FilterUtil.matchesTextInput(licence.getLicenceReference(), filterForm.getLicenceReference())) {
       return false;
@@ -264,6 +290,11 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
         .filter(orgUnitToGroupMap::containsKey)
         .collect(Collectors.toMap(Function.identity(), orgUnitToGroupMap::get));
 
+    if (restrictToMyWork
+        && !applicationWorkAreaService.isMyWork(applicationDetail, licenceOrgUnitGroupMap, wuaId, userTeamRoles)) {
+      return false;
+    }
+
     var hasIndustryAccess = applicationAccessService.userHasIndustryAccessToApplication(
         applicationDetail,
         licenceOrgUnitGroupMap,
@@ -274,6 +305,10 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
       return true;
     }
 
+    return canRegulatorSee(applicationDetail, regulatorRoles);
+  }
+
+  private boolean canRegulatorSee(LicenceContinuationApplicationDetail applicationDetail, RegulatorRoles regulatorRoles) {
     if (!regulatorRoles.regulator() || !applicationDetail.hasBeenSubmitted()) {
       return false;
     }

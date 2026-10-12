@@ -71,27 +71,27 @@ class CorrectionWorkAreaServiceTest {
   }
 
   @Test
-  void getWorkAreaItems_queriesInProgressCorrectionsForCurrentUser() {
+  void getAllWorkItems_queriesInProgressCorrectionsForCurrentUser() {
     when(licenceCorrectionService.getAllInProgressCorrectionsForUser(user))
         .thenReturn(List.of());
 
-    correctionWorkAreaService.getWorkAreaItems(filterForm(null), user);
+    correctionWorkAreaService.getAllWorkItems(filterForm(null), user);
 
     verify(licenceCorrectionService).getAllInProgressCorrectionsForUser(user);
   }
 
   @Test
-  void getWorkAreaItems_whenNoCorrections_thenEmptyList() {
+  void getAllWorkItems_whenNoCorrections_thenEmptyList() {
     when(licenceCorrectionService.getAllInProgressCorrectionsForUser(user))
         .thenReturn(List.of());
 
-    var result = correctionWorkAreaService.getWorkAreaItems(filterForm(null), user);
+    var result = correctionWorkAreaService.getAllWorkItems(filterForm(null), user);
 
     assertThat(result).isEmpty();
   }
 
   @Test
-  void getWorkAreaItems_filtersToMatchingLicence_andMapsToSearchResultItem() {
+  void getAllWorkItems_filtersToMatchingLicence_andMapsToSearchResultItem() {
     var createdInstant = Instant.parse("2024-01-01T00:00:00Z");
     var matchingId = UUID.randomUUID();
     var matching = correction(matchingId, "P1234", "COR-1", createdInstant);
@@ -100,7 +100,7 @@ class CorrectionWorkAreaServiceTest {
     when(licenceCorrectionService.getAllInProgressCorrectionsForUser(user))
         .thenReturn(List.of(matching, other));
 
-    var result = correctionWorkAreaService.getWorkAreaItems(filterForm("P1234"), user);
+    var result = correctionWorkAreaService.getAllWorkItems(filterForm("P1234"), user);
 
     var expected = SearchResultItem.newBuilder()
         .withId(matchingId.toString())
@@ -119,7 +119,7 @@ class CorrectionWorkAreaServiceTest {
   }
 
   @Test
-  void getWorkAreaItems_whenCorrectionAlreadyViewedByUser_thenNoNewLabel() {
+  void getAllWorkItems_whenCorrectionAlreadyViewedByUser_thenNoNewLabel() {
     var createdInstant = Instant.parse("2024-01-01T00:00:00Z");
     var correctionId = UUID.randomUUID();
     var correction = correction(correctionId, "P1234", "COR-1", createdInstant);
@@ -133,13 +133,13 @@ class CorrectionWorkAreaServiceTest {
         new WorkAreaItemView(correctionId, WorkAreaDataItemType.LICENCE_CORRECTION, WUA_ID)
     ));
 
-    var result = correctionWorkAreaService.getWorkAreaItems(filterForm(null), user);
+    var result = correctionWorkAreaService.getAllWorkItems(filterForm(null), user);
 
     assertThat(result).extracting(SearchResultItem::hasNewLabel).containsExactly(false);
   }
 
   @Test
-  void getWorkAreaItems_filtersByLicenceType() {
+  void getAllWorkItems_filtersByLicenceType() {
     var createdInstant = Instant.parse("2024-01-01T00:00:00Z");
     var matchingId = UUID.randomUUID();
     var matching = correction(matchingId, "P1234", LicenceType.SEAWARD_PRODUCTION, "COR-1", createdInstant);
@@ -150,13 +150,13 @@ class CorrectionWorkAreaServiceTest {
 
     var form = new WorkAreaFilterForm();
     form.setLicenceTypes(List.of(LicenceType.SEAWARD_PRODUCTION.name()));
-    var result = correctionWorkAreaService.getWorkAreaItems(form, user);
+    var result = correctionWorkAreaService.getAllWorkItems(form, user);
 
     assertThat(result).extracting(SearchResultItem::id).containsExactly(matchingId.toString());
   }
 
   @Test
-  void getWorkAreaItems_filteredByLicenseeOrgUnitId_matching() {
+  void getAllWorkItems_filteredByLicenseeOrgUnitId_matching() {
     var createdInstant = Instant.parse("2024-01-01T00:00:00Z");
     var matchingId = UUID.randomUUID();
     var matching = correction(matchingId, "P1234", "COR-1", createdInstant);
@@ -175,13 +175,13 @@ class CorrectionWorkAreaServiceTest {
 
     var form = new WorkAreaFilterForm();
     form.setLicenseeOrgUnitId(1);
-    var result = correctionWorkAreaService.getWorkAreaItems(form, user);
+    var result = correctionWorkAreaService.getAllWorkItems(form, user);
 
     assertThat(result).extracting(SearchResultItem::id).containsExactly(matchingId.toString());
   }
 
   @Test
-  void getWorkAreaItems_filteredByLicenseeOrgGroupId_matching() {
+  void getAllWorkItems_filteredByLicenseeOrgGroupId_matching() {
     var createdInstant = Instant.parse("2024-01-01T00:00:00Z");
     var matchingId = UUID.randomUUID();
     var matching = correction(matchingId, "P1234", "COR-1", createdInstant);
@@ -202,13 +202,13 @@ class CorrectionWorkAreaServiceTest {
 
     var form = new WorkAreaFilterForm();
     form.setLicenseeOrgGroupId(99);
-    var result = correctionWorkAreaService.getWorkAreaItems(form, user);
+    var result = correctionWorkAreaService.getAllWorkItems(form, user);
 
     assertThat(result).extracting(SearchResultItem::id).containsExactly(matchingId.toString());
   }
 
   @Test
-  void getWorkAreaItems_whenApplicationReferenceFilterApplied_thenExcluded() {
+  void getAllWorkItems_whenApplicationReferenceFilterApplied_thenExcluded() {
     var createdInstant = Instant.parse("2024-01-01T00:00:00Z");
     var correctionId = UUID.randomUUID();
     var correction = correction(correctionId, "P1234", LicenceType.SEAWARD_PRODUCTION, "COR-1", createdInstant);
@@ -218,13 +218,13 @@ class CorrectionWorkAreaServiceTest {
 
     var form = new WorkAreaFilterForm();
     form.setApplicationReference("LMS/EEA/001");
-    var result = correctionWorkAreaService.getWorkAreaItems(form, user);
+    var result = correctionWorkAreaService.getAllWorkItems(form, user);
 
     assertThat(result).isEmpty();
   }
 
   @Test
-  void getWorkAreaItems_whenApplicationTypeFilterApplied_thenExcluded() {
+  void getAllWorkItems_whenApplicationTypeFilterApplied_thenExcluded() {
     var createdInstant = Instant.parse("2024-01-01T00:00:00Z");
     var correctionId = UUID.randomUUID();
     var correction = correction(correctionId, "P1234", LicenceType.SEAWARD_PRODUCTION, "COR-1", createdInstant);
@@ -234,13 +234,13 @@ class CorrectionWorkAreaServiceTest {
 
     var form = new WorkAreaFilterForm();
     form.setApplicationTypes(List.of(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION.name()));
-    var result = correctionWorkAreaService.getWorkAreaItems(form, user);
+    var result = correctionWorkAreaService.getAllWorkItems(form, user);
 
     assertThat(result).isEmpty();
   }
 
   @Test
-  void getWorkAreaItems_whenApplicationStatusFilterApplied_thenExcluded() {
+  void getAllWorkItems_whenApplicationStatusFilterApplied_thenExcluded() {
     var createdInstant = Instant.parse("2024-01-01T00:00:00Z");
     var correctionId = UUID.randomUUID();
     var correction = correction(correctionId, "P1234", LicenceType.SEAWARD_PRODUCTION, "COR-1", createdInstant);
@@ -250,7 +250,7 @@ class CorrectionWorkAreaServiceTest {
 
     var form = new WorkAreaFilterForm();
     form.setApplicationStatuses(List.of(ApplicationStatus.DRAFT.name()));
-    var result = correctionWorkAreaService.getWorkAreaItems(form, user);
+    var result = correctionWorkAreaService.getAllWorkItems(form, user);
 
     assertThat(result).isEmpty();
   }

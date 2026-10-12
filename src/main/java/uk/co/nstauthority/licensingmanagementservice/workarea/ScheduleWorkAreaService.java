@@ -54,7 +54,22 @@ public class ScheduleWorkAreaService implements WorkAreaItemProvider {
   }
 
   @Override
-  public List<SearchResultItem> getWorkAreaItems(
+  public List<SearchResultItem> getMyWorkItems(
+      WorkAreaFilterForm workAreaFilterForm,
+      ServiceUserDetail serviceUserDetail
+  ) {
+    return getWorkAreaItems(workAreaFilterForm, serviceUserDetail);
+  }
+
+  @Override
+  public List<SearchResultItem> getAllWorkItems(
+      WorkAreaFilterForm workAreaFilterForm,
+      ServiceUserDetail serviceUserDetail
+  ) {
+    return getWorkAreaItems(workAreaFilterForm, serviceUserDetail);
+  }
+
+  private List<SearchResultItem> getWorkAreaItems(
       WorkAreaFilterForm workAreaFilterForm,
       ServiceUserDetail serviceUserDetail
   ) {

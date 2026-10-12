@@ -9,21 +9,21 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import uk.co.nstauthority.licensingmanagementservice.authentication.UserDetailService;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.SecurityRuleResult;
-import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService;
+import uk.co.nstauthority.licensingmanagementservice.teams.IndustryRoleService;
 
 @Component
 @Order(6)
 public class InvokingUserCanStartApplicationInterceptorRule implements AccessInterceptorRule {
 
-  private final ApplicationAccessService applicationAccessService;
+  private final IndustryRoleService industryRoleService;
   private final UserDetailService userDetailService;
 
   @Autowired
   public InvokingUserCanStartApplicationInterceptorRule(
-      ApplicationAccessService applicationAccessService,
+      IndustryRoleService industryRoleService,
       UserDetailService userDetailService
   ) {
-    this.applicationAccessService = applicationAccessService;
+    this.industryRoleService = industryRoleService;
     this.userDetailService = userDetailService;
   }
 
@@ -39,7 +39,7 @@ public class InvokingUserCanStartApplicationInterceptorRule implements AccessInt
 
     var wuaId = userDetailService.getUserDetail().wuaId();
 
-    boolean hasAccessToStartApplication = applicationAccessService.userHasAccessToStartApplication(wuaId);
+    boolean hasAccessToStartApplication = industryRoleService.userHasEditorOrSubmitterRole(wuaId);
 
     if (hasAccessToStartApplication) {
       return SecurityRuleResult.continueAsNormal();

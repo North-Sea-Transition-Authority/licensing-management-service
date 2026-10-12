@@ -14,7 +14,6 @@ import uk.co.nstauthority.licensingmanagementservice.caseevent.CaseEventService;
 import uk.co.nstauthority.licensingmanagementservice.caseevent.CaseEventType;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
-import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
 import uk.co.nstauthority.licensingmanagementservice.licence.crosslicenceeventtracker.CrossLicenceEventTrackerService;
@@ -22,6 +21,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesch
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.startjourney.LicenseeInformationForm;
+import uk.co.nstauthority.licensingmanagementservice.teams.IndustryRoleService;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamScopeReference;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
 import uk.co.nstauthority.licensingmanagementservice.teams.management.TeamManagementService;
@@ -35,7 +35,7 @@ public class ScheduleWorkProgrammeApplicationService {
   private final ScheduleWorkProgrammeApplicationDetailRepository scheduleWorkProgrammeApplicationDetailRepository;
   private final LicenceScheduleDetailService licenceScheduleDetailService;
   private final Clock clock;
-  private final ApplicationAccessService applicationAccessService;
+  private final IndustryRoleService industryRoleService;
   private final TeamManagementService teamManagementService;
   private final ScheduleWorkProgrammeApplicationSubmittedNotificationService applicationSubmittedNotificationService;
   private final CrossLicenceEventTrackerService crossLicenceEventTrackerService;
@@ -46,7 +46,7 @@ public class ScheduleWorkProgrammeApplicationService {
       ScheduleWorkProgrammeApplicationDetailRepository scheduleWorkProgrammeApplicationDetailRepository,
       LicenceScheduleDetailService licenceScheduleDetailService,
       Clock clock,
-      ApplicationAccessService applicationAccessService,
+      IndustryRoleService industryRoleService,
       TeamManagementService teamManagementService,
       ScheduleWorkProgrammeApplicationSubmittedNotificationService applicationSubmittedNotificationService,
       CrossLicenceEventTrackerService crossLicenceEventTrackerService,
@@ -55,7 +55,7 @@ public class ScheduleWorkProgrammeApplicationService {
     this.scheduleWorkProgrammeApplicationDetailRepository = scheduleWorkProgrammeApplicationDetailRepository;
     this.licenceScheduleDetailService = licenceScheduleDetailService;
     this.clock = clock;
-    this.applicationAccessService = applicationAccessService;
+    this.industryRoleService = industryRoleService;
     this.teamManagementService = teamManagementService;
     this.applicationSubmittedNotificationService = applicationSubmittedNotificationService;
     this.crossLicenceEventTrackerService = crossLicenceEventTrackerService;
@@ -250,7 +250,7 @@ public class ScheduleWorkProgrammeApplicationService {
   }
 
   public boolean userCanSubmitApplication(ScheduleWorkProgrammeApplicationDetail applicationDetail, ServiceUserDetail user) {
-    return applicationAccessService.userIsSubmitterForOrganisationUnit(
+    return industryRoleService.userIsSubmitterForOrganisationUnit(
         applicationDetail.getResponsibleOrganisationUnitId(),
         user.wuaId()
     );

@@ -23,7 +23,6 @@ import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplication;
-import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.caseprocessing.OverviewTab;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.letter.ApplicationLetterService;
@@ -35,6 +34,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesch
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailStatus;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
+import uk.co.nstauthority.licensingmanagementservice.teams.IndustryRoleService;
 import uk.co.nstauthority.licensingmanagementservice.teams.IndustryTeamService;
 import uk.co.nstauthority.licensingmanagementservice.teams.management.view.TeamMemberView;
 import uk.co.nstauthority.licensingmanagementservice.util.DateUtil;
@@ -48,7 +48,7 @@ public class LicenceContinuationService {
 
   private static final String APPLICATION_REFERENCE_FORMAT = "LMS/CA/%d/%d";
 
-  private final ApplicationAccessService applicationAccessService;
+  private final IndustryRoleService industryRoleService;
   public static final String LICENCE_CONTINUATION_APPLICATION_DETAIL = "licence continuation application detail";
   public final LicenceContinuationApplicationDetailRepository licenceContinuationApplicationDetailRepository;
   private final LicenceContinuationApplicationRepository licenceContinuationApplicationRepository;
@@ -67,7 +67,7 @@ public class LicenceContinuationService {
       LicenceContinuationApplicationRepository licenceContinuationApplicationRepository,
       LicenceScheduleDetailService licenceScheduleDetailService,
       Clock clock,
-      ApplicationAccessService applicationAccessService,
+      IndustryRoleService industryRoleService,
       ApplicationLetterService applicationLetterService,
       ApplicationWithdrawService applicationWithdrawService,
       OrganisationUnitQueryService organisationUnitQueryService,
@@ -80,7 +80,7 @@ public class LicenceContinuationService {
     this.licenceContinuationApplicationRepository = licenceContinuationApplicationRepository;
     this.licenceScheduleDetailService = licenceScheduleDetailService;
     this.clock = clock;
-    this.applicationAccessService = applicationAccessService;
+    this.industryRoleService = industryRoleService;
     this.applicationLetterService = applicationLetterService;
     this.applicationWithdrawService = applicationWithdrawService;
     this.organisationUnitQueryService = organisationUnitQueryService;
@@ -237,7 +237,7 @@ public class LicenceContinuationService {
   }
 
   public boolean userCanSubmitApplication(LicenceContinuationApplicationDetail applicationDetail, ServiceUserDetail user) {
-    return applicationAccessService.userIsSubmitterForOrganisationUnit(
+    return industryRoleService.userIsSubmitterForOrganisationUnit(
         applicationDetail.getResponsibleOrganisationUnitId(),
         user.wuaId()
     );

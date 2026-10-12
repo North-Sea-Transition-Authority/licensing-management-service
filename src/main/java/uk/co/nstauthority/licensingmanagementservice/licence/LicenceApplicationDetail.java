@@ -13,4 +13,9 @@ public interface LicenceApplicationDetail {
   Integer getResponsibleOrganisationUnitId();
 
   Instant getSubmittedDatetime();
+
+  /** True once submitted, and stays true if later withdrawn or closed. */
+  default boolean hasBeenSubmitted() {
+    return getSubmittedDatetime() != null;
+  }
 }

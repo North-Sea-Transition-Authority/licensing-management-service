@@ -16,8 +16,8 @@ import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFound
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.OrganisationUnit;
-import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService;
 import uk.co.nstauthority.licensingmanagementservice.licence.contact.LicenceContactRepository;
+import uk.co.nstauthority.licensingmanagementservice.teams.IndustryRoleService;
 import uk.co.nstauthority.licensingmanagementservice.util.StreamUtil;
 
 @Service
@@ -26,7 +26,7 @@ public class LicenceResponsibleOrganisationService {
   private final LicenceResponsibleOrganisationRepository licenceResponsibleOrganisationRepository;
   private final PearsResponsibleOrganisationRefreshService pearsResponsibleOrganisationRefreshService;
   private final LicenceOrganisationService licenceOrganisationService;
-  private final ApplicationAccessService applicationAccessService;
+  private final IndustryRoleService industryRoleService;
   private final OrganisationUnitQueryService organisationUnitQueryService;
   private final LicenceContactRepository licenceContactRepository;
 
@@ -34,14 +34,14 @@ public class LicenceResponsibleOrganisationService {
       LicenceResponsibleOrganisationRepository licenceResponsibleOrganisationRepository,
       PearsResponsibleOrganisationRefreshService pearsResponsibleOrganisationRefreshService,
       LicenceOrganisationService licenceOrganisationService,
-      ApplicationAccessService applicationAccessService,
+      IndustryRoleService industryRoleService,
       OrganisationUnitQueryService organisationUnitQueryService,
       LicenceContactRepository licenceContactRepository
   ) {
     this.licenceResponsibleOrganisationRepository = licenceResponsibleOrganisationRepository;
     this.pearsResponsibleOrganisationRefreshService = pearsResponsibleOrganisationRefreshService;
     this.licenceOrganisationService = licenceOrganisationService;
-    this.applicationAccessService = applicationAccessService;
+    this.industryRoleService = industryRoleService;
     this.organisationUnitQueryService = organisationUnitQueryService;
     this.licenceContactRepository = licenceContactRepository;
   }
@@ -224,7 +224,7 @@ public class LicenceResponsibleOrganisationService {
         .getUsersOrgUnits(serviceUserDetail)
         .stream()
         .filter(orgUnit -> licenceResponsibleOrganisationIds.contains(orgUnit.organisationUnitId())
-                           && applicationAccessService.userHasEditorOrSubmitterRoleInOrganisationGroup(serviceUserDetail))
+                           && industryRoleService.userHasEditorOrSubmitterRoleInOrganisationGroup(serviceUserDetail))
         .collect(Collectors.toMap(OrganisationUnitJson::getId, OrganisationUnitJson::getName));
   }
 

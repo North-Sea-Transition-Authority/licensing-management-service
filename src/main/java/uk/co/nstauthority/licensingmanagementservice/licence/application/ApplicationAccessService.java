@@ -1,50 +1,31 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.application;
 
-import java.util.EnumSet;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import uk.co.fivium.energyportal.serviceproviders.epmq.ScopeType;
-import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
-import uk.co.nstauthority.licensingmanagementservice.energyportal.organisationgroup.OrganisationGroupQueryService;
-import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitJson;
-import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplication;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplicationDetail;
-import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.Team;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamRole;
-import uk.co.nstauthority.licensingmanagementservice.teams.TeamScopeReference;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
-import uk.co.nstauthority.licensingmanagementservice.util.StreamUtil;
 
 @Service
 public class ApplicationAccessService {
 
-  private final OrganisationUnitQueryService organisationUnitQueryService;
-  private final OrganisationGroupQueryService organisationGroupQueryService;
   private final TeamQueryService teamQueryService;
-  private final Set<Role> editorSubmitterRoles = Set.of(Role.APPLICATION_EDITOR, Role.APPLICATION_SUBMITTER);
-  public static final Set<Role> CONTINUATION_REVIEWER_ROLES = EnumSet.of(
-      Role.CONTINUATION_REVIEWER_OFFSHORE,
-      Role.CONTINUATION_REVIEWER_ONSHORE
-  );
-  public static final Set<Role> DECISION_ISSUER_ROLES = EnumSet.of(
-      Role.DECISION_ISSUER_OFFSHORE,
-      Role.DECISION_ISSUER_CARBON_STORAGE,
-      Role.DECISION_ISSUER_ONSHORE
+
+  private static final Set<Role> ALLOWED_DRAFTER_ROLES = Set.of(
+      Role.EXTERNAL_APPLICATION_EDITOR,
+      Role.APPLICATION_EDITOR,
+      Role.APPLICATION_SUBMITTER
   );
 
-  public ApplicationAccessService(
-      OrganisationUnitQueryService organisationUnitQueryService,
-      OrganisationGroupQueryService organisationGroupQueryService,
-      TeamQueryService teamQueryService
-  ) {
-    this.organisationUnitQueryService = organisationUnitQueryService;
-    this.organisationGroupQueryService = organisationGroupQueryService;
+  public ApplicationAccessService(TeamQueryService teamQueryService) {
     this.teamQueryService = teamQueryService;
   }
 
@@ -53,50 +34,57 @@ public class ApplicationAccessService {
       Map<Integer, Integer> orgUnitIdToGroupId,
       Long wuaId
   ) {
-    var applicationId = applicationDetail.getLicenceApplication().getId();
-    var applicationType = applicationDetail.getLicenceApplication().getApplicationType();
-    var appHasBeenSubmitted = applicationDetail.getSubmittedDatetime() != null;
-
     var teamRoles = teamQueryService.getTeamRolesForUser(wuaId);
 
-    var allowedDrafterRoles = Set.of(Role.EXTERNAL_APPLICATION_EDITOR, Role.APPLICATION_EDITOR, Role.APPLICATION_SUBMITTER);
+    var isRegulator = teamRoles.stream()
+        .anyMatch(teamRole -> teamRole.getTeam().getTeamType().isRegulator());
 
-    if (!appHasBeenSubmitted) {
-      var responsibleOrgGroupIds = Optional.ofNullable(applicationDetail.getResponsibleOrganisationUnitId())
-          .map(orgUnitIdToGroupId::get)
-          .map(groupId -> Set.of(String.valueOf(groupId)))
-          .orElse(Set.of());
-
-      return teamRoles.stream()
-          .filter(teamRole -> allowedDrafterRoles.contains(teamRole.getRole()))
-          .map(TeamRole::getTeam)
-          .anyMatch(team ->
-              isExternalContributor(team, applicationId.toString(), applicationType)
-              || isLicenseeOrgGroupMember(team, responsibleOrgGroupIds)
-          );
+    if (isRegulator && applicationDetail.hasBeenSubmitted()) {
+      return true;
     }
 
-    var allowedSubmittedRoles = StreamUtil.unionSets(
-        allowedDrafterRoles,
-        StewardRoles.ROLES,
-        CaseManagerRoles.ROLES,
-        CONTINUATION_REVIEWER_ROLES,
-        DECISION_ISSUER_ROLES
-    );
+    return hasIndustryAccess(applicationDetail, orgUnitIdToGroupId, teamRoles);
+  }
 
-    var organisationGroupIds = orgUnitIdToGroupId.values().stream()
-        .map(String::valueOf)
-        .collect(Collectors.toSet());
+  public boolean userHasIndustryAccessToApplication(
+      LicenceApplicationDetail applicationDetail,
+      Map<Integer, Integer> orgUnitIdToGroupId,
+      Long wuaId
+  ) {
+    return hasIndustryAccess(applicationDetail, orgUnitIdToGroupId, teamQueryService.getTeamRolesForUser(wuaId));
+  }
+
+  private boolean hasIndustryAccess(
+      LicenceApplicationDetail applicationDetail,
+      Map<Integer, Integer> orgUnitIdToGroupId,
+      Set<TeamRole> teamRoles
+  ) {
+    var licenceApplication = applicationDetail.getLicenceApplication();
+    var licenseeGroupIds = getApplicationLicenseeGroupIds(applicationDetail, orgUnitIdToGroupId);
 
     return teamRoles.stream()
-        .filter(teamRole -> allowedSubmittedRoles.contains(teamRole.getRole()))
-        .anyMatch(teamRole ->
-            isExternalContributor(teamRole.getTeam(), applicationId.toString(), applicationType)
-            || isLicenseeOrgGroupMember(teamRole.getTeam(), organisationGroupIds)
-            || isCaseManagerOrSteward(teamRole.getRole(), applicationDetail.getLicence().getType())
-            || isContinuationReviewer(teamRole.getRole(), applicationType)
-            || isDecisionIssuer(teamRole.getRole())
+        .filter(teamRole -> ALLOWED_DRAFTER_ROLES.contains(teamRole.getRole()))
+        .map(TeamRole::getTeam)
+        .anyMatch(team ->
+            isExternalContributor(team, licenceApplication)
+            || isLicenseeOrgGroupMember(team, licenseeGroupIds)
         );
+  }
+
+  private Set<String> getApplicationLicenseeGroupIds(
+      LicenceApplicationDetail applicationDetail,
+      Map<Integer, Integer> orgUnitIdToGroupId
+  ) {
+    if (applicationDetail.hasBeenSubmitted()) {
+      return orgUnitIdToGroupId.values().stream()
+          .map(String::valueOf)
+          .collect(Collectors.toSet());
+    }
+
+    return Optional.ofNullable(applicationDetail.getResponsibleOrganisationUnitId())
+        .map(orgUnitIdToGroupId::get)
+        .map(groupId -> Set.of(String.valueOf(groupId)))
+        .orElse(Set.of());
   }
 
   private boolean isLicenseeOrgGroupMember(Team team, Set<String> organisationGroupIds) {
@@ -105,74 +93,10 @@ public class ApplicationAccessService {
         && organisationGroupIds.contains(team.getScopeId());
   }
 
-  private boolean isExternalContributor(Team team, String applicationId, ApplicationType applicationType) {
+  private boolean isExternalContributor(Team team, LicenceApplication licenceApplication) {
     return team.getTeamType() == TeamType.EXTERNAL_CONTRIBUTORS
-        && applicationId.equals(team.getScopeId())
-        && team.getScopeType().equals(applicationType.name());
+        && licenceApplication.getId().toString().equals(team.getScopeId())
+        && team.getScopeType().equals(licenceApplication.getApplicationType().name());
   }
 
-  private boolean isCaseManagerOrSteward(
-      Role role,
-      LicenceType licenceType
-  ) {
-    var isSteward = StewardRoles.getRequiredRoleForLicenceType(licenceType)
-        .map(requiredRole -> requiredRole == role)
-        .orElse(false);
-    var isCaseManager = CaseManagerRoles.getRequiredRoleForLicenceType(licenceType)
-        .map(requiredRole -> requiredRole == role)
-        .orElse(false);
-
-    return isCaseManager || isSteward;
-  }
-
-  private boolean isContinuationReviewer(Role role, ApplicationType applicationType) {
-    return CONTINUATION_REVIEWER_ROLES.contains(role)
-           && applicationType == ApplicationType.CONTINUATION_APPLICATION;
-  }
-
-  private boolean isDecisionIssuer(Role role) {
-    return DECISION_ISSUER_ROLES.contains(role);
-  }
-
-  public boolean userHasAccessToStartApplication(
-      Long wuaId
-  ) {
-    return teamQueryService.userHasRoleInTeamType(wuaId, TeamType.ORGANISATION, editorSubmitterRoles);
-  }
-
-  public boolean userHasEditorOrSubmitterRoleInOrganisationGroup(ServiceUserDetail userDetail) {
-    return !getOrganisationGroupIds(userDetail).isEmpty();
-  }
-
-  private Set<Integer> getOrganisationGroupIds(ServiceUserDetail userDetail) {
-    return teamQueryService.getTeamRolesForUser(userDetail.wuaId())
-        .stream()
-        .filter(teamRole ->
-                    teamRole.getTeam().getTeamType() == TeamType.ORGANISATION
-                    && ScopeType.ORGANISATION_GROUP.name().equals(teamRole.getTeam().getScopeType())
-                    && editorSubmitterRoles.contains(teamRole.getRole())
-        )
-        .map(teamRole -> Integer.valueOf(teamRole.getTeam().getScopeId()))
-        .collect(Collectors.toSet());
-  }
-
-  public boolean userIsSubmitterForOrganisationUnit(Integer organisationUnitId, Long wuaId) {
-    return organisationUnitQueryService.findOrganisationGroupIdByUnitId(organisationUnitId)
-        .map(groupId -> teamQueryService.userHasScopedRole(
-            wuaId,
-            TeamType.ORGANISATION,
-            TeamScopeReference.from(String.valueOf(groupId), ScopeType.ORGANISATION_GROUP.name()),
-            Role.APPLICATION_SUBMITTER
-        ))
-        .orElse(false);
-  }
-
-  public Set<Integer> getOrganisationUnitIds(ServiceUserDetail userDetail) {
-    return organisationGroupQueryService.getOrganisationUnitsByOrganisationGroupIds(
-            getOrganisationGroupIds(userDetail).stream().toList()
-        )
-        .stream()
-        .map(OrganisationUnitJson::organisationUnitId)
-        .collect(Collectors.toSet());
-  }
 }

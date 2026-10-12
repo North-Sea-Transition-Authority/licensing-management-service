@@ -33,7 +33,7 @@ class StartContinuationApplicationControllerTest extends AbstractControllerTest 
 
   @Test
   void render() throws Exception {
-    when(applicationAccessService.userHasAccessToStartApplication(organisationUser.wuaId())).thenReturn(true);
+    when(industryRoleService.userHasEditorOrSubmitterRole(organisationUser.wuaId())).thenReturn(true);
 
     mockMvc.perform(
             get(ReverseRouter.route(on(StartContinuationApplicationController.class).render()))
@@ -48,7 +48,7 @@ class StartContinuationApplicationControllerTest extends AbstractControllerTest 
 
   @Test
   void render_ForbiddenUserNoAccess() throws Exception {
-    when(applicationAccessService.userHasAccessToStartApplication(organisationUser.wuaId())).thenReturn(false);
+    when(industryRoleService.userHasEditorOrSubmitterRole(organisationUser.wuaId())).thenReturn(false);
 
     mockMvc.perform(
             get(ReverseRouter.route(on(StartContinuationApplicationController.class).render()))

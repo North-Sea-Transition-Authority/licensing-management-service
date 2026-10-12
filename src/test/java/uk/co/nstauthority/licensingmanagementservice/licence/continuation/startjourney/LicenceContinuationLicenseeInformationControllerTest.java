@@ -57,7 +57,7 @@ class LicenceContinuationLicenseeInformationControllerTest extends AbstractContr
 
   @Test
   void render() throws Exception {
-    when(applicationAccessService.userHasAccessToStartApplication(organisationUser.wuaId())).thenReturn(true);
+    when(industryRoleService.userHasEditorOrSubmitterRole(organisationUser.wuaId())).thenReturn(true);
 
     mockMvc.perform(
             get(ReverseRouter.route(on(LicenceContinuationLicenseeInformationController.class).renderConfirmLicenseePermission(LICENCE_ID, null, organisationUser)))
@@ -72,7 +72,7 @@ class LicenceContinuationLicenseeInformationControllerTest extends AbstractContr
 
   @Test
   void submit() throws Exception {
-    when(applicationAccessService.userHasAccessToStartApplication(organisationUser.wuaId())).thenReturn(true);
+    when(industryRoleService.userHasEditorOrSubmitterRole(organisationUser.wuaId())).thenReturn(true);
     when(licenceContinuationLicenseeInformationFormValidator.isValid(any())).thenReturn(true);
 
     var licence = mock(Licence.class);
@@ -112,7 +112,7 @@ class LicenceContinuationLicenseeInformationControllerTest extends AbstractContr
   @Test
   void submitLicenseePermissionConfirmation_invalid() throws Exception {
     when(licenceContinuationLicenseeInformationFormValidator.isValid(any())).thenReturn(false);
-    when(applicationAccessService.userHasAccessToStartApplication(organisationUser.wuaId())).thenReturn(true);
+    when(industryRoleService.userHasEditorOrSubmitterRole(organisationUser.wuaId())).thenReturn(true);
 
     mockMvc.perform(
             post(ReverseRouter.route(on(LicenceContinuationLicenseeInformationController.class).submitLicenseePermissionConfirmation(LICENCE_ID, null,null, null, organisationUser)))
@@ -130,7 +130,7 @@ class LicenceContinuationLicenseeInformationControllerTest extends AbstractContr
 
   @Test
   void render_ForbiddenUserNoAccess() throws Exception {
-    when(applicationAccessService.userHasAccessToStartApplication(organisationUser.wuaId())).thenReturn(false);
+    when(industryRoleService.userHasEditorOrSubmitterRole(organisationUser.wuaId())).thenReturn(false);
 
     mockMvc.perform(
             get(ReverseRouter.route(on(LicenceContinuationLicenseeInformationController.class).renderConfirmLicenseePermission(LICENCE_ID, null, organisationUser)))
@@ -141,7 +141,7 @@ class LicenceContinuationLicenseeInformationControllerTest extends AbstractContr
 
   @Test
   void submit_ForbiddenUserNoAccess() throws Exception {
-    when(applicationAccessService.userHasAccessToStartApplication(organisationUser.wuaId())).thenReturn(false);
+    when(industryRoleService.userHasEditorOrSubmitterRole(organisationUser.wuaId())).thenReturn(false);
 
     mockMvc.perform(
             post(ReverseRouter.route(on(LicenceContinuationLicenseeInformationController.class).submitLicenseePermissionConfirmation(1, null, null, null, organisationUser)))

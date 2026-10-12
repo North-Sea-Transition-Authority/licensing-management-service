@@ -45,7 +45,7 @@ class SelectApplicationTypeControllerTest extends AbstractControllerTest {
 
   @Test
   void render() throws Exception {
-    when(applicationAccessService.userHasAccessToStartApplication(organisationUser.wuaId())).thenReturn(true);
+    when(industryRoleService.userHasEditorOrSubmitterRole(organisationUser.wuaId())).thenReturn(true);
     mockMvc.perform(
             get(ReverseRouter.route(on(SelectApplicationTypeController.class).render()))
                 .with(user(organisationUser))
@@ -60,7 +60,7 @@ class SelectApplicationTypeControllerTest extends AbstractControllerTest {
   @Test
   void submit() throws Exception {
     when(selectApplicationTypeFormValidator.isValid(any(), any())).thenReturn(true);
-    when(applicationAccessService.userHasAccessToStartApplication(organisationUser.wuaId())).thenReturn(true);
+    when(industryRoleService.userHasEditorOrSubmitterRole(organisationUser.wuaId())).thenReturn(true);
 
     var applicationType = ApplicationType.CONTINUATION_APPLICATION;
 
@@ -82,7 +82,7 @@ class SelectApplicationTypeControllerTest extends AbstractControllerTest {
 
   @Test
   void submit_invalid() throws Exception {
-    when(applicationAccessService.userHasAccessToStartApplication(organisationUser.wuaId())).thenReturn(true);
+    when(industryRoleService.userHasEditorOrSubmitterRole(organisationUser.wuaId())).thenReturn(true);
     when(selectApplicationTypeFormValidator.isValid(any(), any())).thenReturn(false);
 
     mockMvc.perform(
@@ -99,7 +99,7 @@ class SelectApplicationTypeControllerTest extends AbstractControllerTest {
 
   @Test
   void render_ForbiddenUserNoAccess() throws Exception {
-    when(applicationAccessService.userHasAccessToStartApplication(organisationUser.wuaId())).thenReturn(false);
+    when(industryRoleService.userHasEditorOrSubmitterRole(organisationUser.wuaId())).thenReturn(false);
     mockMvc.perform(
             get(ReverseRouter.route(on(SelectApplicationTypeController.class).render()))
                 .with(user(organisationUser))
@@ -110,7 +110,7 @@ class SelectApplicationTypeControllerTest extends AbstractControllerTest {
 
   @Test
   void submit_ForbiddenUserNoAccess() throws Exception {
-    when(applicationAccessService.userHasAccessToStartApplication(organisationUser.wuaId())).thenReturn(false);
+    when(industryRoleService.userHasEditorOrSubmitterRole(organisationUser.wuaId())).thenReturn(false);
     mockMvc.perform(
             post(ReverseRouter.route(on(SelectApplicationTypeController.class).submit(null, null)))
                 .with(user(organisationUser))

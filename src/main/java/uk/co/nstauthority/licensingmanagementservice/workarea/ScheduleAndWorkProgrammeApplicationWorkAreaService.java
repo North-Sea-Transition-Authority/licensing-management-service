@@ -80,8 +80,12 @@ public class ScheduleAndWorkProgrammeApplicationWorkAreaService implements WorkA
       WorkAreaFilterForm workAreaFilterForm,
       ServiceUserDetail serviceUserDetail
   ) {
-    var decisionIssuer = regulatorRoleService.isDecisionIssuer(serviceUserDetail);
     var isRegulator = regulatorRoleService.isRegulator(serviceUserDetail);
+    var regulatorRoles = new RegulatorRoles(
+        isRegulator,
+        regulatorRoleService.isDecisionIssuer(serviceUserDetail),
+        isRegulator ? regulatorRoleService.getStewardOrCaseManagerLicenceTypes(serviceUserDetail) : Set.of()
+    );
 
     var allApplicationDetails = scheduleWorkProgrammeApplicationService
         .getAllScheduleWorkProgrammeApplicationDetailsByStatuses(ApplicationStatus.getSearchableStatuses());
@@ -119,7 +123,7 @@ public class ScheduleAndWorkProgrammeApplicationWorkAreaService implements WorkA
             responsibleOrganisations,
             orgUnitToGroupMap,
             licenseeGroupOrgUnitIds,
-            isRegulator
+            regulatorRoles
         ))
         .toList();
 
@@ -132,7 +136,7 @@ public class ScheduleAndWorkProgrammeApplicationWorkAreaService implements WorkA
             responsibleOrganisations,
             viewedItemIds,
             stewardsByWuaId,
-            decisionIssuer
+            regulatorRoles.decisionIssuer()
         ))
         .toList();
   }
@@ -237,7 +241,7 @@ public class ScheduleAndWorkProgrammeApplicationWorkAreaService implements WorkA
       Map<Licence, List<OrganisationUnit>> responsibleOrganisations,
       Map<Integer, Integer> orgUnitToGroupMap,
       List<Integer> licenseeGroupOrgUnitIds,
-      boolean isRegulator
+      RegulatorRoles regulatorRoles
   ) {
     if (!FilterUtil.matchesTextInput(licence.getLicenceReference(), filterForm.getLicenceReference())) {
       return false;
@@ -281,16 +285,27 @@ public class ScheduleAndWorkProgrammeApplicationWorkAreaService implements WorkA
         .filter(orgUnitToGroupMap::containsKey)
         .collect(Collectors.toMap(Function.identity(), orgUnitToGroupMap::get));
 
-    var hasApplicationAccess = applicationAccessService.userHasAccessToApplication(
+    var hasIndustryAccess = applicationAccessService.userHasIndustryAccessToApplication(
         applicationDetail,
         licenceOrgUnitGroupMap,
         userDetail.wuaId()
     );
 
-    if (applicationDetail.getStatus() == ApplicationStatus.DRAFT) {
-      return hasApplicationAccess && !isRegulator;
+    if (hasIndustryAccess) {
+      return true;
     }
 
-    return hasApplicationAccess;
+    if (!regulatorRoles.regulator() || !applicationDetail.hasBeenSubmitted()) {
+      return false;
+    }
+
+    return regulatorRoles.decisionIssuer() || regulatorRoles.stewardOrCaseManagerLicenceTypes().contains(licence.getType());
+  }
+
+  private record RegulatorRoles(
+      boolean regulator,
+      boolean decisionIssuer,
+      Set<LicenceType> stewardOrCaseManagerLicenceTypes
+  ) {
   }
 }

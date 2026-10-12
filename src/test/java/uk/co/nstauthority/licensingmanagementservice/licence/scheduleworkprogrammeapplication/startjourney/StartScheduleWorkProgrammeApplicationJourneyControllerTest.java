@@ -34,7 +34,7 @@ class StartScheduleWorkProgrammeApplicationJourneyControllerTest extends Abstrac
   @Test
   void renderStartScheduleWorkProgrammeApplicationJourney() throws Exception {
     var licenceType = LicenceType.SEAWARD_EXPLORATION;
-    when(applicationAccessService.userHasAccessToStartApplication(organisationUser.wuaId())).thenReturn(true);
+    when(industryRoleService.userHasEditorOrSubmitterRole(organisationUser.wuaId())).thenReturn(true);
     mockMvc.perform(
             get(ReverseRouter.route(on(StartScheduleWorkProgrammeApplicationJourneyController.class).renderStartScheduleWorkProgrammeApplicationJourney(licenceType.getUrlSlug())))
                 .with(user(organisationUser))
@@ -50,7 +50,7 @@ class StartScheduleWorkProgrammeApplicationJourneyControllerTest extends Abstrac
   @Test
   void render_StartScheduleWorkProgrammeApplicationJourneyForbiddenUserNoAccess() throws Exception {
     var licenceType = LicenceType.SEAWARD_EXPLORATION;
-    when(applicationAccessService.userHasAccessToStartApplication(organisationUser.wuaId())).thenReturn(false);
+    when(industryRoleService.userHasEditorOrSubmitterRole(organisationUser.wuaId())).thenReturn(false);
     mockMvc.perform(
             get(ReverseRouter.route(on(StartScheduleWorkProgrammeApplicationJourneyController.class).renderStartScheduleWorkProgrammeApplicationJourney(licenceType.getUrlSlug())))
                 .with(user(organisationUser))

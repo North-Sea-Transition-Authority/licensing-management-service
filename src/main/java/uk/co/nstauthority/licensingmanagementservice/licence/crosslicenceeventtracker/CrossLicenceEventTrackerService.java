@@ -37,7 +37,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplication;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.OrganisationUnit;
-import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.overview.LicenceScheduleTabController;
@@ -57,6 +56,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogram
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.extendjourney.LicenceScheduleExtensionRepository;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overview.ScheduleWorkProgrammeApplicationOverviewController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
+import uk.co.nstauthority.licensingmanagementservice.teams.IndustryRoleService;
 import uk.co.nstauthority.licensingmanagementservice.teams.RegulatorRoleService;
 import uk.co.nstauthority.licensingmanagementservice.util.FilterUtil;
 import uk.co.nstauthority.licensingmanagementservice.util.StreamUtil;
@@ -81,7 +81,7 @@ public class CrossLicenceEventTrackerService {
   private final LicenceScheduleExtensionRepository licenceScheduleExtensionRepository;
   private final LicenceWorkProgrammeAmendmentRepository licenceWorkProgrammeAmendmentRepository;
   private final EnergyPortalUserService energyPortalUserService;
-  private final ApplicationAccessService applicationAccessService;
+  private final IndustryRoleService industryRoleService;
 
   public CrossLicenceEventTrackerService(
       LicenceScheduleTermService licenceScheduleTermService,
@@ -96,7 +96,7 @@ public class CrossLicenceEventTrackerService {
       LicenceScheduleExtensionRepository licenceScheduleExtensionRepository,
       LicenceWorkProgrammeAmendmentRepository licenceWorkProgrammeAmendmentRepository,
       EnergyPortalUserService energyPortalUserService,
-      ApplicationAccessService applicationAccessService
+      IndustryRoleService industryRoleService
   ) {
     this.licenceScheduleTermService = licenceScheduleTermService;
     this.licenceSchedulePhaseService = licenceSchedulePhaseService;
@@ -110,7 +110,7 @@ public class CrossLicenceEventTrackerService {
     this.licenceScheduleExtensionRepository = licenceScheduleExtensionRepository;
     this.licenceWorkProgrammeAmendmentRepository = licenceWorkProgrammeAmendmentRepository;
     this.energyPortalUserService = energyPortalUserService;
-    this.applicationAccessService = applicationAccessService;
+    this.industryRoleService = industryRoleService;
   }
 
   public SortableTableView getEventTrackerTable(EventTrackerForm form, ServiceUserDetail user) {
@@ -137,7 +137,7 @@ public class CrossLicenceEventTrackerService {
     var isRegulator = regulatorRoleService.isRegulator(user);
     var ownOrganisationUnitIds = isRegulator
         ? List.<Integer>of()
-        : applicationAccessService.getOrganisationUnitIds(user).stream().toList();
+        : industryRoleService.getEditorOrSubmitterOrganisationUnitIds(user).stream().toList();
 
     var tableBuilder = SortableTableView.sortableTableBuilder()
         .newWithHeadings(

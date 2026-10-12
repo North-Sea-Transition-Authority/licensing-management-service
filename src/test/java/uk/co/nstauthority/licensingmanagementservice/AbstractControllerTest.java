@@ -95,6 +95,7 @@ import uk.co.nstauthority.licensingmanagementservice.mvc.error.ErrorService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.error.ErrorSummaryItemsHandlerInterceptor;
 import uk.co.nstauthority.licensingmanagementservice.phasedrelease.FeatureFlagService;
 import uk.co.nstauthority.licensingmanagementservice.phasedrelease.PhasedReleaseInterceptor;
+import uk.co.nstauthority.licensingmanagementservice.teams.IndustryRoleService;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
 import uk.co.nstauthority.licensingmanagementservice.teams.management.TeamManagementService;
@@ -199,6 +200,9 @@ public abstract class AbstractControllerTest {
 
   @MockitoBean
   protected ApplicationAccessService applicationAccessService;
+
+  @MockitoBean
+  protected IndustryRoleService industryRoleService;
 
   @MockitoBean
   protected LicenceResponsibleOrganisationService licenceResponsibleOrganisationService;

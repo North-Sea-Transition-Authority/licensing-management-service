@@ -37,7 +37,7 @@ import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserJson;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserService;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.WebUserAccountId;
-import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService;
+import uk.co.nstauthority.licensingmanagementservice.teams.IndustryRoleService;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.Team;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
@@ -77,7 +77,7 @@ class TeamManagementServiceTest {
   private OrganisationUnitQueryService organisationUnitQueryService;
 
   @Mock
-  private ApplicationAccessService  applicationAccessService;
+  private IndustryRoleService industryRoleService;
 
   @Mock
   private UserDetailService userDetailService;
@@ -292,7 +292,7 @@ class TeamManagementServiceTest {
   @Test
   void getScopedTeamOfTypeUserCanManage_regulatorWithRoleCanManageAllExternalContributors() {
     when(userDetailService.getUserDetail()).thenReturn(userDetail);
-    when(applicationAccessService.userHasEditorOrSubmitterRoleInOrganisationGroup(userDetail)).thenReturn(true);
+    when(industryRoleService.userHasEditorOrSubmitterRoleInOrganisationGroup(userDetail)).thenReturn(true);
     when(teamRepository.findByTeamType(TeamType.EXTERNAL_CONTRIBUTORS)).thenReturn(List.of(externalTeam1, externalTeam2));
 
     assertThat(teamManagementService.getScopedTeamsOfTypeUserCanManage(TeamType.EXTERNAL_CONTRIBUTORS, 10L))

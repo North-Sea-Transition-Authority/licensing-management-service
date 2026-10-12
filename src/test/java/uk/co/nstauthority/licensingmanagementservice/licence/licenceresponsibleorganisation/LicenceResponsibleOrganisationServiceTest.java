@@ -24,9 +24,9 @@ import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFound
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.OrganisationUnit;
-import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService;
 import uk.co.nstauthority.licensingmanagementservice.licence.contact.LicenceContact;
 import uk.co.nstauthority.licensingmanagementservice.licence.contact.LicenceContactRepository;
+import uk.co.nstauthority.licensingmanagementservice.teams.IndustryRoleService;
 
 @ExtendWith(MockitoExtension.class)
 class LicenceResponsibleOrganisationServiceTest {
@@ -41,7 +41,7 @@ class LicenceResponsibleOrganisationServiceTest {
   private PearsResponsibleOrganisationRefreshService pearsResponsibleOrganisationRefreshService;
 
   @Mock
-  private ApplicationAccessService applicationAccessService;
+  private IndustryRoleService industryRoleService;
 
   @Mock
   private LicenceOrganisationService licenceOrganisationService;
@@ -235,7 +235,7 @@ class LicenceResponsibleOrganisationServiceTest {
 
     OrganisationUnitJson ou1 = new OrganisationUnitJson(2, "Org Two");
     OrganisationUnitJson ou2 = new OrganisationUnitJson(3, "Org Three");
-    when(applicationAccessService.userHasEditorOrSubmitterRoleInOrganisationGroup(organisationUser)).thenReturn(true);
+    when(industryRoleService.userHasEditorOrSubmitterRoleInOrganisationGroup(organisationUser)).thenReturn(true);
     when(licenceOrganisationService.getUsersOrgUnits(organisationUser)).thenReturn(List.of(ou1, ou2));
 
     var result = licenceResponsibleOrganisationService.getResponsibleOrgUnitOptionsWithValidRoles(licence, organisationUser);

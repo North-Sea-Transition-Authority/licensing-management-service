@@ -18,13 +18,13 @@ import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitRestController;
 import uk.co.nstauthority.licensingmanagementservice.fds.searchselector.SearchSelectorService;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
-import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.SelectApplicationTypeController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.phasedrelease.FeatureFlagService;
 import uk.co.nstauthority.licensingmanagementservice.phasedrelease.ReleaseFeature;
+import uk.co.nstauthority.licensingmanagementservice.teams.IndustryRoleService;
 import uk.co.nstauthority.licensingmanagementservice.teams.RegulatorRoleService;
 import uk.co.nstauthority.licensingmanagementservice.util.enumutil.DisplayableEnumOptionUtil;
 
@@ -35,7 +35,7 @@ public class WorkAreaController {
   public static final String WORK_AREA_PAGE_NAME = "Work area";
 
   private final WorkAreaService workAreaService;
-  private final ApplicationAccessService applicationAccessService;
+  private final IndustryRoleService industryRoleService;
   private final FeatureFlagService featureFlagService;
   private final RegulatorRoleService regulatorRoleService;
   private final OrganisationUnitQueryService organisationUnitQueryService;
@@ -43,14 +43,14 @@ public class WorkAreaController {
 
   public WorkAreaController(
       WorkAreaService workAreaService,
-      ApplicationAccessService applicationAccessService,
+      IndustryRoleService industryRoleService,
       FeatureFlagService featureFlagService,
       RegulatorRoleService regulatorRoleService,
       OrganisationUnitQueryService organisationUnitQueryService,
       OrganisationGroupQueryService organisationGroupQueryService
   ) {
     this.workAreaService = workAreaService;
-    this.applicationAccessService = applicationAccessService;
+    this.industryRoleService = industryRoleService;
     this.featureFlagService = featureFlagService;
     this.regulatorRoleService = regulatorRoleService;
     this.organisationUnitQueryService = organisationUnitQueryService;
@@ -89,7 +89,7 @@ public class WorkAreaController {
         .addObject("workAreaItems", workAreaService.getWorkAreaResults(form, user))
         .addObject("canStartApplication",
             featureFlagService.isEnabled(ReleaseFeature.START_APPLICATION)
-                && applicationAccessService.userHasAccessToStartApplication(user.wuaId()))
+                && industryRoleService.userHasEditorOrSubmitterRole(user.wuaId()))
         .addObject("startApplicationUrl", ReverseRouter
                 .route(on(SelectApplicationTypeController.class).render()))
         .addObject("form", form)

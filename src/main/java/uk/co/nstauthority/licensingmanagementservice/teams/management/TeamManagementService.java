@@ -25,7 +25,7 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.UserDetailSe
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserJson;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserService;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.WebUserAccountId;
-import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService;
+import uk.co.nstauthority.licensingmanagementservice.teams.IndustryRoleService;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.Team;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
@@ -53,7 +53,7 @@ public class TeamManagementService {
   private final EnergyPortalUserService energyPortalUserService;
   private final EnergyPortalServiceAccessService energyPortalServiceAccessService;
   private final EnergyPortalAccountsMessagePublishingService energyPortalAccountsMessagePublishingService;
-  private final ApplicationAccessService applicationAccessService;
+  private final IndustryRoleService industryRoleService;
   private final UserDetailService userDetailService;
 
   TeamManagementService(
@@ -63,7 +63,7 @@ public class TeamManagementService {
       EnergyPortalUserService energyPortalUserService,
       EnergyPortalServiceAccessService energyPortalServiceAccessService,
       EnergyPortalAccountsMessagePublishingService energyPortalAccountsMessagePublishingService,
-      ApplicationAccessService applicationAccessService,
+      IndustryRoleService industryRoleService,
       UserDetailService userDetailService
   ) {
     this.teamRepository = teamRepository;
@@ -72,7 +72,7 @@ public class TeamManagementService {
     this.energyPortalUserService = energyPortalUserService;
     this.energyPortalServiceAccessService = energyPortalServiceAccessService;
     this.energyPortalAccountsMessagePublishingService = energyPortalAccountsMessagePublishingService;
-    this.applicationAccessService = applicationAccessService;
+    this.industryRoleService = industryRoleService;
     this.userDetailService = userDetailService;
   }
 
@@ -133,7 +133,7 @@ public class TeamManagementService {
       // If we want org teams, and the user is a regulator who can manage any org team, include all the org teams.
       teams.addAll(getAllScopedTeamsOfType(TeamType.ORGANISATION));
     } else if (teamType.isApplicationScoped()
-               && applicationAccessService.userHasEditorOrSubmitterRoleInOrganisationGroup(userDetailService.getUserDetail())) {
+               && industryRoleService.userHasEditorOrSubmitterRoleInOrganisationGroup(userDetailService.getUserDetail())) {
       teams.addAll(getAllScopedTeamsOfType(teamType));
     }
 

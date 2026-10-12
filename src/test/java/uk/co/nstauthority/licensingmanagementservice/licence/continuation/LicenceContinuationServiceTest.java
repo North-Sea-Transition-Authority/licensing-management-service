@@ -40,7 +40,6 @@ import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFound
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplication;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.letter.ApplicationLetterService;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.withdraw.ApplicationWithdrawService;
@@ -52,6 +51,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesch
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
+import uk.co.nstauthority.licensingmanagementservice.teams.IndustryRoleService;
 import uk.co.nstauthority.licensingmanagementservice.teams.IndustryTeamService;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.management.view.TeamMemberView;
@@ -74,7 +74,7 @@ class LicenceContinuationServiceTest {
   private Clock clock;
 
   @Mock
-  private ApplicationAccessService applicationAccessService;
+  private IndustryRoleService industryRoleService;
 
   @Mock
   private ApplicationWithdrawService applicationWithdrawService;
@@ -308,24 +308,24 @@ class LicenceContinuationServiceTest {
   void userCanSubmitApplication_returnsTrue_whenUserHasSubmitterRoleForOrg() {
     licenceContinuationApplicationDetail.setResponsibleOrganisationUnitId(ORG_UNIT_ID);
 
-    when(applicationAccessService.userIsSubmitterForOrganisationUnit(ORG_UNIT_ID, WUA_ID)).thenReturn(true);
+    when(industryRoleService.userIsSubmitterForOrganisationUnit(ORG_UNIT_ID, WUA_ID)).thenReturn(true);
 
     boolean result = licenceContinuationService.userCanSubmitApplication(licenceContinuationApplicationDetail, organisationUser);
 
     assertThat(result).isTrue();
-    verify(applicationAccessService).userIsSubmitterForOrganisationUnit(ORG_UNIT_ID, WUA_ID);
+    verify(industryRoleService).userIsSubmitterForOrganisationUnit(ORG_UNIT_ID, WUA_ID);
   }
 
   @Test
   void userCanSubmitApplication_returnsFalse_whenUserDoesNotHaveSubmitterRoleForOrg() {
     licenceContinuationApplicationDetail.setResponsibleOrganisationUnitId(ORG_UNIT_ID);
 
-    when(applicationAccessService.userIsSubmitterForOrganisationUnit(ORG_UNIT_ID, WUA_ID)).thenReturn(false);
+    when(industryRoleService.userIsSubmitterForOrganisationUnit(ORG_UNIT_ID, WUA_ID)).thenReturn(false);
 
     boolean result = licenceContinuationService.userCanSubmitApplication(licenceContinuationApplicationDetail, organisationUser);
 
     assertThat(result).isFalse();
-    verify(applicationAccessService).userIsSubmitterForOrganisationUnit(ORG_UNIT_ID, WUA_ID);
+    verify(industryRoleService).userIsSubmitterForOrganisationUnit(ORG_UNIT_ID, WUA_ID);
   }
 
   @Test

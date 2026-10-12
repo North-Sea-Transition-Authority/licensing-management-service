@@ -17,13 +17,13 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatusType;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
-import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisation;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.status.LicenceStatusService;
+import uk.co.nstauthority.licensingmanagementservice.teams.IndustryRoleService;
 
 @ExtendWith(MockitoExtension.class)
 class LicenceInternalApiServiceTest {
@@ -32,7 +32,7 @@ class LicenceInternalApiServiceTest {
   private LicenceScheduleDetailService licenceScheduleDetailService;
 
   @Mock
-  private ApplicationAccessService applicationAccessService;
+  private IndustryRoleService industryRoleService;
 
   @Mock
   private LicenceResponsibleOrganisationService licenceResponsibleOrganisationService;
@@ -69,7 +69,7 @@ class LicenceInternalApiServiceTest {
   void searchLicencesWithInProgressSchedulesByReferenceTypeAndStatus() {
     serviceUserDetail = ServiceUserDetailTestUtil.newBuilder().withWuaId(1L).build();
     int authorizedUnitId = 99;
-    when(applicationAccessService.getOrganisationUnitIds(serviceUserDetail)).thenReturn(Set.of(authorizedUnitId));
+    when(industryRoleService.getEditorOrSubmitterOrganisationUnitIds(serviceUserDetail)).thenReturn(Set.of(authorizedUnitId));
 
     var searchTerm = "term";
     var licenceType = LicenceType.CARBON_STORAGE;
@@ -115,7 +115,7 @@ class LicenceInternalApiServiceTest {
   void searchLicencesWithInProgressSchedulesByReferenceTypeAndStatus_whenLicenceNotExtant_thenNotReturned() {
     serviceUserDetail = ServiceUserDetailTestUtil.newBuilder().withWuaId(1L).build();
     int authorizedUnitId = 99;
-    when(applicationAccessService.getOrganisationUnitIds(serviceUserDetail)).thenReturn(Set.of(authorizedUnitId));
+    when(industryRoleService.getEditorOrSubmitterOrganisationUnitIds(serviceUserDetail)).thenReturn(Set.of(authorizedUnitId));
 
     var searchTerm = "term";
     var licenceType = LicenceType.CARBON_STORAGE;

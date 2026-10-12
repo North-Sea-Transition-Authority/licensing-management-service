@@ -71,9 +71,12 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
       WorkAreaFilterForm workAreaFilterForm,
       ServiceUserDetail serviceUserDetail
   ) {
-    var isContinuationIssuer = regulatorRoleService.isContinuationIssuer(serviceUserDetail);
-    var isContinuationReviewer = regulatorRoleService.isContinuationReviewer(serviceUserDetail);
-    var isRegulator = regulatorRoleService.isRegulator(serviceUserDetail);
+    var regulatorRoles = new RegulatorRoles(
+        regulatorRoleService.isRegulator(serviceUserDetail),
+        regulatorRoleService.isContinuationIssuer(serviceUserDetail),
+        regulatorRoleService.isContinuationReviewer(serviceUserDetail),
+        regulatorRoleService.isDecisionIssuer(serviceUserDetail)
+    );
 
     var allApplicationDetails = licenceContinuationService
         .getAllContinuationApplicationDetailsByStatuses(ApplicationStatus.getSearchableStatuses());
@@ -109,16 +112,14 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
             responsibleOrganisations,
             orgUnitToGroupMap,
             licenseeGroupOrgUnitIds,
-            isContinuationIssuer,
-            isContinuationReviewer,
-            isRegulator
+            regulatorRoles
         ))
         .map(applicationDetail ->
             createWorkAreaItem(
                 applicationDetail,
                 licenceByApplicationDetail.get(applicationDetail),
                 responsibleOrganisations,
-                isContinuationIssuer,
+                regulatorRoles.continuationIssuer(),
                 viewedItemIds
             )
         )
@@ -213,9 +214,7 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
       Map<Licence, List<OrganisationUnit>> responsibleOrganisations,
       Map<Integer, Integer> orgUnitToGroupMap,
       List<Integer> licenseeGroupOrgUnitIds,
-      boolean isContinuationIssuer,
-      boolean isContinuationReviewer,
-      boolean isRegulator
+      RegulatorRoles regulatorRoles
   ) {
     if (!FilterUtil.matchesTextInput(licence.getLicenceReference(), filterForm.getLicenceReference())) {
       return false;
@@ -259,46 +258,33 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
         .filter(orgUnitToGroupMap::containsKey)
         .collect(Collectors.toMap(Function.identity(), orgUnitToGroupMap::get));
 
-    var hasAppAccess = applicationAccessService.userHasAccessToApplication(
+    var hasIndustryAccess = applicationAccessService.userHasIndustryAccessToApplication(
         applicationDetail,
         licenceOrgUnitGroupMap,
         userDetail.wuaId()
     );
 
-    return hasAppAccess(
-        applicationDetail.getStatus(),
-        hasAppAccess,
-        isContinuationReviewer,
-        isContinuationIssuer,
-        isRegulator
-    );
+    if (hasIndustryAccess) {
+      return true;
+    }
+
+    if (!regulatorRoles.regulator() || !applicationDetail.hasBeenSubmitted()) {
+      return false;
+    }
+
+    if (applicationDetail.getStatus() == ApplicationStatus.ISSUE_DECISION) {
+      return regulatorRoles.continuationIssuer()
+          || (!regulatorRoles.continuationReviewer() && regulatorRoles.decisionIssuer());
+    }
+
+    return regulatorRoles.continuationReviewer() || regulatorRoles.decisionIssuer();
   }
 
-  private static boolean hasAppAccess(
-      ApplicationStatus status,
-      boolean hasAppAccess,
-      boolean isReviewer,
-      boolean isIssuer,
-      boolean isRegulator
+  private record RegulatorRoles(
+      boolean regulator,
+      boolean continuationIssuer,
+      boolean continuationReviewer,
+      boolean decisionIssuer
   ) {
-    switch (status) {
-      case DRAFT:
-        return hasAppAccess && !isRegulator;
-
-      case SUBMITTED:
-        return hasAppAccess || isReviewer;
-
-      case ISSUE_DECISION:
-        if (isIssuer) {
-          return true;
-        }
-        if (isReviewer) {
-          return false;
-        }
-        return hasAppAccess;
-
-      default:
-        return hasAppAccess;
-    }
   }
 }

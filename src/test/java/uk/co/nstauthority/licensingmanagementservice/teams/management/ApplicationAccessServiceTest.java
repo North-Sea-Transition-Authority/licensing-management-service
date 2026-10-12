@@ -1,40 +1,24 @@
 package uk.co.nstauthority.licensingmanagementservice.teams.management;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.time.Instant;
-import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Stream;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.EnumSource;
-import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.fivium.energyportal.serviceproviders.epmq.ScopeType;
-import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
-import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.energyportal.organisationgroup.OrganisationGroupQueryService;
-import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitJson;
-import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplication;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplicationDetail;
-import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
@@ -42,8 +26,6 @@ import uk.co.nstauthority.licensingmanagementservice.teams.Team;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamRole;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamRoleTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.teams.TeamScopeReference;
-import uk.co.nstauthority.licensingmanagementservice.teams.TeamTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
 
 @ExtendWith(MockitoExtension.class)
@@ -52,12 +34,6 @@ class ApplicationAccessServiceTest {
   @Mock
   private TeamQueryService teamQueryService;
 
-  @Mock
-  private OrganisationUnitQueryService organisationUnitQueryService;
-
-  @Mock
-  private OrganisationGroupQueryService organisationGroupQueryService;
-
   @InjectMocks
   private ApplicationAccessService applicationAccessService;
 
@@ -65,16 +41,6 @@ class ApplicationAccessServiceTest {
   private static final UUID APP_ID = UUID.randomUUID();
   private static final int ORG_UNIT_ID = 100;
   private static final int ORG_GROUP_ID = 999;
-  private static final LicenceType DEFAULT_LICENCE_TYPE = LicenceType.SEAWARD_PRODUCTION;
-  private ServiceUserDetail organisationUser;
-
-  @BeforeEach
-  void setUp() {
-    organisationUser = ServiceUserDetailTestUtil
-        .newBuilder()
-        .withWuaId(USER_1_WUA_ID)
-        .build();
-  }
 
   @Test
   void userHasAccessToApplication_whenExternalContributor_Continuation_returnsTrue() {
@@ -153,7 +119,7 @@ class ApplicationAccessServiceTest {
     when(teamQueryService.getTeamRolesForUser(USER_1_WUA_ID)).thenReturn(Set.of(role));
 
     assertThat(applicationAccessService.userHasAccessToApplication(
-        mockApplicationDetail(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION, null, Instant.now(), null),
+        mockApplicationDetail(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION, null, Instant.now()),
         Map.of(ORG_UNIT_ID, ORG_GROUP_ID),
         USER_1_WUA_ID
     )).isTrue();
@@ -210,232 +176,79 @@ class ApplicationAccessServiceTest {
         mockApplicationDetail(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION), Map.of(), USER_1_WUA_ID)).isFalse();
   }
 
-  @Test
-  void userHasEditorOrSubmitterRoleInOrganisationGroup_returnsTrue() {
-    var team = TeamTestUtil
-        .newBuilder()
-        .withTeamType(TeamType.ORGANISATION)
-        .withScopeType(ScopeType.ORGANISATION_GROUP.name())
-        .build();
-
-    var teamRole = TeamRoleTestUtil
-        .newBuilder()
-        .withRole(Role.APPLICATION_SUBMITTER)
-        .withTeam(team)
-        .build();
-
-    when(teamQueryService.getTeamRolesForUser(organisationUser.wuaId()))
-        .thenReturn(Set.of(teamRole));
-
-    boolean userHasEditorOrSubmitterRoleInOrganisationGroup = applicationAccessService.userHasEditorOrSubmitterRoleInOrganisationGroup(
-        organisationUser);
-
-    assertTrue(userHasEditorOrSubmitterRoleInOrganisationGroup);
-  }
-
-  @Test
-  void userHasEditorOrSubmitterRoleInOrganisationGroup_returnsFalse() {
-    var team = TeamTestUtil
-        .newBuilder()
-        .withTeamType(TeamType.LICENCE_MANAGEMENT)
-        .build();
-
-    var teamRole = TeamRoleTestUtil
-        .newBuilder()
-        .withRole(Role.APPLICATION_SUBMITTER)
-        .withTeam(team)
-        .build();
-
-    when(teamQueryService.getTeamRolesForUser(organisationUser.wuaId()))
-        .thenReturn(Set.of(teamRole));
-
-    boolean userHasEditorOrSubmitterRoleInOrganisationGroup = applicationAccessService.userHasEditorOrSubmitterRoleInOrganisationGroup(organisationUser);
-
-    assertFalse(userHasEditorOrSubmitterRoleInOrganisationGroup);
-  }
-
-  @Test
-  void getOrganisationUnitIds_returnsCorrectUnitIds() {
-    int unitId1 = 5001;
-    int unitId2 = 5002;
-    var unitJson1 = new OrganisationUnitJson(unitId1, "Unit 1");
-    var unitJson2 = new OrganisationUnitJson(unitId2, "Unit 2");
-
-    when(organisationGroupQueryService.getOrganisationUnitsByOrganisationGroupIds(any())).thenReturn(List.of(unitJson1, unitJson2));
-
-    var result = applicationAccessService.getOrganisationUnitIds(organisationUser);
-    assertThat(result).containsExactlyInAnyOrder(unitId1, unitId2);
-  }
-
-  @Test
-  void userIsSubmitterForOrganisationUnit_whenUserIsSubmitterInOrgGroup_returnsTrue() {
-    when(organisationUnitQueryService.findOrganisationGroupIdByUnitId(ORG_UNIT_ID))
-        .thenReturn(Optional.of(ORG_GROUP_ID));
-
-    when(teamQueryService.userHasScopedRole(
-        eq(USER_1_WUA_ID),
-        eq(TeamType.ORGANISATION),
-        any(TeamScopeReference.class),
-        eq(Role.APPLICATION_SUBMITTER)
-    )).thenReturn(true);
-
-    assertThat(applicationAccessService.userIsSubmitterForOrganisationUnit(ORG_UNIT_ID, USER_1_WUA_ID)).isTrue();
-  }
-
-  @Test
-  void userIsSubmitterForOrganisationUnit_whenUserIsNotSubmitter_returnsFalse() {
-    when(organisationUnitQueryService.findOrganisationGroupIdByUnitId(ORG_UNIT_ID))
-        .thenReturn(Optional.of(ORG_GROUP_ID));
-
-    when(teamQueryService.userHasScopedRole(
-        eq(USER_1_WUA_ID),
-        eq(TeamType.ORGANISATION),
-        any(TeamScopeReference.class),
-        eq(Role.APPLICATION_SUBMITTER)
-    )).thenReturn(false);
-
-    assertThat(applicationAccessService.userIsSubmitterForOrganisationUnit(ORG_UNIT_ID, USER_1_WUA_ID)).isFalse();
-  }
-
-  @Test
-  void getAuthorizedOrganisationUnitIds_whenNoGroups_returnsEmptySet() {
-    when(organisationGroupQueryService.getOrganisationUnitsByOrganisationGroupIds(List.of())).thenReturn(List.of());
-
-    var result = applicationAccessService.getOrganisationUnitIds(organisationUser);
-
-    assertThat(result).isEmpty();
-  }
-
   @ParameterizedTest
-  @MethodSource("stewardRoleAndMatchingLicenceType")
-  void userHasAccessToApplication_whenUserIsStewardForApplicationLicenceType_returnsTrue(
-      Role stewardRole,
-      LicenceType licenceType
-  ) {
-    var irrelevantTeam = buildTeam(TeamType.LICENCE_MANAGEMENT);
-    var role = buildTeamRole(stewardRole, irrelevantTeam);
-
-    when(teamQueryService.getTeamRolesForUser(USER_1_WUA_ID)).thenReturn(Set.of(role));
-
-    assertThat(applicationAccessService.userHasAccessToApplication(
-        mockApplicationDetail(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION, null, Instant.now(), licenceType),
-        Map.of(ORG_UNIT_ID, ORG_GROUP_ID), USER_1_WUA_ID)).isTrue();
-  }
-
-  private static Stream<Arguments> stewardRoleAndMatchingLicenceType() {
-    return Stream.of(
-        Arguments.of(Role.STEWARD_OFFSHORE, LicenceType.SEAWARD_PRODUCTION),
-        Arguments.of(Role.STEWARD_ONSHORE, LicenceType.LANDWARD_PRODUCTION),
-        Arguments.of(Role.STEWARD_CARBON_STORAGE, LicenceType.CARBON_STORAGE)
-    );
-  }
-
-  @Test
-  void userHasAccessToApplication_whenUserIsStewardForDifferentLicenceType_returnsFalse() {
-    var irrelevantTeam = buildTeam(TeamType.LICENCE_MANAGEMENT);
-    var role = buildTeamRole(Role.STEWARD_OFFSHORE, irrelevantTeam);
-
-    when(teamQueryService.getTeamRolesForUser(USER_1_WUA_ID)).thenReturn(Set.of(role));
-
-    assertThat(applicationAccessService.userHasAccessToApplication(
-        mockApplicationDetail(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION, null, Instant.now(), LicenceType.CARBON_STORAGE),
-        Map.of(ORG_UNIT_ID, ORG_GROUP_ID), USER_1_WUA_ID)).isFalse();
-  }
-
-  @ParameterizedTest
-  @MethodSource("caseManagerRoleAndMatchingLicenceType")
-  void userHasAccessToApplication_whenUserIsCaseManagerForApplicationLicenceType_returnsTrue(
-      Role caseManagerRole,
-      LicenceType licenceType
-  ) {
-    var irrelevantTeam = buildTeam(TeamType.ORGANISATION);
-    irrelevantTeam.setScopeId(String.valueOf(ORG_GROUP_ID));
-
-    var role = buildTeamRole(caseManagerRole, irrelevantTeam);
-
-    when(teamQueryService.getTeamRolesForUser(USER_1_WUA_ID)).thenReturn(Set.of(role));
-
-    assertThat(applicationAccessService.userHasAccessToApplication(
-        mockApplicationDetail(ApplicationType.CONTINUATION_APPLICATION, null, Instant.now(), licenceType),
-        Map.of(ORG_UNIT_ID, ORG_GROUP_ID), USER_1_WUA_ID)).isTrue();
-  }
-
-  private static Stream<Arguments> caseManagerRoleAndMatchingLicenceType() {
-    return Stream.of(
-        Arguments.of(Role.CASE_MANAGER_OFFSHORE, LicenceType.SEAWARD_PRODUCTION),
-        Arguments.of(Role.CASE_MANAGER_ONSHORE, LicenceType.LANDWARD_PRODUCTION),
-        Arguments.of(Role.CASE_MANAGER_CARBON_STORAGE, LicenceType.CARBON_STORAGE)
-    );
-  }
-
-  @Test
-  void userHasAccessToApplication_whenUserIsCaseManagerForDifferentLicenceType_returnsFalse() {
-    var irrelevantTeam = buildTeam(TeamType.ORGANISATION);
-    irrelevantTeam.setScopeId(String.valueOf(ORG_GROUP_ID));
-
-    var role = buildTeamRole(Role.CASE_MANAGER_OFFSHORE, irrelevantTeam);
-
-    when(teamQueryService.getTeamRolesForUser(USER_1_WUA_ID)).thenReturn(Set.of(role));
-
-    assertThat(applicationAccessService.userHasAccessToApplication(
-        mockApplicationDetail(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION, null, Instant.now(), LicenceType.CARBON_STORAGE),
-        Map.of(ORG_UNIT_ID, ORG_GROUP_ID), USER_1_WUA_ID)).isFalse();
-  }
-
-  @ParameterizedTest
-  @EnumSource(value = Role.class, names = {
-      "CONTINUATION_REVIEWER_OFFSHORE",
-      "CONTINUATION_REVIEWER_ONSHORE"
+  @EnumSource(value = TeamType.class, names = {
+      "LICENCE_MANAGEMENT",
+      "OFFSHORE_PRODUCTION_LICENSING",
+      "ONSHORE_PRODUCTION_LICENSING",
+      "CARBON_STORAGE_LICENSING",
+      "REGULATIONS_LICENSING"
   })
-  void userHasAccessToApplication_whenUserIsContinuationReviewer_returnsTrue(Role continuationReviewerRole) {
-    var irrelevantTeam = buildTeam(TeamType.LICENCE_MANAGEMENT);
-    var role = buildTeamRole(continuationReviewerRole, irrelevantTeam);
+  void userHasAccessToApplication_whenRegulatorAndSubmitted_returnsTrue(TeamType regulatorTeamType) {
+    var role = buildTeamRole(Role.VIEW_ANY_LICENCE, buildTeam(regulatorTeamType));
+    var detail = mock(LicenceApplicationDetail.class);
+    when(detail.hasBeenSubmitted()).thenReturn(true);
 
     when(teamQueryService.getTeamRolesForUser(USER_1_WUA_ID)).thenReturn(Set.of(role));
 
-    assertThat(applicationAccessService.userHasAccessToApplication(
-        mockApplicationDetail(ApplicationType.CONTINUATION_APPLICATION, null, Instant.now()),
-        Map.of(ORG_UNIT_ID, ORG_GROUP_ID), USER_1_WUA_ID)).isTrue();
-  }
-
-  @ParameterizedTest
-  @EnumSource(value = Role.class, names = {
-      "DECISION_ISSUER_OFFSHORE",
-      "DECISION_ISSUER_CARBON_STORAGE",
-      "DECISION_ISSUER_ONSHORE"
-  })
-  void userHasAccessToApplication_whenUserIsDecisionIssuer_returnsTrue(Role decisionIssuerRole) {
-    var irrelevantTeam = buildTeam(TeamType.OFFSHORE_PRODUCTION_LICENSING);
-    var role = buildTeamRole(decisionIssuerRole, irrelevantTeam);
-
-    when(teamQueryService.getTeamRolesForUser(USER_1_WUA_ID)).thenReturn(Set.of(role));
-
-    assertThat(applicationAccessService.userHasAccessToApplication(
-        mockApplicationDetail(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION, null, Instant.now()),
-        Map.of(ORG_UNIT_ID, ORG_GROUP_ID), USER_1_WUA_ID)).isTrue();
+    assertThat(applicationAccessService.userHasAccessToApplication(detail, Map.of(), USER_1_WUA_ID)).isTrue();
   }
 
   @Test
-  void userHasAccessToApplication_whenDraft_andUserIsSteward_returnsFalse() {
-    var stewardTeam = buildTeam(TeamType.LICENCE_MANAGEMENT);
-    var role = buildTeamRole(Role.STEWARD_OFFSHORE, stewardTeam);
-
-    when(teamQueryService.getTeamRolesForUser(USER_1_WUA_ID)).thenReturn(Set.of(role));
-
-    assertThat(applicationAccessService.userHasAccessToApplication(
-        mockApplicationDetail(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION),
-        Map.of(), USER_1_WUA_ID)).isFalse();
-  }
-
-  @Test
-  void userHasAccessToApplication_whenUserIsContinuationReviewer_andAppIsNotContinuation_returnsFalse() {
-    var team = buildTeam(TeamType.LICENCE_MANAGEMENT);
-    var role = buildTeamRole(Role.CONTINUATION_REVIEWER_OFFSHORE, team);
+  void userHasAccessToApplication_whenRegulatorAndDraft_returnsFalse() {
+    var role = buildTeamRole(Role.STEWARD_OFFSHORE, buildTeam(TeamType.LICENCE_MANAGEMENT));
 
     when(teamQueryService.getTeamRolesForUser(USER_1_WUA_ID)).thenReturn(Set.of(role));
 
     assertThat(applicationAccessService.userHasAccessToApplication(
         mockApplicationDetail(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION), Map.of(), USER_1_WUA_ID)).isFalse();
+  }
+
+  @Test
+  void userHasAccessToApplication_whenRegulatorWithIndustryRoleAndDraft_returnsTrue() {
+    var regulatorRole = buildTeamRole(Role.STEWARD_OFFSHORE, buildTeam(TeamType.LICENCE_MANAGEMENT));
+
+    var orgTeam = buildTeam(TeamType.ORGANISATION);
+    orgTeam.setScopeId(String.valueOf(ORG_GROUP_ID));
+    orgTeam.setScopeType(ScopeType.ORGANISATION_GROUP.name());
+    var industryRole = buildTeamRole(Role.APPLICATION_EDITOR, orgTeam);
+
+    when(teamQueryService.getTeamRolesForUser(USER_1_WUA_ID)).thenReturn(Set.of(regulatorRole, industryRole));
+
+    assertThat(applicationAccessService.userHasAccessToApplication(
+        mockApplicationDetail(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION, ORG_UNIT_ID, null),
+        Map.of(ORG_UNIT_ID, ORG_GROUP_ID),
+        USER_1_WUA_ID
+    )).isTrue();
+  }
+
+  @Test
+  void userHasIndustryAccessToApplication_whenRegulatorOnlyAndSubmitted_returnsFalse() {
+    var role = buildTeamRole(Role.STEWARD_OFFSHORE, buildTeam(TeamType.LICENCE_MANAGEMENT));
+
+    when(teamQueryService.getTeamRolesForUser(USER_1_WUA_ID)).thenReturn(Set.of(role));
+
+    assertThat(applicationAccessService.userHasIndustryAccessToApplication(
+        mockApplicationDetail(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION, null, Instant.now()),
+        Map.of(ORG_UNIT_ID, ORG_GROUP_ID),
+        USER_1_WUA_ID
+    )).isFalse();
+  }
+
+  @Test
+  void userHasIndustryAccessToApplication_whenSubmitted_andUserIsInLicenseeOrgGroup_returnsTrue() {
+    var orgTeam = buildTeam(TeamType.ORGANISATION);
+    orgTeam.setScopeId(String.valueOf(ORG_GROUP_ID));
+    orgTeam.setScopeType(ScopeType.ORGANISATION_GROUP.name());
+    var role = buildTeamRole(Role.APPLICATION_SUBMITTER, orgTeam);
+
+    when(teamQueryService.getTeamRolesForUser(USER_1_WUA_ID)).thenReturn(Set.of(role));
+
+    assertThat(applicationAccessService.userHasIndustryAccessToApplication(
+        mockApplicationDetail(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION, null, Instant.now()),
+        Map.of(ORG_UNIT_ID, ORG_GROUP_ID),
+        USER_1_WUA_ID
+    )).isTrue();
   }
 
   private LicenceApplicationDetail mockApplicationDetail(ApplicationType applicationType) {
@@ -447,19 +260,9 @@ class ApplicationAccessServiceTest {
       Integer responsibleOrganisationUnitId,
       Instant submittedDatetime
   ) {
-    return mockApplicationDetail(applicationType, responsibleOrganisationUnitId, submittedDatetime, DEFAULT_LICENCE_TYPE);
-  }
-
-  // licenceType is null for scenarios granted before licence type is consulted, to avoid an unused stub
-  private LicenceApplicationDetail mockApplicationDetail(
-      ApplicationType applicationType,
-      Integer responsibleOrganisationUnitId,
-      Instant submittedDatetime,
-      LicenceType licenceType
-  ) {
     var licenceApplication = mock(LicenceApplication.class);
-    when(licenceApplication.getId()).thenReturn(APP_ID);
-    when(licenceApplication.getApplicationType()).thenReturn(applicationType);
+    lenient().when(licenceApplication.getId()).thenReturn(APP_ID);
+    lenient().when(licenceApplication.getApplicationType()).thenReturn(applicationType);
 
     var detail = mock(LicenceApplicationDetail.class);
     when(detail.getLicenceApplication()).thenReturn(licenceApplication);
@@ -468,12 +271,7 @@ class ApplicationAccessServiceTest {
       when(detail.getResponsibleOrganisationUnitId()).thenReturn(responsibleOrganisationUnitId);
     }
 
-    when(detail.getSubmittedDatetime()).thenReturn(submittedDatetime);
-
-    if (submittedDatetime != null && licenceType != null) {
-      var licence = LicenceTestUtil.builder().withLicenceType(licenceType).build();
-      when(detail.getLicence()).thenReturn(licence);
-    }
+    when(detail.hasBeenSubmitted()).thenReturn(submittedDatetime != null);
 
     return detail;
   }
@@ -485,9 +283,6 @@ class ApplicationAccessServiceTest {
   }
 
   private TeamRole buildTeamRole(Role role, Team team) {
-    var teamRole = new TeamRole();
-    teamRole.setTeam(team);
-    teamRole.setRole(role);
-    return teamRole;
+    return TeamRoleTestUtil.newBuilder().withRole(role).withTeam(team).build();
   }
 }

@@ -11,6 +11,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 
 @ExtendWith(MockitoExtension.class)
 class RegulatorRoleServiceTest {
@@ -112,5 +113,25 @@ class RegulatorRoleServiceTest {
     when(teamQueryService.getTeamRolesForUser(USER.wuaId())).thenReturn(Set.of());
 
     assertThat(regulatorRoleService.isDecisionIssuer(USER)).isFalse();
+  }
+
+  @Test
+  void getStewardOrCaseManagerLicenceTypes_returnsLicenceTypesForStewardAndCaseManagerRoles() {
+    var stewardRole = TeamRoleTestUtil.newBuilder().withRole(Role.STEWARD_OFFSHORE).build();
+    var caseManagerRole = TeamRoleTestUtil.newBuilder().withRole(Role.CASE_MANAGER_ONSHORE).build();
+    var unrelatedRole = TeamRoleTestUtil.newBuilder().withRole(Role.DECISION_ISSUER_CARBON_STORAGE).build();
+    when(teamQueryService.getTeamRolesForUser(USER.wuaId())).thenReturn(Set.of(stewardRole, caseManagerRole, unrelatedRole));
+
+    var result = regulatorRoleService.getStewardOrCaseManagerLicenceTypes(USER);
+
+    assertThat(result).isEqualTo(Set.of(LicenceType.SEAWARD_PRODUCTION, LicenceType.LANDWARD_PRODUCTION));
+  }
+
+  @Test
+  void getStewardOrCaseManagerLicenceTypes_whenNoStewardOrCaseManagerRole_returnsEmptySet() {
+    var unrelatedRole = TeamRoleTestUtil.newBuilder().withRole(Role.DECISION_ISSUER_ONSHORE).build();
+    when(teamQueryService.getTeamRolesForUser(USER.wuaId())).thenReturn(Set.of(unrelatedRole));
+
+    assertThat(regulatorRoleService.getStewardOrCaseManagerLicenceTypes(USER)).isEmpty();
   }
 }

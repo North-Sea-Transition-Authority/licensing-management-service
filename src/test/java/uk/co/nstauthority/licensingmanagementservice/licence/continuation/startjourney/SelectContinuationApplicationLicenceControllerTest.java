@@ -50,7 +50,7 @@ class SelectContinuationApplicationLicenceControllerTest extends AbstractControl
 
   @Test
   void render() throws Exception {
-    when(applicationAccessService.userHasAccessToStartApplication(organisationUser.wuaId())).thenReturn(true);
+    when(industryRoleService.userHasEditorOrSubmitterRole(organisationUser.wuaId())).thenReturn(true);
 
     var licenceTypeList = List.of(LicenceType.LANDWARD_PRODUCTION, LicenceType.SEAWARD_PRODUCTION);
 
@@ -74,7 +74,7 @@ class SelectContinuationApplicationLicenceControllerTest extends AbstractControl
     var form = new SelectContinuationApplicationLicenceForm();
     form.setLicenceId(String.valueOf(licenceId));
     when(selectContinuationApplicationLicenceFormValidator.isValid(any())).thenReturn(true);
-    when(applicationAccessService.userHasAccessToStartApplication(organisationUser.wuaId())).thenReturn(true);
+    when(industryRoleService.userHasEditorOrSubmitterRole(organisationUser.wuaId())).thenReturn(true);
 
     var licence = new Licence(licenceId);
     when(licenceService.findLicenceByIdOrThrow(parseInt(form.getLicenceId()))).thenReturn(licence);
@@ -95,7 +95,7 @@ class SelectContinuationApplicationLicenceControllerTest extends AbstractControl
 
   @Test
   void submit_invalidForm() throws Exception {
-    when(applicationAccessService.userHasAccessToStartApplication(organisationUser.wuaId())).thenReturn(true);
+    when(industryRoleService.userHasEditorOrSubmitterRole(organisationUser.wuaId())).thenReturn(true);
 
     var licenceTypeList = List.of(LicenceType.LANDWARD_PRODUCTION, LicenceType.SEAWARD_PRODUCTION);
 
@@ -117,7 +117,7 @@ class SelectContinuationApplicationLicenceControllerTest extends AbstractControl
 
   @Test
   void render_ForbiddenUserNoAccess() throws Exception {
-    when(applicationAccessService.userHasAccessToStartApplication(organisationUser.wuaId())).thenReturn(false);
+    when(industryRoleService.userHasEditorOrSubmitterRole(organisationUser.wuaId())).thenReturn(false);
 
     mockMvc.perform(
             get(ReverseRouter.route(on(SelectContinuationApplicationLicenceController.class).render()))
@@ -128,7 +128,7 @@ class SelectContinuationApplicationLicenceControllerTest extends AbstractControl
 
   @Test
   void submit_ForbiddenUserNoAccess() throws Exception {
-    when(applicationAccessService.userHasAccessToStartApplication(organisationUser.wuaId())).thenReturn(false);
+    when(industryRoleService.userHasEditorOrSubmitterRole(organisationUser.wuaId())).thenReturn(false);
 
     mockMvc.perform(
             post(ReverseRouter.route(on(SelectContinuationApplicationLicenceController.class).submit(null, null)))

@@ -26,7 +26,6 @@ import uk.co.nstauthority.licensingmanagementservice.caseevent.CaseEventService;
 import uk.co.nstauthority.licensingmanagementservice.caseevent.CaseEventType;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.crosslicenceeventtracker.CrossLicenceEventTrackerService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
@@ -34,6 +33,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesch
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.startjourney.LicenseeInformationForm;
+import uk.co.nstauthority.licensingmanagementservice.teams.IndustryRoleService;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamScopeReference;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
 import uk.co.nstauthority.licensingmanagementservice.teams.management.TeamManagementService;
@@ -56,7 +56,7 @@ class ScheduleWorkProgrammeApplicationServiceTest {
   private Clock clock;
 
   @Mock
-  private ApplicationAccessService applicationAccessService;
+  private IndustryRoleService industryRoleService;
 
   @Mock
   private TeamManagementService teamManagementService;
@@ -283,7 +283,7 @@ class ScheduleWorkProgrammeApplicationServiceTest {
 
     scheduleWorkProgrammeApplicationService.userCanSubmitApplication(scheduleWorkProgrammeApplicationDetail, user);
 
-    verify(applicationAccessService).userIsSubmitterForOrganisationUnit(organisationUnitId, user.wuaId());
+    verify(industryRoleService).userIsSubmitterForOrganisationUnit(organisationUnitId, user.wuaId());
   }
 
   private ServiceUserDetail mockUser() {

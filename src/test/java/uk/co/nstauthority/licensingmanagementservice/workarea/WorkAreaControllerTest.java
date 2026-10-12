@@ -105,7 +105,7 @@ class WorkAreaControllerTest extends AbstractControllerTest {
   @Test
   void getWorkArea_canStartApplication() throws Exception {
     var applicationUser = ServiceUserDetailTestUtil.newBuilder().build();
-    when(applicationAccessService.userHasAccessToStartApplication(applicationUser.wuaId())).thenReturn(true);
+    when(industryRoleService.userHasEditorOrSubmitterRole(applicationUser.wuaId())).thenReturn(true);
     var modelAndView = mockMvc.perform(
             get(ReverseRouter.route(on(WorkAreaController.class).getWorkArea(null, null)))
                 .with(user(applicationUser))
@@ -126,7 +126,7 @@ class WorkAreaControllerTest extends AbstractControllerTest {
   @Test
   void getWorkArea_cantStartApplication() throws Exception {
     var applicationUser = ServiceUserDetailTestUtil.newBuilder().build();
-    when(applicationAccessService.userHasAccessToStartApplication(applicationUser.wuaId())).thenReturn(false);
+    when(industryRoleService.userHasEditorOrSubmitterRole(applicationUser.wuaId())).thenReturn(false);
     var modelAndView = mockMvc.perform(
             get(ReverseRouter.route(on(WorkAreaController.class).getWorkArea(null, null)))
                 .with(user(applicationUser))

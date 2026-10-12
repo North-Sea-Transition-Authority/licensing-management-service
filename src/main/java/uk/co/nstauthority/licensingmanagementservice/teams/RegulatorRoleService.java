@@ -1,14 +1,28 @@
 package uk.co.nstauthority.licensingmanagementservice.teams;
 
-import static uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService.CONTINUATION_REVIEWER_ROLES;
-import static uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService.DECISION_ISSUER_ROLES;
-
+import java.util.Arrays;
+import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.CaseManagerRoles;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.StewardRoles;
 
 @Service
 public class RegulatorRoleService {
+
+  public static final Set<Role> CONTINUATION_REVIEWER_ROLES = Set.of(
+      Role.CONTINUATION_REVIEWER_OFFSHORE,
+      Role.CONTINUATION_REVIEWER_ONSHORE
+  );
+  public static final Set<Role> DECISION_ISSUER_ROLES = Set.of(
+      Role.DECISION_ISSUER_OFFSHORE,
+      Role.DECISION_ISSUER_CARBON_STORAGE,
+      Role.DECISION_ISSUER_ONSHORE
+  );
 
   private final TeamQueryService teamQueryService;
 
@@ -21,8 +35,7 @@ public class RegulatorRoleService {
   }
 
   public boolean isContinuationReviewer(ServiceUserDetail userDetail) {
-    return teamQueryService.getTeamRolesForUser(userDetail.wuaId()).stream()
-        .anyMatch(teamRole -> CONTINUATION_REVIEWER_ROLES.contains(teamRole.getRole()));
+    return hasAnyRole(userDetail, CONTINUATION_REVIEWER_ROLES);
   }
 
   public boolean isContinuationIssuer(ServiceUserDetail userDetail) {
@@ -42,7 +55,28 @@ public class RegulatorRoleService {
   }
 
   public boolean isDecisionIssuer(ServiceUserDetail userDetail) {
+    return hasAnyRole(userDetail, DECISION_ISSUER_ROLES);
+  }
+
+  public Set<LicenceType> getStewardOrCaseManagerLicenceTypes(ServiceUserDetail userDetail) {
+    var userRoles = teamQueryService.getTeamRolesForUser(userDetail.wuaId()).stream()
+        .map(TeamRole::getRole)
+        .collect(Collectors.toSet());
+
+    return Arrays.stream(LicenceType.values())
+        .filter(licenceType ->
+            Stream.of(
+                    StewardRoles.getRequiredRoleForLicenceType(licenceType),
+                    CaseManagerRoles.getRequiredRoleForLicenceType(licenceType)
+                )
+                .flatMap(Optional::stream)
+                .anyMatch(userRoles::contains)
+        )
+        .collect(Collectors.toSet());
+  }
+
+  private boolean hasAnyRole(ServiceUserDetail userDetail, Set<Role> roles) {
     return teamQueryService.getTeamRolesForUser(userDetail.wuaId()).stream()
-        .anyMatch(teamRole -> DECISION_ISSUER_ROLES.contains(teamRole.getRole()));
+        .anyMatch(teamRole -> roles.contains(teamRole.getRole()));
   }
 }

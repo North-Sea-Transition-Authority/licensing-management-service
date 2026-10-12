@@ -12,9 +12,9 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.components.actions.ActionItemView;
-import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
+import uk.co.nstauthority.licensingmanagementservice.teams.RegulatorRoleService;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamRole;
@@ -36,11 +36,11 @@ public class LicenceContinuationActionService {
 
     var registeredActions = LicenceContinuationActionBuilder.newBuilder()
         .registerAction(LicenceContinuationActionItem.CONFIRM_CONTINUATION)
-          .requiresAnyRoleFrom(ApplicationAccessService.CONTINUATION_REVIEWER_ROLES)
+          .requiresAnyRoleFrom(RegulatorRoleService.CONTINUATION_REVIEWER_ROLES)
           .requiresAnyStatusFrom(ApplicationStatus.SUBMITTED)
           .isPrimaryButton(true)
         .registerAction(LicenceContinuationActionItem.WITHDRAW_CONTINUATION)
-          .requiresAnyRoleFrom(ApplicationAccessService.CONTINUATION_REVIEWER_ROLES)
+          .requiresAnyRoleFrom(RegulatorRoleService.CONTINUATION_REVIEWER_ROLES)
           .requiresAnyStatusFrom(ApplicationStatus.SUBMITTED)
         .build();
 

@@ -8,9 +8,9 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -99,7 +99,7 @@ public class RecordDurationChangesService {
 
   private List<DurationChangeCandidate> getScheduleInOrder(ScheduleWorkProgrammeApplicationDetail applicationDetail) {
     var licenceScheduleDetail = scheduleWorkProgrammeApplicationService
-        .getScheduleDetailFromApplicationDetail(applicationDetail);
+        .getCurrentScheduleDetailFromApplicationDetail(applicationDetail);
 
     var candidates = new ArrayList<DurationChangeCandidate>();
 
@@ -112,6 +112,7 @@ public class RecordDurationChangesService {
           if (phases.isEmpty()) {
             candidates.add(new DurationChangeCandidate(
                 term.getId().toString(),
+                term.getOriginalEventId(),
                 term.getTermType().getDisplayName(),
                 term.getStartDate(),
                 term.getEndDate(),
@@ -124,6 +125,7 @@ public class RecordDurationChangesService {
               .sorted(Comparator.comparingInt(phase -> phase.getPhaseType().getDisplayOrder()))
               .forEach(phase -> candidates.add(new DurationChangeCandidate(
                   phase.getId().toString(),
+                  phase.getOriginalEventId(),
                   phase.getPhaseType().getDisplayName(),
                   phase.getStartDate(),
                   phase.getEndDate(),
@@ -137,20 +139,21 @@ public class RecordDurationChangesService {
   public RecordDurationChangesForm getFilledForm(ScheduleWorkProgrammeApplicationDetail applicationDetail) {
     var form = new RecordDurationChangesForm();
 
-    var extensionsById = getExtensionsById(applicationDetail);
-    var reductionsById = getReductionsById(applicationDetail);
+    var extensionsByEvent = getExtensionsByOriginalEventId(applicationDetail);
+    var reductionsByEvent = getReductionsByOriginalEventId(applicationDetail);
 
     for (var candidate : getScheduleInOrder(applicationDetail)) {
       var id = candidate.id();
+      var originalEventId = candidate.originalEventId();
       var reduceInput = RecordDurationChangesForm.newReduceDurationInput(id);
       var extendInput = RecordDurationChangesForm.newExtendDurationInput(id);
 
-      if (extensionsById.containsKey(id)) {
+      if (extensionsByEvent.containsKey(originalEventId)) {
         form.getChangeType().put(id, DurationChangeType.EXTEND);
-        extendInput.setFromThreeFieldDuration(extensionsById.get(id));
-      } else if (reductionsById.containsKey(id)) {
+        extendInput.setFromThreeFieldDuration(extensionsByEvent.get(originalEventId));
+      } else if (reductionsByEvent.containsKey(originalEventId)) {
         form.getChangeType().put(id, DurationChangeType.REDUCE);
-        reduceInput.setFromThreeFieldDuration(reductionsById.get(id));
+        reduceInput.setFromThreeFieldDuration(reductionsByEvent.get(originalEventId));
       } else {
         form.getChangeType().put(id, DurationChangeType.MAINTAIN);
       }
@@ -167,20 +170,25 @@ public class RecordDurationChangesService {
       RecordDurationChangesForm form,
       ScheduleWorkProgrammeApplicationDetail applicationDetail
   ) {
-    var isPhaseById = getScheduleInOrder(applicationDetail).stream()
-        .collect(Collectors.toMap(DurationChangeCandidate::id, DurationChangeCandidate::isPhase));
+    var candidatesById = getScheduleInOrder(applicationDetail).stream()
+        .collect(Collectors.toMap(DurationChangeCandidate::id, Function.identity()));
 
-    Set<String> extendedIds = new HashSet<>();
-    Set<String> reducedIds = new HashSet<>();
+    var existingExtensions = recordOfDecisionExtensionRepository
+        .findAllByScheduleWorkProgrammeApplicationDetail(applicationDetail);
+    var existingReductions = recordOfDecisionReductionRepository
+        .findAllByScheduleWorkProgrammeApplicationDetail(applicationDetail);
+
+    Set<UUID> extendedEventIds = new HashSet<>();
+    Set<UUID> reducedEventIds = new HashSet<>();
 
     for (var entry : form.getChangeType().entrySet()) {
-      var id = entry.getKey();
+      var candidate = candidatesById.get(entry.getKey());
 
-      if (!isPhaseById.containsKey(id) || entry.getValue() == null) {
+      if (candidate == null || entry.getValue() == null) {
         continue;
       }
 
-      var input = form.durationFor(id, entry.getValue());
+      var input = form.durationFor(candidate.id(), entry.getValue());
 
       if (input == null) {
         continue;
@@ -189,39 +197,40 @@ public class RecordDurationChangesService {
       var duration = input.toThreeFieldDuration();
 
       if (entry.getValue() == DurationChangeType.EXTEND) {
-        extendedIds.add(id);
-        saveExtension(applicationDetail, UUID.fromString(id), duration, isPhaseById.get(id));
+        extendedEventIds.add(candidate.originalEventId());
+        saveExtension(applicationDetail, candidate, duration, existingExtensions);
       } else if (entry.getValue() == DurationChangeType.REDUCE) {
-        reducedIds.add(id);
-        saveReduction(applicationDetail, UUID.fromString(id), duration, isPhaseById.get(id));
+        reducedEventIds.add(candidate.originalEventId());
+        saveReduction(applicationDetail, candidate, duration, existingReductions);
       }
     }
 
-    deleteUnselected(applicationDetail, extendedIds, reducedIds);
+    existingExtensions.stream()
+        .filter(extension -> !extendedEventIds.contains(getOriginalEventId(extension)))
+        .forEach(recordOfDecisionExtensionRepository::delete);
+
+    existingReductions.stream()
+        .filter(reduction -> !reducedEventIds.contains(getOriginalEventId(reduction)))
+        .forEach(recordOfDecisionReductionRepository::delete);
   }
 
   private void saveExtension(
       ScheduleWorkProgrammeApplicationDetail applicationDetail,
-      UUID id,
+      DurationChangeCandidate candidate,
       ThreeFieldDuration duration,
-      boolean isPhase
+      List<RecordOfDecisionExtension> existingExtensions
   ) {
-    Optional<RecordOfDecisionExtension> existingExtension;
-
-    if (isPhase) {
-      existingExtension = recordOfDecisionExtensionRepository
-          .findByScheduleWorkProgrammeApplicationDetailAndLicenceSchedulePhaseId(applicationDetail, id);
-    } else {
-      existingExtension = recordOfDecisionExtensionRepository
-          .findByScheduleWorkProgrammeApplicationDetailAndLicenceScheduleTermId(applicationDetail, id);
-    }
-
-    var extension = existingExtension.orElseGet(RecordOfDecisionExtension::new);
+    var extension = existingExtensions.stream()
+        .filter(existing -> candidate.originalEventId().equals(getOriginalEventId(existing)))
+        .findFirst()
+        .orElseGet(RecordOfDecisionExtension::new);
 
     extension.setExtensionDuration(duration);
     extension.setScheduleWorkProgrammeApplicationDetail(applicationDetail);
 
-    if (isPhase) {
+    var id = UUID.fromString(candidate.id());
+
+    if (candidate.isPhase()) {
       var phase = licenceSchedulePhaseRepository.findById(id)
           .orElseThrow(() -> new IllegalArgumentException("LicenceSchedulePhase not found for ID: %s".formatted(id)));
       extension.setLicenceSchedulePhase(phase);
@@ -238,26 +247,21 @@ public class RecordDurationChangesService {
 
   private void saveReduction(
       ScheduleWorkProgrammeApplicationDetail applicationDetail,
-      UUID id,
+      DurationChangeCandidate candidate,
       ThreeFieldDuration duration,
-      boolean isPhase
+      List<RecordOfDecisionReduction> existingReductions
   ) {
-    Optional<RecordOfDecisionReduction> existingReduction;
-
-    if (isPhase) {
-      existingReduction = recordOfDecisionReductionRepository
-          .findByScheduleWorkProgrammeApplicationDetailAndLicenceSchedulePhaseId(applicationDetail, id);
-    } else {
-      existingReduction = recordOfDecisionReductionRepository
-          .findByScheduleWorkProgrammeApplicationDetailAndLicenceScheduleTermId(applicationDetail, id);
-    }
-
-    var reduction = existingReduction.orElseGet(RecordOfDecisionReduction::new);
+    var reduction = existingReductions.stream()
+        .filter(existing -> candidate.originalEventId().equals(getOriginalEventId(existing)))
+        .findFirst()
+        .orElseGet(RecordOfDecisionReduction::new);
 
     reduction.setReductionDuration(duration);
     reduction.setScheduleWorkProgrammeApplicationDetail(applicationDetail);
 
-    if (isPhase) {
+    var id = UUID.fromString(candidate.id());
+
+    if (candidate.isPhase()) {
       var phase = licenceSchedulePhaseRepository.findById(id)
           .orElseThrow(() -> new IllegalArgumentException("LicenceSchedulePhase not found for ID: %s".formatted(id)));
       reduction.setLicenceSchedulePhase(phase);
@@ -270,22 +274,6 @@ public class RecordDurationChangesService {
     }
 
     recordOfDecisionReductionRepository.save(reduction);
-  }
-
-  private void deleteUnselected(
-      ScheduleWorkProgrammeApplicationDetail applicationDetail,
-      Set<String> extendedIds,
-      Set<String> reducedIds
-  ) {
-    recordOfDecisionExtensionRepository.findAllByScheduleWorkProgrammeApplicationDetail(applicationDetail)
-        .stream()
-        .filter(extension -> !extendedIds.contains(getExtensionIdString(extension)))
-        .forEach(recordOfDecisionExtensionRepository::delete);
-
-    recordOfDecisionReductionRepository.findAllByScheduleWorkProgrammeApplicationDetail(applicationDetail)
-        .stream()
-        .filter(reduction -> !reducedIds.contains(getReductionIdString(reduction)))
-        .forEach(recordOfDecisionReductionRepository::delete);
   }
 
   private ThreeFieldDuration getTotalExtension(ScheduleWorkProgrammeApplicationDetail applicationDetail) {
@@ -307,8 +295,8 @@ public class RecordDurationChangesService {
   public List<RecordDurationChangeSummaryView> getSummaryViews(
       ScheduleWorkProgrammeApplicationDetail applicationDetail
   ) {
-    var extensionsById = getExtensionsById(applicationDetail);
-    var reductionsById = getReductionsById(applicationDetail);
+    var extensionsByEvent = getExtensionsByOriginalEventId(applicationDetail);
+    var reductionsByEvent = getReductionsByOriginalEventId(applicationDetail);
 
     var views = new ArrayList<RecordDurationChangeSummaryView>();
     LocalDate nextStartDate = null;
@@ -319,14 +307,14 @@ public class RecordDurationChangesService {
       }
 
       var newStartDate = nextStartDate;
-      var newEndDate = newStartDate.plus(getNewSpan(candidate, extensionsById, reductionsById)).minusDays(1);
+      var newEndDate = newStartDate.plus(getNewSpan(candidate, extensionsByEvent, reductionsByEvent)).minusDays(1);
 
       views.add(new RecordDurationChangeSummaryView(
           candidate.displayName(),
           candidate.isPhase(),
           ThreeFieldDurationDisplayUtil.convertToDisplayText(candidate.duration()),
           DateFormatUtil.convertToDisplayText(candidate.endDate()),
-          getChangeDisplayText(candidate, extensionsById, reductionsById),
+          getChangeDisplayText(candidate, extensionsByEvent, reductionsByEvent),
           ThreeFieldDurationDisplayUtil.convertDatesToDurationDisplayText(newStartDate, newEndDate),
           DateFormatUtil.convertToDisplayText(newEndDate)));
 
@@ -344,17 +332,17 @@ public class RecordDurationChangesService {
 
   private Period getNewSpan(
       DurationChangeCandidate candidate,
-      Map<String, ThreeFieldDuration> extensionsById,
-      Map<String, ThreeFieldDuration> reductionsById
+      Map<UUID, ThreeFieldDuration> extensionsByEvent,
+      Map<UUID, ThreeFieldDuration> reductionsByEvent
   ) {
     var span = getSpan(candidate);
 
-    if (extensionsById.containsKey(candidate.id())) {
-      return span.plus(toPeriod(extensionsById.get(candidate.id())));
+    if (extensionsByEvent.containsKey(candidate.originalEventId())) {
+      return span.plus(toPeriod(extensionsByEvent.get(candidate.originalEventId())));
     }
 
-    if (reductionsById.containsKey(candidate.id())) {
-      return span.minus(toPeriod(reductionsById.get(candidate.id())));
+    if (reductionsByEvent.containsKey(candidate.originalEventId())) {
+      return span.minus(toPeriod(reductionsByEvent.get(candidate.originalEventId())));
     }
 
     return span;
@@ -366,17 +354,17 @@ public class RecordDurationChangesService {
 
   private String getChangeDisplayText(
       DurationChangeCandidate candidate,
-      Map<String, ThreeFieldDuration> extensionsById,
-      Map<String, ThreeFieldDuration> reductionsById
+      Map<UUID, ThreeFieldDuration> extensionsByEvent,
+      Map<UUID, ThreeFieldDuration> reductionsByEvent
   ) {
-    if (extensionsById.containsKey(candidate.id())) {
+    if (extensionsByEvent.containsKey(candidate.originalEventId())) {
       return EXTENDED_BY.formatted(
-          ThreeFieldDurationDisplayUtil.convertToDisplayText(extensionsById.get(candidate.id())));
+          ThreeFieldDurationDisplayUtil.convertToDisplayText(extensionsByEvent.get(candidate.originalEventId())));
     }
 
-    if (reductionsById.containsKey(candidate.id())) {
+    if (reductionsByEvent.containsKey(candidate.originalEventId())) {
       return REDUCED_BY.formatted(
-          ThreeFieldDurationDisplayUtil.convertToDisplayText(reductionsById.get(candidate.id())));
+          ThreeFieldDurationDisplayUtil.convertToDisplayText(reductionsByEvent.get(candidate.originalEventId())));
     }
 
     return MAINTAINED;
@@ -392,22 +380,22 @@ public class RecordDurationChangesService {
     return Period.of(duration.years(), duration.months(), duration.days());
   }
 
-  private Map<String, ThreeFieldDuration> getExtensionsById(
+  private Map<UUID, ThreeFieldDuration> getExtensionsByOriginalEventId(
       ScheduleWorkProgrammeApplicationDetail applicationDetail
   ) {
     return recordOfDecisionExtensionRepository
         .findAllByScheduleWorkProgrammeApplicationDetail(applicationDetail)
         .stream()
-        .collect(Collectors.toMap(this::getExtensionIdString, RecordOfDecisionExtension::getExtensionDuration));
+        .collect(Collectors.toMap(this::getOriginalEventId, RecordOfDecisionExtension::getExtensionDuration));
   }
 
-  private Map<String, ThreeFieldDuration> getReductionsById(
+  private Map<UUID, ThreeFieldDuration> getReductionsByOriginalEventId(
       ScheduleWorkProgrammeApplicationDetail applicationDetail
   ) {
     return recordOfDecisionReductionRepository
         .findAllByScheduleWorkProgrammeApplicationDetail(applicationDetail)
         .stream()
-        .collect(Collectors.toMap(this::getReductionIdString, RecordOfDecisionReduction::getReductionDuration));
+        .collect(Collectors.toMap(this::getOriginalEventId, RecordOfDecisionReduction::getReductionDuration));
   }
 
   public boolean isComplete(ScheduleWorkProgrammeApplicationDetail applicationDetail) {
@@ -417,15 +405,15 @@ public class RecordDurationChangesService {
     return hasExtension && getTotalExtension(applicationDetail).equals(getTotalReduction(applicationDetail));
   }
 
-  private String getExtensionIdString(RecordOfDecisionExtension extension) {
+  private UUID getOriginalEventId(RecordOfDecisionExtension extension) {
     return extension.getLicenceSchedulePhase() != null
-        ? extension.getLicenceSchedulePhase().getId().toString()
-        : extension.getLicenceScheduleTerm().getId().toString();
+        ? extension.getLicenceSchedulePhase().getOriginalEventId()
+        : extension.getLicenceScheduleTerm().getOriginalEventId();
   }
 
-  private String getReductionIdString(RecordOfDecisionReduction reduction) {
+  private UUID getOriginalEventId(RecordOfDecisionReduction reduction) {
     return reduction.getLicenceSchedulePhase() != null
-        ? reduction.getLicenceSchedulePhase().getId().toString()
-        : reduction.getLicenceScheduleTerm().getId().toString();
+        ? reduction.getLicenceSchedulePhase().getOriginalEventId()
+        : reduction.getLicenceScheduleTerm().getOriginalEventId();
   }
 }

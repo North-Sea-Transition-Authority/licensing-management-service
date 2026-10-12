@@ -18,6 +18,7 @@ public class LicenceSchedulePhaseTestUtil {
   public static class Builder {
 
     private UUID id;
+    private UUID originalEventId;
     private LicenceScheduleTerm licenceScheduleTerm;
     private LicenceScheduleDetail licenceScheduleDetail;
     private PhaseType phaseType;
@@ -26,6 +27,11 @@ public class LicenceSchedulePhaseTestUtil {
     private LocalDate endDate;
 
     private Builder() {}
+
+    public Builder withOriginalEventId(UUID originalEventId) {
+      this.originalEventId = originalEventId;
+      return this;
+    }
 
     public Builder withId(UUID id) {
       this.id = id;
@@ -66,6 +72,7 @@ public class LicenceSchedulePhaseTestUtil {
       var licenceSchedulePhase = new LicenceSchedulePhase();
 
       licenceSchedulePhase.setId(id);
+      licenceSchedulePhase.setOriginalEventId(originalEventId);
       licenceSchedulePhase.setLicenceScheduleTerm(licenceScheduleTerm);
       licenceSchedulePhase.setLicenceScheduleDetail(licenceScheduleDetail);
       licenceSchedulePhase.setPhaseType(phaseType);

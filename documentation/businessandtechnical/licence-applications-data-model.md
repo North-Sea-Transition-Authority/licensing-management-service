@@ -361,6 +361,13 @@ NULL` and `(application detail, phase_id) WHERE phase_id IS NOT NULL`. So unlike
 side, at most one extension row and one reduction row per term or phase per application is
 guaranteed by the schema.
 
+Unlike the request side, `term_id` / `phase_id` here point at the licence's **currently
+`ACTIVE`** schedule version as of the last time the decision was saved, not at the submitted
+version (§7.4). A row saved before a later schedule update still points at the older version
+until the decision is saved again. The unique indexes are on the id, so across versions it is
+application code — matching rows on `schedule_events.original_event_id` when re-saving — that
+keeps it to one row per logical term or phase, not the schema.
+
 The regulator chooses one of three outcomes per term or phase, and the choice is expressed by
 *which table holds a row*, not by a stored value:
 
@@ -552,7 +559,8 @@ WHERE app.id = :application_id;
 That is: **use the submitted version if there is one, otherwise the currently active
 version.** A draft moves with the licence's live schedule; a submitted application is frozen
 against the version it was submitted against, even after the licence's schedule is updated
-several times over.
+several times over. The one exception is the record of decision on an extension and
+amendment application, which reads the currently active version instead (§7.4).
 
 ### 7.2 Why continuation also snapshots term and phase
 
@@ -562,7 +570,7 @@ version. They are a convenience snapshot: the rows they point at belong to the s
 schedule version and remain readable after that version becomes `REPLACED`.
 
 The extension and amendment side has no equivalent — it re-derives what it needs from
-`submitted_licence_schedule_detail_id` each time.
+`submitted_licence_schedule_detail_id` each time, except when recording the decision (§7.4).
 
 ### 7.3 Following an application's targets across schedule versions
 
@@ -590,7 +598,34 @@ WHERE req.id = :request_id
 This can legitimately return no rows: the activity may have been deleted from the schedule in
 a later version while the application still references it.
 
-### 7.4 Application rows are never duplicated with the schedule
+### 7.4 The record of decision reads the current schedule
+
+When the regulator records a decision on an extension and amendment application, the terms,
+phases and work programme activities offered — and the current durations and end dates shown
+against them — come from the licence's schedule version that is `ACTIVE` at that moment, not
+from `submitted_licence_schedule_detail_id`. Nothing about the current dates is stored; they
+are read from the active version each time.
+
+So the ids written to the decision tables belong to whichever version was active when the
+row was saved:
+
+| Column | Points at |
+|---|---|
+| `swp_record_of_decision_extension.term_id` / `.phase_id` | the active version when the decision was last saved |
+| `swp_record_of_decision_reduction.term_id` / `.phase_id` | the active version when the decision was last saved |
+| `swp_record_of_decision_work_programme.work_programme_activity_id` | the active version when the row was saved |
+
+If the schedule is updated while a decision is part-recorded, extension and reduction rows are
+matched to the new version by `schedule_events.original_event_id`. They are re-pointed at the
+new version's term or phase the next time the durations are saved, and until then they
+keep pointing at the old version. To find the current row for any of these ids, go via
+`original_event_id` exactly as in §7.3. A row whose term or phase no longer exists in the
+active version is removed the next time the durations are saved.
+
+This means the request rows (§5) and the decision rows for the same application can point at
+different schedule versions. Join on `original_event_id`, not on id, to line them up.
+
+### 7.5 Application rows are never duplicated with the schedule
 
 Every application-side table is explicitly excluded from the schedule duplication system. When
 a new schedule version is created, none of the request, requirement or decision rows are
@@ -815,7 +850,9 @@ detail, so they use `schedule_work_programme_application_id` and
 
 Where there is no constraint, a dangling id is possible in principle and joins should be left
 joins. Note that even the enforced ones only guarantee the row exists *somewhere* — they say
-nothing about which schedule version it belongs to.
+nothing about which schedule version it belongs to. The request columns point at the
+submitted version; the `swp_record_of_decision*` columns point at whichever version was active
+when the decision was saved (§7.4), so the two can differ for the same application.
 
 ### 11.6 Deletes within a draft are physical; deleting the application is not
 

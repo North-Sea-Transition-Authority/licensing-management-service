@@ -13,6 +13,7 @@ import java.time.LocalDate;
 import java.time.Month;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -137,12 +138,6 @@ class RecordDurationChangesServiceTest {
     mockSchedule(List.of(initial, second, third));
     when(licenceScheduleTermRepository.findById(initial.getId())).thenReturn(Optional.of(initial));
     when(licenceScheduleTermRepository.findById(third.getId())).thenReturn(Optional.of(third));
-    when(recordOfDecisionExtensionRepository
-        .findByScheduleWorkProgrammeApplicationDetailAndLicenceScheduleTermId(applicationDetail, initial.getId()))
-        .thenReturn(Optional.empty());
-    when(recordOfDecisionReductionRepository
-        .findByScheduleWorkProgrammeApplicationDetailAndLicenceScheduleTermId(applicationDetail, third.getId()))
-        .thenReturn(Optional.empty());
     when(recordOfDecisionExtensionRepository.findAllByScheduleWorkProgrammeApplicationDetail(applicationDetail))
         .thenReturn(List.of());
     when(recordOfDecisionReductionRepository.findAllByScheduleWorkProgrammeApplicationDetail(applicationDetail))
@@ -196,12 +191,6 @@ class RecordDurationChangesServiceTest {
         .thenReturn(List.of(extendedPhase, reducedPhase));
     when(licenceSchedulePhaseRepository.findById(extendedPhase.getId())).thenReturn(Optional.of(extendedPhase));
     when(licenceSchedulePhaseRepository.findById(reducedPhase.getId())).thenReturn(Optional.of(reducedPhase));
-    when(recordOfDecisionExtensionRepository
-        .findByScheduleWorkProgrammeApplicationDetailAndLicenceSchedulePhaseId(applicationDetail, extendedPhase.getId()))
-        .thenReturn(Optional.empty());
-    when(recordOfDecisionReductionRepository
-        .findByScheduleWorkProgrammeApplicationDetailAndLicenceSchedulePhaseId(applicationDetail, reducedPhase.getId()))
-        .thenReturn(Optional.empty());
 
     var residualExtension = new RecordOfDecisionExtension();
     residualExtension.setLicenceSchedulePhase(reducedPhase);
@@ -230,6 +219,37 @@ class RecordDurationChangesServiceTest {
 
     verify(recordOfDecisionExtensionRepository).delete(residualExtension);
     verify(recordOfDecisionReductionRepository).delete(residualReduction);
+  }
+
+  @Test
+  void saveDurationChanges_whenRecordedAgainstAReplacedScheduleVersion_thenTheRowIsRelinkedToTheCurrentVersion() {
+    var replacedInitial = initialTerm();
+    var currentInitial = sameEventInNewVersion(replacedInitial, LocalDate.of(2028, 6, 30));
+    var replacedSecond = secondTerm();
+    var currentSecond = sameEventInNewVersion(replacedSecond, LocalDate.of(2032, 6, 30));
+    mockSchedule(List.of(currentInitial, currentSecond));
+    when(licenceScheduleTermRepository.findById(currentInitial.getId())).thenReturn(Optional.of(currentInitial));
+    when(licenceScheduleTermRepository.findById(currentSecond.getId())).thenReturn(Optional.of(currentSecond));
+    var existingExtension = extensionFor(replacedInitial, new ThreeFieldDuration(1, 0, 0));
+    var existingReduction = reductionFor(replacedSecond, new ThreeFieldDuration(1, 0, 0));
+    mockRecordedChanges(List.of(existingExtension), List.of(existingReduction));
+
+    var form = new RecordDurationChangesForm();
+    extend(form, currentInitial.getId().toString(), new ThreeFieldDuration(2, 0, 0));
+    reduce(form, currentSecond.getId().toString(), new ThreeFieldDuration(2, 0, 0));
+
+    recordDurationChangesService.saveDurationChanges(form, applicationDetail);
+
+    var expectedExtension = extensionFor(currentInitial, new ThreeFieldDuration(2, 0, 0));
+    expectedExtension.setScheduleWorkProgrammeApplicationDetail(applicationDetail);
+    var expectedReduction = reductionFor(currentSecond, new ThreeFieldDuration(2, 0, 0));
+    expectedReduction.setScheduleWorkProgrammeApplicationDetail(applicationDetail);
+    verify(recordOfDecisionExtensionRepository).save(existingExtension);
+    verify(recordOfDecisionReductionRepository).save(existingReduction);
+    assertThat(existingExtension).usingRecursiveComparison().isEqualTo(expectedExtension);
+    assertThat(existingReduction).usingRecursiveComparison().isEqualTo(expectedReduction);
+    verify(recordOfDecisionExtensionRepository, never()).delete(existingExtension);
+    verify(recordOfDecisionReductionRepository, never()).delete(existingReduction);
   }
 
   @Test
@@ -302,6 +322,21 @@ class RecordDurationChangesServiceTest {
         .containsEntry(third.getId().toString(), DurationChangeType.MAINTAIN);
     assertThat(form.getExtendDuration().get(initial.getId().toString()).getYears()).isEqualTo("1");
     assertThat(form.getExtendDuration().get(initial.getId().toString()).getMonths()).isEqualTo("6");
+  }
+
+  @Test
+  void getFilledForm_whenRecordedAgainstAReplacedScheduleVersion_thenTheChoiceIsKeyedOnTheCurrentVersion() {
+    var replacedInitial = initialTerm();
+    var currentInitial = sameEventInNewVersion(replacedInitial, LocalDate.of(2028, 6, 30));
+    mockSchedule(List.of(currentInitial));
+    mockRecordedChanges(List.of(extensionFor(replacedInitial, new ThreeFieldDuration(1, 0, 0))), List.of());
+
+    var form = recordDurationChangesService.getFilledForm(applicationDetail);
+
+    assertThat(form.getChangeType())
+        .containsExactly(Map.entry(currentInitial.getId().toString(), DurationChangeType.EXTEND));
+    assertThat(form.getExtendDuration().get(currentInitial.getId().toString()).toThreeFieldDuration())
+        .isEqualTo(new ThreeFieldDuration(1, 0, 0));
   }
 
   private void extend(RecordDurationChangesForm form, String id, ThreeFieldDuration duration) {
@@ -393,6 +428,34 @@ class RecordDurationChangesServiceTest {
                 "2 March 2039", "2 March 2039", "1 month 1 day"));
   }
 
+  @Test
+  void getSummaryViews_whenRecordedAgainstAReplacedScheduleVersion_thenCurrentDatesAndDurationsAreUsed() {
+    var replacedInitial = initialTerm();
+    var currentInitial = term(TermType.INITIAL, LocalDate.of(2024, 1, 1), LocalDate.of(2028, 12, 31), 5);
+    currentInitial.setOriginalEventId(replacedInitial.getOriginalEventId());
+    var replacedSecond = secondTerm();
+    var currentSecond = term(TermType.SECOND, LocalDate.of(2029, 1, 1), LocalDate.of(2032, 12, 31), 4);
+    currentSecond.setOriginalEventId(replacedSecond.getOriginalEventId());
+    mockSchedule(List.of(currentInitial, currentSecond));
+    mockRecordedChanges(
+        List.of(extensionFor(replacedInitial, new ThreeFieldDuration(1, 0, 0))),
+        List.of(reductionFor(replacedSecond, new ThreeFieldDuration(1, 0, 0))));
+
+    var views = recordDurationChangesService.getSummaryViews(applicationDetail);
+
+    assertThat(views).containsExactly(
+        new RecordDurationChangeSummaryView(
+            TermType.INITIAL.getDisplayName(), false,
+            "5 years", "31 December 2028",
+            RecordDurationChangesService.EXTENDED_BY.formatted("1 year"),
+            "6 years", "31 December 2029"),
+        new RecordDurationChangeSummaryView(
+            TermType.SECOND.getDisplayName(), false,
+            "4 years", "31 December 2032",
+            RecordDurationChangesService.REDUCED_BY.formatted("1 year"),
+            "3 years", "31 December 2032"));
+  }
+
   @ParameterizedTest
   @CsvSource({
       "1, 0, 0, 1, 0, 0, true",
@@ -409,6 +472,12 @@ class RecordDurationChangesServiceTest {
     var reduction = new ThreeFieldDuration(reductionYears, reductionMonths, reductionDays);
 
     assertThat(recordDurationChangesService.isReductionLongerThanPeriod(duration, reduction)).isEqualTo(expected);
+  }
+
+  private LicenceScheduleTerm sameEventInNewVersion(LicenceScheduleTerm replaced, LocalDate newEndDate) {
+    var current = term(replaced.getTermType(), replaced.getStartDate(), newEndDate, 4);
+    current.setOriginalEventId(replaced.getOriginalEventId());
+    return current;
   }
 
   private void mockRecordedChanges(
@@ -441,7 +510,7 @@ class RecordDurationChangesServiceTest {
   }
 
   private void mockSchedule(List<LicenceScheduleTerm> terms) {
-    when(scheduleWorkProgrammeApplicationService.getScheduleDetailFromApplicationDetail(applicationDetail))
+    when(scheduleWorkProgrammeApplicationService.getCurrentScheduleDetailFromApplicationDetail(applicationDetail))
         .thenReturn(licenceScheduleDetail);
     when(licenceScheduleTermRepository.findAllByLicenceScheduleDetail(licenceScheduleDetail))
         .thenReturn(terms);
@@ -481,6 +550,7 @@ class RecordDurationChangesServiceTest {
   private LicenceScheduleTerm term(TermType termType, LocalDate startDate, LocalDate endDate, int years) {
     return LicenceScheduleTermTestUtil.builder()
         .withId(UUID.randomUUID())
+        .withOriginalEventId(UUID.randomUUID())
         .withLicenceScheduleDetail(licenceScheduleDetail)
         .withTermType(termType)
         .withTermDuration(new ThreeFieldDuration(years, 0, 0))
@@ -502,6 +572,7 @@ class RecordDurationChangesServiceTest {
   ) {
     return LicenceSchedulePhaseTestUtil.builder()
         .withId(UUID.randomUUID())
+        .withOriginalEventId(UUID.randomUUID())
         .withLicenceScheduleTerm(term)
         .withPhaseType(phaseType)
         .withPhaseDuration(new ThreeFieldDuration(2, 0, 0))

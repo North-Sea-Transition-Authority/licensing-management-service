@@ -17,6 +17,7 @@ public class LicenceScheduleTermTestUtil {
   public static class Builder {
 
     private UUID id;
+    private UUID originalEventId;
     private LicenceScheduleDetail licenceScheduleDetail;
     private TermType termType;
     private ThreeFieldDuration termDuration;
@@ -24,6 +25,11 @@ public class LicenceScheduleTermTestUtil {
     private LocalDate endDate;
 
     private Builder() {}
+
+    public Builder withOriginalEventId(UUID originalEventId) {
+      this.originalEventId = originalEventId;
+      return this;
+    }
 
     public Builder withId(UUID id) {
       this.id = id;
@@ -58,6 +64,7 @@ public class LicenceScheduleTermTestUtil {
     public LicenceScheduleTerm build() {
       var licenceScheduleTerm = new LicenceScheduleTerm();
       licenceScheduleTerm.setId(id);
+      licenceScheduleTerm.setOriginalEventId(originalEventId);
       licenceScheduleTerm.setLicenceScheduleDetail(licenceScheduleDetail);
       licenceScheduleTerm.setTermType(termType);
       licenceScheduleTerm.setTermDuration(termDuration);

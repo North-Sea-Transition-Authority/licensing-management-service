@@ -25,6 +25,7 @@ public class ScheduleWorkProgrammeApplicationDetailTestUtil {
     private Instant createdDateTime;
     private Instant submittedDatetime;
     private String applicationReference;
+    private Long createdByWuaId;
     private Long submittedByWuaId;
     private Integer responsibleOrganisationUnitId;
     private LicenceType licenceType;
@@ -71,6 +72,11 @@ public class ScheduleWorkProgrammeApplicationDetailTestUtil {
       return this;
     }
 
+    public Builder withCreatedByWuaId(Long createdByWuaId) {
+      this.createdByWuaId = createdByWuaId;
+      return this;
+    }
+
     public Builder withSubmittedByWuaId(Long submittedByWuaId) {
       this.submittedByWuaId = submittedByWuaId;
       return this;
@@ -94,6 +100,7 @@ public class ScheduleWorkProgrammeApplicationDetailTestUtil {
       scheduleWorkProgrammeApplicationDetail.setAllLicenseesPermissionConfirmed(allLicenseesPermissionConfirmed);
       scheduleWorkProgrammeApplicationDetail.setCreatedDatetime(createdDateTime);
       scheduleWorkProgrammeApplicationDetail.setSubmittedDatetime(submittedDatetime);
+      scheduleWorkProgrammeApplicationDetail.setCreatedByWuaId(createdByWuaId);
       scheduleWorkProgrammeApplicationDetail.setSubmittedByWuaId(submittedByWuaId);
 
       if (scheduleWorkProgrammeApplication == null) {

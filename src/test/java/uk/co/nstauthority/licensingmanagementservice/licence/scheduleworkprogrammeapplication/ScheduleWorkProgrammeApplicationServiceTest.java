@@ -160,7 +160,7 @@ class ScheduleWorkProgrammeApplicationServiceTest {
     licenseeInformationForm.setResponsibleOrganisationUnitId(1);
 
     ScheduleWorkProgrammeApplicationDetail result = scheduleWorkProgrammeApplicationService.createNewScheduleWorkProgrammeApplicationForLicence(licence,
-        licenseeInformationForm);
+        licenseeInformationForm, mockUser());
 
     verify(scheduleWorkProgrammeApplicationRepository).save(scheduleWorkProgrammeApplicationCaptor.capture());
     assertThat(scheduleWorkProgrammeApplicationCaptor.getValue().getLicenceSchedule()).isEqualTo(licenceScheduleDetail.getLicenceSchedule());
@@ -172,6 +172,7 @@ class ScheduleWorkProgrammeApplicationServiceTest {
     assertThat(savedDetail.getAllLicenseesPermissionConfirmed()).isTrue();
     assertThat(savedDetail.getResponsibleOrganisationUnitId()).isEqualTo(1);
     assertThat(savedDetail.getCreatedDatetime()).isEqualTo(CURRENT_INSTANT);
+    assertThat(savedDetail.getCreatedByWuaId()).isEqualTo(1L);
     assertThat(result).isEqualTo(savedDetail);
 
     verify(teamManagementService).createScopedTeam(
@@ -195,7 +196,7 @@ class ScheduleWorkProgrammeApplicationServiceTest {
     LicenseeInformationForm licenseeInformationForm = new LicenseeInformationForm();
     licenseeInformationForm.setAllLicenseesPermissionConfirmed(false);
     licenseeInformationForm.setResponsibleOrganisationUnitId(1);
-    ScheduleWorkProgrammeApplicationDetail result = scheduleWorkProgrammeApplicationService.createNewScheduleWorkProgrammeApplicationForLicence(licence, licenseeInformationForm);
+    ScheduleWorkProgrammeApplicationDetail result = scheduleWorkProgrammeApplicationService.createNewScheduleWorkProgrammeApplicationForLicence(licence, licenseeInformationForm, mockUser());
 
     verify(scheduleWorkProgrammeApplicationRepository).save(scheduleWorkProgrammeApplicationCaptor.capture());
     assertThat(scheduleWorkProgrammeApplicationCaptor.getValue().getLicenceSchedule()).isEqualTo(licenceScheduleDetail.getLicenceSchedule());
@@ -207,6 +208,7 @@ class ScheduleWorkProgrammeApplicationServiceTest {
     assertThat(savedDetail.getAllLicenseesPermissionConfirmed()).isFalse();
     assertThat(savedDetail.getResponsibleOrganisationUnitId()).isEqualTo(1);
     assertThat(savedDetail.getCreatedDatetime()).isEqualTo(CURRENT_INSTANT);
+    assertThat(savedDetail.getCreatedByWuaId()).isEqualTo(1L);
 
     assertThat(result).isEqualTo(savedDetail);
 

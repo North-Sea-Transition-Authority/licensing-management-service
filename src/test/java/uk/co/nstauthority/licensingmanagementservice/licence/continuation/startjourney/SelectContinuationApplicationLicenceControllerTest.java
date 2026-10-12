@@ -16,7 +16,6 @@ import static uk.co.nstauthority.licensingmanagementservice.authentication.TestU
 import static uk.co.nstauthority.licensingmanagementservice.licence.continuation.startjourney.SelectContinuationApplicationLicenceController.PAGE_TITLE;
 
 import java.util.List;
-import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.context.ContextConfiguration;
@@ -28,7 +27,6 @@ import uk.co.nstauthority.licensingmanagementservice.fds.searchselector.SearchSe
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTypeUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.internalapi.LicenceInternalApiRestController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
@@ -78,9 +76,6 @@ class SelectContinuationApplicationLicenceControllerTest extends AbstractControl
 
     var licence = new Licence(licenceId);
     when(licenceService.findLicenceByIdOrThrow(parseInt(form.getLicenceId()))).thenReturn(licence);
-
-    var licenceContinuationApplicationDetail = new LicenceContinuationApplicationDetail(UUID.randomUUID());
-    when(licenceContinuationService.createNewLicenceContinuationApplication(licence, 1)).thenReturn(licenceContinuationApplicationDetail);
 
     mockMvc.perform(
             post(ReverseRouter.route(on(SelectContinuationApplicationLicenceController.class).submit(form, null)))

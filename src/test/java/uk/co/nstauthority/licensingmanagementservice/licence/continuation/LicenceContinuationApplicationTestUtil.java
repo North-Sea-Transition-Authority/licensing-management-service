@@ -21,6 +21,7 @@ public class LicenceContinuationApplicationTestUtil {
     private Integer versionNumber = 1;
     private ApplicationStatus status = ApplicationStatus.DRAFT;
     private Instant submittedDatetime;
+    private Long createdByWuaId;
     private Long submittedByWuaId;
     private String applicationReference;
 
@@ -51,6 +52,11 @@ public class LicenceContinuationApplicationTestUtil {
       return this;
     }
 
+    public Builder withCreatedByWuaId(Long createdByWuaId) {
+      this.createdByWuaId = createdByWuaId;
+      return this;
+    }
+
     public Builder withSubmittedByWuaId(Long submittedByWuaId) {
       this.submittedByWuaId = submittedByWuaId;
       return this;
@@ -67,6 +73,7 @@ public class LicenceContinuationApplicationTestUtil {
       licenceContinuationApplicationDetail.setVersionNumber(versionNumber);
       licenceContinuationApplicationDetail.setStatus(status);
       licenceContinuationApplicationDetail.setSubmittedDatetime(submittedDatetime);
+      licenceContinuationApplicationDetail.setCreatedByWuaId(createdByWuaId);
       licenceContinuationApplicationDetail.setSubmittedByWuaId(submittedByWuaId);
 
       if (licenceContinuationApplication == null) {

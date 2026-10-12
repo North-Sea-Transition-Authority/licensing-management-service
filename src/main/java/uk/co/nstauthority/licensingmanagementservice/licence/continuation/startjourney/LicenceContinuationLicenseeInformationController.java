@@ -74,7 +74,8 @@ public class LicenceContinuationLicenseeInformationController {
     var responsibleOrganisationUnitId = form.getResponsibleOrganisationUnitId();
     var applicationDetail = licenceContinuationService.createNewLicenceContinuationApplication(
         licence,
-        responsibleOrganisationUnitId
+        responsibleOrganisationUnitId,
+        user
     );
 
     createContinuationExternalTeam(applicationDetail);

@@ -147,7 +147,7 @@ class LicenceContinuationServiceTest {
     when(licenceScheduleDetailService.getScheduleDetailByLicenceAndStatusOrThrow(LICENCE, LicenceScheduleDetailStatus.ACTIVE))
         .thenReturn(LICENCE_SCHEDULE_DETAIL);
 
-    var result = licenceContinuationService.createNewLicenceContinuationApplication(LICENCE, 1);
+    var result = licenceContinuationService.createNewLicenceContinuationApplication(LICENCE, 1, organisationUser);
 
     verify(licenceContinuationApplicationRepository).save(licenceContinuationApplicationCaptor.capture());
     var savedApplication = licenceContinuationApplicationCaptor.getValue();
@@ -161,6 +161,7 @@ class LicenceContinuationServiceTest {
     assertThat(savedDetail.getVersionNumber()).isEqualTo(1);
     assertThat(savedDetail.getStatus()).isEqualTo(ApplicationStatus.DRAFT);
     assertThat(savedDetail.getResponsibleOrganisationUnitId()).isEqualTo(1);
+    assertThat(savedDetail.getCreatedByWuaId()).isEqualTo(WUA_ID);
 
     assertThat(result).isEqualTo(savedDetail);
   }

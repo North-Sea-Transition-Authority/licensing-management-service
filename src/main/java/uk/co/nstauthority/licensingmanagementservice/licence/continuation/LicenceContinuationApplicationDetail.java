@@ -44,6 +44,9 @@ public class LicenceContinuationApplicationDetail implements LicenceApplicationD
 
   private Instant createdDateTime;
 
+  @Column
+  private Long createdByWuaId;
+
   private Integer responsibleOrganisationUnitId;
 
   @Column
@@ -120,6 +123,14 @@ public class LicenceContinuationApplicationDetail implements LicenceApplicationD
 
   public void setCreatedDateTime(Instant createdInstant) {
     this.createdDateTime = createdInstant;
+  }
+
+  public Long getCreatedByWuaId() {
+    return createdByWuaId;
+  }
+
+  public void setCreatedByWuaId(Long createdByWuaId) {
+    this.createdByWuaId = createdByWuaId;
   }
 
   public Integer getResponsibleOrganisationUnitId() {

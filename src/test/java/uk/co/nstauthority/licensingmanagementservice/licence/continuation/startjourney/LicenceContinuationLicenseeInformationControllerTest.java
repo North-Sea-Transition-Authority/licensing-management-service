@@ -94,7 +94,7 @@ class LicenceContinuationLicenseeInformationControllerTest extends AbstractContr
         .withLicenceContinuationApplication(licenceContinuationApplication)
         .build();
 
-    when(licenceContinuationService.createNewLicenceContinuationApplication(licence, 1))
+    when(licenceContinuationService.createNewLicenceContinuationApplication(licence, 1, organisationUser))
         .thenReturn(licenceContinuationApplicationDetail);
 
     mockMvc.perform(
@@ -106,7 +106,7 @@ class LicenceContinuationLicenseeInformationControllerTest extends AbstractContr
         .andExpect(status().is3xxRedirection());
 
     verify(teamManagementService).createScopedTeam(eq(TeamType.EXTERNAL_CONTRIBUTORS.getDisplayName()), eq(TeamType.EXTERNAL_CONTRIBUTORS), any());
-    verify(licenceContinuationService).createNewLicenceContinuationApplication(licence, 1);
+    verify(licenceContinuationService).createNewLicenceContinuationApplication(licence, 1, organisationUser);
   }
 
   @Test

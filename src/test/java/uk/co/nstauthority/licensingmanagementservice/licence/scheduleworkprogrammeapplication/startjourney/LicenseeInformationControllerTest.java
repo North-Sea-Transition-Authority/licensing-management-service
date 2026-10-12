@@ -100,7 +100,7 @@ class LicenseeInformationControllerTest extends AbstractControllerTest {
         .withScheduleWorkProgrammeApplication(scheduleWorkProgrammeApplication)
         .build();
 
-    when(scheduleWorkProgrammeApplicationService.createNewScheduleWorkProgrammeApplicationForLicence(licence, form))
+    when(scheduleWorkProgrammeApplicationService.createNewScheduleWorkProgrammeApplicationForLicence(licence, form, organisationUser))
         .thenReturn(scheduleWorkProgrammeApplicationDetail);
 
     mockMvc.perform(
@@ -111,7 +111,7 @@ class LicenseeInformationControllerTest extends AbstractControllerTest {
         )
         .andExpect(status().is3xxRedirection());
 
-    verify(scheduleWorkProgrammeApplicationService).createNewScheduleWorkProgrammeApplicationForLicence(licence, form);
+    verify(scheduleWorkProgrammeApplicationService).createNewScheduleWorkProgrammeApplicationForLicence(licence, form, organisationUser);
     verify(swpApplicationRequestPurposeService).applyDefaultRequestPurposeIfNotApplicable(scheduleWorkProgrammeApplicationDetail);
   }
 

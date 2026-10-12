@@ -214,6 +214,7 @@ schedule_work_programme_application_details
   status                                 TEXT         §4
   all_licensees_permission_confirmed     BOOLEAN      captured on the first page of the journey
   created_datetime                       TIMESTAMPTZ NOT NULL
+  created_by_wua_id                      BIGINT       Energy Portal wua id of the creator (§11.9)
   submitted_datetime                     TIMESTAMPTZ  null until submission
   submitted_by_wua_id                    INTEGER      null until submission
   responsible_organisation_unit_id       INTEGER      Energy Portal organisation unit
@@ -445,6 +446,7 @@ licence_continuation_application_details
   version_number                      INTEGER      always 1 (§11.1)
   status                              TEXT         §4
   created_date_time                   TIMESTAMPTZ  ← note: not created_datetime (§11.3)
+  created_by_wua_id                   BIGINT       Energy Portal wua id of the creator (§11.9)
   submitted_datetime                  TIMESTAMPTZ  null until submission
   submitted_by_wua_id                 INTEGER      null until submission
   responsible_organisation_unit_id    INTEGER
@@ -877,10 +879,15 @@ column at all. For a genuine "when did this change status" timestamp, use the au
 
 ### 11.9 User identifiers are external
 
-`submitted_by_wua_id` and `steward_wua_id` are Energy Portal web user account ids, and
-`responsible_organisation_unit_id` is an Energy Portal organisation unit id. LMS stores no
-names or email addresses for any of them — they are resolved from the Energy Portal at render
-time.
+`created_by_wua_id`, `submitted_by_wua_id` and `steward_wua_id` are Energy Portal web user
+account ids, and `responsible_organisation_unit_id` is an Energy Portal organisation unit id.
+LMS stores no names or email addresses for any of them — they are resolved from the Energy
+Portal at render time.
+
+`created_by_wua_id` is the user who started the application. It is filled from the audit
+revision that inserted the row, so it is null for a row with no insert revision, and it is
+never changed after creation. It is the same user as the `revtype = 0` revision in the audit
+table (§12).
 
 ---
 
@@ -904,7 +911,8 @@ audit_revisions
 ```
 
 This is the **only** place recording *when* an application changed status and *who* did it,
-other than `submitted_datetime` / `submitted_by_wua_id` for the submission step specifically:
+other than `created_by_wua_id` for the creation step and `submitted_datetime` /
+`submitted_by_wua_id` for the submission step specifically:
 
 ```sql
 SELECT ar.created_date_time, ar.user_wua_id, d.status
@@ -929,8 +937,8 @@ this draft", none of which have a dedicated column.
 
 **`schedule_work_programme_application_details`**
 `id`, `schedule_work_programme_application_id`, `version_number`, `status`,
-`all_licensees_permission_confirmed`, `created_datetime`, `submitted_datetime`,
-`submitted_by_wua_id`, `responsible_organisation_unit_id`, `decision_date`
+`all_licensees_permission_confirmed`, `created_datetime`, `created_by_wua_id`,
+`submitted_datetime`, `submitted_by_wua_id`, `responsible_organisation_unit_id`, `decision_date`
 
 **`swp_application_request_purpose`**
 `id`, `schedule_work_programme_application_detail_id`, `extend_phase_or_term`, `extend_term`,
@@ -985,7 +993,7 @@ this draft", none of which have a dedicated column.
 
 **`licence_continuation_application_details`**
 `id`, `licence_continuation_application_id`, `version_number`, `status`, `created_date_time`,
-`submitted_datetime`, `submitted_by_wua_id`, `responsible_organisation_unit_id`,
+`created_by_wua_id`, `submitted_datetime`, `submitted_by_wua_id`, `responsible_organisation_unit_id`,
 `current_term_id`, `current_phase_id`, `next_term_id`, `next_phase_id`
 
 **`licence_continuation_wpa_requirement_request`**

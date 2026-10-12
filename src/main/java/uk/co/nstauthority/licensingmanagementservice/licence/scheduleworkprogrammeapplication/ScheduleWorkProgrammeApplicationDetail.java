@@ -52,6 +52,9 @@ public class ScheduleWorkProgrammeApplicationDetail implements LicenceApplicatio
   private Instant createdDatetime;
 
   @Column
+  private Long createdByWuaId;
+
+  @Column
   private Long submittedByWuaId;
 
   @Column
@@ -128,6 +131,14 @@ public class ScheduleWorkProgrammeApplicationDetail implements LicenceApplicatio
 
   public void setCreatedDatetime(Instant createdDatetime) {
     this.createdDatetime = createdDatetime;
+  }
+
+  public Long getCreatedByWuaId() {
+    return createdByWuaId;
+  }
+
+  public void setCreatedByWuaId(Long createdByWuaId) {
+    this.createdByWuaId = createdByWuaId;
   }
 
   public Long getSubmittedByWuaId() {

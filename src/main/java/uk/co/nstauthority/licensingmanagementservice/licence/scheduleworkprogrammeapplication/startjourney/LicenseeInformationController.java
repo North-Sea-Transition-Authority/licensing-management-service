@@ -70,7 +70,7 @@ public class LicenseeInformationController {
     }
 
     var applicationDetail = scheduleWorkProgrammeApplicationService
-        .createNewScheduleWorkProgrammeApplicationForLicence(licence, form);
+        .createNewScheduleWorkProgrammeApplicationForLicence(licence, form, user);
 
     swpApplicationRequestPurposeService.applyDefaultRequestPurposeIfNotApplicable(applicationDetail);
 

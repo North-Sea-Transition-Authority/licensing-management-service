@@ -93,7 +93,8 @@ public class LicenceContinuationService {
   @Transactional
   public LicenceContinuationApplicationDetail createNewLicenceContinuationApplication(
       Licence licence,
-      Integer responsibleOrganisationUnitId
+      Integer responsibleOrganisationUnitId,
+      ServiceUserDetail user
   ) {
     var licenceScheduleDetail = licenceScheduleDetailService.getScheduleDetailByLicenceAndStatusOrThrow(
         licence,
@@ -110,6 +111,7 @@ public class LicenceContinuationService {
     licenceContinuationApplicationDetail.setVersionNumber(1);
     licenceContinuationApplicationDetail.setStatus(ApplicationStatus.DRAFT);
     licenceContinuationApplicationDetail.setCreatedDateTime(Instant.now(clock));
+    licenceContinuationApplicationDetail.setCreatedByWuaId(user.wuaId());
     licenceContinuationApplicationDetail.setResponsibleOrganisationUnitId(responsibleOrganisationUnitId);
 
     licenceContinuationApplicationDetailRepository.save(licenceContinuationApplicationDetail);

@@ -65,14 +65,17 @@ public class ScheduleWorkProgrammeApplicationService {
   @Transactional
   public ScheduleWorkProgrammeApplicationDetail createNewScheduleWorkProgrammeApplicationForLicence(
       @NotNull Licence licence,
-      LicenseeInformationForm licenseeInformationForm) {
+      LicenseeInformationForm licenseeInformationForm,
+      ServiceUserDetail user
+  ) {
     var scheduleWorkProgrammeApplication = createScheduleWorkProgrammeApplication(licence);
     var responsibleOrganisationUnitId = licenseeInformationForm.getResponsibleOrganisationUnitId();
     var savedScheduleWorkProgrammeApplication = scheduleWorkProgrammeApplicationRepository.save(scheduleWorkProgrammeApplication);
     var scheduleWorkProgrammeApplicationDetail = createScheduleWorkProgrammeApplicationDetail(
         savedScheduleWorkProgrammeApplication,
         licenseeInformationForm.getAllLicenseesPermissionConfirmed(),
-        responsibleOrganisationUnitId
+        responsibleOrganisationUnitId,
+        user
     );
 
     scheduleWorkProgrammeApplicationDetailRepository.save(scheduleWorkProgrammeApplicationDetail);
@@ -127,13 +130,15 @@ public class ScheduleWorkProgrammeApplicationService {
   private ScheduleWorkProgrammeApplicationDetail createScheduleWorkProgrammeApplicationDetail(
       ScheduleWorkProgrammeApplication scheduleWorkProgrammeApplication,
       Boolean allLicenseesPermissionConfirmed,
-      Integer responsibleOrganisationUnitId
+      Integer responsibleOrganisationUnitId,
+      ServiceUserDetail user
   ) {
     var scheduleWorkProgrammeApplicationDetail = new ScheduleWorkProgrammeApplicationDetail();
     scheduleWorkProgrammeApplicationDetail.setScheduleWorkProgrammeApplication(scheduleWorkProgrammeApplication);
     scheduleWorkProgrammeApplicationDetail.setVersionNumber(1);
     scheduleWorkProgrammeApplicationDetail.setStatus(ApplicationStatus.DRAFT);
     scheduleWorkProgrammeApplicationDetail.setCreatedDatetime(Instant.now(clock));
+    scheduleWorkProgrammeApplicationDetail.setCreatedByWuaId(user.wuaId());
     scheduleWorkProgrammeApplicationDetail.setAllLicenseesPermissionConfirmed(allLicenseesPermissionConfirmed);
     scheduleWorkProgrammeApplicationDetail.setResponsibleOrganisationUnitId(responsibleOrganisationUnitId);
 

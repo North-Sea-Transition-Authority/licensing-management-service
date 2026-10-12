@@ -1,4 +1,4 @@
-package uk.co.nstauthority.licensingmanagementservice.teams.management;
+package uk.co.nstauthority.licensingmanagementservice.licence.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.lenient;
@@ -19,8 +19,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.fivium.energyportal.serviceproviders.epmq.ScopeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplication;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplicationDetail;
-import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService;
-import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.Team;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
@@ -226,12 +224,10 @@ class ApplicationAccessServiceTest {
   void userHasIndustryAccessToApplication_whenRegulatorOnlyAndSubmitted_returnsFalse() {
     var role = buildTeamRole(Role.STEWARD_OFFSHORE, buildTeam(TeamType.LICENCE_MANAGEMENT));
 
-    when(teamQueryService.getTeamRolesForUser(USER_1_WUA_ID)).thenReturn(Set.of(role));
-
     assertThat(applicationAccessService.userHasIndustryAccessToApplication(
         mockApplicationDetail(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION, null, Instant.now()),
         Map.of(ORG_UNIT_ID, ORG_GROUP_ID),
-        USER_1_WUA_ID
+        Set.of(role)
     )).isFalse();
   }
 
@@ -242,12 +238,10 @@ class ApplicationAccessServiceTest {
     orgTeam.setScopeType(ScopeType.ORGANISATION_GROUP.name());
     var role = buildTeamRole(Role.APPLICATION_SUBMITTER, orgTeam);
 
-    when(teamQueryService.getTeamRolesForUser(USER_1_WUA_ID)).thenReturn(Set.of(role));
-
     assertThat(applicationAccessService.userHasIndustryAccessToApplication(
         mockApplicationDetail(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION, null, Instant.now()),
         Map.of(ORG_UNIT_ID, ORG_GROUP_ID),
-        USER_1_WUA_ID
+        Set.of(role)
     )).isTrue();
   }
 

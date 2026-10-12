@@ -66,7 +66,7 @@ class IndustryRoleServiceTest {
 
     when(teamQueryService.getTeamRolesForUser(organisationUser.wuaId())).thenReturn(Set.of(teamRole));
 
-    assertThat(industryRoleService.userHasEditorOrSubmitterRoleInOrganisationGroup(organisationUser)).isTrue();
+    assertThat(industryRoleService.userHasEditorOrSubmitterRoleInOrganisationGroup(organisationUser.wuaId())).isTrue();
   }
 
   @Test
@@ -84,7 +84,7 @@ class IndustryRoleServiceTest {
 
     when(teamQueryService.getTeamRolesForUser(organisationUser.wuaId())).thenReturn(Set.of(teamRole));
 
-    assertThat(industryRoleService.userHasEditorOrSubmitterRoleInOrganisationGroup(organisationUser)).isFalse();
+    assertThat(industryRoleService.userHasEditorOrSubmitterRoleInOrganisationGroup(organisationUser.wuaId())).isFalse();
   }
 
   @Test
@@ -96,7 +96,7 @@ class IndustryRoleServiceTest {
 
     when(organisationGroupQueryService.getOrganisationUnitsByOrganisationGroupIds(any())).thenReturn(List.of(unitJson1, unitJson2));
 
-    var result = industryRoleService.getEditorOrSubmitterOrganisationUnitIds(organisationUser);
+    var result = industryRoleService.getEditorOrSubmitterOrganisationUnitIds(organisationUser.wuaId());
 
     assertThat(result).containsExactlyInAnyOrder(unitId1, unitId2);
   }
@@ -105,7 +105,7 @@ class IndustryRoleServiceTest {
   void getEditorOrSubmitterOrganisationUnitIds_whenNoGroups_returnsEmptySet() {
     when(organisationGroupQueryService.getOrganisationUnitsByOrganisationGroupIds(List.of())).thenReturn(List.of());
 
-    var result = industryRoleService.getEditorOrSubmitterOrganisationUnitIds(organisationUser);
+    var result = industryRoleService.getEditorOrSubmitterOrganisationUnitIds(organisationUser.wuaId());
 
     assertThat(result).isEmpty();
   }

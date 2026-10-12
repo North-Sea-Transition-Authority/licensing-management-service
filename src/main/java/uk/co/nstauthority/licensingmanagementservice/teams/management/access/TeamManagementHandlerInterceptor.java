@@ -122,7 +122,7 @@ public class TeamManagementHandlerInterceptor implements HandlerInterceptor {
         && teamManagementService.userCanManageAnyOrganisationTeam(wuaId))) {
       return true;
     } else if (team.getTeamType().isApplicationScoped()
-               && industryRoleService.userHasEditorOrSubmitterRoleInOrganisationGroup(userDetailService.getUserDetail())) {
+               && industryRoleService.userHasEditorOrSubmitterRoleInOrganisationGroup(wuaId)) {
       return true;
     } else {
       throw new ResponseStatusException(

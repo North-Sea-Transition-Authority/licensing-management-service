@@ -34,8 +34,16 @@ public class RegulatorRoleService {
     return teamQueryService.userIsInRegulatorTeam(userDetail.wuaId());
   }
 
+  public boolean isRegulator(Set<TeamRole> teamRoles) {
+    return teamRoles.stream().anyMatch(teamRole -> teamRole.getTeam().getTeamType().isRegulator());
+  }
+
   public boolean isContinuationReviewer(ServiceUserDetail userDetail) {
-    return hasAnyRole(userDetail, CONTINUATION_REVIEWER_ROLES);
+    return isContinuationReviewer(teamQueryService.getTeamRolesForUser(userDetail.wuaId()));
+  }
+
+  public boolean isContinuationReviewer(Set<TeamRole> teamRoles) {
+    return hasAnyRole(teamRoles, CONTINUATION_REVIEWER_ROLES);
   }
 
   public boolean isContinuationIssuer(ServiceUserDetail userDetail) {
@@ -54,12 +62,12 @@ public class RegulatorRoleService {
     );
   }
 
-  public boolean isDecisionIssuer(ServiceUserDetail userDetail) {
-    return hasAnyRole(userDetail, DECISION_ISSUER_ROLES);
+  public boolean isDecisionIssuer(Set<TeamRole> teamRoles) {
+    return hasAnyRole(teamRoles, DECISION_ISSUER_ROLES);
   }
 
-  public Set<LicenceType> getStewardOrCaseManagerLicenceTypes(ServiceUserDetail userDetail) {
-    var userRoles = teamQueryService.getTeamRolesForUser(userDetail.wuaId()).stream()
+  public Set<LicenceType> getStewardOrCaseManagerLicenceTypes(Set<TeamRole> teamRoles) {
+    var userRoles = teamRoles.stream()
         .map(TeamRole::getRole)
         .collect(Collectors.toSet());
 
@@ -75,8 +83,8 @@ public class RegulatorRoleService {
         .collect(Collectors.toSet());
   }
 
-  private boolean hasAnyRole(ServiceUserDetail userDetail, Set<Role> roles) {
-    return teamQueryService.getTeamRolesForUser(userDetail.wuaId()).stream()
+  private boolean hasAnyRole(Set<TeamRole> teamRoles, Set<Role> roles) {
+    return teamRoles.stream()
         .anyMatch(teamRole -> roles.contains(teamRole.getRole()));
   }
 }

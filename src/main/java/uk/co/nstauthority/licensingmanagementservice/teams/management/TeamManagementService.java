@@ -21,7 +21,6 @@ import org.springframework.web.server.ResponseStatusException;
 import uk.co.fivium.energyportal.starter.accounts.EnergyPortalServiceAccessService;
 import uk.co.fivium.energyportal.starter.serviceproviders.EnergyPortalAccountsMessagePublishingService;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
-import uk.co.nstauthority.licensingmanagementservice.authentication.UserDetailService;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserJson;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserService;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.WebUserAccountId;
@@ -54,7 +53,6 @@ public class TeamManagementService {
   private final EnergyPortalServiceAccessService energyPortalServiceAccessService;
   private final EnergyPortalAccountsMessagePublishingService energyPortalAccountsMessagePublishingService;
   private final IndustryRoleService industryRoleService;
-  private final UserDetailService userDetailService;
 
   TeamManagementService(
       TeamRepository teamRepository,
@@ -63,8 +61,7 @@ public class TeamManagementService {
       EnergyPortalUserService energyPortalUserService,
       EnergyPortalServiceAccessService energyPortalServiceAccessService,
       EnergyPortalAccountsMessagePublishingService energyPortalAccountsMessagePublishingService,
-      IndustryRoleService industryRoleService,
-      UserDetailService userDetailService
+      IndustryRoleService industryRoleService
   ) {
     this.teamRepository = teamRepository;
     this.teamRoleRepository = teamRoleRepository;
@@ -73,7 +70,6 @@ public class TeamManagementService {
     this.energyPortalServiceAccessService = energyPortalServiceAccessService;
     this.energyPortalAccountsMessagePublishingService = energyPortalAccountsMessagePublishingService;
     this.industryRoleService = industryRoleService;
-    this.userDetailService = userDetailService;
   }
 
   public Team createScopedTeam(String name, TeamType teamType, TeamScopeReference scopeRef) {
@@ -133,7 +129,7 @@ public class TeamManagementService {
       // If we want org teams, and the user is a regulator who can manage any org team, include all the org teams.
       teams.addAll(getAllScopedTeamsOfType(TeamType.ORGANISATION));
     } else if (teamType.isApplicationScoped()
-               && industryRoleService.userHasEditorOrSubmitterRoleInOrganisationGroup(userDetailService.getUserDetail())) {
+               && industryRoleService.userHasEditorOrSubmitterRoleInOrganisationGroup(wuaId)) {
       teams.addAll(getAllScopedTeamsOfType(teamType));
     }
 

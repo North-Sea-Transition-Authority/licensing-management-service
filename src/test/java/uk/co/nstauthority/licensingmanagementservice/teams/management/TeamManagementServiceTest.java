@@ -32,7 +32,6 @@ import uk.co.fivium.energyportal.starter.serviceproviders.EnergyPortalAccountsMe
 import uk.co.fivium.energyportalapi.generated.types.User;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.authentication.UserDetailService;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserJson;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserService;
@@ -78,9 +77,6 @@ class TeamManagementServiceTest {
 
   @Mock
   private IndustryRoleService industryRoleService;
-
-  @Mock
-  private UserDetailService userDetailService;
 
   @InjectMocks
   private TeamManagementService teamManagementService;
@@ -291,8 +287,7 @@ class TeamManagementServiceTest {
 
   @Test
   void getScopedTeamOfTypeUserCanManage_regulatorWithRoleCanManageAllExternalContributors() {
-    when(userDetailService.getUserDetail()).thenReturn(userDetail);
-    when(industryRoleService.userHasEditorOrSubmitterRoleInOrganisationGroup(userDetail)).thenReturn(true);
+    when(industryRoleService.userHasEditorOrSubmitterRoleInOrganisationGroup(10L)).thenReturn(true);
     when(teamRepository.findByTeamType(TeamType.EXTERNAL_CONTRIBUTORS)).thenReturn(List.of(externalTeam1, externalTeam2));
 
     assertThat(teamManagementService.getScopedTeamsOfTypeUserCanManage(TeamType.EXTERNAL_CONTRIBUTORS, 10L))

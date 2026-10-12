@@ -1,10 +1,10 @@
 package uk.co.nstauthority.licensingmanagementservice.teams;
 
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import uk.co.fivium.energyportal.serviceproviders.epmq.ScopeType;
-import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisationgroup.OrganisationGroupQueryService;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitJson;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
@@ -32,8 +32,8 @@ public class IndustryRoleService {
     return teamQueryService.userHasRoleInTeamType(wuaId, TeamType.ORGANISATION, EDITOR_SUBMITTER_ROLES);
   }
 
-  public boolean userHasEditorOrSubmitterRoleInOrganisationGroup(ServiceUserDetail userDetail) {
-    return !getEditorOrSubmitterOrganisationGroupIds(userDetail).isEmpty();
+  public boolean userHasEditorOrSubmitterRoleInOrganisationGroup(Long wuaId) {
+    return !getEditorOrSubmitterOrganisationGroupIds(wuaId).isEmpty();
   }
 
   public boolean userIsSubmitterForOrganisationUnit(Integer organisationUnitId, Long wuaId) {
@@ -47,17 +47,17 @@ public class IndustryRoleService {
         .orElse(false);
   }
 
-  public Set<Integer> getEditorOrSubmitterOrganisationUnitIds(ServiceUserDetail userDetail) {
+  public Set<Integer> getEditorOrSubmitterOrganisationUnitIds(Long wuaId) {
     return organisationGroupQueryService.getOrganisationUnitsByOrganisationGroupIds(
-            getEditorOrSubmitterOrganisationGroupIds(userDetail).stream().toList()
+            List.copyOf(getEditorOrSubmitterOrganisationGroupIds(wuaId))
         )
         .stream()
         .map(OrganisationUnitJson::organisationUnitId)
         .collect(Collectors.toSet());
   }
 
-  private Set<Integer> getEditorOrSubmitterOrganisationGroupIds(ServiceUserDetail userDetail) {
-    return teamQueryService.getTeamRolesForUser(userDetail.wuaId())
+  private Set<Integer> getEditorOrSubmitterOrganisationGroupIds(Long wuaId) {
+    return teamQueryService.getTeamRolesForUser(wuaId)
         .stream()
         .filter(teamRole ->
                     teamRole.getTeam().getTeamType() == TeamType.ORGANISATION

@@ -220,11 +220,14 @@ public class LicenceResponsibleOrganisationService {
         .map(LicenceResponsibleOrganisation::getResponsibleOrganisationId)
         .toList();
 
+    var hasEditorOrSubmitterRole = industryRoleService
+        .userHasEditorOrSubmitterRoleInOrganisationGroup(serviceUserDetail.wuaId());
+
     return licenceOrganisationService
         .getUsersOrgUnits(serviceUserDetail)
         .stream()
-        .filter(orgUnit -> licenceResponsibleOrganisationIds.contains(orgUnit.organisationUnitId())
-                           && industryRoleService.userHasEditorOrSubmitterRoleInOrganisationGroup(serviceUserDetail))
+        .filter(orgUnit -> hasEditorOrSubmitterRole
+                           && licenceResponsibleOrganisationIds.contains(orgUnit.organisationUnitId()))
         .collect(Collectors.toMap(OrganisationUnitJson::getId, OrganisationUnitJson::getName));
   }
 

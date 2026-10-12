@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyMap;
+import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -44,6 +45,7 @@ import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.query.SearchResultItem;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryDataView;
 import uk.co.nstauthority.licensingmanagementservice.teams.RegulatorRoleService;
+import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
 import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.WorkAreaDataItemType;
 import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.WorkAreaItemView;
 import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.WorkAreaItemViewService;
@@ -53,6 +55,9 @@ class ContinuationApplicationWorkAreaServiceTest {
 
   @Mock
   private RegulatorRoleService regulatorRoleService;
+
+  @Mock
+  private TeamQueryService teamQueryService;
 
   @Mock
   private LicenceContinuationService licenceContinuationService;
@@ -408,13 +413,13 @@ class ContinuationApplicationWorkAreaServiceTest {
     when(applicationAccessService.userHasIndustryAccessToApplication(
         eq(licenceContinuationApplicationDetail),
         anyMap(),
-        eq(serviceUserDetail.wuaId())
+        anySet()
     )).thenReturn(true);
 
     when(applicationAccessService.userHasIndustryAccessToApplication(
         eq(licenceContinuationApplicationDetail2),
         anyMap(),
-        eq(serviceUserDetail.wuaId())
+        anySet()
     )).thenReturn(false);
 
     var org1 = "Org 1";
@@ -511,12 +516,12 @@ class ContinuationApplicationWorkAreaServiceTest {
     when(applicationAccessService.userHasIndustryAccessToApplication(
         eq(licenceContinuationApplicationDetail),
         anyMap(),
-        eq(serviceUserDetail.wuaId())
+        anySet()
     )).thenReturn(false);
     when(applicationAccessService.userHasIndustryAccessToApplication(
         eq(licenceContinuationApplicationDetail2),
         anyMap(),
-        eq(serviceUserDetail.wuaId())
+        anySet()
     )).thenReturn(true);
 
     when(licenceResponsibleOrganisationService.getResponsibleOrganisationsByLicences(any()))
@@ -552,7 +557,7 @@ class ContinuationApplicationWorkAreaServiceTest {
     when(licenceContinuationService.getAllContinuationApplicationDetailsByStatuses(any()))
         .thenReturn(List.of(licenceContinuationApplicationDetail, licenceContinuationApplicationDetail2));
     mockRegulatorWithoutIndustryAccess();
-    when(regulatorRoleService.isDecisionIssuer(serviceUserDetail)).thenReturn(true);
+    when(regulatorRoleService.isDecisionIssuer(anySet())).thenReturn(true);
     when(licenceResponsibleOrganisationService.getResponsibleOrganisationsByLicences(any()))
         .thenReturn(Map.of(licence2, List.of(new OrganisationUnit(1, "Org 1"))));
 
@@ -570,9 +575,9 @@ class ContinuationApplicationWorkAreaServiceTest {
     when(applicationAccessService.userHasIndustryAccessToApplication(
         eq(licenceContinuationApplicationDetail),
         anyMap(),
-        eq(serviceUserDetail.wuaId())
+        anySet()
     )).thenReturn(false);
-    when(regulatorRoleService.isRegulator(serviceUserDetail)).thenReturn(true);
+    when(regulatorRoleService.isRegulator(anySet())).thenReturn(true);
 
     var workAreaItems = continuationApplicationWorkAreaService.getWorkAreaItems(new WorkAreaFilterForm(), serviceUserDetail);
 
@@ -586,7 +591,7 @@ class ContinuationApplicationWorkAreaServiceTest {
     when(licenceContinuationService.getAllContinuationApplicationDetailsByStatuses(any()))
         .thenReturn(List.of(licenceContinuationApplicationDetail, licenceContinuationApplicationDetail2));
     mockRegulatorWithoutIndustryAccess();
-    when(regulatorRoleService.isContinuationReviewer(serviceUserDetail)).thenReturn(true);
+    when(regulatorRoleService.isContinuationReviewer(anySet())).thenReturn(true);
 
     var workAreaItems = continuationApplicationWorkAreaService.getWorkAreaItems(new WorkAreaFilterForm(), serviceUserDetail);
 
@@ -639,7 +644,7 @@ class ContinuationApplicationWorkAreaServiceTest {
     when(applicationAccessService.userHasIndustryAccessToApplication(
         eq(licenceContinuationApplicationDetail),
         anyMap(),
-        eq(serviceUserDetail.wuaId())
+        anySet()
     )).thenReturn(true);
     when(licenceResponsibleOrganisationService.getResponsibleOrganisationsByLicences(any()))
         .thenReturn(Map.of(licence1, List.of(new OrganisationUnit(1, "Org 1"))));
@@ -664,7 +669,7 @@ class ContinuationApplicationWorkAreaServiceTest {
     when(applicationAccessService.userHasIndustryAccessToApplication(
         eq(licenceContinuationApplicationDetail),
         anyMap(),
-        eq(serviceUserDetail.wuaId())
+        anySet()
     )).thenReturn(true);
     when(licenceResponsibleOrganisationService.getResponsibleOrganisationsByLicences(any()))
         .thenReturn(Map.of(licence1, List.of(new OrganisationUnit(1, "Org 1"))));
@@ -725,18 +730,18 @@ class ContinuationApplicationWorkAreaServiceTest {
     when(applicationAccessService.userHasIndustryAccessToApplication(
         eq(licenceContinuationApplicationDetail),
         anyMap(),
-        eq(serviceUserDetail.wuaId())
+        anySet()
     )).thenReturn(false);
     when(applicationAccessService.userHasIndustryAccessToApplication(
         eq(licenceContinuationApplicationDetail2),
         anyMap(),
-        eq(serviceUserDetail.wuaId())
+        anySet()
     )).thenReturn(false);
-    when(regulatorRoleService.isRegulator(serviceUserDetail)).thenReturn(true);
+    when(regulatorRoleService.isRegulator(anySet())).thenReturn(true);
   }
 
   private void mockContinuationReviewerWithoutIndustryAccess() {
     mockRegulatorWithoutIndustryAccess();
-    when(regulatorRoleService.isContinuationReviewer(serviceUserDetail)).thenReturn(true);
+    when(regulatorRoleService.isContinuationReviewer(anySet())).thenReturn(true);
   }
 }

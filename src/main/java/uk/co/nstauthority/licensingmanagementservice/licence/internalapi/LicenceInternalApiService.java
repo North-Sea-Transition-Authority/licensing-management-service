@@ -62,7 +62,7 @@ public class LicenceInternalApiService {
       LicenceScheduleDetailStatus status,
       ServiceUserDetail serviceUserDetail
   ) {
-    var usersOrganisationUnitIds = industryRoleService.getEditorOrSubmitterOrganisationUnitIds(serviceUserDetail);
+    var usersOrganisationUnitIds = industryRoleService.getEditorOrSubmitterOrganisationUnitIds(serviceUserDetail.wuaId());
 
     var licenceScheduleDetails = licenceScheduleDetailService.searchByLicenceReferenceLicenceTypeAndStatus(
         searchTerm,

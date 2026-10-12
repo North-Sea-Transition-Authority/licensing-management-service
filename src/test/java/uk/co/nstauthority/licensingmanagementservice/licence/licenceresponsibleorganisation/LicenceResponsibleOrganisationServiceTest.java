@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -59,12 +60,15 @@ class LicenceResponsibleOrganisationServiceTest {
 
   private static final Long ORGANISATION_USER_WUA_ID = 2L;
 
-  @Test
-  void getAllByLicence() {
+  @BeforeEach
+  void setUp() {
     organisationUser = ServiceUserDetailTestUtil.newBuilder()
         .withWuaId(ORGANISATION_USER_WUA_ID)
         .build();
+  }
 
+  @Test
+  void getAllByLicence() {
     var licence = new Licence();
 
     licenceResponsibleOrganisationService.getAllByLicence(licence);
@@ -235,7 +239,7 @@ class LicenceResponsibleOrganisationServiceTest {
 
     OrganisationUnitJson ou1 = new OrganisationUnitJson(2, "Org Two");
     OrganisationUnitJson ou2 = new OrganisationUnitJson(3, "Org Three");
-    when(industryRoleService.userHasEditorOrSubmitterRoleInOrganisationGroup(organisationUser)).thenReturn(true);
+    when(industryRoleService.userHasEditorOrSubmitterRoleInOrganisationGroup(organisationUser.wuaId())).thenReturn(true);
     when(licenceOrganisationService.getUsersOrgUnits(organisationUser)).thenReturn(List.of(ou1, ou2));
 
     var result = licenceResponsibleOrganisationService.getResponsibleOrgUnitOptionsWithValidRoles(licence, organisationUser);

@@ -100,19 +100,38 @@ class RegulatorRoleServiceTest {
   }
 
   @Test
-  void isDecisionIssuer_whenUserHasDecisionIssuerRole_returnsTrue() {
-    var teamRole = new TeamRole();
-    teamRole.setRole(Role.DECISION_ISSUER_ONSHORE);
-    when(teamQueryService.getTeamRolesForUser(USER.wuaId())).thenReturn(Set.of(teamRole));
+  void isRegulator_withTeamRoles_whenInRegulatorTeam_returnsTrue() {
+    var team = TeamTestUtil.newBuilder().withTeamType(TeamType.LICENCE_MANAGEMENT).build();
+    var teamRole = TeamRoleTestUtil.newBuilder().withTeam(team).build();
 
-    assertThat(regulatorRoleService.isDecisionIssuer(USER)).isTrue();
+    assertThat(regulatorRoleService.isRegulator(Set.of(teamRole))).isTrue();
+  }
+
+  @Test
+  void isRegulator_withTeamRoles_whenNotInRegulatorTeam_returnsFalse() {
+    var team = TeamTestUtil.newBuilder().withTeamType(TeamType.ORGANISATION).build();
+    var teamRole = TeamRoleTestUtil.newBuilder().withTeam(team).build();
+
+    assertThat(regulatorRoleService.isRegulator(Set.of(teamRole))).isFalse();
+  }
+
+  @Test
+  void isContinuationReviewer_withTeamRoles_whenUserHasRole_returnsTrue() {
+    var teamRole = TeamRoleTestUtil.newBuilder().withRole(Role.CONTINUATION_REVIEWER_OFFSHORE).build();
+
+    assertThat(regulatorRoleService.isContinuationReviewer(Set.of(teamRole))).isTrue();
+  }
+
+  @Test
+  void isDecisionIssuer_whenUserHasDecisionIssuerRole_returnsTrue() {
+    var teamRole = TeamRoleTestUtil.newBuilder().withRole(Role.DECISION_ISSUER_ONSHORE).build();
+
+    assertThat(regulatorRoleService.isDecisionIssuer(Set.of(teamRole))).isTrue();
   }
 
   @Test
   void isDecisionIssuer_whenUserDoesNotHaveDecisionIssuerRole_returnsFalse() {
-    when(teamQueryService.getTeamRolesForUser(USER.wuaId())).thenReturn(Set.of());
-
-    assertThat(regulatorRoleService.isDecisionIssuer(USER)).isFalse();
+    assertThat(regulatorRoleService.isDecisionIssuer(Set.of())).isFalse();
   }
 
   @Test
@@ -120,9 +139,8 @@ class RegulatorRoleServiceTest {
     var stewardRole = TeamRoleTestUtil.newBuilder().withRole(Role.STEWARD_OFFSHORE).build();
     var caseManagerRole = TeamRoleTestUtil.newBuilder().withRole(Role.CASE_MANAGER_ONSHORE).build();
     var unrelatedRole = TeamRoleTestUtil.newBuilder().withRole(Role.DECISION_ISSUER_CARBON_STORAGE).build();
-    when(teamQueryService.getTeamRolesForUser(USER.wuaId())).thenReturn(Set.of(stewardRole, caseManagerRole, unrelatedRole));
 
-    var result = regulatorRoleService.getStewardOrCaseManagerLicenceTypes(USER);
+    var result = regulatorRoleService.getStewardOrCaseManagerLicenceTypes(Set.of(stewardRole, caseManagerRole, unrelatedRole));
 
     assertThat(result).isEqualTo(Set.of(LicenceType.SEAWARD_PRODUCTION, LicenceType.LANDWARD_PRODUCTION));
   }
@@ -130,8 +148,7 @@ class RegulatorRoleServiceTest {
   @Test
   void getStewardOrCaseManagerLicenceTypes_whenNoStewardOrCaseManagerRole_returnsEmptySet() {
     var unrelatedRole = TeamRoleTestUtil.newBuilder().withRole(Role.DECISION_ISSUER_ONSHORE).build();
-    when(teamQueryService.getTeamRolesForUser(USER.wuaId())).thenReturn(Set.of(unrelatedRole));
 
-    assertThat(regulatorRoleService.getStewardOrCaseManagerLicenceTypes(USER)).isEmpty();
+    assertThat(regulatorRoleService.getStewardOrCaseManagerLicenceTypes(Set.of(unrelatedRole))).isEmpty();
   }
 }

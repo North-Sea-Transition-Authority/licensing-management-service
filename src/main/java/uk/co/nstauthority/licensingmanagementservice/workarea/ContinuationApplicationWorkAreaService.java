@@ -30,6 +30,8 @@ import uk.co.nstauthority.licensingmanagementservice.phasedrelease.ReleaseFeatur
 import uk.co.nstauthority.licensingmanagementservice.query.SearchResultItem;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryDataView;
 import uk.co.nstauthority.licensingmanagementservice.teams.RegulatorRoleService;
+import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
+import uk.co.nstauthority.licensingmanagementservice.teams.TeamRole;
 import uk.co.nstauthority.licensingmanagementservice.util.FilterUtil;
 import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.WorkAreaDataItemType;
 import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.WorkAreaItemView;
@@ -41,6 +43,7 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
   private final LicenceContinuationService licenceContinuationService;
   private final ApplicationAccessService applicationAccessService;
   private final RegulatorRoleService regulatorRoleService;
+  private final TeamQueryService teamQueryService;
   private final WorkAreaItemViewService workAreaItemViewService;
   private final LicenceResponsibleOrganisationService licenceResponsibleOrganisationService;
   private final OrganisationGroupQueryService organisationGroupQueryService;
@@ -49,6 +52,7 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
       LicenceContinuationService licenceContinuationService,
       ApplicationAccessService applicationAccessService,
       RegulatorRoleService regulatorRoleService,
+      TeamQueryService teamQueryService,
       WorkAreaItemViewService workAreaItemViewService,
       LicenceResponsibleOrganisationService licenceResponsibleOrganisationService,
       OrganisationGroupQueryService organisationGroupQueryService
@@ -56,6 +60,7 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
     this.licenceContinuationService = licenceContinuationService;
     this.applicationAccessService = applicationAccessService;
     this.regulatorRoleService = regulatorRoleService;
+    this.teamQueryService = teamQueryService;
     this.workAreaItemViewService = workAreaItemViewService;
     this.licenceResponsibleOrganisationService = licenceResponsibleOrganisationService;
     this.organisationGroupQueryService = organisationGroupQueryService;
@@ -71,11 +76,12 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
       WorkAreaFilterForm workAreaFilterForm,
       ServiceUserDetail serviceUserDetail
   ) {
+    var userTeamRoles = teamQueryService.getTeamRolesForUser(serviceUserDetail.wuaId());
     var regulatorRoles = new RegulatorRoles(
-        regulatorRoleService.isRegulator(serviceUserDetail),
+        regulatorRoleService.isRegulator(userTeamRoles),
         regulatorRoleService.isContinuationIssuer(serviceUserDetail),
-        regulatorRoleService.isContinuationReviewer(serviceUserDetail),
-        regulatorRoleService.isDecisionIssuer(serviceUserDetail)
+        regulatorRoleService.isContinuationReviewer(userTeamRoles),
+        regulatorRoleService.isDecisionIssuer(userTeamRoles)
     );
 
     var allApplicationDetails = licenceContinuationService
@@ -108,7 +114,7 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
             applicationDetail,
             licenceByApplicationDetail.get(applicationDetail),
             workAreaFilterForm,
-            serviceUserDetail,
+            userTeamRoles,
             responsibleOrganisations,
             orgUnitToGroupMap,
             licenseeGroupOrgUnitIds,
@@ -210,7 +216,7 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
       LicenceContinuationApplicationDetail applicationDetail,
       Licence licence,
       WorkAreaFilterForm filterForm,
-      ServiceUserDetail userDetail,
+      Set<TeamRole> userTeamRoles,
       Map<Licence, List<OrganisationUnit>> responsibleOrganisations,
       Map<Integer, Integer> orgUnitToGroupMap,
       List<Integer> licenseeGroupOrgUnitIds,
@@ -261,7 +267,7 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
     var hasIndustryAccess = applicationAccessService.userHasIndustryAccessToApplication(
         applicationDetail,
         licenceOrgUnitGroupMap,
-        userDetail.wuaId()
+        userTeamRoles
     );
 
     if (hasIndustryAccess) {

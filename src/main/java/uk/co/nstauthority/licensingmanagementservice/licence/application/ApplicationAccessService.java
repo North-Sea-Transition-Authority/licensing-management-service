@@ -43,18 +43,10 @@ public class ApplicationAccessService {
       return true;
     }
 
-    return hasIndustryAccess(applicationDetail, orgUnitIdToGroupId, teamRoles);
+    return userHasIndustryAccessToApplication(applicationDetail, orgUnitIdToGroupId, teamRoles);
   }
 
   public boolean userHasIndustryAccessToApplication(
-      LicenceApplicationDetail applicationDetail,
-      Map<Integer, Integer> orgUnitIdToGroupId,
-      Long wuaId
-  ) {
-    return hasIndustryAccess(applicationDetail, orgUnitIdToGroupId, teamQueryService.getTeamRolesForUser(wuaId));
-  }
-
-  private boolean hasIndustryAccess(
       LicenceApplicationDetail applicationDetail,
       Map<Integer, Integer> orgUnitIdToGroupId,
       Set<TeamRole> teamRoles

@@ -69,7 +69,7 @@ class LicenceInternalApiServiceTest {
   void searchLicencesWithInProgressSchedulesByReferenceTypeAndStatus() {
     serviceUserDetail = ServiceUserDetailTestUtil.newBuilder().withWuaId(1L).build();
     int authorizedUnitId = 99;
-    when(industryRoleService.getEditorOrSubmitterOrganisationUnitIds(serviceUserDetail)).thenReturn(Set.of(authorizedUnitId));
+    when(industryRoleService.getEditorOrSubmitterOrganisationUnitIds(serviceUserDetail.wuaId())).thenReturn(Set.of(authorizedUnitId));
 
     var searchTerm = "term";
     var licenceType = LicenceType.CARBON_STORAGE;
@@ -115,7 +115,7 @@ class LicenceInternalApiServiceTest {
   void searchLicencesWithInProgressSchedulesByReferenceTypeAndStatus_whenLicenceNotExtant_thenNotReturned() {
     serviceUserDetail = ServiceUserDetailTestUtil.newBuilder().withWuaId(1L).build();
     int authorizedUnitId = 99;
-    when(industryRoleService.getEditorOrSubmitterOrganisationUnitIds(serviceUserDetail)).thenReturn(Set.of(authorizedUnitId));
+    when(industryRoleService.getEditorOrSubmitterOrganisationUnitIds(serviceUserDetail.wuaId())).thenReturn(Set.of(authorizedUnitId));
 
     var searchTerm = "term";
     var licenceType = LicenceType.CARBON_STORAGE;

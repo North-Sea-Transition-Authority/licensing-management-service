@@ -137,7 +137,7 @@ public class CrossLicenceEventTrackerService {
     var isRegulator = regulatorRoleService.isRegulator(user);
     var ownOrganisationUnitIds = isRegulator
         ? List.<Integer>of()
-        : industryRoleService.getEditorOrSubmitterOrganisationUnitIds(user).stream().toList();
+        : industryRoleService.getEditorOrSubmitterOrganisationUnitIds(user.wuaId()).stream().toList();
 
     var tableBuilder = SortableTableView.sortableTableBuilder()
         .newWithHeadings(

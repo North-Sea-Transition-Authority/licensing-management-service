@@ -50,6 +50,7 @@ import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.query.SearchResultItem;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryDataView;
 import uk.co.nstauthority.licensingmanagementservice.teams.RegulatorRoleService;
+import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
 import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.WorkAreaDataItemType;
 import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.WorkAreaItemView;
 import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.WorkAreaItemViewService;
@@ -71,6 +72,9 @@ class ScheduleAndWorkProgrammeApplicationWorkAreaServiceTest {
 
   @Mock
   private RegulatorRoleService regulatorRoleService;
+
+  @Mock
+  private TeamQueryService teamQueryService;
 
   @Mock
   private OrganisationGroupQueryService organisationGroupQueryService;
@@ -460,7 +464,7 @@ class ScheduleAndWorkProgrammeApplicationWorkAreaServiceTest {
   }
 
   private void mockIsDecisionIssuer() {
-    when(regulatorRoleService.isDecisionIssuer(serviceUserDetail)).thenReturn(true);
+    when(regulatorRoleService.isDecisionIssuer(anySet())).thenReturn(true);
   }
 
   @Test
@@ -770,8 +774,8 @@ class ScheduleAndWorkProgrammeApplicationWorkAreaServiceTest {
         .thenReturn(List.of(scheduleWorkProgrammeApplicationDetail1, scheduleWorkProgrammeApplicationDetail2));
     mockUserHasAccessToApplication(scheduleWorkProgrammeApplicationDetail1, false);
     mockUserHasAccessToApplication(scheduleWorkProgrammeApplicationDetail2, false);
-    when(regulatorRoleService.isRegulator(serviceUserDetail)).thenReturn(true);
-    when(regulatorRoleService.getStewardOrCaseManagerLicenceTypes(serviceUserDetail))
+    when(regulatorRoleService.isRegulator(anySet())).thenReturn(true);
+    when(regulatorRoleService.getStewardOrCaseManagerLicenceTypes(anySet()))
         .thenReturn(Set.of(LicenceType.SEAWARD_PRODUCTION));
     when(licenceResponsibleOrganisationService.getResponsibleOrganisationsByLicences(any()))
         .thenReturn(Map.of(licence1, List.of(new OrganisationUnit(1, "Org 1"))));
@@ -791,8 +795,8 @@ class ScheduleAndWorkProgrammeApplicationWorkAreaServiceTest {
     when(scheduleWorkProgrammeApplicationService.getAllScheduleWorkProgrammeApplicationDetailsByStatuses(anySet()))
         .thenReturn(List.of(scheduleWorkProgrammeApplicationDetail1));
     mockUserHasAccessToApplication(scheduleWorkProgrammeApplicationDetail1, false);
-    when(regulatorRoleService.isRegulator(serviceUserDetail)).thenReturn(true);
-    when(regulatorRoleService.getStewardOrCaseManagerLicenceTypes(serviceUserDetail))
+    when(regulatorRoleService.isRegulator(anySet())).thenReturn(true);
+    when(regulatorRoleService.getStewardOrCaseManagerLicenceTypes(anySet()))
         .thenReturn(Set.of(LicenceType.LANDWARD_PRODUCTION));
 
     var workAreaItems = scheduleAndWorkProgrammeApplicationWorkAreaService.getWorkAreaItems(new WorkAreaFilterForm(), serviceUserDetail);
@@ -808,8 +812,8 @@ class ScheduleAndWorkProgrammeApplicationWorkAreaServiceTest {
     when(scheduleWorkProgrammeApplicationService.getAllScheduleWorkProgrammeApplicationDetailsByStatuses(anySet()))
         .thenReturn(List.of(scheduleWorkProgrammeApplicationDetail1));
     mockUserHasAccessToApplication(scheduleWorkProgrammeApplicationDetail1, false);
-    when(regulatorRoleService.isRegulator(serviceUserDetail)).thenReturn(true);
-    when(regulatorRoleService.isDecisionIssuer(serviceUserDetail)).thenReturn(true);
+    when(regulatorRoleService.isRegulator(anySet())).thenReturn(true);
+    when(regulatorRoleService.isDecisionIssuer(anySet())).thenReturn(true);
     when(licenceResponsibleOrganisationService.getResponsibleOrganisationsByLicences(any()))
         .thenReturn(Map.of(licence1, List.of(new OrganisationUnit(1, "Org 1"))));
 
@@ -826,7 +830,7 @@ class ScheduleAndWorkProgrammeApplicationWorkAreaServiceTest {
         .thenReturn(List.of(scheduleWorkProgrammeApplicationDetail1, scheduleWorkProgrammeApplicationDetail2));
     mockUserHasAccessToApplication(scheduleWorkProgrammeApplicationDetail1, false);
     mockUserHasAccessToApplication(scheduleWorkProgrammeApplicationDetail2, false);
-    when(regulatorRoleService.isRegulator(serviceUserDetail)).thenReturn(true);
+    when(regulatorRoleService.isRegulator(anySet())).thenReturn(true);
 
     var workAreaItems = scheduleAndWorkProgrammeApplicationWorkAreaService.getWorkAreaItems(new WorkAreaFilterForm(), serviceUserDetail);
 
@@ -838,7 +842,7 @@ class ScheduleAndWorkProgrammeApplicationWorkAreaServiceTest {
     when(applicationAccessService.userHasIndustryAccessToApplication(
         eq(applicationDetail),
         anyMap(),
-        eq(serviceUserDetail.wuaId())
+        anySet()
     )).thenReturn(hasAccess);
   }
 

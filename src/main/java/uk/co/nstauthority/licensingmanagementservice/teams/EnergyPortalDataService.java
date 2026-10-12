@@ -40,6 +40,7 @@ class EnergyPortalDataService implements EnergyPortalServiceProviderDataService 
             team.getId().toString(),
             team.getScopeId(),
             ScopeType.ORGANISATION_GROUP,
+            team.getTeamType().isRegulator() ? team.getTeamType().getDisplayName() : null,
             team.getTeamType().name()
         ))
         .collect(toSet());

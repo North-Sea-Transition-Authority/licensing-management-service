@@ -34,26 +34,34 @@ class EnergyPortalDataServiceTest {
 
   @Test
   void getServiceProviderTeamDtos() {
-    var team1 = TeamTestUtil.newBuilder().build();
-    var team2 = TeamTestUtil.newBuilder().build();
+    var organisationTeam = TeamTestUtil.newBuilder()
+        .withTeamType(TeamType.ORGANISATION)
+        .build();
+    var regulatorTeam = TeamTestUtil.newBuilder()
+        .withTeamType(TeamType.LICENCE_MANAGEMENT)
+        .withScopeType(null)
+        .withScopeId(null)
+        .build();
 
-    var expectedDto1 = new ServiceProviderTeamDto(
-        team1.getId().toString(),
-        team1.getScopeId(),
+    var expectedOrganisationTeamDto = new ServiceProviderTeamDto(
+        organisationTeam.getId().toString(),
+        organisationTeam.getScopeId(),
         ScopeType.ORGANISATION_GROUP,
-        team1.getTeamType().name()
+        null,
+        organisationTeam.getTeamType().name()
     );
-    var expectedDto2 = new ServiceProviderTeamDto(
-        team2.getId().toString(),
-        team2.getScopeId(),
+    var expectedRegulatorTeamDto = new ServiceProviderTeamDto(
+        regulatorTeam.getId().toString(),
+        null,
         ScopeType.ORGANISATION_GROUP,
-        team2.getTeamType().name()
+        "Licence management",
+        regulatorTeam.getTeamType().name()
     );
 
-    when(teamRepository.findAll()).thenReturn(List.of(team1, team2));
+    when(teamRepository.findAll()).thenReturn(List.of(organisationTeam, regulatorTeam));
 
     assertThat(energyPortalDataService.getServiceProviderTeamDtos())
-        .containsExactlyInAnyOrder(expectedDto1, expectedDto2);
+        .containsExactlyInAnyOrder(expectedOrganisationTeamDto, expectedRegulatorTeamDto);
   }
 
   @Test

@@ -15,3 +15,5 @@ export type ValidatePolygonReconstructionFromPolylinesHandler = ArcGisServiceHan
 export type PolygonContainsHandler = ArcGisServiceHandlers["polygonContains"];
 export type MultiPartToSinglePartHandler = ArcGisServiceHandlers["multiPartToSinglePart"];
 export type CropToBoundaryHandler = ArcGisServiceHandlers["cropToBoundary"];
+export type Find2dOverlappingFeaturesHandler = ArcGisServiceHandlers["find2dOverlappingFeatures"];
+export type BuildFeaturePolygonsHandler = ArcGisServiceHandlers["buildFeaturePolygons"];

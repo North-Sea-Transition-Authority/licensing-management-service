@@ -7,11 +7,13 @@ import grpc from "@grpc/grpc-js";
 import protoLoader from "@grpc/proto-loader";
 import express from "express";
 import { logger } from "./config/logger";
+import { buildFeaturePolygonsHandler } from "./handlers/build-feature-polygons-handler";
 import { buildPolygonHandler } from "./handlers/build-polygon-handler";
 import { calculateAreaHandler } from "./handlers/calculate-area-operator-handler";
 import { coordinatesToPolylineHandler } from "./handlers/coordinates-to-polyline-handler";
 import { cropToBoundaryHandler } from "./handlers/crop-to-boundary-handler";
 import { explodePolygonHandler } from "./handlers/explode-polygon-handler";
+import { find2dOverlappingFeaturesHandler } from "./handlers/find-2d-overlapping-features-handler";
 import { findNorthwestMostLineHandler } from "./handlers/find-northwest-most-line-handler";
 import { findParentLinesHandler } from "./handlers/find-parent-lines-handler";
 import { generalizePolygonHandler } from "./handlers/generalize-polygon-handler";
@@ -85,6 +87,8 @@ function startGrpcServer(arcGisJsProto: ProtoGrpcType["uk"]["co"]["fivium"]["grp
     coordinatesToPolyline: coordinatesToPolylineHandler,
     polygonContains: polygonContainsHandler,
     cropToBoundary: cropToBoundaryHandler,
+    find2dOverlappingFeatures: find2dOverlappingFeaturesHandler,
+    buildFeaturePolygons: buildFeaturePolygonsHandler,
     migrateBlockOrSubarea,
     validateBlockAndSubarea,
     validateTopologicallyEqual,

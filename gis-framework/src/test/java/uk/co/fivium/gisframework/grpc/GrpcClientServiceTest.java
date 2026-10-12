@@ -10,6 +10,7 @@ import java.math.BigDecimal;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -24,6 +25,7 @@ import uk.co.fivium.gisframework.feature.EntityBackedFeature;
 import uk.co.fivium.gisframework.feature.FeatureTestUtil;
 import uk.co.fivium.gisframework.feature.Line;
 import uk.co.fivium.gisframework.feature.LineTestUtil;
+import uk.co.fivium.gisframework.feature.Polygon;
 import uk.co.fivium.gisframework.feature.PolygonTestUtil;
 import uk.co.fivium.gisframework.migration.MigrationResponseDto;
 import uk.co.fivium.gisframework.migration.oracle.OracleBoundaryLineTestUtil;
@@ -31,6 +33,8 @@ import uk.co.fivium.gisframework.migration.oracle.OracleBoundaryLineWithRing;
 import uk.co.fivium.gisframework.operator.LineWithStartEndPoints;
 import uk.co.fivium.grpc.gis.ArcGisServiceGrpc;
 import uk.co.fivium.grpc.gis.BlockAndSubareaValidationRequest;
+import uk.co.fivium.grpc.gis.BuildFeaturePolygonsRequest;
+import uk.co.fivium.grpc.gis.BuildFeaturePolygonsResponse;
 import uk.co.fivium.grpc.gis.BuildPolygonRequest;
 import uk.co.fivium.grpc.gis.BuildPolygonResponse;
 import uk.co.fivium.grpc.gis.CalculateAreaRequest;
@@ -51,6 +55,9 @@ import uk.co.fivium.grpc.gis.ExplodePolygonRequest;
 import uk.co.fivium.grpc.gis.ExplodePolygonResponse;
 import uk.co.fivium.grpc.gis.FeatureCropResult;
 import uk.co.fivium.grpc.gis.FeaturePolygons;
+import uk.co.fivium.grpc.gis.FeaturePolylines;
+import uk.co.fivium.grpc.gis.Find2dOverlappingFeaturesRequest;
+import uk.co.fivium.grpc.gis.Find2dOverlappingFeaturesResponse;
 import uk.co.fivium.grpc.gis.FindNorthwestMostLineRequest;
 import uk.co.fivium.grpc.gis.FindNorthwestMostLineResponse;
 import uk.co.fivium.grpc.gis.FindParentLinesRequest;
@@ -79,6 +86,7 @@ import uk.co.fivium.grpc.gis.ParentLine;
 import uk.co.fivium.grpc.gis.PolygonContainsRequest;
 import uk.co.fivium.grpc.gis.PolygonContainsResponse;
 import uk.co.fivium.grpc.gis.PolygonCropResult;
+import uk.co.fivium.grpc.gis.PolygonPolylines;
 import uk.co.fivium.grpc.gis.ReferenceBlockValidationRequest;
 import uk.co.fivium.grpc.gis.SplitPolygonRequest;
 import uk.co.fivium.grpc.gis.SplitPolygonResponse;
@@ -845,6 +853,141 @@ class GrpcClientServiceTest {
             croppedPolygonId, new PolygonCropResultDto(IntersectionStatus.CROPPED, "dummy esriJson cropped result"),
             removedPolygonId, new PolygonCropResultDto(IntersectionStatus.FULLY_OUTSIDE, ""))),
         insideFeatureId, new FeatureCropResultDto(IntersectionStatus.FULLY_INSIDE, Map.of())
+    ));
+  }
+
+  @Test
+  void find2dOverlappingFeatures() {
+    var esriJsonPolygon = "dummy esriJson polygon";
+    var overlappingFeatureId = UUID.randomUUID();
+    var overlappingPolygonId = UUID.randomUUID();
+    var separateFeatureId = UUID.randomUUID();
+    var separatePolygonId = UUID.randomUUID();
+
+    Map<UUID, Map<UUID, String>> featureIdToPolygonIdToEsriJson = new LinkedHashMap<>();
+    featureIdToPolygonIdToEsriJson.put(
+        overlappingFeatureId,
+        Map.of(overlappingPolygonId, "dummy esriJson overlapping polygon")
+    );
+    featureIdToPolygonIdToEsriJson.put(separateFeatureId, Map.of(separatePolygonId, "dummy esriJson separate polygon"));
+
+    var expectedRequest = Find2dOverlappingFeaturesRequest.newBuilder()
+        .addEsriJsonPolygons(esriJsonPolygon)
+        .addFeaturesToCompare(FeaturePolygons.newBuilder()
+            .setFeatureId(overlappingFeatureId.toString())
+            .addPolygons(EsriJsonPolygonWithId.newBuilder()
+                .setId(overlappingPolygonId.toString())
+                .setEsriJsonPolygon("dummy esriJson overlapping polygon")))
+        .addFeaturesToCompare(FeaturePolygons.newBuilder()
+            .setFeatureId(separateFeatureId.toString())
+            .addPolygons(EsriJsonPolygonWithId.newBuilder()
+                .setId(separatePolygonId.toString())
+                .setEsriJsonPolygon("dummy esriJson separate polygon")))
+        .build();
+    var response = Find2dOverlappingFeaturesResponse.newBuilder()
+        .addOverlappingFeatureIds(overlappingFeatureId.toString())
+        .build();
+
+    when(arcgisClient.find2dOverlappingFeatures(expectedRequest)).thenReturn(response);
+
+    var result = grpcClientService.find2dOverlappingFeatures(List.of(esriJsonPolygon), featureIdToPolygonIdToEsriJson);
+
+    assertThat(result).isEqualTo(Set.of(overlappingFeatureId));
+  }
+
+  @Test
+  void buildFeaturePolygons() {
+    var ed50Feature = FeatureTestUtil.newBuilder().withCoordinateSystem(CoordinateSystem.ED50).build();
+    var firstPolygon = PolygonTestUtil.newBuilder().withFeature(ed50Feature).build();
+    var firstPolygonFirstLine = LineTestUtil.newBuilder()
+        .withPolygon(firstPolygon)
+        .withDisplayOrder(1)
+        .withEsriJson("first polygon first line")
+        .build();
+    var firstPolygonSecondLine = LineTestUtil.newBuilder()
+        .withPolygon(firstPolygon)
+        .withDisplayOrder(2)
+        .withEsriJson("first polygon second line")
+        .build();
+    var secondPolygon = PolygonTestUtil.newBuilder().withFeature(ed50Feature).build();
+    var secondPolygonLine = LineTestUtil.newBuilder()
+        .withPolygon(secondPolygon)
+        .withDisplayOrder(1)
+        .withEsriJson("second polygon line")
+        .build();
+    Map<Polygon, List<Line>> ed50PolygonToLines = new LinkedHashMap<>();
+    ed50PolygonToLines.put(firstPolygon, List.of(firstPolygonSecondLine, firstPolygonFirstLine));
+    ed50PolygonToLines.put(secondPolygon, List.of(secondPolygonLine));
+
+    var britishNationalGridFeature = FeatureTestUtil.newBuilder()
+        .withCoordinateSystem(CoordinateSystem.BRITISH_NATIONAL_GRID)
+        .build();
+    var thirdPolygon = PolygonTestUtil.newBuilder().withFeature(britishNationalGridFeature).build();
+    var thirdPolygonLine = LineTestUtil.newBuilder()
+        .withPolygon(thirdPolygon)
+        .withDisplayOrder(1)
+        .withEsriJson("third polygon line")
+        .build();
+
+    var entityBackedFeatures = List.of(
+        new EntityBackedFeature(ed50Feature, ed50PolygonToLines),
+        new EntityBackedFeature(britishNationalGridFeature, Map.of(thirdPolygon, List.of(thirdPolygonLine)))
+    );
+
+    var expectedRequest = BuildFeaturePolygonsRequest.newBuilder()
+        .addFeatures(FeaturePolylines.newBuilder()
+            .setFeatureId(ed50Feature.getId().toString())
+            .setCoordinateSystemWkid(CoordinateSystemUtils.getWkid(CoordinateSystem.ED50))
+            .addPolygons(PolygonPolylines.newBuilder()
+                .setPolygonId(firstPolygon.getId().toString())
+                .addEsriJsonPolylines("first polygon first line")
+                .addEsriJsonPolylines("first polygon second line")
+            )
+            .addPolygons(PolygonPolylines.newBuilder()
+                .setPolygonId(secondPolygon.getId().toString())
+                .addEsriJsonPolylines("second polygon line")
+            )
+        )
+        .addFeatures(FeaturePolylines.newBuilder()
+            .setFeatureId(britishNationalGridFeature.getId().toString())
+            .setCoordinateSystemWkid(CoordinateSystemUtils.getWkid(CoordinateSystem.BRITISH_NATIONAL_GRID))
+            .addPolygons(PolygonPolylines.newBuilder()
+                .setPolygonId(thirdPolygon.getId().toString())
+                .addEsriJsonPolylines("third polygon line")
+            )
+        )
+        .build();
+    var response = BuildFeaturePolygonsResponse.newBuilder()
+        .addFeatures(FeaturePolygons.newBuilder()
+            .setFeatureId(ed50Feature.getId().toString())
+            .addPolygons(EsriJsonPolygonWithId.newBuilder()
+                .setId(firstPolygon.getId().toString())
+                .setEsriJsonPolygon("first polygon")
+            )
+            .addPolygons(EsriJsonPolygonWithId.newBuilder()
+                .setId(secondPolygon.getId().toString())
+                .setEsriJsonPolygon("second polygon")
+            )
+        )
+        .addFeatures(FeaturePolygons.newBuilder()
+            .setFeatureId(britishNationalGridFeature.getId().toString())
+            .addPolygons(EsriJsonPolygonWithId.newBuilder()
+                .setId(thirdPolygon.getId().toString())
+                .setEsriJsonPolygon("third polygon")
+            )
+        )
+        .build();
+
+    when(arcgisClient.buildFeaturePolygons(expectedRequest)).thenReturn(response);
+
+    var result = grpcClientService.buildFeaturePolygons(entityBackedFeatures);
+
+    assertThat(result).isEqualTo(Map.of(
+        ed50Feature.getId(), Map.of(
+            firstPolygon.getId(), "first polygon",
+            secondPolygon.getId(), "second polygon"
+        ),
+        britishNationalGridFeature.getId(), Map.of(thirdPolygon.getId(), "third polygon")
     ));
   }
 }

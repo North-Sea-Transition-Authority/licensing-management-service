@@ -1,0 +1,12 @@
+syntax = "proto3";
+import "utils/FeaturePolygons.proto";
+
+package uk.co.fivium.grpc.gis;
+
+option java_multiple_files = true;
+option java_outer_classname = "Find2dOverlappingFeaturesRequestProto";
+
+message Find2dOverlappingFeaturesRequest {
+  repeated string esriJsonPolygons = 1;
+  repeated FeaturePolygons featuresToCompare = 2;
+}

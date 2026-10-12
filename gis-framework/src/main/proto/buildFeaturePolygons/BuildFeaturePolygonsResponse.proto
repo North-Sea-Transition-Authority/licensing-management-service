@@ -1,0 +1,11 @@
+syntax = "proto3";
+import "utils/FeaturePolygons.proto";
+
+package uk.co.fivium.grpc.gis;
+
+option java_multiple_files = true;
+option java_outer_classname = "BuildFeaturePolygonsResponseProto";
+
+message BuildFeaturePolygonsResponse {
+  repeated FeaturePolygons features = 1;
+}

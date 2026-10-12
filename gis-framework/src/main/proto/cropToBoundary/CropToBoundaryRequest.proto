@@ -1,5 +1,5 @@
 syntax = "proto3";
-import "cropToBoundary/FeaturePolygons.proto";
+import "utils/FeaturePolygons.proto";
 
 package uk.co.fivium.grpc.gis;
 

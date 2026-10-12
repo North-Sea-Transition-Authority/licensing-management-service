@@ -6,17 +6,22 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import net.devh.boot.grpc.client.inject.GrpcClient;
 import org.springframework.stereotype.Service;
 import uk.co.fivium.gisframework.feature.CoordinateSystemUtils;
 import uk.co.fivium.gisframework.feature.EntityBackedFeature;
 import uk.co.fivium.gisframework.feature.Line;
+import uk.co.fivium.gisframework.feature.LineUtils;
+import uk.co.fivium.gisframework.feature.Polygon;
 import uk.co.fivium.gisframework.migration.MigrationResponseDto;
 import uk.co.fivium.gisframework.migration.oracle.OracleBoundaryLineWithRing;
 import uk.co.fivium.gisframework.operator.LineWithStartEndPoints;
 import uk.co.fivium.grpc.gis.ArcGisServiceGrpc;
 import uk.co.fivium.grpc.gis.BlockAndSubareaValidationRequest;
+import uk.co.fivium.grpc.gis.BuildFeaturePolygonsRequest;
 import uk.co.fivium.grpc.gis.BuildPolygonRequest;
 import uk.co.fivium.grpc.gis.CalculateAreaRequest;
 import uk.co.fivium.grpc.gis.ChildLineMatch;
@@ -31,6 +36,8 @@ import uk.co.fivium.grpc.gis.EsriJsonPolygonWithId;
 import uk.co.fivium.grpc.gis.ExplodePolygonRequest;
 import uk.co.fivium.grpc.gis.FeatureCropResult;
 import uk.co.fivium.grpc.gis.FeaturePolygons;
+import uk.co.fivium.grpc.gis.FeaturePolylines;
+import uk.co.fivium.grpc.gis.Find2dOverlappingFeaturesRequest;
 import uk.co.fivium.grpc.gis.FindNorthwestMostLineRequest;
 import uk.co.fivium.grpc.gis.FindParentLinesRequest;
 import uk.co.fivium.grpc.gis.GeneralizePolygonRequest;
@@ -49,6 +56,7 @@ import uk.co.fivium.grpc.gis.MultiPartToSinglePartRequest;
 import uk.co.fivium.grpc.gis.ParentLine;
 import uk.co.fivium.grpc.gis.PolygonContainsRequest;
 import uk.co.fivium.grpc.gis.PolygonCropResult;
+import uk.co.fivium.grpc.gis.PolygonPolylines;
 import uk.co.fivium.grpc.gis.ReferenceBlockValidationRequest;
 import uk.co.fivium.grpc.gis.SplitPolygonRequest;
 import uk.co.fivium.grpc.gis.TopologicallyEqualValidationRequest;
@@ -540,21 +548,9 @@ public class GrpcClientService {
       List<String> esriJsonBoundaryPolygons,
       Map<UUID, Map<UUID, String>> featureIdToPolygonIdToEsriJson
   ) {
-    var featuresToBeCropped = featureIdToPolygonIdToEsriJson.entrySet().stream()
-        .map(featureEntry -> FeaturePolygons.newBuilder()
-            .setFeatureId(featureEntry.getKey().toString())
-            .addAllPolygons(featureEntry.getValue().entrySet().stream()
-                .map(polygonEntry -> EsriJsonPolygonWithId.newBuilder()
-                    .setId(polygonEntry.getKey().toString())
-                    .setEsriJsonPolygon(polygonEntry.getValue())
-                    .build())
-                .toList())
-            .build())
-        .toList();
-
     var request = CropToBoundaryRequest.newBuilder()
         .addAllEsriJsonBoundaryPolygons(esriJsonBoundaryPolygons)
-        .addAllFeaturesToBeCropped(featuresToBeCropped)
+        .addAllFeaturesToBeCropped(toFeaturePolygons(featureIdToPolygonIdToEsriJson))
         .build();
 
     var response = arcgisClient.cropToBoundary(request);
@@ -573,6 +569,95 @@ public class GrpcClientService {
     }
 
     return featureIdToCropResult;
+  }
+
+  /**
+   * Find the features that share any area with the union of the given polygons, in two dimensions. A feature that only
+   * touches the polygons along an edge or at a corner does not count.
+   *
+   * @param esriJsonPolygons               The EsriJSON of the polygons that together form the shape to compare against.
+   * @param featureIdToPolygonIdToEsriJson The EsriJSON of each feature's polygons, keyed by feature and polygon id.
+   * @return The ids of the features whose unioned polygons share any area with the shape.
+   */
+  public Set<UUID> find2dOverlappingFeatures(
+      List<String> esriJsonPolygons,
+      Map<UUID, Map<UUID, String>> featureIdToPolygonIdToEsriJson
+  ) {
+    var request = Find2dOverlappingFeaturesRequest.newBuilder()
+        .addAllEsriJsonPolygons(esriJsonPolygons)
+        .addAllFeaturesToCompare(toFeaturePolygons(featureIdToPolygonIdToEsriJson))
+        .build();
+
+    var response = arcgisClient.find2dOverlappingFeatures(request);
+
+    return response.getOverlappingFeatureIdsList()
+        .stream()
+        .map(UUID::fromString)
+        .collect(Collectors.toSet());
+  }
+
+  /**
+   * Build the polygons of many features in a single call, combining each polygon's lines in display order.
+   *
+   * @param entityBackedFeatures The features, along with their polygons and lines, whose polygons will be built.
+   * @return The EsriJSON of each feature's polygons, keyed by feature and polygon id.
+   */
+  public Map<UUID, Map<UUID, String>> buildFeaturePolygons(Collection<EntityBackedFeature> entityBackedFeatures) {
+    var request = BuildFeaturePolygonsRequest.newBuilder()
+        .addAllFeatures(entityBackedFeatures.stream()
+            .map(this::toFeaturePolylines)
+            .toList()
+        )
+        .build();
+
+    var response = arcgisClient.buildFeaturePolygons(request);
+
+    return toFeatureIdToPolygonIdToEsriJson(response.getFeaturesList());
+  }
+
+  private FeaturePolylines toFeaturePolylines(EntityBackedFeature entityBackedFeature) {
+    var feature = entityBackedFeature.feature();
+    return FeaturePolylines.newBuilder()
+        .setFeatureId(feature.getId().toString())
+        .setCoordinateSystemWkid(CoordinateSystemUtils.getWkid(feature.getCoordinateSystem()))
+        .addAllPolygons(entityBackedFeature.polygonToLines().entrySet().stream()
+            .map(this::toPolygonPolylines)
+            .toList()
+        )
+        .build();
+  }
+
+  private PolygonPolylines toPolygonPolylines(Map.Entry<Polygon, List<Line>> polygonToLines) {
+    return PolygonPolylines.newBuilder()
+        .setPolygonId(polygonToLines.getKey().getId().toString())
+        .addAllEsriJsonPolylines(LineUtils.getEsriJsonsInDisplayOrder(polygonToLines.getValue()))
+        .build();
+  }
+
+  private Map<UUID, Map<UUID, String>> toFeatureIdToPolygonIdToEsriJson(List<FeaturePolygons> featurePolygons) {
+    return featurePolygons.stream()
+        .collect(Collectors.toMap(
+            feature -> UUID.fromString(feature.getFeatureId()),
+            feature -> feature.getPolygonsList().stream()
+                .collect(Collectors.toMap(
+                    polygon -> UUID.fromString(polygon.getId()),
+                    EsriJsonPolygonWithId::getEsriJsonPolygon
+                ))
+        ));
+  }
+
+  private List<FeaturePolygons> toFeaturePolygons(Map<UUID, Map<UUID, String>> featureIdToPolygonIdToEsriJson) {
+    return featureIdToPolygonIdToEsriJson.entrySet().stream()
+        .map(featureEntry -> FeaturePolygons.newBuilder()
+            .setFeatureId(featureEntry.getKey().toString())
+            .addAllPolygons(featureEntry.getValue().entrySet().stream()
+                .map(polygonEntry -> EsriJsonPolygonWithId.newBuilder()
+                    .setId(polygonEntry.getKey().toString())
+                    .setEsriJsonPolygon(polygonEntry.getValue())
+                    .build())
+                .toList())
+            .build())
+        .toList();
   }
 
   private Point getEsriPoint(Coordinate grpcPoint) {

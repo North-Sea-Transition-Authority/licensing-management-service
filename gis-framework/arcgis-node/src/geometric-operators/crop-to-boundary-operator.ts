@@ -1,19 +1,10 @@
 import type { IntersectionStatus__Output } from "../../generated/uk/co/fivium/grpc/gis/IntersectionStatus";
+import type { EsriJsonPolygonWithId, FeaturePolygons } from "../types/feature-polygons";
 import { IntersectionStatus } from "../../generated/uk/co/fivium/grpc/gis/IntersectionStatus";
 import { esriJsonToPolygon } from "../util/esrijson-util";
 import { intersectPolygons } from "./intersection-operator";
 import { polygonsAreTopologicallyEqual } from "./polygon-equality-operator";
 import { unionPolygonsOperator } from "./union-polygons-operator";
-
-export interface EsriJsonPolygonWithId {
-  id: string,
-  esriJsonPolygon: string,
-}
-
-export interface FeaturePolygons {
-  featureId: string,
-  polygons: EsriJsonPolygonWithId[],
-}
 
 export interface PolygonCropResult {
   polygonId: string,

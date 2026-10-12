@@ -1,0 +1,13 @@
+syntax = "proto3";
+import "buildFeaturePolygons/PolygonPolylines.proto";
+
+package uk.co.fivium.grpc.gis;
+
+option java_multiple_files = true;
+option java_outer_classname = "FeaturePolylinesProto";
+
+message FeaturePolylines {
+  string featureId = 1;
+  int32 coordinateSystemWkid = 2;
+  repeated PolygonPolylines polygons = 3;
+}

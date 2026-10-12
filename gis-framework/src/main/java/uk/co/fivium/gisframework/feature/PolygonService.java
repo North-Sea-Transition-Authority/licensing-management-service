@@ -5,7 +5,6 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -121,6 +120,19 @@ public class PolygonService {
     return polygonIdToEsriJson;
   }
 
+  /**
+   * Generates the EsriJSON polygon for each polygon of many features in a single call.
+   *
+   * @param entityBackedFeatures the features, along with their polygons and lines, whose polygons will be built as
+   *                             EsriJSON.
+   * @return the EsriJSON polygons, keyed by feature id and then polygon id.
+   */
+  public Map<UUID, Map<UUID, String>> getFeatureIdToPolygonIdToEsriJson(
+      Collection<EntityBackedFeature> entityBackedFeatures
+  ) {
+    return grpcClientService.buildFeaturePolygons(entityBackedFeatures);
+  }
+
   private List<String> getPolygonsAsEsriJson(
       EntityBackedFeature entityBackedFeature,
       boolean projectToWgs84
@@ -137,10 +149,10 @@ public class PolygonService {
       CoordinateSystem coordinateSystem,
       boolean projectToWgs84
   ) {
-    var lineEsriJsons = lines.stream()
-        .sorted(Comparator.comparing(Line::getDisplayOrder))
-        .map(Line::getEsriJson)
-        .toList();
-    return grpcClientService.buildPolygon(lineEsriJsons, coordinateSystem, projectToWgs84);
+    return grpcClientService.buildPolygon(
+        LineUtils.getEsriJsonsInDisplayOrder(lines),
+        coordinateSystem,
+        projectToWgs84
+    );
   }
 }

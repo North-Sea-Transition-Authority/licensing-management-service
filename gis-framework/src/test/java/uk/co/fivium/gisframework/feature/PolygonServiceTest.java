@@ -10,6 +10,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -146,6 +147,20 @@ class PolygonServiceTest {
         polygon1.getId(), "polygon 1 esriJson",
         polygon2.getId(), "polygon 2 esriJson"
     ));
+  }
+
+  @Test
+  void getFeatureIdToPolygonIdToEsriJson() {
+    var feature = FeatureTestUtil.newBuilder().build();
+    var entityBackedFeatures = List.of(new EntityBackedFeature(feature, Map.of()));
+    Map<UUID, Map<UUID, String>> featureIdToPolygonIdToEsriJson =
+        Map.of(feature.getId(), Map.of(UUID.randomUUID(), "polygon esriJson"));
+
+    when(grpcClientService.buildFeaturePolygons(entityBackedFeatures)).thenReturn(featureIdToPolygonIdToEsriJson);
+
+    var result = polygonService.getFeatureIdToPolygonIdToEsriJson(entityBackedFeatures);
+
+    assertThat(result).isEqualTo(featureIdToPolygonIdToEsriJson);
   }
 
   @Test

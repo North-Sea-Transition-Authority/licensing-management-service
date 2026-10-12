@@ -18,6 +18,7 @@ import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionRoles;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.reviewandapply.CorrectionSummaryController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.query.SearchResultItem;
@@ -25,6 +26,7 @@ import uk.co.nstauthority.licensingmanagementservice.summary.SummaryDataView;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamRole;
+import uk.co.nstauthority.licensingmanagementservice.util.FilterUtil;
 
 @Service
 class LicenceCorrectionSearchService {
@@ -45,7 +47,7 @@ class LicenceCorrectionSearchService {
     this.teamQueryService = teamQueryService;
   }
 
-  List<SearchResultItem> getSearchItems(ServiceUserDetail user) {
+  List<SearchResultItem> getSearchItems(LicenceCorrectionSearchFilterForm form, ServiceUserDetail user) {
     var corrections = licenceCorrectionService.getCorrectionsForSearch();
     var allocatedUsersByWuaId = getAllocatedUsersByWuaId(corrections);
     var userRoles = teamQueryService.getTeamRolesForUser(user.wuaId()).stream()
@@ -53,6 +55,7 @@ class LicenceCorrectionSearchService {
         .collect(Collectors.toSet());
 
     return corrections.stream()
+        .filter(c -> FilterUtil.matchesEnum(LicenceCorrectionStatus.class, c.getStatus(), form.getCorrectionStatuses()))
         .sorted(Comparator.comparing(this::getEffectiveInstant).reversed())
         .map(correction -> getSearchItem(correction, allocatedUsersByWuaId, userRoles))
         .toList();

@@ -18,6 +18,12 @@
     </@fdsSearch.searchFilterItem>
 </#macro>
 
+<#macro correctionStatusFilter form correctionStatuses>
+    <@fdsSearch.searchFilterItem itemName="Status" expanded=form.correctionStatuses?has_content>
+        <@fdsSearch.searchCheckboxes path="form.correctionStatuses" checkboxes=correctionStatuses/>
+    </@fdsSearch.searchFilterItem>
+</#macro>
+
 <#macro applicationReferenceFilter form>
     <@fdsSearch.searchFilterItem itemName="Application reference" expanded=form.applicationReference?has_content>
         <@fdsSearch.searchTextInput path="form.applicationReference" labelText="Application reference" labelClass="govuk-visually-hidden"/>

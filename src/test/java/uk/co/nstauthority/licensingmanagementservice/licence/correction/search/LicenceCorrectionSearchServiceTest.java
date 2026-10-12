@@ -65,7 +65,7 @@ class LicenceCorrectionSearchServiceTest {
   }
 
   @Test
-  void getSearchItems() {
+  void getSearchItems_whenNoFilters_thenReturnsAllCorrections() {
     var firstUserWuaId = new WebUserAccountId(100L);
     var secondUserWuaId = new WebUserAccountId(200L);
 
@@ -107,7 +107,7 @@ class LicenceCorrectionSearchServiceTest {
         .thenReturn(Map.of(firstUserWuaId, firstUser, secondUserWuaId, secondUser));
     when(teamQueryService.getTeamRolesForUser(USER.wuaId())).thenReturn(Set.of());
 
-    var result = licenceCorrectionSearchService.getSearchItems(USER);
+    var result = licenceCorrectionSearchService.getSearchItems(new LicenceCorrectionSearchFilterForm(), USER);
 
     var expectedNewestItem = SearchResultItem.newBuilder()
         .withId(newestCorrection.getId().toString())
@@ -148,6 +148,57 @@ class LicenceCorrectionSearchServiceTest {
   }
 
   @Test
+  void getSearchItems_whenFilteredByStatus_thenReturnsMatchingCorrections() {
+    var allocatedUserWuaId = new WebUserAccountId(100L);
+    var completedInstant = Instant.parse("2026-03-01T14:30:00Z");
+
+    var inProgressCorrection = correction("COR-1", "P1234", LicenceType.SEAWARD_PRODUCTION, allocatedUserWuaId)
+        .withStatus(LicenceCorrectionStatus.IN_PROGRESS)
+        .withCreatedInstant(Instant.parse("2026-02-01T09:00:00Z"))
+        .build();
+    var completeCorrection = correction("COR-2", "P5678", LicenceType.SEAWARD_PRODUCTION, allocatedUserWuaId)
+        .withStatus(LicenceCorrectionStatus.COMPLETE)
+        .withCreatedInstant(Instant.parse("2026-01-01T09:00:00Z"))
+        .withCompletedInstant(completedInstant)
+        .build();
+
+    var allocatedUser = EnergyPortalUserTestUtil.newBuilder()
+        .withWebUserAccountId(allocatedUserWuaId.id())
+        .withForename("Jane")
+        .withSurname("Smith")
+        .buildJson();
+
+    var form = new LicenceCorrectionSearchFilterForm();
+    form.setCorrectionStatuses(List.of(LicenceCorrectionStatus.COMPLETE.name()));
+
+    when(licenceCorrectionService.getCorrectionsForSearch())
+        .thenReturn(List.of(inProgressCorrection, completeCorrection));
+    when(energyPortalUserService.getEnergyPortalUserMap(
+        Set.of(allocatedUserWuaId),
+        LicenceCorrectionSearchService.ALLOCATED_USERS_PURPOSE
+    ))
+        .thenReturn(Map.of(allocatedUserWuaId, allocatedUser));
+    when(teamQueryService.getTeamRolesForUser(USER.wuaId())).thenReturn(Set.of());
+
+    var result = licenceCorrectionSearchService.getSearchItems(form, USER);
+
+    var expectedCompleteItem = SearchResultItem.newBuilder()
+        .withId(completeCorrection.getId().toString())
+        .withLinkHeadingText("COR-2")
+        .withTagText("Complete")
+        .withTagClass("govuk-tag--green")
+        .withCaptionText("Completed %s".formatted(DateFormatUtil.convertToDisplayTextWithTime(completedInstant)))
+        .withDataItemRow(SummaryDataView.newBuilder()
+            .addStringValue("Licence", "P5678")
+            .addStringValue("Allocated to", "Jane Smith")
+            .build())
+        .build();
+
+    assertThat(result).usingRecursiveComparison()
+        .isEqualTo(List.of(expectedCompleteItem));
+  }
+
+  @Test
   void getSearchItems_whenOldCorrectionCompletedRecently_thenOrderedByEffectiveDate() {
     var allocatedUserWuaId = new WebUserAccountId(100L);
 
@@ -185,7 +236,7 @@ class LicenceCorrectionSearchServiceTest {
         .thenReturn(Map.of(allocatedUserWuaId, allocatedUser));
     when(teamQueryService.getTeamRolesForUser(USER.wuaId())).thenReturn(Set.of());
 
-    var result = licenceCorrectionSearchService.getSearchItems(USER);
+    var result = licenceCorrectionSearchService.getSearchItems(new LicenceCorrectionSearchFilterForm(), USER);
 
     var expectedRecentlyCompletedItem = SearchResultItem.newBuilder()
         .withId(recentlyCompletedCorrection.getId().toString())
@@ -271,7 +322,7 @@ class LicenceCorrectionSearchServiceTest {
 
     when(teamQueryService.getTeamRolesForUser(USER.wuaId())).thenReturn(userTeamRoles);
 
-    var result = licenceCorrectionSearchService.getSearchItems(USER);
+    var result = licenceCorrectionSearchService.getSearchItems(new LicenceCorrectionSearchFilterForm(), USER);
 
     var expectedProductionItem = SearchResultItem.newBuilder()
         .withId(productionCorrection.getId().toString())

@@ -15,9 +15,18 @@
     hasSearchBeenInvoked=true
     clearFilterUrl=clearFilterUrl
   >
+    <@dataItemFilter.correctionLicenceFilter
+      form=form
+    />
+
     <@dataItemFilter.correctionStatusFilter
       form=form
       correctionStatuses=correctionStatuses
+    />
+
+    <@dataItemFilter.correctionAllocatedUserFilter
+      form=form
+      allocatedUsers=allocatedUsers
     />
   </@search.standardSearch>
 </@defaultPage>

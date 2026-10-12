@@ -40,7 +40,8 @@ public class LicenceCorrectionSearchController {
             ReverseRouter.route(on(LicenceCorrectionSearchController.class).clearSearchFilters(null, null)))
         .addObject("correctionStatuses", DisplayableEnumOptionUtil.getDisplayableOptions(
             List.of(LicenceCorrectionStatus.IN_PROGRESS, LicenceCorrectionStatus.COMPLETE)))
-        .addObject("searchItems", licenceCorrectionSearchService.getSearchItems(searchSession.getSearchFilterForm(), user));
+        .addObject("searchItems", licenceCorrectionSearchService.getSearchItems(searchSession.getSearchFilterForm(), user))
+        .addObject("allocatedUsers", licenceCorrectionSearchService.getAllocatedUserOptions());
   }
 
   @PostMapping

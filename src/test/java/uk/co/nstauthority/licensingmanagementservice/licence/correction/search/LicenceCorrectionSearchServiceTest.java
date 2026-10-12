@@ -1,6 +1,8 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.correction.search;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.entry;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
@@ -196,6 +198,218 @@ class LicenceCorrectionSearchServiceTest {
 
     assertThat(result).usingRecursiveComparison()
         .isEqualTo(List.of(expectedCompleteItem));
+  }
+
+  @Test
+  void getSearchItems_whenFilteredByLicenceReference_thenReturnsMatchingCorrections() {
+    var allocatedUserWuaId = new WebUserAccountId(100L);
+    var matchingCreatedInstant = Instant.parse("2026-02-01T09:00:00Z");
+
+    var matchingCorrection = correction("COR-1", "P1234", LicenceType.SEAWARD_PRODUCTION, allocatedUserWuaId)
+        .withStatus(LicenceCorrectionStatus.IN_PROGRESS)
+        .withCreatedInstant(matchingCreatedInstant)
+        .build();
+    var nonMatchingCorrection = correction("COR-2", "P5678", LicenceType.SEAWARD_PRODUCTION, allocatedUserWuaId)
+        .withStatus(LicenceCorrectionStatus.IN_PROGRESS)
+        .withCreatedInstant(Instant.parse("2026-01-01T09:00:00Z"))
+        .build();
+
+    var allocatedUser = EnergyPortalUserTestUtil.newBuilder()
+        .withWebUserAccountId(allocatedUserWuaId.id())
+        .withForename("Jane")
+        .withSurname("Smith")
+        .buildJson();
+
+    var form = new LicenceCorrectionSearchFilterForm();
+    form.setLicenceReference("p12");
+
+    when(licenceCorrectionService.getCorrectionsForSearch())
+        .thenReturn(List.of(matchingCorrection, nonMatchingCorrection));
+    when(energyPortalUserService.getEnergyPortalUserMap(
+        Set.of(allocatedUserWuaId),
+        LicenceCorrectionSearchService.ALLOCATED_USERS_PURPOSE
+    ))
+        .thenReturn(Map.of(allocatedUserWuaId, allocatedUser));
+    when(teamQueryService.getTeamRolesForUser(USER.wuaId())).thenReturn(Set.of());
+
+    var result = licenceCorrectionSearchService.getSearchItems(form, USER);
+
+    var expectedMatchingItem = SearchResultItem.newBuilder()
+        .withId(matchingCorrection.getId().toString())
+        .withLinkHeadingText("COR-1")
+        .withTagText("In progress")
+        .withTagClass("govuk-tag--light-blue")
+        .withCaptionText("Created %s".formatted(DateFormatUtil.convertToDisplayTextWithTime(matchingCreatedInstant)))
+        .withDataItemRow(SummaryDataView.newBuilder()
+            .addStringValue("Licence", "P1234")
+            .addStringValue("Allocated to", "Jane Smith")
+            .build())
+        .build();
+
+    assertThat(result).usingRecursiveComparison()
+        .isEqualTo(List.of(expectedMatchingItem));
+  }
+
+  @Test
+  void getSearchItems_whenFilteredByAllocatedUser_thenReturnsMatchingCorrections() {
+    var matchingUserWuaId = new WebUserAccountId(100L);
+    var otherUserWuaId = new WebUserAccountId(200L);
+    var matchingCreatedInstant = Instant.parse("2026-02-01T09:00:00Z");
+
+    var matchingCorrection = correction("COR-1", "P1234", LicenceType.SEAWARD_PRODUCTION, matchingUserWuaId)
+        .withStatus(LicenceCorrectionStatus.IN_PROGRESS)
+        .withCreatedInstant(matchingCreatedInstant)
+        .build();
+    var nonMatchingCorrection = correction("COR-2", "P5678", LicenceType.SEAWARD_PRODUCTION, otherUserWuaId)
+        .withStatus(LicenceCorrectionStatus.IN_PROGRESS)
+        .withCreatedInstant(Instant.parse("2026-01-01T09:00:00Z"))
+        .build();
+
+    var matchingUser = EnergyPortalUserTestUtil.newBuilder()
+        .withWebUserAccountId(matchingUserWuaId.id())
+        .withForename("Jane")
+        .withSurname("Smith")
+        .buildJson();
+
+    var form = new LicenceCorrectionSearchFilterForm();
+    form.setAllocatedToWuaId("100");
+
+    when(licenceCorrectionService.getCorrectionsForSearch())
+        .thenReturn(List.of(matchingCorrection, nonMatchingCorrection));
+    when(energyPortalUserService.getEnergyPortalUserMap(
+        Set.of(matchingUserWuaId),
+        LicenceCorrectionSearchService.ALLOCATED_USERS_PURPOSE
+    ))
+        .thenReturn(Map.of(matchingUserWuaId, matchingUser));
+    when(teamQueryService.getTeamRolesForUser(USER.wuaId())).thenReturn(Set.of());
+
+    var result = licenceCorrectionSearchService.getSearchItems(form, USER);
+
+    var expectedMatchingItem = SearchResultItem.newBuilder()
+        .withId(matchingCorrection.getId().toString())
+        .withLinkHeadingText("COR-1")
+        .withTagText("In progress")
+        .withTagClass("govuk-tag--light-blue")
+        .withCaptionText("Created %s".formatted(DateFormatUtil.convertToDisplayTextWithTime(matchingCreatedInstant)))
+        .withDataItemRow(SummaryDataView.newBuilder()
+            .addStringValue("Licence", "P1234")
+            .addStringValue("Allocated to", "Jane Smith")
+            .build())
+        .build();
+
+    assertThat(result).usingRecursiveComparison()
+        .isEqualTo(List.of(expectedMatchingItem));
+  }
+
+  @Test
+  void getSearchItems_whenAllFiltersApplied_thenReturnsIntersection() {
+    var matchingUserWuaId = new WebUserAccountId(100L);
+    var otherUserWuaId = new WebUserAccountId(200L);
+    var completedInstant = Instant.parse("2026-03-01T14:30:00Z");
+
+    var matchingCorrection = correction("COR-1", "P1234", LicenceType.SEAWARD_PRODUCTION, matchingUserWuaId)
+        .withStatus(LicenceCorrectionStatus.COMPLETE)
+        .withCreatedInstant(Instant.parse("2026-01-01T09:00:00Z"))
+        .withCompletedInstant(completedInstant)
+        .build();
+    var wrongLicenceCorrection = correction("COR-2", "P5678", LicenceType.SEAWARD_PRODUCTION, matchingUserWuaId)
+        .withStatus(LicenceCorrectionStatus.COMPLETE)
+        .withCreatedInstant(Instant.parse("2026-01-01T09:00:00Z"))
+        .withCompletedInstant(completedInstant)
+        .build();
+    var wrongStatusCorrection = correction("COR-3", "P1299", LicenceType.SEAWARD_PRODUCTION, matchingUserWuaId)
+        .withStatus(LicenceCorrectionStatus.IN_PROGRESS)
+        .withCreatedInstant(Instant.parse("2026-01-01T09:00:00Z"))
+        .build();
+    var wrongUserCorrection = correction("COR-4", "P1288", LicenceType.SEAWARD_PRODUCTION, otherUserWuaId)
+        .withStatus(LicenceCorrectionStatus.COMPLETE)
+        .withCreatedInstant(Instant.parse("2026-01-01T09:00:00Z"))
+        .withCompletedInstant(completedInstant)
+        .build();
+
+    var matchingUser = EnergyPortalUserTestUtil.newBuilder()
+        .withWebUserAccountId(matchingUserWuaId.id())
+        .withForename("Jane")
+        .withSurname("Smith")
+        .buildJson();
+
+    var form = new LicenceCorrectionSearchFilterForm();
+    form.setLicenceReference("P12");
+    form.setCorrectionStatuses(List.of(LicenceCorrectionStatus.COMPLETE.name()));
+    form.setAllocatedToWuaId("100");
+
+    when(licenceCorrectionService.getCorrectionsForSearch())
+        .thenReturn(List.of(matchingCorrection, wrongLicenceCorrection, wrongStatusCorrection, wrongUserCorrection));
+    when(energyPortalUserService.getEnergyPortalUserMap(
+        Set.of(matchingUserWuaId),
+        LicenceCorrectionSearchService.ALLOCATED_USERS_PURPOSE
+    ))
+        .thenReturn(Map.of(matchingUserWuaId, matchingUser));
+    when(teamQueryService.getTeamRolesForUser(USER.wuaId())).thenReturn(Set.of());
+
+    var result = licenceCorrectionSearchService.getSearchItems(form, USER);
+
+    var expectedMatchingItem = SearchResultItem.newBuilder()
+        .withId(matchingCorrection.getId().toString())
+        .withLinkHeadingText("COR-1")
+        .withTagText("Complete")
+        .withTagClass("govuk-tag--green")
+        .withCaptionText("Completed %s".formatted(DateFormatUtil.convertToDisplayTextWithTime(completedInstant)))
+        .withDataItemRow(SummaryDataView.newBuilder()
+            .addStringValue("Licence", "P1234")
+            .addStringValue("Allocated to", "Jane Smith")
+            .build())
+        .build();
+
+    assertThat(result).usingRecursiveComparison()
+        .isEqualTo(List.of(expectedMatchingItem));
+  }
+
+  @Test
+  void getAllocatedUserOptions_whenCorrectionsExist_thenReturnsDistinctAllocatedUsersSortedByName() {
+    var firstUserWuaId = new WebUserAccountId(100L);
+    var secondUserWuaId = new WebUserAccountId(200L);
+    var formerCorrectorWuaId = new WebUserAccountId(300L);
+
+    var firstCorrection = correction("COR-1", "P1234", LicenceType.SEAWARD_PRODUCTION, firstUserWuaId).build();
+    var secondCorrection = correction("COR-2", "CS001", LicenceType.CARBON_STORAGE, secondUserWuaId).build();
+    var duplicateAllocationCorrection = correction("COR-3", "P5678", LicenceType.SEAWARD_PRODUCTION, firstUserWuaId)
+        .build();
+    var formerCorrectorCorrection = correction("COR-4", "P9999", LicenceType.SEAWARD_PRODUCTION, formerCorrectorWuaId)
+        .build();
+
+    var firstUser = EnergyPortalUserTestUtil.newBuilder()
+        .withWebUserAccountId(firstUserWuaId.id())
+        .withForename("Zoe")
+        .withSurname("Taylor")
+        .buildJson();
+    var secondUser = EnergyPortalUserTestUtil.newBuilder()
+        .withWebUserAccountId(secondUserWuaId.id())
+        .withForename("Adam")
+        .withSurname("Brown")
+        .buildJson();
+    var formerCorrector = EnergyPortalUserTestUtil.newBuilder()
+        .withWebUserAccountId(formerCorrectorWuaId.id())
+        .withForename("Mia")
+        .withSurname("Clark")
+        .buildJson();
+
+    when(licenceCorrectionService.getCorrectionsForSearch())
+        .thenReturn(List.of(firstCorrection, secondCorrection, duplicateAllocationCorrection, formerCorrectorCorrection));
+    when(energyPortalUserService.findByWuaIds(
+        Set.of(firstUserWuaId, secondUserWuaId, formerCorrectorWuaId),
+        LicenceCorrectionSearchService.ALLOCATED_USER_OPTIONS_PURPOSE
+    ))
+        .thenReturn(List.of(firstUser, secondUser, formerCorrector));
+
+    var result = licenceCorrectionSearchService.getAllocatedUserOptions();
+
+    assertThat(result).containsExactly(
+        entry("200", "Adam Brown"),
+        entry("300", "Mia Clark"),
+        entry("100", "Zoe Taylor")
+    );
+    verifyNoInteractions(teamQueryService);
   }
 
   @Test

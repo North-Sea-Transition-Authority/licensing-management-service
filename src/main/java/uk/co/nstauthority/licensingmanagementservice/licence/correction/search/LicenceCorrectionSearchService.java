@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserJson;
@@ -27,11 +28,14 @@ import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamRole;
 import uk.co.nstauthority.licensingmanagementservice.util.FilterUtil;
+import uk.co.nstauthority.licensingmanagementservice.util.StreamUtil;
 
 @Service
 class LicenceCorrectionSearchService {
 
   static final String ALLOCATED_USERS_PURPOSE = "Fetch users allocated to licence corrections for the corrections list";
+  static final String ALLOCATED_USER_OPTIONS_PURPOSE =
+      "Fetch users allocated to licence corrections for the corrections list filter";
 
   private final LicenceCorrectionService licenceCorrectionService;
   private final EnergyPortalUserService energyPortalUserService;
@@ -48,7 +52,11 @@ class LicenceCorrectionSearchService {
   }
 
   List<SearchResultItem> getSearchItems(LicenceCorrectionSearchFilterForm form, ServiceUserDetail user) {
-    var corrections = licenceCorrectionService.getCorrectionsForSearch();
+    var corrections = licenceCorrectionService.getCorrectionsForSearch().stream()
+        .filter(c -> FilterUtil.matchesTextInput(c.getLicence().getLicenceReference(), form.getLicenceReference()))
+        .filter(c -> FilterUtil.matchesEnum(LicenceCorrectionStatus.class, c.getStatus(), form.getCorrectionStatuses()))
+        .filter(c -> matchesAllocatedUser(c, form.getAllocatedToWuaId()))
+        .toList();
     var allocatedUsersByWuaId = getAllocatedUsersByWuaId(corrections);
     var userRoles = teamQueryService.getTeamRolesForUser(user.wuaId()).stream()
         .map(TeamRole::getRole)
@@ -61,6 +69,21 @@ class LicenceCorrectionSearchService {
         .toList();
   }
 
+  Map<String, String> getAllocatedUserOptions() {
+    var allocatedWuaIds = licenceCorrectionService.getCorrectionsForSearch().stream()
+        .map(LicenceCorrection::getAllocatedToWuaId)
+        .map(WebUserAccountId::from)
+        .collect(Collectors.toSet());
+
+    return energyPortalUserService.findByWuaIds(allocatedWuaIds, ALLOCATED_USER_OPTIONS_PURPOSE)
+        .stream()
+        .sorted(Comparator.comparing(EnergyPortalUserJson::displayName))
+        .collect(StreamUtil.toLinkedHashMap(
+            energyPortalUserJson -> String.valueOf(energyPortalUserJson.webUserAccountId()),
+            EnergyPortalUserJson::displayName
+        ));
+  }
+
   private Map<WebUserAccountId, EnergyPortalUserJson> getAllocatedUsersByWuaId(
       Collection<LicenceCorrection> corrections
   ) {
@@ -70,6 +93,11 @@ class LicenceCorrectionSearchService {
         .collect(Collectors.toSet());
 
     return energyPortalUserService.getEnergyPortalUserMap(allocatedWuaIds, ALLOCATED_USERS_PURPOSE);
+  }
+
+  private boolean matchesAllocatedUser(LicenceCorrection correction, String allocatedToWuaIdFilter) {
+    return StringUtils.isBlank(allocatedToWuaIdFilter)
+        || allocatedToWuaIdFilter.equals(String.valueOf(correction.getAllocatedToWuaId()));
   }
 
   private SearchResultItem getSearchItem(

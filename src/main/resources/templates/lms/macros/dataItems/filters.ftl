@@ -24,6 +24,18 @@
     </@fdsSearch.searchFilterItem>
 </#macro>
 
+<#macro correctionLicenceFilter form>
+    <@fdsSearch.searchFilterItem itemName="Licence" expanded=form.licenceReference?has_content>
+        <@fdsSearch.searchTextInput path="form.licenceReference" labelText="Licence" labelClass="govuk-visually-hidden"/>
+    </@fdsSearch.searchFilterItem>
+</#macro>
+
+<#macro correctionAllocatedUserFilter form allocatedUsers>
+    <@fdsSearch.searchFilterItem itemName="Allocated to" expanded=form.allocatedToWuaId?has_content>
+        <@fdsSearchSelector.searchSelectorEnhanced path="form.allocatedToWuaId" options=allocatedUsers labelText="Allocated to" labelClass="govuk-visually-hidden"/>
+    </@fdsSearch.searchFilterItem>
+</#macro>
+
 <#macro applicationReferenceFilter form>
     <@fdsSearch.searchFilterItem itemName="Application reference" expanded=form.applicationReference?has_content>
         <@fdsSearch.searchTextInput path="form.applicationReference" labelText="Application reference" labelClass="govuk-visually-hidden"/>

@@ -58,6 +58,8 @@ class LicenceCorrectionSearchControllerTest extends AbstractControllerTest {
   void renderCorrectionSearch_whenUserIsInRegulatorTeam_thenRendersSearchPage() throws Exception {
     var form = new LicenceCorrectionSearchFilterForm();
     form.setCorrectionStatuses(List.of("COMPLETE"));
+    form.setLicenceReference("P12");
+    form.setAllocatedToWuaId("100");
     var searchSession = new LicenceCorrectionSearchSession(form);
 
     var searchItems = List.of(
@@ -66,9 +68,11 @@ class LicenceCorrectionSearchControllerTest extends AbstractControllerTest {
             .withLinkHeadingText("COR-1")
             .build()
     );
+    var allocatedUsers = Map.of("100", "Jane Smith");
 
     when(teamQueryService.userIsInRegulatorTeam(regulatorUser.wuaId())).thenReturn(true);
     when(licenceCorrectionSearchService.getSearchItems(form, regulatorUser)).thenReturn(searchItems);
+    when(licenceCorrectionSearchService.getAllocatedUserOptions()).thenReturn(allocatedUsers);
 
     mockMvc.perform(
             get(RENDER_CORRECTION_SEARCH_ROUTE)
@@ -83,7 +87,8 @@ class LicenceCorrectionSearchControllerTest extends AbstractControllerTest {
             "IN_PROGRESS", "In progress",
             "COMPLETE", "Complete"
         )))
-        .andExpect(model().attribute("searchItems", searchItems));
+        .andExpect(model().attribute("searchItems", searchItems))
+        .andExpect(model().attribute("allocatedUsers", allocatedUsers));
   }
 
   @Test
@@ -106,6 +111,8 @@ class LicenceCorrectionSearchControllerTest extends AbstractControllerTest {
                 .with(csrf())
                 .with(user(regulatorUser))
                 .param("correctionStatuses", "IN_PROGRESS")
+                .param("licenceReference", "P12")
+                .param("allocatedToWuaId", "100")
         )
         .andExpect(status().is3xxRedirection())
         .andExpect(redirectedUrl(RENDER_CORRECTION_SEARCH_ROUTE))
@@ -113,6 +120,8 @@ class LicenceCorrectionSearchControllerTest extends AbstractControllerTest {
 
     var expectedForm = new LicenceCorrectionSearchFilterForm();
     expectedForm.setCorrectionStatuses(List.of("IN_PROGRESS"));
+    expectedForm.setLicenceReference("P12");
+    expectedForm.setAllocatedToWuaId("100");
 
     assertThat(result.getRequest().getSession().getAttribute(SEARCH_SESSION_ATTRIBUTE))
         .usingRecursiveComparison()

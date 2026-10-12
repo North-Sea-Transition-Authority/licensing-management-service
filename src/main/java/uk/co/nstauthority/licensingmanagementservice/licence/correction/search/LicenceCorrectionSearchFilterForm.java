@@ -11,11 +11,31 @@ public class LicenceCorrectionSearchFilterForm implements Serializable {
 
   private List<String> correctionStatuses;
 
+  private String licenceReference;
+
+  private String allocatedToWuaId;
+
   public List<String> getCorrectionStatuses() {
     return correctionStatuses;
   }
 
   public void setCorrectionStatuses(List<String> correctionStatuses) {
     this.correctionStatuses = correctionStatuses;
+  }
+
+  public String getLicenceReference() {
+    return licenceReference;
+  }
+
+  public void setLicenceReference(String licenceReference) {
+    this.licenceReference = licenceReference;
+  }
+
+  public String getAllocatedToWuaId() {
+    return allocatedToWuaId;
+  }
+
+  public void setAllocatedToWuaId(String allocatedToWuaId) {
+    this.allocatedToWuaId = allocatedToWuaId;
   }
 }

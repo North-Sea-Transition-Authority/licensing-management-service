@@ -37,6 +37,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplication;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.OrganisationUnit;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.overview.LicenceScheduleTabController;
@@ -80,6 +81,7 @@ public class CrossLicenceEventTrackerService {
   private final LicenceScheduleExtensionRepository licenceScheduleExtensionRepository;
   private final LicenceWorkProgrammeAmendmentRepository licenceWorkProgrammeAmendmentRepository;
   private final EnergyPortalUserService energyPortalUserService;
+  private final ApplicationAccessService applicationAccessService;
 
   public CrossLicenceEventTrackerService(
       LicenceScheduleTermService licenceScheduleTermService,
@@ -93,7 +95,8 @@ public class CrossLicenceEventTrackerService {
       ScheduleWorkProgrammeApplicationDetailRepository scheduleWorkProgrammeApplicationDetailRepository,
       LicenceScheduleExtensionRepository licenceScheduleExtensionRepository,
       LicenceWorkProgrammeAmendmentRepository licenceWorkProgrammeAmendmentRepository,
-      EnergyPortalUserService energyPortalUserService
+      EnergyPortalUserService energyPortalUserService,
+      ApplicationAccessService applicationAccessService
   ) {
     this.licenceScheduleTermService = licenceScheduleTermService;
     this.licenceSchedulePhaseService = licenceSchedulePhaseService;
@@ -107,6 +110,7 @@ public class CrossLicenceEventTrackerService {
     this.licenceScheduleExtensionRepository = licenceScheduleExtensionRepository;
     this.licenceWorkProgrammeAmendmentRepository = licenceWorkProgrammeAmendmentRepository;
     this.energyPortalUserService = energyPortalUserService;
+    this.applicationAccessService = applicationAccessService;
   }
 
   public SortableTableView getEventTrackerTable(EventTrackerForm form, ServiceUserDetail user) {
@@ -131,6 +135,9 @@ public class CrossLicenceEventTrackerService {
     var stewardNameByWuaId = getStewardNamesByWuaId(eventCaches);
 
     var isRegulator = regulatorRoleService.isRegulator(user);
+    var ownOrganisationUnitIds = isRegulator
+        ? List.<Integer>of()
+        : applicationAccessService.getOrganisationUnitIds(user).stream().toList();
 
     var tableBuilder = SortableTableView.sortableTableBuilder()
         .newWithHeadings(
@@ -146,7 +153,9 @@ public class CrossLicenceEventTrackerService {
         .withDefaultSortIndex(4);
 
     eventCaches.stream()
-        .filter(eventCache -> matchesLicenseeCondition(eventCache, licenseeOrgUnitIdsByLicenceId, form, isRegulator))
+        .filter(eventCache -> matchesLicenseeCondition(
+            eventCache, licenseeOrgUnitIdsByLicenceId, form, isRegulator, ownOrganisationUnitIds
+        ))
         .sorted(Comparator.comparing(LicenceEventCache::getEventDate, Comparator.nullsLast(Comparator.naturalOrder())))
         .forEach(eventCache -> tableBuilder.addRow(
             toRow(eventCache, licenseesByLicenceId, latestApplicationDetailByApplicationId, stewardNameByWuaId)
@@ -233,17 +242,21 @@ public class CrossLicenceEventTrackerService {
   }
 
   // The licensee filter is only ever shown to regulator users, so a value submitted by anyone else is ignored.
+  // Non-regulator (industry) users never see the selectable filter - instead they are always restricted to
+  // licences with a responsible organisation in their own organisation group, regardless of the form.
   private boolean matchesLicenseeCondition(
       LicenceEventCache eventCache,
       Map<Integer, List<Integer>> licenseeOrgUnitIdsByLicenceId,
       EventTrackerForm form,
-      boolean isRegulator
+      boolean isRegulator,
+      List<Integer> ownOrganisationUnitIds
   ) {
+    var orgUnitIds = licenseeOrgUnitIdsByLicenceId.getOrDefault(eventCache.getLicenceId(), List.of());
+
     if (!isRegulator) {
-      return true;
+      return FilterUtil.listMatchesIdList(orgUnitIds, ownOrganisationUnitIds);
     }
 
-    var orgUnitIds = licenseeOrgUnitIdsByLicenceId.getOrDefault(eventCache.getLicenceId(), List.of());
     return FilterUtil.matchesIdList(orgUnitIds, form.getLicenseeOrgUnitId());
   }
 

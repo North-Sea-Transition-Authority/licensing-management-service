@@ -13,8 +13,10 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import uk.co.fivium.energyportal.serviceproviders.epmq.ScopeType;
 import uk.co.fivium.energyportalapi.client.organisation.OrganisationApi;
 import uk.co.fivium.energyportalapi.client.user.UserApi;
+import uk.co.fivium.energyportalapi.generated.types.OrganisationGroup;
 import uk.co.fivium.energyportalapi.generated.types.OrganisationUnit;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
@@ -30,6 +32,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.S
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplication;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
+import uk.co.nstauthority.licensingmanagementservice.teams.Team;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamRole;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
@@ -79,7 +82,7 @@ class CrossLicenceEventTrackerServiceIntegrationTest {
 
     entityManager.flush();
 
-    var result = crossLicenceEventTrackerService.getEventTrackerTable(new EventTrackerForm(), industryUser);
+    var result = crossLicenceEventTrackerService.getEventTrackerTable(new EventTrackerForm(), regulatorUser());
 
     assertThat(result.tableRows()).hasSize(2);
 
@@ -138,7 +141,7 @@ class CrossLicenceEventTrackerServiceIntegrationTest {
         .build();
     when(userApi.searchUsersByIds(any(), any(), any())).thenReturn(List.of(steward));
 
-    var result = crossLicenceEventTrackerService.getEventTrackerTable(new EventTrackerForm(), industryUser);
+    var result = crossLicenceEventTrackerService.getEventTrackerTable(new EventTrackerForm(), regulatorUser());
 
     assertThat(result.tableRows()).hasSize(2);
 
@@ -185,7 +188,7 @@ class CrossLicenceEventTrackerServiceIntegrationTest {
 
     entityManager.flush();
 
-    var result = crossLicenceEventTrackerService.getEventTrackerTable(new EventTrackerForm(), industryUser);
+    var result = crossLicenceEventTrackerService.getEventTrackerTable(new EventTrackerForm(), regulatorUser());
 
     assertThat(result.tableRows()).hasSize(3);
     assertThat(result.tableRows().get(1).rowValues().get(0).value()).isEqualTo("P 998");
@@ -229,7 +232,7 @@ class CrossLicenceEventTrackerServiceIntegrationTest {
     var form = new EventTrackerForm();
     form.setLicenceTypes(List.of(LicenceType.CARBON_STORAGE.name()));
 
-    var result = crossLicenceEventTrackerService.getEventTrackerTable(form, industryUser);
+    var result = crossLicenceEventTrackerService.getEventTrackerTable(form, regulatorUser());
 
     assertThat(result.tableRows()).hasSize(2);
     assertThat(result.tableRows().get(1).rowValues().get(0).value()).isEqualTo("CS 995");
@@ -288,7 +291,7 @@ class CrossLicenceEventTrackerServiceIntegrationTest {
     form.setFromDate("01/01/2030");
     form.setToDate("31/12/2030");
 
-    var result = crossLicenceEventTrackerService.getEventTrackerTable(form, industryUser);
+    var result = crossLicenceEventTrackerService.getEventTrackerTable(form, regulatorUser());
 
     assertThat(result.tableRows()).hasSize(2);
     assertThat(result.tableRows().get(1).rowValues().get(0).value()).isEqualTo("P 993");
@@ -317,24 +320,67 @@ class CrossLicenceEventTrackerServiceIntegrationTest {
   }
 
   @Test
-  void getEventTrackerTable_whenLicenseeFilterAppliedByIndustryUser_thenFilterIsIgnored() {
-    var matchingLicence = persistLicenceWithResponsibleOrganisation(9011, "989", "P 989", 700);
+  void getEventTrackerTable_whenIndustryUser_thenOnlySeesLicencesInOwnOrganisationGroupRegardlessOfFilter() {
+    var ownLicence = persistLicenceWithResponsibleOrganisation(9011, "989", "P 989", 700);
     var otherLicence = persistLicenceWithResponsibleOrganisation(9012, "988", "P 988", 800);
 
-    persistEventCache(matchingLicence, LocalDate.of(2037, Month.JANUARY, 1));
+    persistEventCache(ownLicence, LocalDate.of(2037, Month.JANUARY, 1));
     persistEventCache(otherLicence, LocalDate.of(2038, Month.JANUARY, 1));
 
     entityManager.flush();
 
     when(organisationApi.getOrganisationUnitsByIds(any(), any(), any(), any()))
         .thenReturn(List.of(organisationUnit(700, "Licensee A"), organisationUnit(800, "Licensee B")));
+    grantOrganisationGroupAccess(industryUser.wuaId(), 500, 700);
 
     var form = new EventTrackerForm();
-    form.setLicenseeOrgUnitId(700);
+    form.setLicenseeOrgUnitId(800);
 
     var result = crossLicenceEventTrackerService.getEventTrackerTable(form, industryUser);
 
-    assertThat(result.tableRows()).hasSize(3);
+    assertThat(result.tableRows()).hasSize(2);
+    assertThat(result.tableRows().get(1).rowValues().get(0).value()).isEqualTo("P 989");
+  }
+
+  @Test
+  void getEventTrackerTable_whenIndustryUserHasNoOrganisationAccess_thenSeesNoRows() {
+    var licence = persistLicenceWithResponsibleOrganisation(9013, "986", "P 986", 700);
+    persistEventCache(licence, LocalDate.of(2039, 1, 1));
+
+    entityManager.flush();
+
+    when(organisationApi.getOrganisationUnitsByIds(any(), any(), any(), any()))
+        .thenReturn(List.of(organisationUnit(700, "Licensee A")));
+
+    var result = crossLicenceEventTrackerService.getEventTrackerTable(new EventTrackerForm(), industryUser);
+
+    assertThat(result.tableRows()).hasSize(1);
+  }
+
+  private void grantOrganisationGroupAccess(Long wuaId, int organisationGroupId, int organisationUnitId) {
+    var team = new Team();
+    team.setName("Organisation group %d".formatted(organisationGroupId));
+    team.setTeamType(TeamType.ORGANISATION);
+    team.setScopeType(ScopeType.ORGANISATION_GROUP.name());
+    team.setScopeId(String.valueOf(organisationGroupId));
+    entityManager.persist(team);
+
+    var teamRole = new TeamRole();
+    teamRole.setTeam(team);
+    teamRole.setRole(Role.APPLICATION_SUBMITTER);
+    teamRole.setWuaId(wuaId);
+    entityManager.persist(teamRole);
+
+    entityManager.flush();
+
+    var organisationGroup = OrganisationGroup.newBuilder()
+        .organisationGroupId(organisationGroupId)
+        .name("Organisation group %d".formatted(organisationGroupId))
+        .organisationUnits(List.of(organisationUnit(organisationUnitId, "Licensee A")))
+        .build();
+
+    when(organisationApi.getAllOrganisationGroupsByIds(any(), any(), any()))
+        .thenReturn(List.of(organisationGroup));
   }
 
   private static OrganisationUnit organisationUnit(int organisationUnitId, String name) {

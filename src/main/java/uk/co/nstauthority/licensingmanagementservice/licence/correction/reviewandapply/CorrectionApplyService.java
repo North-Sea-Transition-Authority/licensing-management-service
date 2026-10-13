@@ -2,6 +2,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.correction.reviewa
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.LockModeType;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -32,6 +33,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.UpdateLicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.LicencePositionValidationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationError;
+import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
@@ -41,8 +43,12 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.Lic
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeRepository;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeStatus;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPosition;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.LicencePositionState;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ResolvedStates;
 import uk.co.nstauthority.licensingmanagementservice.licence.transaction.LicenceTransactionRepository;
 import uk.co.nstauthority.licensingmanagementservice.licence.transaction.LicenceTransactionService;
+import uk.co.nstauthority.licensingmanagementservice.util.ListUtil;
 
 @Service
 public class CorrectionApplyService {
@@ -62,6 +68,7 @@ public class CorrectionApplyService {
   private final EntityManager entityManager;
   private final PartialSurrenderCorrectionService partialSurrenderCorrectionService;
   private final CommandJourneyService commandJourneyService;
+  private final LicenceResponsibleOrganisationService licenceResponsibleOrganisationService;
 
   public CorrectionApplyService(
       CorrectedTimelineService correctedTimelineService,
@@ -74,7 +81,8 @@ public class CorrectionApplyService {
       LicenceTransactionRepository licenceTransactionRepository,
       EntityManager entityManager,
       PartialSurrenderCorrectionService partialSurrenderCorrectionService,
-      CommandJourneyService commandJourneyService
+      CommandJourneyService commandJourneyService,
+      LicenceResponsibleOrganisationService licenceResponsibleOrganisationService
   ) {
     this.correctedTimelineService = correctedTimelineService;
     this.licencePositionValidationService = licencePositionValidationService;
@@ -87,6 +95,7 @@ public class CorrectionApplyService {
     this.entityManager = entityManager;
     this.partialSurrenderCorrectionService = partialSurrenderCorrectionService;
     this.commandJourneyService = commandJourneyService;
+    this.licenceResponsibleOrganisationService = licenceResponsibleOrganisationService;
   }
 
   @Transactional
@@ -113,6 +122,15 @@ public class CorrectionApplyService {
 
     var positionCorrections = correctedTimeline.positionCorrections();
     var appliedCommandJourneyIds = new LinkedHashSet<UUID>();
+
+    if (!correctedTimeline.displayedPositions().isEmpty()) {
+      var latestState = getLatestState(correctedTimeline.resolvedStates(), correctedTimeline.displayedPositions());
+
+      licenceResponsibleOrganisationService.saveLicenseesFromForm(
+          correction.getLicence(),
+          ListUtil.toStrings(latestState.licenseeIds().stream().toList())
+      );
+    }
 
     positionCorrectionsOfType(positionCorrections, LicencePositionCorrectionChangeType.UPDATE_POSITION)
         .forEach(this::updatePosition);
@@ -144,6 +162,14 @@ public class CorrectionApplyService {
     );
 
     return List.of();
+  }
+
+  private LicencePositionState getLatestState(ResolvedStates states, List<ChronologicalPosition> chronologicalPositions) {
+    var latestPosition = chronologicalPositions.stream()
+        .max(Comparator.comparing(ChronologicalPosition::date)
+          .thenComparing(ChronologicalPosition::order))
+        .orElseThrow(() -> new IllegalStateException("No chronological positions to resolve latest state"));
+    return states.currentState(latestPosition.id());
   }
 
   private void updatePosition(LicencePositionCorrection positionCorrection) {

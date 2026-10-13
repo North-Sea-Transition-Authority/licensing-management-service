@@ -392,7 +392,9 @@ public class LicencePositionViewService {
             updatedPositionPayloadsByTargetId,
             addedPositionCorrections,
             invalidPositionIds,
-            movedAwayPositionIds(allChronologicalPositions)
+            movedAwayPositionIds(allChronologicalPositions),
+            nameContext.getNamesForDate(positionDate),
+            resolvedStates
         ),
         licencePosition.getFormattedPositionDate(),
         licencePosition.getLicenceTransaction().getRegulatorReference(),
@@ -465,7 +467,9 @@ public class LicencePositionViewService {
             updatedPositionPayloadsByTargetId,
             addedPositionCorrections,
             invalidPositionIds,
-            movedAwayPositionIds(allChronologicalPositions)
+            movedAwayPositionIds(allChronologicalPositions),
+            nameContext.getNamesForDate(positionDate),
+            resolvedStates
         ),
         DateUtil.formatLongDate(payload.effectiveDate()),
         payload.correctionReference(),
@@ -731,7 +735,9 @@ public class LicencePositionViewService {
       Map<UUID, UpdateLicencePositionPayload> correctedPayloadsByPositionId,
       List<LicencePositionCorrection> addedCorrections,
       Set<UUID> invalidPositionIds,
-      Set<UUID> movedAwayPositionIds
+      Set<UUID> movedAwayPositionIds,
+      Map<Integer, String> namesForDate,
+      ResolvedStates resolvedStates
   ) {
     var sameDateCount = sameDateCountByEffectiveDate(
         licencePositions, removedPositionIds, correctedPayloadsByPositionId, addedCorrections);
@@ -744,9 +750,18 @@ public class LicencePositionViewService {
             correctedPayloadsByPositionId,
             sameDateCount,
             invalidPositionIds,
-            movedAwayPositionIds
+            movedAwayPositionIds,
+            namesForDate,
+            resolvedStates
         );
-    var addedPositions = getAddedPositionEntries(licenceCorrection, addedCorrections, sameDateCount, invalidPositionIds);
+    var addedPositions = getAddedPositionEntries(
+        licenceCorrection,
+        addedCorrections,
+        sameDateCount,
+        invalidPositionIds,
+        namesForDate,
+        resolvedStates
+    );
 
     return Stream.concat(livePositions.stream(), addedPositions.stream())
         .sorted(TIMELINE_ORDER_COMPARATOR)
@@ -780,7 +795,9 @@ public class LicencePositionViewService {
       Map<UUID, UpdateLicencePositionPayload> correctedPayloadsByPositionId,
       Map<LocalDate, Long> sameDateCount,
       Set<UUID> invalidPositionIds,
-      Set<UUID> movedAwayPositionIds
+      Set<UUID> movedAwayPositionIds,
+      Map<Integer, String> namesForDate,
+      ResolvedStates resolvedStates
   ) {
     return licencePositions.stream()
         .filter(position -> position.getStatus() == LicencePositionStatus.EXECUTED)
@@ -789,11 +806,14 @@ public class LicencePositionViewService {
           var correctedPayload = correctedPayloadsByPositionId.get(licencePosition.getId());
           var effectiveDate = effectiveDate(licencePosition, correctedPayloadsByPositionId);
           var effectiveDateOrder = effectiveDateOrder(licencePosition, correctedPayloadsByPositionId);
-
           var correctionReference = correctedPayload != null ? correctedPayload.correctionReference() : null;
 
           var timelineViewBuilder = baseTimelineViewBuilder(
-              licencePosition, getCorrectionPositionUrl(licenceCorrection, licencePosition), null, null)
+              licencePosition,
+              getCorrectionPositionUrl(licenceCorrection, licencePosition),
+              namesForDate,
+              resolvedStates.currentState(licencePosition.getId())
+          )
               .withFormattedPositionDate(DateUtil.formatLongDateWithOrder(effectiveDate, effectiveDateOrder))
               .withCorrectedInThisCorrection(
                   hasPendingCorrection(correctedPayload) || movedAwayPositionIds.contains(licencePosition.getId())
@@ -824,7 +844,9 @@ public class LicencePositionViewService {
       LicenceCorrection licenceCorrection,
       List<LicencePositionCorrection> addedCorrections,
       Map<LocalDate, Long> sameDateCount,
-      Set<UUID> invalidPositionIds
+      Set<UUID> invalidPositionIds,
+      Map<Integer, String> namesForDate,
+      ResolvedStates resolvedStates
   ) {
     return addedCorrections
         .stream()
@@ -832,6 +854,7 @@ public class LicencePositionViewService {
           var payload = (CreateLicencePositionPayload) licencePositionCorrection.getPayload();
           var effectiveDate = payload.effectiveDate();
           var addedPositionId = UUID.fromString(payload.licencePositionId());
+          var state = resolvedStates.currentState(addedPositionId);
 
           var timelineViewBuilder = LicencePositionTimelineView.builder()
               .withPositionId(addedPositionId)
@@ -842,7 +865,8 @@ public class LicencePositionViewService {
               .withAddedInThisCorrection(true)
               .withHasError(invalidPositionIds.contains(addedPositionId))
               .withUndoUrl(ReverseRouter.route(on(UndoLicencePositionCorrectionController.class)
-                  .renderUndoPosition(licenceCorrection, licencePositionCorrection)));
+                  .renderUndoPosition(licenceCorrection, licencePositionCorrection)))
+              .withLicenseeNames(getLicenseeNames(state, namesForDate));
 
           if (sameDateCount.getOrDefault(effectiveDate, 0L) > 1) {
             timelineViewBuilder.withCorrectOrderUrl(getCorrectOrderPositionUrl(licenceCorrection, addedPositionId));
@@ -929,6 +953,19 @@ public class LicencePositionViewService {
                                                                       String url,
                                                                       Map<Integer, String> namesForDate,
                                                                       LicencePositionState state) {
+    return LicencePositionTimelineView.builder()
+        .withPositionId(position.getId())
+        .withUrl(url)
+        .withRegulatorReference(position.getLicenceTransaction().getRegulatorReference())
+        .withFormattedPositionDate(DateUtil.formatLongDateWithOrder(position.getPositionDate(), position.getPositionDateOrder()))
+        .withLicenseeNames(getLicenseeNames(state, namesForDate));
+  }
+
+  private static String nameOrEmpty(Map<Integer, String> administratorNames, @Nullable Integer administratorId) {
+    return administratorId == null ? "" : administratorNames.getOrDefault(administratorId, "");
+  }
+
+  private static List<String> getLicenseeNames(LicencePositionState state, Map<Integer, String> namesForDate) {
     List<String> licenseeNames;
     if (state == null || state.licenseeIds() == null) {
       licenseeNames = List.of();
@@ -938,15 +975,6 @@ public class LicencePositionViewService {
           .map(id -> namesForDate.getOrDefault(id, NOT_AVAILABLE))
           .toList();
     }
-    return LicencePositionTimelineView.builder()
-        .withPositionId(position.getId())
-        .withUrl(url)
-        .withRegulatorReference(position.getLicenceTransaction().getRegulatorReference())
-        .withFormattedPositionDate(DateUtil.formatLongDateWithOrder(position.getPositionDate(), position.getPositionDateOrder()))
-        .withLicenseeNames(licenseeNames);
-  }
-
-  private static String nameOrEmpty(Map<Integer, String> administratorNames, @Nullable Integer administratorId) {
-    return administratorId == null ? "" : administratorNames.getOrDefault(administratorId, "");
+    return licenseeNames;
   }
 }

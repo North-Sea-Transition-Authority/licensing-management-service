@@ -17,6 +17,7 @@ import java.util.UUID;
  *                           added positions
  * @param formattedPositionDate the row's date pre-formatted for display (e.g. "5 June 2026") — the
  *                              position date for live rows, the effective date for added rows
+ * @param licenseeNames the row's current licensees with the names correct for the position date;
  * @param addedInThisCorrection if this row is a position added in the current correction
  *                              (a draft); {@code false} for existing live (executed) positions.
  *                              Drives the "Added position" tag and Undo link in the template

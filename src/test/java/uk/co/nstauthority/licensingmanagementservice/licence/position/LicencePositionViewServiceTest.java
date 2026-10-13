@@ -265,6 +265,35 @@ class LicencePositionViewServiceTest {
   }
 
   @Test
+  void getCorrectionPositionPageView_timelineAndStateHaveLicenseeNames() {
+    var correction = LicenceCorrectionTestUtil.newBuilder().withLicence(LICENCE).build();
+
+    var executed = LicencePositionTestUtil.newBuilder()
+        .withId(POSITION_ID).withLicence(LICENCE).withStatus(LicencePositionStatus.EXECUTED)
+        .withLicenceTransaction(LicenceTransactionTestUtil.newBuilder().withRegulatorReference("REF-1").build())
+        .withPositionDate(LocalDate.of(2026, Month.JANUARY, 1)).withPositionOrder(1).build();
+    var operation = LicenceOperation.newLicenseeOperation().withLicenseesToAdd(List.of(1, 2)).build();
+
+    var change = LicencePositionChangeTestUtil.newBuilder()
+        .withOperations(List.of(operation))
+        .withLicencePosition(executed).build();
+
+    when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(executed));
+    when(licencePositionChangeService.findByLicencePositionIn(List.of(executed))).thenReturn(List.of(change));
+    when(organisationUnitQueryService.getOrganisationNameHistoriesByIds(List.of(1, 2)))
+        .thenReturn(Map.of(1, namePeriods("Admin Ltd",
+            namePeriod("Admin Ltd", LocalDate.of(2000, Month.JANUARY, 1), null)),
+            2, namePeriods("Org Ltd",
+                namePeriod("Org Ltd", LocalDate.of(2000, Month.JANUARY, 2), null))));
+
+    var result = licencePositionViewService.getCorrectionPositionPageView(correction, executed);
+
+    assertThat(result.stateView().licenseeStateView().licenseeNames()).isEqualTo(List.of("Admin Ltd", "Org Ltd"));
+    assertThat(result.timelineViews().size()).isOne();
+    assertThat(result.timelineViews().getFirst().licenseeNames()).isEqualTo(List.of("Admin Ltd", "Org Ltd"));
+  }
+
+  @Test
   void getPositionPageView_licenseesNamesAreCorrect() {
     var changeId = UUID.randomUUID();
 

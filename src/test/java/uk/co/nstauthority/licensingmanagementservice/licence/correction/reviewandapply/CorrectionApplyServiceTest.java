@@ -43,6 +43,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.LicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.LicencePositionValidationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationError;
+import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation.SurrenderDetails;
@@ -56,6 +57,9 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.Lic
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionStateResolver;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPosition;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.PositionChange;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.PositionChangeTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.transaction.LicenceTransactionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.transaction.LicenceTransactionRepository;
 import uk.co.nstauthority.licensingmanagementservice.licence.transaction.LicenceTransactionService;
@@ -100,6 +104,9 @@ class CorrectionApplyServiceTest {
 
   @Mock
   private CommandJourneyService commandJourneyService;
+
+  @Mock
+  private LicenceResponsibleOrganisationService licenceResponsibleOrganisationService;
 
   @InjectMocks
   private CorrectionApplyService correctionApplyService;
@@ -264,6 +271,61 @@ class CorrectionApplyServiceTest {
     verify(licencePositionRepository).save(livePosition);
     verify(licencePositionRepository, never()).delete(livePosition);
     verifyNoInteractions(licencePositionChangeRepository);
+  }
+
+  @Test
+  void applyCorrection_whenMultipleLicenseeChangesAreAdded_theLatestLicenseeStateIsSaved() {
+    var licenceTransaction = LicenceTransactionTestUtil.newBuilder().withRegulatorReference("regulatorReference").build();
+    var date1 = LocalDate.of(2026, Month.OCTOBER, 1);
+    var position1 = LicencePositionTestUtil.newBuilder().withPositionDate(date1).withPositionOrder(1).withLicenceTransaction(licenceTransaction).build();
+    var changeId1 = UUID.randomUUID();
+    var operation1 = LicenceOperation.newLicenseeOperation().withLicenseesToAdd(List.of(1, 2 ,3)).build();
+    var date2 = LocalDate.of(2026, Month.OCTOBER, 3);
+    var position2 = LicencePositionTestUtil.newBuilder().withPositionDate(date2).withPositionOrder(1).withLicenceTransaction(licenceTransaction).build();
+    var changeId2 = UUID.randomUUID();
+    var operation2 = LicenceOperation.newLicenseeOperation().withLicenseesToAdd(List.of(4)).withLicenseesToRemove(List.of(1)).build();
+    var date3 = LocalDate.of(2026, Month.OCTOBER, 3);
+    var position3 = LicencePositionTestUtil.newBuilder().withPositionDate(date3).withPositionOrder(2).withLicenceTransaction(licenceTransaction).build();
+    var changeId3 = UUID.randomUUID();
+    var operation3 = LicenceOperation.newLicenseeOperation().withLicenseesToAdd(List.of(5)).build();
+    var change1 = PositionChangeTestUtil.newBuilder()
+        .withChangeId(changeId1.toString())
+        .withChangeOrder(1)
+        .withOperations(List.of(operation1))
+        .build();
+    var change2 = PositionChangeTestUtil.newBuilder()
+        .withChangeId(changeId2.toString())
+        .withChangeOrder(1)
+        .withOperations(List.of(operation2))
+        .build();
+    var change3 = PositionChangeTestUtil.newBuilder()
+        .withChangeId(changeId3.toString())
+        .withChangeOrder(1)
+        .withOperations(List.of(operation3))
+        .build();
+
+    var positionCorrection1 = updatePositionCorrection(position1, "reference1", List.of());
+    var positionCorrection2 = updatePositionCorrection(position2, "reference2", List.of());
+    var positionCorrection3 = updatePositionCorrection(position3, "reference3", List.of());
+    var chronologicalPositions = List.of(addChronologicalPosition(position1, change1), addChronologicalPosition(position2, change2), addChronologicalPosition(position3, change3));
+    var correctedTimeline = new CorrectedTimeline(
+        licenceCorrection,
+        List.of(positionCorrection1, positionCorrection2, positionCorrection3),
+        chronologicalPositions,
+        LicencePositionStateResolver.resolve(chronologicalPositions, Set.of())
+    );
+
+    when(entityManager.find(LicenceCorrection.class, licenceCorrection.getId(), LockModeType.PESSIMISTIC_WRITE)).thenReturn(licenceCorrection);
+    when(correctedTimelineService.getCorrectedTimeline(licenceCorrection)).thenReturn(correctedTimeline);
+    when(licencePositionValidationService.validate(
+        correctedTimeline.positionsToApply(),
+        correctedTimeline.resolvedStates(),
+        correctedTimeline.isCarbonStorage())
+    ).thenReturn(List.of());
+
+    correctionApplyService.applyCorrection(licenceCorrection);
+
+    verify(licenceResponsibleOrganisationService).saveLicenseesFromForm(licenceCorrection.getLicence(), List.of("2", "3", "4", "5"));
   }
 
   @Test
@@ -545,6 +607,10 @@ class CorrectionApplyServiceTest {
   private void stubLockedCorrection(LicenceCorrection correction) {
     when(entityManager.find(LicenceCorrection.class, correction.getId(), LockModeType.PESSIMISTIC_WRITE))
         .thenReturn(correction);
+  }
+
+  private ChronologicalPosition addChronologicalPosition(LicencePosition position, PositionChange change) {
+    return ChronologicalPosition.fromLicencePosition(position, "", position.getPositionDate(), position.getPositionDateOrder(), List.of(change));
   }
 
   private LicencePositionCorrection addPositionCorrection(

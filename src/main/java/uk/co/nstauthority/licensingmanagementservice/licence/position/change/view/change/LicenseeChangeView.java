@@ -24,7 +24,8 @@ public record LicenseeChangeView(
 
     var combinedJoiningLicensees = new ArrayList<>(joiningLicensees);
     combinedJoiningLicensees.addAll(otherView.joiningLicensees);
-    return new LicenseeChangeView(combinedWithdrawingLicensees,
+    return new LicenseeChangeView(
+        combinedWithdrawingLicensees,
         combinedJoiningLicensees,
         changeType,
         urls.merge(otherView.urls()));

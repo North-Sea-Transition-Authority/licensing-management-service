@@ -11,6 +11,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.Month;
 import java.util.List;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -308,6 +309,68 @@ class CrossLicenceEventTrackerServiceIntegrationTest {
 
     assertThat(result.tableRows()).hasSize(2);
     assertThat(result.tableRows().get(1).rowValues().get(0).value()).isEqualTo("CS 995");
+  }
+
+  @Test
+  void getEventTrackerTable_whenRequestTypeFilterApplied_thenOnlyMatchingApplicationTypesReturned() {
+    var extensionLicence = LicenceTestUtil.builder()
+        .withId(9009)
+        .withLicenceType(LicenceType.SEAWARD_PRODUCTION)
+        .withLicenceNumber("991")
+        .withLicenceReference("P 991")
+        .build();
+    entityManager.persist(extensionLicence);
+
+    var continuationLicence = LicenceTestUtil.builder()
+        .withId(9010)
+        .withLicenceType(LicenceType.SEAWARD_PRODUCTION)
+        .withLicenceNumber("990")
+        .withLicenceReference("P 990")
+        .build();
+    entityManager.persist(continuationLicence);
+
+    var noApplicationLicence = LicenceTestUtil.builder()
+        .withId(9011)
+        .withLicenceType(LicenceType.SEAWARD_PRODUCTION)
+        .withLicenceNumber("989")
+        .withLicenceReference("P 989")
+        .build();
+    entityManager.persist(noApplicationLicence);
+
+    var extensionEventCache = new LicenceEventCache();
+    extensionEventCache.setLicenceId(extensionLicence.getId());
+    extensionEventCache.setLicenceReference(extensionLicence.getLicenceReference());
+    extensionEventCache.setEventType(ScheduleEventType.TERM);
+    extensionEventCache.setEventDate(LocalDate.of(2035, Month.JANUARY, 1));
+    extensionEventCache.setApplicationId(UUID.randomUUID());
+    extensionEventCache.setApplicationType(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION);
+    entityManager.persist(extensionEventCache);
+
+    var continuationEventCache = new LicenceEventCache();
+    continuationEventCache.setLicenceId(continuationLicence.getId());
+    continuationEventCache.setLicenceReference(continuationLicence.getLicenceReference());
+    continuationEventCache.setEventType(ScheduleEventType.TERM);
+    continuationEventCache.setEventDate(LocalDate.of(2036, Month.JANUARY, 1));
+    continuationEventCache.setApplicationId(UUID.randomUUID());
+    continuationEventCache.setApplicationType(ApplicationType.CONTINUATION_APPLICATION);
+    entityManager.persist(continuationEventCache);
+
+    var noApplicationEventCache = new LicenceEventCache();
+    noApplicationEventCache.setLicenceId(noApplicationLicence.getId());
+    noApplicationEventCache.setLicenceReference(noApplicationLicence.getLicenceReference());
+    noApplicationEventCache.setEventType(ScheduleEventType.TERM);
+    noApplicationEventCache.setEventDate(LocalDate.of(2037, Month.JANUARY, 1));
+    entityManager.persist(noApplicationEventCache);
+
+    entityManager.flush();
+
+    var form = new EventTrackerForm();
+    form.setRequestTypes(List.of(EventTrackerRequestType.CONTINUATION.name()));
+
+    var result = crossLicenceEventTrackerService.getEventTrackerTable(form, regulatorUser());
+
+    assertThat(result.tableRows()).hasSize(2);
+    assertThat(result.tableRows().get(1).rowValues().get(0).value()).isEqualTo("P 990");
   }
 
   @Test

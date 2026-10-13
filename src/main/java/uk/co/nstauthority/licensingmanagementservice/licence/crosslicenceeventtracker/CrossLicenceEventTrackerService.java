@@ -25,6 +25,7 @@ import org.jooq.Condition;
 import org.jooq.DSLContext;
 import org.jooq.impl.DSL;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserJson;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserService;
@@ -129,6 +130,7 @@ public class CrossLicenceEventTrackerService {
         .join(LICENCES).on(LICENCES.ID.eq(LICENCE_EVENT_CACHE.LICENCE_ID))
         .where(getLicenceTypeCondition(form))
         .and(getEventDateCondition(form))
+        .and(getRequestTypeCondition(form))
         .fetchInto(LicenceEventCache.class);
 
     var licenceIds = eventCaches.stream()
@@ -263,6 +265,20 @@ public class CrossLicenceEventTrackerService {
     }
 
     return LICENCES.TYPE.in(form.getLicenceTypes());
+  }
+
+  private Condition getRequestTypeCondition(EventTrackerForm form) {
+    if (CollectionUtils.isEmpty(form.getRequestTypes())) {
+      return DSL.noCondition();
+    }
+
+    var applicationTypeNames = form.getRequestTypes().stream()
+        .map(EventTrackerRequestType::valueOf)
+        .map(EventTrackerRequestType::getApplicationType)
+        .map(Enum::name)
+        .toList();
+
+    return LICENCE_EVENT_CACHE.APPLICATION_TYPE.in(applicationTypeNames);
   }
 
   private Condition getEventDateCondition(EventTrackerForm form) {

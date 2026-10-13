@@ -104,7 +104,7 @@ public class RecordOfDecisionTaskListService {
         SUBMITTED_BY_USER_PURPOSE);
 
     var summaryDataView = SummaryDataView.newBuilder()
-        .addStringValue("Submitted by", submittedByUser.displayName())
+        .addStringValue("Submitted by", submittedByUser.displayNameAndEmail())
         .addStringValue("Submission date",
             DateFormatUtil.convertToDisplayTextWithTime(applicationDetail.getSubmittedDatetime()))
         .addStringValue("Steward", getStewardName(applicationDetail.getScheduleWorkProgrammeApplication()))

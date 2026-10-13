@@ -139,6 +139,7 @@ class LicenceContinuationApplicationOverviewServiceTest {
         .withWebUserAccountId(SUBMITTED_BY_WUA_ID)
         .withForename("John")
         .withSurname("Smith")
+        .withEmailAddress("john.smith@example.com")
         .buildJson();
 
     when(energyPortalUserService.getByWuaId(
@@ -150,7 +151,7 @@ class LicenceContinuationApplicationOverviewServiceTest {
     var context = overviewService.getApplicationContext(applicationDetail, licence);
 
     var keyValues = context.summaryDataView().get(0).keyValues();
-    assertThat(getSummaryValueData(keyValues.get(0))).isEqualTo("John Smith");
+    assertThat(getSummaryValueData(keyValues.get(0))).isEqualTo("John Smith (john.smith@example.com)");
     assertThat(getSummaryValueData(keyValues.get(1))).isNotBlank();
   }
 

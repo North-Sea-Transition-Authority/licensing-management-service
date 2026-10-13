@@ -112,7 +112,7 @@ public class EventCommentService {
     var wuaIdNameMap = energyPortalUserService.findByWuaIds(authorWuaIds, COMMENT_AUTHOR_PURPOSE).stream()
         .collect(StreamUtil.toLinkedHashMap(
             EnergyPortalUserJson::webUserAccountId,
-            EnergyPortalUserJson::displayName
+            EnergyPortalUserJson::displayNameAndEmail
             )
         );
 
@@ -148,7 +148,7 @@ public class EventCommentService {
         WebUserAccountId.from(eventComment.getAuthorWuaId()),
         COMMENT_AUTHOR_PURPOSE
     ).orElseThrow(() -> new LmsEntityNotFoundException("User", Math.toIntExact(eventComment.getAuthorWuaId())))
-        .displayName();
+        .displayNameAndEmail();
 
     return createViewFrom(eventComment, authorName);
   }

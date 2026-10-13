@@ -79,6 +79,7 @@ class ContinuationDecisionSummarySectionServiceTest {
         .withWebUserAccountId(101L)
         .withForename("test")
         .withSurname("user")
+        .withEmailAddress("test.user@example.com")
         .buildJson();
 
     when(energyPortalUserService.findByWuaId(eq(WebUserAccountId.from(101L)), any()))
@@ -104,7 +105,7 @@ class ContinuationDecisionSummarySectionServiceTest {
     assertThat(mixedData.summaryData().keyValues())
         .hasSize(2)
         .extracting(Object::toString)
-        .anyMatch(data -> data.contains("test user"))
+        .anyMatch(data -> data.contains("test user (test.user@example.com)"))
         .anyMatch(data -> data.contains("1 January 2025 12:00:00"));
 
     assertThat(mixedData.fileViews()).hasSize(1);

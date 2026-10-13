@@ -211,7 +211,7 @@ class EventCommentServiceTest {
     when(eventCommentRepository.getAllByScheduleEvent_LicenceScheduleAndStatus(licenceSchedule, EventCommentStatus.PUBLISHED))
         .thenReturn(List.of(comment1, comment2));
 
-    var userJson = new EnergyPortalUserJson(authorWuaId, null, "Jane", "Smith", null, null, true, null, false);
+    var userJson = new EnergyPortalUserJson(authorWuaId, null, "Jane", "Smith", "jane.smith@example.com", null, true, null, false);
 
     when(energyPortalUserService.findByWuaIds(
         List.of(WebUserAccountId.from(authorWuaId)),
@@ -226,7 +226,7 @@ class EventCommentServiceTest {
         .usingRecursiveComparison()
         .isEqualTo(List.of(new EventCommentView(
             "First comment",
-            userJson.displayName(),
+            "Jane Smith (jane.smith@example.com)",
             DateFormatUtil.convertToDisplayTextWithTime(comment1.getTimestamp()),
             ReverseRouter.route(on(EventCommentDeletionController.class)
                 .renderDeleteCommentPage(comment1.getId(), null))
@@ -236,7 +236,7 @@ class EventCommentServiceTest {
         .usingRecursiveComparison()
         .isEqualTo(List.of(new EventCommentView(
             "Second comment",
-            userJson.displayName(),
+            "Jane Smith (jane.smith@example.com)",
             DateFormatUtil.convertToDisplayTextWithTime(comment2.getTimestamp()),
             ReverseRouter.route(on(EventCommentDeletionController.class)
                 .renderDeleteCommentPage(comment2.getId(), null))
@@ -365,7 +365,7 @@ class EventCommentServiceTest {
     eventComment.setAuthorWuaId(authorWuaId);
     eventComment.setTimestamp(Instant.parse("2025-03-15T09:30:00Z"));
 
-    var userJson = new EnergyPortalUserJson(authorWuaId, null, "Alice", "Brown", null, null, true, null, false);
+    var userJson = new EnergyPortalUserJson(authorWuaId, null, "Alice", "Brown", "alice.brown@example.com", null, true, null, false);
 
     when(energyPortalUserService.findByWuaId(
         WebUserAccountId.from(authorWuaId),
@@ -376,7 +376,7 @@ class EventCommentServiceTest {
         .usingRecursiveComparison()
         .isEqualTo(new EventCommentView(
             "A comment",
-            userJson.displayName(),
+            "Alice Brown (alice.brown@example.com)",
             DateFormatUtil.convertToDisplayTextWithTime(eventComment.getTimestamp()),
             ReverseRouter.route(on(EventCommentDeletionController.class)
                 .renderDeleteCommentPage(eventComment.getId(), null))

@@ -23,6 +23,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogram
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overview.uploaddsp.UploadDspFileUsage;
+import uk.co.nstauthority.licensingmanagementservice.summary.SummaryKeyValue;
+import uk.co.nstauthority.licensingmanagementservice.summary.SummaryValueType;
 import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListSection;
 import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListSectionService;
 import uk.co.nstauthority.licensingmanagementservice.util.EnergyPortalUserTestUtil;
@@ -132,5 +134,37 @@ class RecordOfDecisionTaskListServiceTest {
 
     assertThat(context.reference()).isEqualTo("LMS/EAA/2024/1");
     assertThat(context.type()).isEqualTo("Carbon storage licence - CS1");
+  }
+
+  @Test
+  void getApplicationContext_returnsSubmittedByNameAndEmail() {
+    var applicationDetailWithContext = ScheduleWorkProgrammeApplicationDetailTestUtil.builder()
+        .withId(UUID.randomUUID())
+        .withSubmittedDatetime(Instant.parse("2024-03-15T10:30:00Z"))
+        .withSubmittedByWuaId(SUBMITTED_BY_WUA_ID)
+        .build();
+    var licence = applicationDetailWithContext.getLicence();
+
+    var submittedByUser = EnergyPortalUserTestUtil.newBuilder()
+        .withWebUserAccountId(SUBMITTED_BY_WUA_ID)
+        .withForename("John")
+        .withSurname("Smith")
+        .withEmailAddress("john.smith@example.com")
+        .buildJson();
+
+    when(energyPortalUserService.getByWuaId(
+        WebUserAccountId.from(SUBMITTED_BY_WUA_ID), RecordOfDecisionTaskListService.SUBMITTED_BY_USER_PURPOSE))
+        .thenReturn(submittedByUser);
+    when(licenceService.getLicencePageCaption(licence)).thenReturn("Carbon storage licence - CS1");
+
+    var context = recordOfDecisionTaskListService.getApplicationContext(applicationDetailWithContext);
+
+    assertThat(context.summaryDataView().getFirst().keyValues().getFirst())
+        .usingRecursiveComparison()
+        .isEqualTo(new SummaryKeyValue(
+            "Submitted by",
+            SummaryValueType.STRING_VALUE,
+            List.of("John Smith (john.smith@example.com)")
+        ));
   }
 }

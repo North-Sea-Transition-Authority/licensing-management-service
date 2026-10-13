@@ -36,7 +36,7 @@ public class LicenceContinuationApplicationOverviewService {
     );
 
     var summaryDataView = SummaryDataView.newBuilder()
-        .addStringValue("Submitted by", submittedByUser.displayName())
+        .addStringValue("Submitted by", submittedByUser.displayNameAndEmail())
         .addStringValue("Submission date",
             DateFormatUtil.convertToDisplayTextWithTime(applicationDetail.getSubmittedDatetime()))
         .build();

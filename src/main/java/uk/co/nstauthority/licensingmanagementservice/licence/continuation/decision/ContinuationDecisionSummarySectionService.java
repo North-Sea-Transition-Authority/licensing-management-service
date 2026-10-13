@@ -128,7 +128,7 @@ public class ContinuationDecisionSummarySectionService {
             webUserAccountId,
             ISSUER_USER_PURPOSE
         ))
-        .map(EnergyPortalUserJson::displayName)
+        .map(EnergyPortalUserJson::displayNameAndEmail)
         .orElse("Not allocated");
   }
 }

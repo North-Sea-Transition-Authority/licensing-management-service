@@ -33,4 +33,8 @@ public record EnergyPortalUserJson(
   public String displayName() {
     return UserDisplayNameUtil.getUserDisplayName(forename, surname);
   }
+
+  public String displayNameAndEmail() {
+    return UserDisplayNameUtil.getUserDisplayNameAndEmail(forename, surname, emailAddress);
+  }
 }

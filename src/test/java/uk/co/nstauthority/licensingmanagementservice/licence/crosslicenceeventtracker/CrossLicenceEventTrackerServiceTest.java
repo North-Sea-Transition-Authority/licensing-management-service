@@ -32,6 +32,9 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
 import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
+import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplication;
+import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetailQueryService;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
@@ -45,11 +48,11 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogra
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplication;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
-import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetailRepository;
-import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.amendjourney.LicenceWorkProgrammeAmendmentRepository;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetailQueryService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.amendjourney.LicenceWorkProgrammeAmendmentRequest;
-import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.extendjourney.LicenceScheduleExtensionRepository;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.amendjourney.LicenceWorkProgrammeAmendmentRequestQueryService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.extendjourney.LicenceScheduleExtensionRequest;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.extendjourney.LicenceScheduleExtensionRequestQueryService;
 
 @ExtendWith(MockitoExtension.class)
 class CrossLicenceEventTrackerServiceTest {
@@ -73,19 +76,25 @@ class CrossLicenceEventTrackerServiceTest {
   private WorkProgrammeActivityService workProgrammeActivityService;
 
   @Mock
-  private ScheduleWorkProgrammeApplicationDetailRepository scheduleWorkProgrammeApplicationDetailRepository;
+  private ScheduleWorkProgrammeApplicationDetailQueryService scheduleWorkProgrammeApplicationDetailQueryService;
 
   @Mock
-  private LicenceScheduleExtensionRepository licenceScheduleExtensionRepository;
+  private LicenceScheduleExtensionRequestQueryService licenceScheduleExtensionRequestQueryService;
 
   @Mock
-  private LicenceWorkProgrammeAmendmentRepository licenceWorkProgrammeAmendmentRepository;
+  private LicenceWorkProgrammeAmendmentRequestQueryService licenceWorkProgrammeAmendmentRequestQueryService;
+
+  @Mock
+  private LicenceContinuationApplicationDetailQueryService licenceContinuationApplicationDetailQueryService;
 
   @InjectMocks
   private CrossLicenceEventTrackerService crossLicenceEventTrackerService;
 
   @Captor
   private ArgumentCaptor<List<LicenceEventCache>> eventCacheListCaptor;
+
+  @Captor
+  private ArgumentCaptor<LicenceEventCache> eventCacheCaptor;
 
   @Test
   void refreshScheduleCache_whenNoExistingCaches_thenSavesCachesForTermsWithoutPhasesAndAllPhases() {
@@ -297,7 +306,7 @@ class CrossLicenceEventTrackerServiceTest {
 
     crossLicenceEventTrackerService.refreshApplicationCache(licenceApplication);
 
-    verifyNoInteractions(scheduleWorkProgrammeApplicationDetailRepository, licenceEventCacheRepository);
+    verifyNoInteractions(scheduleWorkProgrammeApplicationDetailQueryService, licenceEventCacheRepository);
   }
 
   @Test
@@ -315,11 +324,11 @@ class CrossLicenceEventTrackerServiceTest {
     existingCache.setOriginalEventId(term.getOriginalEventId());
     existingCache.setLicenceId(100);
 
-    when(scheduleWorkProgrammeApplicationDetailRepository.getFirstByScheduleWorkProgrammeApplicationOrderByVersionNumberDesc(application))
+    when(scheduleWorkProgrammeApplicationDetailQueryService.getLatestByApplication(application))
         .thenReturn(Optional.of(applicationDetail));
-    when(licenceScheduleExtensionRepository.findAllByScheduleWorkProgrammeApplicationDetails(applicationDetail))
+    when(licenceScheduleExtensionRequestQueryService.getAllByApplicationDetail(applicationDetail))
         .thenReturn(List.of(extensionRequest));
-    when(licenceWorkProgrammeAmendmentRepository.findAllByScheduleWorkProgrammeApplicationDetails(applicationDetail))
+    when(licenceWorkProgrammeAmendmentRequestQueryService.getAllByApplicationDetail(applicationDetail))
         .thenReturn(List.of());
     when(licenceEventCacheRepository.findAllByOriginalEventIdIn(Set.of(term.getOriginalEventId())))
         .thenReturn(List.of(existingCache));
@@ -361,11 +370,11 @@ class CrossLicenceEventTrackerServiceTest {
     existingCache.setApplicationId(UUID.randomUUID());
     existingCache.setApplicationType(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION);
 
-    when(scheduleWorkProgrammeApplicationDetailRepository.getFirstByScheduleWorkProgrammeApplicationOrderByVersionNumberDesc(application))
+    when(scheduleWorkProgrammeApplicationDetailQueryService.getLatestByApplication(application))
         .thenReturn(Optional.of(applicationDetail));
-    when(licenceScheduleExtensionRepository.findAllByScheduleWorkProgrammeApplicationDetails(applicationDetail))
+    when(licenceScheduleExtensionRequestQueryService.getAllByApplicationDetail(applicationDetail))
         .thenReturn(List.of());
-    when(licenceWorkProgrammeAmendmentRepository.findAllByScheduleWorkProgrammeApplicationDetails(applicationDetail))
+    when(licenceWorkProgrammeAmendmentRequestQueryService.getAllByApplicationDetail(applicationDetail))
         .thenReturn(List.of(amendmentRequest));
     when(licenceEventCacheRepository.findAllByOriginalEventIdIn(Set.of(activity.getOriginalEventId())))
         .thenReturn(List.of(existingCache));
@@ -412,11 +421,11 @@ class CrossLicenceEventTrackerServiceTest {
     existingCache.setApplicationId(otherApplicationId);
     existingCache.setApplicationType(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION);
 
-    when(scheduleWorkProgrammeApplicationDetailRepository.getFirstByScheduleWorkProgrammeApplicationOrderByVersionNumberDesc(application))
+    when(scheduleWorkProgrammeApplicationDetailQueryService.getLatestByApplication(application))
         .thenReturn(Optional.of(applicationDetail));
-    when(licenceScheduleExtensionRepository.findAllByScheduleWorkProgrammeApplicationDetails(applicationDetail))
+    when(licenceScheduleExtensionRequestQueryService.getAllByApplicationDetail(applicationDetail))
         .thenReturn(List.of());
-    when(licenceWorkProgrammeAmendmentRepository.findAllByScheduleWorkProgrammeApplicationDetails(applicationDetail))
+    when(licenceWorkProgrammeAmendmentRequestQueryService.getAllByApplicationDetail(applicationDetail))
         .thenReturn(List.of(amendmentRequest));
     when(licenceEventCacheRepository.findAllByOriginalEventIdIn(Set.of(activity.getOriginalEventId())))
         .thenReturn(List.of(existingCache));
@@ -455,13 +464,13 @@ class CrossLicenceEventTrackerServiceTest {
     activityCache.setApplicationId(otherApplicationId);
     activityCache.setApplicationType(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION);
 
-    when(scheduleWorkProgrammeApplicationDetailRepository.getFirstByScheduleWorkProgrammeApplicationOrderByVersionNumberDesc(application))
+    when(scheduleWorkProgrammeApplicationDetailQueryService.getLatestByApplication(application))
         .thenReturn(Optional.of(applicationDetail));
-    when(licenceScheduleExtensionRepository.findAllByScheduleWorkProgrammeApplicationDetails(applicationDetail))
+    when(licenceScheduleExtensionRequestQueryService.getAllByApplicationDetail(applicationDetail))
         .thenReturn(List.of(extensionRequest));
     when(workProgrammeActivityService.getAllActivitiesLinkedTo(term))
         .thenReturn(List.of(linkedActivity));
-    when(licenceWorkProgrammeAmendmentRepository.findAllByScheduleWorkProgrammeApplicationDetails(applicationDetail))
+    when(licenceWorkProgrammeAmendmentRequestQueryService.getAllByApplicationDetail(applicationDetail))
         .thenReturn(List.of());
     when(licenceEventCacheRepository.findAllByOriginalEventIdIn(
         Set.of(term.getOriginalEventId(), linkedActivity.getOriginalEventId())
@@ -508,13 +517,13 @@ class CrossLicenceEventTrackerServiceTest {
     activityCache.setOriginalEventId(linkedActivity.getOriginalEventId());
     activityCache.setLicenceId(100);
 
-    when(scheduleWorkProgrammeApplicationDetailRepository.getFirstByScheduleWorkProgrammeApplicationOrderByVersionNumberDesc(application))
+    when(scheduleWorkProgrammeApplicationDetailQueryService.getLatestByApplication(application))
         .thenReturn(Optional.of(applicationDetail));
-    when(licenceScheduleExtensionRepository.findAllByScheduleWorkProgrammeApplicationDetails(applicationDetail))
+    when(licenceScheduleExtensionRequestQueryService.getAllByApplicationDetail(applicationDetail))
         .thenReturn(List.of(extensionRequest));
     when(workProgrammeActivityService.getAllActivitiesLinkedTo(term))
         .thenReturn(List.of(linkedActivity));
-    when(licenceWorkProgrammeAmendmentRepository.findAllByScheduleWorkProgrammeApplicationDetails(applicationDetail))
+    when(licenceWorkProgrammeAmendmentRequestQueryService.getAllByApplicationDetail(applicationDetail))
         .thenReturn(List.of());
     when(licenceEventCacheRepository.findAllByOriginalEventIdIn(
         Set.of(term.getOriginalEventId(), linkedActivity.getOriginalEventId())
@@ -559,13 +568,13 @@ class CrossLicenceEventTrackerServiceTest {
     activityCache.setOriginalEventId(linkedActivity.getOriginalEventId());
     activityCache.setLicenceId(100);
 
-    when(scheduleWorkProgrammeApplicationDetailRepository.getFirstByScheduleWorkProgrammeApplicationOrderByVersionNumberDesc(application))
+    when(scheduleWorkProgrammeApplicationDetailQueryService.getLatestByApplication(application))
         .thenReturn(Optional.of(applicationDetail));
-    when(licenceScheduleExtensionRepository.findAllByScheduleWorkProgrammeApplicationDetails(applicationDetail))
+    when(licenceScheduleExtensionRequestQueryService.getAllByApplicationDetail(applicationDetail))
         .thenReturn(List.of(extensionRequest));
     when(workProgrammeActivityService.getAllActivitiesLinkedTo(phase))
         .thenReturn(List.of(linkedActivity));
-    when(licenceWorkProgrammeAmendmentRepository.findAllByScheduleWorkProgrammeApplicationDetails(applicationDetail))
+    when(licenceWorkProgrammeAmendmentRequestQueryService.getAllByApplicationDetail(applicationDetail))
         .thenReturn(List.of());
     when(licenceEventCacheRepository.findAllByOriginalEventIdIn(
         Set.of(phase.getOriginalEventId(), linkedActivity.getOriginalEventId())
@@ -583,6 +592,139 @@ class CrossLicenceEventTrackerServiceTest {
       assertThat(cache.getApplicationId()).isEqualTo(application.getId());
       assertThat(cache.getApplicationType()).isEqualTo(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION);
     });
+  }
+
+  @Test
+  void refreshApplicationCache_whenContinuationApplicationHasCurrentPhase_thenClaimsOnlyCurrentPhaseRow() {
+    var application = new LicenceContinuationApplication();
+    application.setId(UUID.randomUUID());
+
+    var applicationDetail = new LicenceContinuationApplicationDetail();
+    var currentTerm = buildTerm(TermType.INITIAL, LocalDate.of(2030, Month.JANUARY, 1));
+    var currentPhase = buildPhase(currentTerm, PhaseType.PHASE_A, LocalDate.of(2028, Month.JANUARY, 1));
+    var nextPhase = buildPhase(currentTerm, PhaseType.PHASE_B, LocalDate.of(2031, Month.JANUARY, 1));
+    applicationDetail.setCurrentTerm(currentTerm);
+    applicationDetail.setCurrentPhase(currentPhase);
+    applicationDetail.setNextTerm(currentTerm);
+    applicationDetail.setNextPhase(nextPhase);
+
+    var currentPhaseCache = new LicenceEventCache();
+    currentPhaseCache.setId(UUID.randomUUID());
+    currentPhaseCache.setOriginalEventId(currentPhase.getOriginalEventId());
+    currentPhaseCache.setLicenceId(100);
+
+    when(licenceContinuationApplicationDetailQueryService.getLatestByApplication(application))
+        .thenReturn(Optional.of(applicationDetail));
+    when(licenceEventCacheRepository.findAllByOriginalEventIdIn(Set.of(currentPhase.getOriginalEventId())))
+        .thenReturn(List.of(currentPhaseCache));
+
+    crossLicenceEventTrackerService.refreshApplicationCache(application);
+
+    verify(licenceEventCacheRepository).save(eventCacheCaptor.capture());
+    var savedCache = eventCacheCaptor.getValue();
+
+    assertThat(savedCache.getOriginalEventId()).isEqualTo(currentPhase.getOriginalEventId());
+    assertThat(savedCache.getApplicationId()).isEqualTo(application.getId());
+    assertThat(savedCache.getApplicationType()).isEqualTo(ApplicationType.CONTINUATION_APPLICATION);
+    assertThat(savedCache.getStewardWuaId()).isNull();
+  }
+
+  @Test
+  void refreshApplicationCache_whenContinuationApplicationHasNoCurrentPhase_thenClaimsOnlyCurrentTermRow() {
+    var application = new LicenceContinuationApplication();
+    application.setId(UUID.randomUUID());
+
+    var applicationDetail = new LicenceContinuationApplicationDetail();
+    var currentTerm = buildTerm(TermType.INITIAL, LocalDate.of(2030, Month.JANUARY, 1));
+    var nextTerm = buildTerm(TermType.SECOND, LocalDate.of(2035, Month.JANUARY, 1));
+    applicationDetail.setCurrentTerm(currentTerm);
+    applicationDetail.setNextTerm(nextTerm);
+
+    var currentTermCache = new LicenceEventCache();
+    currentTermCache.setId(UUID.randomUUID());
+    currentTermCache.setOriginalEventId(currentTerm.getOriginalEventId());
+    currentTermCache.setLicenceId(100);
+
+    when(licenceContinuationApplicationDetailQueryService.getLatestByApplication(application))
+        .thenReturn(Optional.of(applicationDetail));
+    when(licenceEventCacheRepository.findAllByOriginalEventIdIn(Set.of(currentTerm.getOriginalEventId())))
+        .thenReturn(List.of(currentTermCache));
+
+    crossLicenceEventTrackerService.refreshApplicationCache(application);
+
+    verify(licenceEventCacheRepository).save(eventCacheCaptor.capture());
+    var savedCache = eventCacheCaptor.getValue();
+
+    assertThat(savedCache.getOriginalEventId()).isEqualTo(currentTerm.getOriginalEventId());
+    assertThat(savedCache.getApplicationId()).isEqualTo(application.getId());
+    assertThat(savedCache.getApplicationType()).isEqualTo(ApplicationType.CONTINUATION_APPLICATION);
+  }
+
+  @Test
+  void refreshApplicationCache_whenContinuationApplicationCacheClaimedByDifferentApplication_thenForksNewRow() {
+    var application = new LicenceContinuationApplication();
+    application.setId(UUID.randomUUID());
+
+    var applicationDetail = new LicenceContinuationApplicationDetail();
+    var currentTerm = buildTerm(TermType.INITIAL, LocalDate.of(2030, Month.JANUARY, 1));
+    applicationDetail.setCurrentTerm(currentTerm);
+
+    var existingCache = new LicenceEventCache();
+    existingCache.setId(UUID.randomUUID());
+    existingCache.setOriginalEventId(currentTerm.getOriginalEventId());
+    existingCache.setLicenceId(100);
+    existingCache.setApplicationId(UUID.randomUUID());
+    existingCache.setApplicationType(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION);
+
+    when(licenceContinuationApplicationDetailQueryService.getLatestByApplication(application))
+        .thenReturn(Optional.of(applicationDetail));
+    when(licenceEventCacheRepository.findAllByOriginalEventIdIn(Set.of(currentTerm.getOriginalEventId())))
+        .thenReturn(List.of(existingCache));
+
+    crossLicenceEventTrackerService.refreshApplicationCache(application);
+
+    verify(licenceEventCacheRepository).save(eventCacheCaptor.capture());
+    var forkedCache = eventCacheCaptor.getValue();
+
+    assertThat(forkedCache.getId()).isNull();
+    assertThat(forkedCache.getApplicationId()).isEqualTo(application.getId());
+    assertThat(forkedCache.getApplicationType()).isEqualTo(ApplicationType.CONTINUATION_APPLICATION);
+  }
+
+  @Test
+  void refreshApplicationCache_whenContinuationApplicationHasDuplicateOriginalEventIdRows_thenOnlyOneRowSaved() {
+    var application = new LicenceContinuationApplication();
+    application.setId(UUID.randomUUID());
+
+    var applicationDetail = new LicenceContinuationApplicationDetail();
+    var currentTerm = buildTerm(TermType.INITIAL, LocalDate.of(2030, Month.JANUARY, 1));
+    applicationDetail.setCurrentTerm(currentTerm);
+
+    var unclaimedCache = new LicenceEventCache();
+    unclaimedCache.setId(UUID.randomUUID());
+    unclaimedCache.setOriginalEventId(currentTerm.getOriginalEventId());
+    unclaimedCache.setLicenceId(100);
+
+    var claimedByOtherApplicationCache = new LicenceEventCache();
+    claimedByOtherApplicationCache.setId(UUID.randomUUID());
+    claimedByOtherApplicationCache.setOriginalEventId(currentTerm.getOriginalEventId());
+    claimedByOtherApplicationCache.setLicenceId(100);
+    claimedByOtherApplicationCache.setApplicationId(UUID.randomUUID());
+    claimedByOtherApplicationCache.setApplicationType(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION);
+
+    when(licenceContinuationApplicationDetailQueryService.getLatestByApplication(application))
+        .thenReturn(Optional.of(applicationDetail));
+    when(licenceEventCacheRepository.findAllByOriginalEventIdIn(Set.of(currentTerm.getOriginalEventId())))
+        .thenReturn(List.of(claimedByOtherApplicationCache, unclaimedCache));
+
+    crossLicenceEventTrackerService.refreshApplicationCache(application);
+
+    verify(licenceEventCacheRepository).save(eventCacheCaptor.capture());
+    var savedCache = eventCacheCaptor.getValue();
+
+    assertThat(savedCache.getId()).isEqualTo(unclaimedCache.getId());
+    assertThat(savedCache.getApplicationId()).isEqualTo(application.getId());
+    assertThat(savedCache.getApplicationType()).isEqualTo(ApplicationType.CONTINUATION_APPLICATION);
   }
 
   private ScheduleWorkProgrammeApplication buildApplication() {

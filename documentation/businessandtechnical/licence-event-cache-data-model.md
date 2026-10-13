@@ -20,8 +20,8 @@ mean joining the event supertype, six child tables and the term and phase hierar
 page load.
 
 `licence_event_cache` is a **flat, denormalised copy** of the events that screen shows, written
-when a schedule is applied — and, for a narrower set of columns, when a schedule amendment
-application is submitted (§4.5) — then read directly afterwards.
+when a schedule is applied — and, for a narrower set of columns, when an extension and
+amendment or continuation application is submitted (§4.5) — then read directly afterwards.
 
 **It is a read model, not a source of truth.** Nothing in the service treats it as
 authoritative, and it is never the right table to answer a question about what a licence
@@ -54,7 +54,8 @@ flowchart TB
     LS["<b>licence_schedules</b><br/>id · licence_id"]
     LSD["<b>licence_schedule_details</b><br/>id · status<br/><i>only the ACTIVE version is ever cached</i>"]
     SE["<b>schedule_events</b><br/>id · event_type · original_event_id<br/><i>see the schedules data model</i>"]
-    SWPA["<b>schedule_work_programme_applications</b><br/>id · application_reference · steward_wua_id<br/><i>see the applications data model — schedule amendment only</i>"]
+    SWPA["<b>schedule_work_programme_applications</b><br/>id · application_reference · steward_wua_id<br/><i>see the applications data model — extension and amendment only</i>"]
+    LCA["<b>licence_continuation_applications</b><br/>id · application_reference<br/><i>see the applications data model — no steward concept</i>"]
     CACHE["<b>licence_event_cache</b><br/>id · licence_id · licence_reference · original_event_id<br/>event_type · current_term_phase · next_term_phase<br/>activity_type · event_date<br/>application_id · application_type · steward_wua_id<br/><i>one row per logical event per application — rebuilt on apply, application columns refreshed on submission</i>"]
 
     LIC -- "1 : 1" --> LS
@@ -63,6 +64,7 @@ flowchart TB
     LIC -- "1 : many" --> CACHE
     SE -. "original_event_id — no foreign key" .-> CACHE
     SWPA -. "application_id — no foreign key<br/>(set on submission, §4.5)" .-> CACHE
+    LCA -. "application_id — no foreign key<br/>(set on submission, §4.5)" .-> CACHE
 ```
 
 The dotted edges are the ones that matter: they are value correspondences, not constraints.
@@ -82,9 +84,9 @@ next_term_phase    TEXT             ← display text, not an enum value
 activity_type      TEXT             ← display text, not an enum value
 event_date         DATE
 quad_block         TEXT             ← never populated (§4.3)
-steward_wua_id     BIGINT           ← §4.5 — schedule amendment applications only
-application_id     UUID             ← §4.5 — schedule amendment applications only
-application_type   TEXT             ← §4.5 — schedule amendment applications only
+steward_wua_id     BIGINT           ← §4.5 — extension and amendment applications only
+application_id     UUID             ← §4.5
+application_type   TEXT             ← §4.5
 ```
 
 Rows are identified within a licence by `original_event_id` — that is the key the schedule
@@ -126,12 +128,12 @@ on licence import.
 It is always rebuilt from the **`ACTIVE`** version. Draft content is never cached.
 
 A second, narrower trigger exists for the application-linked columns only
-(`application_id`, `application_type`, `steward_wua_id`): **submitting a schedule amendment
-application** (§4.5). That trigger never creates or updates a term, phase or activity row's own
-data — it only stamps application details onto rows that already exist, or forks a new row when
-one is already claimed by a different application. A licence whose schedule was applied
-before an application referencing one of its events was submitted will show that application's
-data without any schedule apply happening in between.
+(`application_id`, `application_type`, `steward_wua_id`): **submitting an extension and
+amendment or continuation application** (§4.5). That trigger never creates or updates a term,
+phase or activity row's own data — it only stamps application details onto rows that already
+exist, or forks a new row when one is already claimed by a different application. A licence
+whose schedule was applied before an application referencing one of its events was submitted
+will show that application's data without any schedule apply happening in between.
 
 ### 4.2 What the refresh writes
 
@@ -172,35 +174,62 @@ previously had none, the refresh **deletes** the term's cache row.
 This is the only delete the refresh performs. In particular, removing an event from the
 schedule does not remove its cache row (§6).
 
-### 4.5 Application columns are refreshed separately, and only for schedule amendment applications
+### 4.5 Application columns are refreshed separately, at submission
 
-**Submitting** a schedule amendment application (the extension and amendment journey described
-in `licence-applications-data-model.md`) triggers a second, narrower refresh, independent of
-§4.1–§4.4. It does not touch every cache row for the licence, and it does not run for
-continuation applications.
+**Submitting** an application — either family, extension and amendment or continuation
+(`licence-applications-data-model.md`) — triggers a second, narrower refresh, independent of
+§4.1–§4.4. It does not touch every cache row for the licence, and it never creates or updates a
+term, phase or activity row's own schedule data — it only stamps application details onto rows
+that already exist, or forks a new row when one is already claimed by a different application.
+A licence whose schedule was applied before an application referencing one of its events was
+submitted will show that application's data without any schedule apply happening in between.
 
-It works out which events the application concerns by reading the application's own extension
-and amendment requests — one row per term, phase or work programme activity the applicant
-asked to change — and taking each one's `original_event_id`. For every cache row matching one
-of those ids:
+Which events an application concerns, and how a conflicting claim is handled, differs by family.
+
+**Extension and amendment applications** work out their events from the application's own
+extension and amendment requests — one row per term, phase or work programme activity the
+applicant asked to change — plus, for a term or phase being extended, every work programme
+activity whose due date derives from that term or phase, even one with no request of its own,
+since extending the term or phase changes that activity's effective due date too. For every
+cache row matching one of those `original_event_id`s:
 
 - If the row is not yet linked to an application, or is already linked to *this* application,
   `application_id`, `application_type` and `steward_wua_id` are written onto it in place.
 - If the row is already linked to a **different** application — two applications concurrently
-  targeting the same term, phase or activity — the existing row is left untouched and a **new**
-  row is inserted, copying that row's licence, event and schedule-position data and carrying the
-  new application's id, type and steward instead. This is what makes duplicate
-  `original_event_id`s a real occurrence rather than a schema-only possibility (§3).
+  targeting the same term, phase or activity — the existing row is normally left untouched and
+  a **new** row is inserted, copying that row's licence, event and schedule-position data and
+  carrying the new application's id, type and steward instead. The one exception: a work
+  programme activity whose amendment request did **not** change its duration (for example, only
+  additional information was requested) never forks a competing row — the existing row is left
+  exactly as it was, still under the other application. An activity reached only because its
+  term or phase is being extended always forks, regardless of what its own request (if any)
+  asked for.
+
+This is what makes duplicate `original_event_id`s a real occurrence rather than a schema-only
+possibility (§3).
+
+**Continuation applications** work out their event far more simply, and only ever touch **one**
+row: the phase the application currently sits within, taken directly from the application, or —
+when there is no current phase — the term itself. The next term or phase the continuation
+grants is deliberately not cached against; that is the future position the decision results in,
+not the position the decision is about. Continuation applications have no equivalent of a work
+programme activity request, so they never populate a work programme activity cache row, and
+there is no duration-based exception to forking: if that one row is already claimed by a
+different application, it always forks a new one.
 
 Several things a reader is likely to assume, and shouldn't:
 
-- **`application_type` is always `SCHEDULE_AMENDMENT_APPLICATION`** in practice — no other
-  application type reaches this refresh (§5.2).
-- **`steward_wua_id` is a submission-time snapshot, not the current steward.** It is copied from
-  the application's own `steward_wua_id` at the moment of submission, which is usually still
-  null — a steward is normally allocated only after submission. Allocating or reassigning a
-  steward afterwards does not trigger another refresh, so the cached value can be stale or
-  simply absent even once a steward is assigned (§6).
+- **`application_type` is `SCHEDULE_AMENDMENT_APPLICATION` or `CONTINUATION_APPLICATION`**
+  (§5.2) — both application families reach this refresh.
+- **`steward_wua_id` is only ever populated for extension and amendment applications.**
+  Continuation applications have no steward concept, so a cache row linked to one always leaves
+  `steward_wua_id` null, regardless of who is progressing it.
+- **For extension and amendment applications, `steward_wua_id` is a submission-time snapshot,
+  not the current steward.** It is copied from the application's own `steward_wua_id` at the
+  moment of submission, which is usually still null — a steward is normally allocated only
+  after submission. Allocating or reassigning a steward afterwards does not trigger another
+  refresh, so the cached value can be stale or simply absent even once a steward is assigned
+  (§6).
 - **An event that has never been through a schedule apply is not touched.** This refresh only
   updates or forks rows that already exist; it never inserts a row for a term, phase or activity
   that §4.1's schedule-apply trigger hasn't cached yet.
@@ -240,7 +269,7 @@ by the application refresh described in §4.5.
 | Value | Applies when |
 |---|---|
 | `SCHEDULE_AMENDMENT_APPLICATION` | a cache row is linked to a submitted extension and amendment application (§4.5) |
-| `CONTINUATION_APPLICATION` | never — continuation applications do not populate `application_id` or `application_type` |
+| `CONTINUATION_APPLICATION` | a cache row is linked to a submitted continuation application (§4.5) |
 
 A row with `application_type` set but `application_id` null, or the reverse, would be
 inconsistent with how the refresh writes them — the two are always set together.
@@ -263,13 +292,14 @@ only delete is the term-gains-phases case. Nothing else prunes it. So:
   (§4.5), not a live link.** Allocating or reassigning a steward, recording a decision,
   withdrawing or deleting the application — none of these trigger another refresh, so what is
   cached can silently drift from the application's current state. In particular, do not read a
-  populated `steward_wua_id` as "the steward currently assigned"; it may be stale, and it is
-  usually null anyway (§4.5).
+  populated `steward_wua_id` as "the steward currently assigned"; it may be stale, and for a
+  continuation application it is always null, since continuation applications have no steward
+  concept (§4.5).
 
 The cache is therefore a snapshot of each licence at the time of its last schedule apply, plus,
-where a schedule amendment application has been submitted since, a further snapshot of that
-application taken at submission — and different licences, and different rows within the same
-licence, will be at different ages.
+where an application has been submitted since, a further snapshot of that application taken at
+submission — and different licences, and different rows within the same licence, will be at
+different ages.
 
 ---
 
@@ -292,9 +322,10 @@ last refreshed, which the table has no column for. Revision metadata lives in th
 1. **Never use this table to answer a question about a licence schedule.** It is a read model
    for one screen, rebuilt only on apply, with no referential integrity and known staleness
    (§6). Query the schedule tables instead.
-2. **`quad_block` is always null** (§4.3). `steward_wua_id`, `application_id` and
-   `application_type` are null far more often than not, but are not reliably null — they are
-   written for submitted schedule amendment applications (§4.5).
+2. **`quad_block` is always null** (§4.3). `application_id` and `application_type` are null far
+   more often than not, but are not reliably null — they are written for submitted applications
+   of either family (§4.5). `steward_wua_id` is written only for extension and amendment
+   applications; a row linked to a continuation application always leaves it null.
 3. **Three text columns hold display strings, not enum values** (§3.1). They cannot be joined
    to the schedule tables' enum columns, and `next_term_phase` uses an empty string rather
    than null for "none".
@@ -308,9 +339,10 @@ last refreshed, which the table has no column for. Revision metadata lives in th
 7. **`licence_reference` is a copy.** It is correct as of the licence's last schedule apply,
    not as of now.
 8. **The application-linked columns are a submission-time snapshot, not a live link** (§4.5).
-   They are only ever populated for schedule amendment applications, never for continuations,
-   and nothing refreshes them again after submission — not steward allocation, not a decision,
-   not withdrawal or deletion.
+   `application_id` and `application_type` are populated for both extension and amendment and
+   continuation applications; `steward_wua_id` only for extension and amendment, since
+   continuation applications have no steward concept. Nothing refreshes any of them again after
+   submission — not steward allocation, not a decision, not withdrawal or deletion.
 
 ---
 

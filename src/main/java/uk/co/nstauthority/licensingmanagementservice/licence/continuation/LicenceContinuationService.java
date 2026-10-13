@@ -28,6 +28,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.application.casepro
 import uk.co.nstauthority.licensingmanagementservice.licence.application.letter.ApplicationLetterService;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.withdraw.ApplicationWithdrawService;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.overview.LicenceContinuationApplicationOverviewController;
+import uk.co.nstauthority.licensingmanagementservice.licence.crosslicenceeventtracker.CrossLicenceEventTrackerService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleStateService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.ScheduleState;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
@@ -61,6 +62,7 @@ public class LicenceContinuationService {
   private final IndustryTeamService industryTeamService;
   private final ClearDownWorkAreaLogService clearDownWorkAreaLogService;
   private final LicenceScheduleStateService licenceScheduleStateService;
+  private final CrossLicenceEventTrackerService crossLicenceEventTrackerService;
 
   public LicenceContinuationService(
       LicenceContinuationApplicationDetailRepository licenceContinuationApplicationDetailRepository,
@@ -74,7 +76,8 @@ public class LicenceContinuationService {
       EmailService emailService,
       IndustryTeamService industryTeamService,
       ClearDownWorkAreaLogService clearDownWorkAreaLogService,
-      LicenceScheduleStateService licenceScheduleStateService
+      LicenceScheduleStateService licenceScheduleStateService,
+      CrossLicenceEventTrackerService crossLicenceEventTrackerService
   ) {
     this.licenceContinuationApplicationDetailRepository = licenceContinuationApplicationDetailRepository;
     this.licenceContinuationApplicationRepository = licenceContinuationApplicationRepository;
@@ -88,6 +91,7 @@ public class LicenceContinuationService {
     this.industryTeamService = industryTeamService;
     this.clearDownWorkAreaLogService = clearDownWorkAreaLogService;
     this.licenceScheduleStateService = licenceScheduleStateService;
+    this.crossLicenceEventTrackerService = crossLicenceEventTrackerService;
   }
 
   @Transactional
@@ -205,6 +209,8 @@ public class LicenceContinuationService {
     licenceContinuationApplicationDetail.setNextPhase(scheduleState.nextPhase());
 
     licenceContinuationApplicationDetailRepository.save(licenceContinuationApplicationDetail);
+
+    crossLicenceEventTrackerService.refreshApplicationCache(licenceContinuationApplication);
 
     return licenceContinuationApplication;
   }

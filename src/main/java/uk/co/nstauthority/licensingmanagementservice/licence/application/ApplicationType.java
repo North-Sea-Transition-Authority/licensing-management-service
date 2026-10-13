@@ -5,6 +5,7 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.Map;
 import uk.co.nstauthority.licensingmanagementservice.endpointvalidation.PathVariableEnum;
+import uk.co.nstauthority.licensingmanagementservice.fds.table.TagColour;
 import uk.co.nstauthority.licensingmanagementservice.phasedrelease.PhaseGated;
 import uk.co.nstauthority.licensingmanagementservice.phasedrelease.ReleaseFeature;
 import uk.co.nstauthority.licensingmanagementservice.util.StreamUtil;
@@ -17,14 +18,18 @@ public enum ApplicationType implements Displayable, PathVariableEnum, PhaseGated
       "licence-and-work-programme-extension-and-amendment-application",
       10,
       "I want to extend a term, phase or work programme activity due date, or amend a work programme activity",
-      ReleaseFeature.SCHEDULE_APPLICATION
+      ReleaseFeature.SCHEDULE_APPLICATION,
+      TagColour.BLUE,
+      "Extension"
   ),
   CONTINUATION_APPLICATION(
       "Licence continuation application",
       "licence-continuation-application",
       20,
       "I want to continue into the next term or phase of my production licence",
-      ReleaseFeature.CONTINUATION_APPLICATION
+      ReleaseFeature.CONTINUATION_APPLICATION,
+      TagColour.PURPLE,
+      "Continuation"
   ),
   ;
 
@@ -33,19 +38,25 @@ public enum ApplicationType implements Displayable, PathVariableEnum, PhaseGated
   private final int displayOrder;
   private final String selectionDisplay;
   private final ReleaseFeature releaseFeature;
+  private final TagColour tagColour;
+  private final String tagDisplayName;
 
   ApplicationType(
       String displayName,
       String urlSlug,
       int displayOrder,
       String selectionDisplay,
-      ReleaseFeature releaseFeature
+      ReleaseFeature releaseFeature,
+      TagColour tagColour,
+      String tagDisplayName
   ) {
     this.displayName = displayName;
     this.urlSlug = urlSlug;
     this.displayOrder = displayOrder;
     this.selectionDisplay = selectionDisplay;
     this.releaseFeature = releaseFeature;
+    this.tagColour = tagColour;
+    this.tagDisplayName = tagDisplayName;
   }
 
   @Override
@@ -69,6 +80,14 @@ public enum ApplicationType implements Displayable, PathVariableEnum, PhaseGated
 
   public String getSelectionDisplay() {
     return selectionDisplay;
+  }
+
+  public TagColour getTagColour() {
+    return tagColour;
+  }
+
+  public String getTagDisplayName() {
+    return tagDisplayName;
   }
 
   @Override

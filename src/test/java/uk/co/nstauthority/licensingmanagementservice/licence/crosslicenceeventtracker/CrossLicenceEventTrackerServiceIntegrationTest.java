@@ -3,6 +3,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.crosslicenceeventt
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
+import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
@@ -20,17 +21,23 @@ import uk.co.fivium.energyportalapi.generated.types.OrganisationGroup;
 import uk.co.fivium.energyportalapi.generated.types.OrganisationUnit;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.fds.table.Tag;
 import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
+import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplication;
+import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.continuation.overview.LicenceContinuationApplicationOverviewController;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisation;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.ScheduleEventType;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplication;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overview.ScheduleWorkProgrammeApplicationOverviewController;
+import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.Team;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
@@ -88,6 +95,7 @@ class CrossLicenceEventTrackerServiceIntegrationTest {
 
     var row = result.tableRows().get(1).rowValues();
     assertThat(row.get(0).value()).isEqualTo("P 999");
+    assertThat(row.get(0).tags()).isEmpty();
     assertThat(row.get(1).value()).isEqualTo("Initial Term to Second Term");
     assertThat(row.get(3).value()).isEqualTo(DateFormatUtil.convertToDisplayText(LocalDate.of(2030, Month.JANUARY, 1)));
     assertThat(row.get(3).sortValue()).isEqualTo("2030-01-01");
@@ -148,10 +156,74 @@ class CrossLicenceEventTrackerServiceIntegrationTest {
     var row = result.tableRows().get(1).rowValues();
     assertThat(row.get(0).value()).isEqualTo("P 987 (LMS/EAA/2040/1)");
     assertThat(row.get(0).link()).isEqualTo(
-        "licence/schedule-work-programme-application/%s/overview".formatted(applicationDetail.getId())
+        ReverseRouter.route(on(ScheduleWorkProgrammeApplicationOverviewController.class)
+            .renderOverview(applicationDetail.getId(), null, null, null))
+    );
+    assertThat(row.get(0).tags()).containsExactly(
+        new Tag(
+            ApplicationType.SCHEDULE_AMENDMENT_APPLICATION.getTagDisplayName(),
+            ApplicationType.SCHEDULE_AMENDMENT_APPLICATION.getTagColour()
+        )
     );
     assertThat(row.get(4).value()).isEqualTo("Submitted");
     assertThat(row.get(7).value()).isEqualTo("Steve Steward");
+  }
+
+  @Test
+  void getEventTrackerTable_whenEventLinkedToContinuationApplication_thenApplicationStatusAndReferenceArePopulated() {
+    var licence = LicenceTestUtil.builder()
+        .withId(9021)
+        .withLicenceType(LicenceType.SEAWARD_PRODUCTION)
+        .withLicenceNumber("985")
+        .withLicenceReference("P 985")
+        .build();
+    entityManager.persist(licence);
+
+    var licenceSchedule = LicenceScheduleTestUtil.createLicenceSchedule(null, licence);
+    entityManager.persist(licenceSchedule);
+
+    var application = new LicenceContinuationApplication();
+    application.setLicenceSchedule(licenceSchedule);
+    application.setApplicationReference("LMS/CA/2040/1");
+    entityManager.persist(application);
+    entityManager.flush();
+
+    var applicationDetail = new LicenceContinuationApplicationDetail();
+    applicationDetail.setLicenceContinuationApplication(application);
+    applicationDetail.setVersionNumber(1);
+    applicationDetail.setStatus(ApplicationStatus.SUBMITTED);
+    applicationDetail.setCreatedDateTime(Instant.now());
+    entityManager.persist(applicationDetail);
+
+    var eventCache = new LicenceEventCache();
+    eventCache.setLicenceId(licence.getId());
+    eventCache.setLicenceReference(licence.getLicenceReference());
+    eventCache.setEventType(ScheduleEventType.TERM);
+    eventCache.setEventDate(LocalDate.of(2041, Month.JANUARY, 1));
+    eventCache.setApplicationId(application.getId());
+    eventCache.setApplicationType(ApplicationType.CONTINUATION_APPLICATION);
+    entityManager.persist(eventCache);
+
+    entityManager.flush();
+
+    var result = crossLicenceEventTrackerService.getEventTrackerTable(new EventTrackerForm(), regulatorUser());
+
+    assertThat(result.tableRows()).hasSize(2);
+
+    var row = result.tableRows().get(1).rowValues();
+    assertThat(row.get(0).value()).isEqualTo("P 985 (LMS/CA/2040/1)");
+    assertThat(row.get(0).link()).isEqualTo(
+        ReverseRouter.route(on(LicenceContinuationApplicationOverviewController.class)
+            .renderOverview(applicationDetail.getId(), null, null, null))
+    );
+    assertThat(row.get(0).tags()).containsExactly(
+        new Tag(
+            ApplicationType.CONTINUATION_APPLICATION.getTagDisplayName(),
+            ApplicationType.CONTINUATION_APPLICATION.getTagColour()
+        )
+    );
+    assertThat(row.get(4).value()).isEqualTo("Submitted");
+    assertThat(row.get(7).value()).isEqualTo("");
   }
 
   @Test
@@ -345,7 +417,7 @@ class CrossLicenceEventTrackerServiceIntegrationTest {
   @Test
   void getEventTrackerTable_whenIndustryUserHasNoOrganisationAccess_thenSeesNoRows() {
     var licence = persistLicenceWithResponsibleOrganisation(9013, "986", "P 986", 700);
-    persistEventCache(licence, LocalDate.of(2039, 1, 1));
+    persistEventCache(licence, LocalDate.of(2039, Month.JANUARY, 1));
 
     entityManager.flush();
 

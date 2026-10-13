@@ -43,6 +43,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.letter.ApplicationLetterService;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.withdraw.ApplicationWithdrawService;
+import uk.co.nstauthority.licensingmanagementservice.licence.crosslicenceeventtracker.CrossLicenceEventTrackerService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleStateService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.ScheduleState;
@@ -96,6 +97,9 @@ class LicenceContinuationServiceTest {
 
   @Mock
   private LicenceScheduleStateService licenceScheduleStateService;
+
+  @Mock
+  private CrossLicenceEventTrackerService crossLicenceEventTrackerService;
 
   @Mock
   private LicenceApplication licenceApplication;
@@ -303,6 +307,8 @@ class LicenceContinuationServiceTest {
     assertThat(savedDetail.getCurrentPhase()).isEqualTo(currentPhase);
     assertThat(savedDetail.getNextTerm()).isEqualTo(nextTerm);
     assertThat(savedDetail.getNextPhase()).isEqualTo(nextPhase);
+
+    verify(crossLicenceEventTrackerService).refreshApplicationCache(savedApp);
   }
 
   @Test

@@ -92,6 +92,9 @@ for (const element of document.querySelectorAll<HTMLElement>("[data-gis-componen
     featuresBaseUrl: element.dataset.gisFeaturesBaseUrl,
     outlineNodesBaseUrl: element.dataset.gisOutlineNodesBaseUrl,
     textualDescriptionUrl: element.dataset.gisTextualDescriptionUrl,
+    baseUrl: element.dataset.gisBaseUrl,
+    csrfHeaderName: element.dataset.gisCsrfHeaderName,
+    csrfToken: element.dataset.gisCsrfToken,
     includeNstaQuadrants: element.dataset.gisIncludeNstaQuadrants === "true",
     includeNstaBlocks: element.dataset.gisIncludeNstaBlocks === "true",
   }).use(OpenLayersMap).mount(element);

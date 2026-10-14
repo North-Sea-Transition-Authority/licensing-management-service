@@ -100,14 +100,13 @@ class OperatorResultProcessingServiceTest {
         .withAttributes(parentAttributes)
         .build();
 
-    when(polygonService.getPolygons(List.of(FEATURE))).thenReturn(List.of(polygon));
     when(lineService.getLines(List.of(polygon))).thenReturn(List.of(parentLine));
     when(grpcClientService.explodePolygon(outputPolygonEsriJson)).thenReturn(List.of(outputLineEsriJson));
     when(grpcClientService.findParentLines(List.of(parentLine), List.of(outputLineEsriJson)))
         .thenReturn(new FindParentLineResponse(Map.of(outputLineEsriJson, parentLineId), List.of()));
     when(grpcClientService.validatePolygonReconstructionFromPolylines(any(), any())).thenReturn(true);
 
-    operatorResultProcessingService.processOutputPolygon(List.of(FEATURE), outputPolygonEsriJson, 1);
+    operatorResultProcessingService.processOutputPolygon(FEATURE, polygon, outputPolygonEsriJson, 1);
 
     verify(lineService).saveLines(linesCaptor.capture());
     assertThat(linesCaptor.getValue())
@@ -136,14 +135,13 @@ class OperatorResultProcessingServiceTest {
         .withAttributes(parentAttributes)
         .build();
 
-    when(polygonService.getPolygons(List.of(FEATURE))).thenReturn(List.of(polygon));
     when(lineService.getLines(List.of(polygon))).thenReturn(List.of(inputLine));
     when(grpcClientService.explodePolygon(outputPolygonEsriJson)).thenReturn(List.of(orphanLineEsriJson));
     when(grpcClientService.findParentLines(List.of(inputLine), List.of(orphanLineEsriJson)))
         .thenReturn(new FindParentLineResponse(Map.of(), List.of(orphanLineEsriJson)));
     when(grpcClientService.validatePolygonReconstructionFromPolylines(any(), any())).thenReturn(true);
 
-    operatorResultProcessingService.processOutputPolygon(List.of(FEATURE), outputPolygonEsriJson, 1);
+    operatorResultProcessingService.processOutputPolygon(FEATURE, polygon, outputPolygonEsriJson, 1);
 
     verify(lineService).saveLines(linesCaptor.capture());
     assertThat(linesCaptor.getValue())
@@ -172,14 +170,13 @@ class OperatorResultProcessingServiceTest {
         .withAttributes(parentAttributes)
         .build();
 
-    when(polygonService.getPolygons(List.of(FEATURE))).thenReturn(List.of(polygon));
     when(lineService.getLines(List.of(polygon))).thenReturn(List.of(inputLine));
     when(grpcClientService.explodePolygon(outputPolygonEsriJson)).thenReturn(List.of(orphanLineEsriJson));
     when(grpcClientService.findParentLines(List.of(inputLine), List.of(orphanLineEsriJson)))
         .thenReturn(new FindParentLineResponse(Map.of(), List.of(orphanLineEsriJson)));
     when(grpcClientService.validatePolygonReconstructionFromPolylines(any(), any())).thenReturn(true);
 
-    operatorResultProcessingService.processOutputPolygon(List.of(FEATURE), outputPolygonEsriJson, 1);
+    operatorResultProcessingService.processOutputPolygon(FEATURE, polygon, outputPolygonEsriJson, 1);
 
     verify(lineService).saveLines(linesCaptor.capture());
     assertThat(linesCaptor.getValue())
@@ -211,7 +208,6 @@ class OperatorResultProcessingServiceTest {
         .withPolygon(polygon)
         .build();
 
-    when(polygonService.getPolygons(List.of(FEATURE))).thenReturn(List.of(polygon));
     when(lineService.getLines(List.of(polygon))).thenReturn(List.of(parentLine));
     when(grpcClientService.explodePolygon(outputPolygonEsriJson)).thenReturn(List.of(outputLineEsriJson));
     when(grpcClientService.findParentLines(List.of(parentLine), List.of(outputLineEsriJson)))
@@ -219,7 +215,7 @@ class OperatorResultProcessingServiceTest {
     when(grpcClientService.validatePolygonReconstructionFromPolylines(any(), any())).thenReturn(true);
     when(grpcClientService.calculateArea(eq(FEATURE.getCoordinateSystem()), any())).thenReturn(BigDecimal.TEN);
 
-    operatorResultProcessingService.processOutputPolygon(List.of(FEATURE), outputPolygonEsriJson, 1);
+    operatorResultProcessingService.processOutputPolygon(FEATURE, polygon, outputPolygonEsriJson, 1);
 
     verify(featureService).saveFeature(featureCaptor.capture());
     var savedFeature = featureCaptor.getValue();
@@ -255,7 +251,7 @@ class OperatorResultProcessingServiceTest {
   }
 
   @Test
-  void processOutputPolygon_assertParentFeaturePropertiesAreNotCopiedWhenMultipleInputPolygons() {
+  void processOutputPolygons_assertParentFeaturePropertiesAreNotCopiedWhenMultipleInputPolygons() {
     var polygonAttributes = Map.<String, Object>of("source", "parent line");
     var polygon1 = PolygonTestUtil.newBuilder()
         .withFeature(FEATURE)
@@ -281,7 +277,7 @@ class OperatorResultProcessingServiceTest {
     when(grpcClientService.validatePolygonReconstructionFromPolylines(any(), any())).thenReturn(true);
     when(grpcClientService.calculateArea(eq(FEATURE.getCoordinateSystem()), any())).thenReturn(BigDecimal.TEN);
 
-    operatorResultProcessingService.processOutputPolygon(List.of(FEATURE), outputPolygonEsriJson, 1);
+    operatorResultProcessingService.processOutputPolygons(List.of(FEATURE), List.of(outputPolygonEsriJson), 1);
 
     verify(featureService).saveFeature(featureCaptor.capture());
     var savedFeature = featureCaptor.getValue();
@@ -317,7 +313,7 @@ class OperatorResultProcessingServiceTest {
   }
 
   @Test
-  void processOutputPolygon_whenMulitpleInputFeatures_verifyFeatureName() {
+  void processOutputPolygons_whenMultipleInputFeatures_verifyFeatureName() {
     var feature2 = FeatureTestUtil.newBuilder().build();
     var polygonAttributes = Map.<String, Object>of("source", "parent line");
     var polygon1 = PolygonTestUtil.newBuilder()
@@ -340,7 +336,7 @@ class OperatorResultProcessingServiceTest {
     when(grpcClientService.validatePolygonReconstructionFromPolylines(any(), any())).thenReturn(true);
     when(grpcClientService.calculateArea(eq(FEATURE.getCoordinateSystem()), any())).thenReturn(BigDecimal.TEN);
 
-    operatorResultProcessingService.processOutputPolygon(List.of(FEATURE, feature2), outputPolygonEsriJson, 1);
+    operatorResultProcessingService.processOutputPolygons(List.of(FEATURE, feature2), List.of(outputPolygonEsriJson), 1);
 
     verify(featureService).saveFeature(featureCaptor.capture());
     var savedFeature = featureCaptor.getValue();

@@ -28,13 +28,11 @@ import GvRadios from "../govukVue/radios/GvRadios.vue";
 import { createUid } from "../govukVue/util/createUid";
 
 interface DepthActionSelectProps {
-  hasActions?: boolean, // TODO - EPGF-107: make this required when actions are added
+  hasActions: boolean,
   canMerge: boolean,
 }
 
-const props = withDefaults(defineProps<DepthActionSelectProps>(), {
-  hasActions: false,
-});
+const props = defineProps<DepthActionSelectProps>();
 
 const emit = defineEmits<{
   "select": [action: MapAction],
@@ -74,4 +72,10 @@ function onContinue() {
   emit("validation-error", null);
   emit("select", action);
 }
+
+function focus() {
+  document.getElementById(firstRadioId)?.focus();
+}
+
+defineExpose({ focus });
 </script>

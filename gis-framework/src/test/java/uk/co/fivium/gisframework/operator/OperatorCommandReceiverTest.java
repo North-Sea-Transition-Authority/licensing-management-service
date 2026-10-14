@@ -28,6 +28,8 @@ import uk.co.fivium.gisframework.command.OperatorCommandTestUtil;
 import uk.co.fivium.gisframework.command.TransformationType;
 import uk.co.fivium.gisframework.feature.FeatureService;
 import uk.co.fivium.gisframework.feature.FeatureTestUtil;
+import uk.co.fivium.gisframework.feature.PolygonService;
+import uk.co.fivium.gisframework.feature.PolygonTestUtil;
 import uk.co.fivium.gisframework.grpc.GrpcClientService;
 import uk.co.fivium.grpc.gis.CoordinateSystem;
 
@@ -64,13 +66,16 @@ class OperatorCommandReceiverTest {
   @Mock
   private MergeOperatorService mergeOperatorService;
 
+  @Mock
+  private PolygonService polygonService;
+
   @InjectMocks
   private OperatorCommandReceiver operatorCommandReceiver;
 
   @Test
   void executeSplit_whenFeatureIsSplit_deactivatesInputAndActivatesOutput() {
     var commandJourneyId = UUID.randomUUID();
-    var request = new SplitFromMapRequest(CUTTER_LINE_ORIGINAL_SRS_COORDINATES, commandJourneyId);
+    var request = new SplitFromMapRequest(CUTTER_LINE_ORIGINAL_SRS_COORDINATES, commandJourneyId, null);
 
     var commandJourney = CommandJourneyTestUtil.newBuilder().withId(commandJourneyId).build();
     var inputFeature = FeatureTestUtil.newBuilder().withCoordinateSystem(CoordinateSystem.ED50).build();
@@ -83,7 +88,7 @@ class OperatorCommandReceiverTest {
     when(commandJourneyService.getActiveFeatures(commandJourney)).thenReturn(List.of(inputFeature));
     when(grpcClientService.convertPointsToPolyline(CUTTER_LINE_ORIGINAL_SRS_COORDINATES, 4230))
         .thenReturn(CUTTER_LINE_ESRI_JSON);
-    when(splitOperatorService.splitPolygon(inputFeature, CUTTER_LINE_ESRI_JSON))
+    when(splitOperatorService.splitPolygon(inputFeature, CUTTER_LINE_ESRI_JSON, null))
         .thenReturn(List.of(outputFeature1, outputFeature2));
     when(operatorCommandService.createOperatorCommand(
         commandJourney, Set.of(inputFeature.getId()), TransformationType.SPLIT)).thenReturn(command);
@@ -100,7 +105,7 @@ class OperatorCommandReceiverTest {
   @Test
   void executeSplit_whenUndoneCommandsExist_clearsUndoStackBeforeCreatingNewCommand() {
     var commandJourneyId = UUID.randomUUID();
-    var request = new SplitFromMapRequest(CUTTER_LINE_ORIGINAL_SRS_COORDINATES, commandJourneyId);
+    var request = new SplitFromMapRequest(CUTTER_LINE_ORIGINAL_SRS_COORDINATES, commandJourneyId, null);
 
     var commandJourney = CommandJourneyTestUtil.newBuilder().withId(commandJourneyId).build();
     var inputFeature = FeatureTestUtil.newBuilder().withCoordinateSystem(CoordinateSystem.ED50).build();
@@ -114,7 +119,7 @@ class OperatorCommandReceiverTest {
     when(commandJourneyService.getActiveFeatures(commandJourney)).thenReturn(List.of(inputFeature));
     when(grpcClientService.convertPointsToPolyline(CUTTER_LINE_ORIGINAL_SRS_COORDINATES, 4230))
         .thenReturn(CUTTER_LINE_ESRI_JSON);
-    when(splitOperatorService.splitPolygon(inputFeature, CUTTER_LINE_ESRI_JSON))
+    when(splitOperatorService.splitPolygon(inputFeature, CUTTER_LINE_ESRI_JSON, null))
         .thenReturn(List.of(outputFeature));
     when(operatorCommandService.getUndoneCommands(commandJourney)).thenReturn(List.of(undoneCommand));
     when(featureJourneyStateService.deleteFeatureJourneyStatesCreatedByCommands(List.of(undoneCommand)))
@@ -132,7 +137,7 @@ class OperatorCommandReceiverTest {
   @Test
   void executeSplit_whenNoUndoneCommandsExist_doesNotClearUndoStack() {
     var commandJourneyId = UUID.randomUUID();
-    var request = new SplitFromMapRequest(CUTTER_LINE_ORIGINAL_SRS_COORDINATES, commandJourneyId);
+    var request = new SplitFromMapRequest(CUTTER_LINE_ORIGINAL_SRS_COORDINATES, commandJourneyId, null);
 
     var commandJourney = CommandJourneyTestUtil.newBuilder().withId(commandJourneyId).build();
     var inputFeature = FeatureTestUtil.newBuilder().withCoordinateSystem(CoordinateSystem.ED50).build();
@@ -143,7 +148,7 @@ class OperatorCommandReceiverTest {
     when(commandJourneyService.getActiveFeatures(commandJourney)).thenReturn(List.of(inputFeature));
     when(grpcClientService.convertPointsToPolyline(CUTTER_LINE_ORIGINAL_SRS_COORDINATES, 4230))
         .thenReturn(CUTTER_LINE_ESRI_JSON);
-    when(splitOperatorService.splitPolygon(inputFeature, CUTTER_LINE_ESRI_JSON))
+    when(splitOperatorService.splitPolygon(inputFeature, CUTTER_LINE_ESRI_JSON, null))
         .thenReturn(List.of(outputFeature));
     when(operatorCommandService.getUndoneCommands(commandJourney)).thenReturn(List.of());
     when(operatorCommandService.createOperatorCommand(
@@ -159,7 +164,7 @@ class OperatorCommandReceiverTest {
   @Test
   void executeSplit_whenNoFeatureIsSplit_returnsEmptyListAndDoesNotRecordCommand() {
     var commandJourneyId = UUID.randomUUID();
-    var request = new SplitFromMapRequest(CUTTER_LINE_ORIGINAL_SRS_COORDINATES, commandJourneyId);
+    var request = new SplitFromMapRequest(CUTTER_LINE_ORIGINAL_SRS_COORDINATES, commandJourneyId, null);
 
     var commandJourney = CommandJourneyTestUtil.newBuilder().withId(commandJourneyId).build();
     var inputFeature = FeatureTestUtil.newBuilder().withCoordinateSystem(CoordinateSystem.ED50).build();
@@ -168,7 +173,7 @@ class OperatorCommandReceiverTest {
     when(commandJourneyService.getActiveFeatures(commandJourney)).thenReturn(List.of(inputFeature));
     when(grpcClientService.convertPointsToPolyline(CUTTER_LINE_ORIGINAL_SRS_COORDINATES, 4230))
         .thenReturn(CUTTER_LINE_ESRI_JSON);
-    when(splitOperatorService.splitPolygon(inputFeature, CUTTER_LINE_ESRI_JSON)).thenReturn(List.of());
+    when(splitOperatorService.splitPolygon(inputFeature, CUTTER_LINE_ESRI_JSON, null)).thenReturn(List.of());
 
     var result = operatorCommandReceiver.executeSplit(request);
 
@@ -176,6 +181,72 @@ class OperatorCommandReceiverTest {
     verify(operatorCommandService, never()).createOperatorCommand(any(), any(), any());
     verify(featureJourneyStateService, never()).deactivateFeatures(any(), any());
     verify(featureJourneyStateService, never()).createFeatureJourneyStatesForCommandOutput(any(), any(), any());
+  }
+
+  @Test
+  void executeSplit_whenDepthProvided_onlySplitsFeaturesCoveringDepth() {
+    var commandJourneyId = UUID.randomUUID();
+    var depth = -150L;
+    var request = new SplitFromMapRequest(CUTTER_LINE_ORIGINAL_SRS_COORDINATES, commandJourneyId, depth);
+
+    var commandJourney = CommandJourneyTestUtil.newBuilder().withId(commandJourneyId).build();
+    var shallowFeature = FeatureTestUtil.newBuilder().withCoordinateSystem(CoordinateSystem.ED50).build();
+    var deepFeature = FeatureTestUtil.newBuilder().withCoordinateSystem(CoordinateSystem.ED50).build();
+    var shallowPolygon = PolygonTestUtil.newBuilder()
+        .withFeature(shallowFeature)
+        .withStartDepth(0L)
+        .withEndDepth(-100L)
+        .build();
+    var deepPolygon = PolygonTestUtil.newBuilder()
+        .withFeature(deepFeature)
+        .withStartDepth(-100L)
+        .withEndDepth(-200L)
+        .build();
+
+    var outputFeature = FeatureTestUtil.newBuilder().build();
+    var command = new OperatorCommand();
+
+    var activeFeatures = List.of(shallowFeature, deepFeature);
+    when(commandJourneyService.getCommandJourneyOrThrow(commandJourneyId)).thenReturn(commandJourney);
+    when(commandJourneyService.getActiveFeatures(commandJourney)).thenReturn(activeFeatures);
+    when(polygonService.getPolygons(activeFeatures)).thenReturn(List.of(shallowPolygon, deepPolygon));
+    when(grpcClientService.convertPointsToPolyline(CUTTER_LINE_ORIGINAL_SRS_COORDINATES, 4230))
+        .thenReturn(CUTTER_LINE_ESRI_JSON);
+    when(splitOperatorService.splitPolygon(deepFeature, CUTTER_LINE_ESRI_JSON, depth)).thenReturn(List.of(outputFeature));
+    when(operatorCommandService.createOperatorCommand(
+        commandJourney, Set.of(deepFeature.getId()), TransformationType.SPLIT)).thenReturn(command);
+
+    var result = operatorCommandReceiver.executeSplit(request);
+
+    assertThat(result).containsExactly(outputFeature);
+    verify(splitOperatorService, never()).splitPolygon(shallowFeature, CUTTER_LINE_ESRI_JSON, depth);
+    verify(featureJourneyStateService).deactivateFeatures(commandJourney, List.of(deepFeature));
+    verify(featureJourneyStateService)
+        .createFeatureJourneyStatesForCommandOutput(commandJourney, command, List.of(outputFeature));
+  }
+
+  @Test
+  void executeSplit_whenNoFeatureCoversDepth_returnsEmptyListAndDoesNotSplit() {
+    var commandJourneyId = UUID.randomUUID();
+    var depth = -150L;
+    var request = new SplitFromMapRequest(CUTTER_LINE_ORIGINAL_SRS_COORDINATES, commandJourneyId, depth);
+
+    var commandJourney = CommandJourneyTestUtil.newBuilder().withId(commandJourneyId).build();
+    var shallowFeature = FeatureTestUtil.newBuilder().withCoordinateSystem(CoordinateSystem.ED50).build();
+    var shallowPolygon = PolygonTestUtil.newBuilder()
+        .withFeature(shallowFeature)
+        .withStartDepth(0L)
+        .withEndDepth(-100L)
+        .build();
+
+    when(commandJourneyService.getCommandJourneyOrThrow(commandJourneyId)).thenReturn(commandJourney);
+    when(commandJourneyService.getActiveFeatures(commandJourney)).thenReturn(List.of(shallowFeature));
+    when(polygonService.getPolygons(List.of(shallowFeature))).thenReturn(List.of(shallowPolygon));
+
+    var result = operatorCommandReceiver.executeSplit(request);
+
+    assertThat(result).isEmpty();
+    verifyNoInteractions(grpcClientService, splitOperatorService, operatorCommandService);
   }
 
   @Test

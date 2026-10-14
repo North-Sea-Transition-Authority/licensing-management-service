@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { FeatureLike } from "ol/Feature";
 import type Map from "ol/Map";
-import type { LinePoint, SnapPoint } from "../../grid-utils";
+import type { LinePoint, SnapPoint } from "@/grid-utils";
 import Feature from "ol/Feature";
 import LineString from "ol/geom/LineString";
 import MultiPoint from "ol/geom/MultiPoint";
@@ -9,7 +9,7 @@ import VectorLayer from "ol/layer/Vector";
 import VectorSource from "ol/source/Vector";
 import { Circle as CircleStyle, Fill, Stroke, Style } from "ol/style";
 import { onMounted, onUnmounted, ref, watch, watchEffect } from "vue";
-import { isOrthogonalSegment } from "../../draw-line-utils";
+import { isOrthogonalSegment } from "@/draw-line-utils";
 
 interface DrawLineLayerProps {
   olMap: { map?: Map },
@@ -21,6 +21,9 @@ interface DrawLineLayerProps {
   // Incremented by the parent to clear the drawn line
   refreshCounter?: number,
 }
+
+// Renders nothing in the DOM: the line is drawn on its own OpenLayers layer.
+defineOptions({ render: () => null });
 
 const props = withDefaults(defineProps<DrawLineLayerProps>(), {
   requireOrthogonal: false,

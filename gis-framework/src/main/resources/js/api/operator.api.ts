@@ -14,6 +14,7 @@ export async function splitFeature(
   commandJourneyId: string,
   csrfHeaderName: string,
   csrfToken: string,
+  depth?: number,
 ): Promise<JsonSplitResponse> {
   const cutterLineOriginalSrsCoordinates: [number, number][][] = [];
   for (let i = 0; i < points.length - 1; i++) {
@@ -23,7 +24,7 @@ export async function splitFeature(
   const response = await fetch(splitUrl, {
     method: "POST",
     headers: { "Content-Type": "application/json", [csrfHeaderName]: csrfToken },
-    body: JSON.stringify({ cutterLineOriginalSrsCoordinates, commandJourneyId }),
+    body: JSON.stringify({ cutterLineOriginalSrsCoordinates, commandJourneyId, depth }),
   });
 
   if (!response.ok) {

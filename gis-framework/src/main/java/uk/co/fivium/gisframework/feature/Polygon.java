@@ -18,6 +18,8 @@ import org.hibernate.type.SqlTypes;
 @Audited
 public class Polygon {
 
+  public static final long INFINITE_DEPTH = Long.MIN_VALUE;
+
   @Id
   @UuidGenerator
   private UUID id;
@@ -85,5 +87,17 @@ public class Polygon {
 
   public void setLegacyId(Integer legacyId) {
     this.legacyId = legacyId;
+  }
+
+  public long getEffectiveStartDepth() {
+    return startDepth == null ? 0L : startDepth;
+  }
+
+  public long getEffectiveEndDepth() {
+    return endDepth == null ? INFINITE_DEPTH : endDepth;
+  }
+
+  public boolean coversDepth(long depth) {
+    return getEffectiveStartDepth() >= depth && getEffectiveEndDepth() < depth;
   }
 }

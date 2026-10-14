@@ -56,13 +56,15 @@ class OperatorRestControllerTest extends AbstractControllerTest {
     var requestBody = """
         {
           "cutterLineOriginalSrsCoordinates": [[[1.1, 2.2], [3.3, 4.4]]],
-          "commandJourneyId": "%s"
+          "commandJourneyId": "%s",
+          "depth": -150
         }
         """.formatted(commandJourneyId);
 
     when(operatorCommandReceiver.executeSplit(new SplitFromMapRequest(
         List.of(List.of(List.of(BigDecimal.valueOf(1.1), BigDecimal.valueOf(2.2)), List.of(BigDecimal.valueOf(3.3), BigDecimal.valueOf(4.4)))),
-        commandJourneyId
+        commandJourneyId,
+        -150L
     ))).thenReturn(List.of(outputFeature1));
 
     var expected = new JsonSplitResponse(List.of(outputFeature1.getId().toString()));
@@ -116,7 +118,7 @@ class OperatorRestControllerTest extends AbstractControllerTest {
         }
         """.formatted(commandJourneyId);
 
-    when(operatorCommandReceiver.executeSplit(new SplitFromMapRequest(List.of(), commandJourneyId)))
+    when(operatorCommandReceiver.executeSplit(new SplitFromMapRequest(List.of(), commandJourneyId, null)))
         .thenReturn(List.of());
 
     mockMvc.perform(post("/api/gis-framework/split")

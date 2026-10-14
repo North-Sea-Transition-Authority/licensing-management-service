@@ -9,22 +9,24 @@ import Polyline from "@arcgis/core/geometry/Polyline.js";
  * Split a polygon with a cutter line.
  * @param target The polygon to split.
  * @param cutterLine The line to cut the polygon with.
- * @return An array of polygons resulting from the split. Disjoint polygons are split into separate polygons.
+ * @return An array of polygons resulting from the split, with disjoint parts as separate polygons, or an empty
+ *         array if the line didn't cut the polygon.
  */
 export function splitPolygon(target: Polygon, cutterLine: Polyline): Polygon[] {
   const cutterLineClean = removeOverlappingSegments(cutterLine);
 
   const cutResults = cutOperator.execute(target, cutterLineClean) as Polygon[];
-
-  let polygons: Polygon[] = [];
-  // Only separate polygons if a cut actually took place.
-  if (cutResults.length > 0) {
-    // cutResults may contain disjointed polygons, (one polygon that should actually be multiple polygons)
-    // this operation splits those disjointed polygons into separate polygons
-    polygons = multiPartToSinglePartOperator.executeMany(cutResults) as Polygon[];
+  if (cutResults.length === 0) {
+    return [];
   }
 
-  return polygons;
+  // cutResults may contain disjointed polygons, (one polygon that should actually be multiple polygons)
+  // this operation splits those disjointed polygons into separate polygons
+  const polygons = multiPartToSinglePartOperator.executeMany(cutResults) as Polygon[];
+
+  // Ensure a cut results in more pieces
+  const originalPolygons = multiPartToSinglePartOperator.executeMany([target]) as Polygon[];
+  return polygons.length > originalPolygons.length ? polygons : [];
 }
 
 /**

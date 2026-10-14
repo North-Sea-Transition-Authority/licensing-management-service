@@ -49,12 +49,35 @@ describe("useDepthBands", () => {
     expect(depths.value).toEqual(new Map([[0, "All depths"]]));
   });
 
-  it("selects the shallowest band when the features change", async () => {
+  it("selects the shallowest band when the features first load", async () => {
     const features = shallowRef<Feature[]>([]);
     const { currentDepthLevel } = useDepthBands(features, shallowRef([]));
-    currentDepthLevel.value = -100;
 
-    features.value = [shallowFeature, deepFeature];
+    features.value = [feature("upper", -50, -100), feature("lower", -100, -200)];
+    await nextTick();
+
+    expect(currentDepthLevel.value).toBe(-50);
+  });
+
+  it("keeps the selected band when it still exists after the features change", async () => {
+    const features = shallowRef<Feature[]>([shallowFeature, deepFeature]);
+    const { currentDepthLevel } = useDepthBands(features, shallowRef([]));
+    currentDepthLevel.value = -100;
+    await nextTick();
+
+    features.value = [shallowFeature, feature("deep-west", -100, -200), feature("deep-east", -100, -200)];
+    await nextTick();
+
+    expect(currentDepthLevel.value).toBe(-100);
+  });
+
+  it("selects the shallowest band when the selected band no longer exists after the features change", async () => {
+    const features = shallowRef<Feature[]>([shallowFeature, deepFeature]);
+    const { currentDepthLevel } = useDepthBands(features, shallowRef([]));
+    currentDepthLevel.value = -100;
+    await nextTick();
+
+    features.value = [shallowFeature];
     await nextTick();
 
     expect(currentDepthLevel.value).toBe(0);

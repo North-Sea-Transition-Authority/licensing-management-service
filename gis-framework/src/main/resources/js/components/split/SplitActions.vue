@@ -18,8 +18,7 @@
 
 <script setup lang="ts">
 import type { LinePoint } from "@/grid-utils";
-import { ref, watch } from "vue";
-import { splitFeature } from "@/api/operator.api";
+import { useSplitFeature } from "@/composables/useSplitFeature";
 import GvButton from "../govukVue/button/GvButton.vue";
 import UndoRedoActions from "../undoRedo/UndoRedoActions.vue";
 
@@ -42,39 +41,9 @@ const emit = defineEmits<{
   "action-error": [message: string],
 }>();
 
-const isProcessing = ref(false);
-
-watch(() => props.points, () => {
-  if (props.autoSplit && !isProcessing.value) {
-    split();
-  }
+const { isProcessing, split } = useSplitFeature(() => props, () => props.points, {
+  autoSplit: () => props.autoSplit,
+  onSuccess: () => emit("action-success"),
+  onError: message => emit("action-error", message),
 });
-
-async function split() {
-  if (props.points.length < 2) {
-    return;
-  }
-
-  isProcessing.value = true;
-  try {
-    const splitResponse = await splitFeature(
-      props.splitUrl,
-      props.points,
-      props.commandJourneyId,
-      props.csrfHeaderName,
-      props.csrfToken,
-    );
-    if (splitResponse.outputFeatureIds.length > 0) {
-      emit("action-success");
-    } else {
-      props.autoSplit
-        ? console.warn("No split took place. Make sure your line crosses the feature boundary.")
-        : emit("action-error", "No split took place. Make sure your line crosses the feature boundary.");
-    }
-  } catch {
-    emit("action-error", "An error occurred while attempting to split the feature. Please try again.");
-  } finally {
-    isProcessing.value = false;
-  }
-}
 </script>

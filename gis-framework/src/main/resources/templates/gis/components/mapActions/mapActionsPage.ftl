@@ -10,5 +10,8 @@
       data-gis-features-base-url="<@spring.url '/api/gis-framework/command-journey-features'/>"
       data-gis-outline-nodes-base-url="<@spring.url '/api/gis-framework/command-journey-outline-nodes'/>"
       data-gis-textual-description-url="<@spring.url '/api/gis-framework/command-journey-textual-description'/>"
+      data-gis-base-url="<@spring.url '/api/gis-framework'/>"
+      data-gis-csrf-header-name="${_csrf.headerName}"
+      data-gis-csrf-token="${_csrf.token}"
   ></div>
 </#macro>

@@ -217,7 +217,7 @@ class GisTestControllerTest extends AbstractControllerTest {
     var commandJourney = mock(CommandJourney.class);
     when(commandJourney.getId()).thenReturn(commandJourneyId);
 
-    when(featureService.findAllByTestCase("EPGF-78")).thenReturn(List.of(feature));
+    when(featureService.findAllByTestCase("EPGF-107")).thenReturn(List.of(feature));
     when(commandJourneyService.findOrCreateCommandJourneyForFeatures(List.of(feature))).thenReturn(commandJourney);
 
     mockMvc.perform(get(ReverseRouter.route(on(GisTestController.class).renderDepthMap()))

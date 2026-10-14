@@ -81,6 +81,7 @@ describe("splitActions", () => {
         "journey-1",
         "X-CSRF-TOKEN",
         "csrf-token-1",
+        undefined,
       );
       expect(emitted("action-success")).toHaveLength(1);
     });
@@ -125,6 +126,7 @@ describe("splitActions", () => {
         "journey-1",
         "X-CSRF-TOKEN",
         "csrf-token-1",
+        undefined,
       );
       expect(emitted("action-success")).toHaveLength(1);
     });

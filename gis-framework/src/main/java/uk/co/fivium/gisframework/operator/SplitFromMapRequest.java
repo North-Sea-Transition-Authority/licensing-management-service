@@ -10,7 +10,12 @@ import java.util.UUID;
  * @param cutterLineOriginalSrsCoordinates the cutter line as a list of 2-point segments (each an [x, y] coordinate pair),
  *                               in the same coordinate system as the journey's features.
  * @param commandJourneyId       the journey whose active features should be split.
+ * @param depth                  the depth the line was drawn at, only features present at it are split.
+ *                               Null splits every active feature.
  */
-public record SplitFromMapRequest(List<List<List<BigDecimal>>> cutterLineOriginalSrsCoordinates,
-                                  UUID commandJourneyId) {
+public record SplitFromMapRequest(
+    List<List<List<BigDecimal>>> cutterLineOriginalSrsCoordinates,
+    UUID commandJourneyId,
+    Long depth
+) {
 }

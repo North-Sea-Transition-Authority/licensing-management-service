@@ -1,13 +1,20 @@
+import { page } from "@vitest/browser/context";
 import { http, HttpResponse } from "msw";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { render } from "vitest-browser-vue";
 import OpenLayersMap from "vue3-openlayers";
 import { SupportedWkid } from "@/coordinate-system-utils";
 import MapActionsPage from "@/pages/MapActionsPage.vue";
 import depthMapEd50 from "../fixtures/depthMapEd50.esriJson.json";
 import depthMapOutlineNodes from "../fixtures/depthMapEd50.outlineNodes.json";
+import depthMapSplitEd50 from "../fixtures/depthMapEd50.split.esriJson.json";
 import { worker } from "./setup";
-import { settleForScreenshot, waitForMapFullyLoaded } from "./visual-test-util";
+import {
+  clickSnapPointBelow,
+  clickSnapPointNearCentre,
+  settleForScreenshot,
+  waitForMapFullyLoaded,
+} from "./visual-test-util";
 
 const textualDescriptionHtml = `<div class="gis-textual-description">
  <p class="govuk-body">The area is bounded by the following coordinates:</p>
@@ -17,12 +24,30 @@ const textualDescriptionHtml = `<div class="gis-textual-description">
  </ol>
 </div>`;
 
-function mockEndpoints() {
+/**
+ * Registers stateful handlers: `GET features` returns the split fixture once `POST split` has been called, and
+ * history reports an undoable action from then on. Returns a getter for the number of `GET features` requests,
+ * used to wait for the map to reload.
+ */
+function mockEndpoints(): { featuresRequests: () => number } {
+  let split = false;
+  let featuresRequests = 0;
+
   worker.use(
-    http.get("/api/features/1", () => HttpResponse.json(depthMapEd50)),
+    http.get("/api/features/1", () => {
+      featuresRequests++;
+      return HttpResponse.json(split ? depthMapSplitEd50 : depthMapEd50);
+    }),
     http.get("/api/outline-nodes/1", () => HttpResponse.json({ featureOutlineNodes: depthMapOutlineNodes })),
     http.get("/api/textual-description/1", () => HttpResponse.json({ textualDescription: textualDescriptionHtml })),
+    http.get("/api/history/1", () => HttpResponse.json({ canUndo: split, canRedo: false })),
+    http.post("/api/split", () => {
+      split = true;
+      return HttpResponse.json({ outputFeatureIds: ["middle-west", "middle-east"] });
+    }),
   );
+
+  return { featuresRequests: () => featuresRequests };
 }
 
 function renderInFixedWidthContainer() {
@@ -37,6 +62,9 @@ function renderInFixedWidthContainer() {
       featuresBaseUrl: "/api/features",
       outlineNodesBaseUrl: "/api/outline-nodes",
       textualDescriptionUrl: "/api/textual-description",
+      baseUrl: "/api",
+      csrfHeaderName: "X-CSRF-TOKEN",
+      csrfToken: "csrf-token",
       includeNstaQuadrants: false,
       includeNstaBlocks: false,
     },
@@ -52,7 +80,18 @@ async function waitForPageLoaded() {
   await expect.poll(() => document.querySelectorAll(".depth-marker").length).toBe(3);
 }
 
-describe("depth actions page", () => {
+async function chooseSplitAtMiddleBand(screen: ReturnType<typeof renderInFixedWidthContainer>) {
+  await screen.getByText("-100 to -200", { exact: true }).click();
+  await screen.getByRole("radio", { name: "Split" }).click();
+  await screen.getByRole("button", { name: "Continue" }).click();
+  await expect.element(screen.getByRole("heading", { name: "Split" })).toBeVisible();
+}
+
+describe("map actions page", () => {
+  beforeEach(async () => {
+    await page.viewport(1280, 1600);
+  });
+
   it("renders the shallowest depth band by default", async () => {
     mockEndpoints();
     const screen = renderInFixedWidthContainer();
@@ -60,12 +99,12 @@ describe("depth actions page", () => {
     await waitForPageLoaded();
     await settleForScreenshot();
 
-    await expect(screen.locator).toMatchScreenshot("depth-actions-shallowest-band");
+    await expect(screen.locator).toMatchScreenshot("map-actions-shallowest-band");
   });
 
   it.each([
-    { band: "-100 to -200", screenshot: "depth-actions-middle-band" },
-    { band: "-200 to -infinity", screenshot: "depth-actions-deepest-band" },
+    { band: "-100 to -200", screenshot: "map-actions-middle-band" },
+    { band: "-200 to -infinity", screenshot: "map-actions-deepest-band" },
   ])("renders the $band band when it is selected", async ({ band, screenshot }) => {
     mockEndpoints();
     const screen = renderInFixedWidthContainer();
@@ -86,6 +125,47 @@ describe("depth actions page", () => {
     await expect.element(screen.getByRole("link", { name: "Select what action you would like to perform" })).toBeVisible();
     await settleForScreenshot();
 
-    await expect(screen.locator).toMatchScreenshot("depth-actions-no-action-selected");
+    await expect(screen.locator).toMatchScreenshot("map-actions-no-action-selected");
+  });
+
+  it("shows the split panel and snap points when split is chosen", async () => {
+    mockEndpoints();
+    const screen = renderInFixedWidthContainer();
+    await waitForPageLoaded();
+
+    await chooseSplitAtMiddleBand(screen);
+    await settleForScreenshot();
+
+    await expect(screen.locator).toMatchScreenshot("map-actions-split-mode");
+  });
+
+  it("locks the depth slider and lists the point while a line is being drawn", async () => {
+    mockEndpoints();
+    const screen = renderInFixedWidthContainer();
+    await waitForPageLoaded();
+    await chooseSplitAtMiddleBand(screen);
+
+    await clickSnapPointNearCentre();
+    await expect.element(screen.getByRole("slider", { name: "Select depth" })).toBeDisabled();
+    await settleForScreenshot();
+
+    await expect(screen.locator).toMatchScreenshot("map-actions-split-line-in-progress");
+  });
+
+  it("redraws the split band and returns to the action select once the line crosses the block", async () => {
+    const { featuresRequests } = mockEndpoints();
+    const screen = renderInFixedWidthContainer();
+    await waitForPageLoaded();
+    await chooseSplitAtMiddleBand(screen);
+    const before = featuresRequests();
+
+    await clickSnapPointBelow(await clickSnapPointNearCentre());
+
+    await expect.poll(() => featuresRequests(), { timeout: 15000, interval: 100 }).toBeGreaterThan(before);
+    await expect.element(screen.getByRole("group", { name: "What action would you like to perform next?" }))
+      .toBeVisible();
+    await settleForScreenshot();
+
+    await expect(screen.locator).toMatchScreenshot("map-actions-split-result");
   });
 });

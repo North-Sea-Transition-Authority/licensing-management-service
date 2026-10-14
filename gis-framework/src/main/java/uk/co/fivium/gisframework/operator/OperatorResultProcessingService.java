@@ -48,11 +48,12 @@ public class OperatorResultProcessingService {
 
   @Transactional
   public Feature processOutputPolygon(
-      List<Feature> inputFeatures,
+      Feature inputFeature,
+      Polygon inputPolygon,
       String outputEsriJsonPolygon,
       int resultFeatureNameSuffix
   ) {
-    return processPolygons(inputFeatures, List.of(outputEsriJsonPolygon), resultFeatureNameSuffix);
+    return processPolygons(List.of(inputFeature), List.of(inputPolygon), List.of(outputEsriJsonPolygon), resultFeatureNameSuffix);
   }
 
   @Transactional
@@ -61,15 +62,20 @@ public class OperatorResultProcessingService {
       List<String> outputEsriJsonPolygons,
       int resultFeatureNameSuffix
   ) {
-    return processPolygons(inputFeatures, outputEsriJsonPolygons, resultFeatureNameSuffix);
+    return processPolygons(
+        inputFeatures,
+        polygonService.getPolygons(inputFeatures),
+        outputEsriJsonPolygons,
+        resultFeatureNameSuffix
+    );
   }
 
   private Feature processPolygons(
       List<Feature> inputFeatures,
+      List<Polygon> inputPolygons,
       List<String> outputEsriJsonPolygons,
       int resultFeatureNameSuffix
   ) {
-    var inputPolygons = polygonService.getPolygons(inputFeatures);
     var inputPolygonLines = lineService.getLines(inputPolygons);
 
     List<List<Line>> linesPerPolygon = outputEsriJsonPolygons.stream()

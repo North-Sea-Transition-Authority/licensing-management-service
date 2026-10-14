@@ -41,8 +41,11 @@ export function useDepthBands(
 
   const currentDepthLevel = ref(0);
 
-  watch(depths, (band) => {
-    currentDepthLevel.value = Math.max(...band.keys());
+  // Keep the selected band across feature reloads, e.g. after a split, falling back to the shallowest if it's gone.
+  watch(depths, (bands) => {
+    if (!bands.has(currentDepthLevel.value)) {
+      currentDepthLevel.value = Math.max(...bands.keys());
+    }
   }, { immediate: true });
 
   const visibleFeatures = computed(() =>

@@ -15,6 +15,7 @@ import uk.co.fivium.gisframework.command.TransformationType;
 import uk.co.fivium.gisframework.feature.CoordinateSystemUtils;
 import uk.co.fivium.gisframework.feature.Feature;
 import uk.co.fivium.gisframework.feature.FeatureService;
+import uk.co.fivium.gisframework.feature.PolygonService;
 import uk.co.fivium.gisframework.grpc.GrpcClientService;
 
 @Service
@@ -27,6 +28,7 @@ public class OperatorCommandReceiver {
   private final OperatorCommandService operatorCommandService;
   private final CommandJourneyService commandJourneyService;
   private final GrpcClientService grpcClientService;
+  private final PolygonService polygonService;
 
   public OperatorCommandReceiver(
       SplitOperatorService splitOperatorService,
@@ -35,7 +37,8 @@ public class OperatorCommandReceiver {
       FeatureJourneyStateService featureJourneyStateService,
       OperatorCommandService operatorCommandService,
       CommandJourneyService commandJourneyService,
-      GrpcClientService grpcClientService
+      GrpcClientService grpcClientService,
+      PolygonService polygonService
   ) {
     this.splitOperatorService = splitOperatorService;
     this.mergeOperatorService = mergeOperatorService;
@@ -44,20 +47,22 @@ public class OperatorCommandReceiver {
     this.operatorCommandService = operatorCommandService;
     this.commandJourneyService = commandJourneyService;
     this.grpcClientService = grpcClientService;
+    this.polygonService = polygonService;
   }
 
   /**
-   * Splits each of the given active features for a command journey using the cutter line, recording a
-   * {@link TransformationType#SPLIT} command against their shared journey. Features that the cutter line actually
-   * crossed are deactivated in favour of the new features it produces; features it didn't cross are left untouched.
+   * Splits each of the given active features for a command journey that cover the request's depth (or all if no depth provided)
+   * using the cutter line, recording a {@link TransformationType#SPLIT} command against their shared journey.
+   * Features that the cutter line actually crossed are deactivated in favour of the new features it produces;
+   * features it didn't cross are left untouched.
    *
-   * @param request Contains the command journey and cutter line coordinates
+   * @param request Contains the command journey, cutter line coordinates and the depth
    * @return the newly created features, or an empty list if the cutter line didn't cross any input feature.
    */
   @Transactional
   public List<Feature> executeSplit(SplitFromMapRequest request) {
     var commandJourney = commandJourneyService.getCommandJourneyOrThrow(request.commandJourneyId());
-    var inputFeatures = commandJourneyService.getActiveFeatures(commandJourney);
+    var inputFeatures = getFeaturesToSplit(commandJourney, request.depth());
 
     if (CollectionUtils.isEmpty(inputFeatures)) {
       return List.of();
@@ -70,7 +75,7 @@ public class OperatorCommandReceiver {
     List<Feature> outputFeatures = new ArrayList<>();
 
     for (Feature inputFeature : inputFeatures) {
-      List<Feature> splitResult = splitOperatorService.splitPolygon(inputFeature, cutterLineEsriJson);
+      List<Feature> splitResult = splitOperatorService.splitPolygon(inputFeature, cutterLineEsriJson, request.depth());
       if (!splitResult.isEmpty()) {
         affectedInputFeatures.add(inputFeature);
         outputFeatures.addAll(splitResult);
@@ -196,5 +201,22 @@ public class OperatorCommandReceiver {
     var orphanedFeatures = featureJourneyStateService.deleteFeatureJourneyStatesCreatedByCommands(undoneCommands);
     featureService.deleteAll(orphanedFeatures);
     operatorCommandService.deleteCommands(undoneCommands);
+  }
+
+  private List<Feature> getFeaturesToSplit(CommandJourney commandJourney, Long depth) {
+    var activeFeatures = commandJourneyService.getActiveFeatures(commandJourney);
+
+    if (depth == null) {
+      return activeFeatures;
+    }
+
+    var featureIdsCoveringDepth = polygonService.getPolygons(activeFeatures).stream()
+        .filter(polygon -> polygon.coversDepth(depth))
+        .map(polygon -> polygon.getFeature().getId())
+        .collect(Collectors.toSet());
+
+    return activeFeatures.stream()
+        .filter(feature -> featureIdsCoveringDepth.contains(feature.getId()))
+        .toList();
   }
 }

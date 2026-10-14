@@ -37,6 +37,29 @@ describe("operatorApi", () => {
       });
     });
 
+    it("splitFeature_whenDepthProvided_includesDepthInBody", async () => {
+      const fetchMock = vi.fn().mockResolvedValue({
+        ok: true,
+        json: vi.fn().mockResolvedValue({ outputFeatureIds: [] }),
+      });
+      vi.stubGlobal("fetch", fetchMock);
+
+      const points = [point([1, 2]), point([3, 4])];
+      await splitFeature("/api/gis-framework/split", points, "journey-1", "X-CSRF-TOKEN", "csrf-token-1", -150);
+
+      expect(fetchMock).toHaveBeenCalledWith("/api/gis-framework/split", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-CSRF-TOKEN": "csrf-token-1" },
+        body: JSON.stringify({
+          cutterLineOriginalSrsCoordinates: [
+            [[1, 2], [3, 4]],
+          ],
+          commandJourneyId: "journey-1",
+          depth: -150,
+        }),
+      });
+    });
+
     it("splitFeature_whenResponseNotOk_rejects", async () => {
       const fetchMock = vi.fn().mockResolvedValue({
         ok: false,

@@ -14,6 +14,7 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correct
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.LicencePositionChangeBelongsToPosition;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.LicencePositionChangeIsOfType;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.position.LicencePositionBelongsToCorrectionLicence;
+import uk.co.nstauthority.licensingmanagementservice.fds.button.Button;
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
@@ -33,6 +34,7 @@ public class RemoveEquityChangeController {
 
   private static final String REMOVE_PAGE_TITLE = "Are you sure you want to remove this beneficial interest change?";
   private static final String UNDO_PAGE_TITLE = "Are you sure you want to undo this beneficial interest change?";
+  private static final String REINSTATE_PAGE_TITLE = "Are you sure you want to reinstate this beneficial interest change?";
   private static final String CONFIRMATION_TEMPLATE = "lms/licence/correction/change/removeEquityChange";
 
   private final LicencePositionCorrectionService licencePositionCorrectionService;
@@ -98,10 +100,14 @@ public class RemoveEquityChangeController {
   ) {
     var positionCorrection = licencePositionCorrectionService
         .getPositionCorrectionContainingChange(correction, changeId);
+    var reinstating = licencePositionCorrectionService.isStagedRemoval(positionCorrection, changeId);
 
     equityChangeService.undoEquityChange(correction, changeId);
 
-    NotificationBanner.newSuccessBannerWithHeader("Beneficial interest change undone", redirectAttributes);
+    NotificationBanner.newSuccessBannerWithHeader(
+        reinstating ? "Beneficial interest change reinstated" : "Beneficial interest change undone",
+        redirectAttributes
+    );
 
     if (positionCorrection.getChangeType() == LicencePositionCorrectionChangeType.ADD_POSITION) {
       return ReverseRouter.redirect(on(LicenceCorrectionController.class)
@@ -120,7 +126,7 @@ public class RemoveEquityChangeController {
 
     return new ModelAndView(CONFIRMATION_TEMPLATE)
         .addObject("pageTitle", REMOVE_PAGE_TITLE)
-        .addObject("primaryButtonText", "Remove beneficial interest change")
+        .addObject("primaryButton", Button.warningButton("Remove beneficial interest change"))
         .addObject("setEquityRows", equityChangeContext.setEquityRows())
         .addObject("transferEquityRows", equityChangeContext.transferEquityRows())
         .addObject("cancelUrl", ReverseRouter.route(on(LicenceCorrectionController.class)
@@ -133,10 +139,14 @@ public class RemoveEquityChangeController {
       LicencePositionCorrection positionCorrection
   ) {
     var equityChangeContext = equityChangeService.getEquityChangeContext(correction, changeId);
+    var reinstating = licencePositionCorrectionService.isStagedRemoval(positionCorrection, changeId);
+    var primaryButton = reinstating
+        ? Button.primaryButton("Reinstate beneficial interest change")
+        : Button.warningButton("Undo beneficial interest change");
 
     return new ModelAndView(CONFIRMATION_TEMPLATE)
-        .addObject("pageTitle", UNDO_PAGE_TITLE)
-        .addObject("primaryButtonText", "Undo beneficial interest change")
+        .addObject("pageTitle", reinstating ? REINSTATE_PAGE_TITLE : UNDO_PAGE_TITLE)
+        .addObject("primaryButton", primaryButton)
         .addObject("setEquityRows", equityChangeContext.setEquityRows())
         .addObject("transferEquityRows", equityChangeContext.transferEquityRows())
         .addObject("cancelUrl", positionPageRoute(correction, positionCorrection));

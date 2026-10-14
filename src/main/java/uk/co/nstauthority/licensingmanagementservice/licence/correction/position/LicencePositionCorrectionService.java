@@ -416,6 +416,10 @@ public class LicencePositionCorrectionService {
                 .formatted(changeId, positionCorrection.getId())));
   }
 
+  public boolean isStagedRemoval(LicencePositionCorrection positionCorrection, String changeId) {
+    return getStagedChangeOrThrow(positionCorrection, changeId) instanceof RemoveChange;
+  }
+
   public List<LicenceOperation> resolveStagedChangeOperations(LicencePositionChangeType change) {
     if (change instanceof RemoveChange(String liveChangeId)) {
       return LicencePositionChange.operationsOf(

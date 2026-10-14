@@ -38,11 +38,11 @@
     </#if>
 
     <@fdsAction.submitButtons
-      primaryButtonText=primaryButtonText
+      primaryButtonText=primaryButton.buttonText()
+      primaryButtonClass=primaryButton.buttonClass()
       secondaryLinkText="Cancel"
       linkSecondaryAction=true
       linkSecondaryActionUrl=springUrl(cancelUrl)
-      primaryButtonClass="govuk-button govuk-button--warning"
     />
   </@fdsForm.htmlForm>
 </@defaultPage>

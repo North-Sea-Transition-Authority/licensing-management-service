@@ -22,6 +22,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
+import uk.co.nstauthority.licensingmanagementservice.fds.button.Button;
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
@@ -53,6 +54,7 @@ class RemoveAdministratorChangeControllerTest extends AbstractControllerTest {
       .build();
   private static final String PAGE_TITLE = "Are you sure you want to remove this licence administrator change?";
   private static final String UNDO_PAGE_TITLE = "Are you sure you want to undo this licence administrator change?";
+  private static final String REINSTATE_PAGE_TITLE = "Are you sure you want to reinstate this licence administrator change?";
   private static final String VIEW_NAME = "lms/licence/correction/change/removeAdministratorChange";
   private static final LicenceCorrection CORRECTION = LicenceCorrectionTestUtil.newBuilder()
       .withId(CORRECTION_ID)
@@ -101,6 +103,7 @@ class RemoveAdministratorChangeControllerTest extends AbstractControllerTest {
             status().isOk(),
             view().name(VIEW_NAME),
             model().attribute("pageTitle", PAGE_TITLE),
+            model().attribute("primaryButton", Button.warningButton("Remove administrator change")),
             model().attribute("withdrawingAdministratorName", "Withdrawing Admin Org"),
             model().attribute("joiningAdministratorName", "Joining Admin Org"),
             model().attribute("cancelUrl", positionUrl)
@@ -183,7 +186,36 @@ class RemoveAdministratorChangeControllerTest extends AbstractControllerTest {
             status().isOk(),
             view().name(VIEW_NAME),
             model().attribute("pageTitle", UNDO_PAGE_TITLE),
-            model().attribute("primaryButtonText", "Undo administrator change"),
+            model().attribute("primaryButton", Button.warningButton("Undo administrator change")),
+            model().attribute("withdrawingAdministratorName", "Withdrawing Admin Org"),
+            model().attribute("joiningAdministratorName", "Joining Admin Org"),
+            model().attribute("cancelUrl", positionUrl)
+        );
+  }
+
+  @Test
+  void renderUndoAdminChange_whenChangeIsAStagedRemoval_thenAsksToReinstate() throws Exception {
+    var correction = givenCorrectionAllocatedToUser();
+    var position = LicencePositionTestUtil.newBuilder().withId(POSITION_ID).withLicence(LICENCE).build();
+    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+        .withTargetLicencePosition(position)
+        .build();
+
+    when(licencePositionCorrectionService.getPositionCorrectionContainingChange(correction, CHANGE_ID))
+        .thenReturn(positionCorrection);
+    when(licencePositionCorrectionService.isStagedRemoval(positionCorrection, CHANGE_ID)).thenReturn(true);
+    when(licencePositionViewService.getAdministratorChangeContext(correction, POSITION_ID))
+        .thenReturn(new AdministratorChangeContext(789, 456, "Joining Admin Org", "Withdrawing Admin Org"));
+
+    mockMvc.perform(get(ReverseRouter.route(on(RemoveAdministratorChangeController.class)
+            .renderUndoAdminChange(correction, CHANGE_ID)))
+            .with(user(regulatorUser)))
+        .andExpectAll(
+            status().isOk(),
+            view().name(VIEW_NAME),
+            model().attribute("pageTitle", REINSTATE_PAGE_TITLE),
+            model().attribute("primaryButton", Button.primaryButton("Reinstate administrator change")),
             model().attribute("withdrawingAdministratorName", "Withdrawing Admin Org"),
             model().attribute("joiningAdministratorName", "Joining Admin Org"),
             model().attribute("cancelUrl", positionUrl)
@@ -199,7 +231,7 @@ class RemoveAdministratorChangeControllerTest extends AbstractControllerTest {
   }
 
   @Test
-  void undoAdminChange() throws Exception {
+  void undoAdminChange_whenChangeIsNotAStagedRemoval_thenBannerSaysUndone() throws Exception {
     var correction = givenCorrectionAllocatedToUser();
     var position = LicencePositionTestUtil.newBuilder().withId(POSITION_ID).withLicence(LICENCE).build();
     var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
@@ -219,6 +251,34 @@ class RemoveAdministratorChangeControllerTest extends AbstractControllerTest {
             redirectedUrl(positionUrl),
             notificationBanner(NotificationBanner.newSuccessBanner()
                 .withHeadingContent("Licence administrator change undone")
+                .build())
+        );
+
+    verify(administratorChangeService).undoAdministratorChange(correction, CHANGE_ID);
+  }
+
+  @Test
+  void undoAdminChange_whenChangeIsAStagedRemoval_thenBannerSaysReinstated() throws Exception {
+    var correction = givenCorrectionAllocatedToUser();
+    var position = LicencePositionTestUtil.newBuilder().withId(POSITION_ID).withLicence(LICENCE).build();
+    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+        .withTargetLicencePosition(position)
+        .build();
+
+    when(licencePositionCorrectionService.getPositionCorrectionContainingChange(correction, CHANGE_ID))
+        .thenReturn(positionCorrection);
+    when(licencePositionCorrectionService.isStagedRemoval(positionCorrection, CHANGE_ID)).thenReturn(true);
+
+    mockMvc.perform(post(ReverseRouter.route(on(RemoveAdministratorChangeController.class)
+            .undoAdminChange(correction, CHANGE_ID, null)))
+            .with(user(regulatorUser))
+            .with(csrf()))
+        .andExpectAll(
+            status().is3xxRedirection(),
+            redirectedUrl(positionUrl),
+            notificationBanner(NotificationBanner.newSuccessBanner()
+                .withHeadingContent("Licence administrator change reinstated")
                 .build())
         );
 

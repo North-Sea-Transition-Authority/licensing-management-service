@@ -1805,6 +1805,26 @@ class LicencePositionCorrectionServiceTest {
   }
 
   @Test
+  void isStagedRemoval_whenTheStagedChangeRemovesALiveChange_thenTrue() {
+    var change = LicencePositionChangeType.removeChange().withChangeId(UUID.randomUUID().toString()).build();
+    var positionCorrection = updatePositionCorrectionWith(List.of(change));
+
+    var result = licencePositionCorrectionService.isStagedRemoval(positionCorrection, change.changeId());
+
+    assertThat(result).isTrue();
+  }
+
+  @Test
+  void isStagedRemoval_whenTheStagedChangeAddsOperations_thenFalse() {
+    var change = AddChange.buildOperationsChange(List.of(new SubareaOperation(UUID.randomUUID(), List.of(), List.of())), 1);
+    var positionCorrection = updatePositionCorrectionWith(List.of(change));
+
+    var result = licencePositionCorrectionService.isStagedRemoval(positionCorrection, change.changeId());
+
+    assertThat(result).isFalse();
+  }
+
+  @Test
   void resolveStagedChangeOperations_whenTheChangeStagesItsOwnOperations_thenReturnsThem() {
     var operation = new SubareaOperation(UUID.randomUUID(), List.of(), List.of());
     var change = AddChange.buildOperationsChange(List.of(operation), 1);

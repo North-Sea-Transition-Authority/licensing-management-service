@@ -87,7 +87,8 @@ class ChangeViewUrlsFactoryTest {
       String changeType,
       String expectedCorrect,
       String expectedRemove,
-      String expectedUndo
+      String expectedUndo,
+      String expectedReinstate
   ) {
     var change = change(operation, changeType);
 
@@ -97,7 +98,7 @@ class ChangeViewUrlsFactoryTest {
         ? null
         : correctPositionUrl();
     assertThat(result).isEqualTo(
-        new ChangeViewUrls(expectedCorrect, expectedRemove, expectedUndo, null, expectedCorrectPosition)
+        new ChangeViewUrls(expectedCorrect, expectedRemove, expectedUndo, expectedReinstate, null, expectedCorrectPosition)
     );
   }
 
@@ -108,7 +109,7 @@ class ChangeViewUrlsFactoryTest {
     var result = ChangeViewUrlsFactory.build(EXECUTED_POSITION, change, POSITION_ID, true, SUBAREA);
 
     assertThat(result).isEqualTo(
-        new ChangeViewUrls(null, null, null, correctChangeOrderUrl(), correctPositionUrl())
+        new ChangeViewUrls(null, null, null, null, correctChangeOrderUrl(), correctPositionUrl())
     );
   }
 
@@ -133,6 +134,15 @@ class ChangeViewUrlsFactoryTest {
   @Test
   void build_whenChangeMovedAway_thenHasNoUndoUrl() {
     var change = change(ADMINISTRATOR, null).asMovedAway();
+
+    var result = ChangeViewUrlsFactory.build(EXECUTED_POSITION, change, POSITION_ID, false, ADMINISTRATOR);
+
+    assertThat(result).isEqualTo(ChangeViewUrls.none());
+  }
+
+  @Test
+  void build_whenRemovedChangeMovedAway_thenHasNoReinstateUrl() {
+    var change = change(ADMINISTRATOR, LicencePositionChangeType.REMOVE_CHANGE).asMovedAway();
 
     var result = ChangeViewUrlsFactory.build(EXECUTED_POSITION, change, POSITION_ID, false, ADMINISTRATOR);
 
@@ -188,69 +198,69 @@ class ChangeViewUrlsFactoryTest {
 
     return Stream.of(
         Arguments.of("administrator, live", ADMINISTRATOR, EXECUTED_POSITION, live,
-            adminCorrecting, adminRemove, null),
+            adminCorrecting, adminRemove, null, null),
         Arguments.of("administrator, added", ADMINISTRATOR, EXECUTED_POSITION, added,
-            adminExecuted, null, adminUndo),
+            adminExecuted, null, adminUndo, null),
         Arguments.of("administrator, operations updated", ADMINISTRATOR, EXECUTED_POSITION, operationsUpdated,
-            adminCorrecting, null, adminUndo),
+            adminCorrecting, null, adminUndo, null),
         Arguments.of("administrator, order updated", ADMINISTRATOR, EXECUTED_POSITION, orderUpdated,
-            adminCorrecting, null, adminUndo),
+            adminCorrecting, null, adminUndo, null),
         Arguments.of("administrator, removed", ADMINISTRATOR, EXECUTED_POSITION, removed,
-            null, null, adminUndo),
+            null, null, null, adminUndo),
         Arguments.of("administrator, added position", ADMINISTRATOR, ADDED_POSITION, added,
-            adminAdded, null, adminUndo),
+            adminAdded, null, adminUndo, null),
 
         Arguments.of("set equity, live", SET_EQUITY, EXECUTED_POSITION, live,
-            null, equityRemove, null),
+            null, equityRemove, null, null),
         Arguments.of("set equity, added", SET_EQUITY, EXECUTED_POSITION, added,
-            setEquityExecuted, null, equityUndo),
+            setEquityExecuted, null, equityUndo, null),
         Arguments.of("set equity, operations updated", SET_EQUITY, EXECUTED_POSITION, operationsUpdated,
-            setEquityExecuted, null, equityUndo),
+            setEquityExecuted, null, equityUndo, null),
         Arguments.of("set equity, order updated", SET_EQUITY, EXECUTED_POSITION, orderUpdated,
-            null, null, equityUndo),
+            null, null, equityUndo, null),
         Arguments.of("set equity, removed", SET_EQUITY, EXECUTED_POSITION, removed,
-            null, null, equityUndo),
+            null, null, null, equityUndo),
         Arguments.of("set equity, added position", SET_EQUITY, ADDED_POSITION, added,
-            setEquityAdded, null, equityUndo),
+            setEquityAdded, null, equityUndo, null),
 
         Arguments.of("transfer equity, live", TRANSFER_EQUITY, EXECUTED_POSITION, live,
-            null, equityRemove, null),
+            null, equityRemove, null, null),
         Arguments.of("transfer equity, added", TRANSFER_EQUITY, EXECUTED_POSITION, added,
-            transferEquityExecuted, null, equityUndo),
+            transferEquityExecuted, null, equityUndo, null),
         Arguments.of("transfer equity, operations updated", TRANSFER_EQUITY, EXECUTED_POSITION, operationsUpdated,
-            transferEquityExecuted, null, equityUndo),
+            transferEquityExecuted, null, equityUndo, null),
         Arguments.of("transfer equity, order updated", TRANSFER_EQUITY, EXECUTED_POSITION, orderUpdated,
-            null, null, equityUndo),
+            null, null, equityUndo, null),
         Arguments.of("transfer equity, removed", TRANSFER_EQUITY, EXECUTED_POSITION, removed,
-            null, null, equityUndo),
+            null, null, null, equityUndo),
         Arguments.of("transfer equity, added position", TRANSFER_EQUITY, ADDED_POSITION, operationsUpdated,
-            transferEquityAdded, null, equityUndo),
+            transferEquityAdded, null, equityUndo, null),
 
         Arguments.of("partial surrender, live", PARTIAL_SURRENDER, EXECUTED_POSITION, live,
-            partialSurrenderCorrecting, partialSurrenderRemove, null),
+            partialSurrenderCorrecting, partialSurrenderRemove, null, null),
         Arguments.of("partial surrender, added", PARTIAL_SURRENDER, EXECUTED_POSITION, added,
-            partialSurrenderStaged, null, partialSurrenderUndo),
+            partialSurrenderStaged, null, partialSurrenderUndo, null),
         Arguments.of("partial surrender, operations updated", PARTIAL_SURRENDER, EXECUTED_POSITION, operationsUpdated,
-            partialSurrenderStaged, null, partialSurrenderUndo),
+            partialSurrenderStaged, null, partialSurrenderUndo, null),
         Arguments.of("partial surrender, order updated", PARTIAL_SURRENDER, EXECUTED_POSITION, orderUpdated,
-            partialSurrenderCorrecting, null, partialSurrenderUndo),
+            partialSurrenderCorrecting, null, partialSurrenderUndo, null),
         Arguments.of("partial surrender, removed", PARTIAL_SURRENDER, EXECUTED_POSITION, removed,
-            null, null, partialSurrenderUndo),
+            null, null, null, partialSurrenderUndo),
         Arguments.of("partial surrender, added position", PARTIAL_SURRENDER, ADDED_POSITION, added,
-            partialSurrenderStaged, null, partialSurrenderUndo),
+            partialSurrenderStaged, null, partialSurrenderUndo, null),
 
         Arguments.of("licensee, live", LICENSEE, EXECUTED_POSITION, live,
-            licenseeCorrecting, null, null),
+            licenseeCorrecting, null, null, null),
         Arguments.of("licensee, added", LICENSEE, EXECUTED_POSITION, added,
-            licenseeExecuted, null, null),
+            licenseeExecuted, null, null, null),
         Arguments.of("licensee, operations updated", LICENSEE, EXECUTED_POSITION, operationsUpdated,
-            licenseeCorrecting, null, null),
+            licenseeCorrecting, null, null, null),
         Arguments.of("licensee, order updated", LICENSEE, EXECUTED_POSITION, orderUpdated,
-            licenseeCorrecting, null, null),
+            licenseeCorrecting, null, null, null),
         Arguments.of("licensee, removed", LICENSEE, EXECUTED_POSITION, removed,
-            null, null, null),
+            null, null, null, null),
         Arguments.of("licensee, added position", LICENSEE, ADDED_POSITION, added,
-            licenseeAdded, null, null)
+            licenseeAdded, null, null, null)
     );
   }
 

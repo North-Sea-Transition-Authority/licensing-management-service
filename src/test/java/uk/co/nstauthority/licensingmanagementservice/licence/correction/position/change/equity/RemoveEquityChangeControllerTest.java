@@ -24,6 +24,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
+import uk.co.nstauthority.licensingmanagementservice.fds.button.Button;
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
@@ -56,6 +57,8 @@ class RemoveEquityChangeControllerTest extends AbstractControllerTest {
       .build();
   private static final String REMOVE_PAGE_TITLE = "Are you sure you want to remove this beneficial interest change?";
   private static final String UNDO_PAGE_TITLE = "Are you sure you want to undo this beneficial interest change?";
+  private static final String REINSTATE_PAGE_TITLE =
+      "Are you sure you want to reinstate this beneficial interest change?";
   private static final String VIEW_NAME = "lms/licence/correction/change/removeEquityChange";
   private static final LicenceCorrection CORRECTION = LicenceCorrectionTestUtil.newBuilder()
       .withId(CORRECTION_ID)
@@ -107,7 +110,7 @@ class RemoveEquityChangeControllerTest extends AbstractControllerTest {
             status().isOk(),
             view().name(VIEW_NAME),
             model().attribute("pageTitle", REMOVE_PAGE_TITLE),
-            model().attribute("primaryButtonText", "Remove beneficial interest change"),
+            model().attribute("primaryButton", Button.warningButton("Remove beneficial interest change")),
             model().attribute("setEquityRows", SET_EQUITY_ROWS),
             model().attribute("transferEquityRows", TRANSFER_EQUITY_ROWS),
             model().attribute("cancelUrl", positionUrl)
@@ -197,7 +200,36 @@ class RemoveEquityChangeControllerTest extends AbstractControllerTest {
             status().isOk(),
             view().name(VIEW_NAME),
             model().attribute("pageTitle", UNDO_PAGE_TITLE),
-            model().attribute("primaryButtonText", "Undo beneficial interest change"),
+            model().attribute("primaryButton", Button.warningButton("Undo beneficial interest change")),
+            model().attribute("setEquityRows", SET_EQUITY_ROWS),
+            model().attribute("transferEquityRows", TRANSFER_EQUITY_ROWS),
+            model().attribute("cancelUrl", positionUrl)
+        );
+  }
+
+  @Test
+  void renderUndoEquityChange_whenChangeIsAStagedRemoval_thenAsksToReinstate() throws Exception {
+    var correction = givenCorrectionAllocatedToUser();
+    var position = positionWithId();
+    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+        .withTargetLicencePosition(position)
+        .build();
+
+    when(licencePositionCorrectionService.getPositionCorrectionContainingChange(correction, CHANGE_ID))
+        .thenReturn(positionCorrection);
+    when(licencePositionCorrectionService.isStagedRemoval(positionCorrection, CHANGE_ID)).thenReturn(true);
+    when(equityChangeService.getEquityChangeContext(correction, CHANGE_ID))
+        .thenReturn(new EquityChangeContext(SET_EQUITY_ROWS, TRANSFER_EQUITY_ROWS));
+
+    mockMvc.perform(get(ReverseRouter.route(on(RemoveEquityChangeController.class)
+            .renderUndoEquityChange(correction, CHANGE_ID)))
+            .with(user(regulatorUser)))
+        .andExpectAll(
+            status().isOk(),
+            view().name(VIEW_NAME),
+            model().attribute("pageTitle", REINSTATE_PAGE_TITLE),
+            model().attribute("primaryButton", Button.primaryButton("Reinstate beneficial interest change")),
             model().attribute("setEquityRows", SET_EQUITY_ROWS),
             model().attribute("transferEquityRows", TRANSFER_EQUITY_ROWS),
             model().attribute("cancelUrl", positionUrl)
@@ -246,6 +278,34 @@ class RemoveEquityChangeControllerTest extends AbstractControllerTest {
             redirectedUrl(positionUrl),
             notificationBanner(NotificationBanner.newSuccessBanner()
                 .withHeadingContent("Beneficial interest change undone")
+                .build())
+        );
+
+    verify(equityChangeService).undoEquityChange(correction, CHANGE_ID);
+  }
+
+  @Test
+  void undoEquityChange_whenChangeIsAStagedRemoval_thenBannerSaysReinstated() throws Exception {
+    var correction = givenCorrectionAllocatedToUser();
+    var position = positionWithId();
+    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+        .withTargetLicencePosition(position)
+        .build();
+
+    when(licencePositionCorrectionService.getPositionCorrectionContainingChange(correction, CHANGE_ID))
+        .thenReturn(positionCorrection);
+    when(licencePositionCorrectionService.isStagedRemoval(positionCorrection, CHANGE_ID)).thenReturn(true);
+
+    mockMvc.perform(post(ReverseRouter.route(on(RemoveEquityChangeController.class)
+            .undoEquityChange(correction, CHANGE_ID, null)))
+            .with(user(regulatorUser))
+            .with(csrf()))
+        .andExpectAll(
+            status().is3xxRedirection(),
+            redirectedUrl(positionUrl),
+            notificationBanner(NotificationBanner.newSuccessBanner()
+                .withHeadingContent("Beneficial interest change reinstated")
                 .build())
         );
 

@@ -29,6 +29,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
+import uk.co.nstauthority.licensingmanagementservice.fds.button.Button;
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
@@ -64,8 +65,8 @@ class RemovePartialSurrenderChangeControllerTest extends AbstractControllerTest 
       .build();
   private static final String REMOVE_PAGE_TITLE = "Are you sure you want to remove this partial surrender?";
   private static final String UNDO_PAGE_TITLE = "Are you sure you want to undo this partial surrender?";
-  private static final String VIEW_NAME =
-      "lms/licence/correction/change/partialSurrender/removePartialSurrenderChange";
+  private static final String REINSTATE_PAGE_TITLE = "Are you sure you want to reinstate this partial surrender?";
+  private static final String VIEW_NAME = "lms/licence/correction/change/partialSurrender/removePartialSurrenderChange";
   private static final List<PartialSurrenderChangeView.BlockRow> BLOCK_ROWS =
       List.of(new PartialSurrenderChangeView.BlockRow("30/1", "Full surrender"));
   private static final LocalDate SURRENDER_DATE = LocalDate.of(2026, Month.JUNE, 5);
@@ -162,7 +163,7 @@ class RemovePartialSurrenderChangeControllerTest extends AbstractControllerTest 
             status().isOk(),
             view().name(VIEW_NAME),
             model().attribute("pageTitle", REMOVE_PAGE_TITLE),
-            model().attribute("primaryButtonText", "Remove partial surrender"),
+            model().attribute("primaryButton", Button.warningButton("Remove partial surrender")),
             model().attribute("surrenderDate", "5 June 2026"),
             model().attribute("blockRows", BLOCK_ROWS),
             model().attribute("cancelUrl", positionUrl)
@@ -270,7 +271,7 @@ class RemovePartialSurrenderChangeControllerTest extends AbstractControllerTest 
             status().isOk(),
             view().name(VIEW_NAME),
             model().attribute("pageTitle", UNDO_PAGE_TITLE),
-            model().attribute("primaryButtonText", "Undo partial surrender"),
+            model().attribute("primaryButton", Button.warningButton("Undo partial surrender")),
             model().attribute("surrenderDate", "5 June 2026"),
             model().attribute("blockRows", BLOCK_ROWS),
             model().attribute("cancelUrl", positionUrl)
@@ -323,6 +324,30 @@ class RemovePartialSurrenderChangeControllerTest extends AbstractControllerTest 
   }
 
   @Test
+  void renderUndoPartialSurrender_whenTheSurrenderIsAStagedRemoval_thenAsksToReinstate() throws Exception {
+    var correction = givenCorrectionAllocatedToUser();
+    var positionCorrection = executedPositionCorrection();
+
+    when(licencePositionCorrectionService.getPositionCorrectionContainingChange(correction, CHANGE_ID))
+        .thenReturn(positionCorrection);
+    when(licencePositionCorrectionService.isStagedRemoval(positionCorrection, CHANGE_ID)).thenReturn(true);
+    givenStagedSurrender(positionCorrection, SURRENDER_DATE);
+
+    mockMvc.perform(get(ReverseRouter.route(on(RemovePartialSurrenderChangeController.class)
+            .renderUndoPartialSurrender(correction, CHANGE_ID)))
+            .with(user(regulatorUser)))
+        .andExpectAll(
+            status().isOk(),
+            view().name(VIEW_NAME),
+            model().attribute("pageTitle", REINSTATE_PAGE_TITLE),
+            model().attribute("primaryButton", Button.primaryButton("Reinstate partial surrender")),
+            model().attribute("surrenderDate", "5 June 2026"),
+            model().attribute("blockRows", BLOCK_ROWS),
+            model().attribute("cancelUrl", positionUrl)
+        );
+  }
+
+  @Test
   void undoPartialSurrender_whenNotLoggedIn() throws Exception {
     mockMvc.perform(post(ReverseRouter.route(on(RemovePartialSurrenderChangeController.class)
             .undoPartialSurrender(CORRECTION, CHANGE_ID, null)))
@@ -359,6 +384,30 @@ class RemovePartialSurrenderChangeControllerTest extends AbstractControllerTest 
             redirectedUrl(positionUrl),
             notificationBanner(NotificationBanner.newSuccessBanner()
                 .withHeadingContent("Partial surrender undone")
+                .build())
+        );
+
+    verify(partialSurrenderCorrectionService).undoPartialSurrenderChange(correction, CHANGE_ID);
+  }
+
+  @Test
+  void undoPartialSurrender_whenTheSurrenderIsAStagedRemoval_thenBannerSaysReinstated() throws Exception {
+    var correction = givenCorrectionAllocatedToUser();
+    var positionCorrection = executedPositionCorrection();
+
+    when(licencePositionCorrectionService.getPositionCorrectionContainingChange(correction, CHANGE_ID))
+        .thenReturn(positionCorrection);
+    when(licencePositionCorrectionService.isStagedRemoval(positionCorrection, CHANGE_ID)).thenReturn(true);
+
+    mockMvc.perform(post(ReverseRouter.route(on(RemovePartialSurrenderChangeController.class)
+            .undoPartialSurrender(correction, CHANGE_ID, null)))
+            .with(user(regulatorUser))
+            .with(csrf()))
+        .andExpectAll(
+            status().is3xxRedirection(),
+            redirectedUrl(positionUrl),
+            notificationBanner(NotificationBanner.newSuccessBanner()
+                .withHeadingContent("Partial surrender reinstated")
                 .build())
         );
 

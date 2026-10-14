@@ -364,7 +364,7 @@ class LicencePositionChangeViewResolverTest {
   }
 
   @Test
-  void buildAdministratorChange_whenRemoveChange_populatesUndoOnly() {
+  void buildAdministratorChange_whenRemoveChange_populatesReinstateOnly() {
     var view = adminChangeView(
         LicencePositionChangeType.REMOVE_CHANGE,
         PositionChangeUrlContext.forExecutedPosition(CORRECTION, LICENCE_POSITION, POSITION_CORRECTION)
@@ -372,7 +372,8 @@ class LicencePositionChangeViewResolverTest {
 
     assertThat(view.urls().correct()).isNull();
     assertThat(view.urls().remove()).isNull();
-    assertThat(view.urls().undo()).contains("undo-administrator-change");
+    assertThat(view.urls().undo()).isNull();
+    assertThat(view.urls().reinstate()).contains("undo-administrator-change");
   }
 
   @Test
@@ -575,6 +576,7 @@ class LicencePositionChangeViewResolverTest {
             ReverseRouter.route(on(RemoveEquityChangeController.class)
                 .renderUndoEquityChange(correction, changeId)),
             null,
+            null,
             correctPositionUrl(correction.getId(), SET_EQUITY_POSITION_ID, UUID.fromString(changeId))
         )
     ));
@@ -646,12 +648,13 @@ class LicencePositionChangeViewResolverTest {
   }
 
   @Test
-  void buildSetEquityChangeView_whenRemoveChange_populatesUndoOnly() {
+  void buildSetEquityChangeView_whenRemoveChange_populatesReinstateOnly() {
     var urlContext = PositionChangeUrlContext.forExecutedPosition(CORRECTION, LICENCE_POSITION, POSITION_CORRECTION);
     var view = setEquityChangeView(LicencePositionChangeType.REMOVE_CHANGE, urlContext);
 
     assertThat(view.urls().remove()).isNull();
-    assertThat(view.urls().undo()).contains("undo-equity-change");
+    assertThat(view.urls().undo()).isNull();
+    assertThat(view.urls().reinstate()).contains("undo-equity-change");
   }
 
   @Test
@@ -711,7 +714,7 @@ class LicencePositionChangeViewResolverTest {
             TRANSFER_TO_NAME, BigDecimal.ZERO, BigDecimal.valueOf(30),
             BigDecimal.valueOf(30), null)),
         null,
-        new ChangeViewUrls(null, null, null, null,
+        new ChangeViewUrls(null, null, null, null, null,
             correctPositionUrl(CORRECTION.getId(), currentPosition.getId(), changeId))
     );
 
@@ -1135,6 +1138,7 @@ class LicencePositionChangeViewResolverTest {
                 correction, licencePosition, change)),
         null,
         null,
+        null,
         correctPositionUrl(correction.getId(), positionId, UUID.fromString(changeId))));
   }
 
@@ -1144,7 +1148,7 @@ class LicencePositionChangeViewResolverTest {
       LicencePositionChangeType.UPDATE_CHANGE_OPERATIONS + ", true",
       LicencePositionChangeType.REMOVE_CHANGE + ", false"
   })
-  void getChangeViews_whenPartialSurrenderIsStagedInThisCorrection_populatesUndoNotRemove(
+  void getChangeViews_whenPartialSurrenderIsStagedInThisCorrection_populatesUndoOrReinstateNotRemove(
       String changeType,
       boolean correctable
   ) {
@@ -1163,12 +1167,14 @@ class LicencePositionChangeViewResolverTest {
         ? ReverseRouter.route(on(PartialSurrenderTaskListController.class)
             .renderTaskList(correction, positionCorrection, null))
         : null;
+    var undoUrl = ReverseRouter.route(on(RemovePartialSurrenderChangeController.class)
+        .renderUndoPartialSurrender(correction, changeId));
 
     assertThat(result.urls()).isEqualTo(new ChangeViewUrls(
         correctUrl,
         null,
-        ReverseRouter.route(on(RemovePartialSurrenderChangeController.class)
-            .renderUndoPartialSurrender(correction, changeId)),
+        correctable ? undoUrl : null,
+        correctable ? null : undoUrl,
         null,
         correctable ? correctPositionUrl(correction.getId(), positionId, UUID.fromString(changeId)) : null));
   }
@@ -1191,6 +1197,7 @@ class LicencePositionChangeViewResolverTest {
         null,
         ReverseRouter.route(on(RemovePartialSurrenderChangeController.class)
             .renderUndoPartialSurrender(correction, changeId)),
+        null,
         null,
         correctPositionUrl(correction.getId(), positionId, UUID.fromString(changeId))));
   }
@@ -1304,6 +1311,7 @@ class LicencePositionChangeViewResolverTest {
                 ReverseRouter.route(on(RemoveEquityChangeController.class).renderRemoveExecutedEquityChange(
                     correction, licencePosition, setEquityLiveChange)),
                 null,
+                null,
                 ReverseRouter.route(on(CorrectChangeOrderController.class)
                     .renderCorrectChangeOrder(correction, positionId, setEquityChangeId)),
                 correctPositionUrl(correction.getId(), positionId, setEquityChangeId)),
@@ -1313,6 +1321,7 @@ class LicencePositionChangeViewResolverTest {
                 ReverseRouter.route(on(RemovePartialSurrenderChangeController.class)
                     .renderRemoveExecutedPartialSurrender(
                         correction, licencePosition, partialSurrenderLiveChange)),
+                null,
                 null,
                 ReverseRouter.route(on(CorrectChangeOrderController.class)
                     .renderCorrectChangeOrder(correction, positionId, partialSurrenderChangeId)),
@@ -1339,11 +1348,11 @@ class LicencePositionChangeViewResolverTest {
     assertThat(result)
         .extracting(LicencePositionChangeView::type, LicencePositionChangeView::urls)
         .containsExactly(
-            tuple(LicenceOperation.SUBAREA, new ChangeViewUrls(null, null, null,
+            tuple(LicenceOperation.SUBAREA, new ChangeViewUrls(null, null, null, null,
                 ReverseRouter.route(on(CorrectChangeOrderController.class)
                     .renderCorrectChangeOrder(correction, positionId, firstChangeId)),
                 correctPositionUrl(correction.getId(), positionId, firstChangeId))),
-            tuple(LicenceOperation.SUBAREA, new ChangeViewUrls(null, null, null,
+            tuple(LicenceOperation.SUBAREA, new ChangeViewUrls(null, null, null, null,
                 ReverseRouter.route(on(CorrectChangeOrderController.class)
                     .renderCorrectChangeOrder(correction, positionId, secondChangeId)),
                 correctPositionUrl(correction.getId(), positionId, secondChangeId))));
@@ -1370,6 +1379,7 @@ class LicencePositionChangeViewResolverTest {
             null,
             ReverseRouter.route(on(RemoveEquityChangeController.class).renderRemoveExecutedEquityChange(
                 correction, licencePosition, change)),
+            null,
             null,
             null,
             correctPositionUrl(correction.getId(), positionId, changeId)));
@@ -1403,6 +1413,7 @@ class LicencePositionChangeViewResolverTest {
                 correction, licencePosition, change)),
             null,
             null,
+            null,
             correctPositionUrl(correction.getId(), positionId, changeId)));
   }
 
@@ -1426,6 +1437,7 @@ class LicencePositionChangeViewResolverTest {
         .singleElement()
         .extracting(LicencePositionChangeView::urls)
         .isEqualTo(new ChangeViewUrls(
+            null,
             null,
             null,
             ReverseRouter.route(on(RemoveAdministratorChangeController.class)

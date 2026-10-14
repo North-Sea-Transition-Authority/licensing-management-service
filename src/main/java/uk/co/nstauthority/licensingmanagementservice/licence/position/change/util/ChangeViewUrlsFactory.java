@@ -43,6 +43,7 @@ final class ChangeViewUrlsFactory {
         routes.correct(target),
         canRemove(target) ? routes.remove(target) : null,
         canUndo(target) ? routes.undo(target) : null,
+        canReinstate(target) ? routes.undo(target) : null,
         canReorder && change.canBeReordered() ? correctChangeOrderUrl(target, positionId) : null,
         change.canBeReordered() ? correctPositionUrl(target, positionId) : null
     );
@@ -56,10 +57,19 @@ final class ChangeViewUrlsFactory {
   }
 
   /**
-   * Only a change staged by this correction can be undone, whether it was added, corrected or removed.
+   * Only a change this correction has added or corrected can be undone.
    */
   private static boolean canUndo(ChangeUrlTarget target) {
-    return target.state() != ChangeUrlTarget.State.LIVE && !target.change().movedAway();
+    return target.state() != ChangeUrlTarget.State.LIVE
+        && target.state() != ChangeUrlTarget.State.REMOVED
+        && !target.change().movedAway();
+  }
+
+  /**
+   * A change this correction has removed is reinstated by undoing the removal.
+   */
+  private static boolean canReinstate(ChangeUrlTarget target) {
+    return target.state() == ChangeUrlTarget.State.REMOVED && !target.change().movedAway();
   }
 
   private static String correctChangeOrderUrl(ChangeUrlTarget target, UUID positionId) {

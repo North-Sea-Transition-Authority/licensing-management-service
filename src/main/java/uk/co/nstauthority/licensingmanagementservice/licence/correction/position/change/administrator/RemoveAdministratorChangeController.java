@@ -15,6 +15,7 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correct
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.LicencePositionChangeBelongsToPosition;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.LicencePositionChangeIsOfType;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.position.LicencePositionBelongsToCorrectionLicence;
+import uk.co.nstauthority.licensingmanagementservice.fds.button.Button;
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
@@ -35,13 +36,14 @@ public class RemoveAdministratorChangeController {
 
   private static final String REMOVE_PAGE_TITLE = "Are you sure you want to remove this licence administrator change?";
   private static final String UNDO_PAGE_TITLE = "Are you sure you want to undo this licence administrator change?";
+  private static final String REINSTATE_PAGE_TITLE = "Are you sure you want to reinstate this licence administrator change?";
   private static final String CONFIRMATION_TEMPLATE = "lms/licence/correction/change/removeAdministratorChange";
 
   private final LicencePositionCorrectionService licencePositionCorrectionService;
   private final AdministratorChangeService administratorChangeService;
   private final LicencePositionViewService licencePositionViewService;
 
-  public RemoveAdministratorChangeController(
+  RemoveAdministratorChangeController(
       LicencePositionCorrectionService licencePositionCorrectionService,
       AdministratorChangeService administratorChangeService,
       LicencePositionViewService licencePositionViewService
@@ -92,7 +94,7 @@ public class RemoveAdministratorChangeController {
     var positionCorrection = licencePositionCorrectionService
         .getPositionCorrectionContainingChange(correction, changeId);
 
-    return undoAdministratorChangeModelAndView(correction, positionCorrection);
+    return undoAdministratorChangeModelAndView(correction, changeId, positionCorrection);
   }
 
   @PostMapping("/change/{changeId}/undo-administrator-change")
@@ -103,10 +105,14 @@ public class RemoveAdministratorChangeController {
   ) {
     var positionCorrection = licencePositionCorrectionService
         .getPositionCorrectionContainingChange(correction, changeId);
+    var reinstating = licencePositionCorrectionService.isStagedRemoval(positionCorrection, changeId);
 
     administratorChangeService.undoAdministratorChange(correction, changeId);
 
-    NotificationBanner.newSuccessBannerWithHeader("Licence administrator change undone", redirectAttributes);
+    NotificationBanner.newSuccessBannerWithHeader(
+        reinstating ? "Licence administrator change reinstated" : "Licence administrator change undone",
+        redirectAttributes
+    );
 
     if (positionCorrection.getChangeType() == LicencePositionCorrectionChangeType.ADD_POSITION) {
       return ReverseRouter.redirect(on(LicenceCorrectionController.class)
@@ -125,7 +131,7 @@ public class RemoveAdministratorChangeController {
 
     return new ModelAndView(CONFIRMATION_TEMPLATE)
         .addObject("pageTitle", REMOVE_PAGE_TITLE)
-        .addObject("primaryButtonText", "Remove administrator change")
+        .addObject("primaryButton", Button.warningButton("Remove administrator change"))
         .addObject("withdrawingAdministratorName", administratorChangeContext.previousAdministratorName())
         .addObject("joiningAdministratorName", administratorChangeContext.currentAdministratorName())
         .addObject("cancelUrl",
@@ -134,14 +140,20 @@ public class RemoveAdministratorChangeController {
 
   private ModelAndView undoAdministratorChangeModelAndView(
       LicenceCorrection correction,
+      String changeId,
       LicencePositionCorrection positionCorrection
   ) {
     var administratorChangeContext =
         licencePositionViewService.getAdministratorChangeContext(correction, getPositionId(positionCorrection));
+    var reinstating = licencePositionCorrectionService.isStagedRemoval(positionCorrection, changeId);
+
+    var primaryButton = reinstating
+        ? Button.primaryButton("Reinstate administrator change")
+        : Button.warningButton("Undo administrator change");
 
     return new ModelAndView(CONFIRMATION_TEMPLATE)
-        .addObject("pageTitle", UNDO_PAGE_TITLE)
-        .addObject("primaryButtonText", "Undo administrator change")
+        .addObject("pageTitle", reinstating ? REINSTATE_PAGE_TITLE : UNDO_PAGE_TITLE)
+        .addObject("primaryButton", primaryButton)
         .addObject("withdrawingAdministratorName", administratorChangeContext.previousAdministratorName())
         .addObject("joiningAdministratorName", administratorChangeContext.currentAdministratorName())
         .addObject("cancelUrl", positionPageRoute(correction, positionCorrection));

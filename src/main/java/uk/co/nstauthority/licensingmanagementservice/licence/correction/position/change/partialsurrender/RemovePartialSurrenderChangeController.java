@@ -18,6 +18,7 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correct
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.LicencePositionChangeBelongsToPosition;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.LicencePositionChangeIsOfType;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.position.LicencePositionBelongsToCorrectionLicence;
+import uk.co.nstauthority.licensingmanagementservice.fds.button.Button;
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
@@ -39,9 +40,8 @@ import uk.co.nstauthority.licensingmanagementservice.util.DateUtil;
 public class RemovePartialSurrenderChangeController {
 
   private static final String REMOVE_PAGE_TITLE = "Are you sure you want to remove this partial surrender?";
-  private static final String REMOVE_PRIMARY_BUTTON_TEXT = "Remove partial surrender";
   private static final String UNDO_PAGE_TITLE = "Are you sure you want to undo this partial surrender?";
-  private static final String UNDO_PRIMARY_BUTTON_TEXT = "Undo partial surrender";
+  private static final String REINSTATE_PAGE_TITLE = "Are you sure you want to reinstate this partial surrender?";
   private static final String CONFIRMATION_TEMPLATE =
       "lms/licence/correction/change/partialSurrender/removePartialSurrenderChange";
 
@@ -76,7 +76,12 @@ public class RemovePartialSurrenderChangeController {
         .renderLicencePosition(correction, licencePosition));
 
     return confirmationModelAndView(
-        surrenderDate, blockRows, REMOVE_PAGE_TITLE, REMOVE_PRIMARY_BUTTON_TEXT, cancelUrl);
+        surrenderDate,
+        blockRows,
+        REMOVE_PAGE_TITLE,
+        Button.warningButton("Remove partial surrender"),
+        cancelUrl
+    );
   }
 
   @PostMapping("/position/{licencePositionId}/change/{changeId}/remove-partial-surrender")
@@ -111,13 +116,15 @@ public class RemovePartialSurrenderChangeController {
     var surrenderDate = Objects.requireNonNullElseGet(
         stagedSurrender.surrenderDate(),
         () -> licencePositionCorrectionService.resolveEffectiveDate(positionCorrection));
+    var reinstating = licencePositionCorrectionService.isStagedRemoval(positionCorrection, changeId);
 
     return confirmationModelAndView(
         surrenderDate,
         blockRows,
-        UNDO_PAGE_TITLE,
-        UNDO_PRIMARY_BUTTON_TEXT,
-        positionPageRoute(correction, positionCorrection));
+        reinstating ? REINSTATE_PAGE_TITLE : UNDO_PAGE_TITLE,
+        reinstating ? Button.primaryButton("Reinstate partial surrender") : Button.warningButton("Undo partial surrender"),
+        positionPageRoute(correction, positionCorrection)
+    );
   }
 
   @PostMapping("/change/{changeId}/undo-partial-surrender")
@@ -128,10 +135,14 @@ public class RemovePartialSurrenderChangeController {
   ) {
     var positionCorrection = licencePositionCorrectionService
         .getPositionCorrectionContainingChange(correction, changeId);
+    var reinstating = licencePositionCorrectionService.isStagedRemoval(positionCorrection, changeId);
 
     partialSurrenderCorrectionService.undoPartialSurrenderChange(correction, changeId);
 
-    NotificationBanner.newSuccessBannerWithHeader("Partial surrender undone", redirectAttributes);
+    NotificationBanner.newSuccessBannerWithHeader(
+        reinstating ? "Partial surrender reinstated" : "Partial surrender undone",
+        redirectAttributes
+    );
 
     return ReverseRouter.redirectToUrl(positionPageRoute(correction, positionCorrection));
   }
@@ -140,12 +151,12 @@ public class RemovePartialSurrenderChangeController {
       @Nullable LocalDate surrenderDate,
       List<PartialSurrenderChangeView.BlockRow> blockRows,
       String pageTitle,
-      String primaryButtonText,
+      Button primaryButton,
       String cancelUrl
   ) {
     return new ModelAndView(CONFIRMATION_TEMPLATE)
         .addObject("pageTitle", pageTitle)
-        .addObject("primaryButtonText", primaryButtonText)
+        .addObject("primaryButton", primaryButton)
         .addObject("surrenderDate", surrenderDate == null ? null : DateUtil.formatLongDate(surrenderDate))
         .addObject("blockRows", blockRows)
         .addObject("cancelUrl", cancelUrl);

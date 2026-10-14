@@ -26,7 +26,7 @@
       secondaryLinkText="Cancel"
       linkSecondaryAction=true
       linkSecondaryActionUrl=springUrl(cancelUrl)
-      primaryButtonClass="govuk-button govuk-button--warning"
+      primaryButtonClass=primaryButtonClass
     />
   </@fdsForm.htmlForm>
 </@defaultPage>

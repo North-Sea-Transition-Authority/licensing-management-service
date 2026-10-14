@@ -18,6 +18,7 @@
   <#local correctUrl = urls.correct()!''>
   <#local removeUrl = urls.remove()!''>
   <#local undoUrl = urls.undo()!''>
+  <#local reinstateUrl = urls.reinstate()!''>
   <#local correctChangeOrderUrl = urls.correctChangeOrder()!''>
   <#local correctPositionUrl = urls.correctPosition()!''>
 
@@ -47,6 +48,13 @@
       <@fdsSummaryList.summaryListCardActionItem
         itemUrl=springUrl(undoUrl)
         itemText="Undo"
+        itemScreenReaderText=screenReaderText
+      />
+    </#if>
+    <#if reinstateUrl?has_content>
+      <@fdsSummaryList.summaryListCardActionItem
+        itemUrl=springUrl(reinstateUrl)
+        itemText="Reinstate"
         itemScreenReaderText=screenReaderText
       />
     </#if>

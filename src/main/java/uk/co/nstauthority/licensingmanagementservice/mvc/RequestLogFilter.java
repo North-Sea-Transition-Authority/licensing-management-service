@@ -1,7 +1,5 @@
 package uk.co.nstauthority.licensingmanagementservice.mvc;
 
-import static net.logstash.logback.argument.StructuredArguments.value;
-
 import com.google.common.base.Stopwatch;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -69,22 +67,29 @@ public class RequestLogFilter extends OncePerRequestFilter {
       String userId = StringUtils.firstNonBlank(MDC.get(MDC_WUA_ID), UNKNOWN);
       var proxyWuaId = MDC.get(MDC_PROXY_WUA_ID);
 
-      LOGGER.info(
-          "[{}] {}{} ({}), time: {}ms, status: {}, user id: {}, proxy id: {}, " +
-              "overall hibernate count: {}, " +
-              "hibernate count by query: {}, " +
-              "epa request count by purpose: {} ",
-          value("request_method", request.getMethod()),
-          value("request_uri_pattern", request.getRequestURI()),
-          value("request_query_string", queryString),
-          value("mvc_pattern", mvcPattern),
-          value("request_time_ms", elapsedMs),
-          value("response_status", response.getStatus()),
-          value("wua_id", userId),
-          value("proxy_wua_id", proxyWuaId),
-          value("query_count_hibernate", overallQueryCount),
-          value("query_count_hibernate_by_request", sqlCounter),
-          value("query_count_epa_by_request", epaCountByRequest));
+      var requestMethod = request.getMethod();
+      var requestUri = request.getRequestURI();
+      var responseStatus = response.getStatus();
+
+      LOGGER.atInfo()
+          .addKeyValue("request_method", requestMethod)
+          .addKeyValue("request_uri_pattern", requestUri)
+          .addKeyValue("request_query_string", queryString)
+          .addKeyValue("mvc_pattern", mvcPattern)
+          .addKeyValue("request_time_ms", elapsedMs)
+          .addKeyValue("response_status", responseStatus)
+          .addKeyValue("wua_id", userId)
+          .addKeyValue("proxy_wua_id", proxyWuaId)
+          .addKeyValue("query_count_hibernate", overallQueryCount)
+          .addKeyValue("query_count_hibernate_by_request", sqlCounter)
+          .addKeyValue("query_count_epa_by_request", epaCountByRequest)
+          .log(
+              "[{}] {}{} ({}), time: {}ms, status: {}, user id: {}, proxy id: {}, " +
+                  "overall hibernate count: {}, " +
+                  "hibernate count by query: {}, " +
+                  "epa request count by purpose: {} ",
+              requestMethod, requestUri, queryString, mvcPattern, elapsedMs, responseStatus, userId, proxyWuaId,
+              overallQueryCount, sqlCounter, epaCountByRequest);
 
       CorrelationIdUtil.clearCorrelationIdOnMdc();
       hibernateQueryCounter.clearQueryCount();

@@ -98,11 +98,11 @@ The service also sends reminders to licensees to provide updates on future licen
 
 ### Logging
 
-LMS can log in either JSON or text mode.
+LMS logs in JSON (Logstash format) by default, using Spring Boot's structured logging. MDC attributes and SLF4J
+key-value pairs are included as fields.
 
-In order to turn on JSON logging, set the profile `json-logging`. This will automatically include any MDC attributes.
-
-JSON logging is the preferred solution for SB2.
+The `development` and `test` profiles switch back to plain text logging by clearing
+`logging.structured.format.console`.
 
 ### 2. Initialise the Fivium Design System
 ```bash

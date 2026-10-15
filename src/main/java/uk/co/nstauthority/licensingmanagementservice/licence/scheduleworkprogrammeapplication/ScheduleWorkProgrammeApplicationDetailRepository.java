@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import uk.co.nstauthority.licensingmanagementservice.duplication.NotDuplicationSource;
@@ -20,6 +21,7 @@ public interface ScheduleWorkProgrammeApplicationDetailRepository
 
   int countByVersionNumberAndSubmittedDatetimeBetween(Integer versionNumber, Instant startOfYear, Instant endOfYear);
 
+  @EntityGraph(attributePaths = "scheduleWorkProgrammeApplication.licenceSchedule.licence")
   List<ScheduleWorkProgrammeApplicationDetail> findAllByStatusIn(Set<ApplicationStatus> statuses);
 
   List<ScheduleWorkProgrammeApplicationDetail> findAllByScheduleWorkProgrammeApplication_IdIn(

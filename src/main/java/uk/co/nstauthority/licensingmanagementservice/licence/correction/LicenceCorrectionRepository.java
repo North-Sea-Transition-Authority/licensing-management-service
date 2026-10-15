@@ -15,6 +15,7 @@ public interface LicenceCorrectionRepository extends JpaRepository<LicenceCorrec
 
   boolean existsByLicenceAndStatus(Licence licence, LicenceCorrectionStatus status);
 
+  @EntityGraph(attributePaths = "licence")
   List<LicenceCorrection> findAllByStatusAndAllocatedToWuaId(LicenceCorrectionStatus status, long wuaId);
 
   List<LicenceCorrection> findAllByLicence(Licence licence);

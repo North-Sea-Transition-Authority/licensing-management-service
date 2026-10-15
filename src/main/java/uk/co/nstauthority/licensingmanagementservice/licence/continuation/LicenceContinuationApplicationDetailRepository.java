@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import uk.co.nstauthority.licensingmanagementservice.duplication.NotDuplicationSource;
@@ -17,6 +18,13 @@ public interface LicenceContinuationApplicationDetailRepository
 
   List<LicenceContinuationApplicationDetail> findAllByStatus(ApplicationStatus status);
 
+  @EntityGraph(attributePaths = {
+      "licenceContinuationApplication.licenceSchedule.licence",
+      "currentTerm",
+      "currentPhase",
+      "nextTerm",
+      "nextPhase"
+  })
   List<LicenceContinuationApplicationDetail> findAllByStatusIn(Set<ApplicationStatus> statuses);
 
   Optional<LicenceContinuationApplicationDetail> findFirstByLicenceContinuationApplicationOrderByVersionNumberDesc(

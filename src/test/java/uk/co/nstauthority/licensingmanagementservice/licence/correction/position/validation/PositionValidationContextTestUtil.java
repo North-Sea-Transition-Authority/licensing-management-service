@@ -10,7 +10,9 @@ public class PositionValidationContextTestUtil {
   private LicencePositionState resolvedState = LicencePositionState.EMPTY;
   private LicencePositionState previousState = LicencePositionState.EMPTY;
   private boolean isFirstPosition = false;
+  private boolean isLastPosition = false;
   private boolean isCarbonStorage = false;
+  private boolean isExtantLicence = false;
 
   public static PositionValidationContextTestUtil newBuilder() {
     return new PositionValidationContextTestUtil();
@@ -36,14 +38,23 @@ public class PositionValidationContextTestUtil {
     return this;
   }
 
+  public PositionValidationContextTestUtil withIsLastPosition(boolean isLastPosition) {
+    this.isLastPosition = isLastPosition;
+    return this;
+  }
+
   public PositionValidationContextTestUtil withIsCarbonStorage(boolean isCarbonStorage) {
     this.isCarbonStorage = isCarbonStorage;
     return this;
   }
 
+  public PositionValidationContextTestUtil withIsExtantLicence(boolean isExtantLicence) {
+    this.isExtantLicence = isExtantLicence;
+    return this;
+  }
 
 
   public PositionValidationContext build() {
-    return new PositionValidationContext(position, resolvedState, previousState,isFirstPosition, isCarbonStorage);
+    return new PositionValidationContext(position, resolvedState, previousState,isFirstPosition, isLastPosition, isCarbonStorage, isExtantLicence);
   }
 }

@@ -32,6 +32,7 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatusType;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.CorrectionDetailsView;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.CorrectionDetailsViewService;
@@ -45,6 +46,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ResolvedStates;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.AdministratorChangeView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.ChangeViewUrls;
+import uk.co.nstauthority.licensingmanagementservice.licence.status.LicenceStatusService;
 import uk.co.nstauthority.licensingmanagementservice.licence.tab.TabbedLicencePageService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
@@ -69,6 +71,9 @@ class ReviewCorrectionControllerTest extends AbstractControllerTest {
 
   @MockitoBean
   private TabbedLicencePageService tabbedLicencePageService;
+
+  @MockitoBean
+  private LicenceStatusService licenceStatusService;
 
   private static final UUID CORRECTION_ID = UUID.randomUUID();
   private static final String PAGE_CAPTION = "Licence - P1234";
@@ -134,6 +139,8 @@ class ReviewCorrectionControllerTest extends AbstractControllerTest {
         UUID.randomUUID(), "1 February 2026", null, null, "Beneficial interests must total 100%");
 
     givenValidUserAndCorrectionPageWithPositionsAndErrors(List.of(), List.of(blockingError));
+
+    when(licenceStatusService.getCurrentStatus(correction.getLicence())).thenReturn(LicenceStatusType.EXTANT);
 
     var modelAndView = mockMvc.perform(get(ReverseRouter.route(on(ReviewCorrectionController.class)
             .renderReviewCorrection(correction)))
@@ -349,7 +356,8 @@ class ReviewCorrectionControllerTest extends AbstractControllerTest {
     when(licencePositionValidationService.validate(
         correctedTimeline.positionsToApply(),
         correctedTimeline.resolvedStates(),
-        correctedTimeline.isCarbonStorage()))
+        correctedTimeline.isCarbonStorage(),
+        true))
         .thenReturn(blockingErrors);
   }
 }

@@ -1,10 +1,12 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.position.change.view;
 
 import jakarta.annotation.Nullable;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Function;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeoperation.LicencePositionChangeOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.AddChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
@@ -16,6 +18,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationError;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.HiddenLicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenseeOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.VisibleLicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
 
@@ -113,6 +116,23 @@ public record PositionChange(
     return changesById.values().stream()
         .sorted(Comparator.comparing(PositionChange::changeOrder, Comparator.nullsLast(Comparator.naturalOrder()))
             .thenComparing(PositionChange::changeId))
+        .toList();
+  }
+
+  public List<Integer> licenseesToAdd() {
+    return licenseeIds(LicenseeOperation::licenseesToAdd);
+  }
+
+  public List<Integer> licenseesToRemove() {
+    return licenseeIds(LicenseeOperation::licenseesToRemove);
+  }
+
+  private List<Integer> licenseeIds(Function<LicenseeOperation, List<Integer>> extractor) {
+    return operations.stream()
+        .filter(LicenseeOperation.class::isInstance)
+        .map(LicenseeOperation.class::cast)
+        .map(extractor)
+        .flatMap(Collection::stream)
         .toList();
   }
 

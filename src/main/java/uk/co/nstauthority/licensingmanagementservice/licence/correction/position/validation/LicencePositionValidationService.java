@@ -16,7 +16,8 @@ public class LicencePositionValidationService {
   public List<PositionValidationError> validate(
       List<ChronologicalPosition> allChronologicalPositions,
       ResolvedStates resolvedStates,
-      boolean isCarbonStorage
+      boolean isCarbonStorage,
+      boolean isExtantLicence
   ) {
     var positionValidationErrors = new ArrayList<PositionValidationError>();
 
@@ -24,14 +25,20 @@ public class LicencePositionValidationService {
         ? transactionIdsWithMultipleBeneficialInterestChanges(allChronologicalPositions)
         : Set.<UUID>of();
 
-    var firstPosition = true;
+    var isFirstPosition = true;
+    ChronologicalPosition lastPosition = allChronologicalPositions.isEmpty()
+        ? null
+        : allChronologicalPositions.getLast();
     for (var chronologicalPosition : allChronologicalPositions) {
+      var isLastPosition = chronologicalPosition.equals(lastPosition);
       var positionValidationContext = new PositionValidationContext(
           chronologicalPosition,
           resolvedStates.currentState(chronologicalPosition.id()),
           resolvedStates.previousState(chronologicalPosition.id()),
-          firstPosition,
-          isCarbonStorage
+          isFirstPosition,
+          isLastPosition,
+          isCarbonStorage,
+          isExtantLicence
       );
 
       positionValidationErrors.addAll(chronologicalPosition.validate(positionValidationContext));
@@ -44,7 +51,7 @@ public class LicencePositionValidationService {
         ));
       }
 
-      firstPosition = false;
+      isFirstPosition = false;
     }
 
     return positionValidationErrors;

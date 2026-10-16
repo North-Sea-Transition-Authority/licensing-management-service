@@ -12,6 +12,152 @@ import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOp
 class ChronologicalPositionTest {
 
   @Test
+  void validate_whenExtantLicence_anyPosition_mustHaveLicensees() {
+    var position = ChronologicalPositionTestUtil.newBuilder().build();
+
+    var errors = position.validate(
+        PositionValidationContextTestUtil.newBuilder()
+            .withPosition(position)
+            .withIsExtantLicence(true)
+            .build()
+    );
+
+    assertThat(errors)
+        .extracting(PositionValidationError::message)
+        .contains("A licence position must have licensees");
+  }
+
+  @Test
+  void validate_whenNotExtantLicence_notLastPosition_mustHaveLicensees() {
+    var position = ChronologicalPositionTestUtil.newBuilder().build();
+
+    var errors = position.validate(
+        PositionValidationContextTestUtil.newBuilder()
+            .withIsExtantLicence(false)
+            .withIsLastPosition(false)
+            .withPosition(position)
+            .build()
+    );
+
+    assertThat(errors)
+        .extracting(PositionValidationError::message)
+        .contains("A licence position must have licensees");
+  }
+
+  @Test
+  void validate_whenNotExtantLicence_notLastPosition_mayNotHaveLicensees() {
+    var position = ChronologicalPositionTestUtil.newBuilder().build();
+
+    var errors = position.validate(
+        PositionValidationContextTestUtil.newBuilder()
+            .withIsExtantLicence(false)
+            .withIsLastPosition(true)
+            .withPosition(position)
+            .build()
+    );
+
+    assertThat(errors).isEmpty();
+  }
+
+  @Test
+  void validate_whenFirstPositionAndNoLicenseeChange_returnsFirstPositionError() {
+    var position = ChronologicalPositionTestUtil.newBuilder().build();
+
+    var errors = position.validate(
+        PositionValidationContextTestUtil.newBuilder()
+            .withPosition(position)
+            .withIsFirstPosition(true)
+            .build()
+    );
+
+    assertThat(errors)
+        .extracting(PositionValidationError::message)
+        .contains("The first licence position must have a licensee change");
+  }
+
+  @Test
+  void validate_whenFirstPositionWithLicenseeChange_returnsNoErrors() {
+    var change = PositionChangeTestUtil.newBuilder()
+        .withOperations(
+            List.of(LicenceOperation.newLicenseeOperation().withLicenseesToAdd(List.of(2)).build())).build();
+    var position = ChronologicalPositionTestUtil.newBuilder().withChanges(List.of(change)).build();
+
+    var errors = position.validate(
+        PositionValidationContextTestUtil.newBuilder()
+            .withPosition(position)
+            .withPreviousState(null)
+            .build()
+    );
+
+    assertThat(errors)
+        .extracting(PositionValidationError::message)
+        .isEmpty();
+  }
+
+  @Test
+  void validate_whenMultipleLicenseeChanges_returnsSingleChangeError() {
+    var change = PositionChangeTestUtil.newBuilder()
+        .withOperations(List.of(LicenceOperation.newLicenseeOperation().withLicenseesToAdd(List.of(2)).build(),
+            LicenceOperation.newLicenseeOperation().withLicenseesToAdd(List.of(1)).build()))
+        .build();
+    var position = ChronologicalPositionTestUtil.newBuilder().withChanges(List.of(change)).build();
+
+    var errors = position.validate(
+        PositionValidationContextTestUtil.newBuilder()
+            .withPosition(position)
+            .build()
+    );
+
+    assertThat(errors)
+        .extracting(PositionValidationError::message)
+        .containsExactly("A licence position can only have one licensee change");
+  }
+
+  @Test
+  void validate_whenJoiningLicenseeOnPreviousState_returnsRepeatedJoinError() {
+    var change = PositionChangeTestUtil.newBuilder()
+        .withOperations(List.of(LicenceOperation.newLicenseeOperation().withLicenseesToAdd(List.of(1)).build()))
+        .build();
+    var position = ChronologicalPositionTestUtil.newBuilder().withChanges(List.of(change)).build();
+    var previousState = LicencePositionState.EMPTY.withLicenseeIds(List.of(1), List.of());
+    var currentState = LicencePositionState.EMPTY.withLicenseeIds(List.of(1), List.of());
+
+    var errors = position.validate(
+        PositionValidationContextTestUtil.newBuilder()
+            .withResolvedState(currentState)
+            .withPreviousState(previousState)
+            .withPosition(position)
+            .build()
+    );
+
+    assertThat(errors)
+        .extracting(PositionValidationError::message)
+        .containsExactly("A licensee cannot join a licence they have already joined");
+  }
+
+  @Test
+  void validate_whenWithdrawingLicenseeNotOnPreviousState_returnsMissingLicenseeError() {
+    var change = PositionChangeTestUtil.newBuilder()
+        .withOperations(List.of(LicenceOperation.newLicenseeOperation().withLicenseesToRemove(List.of(2)).build()))
+        .build();
+    var position = ChronologicalPositionTestUtil.newBuilder().withChanges(List.of(change)).build();
+    var previousState = LicencePositionState.EMPTY.withLicenseeIds(List.of(1), List.of());
+    var currentState = LicencePositionState.EMPTY.withLicenseeIds(List.of(10), List.of());
+
+    var errors = position.validate(
+        PositionValidationContextTestUtil.newBuilder()
+            .withResolvedState(currentState)
+            .withPreviousState(previousState)
+            .withPosition(position)
+            .build()
+    );
+
+    assertThat(errors)
+        .extracting(PositionValidationError::message)
+        .containsExactly("A licensee cannot withdraw from a licence they are not on");
+  }
+
+  @Test
   void validate_whenFirstPositionAndNoAdministratorChange_returnsFirstPositionError() {
     var position = ChronologicalPositionTestUtil.newBuilder().build();
 
@@ -24,23 +170,27 @@ class ChronologicalPositionTest {
 
     assertThat(errors)
         .extracting(PositionValidationError::message)
-        .containsExactly("The first licence position must have an administrator change");
+        .contains("The first licence position must have an administrator change");
   }
 
   @Test
-  void validate_whenFirstPositionHasAdministratorChange_returnsNoErrors() {
+  void validate_whenFirstPositionHasNecessaryChanges_returnsNoErrors() {
     var change = PositionChangeTestUtil.newBuilder()
-        .withOperations(List.of(LicenceOperation.newAdministratorChange().withOperator(1).build()))
+        .withOperations(List.of(LicenceOperation.newAdministratorChange().withOperator(1).build(),
+            LicenceOperation.newLicenseeOperation().withLicenseesToAdd(List.of(1)).build()))
         .build();
 
     var position = ChronologicalPositionTestUtil.newBuilder()
         .withChanges(List.of(change))
         .build();
 
+    var currentState = LicencePositionState.EMPTY.withLicenseeIds(List.of(1), List.of());
+
     var errors = position.validate(
         PositionValidationContextTestUtil.newBuilder()
             .withPosition(position)
             .withIsFirstPosition(true)
+            .withResolvedState(currentState)
             .build()
     );
 
@@ -67,7 +217,7 @@ class ChronologicalPositionTest {
 
     assertThat(errors)
         .extracting(PositionValidationError::message)
-        .containsExactly("The first licence position must have an administrator change");
+        .contains("The first licence position must have an administrator change");
   }
 
   @Test
@@ -84,9 +234,12 @@ class ChronologicalPositionTest {
         .withChanges(List.of(change1, change2))
         .build();
 
+    var currentState = LicencePositionState.EMPTY.withLicenseeIds(List.of(1), List.of());
+
     var errors = position.validate(
         PositionValidationContextTestUtil.newBuilder()
             .withPosition(position)
+            .withResolvedState(currentState)
             .build()
     );
 
@@ -97,13 +250,16 @@ class ChronologicalPositionTest {
 
   @Test
   void validate_whenCarbonStorageAndFirstPositionWithNoAdministratorChange_returnsNoErrors() {
-    var position = ChronologicalPositionTestUtil.newBuilder().build();
+    var change = PositionChangeTestUtil.newBuilder().withLicenseeOperation(List.of(1), List.of()).build();
+    var position = ChronologicalPositionTestUtil.newBuilder().withChanges(List.of(change)).build();
+    var currentState = LicencePositionState.EMPTY.withLicenseeIds(List.of(1), List.of());
 
     var errors = position.validate(
         PositionValidationContextTestUtil.newBuilder()
             .withPosition(position)
             .withIsFirstPosition(true)
             .withIsCarbonStorage(true)
+            .withResolvedState(currentState)
             .build()
     );
 
@@ -113,10 +269,11 @@ class ChronologicalPositionTest {
   @Test
   void validate_whenNotFirstPositionAndNoChanges_returnsNoErrors() {
     var position = ChronologicalPositionTestUtil.newBuilder().build();
-
+    var currentState = LicencePositionState.EMPTY.withLicenseeIds(List.of(1), List.of());
     var errors = position.validate(
         PositionValidationContextTestUtil.newBuilder()
           .withPosition(position)
+          .withResolvedState(currentState)
           .build()
     );
 
@@ -131,10 +288,11 @@ class ChronologicalPositionTest {
     var position = ChronologicalPositionTestUtil.newBuilder()
         .withChanges(List.of(change))
         .build();
-
+    var currentState = LicencePositionState.EMPTY.withLicenseeIds(List.of(1), List.of());
     var errors = position.validate(
         PositionValidationContextTestUtil.newBuilder()
           .withPosition(position)
+          .withResolvedState(currentState)
           .withPreviousState(
               PositionStateTestUtil.newBuilder()
                   .withAdministratorId(5)

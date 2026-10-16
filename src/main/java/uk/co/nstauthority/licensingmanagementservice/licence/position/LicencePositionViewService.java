@@ -23,6 +23,7 @@ import uk.co.fivium.gisframework.feature.Feature;
 import uk.co.fivium.gisframework.feature.FeatureService;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatusType;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
@@ -55,6 +56,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.vie
 import uk.co.nstauthority.licensingmanagementservice.licence.position.filter.LicenceTimelineChangeTypeFilter;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.filter.LicenceTimelineFilter;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.filter.LicenceTimelineFilterOptions;
+import uk.co.nstauthority.licensingmanagementservice.licence.status.LicenceStatusService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.util.DateUtil;
 
@@ -73,6 +75,7 @@ public class LicencePositionViewService {
   private final OrganisationUnitQueryService organisationUnitQueryService;
   private final LicencePositionValidationService licencePositionValidationService;
   private final FeatureService featureService;
+  private final LicenceStatusService licenceStatusService;
 
   public LicencePositionViewService(
       LicencePositionService licencePositionService,
@@ -80,14 +83,15 @@ public class LicencePositionViewService {
       LicencePositionCorrectionService licencePositionCorrectionService,
       OrganisationUnitQueryService organisationUnitQueryService,
       LicencePositionValidationService licencePositionValidationService,
-      FeatureService featureService
-  ) {
+      FeatureService featureService,
+      LicenceStatusService licenceStatusService) {
     this.licencePositionService = licencePositionService;
     this.licencePositionChangeService = licencePositionChangeService;
     this.licencePositionCorrectionService = licencePositionCorrectionService;
     this.organisationUnitQueryService = organisationUnitQueryService;
     this.licencePositionValidationService = licencePositionValidationService;
     this.featureService = featureService;
+    this.licenceStatusService = licenceStatusService;
   }
 
   /**
@@ -119,34 +123,24 @@ public class LicencePositionViewService {
   ) {
     var chronologicalPositions = getCorrectedChronologicalPositions(licenceCorrection, licencePositionId);
     var resolvedStates = LicencePositionStateResolver.resolve(chronologicalPositions);
-    var currentState = resolvedStates.currentState(licencePositionId);
     var previousState = resolvedStates.previousState(licencePositionId);
     var organisationNames = resolveOrganisationNames(chronologicalPositions);
     var previousLicenseeIds = List.copyOf(previousState.licenseeIds());
 
+    ChronologicalPosition currentPosition = chronologicalPositions.stream()
+        .filter(chronologicalPosition -> chronologicalPosition.id().equals(licencePositionId))
+        .toList()
+        .getFirst();
+
     return new LicenseeChangeContext(
-        getCurrentJoiningLicenseeIds(currentState.licenseeIds(), previousState.licenseeIds()),
-        getCurrentWithdrawingLicenseeIds(currentState.licenseeIds(), previousState.licenseeIds()),
+        currentPosition.joiningLicensees(),
+        currentPosition.withdrawingLicensees(),
         previousLicenseeIds,
         previousLicenseeIds
             .stream()
             .map(id -> nameOrEmpty(organisationNames, id))
             .toList()
     );
-  }
-
-  private List<Integer> getCurrentJoiningLicenseeIds(Set<Integer> currentLicenseeIds, Set<Integer> previousLicenseeIds) {
-    return currentLicenseeIds
-        .stream()
-        .filter(id -> !previousLicenseeIds.contains(id))
-        .toList();
-  }
-
-  private List<Integer> getCurrentWithdrawingLicenseeIds(Set<Integer> currentLicenseeIds, Set<Integer> previousLicenseeIds) {
-    return previousLicenseeIds
-        .stream()
-        .filter(id -> !currentLicenseeIds.contains(id))
-        .toList();
   }
 
   public LicencePositionPageView getPositionPageView(LicencePosition licencePosition) {
@@ -321,6 +315,7 @@ public class LicencePositionViewService {
       LicencePosition licencePosition
   ) {
     var licence = licencePosition.getLicence();
+    var licenceStatusType = licenceStatusService.getCurrentStatus(licence);
     var executedChronologicalLicencePositions = licencePositionService.getExecutedChronologicalLicencePositions(licence);
     var positionCorrections = licencePositionCorrectionService.getPositionCorrections(licenceCorrection);
     var removedPositionIds = LicencePositionCorrectionService.getRemovedPositionIds(positionCorrections);
@@ -379,7 +374,8 @@ public class LicencePositionViewService {
     var validationErrors = licencePositionValidationService.validate(
         validationPositions,
         resolvedStates,
-        licencePosition.getLicence().getType() == LicenceType.CARBON_STORAGE
+        licencePosition.getLicence().getType() == LicenceType.CARBON_STORAGE,
+        LicenceStatusType.EXTANT.equals(licenceStatusType)
     );
     var errorSummaryItems = PositionValidationError.toErrorSummaryItems(validationErrors);
     var invalidPositionIds = invalidPositionIds(validationErrors);
@@ -416,6 +412,7 @@ public class LicencePositionViewService {
       LicenceCorrection licenceCorrection,
       LicencePositionCorrection positionCorrection
   ) {
+    var licenceStatusType = licenceStatusService.getCurrentStatus(licenceCorrection.getLicence());
     var payload = (CreateLicencePositionPayload) positionCorrection.getPayload();
     var addedPositionId = UUID.fromString(payload.licencePositionId());
     var executedChronologicalLicencePositions =
@@ -454,7 +451,8 @@ public class LicencePositionViewService {
     var validationErrors = licencePositionValidationService.validate(
         allChronologicalPositions,
         resolvedStates,
-        licenceCorrection.getLicence().getType() == LicenceType.CARBON_STORAGE
+        licenceCorrection.getLicence().getType() == LicenceType.CARBON_STORAGE,
+        LicenceStatusType.EXTANT.equals(licenceStatusType)
     );
     var errorSummaryItems = PositionValidationError.toErrorSummaryItems(validationErrors);
     var invalidPositionIds = invalidPositionIds(validationErrors);

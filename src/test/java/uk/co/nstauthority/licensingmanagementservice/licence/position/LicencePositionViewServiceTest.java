@@ -32,6 +32,7 @@ import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationNamePeriods.OrganisationNamePeriod;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatusType;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
@@ -78,6 +79,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.Fe
 import uk.co.nstauthority.licensingmanagementservice.licence.position.filter.LicenceTimelineFilter;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.filter.LicenceTimelineFilterOptions;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.transaction.LicenceTransactionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.status.LicenceStatusService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @ExtendWith(MockitoExtension.class)
@@ -89,6 +91,9 @@ class LicencePositionViewServiceTest {
   private static final AdministratorOperation ADMINISTRATOR_OPERATION = LicenceOperation.newAdministratorChange()
       .withOperator(1)
       .build();
+
+  @Mock
+  private LicenceStatusService licenceStatusService;
 
   @Mock
   private LicencePositionService licencePositionService;
@@ -120,6 +125,9 @@ class LicencePositionViewServiceTest {
   @Captor
   private ArgumentCaptor<Boolean> isCarbonStorageCaptor;
 
+  @Captor
+  private ArgumentCaptor<Boolean> isExtantLicenceCaptor;
+
   @Test
   void getCorrectionPositionPageView_whenPartialSurrenderIsUntouched_linksCorrectToTheTaskListForThatChange() {
     var correctionId = UUID.randomUUID();
@@ -133,6 +141,7 @@ class LicencePositionViewServiceTest {
         .withOperations(List.of(partialSurrenderOperation()))
         .build();
 
+    when(licenceStatusService.getCurrentStatus(LICENCE)).thenReturn(LicenceStatusType.EXTANT);
     when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(executed));
     when(licencePositionChangeService.findByLicencePositionIn(List.of(executed)))
         .thenReturn(List.of(liveSurrenderChange));
@@ -163,6 +172,7 @@ class LicencePositionViewServiceTest {
             .build())
         .build();
 
+    when(licenceStatusService.getCurrentStatus(LICENCE)).thenReturn(LicenceStatusType.EXTANT);
     when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(executed));
     when(licencePositionChangeService.findByLicencePositionIn(List.of(executed))).thenReturn(List.of());
     when(licencePositionCorrectionService.getPositionCorrections(correction)).thenReturn(List.of(updateCorrection));
@@ -478,6 +488,7 @@ class LicencePositionViewServiceTest {
 
     var change = LicencePositionChangeTestUtil.newBuilder().withLicencePosition(executed).build();
 
+    when(licenceStatusService.getCurrentStatus(LICENCE)).thenReturn(LicenceStatusType.EXTANT);
     when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(executed));
     when(licencePositionChangeService.findByLicencePositionIn(List.of(executed))).thenReturn(List.of(change));
     when(licencePositionCorrectionService.getPositionCorrections(correction)).thenReturn(List.of(dateCorrection));
@@ -532,6 +543,7 @@ class LicencePositionViewServiceTest {
             .build())
         .build();
 
+    when(licenceStatusService.getCurrentStatus(LICENCE)).thenReturn(LicenceStatusType.EXTANT);
     when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(executed));
     when(licencePositionChangeService.findByLicencePositionIn(List.of(executed)))
         .thenReturn(List.of(liveSurrenderChange));
@@ -1033,6 +1045,7 @@ class LicencePositionViewServiceTest {
         .withPayload(addedPayload)
         .build();
 
+    when(licenceStatusService.getCurrentStatus(LICENCE)).thenReturn(LicenceStatusType.EXTANT);
     when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(executed));
     when(licencePositionChangeService.findByLicencePositionIn(List.of(executed))).thenReturn(List.of());
     when(licencePositionCorrectionService.getPositionCorrections(correction))
@@ -1070,6 +1083,7 @@ class LicencePositionViewServiceTest {
         .withLicenceTransaction(LicenceTransactionTestUtil.newBuilder().withRegulatorReference("REF-1").build())
         .withPositionDate(LocalDate.of(2026, Month.JANUARY, 1)).withPositionOrder(1).withStatus(LicencePositionStatus.EXECUTED).build();
 
+    when(licenceStatusService.getCurrentStatus(LICENCE)).thenReturn(LicenceStatusType.EXTANT);
     when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(executed));
     when(licencePositionChangeService.findByLicencePositionIn(List.of(executed))).thenReturn(List.of());
     when(licencePositionCorrectionService.getPositionCorrections(correction))
@@ -1615,6 +1629,7 @@ class LicencePositionViewServiceTest {
         .withTargetLicencePosition(removed)
         .build();
 
+    when(licenceStatusService.getCurrentStatus(LICENCE)).thenReturn(LicenceStatusType.EXTANT);
     when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(removed));
     when(licencePositionChangeService.findByLicencePositionIn(List.of(removed))).thenReturn(List.of(liveChange));
     when(licencePositionCorrectionService.getPositionCorrections(correction)).thenReturn(List.of(removeCorrection));
@@ -1651,6 +1666,7 @@ class LicencePositionViewServiceTest {
         .withTargetLicencePosition(removed)
         .build();
 
+    when(licenceStatusService.getCurrentStatus(LICENCE)).thenReturn(LicenceStatusType.EXTANT);
     when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE))
         .thenReturn(List.of(removed, following));
     when(licencePositionChangeService.findByLicencePositionIn(List.of(removed, following)))
@@ -1662,7 +1678,8 @@ class LicencePositionViewServiceTest {
     verify(licencePositionValidationService).validate(
         validationPositionsCaptor.capture(),
         validationStatesCaptor.capture(),
-        isCarbonStorageCaptor.capture());
+        isCarbonStorageCaptor.capture(),
+        isExtantLicenceCaptor.capture());
 
     assertThat(validationPositionsCaptor.getValue())
         .extracting(ChronologicalPosition::id)
@@ -1699,6 +1716,7 @@ class LicencePositionViewServiceTest {
         .withPayload(correctedPayload)
         .build();
 
+    when(licenceStatusService.getCurrentStatus(LICENCE)).thenReturn(LicenceStatusType.EXTANT);
     when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(current));
     when(licencePositionChangeService.findByLicencePositionIn(List.of(current))).thenReturn(List.of());
     when(licencePositionCorrectionService.getPositionCorrections(correction)).thenReturn(List.of(updateCorrection));
@@ -1740,6 +1758,7 @@ class LicencePositionViewServiceTest {
         .withPayload(emptyPayload)
         .build();
 
+    when(licenceStatusService.getCurrentStatus(LICENCE)).thenReturn(LicenceStatusType.EXTANT);
     when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(current));
     when(licencePositionChangeService.findByLicencePositionIn(List.of(current))).thenReturn(List.of());
     when(licencePositionCorrectionService.getPositionCorrections(correction)).thenReturn(List.of(updateCorrection));
@@ -1788,6 +1807,7 @@ class LicencePositionViewServiceTest {
             .build())
         .build();
 
+    when(licenceStatusService.getCurrentStatus(LICENCE)).thenReturn(LicenceStatusType.EXTANT);
     when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(source, target));
     when(licencePositionChangeService.findByLicencePositionIn(List.of(source, target))).thenReturn(List.of(liveChange));
     when(licencePositionCorrectionService.getPositionCorrections(correction)).thenReturn(List.of(moveCorrection));
@@ -1839,6 +1859,7 @@ class LicencePositionViewServiceTest {
         List.of(),
         List.of());
 
+    when(licenceStatusService.getCurrentStatus(LICENCE)).thenReturn(LicenceStatusType.EXTANT);
     when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE))
         .thenReturn(List.of(moved, other));
     when(licencePositionChangeService.findByLicencePositionIn(List.of(moved, other))).thenReturn(List.of());
@@ -1861,6 +1882,7 @@ class LicencePositionViewServiceTest {
     var addedMar = addedCorrection(correction, "ADD-MAR", LocalDate.of(2026, Month.MARCH, 1), 1);
     var addedJun3 = addedCorrection(correction, "ADD-JUN-3", LocalDate.of(2026, Month.JUNE, 1), 3);
 
+    when(licenceStatusService.getCurrentStatus(LICENCE)).thenReturn(LicenceStatusType.EXTANT);
     when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE))
         .thenReturn(List.of(liveJan, liveJun1, liveJun2));
     when(licencePositionChangeService.findByLicencePositionIn(List.of(liveJan, liveJun1, liveJun2))).thenReturn(List.of());
@@ -2120,6 +2142,7 @@ class LicencePositionViewServiceTest {
         .withLicenceTransaction(LicenceTransactionTestUtil.newBuilder().withRegulatorReference("REF-2").build())
         .withPositionDate(sameDate).withPositionOrder(2).withStatus(LicencePositionStatus.EXECUTED).build();
 
+    when(licenceStatusService.getCurrentStatus(LICENCE)).thenReturn(LicenceStatusType.EXTANT);
     when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(pos1, pos2));
     when(licencePositionChangeService.findByLicencePositionIn(List.of(pos1, pos2))).thenReturn(List.of());
     when(licencePositionCorrectionService.getPositionCorrections(correction)).thenReturn(List.of());
@@ -2153,6 +2176,7 @@ class LicencePositionViewServiceTest {
         .withLicenceTransaction(LicenceTransactionTestUtil.newBuilder().withRegulatorReference("REF-1").build())
         .withPositionDate(LocalDate.of(2026, Month.JANUARY, 1)).withPositionOrder(1).withStatus(LicencePositionStatus.EXECUTED).build();
 
+    when(licenceStatusService.getCurrentStatus(LICENCE)).thenReturn(LicenceStatusType.EXTANT);
     when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(pos1));
     when(licencePositionChangeService.findByLicencePositionIn(List.of(pos1))).thenReturn(List.of());
     when(licencePositionCorrectionService.getPositionCorrections(correction)).thenReturn(List.of());

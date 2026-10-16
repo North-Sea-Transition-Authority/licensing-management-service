@@ -8,6 +8,8 @@ public record PositionValidationContext(
     LicencePositionState resolvedState,
     LicencePositionState previousState,
     boolean isFirstPosition,
-    boolean isCarbonStorage
+    boolean isLastPosition,
+    boolean isCarbonStorage,
+    boolean isExtantLicence
 ) {
 }

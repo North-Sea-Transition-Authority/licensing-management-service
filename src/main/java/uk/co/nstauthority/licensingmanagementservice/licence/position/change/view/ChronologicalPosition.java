@@ -3,6 +3,9 @@ package uk.co.nstauthority.licensingmanagementservice.licence.position.change.vi
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -13,8 +16,10 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.AdministratorPositionRule;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.EquityPositionRule;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.LicenseePositionRule;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationError;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationRule;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.util.DateUtil;
@@ -29,6 +34,18 @@ public record ChronologicalPosition(
 ) {
 
   private static final BigDecimal ONE_HUNDRED_PERCENT = new BigDecimal("100");
+
+  private static final ChangeCountRules LICENSEE_RULES = new ChangeCountRules(
+      LicenceOperation.LICENSEE,
+      LicenseePositionRule.FIRST_POSITION_MUST_HAVE_LICENSEE,
+      LicenseePositionRule.ONLY_ONE_LICENSEE_CHANGE
+  );
+
+  private static final ChangeCountRules ADMINISTRATOR_RULES = new ChangeCountRules(
+      LicenceOperation.LICENCE_ADMINISTRATOR,
+      AdministratorPositionRule.FIRST_POSITION_MUST_HAVE_ADMINISTRATOR,
+      AdministratorPositionRule.ONLY_ONE_ADMINISTRATOR_CHANGE
+  );
 
   /**
    * The reference, date and order are passed in rather than read off the position because a correction can change any
@@ -75,6 +92,7 @@ public record ChronologicalPosition(
 
     positionValidationErrors.addAll(validateAdministratorChange(positionValidationContext));
     positionValidationErrors.addAll(validateBeneficialInterest(positionValidationContext));
+    positionValidationErrors.addAll(validateLicenseeChange(positionValidationContext));
     changes.forEach(change -> positionValidationErrors.addAll(change.validate(positionValidationContext)));
 
     return positionValidationErrors;
@@ -86,28 +104,97 @@ public record ChronologicalPosition(
         .count();
   }
 
+  public List<Integer> joiningLicensees() {
+    return changes.stream()
+        .map(PositionChange::licenseesToAdd)
+        .flatMap(Collection::stream)
+        .toList();
+  }
+
+  public List<Integer> withdrawingLicensees() {
+    return changes.stream()
+        .map(PositionChange::licenseesToRemove)
+        .flatMap(Collection::stream)
+        .toList();
+  }
+
+  private List<PositionValidationError> validateLicenseeChange(PositionValidationContext positionValidationContext) {
+    List<PositionValidationError> changeCountErrors = validateOperationChangeCount(
+        positionValidationContext,
+        LICENSEE_RULES
+    );
+
+    if (!changeCountErrors.isEmpty()) {
+      return changeCountErrors;
+    }
+
+    var previousState = positionValidationContext.previousState();
+    if (previousState == null) {
+      return List.of();
+    }
+
+    var errors = new ArrayList<PositionValidationError>();
+    if (positionValidationContext.resolvedState().licenseeIds().isEmpty()
+        && (positionValidationContext.isExtantLicence() || !positionValidationContext.isLastPosition())) {
+      errors.add(PositionValidationError.forPosition(
+          positionValidationContext,
+          LicenseePositionRule.POSITION_MUST_HAVE_LICENSEES
+      ));
+    }
+
+    Set<Integer> joiningLicensees = new HashSet<>(joiningLicensees());
+    Set<Integer> withdrawingLicensees = new HashSet<>(withdrawingLicensees());
+
+    if (!Collections.disjoint(joiningLicensees, previousState.licenseeIds())) {
+      errors.add(PositionValidationError.forPosition(
+          positionValidationContext,
+          LicenseePositionRule.CANNOT_JOIN_A_LICENCE_REPEATEDLY
+      ));
+    }
+
+    boolean withdrawingLicenseesDontExist = withdrawingLicensees
+        .stream()
+        .anyMatch(licensee -> !previousState.licenseeIds().contains(licensee));
+
+    if (withdrawingLicenseesDontExist) {
+      errors.add(PositionValidationError.forPosition(
+          positionValidationContext,
+          LicenseePositionRule.MUST_EXIST_TO_WITHDRAW
+      ));
+    }
+
+    return errors;
+  }
+
   private List<PositionValidationError> validateAdministratorChange(PositionValidationContext positionValidationContext) {
     if (positionValidationContext.isCarbonStorage()) {
       return List.of();
     }
 
-    var administratorChangeCount = changes.stream()
+    return validateOperationChangeCount(positionValidationContext, ADMINISTRATOR_RULES);
+  }
+
+  private List<PositionValidationError> validateOperationChangeCount(
+      PositionValidationContext positionValidationContext,
+      ChangeCountRules rules
+  ) {
+    var changeCount = changes.stream()
         .filter(change -> !LicencePositionChangeType.REMOVE_CHANGE.equals(change.changeType()))
         .flatMap(change -> change.operations().stream())
-        .filter(licenceOperation -> LicenceOperation.LICENCE_ADMINISTRATOR.equals(licenceOperation.type()))
+        .filter(licenceOperation -> rules.operationType().equals(licenceOperation.type()))
         .count();
 
-    if (positionValidationContext.isFirstPosition() && administratorChangeCount == 0) {
+    if (positionValidationContext.isFirstPosition() && changeCount == 0) {
       return List.of(PositionValidationError.forPosition(
           positionValidationContext,
-          AdministratorPositionRule.FIRST_POSITION_MUST_HAVE_ADMINISTRATOR
+          rules.firstPositionMustHaveChange()
       ));
     }
 
-    if (administratorChangeCount > 1) {
+    if (changeCount > 1) {
       return List.of(PositionValidationError.forPosition(
           positionValidationContext,
-          AdministratorPositionRule.ONLY_ONE_ADMINISTRATOR_CHANGE
+          rules.atMostOneChange()
       ));
     }
 
@@ -182,4 +269,10 @@ public record ChronologicalPosition(
   private static boolean isOutOfRange(BigDecimal equity) {
     return equity.compareTo(BigDecimal.ZERO) < 0 || equity.compareTo(ONE_HUNDRED_PERCENT) > 0;
   }
+
+  private record ChangeCountRules(
+      String operationType,
+      PositionValidationRule firstPositionMustHaveChange,
+      PositionValidationRule atMostOneChange
+  ) {}
 }

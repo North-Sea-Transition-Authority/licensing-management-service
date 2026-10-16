@@ -13,12 +13,14 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correct
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanViewCorrection;
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatusType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.CorrectionDetailsViewService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.LicencePositionValidationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationError;
+import uk.co.nstauthority.licensingmanagementservice.licence.status.LicenceStatusService;
 import uk.co.nstauthority.licensingmanagementservice.licence.tab.TabbedLicencePageService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
@@ -38,6 +40,7 @@ public class ReviewCorrectionController {
   private final LicencePositionValidationService licencePositionValidationService;
   private final CorrectionApplyService correctionApplyService;
   private final TabbedLicencePageService tabbedLicencePageService;
+  private final LicenceStatusService licenceStatusService;
 
   public ReviewCorrectionController(
       CorrectionDetailsViewService correctionDetailsViewService,
@@ -46,8 +49,8 @@ public class ReviewCorrectionController {
       CorrectionReviewService correctionReviewService,
       LicencePositionValidationService licencePositionValidationService,
       CorrectionApplyService correctionApplyService,
-      TabbedLicencePageService tabbedLicencePageService
-  ) {
+      TabbedLicencePageService tabbedLicencePageService,
+      LicenceStatusService licenceStatusService) {
     this.correctionDetailsViewService = correctionDetailsViewService;
     this.licenceService = licenceService;
     this.correctedTimelineService = correctedTimelineService;
@@ -55,6 +58,7 @@ public class ReviewCorrectionController {
     this.licencePositionValidationService = licencePositionValidationService;
     this.correctionApplyService = correctionApplyService;
     this.tabbedLicencePageService = tabbedLicencePageService;
+    this.licenceStatusService = licenceStatusService;
   }
 
   @GetMapping
@@ -68,12 +72,14 @@ public class ReviewCorrectionController {
           .addObject(CAN_APPLY, false)
           .addObject("errorSummaryItems", List.of());
     }
+    var licenceStatusType = licenceStatusService.getCurrentStatus(licenceCorrection.getLicence());
 
     var correctedTimeline = correctedTimelineService.getCorrectedTimeline(licenceCorrection);
     var blockingErrors = licencePositionValidationService.validate(
         correctedTimeline.positionsToApply(),
         correctedTimeline.resolvedStates(),
-        correctedTimeline.isCarbonStorage()
+        correctedTimeline.isCarbonStorage(),
+        LicenceStatusType.EXTANT.equals(licenceStatusType)
     );
 
     return reviewCorrectionModelAndView(licenceCorrection, correctedTimeline, blockingErrors);

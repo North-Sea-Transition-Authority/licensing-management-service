@@ -22,7 +22,7 @@ class LicencePositionValidationServiceTest {
 
   @Test
   void validate_whenNoPositions_returnsNoErrors() {
-    assertThat(service.validate(List.of(), LicencePositionStateResolver.resolve(List.of()), true)).isEmpty();
+    assertThat(service.validate(List.of(), LicencePositionStateResolver.resolve(List.of()), true, true)).isEmpty();
   }
 
   @Test
@@ -34,14 +34,16 @@ class LicencePositionValidationServiceTest {
     var chronologicalPositions = List.of(first, second);
     var states = LicencePositionStateResolver.resolve(chronologicalPositions);
 
-    assertThat(service.validate(chronologicalPositions, states, false))
+    assertThat(service.validate(chronologicalPositions, states, false, true))
         .extracting(PositionValidationError::positionId, PositionValidationError::message)
         .containsExactly(
-            tuple(first.id(), AdministratorPositionRule.FIRST_POSITION_MUST_HAVE_ADMINISTRATOR.getMessage()));
+            tuple(first.id(), AdministratorPositionRule.FIRST_POSITION_MUST_HAVE_ADMINISTRATOR.getMessage()),
+            tuple(first.id(), LicenseePositionRule.FIRST_POSITION_MUST_HAVE_LICENSEE.getMessage()),
+            tuple(second.id(), LicenseePositionRule.POSITION_MUST_HAVE_LICENSEES.getMessage()));
   }
 
   @Test
-  void validate_aggregatesAdministratorErrorsAcrossPositions() {
+  void validate_aggregatesErrorsAcrossPositions() {
     var first = LicencePositionTestUtil.newBuilder().build();
     var second = LicencePositionTestUtil.newBuilder().build();
     var chronologicalPositions = List.of(
@@ -49,24 +51,28 @@ class LicencePositionValidationServiceTest {
         ChronologicalPositionTestUtil.live(
             second,
             LicenceOperation.newAdministratorChange().withOperator(2).build(),
-            LicenceOperation.newAdministratorChange().withOperator(3).build())
+            LicenceOperation.newAdministratorChange().withOperator(3).build(),
+            LicenceOperation.newLicenseeOperation().withLicenseesToAdd(List.of(2)).build(),
+            LicenceOperation.newLicenseeOperation().withLicenseesToAdd(List.of(3)).build())
     );
     var states = LicencePositionStateResolver.resolve(chronologicalPositions);
 
-    assertThat(service.validate(chronologicalPositions, states, false))
+    assertThat(service.validate(chronologicalPositions, states, false, true))
         .extracting(PositionValidationError::message)
         .containsExactlyInAnyOrder(AdministratorPositionRule.FIRST_POSITION_MUST_HAVE_ADMINISTRATOR.getMessage(),
-            AdministratorPositionRule.ONLY_ONE_ADMINISTRATOR_CHANGE.getMessage());
+            AdministratorPositionRule.ONLY_ONE_ADMINISTRATOR_CHANGE.getMessage(),
+            LicenseePositionRule.FIRST_POSITION_MUST_HAVE_LICENSEE.getMessage(),
+            LicenseePositionRule.ONLY_ONE_LICENSEE_CHANGE.getMessage());
   }
 
   @Test
   void validate_whenPositionsShareTransactionEachWithBeneficialInterestChange_flagsEachPosition() {
     var transactionId = UUID.randomUUID();
-    var first = position(transactionId, LocalDate.of(2026, Month.JUNE, 18), setEquityChange(1, "100"));
+    var first = position(transactionId, LocalDate.of(2026, Month.JUNE, 18), setEquityChange(1, "100"), licenseeChange());
     var second = position(transactionId, LocalDate.of(2026, Month.JULY, 9), setEquityChange(1, "100"));
 
     var positions = List.of(first, second);
-    var errors = service.validate(positions, LicencePositionStateResolver.resolve(positions), true);
+    var errors = service.validate(positions, LicencePositionStateResolver.resolve(positions), true, true);
 
     assertThat(errors)
         .extracting(PositionValidationError::positionId, PositionValidationError::message)
@@ -77,11 +83,11 @@ class LicencePositionValidationServiceTest {
 
   @Test
   void validate_whenPositionsHaveDistinctTransactions_doesNotFlagSingleChangeError() {
-    var first = position(UUID.randomUUID(), LocalDate.of(2026, Month.JUNE, 18), setEquityChange(1, "100"));
+    var first = position(UUID.randomUUID(), LocalDate.of(2026, Month.JUNE, 18), setEquityChange(1, "100"), licenseeChange());
     var second = position(UUID.randomUUID(), LocalDate.of(2026, Month.JULY, 9), setEquityChange(1, "100"));
 
     var positions = List.of(first, second);
-    var errors = service.validate(positions, LicencePositionStateResolver.resolve(positions), true);
+    var errors = service.validate(positions, LicencePositionStateResolver.resolve(positions), true, true);
 
     assertThat(errors).isEmpty();
   }
@@ -89,10 +95,10 @@ class LicencePositionValidationServiceTest {
   @Test
   void validate_whenSinglePositionHasTwoBeneficialInterestChanges_flagsSingleChangeError() {
     var position = position(UUID.randomUUID(), LocalDate.of(2026, Month.JUNE, 18),
-        setEquityChange(1, "100"), setEquityChange(1, "100"));
+        setEquityChange(1, "100"), setEquityChange(1, "100"), licenseeChange());
 
     var positions = List.of(position);
-    var errors = service.validate(positions, LicencePositionStateResolver.resolve(positions), true);
+    var errors = service.validate(positions, LicencePositionStateResolver.resolve(positions), true, true);
 
     assertThat(errors)
         .extracting(PositionValidationError::positionId, PositionValidationError::message)
@@ -103,11 +109,11 @@ class LicencePositionValidationServiceTest {
   void validate_whenNotCarbonStorageLicence_flagsEachBeneficialInterestChangeAsCarbonStorageOnly() {
     var transactionId = UUID.randomUUID();
     var first = position(transactionId, LocalDate.of(2026, Month.JUNE, 18),
-        administratorChange(), setEquityChange(1, "100"));
+        administratorChange(), setEquityChange(1, "100"), licenseeChange());
     var second = position(transactionId, LocalDate.of(2026, Month.JULY, 9), setEquityChange(1, "100"));
 
     var positions = List.of(first, second);
-    var errors = service.validate(positions, LicencePositionStateResolver.resolve(positions), false);
+    var errors = service.validate(positions, LicencePositionStateResolver.resolve(positions), false, true);
 
     assertThat(errors)
         .extracting(PositionValidationError::positionId, PositionValidationError::message)
@@ -118,10 +124,10 @@ class LicencePositionValidationServiceTest {
 
   @Test
   void validate_delegatesEquityValidationToEachPosition() {
-    var position = position(UUID.randomUUID(), LocalDate.of(2026, Month.JUNE, 18), setEquityChange(1, "60"));
+    var position = position(UUID.randomUUID(), LocalDate.of(2026, Month.JUNE, 18), setEquityChange(1, "60"), licenseeChange());
 
     var positions = List.of(position);
-    var errors = service.validate(positions, LicencePositionStateResolver.resolve(positions), true);
+    var errors = service.validate(positions, LicencePositionStateResolver.resolve(positions), true, true);
 
     assertThat(errors)
         .extracting(PositionValidationError::positionId, PositionValidationError::message)
@@ -132,11 +138,11 @@ class LicencePositionValidationServiceTest {
   @Test
   void validate_whenOriginatingPositionSharesTransaction_returnsEquityErrorThenSingleChangeErrorForOriginOnly() {
     var transactionId = UUID.randomUUID();
-    var first = position(transactionId, LocalDate.of(2026, Month.JUNE, 18), setEquityChange(1, "60"));
+    var first = position(transactionId, LocalDate.of(2026, Month.JUNE, 18), setEquityChange(1, "60"), licenseeChange());
     var second = position(transactionId, LocalDate.of(2026, Month.JULY, 9), setEquityChange(1, "60"));
 
     var positions = List.of(first, second);
-    var errors = service.validate(positions, LicencePositionStateResolver.resolve(positions), true);
+    var errors = service.validate(positions, LicencePositionStateResolver.resolve(positions), true, true);
 
     assertThat(errors)
         .extracting(PositionValidationError::positionId, PositionValidationError::message)
@@ -148,12 +154,12 @@ class LicencePositionValidationServiceTest {
 
   @Test
   void validate_whenInvalidTotalCarriedAcrossPositions_flagsOnlyTheOriginatingPosition() {
-    var origin = position(UUID.randomUUID(), LocalDate.of(2026, Month.JUNE, 18), setEquityChange(1, "60"));
+    var origin = position(UUID.randomUUID(), LocalDate.of(2026, Month.JUNE, 18), setEquityChange(1, "60"), licenseeChange());
     var carriesForwardFirst = position(UUID.randomUUID(), LocalDate.of(2026, Month.JULY, 9));
     var carriesForwardSecond = position(UUID.randomUUID(), LocalDate.of(2026, Month.JULY, 16));
 
     var positions = List.of(origin, carriesForwardFirst, carriesForwardSecond);
-    var errors = service.validate(positions, LicencePositionStateResolver.resolve(positions), true);
+    var errors = service.validate(positions, LicencePositionStateResolver.resolve(positions), true, true);
 
     assertThat(errors)
         .extracting(PositionValidationError::positionId, PositionValidationError::message)
@@ -171,6 +177,15 @@ class LicencePositionValidationServiceTest {
         0,
         null,
         List.of(LicenceOperation.newAdministratorChange().withOperator(999).build())
+    );
+  }
+
+  private static PositionChange licenseeChange() {
+    return new PositionChange(
+        UUID.randomUUID().toString(),
+        0,
+        null,
+        List.of(LicenceOperation.newLicenseeOperation().withLicenseesToAdd(List.of(888)).build())
     );
   }
 

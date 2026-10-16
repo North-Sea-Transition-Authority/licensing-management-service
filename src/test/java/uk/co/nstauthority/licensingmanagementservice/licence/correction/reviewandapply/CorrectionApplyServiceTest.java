@@ -28,6 +28,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.fivium.gisframework.command.CommandJourneyService;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatusType;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionService;
@@ -61,6 +62,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.vie
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.PositionChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.PositionChangeTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.transaction.LicenceTransactionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.status.LicenceStatusService;
 import uk.co.nstauthority.licensingmanagementservice.licence.transaction.LicenceTransactionRepository;
 import uk.co.nstauthority.licensingmanagementservice.licence.transaction.LicenceTransactionService;
 
@@ -74,6 +76,9 @@ class CorrectionApplyServiceTest {
 
   @Mock
   private CorrectedTimelineService correctedTimelineService;
+
+  @Mock
+  private LicenceStatusService licenceStatusService;
 
   @Mock
   private LicencePositionValidationService licencePositionValidationService;
@@ -315,12 +320,14 @@ class CorrectionApplyServiceTest {
         LicencePositionStateResolver.resolve(chronologicalPositions, Set.of())
     );
 
+    when(licenceStatusService.getCurrentStatus(licenceCorrection.getLicence())).thenReturn(LicenceStatusType.EXTANT);
     when(entityManager.find(LicenceCorrection.class, licenceCorrection.getId(), LockModeType.PESSIMISTIC_WRITE)).thenReturn(licenceCorrection);
     when(correctedTimelineService.getCorrectedTimeline(licenceCorrection)).thenReturn(correctedTimeline);
     when(licencePositionValidationService.validate(
         correctedTimeline.positionsToApply(),
         correctedTimeline.resolvedStates(),
-        correctedTimeline.isCarbonStorage())
+        correctedTimeline.isCarbonStorage(),
+        true)
     ).thenReturn(List.of());
 
     correctionApplyService.applyCorrection(licenceCorrection);
@@ -596,11 +603,13 @@ class CorrectionApplyServiceTest {
     );
 
     stubLockedCorrection(licenceCorrection);
+    when(licenceStatusService.getCurrentStatus(licenceCorrection.getLicence())).thenReturn(LicenceStatusType.EXTANT);
     when(correctedTimelineService.getCorrectedTimeline(licenceCorrection)).thenReturn(correctedTimeline);
     when(licencePositionValidationService.validate(
         correctedTimeline.positionsToApply(),
         correctedTimeline.resolvedStates(),
-        correctedTimeline.isCarbonStorage()))
+        correctedTimeline.isCarbonStorage(),
+        true))
         .thenReturn(blockingErrors);
   }
 

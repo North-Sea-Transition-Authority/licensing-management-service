@@ -17,6 +17,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.co.fivium.gisframework.command.CommandJourneyService;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatusType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
@@ -46,6 +47,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.Lic
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.LicencePositionState;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ResolvedStates;
+import uk.co.nstauthority.licensingmanagementservice.licence.status.LicenceStatusService;
 import uk.co.nstauthority.licensingmanagementservice.licence.transaction.LicenceTransactionRepository;
 import uk.co.nstauthority.licensingmanagementservice.licence.transaction.LicenceTransactionService;
 import uk.co.nstauthority.licensingmanagementservice.util.ListUtil;
@@ -69,6 +71,7 @@ public class CorrectionApplyService {
   private final PartialSurrenderCorrectionService partialSurrenderCorrectionService;
   private final CommandJourneyService commandJourneyService;
   private final LicenceResponsibleOrganisationService licenceResponsibleOrganisationService;
+  private final LicenceStatusService licenceStatusService;
 
   public CorrectionApplyService(
       CorrectedTimelineService correctedTimelineService,
@@ -82,8 +85,8 @@ public class CorrectionApplyService {
       EntityManager entityManager,
       PartialSurrenderCorrectionService partialSurrenderCorrectionService,
       CommandJourneyService commandJourneyService,
-      LicenceResponsibleOrganisationService licenceResponsibleOrganisationService
-  ) {
+      LicenceResponsibleOrganisationService licenceResponsibleOrganisationService,
+      LicenceStatusService licenceStatusService) {
     this.correctedTimelineService = correctedTimelineService;
     this.licencePositionValidationService = licencePositionValidationService;
     this.licenceCorrectionService = licenceCorrectionService;
@@ -96,12 +99,15 @@ public class CorrectionApplyService {
     this.partialSurrenderCorrectionService = partialSurrenderCorrectionService;
     this.commandJourneyService = commandJourneyService;
     this.licenceResponsibleOrganisationService = licenceResponsibleOrganisationService;
+    this.licenceStatusService = licenceStatusService;
   }
 
   @Transactional
   public List<PositionValidationError> applyCorrection(LicenceCorrection correction) {
     var licenceCorrection =
         entityManager.find(LicenceCorrection.class, correction.getId(), LockModeType.PESSIMISTIC_WRITE);
+
+    var licenceStatus = licenceStatusService.getCurrentStatus(licenceCorrection.getLicence());
 
     if (licenceCorrection.getStatus() != LicenceCorrectionStatus.IN_PROGRESS) {
       throw new IllegalStateException(
@@ -113,7 +119,8 @@ public class CorrectionApplyService {
     var blockingErrors = licencePositionValidationService.validate(
         correctedTimeline.positionsToApply(),
         correctedTimeline.resolvedStates(),
-        correctedTimeline.isCarbonStorage()
+        correctedTimeline.isCarbonStorage(),
+        LicenceStatusType.EXTANT.equals(licenceStatus)
     );
 
     if (!blockingErrors.isEmpty()) {

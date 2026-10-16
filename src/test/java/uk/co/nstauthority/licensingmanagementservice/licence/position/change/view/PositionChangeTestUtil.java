@@ -42,6 +42,12 @@ public class PositionChangeTestUtil {
     return this;
   }
 
+  public PositionChangeTestUtil withLicenseeOperation(List<Integer> licenseesToAdd, List<Integer> licenseesToRemove) {
+    this.operations = List.of(LicenceOperation
+        .newLicenseeOperation().withLicenseesToAdd(licenseesToAdd).withLicenseesToRemove(licenseesToRemove).build());
+    return this;
+  }
+
   public PositionChangeTestUtil withSetEquityOperation(int transferTo, BigDecimal equity) {
     this.operations = List.of(LicenceOperation.newSetEquityOperation()
         .withTransferTo(transferTo)

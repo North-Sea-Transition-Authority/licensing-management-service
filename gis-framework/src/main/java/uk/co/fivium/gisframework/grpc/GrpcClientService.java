@@ -29,6 +29,7 @@ import uk.co.fivium.grpc.gis.Coordinate;
 import uk.co.fivium.grpc.gis.CoordinateSystem;
 import uk.co.fivium.grpc.gis.CoordinatesToPolylineRequest;
 import uk.co.fivium.grpc.gis.CropToBoundaryRequest;
+import uk.co.fivium.grpc.gis.EqualPolygonGroup;
 import uk.co.fivium.grpc.gis.EsriJsonLineWithNavigationAndId;
 import uk.co.fivium.grpc.gis.EsriJsonPolygonLineWrappers;
 import uk.co.fivium.grpc.gis.EsriJsonPolygonLines;
@@ -43,6 +44,7 @@ import uk.co.fivium.grpc.gis.FindParentLinesRequest;
 import uk.co.fivium.grpc.gis.GeneralizePolygonRequest;
 import uk.co.fivium.grpc.gis.GeoJsonLineWrapper;
 import uk.co.fivium.grpc.gis.GetLineStartAndEndPointsRequest;
+import uk.co.fivium.grpc.gis.GroupEqualPolygonsRequest;
 import uk.co.fivium.grpc.gis.LineNavigationType;
 import uk.co.fivium.grpc.gis.LineWithId;
 import uk.co.fivium.grpc.gis.LineWithNavigationType;
@@ -60,6 +62,8 @@ import uk.co.fivium.grpc.gis.PolygonPolylines;
 import uk.co.fivium.grpc.gis.ReferenceBlockValidationRequest;
 import uk.co.fivium.grpc.gis.SplitPolygonRequest;
 import uk.co.fivium.grpc.gis.TopologicallyEqualValidationRequest;
+import uk.co.fivium.grpc.gis.UnionPolygonsRequest;
+import uk.co.fivium.grpc.gis.UnionPolygonsResponse;
 import uk.co.fivium.grpc.gis.ValidatePolygonReconstructionFromPolylinesRequest;
 import uk.co.fivium.grpc.gis.ValidationResponse;
 
@@ -537,6 +541,29 @@ public class GrpcClientService {
   }
 
   /**
+   * Groups polygons that are topologically equal, i.e. cover exactly the same area. This operation is strictly 2D, and
+   * ignores depth.
+   *
+   * @param idToEsriJsonPolygon the polygons to group, keyed by a given id.
+   * @return the ids of each group of equal polygons. A polygon equal to no other is a group of its own.
+   */
+  public List<List<String>> groupEqualPolygons(Map<String, String> idToEsriJsonPolygon) {
+    var request = GroupEqualPolygonsRequest.newBuilder();
+    idToEsriJsonPolygon.forEach((id, esriJsonPolygon) ->
+        request.addPolygons(EsriJsonPolygonWithId.newBuilder()
+          .setId(id)
+          .setEsriJsonPolygon(esriJsonPolygon)
+          .build())
+    );
+
+    var response = arcgisClient.groupEqualPolygons(request.build());
+
+    return response.getGroupsList().stream()
+        .map(EqualPolygonGroup::getIdsList)
+        .collect(Collectors.toList());
+  }
+
+  /**
    * Crop features to the union of the boundary polygons.
    *
    * @param esriJsonBoundaryPolygons       The EsriJSON of the polygons that together form the boundary.
@@ -613,6 +640,19 @@ public class GrpcClientService {
     var response = arcgisClient.buildFeaturePolygons(request);
 
     return toFeatureIdToPolygonIdToEsriJson(response.getFeaturesList());
+  }
+
+  /**
+   * Takes a list of EsriJSON polygons and combines time into a single shape.
+   * @param polygons a list of EsriJSON polygons
+   * @return an EsriJSON polygon or "shape" that is made up of all the inputted polygons.
+   */
+  public String unionPolygons(List<String> polygons) {
+    var request = UnionPolygonsRequest.newBuilder()
+        .addAllEsriJsonPolygons(polygons)
+        .build();
+    UnionPolygonsResponse response = arcgisClient.unionPolygons(request);
+    return response.getEsriJsonPolygon();
   }
 
   private FeaturePolylines toFeaturePolylines(EntityBackedFeature entityBackedFeature) {

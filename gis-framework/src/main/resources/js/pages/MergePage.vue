@@ -63,12 +63,11 @@
 </template>
 
 <script setup lang="ts">
-import type Feature from "ol/Feature";
-import type { Geometry } from "ol/geom";
 import type { SupportedWkid } from "@/coordinate-system-utils";
 import { computed, CSSProperties, ref, watch } from "vue";
 import { buildCommandJourneyUrl } from "@/command-journey-utils";
 import { useCommandJourneyFeatures } from "@/composables/useCommandJourneyFeatures";
+import { toSortedFeatureOptions } from "@/feature-option-utils";
 import BaseMap from "../components/baseMap/BaseMap.vue";
 import ErrorSummary from "../components/gdsComponents/error/ErrorSummary.vue";
 import GvCheckbox from "../components/govukVue/checkboxes/GvCheckbox.vue";
@@ -91,27 +90,10 @@ interface MergePageProps {
   includeNstaBlocks?: boolean,
 }
 
-interface CommandJourneyFeature {
-  featureId: string,
-  featureName: string,
-}
-
 const props = withDefaults(defineProps<MergePageProps>(), {
   includeNstaQuadrants: true,
   includeNstaBlocks: true,
 });
-
-function getString(feature: Feature<Geometry>, key: string): string {
-  return feature.get(key);
-}
-
-function toFeatureOptions(features: Feature<Geometry>[]): CommandJourneyFeature[] {
-  return [...new Map(features.map(feature =>
-    [getString(feature, "featureId"), {
-      featureId: getString(feature, "featureId"),
-      featureName: getString(feature, "featureName"),
-    }])).values()];
-}
 
 // Make the map fill its panel rather than use BaseMap's default clamped height.
 const mapStyleOverride: CSSProperties = {
@@ -127,10 +109,7 @@ const refreshCounter = ref(0);
 const featuresUrl = buildCommandJourneyUrl(props.featuresBaseUrl, props.commandJourneyId);
 const outlineNodesUrl = buildCommandJourneyUrl(props.outlineNodesBaseUrl, props.commandJourneyId);
 const { features, outlineNodes, hasError } = useCommandJourneyFeatures(featuresUrl, outlineNodesUrl, refreshCounter);
-const sortedFeatures = computed<CommandJourneyFeature[]>(() =>
-  toFeatureOptions(features.value)
-    .sort((a, b) => a.featureName.localeCompare(b.featureName, undefined, { numeric: true })),
-);
+const sortedFeatures = computed(() => toSortedFeatureOptions(features.value));
 
 watch(hasError, (errored) => {
   if (errored) {

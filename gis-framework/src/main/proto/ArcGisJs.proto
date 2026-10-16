@@ -46,6 +46,10 @@ import "find2dOverlappingFeatures/Find2dOverlappingFeaturesRequest.proto";
 import "find2dOverlappingFeatures/Find2dOverlappingFeaturesResponse.proto";
 import "buildFeaturePolygons/BuildFeaturePolygonsRequest.proto";
 import "buildFeaturePolygons/BuildFeaturePolygonsResponse.proto";
+import "groupEqualPolygons/GroupEqualPolygonsRequest.proto";
+import "groupEqualPolygons/GroupEqualPolygonsResponse.proto";
+import "unionPolygons/UnionPolygonsRequest.proto";
+import "unionPolygons/UnionPolygonsResponse.proto";
 
 option java_multiple_files = true;
 option java_outer_classname = "ArcGisServiceProto";
@@ -73,4 +77,6 @@ service ArcGisService {
   rpc cropToBoundary (CropToBoundaryRequest) returns (CropToBoundaryResponse) {};
   rpc find2dOverlappingFeatures (Find2dOverlappingFeaturesRequest) returns (Find2dOverlappingFeaturesResponse) {};
   rpc buildFeaturePolygons (BuildFeaturePolygonsRequest) returns (BuildFeaturePolygonsResponse) {};
+  rpc groupEqualPolygons (GroupEqualPolygonsRequest) returns (GroupEqualPolygonsResponse) {};
+  rpc unionPolygons (UnionPolygonsRequest) returns (UnionPolygonsResponse) {};
 }

@@ -53,53 +53,75 @@ public class OperatorResultProcessingService {
       String outputEsriJsonPolygon,
       int resultFeatureNameSuffix
   ) {
-    return processPolygons(List.of(inputFeature), List.of(inputPolygon), List.of(outputEsriJsonPolygon), resultFeatureNameSuffix);
+    return processPolygons(
+        List.of(inputFeature),
+        List.of(new EsriJsonPolygonWithSources(outputEsriJsonPolygon, List.of(inputPolygon))),
+        resultFeatureNameSuffix
+    );
   }
 
   @Transactional
   public Feature processOutputPolygons(
       List<Feature> inputFeatures,
-      List<String> outputEsriJsonPolygons,
-      int resultFeatureNameSuffix
+      List<EsriJsonPolygonWithSources> outputs
   ) {
-    return processPolygons(
-        inputFeatures,
-        polygonService.getPolygons(inputFeatures),
-        outputEsriJsonPolygons,
-        resultFeatureNameSuffix
-    );
+    return processPolygons(inputFeatures, outputs, 0);
   }
 
   private Feature processPolygons(
       List<Feature> inputFeatures,
-      List<Polygon> inputPolygons,
-      List<String> outputEsriJsonPolygons,
+      List<EsriJsonPolygonWithSources> outputPolygonsWithSources,
       int resultFeatureNameSuffix
   ) {
-    var inputPolygonLines = lineService.getLines(inputPolygons);
-
-    List<List<Line>> linesPerPolygon = outputEsriJsonPolygons.stream()
-        .map(json -> buildLinesWithParentAttributes(json, inputPolygonLines))
+    var allSourcePolygons = outputPolygonsWithSources.stream()
+        .flatMap(outputPolygonWithSources -> outputPolygonWithSources.sources().stream())
         .toList();
 
-    List<Line> allLines = linesPerPolygon.stream().flatMap(List::stream).toList();
-
-    var newFeature = buildFeature(inputFeatures, allLines, resultFeatureNameSuffix);
+    Map<Polygon, List<Line>> sourcePolygonToLines = lineService.getLines(allSourcePolygons).stream()
+        .collect(Collectors.groupingBy(Line::getPolygon));
 
     List<Polygon> newPolygons = new ArrayList<>();
-    for (List<Line> polygonLines : linesPerPolygon) {
-      var newPolygon = buildPolygon(inputPolygons, newFeature);
-      polygonLines.forEach(line -> line.setPolygon(newPolygon));
+    List<Line> allLines = new ArrayList<>();
+    List<String> outputEsriJsons = new ArrayList<>();
+    for (var outputPolygonWithSources : outputPolygonsWithSources) {
+      List<Line> parentLines = new ArrayList<>();
+      for (var sourcePolygon : outputPolygonWithSources.sources()) {
+        parentLines.addAll(sourcePolygonToLines.get(sourcePolygon));
+      }
+
+      var lines = buildLinesWithParentAttributes(outputPolygonWithSources.esriJson(), parentLines);
+      if (spansSeveralDepthRanges(outputPolygonWithSources.sources())) {
+        lines.forEach(line -> line.setAttributes(new HashMap<>()));
+      }
+
+      var newPolygon = buildPolygon(outputPolygonWithSources.sources());
+      lines.forEach(line -> line.setPolygon(newPolygon));
       newPolygons.add(newPolygon);
+      allLines.addAll(lines);
+      outputEsriJsons.add(outputPolygonWithSources.esriJson());
     }
 
+    var newFeature = buildFeature(inputFeatures, allLines, resultFeatureNameSuffix);
+    newPolygons.forEach(newPolygon -> newPolygon.setFeature(newFeature));
+
     numberLines(allLines);
-    validateLinesAreValid(allLines, outputEsriJsonPolygons);
+    validateLinesAreValid(allLines, outputEsriJsons);
 
     featureService.saveFeature(newFeature);
-    newPolygons.forEach(polygonService::savePolygon);
+    polygonService.savePolygons(newPolygons);
     lineService.saveLines(allLines);
     return newFeature;
+  }
+
+  private boolean spansSeveralDepthRanges(List<Polygon> sources) {
+    var firstSource = sources.getFirst();
+    for (var source : sources) {
+      if (source.getEffectiveStartDepth() != firstSource.getEffectiveStartDepth()
+          || source.getEffectiveEndDepth() != firstSource.getEffectiveEndDepth()) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /**
@@ -134,7 +156,8 @@ public class OperatorResultProcessingService {
           ? copyLines(polygonToLines.getValue())
           : buildLinesWithParentAttributes(croppedEsriJson, polygonToLines.getValue());
 
-      var newPolygon = buildPolygon(List.of(inputPolygon), newFeature);
+      var newPolygon = buildPolygon(List.of(inputPolygon));
+      newPolygon.setFeature(newFeature);
       polygonLines.forEach(line -> line.setPolygon(newPolygon));
 
       if (croppedEsriJson != null) {
@@ -346,19 +369,15 @@ public class OperatorResultProcessingService {
     newFeature.setEndDate(null);
   }
 
-  private Polygon buildPolygon(List<Polygon> inputPolygons, Feature newFeature) {
+  private Polygon buildPolygon(List<Polygon> sources) {
     var newPolygon = new Polygon();
-    newPolygon.setFeature(newFeature);
-    if (inputPolygons.size() == 1) {
-      var inputPolygon = inputPolygons.getFirst();
-      newPolygon.setAttributes(new HashMap<>(inputPolygon.getAttributes()));
-      newPolygon.setStartDepth(inputPolygon.getStartDepth());
-      newPolygon.setEndDepth(inputPolygon.getEndDepth());
+    if (sources.size() == 1) {
+      newPolygon.setAttributes(new HashMap<>(sources.getFirst().getAttributes()));
     } else {
-      //used when merging 2 polygons, we don't cascade parent attributes.
       newPolygon.setAttributes(new HashMap<>());
     }
-
+    newPolygon.setStartDepth(PolygonDepthUtil.topSource(sources).getStartDepth());
+    newPolygon.setEndDepth(PolygonDepthUtil.bottomSource(sources).getEndDepth());
     return newPolygon;
   }
 }

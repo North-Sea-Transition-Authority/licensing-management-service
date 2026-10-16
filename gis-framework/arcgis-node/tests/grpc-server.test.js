@@ -28,6 +28,8 @@ import {migrateReferenceBlockHandler} from "../src/migration/handlers/migrate-re
 import {validateBlockAndSubarea} from "../src/migration/handlers/validate-block-and-subarea.ts";
 import {validateReferenceBlock} from "../src/migration/handlers/validate-reference-block.ts";
 import {validateTopologicallyEqual} from "../src/migration/handlers/validate-topologically-equal.ts";
+import {groupEqualPolygonsHandler} from "../src/handlers/group-equal-polygons-handler.ts";
+import {unionPolygonsHandler} from "../src/handlers/union-polygons-handler.ts";
 
 const MOCK_DIRNAME = "/mock/arcgis-node/src";
 
@@ -143,6 +145,8 @@ describe("main()", () => {
         multiPartToSinglePart: multiPartToSinglePartHandler,
         generalizePolygon: generalizePolygonHandler,
         mergeAndGeneralizeLines: mergeAndGeneralizeLinesHandler,
+        groupEqualPolygons: groupEqualPolygonsHandler,
+        unionPolygons: unionPolygonsHandler,
       });
     });
 

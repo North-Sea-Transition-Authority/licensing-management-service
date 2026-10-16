@@ -46,6 +46,7 @@ import uk.co.fivium.grpc.gis.CoordinatesToPolylineRequest;
 import uk.co.fivium.grpc.gis.CoordinatesToPolylineResponse;
 import uk.co.fivium.grpc.gis.CropToBoundaryRequest;
 import uk.co.fivium.grpc.gis.CropToBoundaryResponse;
+import uk.co.fivium.grpc.gis.EqualPolygonGroup;
 import uk.co.fivium.grpc.gis.EsriJsonLineWithNavigationAndId;
 import uk.co.fivium.grpc.gis.EsriJsonPolygonLineWrappers;
 import uk.co.fivium.grpc.gis.EsriJsonPolygonLines;
@@ -67,6 +68,8 @@ import uk.co.fivium.grpc.gis.GeneralizePolygonResponse;
 import uk.co.fivium.grpc.gis.GeoJsonLineWrapper;
 import uk.co.fivium.grpc.gis.GetLineStartAndEndPointsRequest;
 import uk.co.fivium.grpc.gis.GetLineStartAndEndPointsResponse;
+import uk.co.fivium.grpc.gis.GroupEqualPolygonsRequest;
+import uk.co.fivium.grpc.gis.GroupEqualPolygonsResponse;
 import uk.co.fivium.grpc.gis.IntersectionStatus;
 import uk.co.fivium.grpc.gis.LineNavigationType;
 import uk.co.fivium.grpc.gis.LineWithId;
@@ -91,6 +94,8 @@ import uk.co.fivium.grpc.gis.ReferenceBlockValidationRequest;
 import uk.co.fivium.grpc.gis.SplitPolygonRequest;
 import uk.co.fivium.grpc.gis.SplitPolygonResponse;
 import uk.co.fivium.grpc.gis.TopologicallyEqualValidationRequest;
+import uk.co.fivium.grpc.gis.UnionPolygonsRequest;
+import uk.co.fivium.grpc.gis.UnionPolygonsResponse;
 import uk.co.fivium.grpc.gis.ValidatePolygonReconstructionFromPolylinesRequest;
 import uk.co.fivium.grpc.gis.ValidatePolygonReconstructionFromPolylinesResponse;
 import uk.co.fivium.grpc.gis.ValidationResponse;
@@ -721,6 +726,24 @@ class GrpcClientServiceTest {
   }
 
   @Test
+  void unionPolygons() {
+    var polygons = List.of("dummy esriJson polygon 1", "dummy esriJson polygon 2");
+
+    var expectedRequest = UnionPolygonsRequest.newBuilder()
+        .addAllEsriJsonPolygons(polygons)
+        .build();
+    var expectedResponse = UnionPolygonsResponse.newBuilder()
+        .setEsriJsonPolygon("dummy esriJson unioned polygon")
+        .build();
+
+    when(arcgisClient.unionPolygons(expectedRequest)).thenReturn(expectedResponse);
+
+    var result = grpcClientService.unionPolygons(polygons);
+
+    assertThat(result).isEqualTo("dummy esriJson unioned polygon");
+  }
+
+  @Test
   void generalizePolygon_verifyServiceClientCall() {
     var polygon = "dummy esriJson polygon";
 
@@ -794,6 +817,29 @@ class GrpcClientServiceTest {
 
     when(arcgisClient.polygonContains(expectedRequest)).thenReturn(expectedResponse);
     assertThat(grpcClientService.polygonContains(esriJsonContainerPolygon, esriJsonContainedPolygon)).isTrue();
+  }
+
+  @Test
+  void groupEqualPolygons_verifyServiceClientCall() {
+    Map<String, String> idToEsriJsonPolygon = new LinkedHashMap<>();
+    idToEsriJsonPolygon.put("id 1", "dummy esriJson polygon 1");
+    idToEsriJsonPolygon.put("id 2", "dummy esriJson polygon 2");
+    idToEsriJsonPolygon.put("id 3", "dummy esriJson polygon 3");
+
+    var expectedRequest = GroupEqualPolygonsRequest.newBuilder()
+        .addPolygons(EsriJsonPolygonWithId.newBuilder().setId("id 1").setEsriJsonPolygon("dummy esriJson polygon 1"))
+        .addPolygons(EsriJsonPolygonWithId.newBuilder().setId("id 2").setEsriJsonPolygon("dummy esriJson polygon 2"))
+        .addPolygons(EsriJsonPolygonWithId.newBuilder().setId("id 3").setEsriJsonPolygon("dummy esriJson polygon 3"))
+        .build();
+    var expectedResponse = GroupEqualPolygonsResponse.newBuilder()
+        .addGroups(EqualPolygonGroup.newBuilder().addAllIds(List.of("id 1", "id 3")))
+        .addGroups(EqualPolygonGroup.newBuilder().addIds("id 2"))
+        .build();
+
+    when(arcgisClient.groupEqualPolygons(expectedRequest)).thenReturn(expectedResponse);
+
+    assertThat(grpcClientService.groupEqualPolygons(idToEsriJsonPolygon))
+        .isEqualTo(List.of(List.of("id 1", "id 3"), List.of("id 2")));
   }
 
   @Test

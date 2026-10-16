@@ -1,3 +1,4 @@
+import type { JsonBodyType } from "msw";
 import { page } from "@vitest/browser/context";
 import { http, HttpResponse } from "msw";
 import { beforeEach, describe, expect, it } from "vitest";
@@ -6,6 +7,7 @@ import OpenLayersMap from "vue3-openlayers";
 import { SupportedWkid } from "@/coordinate-system-utils";
 import MapActionsPage from "@/pages/MapActionsPage.vue";
 import depthMapEd50 from "../fixtures/depthMapEd50.esriJson.json";
+import depthMapMergeEd50 from "../fixtures/depthMapEd50.merge.esriJson.json";
 import depthMapOutlineNodes from "../fixtures/depthMapEd50.outlineNodes.json";
 import depthMapSplitEd50 from "../fixtures/depthMapEd50.split.esriJson.json";
 import { worker } from "./setup";
@@ -25,25 +27,29 @@ const textualDescriptionHtml = `<div class="gis-textual-description">
 </div>`;
 
 /**
- * Registers stateful handlers: `GET features` returns the split fixture once `POST split` has been called, and
- * history reports an undoable action from then on. Returns a getter for the number of `GET features` requests,
- * used to wait for the map to reload.
+ * Registers stateful handlers: `GET features` returns the split or merge fixture once `POST split` or `POST merge`
+ * has been called, and history reports an undoable action from then on. Returns a getter for the number of
+ * `GET features` requests, used to wait for the map to reload.
  */
 function mockEndpoints(): { featuresRequests: () => number } {
-  let split = false;
+  let features: JsonBodyType = depthMapEd50;
   let featuresRequests = 0;
 
   worker.use(
     http.get("/api/features/1", () => {
       featuresRequests++;
-      return HttpResponse.json(split ? depthMapSplitEd50 : depthMapEd50);
+      return HttpResponse.json(features);
     }),
     http.get("/api/outline-nodes/1", () => HttpResponse.json({ featureOutlineNodes: depthMapOutlineNodes })),
     http.get("/api/textual-description/1", () => HttpResponse.json({ textualDescription: textualDescriptionHtml })),
-    http.get("/api/history/1", () => HttpResponse.json({ canUndo: split, canRedo: false })),
+    http.get("/api/history/1", () => HttpResponse.json({ canUndo: features !== depthMapEd50, canRedo: false })),
     http.post("/api/split", () => {
-      split = true;
+      features = depthMapSplitEd50;
       return HttpResponse.json({ outputFeatureIds: ["middle-west", "middle-east"] });
+    }),
+    http.post("/api/merge", () => {
+      features = depthMapMergeEd50;
+      return HttpResponse.json({ outputFeatureId: "merged" });
     }),
   );
 
@@ -85,6 +91,19 @@ async function chooseSplitAtMiddleBand(screen: ReturnType<typeof renderInFixedWi
   await screen.getByRole("radio", { name: "Split" }).click();
   await screen.getByRole("button", { name: "Continue" }).click();
   await expect.element(screen.getByRole("heading", { name: "Split" })).toBeVisible();
+}
+
+async function chooseMerge(screen: ReturnType<typeof renderInFixedWidthContainer>) {
+  await screen.getByRole("radio", { name: "Merge" }).click();
+  await screen.getByRole("button", { name: "Continue" }).click();
+  await expect.element(screen.getByRole("heading", { name: "Merge" })).toBeVisible();
+}
+
+async function tickShallowAndMiddleBlocks(screen: ReturnType<typeof renderInFixedWidthContainer>) {
+  await screen.getByRole("checkbox", { name: "Shallow block" }).click();
+  await screen.getByRole("checkbox", { name: "Middle block" }).click();
+  await expect.element(screen.getByText("The attributes for the merged subarea will need to be defined again."))
+    .toBeVisible();
 }
 
 describe("map actions page", () => {
@@ -167,5 +186,46 @@ describe("map actions page", () => {
     await settleForScreenshot();
 
     await expect(screen.locator).toMatchScreenshot("map-actions-split-result");
+  });
+
+  it("shows the merge panel listing every feature when merge is chosen", async () => {
+    mockEndpoints();
+    const screen = renderInFixedWidthContainer();
+    await waitForPageLoaded();
+
+    await chooseMerge(screen);
+    await settleForScreenshot();
+
+    await expect(screen.locator).toMatchScreenshot("map-actions-merge-mode");
+  });
+
+  it("highlights the ticked features and shows the warning when two features are ticked", async () => {
+    mockEndpoints();
+    const screen = renderInFixedWidthContainer();
+    await waitForPageLoaded();
+    await chooseMerge(screen);
+
+    await tickShallowAndMiddleBlocks(screen);
+    await settleForScreenshot();
+
+    await expect(screen.locator).toMatchScreenshot("map-actions-merge-selected");
+  });
+
+  it("redraws the merged feature and returns to the action select once merged", async () => {
+    const { featuresRequests } = mockEndpoints();
+    const screen = renderInFixedWidthContainer();
+    await waitForPageLoaded();
+    await chooseMerge(screen);
+    await tickShallowAndMiddleBlocks(screen);
+    const before = featuresRequests();
+
+    await screen.getByRole("button", { name: "Merge" }).click();
+
+    await expect.poll(() => featuresRequests(), { timeout: 15000, interval: 100 }).toBeGreaterThan(before);
+    await expect.element(screen.getByRole("group", { name: "What action would you like to perform next?" }))
+      .toBeVisible();
+    await settleForScreenshot();
+
+    await expect(screen.locator).toMatchScreenshot("map-actions-merge-result");
   });
 });

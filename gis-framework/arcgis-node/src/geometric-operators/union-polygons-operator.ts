@@ -12,6 +12,10 @@ import { logger } from "../config/logger";
  * @returns A single Polygon that is the result of the union operation.
  */
 export function unionPolygonsOperator(polygons: Polygon[]): Polygon {
+  if (polygons.length === 0) {
+    throw new Error("No polygons provided to union");
+  }
+
   if (polygons.length === 1) {
     logger.debug("Received single polygon, nothing to union");
     return polygons[0];

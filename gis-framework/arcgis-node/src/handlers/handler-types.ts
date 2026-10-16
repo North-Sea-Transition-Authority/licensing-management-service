@@ -17,3 +17,5 @@ export type MultiPartToSinglePartHandler = ArcGisServiceHandlers["multiPartToSin
 export type CropToBoundaryHandler = ArcGisServiceHandlers["cropToBoundary"];
 export type Find2dOverlappingFeaturesHandler = ArcGisServiceHandlers["find2dOverlappingFeatures"];
 export type BuildFeaturePolygonsHandler = ArcGisServiceHandlers["buildFeaturePolygons"];
+export type GroupEqualPolygonsHandler = ArcGisServiceHandlers["groupEqualPolygons"];
+export type UnionPolygonsHandler = ArcGisServiceHandlers["unionPolygons"];

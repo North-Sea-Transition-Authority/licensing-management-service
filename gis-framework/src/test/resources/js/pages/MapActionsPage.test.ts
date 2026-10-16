@@ -5,11 +5,12 @@ import { defineComponent } from "vue";
 import { SupportedWkid } from "@/coordinate-system-utils";
 import MapActionsPage from "@/pages/MapActionsPage.vue";
 
-const { getFeaturesMock, getOutlineNodesMock, getHistoryStatusMock, splitFeatureMock } = vi.hoisted(() => ({
+const { getFeaturesMock, getOutlineNodesMock, getHistoryStatusMock, splitFeatureMock, mergeFeaturesMock } = vi.hoisted(() => ({
   getFeaturesMock: vi.fn(),
   getOutlineNodesMock: vi.fn(),
   getHistoryStatusMock: vi.fn(),
   splitFeatureMock: vi.fn(),
+  mergeFeaturesMock: vi.fn(),
 }));
 
 vi.mock("@/api/features.api", () => ({
@@ -24,6 +25,7 @@ vi.mock("@/api/history.api", () => ({
 
 vi.mock("@/api/operator.api", () => ({
   splitFeature: splitFeatureMock,
+  mergeFeatures: mergeFeaturesMock,
 }));
 
 const firstPoint = { id: "point-1", displayName: "Point one", coordinates: [0, 0], originalSrsCoordinates: [1, 2] };
@@ -32,13 +34,14 @@ const secondPoint = { id: "point-2", displayName: "Point two", coordinates: [0, 
 function feature(featureId: string, startDepth: number, endDepth: number): Feature {
   const created = new Feature();
   created.set("featureId", featureId);
+  created.set("featureName", `${featureId} block`);
   created.set("startDepth", startDepth);
   created.set("endDepth", endDepth);
   return created;
 }
 
 const baseMapStub = defineComponent({
-  props: ["features", "refitOnFeaturesChange", "includeDrawLine"],
+  props: ["features", "refitOnFeaturesChange", "includeDrawLine", "selectedFeatureIds"],
   emits: ["update:points"],
   setup: () => ({ firstPoint, secondPoint }),
   data: () => ({ drawnPoints: [] as typeof firstPoint[] }),
@@ -54,6 +57,7 @@ const baseMapStub = defineComponent({
   template: `
     <div>
       <p>Map of {{ features.map(f => f.get("featureId")).join(",") }}, refits: {{ refitOnFeaturesChange }}</p>
+      <p>Highlighted on map: {{ selectedFeatureIds.join(",") }}</p>
       <template v-if="includeDrawLine">
         <button @click="drawPoints([firstPoint])">Draw first point</button>
         <button @click="drawPoints([firstPoint, secondPoint])">Draw line</button>
@@ -87,12 +91,13 @@ function renderPage() {
   });
 }
 
-describe("depthActionsPage", () => {
+describe("mapActionsPage", () => {
   beforeEach(() => {
     getFeaturesMock.mockReset().mockResolvedValue([feature("shallow", 0, -100), feature("deep", -100, -200)]);
     getOutlineNodesMock.mockReset().mockResolvedValue([]);
     getHistoryStatusMock.mockReset().mockResolvedValue({ canUndo: false, canRedo: false });
     splitFeatureMock.mockReset();
+    mergeFeaturesMock.mockReset();
   });
 
   it("loads the features and outline nodes from the urls built from the command journey id", async () => {
@@ -370,6 +375,142 @@ describe("depthActionsPage", () => {
       expect(screen.getByRole("radio", { name: "Split" })).toHaveFocus();
       expect(screen.getByRole("slider", { name: "Select depth" })).toBeEnabled();
       expect(screen.queryByRole("heading", { name: "Split" })).not.toBeInTheDocument();
+    });
+  });
+
+  describe("when merge is chosen", () => {
+    const warningText = "The attributes for the merged subarea will need to be defined again.";
+
+    async function chooseMerge() {
+      await fireEvent.click(await screen.findByRole("radio", { name: "Merge" }));
+      await fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+    }
+
+    async function tick(...featureNames: string[]) {
+      for (const featureName of featureNames) {
+        await fireEvent.click(screen.getByRole("checkbox", { name: featureName }));
+      }
+    }
+
+    function highlightedOnMap() {
+      return screen.getByText(/^Highlighted on map:/).textContent?.trim();
+    }
+
+    it("replaces the action select with the merge panel and focuses its heading", async () => {
+      renderPage();
+
+      await chooseMerge();
+
+      expect(screen.getByRole("heading", { name: "Merge" })).toHaveFocus();
+      expect(screen.queryByRole("radio", { name: "Merge" })).not.toBeInTheDocument();
+      expect(screen.getByRole("group", { name: "Select the features to merge" })).toBeInTheDocument();
+    });
+
+    it("lists every feature, including those outside the selected depth band", async () => {
+      renderPage();
+
+      await chooseMerge();
+
+      expect(screen.getByText("Map of shallow, refits: false")).toBeInTheDocument();
+      expect(screen.getAllByRole("checkbox").map(checkbox => (checkbox as HTMLInputElement).labels?.[0]?.textContent?.trim()))
+        .toEqual(["deep block", "shallow block"]);
+    });
+
+    it.each([
+      { ticked: ["shallow block"], expected: { warningShown: false, highlighted: "Highlighted on map: shallow" } },
+      {
+        ticked: ["shallow block", "deep block"],
+        expected: { warningShown: true, highlighted: "Highlighted on map: shallow,deep" },
+      },
+    ])("highlights the ticked features and shows the warning as $expected with $ticked ticked", async ({
+      ticked,
+      expected,
+    }) => {
+      renderPage();
+      await chooseMerge();
+
+      await tick(...ticked);
+
+      expect({
+        warningShown: screen.queryByText(warningText) !== null,
+        highlighted: highlightedOnMap(),
+      }).toEqual(expected);
+    });
+
+    it("merges the selected features, then reloads the map and returns to the action select with the first action focused", async () => {
+      getHistoryStatusMock.mockReset()
+        .mockResolvedValueOnce({ canUndo: false, canRedo: false })
+        .mockResolvedValue({ canUndo: true, canRedo: false });
+      mergeFeaturesMock.mockResolvedValue({ outputFeatureId: "merged" });
+      renderPage();
+      await chooseMerge();
+      await tick("shallow block", "deep block");
+
+      await fireEvent.click(screen.getByRole("button", { name: "Merge" }));
+
+      expect(await screen.findByRole("group", { name: "What action would you like to perform next?" }))
+        .toBeInTheDocument();
+      expect(mergeFeaturesMock).toHaveBeenCalledWith(
+        "/api/gis-framework/merge",
+        ["shallow", "deep"],
+        "journey-1",
+        "X-CSRF-TOKEN",
+        "csrf-token",
+      );
+      expect(screen.getByRole("radio", { name: "Split" })).toHaveFocus();
+      expect(screen.queryByRole("heading", { name: "Merge" })).not.toBeInTheDocument();
+      expect(getFeaturesMock).toHaveBeenCalledTimes(2);
+    });
+
+    it("clears the selection after a merge", async () => {
+      mergeFeaturesMock.mockResolvedValue({ outputFeatureId: "merged" });
+      renderPage();
+      await chooseMerge();
+      await tick("shallow block", "deep block");
+      await fireEvent.click(screen.getByRole("button", { name: "Merge" }));
+      await screen.findByRole("radio", { name: "Split" });
+
+      await chooseMerge();
+
+      expect(screen.getAllByRole("checkbox").filter(checkbox => (checkbox as HTMLInputElement).checked)).toEqual([]);
+      expect(highlightedOnMap()).toBe("Highlighted on map:");
+    });
+
+    it("shows an error and stays on the merge panel when the merge request fails", async () => {
+      mergeFeaturesMock.mockRejectedValue(new Error("network error"));
+      renderPage();
+      await chooseMerge();
+      await tick("shallow block", "deep block");
+
+      await fireEvent.click(screen.getByRole("button", { name: "Merge" }));
+
+      expect(await screen.findByText("An error occurred while attempting to merge the features. Please try again."))
+        .toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: "Merge" })).toBeInTheDocument();
+    });
+
+    it("returns to the action select with the first action focused and no features highlighted when going back", async () => {
+      renderPage();
+      await chooseMerge();
+      await tick("shallow block", "deep block");
+
+      await fireEvent.click(screen.getByRole("button", { name: "Back to action select" }));
+
+      expect(screen.getByRole("radio", { name: "Split" })).toHaveFocus();
+      expect(screen.queryByRole("heading", { name: "Merge" })).not.toBeInTheDocument();
+      expect(highlightedOnMap()).toBe("Highlighted on map:");
+    });
+
+    it("clears the selection when going back", async () => {
+      renderPage();
+      await chooseMerge();
+      await tick("shallow block", "deep block");
+      await fireEvent.click(screen.getByRole("button", { name: "Back to action select" }));
+
+      await chooseMerge();
+
+      expect(screen.getAllByRole("checkbox").filter(checkbox => (checkbox as HTMLInputElement).checked)).toEqual([]);
+      expect(highlightedOnMap()).toBe("Highlighted on map:");
     });
   });
 });

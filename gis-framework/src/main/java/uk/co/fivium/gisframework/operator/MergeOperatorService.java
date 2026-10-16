@@ -10,15 +10,15 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
+import uk.co.fivium.gisframework.feature.EntityBackedFeature;
 import uk.co.fivium.gisframework.feature.Feature;
+import uk.co.fivium.gisframework.feature.FeatureService;
 import uk.co.fivium.gisframework.feature.Line;
 import uk.co.fivium.gisframework.feature.LineService;
-import uk.co.fivium.gisframework.feature.Polygon;
 import uk.co.fivium.gisframework.feature.PolygonService;
 import uk.co.fivium.gisframework.grpc.GrpcClientService;
 
@@ -27,19 +27,25 @@ public class MergeOperatorService {
 
   private final GrpcClientService grpcClientService;
   private final OperatorResultProcessingService operatorResultProcessingService;
+  private final FeatureService featureService;
   private final PolygonService polygonService;
   private final LineService lineService;
+  private final MergeService mergeService;
 
   public MergeOperatorService(
       GrpcClientService grpcClientService,
       OperatorResultProcessingService operatorResultProcessingService,
+      FeatureService featureService,
       PolygonService polygonService,
-      LineService lineService
+      LineService lineService,
+      MergeService mergeService
   ) {
     this.grpcClientService = grpcClientService;
     this.operatorResultProcessingService = operatorResultProcessingService;
+    this.featureService = featureService;
     this.polygonService = polygonService;
     this.lineService = lineService;
+    this.mergeService = mergeService;
   }
 
   @Transactional
@@ -48,18 +54,43 @@ public class MergeOperatorService {
       throw new IllegalArgumentException("Must provide at least two input features");
     }
 
-    String resultEsriJsonPolygon = inputFeatures.stream()
-        .flatMap(feature -> polygonService.getPolygonsAsEsriJson(feature, false).stream())
-        .reduce(grpcClientService::mergePolygons)
-        .orElseThrow();
+    var polygonsWithSources = toPolygonsWithSources(inputFeatures);
 
-    List<String> singlePartPolygons = grpcClientService.multiPartToSinglePart(resultEsriJsonPolygon);
+    var mergedPolygonsWithSources = anyHaveDepth(polygonsWithSources)
+        ? mergeService.mergeWithDepths(polygonsWithSources)
+        : mergeService.mergeIn2d(polygonsWithSources);
 
-    var newFeature = operatorResultProcessingService.processOutputPolygons(inputFeatures, singlePartPolygons, 0);
+    var newFeature = operatorResultProcessingService.processOutputPolygons(
+        inputFeatures,
+        mergedPolygonsWithSources
+    );
 
-    removeInnerVertices(singlePartPolygons, newFeature);
+    removeInnerVertices(
+        mergedPolygonsWithSources.stream().map(EsriJsonPolygonWithSources::esriJson).toList(),
+        newFeature
+    );
 
     return newFeature;
+  }
+
+  private List<EsriJsonPolygonWithSources> toPolygonsWithSources(List<Feature> features) {
+    List<EsriJsonPolygonWithSources> polygonsWithSources = new ArrayList<>();
+    for (var feature : features) {
+      var entityBackedFeature = featureService.getEntityBackedFeature(feature);
+      var polygonIdToEsriJson = polygonService.getPolygonIdToEsriJson(entityBackedFeature);
+      for (var polygon : entityBackedFeature.polygonToLines().keySet()) {
+        polygonsWithSources.add(
+            new EsriJsonPolygonWithSources(polygonIdToEsriJson.get(polygon.getId()), List.of(polygon))
+        );
+      }
+    }
+    return polygonsWithSources;
+  }
+
+  private boolean anyHaveDepth(List<EsriJsonPolygonWithSources> polygonsWithSources) {
+    return polygonsWithSources.stream()
+        .flatMap(polygonWithSources -> polygonWithSources.sources().stream())
+        .anyMatch(polygon -> polygon.getStartDepth() != null || polygon.getEndDepth() != null);
   }
 
   /**
@@ -68,46 +99,20 @@ public class MergeOperatorService {
    * the same attributes, merge them into a single line entity (removing the redundant vertex).
    * If they have different attributes, keep them separate so each retains
    * its parent's attributes.
+   *
+   * <p>Each polygon's inner vertices are only removed from its own rings, as a polygon at another depth can have a
+   * real corner at the same point.
    */
   private void removeInnerVertices(List<String> polygons, Feature newFeature) {
-    Set<Point2D> innerVertices = polygons.stream()
-        .flatMap(polygon -> findInnerVertices(polygon).stream())
-        .collect(Collectors.toCollection(HashSet::new));
-
-    if (innerVertices.isEmpty()) {
-      return;
-    }
-
-    List<List<Line>> newFeatureLines = getFeatureLinesByRingSorted(newFeature);
+    var entityBackedFeature = featureService.getEntityBackedFeature(newFeature);
+    var polygonIdToEsriJson = polygonService.getPolygonIdToEsriJson(entityBackedFeature);
 
     List<Line> linesToDelete = new ArrayList<>();
-    for (List<Line> ringLines : newFeatureLines) {
-      // Merge consecutive lines that share the same attributes at inner vertices
-      int i = 0;
-      while (i < ringLines.size()) {
-
-        Line current = ringLines.get(i);
-        Line next;
-
-        if (i ==  ringLines.size() - 1) {
-          //Check last line to first line in the ring
-          next = ringLines.getFirst();
-        } else {
-          next = ringLines.get(i + 1);
-        }
-
-        Point2D currentEndPoint = getPolylineEndPoint(current.getEsriJson());
-
-        if (innerVertices.contains(currentEndPoint) && Objects.equals(current.getAttributes(), next.getAttributes())) {
-          String combinedLineEsriJson = grpcClientService.mergeAndGeneralizeLines(
-              List.of(current.getEsriJson(), next.getEsriJson())
-          );
-
-          current.setEsriJson(combinedLineEsriJson);
-          linesToDelete.add(next);
-          ringLines.remove(next);
-        } else {
-          i++;
+    for (var polygonToLines : entityBackedFeature.polygonToLines().entrySet()) {
+      var innerVertices = findInnerVertices(polygonIdToEsriJson.get(polygonToLines.getKey().getId()));
+      if (!innerVertices.isEmpty()) {
+        for (var ringLines : getRingsSorted(polygonToLines.getValue())) {
+          linesToDelete.addAll(mergeLinesAtInnerVertices(ringLines, innerVertices));
         }
       }
     }
@@ -115,9 +120,7 @@ public class MergeOperatorService {
     if (!linesToDelete.isEmpty()) {
       lineService.deleteLines(linesToDelete);
 
-      List<Line> remainingLines = newFeatureLines.stream()
-          .flatMap(List::stream)
-          .toList();
+      var remainingLines = createRemainingLines(entityBackedFeature, linesToDelete);
 
       operatorResultProcessingService.numberLines(remainingLines);
       operatorResultProcessingService.validateLinesAreValid(remainingLines, polygons);
@@ -125,25 +128,61 @@ public class MergeOperatorService {
     }
   }
 
-  private List<List<Line>> getFeatureLinesByRingSorted(Feature newFeature) {
-    var featurePolygons = polygonService.findAllByFeature(newFeature);
-    var allLines = lineService.getLines(featurePolygons);
+  /**
+   * Merges consecutive lines in the ring that meet at an inner vertex and share the same attributes.
+   *
+   * @return the lines merged into their neighbour, to delete.
+   */
+  private List<Line> mergeLinesAtInnerVertices(List<Line> ringLines, Set<Point2D> innerVertices) {
+    List<Line> linesToDelete = new ArrayList<>();
+    int i = 0;
+    while (i < ringLines.size()) {
+      Line current = ringLines.get(i);
+      Line next;
 
-    // Group by polygon to avoid mixing rings from different polygons
-    Map<Polygon, Map<Integer, List<Line>>> polygonToRingLines = allLines.stream()
-        .collect(Collectors.groupingBy(
-            Line::getPolygon,
-            Collectors.groupingBy(Line::getRingNumber)
-        ));
+      if (i == ringLines.size() - 1) {
+        //Check last line to first line in the ring
+        next = ringLines.getFirst();
+      } else {
+        next = ringLines.get(i + 1);
+      }
 
-    List<List<Line>> result = new ArrayList<>();
-    for (var ringToLines : polygonToRingLines.values()) {
-      for (List<Line> ringLines : ringToLines.values()) {
-        ringLines.sort(Comparator.comparing(Line::getDisplayOrder));
-        result.add(ringLines);
+      Point2D currentEndPoint = getPolylineEndPoint(current.getEsriJson());
+
+      if (innerVertices.contains(currentEndPoint) && Objects.equals(current.getAttributes(), next.getAttributes())) {
+        String combinedLineEsriJson = grpcClientService.mergeAndGeneralizeLines(
+            List.of(current.getEsriJson(), next.getEsriJson())
+        );
+
+        current.setEsriJson(combinedLineEsriJson);
+        linesToDelete.add(next);
+        ringLines.remove(next);
+      } else {
+        i++;
       }
     }
-    return result;
+    return linesToDelete;
+  }
+
+  private List<List<Line>> getRingsSorted(List<Line> polygonLines) {
+    List<List<Line>> rings = new ArrayList<>();
+    for (var ringLines : polygonLines.stream().collect(Collectors.groupingBy(Line::getRingNumber)).values()) {
+      ringLines.sort(Comparator.comparing(Line::getDisplayOrder));
+      rings.add(ringLines);
+    }
+    return rings;
+  }
+
+  private List<Line> createRemainingLines(EntityBackedFeature entityBackedFeature, List<Line> linesToDelete) {
+    List<Line> remainingLines = new ArrayList<>();
+    for (var polygonLines : entityBackedFeature.polygonToLines().values()) {
+      for (var line : polygonLines) {
+        if (!linesToDelete.contains(line)) {
+          remainingLines.add(line);
+        }
+      }
+    }
+    return remainingLines;
   }
 
   /**

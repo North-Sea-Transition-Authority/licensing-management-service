@@ -26,6 +26,7 @@
         :refresh-counter="refreshCounter"
         :refit-on-features-change="false"
         :map-style-override="mapStyleOverride"
+        :selected-feature-ids="mode === MapAction.MERGE ? selectedFeatureIds : []"
         @update:points="points = $event"
       />
     </div>
@@ -45,23 +46,35 @@
     @select="onSelect"
     @validation-error="onValidationError"
   />
-  <template v-else-if="mode === MapAction.SPLIT">
-    <h2 ref="panelHeading" class="govuk-heading-m govuk-!-margin-top-4" tabindex="-1">
-      Split
-    </h2>
-    <details-component summary="How can I split the block?">
-      <p class="govuk-body">
-        You can split the block by clicking the snap points on the map to draw a line.
-        The split happens as soon as the line fully crosses the block.
-        You can only draw a single line at a time.
-      </p>
-      <p class="govuk-body">
-        The current depth slider is locked while you draw. Remove the line points to change depth.
-      </p>
-    </details-component>
-    <line-coordinate-stack :points="points" :srs-wkid="srsWkid" @undo-last-point="undoLastPoint"/>
-    <gv-button variant="secondary" text="Back to action select" :disabled="isProcessing" @click="returnToSelect"/>
-  </template>
+  <split-panel
+    v-else-if="mode === MapAction.SPLIT"
+    ref="actionPanel"
+    :base-url="baseUrl"
+    :command-journey-id="commandJourneyId"
+    :csrf-header-name="csrfHeaderName"
+    :csrf-token="csrfToken"
+    :points="points"
+    :srs-wkid="srsWkid"
+    :depth="hasDepths ? currentDepthLevel : undefined"
+    @success="onActionSuccess"
+    @error="error = $event"
+    @back="returnToSelect"
+    @undo-last-point="undoLastPoint"
+  />
+  <merge-panel
+    v-else-if="mode === MapAction.MERGE"
+    ref="actionPanel"
+    v-model:selected-feature-ids="selectedFeatureIds"
+    :base-url="baseUrl"
+    :command-journey-id="commandJourneyId"
+    :csrf-header-name="csrfHeaderName"
+    :csrf-token="csrfToken"
+    :feature-options="featureOptions"
+    :has-depths="hasDepths"
+    @success="onActionSuccess"
+    @error="error = $event"
+    @back="returnToSelect"
+  />
 </template>
 
 <script setup lang="ts">
@@ -76,13 +89,12 @@ import ActionRadioGroup from "@/components/actionRadioGroup/ActionRadioGroup.vue
 import BaseMap from "@/components/baseMap/BaseMap.vue";
 import DepthSlider from "@/components/depthSlider/DepthSlider.vue";
 import ErrorSummary from "@/components/gdsComponents/error/ErrorSummary.vue";
-import GvButton from "@/components/govukVue/button/GvButton.vue";
-import DetailsComponent from "@/components/govukVue/details/GvDetails.vue";
-import LineCoordinateStack from "@/components/lineCoordinateStack/LineCoordinateStack.vue";
+import MergePanel from "@/components/mapActions/MergePanel.vue";
+import SplitPanel from "@/components/mapActions/SplitPanel.vue";
 import TextualDescription from "@/components/textualDescription/TextualDescription.vue";
 import { useCommandJourneyFeatures } from "@/composables/useCommandJourneyFeatures";
 import { useDepthBands } from "@/composables/useDepthBands";
-import { useSplitFeature } from "@/composables/useSplitFeature";
+import { toSortedFeatureOptions } from "@/feature-option-utils";
 import { MapAction } from "@/map-action";
 
 interface MapActionsPageProps {
@@ -112,9 +124,10 @@ const mapStyleOverride: CSSProperties = {
 
 const mode = ref<"select" | MapAction>("select");
 const baseMapRef = useTemplateRef<InstanceType<typeof BaseMap>>("baseMapRef");
-const panelHeading = useTemplateRef<HTMLHeadingElement>("panelHeading");
+const actionPanel = useTemplateRef<{ focus: () => void }>("actionPanel");
 const actionRadioGroup = useTemplateRef<InstanceType<typeof ActionRadioGroup>>("actionRadioGroup");
 const points = ref<SnapPoint[]>([]);
+const selectedFeatureIds = ref<string[]>([]);
 const error = ref<string | null>(null);
 // Incremented after each action, reloading the features, description and history.
 const refreshCounter = ref(0);
@@ -149,6 +162,9 @@ watch(refreshCounter, fetchHistoryStatus);
 // Features are returned one per polygon, so count distinct feature IDs.
 const activeFeatureCount = computed(() => new Set(features.value.map(feature => feature.get("featureId"))).size);
 
+// Lists every subarea, not only those in the current depth band.
+const featureOptions = computed(() => toSortedFeatureOptions(features.value));
+
 const validationError = ref<MapActionValidationError | null>(null);
 // Re-mounts the error summary on each failed attempt so it takes focus again.
 const validationAttempt = ref(0);
@@ -160,48 +176,33 @@ function onValidationError(validation: MapActionValidationError | null) {
   }
 }
 
-const { isProcessing } = useSplitFeature(
-  () => ({
-    splitUrl: `${props.baseUrl}/split`,
-    commandJourneyId: props.commandJourneyId,
-    csrfHeaderName: props.csrfHeaderName,
-    csrfToken: props.csrfToken,
-    depth: hasDepths.value ? currentDepthLevel.value : undefined,
-  }),
-  points,
-  {
-    autoSplit: () => mode.value === MapAction.SPLIT,
-    onSuccess: onSplitSuccess,
-    onError: (message) => {
-      error.value = message;
-    },
-  },
-);
+// TODO - EPGF-106, later: include add strata and rename.
+const panelActions: MapAction[] = [MapAction.SPLIT, MapAction.MERGE];
 
 async function onSelect(action: MapAction) {
-  // TODO - EPGF-105, EPGF-106, later: include add strata, merge and rename
-  if (action !== MapAction.SPLIT) {
+  if (!panelActions.includes(action)) {
     return;
   }
   error.value = null;
   mode.value = action;
   await nextTick();
-  panelHeading.value?.focus();
+  actionPanel.value?.focus();
 }
 
 function undoLastPoint() {
   baseMapRef.value?.removeLastPoint();
 }
 
-// Auto-split applies each completed line straight away, then the user picks their next action.
-function onSplitSuccess() {
+function onActionSuccess() {
   error.value = null;
   refreshCounter.value++;
   void returnToSelect();
 }
 
 async function returnToSelect() {
+  error.value = null;
   points.value = [];
+  selectedFeatureIds.value = [];
   mode.value = "select";
   await nextTick();
   actionRadioGroup.value?.focus();

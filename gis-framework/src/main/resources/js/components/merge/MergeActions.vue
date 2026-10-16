@@ -17,8 +17,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
-import { mergeFeatures } from "@/api/operator.api";
+import { useMergeFeature } from "@/composables/useMergeFeature";
 import GvButton from "../govukVue/button/GvButton.vue";
 import UndoRedoActions from "../undoRedo/UndoRedoActions.vue";
 
@@ -39,27 +38,8 @@ const emit = defineEmits<{
   "action-error": [message: string],
 }>();
 
-const isProcessing = ref(false);
-
-async function merge() {
-  if (props.featureIds.length < 2) {
-    return;
-  }
-
-  isProcessing.value = true;
-  try {
-    await mergeFeatures(
-      props.mergeUrl,
-      props.featureIds,
-      props.commandJourneyId,
-      props.csrfHeaderName,
-      props.csrfToken,
-    );
-    emit("action-success");
-  } catch {
-    emit("action-error", "An error occurred while attempting to merge the features. Please try again.");
-  } finally {
-    isProcessing.value = false;
-  }
-}
+const { isProcessing, merge } = useMergeFeature(() => props, () => props.featureIds, {
+  onSuccess: () => emit("action-success"),
+  onError: message => emit("action-error", message),
+});
 </script>

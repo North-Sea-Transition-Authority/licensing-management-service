@@ -18,11 +18,13 @@ import { findNorthwestMostLineHandler } from "./handlers/find-northwest-most-lin
 import { findParentLinesHandler } from "./handlers/find-parent-lines-handler";
 import { generalizePolygonHandler } from "./handlers/generalize-polygon-handler";
 import { getLineStartAndEndPointsHandler } from "./handlers/get-line-start-and-end-points-handler";
+import { groupEqualPolygonsHandler } from "./handlers/group-equal-polygons-handler";
 import { mergeAndGeneralizeLinesHandler } from "./handlers/merge-and-generalize-lines-handler";
 import { mergePolygonsHandler } from "./handlers/merge-polygons-handler";
 import { multiPartToSinglePartHandler } from "./handlers/multi-part-to-single-part-handler";
 import { polygonContainsHandler } from "./handlers/polygon-contains-handler";
 import { splitPolygonHandler } from "./handlers/split-polygon-handler";
+import { unionPolygonsHandler } from "./handlers/union-polygons-handler";
 import {
   validatePolygonReconstructionFromPolylinesHandler,
 } from "./handlers/validate-polygon-reconstruction-from-polylines-handler";
@@ -98,6 +100,8 @@ function startGrpcServer(arcGisJsProto: ProtoGrpcType["uk"]["co"]["fivium"]["grp
     multiPartToSinglePart: multiPartToSinglePartHandler,
     generalizePolygon: generalizePolygonHandler,
     mergeAndGeneralizeLines: mergeAndGeneralizeLinesHandler,
+    groupEqualPolygons: groupEqualPolygonsHandler,
+    unionPolygons: unionPolygonsHandler,
   });
 
   server.bindAsync(GRPC_BIND_ADDRESS, grpc.ServerCredentials.createInsecure(), (error) => {

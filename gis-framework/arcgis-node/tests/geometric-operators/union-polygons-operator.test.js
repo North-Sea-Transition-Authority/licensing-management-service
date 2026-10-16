@@ -10,6 +10,10 @@ const ED50_WKID = getCoordinateSystemWkid(CoordinateSystem.ED50);
 describe("unionPolygonsOperator", () => {
   const srs = new SpatialReference({ wkid: ED50_WKID });
 
+  it("throws when no polygons are provided", () => {
+    expect(() => unionPolygonsOperator([])).toThrow("No polygons provided to union");
+  });
+
   it("returns the single polygon when only one is provided", () => {
     const polygon = new Polygon({
       rings: [

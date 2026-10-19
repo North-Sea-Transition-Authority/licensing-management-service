@@ -2,6 +2,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.correction.positio
 
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
+import jakarta.annotation.Nullable;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.stereotype.Controller;
@@ -83,17 +84,14 @@ public class LicencePositionLicenseeChangeController {
       BindingResult bindingResult,
       RedirectAttributes redirectAttributes
   ) {
-    var licenseeChangeContext = licencePositionViewService.getLicenseeChangeContext(
+    var modelAndView = getValidatedModelAndViewOrNull(
         correction,
-        licencePosition.getId()
+        licencePosition,
+        form,
+        bindingResult
     );
-
-    if (licenseeChangeFormValidator.hasErrors(form, bindingResult, licenseeChangeContext.previousLicenseeIds())) {
-      return getLicenseeChangeModelAndView(
-          form,
-          executedCancelUrl(correction, licencePosition),
-          licenseeChangeContext.previousLicenseeNames()
-      );
+    if (modelAndView != null) {
+      return modelAndView;
     }
 
     licenseeChangeService.addLicenseeChangeForExistingLicencePosition(
@@ -135,6 +133,10 @@ public class LicencePositionLicenseeChangeController {
       RedirectAttributes redirectAttributes
   ) {
     var licenseeChangeContext = getAddedPositionLicenseeChangeContext(correction, licencePositionCorrection);
+
+    if (form.getWithdrawingOrganisationIds() == null) {
+      form.setWithdrawingOrganisationIds(List.of());
+    }
 
     if (licenseeChangeFormValidator.hasErrors(
         form,
@@ -183,17 +185,14 @@ public class LicencePositionLicenseeChangeController {
       BindingResult bindingResult,
       RedirectAttributes redirectAttributes
   ) {
-    var licenseeChangeContext = licencePositionViewService.getLicenseeChangeContext(
+    var modelAndView = getValidatedModelAndViewOrNull(
         correction,
-        licencePosition.getId()
+        licencePosition,
+        form,
+        bindingResult
     );
-
-    if (licenseeChangeFormValidator.hasErrors(form, bindingResult, licenseeChangeContext.previousLicenseeIds())) {
-      return getLicenseeChangeModelAndView(
-          form,
-          executedCancelUrl(correction, licencePosition),
-          licenseeChangeContext.previousLicenseeNames()
-      );
+    if (modelAndView != null) {
+      return modelAndView;
     }
 
     licenseeChangeService.correctExistingLicenseeChange(
@@ -277,5 +276,37 @@ public class LicencePositionLicenseeChangeController {
   private String addedCancelUrl(LicenceCorrection correction, LicencePositionCorrection licencePositionCorrection) {
     return ReverseRouter.route(on(LicenceCorrectionController.class)
         .renderAddedPosition(correction, licencePositionCorrection));
+  }
+
+  /**
+   * Returns the licensee change form's {@link ModelAndView} with validation errors if {@code form} is invalid, or
+   * {@code null} if it is valid and the caller should continue. Defaults a {@code null} withdrawing organisation list
+   * on {@code form} to empty before validating.
+   */
+  @Nullable
+  private ModelAndView getValidatedModelAndViewOrNull(
+      LicenceCorrection correction,
+      LicencePosition position,
+      LicenseeChangeForm form,
+      BindingResult bindingResult
+  ) {
+    var licenseeChangeContext = licencePositionViewService.getLicenseeChangeContext(
+        correction,
+        position.getId()
+    );
+
+    if (form.getWithdrawingOrganisationIds() == null) {
+      form.setWithdrawingOrganisationIds(List.of());
+    }
+
+    if (licenseeChangeFormValidator.hasErrors(form, bindingResult, licenseeChangeContext.previousLicenseeIds())) {
+      return getLicenseeChangeModelAndView(
+          form,
+          executedCancelUrl(correction, position),
+          licenseeChangeContext.previousLicenseeNames()
+      );
+    } else {
+      return null;
+    }
   }
 }

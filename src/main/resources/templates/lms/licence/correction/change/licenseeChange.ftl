@@ -7,7 +7,7 @@
   backLinkEnabled=true
   errorSummaryItems=errorSummaryItems
 >
-    <#if previousLicenseeNames?size != 0>
+    <#if previousLicenseeNames?has_content>
       <@licenseesDisplay.displayLicensees previousLicenseeNames/>
     </#if>
 
@@ -32,25 +32,20 @@
         </p>
       </@fdsDetails.summaryDetails>
 
-      <h3 class="govuk-heading-m" aria-label="Organisations withdrawing">Organisations withdrawing</h3>
-      <@fdsAddToList.addToList
-        pathForList="form.withdrawingOrganisationIds"
-        pathForSelector="form.withdrawingOrganisationSelector"
-        restUrl=springUrl(withdrawingOrganisationUnitSearchEndpoint)
-        alreadyAdded=preselectedWithdrawingOrgUnits
-        itemName="Withdrawing licensees"
-        selectorOptionaLabel=true
-        selectorLabelText="Select a licensee to remove"
-        addToListId="withdrawingIds"
-      />
-
-      <@fdsDetails.summaryDetails
-        summaryTitle="The licensee I want to select is not in the list"
-      >
-        <p class="govuk-body">
-          If the licensee you want to select is not shown in the list then you can <@requestNewCompany.requestCompanyLink/>
-        </p>
-      </@fdsDetails.summaryDetails>
+      <#if previousLicenseeNames?has_content>
+        <h3 class="govuk-heading-m" aria-label="Organisations withdrawing">Organisations withdrawing</h3>
+        <@fdsAddToList.addToList
+          pathForList="form.withdrawingOrganisationIds"
+          pathForSelector="form.withdrawingOrganisationSelector"
+          restUrl=springUrl(withdrawingOrganisationUnitSearchEndpoint)
+          alreadyAdded=preselectedWithdrawingOrgUnits
+          itemName="Withdrawing licensees"
+          selectorOptionaLabel=true
+          selectorLabelText="Select a licensee to remove"
+          addToListId="withdrawingIds"
+          selectorHintText="You can only withdraw licensees that are already on the licence"
+        />
+      </#if>
 
       <@fdsAction.submitButtons
         primaryButtonText="Add"

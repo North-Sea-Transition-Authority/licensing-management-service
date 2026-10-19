@@ -19,9 +19,9 @@
 </template>
 
 <script setup lang="ts">
-import type { MapActionValidationError } from "@/map-action";
+import type { MapAction, MapActionValidationError } from "@/map-action";
 import { computed, ref, watch } from "vue";
-import { MapAction, mapActionLabels } from "@/map-action";
+import { getAvailableMapActions, mapActionLabels } from "@/map-action";
 import GvButton from "../govukVue/button/GvButton.vue";
 import GvRadio from "../govukVue/radios/GvRadio.vue";
 import GvRadios from "../govukVue/radios/GvRadios.vue";
@@ -30,6 +30,7 @@ import { createUid } from "../govukVue/util/createUid";
 interface DepthActionSelectProps {
   hasActions: boolean,
   canMerge: boolean,
+  canAddStrata: boolean,
 }
 
 const props = defineProps<DepthActionSelectProps>();
@@ -39,12 +40,7 @@ const emit = defineEmits<{
   "validation-error": [error: MapActionValidationError | null],
 }>();
 
-const visibleActions = computed<MapAction[]>(() => [
-  MapAction.SPLIT,
-  MapAction.ADD_STRATA, // TODO - EPGF-106: make conditional so only shapes with strata can be split this way
-  ...(props.canMerge ? [MapAction.MERGE] : []),
-  MapAction.RENAME,
-]);
+const visibleActions = computed(() => getAvailableMapActions(props.canMerge, props.canAddStrata));
 
 // The page's error summary links to the first radio.
 const firstRadioId = createUid("depth-action");

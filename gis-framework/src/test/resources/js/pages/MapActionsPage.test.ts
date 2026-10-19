@@ -5,12 +5,20 @@ import { defineComponent } from "vue";
 import { SupportedWkid } from "@/coordinate-system-utils";
 import MapActionsPage from "@/pages/MapActionsPage.vue";
 
-const { getFeaturesMock, getOutlineNodesMock, getHistoryStatusMock, splitFeatureMock, mergeFeaturesMock } = vi.hoisted(() => ({
+const {
+  getFeaturesMock,
+  getOutlineNodesMock,
+  getHistoryStatusMock,
+  splitFeatureMock,
+  mergeFeaturesMock,
+  strataSplitFeaturesMock,
+} = vi.hoisted(() => ({
   getFeaturesMock: vi.fn(),
   getOutlineNodesMock: vi.fn(),
   getHistoryStatusMock: vi.fn(),
   splitFeatureMock: vi.fn(),
   mergeFeaturesMock: vi.fn(),
+  strataSplitFeaturesMock: vi.fn(),
 }));
 
 vi.mock("@/api/features.api", () => ({
@@ -26,6 +34,7 @@ vi.mock("@/api/history.api", () => ({
 vi.mock("@/api/operator.api", () => ({
   splitFeature: splitFeatureMock,
   mergeFeatures: mergeFeaturesMock,
+  strataSplitFeatures: strataSplitFeaturesMock,
 }));
 
 const firstPoint = { id: "point-1", displayName: "Point one", coordinates: [0, 0], originalSrsCoordinates: [1, 2] };
@@ -37,6 +46,13 @@ function feature(featureId: string, startDepth: number, endDepth: number): Featu
   created.set("featureName", `${featureId} block`);
   created.set("startDepth", startDepth);
   created.set("endDepth", endDepth);
+  return created;
+}
+
+function featureWithoutDepths(featureId: string): Feature {
+  const created = new Feature();
+  created.set("featureId", featureId);
+  created.set("featureName", `${featureId} block`);
   return created;
 }
 
@@ -98,6 +114,7 @@ describe("mapActionsPage", () => {
     getHistoryStatusMock.mockReset().mockResolvedValue({ canUndo: false, canRedo: false });
     splitFeatureMock.mockReset();
     mergeFeaturesMock.mockReset();
+    strataSplitFeaturesMock.mockReset();
   });
 
   it("loads the features and outline nodes from the urls built from the command journey id", async () => {
@@ -113,12 +130,17 @@ describe("mapActionsPage", () => {
     {
       description: "a single feature split across depths",
       features: [feature("feature-1", 0, -100), feature("feature-1", -100, -200)],
-      expectedLabels: ["Split", "Add strata", "Rename"],
+      expectedLabels: ["Add strata", "Rename", "Split"],
     },
     {
       description: "two features",
       features: [feature("feature-1", 0, -100), feature("feature-2", -100, -200)],
-      expectedLabels: ["Split", "Add strata", "Merge", "Rename"],
+      expectedLabels: ["Add strata", "Merge", "Rename", "Split"],
+    },
+    {
+      description: "a single feature with no depths",
+      features: [featureWithoutDepths("feature-1")],
+      expectedLabels: ["Rename", "Split"],
     },
   ])("offers $expectedLabels for $description", async ({ features, expectedLabels }) => {
     getFeaturesMock.mockReset().mockResolvedValue(features);
@@ -170,7 +192,7 @@ describe("mapActionsPage", () => {
     await fireEvent.click(screen.getByRole("button", { name: "Continue" }));
 
     const summaryLink = screen.getByRole("link", { name: "Select what action you would like to perform" });
-    expect(summaryLink).toHaveAttribute("href", `#${screen.getByRole("radio", { name: "Split" }).id}`);
+    expect(summaryLink).toHaveAttribute("href", `#${screen.getByRole("radio", { name: "Add strata" }).id}`);
     expect(summaryLink.compareDocumentPosition(screen.getByText(/^Map of/)))
       .toBe(Node.DOCUMENT_POSITION_FOLLOWING);
   });
@@ -191,7 +213,7 @@ describe("mapActionsPage", () => {
 
     renderPage();
 
-    expect(await screen.findByText("Unable to load the features.")).toBeInTheDocument();
+    expect(await screen.findByText("Unable to load the subareas.")).toBeInTheDocument();
   });
 
   it("loads the history status from the url built from the base url and command journey id", async () => {
@@ -299,7 +321,7 @@ describe("mapActionsPage", () => {
 
       expect(await screen.findByRole("group", { name: "What action would you like to perform next?" }))
         .toBeInTheDocument();
-      expect(screen.getByRole("radio", { name: "Split" })).toHaveFocus();
+      expect(screen.getByRole("radio", { name: "Add strata" })).toHaveFocus();
       expect(screen.queryByRole("heading", { name: "Split" })).not.toBeInTheDocument();
       expect(getFeaturesMock).toHaveBeenCalledTimes(2);
     });
@@ -372,7 +394,7 @@ describe("mapActionsPage", () => {
 
       await fireEvent.click(screen.getByRole("button", { name: "Back to action select" }));
 
-      expect(screen.getByRole("radio", { name: "Split" })).toHaveFocus();
+      expect(screen.getByRole("radio", { name: "Add strata" })).toHaveFocus();
       expect(screen.getByRole("slider", { name: "Select depth" })).toBeEnabled();
       expect(screen.queryByRole("heading", { name: "Split" })).not.toBeInTheDocument();
     });
@@ -403,7 +425,7 @@ describe("mapActionsPage", () => {
 
       expect(screen.getByRole("heading", { name: "Merge" })).toHaveFocus();
       expect(screen.queryByRole("radio", { name: "Merge" })).not.toBeInTheDocument();
-      expect(screen.getByRole("group", { name: "Select the features to merge" })).toBeInTheDocument();
+      expect(screen.getByRole("group", { name: "Select the subareas to merge" })).toBeInTheDocument();
     });
 
     it("lists every feature, including those outside the selected depth band", async () => {
@@ -457,7 +479,7 @@ describe("mapActionsPage", () => {
         "X-CSRF-TOKEN",
         "csrf-token",
       );
-      expect(screen.getByRole("radio", { name: "Split" })).toHaveFocus();
+      expect(screen.getByRole("radio", { name: "Add strata" })).toHaveFocus();
       expect(screen.queryByRole("heading", { name: "Merge" })).not.toBeInTheDocument();
       expect(getFeaturesMock).toHaveBeenCalledTimes(2);
     });
@@ -496,7 +518,7 @@ describe("mapActionsPage", () => {
 
       await fireEvent.click(screen.getByRole("button", { name: "Back to action select" }));
 
-      expect(screen.getByRole("radio", { name: "Split" })).toHaveFocus();
+      expect(screen.getByRole("radio", { name: "Add strata" })).toHaveFocus();
       expect(screen.queryByRole("heading", { name: "Merge" })).not.toBeInTheDocument();
       expect(highlightedOnMap()).toBe("Highlighted on map:");
     });
@@ -510,6 +532,144 @@ describe("mapActionsPage", () => {
       await chooseMerge();
 
       expect(screen.getAllByRole("checkbox").filter(checkbox => (checkbox as HTMLInputElement).checked)).toEqual([]);
+      expect(highlightedOnMap()).toBe("Highlighted on map:");
+    });
+  });
+
+  describe("when add strata is chosen", () => {
+    const depthLabel = "What depth is the new stratigraphic boundary at?";
+
+    async function chooseAddStrata() {
+      await fireEvent.click(await screen.findByRole("radio", { name: "Add strata" }));
+      await fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+    }
+
+    async function enterDepth(depth: string) {
+      await fireEvent.update(screen.getByRole("textbox", { name: depthLabel }), depth);
+    }
+
+    async function tick(...featureNames: string[]) {
+      for (const featureName of featureNames) {
+        await fireEvent.click(screen.getByRole("checkbox", { name: featureName }));
+      }
+    }
+
+    function highlightedOnMap() {
+      return screen.getByText(/^Highlighted on map:/).textContent?.trim();
+    }
+
+    it("replaces the action select with the add strata panel and focuses its heading", async () => {
+      renderPage();
+
+      await chooseAddStrata();
+
+      expect(screen.getByRole("heading", { name: "Add strata" })).toHaveFocus();
+      expect(screen.queryByRole("radio", { name: "Add strata" })).not.toBeInTheDocument();
+      expect(screen.getByRole("textbox", { name: depthLabel })).toBeInTheDocument();
+    });
+
+    it("lists every feature with its depth range, including those outside the selected depth band", async () => {
+      renderPage();
+
+      await chooseAddStrata();
+
+      expect(screen.getByText("Map of shallow, refits: false")).toBeInTheDocument();
+      expect(screen.getByRole("checkbox", { name: "deep block" })).toHaveAccessibleDescription("-100 to -200");
+      expect(screen.getByRole("checkbox", { name: "shallow block" })).toHaveAccessibleDescription("0 to -100");
+    });
+
+    it("highlights the ticked features on the map", async () => {
+      renderPage();
+      await chooseAddStrata();
+
+      await tick("deep block");
+
+      expect(highlightedOnMap()).toBe("Highlighted on map: deep");
+    });
+
+    it("shows each validation error in the error summary linking to its field", async () => {
+      renderPage();
+      await chooseAddStrata();
+
+      await fireEvent.click(screen.getByRole("button", { name: "Add strata" }));
+
+      expect(screen.getByRole("link", { name: "Enter the depth of the new stratigraphic boundary" }))
+        .toHaveAttribute("href", `#${screen.getByRole("textbox", { name: depthLabel }).id}`);
+      expect(screen.getByRole("link", { name: "Select at least one subarea to split" }))
+        .toHaveAttribute("href", `#${screen.getByRole("checkbox", { name: "deep block" }).id}`);
+      expect(strataSplitFeaturesMock).not.toHaveBeenCalled();
+    });
+
+    it("strata splits the selected features, then reloads the map and returns to the action select with the first action focused", async () => {
+      getHistoryStatusMock.mockReset()
+        .mockResolvedValueOnce({ canUndo: false, canRedo: false })
+        .mockResolvedValue({ canUndo: true, canRedo: false });
+      strataSplitFeaturesMock.mockResolvedValue({ outputFeatureIds: ["deep_above", "deep_below"] });
+      renderPage();
+      await chooseAddStrata();
+      await enterDepth("-150");
+      await tick("deep block");
+
+      await fireEvent.click(screen.getByRole("button", { name: "Add strata" }));
+
+      expect(await screen.findByRole("group", { name: "What action would you like to perform next?" }))
+        .toBeInTheDocument();
+      expect(strataSplitFeaturesMock).toHaveBeenCalledWith(
+        "/api/gis-framework/strata-split",
+        ["deep"],
+        -150,
+        "journey-1",
+        "X-CSRF-TOKEN",
+        "csrf-token",
+      );
+      expect(screen.getByRole("radio", { name: "Add strata" })).toHaveFocus();
+      expect(screen.queryByRole("heading", { name: "Add strata" })).not.toBeInTheDocument();
+      expect(getFeaturesMock).toHaveBeenCalledTimes(2);
+    });
+
+    it("shows an error and stays on the add strata panel when the strata split request fails", async () => {
+      strataSplitFeaturesMock.mockRejectedValue(new Error("network error"));
+      renderPage();
+      await chooseAddStrata();
+      await enterDepth("-150");
+      await tick("deep block");
+
+      await fireEvent.click(screen.getByRole("button", { name: "Add strata" }));
+
+      expect(await screen.findByText(
+        "An error occurred while attempting to stratigraphically split the features. Please try again.",
+      )).toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: "Add strata" })).toBeInTheDocument();
+    });
+
+    it("replaces a failed request error with the validation errors on the next invalid attempt", async () => {
+      const requestError = "An error occurred while attempting to stratigraphically split the features. Please try again.";
+      strataSplitFeaturesMock.mockRejectedValue(new Error("network error"));
+      renderPage();
+      await chooseAddStrata();
+      await enterDepth("-150");
+      await tick("deep block");
+      await fireEvent.click(screen.getByRole("button", { name: "Add strata" }));
+      await screen.findByText(requestError);
+      await enterDepth("");
+
+      await fireEvent.click(screen.getByRole("button", { name: "Add strata" }));
+
+      expect(screen.getByRole("link", { name: "Enter the depth of the new stratigraphic boundary" }))
+        .toHaveAttribute("href", `#${screen.getByRole("textbox", { name: depthLabel }).id}`);
+      expect(screen.queryByText(requestError)).not.toBeInTheDocument();
+    });
+
+    it("removes the error summary and highlighting when going back", async () => {
+      renderPage();
+      await chooseAddStrata();
+      await tick("deep block");
+      await fireEvent.click(screen.getByRole("button", { name: "Add strata" }));
+
+      await fireEvent.click(screen.getByRole("button", { name: "Back to action select" }));
+
+      expect(screen.getByRole("radio", { name: "Add strata" })).toHaveFocus();
+      expect(screen.queryByRole("link", { name: "Enter the depth of the new stratigraphic boundary" })).not.toBeInTheDocument();
       expect(highlightedOnMap()).toBe("Highlighted on map:");
     });
   });

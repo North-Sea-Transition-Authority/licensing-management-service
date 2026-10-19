@@ -2,18 +2,18 @@
   <h2 ref="heading" class="govuk-heading-m govuk-!-margin-top-4" tabindex="-1">
     Merge
   </h2>
-  <details-component summary="How can I merge features?">
+  <details-component summary="How can I merge subareas?">
     <p class="govuk-body">
-      Select two or more features using the checkboxes, then click merge to combine them into a single
-      feature.
+      Select two or more subareas using the checkboxes, then click merge to combine them into a single
+      subarea.
     </p>
     <p v-if="hasDepths" class="govuk-body">
-      Features can be merged across depths, use the depth slider to see selected features at other depths.
+      Subareas can be merged across depths, use the depth slider to see selected subareas at other depths.
     </p>
   </details-component>
   <gv-checkboxes
     v-model="selectedFeatureIds"
-    legend="Select the features to merge"
+    legend="Select the subareas to merge"
     legend-class="govuk-fieldset__legend--s"
   >
     <gv-checkbox
@@ -21,6 +21,7 @@
       :key="feature.featureId"
       :value="feature.featureId"
       :label="feature.featureName"
+      :hint="formatDepthRanges(feature.depthRanges)"
     />
   </gv-checkboxes>
   <!--    TODO: determine when attributes will be lost and show warning -->
@@ -37,6 +38,7 @@
 import type { FeatureOption } from "@/feature-option-utils";
 import { useTemplateRef } from "vue";
 import { useMergeFeature } from "@/composables/useMergeFeature";
+import { formatDepthRanges } from "@/depth-utils";
 import GvButton from "../govukVue/button/GvButton.vue";
 import GvButtonGroup from "../govukVue/button/GvButtonGroup.vue";
 import GvCheckbox from "../govukVue/checkboxes/GvCheckbox.vue";

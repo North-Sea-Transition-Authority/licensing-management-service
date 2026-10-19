@@ -1,7 +1,7 @@
 <template>
   <error-summary v-if="error" :description="error"/>
-  <error-summary v-else-if="validationError" :key="validationAttempt">
-    <li>
+  <error-summary v-else-if="validationErrors.length" :key="validationAttempt">
+    <li v-for="validationError in validationErrors" :key="validationError.fieldId">
       <a :href="`#${validationError.fieldId}`">{{ validationError.message }}</a>
     </li>
   </error-summary>
@@ -26,7 +26,7 @@
         :refresh-counter="refreshCounter"
         :refit-on-features-change="false"
         :map-style-override="mapStyleOverride"
-        :selected-feature-ids="mode === MapAction.MERGE ? selectedFeatureIds : []"
+        :selected-feature-ids="mode === MapAction.MERGE || mode === MapAction.ADD_STRATA ? selectedFeatureIds : []"
         @update:points="points = $event"
       />
     </div>
@@ -43,8 +43,9 @@
     ref="actionRadioGroup"
     :has-actions="historyStatus?.canUndo ?? false"
     :can-merge="activeFeatureCount >= 2"
+    :can-add-strata="hasDepths"
     @select="onSelect"
-    @validation-error="onValidationError"
+    @validation-error="onValidationError($event ? [$event] : [])"
   />
   <split-panel
     v-else-if="mode === MapAction.SPLIT"
@@ -75,6 +76,20 @@
     @error="error = $event"
     @back="returnToSelect"
   />
+  <strata-split-panel
+    v-else-if="mode === MapAction.ADD_STRATA"
+    ref="actionPanel"
+    v-model:selected-feature-ids="selectedFeatureIds"
+    :base-url="baseUrl"
+    :command-journey-id="commandJourneyId"
+    :csrf-header-name="csrfHeaderName"
+    :csrf-token="csrfToken"
+    :feature-options="featureOptions"
+    @success="onActionSuccess"
+    @error="error = $event"
+    @back="returnToSelect"
+    @validation-error="onValidationError"
+  />
 </template>
 
 <script setup lang="ts">
@@ -91,6 +106,7 @@ import DepthSlider from "@/components/depthSlider/DepthSlider.vue";
 import ErrorSummary from "@/components/gdsComponents/error/ErrorSummary.vue";
 import MergePanel from "@/components/mapActions/MergePanel.vue";
 import SplitPanel from "@/components/mapActions/SplitPanel.vue";
+import StrataSplitPanel from "@/components/mapActions/StrataSplitPanel.vue";
 import TextualDescription from "@/components/textualDescription/TextualDescription.vue";
 import { useCommandJourneyFeatures } from "@/composables/useCommandJourneyFeatures";
 import { useDepthBands } from "@/composables/useDepthBands";
@@ -140,7 +156,7 @@ const { hasDepths, depths, currentDepthLevel, visibleFeatures, visibleOutlineNod
 
 watch(hasError, (errored) => {
   if (errored) {
-    error.value = "Unable to load the features.";
+    error.value = "Unable to load the subareas.";
   }
 });
 
@@ -162,28 +178,30 @@ watch(refreshCounter, fetchHistoryStatus);
 // Features are returned one per polygon, so count distinct feature IDs.
 const activeFeatureCount = computed(() => new Set(features.value.map(feature => feature.get("featureId"))).size);
 
-// Lists every subarea, not only those in the current depth band.
+// Lists every feature, not only those in the current depth band.
 const featureOptions = computed(() => toSortedFeatureOptions(features.value));
 
-const validationError = ref<MapActionValidationError | null>(null);
+const validationErrors = ref<MapActionValidationError[]>([]);
 // Re-mounts the error summary on each failed attempt so it takes focus again.
 const validationAttempt = ref(0);
 
-function onValidationError(validation: MapActionValidationError | null) {
-  validationError.value = validation;
-  if (validation) {
+function onValidationError(errors: MapActionValidationError[]) {
+  validationErrors.value = errors;
+  if (errors.length) {
+    error.value = null;
     validationAttempt.value++;
   }
 }
 
-// TODO - EPGF-106, later: include add strata and rename.
-const panelActions: MapAction[] = [MapAction.SPLIT, MapAction.MERGE];
+// TODO - LMS2-268: include rename.
+const panelActions: MapAction[] = [MapAction.SPLIT, MapAction.MERGE, MapAction.ADD_STRATA];
 
 async function onSelect(action: MapAction) {
   if (!panelActions.includes(action)) {
     return;
   }
   error.value = null;
+  validationErrors.value = [];
   mode.value = action;
   await nextTick();
   actionPanel.value?.focus();
@@ -201,6 +219,7 @@ function onActionSuccess() {
 
 async function returnToSelect() {
   error.value = null;
+  validationErrors.value = [];
   points.value = [];
   selectedFeatureIds.value = [];
   mode.value = "select";

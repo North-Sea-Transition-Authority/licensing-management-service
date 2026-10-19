@@ -12,9 +12,16 @@ vi.mock("@/api/operator.api", () => ({
 }));
 
 const featureOptions = [
-  { featureId: "feature-1", featureName: "Block A" },
-  { featureId: "feature-2", featureName: "Block B" },
-  { featureId: "feature-3", featureName: "Block C" },
+  { featureId: "feature-1", featureName: "Block A", depthRanges: [{ startDepth: 0, endDepth: -1000 }] },
+  {
+    featureId: "feature-2",
+    featureName: "Block B",
+    depthRanges: [
+      { startDepth: 0, endDepth: -1000 },
+      { startDepth: -1000, endDepth: Number.NEGATIVE_INFINITY },
+    ],
+  },
+  { featureId: "feature-3", featureName: "Block C", depthRanges: [{ startDepth: -1000, endDepth: -3000 }] },
 ];
 
 const host = defineComponent({
@@ -60,9 +67,18 @@ describe("mergePanel", () => {
   it("lists a checkbox for each feature option under the legend", () => {
     render(host);
 
-    expect(screen.getByRole("group", { name: "Select the features to merge" })).toBeInTheDocument();
+    expect(screen.getByRole("group", { name: "Select the subareas to merge" })).toBeInTheDocument();
     expect(screen.getAllByRole("checkbox").map(checkbox => (checkbox as HTMLInputElement).labels?.[0]?.textContent?.trim()))
       .toEqual(["Block A", "Block B", "Block C"]);
+  });
+
+  it("describes each feature option by its depth ranges", () => {
+    render(host);
+
+    expect(screen.getByRole("checkbox", { name: "Block A" })).toHaveAccessibleDescription("0 to -1000");
+    expect(screen.getByRole("checkbox", { name: "Block B" }))
+      .toHaveAccessibleDescription("0 to -1000, -1000 to -infinity");
+    expect(screen.getByRole("checkbox", { name: "Block C" })).toHaveAccessibleDescription("-1000 to -3000");
   });
 
   it.each([
@@ -71,7 +87,7 @@ describe("mergePanel", () => {
   ])("shows the merge across depths hint is $expected when hasDepths is $hasDepths", ({ hasDepths, expected }) => {
     render(host, { props: { hasDepths } });
 
-    const hint = screen.queryByText(/Features can be merged across depths/);
+    const hint = screen.queryByText(/Subareas can be merged across depths/);
 
     expect(hint !== null).toBe(expected);
   });

@@ -102,7 +102,8 @@ class OperatorResultProcessingServiceTest {
         .thenReturn(new FindParentLineResponse(Map.of(outputLineEsriJson, parentLineId), List.of()));
     when(grpcClientService.validatePolygonReconstructionFromPolylines(any(), any())).thenReturn(true);
 
-    operatorResultProcessingService.processOutputPolygon(FEATURE, polygon, outputPolygonEsriJson, 1);
+    operatorResultProcessingService.processOutputPolygon(
+        FEATURE, new EsriJsonPolygonWithSources(outputPolygonEsriJson, List.of(polygon)), 1);
 
     verify(lineService).saveLines(linesCaptor.capture());
     assertThat(linesCaptor.getValue())
@@ -137,7 +138,8 @@ class OperatorResultProcessingServiceTest {
         .thenReturn(new FindParentLineResponse(Map.of(), List.of(orphanLineEsriJson)));
     when(grpcClientService.validatePolygonReconstructionFromPolylines(any(), any())).thenReturn(true);
 
-    operatorResultProcessingService.processOutputPolygon(FEATURE, polygon, outputPolygonEsriJson, 1);
+    operatorResultProcessingService.processOutputPolygon(
+        FEATURE, new EsriJsonPolygonWithSources(outputPolygonEsriJson, List.of(polygon)), 1);
 
     verify(lineService).saveLines(linesCaptor.capture());
     assertThat(linesCaptor.getValue())
@@ -172,7 +174,8 @@ class OperatorResultProcessingServiceTest {
         .thenReturn(new FindParentLineResponse(Map.of(), List.of(orphanLineEsriJson)));
     when(grpcClientService.validatePolygonReconstructionFromPolylines(any(), any())).thenReturn(true);
 
-    operatorResultProcessingService.processOutputPolygon(FEATURE, polygon, outputPolygonEsriJson, 1);
+    operatorResultProcessingService.processOutputPolygon(
+        FEATURE, new EsriJsonPolygonWithSources(outputPolygonEsriJson, List.of(polygon)), 1);
 
     verify(lineService).saveLines(linesCaptor.capture());
     assertThat(linesCaptor.getValue())
@@ -214,7 +217,8 @@ class OperatorResultProcessingServiceTest {
         .thenReturn(true);
     when(grpcClientService.calculateArea(eq(FEATURE.getCoordinateSystem()), anyList())).thenReturn(BigDecimal.TEN);
 
-    operatorResultProcessingService.processOutputPolygon(FEATURE, polygon, outputPolygonEsriJson, 1);
+    operatorResultProcessingService.processOutputPolygon(
+        FEATURE, new EsriJsonPolygonWithSources(outputPolygonEsriJson, List.of(polygon)), 1);
 
     var savedFeature = captureSavedFeature();
     var expectedFeature = FeatureTestUtil.newBuilder()
@@ -829,6 +833,85 @@ class OperatorResultProcessingServiceTest {
             tuple(savedPolygons.get(0), "kept line", Map.of("line", "kept"), LineNavigationType.GEODESIC),
             tuple(savedPolygons.get(1), "cropped line", Map.of("line", "cropped parent"), LineNavigationType.LOXODROME)
         );
+  }
+
+  @Test
+  void processStrataSplitFeature_savesNewFeatureWithGivenPolygonsAndCopiesOfTheirSourceLines() {
+    var parentFeature = FeatureTestUtil.newBuilder().build();
+    var inputFeature = FeatureTestUtil.newBuilder()
+        .withFeatureName("Subarea A")
+        .withCoordinateSystem(CoordinateSystem.ED50)
+        .withAttributes(FEATURE_ATTRIBUTES)
+        .withParentFeature(parentFeature)
+        .withStartDate(START_DATE)
+        .build();
+    var sourcePolygon = PolygonTestUtil.newBuilder().withFeature(inputFeature).build();
+    var sourceLine = LineTestUtil.newBuilder()
+        .withPolygon(sourcePolygon)
+        .withEsriJson("source line")
+        .withAttributes(Map.of("line", "source"))
+        .withNavigationType(LineNavigationType.LOXODROME)
+        .withRingNumber(5)
+        .withDisplayOrder(5)
+        .build();
+    var newPolygon = new Polygon();
+    newPolygon.setAttributes(Map.of("polygon", "new"));
+    newPolygon.setStartDepth(0L);
+    newPolygon.setEndDepth(-500L);
+
+    when(grpcClientService.getLineStartAndEndPoints(
+        argThat(lines -> lines.size() == 1 && "source line".equals(lines.getFirst().getEsriJson())),
+        eq(false)
+    ))
+        .thenAnswer(invocation -> {
+          List<Line> lines = invocation.getArgument(0);
+          return List.of(new LineWithStartEndPoints(lines.getFirst(), new Point(0, 0), new Point(0, 0)));
+        });
+    when(grpcClientService.calculateArea(
+        eq(CoordinateSystem.ED50),
+        argThat(lines -> lines.size() == 1 && "source line".equals(lines.getFirst().getEsriJson()))
+    ))
+        .thenReturn(BigDecimal.TEN);
+
+    var result = operatorResultProcessingService.processStrataSplitFeature(
+        new EntityBackedFeature(inputFeature, Map.of(sourcePolygon, List.of(sourceLine))),
+        Map.of(newPolygon, sourcePolygon),
+        "above"
+    );
+
+    var expectedFeature = FeatureTestUtil.newBuilder()
+        .withFeatureName("Subarea A_above")
+        .withCoordinateSystem(CoordinateSystem.ED50)
+        .withAttributes(FEATURE_ATTRIBUTES)
+        .withFeatureArea(BigDecimal.TEN)
+        .withParentFeature(parentFeature)
+        .withStartDate(null)
+        .withEndDate(null)
+        .build();
+    verify(featureService).saveFeature(featureCaptor.capture());
+    assertThat(featureCaptor.getValue()).isSameAs(result);
+    assertThat(result).usingRecursiveComparison()
+        .ignoringFields("id", "legacyId")
+        .isEqualTo(expectedFeature);
+
+    verify(polygonService).savePolygons(polygonsCaptor.capture());
+    assertThat(polygonsCaptor.getValue()).containsExactly(newPolygon);
+    assertThat(newPolygon.getFeature()).isSameAs(result);
+
+    verify(lineService).saveLines(linesCaptor.capture());
+    assertThat(linesCaptor.getValue())
+        .extracting(
+            Line::getPolygon,
+            Line::getEsriJson,
+            Line::getAttributes,
+            Line::getNavigationType,
+            Line::getRingNumber,
+            Line::getDisplayOrder
+        )
+        .containsExactly(
+            tuple(newPolygon, "source line", Map.of("line", "source"), LineNavigationType.LOXODROME, 0, 1)
+        );
+    assertThat(linesCaptor.getValue().getFirst()).isNotSameAs(sourceLine);
   }
 
   @Test

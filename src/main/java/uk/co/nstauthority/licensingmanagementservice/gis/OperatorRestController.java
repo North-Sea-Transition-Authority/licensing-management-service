@@ -22,6 +22,7 @@ import uk.co.fivium.gisframework.operator.JsonSplitResponse;
 import uk.co.fivium.gisframework.operator.MergeFromMapRequest;
 import uk.co.fivium.gisframework.operator.OperatorCommandReceiver;
 import uk.co.fivium.gisframework.operator.SplitFromMapRequest;
+import uk.co.fivium.gisframework.operator.StrataSplitFromMapRequest;
 
 @RestController
 @RequestMapping("/api/gis-framework")
@@ -74,6 +75,22 @@ class OperatorRestController {
         between(startingInstant, Instant.now()).toMillis()
     );
     return ResponseEntity.ok(new JsonMergeResponse(outputFeatureId));
+  }
+
+  @PostMapping("/strata-split")
+  ResponseEntity<JsonSplitResponse> strataSplit(@RequestBody StrataSplitFromMapRequest request) {
+    LOGGER.info("Received strata split request for '{}'", request);
+    var startingInstant = Instant.now();
+    var outputFeatures = operatorCommandReceiver.executeStrataSplit(request);
+    List<String> outputFeatureIds = outputFeatures.stream().map(feature -> feature.getId().toString()).toList();
+    LOGGER.info("Strata split request completed successfully for '{} took {}ms created {} output features'",
+        request,
+        between(startingInstant, Instant.now()).toMillis(),
+        outputFeatureIds.size()
+    );
+    return ResponseEntity.ok(
+        new JsonSplitResponse(outputFeatureIds)
+    );
   }
 
   @GetMapping("/history/{commandJourneyId}")

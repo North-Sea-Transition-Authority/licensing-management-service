@@ -3,6 +3,7 @@ package uk.co.fivium.gisframework.operator;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,6 +24,7 @@ public class OperatorCommandReceiver {
 
   private final SplitOperatorService splitOperatorService;
   private final MergeOperatorService mergeOperatorService;
+  private final StrataSplitOperatorService strataSplitOperatorService;
   private final FeatureService featureService;
   private final FeatureJourneyStateService featureJourneyStateService;
   private final OperatorCommandService operatorCommandService;
@@ -33,6 +35,7 @@ public class OperatorCommandReceiver {
   public OperatorCommandReceiver(
       SplitOperatorService splitOperatorService,
       MergeOperatorService mergeOperatorService,
+      StrataSplitOperatorService strataSplitOperatorService,
       FeatureService featureService,
       FeatureJourneyStateService featureJourneyStateService,
       OperatorCommandService operatorCommandService,
@@ -42,6 +45,7 @@ public class OperatorCommandReceiver {
   ) {
     this.splitOperatorService = splitOperatorService;
     this.mergeOperatorService = mergeOperatorService;
+    this.strataSplitOperatorService = strataSplitOperatorService;
     this.featureService = featureService;
     this.featureJourneyStateService = featureJourneyStateService;
     this.operatorCommandService = operatorCommandService;
@@ -111,15 +115,7 @@ public class OperatorCommandReceiver {
     }
 
     var commandJourney = commandJourneyService.getCommandJourneyOrThrow(request.commandJourneyId());
-
-    var features = commandJourneyService.getActiveFeatures(commandJourney).stream()
-        .filter(feature -> request.featureIds().contains(feature.getId()))
-        .toList();
-
-    if (features.size() != request.featureIds().size()) {
-      throw new IllegalArgumentException(
-          "All merge features must be active members of command journey %s".formatted(request.commandJourneyId()));
-    }
+    var features = getActiveFeaturesOrThrow(commandJourney, request.featureIds());
 
     var mergeResult = mergeOperatorService.mergePolygons(features);
 
@@ -136,6 +132,47 @@ public class OperatorCommandReceiver {
     featureJourneyStateService.createFeatureJourneyStatesForCommandOutput(commandJourney, command, List.of(mergeResult));
 
     return Optional.of(mergeResult);
+  }
+
+  @Transactional
+  public List<Feature> executeStrataSplit(StrataSplitFromMapRequest request) {
+    if (request.depth() == null) {
+      throw new IllegalArgumentException("A depth must be provided to strata split");
+    }
+
+    if (request.featureIds().isEmpty()) {
+      return List.of();
+    }
+
+    var commandJourney = commandJourneyService.getCommandJourneyOrThrow(request.commandJourneyId());
+    var inputFeatures = getActiveFeaturesOrThrow(commandJourney, request.featureIds());
+
+    List<Feature> affectedInputFeatures = new ArrayList<>();
+    List<Feature> outputFeatures = new ArrayList<>();
+    for (Feature inputFeature : inputFeatures) {
+      List<Feature> strataSplitResult = strataSplitOperatorService.strataSplitPolygon(inputFeature, request.depth());
+      if (!strataSplitResult.isEmpty()) {
+        affectedInputFeatures.add(inputFeature);
+        outputFeatures.addAll(strataSplitResult);
+      }
+    }
+
+    if (outputFeatures.isEmpty()) {
+      return List.of();
+    }
+    clearUndoStack(commandJourney);
+
+    var affectedInputFeatureIds = affectedInputFeatures.stream().map(Feature::getId).collect(Collectors.toSet());
+    var command = operatorCommandService.createOperatorCommand(
+        commandJourney,
+        affectedInputFeatureIds,
+        TransformationType.STRATA_SPLIT
+    );
+
+    featureJourneyStateService.deactivateFeatures(commandJourney, affectedInputFeatures);
+    featureJourneyStateService.createFeatureJourneyStatesForCommandOutput(commandJourney, command, outputFeatures);
+
+    return outputFeatures;
   }
 
   /**
@@ -201,6 +238,21 @@ public class OperatorCommandReceiver {
     var orphanedFeatures = featureJourneyStateService.deleteFeatureJourneyStatesCreatedByCommands(undoneCommands);
     featureService.deleteAll(orphanedFeatures);
     operatorCommandService.deleteCommands(undoneCommands);
+  }
+
+  private List<Feature> getActiveFeaturesOrThrow(
+      CommandJourney commandJourney,
+      List<UUID> featureIds
+  ) {
+    var features = commandJourneyService.getActiveFeatures(commandJourney).stream()
+        .filter(feature -> featureIds.contains(feature.getId()))
+        .toList();
+
+    if (features.size() != featureIds.size()) {
+      throw new IllegalArgumentException("All features must be active members of command journey %s"
+          .formatted(commandJourney.getId()));
+    }
+    return features;
   }
 
   private List<Feature> getFeaturesToSplit(CommandJourney commandJourney, Long depth) {

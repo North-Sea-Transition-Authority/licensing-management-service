@@ -67,12 +67,12 @@ class SplitOperatorServiceTest {
     when(grpcClientService.splitPolygon(cutPolygonEsriJson, cutterLineEsriJson))
         .thenReturn(List.of(rawSplitResult1, rawSplitResult2));
     when(grpcClientService.splitPolygon(uncutPolygonEsriJson, cutterLineEsriJson)).thenReturn(List.of());
-    when(operatorResultProcessingService.processOutputPolygon(feature, cutPolygon, rawSplitResult1, 1))
-        .thenReturn(postProcessedFeature1);
-    when(operatorResultProcessingService.processOutputPolygon(feature, cutPolygon, rawSplitResult2, 2))
-        .thenReturn(postProcessedFeature2);
-    when(operatorResultProcessingService.processOutputPolygon(feature, uncutPolygon, uncutPolygonEsriJson, 3))
-        .thenReturn(postProcessedFeature3);
+    var cutPiece1 = new EsriJsonPolygonWithSources(rawSplitResult1, List.of(cutPolygon));
+    var cutPiece2 = new EsriJsonPolygonWithSources(rawSplitResult2, List.of(cutPolygon));
+    var uncutPiece = new EsriJsonPolygonWithSources(uncutPolygonEsriJson, List.of(uncutPolygon));
+    when(operatorResultProcessingService.processOutputPolygon(feature, cutPiece1, 1)).thenReturn(postProcessedFeature1);
+    when(operatorResultProcessingService.processOutputPolygon(feature, cutPiece2, 2)).thenReturn(postProcessedFeature2);
+    when(operatorResultProcessingService.processOutputPolygon(feature, uncutPiece, 3)).thenReturn(postProcessedFeature3);
 
     var result = splitOperatorService.splitPolygon(feature, cutterLineEsriJson, null);
 
@@ -123,12 +123,12 @@ class SplitOperatorServiceTest {
     ));
     when(grpcClientService.splitPolygon(deepPolygonEsriJson, cutterLineEsriJson))
         .thenReturn(List.of(rawSplitResult1, rawSplitResult2));
-    when(operatorResultProcessingService.processOutputPolygon(feature, shallowPolygon, shallowPolygonEsriJson, 1))
-        .thenReturn(keptShallowFeature);
-    when(operatorResultProcessingService.processOutputPolygon(feature, deepPolygon, rawSplitResult1, 2))
-        .thenReturn(deepPieceFeature1);
-    when(operatorResultProcessingService.processOutputPolygon(feature, deepPolygon, rawSplitResult2, 3))
-        .thenReturn(deepPieceFeature2);
+    var shallowPiece = new EsriJsonPolygonWithSources(shallowPolygonEsriJson, List.of(shallowPolygon));
+    var deepPiece1 = new EsriJsonPolygonWithSources(rawSplitResult1, List.of(deepPolygon));
+    var deepPiece2 = new EsriJsonPolygonWithSources(rawSplitResult2, List.of(deepPolygon));
+    when(operatorResultProcessingService.processOutputPolygon(feature, shallowPiece, 1)).thenReturn(keptShallowFeature);
+    when(operatorResultProcessingService.processOutputPolygon(feature, deepPiece1, 2)).thenReturn(deepPieceFeature1);
+    when(operatorResultProcessingService.processOutputPolygon(feature, deepPiece2, 3)).thenReturn(deepPieceFeature2);
 
     var result = splitOperatorService.splitPolygon(feature, cutterLineEsriJson, -150L);
 

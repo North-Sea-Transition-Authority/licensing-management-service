@@ -2,6 +2,7 @@ import type Feature from "ol/Feature";
 import type { Geometry } from "ol/geom";
 import type { JsonFeatureOutlineNodes } from "@/api/features.api";
 import { computed, ComputedRef, Ref, ref, watch } from "vue";
+import { endDepthOf, startDepthOf } from "@/depth-utils";
 
 export interface DepthBands {
   hasDepths: ComputedRef<boolean>,
@@ -9,14 +10,6 @@ export interface DepthBands {
   currentDepthLevel: Ref<number>,
   visibleFeatures: ComputedRef<Feature<Geometry>[]>,
   visibleOutlineNodes: ComputedRef<JsonFeatureOutlineNodes[]>,
-}
-
-function startDepthOf(feature: Feature<Geometry>): number {
-  return Number(feature.get("startDepth") ?? 0);
-}
-
-function endDepthOf(feature: Feature<Geometry>): number {
-  return Number(feature.get("endDepth") ?? Number.NEGATIVE_INFINITY);
 }
 
 export function useDepthBands(

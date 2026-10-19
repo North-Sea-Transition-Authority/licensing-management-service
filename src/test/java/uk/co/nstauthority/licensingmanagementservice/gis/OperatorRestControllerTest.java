@@ -29,6 +29,7 @@ import uk.co.fivium.gisframework.operator.JsonSplitResponse;
 import uk.co.fivium.gisframework.operator.MergeFromMapRequest;
 import uk.co.fivium.gisframework.operator.OperatorCommandReceiver;
 import uk.co.fivium.gisframework.operator.SplitFromMapRequest;
+import uk.co.fivium.gisframework.operator.StrataSplitFromMapRequest;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.FeatureTestUtil;
 
@@ -99,6 +100,36 @@ class OperatorRestControllerTest extends AbstractControllerTest {
     var expected = new JsonMergeResponse(outputFeature.getId().toString());
 
     mockMvc.perform(post("/api/gis-framework/merge")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(requestBody)
+            .with(csrf())
+            .with(user(regulatorUser)))
+        .andExpect(status().isOk())
+        .andExpect(content().json(objectMapper.writeValueAsString(expected), JsonCompareMode.STRICT));
+  }
+
+  @Test
+  void strataSplit_whenStrataSplitOccurs_assertOutputFeatureIds() throws Exception {
+    var commandJourneyId = UUID.randomUUID();
+    var featureId = UUID.randomUUID();
+    var aboveFeature = FeatureTestUtil.builder().build();
+    var belowFeature = FeatureTestUtil.builder().build();
+
+    var requestBody = """
+        {
+          "featureIds": ["%s"],
+          "commandJourneyId": "%s",
+          "depth": -2000
+        }
+        """.formatted(featureId, commandJourneyId);
+
+    when(operatorCommandReceiver.executeStrataSplit(
+        new StrataSplitFromMapRequest(List.of(featureId), commandJourneyId, -2000L)))
+        .thenReturn(List.of(aboveFeature, belowFeature));
+
+    var expected = new JsonSplitResponse(List.of(aboveFeature.getId().toString(), belowFeature.getId().toString()));
+
+    mockMvc.perform(post("/api/gis-framework/strata-split")
             .contentType(MediaType.APPLICATION_JSON)
             .content(requestBody)
             .with(csrf())

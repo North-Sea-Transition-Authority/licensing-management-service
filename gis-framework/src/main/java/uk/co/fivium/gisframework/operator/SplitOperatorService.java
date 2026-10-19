@@ -1,14 +1,11 @@
 package uk.co.fivium.gisframework.operator;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.co.fivium.gisframework.feature.Feature;
 import uk.co.fivium.gisframework.feature.FeatureService;
-import uk.co.fivium.gisframework.feature.Polygon;
 import uk.co.fivium.gisframework.feature.PolygonService;
 import uk.co.fivium.gisframework.grpc.GrpcClientService;
 
@@ -44,7 +41,7 @@ public class SplitOperatorService {
   public List<Feature> splitPolygon(Feature target, String cutterLineEsriJson, Long lineDepth) {
     var entityBackedFeature = featureService.getEntityBackedFeature(target);
     var esriJsonByPolygonId = polygonService.getPolygonIdToEsriJson(entityBackedFeature);
-    Map<Polygon, List<String>> resultEsriJsonPolygonsBySource = new HashMap<>();
+    List<EsriJsonPolygonWithSources> resultEsriJsonPolygonsWithSources = new ArrayList<>();
 
     boolean anyCuts = false;
     for (var polygon : entityBackedFeature.polygonToLines().keySet()) {
@@ -54,10 +51,12 @@ public class SplitOperatorService {
         result = grpcClientService.splitPolygon(polygonEsriJson, cutterLineEsriJson);
       }
       if (result.isEmpty()) {
-        resultEsriJsonPolygonsBySource.put(polygon, List.of(polygonEsriJson));
+        resultEsriJsonPolygonsWithSources.add(new EsriJsonPolygonWithSources(polygonEsriJson, List.of(polygon)));
       } else {
         anyCuts = true;
-        resultEsriJsonPolygonsBySource.put(polygon, result);
+        result.forEach(esriJson -> resultEsriJsonPolygonsWithSources.add(
+            new EsriJsonPolygonWithSources(esriJson, List.of(polygon))
+        ));
       }
     }
 
@@ -67,16 +66,12 @@ public class SplitOperatorService {
 
     List<Feature> resultFeatures = new ArrayList<>();
     int featureNameSuffix = 1;
-    for (var polygon : entityBackedFeature.polygonToLines().keySet()) {
-      for (var resultEsriJsonPolygon : resultEsriJsonPolygonsBySource.get(polygon)) {
-        var newFeature = operatorResultProcessingService.processOutputPolygon(
-            target,
-            polygon,
-            resultEsriJsonPolygon,
-            featureNameSuffix++
-        );
-        resultFeatures.add(newFeature);
-      }
+    for (var resultEsriJsonPolygonWithSources : resultEsriJsonPolygonsWithSources) {
+      resultFeatures.add(operatorResultProcessingService.processOutputPolygon(
+          target,
+          resultEsriJsonPolygonWithSources,
+          featureNameSuffix++
+      ));
     }
 
     return resultFeatures;

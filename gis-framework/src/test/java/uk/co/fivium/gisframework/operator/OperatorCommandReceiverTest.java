@@ -69,6 +69,9 @@ class OperatorCommandReceiverTest {
   @Mock
   private PolygonService polygonService;
 
+  @Mock
+  private StrataSplitOperatorService strataSplitOperatorService;
+
   @InjectMocks
   private OperatorCommandReceiver operatorCommandReceiver;
 
@@ -291,7 +294,7 @@ class OperatorCommandReceiverTest {
 
     assertThatThrownBy(() -> operatorCommandReceiver.executeMerge(request))
         .isInstanceOf(IllegalArgumentException.class)
-        .hasMessage("All merge features must be active members of command journey %s".formatted(commandJourneyId));
+        .hasMessage("All features must be active members of command journey %s".formatted(commandJourneyId));
 
     verifyNoInteractions(mergeOperatorService);
     verify(operatorCommandService, never()).createOperatorCommand(any(), any(), any());
@@ -309,6 +312,129 @@ class OperatorCommandReceiverTest {
     verifyNoInteractions(commandJourneyService, featureService, mergeOperatorService, operatorCommandService);
     verify(featureJourneyStateService, never()).deactivateFeatures(any(), any());
     verify(featureJourneyStateService, never()).createFeatureJourneyStatesForCommandOutput(any(), any(), any());
+  }
+
+  @Test
+  void executeStrataSplit_whenSomeFeaturesSplit_deactivatesOnlySplitInputsAndActivatesOutputs() {
+    var commandJourneyId = UUID.randomUUID();
+    var depth = -2000L;
+    var splitFeature = FeatureTestUtil.newBuilder().build();
+    var unsplitFeature = FeatureTestUtil.newBuilder().build();
+    var request = new StrataSplitFromMapRequest(
+        List.of(splitFeature.getId(), unsplitFeature.getId()), commandJourneyId, depth);
+
+    var commandJourney = CommandJourneyTestUtil.newBuilder().withId(commandJourneyId).build();
+    var aboveFeature = FeatureTestUtil.newBuilder().build();
+    var belowFeature = FeatureTestUtil.newBuilder().build();
+    var command = new OperatorCommand();
+
+    when(commandJourneyService.getCommandJourneyOrThrow(commandJourneyId)).thenReturn(commandJourney);
+    when(commandJourneyService.getActiveFeatures(commandJourney)).thenReturn(List.of(splitFeature, unsplitFeature));
+    when(strataSplitOperatorService.strataSplitPolygon(splitFeature, depth))
+        .thenReturn(List.of(aboveFeature, belowFeature));
+    when(strataSplitOperatorService.strataSplitPolygon(unsplitFeature, depth)).thenReturn(List.of());
+    when(operatorCommandService.createOperatorCommand(
+        commandJourney, Set.of(splitFeature.getId()), TransformationType.STRATA_SPLIT)).thenReturn(command);
+
+    var result = operatorCommandReceiver.executeStrataSplit(request);
+
+    assertThat(result).containsExactly(aboveFeature, belowFeature);
+    verify(featureJourneyStateService).deactivateFeatures(commandJourney, List.of(splitFeature));
+    verify(featureJourneyStateService)
+        .createFeatureJourneyStatesForCommandOutput(commandJourney, command, List.of(aboveFeature, belowFeature));
+  }
+
+  @Test
+  void executeStrataSplit_whenUndoneCommandsExist_clearsUndoStackBeforeCreatingNewCommand() {
+    var commandJourneyId = UUID.randomUUID();
+    var depth = -2000L;
+    var inputFeature = FeatureTestUtil.newBuilder().build();
+    var request = new StrataSplitFromMapRequest(List.of(inputFeature.getId()), commandJourneyId, depth);
+
+    var commandJourney = CommandJourneyTestUtil.newBuilder().withId(commandJourneyId).build();
+    var aboveFeature = FeatureTestUtil.newBuilder().build();
+    var belowFeature = FeatureTestUtil.newBuilder().build();
+    var command = new OperatorCommand();
+    var undoneCommand = OperatorCommandTestUtil.newBuilder().withStatus(CommandStatus.UNDONE).build();
+    var orphanedFeature = FeatureTestUtil.newBuilder().build();
+
+    when(commandJourneyService.getCommandJourneyOrThrow(commandJourneyId)).thenReturn(commandJourney);
+    when(commandJourneyService.getActiveFeatures(commandJourney)).thenReturn(List.of(inputFeature));
+    when(strataSplitOperatorService.strataSplitPolygon(inputFeature, depth))
+        .thenReturn(List.of(aboveFeature, belowFeature));
+    when(operatorCommandService.getUndoneCommands(commandJourney)).thenReturn(List.of(undoneCommand));
+    when(featureJourneyStateService.deleteFeatureJourneyStatesCreatedByCommands(List.of(undoneCommand)))
+        .thenReturn(List.of(orphanedFeature));
+    when(operatorCommandService.createOperatorCommand(
+        commandJourney, Set.of(inputFeature.getId()), TransformationType.STRATA_SPLIT)).thenReturn(command);
+
+    operatorCommandReceiver.executeStrataSplit(request);
+
+    verify(featureService).deleteAll(List.of(orphanedFeature));
+    verify(operatorCommandService).deleteCommands(List.of(undoneCommand));
+  }
+
+  @Test
+  void executeStrataSplit_whenNoFeatureIsSplit_returnsEmptyListAndRecordsNothing() {
+    var commandJourneyId = UUID.randomUUID();
+    var depth = -2000L;
+    var inputFeature = FeatureTestUtil.newBuilder().build();
+    var request = new StrataSplitFromMapRequest(List.of(inputFeature.getId()), commandJourneyId, depth);
+
+    var commandJourney = CommandJourneyTestUtil.newBuilder().withId(commandJourneyId).build();
+
+    when(commandJourneyService.getCommandJourneyOrThrow(commandJourneyId)).thenReturn(commandJourney);
+    when(commandJourneyService.getActiveFeatures(commandJourney)).thenReturn(List.of(inputFeature));
+    when(strataSplitOperatorService.strataSplitPolygon(inputFeature, depth)).thenReturn(List.of());
+
+    var result = operatorCommandReceiver.executeStrataSplit(request);
+
+    assertThat(result).isEmpty();
+    verifyNoInteractions(operatorCommandService);
+    verify(featureJourneyStateService, never()).deactivateFeatures(any(), any());
+    verify(featureJourneyStateService, never()).createFeatureJourneyStatesForCommandOutput(any(), any(), any());
+  }
+
+  @Test
+  void executeStrataSplit_whenNoFeatureIds_returnsEmptyListAndRecordsNothing() {
+    var request = new StrataSplitFromMapRequest(List.of(), UUID.randomUUID(), -2000L);
+
+    var result = operatorCommandReceiver.executeStrataSplit(request);
+
+    assertThat(result).isEmpty();
+    verifyNoInteractions(
+        commandJourneyService, strataSplitOperatorService, operatorCommandService, featureJourneyStateService);
+  }
+
+  @Test
+  void executeStrataSplit_whenNoDepth_throwsAndRecordsNothing() {
+    var request = new StrataSplitFromMapRequest(List.of(UUID.randomUUID()), UUID.randomUUID(), null);
+
+    assertThatThrownBy(() -> operatorCommandReceiver.executeStrataSplit(request))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("A depth must be provided to strata split");
+
+    verifyNoInteractions(
+        commandJourneyService, strataSplitOperatorService, operatorCommandService, featureJourneyStateService);
+  }
+
+  @Test
+  void executeStrataSplit_whenARequestedFeatureIsNotActiveInJourney_throwsAndRecordsNothing() {
+    var commandJourneyId = UUID.randomUUID();
+    var activeFeature = FeatureTestUtil.newBuilder().build();
+    var request = new StrataSplitFromMapRequest(
+        List.of(activeFeature.getId(), UUID.randomUUID()), commandJourneyId, -2000L);
+
+    var commandJourney = CommandJourneyTestUtil.newBuilder().withId(commandJourneyId).build();
+
+    when(commandJourneyService.getCommandJourneyOrThrow(commandJourneyId)).thenReturn(commandJourney);
+    when(commandJourneyService.getActiveFeatures(commandJourney)).thenReturn(List.of(activeFeature));
+
+    assertThatThrownBy(() -> operatorCommandReceiver.executeStrataSplit(request))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("All features must be active members of command journey %s".formatted(commandJourneyId));
+
+    verifyNoInteractions(strataSplitOperatorService, operatorCommandService, featureJourneyStateService);
   }
 
   @Test

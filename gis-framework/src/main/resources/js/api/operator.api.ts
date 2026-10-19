@@ -46,8 +46,29 @@ export async function mergeFeatures(
     headers: { "Content-Type": "application/json", [csrfHeaderName]: csrfToken },
     body: JSON.stringify({ featureIds, commandJourneyId }),
   });
-  if (!response.ok) return Promise.reject(`Response status: ${response.statusText}`);
+  if (!response.ok) {
+    return Promise.reject(`Response status: ${response.statusText}`);
+  }
   return await response.json() as JsonMergeResponse;
+}
+
+export async function strataSplitFeatures(
+  strataSplitUrl: string,
+  featureIds: string[],
+  depth: number,
+  commandJourneyId: string,
+  csrfHeaderName: string,
+  csrfToken: string,
+): Promise<JsonSplitResponse> {
+  const response = await fetch(strataSplitUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", [csrfHeaderName]: csrfToken },
+    body: JSON.stringify({ featureIds, commandJourneyId, depth }),
+  });
+  if (!response.ok) {
+    return Promise.reject(`Response status: ${response.statusText}`);
+  }
+  return await response.json() as JsonSplitResponse;
 }
 
 export async function undo(

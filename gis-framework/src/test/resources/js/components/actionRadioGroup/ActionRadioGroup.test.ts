@@ -5,8 +5,8 @@ import ActionRadioGroup from "@/components/actionRadioGroup/ActionRadioGroup.vue
 const validationError = "Select what action you would like to perform";
 const hint = "You can perform multiple actions before finalising.";
 
-function renderSelect(hasActions = false, canMerge = true) {
-  return render(ActionRadioGroup, { props: { hasActions, canMerge } });
+function renderSelect(hasActions = false, canMerge = true, canAddStrata = true) {
+  return render(ActionRadioGroup, { props: { hasActions, canMerge, canAddStrata } });
 }
 
 function radioLabels() {
@@ -32,10 +32,13 @@ describe("depthActionSelect", () => {
   });
 
   it.each([
-    { canMerge: true, expectedLabels: ["Split", "Add strata", "Merge", "Rename"] },
-    { canMerge: false, expectedLabels: ["Split", "Add strata", "Rename"] },
-  ])("offers $expectedLabels when canMerge is $canMerge", ({ canMerge, expectedLabels }) => {
-    renderSelect(false, canMerge);
+    { canMerge: true, canAddStrata: true, expectedLabels: ["Add strata", "Merge", "Rename", "Split"] },
+    { canMerge: false, canAddStrata: true, expectedLabels: ["Add strata", "Rename", "Split"] },
+    { canMerge: true, canAddStrata: false, expectedLabels: ["Merge", "Rename", "Split"] },
+  ])("offers $expectedLabels when canMerge is $canMerge and canAddStrata is $canAddStrata", (
+    { canMerge, canAddStrata, expectedLabels },
+  ) => {
+    renderSelect(false, canMerge, canAddStrata);
 
     expect(radioLabels()).toEqual(expectedLabels);
   });
@@ -48,7 +51,7 @@ describe("depthActionSelect", () => {
     expect(screen.getByRole("group", { name: "What action would you like to perform first?" }))
       .toHaveAccessibleDescription(`${hint} Error:${validationError}`);
     expect(emitted()["validation-error"]).toEqual([
-      [{ message: validationError, fieldId: screen.getByRole("radio", { name: "Split" }).id }],
+      [{ message: validationError, fieldId: screen.getByRole("radio", { name: "Add strata" }).id }],
     ]);
     expect(emitted().select).toBeUndefined();
   });
@@ -78,7 +81,7 @@ describe("depthActionSelect", () => {
     const { emitted, rerender } = renderSelect(false, true);
     await fireEvent.click(screen.getByRole("radio", { name: "Merge" }));
 
-    await rerender({ hasActions: false, canMerge: false });
+    await rerender({ hasActions: false, canMerge: false, canAddStrata: true });
     await fireEvent.click(screen.getByRole("button", { name: "Continue" }));
 
     expect(screen.getByRole("group", { name: "What action would you like to perform first?" }))

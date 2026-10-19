@@ -2,10 +2,10 @@
   <h2 ref="heading" class="govuk-heading-m govuk-!-margin-top-4" tabindex="-1">
     Split
   </h2>
-  <details-component summary="How can I split the feature?">
+  <details-component summary="How can I split the subarea?">
     <p class="govuk-body">
-      You can split the feature by clicking the snap points on the map to draw a line.
-      The split happens as soon as the line fully crosses the feature.
+      You can split the subarea by clicking the snap points on the map to draw a line.
+      The split happens as soon as the line fully crosses the subarea.
       You can only draw a single line at a time.
     </p>
     <p v-if="depth !== undefined" class="govuk-body">

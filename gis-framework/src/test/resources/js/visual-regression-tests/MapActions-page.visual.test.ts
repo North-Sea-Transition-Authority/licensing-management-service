@@ -10,6 +10,7 @@ import depthMapEd50 from "../fixtures/depthMapEd50.esriJson.json";
 import depthMapMergeEd50 from "../fixtures/depthMapEd50.merge.esriJson.json";
 import depthMapOutlineNodes from "../fixtures/depthMapEd50.outlineNodes.json";
 import depthMapSplitEd50 from "../fixtures/depthMapEd50.split.esriJson.json";
+import depthMapStrataSplitEd50 from "../fixtures/depthMapEd50.strataSplit.esriJson.json";
 import { worker } from "./setup";
 import {
   clickSnapPointBelow,
@@ -27,9 +28,9 @@ const textualDescriptionHtml = `<div class="gis-textual-description">
 </div>`;
 
 /**
- * Registers stateful handlers: `GET features` returns the split or merge fixture once `POST split` or `POST merge`
- * has been called, and history reports an undoable action from then on. Returns a getter for the number of
- * `GET features` requests, used to wait for the map to reload.
+ * Registers stateful handlers: `GET features` returns the split, merge or strata split fixture once `POST split`,
+ * `POST merge` or `POST strata-split` has been called, and history reports an undoable action from then on. Returns
+ * a getter for the number of `GET features` requests, used to wait for the map to reload.
  */
 function mockEndpoints(): { featuresRequests: () => number } {
   let features: JsonBodyType = depthMapEd50;
@@ -50,6 +51,10 @@ function mockEndpoints(): { featuresRequests: () => number } {
     http.post("/api/merge", () => {
       features = depthMapMergeEd50;
       return HttpResponse.json({ outputFeatureId: "merged" });
+    }),
+    http.post("/api/strata-split", () => {
+      features = depthMapStrataSplitEd50;
+      return HttpResponse.json({ outputFeatureIds: ["middle-above", "middle-below"] });
     }),
   );
 
@@ -97,6 +102,18 @@ async function chooseMerge(screen: ReturnType<typeof renderInFixedWidthContainer
   await screen.getByRole("radio", { name: "Merge" }).click();
   await screen.getByRole("button", { name: "Continue" }).click();
   await expect.element(screen.getByRole("heading", { name: "Merge" })).toBeVisible();
+}
+
+async function chooseAddStrata(screen: ReturnType<typeof renderInFixedWidthContainer>) {
+  await screen.getByRole("radio", { name: "Add strata" }).click();
+  await screen.getByRole("button", { name: "Continue" }).click();
+  await expect.element(screen.getByRole("heading", { name: "Add strata" })).toBeVisible();
+}
+
+async function addStrataToMiddleBlockAt(screen: ReturnType<typeof renderInFixedWidthContainer>, depth: string) {
+  await screen.getByRole("textbox", { name: "What depth is the new stratigraphic boundary at?" }).fill(depth);
+  await screen.getByRole("checkbox", { name: "Middle block" }).click();
+  await screen.getByRole("button", { name: "Add strata" }).click();
 }
 
 async function tickShallowAndMiddleBlocks(screen: ReturnType<typeof renderInFixedWidthContainer>) {
@@ -227,5 +244,49 @@ describe("map actions page", () => {
     await settleForScreenshot();
 
     await expect(screen.locator).toMatchScreenshot("map-actions-merge-result");
+  });
+
+  it("shows the add strata panel listing every feature with its depth ranges when add strata is chosen", async () => {
+    mockEndpoints();
+    const screen = renderInFixedWidthContainer();
+    await waitForPageLoaded();
+
+    await chooseAddStrata(screen);
+    await settleForScreenshot();
+
+    await expect(screen.locator).toMatchScreenshot("map-actions-add-strata-mode");
+  });
+
+  it("shows the error and highlights the ticked feature when the depth is already a boundary", async () => {
+    mockEndpoints();
+    const screen = renderInFixedWidthContainer();
+    await waitForPageLoaded();
+    await chooseAddStrata(screen);
+
+    await addStrataToMiddleBlockAt(screen, "-100");
+    await expect.element(screen.getByRole("link", {
+      name: "Middle block cannot be split at -100 as it is outside the subarea or is already a boundary",
+    })).toBeVisible();
+    await settleForScreenshot();
+
+    await expect(screen.locator).toMatchScreenshot("map-actions-add-strata-validation");
+  });
+
+  it("adds the new depth band and returns to the action select once strata is added", async () => {
+    const { featuresRequests } = mockEndpoints();
+    const screen = renderInFixedWidthContainer();
+    await waitForPageLoaded();
+    await chooseAddStrata(screen);
+    const before = featuresRequests();
+
+    await addStrataToMiddleBlockAt(screen, "-150");
+
+    await expect.poll(() => featuresRequests(), { timeout: 15000, interval: 100 }).toBeGreaterThan(before);
+    await expect.element(screen.getByRole("group", { name: "What action would you like to perform next?" }))
+      .toBeVisible();
+    await expect.poll(() => document.querySelectorAll(".depth-marker").length).toBe(4);
+    await settleForScreenshot();
+
+    await expect(screen.locator).toMatchScreenshot("map-actions-add-strata-result");
   });
 });

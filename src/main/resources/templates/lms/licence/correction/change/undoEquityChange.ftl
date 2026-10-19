@@ -10,7 +10,7 @@
       <@fdsSummaryList.summaryList>
         <#list setEquityRows as row>
           <@fdsSummaryList.summaryListRowNoAction keyText=row.organisationName()>
-            ${row.equity()}%
+            ${percentage.format(row.equity())}
           </@fdsSummaryList.summaryListRowNoAction>
         </#list>
       </@fdsSummaryList.summaryList>
@@ -30,7 +30,7 @@
           <tr class="govuk-table__row">
             <td class="govuk-table__cell">${row.transferFromOrganisationName()}</td>
             <td class="govuk-table__cell">${row.transferToOrganisationName()}</td>
-            <td class="govuk-table__cell govuk-table__cell--numeric">${row.equity()}%</td>
+            <td class="govuk-table__cell govuk-table__cell--numeric">${percentage.format(row.equity())}</td>
           </tr>
         </#list>
         </tbody>

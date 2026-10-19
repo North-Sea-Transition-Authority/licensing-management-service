@@ -1,20 +1,25 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.transferequity;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.entry;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.TreeMap;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
@@ -304,6 +309,62 @@ class TransferEquityCorrectionServiceTest {
         .singleElement()
         .usingRecursiveComparison()
         .isEqualTo(new TransferEquityHoldingView("", "", BigDecimal.valueOf(100), true));
+  }
+
+  @Test
+  void getTransferFromOptions_whenSomeOrganisationsHoldNoEquity_thenListsOnlyHoldersOrderedByName() {
+    var equityHoldings = new TreeMap<>(Map.of(
+        1, BigDecimal.valueOf(60),
+        2, BigDecimal.valueOf(25),
+        3, BigDecimal.ZERO,
+        4, BigDecimal.valueOf(15)
+    ));
+    when(organisationUnitQueryService.getOrganisationUnitNamesByIds(List.of(1, 2, 4)))
+        .thenReturn(Map.of(1, "Charlie Org", 2, "alpha Org", 4, "Bravo Org"));
+
+    var options = transferEquityCorrectionService.getTransferFromOptions(equityHoldings);
+
+    assertThat(options).containsExactly(
+        entry("2", "alpha Org (25%)"),
+        entry("4", "Bravo Org (15%)"),
+        entry("1", "Charlie Org (60%)")
+    );
+  }
+
+  @ParameterizedTest
+  @CsvSource({
+      "60.0000000000, Org One (60%)",
+      "100.0000000000, Org One (100%)",
+      "33.3333333333, Org One (33.3333333333%)",
+      "0.0000000001, Org One (0.0000000001%)"
+  })
+  void getTransferFromOptions_whenOrganisationHoldsEquity_thenLabelShowsPlainPercentage(
+      String equity,
+      String expectedLabel
+  ) {
+    when(organisationUnitQueryService.getOrganisationUnitNamesByIds(List.of(1)))
+        .thenReturn(Map.of(1, "Org One"));
+
+    var options = transferEquityCorrectionService.getTransferFromOptions(Map.of(1, new BigDecimal(equity)));
+
+    assertThat(options).isEqualTo(Map.of("1", expectedLabel));
+  }
+
+  @Test
+  void getTransferFromOptions_whenNoOrganisationHoldsEquity_thenReturnsEmptyWithoutLookingUpNames() {
+    var options = transferEquityCorrectionService.getTransferFromOptions(Map.of(1, BigDecimal.ZERO));
+
+    assertThat(options).isEmpty();
+    verifyNoInteractions(organisationUnitQueryService);
+  }
+
+  @Test
+  void getTransferFromOptions_whenOrganisationNameUnknown_thenUsesNotAvailable() {
+    when(organisationUnitQueryService.getOrganisationUnitNamesByIds(List.of(1))).thenReturn(Map.of());
+
+    var options = transferEquityCorrectionService.getTransferFromOptions(Map.of(1, BigDecimal.valueOf(60)));
+
+    assertThat(options).isEqualTo(Map.of("1", "Not available (60%)"));
   }
 
   @Test

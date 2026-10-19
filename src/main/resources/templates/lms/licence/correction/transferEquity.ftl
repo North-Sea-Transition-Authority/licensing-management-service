@@ -8,10 +8,9 @@
 >
     <@fdsForm.htmlForm>
 
-        <@fdsSearchSelector.searchSelectorRest
+        <@fdsSearchSelector.searchSelectorEnhanced
         path="form.transferFrom"
-        restUrl=springUrl(licenseeOrgUnitUrl)
-        preselectedItems=preselectedTransferFrom
+        options=transferFromOptions
         labelText="Organisation equity is being transferred from"
         />
 

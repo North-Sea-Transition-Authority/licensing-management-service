@@ -5,6 +5,7 @@
   pageHeading=pageTitle
   caption=pageCaption
   backLinkUrl=springUrl(backLinkUrl)
+  pageSize=PageSize.FULL_COLUMN
 >
     <#if transferEquityViews?size == 0>
         <@fdsSummaryList.summaryListCard headingText="Transfers" summaryListId="transfers">
@@ -30,7 +31,7 @@
                 <tr class="govuk-table__row">
                   <td class="govuk-table__cell">${view.transferFromOrganisationName()}</td>
                   <td class="govuk-table__cell">${view.transferToOrganisationName()}</td>
-                  <td class="govuk-table__cell govuk-table__cell--numeric">${view.equity()}%</td>
+                  <td class="govuk-table__cell govuk-table__cell--numeric">${percentage.format(view.equity())}</td>
                   <td class="govuk-table__cell">
                       <#if !withdrawApplicable[view?index]>
                         N/A

@@ -25,7 +25,7 @@
                 <tbody class="govuk-table__body">
                 <tr class="govuk-table__row">
                   <td class="govuk-table__cell">${view.organisationName()}</td>
-                  <td class="govuk-table__cell govuk-table__cell--numeric">${view.equity()}%</td>
+                  <td class="govuk-table__cell govuk-table__cell--numeric">${percentage.format(view.equity())}</td>
                   <td class="govuk-table__cell govuk-table__cell--numeric">
                     <@fdsForm.htmlForm actionUrl=springUrl(removeUrls[view?index])>
                       <@fdsAction.button buttonText="Remove" buttonClass="fds-link-button"/>
@@ -43,7 +43,7 @@
 
       <div class="govuk-!-margin-bottom-6">
         <p class="govuk-body govuk-!-font-size-24 govuk-!-font-weight-bold">
-          Total beneficial interest: ${totalEquity}%
+          Total beneficial interest: ${percentage.format(totalEquity)}
         </p>
       </div>
     </#if>

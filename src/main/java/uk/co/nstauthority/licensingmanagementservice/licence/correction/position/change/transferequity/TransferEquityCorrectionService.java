@@ -1,5 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.transferequity;
 
+import static uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionChangeUtil.NOT_AVAILABLE;
+
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -29,6 +31,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePos
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionViewService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.TransferEquityHoldingView;
+import uk.co.nstauthority.licensingmanagementservice.util.StreamUtil;
 
 @Service
 public class TransferEquityCorrectionService {
@@ -153,6 +156,30 @@ public class TransferEquityCorrectionService {
             operation.retainBeneficialInterest()
         ))
         .toList();
+  }
+
+  public Map<String, String> getTransferFromOptions(Map<Integer, BigDecimal> equityHoldings) {
+    var holdings = equityHoldings.entrySet().stream()
+        .filter(holding -> holding.getValue().compareTo(BigDecimal.ZERO) > 0)
+        .toList();
+
+    if (holdings.isEmpty()) {
+      return Map.of();
+    }
+
+    var organisationNames = organisationUnitQueryService.getOrganisationUnitNamesByIds(
+        holdings.stream().map(Map.Entry::getKey).toList()
+    );
+
+    return holdings.stream()
+        .map(holding -> Map.entry(
+            String.valueOf(holding.getKey()),
+            "%s (%s%%)".formatted(
+                organisationNames.getOrDefault(holding.getKey(), NOT_AVAILABLE),
+                holding.getValue().stripTrailingZeros().toPlainString())
+        ))
+        .sorted(Map.Entry.comparingByValue(String.CASE_INSENSITIVE_ORDER))
+        .collect(StreamUtil.toLinkedHashMap(Map.Entry::getKey, Map.Entry::getValue));
   }
 
   public List<TransferEquityOperation> getCommittedTransferEquityOperationsForExecutedPosition(

@@ -148,7 +148,7 @@
 <#macro setEquityRows change>
   <#list change.rows() as row>
     <@fdsSummaryList.summaryListRowNoAction keyText=row.organisationName()>
-      ${row.equity()}%
+      ${percentage.format(row.equity())}
     </@fdsSummaryList.summaryListRowNoAction>
   </#list>
 </#macro>
@@ -182,13 +182,13 @@
       <tr class="govuk-table__row">
         <td class="govuk-table__cell">
         <div>${holding.transferFromOrganisationName()}</div>
-        <div class="govuk-hint govuk-!-margin-bottom-0">before this position they had ${holding.transferFromStartingEquity()}%</div>
+        <div class="govuk-hint govuk-!-margin-bottom-0">before this position they had ${percentage.format(holding.transferFromStartingEquity())}</div>
         </td>
         <td class="govuk-table__cell">
       <div>${holding.transferToOrganisationName()}</div>
-      <div class="govuk-hint govuk-!-margin-bottom-0">before this position they had ${holding.transferToStartingEquity()}%</div>
+      <div class="govuk-hint govuk-!-margin-bottom-0">before this position they had ${percentage.format(holding.transferToStartingEquity())}</div>
     </td>
-      <td class="govuk-table__cell govuk-table__cell--numeric">${holding.equity()}%</td>
+      <td class="govuk-table__cell govuk-table__cell--numeric">${percentage.format(holding.equity())}</td>
     </tr>
   </#list>
     </tbody>

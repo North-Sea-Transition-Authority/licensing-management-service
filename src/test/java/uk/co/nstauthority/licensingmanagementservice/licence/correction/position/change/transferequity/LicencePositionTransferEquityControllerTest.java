@@ -103,6 +103,11 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
     var positionCorrection = addedPositionCorrection(correction);
     when(licencePositionCorrectionService.findById(POSITION_CORRECTION_ID))
         .thenReturn(Optional.of(positionCorrection));
+    var equityHoldings = Map.of(1, BigDecimal.valueOf(60));
+    when(transferEquityCorrectionService.getEquityHoldingsForAddedPosition(correction, positionCorrection))
+        .thenReturn(equityHoldings);
+    var transferFromOptions = Map.of("1", "Org One (60%)");
+    when(transferEquityCorrectionService.getTransferFromOptions(equityHoldings)).thenReturn(transferFromOptions);
 
     mockMvc.perform(get(addedFormUrl()).with(user(regulatorUser)))
         .andExpectAll(
@@ -112,7 +117,7 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
             model().attribute("pageCaption", LICENCE_REFERENCE),
             model().attribute("form", instanceOf(LicencePositionTransferEquityForm.class)),
             model().attribute("licenseeOrgUnitUrl", licenseeOrgUnitUrl()),
-            model().attribute("preselectedTransferFrom", Map.of()),
+            model().attribute("transferFromOptions", transferFromOptions),
             model().attribute("preselectedTransferTo", Map.of()),
             model().attribute("backLinkUrl", addedChangeChooserUrl()));
   }
@@ -134,7 +139,7 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
             model().attribute("pageCaption", LICENCE_REFERENCE),
             model().attribute("form", instanceOf(LicencePositionTransferEquityForm.class)),
             model().attribute("licenseeOrgUnitUrl", licenseeOrgUnitUrl()),
-            model().attribute("preselectedTransferFrom", Map.of()),
+            model().attribute("transferFromOptions", Map.of()),
             model().attribute("preselectedTransferTo", Map.of()),
             model().attribute("backLinkUrl", addedSummaryUrl()));
   }
@@ -184,7 +189,7 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
   }
 
   @Test
-  void submitForAddedPosition_whenInvalid_rendersFormWithPreselectedOrganisationsAndDoesNotPersist() throws Exception {
+  void submitForAddedPosition_whenInvalid_rendersFormWithTransferFromOptionsAndDoesNotPersist() throws Exception {
     var correction = givenCorrectionAllocatedToUser();
     var positionCorrection = addedPositionCorrection(correction);
     when(licencePositionCorrectionService.findById(POSITION_CORRECTION_ID))
@@ -197,7 +202,8 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
     form.setTransferFrom("1");
     form.setTransferTo("2");
     when(validator.hasErrors(eq(form), any(BindingResult.class), eq(equityHoldings))).thenReturn(true);
-    when(organisationUnitQueryService.getOrganisationUnitSelectOption("1")).thenReturn(Map.of("1", "Org One"));
+    var transferFromOptions = Map.of("1", "Org One (60%)");
+    when(transferEquityCorrectionService.getTransferFromOptions(equityHoldings)).thenReturn(transferFromOptions);
     when(organisationUnitQueryService.getOrganisationUnitSelectOption("2")).thenReturn(Map.of("2", "Org Two"));
 
     mockMvc.perform(post(addedFormUrl()).with(user(regulatorUser)).with(csrf()).flashAttr("form", form))
@@ -208,7 +214,7 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
             model().attribute("pageCaption", LICENCE_REFERENCE),
             model().attribute("form", form),
             model().attribute("licenseeOrgUnitUrl", licenseeOrgUnitUrl()),
-            model().attribute("preselectedTransferFrom", Map.of("1", "Org One")),
+            model().attribute("transferFromOptions", transferFromOptions),
             model().attribute("preselectedTransferTo", Map.of("2", "Org Two")),
             model().attribute("backLinkUrl", addedChangeChooserUrl()));
 
@@ -409,9 +415,14 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
 
   @Test
   void renderForExecutedPosition_whenAllocated_rendersFormWithPositionBackLink() throws Exception {
-    givenCorrectionAllocatedToUser();
+    var correction = givenCorrectionAllocatedToUser();
     var licencePosition = executedPosition();
     when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(licencePosition));
+    var equityHoldings = Map.of(1, BigDecimal.valueOf(60));
+    when(transferEquityCorrectionService.getEquityHoldingsForCorrection(correction, POSITION_ID))
+        .thenReturn(equityHoldings);
+    var transferFromOptions = Map.of("1", "Org One (60%)");
+    when(transferEquityCorrectionService.getTransferFromOptions(equityHoldings)).thenReturn(transferFromOptions);
 
     mockMvc.perform(get(executedFormUrl()).with(user(regulatorUser)))
         .andExpectAll(
@@ -421,7 +432,7 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
             model().attribute("pageCaption", LICENCE_REFERENCE),
             model().attribute("form", instanceOf(LicencePositionTransferEquityForm.class)),
             model().attribute("licenseeOrgUnitUrl", licenseeOrgUnitUrl()),
-            model().attribute("preselectedTransferFrom", Map.of()),
+            model().attribute("transferFromOptions", transferFromOptions),
             model().attribute("preselectedTransferTo", Map.of()),
             model().attribute("backLinkUrl", executedPositionUrl()));
   }
@@ -443,7 +454,7 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
             model().attribute("pageCaption", LICENCE_REFERENCE),
             model().attribute("form", instanceOf(LicencePositionTransferEquityForm.class)),
             model().attribute("licenseeOrgUnitUrl", licenseeOrgUnitUrl()),
-            model().attribute("preselectedTransferFrom", Map.of()),
+            model().attribute("transferFromOptions", Map.of()),
             model().attribute("preselectedTransferTo", Map.of()),
             model().attribute("backLinkUrl", executedSummaryUrl()));
   }
@@ -542,7 +553,7 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
   }
 
   @Test
-  void submitForExecutedPosition_whenInvalid_rendersFormWithPreselectedOrganisationsAndDoesNotPersist() throws Exception {
+  void submitForExecutedPosition_whenInvalid_rendersFormWithTransferFromOptionsAndDoesNotPersist() throws Exception {
     var correction = givenCorrectionAllocatedToUser();
     var licencePosition = executedPosition();
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(licencePosition);
@@ -555,7 +566,8 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
     form.setTransferFrom("1");
     form.setTransferTo("2");
     when(validator.hasErrors(eq(form), any(BindingResult.class), eq(equityHoldings))).thenReturn(true);
-    when(organisationUnitQueryService.getOrganisationUnitSelectOption("1")).thenReturn(Map.of("1", "Org One"));
+    var transferFromOptions = Map.of("1", "Org One (60%)");
+    when(transferEquityCorrectionService.getTransferFromOptions(equityHoldings)).thenReturn(transferFromOptions);
     when(organisationUnitQueryService.getOrganisationUnitSelectOption("2")).thenReturn(Map.of("2", "Org Two"));
 
     mockMvc.perform(post(executedFormUrl()).with(user(regulatorUser)).with(csrf()).flashAttr("form", form))
@@ -566,7 +578,7 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
             model().attribute("pageCaption", LICENCE_REFERENCE),
             model().attribute("form", form),
             model().attribute("licenseeOrgUnitUrl", licenseeOrgUnitUrl()),
-            model().attribute("preselectedTransferFrom", Map.of("1", "Org One")),
+            model().attribute("transferFromOptions", transferFromOptions),
             model().attribute("preselectedTransferTo", Map.of("2", "Org Two")),
             model().attribute("backLinkUrl", executedPositionUrl()));
 
@@ -590,7 +602,6 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
 
     mockMvc.perform(post(executedFormUrl()).with(user(regulatorUser)).with(csrf()).flashAttr("form", form))
         .andExpect(status().isOk())
-        .andExpect(model().attribute("preselectedTransferFrom", Map.of()))
         .andExpect(model().attribute("preselectedTransferTo", Map.of()));
   }
 

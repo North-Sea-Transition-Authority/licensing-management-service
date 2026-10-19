@@ -29,7 +29,7 @@
     <@fdsSummaryList.summaryListCard headingText="Beneficial interests" summaryListId="beneficial-interests">
       <#list licencePositionState.beneficialInterests() as beneficialInterest>
         <@fdsSummaryList.summaryListRowNoAction keyText=beneficialInterest.organisationName()>
-          ${beneficialInterest.equity()}%
+          ${percentage.format(beneficialInterest.equity())}
         </@fdsSummaryList.summaryListRowNoAction>
       </#list>
     </@fdsSummaryList.summaryListCard>

@@ -69,7 +69,9 @@ public class LicencePositionTransferEquityController {
     return transferEquityModelAndView(
         correction,
         new LicencePositionTransferEquityForm(),
-        executedAddTransferBackLinkUrl(correction, licencePosition));
+        transferEquityCorrectionService.getEquityHoldingsForCorrection(correction, licencePosition.getId()),
+        executedAddTransferBackLinkUrl(correction, licencePosition)
+    );
   }
 
   @PostMapping("/position/{licencePositionId}/transfer-equity")
@@ -85,7 +87,11 @@ public class LicencePositionTransferEquityController {
     var equityHoldings = transferEquityCorrectionService.getEquityHoldingsForCorrection(correction, licencePosition.getId());
     if (licencePositionTransferEquityFormValidator.hasErrors(form, bindingResult, equityHoldings)) {
       return transferEquityModelAndView(
-          correction, form, executedAddTransferBackLinkUrl(correction, licencePosition));
+          correction,
+          form,
+          equityHoldings,
+          executedAddTransferBackLinkUrl(correction, licencePosition)
+      );
     }
 
     transferEquityCorrectionService.addTransferEquityForExecutedPosition(correction, licencePosition, form);
@@ -220,7 +226,9 @@ public class LicencePositionTransferEquityController {
     return transferEquityModelAndView(
         correction,
         new LicencePositionTransferEquityForm(),
-        addedAddTransferBackLinkUrl(correction, licencePositionCorrection));
+        transferEquityCorrectionService.getEquityHoldingsForAddedPosition(correction, licencePositionCorrection),
+        addedAddTransferBackLinkUrl(correction, licencePositionCorrection)
+    );
   }
 
   @PostMapping("/added-position/{licencePositionCorrectionId}/transfer-equity")
@@ -235,7 +243,11 @@ public class LicencePositionTransferEquityController {
     var equityHoldings = transferEquityCorrectionService.getEquityHoldingsForAddedPosition(correction, licencePositionCorrection);
     if (licencePositionTransferEquityFormValidator.hasErrors(form, bindingResult, equityHoldings)) {
       return transferEquityModelAndView(
-          correction, form, addedAddTransferBackLinkUrl(correction, licencePositionCorrection));
+          correction,
+          form,
+          equityHoldings,
+          addedAddTransferBackLinkUrl(correction, licencePositionCorrection)
+      );
     }
     transferEquityCorrectionService.addTransferEquity(licencePositionCorrection, form);
 
@@ -273,7 +285,8 @@ public class LicencePositionTransferEquityController {
         operation,
         withdrawForm(operation),
         addedWithdrawUrl(correction, licencePositionCorrection, index),
-        addedSummaryUrl(correction, licencePositionCorrection));
+        addedSummaryUrl(correction, licencePositionCorrection)
+    );
   }
 
   @PostMapping("/added-position/{licencePositionCorrectionId}/transfer-equity/withdraw")
@@ -335,7 +348,8 @@ public class LicencePositionTransferEquityController {
         addedPositionUrl(correction, licencePositionCorrection),
         removeUrls,
         withdrawUrls,
-        holdings);
+        holdings
+    );
   }
 
   @PostMapping("/added-position/{licencePositionCorrectionId}/transfer-equity/remove")
@@ -386,6 +400,7 @@ public class LicencePositionTransferEquityController {
   private ModelAndView transferEquityModelAndView(
       LicenceCorrection correction,
       LicencePositionTransferEquityForm form,
+      Map<Integer, BigDecimal> equityHoldings,
       String backLinkUrl
   ) {
     return new ModelAndView("lms/licence/correction/transferEquity")
@@ -394,8 +409,7 @@ public class LicencePositionTransferEquityController {
         .addObject("form", form)
         .addObject("licenseeOrgUnitUrl",
             SearchSelectorService.route(on(OrganisationUnitRestController.class).searchOrganisationUnits(null)))
-        .addObject("preselectedTransferFrom",
-            organisationUnitQueryService.getOrganisationUnitSelectOption(form.getTransferFrom()))
+        .addObject("transferFromOptions", transferEquityCorrectionService.getTransferFromOptions(equityHoldings))
         .addObject("preselectedTransferTo",
             organisationUnitQueryService.getOrganisationUnitSelectOption(form.getTransferTo()))
         .addObject("backLinkUrl", backLinkUrl);

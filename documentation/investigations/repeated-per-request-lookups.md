@@ -22,7 +22,7 @@ come from reading the code and are estimates; see [Next steps](#next-steps) for 
 | Fix 5: stop repeating the schedule work in the task list | Done for the schedule application task list; the continuation overview shows the same pattern, not started |
 | Fix 3: route `getTeamTypesUserIsMemberOf` through `TeamQueryService` | Done |
 | Fix 1: request-scoped store for URL entities | Done for the schedule application detail and the continuation application detail; licence correction and licence position are with another team; licence and schedule detail not started |
-| Fix 2: request-scoped cache for organisation unit lookups | Done for "Get organisation units by ids"; the org group lookup is not cached |
+| Fix 2: request-scoped cache for organisation unit lookups | Done for "Get organisation units by ids" and confirmed on the continuation overview; the org group lookup is not cached |
 
 **Confirmed in the deployed request log: the schedule application task list went from 56 queries to 33**, and
 loads by id from 35 to 17 (PR #828). See
@@ -30,6 +30,10 @@ loads by id from 35 to 17 (PR #828). See
 
 **Confirmed in the deployed request log: the continuation overview went from 32 queries to 29** (PR #830). See
 [Measured: continuation overview](#measured-continuation-overview).
+Energy Portal calls on the same page went from 4 to 3 (PR #832).
+
+**Confirmed in the deployed request log: the work area went from 130 queries to 13** for the same user. See
+[Measured: work area](#measured-work-area).
 
 ## Why repeated loads cost queries here
 
@@ -81,7 +85,7 @@ log on 2026-10-20 before PR #830: **32 Hibernate queries**, 4 Energy Portal call
 | `licence_continuation_application_details by id` | 4 | 3 from the status rule, the access rule and the argument resolver (finding 1); the 4th from a child entity's eager back-reference to the detail (finding 4) | Fixed in PR #830; confirmed down to 1 |
 | Schedule state worked out twice | 14 | `licence_schedule_terms by licence_schedule_detail_id` 2, `licence_schedule_phases by licence_schedule_term_id` 2, `work_programme_activities by licence_schedule_term_id` 2, `other_schedule_events by licence_schedule_term_id, date_option` 2 and `other_schedule_events by licence_schedule_phase_id, date_option` 2, plus `licence_schedule_details by id` 2 and `licence_schedules by id` 2 (these did not change when the detail loads were fixed, so they belong to this work) | Not started; the callers need tracing, likely `getCurrentWorkProgrammeActivitiesViews` in the controller and the summary sections |
 | `file_upload_library_uploaded_files by usage_id, usage_type, document_type` | 3 | Probably different file types (supporting information, letters) | Likely genuine; not checked |
-| Energy Portal "Get organisation units by ids" | 2 | The access rule's licensee lookup and the overview's licensee display (finding 2) | Fix 2; expected to drop to 1 |
+| Energy Portal "Get organisation units by ids" | 2 | The access rule's licensee lookup and the overview's licensee display (finding 2) | Fix 2; confirmed down to 1 (PR #832) |
 
 The other 11 queries run once each.
 
@@ -103,6 +107,34 @@ The same request (same application, same user) from the request log on 2026-10-2
 - Response time was 284ms before and 480ms after. Three fewer queries cannot account for a slower request, and the
   Energy Portal calls were the same, so this is most likely variance between single requests (for example a cold
   start after the deploy). Compare several requests either side if timing matters.
+
+## Measured: work area
+
+`GET /work-area` (My work, no filters), from the `RequestLogFilter` log for user 300051, the same user throughout:
+
+| | Hibernate queries | Energy Portal calls |
+|---|---:|---:|
+| Original | 130 | 7 |
+| After the entity graphs on the application and continuation detail queries | 22 | 7 |
+| After PR #811 (team roles loaded once per request) | **13** | 7 |
+| After PR #832 (organisation units fetched once per request) | 13 | 7 |
+
+- The entity graphs removed 108 by-id loads of applications, licences, terms and phases.
+- PR #811 took the team role and team queries from 10 to 1: the top navigation, the controller and the sections now
+  share one `team_roles` load.
+- The remaining 12 queries are one per section (4 main queries, 4 `work_area_item_views`, 4
+  `licence_responsible_organisations`). Gathering them across sections (the shared context below) would cut them to
+  about 6.
+- "Get organisation units by ids" stayed at 4 after PR #832. PR #832 is confirmed working on the continuation
+  overview, so this means every section had at least one licensee not already fetched by an earlier section: each
+  later call now fetches only the organisation units not yet held, but the number of calls cannot drop. Cutting the
+  work area to 1 such call, and the org group lookup from 2 to 1, needs the sections to gather every id before
+  fetching. That would take Energy Portal calls from 7 to 3.
+- Response time was 705ms at 22 queries, 656ms after PR #811 and 477ms after PR #832, one request each, so treat it as
+  indicative only.
+
+For user 300052, who has no schedule administrator role (so the draft schedules section does not query), the work
+area is 12 queries and 5 Energy Portal calls, 2 of them "Get organisation units by ids".
 
 ## Findings
 
@@ -404,8 +436,13 @@ Done:
 - Outside a web request every lookup still calls the Energy Portal, as before.
 
 Measured with a throwaway integration test against the real beans and a mocked Energy Portal, running the overview's
-two lookups: 2 "Get organisation units by ids" calls outside a request (as before) and 1 inside one. Not yet confirmed
-from the request log.
+two lookups: 2 "Get organisation units by ids" calls outside a request (as before) and 1 inside one.
+
+Confirmed in the deployed request log for the continuation overview (same application): "Get organisation units by
+ids" went from 2 to 1 and Energy Portal calls from 4 to 3. That log shows 31 Hibernate queries rather than 29
+because it was for a user opening the application for the first time, which records the view (2 queries); the
+other counts are unchanged. On the work area it stayed at 4, because the sections' licensees only partly overlap;
+see [Measured: work area](#measured-work-area).
 
 Not covered:
 
@@ -509,10 +546,13 @@ Paths are relative to `src/main/java/uk/co/nstauthority/licensingmanagementservi
    fix 3.
 5. Trace why the continuation overview works out the schedule state twice (14 queries), and fix it the same way as
    fix 5 did for the schedule application task list. Planned as a separate fix.
-6. Capture the continuation overview log once fix 2 is deployed: "Get organisation units by ids" should drop from
-   2 to 1, and Energy Portal calls from 4 to 3.
+6. ~~Capture the continuation overview log once fix 2 is deployed~~ done: "Get organisation units by ids" 2 → 1,
+   Energy Portal calls 4 → 3.
 7. Fix 1 for licence and schedule detail, measuring after each (licence correction and licence position are with
    another team). Check the continuation task list log for the same patterns.
 8. Consider the remaining cost on the schedule application task list: the eager links on terms, phases and
    schedule details (14 queries) and the schedule state being worked out twice (5 queries). Both sit in the
    shared schedule services, so measure the timeline and other schedule pages before and after.
+9. Work area shared context: gather every section's licensees before fetching, so the Energy Portal is called once
+   for organisation units and once for org groups (7 → 3 calls), and the per-section queries are shared (13 → about
+   7). This changes the `WorkAreaItemProvider` interface.

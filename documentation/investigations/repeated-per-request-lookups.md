@@ -28,7 +28,7 @@ come from reading the code and are estimates; see [Next steps](#next-steps) for 
 loads by id from 35 to 17 (PR #828). See
 [Result for the schedule application task list](#result-for-the-schedule-application-task-list).
 
-The continuation overview has been measured before the changes in PR #830: 32 queries. See
+**Confirmed in the deployed request log: the continuation overview went from 32 queries to 29** (PR #830). See
 [Measured: continuation overview](#measured-continuation-overview).
 
 ## Why repeated loads cost queries here
@@ -78,15 +78,31 @@ log on 2026-10-20 before PR #830: **32 Hibernate queries**, 4 Energy Portal call
 
 | Repeat | Queries | Cause | Status |
 |---|---:|---|---|
-| `licence_continuation_application_details by id` | 4 | 3 from the status rule, the access rule and the argument resolver (finding 1); the 4th from a child entity's eager back-reference to the detail (finding 4) | Fixed in PR #830; expected to drop to 1 |
-| Schedule state worked out twice | 10 | `licence_schedule_terms by licence_schedule_detail_id` 2, `licence_schedule_phases by licence_schedule_term_id` 2, `work_programme_activities by licence_schedule_term_id` 2, `other_schedule_events by licence_schedule_term_id, date_option` 2 and `other_schedule_events by licence_schedule_phase_id, date_option` 2, probably with knock-on rows (`licence_schedule_details by id` 2, `licence_schedules by id` 2) | Not started; the callers need tracing, likely `getCurrentWorkProgrammeActivitiesViews` in the controller and the summary sections |
+| `licence_continuation_application_details by id` | 4 | 3 from the status rule, the access rule and the argument resolver (finding 1); the 4th from a child entity's eager back-reference to the detail (finding 4) | Fixed in PR #830; confirmed down to 1 |
+| Schedule state worked out twice | 14 | `licence_schedule_terms by licence_schedule_detail_id` 2, `licence_schedule_phases by licence_schedule_term_id` 2, `work_programme_activities by licence_schedule_term_id` 2, `other_schedule_events by licence_schedule_term_id, date_option` 2 and `other_schedule_events by licence_schedule_phase_id, date_option` 2, plus `licence_schedule_details by id` 2 and `licence_schedules by id` 2 (these did not change when the detail loads were fixed, so they belong to this work) | Not started; the callers need tracing, likely `getCurrentWorkProgrammeActivitiesViews` in the controller and the summary sections |
 | `file_upload_library_uploaded_files by usage_id, usage_type, document_type` | 3 | Probably different file types (supporting information, letters) | Likely genuine; not checked |
 | Energy Portal "Get organisation units by ids" | 2 | The access rule's licensee lookup and the overview's licensee display (finding 2) | Fix 2, not started |
 
 The other 11 queries run once each.
 
-Expected after PR #830: the 4 detail loads drop to 1, so the page should be around 29 queries, depending on how
-many knock-on rows each detail load brought with it. Confirm with the request log once deployed.
+#### Confirmed after PR #830
+
+The same request (same application, same user) from the request log on 2026-10-20 after PR #830 was deployed:
+**29 queries**, as expected.
+
+| Query | Before | After |
+|---|---:|---:|
+| `licence_continuation_application_details by id` | 4 | 1 |
+| Everything else | 28 | 28 |
+| **Total** | **32** | **29** |
+
+- Only the detail loads changed. The `licence_schedule_details by id` and `licence_schedules by id` rows stayed at 2
+  each, so they were not knock-ons of the detail loads; they are part of the schedule state being worked out
+  twice, which is now 14 of the 29 queries and the largest remaining cost on this page.
+- Energy Portal calls are unchanged (4), including the repeated organisation unit lookup.
+- Response time was 284ms before and 480ms after. Three fewer queries cannot account for a slower request, and the
+  Energy Portal calls were the same, so this is most likely variance between single requests (for example a cold
+  start after the deploy). Compare several requests either side if timing matters.
 
 ## Findings
 
@@ -463,10 +479,11 @@ Paths are relative to `src/main/java/uk/co/nstauthority/licensingmanagementservi
    are deployed~~ done: 56 → 33 queries, see
    [Confirmed in the deployed request log](#confirmed-in-the-deployed-request-log)
 3. Use the remaining logs to confirm the estimates and size the gain before changing anything.
-4. Capture the continuation overview log again once PR #830 is deployed (expected around 29 queries, from 32),
-   and a document template page log to confirm fix 3.
-5. Trace why the continuation overview works out the schedule state twice (10 queries), and fix it the same way as
-   fix 5 did for the schedule application task list.
+4. ~~Capture the continuation overview log again once PR #830 is deployed~~ done: 32 → 29 queries, see
+   [Confirmed after PR #830](#confirmed-after-pr-830). Still to capture: a document template page log to confirm
+   fix 3.
+5. Trace why the continuation overview works out the schedule state twice (14 queries), and fix it the same way as
+   fix 5 did for the schedule application task list. Planned as a separate fix.
 6. Fix 2: the continuation overview confirms a repeated Energy Portal organisation unit lookup.
 7. Fix 1 for licence and schedule detail, measuring after each (licence correction and licence position are with
    another team). Check the continuation task list log for the same patterns.

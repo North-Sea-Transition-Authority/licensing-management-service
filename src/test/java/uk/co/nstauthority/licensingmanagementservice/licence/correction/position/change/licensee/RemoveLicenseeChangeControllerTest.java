@@ -1,0 +1,262 @@
+package uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.licensee;
+
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
+import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
+import static uk.co.nstauthority.licensingmanagementservice.authentication.TestUserProvider.user;
+import static uk.co.nstauthority.licensingmanagementservice.util.RedirectedToLoginUrlMatcher.redirectionToLoginUrl;
+
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+import org.junit.jupiter.api.Test;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
+import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionChangeType;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayloadTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.UndoLicenseeChangeContext;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.ChangeViewUrls;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.LicenseeChangeView;
+import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
+
+@ContextConfiguration(classes = RemoveLicenseeChangeController.class)
+@ActiveProfiles("test")
+class RemoveLicenseeChangeControllerTest extends AbstractControllerTest {
+
+  @MockitoBean
+  private LicenseeChangeService licenseeChangeService;
+
+  private static final Licence LICENCE = LicenceTestUtil.builder().withId(1).build();
+  private static final String UNDO_PAGE_TITLE = "Are you sure you want to undo this licensee change?";
+  private static final UUID CORRECTION_ID = UUID.randomUUID();
+  private static final UUID POSITION_ID = UUID.randomUUID();
+  private static final String CHANGE_ID = UUID.randomUUID().toString();
+  private static final String CONFIRMATION_TEMPLATE = "lms/licence/correction/change/removeLicenseeChange";
+  private static final LicenceCorrection CORRECTION = LicenceCorrectionTestUtil.newBuilder()
+      .withId(CORRECTION_ID)
+      .withLicence(LICENCE)
+      .build();
+  private static final LicencePosition POSITION = LicencePositionTestUtil.newBuilder()
+      .withId(POSITION_ID)
+      .withLicence(LICENCE)
+      .build();
+  private final String updatePositionUrl = ReverseRouter.route(on(LicenceCorrectionController.class)
+      .renderLicencePosition(CORRECTION, POSITION));
+
+  @Test
+  void renderLicenseeChange_whenNotAllocatedToUser() throws Exception {
+    givenCorrectionNotAllocatedToUser();
+
+    mockMvc.perform(get(ReverseRouter.route(on(RemoveLicenseeChangeController.class)
+            .renderUndoLicenseeChange(CORRECTION, CHANGE_ID)))
+            .with(user(regulatorUser)))
+        .andExpect(status().isForbidden());
+  }
+
+  @Test
+  void undoLicenseeChange_whenNotLoggedIn() throws Exception {
+    mockMvc.perform(post(ReverseRouter.route(on(RemoveLicenseeChangeController.class)
+            .undoLicenseeChange(CORRECTION, CHANGE_ID, null)))
+            .with(csrf()))
+        .andExpect(redirectionToLoginUrl());
+  }
+
+  @Test
+  void renderUndoLicenseeChange_whenAllocatedToUser_updatePositionChangeType() throws Exception {
+    var correction = givenCorrectionAllocatedToUser();
+    var position = LicencePositionTestUtil.newBuilder().withId(POSITION_ID).withLicence(LICENCE).build();
+    var payload = CreateLicencePositionPayloadTestUtil.newBuilder().withLicencePositionId(POSITION_ID.toString()).build();
+    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+        .withTargetLicencePosition(position)
+        .withPayload(payload)
+        .build();
+
+    var undoChangeContext = new UndoLicenseeChangeContext(
+        List.of("currentWithdraw1"),
+        List.of("currentJoin1"),
+        List.of("restoreWithdraw1"),
+        List.of("restoreJoin1"),
+        List.of("org1, restoreJoin1")
+    );
+    var restoredLicenseeChangeView = new LicenseeChangeView(
+        undoChangeContext.currentWithdrawingLicenseeNames(),
+        undoChangeContext.currentJoiningLicenseeNames(),
+        "",
+        ChangeViewUrls.none()
+    );
+
+    when(licencePositionCorrectionService.getPositionCorrectionContainingChange(correction, CHANGE_ID))
+        .thenReturn(positionCorrection);
+    when(licenseeChangeService.getUndoLicenseeChangeContext(correction, positionCorrection, POSITION_ID))
+        .thenReturn(undoChangeContext);
+    when(licenseeChangeService.getRestoredLicenseeChangeView(
+        undoChangeContext.restoredWithdrawingLicenseeNames(),
+        undoChangeContext.restoredJoiningLicenseeNames())
+    )
+        .thenReturn(restoredLicenseeChangeView);
+
+    var expectedCurrentChangeView = new LicenseeChangeView(
+        List.of("currentWithdraw1"),
+        List.of("currentJoin1"),
+        "",
+        new ChangeViewUrls(null, null, null, null, null, null)
+    );
+
+    mockMvc.perform(get(ReverseRouter.route(on(RemoveLicenseeChangeController.class)
+            .renderUndoLicenseeChange(correction, CHANGE_ID)))
+            .with(user(regulatorUser)))
+        .andExpectAll(
+            status().isOk(),
+            view().name(CONFIRMATION_TEMPLATE),
+            model().attribute("pageTitle", UNDO_PAGE_TITLE),
+            model().attribute("primaryButtonText", "Undo licensee change"),
+            model().attribute("correctedLicenseeChangeView", expectedCurrentChangeView),
+            model().attribute("restoredLicenseeChangeView", restoredLicenseeChangeView),
+            model().attribute("resultingLicensees", undoChangeContext.resultingLicenseeNames()),
+            model().attribute("cancelUrl", updatePositionUrl)
+        );
+  }
+
+  @Test
+  void renderUndoLicenseeChange_whenAllocatedToUser_addPositionChangeType() throws Exception {
+    var correction = givenCorrectionAllocatedToUser();
+    var position = LicencePositionTestUtil.newBuilder().withId(POSITION_ID).withLicence(LICENCE).build();
+    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withChangeType(LicencePositionCorrectionChangeType.ADD_POSITION)
+        .withTargetLicencePosition(position)
+        .withPayload(CreateLicencePositionPayloadTestUtil.newBuilder()
+            .withLicencePositionId(POSITION_ID.toString())
+            .build())
+        .build();
+
+    var undoChangeContext = new UndoLicenseeChangeContext(
+        List.of("currentWithdraw1"),
+        List.of("currentJoin1"),
+        List.of("restoreWithdraw1"),
+        List.of("restoreJoin1"),
+        List.of("org1, restoreJoin1")
+    );
+
+    when(licencePositionCorrectionService.getPositionCorrectionContainingChange(correction, CHANGE_ID))
+        .thenReturn(positionCorrection);
+    when(licenseeChangeService.getUndoLicenseeChangeContext(correction, positionCorrection, POSITION_ID))
+        .thenReturn(undoChangeContext);
+    when(licenseeChangeService.getRestoredLicenseeChangeView(
+        undoChangeContext.currentWithdrawingLicenseeNames(),
+        undoChangeContext.currentJoiningLicenseeNames())
+    )
+        .thenReturn(null);
+
+    var cancelUrl = ReverseRouter.route(on(LicenceCorrectionController.class)
+        .renderAddedPosition(CORRECTION, positionCorrection));
+
+    var expectedCurrentChangeView = new LicenseeChangeView(
+        List.of("currentWithdraw1"),
+        List.of("currentJoin1"),
+        "",
+        new ChangeViewUrls(null, null, null, null, null, null)
+    );
+
+    mockMvc.perform(get(ReverseRouter.route(on(RemoveLicenseeChangeController.class)
+            .renderUndoLicenseeChange(correction, CHANGE_ID)))
+            .with(user(regulatorUser)))
+        .andExpectAll(
+            status().isOk(),
+            view().name(CONFIRMATION_TEMPLATE),
+            model().attribute("pageTitle", UNDO_PAGE_TITLE),
+            model().attribute("primaryButtonText", "Undo licensee change"),
+            model().attribute("correctedLicenseeChangeView", expectedCurrentChangeView),
+            model().attributeDoesNotExist("restoredLicenseeChangeView"),
+            model().attribute("resultingLicensees", undoChangeContext.resultingLicenseeNames()),
+            model().attribute("cancelUrl", cancelUrl)
+        );
+  }
+
+  @Test
+  void undoLicenseeChange_addPositionChangeType() throws Exception {
+    var correction = givenCorrectionAllocatedToUser();
+    var position = LicencePositionTestUtil.newBuilder().withId(POSITION_ID).withLicence(LICENCE).build();
+    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withChangeType(LicencePositionCorrectionChangeType.ADD_POSITION)
+        .withTargetLicencePosition(position)
+        .build();
+
+    var expectedUrl = ReverseRouter.route(on(LicenceCorrectionController.class)
+        .renderAddedPosition(correction, positionCorrection));
+
+    when(licencePositionCorrectionService.getPositionCorrectionContainingChange(correction, CHANGE_ID))
+        .thenReturn(positionCorrection);
+
+    mockMvc.perform(post(ReverseRouter.route(on(RemoveLicenseeChangeController.class)
+            .undoLicenseeChange(correction, CHANGE_ID, null)))
+            .with(csrf())
+            .with(user(regulatorUser)))
+        .andExpectAll(
+            status().is3xxRedirection(),
+            redirectedUrl(expectedUrl)
+        );
+
+    verify(licenseeChangeService).undoLicenseeChange(positionCorrection, CHANGE_ID);
+  }
+
+  @Test
+  void undoLicenseeChange_updatePositionChangeType() throws Exception {
+    var correction = givenCorrectionAllocatedToUser();
+    var position = LicencePositionTestUtil.newBuilder().withId(POSITION_ID).withLicence(LICENCE).build();
+    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+        .withTargetLicencePosition(position)
+        .build();
+
+    var expectedUrl = ReverseRouter.route(on(LicenceCorrectionController.class)
+        .renderLicencePosition(correction, positionCorrection.getTargetLicencePosition()));
+
+    when(licencePositionCorrectionService.getPositionCorrectionContainingChange(correction, CHANGE_ID))
+        .thenReturn(positionCorrection);
+
+    mockMvc.perform(post(ReverseRouter.route(on(RemoveLicenseeChangeController.class)
+            .undoLicenseeChange(correction, CHANGE_ID, null)))
+            .with(csrf())
+            .with(user(regulatorUser)))
+        .andExpectAll(
+            status().is3xxRedirection(),
+            redirectedUrl(expectedUrl)
+        );
+
+    verify(licenseeChangeService).undoLicenseeChange(positionCorrection, CHANGE_ID);
+  }
+
+  private LicenceCorrection givenCorrectionAllocatedToUser() {
+    var correction = LicenceCorrectionTestUtil.newBuilder()
+        .withId(CORRECTION_ID)
+        .withLicence(LICENCE)
+        .build();
+    when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
+        .thenReturn(Optional.of(correction));
+    when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(correction));
+    return correction;
+  }
+
+  private void givenCorrectionNotAllocatedToUser() {
+    when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
+        .thenReturn(Optional.empty());
+  }
+}

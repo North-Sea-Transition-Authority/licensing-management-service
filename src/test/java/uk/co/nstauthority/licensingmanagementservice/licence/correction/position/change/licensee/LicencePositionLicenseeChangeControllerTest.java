@@ -18,6 +18,7 @@ import static uk.co.nstauthority.licensingmanagementservice.util.NotificationBan
 import static uk.co.nstauthority.licensingmanagementservice.util.RedirectedToLoginUrlMatcher.redirectionToLoginUrl;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -44,8 +45,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenseeOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.LicenseeChangeContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicenseeChangeContext;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @ContextConfiguration(classes = LicencePositionLicenseeChangeController.class)
@@ -82,8 +83,15 @@ class LicencePositionLicenseeChangeControllerTest extends AbstractControllerTest
   private static final List<Integer> CURRENT_JOINING_LICENSEES = List.of(4, 5, 6);
   private static final List<Integer> CURRENT_WITHDRAWING_LICENSEES = List.of(2, 3);
   private static final List<Integer> PREVIOUS_LICENSEES = List.of(1, 2, 3);
+  private static final List<Integer> CURRENT_LICENSEES = List.of(1, 4, 5, 6);
+  private static final Map<Integer, String> ORGANISATION_NAMES = Map.of(1, "1");
   private static final LicenseeChangeContext LICENSEE_CHANGE_CONTEXT = new LicenseeChangeContext(
-      CURRENT_JOINING_LICENSEES, CURRENT_WITHDRAWING_LICENSEES, PREVIOUS_LICENSEES, List.of("licenseeOrg1", "licenseeOrg2"));
+      CURRENT_JOINING_LICENSEES,
+      CURRENT_WITHDRAWING_LICENSEES,
+      PREVIOUS_LICENSEES,
+      CURRENT_LICENSEES,
+      ORGANISATION_NAMES
+  );
   private static final String PAGE_TITLE = "Change licensees";
   private static final String VIEW_NAME = "lms/licence/correction/change/licenseeChange";
 
@@ -205,11 +213,13 @@ class LicencePositionLicenseeChangeControllerTest extends AbstractControllerTest
   void renderForExecutedPosition_previousLicenseeNames_isEmpty() throws Exception {
     var correction = givenCorrectionAllocatedToUser();
     var position = LicencePositionTestUtil.newBuilder().withId(POSITION_ID).withLicence(LICENCE).build();
+    var organisationNames = Map.of(1, "1");
     var licenseeChangeContext = new LicenseeChangeContext(
         CURRENT_JOINING_LICENSEES,
         CURRENT_WITHDRAWING_LICENSEES,
         List.of(),
-        List.of()
+        CURRENT_LICENSEES,
+        organisationNames
     );
 
     when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(position));

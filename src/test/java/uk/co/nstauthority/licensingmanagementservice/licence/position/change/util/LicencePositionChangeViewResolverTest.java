@@ -172,7 +172,6 @@ class LicencePositionChangeViewResolverTest {
     assertThat(view.urls().undo()).isNull();
   }
 
-
   @Test
   void buildLicenseeChange_withCorrectChange_hasCorrectUrl() {
     var view = licenseeChangeView(
@@ -182,7 +181,7 @@ class LicencePositionChangeViewResolverTest {
 
     assertThat(view.urls().correct()).contains("correct-licensee-change");
     assertThat(view.urls().remove()).isNull();
-    assertThat(view.urls().undo()).isNull();
+    assertThat(view.urls().undo()).contains("undo-licensee-change");
   }
 
   @Test
@@ -194,7 +193,7 @@ class LicencePositionChangeViewResolverTest {
 
     assertThat(view.urls().correct()).contains("add-licensee-change");
     assertThat(view.urls().remove()).isNull();
-    assertThat(view.urls().undo()).isNull();
+    assertThat(view.urls().undo()).contains("undo-licensee-change");
   }
 
   private LicenseeChangeView licenseeChangeView(String changeType, PositionChangeUrlContext urlContext) {

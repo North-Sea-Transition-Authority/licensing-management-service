@@ -19,6 +19,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.administrator.RemoveAdministratorChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.equity.RemoveEquityChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.licensee.LicencePositionLicenseeChangeController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.licensee.RemoveLicenseeChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.RemovePartialSurrenderChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.tasklist.PartialSurrenderTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.setequity.LicencePositionSetEquityController;
@@ -195,6 +196,8 @@ class ChangeViewUrlsFactoryTest {
         .renderForExecutedPosition(CORRECTION, LICENCE_POSITION));
     var licenseeCorrecting = ReverseRouter.route(on(LicencePositionLicenseeChangeController.class)
         .renderForCorrectingChange(CORRECTION, LICENCE_POSITION, CHANGE_ENTITY));
+    var licenseeUndo = ReverseRouter.route(on(RemoveLicenseeChangeController.class)
+        .renderUndoLicenseeChange(CORRECTION, CHANGE_ID.toString()));
 
     return Stream.of(
         Arguments.of("administrator, live", ADMINISTRATOR, EXECUTED_POSITION, live,
@@ -252,15 +255,15 @@ class ChangeViewUrlsFactoryTest {
         Arguments.of("licensee, live", LICENSEE, EXECUTED_POSITION, live,
             licenseeCorrecting, null, null, null),
         Arguments.of("licensee, added", LICENSEE, EXECUTED_POSITION, added,
-            licenseeExecuted, null, null, null),
+            licenseeExecuted, null, licenseeUndo, null),
         Arguments.of("licensee, operations updated", LICENSEE, EXECUTED_POSITION, operationsUpdated,
-            licenseeCorrecting, null, null, null),
+            licenseeCorrecting, null, licenseeUndo, null),
         Arguments.of("licensee, order updated", LICENSEE, EXECUTED_POSITION, orderUpdated,
-            licenseeCorrecting, null, null, null),
+            licenseeCorrecting, null, licenseeUndo , null),
         Arguments.of("licensee, removed", LICENSEE, EXECUTED_POSITION, removed,
-            null, null, null, null),
+            null, null, null, licenseeUndo),
         Arguments.of("licensee, added position", LICENSEE, ADDED_POSITION, added,
-            licenseeAdded, null, null, null)
+            licenseeAdded, null, licenseeUndo, null)
     );
   }
 

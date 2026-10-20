@@ -12,6 +12,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.licensee.LicencePositionLicenseeChangeController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.licensee.RemoveLicenseeChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationError;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeViewContext;
@@ -100,7 +101,8 @@ public record LicenseeOperation(
 
       @Override
       public String undo(ChangeUrlTarget target) {
-        return null;
+        return ReverseRouter.route(on(RemoveLicenseeChangeController.class)
+            .renderUndoLicenseeChange(target.correction(), target.changeId()));
       }
     };
   }

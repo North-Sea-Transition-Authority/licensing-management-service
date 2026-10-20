@@ -3,6 +3,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.position.change.ut
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeoperation.LicencePositionAddOperation;
@@ -10,7 +11,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenseeOperation;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.LicenseeChangeContext;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicenseeChangeContext;
 
 class LicencePositionLicenseeChangeUtilTest {
   private static final List<Integer> LICENSEES_TO_ADD = List.of(2, 3, 4);
@@ -38,7 +39,13 @@ class LicencePositionLicenseeChangeUtilTest {
 
   @Test
   void populateLicenseeForm() {
-    var licenseeChangeContext = new LicenseeChangeContext(LICENSEES_TO_ADD, LICENSEES_TO_REMOVE, List.of(10), List.of("Ten"));
+    var licenseeChangeContext = new LicenseeChangeContext(
+        LICENSEES_TO_ADD,
+        LICENSEES_TO_REMOVE,
+        List.of(10),
+        List.of(2),
+        Map.of(1, "org1", 2, "org2", 3, "org3", 4, "org4", 10, "org10")
+    );
 
     var form = LicencePositionLicenseeChangeUtil.populateLicenseeForm(licenseeChangeContext);
 

@@ -44,6 +44,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.operation.Geospatia
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeService;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicenseeChangeContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionChangeViewResolver;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionStateResolver;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionStateViewResolver;
@@ -122,25 +123,7 @@ public class LicencePositionViewService {
       UUID licencePositionId
   ) {
     var chronologicalPositions = getCorrectedChronologicalPositions(licenceCorrection, licencePositionId);
-    var resolvedStates = LicencePositionStateResolver.resolve(chronologicalPositions);
-    var previousState = resolvedStates.previousState(licencePositionId);
-    var organisationNames = resolveOrganisationNames(chronologicalPositions);
-    var previousLicenseeIds = List.copyOf(previousState.licenseeIds());
-
-    ChronologicalPosition currentPosition = chronologicalPositions.stream()
-        .filter(chronologicalPosition -> chronologicalPosition.id().equals(licencePositionId))
-        .toList()
-        .getFirst();
-
-    return new LicenseeChangeContext(
-        currentPosition.joiningLicensees(),
-        currentPosition.withdrawingLicensees(),
-        previousLicenseeIds,
-        previousLicenseeIds
-            .stream()
-            .map(id -> nameOrEmpty(organisationNames, id))
-            .toList()
-    );
+    return buildLicenseeChangeContext(chronologicalPositions, licencePositionId);
   }
 
   public LicencePositionPageView getPositionPageView(LicencePosition licencePosition) {
@@ -963,16 +946,44 @@ public class LicencePositionViewService {
     return administratorId == null ? "" : administratorNames.getOrDefault(administratorId, "");
   }
 
-  private static List<String> getLicenseeNames(LicencePositionState state, Map<Integer, String> namesForDate) {
-    List<String> licenseeNames;
+  public LicenseeChangeContext buildLicenseeChangeContext(
+      List<ChronologicalPosition> chronologicalPositions,
+      UUID licencePositionId
+  ) {
+    var resolvedStates = LicencePositionStateResolver.resolve(chronologicalPositions);
+    var currentState = resolvedStates.currentState(licencePositionId);
+    var previousState = resolvedStates.previousState(licencePositionId);
+    var organisationNames = resolveOrganisationNames(chronologicalPositions);
+
+    ChronologicalPosition currentPosition = chronologicalPositions.stream()
+        .filter(chronologicalPosition -> chronologicalPosition.id().equals(licencePositionId))
+        .toList()
+        .getFirst();
+
+    var joiningLicenseeIds = currentPosition.joiningLicensees();
+    var withdrawingLicenseeIds = currentPosition.withdrawingLicensees();
+
+    return new LicenseeChangeContext(
+        joiningLicenseeIds,
+        withdrawingLicenseeIds,
+        previousState.licenseeIds().stream().toList(),
+        currentState.licenseeIds().stream().toList(),
+        organisationNames
+    );
+  }
+
+  private List<String> getLicenseeNames(LicencePositionState state, Map<Integer, String> namesForDate) {
     if (state == null || state.licenseeIds() == null) {
-      licenseeNames = List.of();
+      return List.of();
     } else {
-      licenseeNames = state.licenseeIds()
-          .stream()
-          .map(id -> namesForDate.getOrDefault(id, NOT_AVAILABLE))
-          .toList();
+      return getNamesFromIds(state.licenseeIds(), namesForDate);
     }
-    return licenseeNames;
+  }
+
+  private List<String> getNamesFromIds(Collection<Integer> ids, Map<Integer, String> organisationNames) {
+    return ids
+        .stream()
+        .map(id -> nameOrEmpty(organisationNames, id))
+        .toList();
   }
 }

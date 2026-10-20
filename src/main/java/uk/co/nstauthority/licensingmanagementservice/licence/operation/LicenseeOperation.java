@@ -96,7 +96,8 @@ public record LicenseeOperation(
 
       @Override
       public String remove(ChangeUrlTarget target) {
-        return null;
+        return ReverseRouter.route(on(RemoveLicenseeChangeController.class)
+            .renderRemoveExecutedLicenseeChange(target.correction(), target.licencePosition(), target.changeEntity()));
       }
 
       @Override

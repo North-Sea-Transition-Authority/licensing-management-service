@@ -196,6 +196,8 @@ class ChangeViewUrlsFactoryTest {
         .renderForExecutedPosition(CORRECTION, LICENCE_POSITION));
     var licenseeCorrecting = ReverseRouter.route(on(LicencePositionLicenseeChangeController.class)
         .renderForCorrectingChange(CORRECTION, LICENCE_POSITION, CHANGE_ENTITY));
+    var licenseeRemove = ReverseRouter.route(on(RemoveLicenseeChangeController.class)
+        .renderRemoveExecutedLicenseeChange(CORRECTION, LICENCE_POSITION, CHANGE_ENTITY));
     var licenseeUndo = ReverseRouter.route(on(RemoveLicenseeChangeController.class)
         .renderUndoLicenseeChange(CORRECTION, CHANGE_ID.toString()));
 
@@ -253,7 +255,7 @@ class ChangeViewUrlsFactoryTest {
             partialSurrenderStaged, null, partialSurrenderUndo, null),
 
         Arguments.of("licensee, live", LICENSEE, EXECUTED_POSITION, live,
-            licenseeCorrecting, null, null, null),
+            licenseeCorrecting, licenseeRemove, null, null),
         Arguments.of("licensee, added", LICENSEE, EXECUTED_POSITION, added,
             licenseeExecuted, null, licenseeUndo, null),
         Arguments.of("licensee, operations updated", LICENSEE, EXECUTED_POSITION, operationsUpdated,

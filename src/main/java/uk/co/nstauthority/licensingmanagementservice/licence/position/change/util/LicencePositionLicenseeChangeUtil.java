@@ -42,6 +42,10 @@ public class LicencePositionLicenseeChangeUtil {
     return LicencePositionChangeOperationUtil.changeExists(changes, LicenseeOperation.class);
   }
 
+  public static List<LicencePositionChangeType> removeLicenseeChange(List<LicencePositionChangeType> changes) {
+    return LicencePositionChangeOperationUtil.removeChangesOf(changes, LicenseeOperation.class);
+  }
+
   private static List<LicencePositionChangeType> replaceLicenseeChange(
       List<LicencePositionChangeType> changes, List<Integer> licenseesToAdd, List<Integer> licenseesToRemove
   ) {

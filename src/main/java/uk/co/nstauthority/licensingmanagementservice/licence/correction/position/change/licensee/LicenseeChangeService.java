@@ -83,6 +83,27 @@ public class LicenseeChangeService {
   }
 
   @Transactional
+  public void removeExistingLicenseeChange(
+      LicencePosition licencePosition,
+      LicenceCorrection licenceCorrection,
+      String originalChangeId
+  ) {
+    licencePositionCorrectionService.findUpdatePositionCorrection(licenceCorrection, licencePosition)
+        .ifPresent(this::removeStagedLicenseeChange);
+
+    licencePositionCorrectionService
+        .stageRemovalOfExecutedChange(licenceCorrection, licencePosition, originalChangeId);
+  }
+
+  private void removeStagedLicenseeChange(LicencePositionCorrection positionCorrection) {
+    var payload = positionCorrection.getPayload();
+    var changes = LicencePositionLicenseeChangeUtil.removeLicenseeChange(payload.changes());
+
+    positionCorrection.setPayload(LicencePositionPayload.withChanges(payload, changes));
+    licencePositionCorrectionService.save(positionCorrection);
+  }
+
+  @Transactional
   public void undoLicenseeChange(
       LicencePositionCorrection positionCorrection,
       String changeId

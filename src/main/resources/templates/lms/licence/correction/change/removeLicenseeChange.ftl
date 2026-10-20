@@ -8,27 +8,39 @@
 >
     <@fdsForm.htmlForm>
 
-      <h3 class="govuk-heading-s govuk-!-margin-bottom-0">Current (corrected)</h3>
-      <@positionChanges.licenseeChange change=correctedLicenseeChangeView/>
+      <#if correctedLicenseeChangeView??>
+        <h3 class="govuk-heading-s govuk-!-margin-bottom-0">Current (corrected)</h3>
+        <@positionChanges.licenseeChange change=correctedLicenseeChangeView/>
 
-      <#if restoredLicenseeChangeView??>
-        <h3 class="govuk-heading-s govuk-!-margin-bottom-0">Will be restored to</h3>
+        <#if restoredLicenseeChangeView??>
+          <h3 class="govuk-heading-s govuk-!-margin-bottom-0">Will be restored to</h3>
+          <@positionChanges.licenseeChange change=restoredLicenseeChangeView/>
+        </#if>
+      <#else>
+        <h3 class="govuk-heading-s govuk-!-margin-bottom-0">To be reinstated</h3>
         <@positionChanges.licenseeChange change=restoredLicenseeChangeView/>
       </#if>
 
-      <h3 class="govuk-heading-s govuk-!-margin-bottom-0">Resulting licensees</h3>
-      <ul class="govuk-list">
-        <#list resultingLicensees as licensee>
-          <li>${licensee}</li>
-        </#list>
-      </ul>
+      <#if resultingLicensees?has_content>
+        <h3 class="govuk-heading-s govuk-!-margin-bottom-0">Resulting licensees</h3>
+        <ul class="govuk-list">
+          <#list resultingLicensees as licensee>
+            <li>${licensee}</li>
+          </#list>
+        </ul>
+      <#else>
+        <@fdsInsetText.insetText insetTextClass="govuk-inset-text--red">
+          Removing this change will result in no licensees on the licence
+        </@fdsInsetText.insetText>
+      </#if>
+
 
       <@fdsAction.submitButtons
-        primaryButtonText=primaryButtonText
+        primaryButtonText=primaryButton.buttonText()
+        primaryButtonClass=primaryButton.buttonClass()
         secondaryLinkText="Cancel"
         linkSecondaryAction=true
         linkSecondaryActionUrl=springUrl(cancelUrl)
-        primaryButtonClass="govuk-button govuk-button--warning"
       />
     </@fdsForm.htmlForm>
 </@defaultPage>

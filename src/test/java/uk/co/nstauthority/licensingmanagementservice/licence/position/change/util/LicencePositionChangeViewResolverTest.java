@@ -196,6 +196,42 @@ class LicencePositionChangeViewResolverTest {
     assertThat(view.urls().undo()).contains("undo-licensee-change");
   }
 
+  @Test
+  void buildLicenseeChange_whenUntouchedExecutedChange_populatesRemoveNotUndo() {
+    var view = licenseeChangeView(
+        null,
+        PositionChangeUrlContext.forExecutedPosition(CORRECTION, LICENCE_POSITION, POSITION_CORRECTION)
+    );
+
+    assertThat(view.urls().correct()).contains("correct-licensee-change");
+    assertThat(view.urls().remove()).contains("remove-licensee-change");
+    assertThat(view.urls().undo()).isNull();
+  }
+
+  @Test
+  void buildLicenseeChange_whenRemoveChange_populatesReinstateOnly() {
+    var view = licenseeChangeView(
+        LicencePositionChangeType.REMOVE_CHANGE,
+        PositionChangeUrlContext.forExecutedPosition(CORRECTION, LICENCE_POSITION, POSITION_CORRECTION)
+    );
+
+    assertThat(view.urls().correct()).isNull();
+    assertThat(view.urls().remove()).isNull();
+    assertThat(view.urls().undo()).isNull();
+    assertThat(view.urls().reinstate()).contains("undo-licensee-change");
+  }
+
+  @Test
+  void buildLicenseeChange_whenAddedPosition_populatesUndoNotRemove() {
+    var view = licenseeChangeView(
+        LicencePositionChangeType.ADD_CHANGE,
+        PositionChangeUrlContext.forAddedPosition(CORRECTION, POSITION_CORRECTION)
+    );
+
+    assertThat(view.urls().remove()).isNull();
+    assertThat(view.urls().undo()).contains("undo-licensee-change");
+  }
+
   private LicenseeChangeView licenseeChangeView(String changeType, PositionChangeUrlContext urlContext) {
     var currentLicencePosition = LicencePositionTestUtil.newBuilder().build();
 

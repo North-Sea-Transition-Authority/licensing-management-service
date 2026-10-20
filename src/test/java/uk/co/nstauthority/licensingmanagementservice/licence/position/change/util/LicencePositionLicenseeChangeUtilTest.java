@@ -8,6 +8,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeoperation.LicencePositionAddOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeoperation.LicencePositionChangeOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.AddChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenseeOperation;
@@ -57,6 +58,13 @@ class LicencePositionLicenseeChangeUtilTest {
   void licenseeChangeExists() {
     assertThat(LicencePositionLicenseeChangeUtil.licenseeChangeExists(
         List.of(licenseeAddChange()))).isTrue();
+  }
+
+  @Test
+  void removeLicenseeChange() {
+    var changes = List.<LicencePositionChangeType>of(
+        AddChange.buildOperationsChange(List.of(LicenceOperation.newLicenseeOperation().build()), 1));
+    assertThat(LicencePositionLicenseeChangeUtil.removeLicenseeChange(changes)).isEmpty();
   }
 
   private LicencePositionChangeType licenseeAddChange() {

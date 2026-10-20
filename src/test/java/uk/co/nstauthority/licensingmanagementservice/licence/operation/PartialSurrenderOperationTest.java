@@ -394,4 +394,44 @@ class PartialSurrenderOperationTest {
 
     assertThat(result).usingRecursiveComparison().isEqualTo(state);
   }
+
+  @Test
+  void doInputsMatchPreviousStateOutputs_whenSurrenderedBlocksAndOutcomeSubareasHeld_thenTrue() {
+    var state = LicencePositionState.EMPTY
+        .withBlock(FIRST_FEATURE_ID, List.of(FIRST_SUBAREA, SECOND_SUBAREA))
+        .withBlock(SECOND_FEATURE_ID, List.of());
+
+    var result = surrenderCroppingSecondSubarea().doInputsMatchPreviousStateOutputs(state);
+
+    assertThat(result).isTrue();
+  }
+
+  @Test
+  void doInputsMatchPreviousStateOutputs_whenOutcomeSubareaNotHeld_thenFalse() {
+    var state = LicencePositionState.EMPTY
+        .withBlock(FIRST_FEATURE_ID, List.of(FIRST_SUBAREA, CROPPED_SUBAREA))
+        .withBlock(SECOND_FEATURE_ID, List.of());
+
+    var result = surrenderCroppingSecondSubarea().doInputsMatchPreviousStateOutputs(state);
+
+    assertThat(result).isFalse();
+  }
+
+  private static PartialSurrenderOperation surrenderCroppingSecondSubarea() {
+    var retainedFeatureId = UUID.randomUUID();
+    var surrenderDetails = new SurrenderDetails(
+        BlockSurrenderType.PARTIAL_SURRENDER,
+        COMMAND_JOURNEY_ID,
+        List.of(),
+        List.of(retainedFeatureId),
+        Map.of(retainedFeatureId, List.of(
+            SubareaSurrenderOutcome.relinquished(FIRST_SUBAREA),
+            SubareaSurrenderOutcome.cropped(SECOND_SUBAREA, CROPPED_SUBAREA)))
+    );
+    return new PartialSurrenderOperation(
+        SURRENDER_DATE,
+        List.of(FIRST_FEATURE_ID, SECOND_FEATURE_ID),
+        Map.of(FIRST_FEATURE_ID, surrenderDetails)
+    );
+  }
 }

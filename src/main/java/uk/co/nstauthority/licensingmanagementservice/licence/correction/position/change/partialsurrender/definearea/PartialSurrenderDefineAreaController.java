@@ -150,7 +150,9 @@ public class PartialSurrenderDefineAreaController {
     var surrenderDetails = partialSurrenderCorrectionService.getSurrenderDetailsOrThrow(licencePositionCorrection, featureId);
     var activeFeatures = commandJourneyService.getActiveFeatures(surrenderDetails.commandJourneyIdOrThrow());
 
-    if (partialSurrenderSelectAreasFormValidator.hasErrors(form, bindingResult, activeFeatures)) {
+    var blockFeature = partialSurrenderCorrectionService.getSurrenderedBlockFeatureOrThrow(licencePositionCorrection, featureId);
+
+    if (partialSurrenderSelectAreasFormValidator.hasErrors(form, bindingResult, activeFeatures, blockFeature)) {
       return getSelectAreasModelAndView(
           licencePositionCorrection,
           featureId,

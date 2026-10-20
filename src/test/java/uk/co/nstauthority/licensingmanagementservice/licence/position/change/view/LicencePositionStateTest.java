@@ -121,4 +121,35 @@ class LicencePositionStateTest {
 
     assertThat(result).usingRecursiveComparison().isEqualTo(state);
   }
+
+  @Test
+  void hasFeatures_whenBlocksAndTheirSubareasHeld_thenTrue() {
+    var state = LicencePositionState.EMPTY
+        .withBlock(FIRST_BLOCK_ID, List.of(FIRST_SUBAREA))
+        .withBlock(SECOND_BLOCK_ID, List.of(SECOND_SUBAREA));
+
+    var result = state.hasFeatures(List.of(FIRST_BLOCK_ID, SECOND_BLOCK_ID), List.of(FIRST_SUBAREA, SECOND_SUBAREA));
+
+    assertThat(result).isTrue();
+  }
+
+  @Test
+  void hasFeatures_whenBlockNotHeld_thenFalse() {
+    var state = LicencePositionState.EMPTY.withBlock(FIRST_BLOCK_ID, List.of());
+
+    var result = state.hasFeatures(List.of(FIRST_BLOCK_ID, NOT_HELD_BLOCK_ID), List.of());
+
+    assertThat(result).isFalse();
+  }
+
+  @Test
+  void hasFeatures_whenSubareaOnlyHeldOnAnotherBlock_thenFalse() {
+    var state = LicencePositionState.EMPTY
+        .withBlock(FIRST_BLOCK_ID, List.of(FIRST_SUBAREA))
+        .withBlock(SECOND_BLOCK_ID, List.of(SECOND_SUBAREA));
+
+    var result = state.hasFeatures(List.of(FIRST_BLOCK_ID), List.of(SECOND_SUBAREA));
+
+    assertThat(result).isFalse();
+  }
 }

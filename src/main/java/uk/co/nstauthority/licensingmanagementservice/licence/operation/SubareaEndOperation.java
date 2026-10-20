@@ -59,6 +59,11 @@ public record SubareaEndOperation(
         .collect(Collectors.toSet());
   }
 
+  @Override
+  public boolean doInputsMatchPreviousStateOutputs(LicencePositionState licencePositionState) {
+    return licencePositionState.hasFeatures(List.of(blockFeatureId), endedSubareas);
+  }
+
   public static class Builder {
 
     private UUID blockFeatureId;

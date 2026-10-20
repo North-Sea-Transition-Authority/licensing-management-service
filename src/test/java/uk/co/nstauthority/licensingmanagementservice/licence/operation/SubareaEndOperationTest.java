@@ -159,4 +159,24 @@ class SubareaEndOperationTest {
     var expected = LicencePositionState.EMPTY.withBlock(BLOCK_FEATURE_ID, List.of(SECOND_SUBAREA));
     assertThat(result).usingRecursiveComparison().isEqualTo(expected);
   }
+
+  @Test
+  void doInputsMatchPreviousStateOutputs_whenEndedSubareasHeldOnBlock_thenTrue() {
+    var state = LicencePositionState.EMPTY.withBlock(BLOCK_FEATURE_ID, List.of(FIRST_SUBAREA));
+    var operation = new SubareaEndOperation(BLOCK_FEATURE_ID, List.of(FIRST_SUBAREA));
+
+    var result = operation.doInputsMatchPreviousStateOutputs(state);
+
+    assertThat(result).isTrue();
+  }
+
+  @Test
+  void doInputsMatchPreviousStateOutputs_whenEndedSubareaNotHeld_thenFalse() {
+    var state = LicencePositionState.EMPTY.withBlock(BLOCK_FEATURE_ID, List.of(SECOND_SUBAREA));
+    var operation = new SubareaEndOperation(BLOCK_FEATURE_ID, List.of(FIRST_SUBAREA));
+
+    var result = operation.doInputsMatchPreviousStateOutputs(state);
+
+    assertThat(result).isFalse();
+  }
 }

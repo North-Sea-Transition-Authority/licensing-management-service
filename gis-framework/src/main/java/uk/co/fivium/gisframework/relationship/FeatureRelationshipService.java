@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import uk.co.fivium.gisframework.feature.Feature;
 import uk.co.fivium.gisframework.feature.FeatureService;
+import uk.co.fivium.gisframework.feature.Line;
 import uk.co.fivium.gisframework.feature.PolygonService;
 import uk.co.fivium.gisframework.grpc.GrpcClientService;
 
@@ -76,5 +77,35 @@ public class FeatureRelationshipService {
     return otherFeatures.stream()
         .filter(otherFeature -> overlappingFeatureIds.contains(otherFeature.getId()))
         .toList();
+  }
+
+  /**
+   * Checks whether the union of the features covers exactly the same shape as another feature.
+   *
+   * @param features     The features to union and compare.
+   * @param otherFeature The feature to compare against.
+   * @return true if the unioned features are topologically equal to the other feature, false otherwise.
+   * @throws IllegalArgumentException if no features are given, or any feature is not in the other feature's coordinate
+   *                                  system.
+   */
+  public boolean isTopologicallyEqual(Collection<Feature> features, Feature otherFeature) {
+    if (features.isEmpty()) {
+      throw new IllegalArgumentException("Must provide at least one feature to compare");
+    }
+
+    var coordinateSystem = otherFeature.getCoordinateSystem();
+    if (features.stream().anyMatch(feature -> !coordinateSystem.equals(feature.getCoordinateSystem()))) {
+      throw new IllegalArgumentException(
+          "All features to compare must use the other feature's coordinate system %s".formatted(coordinateSystem));
+    }
+
+    var polygonLines = featureService.getEntityBackedFeatures(features).stream()
+        .flatMap(entityBackedFeature -> entityBackedFeature.polygonToLines().values().stream())
+        .map(lines -> lines.stream().map(Line::getEsriJson).toList())
+        .toList();
+
+    return grpcClientService
+        .validateTopologicallyEqual(polygonLines, featureService.getEntityBackedFeature(otherFeature))
+        .getIsValid();
   }
 }

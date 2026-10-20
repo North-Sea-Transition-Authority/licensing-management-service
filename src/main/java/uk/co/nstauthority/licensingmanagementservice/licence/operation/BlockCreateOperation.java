@@ -87,6 +87,11 @@ public record BlockCreateOperation(
         .collect(Collectors.toSet());
   }
 
+  @Override
+  public boolean doInputsMatchPreviousStateOutputs(LicencePositionState licencePositionState) {
+    return true;
+  }
+
   public static class Builder {
 
     private Collection<UUID> createdBlockFeatureIds;

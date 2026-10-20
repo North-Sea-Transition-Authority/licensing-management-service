@@ -285,7 +285,8 @@ class PartialSurrenderDefineAreaControllerTest extends AbstractControllerTest {
     when(partialSurrenderSelectAreasFormValidator.hasErrors(
         any(PartialSurrenderSelectAreasForm.class),
         any(BindingResult.class),
-        eq(List.of(FIRST_AREA, SECOND_AREA))
+        eq(List.of(FIRST_AREA, SECOND_AREA)),
+        eq(FEATURE)
     )).thenReturn(false);
 
     mockMvc.perform(post(selectAreasUrl())
@@ -305,7 +306,8 @@ class PartialSurrenderDefineAreaControllerTest extends AbstractControllerTest {
     when(partialSurrenderSelectAreasFormValidator.hasErrors(
         any(PartialSurrenderSelectAreasForm.class),
         any(BindingResult.class),
-        eq(List.of(FIRST_AREA, SECOND_AREA))
+        eq(List.of(FIRST_AREA, SECOND_AREA)),
+        eq(FEATURE)
     )).thenReturn(false);
     when(partialSurrenderCorrectionService.findSingleBlockNotOperatedOn(positionCorrection))
         .thenReturn(Optional.of(FEATURE));
@@ -330,7 +332,8 @@ class PartialSurrenderDefineAreaControllerTest extends AbstractControllerTest {
     when(partialSurrenderSelectAreasFormValidator.hasErrors(
         any(PartialSurrenderSelectAreasForm.class),
         any(BindingResult.class),
-        eq(List.of(FIRST_AREA, SECOND_AREA))
+        eq(List.of(FIRST_AREA, SECOND_AREA)),
+        eq(FEATURE)
     )).thenReturn(false);
     when(partialSurrenderCorrectionService.findSingleBlockNotOperatedOn(positionCorrection))
         .thenReturn(Optional.of(FEATURE));
@@ -352,7 +355,8 @@ class PartialSurrenderDefineAreaControllerTest extends AbstractControllerTest {
     when(partialSurrenderSelectAreasFormValidator.hasErrors(
         any(PartialSurrenderSelectAreasForm.class),
         any(BindingResult.class),
-        eq(List.of(FIRST_AREA, SECOND_AREA))
+        eq(List.of(FIRST_AREA, SECOND_AREA)),
+        eq(FEATURE)
     )).thenReturn(true);
 
     mockMvc.perform(post(selectAreasUrl())
@@ -400,6 +404,9 @@ class PartialSurrenderDefineAreaControllerTest extends AbstractControllerTest {
         .thenReturn(new SurrenderDetails(BlockSurrenderType.PARTIAL_SURRENDER, COMMAND_JOURNEY_ID, surrenderedFeatureIds));
 
     when(commandJourneyService.getActiveFeatures(COMMAND_JOURNEY_ID)).thenReturn(activeFeatures);
+
+    when(partialSurrenderCorrectionService.getSurrenderedBlockFeatureOrThrow(positionCorrection, FEATURE_ID))
+        .thenReturn(FEATURE);
 
     return positionCorrection;
   }

@@ -217,4 +217,13 @@ class BlockCreateOperationTest {
         .withBlock(SECOND_FEATURE_ID, List.of());
     assertThat(result).usingRecursiveComparison().isEqualTo(expected);
   }
+
+  @Test
+  void doInputsMatchPreviousStateOutputs() {
+    var operation = new BlockCreateOperation(List.of(FIRST_FEATURE_ID), Map.of());
+
+    var result = operation.doInputsMatchPreviousStateOutputs(LicencePositionState.EMPTY);
+
+    assertThat(result).isTrue();
+  }
 }

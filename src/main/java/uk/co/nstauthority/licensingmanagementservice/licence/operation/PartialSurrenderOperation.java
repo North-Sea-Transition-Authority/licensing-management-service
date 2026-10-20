@@ -336,6 +336,16 @@ public record PartialSurrenderOperation(
         .collect(Collectors.toSet());
   }
 
+  @Override
+  public boolean doInputsMatchPreviousStateOutputs(LicencePositionState licencePositionState) {
+    var inputSubareas = featureIdToSurrenderDetails.values().stream()
+        .flatMap(SurrenderDetails::allSubareaOutcomes)
+        .map(SubareaSurrenderOutcome::subarea)
+        .toList();
+
+    return licencePositionState.hasFeatures(surrenderedFeatureIds, inputSubareas);
+  }
+
   public static class Builder {
 
     private LocalDate surrenderDate;

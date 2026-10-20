@@ -124,6 +124,11 @@ public record SubareaOperation(
     return commandJourneyId;
   }
 
+  @Override
+  public boolean doInputsMatchPreviousStateOutputs(LicencePositionState licencePositionState) {
+    return licencePositionState.hasFeatures(List.of(blockFeatureId), replacedSubareas);
+  }
+
   public static class Builder {
 
     private UUID blockFeatureId;

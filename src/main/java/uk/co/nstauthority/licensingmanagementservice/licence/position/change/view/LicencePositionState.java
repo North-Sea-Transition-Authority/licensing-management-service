@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaDetails;
 
 /**
@@ -50,6 +51,17 @@ public record LicencePositionState(
 
   public List<SubareaDetails> subareasOf(UUID blockFeatureId) {
     return List.copyOf(blockFeatureIdToSubareas.getOrDefault(blockFeatureId, Set.of()));
+  }
+
+  public boolean hasFeatures(Collection<UUID> blockFeatureIds, Collection<SubareaDetails> subareas) {
+    if (!blockFeatureIdToSubareas.keySet().containsAll(blockFeatureIds)) {
+      return false;
+    }
+
+    var subareasOnBlocks = blockFeatureIds.stream()
+        .flatMap(blockFeatureId -> blockFeatureIdToSubareas.get(blockFeatureId).stream())
+        .collect(Collectors.toSet());
+    return subareasOnBlocks.containsAll(subareas);
   }
 
   /**

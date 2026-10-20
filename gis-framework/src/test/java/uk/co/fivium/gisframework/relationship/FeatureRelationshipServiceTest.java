@@ -11,15 +11,20 @@ import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.fivium.gisframework.feature.EntityBackedFeature;
 import uk.co.fivium.gisframework.feature.FeatureService;
 import uk.co.fivium.gisframework.feature.FeatureTestUtil;
+import uk.co.fivium.gisframework.feature.LineTestUtil;
 import uk.co.fivium.gisframework.feature.PolygonService;
+import uk.co.fivium.gisframework.feature.PolygonTestUtil;
 import uk.co.fivium.gisframework.grpc.GrpcClientService;
 import uk.co.fivium.grpc.gis.CoordinateSystem;
+import uk.co.fivium.grpc.gis.ValidationResponse;
 
 @ExtendWith(MockitoExtension.class)
 class FeatureRelationshipServiceTest {
@@ -149,5 +154,61 @@ class FeatureRelationshipServiceTest {
     var result = featureRelationshipService.is2dOverlapping(feature, otherFeature);
 
     assertThat(result).isFalse();
+  }
+
+  @Test
+  void isTopologicallyEqual_whenNoFeatures_thenThrowsException() {
+    var otherFeature = FeatureTestUtil.newBuilder().build();
+
+    assertThatThrownBy(() -> featureRelationshipService.isTopologicallyEqual(List.of(), otherFeature))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("Must provide at least one feature to compare");
+    verifyNoInteractions(featureService, polygonService, grpcClientService);
+  }
+
+  @Test
+  void isTopologicallyEqual_whenFeatureCoordinateSystemDiffers_thenThrowsException() {
+    var otherFeature = FeatureTestUtil.newBuilder()
+        .withCoordinateSystem(CoordinateSystem.ED50)
+        .build();
+    var matchingFeature = FeatureTestUtil.newBuilder()
+        .withCoordinateSystem(CoordinateSystem.ED50)
+        .build();
+    var differingFeature = FeatureTestUtil.newBuilder()
+        .withCoordinateSystem(CoordinateSystem.BRITISH_NATIONAL_GRID)
+        .build();
+    var features = List.of(matchingFeature, differingFeature);
+
+    assertThatThrownBy(() -> featureRelationshipService.isTopologicallyEqual(features, otherFeature))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("All features to compare must use the other feature's coordinate system ED50");
+    verifyNoInteractions(featureService, polygonService, grpcClientService);
+  }
+
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  void isTopologicallyEqual_whenFeaturesShareCoordinateSystem_thenValidationResultReturned(boolean isValid) {
+    var firstFeature = FeatureTestUtil.newBuilder().build();
+    var secondFeature = FeatureTestUtil.newBuilder().build();
+    var otherFeature = FeatureTestUtil.newBuilder().build();
+    var firstPolygon = PolygonTestUtil.newBuilder().withFeature(firstFeature).build();
+    var secondPolygon = PolygonTestUtil.newBuilder().withFeature(secondFeature).build();
+    var features = List.of(firstFeature, secondFeature);
+    var otherEntityBackedFeature = new EntityBackedFeature(otherFeature, Map.of());
+    when(featureService.getEntityBackedFeatures(features)).thenReturn(List.of(
+        new EntityBackedFeature(firstFeature, Map.of(firstPolygon, List.of(
+            LineTestUtil.newBuilder().withPolygon(firstPolygon).withEsriJson("first line").build()))),
+        new EntityBackedFeature(secondFeature, Map.of(secondPolygon, List.of(
+            LineTestUtil.newBuilder().withPolygon(secondPolygon).withEsriJson("second line").build())))
+    ));
+    when(featureService.getEntityBackedFeature(otherFeature)).thenReturn(otherEntityBackedFeature);
+    when(grpcClientService.validateTopologicallyEqual(
+        List.of(List.of("first line"), List.of("second line")),
+        otherEntityBackedFeature
+    )).thenReturn(ValidationResponse.newBuilder().setIsValid(isValid).build());
+
+    var result = featureRelationshipService.isTopologicallyEqual(features, otherFeature);
+
+    assertThat(result).isEqualTo(isValid);
   }
 }

@@ -215,4 +215,24 @@ class SubareaOperationTest {
 
     assertThat(result).isEqualTo(operation);
   }
+
+  @Test
+  void doInputsMatchPreviousStateOutputs_whenReplacedSubareasHeldOnBlock_thenTrue() {
+    var state = LicencePositionState.EMPTY.withBlock(BLOCK_FEATURE_ID, List.of(REPLACED_SUBAREA));
+    var operation = new SubareaOperation(BLOCK_FEATURE_ID, List.of(REPLACED_SUBAREA), List.of(OUTPUT_SUBAREA));
+
+    var result = operation.doInputsMatchPreviousStateOutputs(state);
+
+    assertThat(result).isTrue();
+  }
+
+  @Test
+  void doInputsMatchPreviousStateOutputs_whenReplacedSubareaNotHeld_thenFalse() {
+    var state = LicencePositionState.EMPTY.withBlock(BLOCK_FEATURE_ID, List.of(OUTPUT_SUBAREA));
+    var operation = new SubareaOperation(BLOCK_FEATURE_ID, List.of(REPLACED_SUBAREA), List.of(OUTPUT_SUBAREA));
+
+    var result = operation.doInputsMatchPreviousStateOutputs(state);
+
+    assertThat(result).isFalse();
+  }
 }

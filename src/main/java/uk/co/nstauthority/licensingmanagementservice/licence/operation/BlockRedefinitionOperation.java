@@ -113,6 +113,11 @@ public record BlockRedefinitionOperation(
         .collect(Collectors.toSet());
   }
 
+  @Override
+  public boolean doInputsMatchPreviousStateOutputs(LicencePositionState licencePositionState) {
+    return licencePositionState.hasFeatures(replacedFeatureIds, replacedSubareas);
+  }
+
   public static class Builder {
 
     private Collection<UUID> replacedFeatureIds;

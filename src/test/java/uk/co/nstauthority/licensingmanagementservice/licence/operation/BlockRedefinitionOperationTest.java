@@ -287,4 +287,34 @@ class BlockRedefinitionOperationTest {
     var expected = LicencePositionState.EMPTY.withBlock(FIRST_FEATURE_ID, List.of(SECOND_SUBAREA));
     assertThat(result).usingRecursiveComparison().isEqualTo(expected);
   }
+
+  @Test
+  void doInputsMatchPreviousStateOutputs_whenReplacedBlocksAndSubareasHeld_thenTrue() {
+    var state = LicencePositionState.EMPTY.withBlock(FIRST_FEATURE_ID, List.of(FIRST_SUBAREA));
+    var operation = new BlockRedefinitionOperation(
+        List.of(FIRST_FEATURE_ID),
+        List.of(SECOND_FEATURE_ID),
+        List.of(FIRST_SUBAREA),
+        Map.of(SECOND_FEATURE_ID, List.of(SECOND_SUBAREA))
+    );
+
+    var result = operation.doInputsMatchPreviousStateOutputs(state);
+
+    assertThat(result).isTrue();
+  }
+
+  @Test
+  void doInputsMatchPreviousStateOutputs_whenReplacedSubareaNotHeld_thenFalse() {
+    var state = LicencePositionState.EMPTY.withBlock(FIRST_FEATURE_ID, List.of());
+    var operation = new BlockRedefinitionOperation(
+        List.of(FIRST_FEATURE_ID),
+        List.of(SECOND_FEATURE_ID),
+        List.of(FIRST_SUBAREA),
+        Map.of(SECOND_FEATURE_ID, List.of(SECOND_SUBAREA))
+    );
+
+    var result = operation.doInputsMatchPreviousStateOutputs(state);
+
+    assertThat(result).isFalse();
+  }
 }

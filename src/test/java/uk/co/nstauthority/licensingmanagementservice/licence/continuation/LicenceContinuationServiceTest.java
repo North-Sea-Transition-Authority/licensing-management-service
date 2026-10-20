@@ -102,6 +102,9 @@ class LicenceContinuationServiceTest {
   private CrossLicenceEventTrackerService crossLicenceEventTrackerService;
 
   @Mock
+  private LicenceContinuationApplicationDetailRequestCache licenceContinuationApplicationDetailRequestCache;
+
+  @Mock
   private LicenceApplication licenceApplication;
 
   @Mock
@@ -488,5 +491,23 @@ class LicenceContinuationServiceTest {
     assertThrows(LmsEntityNotFoundException.class, () -> licenceContinuationService.issueContinuationLetter(licenceApplication));
 
     verify(licenceContinuationApplicationDetailRepository, times(0)).save(any());
+  }
+
+  @Test
+  void getDetailByIdOrThrow_whenDetailFound_thenReturnsIt() {
+    var detail = new LicenceContinuationApplicationDetail(UUID.randomUUID());
+    when(licenceContinuationApplicationDetailRequestCache.findById(detail.getId())).thenReturn(Optional.of(detail));
+
+    var result = licenceContinuationService.getDetailByIdOrThrow(detail.getId());
+
+    assertThat(result).isEqualTo(detail);
+  }
+
+  @Test
+  void getDetailByIdOrThrow_whenDetailNotFound_thenThrows() {
+    var detailId = UUID.randomUUID();
+    when(licenceContinuationApplicationDetailRequestCache.findById(detailId)).thenReturn(Optional.empty());
+
+    assertThrows(LmsEntityNotFoundException.class, () -> licenceContinuationService.getDetailByIdOrThrow(detailId));
   }
 }

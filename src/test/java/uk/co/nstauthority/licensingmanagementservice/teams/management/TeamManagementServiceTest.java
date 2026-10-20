@@ -231,9 +231,12 @@ class TeamManagementServiceTest {
 
   @Test
   void getTeamTypesUserIsMemberOf() {
-
-    when(teamRoleRepository.findAllByWuaId(USER_1_WUA_ID))
-        .thenReturn(List.of(regTeamUser1RoleManage, orgTeam1User1RoleManage, orgTeam2User1RoleManage));
+    var teamRoles = Set.of(
+        TeamRoleTestUtil.newBuilder().withTeam(regTeam).withWuaId(USER_1_WUA_ID).withRole(Role.MANAGE_TEAM).build(),
+        TeamRoleTestUtil.newBuilder().withTeam(orgTeam1).withWuaId(USER_1_WUA_ID).withRole(Role.MANAGE_TEAM).build(),
+        TeamRoleTestUtil.newBuilder().withTeam(orgTeam2).withWuaId(USER_1_WUA_ID).withRole(Role.MANAGE_TEAM).build()
+    );
+    when(teamQueryService.getTeamRolesForUser(USER_1_WUA_ID)).thenReturn(teamRoles);
 
     assertThat(teamManagementService.getTeamTypesUserIsMemberOf(USER_1_WUA_ID))
         .containsExactlyInAnyOrder(TeamType.LICENCE_MANAGEMENT, TeamType.ORGANISATION);

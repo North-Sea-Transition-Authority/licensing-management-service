@@ -63,6 +63,7 @@ public class LicenceContinuationService {
   private final ClearDownWorkAreaLogService clearDownWorkAreaLogService;
   private final LicenceScheduleStateService licenceScheduleStateService;
   private final CrossLicenceEventTrackerService crossLicenceEventTrackerService;
+  private final LicenceContinuationApplicationDetailRequestCache licenceContinuationApplicationDetailRequestCache;
 
   public LicenceContinuationService(
       LicenceContinuationApplicationDetailRepository licenceContinuationApplicationDetailRepository,
@@ -77,7 +78,8 @@ public class LicenceContinuationService {
       IndustryTeamService industryTeamService,
       ClearDownWorkAreaLogService clearDownWorkAreaLogService,
       LicenceScheduleStateService licenceScheduleStateService,
-      CrossLicenceEventTrackerService crossLicenceEventTrackerService
+      CrossLicenceEventTrackerService crossLicenceEventTrackerService,
+      LicenceContinuationApplicationDetailRequestCache licenceContinuationApplicationDetailRequestCache
   ) {
     this.licenceContinuationApplicationDetailRepository = licenceContinuationApplicationDetailRepository;
     this.licenceContinuationApplicationRepository = licenceContinuationApplicationRepository;
@@ -92,6 +94,7 @@ public class LicenceContinuationService {
     this.clearDownWorkAreaLogService = clearDownWorkAreaLogService;
     this.licenceScheduleStateService = licenceScheduleStateService;
     this.crossLicenceEventTrackerService = crossLicenceEventTrackerService;
+    this.licenceContinuationApplicationDetailRequestCache = licenceContinuationApplicationDetailRequestCache;
   }
 
   @Transactional
@@ -141,7 +144,9 @@ public class LicenceContinuationService {
   }
 
   public LicenceContinuationApplicationDetail getDetailByIdOrThrow(UUID detailId) {
-    return licenceContinuationApplicationDetailRepository.findById(detailId)
+    // The access rules and the argument resolver all ask for the detail named in the URL, so within a web request it
+    // is loaded once and shared
+    return licenceContinuationApplicationDetailRequestCache.findById(detailId)
         .orElseThrow(() -> new LmsEntityNotFoundException(LICENCE_CONTINUATION_APPLICATION_DETAIL, detailId));
   }
 

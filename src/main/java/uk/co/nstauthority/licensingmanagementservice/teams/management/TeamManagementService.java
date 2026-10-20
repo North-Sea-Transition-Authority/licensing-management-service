@@ -96,7 +96,7 @@ public class TeamManagementService {
   }
 
   public Set<TeamType> getTeamTypesUserIsMemberOf(long wuaId) {
-    return teamRoleRepository.findAllByWuaId(wuaId)
+    return teamQueryService.getTeamRolesForUser(wuaId)
         .stream()
         .map(teamRole -> teamRole.getTeam().getTeamType())
         .collect(Collectors.toSet());

@@ -18,16 +18,18 @@ come from reading the code and are estimates; see [Next steps](#next-steps) for 
 
 | Fix | Status |
 |---|---|
-| Fix 4: entity graphs on the child repository methods | Done for the schedule application |
-| Fix 5: stop repeating the schedule work in the task list | Done for the schedule application |
-| Fix 3: route `getTeamTypesUserIsMemberOf` through `TeamQueryService` | Not started |
-| Fix 1: request-scoped store for URL entities | Done for the schedule application detail; other URL entities not started |
-| Fix 2: request-scoped cache for organisation unit lookups | Not started |
+| Fix 4: entity graphs on the child repository methods | Done for the schedule application, and for the continuation other requirement and supporting information |
+| Fix 5: stop repeating the schedule work in the task list | Done for the schedule application task list; the continuation overview shows the same pattern, not started |
+| Fix 3: route `getTeamTypesUserIsMemberOf` through `TeamQueryService` | Done |
+| Fix 1: request-scoped store for URL entities | Done for the schedule application detail and the continuation application detail; licence correction and licence position are with another team; licence and schedule detail not started |
+| Fix 2: request-scoped cache for organisation unit lookups | Not started; a repeated lookup is confirmed on the continuation overview |
 
-Building the schedule application task list sections went from 43 queries to 24, so the page is expected to go
-from 56 to about 37; see [Result for the schedule application task list](#result-for-the-schedule-application-task-list).
-With fix 1, the 3 loads of the application detail by the access rules and argument resolver are now 1, so the
-page should come down further; confirm both with the request log once deployed.
+**Confirmed in the deployed request log: the schedule application task list went from 56 queries to 33**, and
+loads by id from 35 to 17 (PR #828). See
+[Result for the schedule application task list](#result-for-the-schedule-application-task-list).
+
+The continuation overview has been measured before the changes in PR #830: 32 queries. See
+[Measured: continuation overview](#measured-continuation-overview).
 
 ## Why repeated loads cost queries here
 
@@ -65,6 +67,27 @@ the `RequestLogFilter` log on 2026-10-20: **56 Hibernate queries**, 2 Energy Por
 The Energy Portal calls (one organisation unit lookup, one org unit to group lookup) are not repeated on this
 page, so fix 2 does not help it.
 
+## Measured: continuation overview
+
+`GET /licence/continuation-application/{licenceContinuationApplicationDetailId}/overview`, from the `RequestLogFilter`
+log on 2026-10-20 before PR #830: **32 Hibernate queries**, 4 Energy Portal calls, 284ms.
+
+`LicenceContinuationApplicationOverviewController` has `@ContinuationApplicationHasStatus`,
+`@InvokingUserCanAccessContinuationApplication` and `@LogWorkAreaItemView`, and receives the detail through
+`LicenceContinuationApplicationDetailArgumentResolver`.
+
+| Repeat | Queries | Cause | Status |
+|---|---:|---|---|
+| `licence_continuation_application_details by id` | 4 | 3 from the status rule, the access rule and the argument resolver (finding 1); the 4th from a child entity's eager back-reference to the detail (finding 4) | Fixed in PR #830; expected to drop to 1 |
+| Schedule state worked out twice | 10 | `licence_schedule_terms by licence_schedule_detail_id` 2, `licence_schedule_phases by licence_schedule_term_id` 2, `work_programme_activities by licence_schedule_term_id` 2, `other_schedule_events by licence_schedule_term_id, date_option` 2 and `other_schedule_events by licence_schedule_phase_id, date_option` 2, probably with knock-on rows (`licence_schedule_details by id` 2, `licence_schedules by id` 2) | Not started; the callers need tracing, likely `getCurrentWorkProgrammeActivitiesViews` in the controller and the summary sections |
+| `file_upload_library_uploaded_files by usage_id, usage_type, document_type` | 3 | Probably different file types (supporting information, letters) | Likely genuine; not checked |
+| Energy Portal "Get organisation units by ids" | 2 | The access rule's licensee lookup and the overview's licensee display (finding 2) | Fix 2, not started |
+
+The other 11 queries run once each.
+
+Expected after PR #830: the 4 detail loads drop to 1, so the page should be around 29 queries, depending on how
+many knock-on rows each detail load brought with it. Confirm with the request log once deployed.
+
 ## Findings
 
 ### 1. The URL entity loaded by several rules and the argument resolver
@@ -92,9 +115,10 @@ again.
 - one Energy Portal call for organisation unit names (`getResponsibleOrganisationsByLicences`)
 - one Energy Portal call for the org unit to org group map (`findOrganisationGroupIdMapByUnitIds`)
 
-On the measured task list these run once each and are not repeated. Still to confirm: whether the overview
-pages, which display licensees, load the same data again while rendering. Energy Portal calls are slower than
-database queries, so where they are repeated this may be the largest saving in response time.
+On the measured schedule application task list these run once each and are not repeated. On the measured
+continuation overview, "Get organisation units by ids" runs twice: once for the access rule and once for the
+licensees the page displays. Energy Portal calls are slower than database queries, so where they are repeated
+this may be the largest saving in response time.
 
 ### 3. Team lookup that bypasses `TeamQueryService`
 
@@ -134,6 +158,12 @@ No production code navigates from these three entities back to the detail: the
 `getScheduleWorkProgrammeApplicationDetail(s)()` getters exist but nothing outside the entities calls them.
 The reload is pure cost.
 
+The continuation overview shows the same pattern. `LicenceContinuationOtherRequirementRequest` and
+`LicenceContinuationSupportingInformation` each have an eager `@ManyToOne` back to `LicenceContinuationApplicationDetail`,
+and their repository methods (`findByLicenceContinuationApplicationDetail`) had no entity graph, so each row found
+reloaded the detail. `LicenceContinuationWpaRequirementRepository` already had a graph. Again, nothing navigates from
+these entities back to the detail.
+
 The same page also repeats work inside the sections:
 
 - `LicenceScheduleExtensionRequest` is loaded 3 times, and each load also pulls in its phase and term. The
@@ -159,10 +189,11 @@ methods (fix 4) address directly. The repeated section queries needed a code cha
 entity graphs nor a transaction stop a query with a filter from running again. Fixes 4 and 5 are now done for
 the schedule application.
 
-### Fix 3 first: route `getTeamTypesUserIsMemberOf` through `TeamQueryService`
+### Fix 3: route `getTeamTypesUserIsMemberOf` through `TeamQueryService` (done)
 
 Replace `teamRoleRepository.findAllByWuaId(wuaId)` with `teamQueryService.getTeamRolesForUser(wuaId)`. This
-is a one-line change and saves one query per request on the document template pages.
+is a one-line change and saves one query per request on the document template pages. Done: the document template
+pages now share the request's single team role lookup.
 
 ### Fix 4: entity graphs on the child repository methods (done for the schedule application)
 
@@ -186,6 +217,14 @@ and the term. It deliberately leaves out the back-reference to the detail, which
 
 Measured effect on building the task list sections: 43 → 37 queries. All 4 detail reloads from the child
 entities are gone, and `licence_schedule_phases by id` drops from 4 to 2.
+
+**Also done for the continuation application** (PR #830): `LicenceContinuationOtherRequirementRepository` and
+`LicenceContinuationSupportingInformationRepository` now have `@EntityGraph(attributePaths =
+"licenceContinuationApplicationDetail")` on `findByLicenceContinuationApplicationDetail`, the same graph
+`LicenceContinuationWpaRequirementRepository` already used. Their callers (`LicenceContinuationOtherRequirementService`
+and `LicenceContinuationSupportingInformationService`) only read and set the entity's own fields and save it. Measured
+with a throwaway integration test: loading both children issued 4 queries before (each reloaded the detail) and 2
+after.
 
 ### Fix 5: stop repeating the schedule work in the task list (done for the schedule application)
 
@@ -233,9 +272,33 @@ log's section queries exactly before the change. The task list it produces is id
 | Other section queries (purpose, supporting information, external contributors, activities, file uploads) | 5 | 5 | 5 |
 | **Total for building the sections** | **43** | **37** | **24** |
 
-For the whole request this is expected to take the page from 56 to about 37 queries. The other 13 (the access
-rules' and resolver's 3 detail loads and their knock-ons, team roles, the viewed-item log and responsible
-organisations) are outside the section build. Confirm with the request log once deployed.
+#### Confirmed in the deployed request log
+
+The same task list request (same application, same user), from the `RequestLogFilter` log on 2026-10-20 after
+PR #828 was deployed, with fixes 4, 5 and 1 (for the application detail) in place:
+
+| Query | Before | After |
+|---|---:|---:|
+| `schedule_work_programme_application_details by id` | 7 | 1 |
+| `licence_schedules by id` | 9 | 5 |
+| `licence_schedule_phases by id` | 8 | 3 |
+| `licence_schedule_details by id` | 6 | 4 |
+| `licence_schedule_terms by id` | 3 | 2 |
+| `licence_schedule_details by id, status` | 3 | 1 |
+| `licence_schedule_extension_request by …` | 3 | 2 |
+| `licence_schedule_phases by licence_schedule_term_id` | 4 | 3 |
+| `licence_schedule_terms by licence_schedule_detail_id` | 3 | 2 |
+| Other queries, one each (`schedule_work_programme_applications`, `licences`, `team_roles`, `work_area_item_views`, `licence_responsible_organisations`, request purpose, supporting information, external contributors, activities, file uploads) | 10 | 10 |
+| **Total** | **56** | **33** |
+
+- 56 → 33 queries, within the "below 37" that was expected. Loads by id fell from 35 to 17.
+- The application detail is loaded once (from 7), the current schedule detail lookup runs once (from 3), and the
+  extension requests take 2 queries (one load and the `exists` check), all as predicted.
+- Response time was 412ms before and 243ms after. That is one request each, so treat it as indicative only.
+- Energy Portal calls are unchanged: one of each, as before.
+
+The phase counts are a little higher than in the throwaway test (3 phases by id and 3 phases by term, against 1
+and 2), because this application's schedule has more terms and phases than the test data.
 
 What is left in the section build:
 
@@ -244,11 +307,12 @@ What is left in the section build:
   `isExtensionRequested`). The `exists` check loads no entities.
 - The schedule state is still worked out twice: once by `LicenceScheduleStateService` for the amendable check and
   once by `LicenceScheduleExtensionService.getExtendableTermAndPhases`, which query terms and phases separately.
-- The remaining schedule rows loaded by id (`licence_schedules` 5, `licence_schedule_details` 4,
-  `licence_schedule_terms` 2, `licence_schedule_phases` 1) are knock-ons of the term, phase and schedule detail
-  queries: those entities map their links to their schedule detail and licence schedule eagerly. Their
-  repositories are shared by the timeline and other schedule pages, so changing their fetching is a separate
-  piece of work.
+- The remaining schedule rows loaded by id (in the deployed log: `licence_schedules` 5, `licence_schedule_details`
+  4, `licence_schedule_phases` 3, `licence_schedule_terms` 2, 14 queries in total) are knock-ons of the term, phase
+  and schedule detail queries: those entities map their links to their schedule detail and licence schedule
+  eagerly. Their repositories are shared by the timeline and other schedule pages, so changing their fetching is a
+  separate piece of work. Together with the schedule state being worked out twice (5 queries in the deployed log),
+  this is the largest remaining cost on the page.
 
 ### Fix 1: a request-scoped store for URL entities
 
@@ -282,6 +346,18 @@ An earlier version made each cache a `@RequestScope` bean. That needed every ser
 outside a request, and a shared base class could not do that check for them.
 
 ### Remaining URL entities
+
+**Done for the continuation application detail**, the same way as for the schedule application detail:
+
+- `LicenceContinuationApplicationDetailRequestCache`, used by `LicenceContinuationService.getDetailByIdOrThrow`. Its
+  only callers are the four continuation access rules and `LicenceContinuationApplicationDetailArgumentResolver`.
+
+Measured against the real beans: three lookups issue 1 query inside a request, and 3 outside one, as before. Not
+yet confirmed from request logs.
+
+The licence correction and licence position lookups are being handled by another team. Still to do here: licence
+and schedule detail.
+
 
 Use the same pattern: a cache per entity type, extending `RequestScopedCache` and keyed by id, used by that
 entity's service. Access rules and argument resolvers both read through it, so each URL entity is loaded once
@@ -349,11 +425,16 @@ This should be a team decision. The targeted fixes are the safer option.
 
 ## Affected Files
 
-- `teams/management/TeamManagementService.java` (fix 3)
+- `teams/management/TeamManagementService.java` (fix 3, done)
+- `licence/continuation/LicenceContinuationApplicationDetailRequestCache.java` (new) and
+  `licence/continuation/LicenceContinuationService.java` (fix 1 for the continuation detail, done)
 - `licence/scheduleworkprogrammeapplication/requestpurpose/SwpApplicationRequestPurposeRepository.java`,
   `licence/scheduleworkprogrammeapplication/extendjourney/LicenceScheduleExtensionRepository.java` and
   `licence/scheduleworkprogrammeapplication/overallrequest/LicenceScheduleSupportingInformationRepository.java`
   (fix 4, done)
+- `licence/continuation/requirementjourney/LicenceContinuationOtherRequirementRepository.java` and
+  `licence/continuation/supportinginformation/LicenceContinuationSupportingInformationRepository.java` (fix 4 for the
+  continuation application, done)
 - `licence/scheduleworkprogrammeapplication/tasklist/ScheduleWorkProgrammeApplicationTaskListSectionService.java`,
   `licence/scheduleworkprogrammeapplication/requestpurpose/SwpApplicationRequestPurposeService.java` and, in
   `licence/scheduleworkprogrammeapplication/extendjourney/`, `LicenceScheduleExtensionService.java`,
@@ -375,11 +456,20 @@ Paths are relative to `src/main/java/uk/co/nstauthority/licensingmanagementservi
    purpose) for:
    - ~~an application task list page~~ done: 56 queries, see
      [Measured: schedule application task list](#measured-schedule-application-task-list)
-   - a continuation overview page
-   - a correction position page
-2. Capture the schedule application task list log again once fixes 4, 5 and 1 (for the application detail) are
-   deployed, to confirm the page has gone from 56 to below 37 queries.
+   - ~~a continuation overview page~~ done: 32 queries before PR #830, see
+     [Measured: continuation overview](#measured-continuation-overview)
+   - a correction position page (with another team)
+2. ~~Capture the schedule application task list log again once fixes 4, 5 and 1 (for the application detail)
+   are deployed~~ done: 56 → 33 queries, see
+   [Confirmed in the deployed request log](#confirmed-in-the-deployed-request-log)
 3. Use the remaining logs to confirm the estimates and size the gain before changing anything.
-4. Implement the remaining fixes in the order fix 3, fix 1 for the other URL entities, fix 2, measuring after
-   each. Fixes 4 and 5 can be applied to the continuation task list in the same way if its log shows the same
-   pattern.
+4. Capture the continuation overview log again once PR #830 is deployed (expected around 29 queries, from 32),
+   and a document template page log to confirm fix 3.
+5. Trace why the continuation overview works out the schedule state twice (10 queries), and fix it the same way as
+   fix 5 did for the schedule application task list.
+6. Fix 2: the continuation overview confirms a repeated Energy Portal organisation unit lookup.
+7. Fix 1 for licence and schedule detail, measuring after each (licence correction and licence position are with
+   another team). Check the continuation task list log for the same patterns.
+8. Consider the remaining cost on the schedule application task list: the eager links on terms, phases and
+   schedule details (14 queries) and the schedule state being worked out twice (5 queries). Both sit in the
+   shared schedule services, so measure the timeline and other schedule pages before and after.

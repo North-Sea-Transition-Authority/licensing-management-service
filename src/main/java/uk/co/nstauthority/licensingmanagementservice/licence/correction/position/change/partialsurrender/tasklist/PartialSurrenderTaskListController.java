@@ -5,6 +5,7 @@ import static org.springframework.web.servlet.mvc.method.annotation.MvcUriCompon
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.IntStream;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -17,6 +18,7 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correct
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.LicencePositionChangeBelongsToPosition;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.LicencePositionChangeIsOfType;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.position.LicencePositionBelongsToCorrectionLicence;
+import uk.co.nstauthority.licensingmanagementservice.fds.error.ErrorSummaryItem;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
@@ -25,6 +27,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.LicencePositionPartialSurrenderController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.PartialSurrenderCorrectionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.PartialSurrenderValidator;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.definearea.PartialSurrenderDefineAreaController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.reviewandsubmit.PartialSurrenderSummaryContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.reviewandsubmit.PartialSurrenderSummarySectionService;
@@ -33,6 +36,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.spatial.LicencePositionSpatialService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummarySection;
 import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListSection;
@@ -54,17 +58,23 @@ public class PartialSurrenderTaskListController {
   private final PartialSurrenderCorrectionService partialSurrenderCorrectionService;
   private final PartialSurrenderTaskListService partialSurrenderTaskListService;
   private final PartialSurrenderSummarySectionService partialSurrenderSummarySectionService;
+  private final PartialSurrenderValidator partialSurrenderValidator;
+  private final LicencePositionSpatialService licencePositionSpatialService;
 
   public PartialSurrenderTaskListController(
       LicencePositionCorrectionService licencePositionCorrectionService,
       PartialSurrenderCorrectionService partialSurrenderCorrectionService,
       PartialSurrenderTaskListService partialSurrenderTaskListService,
-      PartialSurrenderSummarySectionService partialSurrenderSummarySectionService
+      PartialSurrenderSummarySectionService partialSurrenderSummarySectionService,
+      PartialSurrenderValidator partialSurrenderValidator,
+      LicencePositionSpatialService licencePositionSpatialService
   ) {
     this.licencePositionCorrectionService = licencePositionCorrectionService;
     this.partialSurrenderCorrectionService = partialSurrenderCorrectionService;
     this.partialSurrenderTaskListService = partialSurrenderTaskListService;
     this.partialSurrenderSummarySectionService = partialSurrenderSummarySectionService;
+    this.partialSurrenderValidator = partialSurrenderValidator;
+    this.licencePositionSpatialService = licencePositionSpatialService;
   }
 
   @GetMapping("/position-correction/{licencePositionCorrectionId}/partial-surrender/task-list")
@@ -148,12 +158,20 @@ public class PartialSurrenderTaskListController {
         new PartialSurrenderSummaryContext.Staged(licencePositionCorrection),
         user
     );
+    var stagedChangeId = partialSurrenderCorrectionService
+        .getCommittedPartialSurrenderChangeId(licencePositionCorrection)
+        .orElse(null);
+    var errorMessages = partialSurrenderValidator.validate(
+        partialSurrenderCorrectionService.getCommittedPartialSurrenderOrThrow(licencePositionCorrection),
+        licencePositionSpatialService.getStateGoingIntoChange(licencePositionCorrection, stagedChangeId),
+        licencePositionCorrectionService.resolveEffectiveDate(licencePositionCorrection)
+    );
 
     return reviewAndSubmitModelAndView(
         correction,
         licencePositionCorrection.getId(),
         sections,
-        partialSurrenderCorrectionService.allSurrenderedBlocksAreFull(licencePositionCorrection),
+        errorMessages,
         singleBlockSelectAreasUrl.orElse(taskListUrl),
         singleBlockSelectAreasUrl.isPresent() ? BACK_LINK_TEXT : BACK_TO_TASK_LIST_LINK_TEXT);
   }
@@ -170,7 +188,6 @@ public class PartialSurrenderTaskListController {
       ServiceUserDetail user
   ) {
     var changeId = change.getId().toString();
-    var surrender = partialSurrenderCorrectionService.getSurrenderUnderCorrectionOrThrow(correction, licencePosition, changeId);
     var taskListUrl = ReverseRouter.route(on(PartialSurrenderTaskListController.class)
         .renderForCorrectingChange(correction, licencePosition, change, null));
     var singleBlockSelectAreasUrl = licencePositionCorrectionService
@@ -184,12 +201,17 @@ public class PartialSurrenderTaskListController {
         new PartialSurrenderSummaryContext.LiveChange(correction, licencePosition, changeId),
         user
     );
+    var errorMessages = partialSurrenderValidator.validate(
+        partialSurrenderCorrectionService.getSurrenderUnderCorrectionOrThrow(correction, licencePosition, changeId),
+        licencePositionSpatialService.getStateGoingIntoChange(correction, licencePosition.getId(), changeId),
+        licencePositionCorrectionService.getEffectivePositionDate(correction, licencePosition)
+    );
 
     return reviewAndSubmitModelAndView(
         correction,
         changeId,
         sections,
-        partialSurrenderCorrectionService.allSurrenderedBlocksAreFull(surrender),
+        errorMessages,
         singleBlockSelectAreasUrl.orElse(taskListUrl),
         singleBlockSelectAreasUrl.isPresent() ? BACK_LINK_TEXT : BACK_TO_TASK_LIST_LINK_TEXT
     );
@@ -224,16 +246,20 @@ public class PartialSurrenderTaskListController {
       LicenceCorrection correction,
       Object accordionId,
       List<SummarySection> summarySections,
-      boolean allSurrenderedBlocksAreFull,
+      List<String> errorMessages,
       String backLinkUrl,
       String backLinkText
   ) {
+    var errorSummaryItems = IntStream.range(0, errorMessages.size())
+        .mapToObj(index -> new ErrorSummaryItem(index, "summaryaccordion-" + accordionId, errorMessages.get(index)))
+        .toList();
+
     return new ModelAndView("lms/licence/correction/change/partialSurrender/partialSurrenderReviewAndSubmit")
         .addObject("pageTitle", REVIEW_AND_SUBMIT_PAGE_TITLE)
         .addObject("pageCaption", correction.getLicence().getLicenceReference())
         .addObject("accordionId", accordionId)
         .addObject("summarySections", summarySections)
-        .addObject("allSurrenderedBlocksAreFull", allSurrenderedBlocksAreFull)
+        .addObject("errorSummaryItems", errorSummaryItems)
         .addObject("backLinkUrl", backLinkUrl)
         .addObject("backLinkText", backLinkText);
   }

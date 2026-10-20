@@ -356,6 +356,7 @@ class ReviewCorrectionControllerTest extends AbstractControllerTest {
     when(licencePositionValidationService.validate(
         correctedTimeline.positionsToApply(),
         correctedTimeline.resolvedStates(),
+        correctedTimeline.positionCorrections(),
         correctedTimeline.isCarbonStorage(),
         true))
         .thenReturn(blockingErrors);

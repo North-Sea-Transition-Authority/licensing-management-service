@@ -14,6 +14,7 @@ import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderType;
@@ -199,6 +200,40 @@ class PartialSurrenderOperationTest {
         Arguments.of(Map.of(FIRST_FEATURE_ID, fullSurrender, SECOND_FEATURE_ID, partialSurrenderOnAJourney), false),
         Arguments.of(Map.of(FIRST_FEATURE_ID, fullSurrender, SECOND_FEATURE_ID, fullSurrender), true),
         Arguments.of(Map.of(FIRST_FEATURE_ID, fullSurrender, SECOND_FEATURE_ID, executedPartialSurrender), true)
+    );
+  }
+
+  @ParameterizedTest
+  @EnumSource(BlockSurrenderType.class)
+  void isPartialSurrender(BlockSurrenderType type) {
+    var details = surrenderDetails(type);
+
+    assertThat(details.isPartialSurrender()).isEqualTo(type == BlockSurrenderType.PARTIAL_SURRENDER);
+  }
+
+  @ParameterizedTest
+  @MethodSource("surrendersAndWhetherTheyHaveAPartialSurrender")
+  void hasPartialSurrender(
+      Map<UUID, SurrenderDetails> featureIdToSurrenderDetails,
+      boolean expected
+  ) {
+    var operation = new PartialSurrenderOperation(
+        SURRENDER_DATE,
+        List.of(FIRST_FEATURE_ID, SECOND_FEATURE_ID),
+        featureIdToSurrenderDetails
+    );
+
+    assertThat(operation.hasPartialSurrender()).isEqualTo(expected);
+  }
+
+  private static Stream<Arguments> surrendersAndWhetherTheyHaveAPartialSurrender() {
+    var fullSurrender = surrenderDetails(BlockSurrenderType.FULL_SURRENDER);
+    var partialSurrender = surrenderDetails(BlockSurrenderType.PARTIAL_SURRENDER);
+
+    return Stream.of(
+        Arguments.of(Map.of(), false),
+        Arguments.of(Map.of(FIRST_FEATURE_ID, fullSurrender, SECOND_FEATURE_ID, fullSurrender), false),
+        Arguments.of(Map.of(FIRST_FEATURE_ID, fullSurrender, SECOND_FEATURE_ID, partialSurrender), true)
     );
   }
 

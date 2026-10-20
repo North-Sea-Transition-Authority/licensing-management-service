@@ -347,65 +347,6 @@ class PartialSurrenderCorrectionServiceTest {
   }
 
   @Test
-  void allSurrenderedBlocksAreFull_whenEveryBlockIsFullSurrender_returnsTrue() {
-    var operation = LicenceOperation.newPartialSurrenderOperation()
-        .withSurrenderedFeatureIds(List.of(FIRST_FEATURE_ID, SECOND_FEATURE_ID))
-        .withSurrenderDetails(Map.of(
-            FIRST_FEATURE_ID, surrenderDetails(BlockSurrenderType.FULL_SURRENDER, FIRST_COMMAND_JOURNEY_ID),
-            SECOND_FEATURE_ID, surrenderDetails(BlockSurrenderType.FULL_SURRENDER, SECOND_COMMAND_JOURNEY_ID)))
-        .build();
-    var positionCorrection = positionCorrection(
-        List.of(AddChange.buildOperationsChange(List.of(operation), 1)));
-    givenCommittedPartialSurrender(positionCorrection, operation);
-
-    assertThat(partialSurrenderCorrectionService.allSurrenderedBlocksAreFull(positionCorrection)).isTrue();
-  }
-
-  @Test
-  void allSurrenderedBlocksAreFull_whenAnyBlockIsPartialSurrender_returnsFalse() {
-    var operation = LicenceOperation.newPartialSurrenderOperation()
-        .withSurrenderedFeatureIds(List.of(FIRST_FEATURE_ID, SECOND_FEATURE_ID))
-        .withSurrenderDetails(Map.of(
-            FIRST_FEATURE_ID, surrenderDetails(BlockSurrenderType.FULL_SURRENDER, FIRST_COMMAND_JOURNEY_ID),
-            SECOND_FEATURE_ID, surrenderDetails(BlockSurrenderType.PARTIAL_SURRENDER, SECOND_COMMAND_JOURNEY_ID)))
-        .build();
-    var positionCorrection = positionCorrection(
-        List.of(AddChange.buildOperationsChange(List.of(operation), 1)));
-    givenCommittedPartialSurrender(positionCorrection, operation);
-
-    assertThat(partialSurrenderCorrectionService.allSurrenderedBlocksAreFull(positionCorrection)).isFalse();
-  }
-
-  @Test
-  void allSurrenderedBlocksAreFull_whenOperationHasOnlyFullSurrenders_returnsTrue() {
-    var operation = LicenceOperation.newPartialSurrenderOperation()
-        .withSurrenderedFeatureIds(List.of(FIRST_FEATURE_ID))
-        .withSurrenderDetails(Map.of(FIRST_FEATURE_ID, surrenderDetails(BlockSurrenderType.FULL_SURRENDER, FIRST_COMMAND_JOURNEY_ID)))
-        .build();
-
-    assertThat(partialSurrenderCorrectionService.allSurrenderedBlocksAreFull(operation)).isTrue();
-  }
-
-  @Test
-  void allSurrenderedBlocksAreFull_whenOperationHasAPartialSurrender_returnsFalse() {
-    var operation = LicenceOperation.newPartialSurrenderOperation()
-        .withSurrenderedFeatureIds(List.of(FIRST_FEATURE_ID, SECOND_FEATURE_ID))
-        .withSurrenderDetails(Map.of(
-            FIRST_FEATURE_ID, surrenderDetails(BlockSurrenderType.FULL_SURRENDER, FIRST_COMMAND_JOURNEY_ID),
-            SECOND_FEATURE_ID, surrenderDetails(BlockSurrenderType.PARTIAL_SURRENDER, SECOND_COMMAND_JOURNEY_ID)))
-        .build();
-
-    assertThat(partialSurrenderCorrectionService.allSurrenderedBlocksAreFull(operation)).isFalse();
-  }
-
-  @Test
-  void allSurrenderedBlocksAreFull_whenNoSurrenderStaged_returnsFalse() {
-    var positionCorrection = positionCorrection();
-
-    assertThat(partialSurrenderCorrectionService.allSurrenderedBlocksAreFull(positionCorrection)).isFalse();
-  }
-
-  @Test
   void commitPartialSurrender_whenFeatureIds_replacesAddChangeWithTheOperation() {
     var positionCorrection = positionCorrection();
     var operation = partialSurrender(FIRST_FEATURE_ID);

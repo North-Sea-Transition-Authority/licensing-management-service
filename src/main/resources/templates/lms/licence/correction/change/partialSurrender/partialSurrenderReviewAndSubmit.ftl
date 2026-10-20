@@ -9,10 +9,6 @@
   extendContainerWidth=true
   backLinkUrl=springUrl(backLinkUrl)
 >
-  <#if allSurrenderedBlocksAreFull>
-    <@fdsError.singleErrorSummary errorMessage="At least one block must be marked as a partial surrender"/>
-  </#if>
-
   <@fdsForm.htmlForm>
     <@fdsAccordion.accordion accordionId="summaryaccordion-${accordionId}">
       <#list summarySections as summarySection>

@@ -349,24 +349,6 @@ public class PartialSurrenderCorrectionService {
     return getCommittedPartialSurrender(licencePositionCorrection).isPresent();
   }
 
-  public boolean allSurrenderedBlocksAreFull(LicencePositionCorrection licencePositionCorrection) {
-    return getCommittedPartialSurrender(licencePositionCorrection)
-        .map(this::allSurrenderedBlocksAreFull)
-        .orElse(false);
-  }
-
-  public boolean allSurrenderedBlocksAreFull(PartialSurrenderOperation operation) {
-    if (operation.surrenderedFeatureIds().isEmpty()) {
-      return false;
-    }
-
-    return operation.surrenderedFeatureIds().stream()
-        .allMatch(id -> {
-          var surrenderDetails = operation.featureIdToSurrenderDetails().get(id);
-          return surrenderDetails != null && surrenderDetails.type() == BlockSurrenderType.FULL_SURRENDER;
-        });
-  }
-
   @Transactional
   public void adjustPartialSurrenderBlocks(LicencePositionCorrection licencePositionCorrection) {
     var committedPartialSurrender = getCommittedPartialSurrender(licencePositionCorrection);

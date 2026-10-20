@@ -176,6 +176,11 @@ public record PartialSurrenderOperation(
       return type == BlockSurrenderType.FULL_SURRENDER;
     }
 
+    @JsonIgnore
+    public boolean isPartialSurrender() {
+      return type == BlockSurrenderType.PARTIAL_SURRENDER;
+    }
+
     /**
      * A block's surrender takes effect once it is complete, or once its shape is recorded outright rather than held
      * on a journey.
@@ -195,6 +200,12 @@ public record PartialSurrenderOperation(
     return !surrenderedFeatureIds.isEmpty() && surrenderedFeatureIds.stream()
         .map(featureIdToSurrenderDetails::get)
         .allMatch(surrenderDetails -> surrenderDetails != null && surrenderDetails.takesEffect());
+  }
+
+  @JsonIgnore
+  public boolean hasPartialSurrender() {
+    return featureIdToSurrenderDetails.values().stream()
+        .anyMatch(SurrenderDetails::isPartialSurrender);
   }
 
   public boolean hasUpdateOccurred(PartialSurrenderOperation liveSurrender) {

@@ -1,5 +1,6 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.time.LocalDate;
 import java.util.List;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
@@ -18,6 +19,11 @@ public record UpdateLicencePositionPayload(
   @Override
   public String type() {
     return UPDATE_POSITION;
+  }
+
+  @JsonIgnore
+  public boolean changesPositionDate() {
+    return effectiveDate != null || effectiveDateOrder != null;
   }
 
   public static class Builder {

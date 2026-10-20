@@ -1,5 +1,6 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.tasklist;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -27,6 +28,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.co.fivium.gisframework.feature.Feature;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
+import uk.co.nstauthority.licensingmanagementservice.fds.error.ErrorSummaryItem;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
@@ -38,6 +40,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.LicencePositionPartialSurrenderController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.PartialSurrenderCorrectionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.PartialSurrenderValidator;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.definearea.PartialSurrenderDefineAreaController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.reviewandsubmit.PartialSurrenderSummaryContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.reviewandsubmit.PartialSurrenderSummarySectionService;
@@ -49,7 +52,9 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePos
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.LicencePositionState;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.FeatureTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.spatial.LicencePositionSpatialService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.transaction.LicenceTransactionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryCard;
@@ -116,6 +121,12 @@ class PartialSurrenderTaskListControllerTest extends AbstractControllerTest {
 
   @MockitoBean
   private PartialSurrenderSummarySectionService partialSurrenderSummarySectionService;
+
+  @MockitoBean
+  private PartialSurrenderValidator partialSurrenderValidator;
+
+  @MockitoBean
+  private LicencePositionSpatialService licencePositionSpatialService;
 
   @Test
   void renderTaskList_whenExecutedPosition_thenBackLinkGoesToThePosition() throws Exception {
@@ -342,8 +353,7 @@ class PartialSurrenderTaskListControllerTest extends AbstractControllerTest {
     when(partialSurrenderSummarySectionService.getSummarySections(
         new PartialSurrenderSummaryContext.LiveChange(correction, POSITION, LIVE_CHANGE.getId().toString()), regulatorUser))
         .thenReturn(summarySections);
-    var surrender = givenSurrenderUnderCorrection(correction);
-    when(partialSurrenderCorrectionService.allSurrenderedBlocksAreFull(surrender)).thenReturn(false);
+    givenSurrenderUnderCorrection(correction);
 
     mockMvc.perform(get(reviewAndSubmitForCorrectingChangeUrl())
             .with(user(regulatorUser)))
@@ -354,7 +364,7 @@ class PartialSurrenderTaskListControllerTest extends AbstractControllerTest {
             model().attribute("pageCaption", LICENCE.getLicenceReference()),
             model().attribute("summarySections", summarySections),
             model().attribute("accordionId", LIVE_CHANGE_ID),
-            model().attribute("allSurrenderedBlocksAreFull", false),
+            model().attribute("errorSummaryItems", List.of()),
             model().attribute("backLinkUrl", correctingChangeTaskListUrl()),
             model().attribute("backLinkText", "Back to task list")
         );
@@ -403,29 +413,28 @@ class PartialSurrenderTaskListControllerTest extends AbstractControllerTest {
   }
 
   @Test
-  void renderReviewAndSubmitForCorrectingChange_whenAllBlocksFullSurrender_thenValidationErrorFlagSet()
-      throws Exception {
+  void renderReviewAndSubmitForCorrectingChange_whenSurrenderInvalid_thenErrorSummaryItemsAdded() throws Exception {
     var correction = givenCorrectionAllocatedToUser(LICENCE);
     givenPositionOnCorrectionLicence(correction);
-    var summarySections = List.of(new SummarySection(10, List.of(SummaryItem.withCards("Surrender details", List.of()))));
-    when(partialSurrenderSummarySectionService.getSummarySections(
-        new PartialSurrenderSummaryContext.LiveChange(correction, POSITION, LIVE_CHANGE.getId().toString()), regulatorUser))
-        .thenReturn(summarySections);
     var surrender = givenSurrenderUnderCorrection(correction);
-    when(partialSurrenderCorrectionService.allSurrenderedBlocksAreFull(surrender)).thenReturn(true);
+    var state = LicencePositionState.EMPTY.withBlock(UUID.randomUUID(), List.of());
+    when(licencePositionSpatialService.getStateGoingIntoChange(correction, POSITION_ID, LIVE_CHANGE_ID))
+        .thenReturn(state);
+    when(licencePositionCorrectionService.getEffectivePositionDate(correction, POSITION)).thenReturn(POSITION_DATE);
+    when(partialSurrenderValidator.validate(surrender, state, POSITION_DATE))
+        .thenReturn(List.of("First error", "Second error"));
 
-    mockMvc.perform(get(reviewAndSubmitForCorrectingChangeUrl())
+    var modelAndView = mockMvc.perform(get(reviewAndSubmitForCorrectingChangeUrl())
             .with(user(regulatorUser)))
-        .andExpectAll(
-            status().isOk(),
-            view().name("lms/licence/correction/change/partialSurrender/partialSurrenderReviewAndSubmit"),
-            model().attribute("pageTitle", PartialSurrenderTaskListController.REVIEW_AND_SUBMIT_PAGE_TITLE),
-            model().attribute("pageCaption", LICENCE.getLicenceReference()),
-            model().attribute("summarySections", summarySections),
-            model().attribute("accordionId", LIVE_CHANGE_ID),
-            model().attribute("allSurrenderedBlocksAreFull", true),
-            model().attribute("backLinkUrl", correctingChangeTaskListUrl())
-        );
+        .andExpect(status().isOk())
+        .andReturn().getModelAndView();
+
+    assertThat(modelAndView.getModel().get("errorSummaryItems"))
+        .usingRecursiveComparison()
+        .isEqualTo(List.of(
+            new ErrorSummaryItem(0, "summaryaccordion-" + LIVE_CHANGE_ID, "First error"),
+            new ErrorSummaryItem(1, "summaryaccordion-" + LIVE_CHANGE_ID, "Second error")
+        ));
   }
 
   @Test
@@ -451,8 +460,6 @@ class PartialSurrenderTaskListControllerTest extends AbstractControllerTest {
     when(partialSurrenderSummarySectionService.getSummarySections(
         new PartialSurrenderSummaryContext.Staged(positionCorrection), regulatorUser)).thenReturn(summarySections);
 
-    when(partialSurrenderCorrectionService.allSurrenderedBlocksAreFull(positionCorrection)).thenReturn(false);
-
     mockMvc.perform(get(reviewAndSubmitUrl()).with(user(regulatorUser)))
         .andExpectAll(
             status().isOk(),
@@ -461,7 +468,7 @@ class PartialSurrenderTaskListControllerTest extends AbstractControllerTest {
             model().attribute("pageCaption", LICENCE.getLicenceReference()),
             model().attribute("summarySections", summarySections),
             model().attribute("accordionId", POSITION_CORRECTION_ID),
-            model().attribute("allSurrenderedBlocksAreFull", false),
+            model().attribute("errorSummaryItems", List.of()),
             model().attribute("backLinkUrl", taskListUrl()),
             model().attribute("backLinkText", "Back to task list")
         );
@@ -496,7 +503,6 @@ class PartialSurrenderTaskListControllerTest extends AbstractControllerTest {
             .build())))));
     when(partialSurrenderSummarySectionService.getSummarySections(
         new PartialSurrenderSummaryContext.Staged(positionCorrection), regulatorUser)).thenReturn(summarySections);
-    when(partialSurrenderCorrectionService.allSurrenderedBlocksAreFull(positionCorrection)).thenReturn(false);
 
     mockMvc.perform(get(reviewAndSubmitUrl()).with(user(regulatorUser)))
         .andExpectAll(
@@ -507,18 +513,29 @@ class PartialSurrenderTaskListControllerTest extends AbstractControllerTest {
   }
 
   @Test
-  void renderReviewAndSubmit_whenAllBlocksFullSurrender_thenValidationErrorFlagSet() throws Exception {
+  void renderReviewAndSubmit_whenSurrenderInvalid_thenErrorSummaryItemsAdded() throws Exception {
     var correction = givenCorrectionAllocatedToUser(LICENCE);
     var positionCorrection = givenPositionCorrection(correction, LicencePositionCorrectionChangeType.UPDATE_POSITION);
-    when(partialSurrenderSummarySectionService.getSummarySections(
-        new PartialSurrenderSummaryContext.Staged(positionCorrection), regulatorUser)).thenReturn(List.of());
-    when(partialSurrenderCorrectionService.allSurrenderedBlocksAreFull(positionCorrection)).thenReturn(true);
+    var stagedChangeId = UUID.randomUUID().toString();
+    var state = LicencePositionState.EMPTY.withBlock(UUID.randomUUID(), List.of());
+    when(partialSurrenderCorrectionService.getCommittedPartialSurrenderChangeId(positionCorrection))
+        .thenReturn(Optional.of(stagedChangeId));
+    when(partialSurrenderCorrectionService.getCommittedPartialSurrenderOrThrow(positionCorrection)).thenReturn(SURRENDER);
+    when(licencePositionSpatialService.getStateGoingIntoChange(positionCorrection, stagedChangeId)).thenReturn(state);
+    when(licencePositionCorrectionService.resolveEffectiveDate(positionCorrection)).thenReturn(POSITION_DATE);
+    when(partialSurrenderValidator.validate(SURRENDER, state, POSITION_DATE))
+        .thenReturn(List.of("First error", "Second error"));
 
-    mockMvc.perform(get(reviewAndSubmitUrl()).with(user(regulatorUser)))
-        .andExpectAll(
-            status().isOk(),
-            model().attribute("allSurrenderedBlocksAreFull", true)
-        );
+    var modelAndView = mockMvc.perform(get(reviewAndSubmitUrl()).with(user(regulatorUser)))
+        .andExpect(status().isOk())
+        .andReturn().getModelAndView();
+
+    assertThat(modelAndView.getModel().get("errorSummaryItems"))
+        .usingRecursiveComparison()
+        .isEqualTo(List.of(
+            new ErrorSummaryItem(0, "summaryaccordion-" + POSITION_CORRECTION_ID, "First error"),
+            new ErrorSummaryItem(1, "summaryaccordion-" + POSITION_CORRECTION_ID, "Second error")
+        ));
   }
 
   @Test

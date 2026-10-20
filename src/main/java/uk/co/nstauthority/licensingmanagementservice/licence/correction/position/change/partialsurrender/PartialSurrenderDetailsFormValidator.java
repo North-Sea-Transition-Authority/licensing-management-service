@@ -1,7 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender;
 
+import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -21,7 +21,7 @@ public class PartialSurrenderDetailsFormValidator {
   public boolean hasErrors(
       PartialSurrenderDetailsForm form,
       Errors errors,
-      List<Feature> surrenderableBlockFeatures,
+      Collection<Feature> surrenderableBlockFeatures,
       Set<UUID> featureIdsAlreadyOperatedOn
   ) {
     if (CollectionUtils.isEmpty(form.getFeatureIds())) {
@@ -35,7 +35,7 @@ public class PartialSurrenderDetailsFormValidator {
     return errors.hasErrors();
   }
 
-  private Set<UUID> surrenderableFeatureIds(List<Feature> blockFeatures) {
+  private Set<UUID> surrenderableFeatureIds(Collection<Feature> blockFeatures) {
     return blockFeatures.stream()
         .map(Feature::getId)
         .collect(Collectors.toSet());

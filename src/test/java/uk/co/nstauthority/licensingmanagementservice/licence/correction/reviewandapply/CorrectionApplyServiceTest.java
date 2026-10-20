@@ -326,6 +326,7 @@ class CorrectionApplyServiceTest {
     when(licencePositionValidationService.validate(
         correctedTimeline.positionsToApply(),
         correctedTimeline.resolvedStates(),
+        correctedTimeline.positionCorrections(),
         correctedTimeline.isCarbonStorage(),
         true)
     ).thenReturn(List.of());
@@ -608,6 +609,7 @@ class CorrectionApplyServiceTest {
     when(licencePositionValidationService.validate(
         correctedTimeline.positionsToApply(),
         correctedTimeline.resolvedStates(),
+        correctedTimeline.positionCorrections(),
         correctedTimeline.isCarbonStorage(),
         true))
         .thenReturn(blockingErrors);

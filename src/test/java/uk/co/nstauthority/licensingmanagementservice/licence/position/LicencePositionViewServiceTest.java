@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.entry;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.assertj.core.api.InstanceOfAssertFactories.list;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -24,7 +25,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.fivium.gisframework.feature.Feature;
 import uk.co.fivium.gisframework.feature.FeatureService;
@@ -110,8 +110,8 @@ class LicencePositionViewServiceTest {
   @Mock
   private FeatureService featureService;
 
-  @Spy
-  private LicencePositionValidationService licencePositionValidationService = new LicencePositionValidationService();
+  @Mock
+  private LicencePositionValidationService licencePositionValidationService;
 
   @InjectMocks
   private LicencePositionViewService licencePositionViewService;
@@ -1678,6 +1678,7 @@ class LicencePositionViewServiceTest {
     verify(licencePositionValidationService).validate(
         validationPositionsCaptor.capture(),
         validationStatesCaptor.capture(),
+        eq(List.of(removeCorrection)),
         isCarbonStorageCaptor.capture(),
         isExtantLicenceCaptor.capture());
 

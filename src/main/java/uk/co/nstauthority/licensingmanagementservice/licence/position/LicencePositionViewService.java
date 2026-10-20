@@ -357,6 +357,7 @@ public class LicencePositionViewService {
     var validationErrors = licencePositionValidationService.validate(
         validationPositions,
         resolvedStates,
+        positionCorrections,
         licencePosition.getLicence().getType() == LicenceType.CARBON_STORAGE,
         LicenceStatusType.EXTANT.equals(licenceStatusType)
     );
@@ -434,6 +435,7 @@ public class LicencePositionViewService {
     var validationErrors = licencePositionValidationService.validate(
         allChronologicalPositions,
         resolvedStates,
+        positionCorrections,
         licenceCorrection.getLicence().getType() == LicenceType.CARBON_STORAGE,
         LicenceStatusType.EXTANT.equals(licenceStatusType)
     );

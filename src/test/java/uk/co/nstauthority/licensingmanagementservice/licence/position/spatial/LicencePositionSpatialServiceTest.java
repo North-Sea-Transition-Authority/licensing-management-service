@@ -40,6 +40,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePos
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionViewService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPositionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.LicencePositionState;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.PositionChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.PositionChangeTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.FeatureTestUtil;
@@ -1181,6 +1182,28 @@ class LicencePositionSpatialServiceTest {
         .getSubareasGoingIntoChange(positionCorrection, BLOCK_30_1.getId(), "second-change");
 
     assertThat(result).containsExactly(SUBAREA_A);
+  }
+
+  @Test
+  void getStateGoingIntoChange_whenPositionCorrection_thenStateBeforeNamedChange() {
+    var targetPosition = LicencePositionTestUtil.newBuilder().withId(FIRST_POSITION_ID).withLicence(LICENCE).build();
+    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withLicenceCorrection(LICENCE_CORRECTION)
+        .withTargetLicencePosition(targetPosition)
+        .withPayload(UpdateLicencePositionPayloadTestUtil.newBuilder().build())
+        .build();
+    givenPositions(positionWithChanges(
+        FIRST_POSITION_ID,
+        1,
+        change("first-change", 1, blockCreateOf(BLOCK_30_1.getId()), subareaCreateOn(BLOCK_30_1.getId(), SUBAREA_A)),
+        change("second-change", 2, blockCreateOf(BLOCK_30_2.getId()))
+    ));
+
+    var result = licencePositionSpatialService.getStateGoingIntoChange(positionCorrection, "second-change");
+
+    assertThat(result)
+        .usingRecursiveComparison()
+        .isEqualTo(LicencePositionState.EMPTY.withBlock(BLOCK_30_1.getId(), List.of(SUBAREA_A)));
   }
 
   private void givenPositions(ChronologicalPosition... positions) {

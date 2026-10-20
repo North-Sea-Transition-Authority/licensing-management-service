@@ -91,7 +91,18 @@ public class LicencePositionSpatialService {
     return getStateGoingIntoChange(licenceCorrection, licencePositionId, changeId).subareasOf(blockFeatureId);
   }
 
-  private LicencePositionState getStateGoingIntoChange(
+  public LicencePositionState getStateGoingIntoChange(
+      LicencePositionCorrection licencePositionCorrection,
+      @Nullable String changeId
+  ) {
+    return getStateGoingIntoChange(
+        licencePositionCorrection.getLicenceCorrection(),
+        licencePositionCorrection.getPositionId(),
+        changeId
+    );
+  }
+
+  public LicencePositionState getStateGoingIntoChange(
       LicenceCorrection licenceCorrection,
       UUID licencePositionId,
       @Nullable String changeId

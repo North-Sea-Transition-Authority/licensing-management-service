@@ -32,6 +32,9 @@ class OrganisationUnitQueryServiceTest {
   @Mock
   private OrganisationApi organisationApi;
 
+  @Mock
+  private OrganisationUnitRequestCache organisationUnitRequestCache;
+
   @InjectMocks
   private OrganisationUnitQueryService organisationUnitQueryService;
 
@@ -55,13 +58,8 @@ class OrganisationUnitQueryServiceTest {
         organisationUnit2.getName()
     );
 
-    when(organisationApi.getOrganisationUnitsByIds(
-        eq(List.of(1,2)),
-        eq(ORGANISATION_UNITS_PROJECTION_ROOT),
-        any(),
-        any()
-        )
-    ).thenReturn(List.of(organisationUnit, organisationUnit2));
+    when(organisationUnitRequestCache.getOrganisationUnitsByIds(List.of(1, 2)))
+        .thenReturn(List.of(organisationUnit, organisationUnit2));
 
     assertThat(organisationUnitQueryService.getOrganisationUnitsByIds(List.of(1,2)))
         .usingRecursiveComparison()
@@ -78,13 +76,8 @@ class OrganisationUnitQueryServiceTest {
     organisationUnit2.setOrganisationUnitId(2);
     organisationUnit2.setName("org name2");
 
-    when(organisationApi.getOrganisationUnitsByIds(
-        eq(List.of(1,2)),
-        eq(ORGANISATION_UNITS_PROJECTION_ROOT),
-        any(),
-        any()
-        )
-    ).thenReturn(List.of(organisationUnit, organisationUnit2));
+    when(organisationUnitRequestCache.getOrganisationUnitsByIds(List.of(1, 2)))
+        .thenReturn(List.of(organisationUnit, organisationUnit2));
 
     assertThat(organisationUnitQueryService.getOrganisationUnitNamesByIds(List.of(1,2)))
         .usingRecursiveComparison()

@@ -1,6 +1,9 @@
 package uk.co.nstauthority.licensingmanagementservice.mvc;
 
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
@@ -22,12 +25,46 @@ public abstract class RequestScopedCache<K, V> {
 
   protected abstract V load(K key);
 
+  /**
+   * Loads several keys at once, returning a value for every key. Override this when the source can fetch several keys
+   * in one go; by default each key is loaded on its own.
+   */
+  protected Map<K, V> loadAll(Collection<K> keys) {
+    var valuesByKey = new LinkedHashMap<K, V>();
+    keys.forEach(key -> valuesByKey.put(key, load(key)));
+    return valuesByKey;
+  }
+
   protected V get(K key) {
     var requestAttributes = RequestContextHolder.getRequestAttributes();
     if (requestAttributes == null) {
       return load(key);
     }
     return getValuesByKey(requestAttributes).computeIfAbsent(key, this::load);
+  }
+
+  /**
+   * Returns the value for each of the given keys, in the order given and without duplicates. Within a web request only
+   * the keys not already held are loaded, together in one call to {@link #loadAll}.
+   */
+  protected Map<K, V> getAll(Collection<K> keys) {
+    var distinctKeys = new LinkedHashSet<>(keys);
+    var requestAttributes = RequestContextHolder.getRequestAttributes();
+    if (requestAttributes == null) {
+      return distinctKeys.isEmpty() ? Map.of() : loadAll(distinctKeys);
+    }
+
+    var valuesByKey = getValuesByKey(requestAttributes);
+    var missingKeys = distinctKeys.stream()
+        .filter(key -> !valuesByKey.containsKey(key))
+        .toList();
+    if (!missingKeys.isEmpty()) {
+      valuesByKey.putAll(loadAll(missingKeys));
+    }
+
+    var requestedValuesByKey = new LinkedHashMap<K, V>();
+    distinctKeys.forEach(key -> requestedValuesByKey.put(key, valuesByKey.get(key)));
+    return requestedValuesByKey;
   }
 
   @SuppressWarnings("unchecked")

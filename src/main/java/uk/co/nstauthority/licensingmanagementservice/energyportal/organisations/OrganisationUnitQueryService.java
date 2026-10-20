@@ -37,9 +37,14 @@ public class OrganisationUnitQueryService {
           .organisationNameHistory().name().startDate().endDate().root();
 
   private final OrganisationApi organisationApi;
+  private final OrganisationUnitRequestCache organisationUnitRequestCache;
 
-  public OrganisationUnitQueryService(OrganisationApi organisationApi) {
+  public OrganisationUnitQueryService(
+      OrganisationApi organisationApi,
+      OrganisationUnitRequestCache organisationUnitRequestCache
+  ) {
     this.organisationApi = organisationApi;
+    this.organisationUnitRequestCache = organisationUnitRequestCache;
   }
 
   public List<OrganisationUnitJson> getOrganisationUnitsByIds(List<Integer> organisationUnitIds) {
@@ -108,13 +113,10 @@ public class OrganisationUnitQueryService {
         .findFirst();
   }
 
+  // The access rules, services and page often ask for the same organisation units within a request, so within a web
+  // request each is fetched from the Energy Portal once and shared
   private List<OrganisationUnit> getOrganisationUnitsByIdsFromEpa(List<Integer> organisationUnitIds) {
-    return organisationApi.getOrganisationUnitsByIds(
-        organisationUnitIds,
-        ORGANISATION_UNITS_PROJECTION_ROOT,
-        new RequestPurpose("Get organisation units by ids"),
-        CorrelationIdUtil.getLogCorrelationId()
-    );
+    return organisationUnitRequestCache.getOrganisationUnitsByIds(organisationUnitIds);
   }
 
   public Optional<Integer> findOrganisationGroupIdByUnitId(Integer organisationUnitId) {

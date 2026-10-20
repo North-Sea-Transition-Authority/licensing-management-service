@@ -22,7 +22,7 @@ come from reading the code and are estimates; see [Next steps](#next-steps) for 
 | Fix 5: stop repeating the schedule work in the task list | Done for the schedule application task list; the continuation overview shows the same pattern, not started |
 | Fix 3: route `getTeamTypesUserIsMemberOf` through `TeamQueryService` | Done |
 | Fix 1: request-scoped store for URL entities | Done for the schedule application detail and the continuation application detail; licence correction and licence position are with another team; licence and schedule detail not started |
-| Fix 2: request-scoped cache for organisation unit lookups | Not started; a repeated lookup is confirmed on the continuation overview |
+| Fix 2: request-scoped cache for organisation unit lookups | Done for "Get organisation units by ids"; the org group lookup is not cached |
 
 **Confirmed in the deployed request log: the schedule application task list went from 56 queries to 33**, and
 loads by id from 35 to 17 (PR #828). See
@@ -81,7 +81,7 @@ log on 2026-10-20 before PR #830: **32 Hibernate queries**, 4 Energy Portal call
 | `licence_continuation_application_details by id` | 4 | 3 from the status rule, the access rule and the argument resolver (finding 1); the 4th from a child entity's eager back-reference to the detail (finding 4) | Fixed in PR #830; confirmed down to 1 |
 | Schedule state worked out twice | 14 | `licence_schedule_terms by licence_schedule_detail_id` 2, `licence_schedule_phases by licence_schedule_term_id` 2, `work_programme_activities by licence_schedule_term_id` 2, `other_schedule_events by licence_schedule_term_id, date_option` 2 and `other_schedule_events by licence_schedule_phase_id, date_option` 2, plus `licence_schedule_details by id` 2 and `licence_schedules by id` 2 (these did not change when the detail loads were fixed, so they belong to this work) | Not started; the callers need tracing, likely `getCurrentWorkProgrammeActivitiesViews` in the controller and the summary sections |
 | `file_upload_library_uploaded_files by usage_id, usage_type, document_type` | 3 | Probably different file types (supporting information, letters) | Likely genuine; not checked |
-| Energy Portal "Get organisation units by ids" | 2 | The access rule's licensee lookup and the overview's licensee display (finding 2) | Fix 2, not started |
+| Energy Portal "Get organisation units by ids" | 2 | The access rule's licensee lookup and the overview's licensee display (finding 2) | Fix 2; expected to drop to 1 |
 
 The other 11 queries run once each.
 
@@ -384,13 +384,38 @@ per request and the rules and the controller receive the same instance.
   application detail, only the service method needs to read through the cache and none of its callers change.
 - Extending `RequestScopedCache` gives the outside-a-request behaviour without any extra code.
 
-### Fix 2: request-scoped cache for organisation unit lookups
+### Fix 2: request-scoped cache for organisation unit lookups (done for lookups by id)
 
-A request-scoped cache of Energy Portal organisation unit lookups by id in `OrganisationUnitQueryService`
-would remove repeated calls between the access rules, services and page rendering. As with the URL entities,
-extending `RequestScopedCache` makes it fall back to calling the Energy Portal directly when there is no web
-request. It does not help the
-task list, which makes each call once.
+The continuation overview log showed the repeat this was meant for: the access rule fetches the licence's
+licensees (`LicenceResponsibleOrganisationService.getOrgUnitToGroupIdMap`, through
+`getResponsibleOrganisationsByLicences`), and the overview then fetches the application's licensee again
+(`ContinuationLicenseeInformationSummarySectionService`, through `getOrganisationUnitNameById`). The second is one of
+the first's organisation units, so it is a repeat.
+
+Done:
+
+- `OrganisationUnitRequestCache` extends `RequestScopedCache`, keyed by organisation unit id. It is used by
+  `OrganisationUnitQueryService` for every "Get organisation units by ids" lookup (`getOrganisationUnitsByIds`,
+  `getOrganisationUnitNamesByIds`, `getOrganisationUnitNameById`, `getOrganisationUnit` and the methods built on them),
+  so none of their callers changed.
+- The Energy Portal takes a list of ids, so `RequestScopedCache` gained `getAll(keys)`: within a request it returns the
+  units already held and fetches only the missing ids, in one call through an overridable `loadAll`. Ids the Energy
+  Portal does not return are remembered as absent, so they are not asked for again.
+- Outside a web request every lookup still calls the Energy Portal, as before.
+
+Measured with a throwaway integration test against the real beans and a mocked Energy Portal, running the overview's
+two lookups: 2 "Get organisation units by ids" calls outside a request (as before) and 1 inside one. Not yet confirmed
+from the request log.
+
+Not covered:
+
+- "Get organisation units and org groups by org unit ids" (`findOrganisationGroupIdMapByUnitIds`,
+  `findOrganisationGroupIdsByUnitIds`) asks the Energy Portal for a different projection (organisation groups), so it
+  is not served from this cache. It runs once on the measured schedule application and continuation pages, and twice
+  on the work area.
+- On the work area each section asks for its own licences' organisation units, so the cache only saves a call when a
+  later section's units have all been fetched already. Cutting the work area to 2 Energy Portal calls needs the
+  sections to gather every id before fetching (the shared context described earlier).
 
 ### Longer term: make the child-to-detail back-references lazy
 
@@ -460,8 +485,8 @@ This should be a team decision. The targeted fixes are the safer option.
   detail, done)
 - `argumentresolver/HandlerMethodEntityResolver.java` and the argument resolvers listed in finding 1 (fix 1)
 - The access interceptor rules listed in finding 1 (fix 1)
-- `energyportal/organisations/OrganisationUnitQueryService.java` (fix 2)
-- `licence/licenceresponsibleorganisation/LicenceResponsibleOrganisationService.java` (fix 2)
+- `energyportal/organisations/OrganisationUnitRequestCache.java` (new), `OrganisationUnitQueryService.java` and
+  `mvc/RequestScopedCache.java` (fix 2, done)
 - The entities listed in finding 4 (longer-term lazy back-references)
 
 Paths are relative to `src/main/java/uk/co/nstauthority/licensingmanagementservice/`.
@@ -484,7 +509,8 @@ Paths are relative to `src/main/java/uk/co/nstauthority/licensingmanagementservi
    fix 3.
 5. Trace why the continuation overview works out the schedule state twice (14 queries), and fix it the same way as
    fix 5 did for the schedule application task list. Planned as a separate fix.
-6. Fix 2: the continuation overview confirms a repeated Energy Portal organisation unit lookup.
+6. Capture the continuation overview log once fix 2 is deployed: "Get organisation units by ids" should drop from
+   2 to 1, and Energy Portal calls from 4 to 3.
 7. Fix 1 for licence and schedule detail, measuring after each (licence correction and licence position are with
    another team). Check the continuation task list log for the same patterns.
 8. Consider the remaining cost on the schedule application task list: the eager links on terms, phases and

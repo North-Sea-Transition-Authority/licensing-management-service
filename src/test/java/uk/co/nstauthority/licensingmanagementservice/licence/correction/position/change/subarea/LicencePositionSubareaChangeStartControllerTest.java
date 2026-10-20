@@ -22,8 +22,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.validation.BindingResult;
@@ -33,7 +31,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
@@ -86,10 +83,6 @@ class LicencePositionSubareaChangeStartControllerTest extends AbstractController
 
   @MockitoBean
   private SubareaChangeStartFormValidator subareaChangeStartFormValidator;
-
-  @Captor
-  private ArgumentCaptor<SubareaOperation> subareaOperationCaptor;
-
 
   @Test
   void renderForExecutedPosition_whenNotAllocated_forbidden() throws Exception {
@@ -181,7 +174,7 @@ class LicencePositionSubareaChangeStartControllerTest extends AbstractController
         .thenReturn(true);
 
     mockMvc.perform(post(ReverseRouter.route(on(LicencePositionSubareaChangeStartController.class)
-            .submitForExecutedPosition(correction, licencePosition, null, null, null)))
+            .submitForExecutedPosition(correction, licencePosition, null, null)))
             .with(user(regulatorUser)).with(csrf()))
         .andExpectAll(
             status().isOk(),
@@ -193,7 +186,7 @@ class LicencePositionSubareaChangeStartControllerTest extends AbstractController
   }
 
   @Test
-  void submitForExecutedPosition_whenValid_commitsAndRedirectsToPosition() throws Exception {
+  void submitForExecutedPosition_whenValid_commitsAndRedirectsToSubareaChange() throws Exception {
     var correction = givenCorrectionAllocatedToUser();
     var licencePosition = executedPosition();
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(licencePosition);
@@ -208,24 +201,20 @@ class LicencePositionSubareaChangeStartControllerTest extends AbstractController
     when(subareaChangeStartFormValidator.hasErrors(
         any(SubareaChangeStartForm.class), any(BindingResult.class), eq(BLOCK_FEATURES), eq(ALREADY_OPERATED_ON)))
         .thenReturn(false);
+    var savedPositionCorrection = addedPositionCorrection(correction);
+    when(subareaChangeService.commitSubareaChangeForExecutedPosition(correction, licencePosition, BLOCK_30_1.getId()))
+        .thenReturn(savedPositionCorrection);
 
     var form = new SubareaChangeStartForm();
     form.setFeatureId(BLOCK_30_1.getId().toString());
 
     mockMvc.perform(post(ReverseRouter.route(on(LicencePositionSubareaChangeStartController.class)
-            .submitForExecutedPosition(correction, licencePosition, null, null, null)))
+            .submitForExecutedPosition(correction, licencePosition, null, null)))
             .with(user(regulatorUser)).with(csrf())
             .flashAttr("form", form))
         .andExpect(status().is3xxRedirection())
-        .andExpect(redirectedUrl(ReverseRouter.route(on(LicenceCorrectionController.class)
-            .renderLicencePosition(correction, licencePosition))));
-
-    verify(subareaChangeService)
-        .commitSubareaChangeForExecutedPosition(eq(correction), eq(licencePosition), subareaOperationCaptor.capture());
-    assertThat(subareaOperationCaptor.getValue())
-        .usingRecursiveComparison()
-        .ignoringFields("id")
-        .isEqualTo(new SubareaOperation(BLOCK_30_1.getId(), List.of(), List.of()));
+        .andExpect(redirectedUrl(ReverseRouter.route(on(SubareaChangeController.class)
+            .renderSubareaChange(correction, savedPositionCorrection, BLOCK_30_1.getId()))));
   }
 
   @Test
@@ -264,7 +253,7 @@ class LicencePositionSubareaChangeStartControllerTest extends AbstractController
         .thenReturn(true);
 
     mockMvc.perform(post(ReverseRouter.route(on(LicencePositionSubareaChangeStartController.class)
-            .submitForAddedPosition(correction, positionCorrection, null, null, null)))
+            .submitForAddedPosition(correction, positionCorrection, null, null)))
             .with(user(regulatorUser)).with(csrf()))
         .andExpectAll(
             status().isOk(),
@@ -276,7 +265,7 @@ class LicencePositionSubareaChangeStartControllerTest extends AbstractController
   }
 
   @Test
-  void submitForAddedPosition_whenValid_commitsAndRedirectsToAddedPosition() throws Exception {
+  void submitForAddedPosition_whenValid_commitsAndRedirectsToSubareaChange() throws Exception {
     var correction = givenCorrectionAllocatedToUser();
     var positionCorrection = addedPositionCorrection(correction);
     when(licencePositionCorrectionService.findById(POSITION_CORRECTION_ID))
@@ -293,18 +282,14 @@ class LicencePositionSubareaChangeStartControllerTest extends AbstractController
     form.setFeatureId(BLOCK_30_2.getId().toString());
 
     mockMvc.perform(post(ReverseRouter.route(on(LicencePositionSubareaChangeStartController.class)
-            .submitForAddedPosition(correction, positionCorrection, null, null, null)))
+            .submitForAddedPosition(correction, positionCorrection, null, null)))
             .with(user(regulatorUser)).with(csrf())
             .flashAttr("form", form))
         .andExpect(status().is3xxRedirection())
-        .andExpect(redirectedUrl(ReverseRouter.route(on(LicenceCorrectionController.class)
-            .renderAddedPosition(correction, positionCorrection))));
+        .andExpect(redirectedUrl(ReverseRouter.route(on(SubareaChangeController.class)
+            .renderSubareaChange(correction, positionCorrection, BLOCK_30_2.getId()))));
 
-    verify(subareaChangeService).commitSubareaChange(eq(positionCorrection), subareaOperationCaptor.capture());
-    assertThat(subareaOperationCaptor.getValue())
-        .usingRecursiveComparison()
-        .ignoringFields("id")
-        .isEqualTo(new SubareaOperation(BLOCK_30_2.getId(), List.of(), List.of()));
+    verify(subareaChangeService).commitSubareaChange(positionCorrection, BLOCK_30_2.getId());
   }
 
   private LicenceCorrection givenCorrectionAllocatedToUser() {

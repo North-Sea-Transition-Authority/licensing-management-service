@@ -3,6 +3,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.operation;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -147,5 +148,71 @@ class SubareaOperationTest {
 
     var expected = LicencePositionState.EMPTY.withBlock(BLOCK_FEATURE_ID, List.of(keptSubarea, OUTPUT_SUBAREA));
     assertThat(result).usingRecursiveComparison().isEqualTo(expected);
+  }
+
+  @Test
+  void build_whenCommandJourneyIdGiven_thenSet() {
+    var commandJourneyId = UUID.randomUUID();
+
+    var operation = LicenceOperation.newSubAreaOperation()
+        .withBlockFeatureId(BLOCK_FEATURE_ID)
+        .withCommandJourneyId(commandJourneyId)
+        .build();
+
+    var expected = new SubareaOperation(operation.id(), BLOCK_FEATURE_ID, List.of(), List.of(), commandJourneyId);
+    assertThat(operation).isEqualTo(expected);
+  }
+
+  @Test
+  void commandJourneyIdOrThrow_whenCommandJourneyPresent_thenReturnsId() {
+    var commandJourneyId = UUID.randomUUID();
+    var operation = new SubareaOperation(UUID.randomUUID(), BLOCK_FEATURE_ID, List.of(), List.of(), commandJourneyId);
+
+    var result = operation.commandJourneyIdOrThrow();
+
+    assertThat(result).isEqualTo(commandJourneyId);
+  }
+
+  @Test
+  void commandJourneyIdOrThrow_whenNoCommandJourney_thenThrows() {
+    var operation = new SubareaOperation(BLOCK_FEATURE_ID, List.of(), List.of());
+
+    assertThatThrownBy(operation::commandJourneyIdOrThrow)
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessage("No command journey started for subarea change %s".formatted(operation.id()));
+  }
+
+  @Test
+  void deserialise_whenPersistedBeforeCommandJourneyIdExisted_thenCommandJourneyIdNull() throws Exception {
+    var operationId = UUID.randomUUID();
+    var json = """
+        {
+          "type": "subarea",
+          "id": "%s",
+          "blockFeatureId": "%s",
+          "replacedSubareas": [],
+          "outputSubareas": []
+        }""".formatted(operationId, BLOCK_FEATURE_ID);
+
+    var operation = new ObjectMapper().findAndRegisterModules().readValue(json, LicenceOperation.class);
+
+    var expected = new SubareaOperation(operationId, BLOCK_FEATURE_ID, List.of(), List.of(), null);
+    assertThat(operation).isEqualTo(expected);
+  }
+
+  @Test
+  void serialise_whenCommandJourneyIdGiven_thenRoundTrips() throws Exception {
+    var operation = new SubareaOperation(
+        UUID.randomUUID(),
+        BLOCK_FEATURE_ID,
+        List.of(REPLACED_SUBAREA),
+        List.of(OUTPUT_SUBAREA),
+        UUID.randomUUID()
+    );
+    var objectMapper = new ObjectMapper().findAndRegisterModules();
+
+    var result = objectMapper.readValue(objectMapper.writeValueAsString(operation), LicenceOperation.class);
+
+    assertThat(result).isEqualTo(operation);
   }
 }

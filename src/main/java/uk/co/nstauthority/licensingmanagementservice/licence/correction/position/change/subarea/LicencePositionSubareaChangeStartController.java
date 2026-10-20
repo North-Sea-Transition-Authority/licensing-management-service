@@ -11,22 +11,17 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
-import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import uk.co.fivium.gisframework.feature.Feature;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.CorrectionLicenceIsType;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanViewCorrection;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.LicencePositionCorrectionBelongsToCorrection;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.LicencePositionIsNotRemovedInCorrection;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.position.LicencePositionBelongsToCorrectionLicence;
-import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.LicencePositionAddChangeController;
-import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
-import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.LicenceBlockFeatureUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.spatial.LicencePositionSpatialService;
@@ -39,7 +34,6 @@ import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 public class LicencePositionSubareaChangeStartController {
 
   private static final String PAGE_TITLE = "Subarea change";
-  private static final String SAVED_BANNER = "Subarea change saved";
 
   private final LicencePositionSpatialService licencePositionSpatialService;
   private final LicencePositionCorrectionService licencePositionCorrectionService;
@@ -80,8 +74,7 @@ public class LicencePositionSubareaChangeStartController {
       LicenceCorrection correction,
       LicencePosition licencePosition,
       @ModelAttribute("form") SubareaChangeStartForm form,
-      BindingResult bindingResult,
-      RedirectAttributes redirectAttributes
+      BindingResult bindingResult
   ) {
     var positionCorrection = licencePositionCorrectionService
         .findUpdatePositionCorrection(correction, licencePosition)
@@ -107,11 +100,15 @@ public class LicencePositionSubareaChangeStartController {
       );
     }
 
-    subareaChangeService.commitSubareaChangeForExecutedPosition(correction, licencePosition, toOperation(form));
+    var blockFeatureId = UUID.fromString(form.getFeatureId());
+    var savedPositionCorrection = subareaChangeService.commitSubareaChangeForExecutedPosition(
+        correction,
+        licencePosition,
+        blockFeatureId
+    );
 
-    NotificationBanner.newSuccessBannerWithHeader(SAVED_BANNER, redirectAttributes);
-    return ReverseRouter.redirect(on(LicenceCorrectionController.class)
-        .renderLicencePosition(correction, licencePosition));
+    return ReverseRouter.redirect(on(SubareaChangeController.class)
+        .renderSubareaChange(correction, savedPositionCorrection, blockFeatureId));
   }
 
   @GetMapping("/added-position/{licencePositionCorrectionId}/subarea-change")
@@ -134,8 +131,7 @@ public class LicencePositionSubareaChangeStartController {
       LicenceCorrection correction,
       LicencePositionCorrection licencePositionCorrection,
       @ModelAttribute("form") SubareaChangeStartForm form,
-      BindingResult bindingResult,
-      RedirectAttributes redirectAttributes
+      BindingResult bindingResult
   ) {
     var blockFeatures = licencePositionSpatialService.getBlockFeaturesGoingIntoChange(licencePositionCorrection, null);
     var featureIdsAlreadyOperatedOn = licencePositionCorrectionService.blockFeatureIdsAlreadyOperatedOnForAddedPosition(
@@ -151,17 +147,11 @@ public class LicencePositionSubareaChangeStartController {
       );
     }
 
-    subareaChangeService.commitSubareaChange(licencePositionCorrection, toOperation(form));
+    var blockFeatureId = UUID.fromString(form.getFeatureId());
+    subareaChangeService.commitSubareaChange(licencePositionCorrection, blockFeatureId);
 
-    NotificationBanner.newSuccessBannerWithHeader(SAVED_BANNER, redirectAttributes);
-    return ReverseRouter.redirect(on(LicenceCorrectionController.class)
-        .renderAddedPosition(correction, licencePositionCorrection));
-  }
-
-  private SubareaOperation toOperation(SubareaChangeStartForm form) {
-    return LicenceOperation.newSubAreaOperation()
-        .withBlockFeatureId(UUID.fromString(form.getFeatureId()))
-        .build();
+    return ReverseRouter.redirect(on(SubareaChangeController.class)
+        .renderSubareaChange(correction, licencePositionCorrection, blockFeatureId));
   }
 
   private ModelAndView getSubareaChangeModelAndView(

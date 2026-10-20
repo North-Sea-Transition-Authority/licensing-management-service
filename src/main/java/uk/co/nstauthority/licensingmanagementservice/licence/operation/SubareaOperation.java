@@ -2,6 +2,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.operation;
 
 import static uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionChangeUtil.NOT_AVAILABLE;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.annotation.Nullable;
 import java.time.LocalDate;
 import java.util.Collection;
@@ -27,12 +28,14 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.vie
  * @param blockFeatureId   the block whose subareas changed
  * @param replacedSubareas the subarea versions that ended
  * @param outputSubareas   the subarea versions that took their place
+ * @param commandJourneyId the journey the subareas are changed through while the change is staged in a correction
  */
 public record SubareaOperation(
     UUID id,
     UUID blockFeatureId,
     List<SubareaDetails> replacedSubareas,
-    List<SubareaDetails> outputSubareas
+    List<SubareaDetails> outputSubareas,
+    @Nullable UUID commandJourneyId
 ) implements VisibleLicenceOperation, GeospatialLicenceOperation {
 
   public SubareaOperation {
@@ -40,6 +43,15 @@ public record SubareaOperation(
     Objects.requireNonNull(blockFeatureId, "blockFeatureId must not be null");
     replacedSubareas = replacedSubareas == null ? List.of() : List.copyOf(replacedSubareas);
     outputSubareas = outputSubareas == null ? List.of() : List.copyOf(outputSubareas);
+  }
+
+  public SubareaOperation(
+      UUID id,
+      UUID blockFeatureId,
+      List<SubareaDetails> replacedSubareas,
+      List<SubareaDetails> outputSubareas
+  ) {
+    this(id, blockFeatureId, replacedSubareas, outputSubareas, null);
   }
 
   public SubareaOperation(
@@ -104,11 +116,20 @@ public record SubareaOperation(
         .collect(Collectors.toSet());
   }
 
+  @JsonIgnore
+  public UUID commandJourneyIdOrThrow() {
+    if (commandJourneyId == null) {
+      throw new IllegalStateException("No command journey started for subarea change %s".formatted(id));
+    }
+    return commandJourneyId;
+  }
+
   public static class Builder {
 
     private UUID blockFeatureId;
     private Collection<SubareaDetails> replacedSubareas;
     private Collection<SubareaDetails> outputSubareas;
+    private UUID commandJourneyId;
 
     public Builder withBlockFeatureId(UUID blockFeatureId) {
       this.blockFeatureId = blockFeatureId;
@@ -125,11 +146,19 @@ public record SubareaOperation(
       return this;
     }
 
+    public Builder withCommandJourneyId(UUID commandJourneyId) {
+      this.commandJourneyId = commandJourneyId;
+      return this;
+    }
+
     public SubareaOperation build() {
       return new SubareaOperation(
+          UUID.randomUUID(),
           blockFeatureId,
           replacedSubareas == null ? List.of() : replacedSubareas.stream().distinct().toList(),
-          outputSubareas == null ? List.of() : outputSubareas.stream().distinct().toList());
+          outputSubareas == null ? List.of() : outputSubareas.stream().distinct().toList(),
+          commandJourneyId
+      );
     }
   }
 }

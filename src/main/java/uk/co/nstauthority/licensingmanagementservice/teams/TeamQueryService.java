@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import org.springframework.stereotype.Service;
-import org.springframework.web.context.request.RequestContextHolder;
 import uk.co.nstauthority.licensingmanagementservice.phasedrelease.FeatureFlagService;
 
 @Service
@@ -110,12 +109,7 @@ public class TeamQueryService {
     return teamRoleRepository.findAllByRoleIn(roles);
   }
 
-  // Within a web request a user's roles are loaded once and shared by every check. The request scope isn't active
-  // elsewhere, such as in scheduled jobs and event listeners, and using the cache there would throw, so roles are read
-  // directly instead.
   private List<TeamRole> getUserTeamRoles(long wuaId) {
-    return RequestContextHolder.getRequestAttributes() != null
-        ? teamRoleRequestCache.getTeamRolesForUser(wuaId)
-        : teamRoleRepository.findAllByWuaId(wuaId);
+    return teamRoleRequestCache.getTeamRolesForUser(wuaId);
   }
 }

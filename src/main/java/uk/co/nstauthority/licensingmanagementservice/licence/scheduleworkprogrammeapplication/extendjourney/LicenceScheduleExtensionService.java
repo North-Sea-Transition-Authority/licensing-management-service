@@ -158,13 +158,21 @@ public class LicenceScheduleExtensionService {
   public List<LicenceScheduleExtensionRequestView> getLicenceScheduleExtensionViews(
       ScheduleWorkProgrammeApplicationDetail applicationDetail
   ) {
+    return getLicenceScheduleExtensionViews(
+        applicationDetail,
+        scheduleWorkProgrammeApplicationService.getScheduleDetailFromApplicationDetail(applicationDetail)
+    );
+  }
+
+  public List<LicenceScheduleExtensionRequestView> getLicenceScheduleExtensionViews(
+      ScheduleWorkProgrammeApplicationDetail applicationDetail,
+      LicenceScheduleDetail licenceScheduleDetail
+  ) {
     var licenceScheduleExtensionRequestMap = getAllExtensionRequestByScheduleWorkProgrammeApplicationDetails(applicationDetail)
         .stream()
         .collect(Collectors.toMap(this::getRequestIdString, licenceScheduleExtensionRequest -> licenceScheduleExtensionRequest));
 
-    var extendableTermAndPhases = getExtendableTermAndPhases(
-        scheduleWorkProgrammeApplicationService.getScheduleDetailFromApplicationDetail(applicationDetail)
-    );
+    var extendableTermAndPhases = getExtendableTermAndPhases(licenceScheduleDetail);
 
     List<LicenceScheduleExtensionRequestView> licenceScheduleExtensionRequestViews = new ArrayList<>();
 
@@ -243,9 +251,15 @@ public class LicenceScheduleExtensionService {
   public LicenceScheduleExtensionForm getlicenceScheduleExtensionForm(
       ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail
   ) {
+    return buildLicenceScheduleExtensionForm(getLicenceScheduleExtensionViews(scheduleWorkProgrammeApplicationDetail));
+  }
+
+  public LicenceScheduleExtensionForm buildLicenceScheduleExtensionForm(
+      List<LicenceScheduleExtensionRequestView> licenceScheduleExtensionRequestViews
+  ) {
     var form = new LicenceScheduleExtensionForm();
 
-    getLicenceScheduleExtensionViews(scheduleWorkProgrammeApplicationDetail).forEach(
+    licenceScheduleExtensionRequestViews.forEach(
         licenceScheduleExtensionRequestView -> {
           if (licenceScheduleExtensionRequestView.isPhase()) {
             form.getSelectedPhase()

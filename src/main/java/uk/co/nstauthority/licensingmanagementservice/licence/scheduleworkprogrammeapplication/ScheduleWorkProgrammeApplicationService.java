@@ -40,6 +40,7 @@ public class ScheduleWorkProgrammeApplicationService {
   private final ScheduleWorkProgrammeApplicationSubmittedNotificationService applicationSubmittedNotificationService;
   private final CrossLicenceEventTrackerService crossLicenceEventTrackerService;
   private final CaseEventService caseEventService;
+  private final ScheduleWorkProgrammeApplicationDetailRequestCache scheduleWorkProgrammeApplicationDetailRequestCache;
 
   public ScheduleWorkProgrammeApplicationService(
       ScheduleWorkProgrammeApplicationRepository scheduleWorkProgrammeApplicationRepository,
@@ -50,7 +51,8 @@ public class ScheduleWorkProgrammeApplicationService {
       TeamManagementService teamManagementService,
       ScheduleWorkProgrammeApplicationSubmittedNotificationService applicationSubmittedNotificationService,
       CrossLicenceEventTrackerService crossLicenceEventTrackerService,
-      CaseEventService caseEventService) {
+      CaseEventService caseEventService,
+      ScheduleWorkProgrammeApplicationDetailRequestCache scheduleWorkProgrammeApplicationDetailRequestCache) {
     this.scheduleWorkProgrammeApplicationRepository = scheduleWorkProgrammeApplicationRepository;
     this.scheduleWorkProgrammeApplicationDetailRepository = scheduleWorkProgrammeApplicationDetailRepository;
     this.licenceScheduleDetailService = licenceScheduleDetailService;
@@ -60,6 +62,7 @@ public class ScheduleWorkProgrammeApplicationService {
     this.applicationSubmittedNotificationService = applicationSubmittedNotificationService;
     this.crossLicenceEventTrackerService = crossLicenceEventTrackerService;
     this.caseEventService = caseEventService;
+    this.scheduleWorkProgrammeApplicationDetailRequestCache = scheduleWorkProgrammeApplicationDetailRequestCache;
   }
 
   @Transactional
@@ -167,7 +170,9 @@ public class ScheduleWorkProgrammeApplicationService {
   }
 
   public ScheduleWorkProgrammeApplicationDetail getDetailByIdOrThrow(UUID detailId) {
-    return scheduleWorkProgrammeApplicationDetailRepository.findById(detailId).orElseThrow(
+    // The access rules and the argument resolver all ask for the detail named in the URL, so within a web request it
+    // is loaded once and shared
+    return scheduleWorkProgrammeApplicationDetailRequestCache.findById(detailId).orElseThrow(
         () -> new LmsEntityNotFoundException("schedule work programme application detail", detailId));
   }
 

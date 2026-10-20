@@ -3,6 +3,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogra
 import org.springframework.stereotype.Service;
 import org.springframework.validation.BeanPropertyBindingResult;
 import org.springframework.validation.BindingResult;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 
 @Service
@@ -17,10 +18,17 @@ public class LicenceScheduleExtensionSubmissionService {
     this.licenceScheduleExtensionFormValidator = licenceScheduleExtensionFormValidator;
   }
 
-  public boolean isSectionSubmittable(ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail) {
-    var form = licenceScheduleExtensionFormService.getlicenceScheduleExtensionForm(
-        scheduleWorkProgrammeApplicationDetail);
+  public boolean isSectionSubmittable(
+      ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail,
+      LicenceScheduleDetail licenceScheduleDetail
+  ) {
+    // The form and the validator both need the extendable terms and phases, so they share one set of views
+    var extensionRequestViews = licenceScheduleExtensionFormService.getLicenceScheduleExtensionViews(
+        scheduleWorkProgrammeApplicationDetail,
+        licenceScheduleDetail
+    );
+    var form = licenceScheduleExtensionFormService.buildLicenceScheduleExtensionForm(extensionRequestViews);
     BindingResult bindingResult = new BeanPropertyBindingResult(form, "form");
-    return licenceScheduleExtensionFormValidator.isValid(form, bindingResult, scheduleWorkProgrammeApplicationDetail);
+    return licenceScheduleExtensionFormValidator.isValidAgainstExtensionViews(form, bindingResult, extensionRequestViews);
   }
 }

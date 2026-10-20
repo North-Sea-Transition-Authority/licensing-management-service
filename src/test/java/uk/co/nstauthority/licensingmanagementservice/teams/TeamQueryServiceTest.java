@@ -3,14 +3,11 @@ package uk.co.nstauthority.licensingmanagementservice.teams;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -19,9 +16,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.mock.web.MockHttpServletRequest;
-import org.springframework.web.context.request.RequestContextHolder;
-import org.springframework.web.context.request.ServletRequestAttributes;
 import uk.co.fivium.energyportal.serviceproviders.epmq.ScopeType;
 import uk.co.nstauthority.licensingmanagementservice.phasedrelease.FeatureFlagService;
 import uk.co.nstauthority.licensingmanagementservice.phasedrelease.FeatureFlagServiceTestUtil;
@@ -43,12 +37,6 @@ class TeamQueryServiceTest {
 
   @InjectMocks
   private TeamQueryService teamQueryService;
-
-  @BeforeEach
-  @AfterEach
-  void resetRequestAttributes() {
-    RequestContextHolder.resetRequestAttributes();
-  }
 
   @Test
   void userHasStaticRole_hasRole() {
@@ -79,7 +67,7 @@ class TeamQueryServiceTest {
 
   @Test
   void userHasStaticRole_noRoles() {
-    when(teamRoleRepository.findAllByWuaId(1L)).thenReturn(List.of());
+    when(teamRoleRequestCache.getTeamRolesForUser(1L)).thenReturn(List.of());
     assertThat(teamQueryService.userHasStaticRole(1L, TeamType.LICENCE_MANAGEMENT, Role.OFFLINE_LICENCE_ADMINISTRATOR))
         .isFalse();
   }
@@ -114,7 +102,7 @@ class TeamQueryServiceTest {
 
   @Test
   void userHasAtLeastOneStaticRole_noRoles() {
-    when(teamRoleRepository.findAllByWuaId(1L)).thenReturn(List.of());
+    when(teamRoleRequestCache.getTeamRolesForUser(1L)).thenReturn(List.of());
     assertThat(teamQueryService.userHasAtLeastOneStaticRole(1L, TeamType.LICENCE_MANAGEMENT, Set.of(Role.LICENCE_SCHEDULE_WORK_PROGRAMME_VIEWER)))
         .isFalse();
   }
@@ -151,7 +139,7 @@ class TeamQueryServiceTest {
 
   @Test
   void userHasScopedRole_noRoles() {
-    when(teamRoleRepository.findAllByWuaId(1L)).thenReturn(List.of());
+    when(teamRoleRequestCache.getTeamRolesForUser(1L)).thenReturn(List.of());
     assertThat(teamQueryService.userHasScopedRole(1L, TeamType.ORGANISATION, TeamScopeReference.from("1", ScopeType.ORGANISATION_GROUP.name()), Role.VIEW_ORGANISATION_LICENCES))
         .isFalse();
   }
@@ -188,7 +176,7 @@ class TeamQueryServiceTest {
 
   @Test
   void userHasAtLeastOneScopedRole_noRoles() {
-    when(teamRoleRepository.findAllByWuaId(1L)).thenReturn(List.of());
+    when(teamRoleRequestCache.getTeamRolesForUser(1L)).thenReturn(List.of());
 
     assertThat(teamQueryService.userHasAtLeastOneScopedRole(1L, TeamType.ORGANISATION, TeamScopeReference.from("1", ScopeType.ORGANISATION_GROUP.name()), Set.of(Role.VIEW_ORGANISATION_LICENCES)))
         .isFalse();
@@ -202,7 +190,7 @@ class TeamQueryServiceTest {
     var teamRole = new TeamRole();
     teamRole.setTeam(team);
 
-    when(teamRoleRepository.findAllByWuaId(1L)).thenReturn(List.of(teamRole));
+    when(teamRoleRequestCache.getTeamRolesForUser(1L)).thenReturn(List.of(teamRole));
 
     assertThat(teamQueryService.userIsInRegulatorTeam(1L)).isTrue();
   }
@@ -215,7 +203,7 @@ class TeamQueryServiceTest {
     var teamRole = new TeamRole();
     teamRole.setTeam(team);
 
-    when(teamRoleRepository.findAllByWuaId(1L)).thenReturn(List.of(teamRole));
+    when(teamRoleRequestCache.getTeamRolesForUser(1L)).thenReturn(List.of(teamRole));
 
     assertThat(teamQueryService.userIsInRegulatorTeam(1L)).isFalse();
   }
@@ -268,8 +256,7 @@ class TeamQueryServiceTest {
   }
 
   @Test
-  void getTeamRolesForUser_whenInWebRequest_thenUsesRequestCache() {
-    givenWebRequest();
+  void getTeamRolesForUser() {
     var team = new Team(UUID.randomUUID());
     team.setTeamType(TeamType.LICENCE_MANAGEMENT);
     var teamRole = createTeamRole(1L, team, Role.MANAGE_TEAM);
@@ -278,20 +265,6 @@ class TeamQueryServiceTest {
     var result = teamQueryService.getTeamRolesForUser(1L);
 
     assertThat(result).isEqualTo(Set.of(teamRole));
-    verifyNoInteractions(teamRoleRepository);
-  }
-
-  @Test
-  void getTeamRolesForUser_whenNotInWebRequest_thenReadsRepository() {
-    var team = new Team(UUID.randomUUID());
-    team.setTeamType(TeamType.LICENCE_MANAGEMENT);
-    var teamRole = createTeamRole(1L, team, Role.MANAGE_TEAM);
-    when(teamRoleRepository.findAllByWuaId(1L)).thenReturn(List.of(teamRole));
-
-    var result = teamQueryService.getTeamRolesForUser(1L);
-
-    assertThat(result).isEqualTo(Set.of(teamRole));
-    verifyNoInteractions(teamRoleRequestCache);
   }
 
   @ParameterizedTest
@@ -327,7 +300,7 @@ class TeamQueryServiceTest {
         .map(role -> createTeamRole(wuaId, team, role))
         .toList();
 
-    when(teamRoleRepository.findAllByWuaId(wuaId)).thenReturn(teamRoles);
+    when(teamRoleRequestCache.getTeamRolesForUser(wuaId)).thenReturn(teamRoles);
   }
 
   private void setupScopedTeamAndRoles(Long wuaId, TeamType teamType, TeamScopeReference scopeRef, List<Role> roles) {
@@ -339,13 +312,9 @@ class TeamQueryServiceTest {
         .map(role -> createTeamRole(wuaId, team, role))
         .toList();
 
-    when(teamRoleRepository.findAllByWuaId(wuaId)).thenReturn(teamRoles);
+    when(teamRoleRequestCache.getTeamRolesForUser(wuaId)).thenReturn(teamRoles);
   }
 
-
-  private void givenWebRequest() {
-    RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(new MockHttpServletRequest()));
-  }
 
   private TeamRole createTeamRole(Long wuaId, Team team, Role role) {
     var teamRole = new TeamRole(UUID.randomUUID());

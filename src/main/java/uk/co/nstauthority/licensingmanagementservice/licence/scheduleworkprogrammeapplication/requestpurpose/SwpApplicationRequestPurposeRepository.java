@@ -2,6 +2,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogra
 
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import uk.co.nstauthority.licensingmanagementservice.duplication.NotDuplicationSource;
@@ -10,6 +11,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogram
 @Repository
 public interface SwpApplicationRequestPurposeRepository
     extends JpaRepository<SwpApplicationRequestPurpose, UUID>, NotDuplicationSource {
+  @EntityGraph(attributePaths = "scheduleWorkProgrammeApplicationDetail")
   Optional<SwpApplicationRequestPurpose> getByScheduleWorkProgrammeApplicationDetail(
       ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail);
 }

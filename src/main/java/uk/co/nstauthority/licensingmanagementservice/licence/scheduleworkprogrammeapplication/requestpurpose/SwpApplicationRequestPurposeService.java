@@ -7,6 +7,7 @@ import java.util.Set;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.licence.rules.LicenceTypeRulesResolver;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleStateService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.extendjourney.LicenceScheduleExtensionRepository;
@@ -68,7 +69,11 @@ public class SwpApplicationRequestPurposeService {
   }
 
   public boolean hasAmendableWorkProgrammeActivities(ScheduleWorkProgrammeApplicationDetail applicationDetail) {
-    var scheduleDetail = scheduleWorkProgrammeApplicationService.getScheduleDetailFromApplicationDetail(applicationDetail);
+    return scheduleHasAmendableWorkProgrammeActivities(
+        scheduleWorkProgrammeApplicationService.getScheduleDetailFromApplicationDetail(applicationDetail));
+  }
+
+  public boolean scheduleHasAmendableWorkProgrammeActivities(LicenceScheduleDetail scheduleDetail) {
     return licenceScheduleStateService.hasCurrentWorkProgrammeActivities(scheduleDetail);
   }
 

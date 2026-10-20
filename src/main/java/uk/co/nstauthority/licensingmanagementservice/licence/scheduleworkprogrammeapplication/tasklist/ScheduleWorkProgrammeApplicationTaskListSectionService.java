@@ -7,6 +7,7 @@ import java.util.Optional;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.amendjourney.LicenceWorkProgrammeAmendmentSubmissionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.amendjourney.LicenceWorkProgrammeAmendmentSummaryController;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.amendjourney.SelectLicenceWorkAmendmentController;
@@ -36,6 +37,7 @@ public class ScheduleWorkProgrammeApplicationTaskListSectionService
   private final SwpApplicationRequestPurposeService swpApplicationRequestPurposeService;
   private final LicenceScheduleSupportingInformationSubmissionService licenceScheduleSupportingInformationSubmissionService;
   private final ScheduleWorkProgrammeExternalContributorService scheduleWorkProgrammeExternalContributorService;
+  private final ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService;
 
   public ScheduleWorkProgrammeApplicationTaskListSectionService(
       SwpApplicationRequestPurposeRepository swpApplicationRequestPurposeRepository,
@@ -43,7 +45,8 @@ public class ScheduleWorkProgrammeApplicationTaskListSectionService
       LicenceScheduleExtensionSubmissionService licenceScheduleExtensionSubmissionService,
       LicenceWorkProgrammeAmendmentSubmissionService licenceWorkProgrammeAmendmentSubmissionService,
       LicenceScheduleSupportingInformationSubmissionService licenceScheduleSupportingInformationSubmissionService,
-      ScheduleWorkProgrammeExternalContributorService scheduleWorkProgrammeExternalContributorService
+      ScheduleWorkProgrammeExternalContributorService scheduleWorkProgrammeExternalContributorService,
+      ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService
   ) {
     this.licenceScheduleExtensionSubmissionService = licenceScheduleExtensionSubmissionService;
     this.swpApplicationRequestPurposeRepository = swpApplicationRequestPurposeRepository;
@@ -51,6 +54,7 @@ public class ScheduleWorkProgrammeApplicationTaskListSectionService
     this.licenceWorkProgrammeAmendmentSubmissionService = licenceWorkProgrammeAmendmentSubmissionService;
     this.licenceScheduleSupportingInformationSubmissionService = licenceScheduleSupportingInformationSubmissionService;
     this.scheduleWorkProgrammeExternalContributorService = scheduleWorkProgrammeExternalContributorService;
+    this.scheduleWorkProgrammeApplicationService = scheduleWorkProgrammeApplicationService;
   }
 
   static final String APPLICATION_DETAILS_SECTION_NAME = "Schedule and work programme application details";
@@ -74,8 +78,12 @@ public class ScheduleWorkProgrammeApplicationTaskListSectionService
         .map(requestPurpose -> requestPurpose.getExtendTerm() || requestPurpose.getExtendPhaseOrTerm())
         .orElse(false);
 
+    // Looked up once and shared, as both the amendment and extension checks need it
+    var licenceScheduleDetail = scheduleWorkProgrammeApplicationService
+        .getScheduleDetailFromApplicationDetail(scheduleWorkProgrammeApplicationDetail);
+
     var hasAmendableActivities = swpApplicationRequestPurposeService
-        .hasAmendableWorkProgrammeActivities(scheduleWorkProgrammeApplicationDetail);
+        .scheduleHasAmendableWorkProgrammeActivities(licenceScheduleDetail);
 
     boolean amendmentSelection = existingPurpose
         .map(SwpApplicationRequestPurpose::getAmendWorkProgramme)
@@ -106,7 +114,7 @@ public class ScheduleWorkProgrammeApplicationTaskListSectionService
           EXTENSION_DETAILS,
           TaskListLabel.notStartedOrComplete(
               licenceScheduleExtensionSubmissionService.isSectionSubmittable(
-                  scheduleWorkProgrammeApplicationDetail)),
+                  scheduleWorkProgrammeApplicationDetail, licenceScheduleDetail)),
           ReverseRouter.route(on(LicenceScheduleExtensionController.class)
               .renderForm(scheduleWorkProgrammeApplicationDetail.getId(), null))
       ));

@@ -1,6 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -11,6 +12,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -24,6 +26,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.caseevent.CaseEventService;
 import uk.co.nstauthority.licensingmanagementservice.caseevent.CaseEventType;
+import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
@@ -70,6 +73,9 @@ class ScheduleWorkProgrammeApplicationServiceTest {
   @Mock
   private CaseEventService caseEventService;
 
+  @Mock
+  private ScheduleWorkProgrammeApplicationDetailRequestCache scheduleWorkProgrammeApplicationDetailRequestCache;
+
   @InjectMocks
   private ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService;
 
@@ -94,6 +100,26 @@ class ScheduleWorkProgrammeApplicationServiceTest {
         .withScheduleWorkProgrammeApplication(
             ScheduleWorkProgrammeApplicationDetailTestUtil.createScheduleWorkProgrammeApplication(licenceScheduleDetail))
         .build();
+  }
+
+  @Test
+  void getDetailByIdOrThrow_whenDetailFound_thenReturnsIt() {
+    var detailId = scheduleWorkProgrammeApplicationDetail.getId();
+    when(scheduleWorkProgrammeApplicationDetailRequestCache.findById(detailId))
+        .thenReturn(Optional.of(scheduleWorkProgrammeApplicationDetail));
+
+    var result = scheduleWorkProgrammeApplicationService.getDetailByIdOrThrow(detailId);
+
+    assertThat(result).isEqualTo(scheduleWorkProgrammeApplicationDetail);
+  }
+
+  @Test
+  void getDetailByIdOrThrow_whenDetailNotFound_thenThrows() {
+    var detailId = UUID.randomUUID();
+    when(scheduleWorkProgrammeApplicationDetailRequestCache.findById(detailId)).thenReturn(Optional.empty());
+
+    assertThatThrownBy(() -> scheduleWorkProgrammeApplicationService.getDetailByIdOrThrow(detailId))
+        .isInstanceOf(LmsEntityNotFoundException.class);
   }
 
   @Test

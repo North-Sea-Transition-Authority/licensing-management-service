@@ -26,10 +26,18 @@ public class LicenceScheduleExtensionFormValidator {
       BindingResult bindingResult,
       ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail
   ) {
+    return isValidAgainstExtensionViews(
+        form,
+        bindingResult,
+        licenceScheduleExtensionService.getLicenceScheduleExtensionViews(scheduleWorkProgrammeApplicationDetail)
+    );
+  }
 
-    var extensionRequestViews = licenceScheduleExtensionService
-        .getLicenceScheduleExtensionViews(scheduleWorkProgrammeApplicationDetail);
-
+  boolean isValidAgainstExtensionViews(
+      LicenceScheduleExtensionForm form,
+      BindingResult bindingResult,
+      List<LicenceScheduleExtensionRequestView> extensionRequestViews
+  ) {
     initializeCheckboxes(form, extensionRequestViews);
     filterOutNonExtendableSelections(form, extensionRequestViews);
 

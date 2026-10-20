@@ -1,17 +1,20 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.extendjourney;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
+import java.util.List;
 import java.util.UUID;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.validation.BindingResult;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 
 @ExtendWith(MockitoExtension.class)
@@ -26,35 +29,30 @@ class LicenceScheduleExtensionSubmissionServiceTest {
   @InjectMocks
   LicenceScheduleExtensionSubmissionService licenceScheduleExtensionSubmissionService;
 
-  @Test
-  void IsSectionSubmittable() {
-    when(licenceScheduleExtensionFormService.getlicenceScheduleExtensionForm(any(ScheduleWorkProgrammeApplicationDetail.class)))
-        .thenReturn(new LicenceScheduleExtensionForm());
+  private final ScheduleWorkProgrammeApplicationDetail applicationDetail =
+      new ScheduleWorkProgrammeApplicationDetail(UUID.randomUUID());
 
-    when(licenceScheduleExtensionFormValidator.isValid(
-        any(LicenceScheduleExtensionForm.class),
+  private final List<LicenceScheduleExtensionRequestView> extensionRequestViews = List.of(
+      new LicenceScheduleExtensionRequestView(UUID.randomUUID().toString(), "Phase A", true, false, null)
+  );
+
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  void isSectionSubmittable(boolean isValid) {
+    var scheduleDetail = new LicenceScheduleDetail();
+    var form = new LicenceScheduleExtensionForm();
+    when(licenceScheduleExtensionFormService.getLicenceScheduleExtensionViews(applicationDetail, scheduleDetail))
+        .thenReturn(extensionRequestViews);
+    when(licenceScheduleExtensionFormService.buildLicenceScheduleExtensionForm(extensionRequestViews))
+        .thenReturn(form);
+    when(licenceScheduleExtensionFormValidator.isValidAgainstExtensionViews(
+        eq(form),
         any(BindingResult.class),
-        any(ScheduleWorkProgrammeApplicationDetail.class)))
-        .thenReturn(true);
+        eq(extensionRequestViews)
+    )).thenReturn(isValid);
 
-    boolean result = licenceScheduleExtensionSubmissionService.isSectionSubmittable(
-        new ScheduleWorkProgrammeApplicationDetail(UUID.randomUUID()));
-    assertTrue(result);
-  }
+    var result = licenceScheduleExtensionSubmissionService.isSectionSubmittable(applicationDetail, scheduleDetail);
 
-  @Test
-  void IsNotSectionSubmittable() {
-    when(licenceScheduleExtensionFormService.getlicenceScheduleExtensionForm(any(ScheduleWorkProgrammeApplicationDetail.class)))
-        .thenReturn(new LicenceScheduleExtensionForm());
-
-    when(licenceScheduleExtensionFormValidator.isValid(
-        any(LicenceScheduleExtensionForm.class),
-        any(BindingResult.class),
-        any(ScheduleWorkProgrammeApplicationDetail.class)))
-        .thenReturn(false);
-
-    boolean result = licenceScheduleExtensionSubmissionService.isSectionSubmittable(
-        new ScheduleWorkProgrammeApplicationDetail(UUID.randomUUID()));
-    assertFalse(result);
+    assertThat(result).isEqualTo(isValid);
   }
 }

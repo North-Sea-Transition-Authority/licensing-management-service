@@ -70,6 +70,7 @@ From the `RequestLogFilter` request logs on the deployed environment, same page,
 | New schedule draft start page | 8 | **7** | Page caption no longer reloads the licence |
 | Schedule term update page | 6 | **4** | Page caption and status rule no longer reload the licence and detail (173ms → 111ms) |
 | Continuation task list (user 300052) | 49 | **27** | Schedule term, phase and active schedule detail caches: the active detail looked up once (from 4), terms and phases loaded once (9 → 3), eager reloads 19 → 6 (587ms → 319ms) |
+| Continuation overview, after #841 | 29 | **24** | Schedule term and phase caches: terms, phases and their eager reloads loaded once (8 → 4). Measured as user 300051, who had viewed the application before, against the 29 for user 300052 |
 
 Response times generally fell with the query counts (work area 705ms → 477ms, schedule application task list 412ms →
 243ms), but these are single requests, so treat them as indicative.
@@ -79,10 +80,13 @@ Response times generally fell with the query counts (work area 705ms → 477ms, 
 | Page | Before | Expected | PR |
 |---|---:|---:|---|
 | Work area (user 300051) | 13 queries, 7 Energy Portal calls | about 7 queries, 3 Energy Portal calls | #839 |
-| Continuation overview | 29 | lower; the schedule state was worked out twice | #841 (deployed; log not yet captured) |
 
 ## Remaining
 
+- **Work programme activities and other schedule events on the continuation overview.** `work_programme_activities by
+  licence_schedule_term_id` and the two `other_schedule_events` checks (by term and by phase) each still run twice, 6
+  queries. They sit outside the schedule state lookups the caches cover; probably the controller and a summary section
+  each ask for them. Not yet traced; worth up to 3 queries.
 - **Eager links on terms, phases and schedule details.** Loading a term or phase still reloads its schedule detail and
   schedule (14 queries on the schedule application task list). The repositories are shared by many schedule pages, so
   this needs measuring across them, including the timeline, before changing.

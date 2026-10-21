@@ -20,7 +20,7 @@ come from reading the code and are estimates; see [Next steps](#next-steps) for 
 |---|---|
 | Fix 4: entity graphs on the child repository methods | Done for the schedule application, and for the continuation other requirement and supporting information |
 | Fix 5: stop repeating the schedule work in the task list | Done for the schedule application task list; the continuation overview shows the same pattern, not started |
-| Fix 3: route `getTeamTypesUserIsMemberOf` through `TeamQueryService` | Done |
+| Fix 3: route `getTeamTypesUserIsMemberOf` through `TeamQueryService` | Done; confirmed on the document overview: one team role lookup per request |
 | Fix 1: request-scoped store for URL entities | Done for the schedule application detail and the continuation application detail; licence correction and licence position are with another team; licence and schedule detail not started |
 | Fix 2: request-scoped cache for organisation unit lookups | Done for "Get organisation units by ids" and confirmed on the continuation overview; the org group lookup is not cached |
 
@@ -242,6 +242,21 @@ the schedule application.
 Replace `teamRoleRepository.findAllByWuaId(wuaId)` with `teamQueryService.getTeamRolesForUser(wuaId)`. This
 is a one-line change and saves one query per request on the document template pages. Done: the document template
 pages now share the request's single team role lookup.
+
+Confirmed in the deployed request log on 2026-10-21 for
+`GET /lms/document-library/{documentTemplateId}/document-overview` (user 300051): **5 Hibernate queries**, no
+Energy Portal calls, 114ms. `find team_roles by wua_id` ran once, shared by the `@HasAnyRoleInTeamType` access rule
+and the controller's `userHasRoleInTeamType` check.
+
+| Query | Count |
+|---|---:|
+| `find document_library_document_templates by id` | 2 |
+| `find team_roles by wua_id` | 1 |
+| `find document_library_document_template_sections by id` | 1 |
+| `find document_templates_metadata by document_template_id` | 1 |
+
+The template is still loaded twice, probably once for the `DocumentTemplateDto` argument and once while building the
+sections summary. At one query it is not worth a request cache, so nothing more is planned for these pages.
 
 ### Fix 4: entity graphs on the child repository methods (done for the schedule application)
 
@@ -542,8 +557,8 @@ Paths are relative to `src/main/java/uk/co/nstauthority/licensingmanagementservi
    [Confirmed in the deployed request log](#confirmed-in-the-deployed-request-log)
 3. Use the remaining logs to confirm the estimates and size the gain before changing anything.
 4. ~~Capture the continuation overview log again once PR #830 is deployed~~ done: 32 → 29 queries, see
-   [Confirmed after PR #830](#confirmed-after-pr-830). Still to capture: a document template page log to confirm
-   fix 3.
+   [Confirmed after PR #830](#confirmed-after-pr-830). Fix 3 confirmed on the document overview: one team role
+   lookup, 5 queries in total, see [Fix 3](#fix-3-route-getteamtypesuserismemberof-through-teamqueryservice-done).
 5. Trace why the continuation overview works out the schedule state twice (14 queries), and fix it the same way as
    fix 5 did for the schedule application task list. Planned as a separate fix.
 6. ~~Capture the continuation overview log once fix 2 is deployed~~ done: "Get organisation units by ids" 2 → 1,

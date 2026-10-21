@@ -472,8 +472,8 @@ class ContinuationApplicationWorkAreaServiceTest {
     when(licenceContinuationService.getAllContinuationApplicationDetailsByStatuses(any()))
         .thenReturn(List.of(licenceContinuationApplicationDetail, licenceContinuationApplicationDetail2));
 
-    mockRegulatorWithoutIndustryAccess();
-    when(regulatorRoleService.isContinuationIssuer(serviceUserDetail)).thenReturn(true);
+    mockRegulatorWithAllWorkAccess();
+    when(regulatorRoleService.isContinuationIssuer(anySet())).thenReturn(true);
 
     var org1 = "Org 1";
 
@@ -541,26 +541,10 @@ class ContinuationApplicationWorkAreaServiceTest {
   }
 
   @Test
-  void getAllWorkItems_whenUserIsContinuationReviewerAndSubmitted_isIncluded() {
+  void getAllWorkItems_whenRegulatorAllWorkRuleMatches_isIncluded() {
     when(licenceContinuationService.getAllContinuationApplicationDetailsByStatuses(any()))
         .thenReturn(List.of(licenceContinuationApplicationDetail, licenceContinuationApplicationDetail2));
-    mockContinuationReviewerWithoutIndustryAccess();
-    when(licenceResponsibleOrganisationService.getResponsibleOrganisationsByLicences(any()))
-        .thenReturn(Map.of(licence2, List.of(new OrganisationUnit(1, "Org 1"))));
-
-    var workAreaItems = continuationApplicationWorkAreaService.getAllWorkItems(new WorkAreaFilterForm(), serviceUserDetail);
-
-    assertThat(workAreaItems)
-        .extracting(SearchResultItem::id)
-        .containsExactly(licenceContinuationApplicationDetail2.getId().toString());
-  }
-
-  @Test
-  void getAllWorkItems_whenUserIsDecisionIssuerAndSubmitted_isIncluded() {
-    when(licenceContinuationService.getAllContinuationApplicationDetailsByStatuses(any()))
-        .thenReturn(List.of(licenceContinuationApplicationDetail, licenceContinuationApplicationDetail2));
-    mockRegulatorWithoutIndustryAccess();
-    when(regulatorRoleService.isDecisionIssuer(anySet())).thenReturn(true);
+    mockRegulatorWithAllWorkAccess();
     when(licenceResponsibleOrganisationService.getResponsibleOrganisationsByLicences(any()))
         .thenReturn(Map.of(licence2, List.of(new OrganisationUnit(1, "Org 1"))));
 
@@ -588,13 +572,12 @@ class ContinuationApplicationWorkAreaServiceTest {
   }
 
   @Test
-  void getAllWorkItems_whenIssueDecision_isContinuationReviewerButNotIssuer_isExcluded() {
+  void getAllWorkItems_whenRegulatorAllWorkRuleDoesNotMatch_isExcluded() {
     licenceContinuationApplicationDetail2.setStatus(ApplicationStatus.ISSUE_DECISION);
 
     when(licenceContinuationService.getAllContinuationApplicationDetailsByStatuses(any()))
         .thenReturn(List.of(licenceContinuationApplicationDetail, licenceContinuationApplicationDetail2));
     mockRegulatorWithoutIndustryAccess();
-    when(regulatorRoleService.isContinuationReviewer(anySet())).thenReturn(true);
 
     var workAreaItems = continuationApplicationWorkAreaService.getAllWorkItems(new WorkAreaFilterForm(), serviceUserDetail);
 
@@ -605,7 +588,7 @@ class ContinuationApplicationWorkAreaServiceTest {
   void getAllWorkItems_whenItemNotYetViewed_showsNewBadge() {
     when(licenceContinuationService.getAllContinuationApplicationDetailsByStatuses(any()))
         .thenReturn(List.of(licenceContinuationApplicationDetail, licenceContinuationApplicationDetail2));
-    mockContinuationReviewerWithoutIndustryAccess();
+    mockRegulatorWithAllWorkAccess();
     when(licenceResponsibleOrganisationService.getResponsibleOrganisationsByLicences(any()))
         .thenReturn(Map.of(licence2, List.of(new OrganisationUnit(1, "Org 1"))));
 
@@ -623,7 +606,7 @@ class ContinuationApplicationWorkAreaServiceTest {
   void getAllWorkItems_whenItemAlreadyViewed_doesNotShowNewBadge() {
     when(licenceContinuationService.getAllContinuationApplicationDetailsByStatuses(any()))
         .thenReturn(List.of(licenceContinuationApplicationDetail, licenceContinuationApplicationDetail2));
-    mockContinuationReviewerWithoutIndustryAccess();
+    mockRegulatorWithAllWorkAccess();
     when(workAreaItemViewService.getWorkAreaItemLogsForUser(any(), any()))
         .thenReturn(List.of(new WorkAreaItemView(
             licenceContinuationApplicationDetail2.getId(),
@@ -691,8 +674,8 @@ class ContinuationApplicationWorkAreaServiceTest {
 
     when(licenceContinuationService.getAllContinuationApplicationDetailsByStatuses(any()))
         .thenReturn(List.of(licenceContinuationApplicationDetail, licenceContinuationApplicationDetail2));
-    mockRegulatorWithoutIndustryAccess();
-    when(regulatorRoleService.isContinuationIssuer(serviceUserDetail)).thenReturn(true);
+    mockRegulatorWithAllWorkAccess();
+    when(regulatorRoleService.isContinuationIssuer(anySet())).thenReturn(true);
     when(licenceResponsibleOrganisationService.getResponsibleOrganisationsByLicences(any()))
         .thenReturn(Map.of(licence2, List.of(new OrganisationUnit(1, "Org 1"))));
 
@@ -710,8 +693,8 @@ class ContinuationApplicationWorkAreaServiceTest {
 
     when(licenceContinuationService.getAllContinuationApplicationDetailsByStatuses(any()))
         .thenReturn(List.of(licenceContinuationApplicationDetail, licenceContinuationApplicationDetail2));
-    mockRegulatorWithoutIndustryAccess();
-    when(regulatorRoleService.isContinuationIssuer(serviceUserDetail)).thenReturn(true);
+    mockRegulatorWithAllWorkAccess();
+    when(regulatorRoleService.isContinuationIssuer(anySet())).thenReturn(true);
     // Issuer views are logged against the application id, not the detail id
     when(workAreaItemViewService.getWorkAreaItemLogsForUser(any(), any()))
         .thenReturn(List.of(new WorkAreaItemView(
@@ -743,9 +726,13 @@ class ContinuationApplicationWorkAreaServiceTest {
     when(regulatorRoleService.isRegulator(anySet())).thenReturn(true);
   }
 
-  private void mockContinuationReviewerWithoutIndustryAccess() {
+  private void mockRegulatorWithAllWorkAccess() {
     mockRegulatorWithoutIndustryAccess();
-    when(regulatorRoleService.isContinuationReviewer(anySet())).thenReturn(true);
+    when(applicationWorkAreaService.isRegulatorAllWork(
+        eq(licenceContinuationApplicationDetail2),
+        eq(serviceUserDetail.wuaId()),
+        anySet()
+    )).thenReturn(true);
   }
 
   @Test
@@ -770,15 +757,32 @@ class ContinuationApplicationWorkAreaServiceTest {
   }
 
   @Test
-  void getMyWorkItems_whenUserIsRegulator_returnsSameItemsAsAllWork() {
+  void getMyWorkItems_whenRegulatorMyWorkRuleMatches_isIncluded() {
     mockApplications();
-    when(regulatorRoleService.isRegulator(anySet())).thenReturn(true);
-    mockViewAccess();
+    mockRegulatorWithoutIndustryAccess();
+    when(applicationWorkAreaService.isRegulatorMyWork(
+        eq(licenceContinuationApplicationDetail2),
+        eq(serviceUserDetail.wuaId()),
+        anySet()
+    )).thenReturn(true);
+    when(licenceResponsibleOrganisationService.getResponsibleOrganisationsByLicences(any()))
+        .thenReturn(Map.of(licence2, List.of(new OrganisationUnit(1, "Org 1"))));
 
-    var myWorkItems = continuationApplicationWorkAreaService.getMyWorkItems(new WorkAreaFilterForm(), serviceUserDetail);
-    var allWorkItems = continuationApplicationWorkAreaService.getAllWorkItems(new WorkAreaFilterForm(), serviceUserDetail);
+    var workAreaItems = continuationApplicationWorkAreaService.getMyWorkItems(new WorkAreaFilterForm(), serviceUserDetail);
 
-    assertThat(myWorkItems).isNotEmpty().isEqualTo(allWorkItems);
+    assertThat(workAreaItems)
+        .extracting(SearchResultItem::id)
+        .containsExactly(licenceContinuationApplicationDetail2.getId().toString());
+  }
+
+  @Test
+  void getMyWorkItems_whenRegulatorMyWorkRuleDoesNotMatch_isExcluded() {
+    mockApplications();
+    mockRegulatorWithoutIndustryAccess();
+
+    var workAreaItems = continuationApplicationWorkAreaService.getMyWorkItems(new WorkAreaFilterForm(), serviceUserDetail);
+
+    assertThat(workAreaItems).isEmpty();
   }
 
   private void mockApplications() {

@@ -98,13 +98,8 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
     var userTeamRoles = teamQueryService.getTeamRolesForUser(serviceUserDetail.wuaId());
     var regulatorRoles = new RegulatorRoles(
         regulatorRoleService.isRegulator(userTeamRoles),
-        regulatorRoleService.isContinuationIssuer(serviceUserDetail),
-        regulatorRoleService.isContinuationReviewer(userTeamRoles),
-        regulatorRoleService.isDecisionIssuer(userTeamRoles)
+        regulatorRoleService.isContinuationIssuer(userTeamRoles)
     );
-
-    // TODO LMS1-689: regulators see everything in My work until their rules are defined
-    var restrictToMyWork = myWorkOnly && !regulatorRoles.regulator();
 
     var allApplicationDetails = licenceContinuationService
         .getAllContinuationApplicationDetailsByStatuses(ApplicationStatus.getSearchableStatuses());
@@ -142,7 +137,7 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
             orgUnitToGroupMap,
             licenseeGroupOrgUnitIds,
             regulatorRoles,
-            restrictToMyWork
+            myWorkOnly
         ))
         .map(applicationDetail ->
             createWorkAreaItem(
@@ -246,7 +241,7 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
       Map<Integer, Integer> orgUnitToGroupMap,
       List<Integer> licenseeGroupOrgUnitIds,
       RegulatorRoles regulatorRoles,
-      boolean restrictToMyWork
+      boolean myWorkOnly
   ) {
     if (!FilterUtil.matchesTextInput(licence.getLicenceReference(), filterForm.getLicenceReference())) {
       return false;
@@ -290,7 +285,7 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
         .filter(orgUnitToGroupMap::containsKey)
         .collect(Collectors.toMap(Function.identity(), orgUnitToGroupMap::get));
 
-    if (restrictToMyWork
+    if (myWorkOnly && !regulatorRoles.regulator()
         && !applicationWorkAreaService.isIndustryMyWork(applicationDetail, licenceOrgUnitGroupMap, wuaId, userTeamRoles)) {
       return false;
     }
@@ -305,27 +300,15 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
       return true;
     }
 
-    return canRegulatorSee(applicationDetail, regulatorRoles);
-  }
-
-  private boolean canRegulatorSee(LicenceContinuationApplicationDetail applicationDetail, RegulatorRoles regulatorRoles) {
     if (!regulatorRoles.regulator() || !applicationDetail.hasBeenSubmitted()) {
       return false;
     }
 
-    if (applicationDetail.getStatus() == ApplicationStatus.ISSUE_DECISION) {
-      return regulatorRoles.continuationIssuer()
-          || (!regulatorRoles.continuationReviewer() && regulatorRoles.decisionIssuer());
-    }
-
-    return regulatorRoles.continuationReviewer() || regulatorRoles.decisionIssuer();
+    return myWorkOnly
+        ? applicationWorkAreaService.isRegulatorMyWork(applicationDetail, wuaId, userTeamRoles)
+        : applicationWorkAreaService.isRegulatorAllWork(applicationDetail, wuaId, userTeamRoles);
   }
 
-  private record RegulatorRoles(
-      boolean regulator,
-      boolean continuationIssuer,
-      boolean continuationReviewer,
-      boolean decisionIssuer
-  ) {
+  private record RegulatorRoles(boolean regulator, boolean continuationIssuer) {
   }
 }

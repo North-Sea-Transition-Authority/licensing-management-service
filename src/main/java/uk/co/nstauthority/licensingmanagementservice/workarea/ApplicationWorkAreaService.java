@@ -10,6 +10,7 @@ import uk.co.fivium.energyportal.serviceproviders.epmq.ScopeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplication;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
+import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.teams.IndustryRoleService;
 import uk.co.nstauthority.licensingmanagementservice.teams.RegulatorRoleService;
@@ -31,7 +32,8 @@ public class ApplicationWorkAreaService {
     return switch (applicationDetail) {
       case ScheduleWorkProgrammeApplicationDetail scheduleDetail ->
           isScheduleApplicationMyWork(scheduleDetail, userWuaId, userTeamRoles);
-      // TODO LMS1-701: continuation reviewer and issuer rules
+      case LicenceContinuationApplicationDetail continuationDetail ->
+          isContinuationApplicationMyWork(continuationDetail, userTeamRoles);
       default -> false;
     };
   }
@@ -40,7 +42,8 @@ public class ApplicationWorkAreaService {
     return switch (applicationDetail) {
       case ScheduleWorkProgrammeApplicationDetail scheduleDetail ->
           isScheduleApplicationAllWork(scheduleDetail, userWuaId, userTeamRoles);
-      // TODO LMS1-701: continuation reviewer and issuer rules
+      case LicenceContinuationApplicationDetail continuationDetail ->
+          isContinuationApplicationAllWork(continuationDetail, userTeamRoles);
       default -> false;
     };
   }
@@ -112,6 +115,27 @@ public class ApplicationWorkAreaService {
     }
 
     return regulatorRoleService.isDecisionIssuer(userTeamRoles) && status == ApplicationStatus.ISSUE_DECISION;
+  }
+
+  private boolean isContinuationApplicationMyWork(
+      LicenceContinuationApplicationDetail applicationDetail,
+      Set<TeamRole> userTeamRoles
+  ) {
+    var status = applicationDetail.getStatus();
+
+    return (regulatorRoleService.isContinuationReviewer(userTeamRoles) && status == ApplicationStatus.SUBMITTED)
+        || (regulatorRoleService.isContinuationIssuer(userTeamRoles) && status == ApplicationStatus.ISSUE_DECISION);
+  }
+
+  private boolean isContinuationApplicationAllWork(
+      LicenceContinuationApplicationDetail applicationDetail,
+      Set<TeamRole> userTeamRoles
+  ) {
+    var status = applicationDetail.getStatus();
+
+    return (regulatorRoleService.isContinuationReviewer(userTeamRoles) && applicationDetail.hasBeenSubmitted())
+        || (regulatorRoleService.isContinuationIssuer(userTeamRoles)
+        && (status == ApplicationStatus.ISSUE_DECISION || status == ApplicationStatus.COMPLETE));
   }
 
   private boolean isExternalEditorOnApplication(LicenceApplicationDetail applicationDetail, Set<TeamRole> userTeamRoles) {

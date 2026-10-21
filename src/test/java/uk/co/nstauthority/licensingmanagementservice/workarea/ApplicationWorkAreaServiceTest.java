@@ -18,6 +18,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplicationD
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
+import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.teams.RegulatorRoleService;
@@ -144,6 +146,97 @@ class ApplicationWorkAreaServiceTest {
     var applicationDetail = createScheduleApplicationDetail(ApplicationStatus.SUBMITTED, StewardAllocation.NONE);
 
     assertThat(applicationWorkAreaService.isRegulatorAllWork(applicationDetail, USER_WUA_ID, Set.of())).isFalse();
+  }
+
+  @ParameterizedTest
+  @CsvSource({
+      "CONTINUATION_REVIEWER_OFFSHORE, SUBMITTED, true",
+      "CONTINUATION_REVIEWER_ONSHORE, SUBMITTED, true",
+      "CONTINUATION_REVIEWER_OFFSHORE, ISSUE_DECISION, false",
+      "CONTINUATION_REVIEWER_OFFSHORE, DRAFT, false",
+      "CONTINUATION_ISSUER, ISSUE_DECISION, true",
+      "CONTINUATION_ISSUER, SUBMITTED, false",
+      "CONTINUATION_ISSUER, COMPLETE, false",
+      "DECISION_ISSUER_OFFSHORE, ISSUE_DECISION, false",
+      "DECISION_ISSUER_OFFSHORE, SUBMITTED, false",
+      "CASE_MANAGER_OFFSHORE, SUBMITTED, false"
+  })
+  void isRegulatorMyWork_continuationApplication_returnsWhetherRoleAndStatusMatch(
+      Role role,
+      ApplicationStatus status,
+      boolean expected
+  ) {
+    var applicationDetail = createContinuationApplicationDetail(status);
+
+    var result = applicationWorkAreaService.isRegulatorMyWork(
+        applicationDetail,
+        USER_WUA_ID,
+        Set.of(TeamRoleTestUtil.newBuilder().withRole(role).build())
+    );
+
+    assertThat(result).isEqualTo(expected);
+  }
+
+  @Test
+  void isRegulatorMyWork_continuationApplication_whenUserHasNoRegulatorRoles_returnsFalse() {
+    var applicationDetail = createContinuationApplicationDetail(ApplicationStatus.SUBMITTED);
+
+    assertThat(applicationWorkAreaService.isRegulatorMyWork(applicationDetail, USER_WUA_ID, Set.of())).isFalse();
+  }
+
+  @Test
+  void isRegulatorMyWork_continuationApplication_whenReviewerAndIssuer_returnsTrueIfAnyRoleMatches() {
+    var applicationDetail = createContinuationApplicationDetail(ApplicationStatus.ISSUE_DECISION);
+    var teamRoles = Set.of(
+        TeamRoleTestUtil.newBuilder().withRole(Role.CONTINUATION_REVIEWER_OFFSHORE).build(),
+        TeamRoleTestUtil.newBuilder().withRole(Role.CONTINUATION_ISSUER).build()
+    );
+
+    assertThat(applicationWorkAreaService.isRegulatorMyWork(applicationDetail, USER_WUA_ID, teamRoles)).isTrue();
+  }
+
+  @ParameterizedTest
+  @CsvSource({
+      "CONTINUATION_REVIEWER_OFFSHORE, SUBMITTED, true",
+      "CONTINUATION_REVIEWER_ONSHORE, ISSUE_DECISION, true",
+      "CONTINUATION_REVIEWER_OFFSHORE, COMPLETE, true",
+      "CONTINUATION_REVIEWER_OFFSHORE, WITHDRAWN, true",
+      "CONTINUATION_REVIEWER_OFFSHORE, DRAFT, false",
+      "CONTINUATION_ISSUER, SUBMITTED, false",
+      "CONTINUATION_ISSUER, ISSUE_DECISION, true",
+      "CONTINUATION_ISSUER, COMPLETE, true",
+      "CONTINUATION_ISSUER, DRAFT, false",
+      "DECISION_ISSUER_OFFSHORE, ISSUE_DECISION, false",
+      "CASE_MANAGER_OFFSHORE, SUBMITTED, false"
+  })
+  void isRegulatorAllWork_continuationApplication_returnsWhetherRoleAndStatusMatch(
+      Role role,
+      ApplicationStatus status,
+      boolean expected
+  ) {
+    var applicationDetail = createContinuationApplicationDetail(status);
+
+    var result = applicationWorkAreaService.isRegulatorAllWork(
+        applicationDetail,
+        USER_WUA_ID,
+        Set.of(TeamRoleTestUtil.newBuilder().withRole(role).build())
+    );
+
+    assertThat(result).isEqualTo(expected);
+  }
+
+  @Test
+  void isRegulatorAllWork_continuationApplication_whenUserHasNoRegulatorRoles_returnsFalse() {
+    var applicationDetail = createContinuationApplicationDetail(ApplicationStatus.SUBMITTED);
+
+    assertThat(applicationWorkAreaService.isRegulatorAllWork(applicationDetail, USER_WUA_ID, Set.of())).isFalse();
+  }
+
+  private LicenceContinuationApplicationDetail createContinuationApplicationDetail(ApplicationStatus status) {
+    return LicenceContinuationApplicationTestUtil.builder()
+        .withStatus(status)
+        .withSubmittedDatetime(status == ApplicationStatus.DRAFT ? null : Instant.now())
+        .build();
   }
 
   private ScheduleWorkProgrammeApplicationDetail createScheduleApplicationDetail(

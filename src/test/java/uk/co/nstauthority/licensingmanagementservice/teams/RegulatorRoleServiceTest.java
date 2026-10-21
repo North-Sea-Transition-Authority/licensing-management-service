@@ -66,22 +66,6 @@ class RegulatorRoleServiceTest {
   }
 
   @Test
-  void isContinuationIssuer_whenUserHasRole_returnsTrue() {
-    when(teamQueryService.userHasAtLeastOneStaticRole(USER.wuaId(), TeamType.REGULATIONS_LICENSING, Set.of(Role.CONTINUATION_ISSUER)))
-        .thenReturn(true);
-
-    assertThat(regulatorRoleService.isContinuationIssuer(USER)).isTrue();
-  }
-
-  @Test
-  void isContinuationIssuer_whenUserDoesNotHaveRole_returnsFalse() {
-    when(teamQueryService.userHasAtLeastOneStaticRole(USER.wuaId(), TeamType.REGULATIONS_LICENSING, Set.of(Role.CONTINUATION_ISSUER)))
-        .thenReturn(false);
-
-    assertThat(regulatorRoleService.isContinuationIssuer(USER)).isFalse();
-  }
-
-  @Test
   void isLicenceContactsManager_whenUserHasRole_returnsTrue() {
     when(teamQueryService.userHasAtLeastOneStaticRole(USER.wuaId(), TeamType.LICENCE_MANAGEMENT,
         Set.of(Role.LICENCE_CONTACTS_MANAGER)))
@@ -120,6 +104,20 @@ class RegulatorRoleServiceTest {
     var teamRole = TeamRoleTestUtil.newBuilder().withRole(Role.CONTINUATION_REVIEWER_OFFSHORE).build();
 
     assertThat(regulatorRoleService.isContinuationReviewer(Set.of(teamRole))).isTrue();
+  }
+
+  @Test
+  void isContinuationIssuer_withTeamRoles_whenUserHasRole_returnsTrue() {
+    var teamRole = TeamRoleTestUtil.newBuilder().withRole(Role.CONTINUATION_ISSUER).build();
+
+    assertThat(regulatorRoleService.isContinuationIssuer(Set.of(teamRole))).isTrue();
+  }
+
+  @Test
+  void isContinuationIssuer_withTeamRoles_whenUserDoesNotHaveRole_returnsFalse() {
+    var teamRole = TeamRoleTestUtil.newBuilder().withRole(Role.DECISION_ISSUER_ONSHORE).build();
+
+    assertThat(regulatorRoleService.isContinuationIssuer(Set.of(teamRole))).isFalse();
   }
 
   @Test

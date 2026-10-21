@@ -43,12 +43,8 @@ public class RegulatorRoleService {
     return hasAnyRole(teamRoles, CONTINUATION_REVIEWER_ROLES);
   }
 
-  public boolean isContinuationIssuer(ServiceUserDetail userDetail) {
-    return teamQueryService.userHasAtLeastOneStaticRole(
-        userDetail.wuaId(),
-        TeamType.REGULATIONS_LICENSING,
-        Set.of(Role.CONTINUATION_ISSUER)
-    );
+  public boolean isContinuationIssuer(Set<TeamRole> teamRoles) {
+    return hasAnyRole(teamRoles, Set.of(Role.CONTINUATION_ISSUER));
   }
 
   public boolean isLicenceContactsManager(ServiceUserDetail userDetail) {

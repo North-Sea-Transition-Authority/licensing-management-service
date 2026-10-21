@@ -3,6 +3,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomm
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import uk.co.nstauthority.licensingmanagementservice.duplication.NotDuplicationSource;
@@ -11,6 +12,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSch
 @Repository
 public interface EventCommentRepository extends JpaRepository<EventComment, UUID>, NotDuplicationSource {
 
+  @EntityGraph(attributePaths = "scheduleEvent")
   List<EventComment> getAllByScheduleEvent_LicenceScheduleAndStatus(
       LicenceSchedule licenceSchedule,
       EventCommentStatus status

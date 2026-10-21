@@ -33,6 +33,7 @@ public interface LicenceContinuationApplicationDetailRepository
 
   int countByVersionNumberAndSubmittedDatetimeBetween(Integer versionNumber, Instant startOfYear, Instant endOfYear);
 
+  @EntityGraph(attributePaths = "licenceContinuationApplication")
   List<LicenceContinuationApplicationDetail> findAllByLicenceContinuationApplication_IdIn(
       Collection<UUID> licenceContinuationApplicationIds);
 }

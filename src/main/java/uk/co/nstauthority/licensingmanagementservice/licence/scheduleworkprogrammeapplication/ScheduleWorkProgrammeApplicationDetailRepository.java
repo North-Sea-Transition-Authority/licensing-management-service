@@ -24,6 +24,7 @@ public interface ScheduleWorkProgrammeApplicationDetailRepository
   @EntityGraph(attributePaths = "scheduleWorkProgrammeApplication.licenceSchedule.licence")
   List<ScheduleWorkProgrammeApplicationDetail> findAllByStatusIn(Set<ApplicationStatus> statuses);
 
+  @EntityGraph(attributePaths = "scheduleWorkProgrammeApplication")
   List<ScheduleWorkProgrammeApplicationDetail> findAllByScheduleWorkProgrammeApplication_IdIn(
       Collection<UUID> scheduleWorkProgrammeApplicationIds);
 }

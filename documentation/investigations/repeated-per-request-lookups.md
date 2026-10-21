@@ -69,17 +69,17 @@ From the `RequestLogFilter` request logs on the deployed environment, same page,
 | Document template overview | — | **5** | One team role lookup per request, shared by the access rule and the controller |
 | New schedule draft start page | 8 | **7** | Page caption no longer reloads the licence |
 | Schedule term update page | 6 | **4** | Page caption and status rule no longer reload the licence and detail (173ms → 111ms) |
+| Continuation task list (user 300052) | 49 | **27** | Schedule term, phase and active schedule detail caches: the active detail looked up once (from 4), terms and phases loaded once (9 → 3), eager reloads 19 → 6 (587ms → 319ms) |
 
 Response times generally fell with the query counts (work area 705ms → 477ms, schedule application task list 412ms →
 243ms), but these are single requests, so treat them as indicative.
 
-### Awaiting deployment
+### Still to confirm
 
 | Page | Before | Expected | PR |
 |---|---:|---:|---|
 | Work area (user 300051) | 13 queries, 7 Energy Portal calls | about 7 queries, 3 Energy Portal calls | #839 |
-| Continuation task list (user 300052) | 49 | about 25–30 | #841 |
-| Continuation overview | 29 | lower; the schedule state was worked out twice | #841 |
+| Continuation overview | 29 | lower; the schedule state was worked out twice | #841 (deployed; log not yet captured) |
 
 ## Remaining
 

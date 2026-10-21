@@ -80,6 +80,7 @@ From the `RequestLogFilter` request logs on the deployed environment, same page,
 | Continuation task list (user 300052) | 49 | **27** | Schedule term, phase and active schedule detail caches: the active detail looked up once (from 4), terms and phases loaded once (9 → 3), eager reloads 19 → 6 (587ms → 319ms) |
 | Continuation overview, after #841 | 29 | **24** | Schedule term and phase caches: terms, phases and their eager reloads loaded once (8 → 4). Measured as user 300051, who had viewed the application before, against the 29 for user 300052 |
 | Continuation overview, after the relinquishment check fix | 24 | **21** | The check skips a missing next term or phase and repeated terms: 5 queries to 2. This application has no current or next phase, so both phase lookups had been for a missing phase. Same user (300051) and application |
+| Schedule timeline, draft (user 300051) | 27 | **22** | Terms, work programme activities and rates loaded once (each from 2), which also removed a schedule detail and a schedule reload. The `schedule_events` and remaining detail reloads, from event comments and work programme statuses, are unchanged |
 
 Response times generally fell with the query counts (work area 705ms → 477ms, schedule application task list 412ms →
 243ms), but these are single requests, so treat them as indicative.
@@ -89,12 +90,14 @@ Response times generally fell with the query counts (work area 705ms → 477ms, 
 | Page | Before | Expected | PR |
 |---|---:|---:|---|
 | Work area (user 300051) | 13 queries, 7 Energy Portal calls | about 7 queries, 3 Energy Portal calls | #839 |
-| Schedule timeline, draft (user 300051) | 27 | 24 | timeline loads activities, rates and terms once |
 
 ## Remaining
 
 - **Eager links on terms, phases and schedule details.** Loading a term or phase still reloads its schedule detail and
   schedule (14 queries on the schedule application task list). The repositories are shared by many schedule pages, so
   this needs measuring across them, including the timeline, before changing.
+- **Reloads from event comments and work programme statuses on the schedule timeline.** Both hold an eager link to
+  their schedule event, so loading them reloads `schedule_events` (3) and the schedule detail behind them (2 of the 3
+  remaining detail loads). Entity graphs on those queries would remove them; not worth it unless the timeline needs it.
 - **Correction and licence position pages**, which reload the correction and position from the URL in each access
   rule. With the corrections team.

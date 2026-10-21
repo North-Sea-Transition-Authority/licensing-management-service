@@ -269,8 +269,20 @@ public class LicenceScheduleCalculationService {
   public Map<UUID, StartEndDates> calculateRateEndDatesForDisplay(
       LicenceScheduleDetail licenceScheduleDetail
   ) {
-    var rates = licenceScheduleRateService.getLicenceScheduleRates(licenceScheduleDetail);
+    return calculateRateEndDatesForDisplay(
+        licenceScheduleDetail,
+        licenceScheduleRateService.getLicenceScheduleRates(licenceScheduleDetail)
+    );
+  }
 
+  /**
+   * Like {@link #calculateRateEndDatesForDisplay(LicenceScheduleDetail)}, for callers that have already loaded the
+   * schedule detail's rates.
+   */
+  public Map<UUID, StartEndDates> calculateRateEndDatesForDisplay(
+      LicenceScheduleDetail licenceScheduleDetail,
+      List<LicenceScheduleRate> rates
+  ) {
     var sortedRates = rates.stream()
         .sorted(Comparator.comparing(this::getStartDateForRate))
         .toList();

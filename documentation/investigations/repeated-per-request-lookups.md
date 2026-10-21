@@ -31,7 +31,7 @@ one service, so callers did not change.
 | `ScheduleWorkProgrammeApplicationDetailRequestCache` | `ScheduleWorkProgrammeApplicationService` | #828 |
 | `LicenceContinuationApplicationDetailRequestCache` | `LicenceContinuationService` | #830 |
 | `OrganisationUnitRequestCache` | `OrganisationUnitQueryService` (Energy Portal "Get organisation units by ids") | #832 |
-| `LicenceScheduleTermRequestCache`, `LicenceSchedulePhaseRequestCache` | `LicenceScheduleStateService.getScheduleState` | #841 |
+| `LicenceScheduleTermRequestCache`, `LicenceSchedulePhaseRequestCache` | `LicenceScheduleStateService.getScheduleState`; the term cache also by `LicenceScheduleTimelineService` | #841 |
 | `LicenceContinuationScheduleDetailRequestCache` | `LicenceContinuationService` (a draft continuation's active schedule detail) | #841 |
 
 Caches are only used for reads. Lookups that a request can change before reading again, such as
@@ -60,6 +60,10 @@ children arrive with their parent instead of reloading it.
   phase and does not look up the same term twice when the next phase is in the current term. The other repeats traced on
   the continuation overview are different queries: an `exists` check by the work programme summary section and the
   activity list for the controller.
+- `LicenceScheduleTimelineService` loads the schedule's work programme activities and rates once, reusing its pre-fetched
+  event data for the work programme statuses and the rate dates (`LicenceScheduleCalculationService` has an overload
+  taking the loaded rates), and reads terms through the term request cache so the summary card and the event views
+  share one load. This covers the schedule timeline, the licence overview's schedule tab and the schedule history.
 
 ## Results
 
@@ -85,6 +89,7 @@ Response times generally fell with the query counts (work area 705ms → 477ms, 
 |---|---:|---:|---|
 | Work area (user 300051) | 13 queries, 7 Energy Portal calls | about 7 queries, 3 Energy Portal calls | #839 |
 | Continuation overview | 24 | 23 | relinquishment check |
+| Schedule timeline, draft (user 300051) | 27 | 24 | timeline loads activities, rates and terms once |
 
 ## Remaining
 

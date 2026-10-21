@@ -53,7 +53,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesch
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermDeletionController;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermRequestCache;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencestartdate.LicenceStartDate;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencestartdate.LicenceStartDateService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.otherscheduleevent.OtherScheduleEvent;
@@ -88,7 +88,7 @@ class LicenceScheduleTimelineServiceTest {
   private LicenceTypeRulesResolver licenceTypeRulesResolver;
 
   @Mock
-  private LicenceScheduleTermService licenceScheduleTermService;
+  private LicenceScheduleTermRequestCache licenceScheduleTermRequestCache;
 
   @Mock
   private LicenceSchedulePhaseService licenceSchedulePhaseService;
@@ -276,7 +276,7 @@ class LicenceScheduleTimelineServiceTest {
     when(licenceStartDateService.getByLicenceScheduleDetailOrThrow(licenceScheduleDetail)).thenReturn(licenceStartDate);
     when(licenceScheduleExpiryService.getExpiryForLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(Optional.empty());
     when(licenceTypeRulesResolver.canShowLicenceRoundIssuedOn(licence.getType())).thenReturn(false);
-    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(term));
+    when(licenceScheduleTermRequestCache.getTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(term));
 
     when(licenceStatusService.getCurrentStatus(licence)).thenReturn(LicenceStatusType.EXTANT);
 
@@ -296,7 +296,7 @@ class LicenceScheduleTimelineServiceTest {
     when(licenceStartDateService.getByLicenceScheduleDetailOrThrow(licenceScheduleDetail)).thenReturn(licenceStartDate);
     when(licenceScheduleExpiryService.getExpiryForLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(Optional.empty());
     when(licenceTypeRulesResolver.canShowLicenceRoundIssuedOn(licence.getType())).thenReturn(false);
-    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of());
+    when(licenceScheduleTermRequestCache.getTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of());
 
     when(licenceStatusService.getCurrentStatus(licence)).thenReturn(LicenceStatusType.EXTANT);
 
@@ -760,7 +760,7 @@ class LicenceScheduleTimelineServiceTest {
         )
     );
 
-    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(term, term2));
+    when(licenceScheduleTermRequestCache.getTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(term, term2));
     when(licenceSchedulePhaseService.getPhasesByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(phase));
 
     when(otherScheduleEventService.getOtherScheduleEvents(licenceScheduleDetail))
@@ -776,7 +776,7 @@ class LicenceScheduleTimelineServiceTest {
     when(eventCommentService.getEventCommentViewsForSchedule(licenceScheduleDetail.getLicenceSchedule()))
         .thenReturn(Map.of());
 
-    when(licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail))
+    when(licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail, List.of(phaseRate, term2Rate)))
         .thenReturn(Map.of(
             phaseRate.getId(), new StartEndDates(phase.getStartDate(), phase.getEndDate()),
             term2Rate.getId(), new StartEndDates(term2.getStartDate(), term2.getEndDate())
@@ -1105,7 +1105,7 @@ class LicenceScheduleTimelineServiceTest {
         )
     );
 
-    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(term, term2));
+    when(licenceScheduleTermRequestCache.getTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(term, term2));
     when(licenceSchedulePhaseService.getPhasesByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(phase));
 
     when(otherScheduleEventService.getOtherScheduleEvents(licenceScheduleDetail))
@@ -1121,7 +1121,7 @@ class LicenceScheduleTimelineServiceTest {
     when(eventCommentService.getEventCommentViewsForSchedule(licenceScheduleDetail.getLicenceSchedule()))
         .thenReturn(Map.of());
 
-    when(licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail))
+    when(licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail, List.of(phaseRate, term2Rate)))
         .thenReturn(Map.of(
             phaseRate.getId(), new StartEndDates(phase.getStartDate(), phase.getEndDate()),
             term2Rate.getId(), new StartEndDates(term2.getStartDate(), term2.getEndDate())
@@ -1447,7 +1447,7 @@ class LicenceScheduleTimelineServiceTest {
         )
     );
 
-    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(term, term2));
+    when(licenceScheduleTermRequestCache.getTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(term, term2));
     when(licenceSchedulePhaseService.getPhasesByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(phase));
 
     when(otherScheduleEventService.getOtherScheduleEvents(licenceScheduleDetail))
@@ -1463,7 +1463,7 @@ class LicenceScheduleTimelineServiceTest {
     when(eventCommentService.getEventCommentViewsForSchedule(licenceScheduleDetail.getLicenceSchedule()))
         .thenReturn(Map.of());
 
-    when(licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail))
+    when(licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail, List.of(phaseRate, term2Rate)))
         .thenReturn(Map.of(
             phaseRate.getId(), new StartEndDates(phase.getStartDate(), phase.getEndDate()),
             term2Rate.getId(), new StartEndDates(term2.getStartDate(), term2.getEndDate())
@@ -1753,7 +1753,7 @@ class LicenceScheduleTimelineServiceTest {
         )
     );
 
-    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(term, term2));
+    when(licenceScheduleTermRequestCache.getTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(term, term2));
     when(licenceSchedulePhaseService.getPhasesByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(phase));
 
     when(otherScheduleEventService.getOtherScheduleEvents(licenceScheduleDetail))
@@ -1769,7 +1769,7 @@ class LicenceScheduleTimelineServiceTest {
     when(eventCommentService.getEventCommentViewsForSchedule(licenceScheduleDetail.getLicenceSchedule()))
         .thenReturn(Map.of());
 
-    when(licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail))
+    when(licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail, List.of(phaseRate, term2Rate)))
         .thenReturn(Map.of(
             phaseRate.getId(), new StartEndDates(phase.getStartDate(), phase.getEndDate()),
             term2Rate.getId(), new StartEndDates(term2.getStartDate(), term2.getEndDate())
@@ -2067,7 +2067,7 @@ class LicenceScheduleTimelineServiceTest {
         )
     );
 
-    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(term, term2));
+    when(licenceScheduleTermRequestCache.getTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(term, term2));
     when(licenceSchedulePhaseService.getPhasesByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(phase));
 
     when(otherScheduleEventService.getOtherScheduleEvents(licenceScheduleDetail))
@@ -2083,7 +2083,7 @@ class LicenceScheduleTimelineServiceTest {
     when(eventCommentService.getEventCommentViewsForSchedule(licenceScheduleDetail.getLicenceSchedule()))
         .thenReturn(Map.of());
 
-    when(licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail))
+    when(licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail, List.of(phaseRate, term2Rate)))
         .thenReturn(Map.of(
             phaseRate.getId(), new StartEndDates(phase.getStartDate(), phase.getEndDate()),
             term2Rate.getId(), new StartEndDates(term2.getStartDate(), term2.getEndDate())
@@ -2348,7 +2348,7 @@ class LicenceScheduleTimelineServiceTest {
         )
     );
 
-    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(term, term2));
+    when(licenceScheduleTermRequestCache.getTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(term, term2));
     when(licenceSchedulePhaseService.getPhasesByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(phase));
 
     when(licenceScheduleRateService.getLicenceScheduleRatesForTermsAndDefinitionOption(List.of(term, term2), RateDefinitionOption.TERM))
@@ -2361,7 +2361,7 @@ class LicenceScheduleTimelineServiceTest {
     when(eventCommentService.getEventCommentViewsForSchedule(licenceScheduleDetail.getLicenceSchedule()))
         .thenReturn(Map.of());
 
-    when(licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail))
+    when(licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail, List.of(phaseRate, term2Rate)))
         .thenReturn(Map.of(
             phaseRate.getId(), new StartEndDates(phase.getStartDate(), phase.getEndDate()),
             term2Rate.getId(), new StartEndDates(term2.getStartDate(), term2.getEndDate())
@@ -2589,7 +2589,7 @@ class LicenceScheduleTimelineServiceTest {
     var activities = List.of(midPhaseActivity, endOfPhaseActivity, midTerm2Activity, endOfTerm2Activity);
     when(workProgrammeActivityService.getWorkProgrammeActivities(licenceScheduleDetail)).thenReturn(activities);
 
-    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(term, term2));
+    when(licenceScheduleTermRequestCache.getTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(term, term2));
     when(licenceSchedulePhaseService.getPhasesByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(phase));
 
     when(licenceScheduleRateService.getLicenceScheduleRatesForTermsAndDefinitionOption(List.of(term, term2), RateDefinitionOption.TERM))
@@ -2599,7 +2599,7 @@ class LicenceScheduleTimelineServiceTest {
     when(licenceScheduleRateService.getLicenceScheduleRates(licenceScheduleDetail))
         .thenReturn(List.of(phaseRate, term2Rate));
 
-    when(licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail))
+    when(licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail, List.of(phaseRate, term2Rate)))
         .thenReturn(Map.of(
             phaseRate.getId(), new StartEndDates(phase.getStartDate(), phase.getEndDate()),
             term2Rate.getId(), new StartEndDates(term2.getStartDate(), term2.getEndDate())
@@ -2673,7 +2673,7 @@ class LicenceScheduleTimelineServiceTest {
     when(workProgrammeActivityStatusService.getLatestStatusesFor(activities))
         .thenReturn(Map.of(wpa.getId(), wpaStatus));
 
-    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail))
+    when(licenceScheduleTermRequestCache.getTermsByLicenceScheduleDetail(licenceScheduleDetail))
         .thenReturn(List.of(term));
     when(licenceSchedulePhaseService.getPhasesByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of());
 
@@ -2688,7 +2688,7 @@ class LicenceScheduleTimelineServiceTest {
 
     var allowedActions = List.of(ScheduleEventAction.EDIT_SCHEDULE_EVENTS, ScheduleEventAction.EDIT_WORK_PROGRAMME);
 
-    when(licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail))
+    when(licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail, List.of(rate)))
         .thenReturn(Map.of(rate.getId(), new StartEndDates(rate.getStartDate(), term.getEndDate())));
 
     var result = licenceScheduleTimelineService.getEditableLicenceScheduleEventViews(licenceScheduleDetail, form, allowedActions);
@@ -2730,12 +2730,12 @@ class LicenceScheduleTimelineServiceTest {
     term.setStartDate(LocalDate.of(2026, Month.JANUARY, 1));
     term.setEndDate(LocalDate.of(2026, Month.DECEMBER, 31));
 
-    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(term));
+    when(licenceScheduleTermRequestCache.getTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(term));
     when(licenceSchedulePhaseService.getPhasesByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of());
 
     when(eventCommentService.getEventCommentViewsForSchedule(licenceScheduleDetail.getLicenceSchedule()))
         .thenReturn(Map.of());
-    when(licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail))
+    when(licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail, List.of()))
         .thenReturn(Map.of());
 
     var form = new ScheduleTimelineFilterForm();
@@ -2788,7 +2788,7 @@ class LicenceScheduleTimelineServiceTest {
     phase.setStartDate(LocalDate.of(2025, Month.JANUARY, 1));
     phase.setEndDate(LocalDate.of(2025, Month.DECEMBER, 31));
 
-    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(term));
+    when(licenceScheduleTermRequestCache.getTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(term));
     when(licenceSchedulePhaseService.getPhasesByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(phase));
     when(workProgrammeActivityService.getWorkProgrammeActivities(licenceScheduleDetail)).thenReturn(List.of());
     when(otherScheduleEventService.getOtherScheduleEvents(licenceScheduleDetail)).thenReturn(List.of());
@@ -2798,7 +2798,7 @@ class LicenceScheduleTimelineServiceTest {
         .thenReturn(List.of());
     when(eventCommentService.getEventCommentViewsForSchedule(licenceScheduleDetail.getLicenceSchedule()))
         .thenReturn(Map.of());
-    when(licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail))
+    when(licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail, List.of()))
         .thenReturn(Map.of());
 
     var form = new ScheduleTimelineFilterForm();

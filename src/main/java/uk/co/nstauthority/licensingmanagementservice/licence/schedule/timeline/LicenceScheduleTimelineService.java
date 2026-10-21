@@ -42,7 +42,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesch
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermDeletionController;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermRequestCache;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencestartdate.LicenceStartDateService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.otherscheduleevent.OtherScheduleEvent;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.otherscheduleevent.OtherScheduleEventDateOption;
@@ -63,7 +63,7 @@ public class LicenceScheduleTimelineService {
 
   private final LicenceStartDateService licenceStartDateService;
   private final LicenceTypeRulesResolver licenceTypeRulesResolver;
-  private final LicenceScheduleTermService licenceScheduleTermService;
+  private final LicenceScheduleTermRequestCache licenceScheduleTermRequestCache;
   private final LicenceSchedulePhaseService licenceSchedulePhaseService;
   private final WorkProgrammeActivityService workProgrammeActivityService;
   private final LicenceScheduleRateService licenceScheduleRateService;
@@ -80,7 +80,6 @@ public class LicenceScheduleTimelineService {
   public LicenceScheduleTimelineService(
       LicenceStartDateService licenceStartDateService,
       LicenceTypeRulesResolver licenceTypeRulesResolver,
-      LicenceScheduleTermService licenceScheduleTermService,
       LicenceSchedulePhaseService licenceSchedulePhaseService,
       WorkProgrammeActivityService workProgrammeActivityService,
       LicenceScheduleRateService licenceScheduleRateService,
@@ -92,11 +91,11 @@ public class LicenceScheduleTimelineService {
       LicenceScheduleCalculationService licenceScheduleCalculationService,
       LicenceStatusService licenceStatusService,
       LicenceResponsibleOrganisationService licenceResponsibleOrganisationService,
-      Clock clock
+      Clock clock,
+      LicenceScheduleTermRequestCache licenceScheduleTermRequestCache
   ) {
     this.licenceStartDateService = licenceStartDateService;
     this.licenceTypeRulesResolver = licenceTypeRulesResolver;
-    this.licenceScheduleTermService = licenceScheduleTermService;
     this.licenceSchedulePhaseService = licenceSchedulePhaseService;
     this.workProgrammeActivityService = workProgrammeActivityService;
     this.licenceScheduleRateService = licenceScheduleRateService;
@@ -109,6 +108,7 @@ public class LicenceScheduleTimelineService {
     this.licenceStatusService = licenceStatusService;
     this.licenceResponsibleOrganisationService = licenceResponsibleOrganisationService;
     this.clock = clock;
+    this.licenceScheduleTermRequestCache = licenceScheduleTermRequestCache;
   }
 
   public TimelineSummaryCardView getTimelineSummaryCardView(LicenceScheduleDetail licenceScheduleDetail) {
@@ -161,7 +161,7 @@ public class LicenceScheduleTimelineService {
       LicenceScheduleDetail licenceScheduleDetail,
       LocalDate startDate
   ) {
-    var finalTerm = licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail).stream()
+    var finalTerm = licenceScheduleTermRequestCache.getTermsByLicenceScheduleDetail(licenceScheduleDetail).stream()
         .max(Comparator.comparing(term -> term.getTermType().getDisplayOrder()));
 
     if (finalTerm.isEmpty()) {
@@ -231,9 +231,11 @@ public class LicenceScheduleTimelineService {
     Map<UUID, List<EventCommentView>> eventRefCommentsMap = new HashMap<>();
     List<ScheduleEventAction> eventActions = new ArrayList<>();
     var finalProgressDate = getTimelineProgressDate(licenceScheduleDetail);
+    var terms = licenceScheduleTermRequestCache.getTermsByLicenceScheduleDetail(licenceScheduleDetail);
+    var scheduleEventData = buildScheduleEventData(licenceScheduleDetail, terms);
 
     if (teamQueryService.userIsInRegulatorTeam(userDetail.wuaId())) {
-      eventRefWpStatusMap.putAll(getLatestWpStatusesForSchedule(licenceScheduleDetail));
+      eventRefWpStatusMap.putAll(workProgrammeActivityStatusService.getLatestStatusesFor(scheduleEventData.allActivities()));
       eventRefCommentsMap.putAll(eventCommentService.getEventCommentViewsForSchedule(licenceScheduleDetail.getLicenceSchedule()));
 
       if (teamQueryService.userHasAtLeastOneRoleIn(userDetail.wuaId(), Set.of(Role.SCHEDULE_ADMINISTRATOR))) {
@@ -253,6 +255,8 @@ public class LicenceScheduleTimelineService {
 
     return getLicenceScheduleEventViews(
         licenceScheduleDetail,
+        terms,
+        scheduleEventData,
         scheduleTimelineFilterForm,
         eventActions,
         eventRefWpStatusMap,
@@ -275,12 +279,16 @@ public class LicenceScheduleTimelineService {
       ScheduleTimelineFilterForm scheduleTimelineFilterForm,
       List<ScheduleEventAction> allowedActions
   ) {
-    var eventRefWpStatusMap = getLatestWpStatusesForSchedule(licenceScheduleDetail);
+    var terms = licenceScheduleTermRequestCache.getTermsByLicenceScheduleDetail(licenceScheduleDetail);
+    var scheduleEventData = buildScheduleEventData(licenceScheduleDetail, terms);
+    var eventRefWpStatusMap = workProgrammeActivityStatusService.getLatestStatusesFor(scheduleEventData.allActivities());
     var eventRefCommentsMap = eventCommentService.getEventCommentViewsForSchedule(licenceScheduleDetail.getLicenceSchedule());
     var finalProgressDate = getTimelineProgressDate(licenceScheduleDetail);
 
     return getLicenceScheduleEventViews(
         licenceScheduleDetail,
+        terms,
+        scheduleEventData,
         scheduleTimelineFilterForm,
         allowedActions,
         eventRefWpStatusMap,
@@ -305,6 +313,8 @@ public class LicenceScheduleTimelineService {
 
   private List<TimelineTermView> getLicenceScheduleEventViews(
       LicenceScheduleDetail licenceScheduleDetail,
+      List<LicenceScheduleTerm> terms,
+      ScheduleEventData scheduleEventData,
       ScheduleTimelineFilterForm scheduleTimelineFilterForm,
       List<ScheduleEventAction> allowedActions,
       Map<UUID, WorkProgrammeActivityStatus> eventRefWpStatusMap,
@@ -315,10 +325,10 @@ public class LicenceScheduleTimelineService {
         .map(ScheduleEventType::valueOf)
         .toList();
 
-    var rateDatesMap = licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail);
-
-    var terms = licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail);
-    var scheduleEventData = buildScheduleEventData(licenceScheduleDetail, terms);
+    var rateDatesMap = licenceScheduleCalculationService.calculateRateEndDatesForDisplay(
+        licenceScheduleDetail,
+        scheduleEventData.allRates()
+    );
 
     return terms.stream()
         .sorted(Comparator.comparing(term -> term.getTermType().getDisplayOrder()))
@@ -845,12 +855,6 @@ public class LicenceScheduleTimelineService {
         DateFormatUtil.convertToDisplayText(startDate),
         DateFormatUtil.convertToDisplayText(endDate),
         ThreeFieldDurationDisplayUtil.convertToDisplayText(duration)
-    );
-  }
-
-  private Map<UUID, WorkProgrammeActivityStatus> getLatestWpStatusesForSchedule(LicenceScheduleDetail licenceScheduleDetail) {
-    return workProgrammeActivityStatusService.getLatestStatusesFor(
-        workProgrammeActivityService.getWorkProgrammeActivities(licenceScheduleDetail)
     );
   }
 

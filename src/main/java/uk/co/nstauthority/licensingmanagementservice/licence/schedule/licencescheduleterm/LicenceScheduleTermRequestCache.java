@@ -6,9 +6,10 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesch
 import uk.co.nstauthority.licensingmanagementservice.mvc.RequestScopedCache;
 
 /**
- * Holds each schedule detail's terms for the lifetime of a single HTTP request, so a page that works out the same
- * detail's schedule state in several places loads its terms once. Used internally by {@code LicenceScheduleStateService}
- * when working out the schedule state; anything that changes terms should use {@link LicenceScheduleTermService}.
+ * Holds each schedule detail's terms for the lifetime of a single HTTP request, so a page that reads the same detail's
+ * terms in several places loads them once. Used for reads by {@code LicenceScheduleStateService} when working out the
+ * schedule state and by {@code LicenceScheduleTimelineService} when building the timeline; anything that changes terms
+ * should use {@link LicenceScheduleTermService}.
  */
 @Component
 public class LicenceScheduleTermRequestCache extends RequestScopedCache<LicenceScheduleDetail, List<LicenceScheduleTerm>> {

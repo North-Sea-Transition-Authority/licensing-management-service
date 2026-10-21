@@ -21,7 +21,7 @@ come from reading the code and are estimates; see [Next steps](#next-steps) for 
 | Fix 4: entity graphs on the child repository methods | Done for the schedule application, and for the continuation other requirement and supporting information |
 | Fix 5: stop repeating the schedule work in the task list | Done for the schedule application task list; the continuation overview shows the same pattern, not started |
 | Fix 3: route `getTeamTypesUserIsMemberOf` through `TeamQueryService` | Done; confirmed on the document overview: one team role lookup per request |
-| Fix 1: request-scoped store for URL entities | Done for the schedule application detail and the continuation application detail; licence correction and licence position are with another team; licence and schedule detail measured: a cache is not worth it, two smaller fixes instead (see [Licence and schedule detail](#licence-and-schedule-detail-measured)) |
+| Fix 1: request-scoped store for URL entities | Done for the schedule application detail and the continuation application detail; licence correction and licence position are with another team; licence and schedule detail measured: a cache is not worth it, two smaller fixes instead, confirmed: new-draft 8 → 7 and term update 6 → 4 queries (see [Licence and schedule detail](#licence-and-schedule-detail-measured)) |
 | Fix 2: request-scoped cache for organisation unit lookups | Done for "Get organisation units by ids" and confirmed on the continuation overview; the org group lookup is not cached |
 
 **Confirmed in the deployed request log: the schedule application task list went from 56 queries to 33**, and
@@ -463,8 +463,16 @@ queries, but only on the 4 pages with `@ActionEndPoint`. Two smaller fixes inste
   it has just loaded, rather than reloading it by id. This saves one query on the update and delete pages for each of
   those (about 10 pages).
 
-Expected: the new-draft page 8 → 7 queries and the term update page 6 → 4. To be confirmed from the request logs
-once deployed.
+**Confirmed in the deployed request logs on 2026-10-21:**
+
+| Page | Before | After | Time |
+|---|---:|---:|---|
+| `/licence/{licenceId}/schedule/new-draft/` | 8 | **7** | 130ms → 127ms |
+| `/licence/schedule/term/{licenceScheduleTermId}/update` | 6 | **4** | 173ms → 111ms |
+
+On the new-draft page `find licences by id` went from 3 to 2 (the access rule and the argument resolver). On the
+term update page the `licence_schedule_details` and `licences` loads are gone; the term is still loaded twice, by the
+access rule and the controller, which at one query is not worth a cache.
 
 ### Fix 2: request-scoped cache for organisation unit lookups (done for lookups by id)
 
@@ -599,8 +607,8 @@ Paths are relative to `src/main/java/uk/co/nstauthority/licensingmanagementservi
 6. ~~Capture the continuation overview log once fix 2 is deployed~~ done: "Get organisation units by ids" 2 → 1,
    Energy Portal calls 4 → 3.
 7. ~~Fix 1 for licence and schedule detail~~ measured: no cache needed, the caption and status rule fixes instead,
-   see [Licence and schedule detail](#licence-and-schedule-detail-measured). Capture the new-draft and term update
-   logs once deployed: expected 8 → 7 and 6 → 4 queries. Check the continuation task list log for the same patterns.
+   see [Licence and schedule detail](#licence-and-schedule-detail-measured). Confirmed: new-draft 8 → 7 and term update
+   6 → 4 queries. Check the continuation task list log for the same patterns.
 8. Consider the remaining cost on the schedule application task list: the eager links on terms, phases and
    schedule details (14 queries) and the schedule state being worked out twice (5 queries). Both sit in the
    shared schedule services, so measure the timeline and other schedule pages before and after.

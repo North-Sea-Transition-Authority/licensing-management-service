@@ -136,8 +136,10 @@ class LicenceServiceTest {
         .withLicenceType(licenceType)
         .withLicenceReference(licenceRef)
         .build();
-    when(licenceRepository.findById(licenceId)).thenReturn(Optional.of(licence));
-    assertThat(licenceService.getLicencePageCaption(licence)).isEqualTo(licenceType.getDisplayName() + " - " + licenceRef);
+
+    var caption = licenceService.getLicencePageCaption(licence);
+
+    assertThat(caption).isEqualTo(licenceType.getDisplayName() + " - " + licenceRef);
   }
 
   @Test

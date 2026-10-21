@@ -86,9 +86,7 @@ public class LicenceService {
   }
 
   public String getLicencePageCaption(Licence licence) {
-    var licenceId = licence.getId();
-    var licenceType = licence.getType();
-    return licenceType.getDisplayName() + " - " + findLicenceByIdOrThrow(licenceId).getLicenceReference();
+    return licence.getType().getDisplayName() + " - " + licence.getLicenceReference();
   }
 
   public boolean isCarbonStorageLicence(Licence licence) {

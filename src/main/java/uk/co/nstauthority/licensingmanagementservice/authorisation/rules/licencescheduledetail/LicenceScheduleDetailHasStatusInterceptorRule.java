@@ -103,34 +103,27 @@ public class LicenceScheduleDetailHasStatusInterceptorRule implements AccessInte
 
       if (pathVariables.containsKey(LICENCE_SCHEDULE_TERM_ID)) {
         var termId = UUID.fromString(pathVariables.get(LICENCE_SCHEDULE_TERM_ID));
-        var detailId = licenceScheduleTermService.getTermByIdOrThrow(termId).getLicenceScheduleDetail().getId();
-        return licenceScheduleDetailService.getByIdOrThrow(detailId);
+        return licenceScheduleTermService.getTermByIdOrThrow(termId).getLicenceScheduleDetail();
       }
 
       if (pathVariables.containsKey(LICENCE_SCHEDULE_PHASE_ID)) {
         var phaseId = UUID.fromString(pathVariables.get(LICENCE_SCHEDULE_PHASE_ID));
-        var detailId = licenceSchedulePhaseService.getPhaseByIdOrThrow(phaseId).getLicenceScheduleDetail().getId();
-        return licenceScheduleDetailService.getByIdOrThrow(detailId);
+        return licenceSchedulePhaseService.getPhaseByIdOrThrow(phaseId).getLicenceScheduleDetail();
       }
 
       if (pathVariables.containsKey(LICENCE_SCHEDULE_RATE_ID)) {
         var rateId = UUID.fromString(pathVariables.get(LICENCE_SCHEDULE_RATE_ID));
-        var detailId = licenceScheduleRateService.getRateByIdOrThrow(rateId).getLicenceScheduleDetail().getId();
-        return licenceScheduleDetailService.getByIdOrThrow(detailId);
+        return licenceScheduleRateService.getRateByIdOrThrow(rateId).getLicenceScheduleDetail();
       }
 
       if (pathVariables.containsKey(WORK_PROGRAMME_ACTIVITY_ID)) {
         var activityId = UUID.fromString(pathVariables.get(WORK_PROGRAMME_ACTIVITY_ID));
-        var detailId = workProgrammeActivityService.getWorkProgrammeActivityByIdOrThrow(activityId)
-            .getLicenceScheduleDetail()
-            .getId();
-        return licenceScheduleDetailService.getByIdOrThrow(detailId);
+        return workProgrammeActivityService.getWorkProgrammeActivityByIdOrThrow(activityId).getLicenceScheduleDetail();
       }
 
       if (pathVariables.containsKey(OTHER_SCHEDULE_EVENT_ID)) {
         var eventId = UUID.fromString(pathVariables.get(OTHER_SCHEDULE_EVENT_ID));
-        var detailId = otherScheduleEventService.getOtherScheduleEventByIdOrThrow(eventId).getLicenceScheduleDetail().getId();
-        return licenceScheduleDetailService.getByIdOrThrow(detailId);
+        return otherScheduleEventService.getOtherScheduleEventByIdOrThrow(eventId).getLicenceScheduleDetail();
       }
     }
 

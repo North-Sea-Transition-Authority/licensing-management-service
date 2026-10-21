@@ -21,7 +21,7 @@ come from reading the code and are estimates; see [Next steps](#next-steps) for 
 | Fix 4: entity graphs on the child repository methods | Done for the schedule application, and for the continuation other requirement and supporting information |
 | Fix 5: stop repeating the schedule work in the task list | Done for the schedule application task list; the continuation overview shows the same pattern, not started |
 | Fix 3: route `getTeamTypesUserIsMemberOf` through `TeamQueryService` | Done; confirmed on the document overview: one team role lookup per request |
-| Fix 1: request-scoped store for URL entities | Done for the schedule application detail and the continuation application detail; licence correction and licence position are with another team; licence and schedule detail not started |
+| Fix 1: request-scoped store for URL entities | Done for the schedule application detail and the continuation application detail; licence correction and licence position are with another team; licence and schedule detail measured: a cache is not worth it, two smaller fixes instead (see [Licence and schedule detail](#licence-and-schedule-detail-measured)) |
 | Fix 2: request-scoped cache for organisation unit lookups | Done for "Get organisation units by ids" and confirmed on the continuation overview; the org group lookup is not cached |
 
 **Confirmed in the deployed request log: the schedule application task list went from 56 queries to 33**, and
@@ -418,8 +418,8 @@ outside a request, and a shared base class could not do that check for them.
 Measured against the real beans: three lookups issue 1 query inside a request, and 3 outside one, as before. Not
 yet confirmed from request logs.
 
-The licence correction and licence position lookups are being handled by another team. Still to do here: licence
-and schedule detail.
+The licence correction and licence position lookups are being handled by another team. Licence and schedule detail
+were measured and do not need a cache; see [Licence and schedule detail](#licence-and-schedule-detail-measured).
 
 
 Use the same pattern: a cache per entity type, extending `RequestScopedCache` and keyed by id, used by that
@@ -430,6 +430,41 @@ per request and the rules and the controller receive the same instance.
   `LicenceContinuationService.getDetailByIdOrThrow` and `LicenceCorrectionService.findById`), so, as for the
   application detail, only the service method needs to read through the cache and none of its callers change.
 - Extending `RequestScopedCache` gives the outside-a-request behaviour without any extra code.
+
+### Licence and schedule detail (measured)
+
+Two deployed request logs on 2026-10-21 (user 300051) sized the gain before building a cache for either entity.
+
+`GET /lms/licence/{licenceId}/schedule/new-draft/`: **8 queries**, 130ms.
+
+| Query | Count | From |
+|---|---:|---|
+| `find licences by id` | 3 | `LicenceActionEndPointInterceptorRule`, `LicenceArgumentResolver`, and `LicenceService.getLicencePageCaption` reloading the licence it is given |
+| `find licence_schedule_details by id`, `find licence_schedules by id`, `find licence_corrections by licence_id, status`, `find licence_statuses by licence_id` | 1 each | the access rule working out the available actions |
+| `find team_roles by wua_id` | 1 | already cached |
+
+`GET /lms/licence/schedule/term/{licenceScheduleTermId}/update`: **6 queries**, 173ms.
+
+| Query | Count | From |
+|---|---:|---|
+| `find licence_schedule_terms by id` | 2 | `LicenceScheduleDetailHasStatusInterceptorRule` loads the term to find its detail; the controller loads it again |
+| `find licence_schedule_details by id` | 1 | the same rule, reloading the detail the term already has (the term's `@ManyToOne` is eager) |
+| `find licences by id` | 1 | `getLicencePageCaption` |
+| `find team_roles by wua_id` | 1 | already cached |
+| `find event_comments by original_event_id, status` | 1 | the page itself |
+
+The schedule detail is only loaded once, so a schedule detail cache would save nothing. A licence cache would save 2
+queries, but only on the 4 pages with `@ActionEndPoint`. Two smaller fixes instead:
+
+- `getLicencePageCaption` uses the licence it is given rather than reloading it by id. It has 34 callers across the
+  licence, schedule, application, continuation and correction pages, so this saves one query on each of them. It
+  already read `licence.getType()` before reloading, so any licence passed in was already loaded.
+- `LicenceScheduleDetailHasStatusInterceptorRule` uses the detail from the term, phase, rate, activity or other event
+  it has just loaded, rather than reloading it by id. This saves one query on the update and delete pages for each of
+  those (about 10 pages).
+
+Expected: the new-draft page 8 → 7 queries and the term update page 6 → 4. To be confirmed from the request logs
+once deployed.
 
 ### Fix 2: request-scoped cache for organisation unit lookups (done for lookups by id)
 
@@ -563,8 +598,9 @@ Paths are relative to `src/main/java/uk/co/nstauthority/licensingmanagementservi
    fix 5 did for the schedule application task list. Planned as a separate fix.
 6. ~~Capture the continuation overview log once fix 2 is deployed~~ done: "Get organisation units by ids" 2 → 1,
    Energy Portal calls 4 → 3.
-7. Fix 1 for licence and schedule detail, measuring after each (licence correction and licence position are with
-   another team). Check the continuation task list log for the same patterns.
+7. ~~Fix 1 for licence and schedule detail~~ measured: no cache needed, the caption and status rule fixes instead,
+   see [Licence and schedule detail](#licence-and-schedule-detail-measured). Capture the new-draft and term update
+   logs once deployed: expected 8 → 7 and 6 → 4 queries. Check the continuation task list log for the same patterns.
 8. Consider the remaining cost on the schedule application task list: the eager links on terms, phases and
    schedule details (14 queries) and the schedule state being worked out twice (5 queries). Both sit in the
    shared schedule services, so measure the timeline and other schedule pages before and after.

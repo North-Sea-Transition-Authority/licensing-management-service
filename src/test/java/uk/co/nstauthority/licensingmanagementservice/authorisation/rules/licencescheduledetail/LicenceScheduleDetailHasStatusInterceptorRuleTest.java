@@ -121,7 +121,7 @@ class LicenceScheduleDetailHasStatusInterceptorRuleTest extends AbstractIntercep
 
   @Test
   void check_termLinkedDetailHasStatus_oneStatus_rulePass() throws NoSuchMethodException {
-    var detail = createAndMockScheduleDetailWithStatus(LicenceScheduleDetailStatus.DRAFT);
+    var detail = createScheduleDetailWithStatus(LicenceScheduleDetailStatus.DRAFT);
 
     var term = new LicenceScheduleTerm();
     term.setId(UUID.randomUUID());
@@ -150,7 +150,7 @@ class LicenceScheduleDetailHasStatusInterceptorRuleTest extends AbstractIntercep
 
   @Test
   void check_phaseLinkedDetailHasStatus_oneStatus_rulePass() throws NoSuchMethodException {
-    var detail = createAndMockScheduleDetailWithStatus(LicenceScheduleDetailStatus.DRAFT);
+    var detail = createScheduleDetailWithStatus(LicenceScheduleDetailStatus.DRAFT);
 
     var phase = new LicenceSchedulePhase();
     phase.setId(UUID.randomUUID());
@@ -179,7 +179,7 @@ class LicenceScheduleDetailHasStatusInterceptorRuleTest extends AbstractIntercep
 
   @Test
   void check_rateLinkedDetailHasStatus_oneStatus_rulePass() throws NoSuchMethodException {
-    var detail = createAndMockScheduleDetailWithStatus(LicenceScheduleDetailStatus.DRAFT);
+    var detail = createScheduleDetailWithStatus(LicenceScheduleDetailStatus.DRAFT);
 
     var rate = new LicenceScheduleRate();
     rate.setId(UUID.randomUUID());
@@ -208,7 +208,7 @@ class LicenceScheduleDetailHasStatusInterceptorRuleTest extends AbstractIntercep
 
   @Test
   void check_activityLinkedDetailHasStatus_oneStatus_rulePass() throws NoSuchMethodException {
-    var detail = createAndMockScheduleDetailWithStatus(LicenceScheduleDetailStatus.DRAFT);
+    var detail = createScheduleDetailWithStatus(LicenceScheduleDetailStatus.DRAFT);
 
     var activity = new WorkProgrammeActivity();
     activity.setId(UUID.randomUUID());
@@ -237,7 +237,7 @@ class LicenceScheduleDetailHasStatusInterceptorRuleTest extends AbstractIntercep
 
   @Test
   void check_eventLinkedDetailHasStatus_oneStatus_rulePass() throws NoSuchMethodException {
-    var detail = createAndMockScheduleDetailWithStatus(LicenceScheduleDetailStatus.DRAFT);
+    var detail = createScheduleDetailWithStatus(LicenceScheduleDetailStatus.DRAFT);
 
     var event = new OtherScheduleEvent();
     event.setId(UUID.randomUUID());
@@ -291,14 +291,18 @@ class LicenceScheduleDetailHasStatusInterceptorRuleTest extends AbstractIntercep
   }
   
   private LicenceScheduleDetail createAndMockScheduleDetailWithStatus(LicenceScheduleDetailStatus status) {
-    var detail = LicenceScheduleTestUtil.licenceScheduleDetailBuilder(licenceSchedule)
-        .withId(UUID.randomUUID())
-        .withStatus(status)
-        .build();
+    var detail = createScheduleDetailWithStatus(status);
 
     when(licenceScheduleDetailService.getByIdOrThrow(detail.getId())).thenReturn(detail);
     
     return detail;
+  }
+
+  private LicenceScheduleDetail createScheduleDetailWithStatus(LicenceScheduleDetailStatus status) {
+    return LicenceScheduleTestUtil.licenceScheduleDetailBuilder(licenceSchedule)
+        .withId(UUID.randomUUID())
+        .withStatus(status)
+        .build();
   }
   
   @Test

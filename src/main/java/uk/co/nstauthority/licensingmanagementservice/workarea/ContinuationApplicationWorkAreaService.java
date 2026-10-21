@@ -291,7 +291,7 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
         .collect(Collectors.toMap(Function.identity(), orgUnitToGroupMap::get));
 
     if (restrictToMyWork
-        && !applicationWorkAreaService.isMyWork(applicationDetail, licenceOrgUnitGroupMap, wuaId, userTeamRoles)) {
+        && !applicationWorkAreaService.isIndustryMyWork(applicationDetail, licenceOrgUnitGroupMap, wuaId, userTeamRoles)) {
       return false;
     }
 

@@ -769,7 +769,7 @@ class ScheduleAndWorkProgrammeApplicationWorkAreaServiceTest {
   }
 
   @Test
-  void getAllWorkItems_whenRegulatorIsStewardForLicenceTypeAndSubmitted_isIncluded() {
+  void getAllWorkItems_whenRegulatorHasAllWorkAccess_isIncluded() {
     scheduleWorkProgrammeApplicationDetail1.setStatus(ApplicationStatus.SUBMITTED);
     scheduleWorkProgrammeApplicationDetail1.setSubmittedDatetime(testInstant);
 
@@ -778,8 +778,8 @@ class ScheduleAndWorkProgrammeApplicationWorkAreaServiceTest {
     mockUserHasAccessToApplication(scheduleWorkProgrammeApplicationDetail1, false);
     mockUserHasAccessToApplication(scheduleWorkProgrammeApplicationDetail2, false);
     when(regulatorRoleService.isRegulator(anySet())).thenReturn(true);
-    when(regulatorRoleService.getStewardOrCaseManagerLicenceTypes(anySet()))
-        .thenReturn(Set.of(LicenceType.SEAWARD_PRODUCTION));
+    when(applicationWorkAreaService.isRegulatorAllWork(eq(scheduleWorkProgrammeApplicationDetail1), any(Long.class), anySet()))
+        .thenReturn(true);
     when(licenceResponsibleOrganisationService.getResponsibleOrganisationsByLicences(any()))
         .thenReturn(Map.of(licence1, List.of(new OrganisationUnit(1, "Org 1"))));
 
@@ -791,7 +791,7 @@ class ScheduleAndWorkProgrammeApplicationWorkAreaServiceTest {
   }
 
   @Test
-  void getAllWorkItems_whenRegulatorIsStewardForDifferentLicenceType_isExcluded() {
+  void getAllWorkItems_whenRegulatorHasNoAllWorkAccess_isExcluded() {
     scheduleWorkProgrammeApplicationDetail1.setStatus(ApplicationStatus.SUBMITTED);
     scheduleWorkProgrammeApplicationDetail1.setSubmittedDatetime(testInstant);
 
@@ -799,8 +799,7 @@ class ScheduleAndWorkProgrammeApplicationWorkAreaServiceTest {
         .thenReturn(List.of(scheduleWorkProgrammeApplicationDetail1));
     mockUserHasAccessToApplication(scheduleWorkProgrammeApplicationDetail1, false);
     when(regulatorRoleService.isRegulator(anySet())).thenReturn(true);
-    when(regulatorRoleService.getStewardOrCaseManagerLicenceTypes(anySet()))
-        .thenReturn(Set.of(LicenceType.LANDWARD_PRODUCTION));
+    when(applicationWorkAreaService.isRegulatorAllWork(eq(scheduleWorkProgrammeApplicationDetail1), any(Long.class), anySet())).thenReturn(false);
 
     var workAreaItems = scheduleAndWorkProgrammeApplicationWorkAreaService.getAllWorkItems(new WorkAreaFilterForm(), serviceUserDetail);
 
@@ -808,7 +807,7 @@ class ScheduleAndWorkProgrammeApplicationWorkAreaServiceTest {
   }
 
   @Test
-  void getAllWorkItems_whenRegulatorIsDecisionIssuerAndSubmitted_isIncluded() {
+  void getMyWorkItems_whenRegulatorHasMyWorkAccess_isIncluded() {
     scheduleWorkProgrammeApplicationDetail1.setStatus(ApplicationStatus.SUBMITTED);
     scheduleWorkProgrammeApplicationDetail1.setSubmittedDatetime(testInstant);
 
@@ -816,11 +815,13 @@ class ScheduleAndWorkProgrammeApplicationWorkAreaServiceTest {
         .thenReturn(List.of(scheduleWorkProgrammeApplicationDetail1));
     mockUserHasAccessToApplication(scheduleWorkProgrammeApplicationDetail1, false);
     when(regulatorRoleService.isRegulator(anySet())).thenReturn(true);
-    when(regulatorRoleService.isDecisionIssuer(anySet())).thenReturn(true);
+    when(applicationWorkAreaService.isRegulatorMyWork(
+        eq(scheduleWorkProgrammeApplicationDetail1), eq(serviceUserDetail.wuaId()), anySet()))
+        .thenReturn(true);
     when(licenceResponsibleOrganisationService.getResponsibleOrganisationsByLicences(any()))
         .thenReturn(Map.of(licence1, List.of(new OrganisationUnit(1, "Org 1"))));
 
-    var workAreaItems = scheduleAndWorkProgrammeApplicationWorkAreaService.getAllWorkItems(new WorkAreaFilterForm(), serviceUserDetail);
+    var workAreaItems = scheduleAndWorkProgrammeApplicationWorkAreaService.getMyWorkItems(new WorkAreaFilterForm(), serviceUserDetail);
 
     assertThat(workAreaItems)
         .extracting(SearchResultItem::id)
@@ -870,10 +871,10 @@ class ScheduleAndWorkProgrammeApplicationWorkAreaServiceTest {
   }
 
   @Test
-  void getMyWorkItems_whenApplicationIsMyWork_returnsOnlyThatApplication() {
+  void getMyWorkItems_whenApplicationisIndustryMyWork_returnsOnlyThatApplication() {
     mockApplications();
-    when(applicationWorkAreaService.isMyWork(eq(scheduleWorkProgrammeApplicationDetail1), anyMap(), eq(serviceUserDetail.wuaId()), anySet())).thenReturn(true);
-    when(applicationWorkAreaService.isMyWork(eq(scheduleWorkProgrammeApplicationDetail2), anyMap(), eq(serviceUserDetail.wuaId()), anySet())).thenReturn(false);
+    when(applicationWorkAreaService.isIndustryMyWork(eq(scheduleWorkProgrammeApplicationDetail1), anyMap(), eq(serviceUserDetail.wuaId()), anySet())).thenReturn(true);
+    when(applicationWorkAreaService.isIndustryMyWork(eq(scheduleWorkProgrammeApplicationDetail2), anyMap(), eq(serviceUserDetail.wuaId()), anySet())).thenReturn(false);
     mockViewAccess();
 
     var workAreaItems = scheduleAndWorkProgrammeApplicationWorkAreaService.getMyWorkItems(new WorkAreaFilterForm(), serviceUserDetail);
@@ -882,7 +883,7 @@ class ScheduleAndWorkProgrammeApplicationWorkAreaServiceTest {
   }
 
   @Test
-  void getMyWorkItems_whenNoApplicationIsMyWork_returnsNothing() {
+  void getMyWorkItems_whenNoApplicationisIndustryMyWork_returnsNothing() {
     mockApplications();
 
     var workAreaItems = scheduleAndWorkProgrammeApplicationWorkAreaService.getMyWorkItems(new WorkAreaFilterForm(), serviceUserDetail);
@@ -891,17 +892,22 @@ class ScheduleAndWorkProgrammeApplicationWorkAreaServiceTest {
   }
 
   @Test
-  void getMyWorkItems_whenUserIsRegulator_returnsSameItemsAsAllWork() {
+  void getMyWorkItems_whenRegulatorApplicationIsOnlyAllWork_isExcludedFromMyWorkOnly() {
     scheduleWorkProgrammeApplicationDetail2.setStatus(ApplicationStatus.SUBMITTED);
     scheduleWorkProgrammeApplicationDetail2.setSubmittedDatetime(testInstant);
     mockApplications();
     when(regulatorRoleService.isRegulator(anySet())).thenReturn(true);
-    mockViewAccess();
+    when(applicationWorkAreaService.isRegulatorMyWork(
+        eq(scheduleWorkProgrammeApplicationDetail2), eq(serviceUserDetail.wuaId()), anySet()))
+        .thenReturn(false);
+    when(applicationWorkAreaService.isRegulatorAllWork(eq(scheduleWorkProgrammeApplicationDetail2), any(Long.class), anySet()))
+        .thenReturn(true);
 
     var myWorkItems = scheduleAndWorkProgrammeApplicationWorkAreaService.getMyWorkItems(new WorkAreaFilterForm(), serviceUserDetail);
     var allWorkItems = scheduleAndWorkProgrammeApplicationWorkAreaService.getAllWorkItems(new WorkAreaFilterForm(), serviceUserDetail);
 
-    assertThat(myWorkItems).isNotEmpty().isEqualTo(allWorkItems);
+    assertThat(myWorkItems).isEmpty();
+    assertThat(allWorkItems).extracting(SearchResultItem::id).containsExactly(scheduleWorkProgrammeApplicationDetail2.getId().toString());
   }
 
   private void mockApplications() {

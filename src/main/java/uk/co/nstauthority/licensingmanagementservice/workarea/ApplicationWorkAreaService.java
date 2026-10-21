@@ -9,7 +9,10 @@ import org.springframework.stereotype.Service;
 import uk.co.fivium.energyportal.serviceproviders.epmq.ScopeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplication;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplicationDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.teams.IndustryRoleService;
+import uk.co.nstauthority.licensingmanagementservice.teams.RegulatorRoleService;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.Team;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamRole;
@@ -18,7 +21,31 @@ import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
 @Service
 public class ApplicationWorkAreaService {
 
-  public boolean isMyWork(
+  private final RegulatorRoleService regulatorRoleService;
+
+  public ApplicationWorkAreaService(RegulatorRoleService regulatorRoleService) {
+    this.regulatorRoleService = regulatorRoleService;
+  }
+
+  public boolean isRegulatorMyWork(LicenceApplicationDetail applicationDetail, Long userWuaId, Set<TeamRole> userTeamRoles) {
+    return switch (applicationDetail) {
+      case ScheduleWorkProgrammeApplicationDetail scheduleDetail ->
+          isScheduleApplicationMyWork(scheduleDetail, userWuaId, userTeamRoles);
+      // TODO LMS1-701: continuation reviewer and issuer rules
+      default -> false;
+    };
+  }
+
+  public boolean isRegulatorAllWork(LicenceApplicationDetail applicationDetail, Long userWuaId, Set<TeamRole> userTeamRoles) {
+    return switch (applicationDetail) {
+      case ScheduleWorkProgrammeApplicationDetail scheduleDetail ->
+          isScheduleApplicationAllWork(scheduleDetail, userWuaId, userTeamRoles);
+      // TODO LMS1-701: continuation reviewer and issuer rules
+      default -> false;
+    };
+  }
+
+  public boolean isIndustryMyWork(
       LicenceApplicationDetail applicationDetail,
       Map<Integer, Integer> licenseeIdToGroupId,
       Long userWuaId,
@@ -39,6 +66,52 @@ public class ApplicationWorkAreaService {
     var isAppSubmitter = hasRoleInLicenseeGroups(
         applicationDetail, licenseeIdToGroupId, userTeamRoles, Set.of(Role.APPLICATION_SUBMITTER));
     return submittedByUser && isAppSubmitter;
+  }
+
+  private boolean isScheduleApplicationMyWork(
+      ScheduleWorkProgrammeApplicationDetail applicationDetail,
+      Long userWuaId,
+      Set<TeamRole> userTeamRoles
+  ) {
+    var licenceType = applicationDetail.getLicence().getType();
+    var status = applicationDetail.getStatus();
+    var stewardWuaId = applicationDetail.getScheduleWorkProgrammeApplication().getStewardWuaId();
+
+    if (regulatorRoleService.isCaseManagerFor(userTeamRoles, licenceType)
+        && (status == ApplicationStatus.DSP_UPLOADED || (status == ApplicationStatus.SUBMITTED && stewardWuaId == null))) {
+      return true;
+    }
+
+    if (regulatorRoleService.isStewardFor(userTeamRoles, licenceType)
+        && status == ApplicationStatus.SUBMITTED
+        && Objects.equals(stewardWuaId, userWuaId)) {
+      return true;
+    }
+
+    return regulatorRoleService.isDecisionIssuer(userTeamRoles) && status == ApplicationStatus.ISSUE_DECISION;
+  }
+
+  private boolean isScheduleApplicationAllWork(
+      ScheduleWorkProgrammeApplicationDetail applicationDetail,
+      Long userWuaId,
+      Set<TeamRole> userTeamRoles
+  ) {
+    var licenceType = applicationDetail.getLicence().getType();
+    var status = applicationDetail.getStatus();
+    var stewardWuaId = applicationDetail.getScheduleWorkProgrammeApplication().getStewardWuaId();
+
+    if (regulatorRoleService.isCaseManagerFor(userTeamRoles, licenceType) && applicationDetail.hasBeenSubmitted()) {
+      return true;
+    }
+
+    if (regulatorRoleService.isStewardFor(userTeamRoles, licenceType)) {
+      var isAllocatedSteward = Objects.equals(stewardWuaId, userWuaId);
+      if (status == ApplicationStatus.SUBMITTED || (status == ApplicationStatus.DSP_UPLOADED && isAllocatedSteward)) {
+        return true;
+      }
+    }
+
+    return regulatorRoleService.isDecisionIssuer(userTeamRoles) && status == ApplicationStatus.ISSUE_DECISION;
   }
 
   private boolean isExternalEditorOnApplication(LicenceApplicationDetail applicationDetail, Set<TeamRole> userTeamRoles) {

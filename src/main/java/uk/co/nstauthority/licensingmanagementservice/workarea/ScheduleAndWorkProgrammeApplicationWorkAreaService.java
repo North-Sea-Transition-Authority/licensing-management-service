@@ -106,14 +106,7 @@ public class ScheduleAndWorkProgrammeApplicationWorkAreaService implements WorkA
   ) {
     var userTeamRoles = teamQueryService.getTeamRolesForUser(serviceUserDetail.wuaId());
     var isRegulator = regulatorRoleService.isRegulator(userTeamRoles);
-    var regulatorRoles = new RegulatorRoles(
-        isRegulator,
-        regulatorRoleService.isDecisionIssuer(userTeamRoles),
-        isRegulator ? regulatorRoleService.getStewardOrCaseManagerLicenceTypes(userTeamRoles) : Set.of()
-    );
-
-    // TODO LMS1-689: regulators see everything in My work until their rules are defined
-    var restrictToMyWork = myWorkOnly && !isRegulator;
+    var regulatorRoles = new RegulatorRoles(isRegulator, regulatorRoleService.isDecisionIssuer(userTeamRoles));
 
     var allApplicationDetails = scheduleWorkProgrammeApplicationService
         .getAllScheduleWorkProgrammeApplicationDetailsByStatuses(ApplicationStatus.getSearchableStatuses());
@@ -153,7 +146,7 @@ public class ScheduleAndWorkProgrammeApplicationWorkAreaService implements WorkA
             orgUnitToGroupMap,
             licenseeGroupOrgUnitIds,
             regulatorRoles,
-            restrictToMyWork
+            myWorkOnly
         ))
         .toList();
 
@@ -273,7 +266,7 @@ public class ScheduleAndWorkProgrammeApplicationWorkAreaService implements WorkA
       Map<Integer, Integer> orgUnitToGroupMap,
       List<Integer> licenseeGroupOrgUnitIds,
       RegulatorRoles regulatorRoles,
-      boolean restrictToMyWork
+      boolean myWorkOnly
   ) {
     if (!FilterUtil.matchesTextInput(licence.getLicenceReference(), filterForm.getLicenceReference())) {
       return false;
@@ -317,8 +310,8 @@ public class ScheduleAndWorkProgrammeApplicationWorkAreaService implements WorkA
         .filter(orgUnitToGroupMap::containsKey)
         .collect(Collectors.toMap(Function.identity(), orgUnitToGroupMap::get));
 
-    if (restrictToMyWork
-        && !applicationWorkAreaService.isMyWork(applicationDetail, licenceOrgUnitGroupMap, wuaId, userTeamRoles)) {
+    if (myWorkOnly && !regulatorRoles.regulator()
+        && !applicationWorkAreaService.isIndustryMyWork(applicationDetail, licenceOrgUnitGroupMap, wuaId, userTeamRoles)) {
       return false;
     }
 
@@ -336,13 +329,11 @@ public class ScheduleAndWorkProgrammeApplicationWorkAreaService implements WorkA
       return false;
     }
 
-    return regulatorRoles.decisionIssuer() || regulatorRoles.stewardOrCaseManagerLicenceTypes().contains(licence.getType());
+    return myWorkOnly
+        ? applicationWorkAreaService.isRegulatorMyWork(applicationDetail, wuaId, userTeamRoles)
+        : applicationWorkAreaService.isRegulatorAllWork(applicationDetail, wuaId, userTeamRoles);
   }
 
-  private record RegulatorRoles(
-      boolean regulator,
-      boolean decisionIssuer,
-      Set<LicenceType> stewardOrCaseManagerLicenceTypes
-  ) {
+  private record RegulatorRoles(boolean regulator, boolean decisionIssuer) {
   }
 }

@@ -135,20 +135,44 @@ class RegulatorRoleServiceTest {
   }
 
   @Test
-  void getStewardOrCaseManagerLicenceTypes_returnsLicenceTypesForStewardAndCaseManagerRoles() {
-    var stewardRole = TeamRoleTestUtil.newBuilder().withRole(Role.STEWARD_OFFSHORE).build();
-    var caseManagerRole = TeamRoleTestUtil.newBuilder().withRole(Role.CASE_MANAGER_ONSHORE).build();
-    var unrelatedRole = TeamRoleTestUtil.newBuilder().withRole(Role.DECISION_ISSUER_CARBON_STORAGE).build();
+  void isCaseManagerFor_whenUserHasCaseManagerRoleForLicenceType_returnsTrue() {
+    var teamRole = TeamRoleTestUtil.newBuilder().withRole(Role.CASE_MANAGER_ONSHORE).build();
 
-    var result = regulatorRoleService.getStewardOrCaseManagerLicenceTypes(Set.of(stewardRole, caseManagerRole, unrelatedRole));
-
-    assertThat(result).isEqualTo(Set.of(LicenceType.SEAWARD_PRODUCTION, LicenceType.LANDWARD_PRODUCTION));
+    assertThat(regulatorRoleService.isCaseManagerFor(Set.of(teamRole), LicenceType.LANDWARD_PRODUCTION)).isTrue();
   }
 
   @Test
-  void getStewardOrCaseManagerLicenceTypes_whenNoStewardOrCaseManagerRole_returnsEmptySet() {
-    var unrelatedRole = TeamRoleTestUtil.newBuilder().withRole(Role.DECISION_ISSUER_ONSHORE).build();
+  void isCaseManagerFor_whenUserHasCaseManagerRoleForDifferentLicenceType_returnsFalse() {
+    var teamRole = TeamRoleTestUtil.newBuilder().withRole(Role.CASE_MANAGER_ONSHORE).build();
 
-    assertThat(regulatorRoleService.getStewardOrCaseManagerLicenceTypes(Set.of(unrelatedRole))).isEmpty();
+    assertThat(regulatorRoleService.isCaseManagerFor(Set.of(teamRole), LicenceType.SEAWARD_PRODUCTION)).isFalse();
+  }
+
+  @Test
+  void isCaseManagerFor_whenUserOnlyHasStewardRole_returnsFalse() {
+    var teamRole = TeamRoleTestUtil.newBuilder().withRole(Role.STEWARD_ONSHORE).build();
+
+    assertThat(regulatorRoleService.isCaseManagerFor(Set.of(teamRole), LicenceType.LANDWARD_PRODUCTION)).isFalse();
+  }
+
+  @Test
+  void isStewardFor_whenUserHasStewardRoleForLicenceType_returnsTrue() {
+    var teamRole = TeamRoleTestUtil.newBuilder().withRole(Role.STEWARD_OFFSHORE).build();
+
+    assertThat(regulatorRoleService.isStewardFor(Set.of(teamRole), LicenceType.SEAWARD_PRODUCTION)).isTrue();
+  }
+
+  @Test
+  void isStewardFor_whenUserHasStewardRoleForDifferentLicenceType_returnsFalse() {
+    var teamRole = TeamRoleTestUtil.newBuilder().withRole(Role.STEWARD_OFFSHORE).build();
+
+    assertThat(regulatorRoleService.isStewardFor(Set.of(teamRole), LicenceType.CARBON_STORAGE)).isFalse();
+  }
+
+  @Test
+  void isStewardFor_whenUserOnlyHasCaseManagerRole_returnsFalse() {
+    var teamRole = TeamRoleTestUtil.newBuilder().withRole(Role.CASE_MANAGER_OFFSHORE).build();
+
+    assertThat(regulatorRoleService.isStewardFor(Set.of(teamRole), LicenceType.SEAWARD_PRODUCTION)).isFalse();
   }
 }

@@ -1,10 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.teams;
 
-import java.util.Arrays;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
@@ -66,21 +63,16 @@ public class RegulatorRoleService {
     return hasAnyRole(teamRoles, DECISION_ISSUER_ROLES);
   }
 
-  public Set<LicenceType> getStewardOrCaseManagerLicenceTypes(Set<TeamRole> teamRoles) {
-    var userRoles = teamRoles.stream()
-        .map(TeamRole::getRole)
-        .collect(Collectors.toSet());
+  public boolean isCaseManagerFor(Set<TeamRole> teamRoles, LicenceType licenceType) {
+    return hasRoleFor(teamRoles, CaseManagerRoles.getRequiredRoleForLicenceType(licenceType));
+  }
 
-    return Arrays.stream(LicenceType.values())
-        .filter(licenceType ->
-            Stream.of(
-                    StewardRoles.getRequiredRoleForLicenceType(licenceType),
-                    CaseManagerRoles.getRequiredRoleForLicenceType(licenceType)
-                )
-                .flatMap(Optional::stream)
-                .anyMatch(userRoles::contains)
-        )
-        .collect(Collectors.toSet());
+  public boolean isStewardFor(Set<TeamRole> teamRoles, LicenceType licenceType) {
+    return hasRoleFor(teamRoles, StewardRoles.getRequiredRoleForLicenceType(licenceType));
+  }
+
+  private boolean hasRoleFor(Set<TeamRole> teamRoles, Optional<Role> requiredRole) {
+    return requiredRole.map(role -> hasAnyRole(teamRoles, Set.of(role))).orElse(false);
   }
 
   private boolean hasAnyRole(Set<TeamRole> teamRoles, Set<Role> roles) {

@@ -749,10 +749,10 @@ class ContinuationApplicationWorkAreaServiceTest {
   }
 
   @Test
-  void getMyWorkItems_whenApplicationIsMyWork_returnsOnlyThatApplication() {
+  void getMyWorkItems_whenApplicationisIndustryMyWork_returnsOnlyThatApplication() {
     mockApplications();
-    when(applicationWorkAreaService.isMyWork(eq(licenceContinuationApplicationDetail), anyMap(), eq(serviceUserDetail.wuaId()), anySet())).thenReturn(true);
-    when(applicationWorkAreaService.isMyWork(eq(licenceContinuationApplicationDetail2), anyMap(), eq(serviceUserDetail.wuaId()), anySet())).thenReturn(false);
+    when(applicationWorkAreaService.isIndustryMyWork(eq(licenceContinuationApplicationDetail), anyMap(), eq(serviceUserDetail.wuaId()), anySet())).thenReturn(true);
+    when(applicationWorkAreaService.isIndustryMyWork(eq(licenceContinuationApplicationDetail2), anyMap(), eq(serviceUserDetail.wuaId()), anySet())).thenReturn(false);
     mockViewAccess();
 
     var workAreaItems = continuationApplicationWorkAreaService.getMyWorkItems(new WorkAreaFilterForm(), serviceUserDetail);
@@ -761,7 +761,7 @@ class ContinuationApplicationWorkAreaServiceTest {
   }
 
   @Test
-  void getMyWorkItems_whenNoApplicationIsMyWork_returnsNothing() {
+  void getMyWorkItems_whenNoApplicationisIndustryMyWork_returnsNothing() {
     mockApplications();
 
     var workAreaItems = continuationApplicationWorkAreaService.getMyWorkItems(new WorkAreaFilterForm(), serviceUserDetail);

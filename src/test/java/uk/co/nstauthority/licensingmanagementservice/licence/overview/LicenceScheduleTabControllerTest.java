@@ -24,6 +24,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
 import uk.co.nstauthority.licensingmanagementservice.fds.tab.FdsBackendTab;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatusType;
@@ -171,6 +172,38 @@ class LicenceScheduleTabControllerTest extends AbstractControllerTest {
         .andExpect(model().attributeDoesNotExist("scheduleEventViews"))
         .andExpect(model().attributeDoesNotExist("timelineFilterOptions"))
         .andExpect(model().attributeDoesNotExist("clearFilterUrl"));
+  }
+
+  @Test
+  void renderLicenceOverview_whenDraftScheduleExists_thenNotificationBannerShown() throws Exception {
+    when(licenceService.findLicenceByIdOrThrow(licence.getId())).thenReturn(licence);
+    when(licenceScheduleDetailService.getScheduleDetailByLicenceAndStatus(licence, LicenceScheduleDetailStatus.ACTIVE)).thenReturn(Optional.empty());
+    when(licenceScheduleDetailService.getScheduleDetailByLicenceAndStatus(licence, LicenceScheduleDetailStatus.DRAFT)).thenReturn(Optional.of(licenceScheduleDetail));
+
+    var expectedBanner = NotificationBanner.newInfoBanner()
+        .withHeadingContent("A draft schedule cannot be created as there is already a draft open.")
+        .build();
+
+    mockMvc.perform(
+            get(viewOverviewUrl)
+                .with(user(USER))
+        )
+        .andExpect(status().isOk())
+        .andExpect(model().attribute("notificationBanner", expectedBanner));
+  }
+
+  @Test
+  void renderLicenceOverview_whenNoDraftScheduleExists_thenNoNotificationBannerShown() throws Exception {
+    when(licenceService.findLicenceByIdOrThrow(licence.getId())).thenReturn(licence);
+    when(licenceScheduleDetailService.getScheduleDetailByLicenceAndStatus(licence, LicenceScheduleDetailStatus.ACTIVE)).thenReturn(Optional.empty());
+    when(licenceScheduleDetailService.getScheduleDetailByLicenceAndStatus(licence, LicenceScheduleDetailStatus.DRAFT)).thenReturn(Optional.empty());
+
+    mockMvc.perform(
+            get(viewOverviewUrl)
+                .with(user(USER))
+        )
+        .andExpect(status().isOk())
+        .andExpect(model().attributeDoesNotExist("notificationBanner"));
   }
 
   @Test

@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.SessionAttributes;
 import org.springframework.web.bind.support.SessionStatus;
 import org.springframework.web.servlet.ModelAndView;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
+import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTab;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailService;
@@ -66,6 +67,11 @@ public class LicenceScheduleTabController {
         LicenceScheduleDetailStatus.ACTIVE
     );
 
+    var draftScheduleDetail = licenceScheduleDetailService.getScheduleDetailByLicenceAndStatus(
+        licence,
+        LicenceScheduleDetailStatus.DRAFT
+    );
+
     var modelAndView = new ModelAndView("lms/licence/schedule/licencetab/licenceScheduleTab");
     tabbedLicencePageService.hydrateModel(modelAndView, licence, licenceScheduleTab, user);
 
@@ -87,6 +93,12 @@ public class LicenceScheduleTabController {
             .clearFilters(licenceId, null, null))
         )
     );
+
+    if (draftScheduleDetail.isPresent()) {
+      NotificationBanner.newInfoBanner()
+          .withHeadingContent("A draft schedule cannot be created as there is already a draft open.")
+          .applyTo(modelAndView);
+    }
 
     return modelAndView;
   }

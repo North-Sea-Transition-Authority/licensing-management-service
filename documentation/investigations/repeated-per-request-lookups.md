@@ -57,9 +57,9 @@ children arrive with their parent instead of reloading it.
 - `LicenceScheduleDetailHasStatusInterceptorRule` uses the detail the term, phase, rate, activity or other event already
   holds instead of reloading it.
 - `OtherScheduleEventService.hasEventWithinScheduleWindow`, the mandatory relinquishment check, skips a missing next term or
-  phase and does not look up the same term twice when the next phase is in the current term. The other repeats traced on
-  the continuation overview are different queries: an `exists` check by the work programme summary section and the
-  activity list for the controller.
+  phase and does not look up the same term twice when the next phase is in the current term. On the continuation
+  overview it took the check from 5 queries to 2. The other repeats traced on that page are different queries: an
+  `exists` check by the work programme summary section and the activity list for the controller.
 - `LicenceScheduleTimelineService` loads the schedule's work programme activities and rates once, reusing its pre-fetched
   event data for the work programme statuses and the rate dates (`LicenceScheduleCalculationService` has an overload
   taking the loaded rates), and reads terms through the term request cache so the summary card and the event views
@@ -79,6 +79,7 @@ From the `RequestLogFilter` request logs on the deployed environment, same page,
 | Schedule term update page | 6 | **4** | Page caption and status rule no longer reload the licence and detail (173ms → 111ms) |
 | Continuation task list (user 300052) | 49 | **27** | Schedule term, phase and active schedule detail caches: the active detail looked up once (from 4), terms and phases loaded once (9 → 3), eager reloads 19 → 6 (587ms → 319ms) |
 | Continuation overview, after #841 | 29 | **24** | Schedule term and phase caches: terms, phases and their eager reloads loaded once (8 → 4). Measured as user 300051, who had viewed the application before, against the 29 for user 300052 |
+| Continuation overview, after the relinquishment check fix | 24 | **21** | The check skips a missing next term or phase and repeated terms: 5 queries to 2. This application has no current or next phase, so both phase lookups had been for a missing phase. Same user (300051) and application |
 
 Response times generally fell with the query counts (work area 705ms → 477ms, schedule application task list 412ms →
 243ms), but these are single requests, so treat them as indicative.
@@ -88,7 +89,6 @@ Response times generally fell with the query counts (work area 705ms → 477ms, 
 | Page | Before | Expected | PR |
 |---|---:|---:|---|
 | Work area (user 300051) | 13 queries, 7 Energy Portal calls | about 7 queries, 3 Energy Portal calls | #839 |
-| Continuation overview | 24 | 23 | relinquishment check |
 | Schedule timeline, draft (user 300051) | 27 | 24 | timeline loads activities, rates and terms once |
 
 ## Remaining

@@ -26,6 +26,14 @@ public abstract class RequestScopedCache<K, V> {
   protected abstract V load(K key);
 
   /**
+   * Returns what a key's value is held under. By default that is the key itself. Override this when the key is an
+   * object without value equality, such as an entity, so that two copies of it share one value: return its id.
+   */
+  protected Object cacheKey(K key) {
+    return key;
+  }
+
+  /**
    * Loads several keys at once, returning a value for every key. Override this when the source can fetch several keys
    * in one go; by default each key is loaded on its own.
    */
@@ -40,7 +48,7 @@ public abstract class RequestScopedCache<K, V> {
     if (requestAttributes == null) {
       return load(key);
     }
-    return getValuesByKey(requestAttributes).computeIfAbsent(key, this::load);
+    return getValuesByKey(requestAttributes).computeIfAbsent(cacheKey(key), ignored -> load(key));
   }
 
   /**
@@ -56,20 +64,20 @@ public abstract class RequestScopedCache<K, V> {
 
     var valuesByKey = getValuesByKey(requestAttributes);
     var missingKeys = distinctKeys.stream()
-        .filter(key -> !valuesByKey.containsKey(key))
+        .filter(key -> !valuesByKey.containsKey(cacheKey(key)))
         .toList();
     if (!missingKeys.isEmpty()) {
-      valuesByKey.putAll(loadAll(missingKeys));
+      loadAll(missingKeys).forEach((key, value) -> valuesByKey.put(cacheKey(key), value));
     }
 
     var requestedValuesByKey = new LinkedHashMap<K, V>();
-    distinctKeys.forEach(key -> requestedValuesByKey.put(key, valuesByKey.get(key)));
+    distinctKeys.forEach(key -> requestedValuesByKey.put(key, valuesByKey.get(cacheKey(key))));
     return requestedValuesByKey;
   }
 
   @SuppressWarnings("unchecked")
-  private Map<K, V> getValuesByKey(RequestAttributes requestAttributes) {
-    var valuesByKey = (Map<K, V>) requestAttributes.getAttribute(requestAttributeName, RequestAttributes.SCOPE_REQUEST);
+  private Map<Object, V> getValuesByKey(RequestAttributes requestAttributes) {
+    var valuesByKey = (Map<Object, V>) requestAttributes.getAttribute(requestAttributeName, RequestAttributes.SCOPE_REQUEST);
     if (valuesByKey == null) {
       valuesByKey = new HashMap<>();
       requestAttributes.setAttribute(requestAttributeName, valuesByKey, RequestAttributes.SCOPE_REQUEST);

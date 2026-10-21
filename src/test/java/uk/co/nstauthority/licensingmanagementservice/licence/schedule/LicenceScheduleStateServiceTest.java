@@ -26,8 +26,10 @@ import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
 import uk.co.nstauthority.licensingmanagementservice.licence.rules.LicenceTypeRulesResolver;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseRequestCache;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermRequestCache;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.amendjourney.WorkProgrammeActivityView;
@@ -49,6 +51,12 @@ class LicenceScheduleStateServiceTest {
 
   @Mock
   private Clock clock;
+
+  @Mock
+  private LicenceScheduleTermRequestCache licenceScheduleTermRequestCache;
+
+  @Mock
+  private LicenceSchedulePhaseRequestCache licenceSchedulePhaseRequestCache;
 
   @InjectMocks
   private LicenceScheduleStateService licenceScheduleStateService;
@@ -133,7 +141,7 @@ class LicenceScheduleStateServiceTest {
   void getScheduleState_WhenNoCurrentTerm_ReturnsAllNulls() {
     var detail = new LicenceScheduleDetail();
 
-    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(detail))
+    when(licenceScheduleTermRequestCache.getTermsByLicenceScheduleDetail(detail))
         .thenReturn(Collections.emptyList());
 
     var state = licenceScheduleStateService.getScheduleState(detail);
@@ -166,8 +174,8 @@ class LicenceScheduleStateServiceTest {
     var terms = List.of(currentTerm);
     var phases = List.of(currentPhase, nextPhaseInSameTerm);
 
-    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(detail)).thenReturn(terms);
-    when(licenceSchedulePhaseService.getPhasesByTerm(currentTerm)).thenReturn(phases);
+    when(licenceScheduleTermRequestCache.getTermsByLicenceScheduleDetail(detail)).thenReturn(terms);
+    when(licenceSchedulePhaseRequestCache.getPhasesByTerm(currentTerm)).thenReturn(phases);
 
     var state = licenceScheduleStateService.getScheduleState(detail);
 
@@ -200,10 +208,10 @@ class LicenceScheduleStateServiceTest {
     firstPhaseOfNextTerm.setStartDate(LocalDate.of(2030, Month.JANUARY, 1));
     firstPhaseOfNextTerm.setEndDate(LocalDate.of(2032, Month.JANUARY, 1));
 
-    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(detail)).thenReturn(List.of(currentTerm, nextTerm));
-    when(licenceSchedulePhaseService.getPhasesByTerm(currentTerm)).thenReturn(List.of(currentPhase));
+    when(licenceScheduleTermRequestCache.getTermsByLicenceScheduleDetail(detail)).thenReturn(List.of(currentTerm, nextTerm));
+    when(licenceSchedulePhaseRequestCache.getPhasesByTerm(currentTerm)).thenReturn(List.of(currentPhase));
 
-    when(licenceSchedulePhaseService.getPhasesByTerm(nextTerm)).thenReturn(List.of(firstPhaseOfNextTerm));
+    when(licenceSchedulePhaseRequestCache.getPhasesByTerm(nextTerm)).thenReturn(List.of(firstPhaseOfNextTerm));
 
     var state = licenceScheduleStateService.getScheduleState(detail);
 
@@ -235,10 +243,10 @@ class LicenceScheduleStateServiceTest {
     var terms = List.of(currentTerm, nextTerm);
     var phases = List.of(currentPhase);
 
-    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(detail)).thenReturn(terms);
-    when(licenceSchedulePhaseService.getPhasesByTerm(currentTerm)).thenReturn(phases);
+    when(licenceScheduleTermRequestCache.getTermsByLicenceScheduleDetail(detail)).thenReturn(terms);
+    when(licenceSchedulePhaseRequestCache.getPhasesByTerm(currentTerm)).thenReturn(phases);
 
-    when(licenceSchedulePhaseService.getPhasesByTerm(nextTerm)).thenReturn(Collections.emptyList());
+    when(licenceSchedulePhaseRequestCache.getPhasesByTerm(nextTerm)).thenReturn(Collections.emptyList());
 
     var state = licenceScheduleStateService.getScheduleState(detail);
 
@@ -265,10 +273,10 @@ class LicenceScheduleStateServiceTest {
 
     var terms = List.of(currentTerm, nextTerm);
 
-    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(detail)).thenReturn(terms);
-    when(licenceSchedulePhaseService.getPhasesByTerm(currentTerm)).thenReturn(Collections.emptyList());
+    when(licenceScheduleTermRequestCache.getTermsByLicenceScheduleDetail(detail)).thenReturn(terms);
+    when(licenceSchedulePhaseRequestCache.getPhasesByTerm(currentTerm)).thenReturn(Collections.emptyList());
 
-    when(licenceSchedulePhaseService.getPhasesByTerm(nextTerm)).thenReturn(Collections.emptyList());
+    when(licenceSchedulePhaseRequestCache.getPhasesByTerm(nextTerm)).thenReturn(Collections.emptyList());
 
     var state = licenceScheduleStateService.getScheduleState(detail);
 
@@ -319,8 +327,8 @@ class LicenceScheduleStateServiceTest {
     phase.setStartDate(LocalDate.of(2025, Month.JANUARY, 1));
     phase.setEndDate(LocalDate.of(2026, Month.JANUARY, 1));
 
-    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(detail)).thenReturn(List.of(term));
-    when(licenceSchedulePhaseService.getPhasesByTerm(term)).thenReturn(List.of(phase));
+    when(licenceScheduleTermRequestCache.getTermsByLicenceScheduleDetail(detail)).thenReturn(List.of(term));
+    when(licenceSchedulePhaseRequestCache.getPhasesByTerm(term)).thenReturn(List.of(phase));
     when(workProgrammeActivityService.hasActivitiesForPhase(phase)).thenReturn(true);
 
     assertThat(licenceScheduleStateService.hasCurrentWorkProgrammeActivities(detail)).isTrue();
@@ -336,8 +344,8 @@ class LicenceScheduleStateServiceTest {
     term.setStartDate(LocalDate.of(2025, Month.JANUARY, 1));
     term.setEndDate(LocalDate.of(2030, Month.JANUARY, 1));
 
-    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(detail)).thenReturn(List.of(term));
-    when(licenceSchedulePhaseService.getPhasesByTerm(term)).thenReturn(Collections.emptyList());
+    when(licenceScheduleTermRequestCache.getTermsByLicenceScheduleDetail(detail)).thenReturn(List.of(term));
+    when(licenceSchedulePhaseRequestCache.getPhasesByTerm(term)).thenReturn(Collections.emptyList());
     when(workProgrammeActivityService.hasActivitiesForTerm(term)).thenReturn(false);
 
     assertThat(licenceScheduleStateService.hasCurrentWorkProgrammeActivities(detail)).isFalse();
@@ -347,7 +355,7 @@ class LicenceScheduleStateServiceTest {
   void hasCurrentWorkProgrammeActivities_whenPhaseAndTermAreNull_returnsFalse() {
     var detail = new LicenceScheduleDetail();
 
-    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(detail)).thenReturn(Collections.emptyList());
+    when(licenceScheduleTermRequestCache.getTermsByLicenceScheduleDetail(detail)).thenReturn(Collections.emptyList());
 
     assertThat(licenceScheduleStateService.hasCurrentWorkProgrammeActivities(detail)).isFalse();
   }
@@ -368,8 +376,8 @@ class LicenceScheduleStateServiceTest {
 
     var view = mock(WorkProgrammeActivityView.class);
 
-    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(detail)).thenReturn(List.of(term));
-    when(licenceSchedulePhaseService.getPhasesByTerm(term)).thenReturn(List.of(phase));
+    when(licenceScheduleTermRequestCache.getTermsByLicenceScheduleDetail(detail)).thenReturn(List.of(term));
+    when(licenceSchedulePhaseRequestCache.getPhasesByTerm(term)).thenReturn(List.of(phase));
     when(workProgrammeActivityService.getLicenceWorkProgramActivitiesViewsForGivenPhase(phase)).thenReturn(List.of(view));
 
     assertThat(licenceScheduleStateService.getCurrentWorkProgrammeActivitiesViews(detail)).containsExactly(view);
@@ -387,8 +395,8 @@ class LicenceScheduleStateServiceTest {
 
     var view = mock(WorkProgrammeActivityView.class);
 
-    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(detail)).thenReturn(List.of(term));
-    when(licenceSchedulePhaseService.getPhasesByTerm(term)).thenReturn(Collections.emptyList());
+    when(licenceScheduleTermRequestCache.getTermsByLicenceScheduleDetail(detail)).thenReturn(List.of(term));
+    when(licenceSchedulePhaseRequestCache.getPhasesByTerm(term)).thenReturn(Collections.emptyList());
     when(workProgrammeActivityService.getLicenceWorkProgramActivitiesViewsForGivenTerm(term)).thenReturn(List.of(view));
 
     assertThat(licenceScheduleStateService.getCurrentWorkProgrammeActivitiesViews(detail)).containsExactly(view);
@@ -398,7 +406,7 @@ class LicenceScheduleStateServiceTest {
   void getCurrentWorkProgrammeActivitiesViews_whenPhaseAndTermAreNull_returnsEmptyList() {
     var detail = new LicenceScheduleDetail();
 
-    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(detail)).thenReturn(Collections.emptyList());
+    when(licenceScheduleTermRequestCache.getTermsByLicenceScheduleDetail(detail)).thenReturn(Collections.emptyList());
 
     assertThat(licenceScheduleStateService.getCurrentWorkProgrammeActivitiesViews(detail)).isEmpty();
   }

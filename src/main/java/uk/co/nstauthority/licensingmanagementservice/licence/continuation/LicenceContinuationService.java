@@ -64,6 +64,7 @@ public class LicenceContinuationService {
   private final LicenceScheduleStateService licenceScheduleStateService;
   private final CrossLicenceEventTrackerService crossLicenceEventTrackerService;
   private final LicenceContinuationApplicationDetailRequestCache licenceContinuationApplicationDetailRequestCache;
+  private final LicenceContinuationScheduleDetailRequestCache licenceContinuationScheduleDetailRequestCache;
 
   public LicenceContinuationService(
       LicenceContinuationApplicationDetailRepository licenceContinuationApplicationDetailRepository,
@@ -79,7 +80,8 @@ public class LicenceContinuationService {
       ClearDownWorkAreaLogService clearDownWorkAreaLogService,
       LicenceScheduleStateService licenceScheduleStateService,
       CrossLicenceEventTrackerService crossLicenceEventTrackerService,
-      LicenceContinuationApplicationDetailRequestCache licenceContinuationApplicationDetailRequestCache
+      LicenceContinuationApplicationDetailRequestCache licenceContinuationApplicationDetailRequestCache,
+      LicenceContinuationScheduleDetailRequestCache licenceContinuationScheduleDetailRequestCache
   ) {
     this.licenceContinuationApplicationDetailRepository = licenceContinuationApplicationDetailRepository;
     this.licenceContinuationApplicationRepository = licenceContinuationApplicationRepository;
@@ -95,6 +97,7 @@ public class LicenceContinuationService {
     this.licenceScheduleStateService = licenceScheduleStateService;
     this.crossLicenceEventTrackerService = crossLicenceEventTrackerService;
     this.licenceContinuationApplicationDetailRequestCache = licenceContinuationApplicationDetailRequestCache;
+    this.licenceContinuationScheduleDetailRequestCache = licenceContinuationScheduleDetailRequestCache;
   }
 
   @Transactional
@@ -169,8 +172,7 @@ public class LicenceContinuationService {
     if (app.getSubmittedLicenceScheduleDetail() != null) {
       return app.getSubmittedLicenceScheduleDetail();
     }
-    var licence = detail.getLicence();
-    return licenceScheduleDetailService.getScheduleDetailByLicenceAndStatusOrThrow(licence, LicenceScheduleDetailStatus.ACTIVE);
+    return licenceContinuationScheduleDetailRequestCache.getActiveScheduleDetail(detail.getLicence());
   }
 
   public ScheduleState resolveScheduleState(LicenceContinuationApplicationDetail detail) {

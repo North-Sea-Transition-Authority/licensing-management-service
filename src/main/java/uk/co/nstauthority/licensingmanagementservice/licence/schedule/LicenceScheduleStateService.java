@@ -9,8 +9,10 @@ import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.licence.rules.LicenceTypeRulesResolver;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseRequestCache;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermRequestCache;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.amendjourney.WorkProgrammeActivityView;
@@ -23,19 +25,25 @@ public class LicenceScheduleStateService {
   private final LicenceTypeRulesResolver licenceTypeRulesResolver;
   private final WorkProgrammeActivityService workProgrammeActivityService;
   private final Clock clock;
+  private final LicenceScheduleTermRequestCache licenceScheduleTermRequestCache;
+  private final LicenceSchedulePhaseRequestCache licenceSchedulePhaseRequestCache;
 
   public LicenceScheduleStateService(
       LicenceScheduleTermService licenceScheduleTermService,
       LicenceSchedulePhaseService licenceSchedulePhaseService,
       LicenceTypeRulesResolver licenceTypeRulesResolver,
       WorkProgrammeActivityService workProgrammeActivityService,
-      Clock clock
+      Clock clock,
+      LicenceScheduleTermRequestCache licenceScheduleTermRequestCache,
+      LicenceSchedulePhaseRequestCache licenceSchedulePhaseRequestCache
   ) {
     this.licenceScheduleTermService = licenceScheduleTermService;
     this.licenceSchedulePhaseService = licenceSchedulePhaseService;
     this.licenceTypeRulesResolver = licenceTypeRulesResolver;
     this.workProgrammeActivityService = workProgrammeActivityService;
     this.clock = clock;
+    this.licenceScheduleTermRequestCache = licenceScheduleTermRequestCache;
+    this.licenceSchedulePhaseRequestCache = licenceSchedulePhaseRequestCache;
   }
 
   public LicenceScheduleTerm getCurrentTerm(LicenceScheduleDetail licenceScheduleDetail) {
@@ -148,7 +156,7 @@ public class LicenceScheduleStateService {
   }
 
   public ScheduleState getScheduleState(LicenceScheduleDetail licenceScheduleDetail) {
-    var terms = licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail);
+    var terms = licenceScheduleTermRequestCache.getTermsByLicenceScheduleDetail(licenceScheduleDetail);
     var currentTerm = getCurrentTerm(terms);
 
     LicenceSchedulePhase currentPhase = null;
@@ -156,7 +164,7 @@ public class LicenceScheduleStateService {
     LicenceSchedulePhase nextPhase = null;
 
     if (currentTerm != null) {
-      var currentTermPhases = licenceSchedulePhaseService.getPhasesByTerm(currentTerm);
+      var currentTermPhases = licenceSchedulePhaseRequestCache.getPhasesByTerm(currentTerm);
       currentPhase = getCurrentPhase(currentTermPhases);
 
       nextPhase = getNextPhaseInSameTerm(currentTermPhases, currentPhase);
@@ -186,7 +194,7 @@ public class LicenceScheduleStateService {
     if (term == null) {
       return Optional.empty();
     }
-    return licenceSchedulePhaseService.getPhasesByTerm(term).stream()
+    return licenceSchedulePhaseRequestCache.getPhasesByTerm(term).stream()
         .sorted(Comparator.comparing(LicenceSchedulePhase::getStartDate))
         .toList()
         .stream()

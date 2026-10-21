@@ -119,6 +119,33 @@ class RequestScopedCacheTest {
     assertThat(cache.loadedKeys).containsExactly("a", "b");
   }
 
+  @Test
+  void get_whenKeysShareACacheKey_thenTheyShareOneValue() {
+    givenWebRequest();
+    var itemCache = new ItemCache();
+
+    var firstResult = itemCache.get(new Item(1));
+    var secondResult = itemCache.get(new Item(1));
+
+    assertThat(firstResult).isEqualTo("item 1");
+    assertThat(secondResult).isEqualTo("item 1");
+    assertThat(itemCache.loadedIds).containsExactly(1);
+  }
+
+  @Test
+  void getAll_whenKeysShareACacheKey_thenLoadsOnlyKeysNotAlreadyHeld() {
+    givenWebRequest();
+    var itemCache = new ItemCache();
+    var firstItem = new Item(1);
+    var secondItem = new Item(2);
+    itemCache.get(new Item(1));
+
+    var result = itemCache.getAll(List.of(firstItem, secondItem));
+
+    assertThat(result).containsExactly(Map.entry(firstItem, "item 1"), Map.entry(secondItem, "item 2"));
+    assertThat(itemCache.loadedIds).containsExactly(1, 2);
+  }
+
   private void givenWebRequest() {
     RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(new MockHttpServletRequest()));
   }
@@ -149,6 +176,35 @@ class RequestScopedCacheTest {
     protected String load(String key) {
       loadedKeys.add(key);
       return "loaded " + key;
+    }
+  }
+
+  private static class Item {
+
+    private final int id;
+
+    private Item(int id) {
+      this.id = id;
+    }
+
+    private int id() {
+      return id;
+    }
+  }
+
+  private static class ItemCache extends RequestScopedCache<Item, String> {
+
+    private final List<Integer> loadedIds = new ArrayList<>();
+
+    @Override
+    protected Object cacheKey(Item item) {
+      return item.id();
+    }
+
+    @Override
+    protected String load(Item item) {
+      loadedIds.add(item.id());
+      return "item " + item.id();
     }
   }
 

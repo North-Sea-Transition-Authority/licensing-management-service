@@ -105,6 +105,9 @@ class LicenceContinuationServiceTest {
   private LicenceContinuationApplicationDetailRequestCache licenceContinuationApplicationDetailRequestCache;
 
   @Mock
+  private LicenceContinuationScheduleDetailRequestCache licenceContinuationScheduleDetailRequestCache;
+
+  @Mock
   private LicenceApplication licenceApplication;
 
   @Mock
@@ -175,8 +178,7 @@ class LicenceContinuationServiceTest {
 
   @Test
   void getScheduleDetailFromApplicationDetail_whenDraft_returnsActiveDetail() {
-    when(licenceScheduleDetailService.getScheduleDetailByLicenceAndStatusOrThrow(LICENCE, LicenceScheduleDetailStatus.ACTIVE))
-        .thenReturn(LICENCE_SCHEDULE_DETAIL);
+    when(licenceContinuationScheduleDetailRequestCache.getActiveScheduleDetail(LICENCE)).thenReturn(LICENCE_SCHEDULE_DETAIL);
 
     var detail = LicenceContinuationApplicationTestUtil.createLicenceContinuationApplicationDetail(LICENCE_SCHEDULE_DETAIL);
 
@@ -197,6 +199,7 @@ class LicenceContinuationServiceTest {
     var result = licenceContinuationService.getScheduleDetailFromApplicationDetail(detail);
 
     assertThat(result).isEqualTo(frozenDetail);
+    verifyNoInteractions(licenceContinuationScheduleDetailRequestCache);
   }
 
   @Test
@@ -238,8 +241,7 @@ class LicenceContinuationServiceTest {
     var detail = LicenceContinuationApplicationTestUtil.createLicenceContinuationApplicationDetail(LICENCE_SCHEDULE_DETAIL);
 
     var derivedState = new ScheduleState(mock(LicenceScheduleTerm.class), null, null, null);
-    when(licenceScheduleDetailService.getScheduleDetailByLicenceAndStatusOrThrow(LICENCE, LicenceScheduleDetailStatus.ACTIVE))
-        .thenReturn(LICENCE_SCHEDULE_DETAIL);
+    when(licenceContinuationScheduleDetailRequestCache.getActiveScheduleDetail(LICENCE)).thenReturn(LICENCE_SCHEDULE_DETAIL);
     when(licenceScheduleStateService.getScheduleState(LICENCE_SCHEDULE_DETAIL)).thenReturn(derivedState);
 
     var result = licenceContinuationService.resolveScheduleState(detail);

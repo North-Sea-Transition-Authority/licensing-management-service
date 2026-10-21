@@ -19,7 +19,7 @@ come from reading the code and are estimates; see [Next steps](#next-steps) for 
 | Fix | Status |
 |---|---|
 | Fix 4: entity graphs on the child repository methods | Done for the schedule application, and for the continuation other requirement and supporting information |
-| Fix 5: stop repeating the schedule work in the task list | Done for the schedule application task list; the continuation overview shows the same pattern, not started |
+| Fix 5: stop repeating the schedule work in the task list | Done for the schedule application task list. For the continuation pages, done with request caches instead (see [Schedule state request cache](#schedule-state-request-cache)); not yet confirmed from the request logs |
 | Fix 3: route `getTeamTypesUserIsMemberOf` through `TeamQueryService` | Done; confirmed on the document overview: one team role lookup per request |
 | Fix 1: request-scoped store for URL entities | Done for the schedule application detail and the continuation application detail; licence correction and licence position are with another team; licence and schedule detail measured: a cache is not worth it, two smaller fixes instead, confirmed: new-draft 8 → 7 and term update 6 → 4 queries (see [Licence and schedule detail](#licence-and-schedule-detail-measured)) |
 | Fix 2: request-scoped cache for organisation unit lookups | Done for "Get organisation units by ids" and confirmed on the continuation overview; the org group lookup is not cached |
@@ -474,6 +474,51 @@ On the new-draft page `find licences by id` went from 3 to 2 (the access rule an
 term update page the `licence_schedule_details` and `licences` loads are gone; the term is still loaded twice, by the
 access rule and the controller, which at one query is not worth a cache.
 
+### Schedule state request cache
+
+Measured on 2026-10-21: `GET /lms/licence/continuation-application/{licenceContinuationApplicationDetailId}/task-list`
+(user 300052): **49 Hibernate queries**, 3 Energy Portal calls, 587ms. About 38 of the queries are schedule lookups.
+
+| Group | Queries | Cause |
+|---|---:|---|
+| `find licence_schedule_details by id, status` | 4 | `LicenceContinuationService.getScheduleDetailFromApplicationDetail` called by the controller, the requirements section and twice by `OtherRequirementsVisibilityResolverService` (directly and inside `resolveScheduleState`) |
+| `find licence_schedule_terms by licence_schedule_detail_id` (3), `find licence_schedule_phases by licence_schedule_term_id` (6) | 9 | `LicenceScheduleStateService.getScheduleState` run three times: by the controller, by `hasCurrentWorkProgrammeActivities` and by `resolveScheduleState` |
+| `find licence_schedules by id` (10), `find licence_schedule_details by id` (6), `find licence_schedule_terms by id` (3) | 19 | the eager back-references of every term, phase and other event loaded in a new session |
+| other schedule events, work programme activities | 6 | the relinquishment window and work programme checks |
+| continuation data, files, team roles, item view | about 11 | needed once |
+
+The continuation overview has the same pattern (the schedule state worked out twice, 14 queries).
+
+Rather than passing the state down explicitly as fix 5 did, both lookups now go through request caches, so every page
+that repeats them benefits without its callers changing:
+
+- `LicenceScheduleStateService.getScheduleState` reads the terms and phases it works the state out from through
+  `LicenceScheduleTermRequestCache` (terms by schedule detail) and `LicenceSchedulePhaseRequestCache` (phases by term).
+  Repeated state runs reuse the loaded terms and phases and only redo the date checks in memory. This also covers
+  `hasCurrentWorkProgrammeActivities` and `getCurrentWorkProgrammeActivitiesViews`, which use it. Only the state
+  calculation reads through these caches; everything else, including anything that changes terms or phases, still
+  goes to `LicenceScheduleTermService` and `LicenceSchedulePhaseService`.
+- `LicenceContinuationService.getScheduleDetailFromApplicationDetail` looks up the licence's active schedule detail,
+  for a draft continuation, through `LicenceContinuationScheduleDetailRequestCache`. A submitted continuation already
+  holds its schedule detail, so needs no lookup.
+
+The state itself is not cached: its calculation lives in `LicenceScheduleStateService`, and a cache bean that called
+back into the service would be a circular dependency. Caching the lookups it is built from follows the same pattern as
+the other caches. `RequestScopedCache` gained a `cacheKey` hook so these caches can key on the entity's id: two
+copies of the same detail or term share one value.
+
+`LicenceScheduleDetailService.getScheduleDetailByLicenceAndStatusOrThrow` is deliberately not cached:
+`applyAndReplaceActiveScheduleDetail` changes which detail is active, and the access rules on the apply page load the
+active detail earlier in the same request.
+
+POST paths checked before caching: no request reads the schedule state, or a continuation's schedule detail, after
+changing schedule data. Schedule edits happen on draft details in the schedule pages, which never ask for the state;
+applying a draft (`ReviewAndApplyScheduleController`) reads neither afterwards; and the continuation submit only reads.
+
+Expected: the continuation task list loses 3 of the 4 schedule detail lookups and 2 of the 3 schedule state runs,
+with most of the reloads that follow them, roughly 49 → 25 to 30 queries. To be confirmed from the request logs, along
+with the continuation overview.
+
 ### Fix 2: request-scoped cache for organisation unit lookups (done for lookups by id)
 
 The continuation overview log showed the repeat this was meant for: the access rule fetches the licence's
@@ -602,13 +647,15 @@ Paths are relative to `src/main/java/uk/co/nstauthority/licensingmanagementservi
 4. ~~Capture the continuation overview log again once PR #830 is deployed~~ done: 32 → 29 queries, see
    [Confirmed after PR #830](#confirmed-after-pr-830). Fix 3 confirmed on the document overview: one team role
    lookup, 5 queries in total, see [Fix 3](#fix-3-route-getteamtypesuserismemberof-through-teamqueryservice-done).
-5. Trace why the continuation overview works out the schedule state twice (14 queries), and fix it the same way as
-   fix 5 did for the schedule application task list. Planned as a separate fix.
+5. ~~Trace why the continuation overview works out the schedule state twice~~ done with the
+   [schedule state request cache](#schedule-state-request-cache), which also covers the continuation task list.
+   Capture both logs once deployed.
 6. ~~Capture the continuation overview log once fix 2 is deployed~~ done: "Get organisation units by ids" 2 → 1,
    Energy Portal calls 4 → 3.
 7. ~~Fix 1 for licence and schedule detail~~ measured: no cache needed, the caption and status rule fixes instead,
    see [Licence and schedule detail](#licence-and-schedule-detail-measured). Confirmed: new-draft 8 → 7 and term update
-   6 → 4 queries. Check the continuation task list log for the same patterns.
+   6 → 4 queries. The continuation task list log showed the same
+   patterns as the overview; see [Schedule state request cache](#schedule-state-request-cache).
 8. Consider the remaining cost on the schedule application task list: the eager links on terms, phases and
    schedule details (14 queries) and the schedule state being worked out twice (5 queries). Both sit in the
    shared schedule services, so measure the timeline and other schedule pages before and after.

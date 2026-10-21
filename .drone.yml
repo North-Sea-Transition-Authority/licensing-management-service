@@ -14,7 +14,10 @@ steps:
         - ./node_modules
         # We can only mount volume caches into the working directory, so all steps which use Gradle must have
         # the GRADLE_USER_HOME environment variable pointing here.
-        - ./gradle_cache
+        # Split per dind step so concurrent Gradle daemons don't lock each other out
+        - ./gradle_cache-gis
+        - ./gradle_cache-backend
+        - ./gradle_cache-pears
         - ./sonar_cache
         - ./trivy_cache
 
@@ -73,14 +76,14 @@ steps:
     environment:
       TZ: Europe/London
       CI_WORKSPACE: /drone/src
-      GRADLE_USER_HOME: /drone/src/gradle_cache
+      GRADLE_USER_HOME: /drone/src/gradle_cache-gis
       DOCKER_CONFIG_JSON:
         from_secret: docker_config
       DOCKER_CONFIG: /drone/dockerconfig
     volumes:
-      - name: docker-cache-overlay2
+      - name: docker-cache-overlay2-gis
         path: /drone/docker/overlay2
-      - name: docker-cache-image
+      - name: docker-cache-image-gis
         path: /drone/docker/image
     settings:
       storage_driver: overlay2 --insecure-registry repo1.dev.fivium.local:5000 --dns=192.168.20.1
@@ -88,7 +91,10 @@ steps:
         - test -f /drone/src/.gis-framework-changed || exit 0
         - mkdir /drone/dockerconfig
         - echo $DOCKER_CONFIG_JSON > /drone/dockerconfig/config.json
-        - cd gis-framework
+        # Own copy of the project dir so this doesn't race build-backend on gis-framework/build
+        - mkdir /drone/src-gis
+        - cp -a gis-framework devtools-lms /drone/src-gis/
+        - cd /drone/src-gis/gis-framework
         - chmod +x gradlew
         - ./gradlew extractIncludeProto extractProto generateProto
         - ./gradlew test check --parallel --build-cache
@@ -104,19 +110,18 @@ steps:
   - name: build-backend
     image: quay.io/testcontainers/dind-drone-plugin
     privileged: true
-    # also depends on build-gis-java-backend so the two privileged dind containers don't overlap
-    depends_on: [ build-frontend, build-gis-java-backend ]
+    depends_on: [ build-frontend ]
     environment:
       TZ: Europe/London
       CI_WORKSPACE: /drone/src
-      GRADLE_USER_HOME: /drone/src/gradle_cache
+      GRADLE_USER_HOME: /drone/src/gradle_cache-backend
       DOCKER_CONFIG_JSON:
         from_secret: docker_config
       DOCKER_CONFIG: /drone/dockerconfig
     volumes:
-      - name: docker-cache-overlay2
+      - name: docker-cache-overlay2-backend
         path: /drone/docker/overlay2
-      - name: docker-cache-image
+      - name: docker-cache-image-backend
         path: /drone/docker/image
     settings:
       storage_driver: overlay2 --insecure-registry repo1.dev.fivium.local:5000 --dns=192.168.20.1
@@ -131,16 +136,16 @@ steps:
   # a discrepancy to investigate rather than a broken build, so the step's failure is ignored -- the
   # report published by sync-reports below is what the step is read for. Runs even when an earlier
   # step failed, so an unrelated test failure does not cost a sweep.
+  # Runs on its own dind daemon and Gradle home, so it doesn't queue behind build-backend
   - name: pears-migration-validation
     image: quay.io/testcontainers/dind-drone-plugin
     privileged: true
     failure: ignore
-    # shares the privileged dind daemon's host cache volumes with build-backend, so can't run concurrently with it
-    depends_on: [ build-backend ]
+    depends_on: [ restore-cache ]
     environment:
       TZ: Europe/London
       CI_WORKSPACE: /drone/src
-      GRADLE_USER_HOME: /drone/src/gradle_cache
+      GRADLE_USER_HOME: /drone/src/gradle_cache-pears
       DOCKER_CONFIG_JSON:
         from_secret: docker_config
       DOCKER_CONFIG: /drone/dockerconfig
@@ -149,17 +154,24 @@ steps:
       PEARS_DATASOURCE_PASSWORD:
         from_secret: pears_datasource_password
     volumes:
-      - name: docker-cache-overlay2
+      - name: docker-cache-overlay2-pears
         path: /drone/docker/overlay2
-      - name: docker-cache-image
+      - name: docker-cache-image-pears
         path: /drone/docker/image
     settings:
       storage_driver: overlay2 --insecure-registry repo1.dev.fivium.local:5000 --dns=192.168.20.1
       cmd:
         - mkdir /drone/dockerconfig
         - echo $DOCKER_CONFIG_JSON > /drone/dockerconfig/config.json
+        # Own copy of the project dir so Gradle doesn't lock-contend with build-backend's build
+        - mkdir /drone/src-pears
+        - tar --exclude=./node_modules --exclude='./gradle_cache-*' --exclude=./sonar_cache --exclude=./trivy_cache --exclude=./.git -C /drone/src -cf - . | tar -xf - -C /drone/src-pears
+        - cd /drone/src-pears
         - chmod +x gradlew
-        - ./gradlew pearsMigrationTest
+        # failure: ignore already covers this step -- sync-reports wants the report copied even on discrepancies
+        - ./gradlew pearsMigrationTest || true
+        - mkdir -p /drone/src/build/reports
+        - cp -a build/reports/. /drone/src/build/reports/
       build_image: repo1.dev.fivium.local:5000/docker-compose-java21
     when:
       status: [ success, failure ]
@@ -183,7 +195,8 @@ steps:
     environment:
       SONAR_TOKEN:
         from_secret: sonarcloud_token
-      GRADLE_USER_HOME: /drone/src/gradle_cache
+      # Shares build-backend's cache dir since it's serialised after it anyway
+      GRADLE_USER_HOME: /drone/src/gradle_cache-backend
       # This SONAR_USER_HOME is the cache path - not the actual user home
       SONAR_USER_HOME: /drone/src/sonar_cache
     commands:
@@ -297,7 +310,9 @@ steps:
       rebuild: true
       mount:
         - ./node_modules
-        - ./gradle_cache
+        - ./gradle_cache-gis
+        - ./gradle_cache-backend
+        - ./gradle_cache-pears
         - ./sonar_cache
         - ./trivy_cache
 
@@ -329,13 +344,29 @@ volumes:
     host:
       path: /var/run/docker.sock
 
-  - name: docker-cache-overlay2
+  - name: docker-cache-overlay2-gis
     host:
-      path: /home/fivium/docker-drone-cache-v2/overlay2
+      path: /home/fivium/docker-drone-cache-v2/overlay2-gis
 
-  - name: docker-cache-image
+  - name: docker-cache-image-gis
     host:
-      path: /home/fivium/docker-drone-cache-v2/image
+      path: /home/fivium/docker-drone-cache-v2/image-gis
+
+  - name: docker-cache-overlay2-backend
+    host:
+      path: /home/fivium/docker-drone-cache-v2/overlay2-backend
+
+  - name: docker-cache-image-backend
+    host:
+      path: /home/fivium/docker-drone-cache-v2/image-backend
+
+  - name: docker-cache-overlay2-pears
+    host:
+      path: /home/fivium/docker-drone-cache-v2/overlay2-pears
+
+  - name: docker-cache-image-pears
+    host:
+      path: /home/fivium/docker-drone-cache-v2/image-pears
 
 ---
 kind: pipeline
@@ -368,7 +399,9 @@ steps:
         - ./node_modules
         # We can only mount volume caches into the working directory, so all steps which use Gradle must have
         # the GRADLE_USER_HOME environment variable pointing here.
-        - ./gradle_cache
+        # Split per dind step so concurrent Gradle daemons don't lock each other out
+        - ./gradle_cache-gis
+        - ./gradle_cache-backend
         - ./sonar_cache
 
   - name: fetch-fds-submodule
@@ -427,14 +460,14 @@ steps:
     environment:
       TZ: Europe/London
       CI_WORKSPACE: /drone/src
-      GRADLE_USER_HOME: /drone/src/gradle_cache
+      GRADLE_USER_HOME: /drone/src/gradle_cache-gis
       DOCKER_CONFIG_JSON:
         from_secret: docker_config
       DOCKER_CONFIG: /drone/dockerconfig
     volumes:
-      - name: docker-cache-overlay2
+      - name: docker-cache-overlay2-gis
         path: /drone/docker/overlay2
-      - name: docker-cache-image
+      - name: docker-cache-image-gis
         path: /drone/docker/image
     settings:
       storage_driver: overlay2 --insecure-registry repo1.dev.fivium.local:5000 --dns=192.168.20.1
@@ -442,7 +475,10 @@ steps:
         - test -f /drone/src/.gis-framework-changed || exit 0
         - mkdir /drone/dockerconfig
         - echo $DOCKER_CONFIG_JSON > /drone/dockerconfig/config.json
-        - cd gis-framework
+        # Own copy of the project dir so this doesn't race build-backend on gis-framework/build
+        - mkdir /drone/src-gis
+        - cp -a gis-framework devtools-lms /drone/src-gis/
+        - cd /drone/src-gis/gis-framework
         - chmod +x gradlew
         - ./gradlew extractIncludeProto extractProto generateProto
         - ./gradlew test check --parallel --build-cache
@@ -460,19 +496,18 @@ steps:
     image: quay.io/testcontainers/dind-drone-plugin
     privileged: true
     # See https://confluence.fivium.co.uk/display/JAVA/Testcontainers
-    # also depends on build-gis-java-backend so the two privileged dind containers don't overlap
-    depends_on: [ build-frontend, build-gis-java-backend ]
+    depends_on: [ build-frontend ]
     environment:
       TZ: Europe/London
       CI_WORKSPACE: /drone/src
-      GRADLE_USER_HOME: /drone/src/gradle_cache
+      GRADLE_USER_HOME: /drone/src/gradle_cache-backend
       DOCKER_CONFIG_JSON:
         from_secret: docker_config
       DOCKER_CONFIG: /drone/dockerconfig # testcontainers override location for Docker config JSON
     volumes:
-      - name: docker-cache-overlay2
+      - name: docker-cache-overlay2-backend
         path: /drone/docker/overlay2
-      - name: docker-cache-image
+      - name: docker-cache-image-backend
         path: /drone/docker/image
     settings:
       storage_driver: overlay2 --insecure-registry repo1.dev.fivium.local:5000 --dns=192.168.20.1
@@ -490,7 +525,8 @@ steps:
     environment:
       SONAR_TOKEN:
         from_secret: sonarcloud_token
-      GRADLE_USER_HOME: /drone/src/gradle_cache
+      # Reuses build-backend's cache dir: this step is serialised after it anyway (via depends_on)
+      GRADLE_USER_HOME: /drone/src/gradle_cache-backend
       # This SONAR_USER_HOME is the cache path - not the actual user home
       SONAR_USER_HOME: /drone/src/sonar_cache
     commands:
@@ -516,7 +552,8 @@ steps:
       rebuild: true
       mount:
         - ./node_modules
-        - ./gradle_cache
+        - ./gradle_cache-gis
+        - ./gradle_cache-backend
         - ./sonar_cache
 
 trigger:
@@ -528,13 +565,21 @@ volumes:
     host:
       path: /home/fivium/drone-cache
 
-  - name: docker-cache-overlay2
+  - name: docker-cache-overlay2-gis
     host:
-      path: /home/fivium/docker-drone-cache-v2/overlay2
+      path: /home/fivium/docker-drone-cache-v2/overlay2-gis
 
-  - name: docker-cache-image
+  - name: docker-cache-image-gis
     host:
-      path: /home/fivium/docker-drone-cache-v2/image
+      path: /home/fivium/docker-drone-cache-v2/image-gis
+
+  - name: docker-cache-overlay2-backend
+    host:
+      path: /home/fivium/docker-drone-cache-v2/overlay2-backend
+
+  - name: docker-cache-image-backend
+    host:
+      path: /home/fivium/docker-drone-cache-v2/image-backend
 ---
 
 kind: secret

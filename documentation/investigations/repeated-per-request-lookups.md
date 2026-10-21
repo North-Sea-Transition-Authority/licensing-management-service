@@ -56,6 +56,10 @@ children arrive with their parent instead of reloading it.
 - `LicenceService.getLicencePageCaption` uses the licence it is given instead of reloading it, on its 34 callers.
 - `LicenceScheduleDetailHasStatusInterceptorRule` uses the detail the term, phase, rate, activity or other event already
   holds instead of reloading it.
+- `OtherScheduleEventService.hasEventWithinScheduleWindow`, the mandatory relinquishment check, skips a missing next term or
+  phase and does not look up the same term twice when the next phase is in the current term. The other repeats traced on
+  the continuation overview are different queries: an `exists` check by the work programme summary section and the
+  activity list for the controller.
 
 ## Results
 
@@ -80,13 +84,10 @@ Response times generally fell with the query counts (work area 705ms → 477ms, 
 | Page | Before | Expected | PR |
 |---|---:|---:|---|
 | Work area (user 300051) | 13 queries, 7 Energy Portal calls | about 7 queries, 3 Energy Portal calls | #839 |
+| Continuation overview | 24 | 23 | relinquishment check |
 
 ## Remaining
 
-- **Work programme activities and other schedule events on the continuation overview.** `work_programme_activities by
-  licence_schedule_term_id` and the two `other_schedule_events` checks (by term and by phase) each still run twice, 6
-  queries. They sit outside the schedule state lookups the caches cover; probably the controller and a summary section
-  each ask for them. Not yet traced; worth up to 3 queries.
 - **Eager links on terms, phases and schedule details.** Loading a term or phase still reloads its schedule detail and
   schedule (14 queries on the schedule application task list). The repositories are shared by many schedule pages, so
   this needs measuring across them, including the timeline, before changing.

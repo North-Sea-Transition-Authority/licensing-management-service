@@ -6,6 +6,7 @@ import static uk.co.nstauthority.licensingmanagementservice.licence.schedule.oth
 import jakarta.transaction.Transactional;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Stream;
 import org.springframework.stereotype.Service;
@@ -117,6 +118,8 @@ public class OtherScheduleEventService {
       ScheduleState scheduleState
   ) {
     var hasWithinTermEvent = Stream.of(scheduleState.currentTerm(), scheduleState.nextTerm())
+        .filter(Objects::nonNull)
+        .distinct()
         .flatMap(term -> otherScheduleEventRepository
             .findAllByLicenceScheduleTermAndDateOption(term, WITHIN_A_TERM).stream())
         .anyMatch(event -> event.getCategory() == category);
@@ -126,6 +129,8 @@ public class OtherScheduleEventService {
     }
 
     var hasWithinPhaseEvent = Stream.of(scheduleState.currentPhase(), scheduleState.nextPhase())
+        .filter(Objects::nonNull)
+        .distinct()
         .flatMap(phase -> otherScheduleEventRepository
             .findAllByLicenceSchedulePhaseAndDateOption(phase, WITHIN_A_PHASE).stream())
         .anyMatch(event -> event.getCategory() == category);

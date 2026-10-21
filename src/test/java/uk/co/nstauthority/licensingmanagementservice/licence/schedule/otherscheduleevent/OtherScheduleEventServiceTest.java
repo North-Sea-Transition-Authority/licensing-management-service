@@ -2,6 +2,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.schedule.othersche
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static uk.co.nstauthority.licensingmanagementservice.licence.schedule.otherscheduleevent.OtherScheduleEventDateOption.WITHIN_A_PHASE;
 import static uk.co.nstauthority.licensingmanagementservice.licence.schedule.otherscheduleevent.OtherScheduleEventDateOption.WITHIN_A_TERM;
@@ -209,6 +210,26 @@ class OtherScheduleEventServiceTest {
     assertThat(otherScheduleEventService.hasEventWithinScheduleWindow(
         detail, OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT, state))
         .isTrue();
+  }
+
+  @Test
+  void hasEventWithinScheduleWindow_whenNextPhaseIsInTheCurrentTerm_thenLooksUpEachTermAndPhaseOnce() {
+    var currentTerm = new LicenceScheduleTerm();
+    currentTerm.setStartDate(LocalDate.of(2026, Month.JANUARY, 1));
+    currentTerm.setEndDate(LocalDate.of(2030, Month.JANUARY, 1));
+    var currentPhase = new LicenceSchedulePhase();
+    var state = new ScheduleState(currentTerm, currentPhase, currentTerm, null);
+    var detail = new LicenceScheduleDetail();
+
+    var result = otherScheduleEventService.hasEventWithinScheduleWindow(
+        detail, OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT, state);
+
+    assertThat(result).isFalse();
+    verify(otherScheduleEventRepository).findAllByLicenceScheduleTermAndDateOption(currentTerm, WITHIN_A_TERM);
+    verify(otherScheduleEventRepository).findAllByLicenceSchedulePhaseAndDateOption(currentPhase, WITHIN_A_PHASE);
+    verify(otherScheduleEventRepository).findAllByLicenceScheduleDetailAndEventDateBetween(
+        detail, LocalDate.of(2026, Month.JANUARY, 1), LocalDate.of(2030, Month.JANUARY, 1));
+    verifyNoMoreInteractions(otherScheduleEventRepository);
   }
 
   @Test

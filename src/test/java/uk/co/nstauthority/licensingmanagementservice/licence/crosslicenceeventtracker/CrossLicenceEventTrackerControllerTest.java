@@ -118,6 +118,19 @@ class CrossLicenceEventTrackerControllerTest extends AbstractControllerTest {
   }
 
   @Test
+  void renderEventTracker_whenIndustryUser_thenOnlyIndustryEventStatusesOffered() throws Exception {
+    var industryUser = ServiceUserDetailTestUtil.newBuilder().withWuaId(300L).build();
+    when(regulatorRoleService.isRegulator(industryUser)).thenReturn(false);
+
+    mockMvc.perform(
+            get(RENDER_EVENT_TRACKER_ROUTE)
+                .with(user(industryUser))
+        )
+        .andExpect(status().isOk())
+        .andExpect(model().attribute("eventStatuses", EventTrackerApplicationStatus.getIndustryStatuses()));
+  }
+
+  @Test
   void renderEventTracker_whenLicenseeSelected_thenPreselectedLicenseeOrgUnitIncluded() throws Exception {
     when(regulatorRoleService.isRegulator(regulatorUser)).thenReturn(true);
 

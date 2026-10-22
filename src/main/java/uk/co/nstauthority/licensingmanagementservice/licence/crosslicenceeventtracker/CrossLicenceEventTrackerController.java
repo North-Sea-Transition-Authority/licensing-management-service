@@ -87,6 +87,8 @@ public class CrossLicenceEventTrackerController {
   }
 
   private ModelAndView eventTrackerModelAndView(EventTrackerForm form, ServiceUserDetail user) {
+    var isRegulator = regulatorRoleService.isRegulator(user);
+
     return new ModelAndView("lms/licence/crosslicenceeventtracker/eventTracker")
         .addObject("eventTrackerTableJson", crossLicenceEventTrackerService.getEventTrackerTable(form, user).toString())
         .addObject("form", form)
@@ -95,13 +97,15 @@ public class CrossLicenceEventTrackerController {
             SearchSelectorService.route(on(OrganisationUnitRestController.class).searchOrganisationUnits(null)))
         .addObject("preSelectedLicenseeOrgUnit", organisationUnitQueryService.getOrganisationUnitSelectOption(
             form.getLicenseeOrgUnitId() == null ? null : form.getLicenseeOrgUnitId().toString()))
-        .addObject("isRegulatorUser", regulatorRoleService.isRegulator(user))
+        .addObject("isRegulatorUser", isRegulator)
         .addObject("licenseeGroupOrgUnitUrl",
             SearchSelectorService.route(on(OrganisationGroupRestController.class).getOrganisationGroupSearchResults(null)))
         .addObject("preSelectedLicenseeOrgGroup",
             organisationGroupQueryService.getOrganisationGroupSelectOption(form.getLicenseeOrgGroupId()))
         .addObject("requestTypes", DisplayableEnumOptionUtil.getDisplayableOptions(EventTrackerRequestType.class))
-        .addObject("eventStatuses", DisplayableEnumOptionUtil.getDisplayableOptions(EventTrackerApplicationStatus.class))
+        .addObject("eventStatuses", isRegulator
+            ? DisplayableEnumOptionUtil.getDisplayableOptions(EventTrackerApplicationStatus.class)
+            : EventTrackerApplicationStatus.getIndustryStatuses())
         .addObject("clearFilterUrl",
             ReverseRouter.route(on(CrossLicenceEventTrackerController.class).clearEventTrackerFilters(null, null)));
   }

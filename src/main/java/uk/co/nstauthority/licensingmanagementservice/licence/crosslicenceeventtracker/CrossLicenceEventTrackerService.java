@@ -177,6 +177,7 @@ public class CrossLicenceEventTrackerService {
         .filter(eventCache -> matchesLicenseeCondition(
             eventCache, licenseeOrgUnitIdsByLicenceId, form, isRegulator, ownOrganisationUnitIds, licenseeGroupOrgUnitIds
         ))
+        .filter(eventCache -> matchesEventStatusCondition(eventCache, form, applicationDisplayInfoByApplicationId))
         .sorted(Comparator.comparing(LicenceEventCache::getEventDate, Comparator.nullsLast(Comparator.naturalOrder())))
         .forEach(eventCache -> tableBuilder.addRow(
             toRow(eventCache, licenseesByLicenceId, applicationDisplayInfoByApplicationId, stewardNameByWuaId)
@@ -285,10 +286,6 @@ public class CrossLicenceEventTrackerService {
     }
   }
 
-  // The licensee org unit and org group filters are only ever shown to regulator users, so values submitted by
-  // anyone else are ignored. Non-regulator (industry) users never see the selectable filters - instead they are
-  // always restricted to licences with a responsible organisation in their own organisation group, regardless
-  // of the form.
   private boolean matchesLicenseeCondition(
       LicenceEventCache eventCache,
       Map<Integer, List<Integer>> licenseeOrgUnitIdsByLicenceId,
@@ -305,6 +302,27 @@ public class CrossLicenceEventTrackerService {
 
     return FilterUtil.matchesIdList(orgUnitIds, form.getLicenseeOrgUnitId())
         && FilterUtil.listMatchesIdList(orgUnitIds, licenseeGroupOrgUnitIds);
+  }
+
+  private boolean matchesEventStatusCondition(
+      LicenceEventCache eventCache,
+      EventTrackerForm form,
+      Map<UUID, ApplicationDisplayInfo> applicationDisplayInfoByApplicationId
+  ) {
+    if (CollectionUtils.isEmpty(form.getEventStatuses())) {
+      return true;
+    }
+
+    var matchingApplicationStatuses = form.getEventStatuses().stream()
+        .map(EventTrackerApplicationStatus::valueOf)
+        .flatMap(status -> status.getApplicationStatuses().stream())
+        .collect(Collectors.toSet());
+
+    return Optional.ofNullable(eventCache.getApplicationId())
+        .map(applicationDisplayInfoByApplicationId::get)
+        .map(ApplicationDisplayInfo::status)
+        .map(matchingApplicationStatuses::contains)
+        .orElse(false);
   }
 
   private Map<Integer, List<String>> toLicenseeNamesByLicenceId(

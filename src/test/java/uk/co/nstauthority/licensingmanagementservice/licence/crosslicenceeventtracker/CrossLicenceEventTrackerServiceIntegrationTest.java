@@ -498,6 +498,94 @@ class CrossLicenceEventTrackerServiceIntegrationTest {
   }
 
   @Test
+  void getEventTrackerTable_whenEventStatusFilterApplied_thenOnlyMatchingApplicationStatusReturned() {
+    var submittedLicence = LicenceTestUtil.builder()
+        .withId(9016)
+        .withLicenceType(LicenceType.SEAWARD_PRODUCTION)
+        .withLicenceNumber("983")
+        .withLicenceReference("P 983")
+        .build();
+    entityManager.persist(submittedLicence);
+
+    var submittedLicenceSchedule = LicenceScheduleTestUtil.createLicenceSchedule(null, submittedLicence);
+    entityManager.persist(submittedLicenceSchedule);
+
+    var submittedApplication = new ScheduleWorkProgrammeApplication();
+    submittedApplication.setLicenceSchedule(submittedLicenceSchedule);
+    submittedApplication.setApplicationReference("LMS/EAA/2040/2");
+    entityManager.persist(submittedApplication);
+    entityManager.flush();
+
+    var submittedApplicationDetail = new ScheduleWorkProgrammeApplicationDetail();
+    submittedApplicationDetail.setScheduleWorkProgrammeApplication(submittedApplication);
+    submittedApplicationDetail.setVersionNumber(1);
+    submittedApplicationDetail.setStatus(ApplicationStatus.SUBMITTED);
+    submittedApplicationDetail.setCreatedDatetime(Instant.now());
+    entityManager.persist(submittedApplicationDetail);
+
+    var submittedEventCache = new LicenceEventCache();
+    submittedEventCache.setLicenceId(submittedLicence.getId());
+    submittedEventCache.setLicenceReference(submittedLicence.getLicenceReference());
+    submittedEventCache.setEventType(ScheduleEventType.TERM);
+    submittedEventCache.setEventDate(LocalDate.of(2044, Month.JANUARY, 1));
+    submittedEventCache.setApplicationId(submittedApplication.getId());
+    submittedEventCache.setApplicationType(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION);
+    entityManager.persist(submittedEventCache);
+
+    var draftLicence = LicenceTestUtil.builder()
+        .withId(9017)
+        .withLicenceType(LicenceType.SEAWARD_PRODUCTION)
+        .withLicenceNumber("982")
+        .withLicenceReference("P 982")
+        .build();
+    entityManager.persist(draftLicence);
+
+    var draftLicenceSchedule = LicenceScheduleTestUtil.createLicenceSchedule(null, draftLicence);
+    entityManager.persist(draftLicenceSchedule);
+
+    var draftApplication = new ScheduleWorkProgrammeApplication();
+    draftApplication.setLicenceSchedule(draftLicenceSchedule);
+    draftApplication.setApplicationReference("LMS/EAA/2040/3");
+    entityManager.persist(draftApplication);
+    entityManager.flush();
+
+    var draftApplicationDetail = new ScheduleWorkProgrammeApplicationDetail();
+    draftApplicationDetail.setScheduleWorkProgrammeApplication(draftApplication);
+    draftApplicationDetail.setVersionNumber(1);
+    draftApplicationDetail.setStatus(ApplicationStatus.DRAFT);
+    draftApplicationDetail.setCreatedDatetime(Instant.now());
+    entityManager.persist(draftApplicationDetail);
+
+    var draftEventCache = new LicenceEventCache();
+    draftEventCache.setLicenceId(draftLicence.getId());
+    draftEventCache.setLicenceReference(draftLicence.getLicenceReference());
+    draftEventCache.setEventType(ScheduleEventType.TERM);
+    draftEventCache.setEventDate(LocalDate.of(2045, Month.JANUARY, 1));
+    draftEventCache.setApplicationId(draftApplication.getId());
+    draftEventCache.setApplicationType(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION);
+    entityManager.persist(draftEventCache);
+
+    var noApplicationLicence = LicenceTestUtil.builder()
+        .withId(9018)
+        .withLicenceType(LicenceType.SEAWARD_PRODUCTION)
+        .withLicenceNumber("981")
+        .withLicenceReference("P 981")
+        .build();
+    entityManager.persist(noApplicationLicence);
+    persistEventCache(noApplicationLicence, LocalDate.of(2046, Month.JANUARY, 1));
+
+    entityManager.flush();
+
+    var form = new EventTrackerForm();
+    form.setEventStatuses(List.of(EventTrackerApplicationStatus.REQUEST_SUBMITTED.name()));
+
+    var result = crossLicenceEventTrackerService.getEventTrackerTable(form, regulatorUser());
+
+    assertThat(result.tableRows()).hasSize(2);
+    assertThat(result.tableRows().get(1).rowValues().get(0).value()).isEqualTo("P 983 (LMS/EAA/2040/2)");
+  }
+
+  @Test
   void getEventTrackerTable_whenIndustryUser_thenOnlySeesLicencesInOwnOrganisationGroupRegardlessOfFilter() {
     var ownLicence = persistLicenceWithResponsibleOrganisation(9011, "989", "P 989", 700);
     var otherLicence = persistLicenceWithResponsibleOrganisation(9012, "988", "P 988", 800);

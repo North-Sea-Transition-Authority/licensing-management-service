@@ -32,6 +32,7 @@ import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPor
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.WebUserAccountId;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.fds.table.SortableTableRow;
+import uk.co.nstauthority.licensingmanagementservice.fds.table.SortableTableSortDirection;
 import uk.co.nstauthority.licensingmanagementservice.fds.table.SortableTableValue;
 import uk.co.nstauthority.licensingmanagementservice.fds.table.SortableTableView;
 import uk.co.nstauthority.licensingmanagementservice.fds.table.Tag;
@@ -43,7 +44,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.OrganisationUnit;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplication;
-import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetailQueryService;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.overview.LicenceContinuationApplicationOverviewController;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisationService;
@@ -61,6 +61,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogram
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetailQueryService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.amendjourney.LicenceWorkProgrammeAmendmentRequestQueryService;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.extendjourney.LicenceScheduleExtensionRequest;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.extendjourney.LicenceScheduleExtensionRequestQueryService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overview.ScheduleWorkProgrammeApplicationOverviewController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
@@ -162,7 +163,8 @@ public class CrossLicenceEventTrackerService {
             "Quad/block",
             "Steward"
         )
-        .withDefaultSortIndex(4);
+        .withDefaultSortIndex(4)
+        .withDefaultSortDirection(SortableTableSortDirection.ASCENDING);
 
     eventCaches.stream()
         .filter(eventCache -> matchesLicenseeCondition(
@@ -180,27 +182,20 @@ public class CrossLicenceEventTrackerService {
     var scheduleAmendmentApplicationIds = getApplicationIdsOfType(eventCaches, ApplicationType.SCHEDULE_AMENDMENT_APPLICATION);
     var continuationApplicationIds = getApplicationIdsOfType(eventCaches, ApplicationType.CONTINUATION_APPLICATION);
 
-    var scheduleAmendmentDetails = scheduleWorkProgrammeApplicationDetailQueryService
-        .getAllByApplicationIds(scheduleAmendmentApplicationIds);
-    var continuationDetails = licenceContinuationApplicationDetailQueryService
-        .getAllByApplicationIds(continuationApplicationIds);
-
-    var scheduleAmendmentDisplayInfo = getLatestScheduleWorkProgrammeApplicationDetailsByApplicationId(scheduleAmendmentDetails)
-        .entrySet().stream()
-        .map(entry -> Map.entry(
-            entry.getKey(),
-            ApplicationDisplayInfo.fromScheduleWorkProgrammeApplicationDetail(
-                entry.getValue(), applicationOverviewLink(entry.getValue().getId())
-            )
+    var scheduleAmendmentDisplayInfo = scheduleWorkProgrammeApplicationDetailQueryService
+        .getLatestSummariesByApplicationIds(scheduleAmendmentApplicationIds)
+        .stream()
+        .map(summary -> Map.entry(
+            summary.applicationId(),
+            ApplicationDisplayInfo.from(summary, applicationOverviewLink(summary.detailId()))
         ));
 
-    var continuationDisplayInfo = getLatestContinuationApplicationDetailsByApplicationId(continuationDetails)
-        .entrySet().stream()
-        .map(entry -> Map.entry(
-            entry.getKey(),
-            ApplicationDisplayInfo.fromLicenceContinuationApplicationDetail(
-                entry.getValue(), continuationApplicationOverviewLink(entry.getValue().getId())
-            )
+    var continuationDisplayInfo = licenceContinuationApplicationDetailQueryService
+        .getLatestSummariesByApplicationIds(continuationApplicationIds)
+        .stream()
+        .map(summary -> Map.entry(
+            summary.applicationId(),
+            ApplicationDisplayInfo.from(summary, continuationApplicationOverviewLink(summary.detailId()))
         ));
 
     return Stream.concat(scheduleAmendmentDisplayInfo, continuationDisplayInfo)
@@ -214,32 +209,6 @@ public class CrossLicenceEventTrackerService {
         .filter(Objects::nonNull)
         .distinct()
         .toList();
-  }
-
-  private Map<UUID, ScheduleWorkProgrammeApplicationDetail> getLatestScheduleWorkProgrammeApplicationDetailsByApplicationId(
-      List<ScheduleWorkProgrammeApplicationDetail> applicationDetails
-  ) {
-    return applicationDetails.stream()
-        .collect(Collectors.groupingBy(
-            detail -> detail.getScheduleWorkProgrammeApplication().getId(),
-            Collectors.collectingAndThen(
-                Collectors.maxBy(Comparator.comparing(ScheduleWorkProgrammeApplicationDetail::getVersionNumber)),
-                Optional::get
-            )
-        ));
-  }
-
-  private Map<UUID, LicenceContinuationApplicationDetail> getLatestContinuationApplicationDetailsByApplicationId(
-      List<LicenceContinuationApplicationDetail> applicationDetails
-  ) {
-    return applicationDetails.stream()
-        .collect(Collectors.groupingBy(
-            detail -> detail.getLicenceContinuationApplication().getId(),
-            Collectors.collectingAndThen(
-                Collectors.maxBy(Comparator.comparing(LicenceContinuationApplicationDetail::getVersionNumber)),
-                Optional::get
-            )
-        ));
   }
 
   private Map<Long, String> getStewardNamesByWuaId(List<LicenceEventCache> eventCaches) {
@@ -515,25 +484,31 @@ public class CrossLicenceEventTrackerService {
     var originalEventIds = new HashSet<UUID>();
     var termOrPhaseLinkedActivityOriginalEventIds = new HashSet<UUID>();
 
-    licenceScheduleExtensionRequestQueryService.getAllByApplicationDetail(applicationDetail)
-        .forEach(request -> {
-          if (request.getLicenceScheduleTerm() != null) {
-            var term = request.getLicenceScheduleTerm();
-            originalEventIds.add(term.getOriginalEventId());
-            workProgrammeActivityService.getAllActivitiesLinkedTo(term).forEach(activity -> {
-              originalEventIds.add(activity.getOriginalEventId());
-              termOrPhaseLinkedActivityOriginalEventIds.add(activity.getOriginalEventId());
-            });
-          }
-          if (request.getLicenceSchedulePhase() != null) {
-            var phase = request.getLicenceSchedulePhase();
-            originalEventIds.add(phase.getOriginalEventId());
-            workProgrammeActivityService.getAllActivitiesLinkedTo(phase).forEach(activity -> {
-              originalEventIds.add(activity.getOriginalEventId());
-              termOrPhaseLinkedActivityOriginalEventIds.add(activity.getOriginalEventId());
-            });
-          }
-        });
+    var extensionRequests = licenceScheduleExtensionRequestQueryService.getAllByApplicationDetail(applicationDetail);
+
+    var requestedTerms = extensionRequests.stream()
+        .map(LicenceScheduleExtensionRequest::getLicenceScheduleTerm)
+        .filter(Objects::nonNull)
+        .toList();
+    var requestedPhases = extensionRequests.stream()
+        .map(LicenceScheduleExtensionRequest::getLicenceSchedulePhase)
+        .filter(Objects::nonNull)
+        .toList();
+
+    requestedTerms.forEach(term -> originalEventIds.add(term.getOriginalEventId()));
+    requestedPhases.forEach(phase -> originalEventIds.add(phase.getOriginalEventId()));
+
+    // Fetched once for every term/phase in the application rather than once per request, to avoid an
+    // N+1 query per extension request when an application extends several terms or phases at once.
+    var termAndPhaseLinkedActivities = Stream.concat(
+        workProgrammeActivityService.getAllActivitiesLinkedToTerms(requestedTerms).stream(),
+        workProgrammeActivityService.getAllActivitiesLinkedToPhases(requestedPhases).stream()
+    ).toList();
+
+    termAndPhaseLinkedActivities.forEach(activity -> {
+      originalEventIds.add(activity.getOriginalEventId());
+      termOrPhaseLinkedActivityOriginalEventIds.add(activity.getOriginalEventId());
+    });
 
     // A work programme activity requested for amendment without a duration change (e.g. only additional
     // information) should not fork a competing row when another application already holds it - unlike an

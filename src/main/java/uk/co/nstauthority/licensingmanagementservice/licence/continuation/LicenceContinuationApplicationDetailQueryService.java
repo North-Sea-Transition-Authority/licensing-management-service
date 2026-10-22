@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.LatestApplicationDetailSummary;
 
 /**
  * Read-only lookups over {@link LicenceContinuationApplicationDetail}, kept free of any dependency on
@@ -29,10 +30,10 @@ public class LicenceContinuationApplicationDetailQueryService {
         .findFirstByLicenceContinuationApplicationOrderByVersionNumberDesc(licenceContinuationApplication);
   }
 
-  public List<LicenceContinuationApplicationDetail> getAllByApplicationIds(
+  public List<LatestApplicationDetailSummary> getLatestSummariesByApplicationIds(
       Collection<UUID> licenceContinuationApplicationIds
   ) {
     return licenceContinuationApplicationDetailRepository
-        .findAllByLicenceContinuationApplication_IdIn(licenceContinuationApplicationIds);
+        .findLatestSummariesByLicenceContinuationApplication_IdIn(licenceContinuationApplicationIds);
   }
 }

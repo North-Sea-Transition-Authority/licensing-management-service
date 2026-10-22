@@ -109,6 +109,20 @@ public class WorkProgrammeActivityService {
     return workProgrammeActivityRepository.findByLicenceSchedulePhase(licenceSchedulePhase);
   }
 
+  public List<WorkProgrammeActivity> getAllActivitiesLinkedToTerms(Collection<LicenceScheduleTerm> licenceScheduleTerms) {
+    if (licenceScheduleTerms.isEmpty()) {
+      return List.of();
+    }
+    return workProgrammeActivityRepository.findByLicenceScheduleTermIn(licenceScheduleTerms);
+  }
+
+  public List<WorkProgrammeActivity> getAllActivitiesLinkedToPhases(Collection<LicenceSchedulePhase> licenceSchedulePhases) {
+    if (licenceSchedulePhases.isEmpty()) {
+      return List.of();
+    }
+    return workProgrammeActivityRepository.findByLicenceSchedulePhaseIn(licenceSchedulePhases);
+  }
+
   @Transactional
   public void deleteWorkProgrammeActivity(WorkProgrammeActivity workProgrammeActivity) {
     eventCommentService.deletePendingCommentForScheduleEvent(workProgrammeActivity);

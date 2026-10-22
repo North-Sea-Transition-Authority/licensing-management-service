@@ -6,12 +6,14 @@ import static org.mockito.Mockito.when;
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityManagerFactory;
 import jakarta.transaction.Transactional;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.Month;
 import java.util.List;
 import java.util.UUID;
+import org.hibernate.SessionFactory;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -22,18 +24,25 @@ import uk.co.fivium.energyportalapi.generated.types.OrganisationGroup;
 import uk.co.fivium.energyportalapi.generated.types.OrganisationUnit;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFieldDuration;
 import uk.co.nstauthority.licensingmanagementservice.fds.table.Tag;
 import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
+import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
+import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplication;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.overview.LicenceContinuationApplicationOverviewController;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisation;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSchedule;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.ScheduleEventType;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplication;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
@@ -53,6 +62,9 @@ class CrossLicenceEventTrackerServiceIntegrationTest {
 
   @Autowired
   private EntityManager entityManager;
+
+  @Autowired
+  private EntityManagerFactory entityManagerFactory;
 
   @Autowired
   private CrossLicenceEventTrackerService crossLicenceEventTrackerService;
@@ -567,5 +579,154 @@ class CrossLicenceEventTrackerServiceIntegrationTest {
     entityManager.persist(teamRole);
 
     return ServiceUserDetailTestUtil.newBuilder().withWuaId(9200L).build();
+  }
+
+  @Test
+  void getEventTrackerTable_whenManyApplicationsPresent_thenQueryCountStaysConstant() {
+    var statistics = entityManagerFactory.unwrap(SessionFactory.class).getStatistics();
+    statistics.setStatisticsEnabled(true);
+
+    for (int i = 0; i < 5; i++) {
+      persistScheduleAmendmentApplicationWithEventCache(9500 + i, "SA" + i, "LMS/EAA/2040/" + i);
+      persistContinuationApplicationWithTermsAndPhasesAndEventCache(9700 + i, "CA" + i, "LMS/CA/2040/" + i);
+    }
+
+    // Clears the first-level cache so this reflects a fresh request, rather than silently resolving eager
+    // associations against entities this same test already loaded into the session moments earlier.
+    entityManager.flush();
+    entityManager.clear();
+    statistics.clear();
+    crossLicenceEventTrackerService.getEventTrackerTable(new EventTrackerForm(), regulatorUser());
+    var queryCountForFiveApplications = statistics.getPrepareStatementCount();
+
+    for (int i = 5; i < 20; i++) {
+      persistScheduleAmendmentApplicationWithEventCache(9500 + i, "SA" + i, "LMS/EAA/2040/" + i);
+      persistContinuationApplicationWithTermsAndPhasesAndEventCache(9700 + i, "CA" + i, "LMS/CA/2040/" + i);
+    }
+
+    entityManager.flush();
+    entityManager.clear();
+    statistics.clear();
+    crossLicenceEventTrackerService.getEventTrackerTable(new EventTrackerForm(), regulatorUser());
+    var queryCountForTwentyApplications = statistics.getPrepareStatementCount();
+
+    assertThat(queryCountForTwentyApplications).isEqualTo(queryCountForFiveApplications);
+  }
+
+  private void persistContinuationApplicationWithTermsAndPhasesAndEventCache(
+      int licenceId, String licenceNumber, String applicationReference
+  ) {
+    var licence = LicenceTestUtil.builder()
+        .withId(licenceId)
+        .withLicenceType(LicenceType.SEAWARD_PRODUCTION)
+        .withLicenceNumber(licenceNumber)
+        .withLicenceReference("P " + licenceNumber)
+        .build();
+    entityManager.persist(licence);
+
+    var licenceSchedule = LicenceScheduleTestUtil.createLicenceSchedule(null, licence);
+    entityManager.persist(licenceSchedule);
+
+    var licenceScheduleDetail = LicenceScheduleTestUtil.licenceScheduleDetailBuilder(licenceSchedule).build();
+    entityManager.persist(licenceScheduleDetail);
+
+    var currentTerm = persistTerm(licenceSchedule, licenceScheduleDetail, TermType.INITIAL);
+    var nextTerm = persistTerm(licenceSchedule, licenceScheduleDetail, TermType.SECOND);
+    var currentPhase = persistPhase(licenceSchedule, licenceScheduleDetail, currentTerm, PhaseType.PHASE_A);
+    var nextPhase = persistPhase(licenceSchedule, licenceScheduleDetail, currentTerm, PhaseType.PHASE_B);
+
+    var application = new LicenceContinuationApplication();
+    application.setLicenceSchedule(licenceSchedule);
+    application.setSubmittedLicenceScheduleDetail(licenceScheduleDetail);
+    application.setApplicationReference(applicationReference);
+    entityManager.persist(application);
+    entityManager.flush();
+
+    var applicationDetail = new LicenceContinuationApplicationDetail();
+    applicationDetail.setLicenceContinuationApplication(application);
+    applicationDetail.setVersionNumber(1);
+    applicationDetail.setStatus(ApplicationStatus.SUBMITTED);
+    applicationDetail.setCreatedDateTime(Instant.now());
+    applicationDetail.setCurrentTerm(currentTerm);
+    applicationDetail.setCurrentPhase(currentPhase);
+    applicationDetail.setNextTerm(nextTerm);
+    applicationDetail.setNextPhase(nextPhase);
+    entityManager.persist(applicationDetail);
+
+    var eventCache = new LicenceEventCache();
+    eventCache.setLicenceId(licence.getId());
+    eventCache.setLicenceReference(licence.getLicenceReference());
+    eventCache.setEventType(ScheduleEventType.PHASE);
+    eventCache.setEventDate(LocalDate.of(2041, Month.JANUARY, 1));
+    eventCache.setApplicationId(application.getId());
+    eventCache.setApplicationType(ApplicationType.CONTINUATION_APPLICATION);
+    entityManager.persist(eventCache);
+    entityManager.flush();
+  }
+
+  private LicenceScheduleTerm persistTerm(
+      LicenceSchedule licenceSchedule, LicenceScheduleDetail licenceScheduleDetail, TermType termType
+  ) {
+    var term = new LicenceScheduleTerm();
+    term.setLicenceSchedule(licenceSchedule);
+    term.setLicenceScheduleDetail(licenceScheduleDetail);
+    term.setTermType(termType);
+    term.setTermDuration(new ThreeFieldDuration(5, 0, 0));
+    entityManager.persist(term);
+    return term;
+  }
+
+  private LicenceSchedulePhase persistPhase(
+      LicenceSchedule licenceSchedule,
+      LicenceScheduleDetail licenceScheduleDetail,
+      LicenceScheduleTerm term,
+      PhaseType phaseType
+  ) {
+    var phase = new LicenceSchedulePhase();
+    phase.setLicenceSchedule(licenceSchedule);
+    phase.setLicenceScheduleDetail(licenceScheduleDetail);
+    phase.setLicenceScheduleTerm(term);
+    phase.setPhaseType(phaseType);
+    phase.setPhaseDuration(new ThreeFieldDuration(1, 0, 0));
+    entityManager.persist(phase);
+    return phase;
+  }
+
+  private void persistScheduleAmendmentApplicationWithEventCache(
+      int licenceId, String licenceNumber, String applicationReference
+  ) {
+    var licence = LicenceTestUtil.builder()
+        .withId(licenceId)
+        .withLicenceType(LicenceType.SEAWARD_PRODUCTION)
+        .withLicenceNumber(licenceNumber)
+        .withLicenceReference("P " + licenceNumber)
+        .build();
+    entityManager.persist(licence);
+
+    var licenceSchedule = LicenceScheduleTestUtil.createLicenceSchedule(null, licence);
+    entityManager.persist(licenceSchedule);
+
+    var application = new ScheduleWorkProgrammeApplication();
+    application.setLicenceSchedule(licenceSchedule);
+    application.setApplicationReference(applicationReference);
+    entityManager.persist(application);
+    entityManager.flush();
+
+    var applicationDetail = new ScheduleWorkProgrammeApplicationDetail();
+    applicationDetail.setScheduleWorkProgrammeApplication(application);
+    applicationDetail.setVersionNumber(1);
+    applicationDetail.setStatus(ApplicationStatus.SUBMITTED);
+    applicationDetail.setCreatedDatetime(Instant.now());
+    entityManager.persist(applicationDetail);
+
+    var eventCache = new LicenceEventCache();
+    eventCache.setLicenceId(licence.getId());
+    eventCache.setLicenceReference(licence.getLicenceReference());
+    eventCache.setEventType(ScheduleEventType.TERM);
+    eventCache.setEventDate(LocalDate.of(2040, Month.JANUARY, 1));
+    eventCache.setApplicationId(application.getId());
+    eventCache.setApplicationType(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION);
+    entityManager.persist(eventCache);
+    entityManager.flush();
   }
 }

@@ -468,7 +468,7 @@ class CrossLicenceEventTrackerServiceTest {
         .thenReturn(Optional.of(applicationDetail));
     when(licenceScheduleExtensionRequestQueryService.getAllByApplicationDetail(applicationDetail))
         .thenReturn(List.of(extensionRequest));
-    when(workProgrammeActivityService.getAllActivitiesLinkedTo(term))
+    when(workProgrammeActivityService.getAllActivitiesLinkedToTerms(List.of(term)))
         .thenReturn(List.of(linkedActivity));
     when(licenceWorkProgrammeAmendmentRequestQueryService.getAllByApplicationDetail(applicationDetail))
         .thenReturn(List.of());
@@ -521,7 +521,7 @@ class CrossLicenceEventTrackerServiceTest {
         .thenReturn(Optional.of(applicationDetail));
     when(licenceScheduleExtensionRequestQueryService.getAllByApplicationDetail(applicationDetail))
         .thenReturn(List.of(extensionRequest));
-    when(workProgrammeActivityService.getAllActivitiesLinkedTo(term))
+    when(workProgrammeActivityService.getAllActivitiesLinkedToTerms(List.of(term)))
         .thenReturn(List.of(linkedActivity));
     when(licenceWorkProgrammeAmendmentRequestQueryService.getAllByApplicationDetail(applicationDetail))
         .thenReturn(List.of());
@@ -572,7 +572,7 @@ class CrossLicenceEventTrackerServiceTest {
         .thenReturn(Optional.of(applicationDetail));
     when(licenceScheduleExtensionRequestQueryService.getAllByApplicationDetail(applicationDetail))
         .thenReturn(List.of(extensionRequest));
-    when(workProgrammeActivityService.getAllActivitiesLinkedTo(phase))
+    when(workProgrammeActivityService.getAllActivitiesLinkedToPhases(List.of(phase)))
         .thenReturn(List.of(linkedActivity));
     when(licenceWorkProgrammeAmendmentRequestQueryService.getAllByApplicationDetail(applicationDetail))
         .thenReturn(List.of());
@@ -592,6 +592,48 @@ class CrossLicenceEventTrackerServiceTest {
       assertThat(cache.getApplicationId()).isEqualTo(application.getId());
       assertThat(cache.getApplicationType()).isEqualTo(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION);
     });
+  }
+
+  @Test
+  void refreshApplicationCache_whenMultipleTermsAndPhasesRequested_thenActivitiesFetchedInOneBatchEach() {
+    var application = buildApplication();
+    var applicationDetail = new ScheduleWorkProgrammeApplicationDetail();
+
+    var firstTerm = buildTerm(TermType.INITIAL, LocalDate.of(2030, Month.JANUARY, 1));
+    var secondTerm = buildTerm(TermType.SECOND, LocalDate.of(2035, Month.JANUARY, 1));
+    var firstPhase = buildPhase(firstTerm, PhaseType.PHASE_A, LocalDate.of(2028, Month.JANUARY, 1));
+    var secondPhase = buildPhase(firstTerm, PhaseType.PHASE_B, LocalDate.of(2029, Month.JANUARY, 1));
+
+    var termRequest = new LicenceScheduleExtensionRequest();
+    termRequest.setLicenceScheduleTerm(firstTerm);
+    var secondTermRequest = new LicenceScheduleExtensionRequest();
+    secondTermRequest.setLicenceScheduleTerm(secondTerm);
+    var phaseRequest = new LicenceScheduleExtensionRequest();
+    phaseRequest.setLicenceSchedulePhase(firstPhase);
+    var secondPhaseRequest = new LicenceScheduleExtensionRequest();
+    secondPhaseRequest.setLicenceSchedulePhase(secondPhase);
+
+    when(scheduleWorkProgrammeApplicationDetailQueryService.getLatestByApplication(application))
+        .thenReturn(Optional.of(applicationDetail));
+    when(licenceScheduleExtensionRequestQueryService.getAllByApplicationDetail(applicationDetail))
+        .thenReturn(List.of(termRequest, secondTermRequest, phaseRequest, secondPhaseRequest));
+    when(workProgrammeActivityService.getAllActivitiesLinkedToTerms(List.of(firstTerm, secondTerm)))
+        .thenReturn(List.of());
+    when(workProgrammeActivityService.getAllActivitiesLinkedToPhases(List.of(firstPhase, secondPhase)))
+        .thenReturn(List.of());
+    when(licenceWorkProgrammeAmendmentRequestQueryService.getAllByApplicationDetail(applicationDetail))
+        .thenReturn(List.of());
+    when(licenceEventCacheRepository.findAllByOriginalEventIdIn(Set.of(
+        firstTerm.getOriginalEventId(),
+        secondTerm.getOriginalEventId(),
+        firstPhase.getOriginalEventId(),
+        secondPhase.getOriginalEventId()
+    ))).thenReturn(List.of());
+
+    crossLicenceEventTrackerService.refreshApplicationCache(application);
+
+    verify(workProgrammeActivityService, times(1)).getAllActivitiesLinkedToTerms(List.of(firstTerm, secondTerm));
+    verify(workProgrammeActivityService, times(1)).getAllActivitiesLinkedToPhases(List.of(firstPhase, secondPhase));
   }
 
   @Test

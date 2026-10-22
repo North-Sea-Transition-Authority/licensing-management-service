@@ -1,6 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity;
 
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.EntityGraph;
@@ -49,6 +50,12 @@ public interface WorkProgrammeActivityRepository
 
   @EntityGraph(attributePaths = {"licenceSchedulePhase.licenceScheduleTerm", "licenceScheduleTerm"})
   List<WorkProgrammeActivity> findByLicenceScheduleTerm(LicenceScheduleTerm licenceScheduleTerm);
+
+  @EntityGraph(attributePaths = {"licenceSchedulePhase.licenceScheduleTerm", "licenceScheduleTerm"})
+  List<WorkProgrammeActivity> findByLicenceSchedulePhaseIn(Collection<LicenceSchedulePhase> licenceSchedulePhases);
+
+  @EntityGraph(attributePaths = {"licenceSchedulePhase.licenceScheduleTerm", "licenceScheduleTerm"})
+  List<WorkProgrammeActivity> findByLicenceScheduleTermIn(Collection<LicenceScheduleTerm> licenceScheduleTerms);
 
   boolean existsByLicenceSchedulePhase(LicenceSchedulePhase licenceSchedulePhase);
 

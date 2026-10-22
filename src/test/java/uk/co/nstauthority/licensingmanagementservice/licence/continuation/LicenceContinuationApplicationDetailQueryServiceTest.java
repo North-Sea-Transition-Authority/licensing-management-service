@@ -12,6 +12,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.LatestApplicationDetailSummary;
 
 @ExtendWith(MockitoExtension.class)
 class LicenceContinuationApplicationDetailQueryServiceTest {
@@ -40,17 +42,16 @@ class LicenceContinuationApplicationDetailQueryServiceTest {
   }
 
   @Test
-  void getAllByApplicationIds() {
+  void getLatestSummariesByApplicationIds() {
     var applicationId = UUID.randomUUID();
 
-    var applicationDetail = new LicenceContinuationApplicationDetail();
-    applicationDetail.setId(UUID.randomUUID());
+    var summary = new LatestApplicationDetailSummary(applicationId, UUID.randomUUID(), ApplicationStatus.SUBMITTED, "LMS/CA/2040/1");
 
-    when(licenceContinuationApplicationDetailRepository.findAllByLicenceContinuationApplication_IdIn(Set.of(applicationId)))
-        .thenReturn(List.of(applicationDetail));
+    when(licenceContinuationApplicationDetailRepository.findLatestSummariesByLicenceContinuationApplication_IdIn(Set.of(applicationId)))
+        .thenReturn(List.of(summary));
 
-    var result = licenceContinuationApplicationDetailQueryService.getAllByApplicationIds(Set.of(applicationId));
+    var result = licenceContinuationApplicationDetailQueryService.getLatestSummariesByApplicationIds(Set.of(applicationId));
 
-    assertThat(result).containsExactly(applicationDetail);
+    assertThat(result).containsExactly(summary);
   }
 }

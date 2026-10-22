@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDate;
@@ -336,6 +337,142 @@ class WorkProgrammeActivityServiceTest {
 
     assertThat(result.id()).isEqualTo(targetId);
     assertThat(result.dueDate()).isEqualTo(DUE_DATE_DISPLAY);
+  }
+
+  @Test
+  void getWorkProgrammeActivitiesByIds() {
+    var firstActivity = mock(WorkProgrammeActivity.class);
+    var secondActivity = mock(WorkProgrammeActivity.class);
+    var firstId = UUID.randomUUID();
+    var secondId = UUID.randomUUID();
+    when(firstActivity.getId()).thenReturn(firstId);
+    when(secondActivity.getId()).thenReturn(secondId);
+    when(workProgrammeActivityRepository.findAllById(List.of(firstId, secondId)))
+        .thenReturn(List.of(firstActivity, secondActivity));
+
+    var result = workProgrammeActivityService.getWorkProgrammeActivitiesByIds(List.of(firstId, secondId));
+
+    assertThat(result).isEqualTo(Map.of(firstId, firstActivity, secondId, secondActivity));
+  }
+
+  @Test
+  void getAllActivitiesLinkedToTerms_whenNoTerms_thenReturnsEmptyWithoutQuerying() {
+    var result = workProgrammeActivityService.getAllActivitiesLinkedToTerms(List.of());
+
+    assertThat(result).isEmpty();
+    verifyNoInteractions(workProgrammeActivityRepository);
+  }
+
+  @Test
+  void getAllActivitiesLinkedToTerms_whenTermsProvided_thenReturnsRepositoryResults() {
+    var terms = List.of(new LicenceScheduleTerm());
+    var activities = List.of(new WorkProgrammeActivity());
+    when(workProgrammeActivityRepository.findByLicenceScheduleTermIn(terms)).thenReturn(activities);
+
+    var result = workProgrammeActivityService.getAllActivitiesLinkedToTerms(terms);
+
+    assertThat(result).isEqualTo(activities);
+  }
+
+  @Test
+  void getAllActivitiesLinkedToPhases_whenNoPhases_thenReturnsEmptyWithoutQuerying() {
+    var result = workProgrammeActivityService.getAllActivitiesLinkedToPhases(List.of());
+
+    assertThat(result).isEmpty();
+    verifyNoInteractions(workProgrammeActivityRepository);
+  }
+
+  @Test
+  void getAllActivitiesLinkedToPhases_whenPhasesProvided_thenReturnsRepositoryResults() {
+    var phases = List.of(new LicenceSchedulePhase());
+    var activities = List.of(new WorkProgrammeActivity());
+    when(workProgrammeActivityRepository.findByLicenceSchedulePhaseIn(phases)).thenReturn(activities);
+
+    var result = workProgrammeActivityService.getAllActivitiesLinkedToPhases(phases);
+
+    assertThat(result).isEqualTo(activities);
+  }
+
+  @Test
+  void getLicenceWorkProgramActivitiesViewsForGivenTerm() {
+    var term = new LicenceScheduleTerm();
+    var activity = buildRelativeDateActivity();
+    when(workProgrammeActivityRepository.findByLicenceScheduleTerm(term)).thenReturn(List.of(activity));
+    when(workProgrammeActivityStatusService.getLatestStatusesFor(List.of(activity)))
+        .thenReturn(Map.of(ACTIVITY_ID, workProgrammeActivityStatus));
+
+    var result = workProgrammeActivityService.getLicenceWorkProgramActivitiesViewsForGivenTerm(term);
+
+    assertThat(result).containsExactly(expectedView());
+  }
+
+  @Test
+  void getLicenceWorkProgramActivitiesViewsForGivenPhase() {
+    var phase = new LicenceSchedulePhase();
+    var activity = buildRelativeDateActivity();
+    when(workProgrammeActivityRepository.findByLicenceSchedulePhase(phase)).thenReturn(List.of(activity));
+    when(workProgrammeActivityStatusService.getLatestStatusesFor(List.of(activity)))
+        .thenReturn(Map.of(ACTIVITY_ID, workProgrammeActivityStatus));
+
+    var result = workProgrammeActivityService.getLicenceWorkProgramActivitiesViewsForGivenPhase(phase);
+
+    assertThat(result).containsExactly(expectedView());
+  }
+
+  @Test
+  void getLicenceWorkProgramActivitiesViews_whenOtherCategoryName_thenViewUsesOtherCategoryName() {
+    var activity = buildRelativeDateActivity();
+    activity.setOtherCategoryName("Custom category");
+    var detail = new LicenceScheduleDetail();
+    when(workProgrammeActivityRepository.findAllByLicenceScheduleDetail(detail)).thenReturn(List.of(activity));
+    when(workProgrammeActivityStatusService.getLatestStatusesFor(List.of(activity)))
+        .thenReturn(Map.of(ACTIVITY_ID, workProgrammeActivityStatus));
+
+    var result = workProgrammeActivityService.getLicenceWorkProgramActivitiesViews(detail);
+
+    var expected = new WorkProgrammeActivityView(
+        ACTIVITY_ID.toString(),
+        DUE_DATE_DISPLAY,
+        "Custom category",
+        "Test Description",
+        "Custom category (Due date: 10 May 2026)",
+        WorkProgrammeActivityCommitment.FIRM.getDisplayName(),
+        WorkProgrammeStatus.OPEN
+    );
+    assertThat(result).containsExactly(expected);
+  }
+
+  @Test
+  void getCategoryWithDueDate() {
+    var activity = buildRelativeDateActivity();
+
+    var result = workProgrammeActivityService.getCategoryWithDueDate(activity, LocalDate.of(2026, Month.MAY, 10));
+
+    assertThat(result).isEqualTo(WorkProgrammeActivityCategory.WELL_TEST.getDisplayName() + " (Due date: 10 May 2026)");
+  }
+
+  private WorkProgrammeActivity buildRelativeDateActivity() {
+    var activity = new WorkProgrammeActivity();
+    activity.setId(ACTIVITY_ID);
+    activity.setOriginalEventId(ACTIVITY_ID);
+    activity.setDateOption(WorkProgrammeActivityDateOption.RELATIVE_DATE);
+    activity.setCategory(WorkProgrammeActivityCategory.WELL_TEST);
+    activity.setDueDate(LocalDate.of(2026, Month.MAY, 10));
+    activity.setDescription("Test Description");
+    activity.setCommitment(WorkProgrammeActivityCommitment.FIRM);
+    return activity;
+  }
+
+  private WorkProgrammeActivityView expectedView() {
+    return new WorkProgrammeActivityView(
+        ACTIVITY_ID.toString(),
+        DUE_DATE_DISPLAY,
+        WorkProgrammeActivityCategory.WELL_TEST.getDisplayName(),
+        "Test Description",
+        WorkProgrammeActivityCategory.WELL_TEST.getDisplayName() + " (Due date: 10 May 2026)",
+        WorkProgrammeActivityCommitment.FIRM.getDisplayName(),
+        WorkProgrammeStatus.OPEN
+    );
   }
 
   @Test

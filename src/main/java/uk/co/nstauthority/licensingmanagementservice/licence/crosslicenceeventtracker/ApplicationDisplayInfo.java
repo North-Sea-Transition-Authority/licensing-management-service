@@ -1,30 +1,11 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.crosslicenceeventtracker;
 
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
-import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
-import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.LatestApplicationDetailSummary;
 
 record ApplicationDisplayInfo(ApplicationStatus status, String applicationReference, String overviewLink) {
 
-  static ApplicationDisplayInfo fromScheduleWorkProgrammeApplicationDetail(
-      ScheduleWorkProgrammeApplicationDetail detail,
-      String overviewLink
-  ) {
-    return new ApplicationDisplayInfo(
-        detail.getStatus(),
-        detail.getScheduleWorkProgrammeApplication().getApplicationReference(),
-        overviewLink
-    );
-  }
-
-  static ApplicationDisplayInfo fromLicenceContinuationApplicationDetail(
-      LicenceContinuationApplicationDetail detail,
-      String overviewLink
-  ) {
-    return new ApplicationDisplayInfo(
-        detail.getStatus(),
-        detail.getLicenceContinuationApplication().getApplicationReference(),
-        overviewLink
-    );
+  static ApplicationDisplayInfo from(LatestApplicationDetailSummary summary, String overviewLink) {
+    return new ApplicationDisplayInfo(summary.status(), summary.applicationReference(), overviewLink);
   }
 }

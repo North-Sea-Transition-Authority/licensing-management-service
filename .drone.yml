@@ -3,8 +3,17 @@ type: docker
 name: default
 
 steps:
+  # Must run before restore-cache: the fivium-design-system-core/node_modules cache mount is
+  # extracted into this directory, and git submodule init refuses to clone into a non-empty one.
+  - name: fetch-fds-submodule
+    image: alpine/git:v2.26.2
+    commands:
+      - git config submodule.fivium-design-system-core.url https://github.com/Fivium/fivium-design-system-core.git
+      - git submodule update --init --recursive
+
   - name: restore-cache
     image: drillster/drone-volume-cache
+    depends_on: [ fetch-fds-submodule ]
     volumes:
       - name: drone-cache
         path: /cache
@@ -12,6 +21,7 @@ steps:
       restore: true
       mount:
         - ./node_modules
+        - ./fivium-design-system-core/node_modules
         # We can only mount volume caches into the working directory, so all steps which use Gradle must have
         # the GRADLE_USER_HOME environment variable pointing here.
         # Split per dind step so concurrent Gradle daemons don't lock each other out
@@ -21,19 +31,9 @@ steps:
         - ./sonar_cache
         - ./trivy_cache
 
-  - name: fetch-fds-submodule
-    image: alpine/git:v2.26.2
-    depends_on: [ restore-cache ]
-    commands:
-      - git config submodule.fivium-design-system-core.url https://github.com/Fivium/fivium-design-system-core.git
-      - git submodule update --init --recursive
-    environment:
-      BITBUCKET_SSH_KEY:
-        from_secret: bitbucket_ssh_key
-
   - name: detect-gis-changes
     image: alpine/git:v2.26.2
-    depends_on: [ fetch-fds-submodule ]
+    depends_on: [ restore-cache ]
     commands:
       - git diff --name-only HEAD~1 HEAD 2>/dev/null | grep -q "^gis-framework/" && touch .gis-framework-changed && echo "GIS changes detected" || echo "No GIS changes detected"
 
@@ -102,10 +102,10 @@ steps:
 
   - name: build-frontend
     image: node:24.16.0
-    depends_on: [ fetch-fds-submodule ]
+    depends_on: [ restore-cache ]
     commands:
-      - cd fivium-design-system-core && npm install && npx gulp buildAll && cd ..
-      - npm install && npx gulp buildAll
+      - cd fivium-design-system-core && npm install --no-audit --no-fund --prefer-offline && npx gulp buildAll && cd ..
+      - npm install --no-audit --no-fund --prefer-offline && npx gulp buildAll
 
   - name: build-backend
     image: quay.io/testcontainers/dind-drone-plugin
@@ -303,6 +303,9 @@ steps:
   - name: rebuild-cache
     image: drillster/drone-volume-cache
     depends_on: [ sync-reports, code-analysis, publish-ecr, publish-gis-node-app, trivy-scan, scan-and-sync-public-repo ]
+    commands:
+      # The plugin does not lock, so concurrent rebuilds corrupt each other's rsync into /cache
+      - flock -x /cache/.lock -c /usr/local/cacher.sh
     volumes:
       - name: drone-cache
         path: /cache
@@ -310,6 +313,7 @@ steps:
       rebuild: true
       mount:
         - ./node_modules
+        - ./fivium-design-system-core/node_modules
         - ./gradle_cache-gis
         - ./gradle_cache-backend
         - ./gradle_cache-pears
@@ -386,10 +390,18 @@ steps:
       - git clone https://github.com/Fivium/licensing-management-service.git .
       - git checkout $DRONE_SOURCE_BRANCH
 
+  # Must run before restore-cache: the fivium-design-system-core/node_modules cache mount is
+  # extracted into this directory, and git submodule init refuses to clone into a non-empty one.
+  - name: fetch-fds-submodule
+    image: alpine/git:v2.26.2
+    depends_on: [ clone ]
+    commands:
+      - git config submodule.fivium-design-system-core.url https://github.com/Fivium/fivium-design-system-core.git
+      - git submodule update --init --recursive
+
   - name: restore-cache
     image: drillster/drone-volume-cache
-    # clone is a manual step here, not Drone's auto-clone, so it must be depended on explicitly
-    depends_on: [ clone ]
+    depends_on: [ fetch-fds-submodule ]
     volumes:
       - name: drone-cache
         path: /cache
@@ -397,6 +409,7 @@ steps:
       restore: true
       mount:
         - ./node_modules
+        - ./fivium-design-system-core/node_modules
         # We can only mount volume caches into the working directory, so all steps which use Gradle must have
         # the GRADLE_USER_HOME environment variable pointing here.
         # Split per dind step so concurrent Gradle daemons don't lock each other out
@@ -404,19 +417,9 @@ steps:
         - ./gradle_cache-backend
         - ./sonar_cache
 
-  - name: fetch-fds-submodule
-    image: alpine/git:v2.26.2
-    depends_on: [ restore-cache ]
-    commands:
-      - git config submodule.fivium-design-system-core.url https://github.com/Fivium/fivium-design-system-core.git
-      - git submodule update --init --recursive
-    environment:
-      BITBUCKET_SSH_KEY:
-        from_secret: bitbucket_ssh_key
-
   - name: detect-gis-changes
     image: alpine/git:v2.26.2
-    depends_on: [ fetch-fds-submodule ]
+    depends_on: [ restore-cache ]
     commands:
       - git fetch origin $DRONE_TARGET_BRANCH
       - git diff --name-only origin/$DRONE_TARGET_BRANCH...HEAD | grep -q "^gis-framework/" && touch .gis-framework-changed && echo "GIS changes detected" || echo "No GIS changes detected"
@@ -487,10 +490,10 @@ steps:
   # This is in the PR pipeline so the code-analysis below can access the test data (to see coverage)
   - name: build-frontend
     image: node:24.16.0
-    depends_on: [ fetch-fds-submodule ]
+    depends_on: [ restore-cache ]
     commands:
-      - cd fivium-design-system-core && npm install && npx gulp buildAll && cd ..
-      - npm install && npx gulp buildAll
+      - cd fivium-design-system-core && npm install --no-audit --no-fund --prefer-offline && npx gulp buildAll && cd ..
+      - npm install --no-audit --no-fund --prefer-offline && npx gulp buildAll
 
   - name: build-backend
     image: quay.io/testcontainers/dind-drone-plugin
@@ -545,6 +548,9 @@ steps:
   - name: rebuild-cache
     image: drillster/drone-volume-cache
     depends_on: [ code-analysis, gis-frontend-visual-tests-publish-report ]
+    commands:
+      # The plugin does not lock, so concurrent rebuilds corrupt each other's rsync into /cache
+      - flock -x /cache/.lock -c /usr/local/cacher.sh
     volumes:
       - name: drone-cache
         path: /cache
@@ -552,6 +558,7 @@ steps:
       rebuild: true
       mount:
         - ./node_modules
+        - ./fivium-design-system-core/node_modules
         - ./gradle_cache-gis
         - ./gradle_cache-backend
         - ./sonar_cache

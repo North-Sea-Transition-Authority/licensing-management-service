@@ -19,7 +19,7 @@ extendContainerWidth=true
                         <@dataItemFilter.licenseeGroupFilter
                         form=form
                         licenseeGroupOrgUnitUrl=licenseeGroupOrgUnitUrl
-                        preSelectedLicenseeGroup=preSelectedLicenseeGroupOrgUnit
+                        preSelectedLicenseeGroup=preSelectedLicenseeOrgGroup
                         />
                         <@dataItemFilter.licenseeOrgUnitFilter
                         form=form

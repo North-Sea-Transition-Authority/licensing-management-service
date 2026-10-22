@@ -14,6 +14,7 @@ import java.time.Month;
 import java.util.List;
 import java.util.UUID;
 import org.hibernate.SessionFactory;
+import org.hibernate.engine.spi.SessionFactoryImplementor;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -467,6 +468,36 @@ class CrossLicenceEventTrackerServiceIntegrationTest {
   }
 
   @Test
+  void getEventTrackerTable_whenLicenseeGroupFilterAppliedByRegulator_thenOnlyMatchingLicenseeReturned() {
+    var matchingLicence = persistLicenceWithResponsibleOrganisation(9014, "985", "P 985", 700);
+    var otherLicence = persistLicenceWithResponsibleOrganisation(9015, "984", "P 984", 800);
+
+    persistEventCache(matchingLicence, LocalDate.of(2042, Month.JANUARY, 1));
+    persistEventCache(otherLicence, LocalDate.of(2043, Month.JANUARY, 1));
+
+    entityManager.flush();
+
+    when(organisationApi.getOrganisationUnitsByIds(any(), any(), any(), any()))
+        .thenReturn(List.of(organisationUnit(700, "Licensee A"), organisationUnit(800, "Licensee B")));
+
+    var organisationGroup = OrganisationGroup.newBuilder()
+        .organisationGroupId(500)
+        .name("Organisation group 500")
+        .organisationUnits(List.of(organisationUnit(700, "Licensee A")))
+        .build();
+    when(organisationApi.getAllOrganisationGroupsByIds(any(), any(), any()))
+        .thenReturn(List.of(organisationGroup));
+
+    var form = new EventTrackerForm();
+    form.setLicenseeOrgGroupId(500);
+
+    var result = crossLicenceEventTrackerService.getEventTrackerTable(form, regulatorUser());
+
+    assertThat(result.tableRows()).hasSize(2);
+    assertThat(result.tableRows().get(1).rowValues().get(0).value()).isEqualTo("P 985");
+  }
+
+  @Test
   void getEventTrackerTable_whenIndustryUser_thenOnlySeesLicencesInOwnOrganisationGroupRegardlessOfFilter() {
     var ownLicence = persistLicenceWithResponsibleOrganisation(9011, "989", "P 989", 700);
     var otherLicence = persistLicenceWithResponsibleOrganisation(9012, "988", "P 988", 800);
@@ -567,6 +598,15 @@ class CrossLicenceEventTrackerServiceIntegrationTest {
     eventCache.setEventType(ScheduleEventType.TERM);
     eventCache.setEventDate(eventDate);
     entityManager.persist(eventCache);
+  }
+
+  @Test
+  void jdbcBatchingIsEnabled() {
+    // Cache rows claimed by an application (its term/phase row and any linked work programme activity
+    // rows) are saved one entity at a time - genuinely necessary writes, not a redundant re-fetch. Without
+    // JDBC batching each one is a separate round trip to the database; this guards against that regressing.
+    var sessionFactory = entityManagerFactory.unwrap(SessionFactoryImplementor.class);
+    assertThat(sessionFactory.getSessionFactoryOptions().getJdbcBatchSize()).isGreaterThan(0);
   }
 
   private ServiceUserDetail regulatorUser() {

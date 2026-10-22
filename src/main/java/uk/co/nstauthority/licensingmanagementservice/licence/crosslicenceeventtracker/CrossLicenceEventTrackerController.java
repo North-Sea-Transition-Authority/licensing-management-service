@@ -2,7 +2,6 @@ package uk.co.nstauthority.licensingmanagementservice.licence.crosslicenceeventt
 
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
-import java.util.Collections;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -13,6 +12,7 @@ import org.springframework.web.bind.annotation.SessionAttributes;
 import org.springframework.web.bind.support.SessionStatus;
 import org.springframework.web.servlet.ModelAndView;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
+import uk.co.nstauthority.licensingmanagementservice.energyportal.organisationgroup.OrganisationGroupQueryService;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisationgroup.OrganisationGroupRestController;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitRestController;
@@ -31,17 +31,20 @@ public class CrossLicenceEventTrackerController {
   private final RegulatorRoleService regulatorRoleService;
   private final EventTrackerFormValidator eventTrackerFormValidator;
   private final OrganisationUnitQueryService organisationUnitQueryService;
+  private final OrganisationGroupQueryService organisationGroupQueryService;
 
   public CrossLicenceEventTrackerController(
       CrossLicenceEventTrackerService crossLicenceEventTrackerService,
       RegulatorRoleService regulatorRoleService,
       EventTrackerFormValidator eventTrackerFormValidator,
-      OrganisationUnitQueryService organisationUnitQueryService
+      OrganisationUnitQueryService organisationUnitQueryService,
+      OrganisationGroupQueryService organisationGroupQueryService
   ) {
     this.crossLicenceEventTrackerService = crossLicenceEventTrackerService;
     this.regulatorRoleService = regulatorRoleService;
     this.eventTrackerFormValidator = eventTrackerFormValidator;
     this.organisationUnitQueryService = organisationUnitQueryService;
+    this.organisationGroupQueryService = organisationGroupQueryService;
   }
 
   @GetMapping
@@ -95,7 +98,8 @@ public class CrossLicenceEventTrackerController {
         .addObject("isRegulatorUser", regulatorRoleService.isRegulator(user))
         .addObject("licenseeGroupOrgUnitUrl",
             SearchSelectorService.route(on(OrganisationGroupRestController.class).getOrganisationGroupSearchResults(null)))
-        .addObject("preSelectedLicenseeGroupOrgUnit", Collections.emptyMap())
+        .addObject("preSelectedLicenseeOrgGroup",
+            organisationGroupQueryService.getOrganisationGroupSelectOption(form.getLicenseeOrgGroupId()))
         .addObject("requestTypes", DisplayableEnumOptionUtil.getDisplayableOptions(EventTrackerRequestType.class))
         .addObject("eventStatuses", DisplayableEnumOptionUtil.getDisplayableOptions(EventTrackerApplicationStatus.class))
         .addObject("clearFilterUrl",

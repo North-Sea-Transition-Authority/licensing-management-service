@@ -27,6 +27,7 @@ import org.jooq.impl.DSL;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
+import uk.co.nstauthority.licensingmanagementservice.energyportal.organisationgroup.OrganisationGroupQueryService;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserJson;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserService;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.WebUserAccountId;
@@ -92,6 +93,7 @@ public class CrossLicenceEventTrackerService {
   private final EnergyPortalUserService energyPortalUserService;
   private final IndustryRoleService industryRoleService;
   private final LicenceContinuationApplicationDetailQueryService licenceContinuationApplicationDetailQueryService;
+  private final OrganisationGroupQueryService organisationGroupQueryService;
 
   public CrossLicenceEventTrackerService(
       LicenceScheduleTermService licenceScheduleTermService,
@@ -107,7 +109,8 @@ public class CrossLicenceEventTrackerService {
       LicenceWorkProgrammeAmendmentRequestQueryService licenceWorkProgrammeAmendmentRequestQueryService,
       EnergyPortalUserService energyPortalUserService,
       IndustryRoleService industryRoleService,
-      LicenceContinuationApplicationDetailQueryService licenceContinuationApplicationDetailQueryService
+      LicenceContinuationApplicationDetailQueryService licenceContinuationApplicationDetailQueryService,
+      OrganisationGroupQueryService organisationGroupQueryService
   ) {
     this.licenceScheduleTermService = licenceScheduleTermService;
     this.licenceSchedulePhaseService = licenceSchedulePhaseService;
@@ -123,6 +126,7 @@ public class CrossLicenceEventTrackerService {
     this.energyPortalUserService = energyPortalUserService;
     this.industryRoleService = industryRoleService;
     this.licenceContinuationApplicationDetailQueryService = licenceContinuationApplicationDetailQueryService;
+    this.organisationGroupQueryService = organisationGroupQueryService;
   }
 
   public SortableTableView getEventTrackerTable(EventTrackerForm form, ServiceUserDetail user) {
@@ -151,6 +155,9 @@ public class CrossLicenceEventTrackerService {
     var ownOrganisationUnitIds = isRegulator
         ? List.<Integer>of()
         : industryRoleService.getEditorOrSubmitterOrganisationUnitIds(user.wuaId()).stream().toList();
+    var licenseeGroupOrgUnitIds = form.getLicenseeOrgGroupId() == null
+        ? null
+        : organisationGroupQueryService.getOrganisationUnitIdsByOrganisationGroupId(form.getLicenseeOrgGroupId());
 
     var tableBuilder = SortableTableView.sortableTableBuilder()
         .newWithHeadings(
@@ -168,7 +175,7 @@ public class CrossLicenceEventTrackerService {
 
     eventCaches.stream()
         .filter(eventCache -> matchesLicenseeCondition(
-            eventCache, licenseeOrgUnitIdsByLicenceId, form, isRegulator, ownOrganisationUnitIds
+            eventCache, licenseeOrgUnitIdsByLicenceId, form, isRegulator, ownOrganisationUnitIds, licenseeGroupOrgUnitIds
         ))
         .sorted(Comparator.comparing(LicenceEventCache::getEventDate, Comparator.nullsLast(Comparator.naturalOrder())))
         .forEach(eventCache -> tableBuilder.addRow(
@@ -278,15 +285,17 @@ public class CrossLicenceEventTrackerService {
     }
   }
 
-  // The licensee filter is only ever shown to regulator users, so a value submitted by anyone else is ignored.
-  // Non-regulator (industry) users never see the selectable filter - instead they are always restricted to
-  // licences with a responsible organisation in their own organisation group, regardless of the form.
+  // The licensee org unit and org group filters are only ever shown to regulator users, so values submitted by
+  // anyone else are ignored. Non-regulator (industry) users never see the selectable filters - instead they are
+  // always restricted to licences with a responsible organisation in their own organisation group, regardless
+  // of the form.
   private boolean matchesLicenseeCondition(
       LicenceEventCache eventCache,
       Map<Integer, List<Integer>> licenseeOrgUnitIdsByLicenceId,
       EventTrackerForm form,
       boolean isRegulator,
-      List<Integer> ownOrganisationUnitIds
+      List<Integer> ownOrganisationUnitIds,
+      List<Integer> licenseeGroupOrgUnitIds
   ) {
     var orgUnitIds = licenseeOrgUnitIdsByLicenceId.getOrDefault(eventCache.getLicenceId(), List.of());
 
@@ -294,7 +303,8 @@ public class CrossLicenceEventTrackerService {
       return FilterUtil.listMatchesIdList(orgUnitIds, ownOrganisationUnitIds);
     }
 
-    return FilterUtil.matchesIdList(orgUnitIds, form.getLicenseeOrgUnitId());
+    return FilterUtil.matchesIdList(orgUnitIds, form.getLicenseeOrgUnitId())
+        && FilterUtil.listMatchesIdList(orgUnitIds, licenseeGroupOrgUnitIds);
   }
 
   private Map<Integer, List<String>> toLicenseeNamesByLicenceId(

@@ -90,7 +90,7 @@ class CrossLicenceEventTrackerControllerTest extends AbstractControllerTest {
         .andExpect(model().attribute("preSelectedLicenseeOrgUnit", Collections.emptyMap()))
         .andExpect(model().attribute("licenseeGroupOrgUnitUrl", SearchSelectorService.route(
             on(OrganisationGroupRestController.class).getOrganisationGroupSearchResults(null))))
-        .andExpect(model().attribute("preSelectedLicenseeGroupOrgUnit", Collections.emptyMap()))
+        .andExpect(model().attribute("preSelectedLicenseeOrgGroup", Collections.emptyMap()))
         .andExpect(model().attribute("isRegulatorUser", true))
         .andExpect(model().attribute("requestTypes",
             DisplayableEnumOptionUtil.getDisplayableOptions(EventTrackerRequestType.class)))
@@ -135,6 +135,26 @@ class CrossLicenceEventTrackerControllerTest extends AbstractControllerTest {
         )
         .andExpect(status().isOk())
         .andExpect(model().attribute("preSelectedLicenseeOrgUnit", Map.of("700", "Licensee Ltd")));
+  }
+
+  @Test
+  void renderEventTracker_whenLicenseeGroupSelected_thenPreselectedLicenseeGroupOrgUnitIncluded() throws Exception {
+    when(regulatorRoleService.isRegulator(regulatorUser)).thenReturn(true);
+
+    var form = new EventTrackerForm();
+    form.setLicenseeOrgGroupId(800);
+    var filterSession = new EventTrackerFilterSession(form);
+
+    when(organisationGroupQueryService.getOrganisationGroupSelectOption(800))
+        .thenReturn(Map.of("800", "Licensee Group Ltd"));
+
+    mockMvc.perform(
+            get(RENDER_EVENT_TRACKER_ROUTE)
+                .flashAttr("eventTrackerFilterSession", filterSession)
+                .with(user(regulatorUser))
+        )
+        .andExpect(status().isOk())
+        .andExpect(model().attribute("preSelectedLicenseeOrgGroup", Map.of("800", "Licensee Group Ltd")));
   }
 
   @Test

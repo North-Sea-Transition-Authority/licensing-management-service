@@ -33,10 +33,10 @@ extendContainerWidth=true
                     <@fdsSearch.searchFilterItem itemName="Event to" expanded=false>
                         <@fdsDatePicker.datePicker path="form.toDate" labelText="Event to" hintText="For example, 31/08/2025" labelClass="govuk-visually-hidden"/>
                     </@fdsSearch.searchFilterItem>
-                    <@fdsSearch.searchFilterItem itemName="Request type" expanded=true>
+                    <@fdsSearch.searchFilterItem itemName="Request type" expanded=false>
                         <@fdsSearch.searchCheckboxes path="form.requestTypes" checkboxes=requestTypes/>
                     </@fdsSearch.searchFilterItem>
-                    <@fdsSearch.searchFilterItem itemName="Application status" expanded=true>
+                    <@fdsSearch.searchFilterItem itemName="Application status" expanded=false>
                         <@fdsSearch.searchCheckboxes path="form.eventStatuses" checkboxes=eventStatuses/>
                     </@fdsSearch.searchFilterItem>
                 </@fdsSearch.searchFilterList>

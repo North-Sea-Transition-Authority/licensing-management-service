@@ -2,7 +2,9 @@ package uk.co.nstauthority.licensingmanagementservice.licence.crosslicenceeventt
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.samePropertyValuesAs;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.verify;
@@ -17,6 +19,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 import static uk.co.nstauthority.licensingmanagementservice.authentication.TestUserProvider.user;
 
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.Collections;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,6 +35,7 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisationgroup.OrganisationGroupRestController;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitRestController;
+import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
 import uk.co.nstauthority.licensingmanagementservice.fds.searchselector.SearchSelectorService;
 import uk.co.nstauthority.licensingmanagementservice.fds.table.SortableTableView;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
@@ -61,6 +67,9 @@ class CrossLicenceEventTrackerControllerTest extends AbstractControllerTest {
   @MockitoBean
   private OrganisationUnitQueryService organisationUnitQueryService;
 
+  @MockitoBean
+  private Clock clock;
+
   private SortableTableView eventTrackerTable;
 
   @BeforeEach
@@ -69,6 +78,8 @@ class CrossLicenceEventTrackerControllerTest extends AbstractControllerTest {
         .newWithHeadings("Licence", "Steward")
         .build();
     when(crossLicenceEventTrackerService.getEventTrackerTable(any(), any())).thenReturn(eventTrackerTable);
+    when(clock.instant()).thenReturn(Instant.parse("2026-10-19T09:00:00Z"));
+    when(clock.getZone()).thenReturn(ZoneOffset.UTC);
   }
 
   @Test
@@ -100,6 +111,35 @@ class CrossLicenceEventTrackerControllerTest extends AbstractControllerTest {
         .andExpect(model().attribute("clearFilterUrl", CLEAR_FILTERS_ROUTE));
 
     verify(crossLicenceEventTrackerService).getEventTrackerTable(any(), eq(regulatorUser));
+  }
+
+  @Test
+  void renderEventTracker_whenNoFiltersSavedInSession_thenDateRangeDefaultsToTodayAndTwoYearsFromNow() throws Exception {
+    when(regulatorRoleService.isRegulator(regulatorUser)).thenReturn(true);
+
+    var expectedForm = new EventTrackerForm();
+    expectedForm.setFromDate("19/10/2026");
+    expectedForm.setToDate("19/10/2028");
+
+    mockMvc.perform(
+            get(RENDER_EVENT_TRACKER_ROUTE)
+                .with(user(regulatorUser))
+        )
+        .andExpect(status().isOk())
+        .andExpect(model().attribute("form", samePropertyValuesAs(expectedForm)))
+        .andExpect(model().attribute("notificationBanner", NotificationBanner.newInfoBanner()
+            .withHeadingContent("Showing events due in the next 2 years")
+            .withOtherContent(
+                "Only events from 19/10/2026 to 19/10/2028 are shown. "
+                    + "Change the event dates in the filters to see other events."
+            )
+            .build()));
+
+    verify(crossLicenceEventTrackerService).getEventTrackerTable(
+        argThat(form ->
+            "19/10/2026".equals(form.getFromDate()) && "19/10/2028".equals(form.getToDate())),
+        eq(regulatorUser)
+    );
   }
 
   @Test
@@ -168,6 +208,20 @@ class CrossLicenceEventTrackerControllerTest extends AbstractControllerTest {
         )
         .andExpect(status().isOk())
         .andExpect(model().attribute("preSelectedLicenseeOrgGroup", Map.of("800", "Licensee Group Ltd")));
+  }
+
+  @Test
+  void renderEventTracker_whenFiltersSavedInSession_thenNoDefaultFiltersBannerShown() throws Exception {
+    when(regulatorRoleService.isRegulator(regulatorUser)).thenReturn(true);
+    var filterSession = new EventTrackerFilterSession(new EventTrackerForm());
+
+    mockMvc.perform(
+            get(RENDER_EVENT_TRACKER_ROUTE)
+                .flashAttr("eventTrackerFilterSession", filterSession)
+                .with(user(regulatorUser))
+        )
+        .andExpect(status().isOk())
+        .andExpect(model().attributeDoesNotExist("notificationBanner"));
   }
 
   @Test

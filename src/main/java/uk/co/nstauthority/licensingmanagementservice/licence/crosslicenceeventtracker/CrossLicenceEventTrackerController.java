@@ -2,6 +2,8 @@ package uk.co.nstauthority.licensingmanagementservice.licence.crosslicenceeventt
 
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
+import java.time.Clock;
+import java.time.LocalDate;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -16,10 +18,12 @@ import uk.co.nstauthority.licensingmanagementservice.energyportal.organisationgr
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisationgroup.OrganisationGroupRestController;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitRestController;
+import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
 import uk.co.nstauthority.licensingmanagementservice.fds.searchselector.SearchSelectorService;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.teams.RegulatorRoleService;
+import uk.co.nstauthority.licensingmanagementservice.util.DateUtil;
 import uk.co.nstauthority.licensingmanagementservice.util.enumutil.DisplayableEnumOptionUtil;
 
 @Controller
@@ -27,24 +31,29 @@ import uk.co.nstauthority.licensingmanagementservice.util.enumutil.DisplayableEn
 @SessionAttributes("eventTrackerFilterSession")
 public class CrossLicenceEventTrackerController {
 
+  private static final int DEFAULT_FILTER_YEARS = 2;
+
   private final CrossLicenceEventTrackerService crossLicenceEventTrackerService;
   private final RegulatorRoleService regulatorRoleService;
   private final EventTrackerFormValidator eventTrackerFormValidator;
   private final OrganisationUnitQueryService organisationUnitQueryService;
   private final OrganisationGroupQueryService organisationGroupQueryService;
+  private final Clock clock;
 
   public CrossLicenceEventTrackerController(
       CrossLicenceEventTrackerService crossLicenceEventTrackerService,
       RegulatorRoleService regulatorRoleService,
       EventTrackerFormValidator eventTrackerFormValidator,
       OrganisationUnitQueryService organisationUnitQueryService,
-      OrganisationGroupQueryService organisationGroupQueryService
+      OrganisationGroupQueryService organisationGroupQueryService,
+      Clock clock
   ) {
     this.crossLicenceEventTrackerService = crossLicenceEventTrackerService;
     this.regulatorRoleService = regulatorRoleService;
     this.eventTrackerFormValidator = eventTrackerFormValidator;
     this.organisationUnitQueryService = organisationUnitQueryService;
     this.organisationGroupQueryService = organisationGroupQueryService;
+    this.clock = clock;
   }
 
   @GetMapping
@@ -52,7 +61,19 @@ public class CrossLicenceEventTrackerController {
       @ModelAttribute("eventTrackerFilterSession") EventTrackerFilterSession filterSession,
       ServiceUserDetail user
   ) {
-    return eventTrackerModelAndView(filterSession.getFilterForm(), user);
+    var modelAndView = eventTrackerModelAndView(filterSession.getFilterForm(), user);
+
+    if (filterSession.isDefaultFiltersApplied()) {
+      NotificationBanner.newInfoBanner()
+          .withHeadingContent("Showing events due in the next %d years".formatted(DEFAULT_FILTER_YEARS))
+          .withOtherContent(
+              "Only events from %s to %s are shown. Change the event dates in the filters to see other events."
+                  .formatted(filterSession.getFilterForm().getFromDate(), filterSession.getFilterForm().getToDate())
+          )
+          .applyTo(modelAndView);
+    }
+
+    return modelAndView;
   }
 
   @PostMapping
@@ -82,8 +103,12 @@ public class CrossLicenceEventTrackerController {
   }
 
   @ModelAttribute("eventTrackerFilterSession")
-  private EventTrackerFilterSession getFilterSession() {
-    return new EventTrackerFilterSession(new EventTrackerForm());
+  public EventTrackerFilterSession getFilterSession() {
+    var today = LocalDate.now(clock);
+    var defaultForm = new EventTrackerForm();
+    defaultForm.setFromDate(today.format(DateUtil.STRICT_DATE_FORMAT));
+    defaultForm.setToDate(today.plusYears(DEFAULT_FILTER_YEARS).format(DateUtil.STRICT_DATE_FORMAT));
+    return new EventTrackerFilterSession(defaultForm, true);
   }
 
   private ModelAndView eventTrackerModelAndView(EventTrackerForm form, ServiceUserDetail user) {

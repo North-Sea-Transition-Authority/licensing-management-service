@@ -125,16 +125,23 @@ tasks.register('startJooqCodegenDatabase') {
 		)
 		container.start()
 
-		org.flywaydb.core.Flyway.configure()
-			.dataSource(container.getJdbcUrl(), container.getUsername(), container.getPassword())
-			.schemas('lms')
-			.locations('filesystem:src/main/resources/db/migration')
-			.placeholders([
-				'application-schema'         : 'lms',
-				'datawarehouse-user-password': 'codegen',
-			])
-			.load()
-			.migrate()
+		// stopJooqCodegenDatabase only runs once generateJooq has run, so a failed migration has to stop the
+		// container here, or it is left running for the life of the Gradle daemon
+		try {
+			org.flywaydb.core.Flyway.configure()
+				.dataSource(container.getJdbcUrl(), container.getUsername(), container.getPassword())
+				.schemas('lms')
+				.locations('filesystem:src/main/resources/db/migration')
+				.placeholders([
+					'application-schema'         : 'lms',
+					'datawarehouse-user-password': 'codegen',
+				])
+				.load()
+				.migrate()
+		} catch (Exception e) {
+			container.stop()
+			throw e
+		}
 
 		jooqCodegenContainer = container
 	}

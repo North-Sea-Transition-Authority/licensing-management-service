@@ -332,7 +332,7 @@ class LicencePositionViewServiceTest {
         ));
 
     var result = licencePositionViewService.getPositionPageView(position);
-    assertThat(result.timelineViews().getFirst().licenseeNames()).isEqualTo(List.of("Shell Expro", "BP Exploration"));
+    assertThat(result.timelineViews().getFirst().licenseeNames()).isEqualTo(List.of( "BP Exploration", "Shell Expro"));
   }
 
   @Test

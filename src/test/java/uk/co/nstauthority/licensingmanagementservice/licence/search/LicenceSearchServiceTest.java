@@ -221,6 +221,30 @@ class LicenceSearchServiceTest {
   }
 
   @Test
+  void getSearchResultItems_FilterByLicenceStatus_ReturnsSortedLicensees() {
+    var licences = List.of(SEAWARD_PRODUCTION_LICENCE, CARBON_STORAGE_LICENCE, GAS_STORAGE_LICENCE, LANDWARD_PRODUCTION_LICENCE);
+    when(licenceService.getAllLicences()).thenReturn(licences);
+    when(licenceStatusService.getCurrentStatusesByLicenceId(licences)).thenReturn(statusMapFor(licences));
+    var lro1 = buildLicenceResponsibleOrganisation(SEAWARD_PRODUCTION_LICENCE, ORG_UNIT_ID_ALPHA);
+    var lro3 = buildLicenceResponsibleOrganisation(SEAWARD_PRODUCTION_LICENCE, ORG_UNIT_ID_BETA);
+    when(licenceResponsibleOrganisationService.getAllByLicenceIn(List.of(SEAWARD_PRODUCTION_LICENCE, CARBON_STORAGE_LICENCE)))
+        .thenReturn(List.of(lro3, lro1));
+    when(organisationUnitQueryService.getOrganisationUnitNamesByIds(List.of(ORG_UNIT_ID_BETA, ORG_UNIT_ID_ALPHA)))
+        .thenReturn(Map.of(ORG_UNIT_ID_ALPHA, ORG_UNIT_NAME_ALPHA, ORG_UNIT_ID_BETA, ORG_UNIT_NAME_BETA));
+    var filterForm = new LicenceSearchFilterForm();
+    filterForm.setLicenceStatuses(List.of(LicenceStatusType.EXTANT.name()));
+
+    var result = licenceSearchService.getSearchResultItems(filterForm, serviceUserDetail);
+
+    assertThat(result)
+        .usingRecursiveComparison()
+        .isEqualTo(List.of(
+            buildSearchResultItem(CARBON_STORAGE_LICENCE, List.of()),
+            buildSearchResultItem(SEAWARD_PRODUCTION_LICENCE, List.of(ORG_UNIT_NAME_ALPHA, ORG_UNIT_NAME_BETA))
+        ));
+  }
+
+  @Test
   void getSearchResultItems_FilterByLicensee_ReturnsFilteredResults() {
     var licences = List.of(SEAWARD_PRODUCTION_LICENCE, CARBON_STORAGE_LICENCE, GAS_STORAGE_LICENCE, LANDWARD_PRODUCTION_LICENCE);
 

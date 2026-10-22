@@ -85,7 +85,8 @@ public class LicencePositionViewService {
       OrganisationUnitQueryService organisationUnitQueryService,
       LicencePositionValidationService licencePositionValidationService,
       FeatureService featureService,
-      LicenceStatusService licenceStatusService) {
+      LicenceStatusService licenceStatusService
+  ) {
     this.licencePositionService = licencePositionService;
     this.licencePositionChangeService = licencePositionChangeService;
     this.licencePositionCorrectionService = licencePositionCorrectionService;
@@ -986,6 +987,7 @@ public class LicencePositionViewService {
     return ids
         .stream()
         .map(id -> nameOrEmpty(organisationNames, id))
+        .sorted()
         .toList();
   }
 }

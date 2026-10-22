@@ -112,6 +112,7 @@ public record LicenseeOperation(
     return licenseeIds
         .stream()
         .map(licenseeId -> organisationNames.getOrDefault(licenseeId, NOT_AVAILABLE))
+        .sorted()
         .toList();
   }
 

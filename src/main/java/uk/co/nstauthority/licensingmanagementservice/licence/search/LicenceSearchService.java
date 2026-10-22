@@ -191,7 +191,7 @@ public class LicenceSearchService {
   }
 
   private SearchResultItem toSearchResultItem(Licence licence, List<String> licensees, LicenceStatusType status) {
-    var mappedLicensees = licensees.stream().filter(Objects::nonNull).toList();
+    var mappedLicensees = licensees.stream().filter(Objects::nonNull).sorted().toList();
     return SearchResultItem.newBuilder()
         .withId(licence.getId().toString())
         .withLinkHeadingUrl(tabbedLicencePageService.getDefaultTabUrl(licence))

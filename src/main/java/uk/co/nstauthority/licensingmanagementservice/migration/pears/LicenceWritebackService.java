@@ -4,6 +4,7 @@ import jakarta.transaction.Transactional;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -11,15 +12,19 @@ import java.util.TreeMap;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
+import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisationService;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenseeOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicenceCleardownService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeService;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.LicencePositionState;
 import uk.co.nstauthority.licensingmanagementservice.licence.transaction.LicenceTransactionService;
 import uk.co.nstauthority.licensingmanagementservice.migration.pears.operation.MigratedChange;
 import uk.co.nstauthority.licensingmanagementservice.migration.pears.operation.MigrationNotes;
 import uk.co.nstauthority.licensingmanagementservice.migration.pears.operation.PearsOperationMigrator;
 import uk.co.nstauthority.licensingmanagementservice.migration.pears.operation.PearsPositionKey;
+import uk.co.nstauthority.licensingmanagementservice.util.ListUtil;
 
 /**
  * Rebuilds a licence in this application out of the history PEARS holds for it, replaying it
@@ -29,6 +34,11 @@ import uk.co.nstauthority.licensingmanagementservice.migration.pears.operation.P
  *
  * <p>Every position PEARS holds is built, the ones the licence starts and ends at included. An
  * operation no migrator supports is ignored: its position is built, carrying nothing it did.
+ *
+ * <p>Where licensee changes are carried across, the licensees the licence holds after its last
+ * position become its current licensees, maintained in this application from then on. Unless some
+ * licensee entry could not be carried across: the licensees it ends at would then be a guess, so the
+ * licence keeps the ones it has and the result says so.
  */
 @Service
 @ConditionalOnPearsDataSource
@@ -39,6 +49,7 @@ class LicenceWritebackService {
   private final LicencePositionChangeService licencePositionChangeService;
   private final LicenceCleardownService licenceCleardownService;
   private final PearsLicenceService pearsLicenceService;
+  private final LicenceResponsibleOrganisationService licenceResponsibleOrganisationService;
   private final List<PearsOperationMigrator> migrators;
 
   LicenceWritebackService(
@@ -47,6 +58,7 @@ class LicenceWritebackService {
       LicencePositionChangeService licencePositionChangeService,
       LicenceCleardownService licenceCleardownService,
       PearsLicenceService pearsLicenceService,
+      LicenceResponsibleOrganisationService licenceResponsibleOrganisationService,
       List<PearsOperationMigrator> migrators
   ) {
     this.licenceTransactionService = licenceTransactionService;
@@ -54,6 +66,7 @@ class LicenceWritebackService {
     this.licencePositionChangeService = licencePositionChangeService;
     this.licenceCleardownService = licenceCleardownService;
     this.pearsLicenceService = pearsLicenceService;
+    this.licenceResponsibleOrganisationService = licenceResponsibleOrganisationService;
     this.migrators = migrators;
   }
 
@@ -84,6 +97,8 @@ class LicenceWritebackService {
     var positionsByTransactionId = new LinkedHashMap<Long, LicencePosition>();
     var changesSaved = 0;
     var operationsSaved = 0;
+    var licenseeState = LicencePositionState.EMPTY;
+    var licenseeMigratorNames = new LinkedHashSet<String>();
 
     for (var pearsPosition : history.positions()) {
       var licenceTransaction = licenceTransactionService.createLicenceTransaction(pearsPosition.regulatorReference());
@@ -104,12 +119,40 @@ class LicenceWritebackService {
         );
         changesSaved++;
         operationsSaved += change.migratedChange().operations().size();
+
+        for (var operation : change.migratedChange().operations()) {
+          if (operation instanceof LicenseeOperation licenseeOperation) {
+            licenseeState = licenseeOperation.applyState(licenseeState);
+            licenseeMigratorNames.add(migrators.get(change.migratorIndex()).name());
+          }
+        }
+      }
+    }
+
+    var result = "Saved %d positions, %d changes and %d operations for licence %s".formatted(
+        positionsByTransactionId.size(), changesSaved, operationsSaved, history.licenceReference());
+
+    // Saving licensees withdraws any the licence holds that are not among them, and their contacts
+    // with them, so a licence PEARS holds no licensee history for keeps the licensees it has, and
+    // so does one whose licensee history could not all be carried across.
+    if (!licenseeMigratorNames.isEmpty()) {
+      var unmappedLicenseeEntries = licenseeMigratorNames.stream()
+          .mapToInt(name -> notesByMigrator.get(name).unmappedCount())
+          .sum();
+
+      if (unmappedLicenseeEntries == 0) {
+        licenceResponsibleOrganisationService.saveLicenseesFromForm(
+            licence,
+            ListUtil.toStrings(licenseeState.licenseeIds().stream().sorted().toList())
+        );
+      } else {
+        result += "; kept its current licensees, as %d licensee entries could not be carried across"
+            .formatted(unmappedLicenseeEntries);
       }
     }
 
     return new LicenceWriteback(
-        "Saved %d positions, %d changes and %d operations for licence %s".formatted(
-            positionsByTransactionId.size(), changesSaved, operationsSaved, history.licenceReference()),
+        result,
         history,
         positionsByTransactionId,
         notesByMigrator,

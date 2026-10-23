@@ -23,7 +23,7 @@ position-tracking domain — which are a separate area with their own tables
 | Term | Meaning |
 |---|---|
 | **Licence** | An energy licence. The record originates in PEARS / the Energy Portal, not in LMS. Lives in `licences`. |
-| **PEARS** | The Energy Portal system that owns licence records. LMS holds a copy, refreshed hourly (§6). |
+| **PEARS** | The Energy Portal system that owns licence records. LMS holds a copy, refreshed hourly (§7.1). |
 | **Responsible organisation** | An organisation responsible for a licence — the licensee. Held as a link row in `licence_responsible_organisations`, keyed by an Energy Portal organisation id. |
 | **Licensee** | The same thing, and the word the service tends to use in its own interfaces. |
 | **Status** | Whether a licence is extant, revoked, surrendered, expired or split and terminated. Held as a history in `licence_statuses`, never as a column. |
@@ -104,7 +104,7 @@ meaningless.
 
 ### 3.1 There is no row for a licence LMS has never seen
 
-`licences` holds only what the refresh has retrieved (§6). It is not a complete register of
+`licences` holds only what the refresh has retrieved (§7.1). It is not a complete register of
 every licence that has ever existed, and the absence of a row means "not retrieved", not
 "does not exist".
 
@@ -173,7 +173,7 @@ organisation that is removed in the Energy Portal leaves a row here that no long
 | Value | Meaning | Written by |
 |---|---|---|
 | `false` | Sourced from PEARS | the hourly refresh, and the contacts update |
-| `true` | Maintained inside LMS | the carbon storage migration, and licences whose licensees are administered in LMS rather than PEARS |
+| `true` | Maintained inside LMS | the carbon storage migration, applying a licence correction, and migrating a licence's positions from PEARS (§7.4) |
 
 This is not cosmetic. **The hourly refresh only ever considers `managed_by_lms = false` rows
 for deletion.** An organisation absent from the incoming PEARS data is removed if it is a PEARS
@@ -185,6 +185,9 @@ Two consequences when reading the table:
 - A `managed_by_lms = true` row will not disappear when PEARS stops listing that organisation,
   and may therefore be out of step with the Portal by design.
 - A `managed_by_lms = false` row is only as current as the last successful refresh.
+- The flag is set when a row is inserted and never changed afterwards. A PEARS-sourced
+  organisation that is still a licensee when LMS takes over a licence's licensees (§7.4) keeps
+  `managed_by_lms = false`.
 
 ### 5.2 Deletions here are physical, and they cascade
 
@@ -192,7 +195,7 @@ The refresh **deletes** rows rather than marking them inactive, so there is no h
 organisation that used to be responsible for a licence — only the audit tables (§8) record that
 it once was.
 
-Before deleting a row, the refresh deletes that licensee's contact (§6.2). The foreign key from
+Before deleting a row, the refresh deletes that licensee's contact (§6). The foreign key from
 `licence_contact` is also declared `ON DELETE CASCADE`, so the contact goes either way.
 
 ---
@@ -250,6 +253,10 @@ What each run does:
 4. **Deletes PEARS-sourced responsible organisations** that are no longer present, and their
    contacts, leaving LMS-managed rows alone (§5.1).
 
+The scheduled run does nothing once the service's second release phase (LMS2) is switched on.
+From then on `licences` and `licence_statuses` are no longer refreshed by it, and licensees are
+maintained in LMS instead (§7.4).
+
 All four steps are one unit of work: a run that fails partway leaves no trace, so the data is
 never a half-applied refresh. Expect either the previous hour's picture or the new one, not a
 mixture.
@@ -271,6 +278,32 @@ update, licences that are currently `EXTANT` (§6).
 Carbon storage licences were loaded by a one-off migration rather than by the refresh. Those
 rows carry `managed_by_lms = true` and status dates supplied by the migration, so they are the
 main reason the general statements above have exceptions.
+
+### 7.4 Licensees maintained in LMS
+
+Each licence position records which organisations joined the licence as licensees at that point
+and which withdrew. Two processes use that history to replace a licence's licensees as a whole:
+
+| Process | When it writes `licence_responsible_organisations` |
+|---|---|
+| Applying a licence correction | every time a correction is applied to a licence that has at least one position |
+| Migrating a licence's positions from PEARS | each time a licence's positions are rebuilt from its PEARS history, provided that history has at least one licensee joining or withdrawing, and every licensee entry in it could be carried across. If it has none, or some entry names no organisation or has a type LMS does not recognise, the licence keeps the licensees it already has. |
+
+Both work out the licensees held at the licence's latest position, by position date and then
+order within that date, even if that date is in the future. They then make
+`licence_responsible_organisations` match:
+
+| Organisation | What happens to its row |
+|---|---|
+| Held at the latest position, no row yet | A row is inserted with `managed_by_lms = true` |
+| Held at the latest position, row already present | The row is left exactly as it was, including its `managed_by_lms` value |
+| Not held at the latest position, row present | The row is deleted whatever its `managed_by_lms` value, and its contact goes with it (§5.2) |
+
+A position migration from PEARS only rebuilds positions when PEARS returns some history for the
+licence. A licence PEARS returns nothing for keeps its positions and its licensees. A licence
+that keeps its licensees because a licensee entry could not be carried across still has its
+positions rebuilt, so the licensees held at its latest position may then differ from
+`licence_responsible_organisations`.
 
 ---
 
@@ -355,7 +388,7 @@ by meaningful editorial changes.
 ## 10. Caveats and known gotchas
 
 1. **`licences` is a copy, not a source of truth.** The Energy Portal owns the record and the
-   refresh overwrites LMS's copy hourly. Anything written directly to `licences` outside that
+   refresh overwrites LMS's copy hourly while it runs (§7.1). Anything written directly to `licences` outside that
    process is lost at the next run.
 2. **`licences.id` is external.** It is the Energy Portal's id, not a sequence LMS controls, so
    it is stable across environments only to the extent the Portal data is.
@@ -367,7 +400,9 @@ by meaningful editorial changes.
    There is no "was responsible until" history outside the audit tables.
 6. **`managed_by_lms` decides what the sync may delete** (§5.1). Treating the two kinds of row
    as interchangeable will mislead: one is as current as the last refresh, the other
-   deliberately is not.
+   deliberately is not. It does not say who maintains a row today, though: once a correction or
+   a PEARS position migration has taken over a licence's licensees (§7.4), any PEARS-sourced
+   row it kept still reads `false`.
 7. **`responsible_organisation_id` has no table behind it**, in this or any other LMS table. It
    is an Energy Portal organisation unit id, resolved at render time, and nothing in the schema
    prevents a value that no longer exists.

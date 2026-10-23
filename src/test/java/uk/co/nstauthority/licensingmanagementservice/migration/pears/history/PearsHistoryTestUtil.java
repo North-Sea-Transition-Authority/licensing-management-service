@@ -172,6 +172,61 @@ public final class PearsHistoryTestUtil {
     }
 
     /**
+     * A licensee list naming every organisation as joining. The list being created rather than
+     * changed makes no difference: each entry is a step from the licensees already held.
+     */
+    public PositionBuilder licenseeSet(int... organisationIds) {
+      return licenseeList(PearsOperationType.CONSORTIUM_LIST_CREATE, "LIVE", entries("SET", organisationIds));
+    }
+
+    public PositionBuilder licenseeRemove(int... organisationIds) {
+      return licenseeList(PearsOperationType.CONSORTIUM_LIST_CHANGE, "LIVE", entries("REMOVE", organisationIds));
+    }
+
+    /**
+     * One licensee giving way to another, where the joining licensee is the secondary side. A null
+     * id is a side PEARS gave no organisation, which the feed emits as an empty element.
+     */
+    public PositionBuilder licenseeTransfer(Integer fromOrganisationId, Integer toOrganisationId) {
+      return licenseeList(PearsOperationType.CONSORTIUM_LIST_CHANGE, "LIVE", """
+          <CONSORTIUM_ENTRY>
+            <ENTRY_TYPE>TRANSFER</ENTRY_TYPE>
+            %s
+            <PRIMARY_STATUS>EXTANT</PRIMARY_STATUS>
+            %s
+          </CONSORTIUM_ENTRY>"""
+          .formatted(
+              organisation("PRIMARY_ORGANISATION", fromOrganisationId),
+              organisation("SECONDARY_ORGANISATION", toOrganisationId)
+          ));
+    }
+
+    /**
+     * A licensee joining inside a licence correction, which is live history like any other.
+     */
+    public PositionBuilder correctedLicenseeSet(int organisationId) {
+      return licenseeList(PearsOperationType.CONSORTIUM_LIST_CHANGE, "CORRECTED", entries("SET", organisationId));
+    }
+
+    /**
+     * A licensee entry PEARS gave no organisation, which the feed emits as an empty element.
+     */
+    public PositionBuilder licenseeSetWithNoOrganisation() {
+      return licenseeList(PearsOperationType.CONSORTIUM_LIST_CHANGE, "LIVE", """
+          <CONSORTIUM_ENTRY>
+            <ENTRY_TYPE>SET</ENTRY_TYPE>
+            <PRIMARY_ORGANISATION />
+          </CONSORTIUM_ENTRY>""");
+    }
+
+    /**
+     * A licensee entry of a type this application does not know, which binds as no type at all.
+     */
+    public PositionBuilder licenseeEntryOfUnknownType(int organisationId) {
+      return licenseeList(PearsOperationType.CONSORTIUM_LIST_CHANGE, "LIVE", entries("RENAME", organisationId));
+    }
+
+    /**
      * An operation of a type no migrator asked for, so the query fetched no XML for it. This is
      * most of a real licence's history.
      */
@@ -206,6 +261,31 @@ public final class PearsHistoryTestUtil {
     private PositionBuilder administratorList(String operationType, String operationStatus, String consortiumEntries) {
       return consortiumOperation(
           operationType, PearsCompanyListType.LICENCE_ADMINISTRATOR, operationStatus, consortiumEntries);
+    }
+
+    private PositionBuilder licenseeList(String operationType, String operationStatus, String consortiumEntries) {
+      return consortiumOperation(operationType, PearsCompanyListType.LICENSEE, operationStatus, consortiumEntries);
+    }
+
+    private static String organisation(String element, Integer organisationId) {
+      if (organisationId == null) {
+        return "<%s />".formatted(element);
+      }
+      return "<%s><NAME>Organisation %d</NAME><ID>%d</ID></%s>"
+          .formatted(element, organisationId, organisationId, element);
+    }
+
+    private static String entries(String entryType, int... organisationIds) {
+      var entries = new StringBuilder();
+      for (var organisationId : organisationIds) {
+        entries.append("""
+            <CONSORTIUM_ENTRY>
+              <ENTRY_TYPE>%s</ENTRY_TYPE>
+              <PRIMARY_ORGANISATION><NAME>Organisation %d</NAME><ID>%d</ID></PRIMARY_ORGANISATION>
+              <PRIMARY_STATUS>EXTANT</PRIMARY_STATUS>
+            </CONSORTIUM_ENTRY>""".formatted(entryType, organisationId, organisationId));
+      }
+      return entries.toString();
     }
 
     private PositionBuilder consortiumOperation(

@@ -56,7 +56,7 @@ class AdministratorOperationMigratorTest {
 
   @Test
   void supports_whenTheOperationIsOfATypeNotFetched_thenItIsNotSupported() {
-    var history = history(position -> position.licenceEnd());
+    var history = history(PearsHistoryTestUtil.PositionBuilder::licenceEnd);
 
     var operation = history.positions().getFirst().operations().getFirst();
 

@@ -40,6 +40,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionRepository;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisation;
+import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisationRepository;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionRepository;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionStatus;
@@ -49,6 +51,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.Lic
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.AdministratorOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenseeOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.transaction.LicenceTransactionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.transaction.LicenceTransaction;
 import uk.co.nstauthority.licensingmanagementservice.licence.transaction.LicenceTransactionRepository;
@@ -113,6 +116,9 @@ class PearsLicenceWritebackEndpointIntegrationTest {
 
   @Autowired
   private LicencePositionCorrectionRepository licencePositionCorrectionRepository;
+
+  @Autowired
+  private LicenceResponsibleOrganisationRepository licenceResponsibleOrganisationRepository;
 
   private Licence licence;
   private Licence otherLicence;
@@ -183,6 +189,8 @@ class PearsLicenceWritebackEndpointIntegrationTest {
   @AfterEach
   void tearDown() {
     transactionTemplate.executeWithoutResult(status -> {
+      licenceResponsibleOrganisationRepository.deleteAll(licenceResponsibleOrganisationRepository.findAllByLicenceIn(
+          List.of(licence, otherLicence, licenceWithoutPositions)));
       licencePositionCorrectionRepository.deleteAllInBatch();
       licenceCorrectionRepository.deleteAllInBatch();
       licencePositionChangeRepository.deleteAllInBatch();
@@ -357,6 +365,47 @@ class PearsLicenceWritebackEndpointIntegrationTest {
         );
   }
 
+  @Test
+  void overwriteLicencePositionsFromPears_whenLicenseesJoinAndWithdraw_thenEachPositionAndTheCurrentLicenseesHoldThem() {
+    transactionTemplate.executeWithoutResult(status -> licenceResponsibleOrganisationRepository.saveAll(List.of(
+        responsibleOrganisation(licenceWithoutPositions, 11, false),
+        responsibleOrganisation(licenceWithoutPositions, 99, false)
+    )));
+    when(pearsLicenceService.licenceHistory(eq("P"), eq(3), anySet())).thenReturn(
+        PearsHistoryTestUtil.history("P", 3)
+            .position(4, "XPT/4", FIRST_POSITION_DATE, 1)
+            .licenseeSet(11, 22)
+            .and()
+            .position(5, "XPT/5", LAST_POSITION_DATE, 1)
+            .licenseeTransfer(11, 33)
+            .build());
+
+    var response = writeback("P3", LicenceWritebackResult.class);
+
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+    assertThat(response.getBody()).isEqualTo(
+        new LicenceWritebackResult("Saved 2 positions, 2 changes and 2 operations for licence P3", 2, 2, 2, 0));
+
+    assertThat(licencePositionChangeRepository.findAll())
+        .filteredOn(change -> change.getLicencePosition().getLicence().getId().equals(licenceWithoutPositions.getId()))
+        .extracting(
+            change -> change.getLicencePosition().getPositionDate(),
+            LicencePositionChange::getChangeOrder,
+            LicencePositionChange::getStatus,
+            LicencePositionChange::getOperations
+        )
+        .containsExactlyInAnyOrder(
+            tuple(FIRST_POSITION_DATE, 1, LicencePositionChangeStatus.CONSENTED,
+                List.of(new LicenseeOperation(LicenseeOperation.LICENSEE_OPERATION_ID, List.of(11, 22), List.of()))),
+            tuple(LAST_POSITION_DATE, 1, LicencePositionChangeStatus.CONSENTED,
+                List.of(new LicenseeOperation(LicenseeOperation.LICENSEE_OPERATION_ID, List.of(33), List.of(11))))
+        );
+
+    assertThat(licenceResponsibleOrganisationRepository.findAllByLicence(licenceWithoutPositions))
+        .extracting(LicenceResponsibleOrganisation::getResponsibleOrganisationId, LicenceResponsibleOrganisation::getManagedByLms)
+        .containsExactlyInAnyOrder(tuple(22, true), tuple(33, true));
+  }
+
   private <T> ResponseEntity<T> writeback(String licenceReference, Class<T> responseType) {
     var headers = new HttpHeaders();
     headers.setContentType(MediaType.APPLICATION_JSON);
@@ -400,6 +449,18 @@ class PearsLicenceWritebackEndpointIntegrationTest {
         .withLicenceNumber(licenceNumber)
         .withLicenceReference(licenceReference)
         .build();
+  }
+
+  private LicenceResponsibleOrganisation responsibleOrganisation(
+      Licence licence,
+      int responsibleOrganisationId,
+      boolean managedByLms
+  ) {
+    var responsibleOrganisation = new LicenceResponsibleOrganisation();
+    responsibleOrganisation.setLicence(licence);
+    responsibleOrganisation.setResponsibleOrganisationId(responsibleOrganisationId);
+    responsibleOrganisation.setManagedByLms(managedByLms);
+    return responsibleOrganisation;
   }
 
   private LicenceTransaction transaction(String regulatorReference) {

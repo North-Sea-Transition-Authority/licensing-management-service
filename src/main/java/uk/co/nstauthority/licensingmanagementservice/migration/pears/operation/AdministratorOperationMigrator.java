@@ -83,7 +83,7 @@ class AdministratorOperationMigrator implements PearsOperationMigrator {
         continue;
       }
       operationsSeen++;
-      for (var entry : entriesOf(operation)) {
+      for (var entry : ConsortiumLists.entriesOf(operation)) {
         var administratorSet = administratorSet(operation, entry, notes);
         if (administratorSet != null) {
           last = administratorSet;
@@ -130,32 +130,12 @@ class AdministratorOperationMigrator implements PearsOperationMigrator {
       return null;
     }
 
-    // An organisation id is an Energy Portal organisation unit id, which this application holds as
-    // an int. Nothing in PEARS should exceed that, and inventing an administrator out of a wrapped
-    // id would be worse than not carrying one.
-    if (joining.id() > Integer.MAX_VALUE || joining.id() < Integer.MIN_VALUE) {
-      notes.unmapped("licence administrator organisation id too large to hold", operationId);
-      return null;
-    }
-
-    return new AdministratorSet(PearsOperationKey.of(operation), Math.toIntExact(joining.id()));
+    var operatorId = ConsortiumLists.organisationUnitId(joining);
+    return new AdministratorSet(PearsOperationKey.of(operation), operatorId);
   }
 
   private static boolean isAdministratorList(PearsOperation operation) {
-    var companyListType = switch (operation) {
-      case PearsOperation.ConsortiumListCreate create -> create.companyListType();
-      case PearsOperation.ConsortiumListChange change -> change.companyListType();
-      default -> null;
-    };
-    return PearsCompanyListType.LICENCE_ADMINISTRATOR.equals(companyListType);
-  }
-
-  private static List<PearsOperation.ConsortiumEntry> entriesOf(PearsOperation operation) {
-    return switch (operation) {
-      case PearsOperation.ConsortiumListCreate create -> create.entries();
-      case PearsOperation.ConsortiumListChange change -> change.entries();
-      default -> List.of();
-    };
+    return ConsortiumLists.isList(operation, PearsCompanyListType.LICENCE_ADMINISTRATOR);
   }
 
   /**

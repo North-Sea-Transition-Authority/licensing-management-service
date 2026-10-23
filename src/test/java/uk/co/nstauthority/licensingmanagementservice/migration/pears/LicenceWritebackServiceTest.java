@@ -12,12 +12,14 @@ import java.time.Month;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicenceCleardownService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
@@ -57,6 +59,9 @@ class LicenceWritebackServiceTest {
   @Mock
   private PearsLicenceService pearsLicenceService;
 
+  @Mock
+  private LicenceResponsibleOrganisationService licenceResponsibleOrganisationService;
+
   private final uk.co.nstauthority.licensingmanagementservice.licence.Licence licence = LicenceTestUtil.builder()
       .withLicencePrefix("P")
       .withLicenceNumber("1")
@@ -79,7 +84,12 @@ class LicenceWritebackServiceTest {
     assertThat(writeback.toResult())
         .isEqualTo(LicenceWritebackResult.nothingToDo("No positions found in PEARS for licence P1"));
     verifyNoInteractions(
-        licenceCleardownService, licenceTransactionService, licencePositionService, licencePositionChangeService);
+        licenceCleardownService,
+        licenceTransactionService,
+        licencePositionService,
+        licencePositionChangeService,
+        licenceResponsibleOrganisationService
+    );
   }
 
   @Test
@@ -159,6 +169,82 @@ class LicenceWritebackServiceTest {
   }
 
   @Test
+  void overwriteLicencePositionsFromPears_whenLicenseeChangesAreCarriedAcross_thenTheLastLicenseesBecomeCurrent() {
+    givenPearsHolds(PearsHistoryTestUtil.history("P", 1)
+        .position(1, "XPT/1", POSITION_DATE, 6)
+        .licenseeSet(11, 22)
+        .and()
+        .position(2, "XPT/2", POSITION_DATE, 9)
+        .licenseeTransfer(11, 33)
+        .build());
+    givenPositionsAreCreated();
+
+    licenceWritebackService = writebackServiceWith(List.of(
+        stubMigrator(
+            "licensee",
+            changeAt(1, 1, 1000, LicenceOperation.newLicenseeOperation().withLicenseesToAdd(List.of(22, 11)).build()),
+            changeAt(2, 1, 1001, LicenceOperation.newLicenseeOperation()
+                .withLicenseesToAdd(List.of(33))
+                .withLicenseesToRemove(List.of(11))
+                .build())
+        ),
+        stubMigrator("administrator", changeAt(2, 2, 1002, LicenceOperation.newAdministratorChange().withOperator(44).build()))
+    ));
+
+    licenceWritebackService.overwriteLicencePositionsFromPears(licence);
+
+    verify(licenceResponsibleOrganisationService).saveLicenseesFromForm(licence, List.of("22", "33"));
+  }
+
+  @Test
+  void overwriteLicencePositionsFromPears_whenALicenseeEntryCouldNotBeCarriedAcross_thenTheCurrentLicenseesAreKept() {
+    givenPearsHolds(PearsHistoryTestUtil.history("P", 1)
+        .position(1, "XPT/1", POSITION_DATE, 6)
+        .licenseeSet(11)
+        .build());
+    givenPositionsAreCreated();
+
+    licenceWritebackService = writebackServiceWith(List.of(
+        stubMigrator(
+            "licensee",
+            Set.of(),
+            PearsOperationType.CONSORTIUM_LIST_CREATE,
+            notes -> notes.unmapped("licensee entry with no ENTRY_TYPE", 1001),
+            changeAt(1, 1, 1000, LicenceOperation.newLicenseeOperation().withLicenseesToAdd(List.of(11)).build())
+        )
+    ));
+
+    var writeback = licenceWritebackService.overwriteLicencePositionsFromPears(licence);
+
+    assertThat(writeback.toResult()).isEqualTo(new LicenceWritebackResult(
+        "Saved 1 positions, 1 changes and 1 operations for licence P1; "
+            + "kept its current licensees, as 1 licensee entries could not be carried across",
+        1,
+        1,
+        1,
+        0
+    ));
+    verifyNoInteractions(licenceResponsibleOrganisationService);
+  }
+
+  @Test
+  void overwriteLicencePositionsFromPears_whenNoLicenseeChangeIsCarriedAcross_thenTheCurrentLicenseesAreKept() {
+    givenPearsHolds(PearsHistoryTestUtil.history("P", 1)
+        .position(1, "XPT/1", POSITION_DATE, 6)
+        .administratorSet(11)
+        .build());
+    givenPositionsAreCreated();
+
+    licenceWritebackService = writebackServiceWith(List.of(
+        stubMigrator("administrator", changeAt(1, 1, 1000, LicenceOperation.newAdministratorChange().withOperator(11).build()))
+    ));
+
+    licenceWritebackService.overwriteLicencePositionsFromPears(licence);
+
+    verifyNoInteractions(licenceResponsibleOrganisationService);
+  }
+
+  @Test
   void wantedOperationTypes_thenEveryMigratorsTypesAreFetched() {
     licenceWritebackService = writebackServiceWith(List.of(
         stubMigrator("administrator", Set.of(PearsOperationType.CONSORTIUM_LIST_CREATE)),
@@ -176,6 +262,7 @@ class LicenceWritebackServiceTest {
         licencePositionChangeService,
         licenceCleardownService,
         pearsLicenceService,
+        licenceResponsibleOrganisationService,
         migrators
     );
   }
@@ -219,13 +306,25 @@ class LicenceWritebackServiceTest {
     return stubMigrator(name, operationTypes, null, changes);
   }
 
+  private static PearsOperationMigrator stubMigrator(
+      String name,
+      Set<String> operationTypes,
+      String supportedOperationType,
+      MigratedChange... changes
+  ) {
+    return stubMigrator(name, operationTypes, supportedOperationType, notes -> {
+    }, changes);
+  }
+
   /**
    * @param supportedOperationType the one OPERATION_TYPE the migrator supports; null for none
+   * @param noting                 what the migrator records in its notes while migrating
    */
   private static PearsOperationMigrator stubMigrator(
       String name,
       Set<String> operationTypes,
       String supportedOperationType,
+      Consumer<MigrationNotes> noting,
       MigratedChange... changes
   ) {
     return new PearsOperationMigrator() {
@@ -247,6 +346,7 @@ class LicenceWritebackServiceTest {
 
       @Override
       public List<MigratedChange> migrate(PearsLicenceHistory history, MigrationNotes notes) {
+        noting.accept(notes);
         return List.of(changes);
       }
     };

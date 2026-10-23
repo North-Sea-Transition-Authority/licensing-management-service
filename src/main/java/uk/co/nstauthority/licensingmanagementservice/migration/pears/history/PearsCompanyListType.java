@@ -2,8 +2,8 @@ package uk.co.nstauthority.licensingmanagementservice.migration.pears.history;
 
 /**
  * The COMPANY_LIST_TYPE values a consortium list operation carries. In PEARS the licence
- * administrator is one of these lists rather than an operation type of its own, and it is the only
- * one carried across today.
+ * administrator and the licensees are each one of these lists rather than an operation type of
+ * their own, and they are the only ones carried across today.
  */
 public final class PearsCompanyListType {
 

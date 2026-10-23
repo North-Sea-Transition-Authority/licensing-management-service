@@ -22,11 +22,11 @@
     </@fdsSummaryList.summaryList>
 
     <@fdsAction.submitButtons
-      primaryButtonText=primaryButtonText
+      primaryButtonText=primaryButton.buttonText()
+      primaryButtonClass=primaryButton.buttonClass()
       secondaryLinkText="Cancel"
       linkSecondaryAction=true
       linkSecondaryActionUrl=springUrl(cancelUrl)
-      primaryButtonClass=primaryButtonClass
     />
   </@fdsForm.htmlForm>
 </@defaultPage>

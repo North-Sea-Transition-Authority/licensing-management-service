@@ -5,7 +5,7 @@ import uk.co.nstauthority.licensingmanagementservice.util.enumutil.Displayable;
 import uk.co.nstauthority.licensingmanagementservice.util.enumutil.DisplayableEnumOptionUtil;
 
 public enum WorkProgrammeAmendmentDecision implements Displayable {
-  AMEND("Amend duration or text", 10),
+  AMEND("Extend duration or amend text", 10),
   WAIVE("Waive", 20),
   COMPLETE_ON_ANOTHER_LICENCE("To be completed on another licence", 30),
   ACKNOWLEDGE("Acknowledge - no further action", 40),

@@ -679,7 +679,7 @@ remaining values — do not join or group the two columns together.
 
 | Value | Display | Effect on the row |
 |---|---|---|
-| `AMEND` | Amend duration or text | `amend_duration` / `amend_text` and their fields populated |
+| `AMEND` | Extend duration or text | `amend_duration` / `amend_text` and their fields populated |
 | `WAIVE` | Waive | amendment fields null |
 | `COMPLETE_ON_ANOTHER_LICENCE` | To be completed on another licence | one or more `swp_record_of_decision_work_programme_licence` rows |
 | `ACKNOWLEDGE` | Acknowledge - no further action | amendment fields null |

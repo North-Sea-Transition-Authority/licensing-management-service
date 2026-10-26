@@ -48,7 +48,7 @@ breadcrumbs=breadcrumbs>
 
                     <@fdsCheckbox.checkboxItem
                         path="form.amendDuration"
-                        labelText="Amend duration">
+                        labelText="Extend duration">
                         <@duration.threeFieldDuration
                             dayPath="form.amendedDuration.days"
                             monthPath="form.amendedDuration.months"
@@ -56,7 +56,7 @@ breadcrumbs=breadcrumbs>
                             fieldNamePath="form.amendedDuration.fieldName"
                             fieldDisplayTextPath="form.amendedDuration.fieldDisplayText"
                             nestingPath="form.amendDuration"
-                            labelText="How long is the activity to be amended by?"
+                            labelText="How long is the activity to be extended by?"
                             formId="amended-duration"/>
                     </@fdsCheckbox.checkboxItem>
 

@@ -35,7 +35,7 @@
 
                                 <@fdsCheckbox.checkboxItem
                                     path="form.workProgrammeAmendOrExtend['${wp.id}-extend']"
-                                    labelText="Amend duration">
+                                    labelText="Extend duration">
                                     <@duration.threeFieldDuration
                                         dayPath="form.workProgrammeDurations['${wp.id}'].days"
                                         monthPath="form.workProgrammeDurations['${wp.id}'].months"
@@ -105,7 +105,7 @@
 
                                 <@fdsCheckbox.checkboxItem
                                     path="form.workProgrammeAmendOrExtend['${wp.id}-extend']"
-                                    labelText="Amend duration">
+                                    labelText="Extend duration">
                                     <@duration.threeFieldDuration
                                         dayPath="form.workProgrammeDurations['${wp.id}'].days"
                                         monthPath="form.workProgrammeDurations['${wp.id}'].months"

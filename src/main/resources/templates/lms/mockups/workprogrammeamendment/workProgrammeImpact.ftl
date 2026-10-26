@@ -17,7 +17,7 @@
             fieldsetHeadingClass="govuk-fieldset__legend--m"
             hiddenContent=true>
 
-            <@fdsRadio.radioItem path="form.action" itemMap={"amend": "Amend duration or text"} isFirstItem=true>
+            <@fdsRadio.radioItem path="form.action" itemMap={"amend": "Extend duration or text"} isFirstItem=true>
                 <@fdsCheckbox.checkboxGroup
                     path="form.action"
                     fieldsetHeadingText="What do you want to do?"
@@ -28,7 +28,7 @@
 
                     <@fdsCheckbox.checkboxItem
                         path="form.extendDuration"
-                        labelText="Amend duration">
+                        labelText="Extend duration">
                         <@duration.threeFieldDuration
                             dayPath="form.duration.days"
                             monthPath="form.duration.months"

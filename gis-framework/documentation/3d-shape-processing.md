@@ -53,3 +53,4 @@ Every step moves down and there are finitely many polygons, so the sweep always 
 ## Examples
 
 - [Feature containment](feature-containment.md)
+- [Feature equality](feature-equality.md)

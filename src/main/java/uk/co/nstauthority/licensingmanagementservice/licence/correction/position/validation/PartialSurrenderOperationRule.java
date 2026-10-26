@@ -27,7 +27,7 @@ public enum PartialSurrenderOperationRule implements PositionValidationRule {
       "Block after surrender must not overlap licence block %s"
   ),
   AREAS_CHANGED(
-      "Select the areas being surrendered again as the block's areas have changed"
+      "Select the areas being surrendered again as the block's retained area has changed"
   );
 
   private final String message;

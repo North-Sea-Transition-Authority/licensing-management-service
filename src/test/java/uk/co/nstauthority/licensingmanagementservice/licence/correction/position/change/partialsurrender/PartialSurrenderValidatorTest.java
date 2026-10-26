@@ -157,7 +157,7 @@ class PartialSurrenderValidatorTest {
     var errors = partialSurrenderValidator.validate(partialSurrenderOfBlock(), STATE, POSITION_DATE, null);
 
     assertThat(errors).containsExactly(
-        "Block 30/1: Select the areas being surrendered again as the block's areas have changed"
+        "Block 30/1: Select the areas being surrendered again as the block's retained area has changed"
     );
   }
 

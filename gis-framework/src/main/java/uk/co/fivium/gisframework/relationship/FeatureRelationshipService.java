@@ -1,12 +1,20 @@
 package uk.co.fivium.gisframework.relationship;
 
 import java.util.Collection;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.SortedSet;
+import java.util.TreeSet;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.springframework.stereotype.Service;
+import uk.co.fivium.gisframework.feature.EntityBackedFeature;
 import uk.co.fivium.gisframework.feature.Feature;
 import uk.co.fivium.gisframework.feature.FeatureService;
 import uk.co.fivium.gisframework.feature.Line;
+import uk.co.fivium.gisframework.feature.Polygon;
 import uk.co.fivium.gisframework.feature.PolygonService;
 import uk.co.fivium.gisframework.grpc.GrpcClientService;
 
@@ -139,6 +147,67 @@ public class FeatureRelationshipService {
    *                                  system.
    */
   public boolean is2dTopologicallyEqual(Collection<Feature> features, Feature otherFeature) {
+    validateFeaturesToCompare(features, otherFeature);
+
+    var polygonsLines = featureService.getEntityBackedFeatures(features).stream()
+        .flatMap(entityBackedFeature -> entityBackedFeature.polygonToLines().values().stream())
+        .toList();
+
+    return is2dTopologicallyEqual(polygonsLines, featureService.getEntityBackedFeature(otherFeature));
+  }
+
+  /**
+   * Checks whether the union of the features covers exactly the same shape as another feature in three dimensions.
+   * Both sides are swept down through every depth where either side's polygons start or end, and at each depth the
+   * polygons covering it are unioned and compared in two dimensions. A depth covered by only one side is not equal; a
+   * depth covered by neither side is skipped.
+   *
+   * @param features     The features to union and compare.
+   * @param otherFeature The feature to compare against.
+   * @return true if the unioned features are topologically equal to the other feature at every depth, false otherwise.
+   * @throws IllegalArgumentException if no features are given, any feature is not in the other feature's coordinate
+   *                                  system, or either side has no polygons.
+   */
+  public boolean is3dTopologicallyEqual(Collection<Feature> features, Feature otherFeature) {
+    validateFeaturesToCompare(features, otherFeature);
+
+    Map<Polygon, List<Line>> polygonToLines = new LinkedHashMap<>();
+    featureService.getEntityBackedFeatures(features)
+        .forEach(entityBackedFeature -> polygonToLines.putAll(entityBackedFeature.polygonToLines()));
+
+    var otherPolygonToLines = featureService.getEntityBackedFeature(otherFeature).polygonToLines();
+
+    for (var depth : getDepthsShallowestFirst(polygonToLines.keySet(), otherPolygonToLines.keySet())) {
+      var polygonToLinesAtDepth = getPolygonsCoveringDepth(polygonToLines, depth);
+      var otherPolygonToLinesAtDepth = getPolygonsCoveringDepth(otherPolygonToLines, depth);
+
+      if (polygonToLinesAtDepth.isEmpty() && otherPolygonToLinesAtDepth.isEmpty()) {
+        continue;
+      }
+
+      if (polygonToLinesAtDepth.isEmpty() || otherPolygonToLinesAtDepth.isEmpty()) {
+        return false;
+      }
+
+      var is2dEqual = is2dTopologicallyEqual(
+          polygonToLinesAtDepth.values(),
+          new EntityBackedFeature(otherFeature, otherPolygonToLinesAtDepth)
+      );
+      if (!is2dEqual) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  private boolean is2dTopologicallyEqual(Collection<List<Line>> polygonsLines, EntityBackedFeature otherFeature) {
+    return grpcClientService
+        .validateTopologicallyEqual(toPolygonLineEsriJsons(polygonsLines), otherFeature)
+        .getIsValid();
+  }
+
+  private void validateFeaturesToCompare(Collection<Feature> features, Feature otherFeature) {
     if (features.isEmpty()) {
       throw new IllegalArgumentException("Must provide at least one feature to compare");
     }
@@ -148,14 +217,32 @@ public class FeatureRelationshipService {
       throw new IllegalArgumentException(
           "All features to compare must use the other feature's coordinate system %s".formatted(coordinateSystem));
     }
+  }
 
-    var polygonLines = featureService.getEntityBackedFeatures(features).stream()
-        .flatMap(entityBackedFeature -> entityBackedFeature.polygonToLines().values().stream())
+  private SortedSet<Long> getDepthsShallowestFirst(Collection<Polygon> polygons, Collection<Polygon> otherPolygons) {
+    SortedSet<Long> depths = new TreeSet<>(Comparator.reverseOrder());
+    Stream.concat(polygons.stream(), otherPolygons.stream())
+        .forEach(polygon -> {
+          depths.add(polygon.getEffectiveStartDepth());
+          depths.add(polygon.getEffectiveEndDepth());
+        });
+    return depths;
+  }
+
+  private Map<Polygon, List<Line>> getPolygonsCoveringDepth(Map<Polygon, List<Line>> polygonToLines, long depth) {
+    return polygonToLines.entrySet().stream()
+        .filter(entry -> entry.getKey().coversDepth(depth))
+        .collect(Collectors.toMap(
+            Map.Entry::getKey,
+            Map.Entry::getValue,
+            (lines, duplicateLines) -> lines,
+            LinkedHashMap::new
+        ));
+  }
+
+  private List<List<String>> toPolygonLineEsriJsons(Collection<List<Line>> polygonsLines) {
+    return polygonsLines.stream()
         .map(lines -> lines.stream().map(Line::getEsriJson).toList())
         .toList();
-
-    return grpcClientService
-        .validateTopologicallyEqual(polygonLines, featureService.getEntityBackedFeature(otherFeature))
-        .getIsValid();
   }
 }

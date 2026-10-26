@@ -75,13 +75,14 @@ describe("generateSnapPoints", () => {
     );
 
     it("generates snap points only within valid BNG bounds when extent in between the southern boundary", () => {
-      // Covers southern England + northern France; southern portion maps to negative northing
-      const points = generateSnapPoints(-2, 49.5, 1, 51, SupportedWkid.BNG_WKID, 500);
+      // Narrow strip of the English Channel either side of BNG northing 0; southern portion maps to negative northing
+      const points = generateSnapPoints(-2, 49.8, -1.9, 50, SupportedWkid.BNG_WKID, 500);
       expect(points.length).toBeGreaterThan(0);
       points.forEach((p) => {
         expect(p.originalSrsCoordinates[1]).toBeGreaterThanOrEqual(0);
         expect(p.originalSrsCoordinates[1]).toBeLessThanOrEqual(1300000);
       });
+      expect(Math.min(...points.map(p => p.originalSrsCoordinates[1]))).toBe(0);
     });
 
     it("does not apply bounds filtering for ED50 extents that would be outside BNG", () => {

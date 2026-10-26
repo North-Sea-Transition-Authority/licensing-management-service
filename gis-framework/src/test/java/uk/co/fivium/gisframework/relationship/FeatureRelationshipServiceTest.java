@@ -2,9 +2,12 @@ package uk.co.fivium.gisframework.relationship;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -20,7 +23,9 @@ import uk.co.fivium.gisframework.feature.EntityBackedFeature;
 import uk.co.fivium.gisframework.feature.Feature;
 import uk.co.fivium.gisframework.feature.FeatureService;
 import uk.co.fivium.gisframework.feature.FeatureTestUtil;
+import uk.co.fivium.gisframework.feature.Line;
 import uk.co.fivium.gisframework.feature.LineTestUtil;
+import uk.co.fivium.gisframework.feature.Polygon;
 import uk.co.fivium.gisframework.feature.PolygonService;
 import uk.co.fivium.gisframework.feature.PolygonTestUtil;
 import uk.co.fivium.gisframework.grpc.GrpcClientService;
@@ -307,5 +312,262 @@ class FeatureRelationshipServiceTest {
     var result = featureRelationshipService.is2dTopologicallyEqual(features, otherFeature);
 
     assertThat(result).isEqualTo(isValid);
+  }
+
+  @Test
+  void is3dTopologicallyEqual_whenNoFeatures_thenThrowsException() {
+    var otherFeature = FeatureTestUtil.newBuilder().build();
+
+    assertThatThrownBy(() -> featureRelationshipService.is3dTopologicallyEqual(List.of(), otherFeature))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("Must provide at least one feature to compare");
+    verifyNoInteractions(featureService, polygonService, grpcClientService);
+  }
+
+  @Test
+  void is3dTopologicallyEqual_whenFeatureCoordinateSystemDiffers_thenThrowsException() {
+    var otherFeature = FeatureTestUtil.newBuilder()
+        .withCoordinateSystem(CoordinateSystem.ED50)
+        .build();
+    var matchingFeature = FeatureTestUtil.newBuilder()
+        .withCoordinateSystem(CoordinateSystem.ED50)
+        .build();
+    var differingFeature = FeatureTestUtil.newBuilder()
+        .withCoordinateSystem(CoordinateSystem.BRITISH_NATIONAL_GRID)
+        .build();
+    var features = List.of(matchingFeature, differingFeature);
+
+    assertThatThrownBy(() -> featureRelationshipService.is3dTopologicallyEqual(features, otherFeature))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("All features to compare must use the other feature's coordinate system ED50");
+    verifyNoInteractions(featureService, polygonService, grpcClientService);
+  }
+
+  @Test
+  void is3dTopologicallyEqual_whenAllDepthsNull_thenComparedOnce() {
+    var feature = FeatureTestUtil.newBuilder().build();
+    var otherFeature = FeatureTestUtil.newBuilder().build();
+    var features = List.of(feature);
+    var otherPolygonToLines = polygonToLines(polygon(otherFeature, null, null), "other line");
+
+    when(featureService.getEntityBackedFeatures(features))
+        .thenReturn(List.of(new EntityBackedFeature(feature, polygonToLines(polygon(feature, null, null), "line"))));
+    when(featureService.getEntityBackedFeature(otherFeature))
+        .thenReturn(new EntityBackedFeature(otherFeature, otherPolygonToLines));
+    when(grpcClientService.validateTopologicallyEqual(
+        List.of(List.of("line")),
+        new EntityBackedFeature(otherFeature, otherPolygonToLines)
+    )).thenReturn(ValidationResponse.newBuilder().setIsValid(true).build());
+
+    var result = featureRelationshipService.is3dTopologicallyEqual(features, otherFeature);
+
+    assertThat(result).isTrue();
+    verify(grpcClientService).validateTopologicallyEqual(
+        List.of(List.of("line")),
+        new EntityBackedFeature(otherFeature, otherPolygonToLines)
+    );
+    verifyNoMoreInteractions(grpcClientService);
+  }
+
+  @Test
+  void is3dTopologicallyEqual_whenLayeredFeaturesMatchSinglePolygon_thenTrue() {
+    var upperFeature = FeatureTestUtil.newBuilder().build();
+    var lowerFeature = FeatureTestUtil.newBuilder().build();
+    var otherFeature = FeatureTestUtil.newBuilder().build();
+    var features = List.of(upperFeature, lowerFeature);
+    var otherPolygonToLines = polygonToLines(polygon(otherFeature, 0L, -200L), "other line");
+
+    when(featureService.getEntityBackedFeatures(features)).thenReturn(List.of(
+        new EntityBackedFeature(upperFeature, polygonToLines(polygon(upperFeature, 0L, -100L), "upper line")),
+        new EntityBackedFeature(lowerFeature, polygonToLines(polygon(lowerFeature, -100L, -200L), "lower line"))
+    ));
+    when(featureService.getEntityBackedFeature(otherFeature))
+        .thenReturn(new EntityBackedFeature(otherFeature, otherPolygonToLines));
+    when(grpcClientService.validateTopologicallyEqual(
+        List.of(List.of("upper line")),
+        new EntityBackedFeature(otherFeature, otherPolygonToLines)
+    )).thenReturn(ValidationResponse.newBuilder().setIsValid(true).build());
+    when(grpcClientService.validateTopologicallyEqual(
+        List.of(List.of("lower line")),
+        new EntityBackedFeature(otherFeature, otherPolygonToLines)
+    )).thenReturn(ValidationResponse.newBuilder().setIsValid(true).build());
+
+    var result = featureRelationshipService.is3dTopologicallyEqual(features, otherFeature);
+
+    assertThat(result).isTrue();
+  }
+
+  @Test
+  void is3dTopologicallyEqual_whenPolygonsAtSameDepthInDifferentFeatures_thenComparedTogether() {
+    var westFeature = FeatureTestUtil.newBuilder().build();
+    var eastFeature = FeatureTestUtil.newBuilder().build();
+    var otherFeature = FeatureTestUtil.newBuilder().build();
+    var features = List.of(westFeature, eastFeature);
+    var otherPolygonToLines = polygonToLines(polygon(otherFeature, 0L, -100L), "other line");
+
+    when(featureService.getEntityBackedFeatures(features)).thenReturn(List.of(
+        new EntityBackedFeature(westFeature, polygonToLines(polygon(westFeature, 0L, -100L), "west line")),
+        new EntityBackedFeature(eastFeature, polygonToLines(polygon(eastFeature, 0L, -100L), "east line"))
+    ));
+    when(featureService.getEntityBackedFeature(otherFeature))
+        .thenReturn(new EntityBackedFeature(otherFeature, otherPolygonToLines));
+    when(grpcClientService.validateTopologicallyEqual(
+        List.of(List.of("west line"), List.of("east line")),
+        new EntityBackedFeature(otherFeature, otherPolygonToLines)
+    )).thenReturn(ValidationResponse.newBuilder().setIsValid(true).build());
+
+    var result = featureRelationshipService.is3dTopologicallyEqual(features, otherFeature);
+
+    assertThat(result).isTrue();
+  }
+
+  @Test
+  void is3dTopologicallyEqual_whenPolygonSpansSeveralLayers_thenUnionedIntoEachLayer() {
+    var feature = FeatureTestUtil.newBuilder().build();
+    var otherFeature = FeatureTestUtil.newBuilder().build();
+    var features = List.of(feature);
+    Map<Polygon, List<Line>> featurePolygonToLines = new LinkedHashMap<>();
+    featurePolygonToLines.putAll(polygonToLines(polygon(feature, 0L, -100L), "upper west line"));
+    featurePolygonToLines.putAll(polygonToLines(polygon(feature, -100L, -200L), "lower west line"));
+    featurePolygonToLines.putAll(polygonToLines(polygon(feature, 0L, -200L), "east line"));
+    var otherPolygonToLines = polygonToLines(polygon(otherFeature, 0L, -200L), "other line");
+
+    when(featureService.getEntityBackedFeatures(features))
+        .thenReturn(List.of(new EntityBackedFeature(feature, featurePolygonToLines)));
+    when(featureService.getEntityBackedFeature(otherFeature))
+        .thenReturn(new EntityBackedFeature(otherFeature, otherPolygonToLines));
+    when(grpcClientService.validateTopologicallyEqual(
+        List.of(List.of("upper west line"), List.of("east line")),
+        new EntityBackedFeature(otherFeature, otherPolygonToLines)
+    )).thenReturn(ValidationResponse.newBuilder().setIsValid(true).build());
+    when(grpcClientService.validateTopologicallyEqual(
+        List.of(List.of("lower west line"), List.of("east line")),
+        new EntityBackedFeature(otherFeature, otherPolygonToLines)
+    )).thenReturn(ValidationResponse.newBuilder().setIsValid(true).build());
+
+    var result = featureRelationshipService.is3dTopologicallyEqual(features, otherFeature);
+
+    assertThat(result).isTrue();
+  }
+
+  @Test
+  void is3dTopologicallyEqual_whenFirstDepthNotEqual_thenFalseWithoutCheckingDeeper() {
+    var upperFeature = FeatureTestUtil.newBuilder().build();
+    var lowerFeature = FeatureTestUtil.newBuilder().build();
+    var otherFeature = FeatureTestUtil.newBuilder().build();
+    var features = List.of(upperFeature, lowerFeature);
+    var otherPolygonToLines = polygonToLines(polygon(otherFeature, 0L, -200L), "other line");
+
+    when(featureService.getEntityBackedFeatures(features)).thenReturn(List.of(
+        new EntityBackedFeature(upperFeature, polygonToLines(polygon(upperFeature, 0L, -100L), "upper line")),
+        new EntityBackedFeature(lowerFeature, polygonToLines(polygon(lowerFeature, -100L, -200L), "lower line"))
+    ));
+    when(featureService.getEntityBackedFeature(otherFeature))
+        .thenReturn(new EntityBackedFeature(otherFeature, otherPolygonToLines));
+    when(grpcClientService.validateTopologicallyEqual(
+        List.of(List.of("upper line")),
+        new EntityBackedFeature(otherFeature, otherPolygonToLines)
+    )).thenReturn(ValidationResponse.newBuilder().setIsValid(false).build());
+
+    var result = featureRelationshipService.is3dTopologicallyEqual(features, otherFeature);
+
+    assertThat(result).isFalse();
+    verify(grpcClientService).validateTopologicallyEqual(
+        List.of(List.of("upper line")),
+        new EntityBackedFeature(otherFeature, otherPolygonToLines)
+    );
+    verifyNoMoreInteractions(grpcClientService);
+  }
+
+  @Test
+  void is3dTopologicallyEqual_whenOtherFeatureHasDepthGap_thenFalse() {
+    var feature = FeatureTestUtil.newBuilder().build();
+    var otherFeature = FeatureTestUtil.newBuilder().build();
+    var features = List.of(feature);
+    var otherUpperPolygonToLines = polygonToLines(polygon(otherFeature, 0L, -50L), "other upper line");
+    Map<Polygon, List<Line>> otherPolygonToLines = new LinkedHashMap<>(otherUpperPolygonToLines);
+    otherPolygonToLines.putAll(polygonToLines(polygon(otherFeature, -100L, -200L), "other lower line"));
+
+    when(featureService.getEntityBackedFeatures(features))
+        .thenReturn(List.of(new EntityBackedFeature(feature, polygonToLines(polygon(feature, 0L, -200L), "line"))));
+    when(featureService.getEntityBackedFeature(otherFeature))
+        .thenReturn(new EntityBackedFeature(otherFeature, otherPolygonToLines));
+    when(grpcClientService.validateTopologicallyEqual(
+        List.of(List.of("line")),
+        new EntityBackedFeature(otherFeature, otherUpperPolygonToLines)
+    )).thenReturn(ValidationResponse.newBuilder().setIsValid(true).build());
+
+    var result = featureRelationshipService.is3dTopologicallyEqual(features, otherFeature);
+
+    assertThat(result).isFalse();
+    verify(grpcClientService).validateTopologicallyEqual(
+        List.of(List.of("line")),
+        new EntityBackedFeature(otherFeature, otherUpperPolygonToLines)
+    );
+    verifyNoMoreInteractions(grpcClientService);
+  }
+
+  @Test
+  void is3dTopologicallyEqual_whenBothHaveSameDepthGap_thenTrue() {
+    var feature = FeatureTestUtil.newBuilder().build();
+    var otherFeature = FeatureTestUtil.newBuilder().build();
+    var features = List.of(feature);
+    Map<Polygon, List<Line>> featurePolygonToLines = new LinkedHashMap<>();
+    featurePolygonToLines.putAll(polygonToLines(polygon(feature, 0L, -50L), "upper line"));
+    featurePolygonToLines.putAll(polygonToLines(polygon(feature, -100L, -200L), "lower line"));
+    var otherUpperPolygonToLines = polygonToLines(polygon(otherFeature, 0L, -50L), "other upper line");
+    var otherLowerPolygonToLines = polygonToLines(polygon(otherFeature, -100L, -200L), "other lower line");
+    Map<Polygon, List<Line>> otherPolygonToLines = new LinkedHashMap<>(otherUpperPolygonToLines);
+    otherPolygonToLines.putAll(otherLowerPolygonToLines);
+
+    when(featureService.getEntityBackedFeatures(features))
+        .thenReturn(List.of(new EntityBackedFeature(feature, featurePolygonToLines)));
+    when(featureService.getEntityBackedFeature(otherFeature))
+        .thenReturn(new EntityBackedFeature(otherFeature, otherPolygonToLines));
+    when(grpcClientService.validateTopologicallyEqual(
+        List.of(List.of("upper line")),
+        new EntityBackedFeature(otherFeature, otherUpperPolygonToLines)
+    )).thenReturn(ValidationResponse.newBuilder().setIsValid(true).build());
+    when(grpcClientService.validateTopologicallyEqual(
+        List.of(List.of("lower line")),
+        new EntityBackedFeature(otherFeature, otherLowerPolygonToLines)
+    )).thenReturn(ValidationResponse.newBuilder().setIsValid(true).build());
+
+    var result = featureRelationshipService.is3dTopologicallyEqual(features, otherFeature);
+
+    assertThat(result).isTrue();
+  }
+
+  @Test
+  void is3dTopologicallyEqual_whenFeatureBoundedAndOtherFeatureInfinite_thenFalse() {
+    var feature = FeatureTestUtil.newBuilder().build();
+    var otherFeature = FeatureTestUtil.newBuilder().build();
+    var features = List.of(feature);
+    var otherPolygonToLines = polygonToLines(polygon(otherFeature, 0L, null), "other line");
+
+    when(featureService.getEntityBackedFeatures(features))
+        .thenReturn(List.of(new EntityBackedFeature(feature, polygonToLines(polygon(feature, 0L, -100L), "line"))));
+    when(featureService.getEntityBackedFeature(otherFeature))
+        .thenReturn(new EntityBackedFeature(otherFeature, otherPolygonToLines));
+    when(grpcClientService.validateTopologicallyEqual(
+        List.of(List.of("line")),
+        new EntityBackedFeature(otherFeature, otherPolygonToLines)
+    )).thenReturn(ValidationResponse.newBuilder().setIsValid(true).build());
+
+    var result = featureRelationshipService.is3dTopologicallyEqual(features, otherFeature);
+
+    assertThat(result).isFalse();
+  }
+
+  private Polygon polygon(Feature feature, Long startDepth, Long endDepth) {
+    return PolygonTestUtil.newBuilder()
+        .withFeature(feature)
+        .withStartDepth(startDepth)
+        .withEndDepth(endDepth)
+        .build();
+  }
+
+  private Map<Polygon, List<Line>> polygonToLines(Polygon polygon, String lineEsriJson) {
+    return Map.of(polygon, List.of(LineTestUtil.newBuilder().withPolygon(polygon).withEsriJson(lineEsriJson).build()));
   }
 }

@@ -39,6 +39,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenseeO
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaDetails;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaSurrenderOutcome;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.TransferEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicenceCleardownService;
@@ -82,6 +83,8 @@ class TestHarnessServiceTest {
   private static final Feature PARTIALLY_SURRENDERED_SUBAREA = subarea("ALL");
   private static final Feature UNTOUCHED_SUBAREA = subarea("ALL");
   private static final Feature CROPPED_SUBAREA = subarea("ALL");
+  private static final Feature WESTERN_SUBAREA_HALF = subarea("A");
+  private static final Feature EASTERN_SUBAREA_HALF = subarea("B");
   private static final Feature SURRENDERED_HALF = FeatureTestUtil.builder()
       .withFeatureName("30/8 western half")
       .build();
@@ -155,6 +158,15 @@ class TestHarnessServiceTest {
         .thenReturn(CROPPED_SUBAREA);
   }
 
+  private void givenUntouchedSubareaSplit(List<LicencePosition> positions) {
+    when(licencePositionFeatureTestHarnessService.splitSubareaInHalf(
+        UNTOUCHED_SUBAREA,
+        UNTOUCHED_BLOCK,
+        positions.getLast().getPositionDate()
+    ))
+        .thenReturn(List.of(WESTERN_SUBAREA_HALF, EASTERN_SUBAREA_HALF));
+  }
+
   private static LicencePosition penultimate(List<LicencePosition> positions) {
     return positions.get(positions.size() - 2);
   }
@@ -195,6 +207,7 @@ class TestHarnessServiceTest {
     when(licencePositionService.getExecutedChronologicalLicencePositions(licence)).thenReturn(positions);
     givenSeededBlocks(licence);
     givenPartiallySurrenderedBlockSplit(positions);
+    givenUntouchedSubareaSplit(positions);
 
     testHarnessService.generateLicencePositions(licence, secondaryLicence);
 
@@ -232,11 +245,16 @@ class TestHarnessServiceTest {
     when(licencePositionService.getExecutedChronologicalLicencePositions(licence)).thenReturn(positions);
     givenSeededBlocks(licence);
     givenPartiallySurrenderedBlockSplit(positions);
+    givenUntouchedSubareaSplit(positions);
 
     testHarnessService.generateLicencePositions(licence, secondaryLicence);
 
-    verify(licencePositionChangeService, times(5)).createLicencePositionChange(
-        positionCaptor.capture(), operationsCaptor.capture(), eq(1), eq(LicencePositionChangeStatus.CONSENTED));
+    verify(licencePositionChangeService, times(6)).createLicencePositionChange(
+        positionCaptor.capture(),
+        operationsCaptor.capture(),
+        eq(1),
+        eq(LicencePositionChangeStatus.CONSENTED)
+    );
 
     //Order: 2 Administrator Positions; first = index 0; non-final = index size - 4 = 1
     assertThat(positionCaptor.getAllValues())
@@ -260,11 +278,16 @@ class TestHarnessServiceTest {
     when(licencePositionService.getExecutedChronologicalLicencePositions(licence)).thenReturn(positions);
     givenSeededBlocks(licence);
     givenPartiallySurrenderedBlockSplit(positions);
+    givenUntouchedSubareaSplit(positions);
 
     testHarnessService.generateLicencePositions(licence, secondaryLicence);
 
-    verify(licencePositionChangeService, times(5)).createLicencePositionChange(
-        positionCaptor.capture(), operationsCaptor.capture(), eq(1), eq(LicencePositionChangeStatus.CONSENTED));
+    verify(licencePositionChangeService, times(6)).createLicencePositionChange(
+        positionCaptor.capture(),
+        operationsCaptor.capture(),
+        eq(1),
+        eq(LicencePositionChangeStatus.CONSENTED)
+    );
 
     // first = index 0 (Shell); non-final = index size - 3 = 2 (BP)
     assertThat(positionCaptor.getAllValues()).startsWith(positions.get(0), positions.get(2));
@@ -282,14 +305,19 @@ class TestHarnessServiceTest {
     when(licencePositionService.getExecutedChronologicalLicencePositions(licence)).thenReturn(positions);
     givenSeededBlocks(licence);
     givenPartiallySurrenderedBlockSplit(positions);
+    givenUntouchedSubareaSplit(positions);
 
     testHarnessService.generateLicencePositions(licence, secondaryLicence);
 
-    verify(licencePositionChangeService, times(5)).createLicencePositionChange(
-        positionCaptor.capture(), operationsCaptor.capture(), eq(1), eq(LicencePositionChangeStatus.CONSENTED));
+    verify(licencePositionChangeService, times(6)).createLicencePositionChange(
+        positionCaptor.capture(),
+        operationsCaptor.capture(),
+        eq(1),
+        eq(LicencePositionChangeStatus.CONSENTED)
+    );
 
     // penultimate = index size - 2 = 3
-    assertThat(positionCaptor.getAllValues().getLast()).isEqualTo(positions.get(3));
+    assertThat(positionCaptor.getAllValues().get(4)).isEqualTo(positions.get(3));
 
     var croppedSubarea = new SubareaDetails(CROPPED_SUBAREA.getId(), "ALL", "ALL");
     var expectedFullSurrender = new PartialSurrenderOperation.SurrenderDetails(
@@ -316,8 +344,70 @@ class TestHarnessServiceTest {
             PARTIALLY_SURRENDERED_BLOCK.getId(), expectedPartialSurrender
         ))
         .build();
-    assertThat(operationsCaptor.getAllValues().getLast()).containsExactly(expectedSurrender);
+    assertThat(operationsCaptor.getAllValues().get(4)).containsExactly(expectedSurrender);
     verify(commandJourneyService).deleteAllExcludingActiveFeatures(PARTIAL_SURRENDER_COMMAND_JOURNEY_ID);
+  }
+
+  @Test
+  void generateLicencePositions_whenPrimaryIsProduction_addsSubareaChangeOnMostRecentPosition() {
+    var licence = production(1);
+    var secondaryLicence = carbonStorage(2);
+    var positions = buildPositions(5);
+    when(licencePositionService.getExecutedChronologicalLicencePositions(licence)).thenReturn(positions);
+    givenSeededBlocks(licence);
+    givenPartiallySurrenderedBlockSplit(positions);
+    givenUntouchedSubareaSplit(positions);
+
+    testHarnessService.generateLicencePositions(licence, secondaryLicence);
+
+    verify(licencePositionChangeService, times(6)).createLicencePositionChange(
+        positionCaptor.capture(),
+        operationsCaptor.capture(),
+        eq(1),
+        eq(LicencePositionChangeStatus.CONSENTED)
+    );
+
+    assertThat(positionCaptor.getAllValues().getLast()).isEqualTo(positions.getLast());
+
+    var expectedSubareaChange = LicenceOperation.newSubAreaOperation()
+        .withBlockFeatureId(UNTOUCHED_BLOCK.getId())
+        .withReplacedSubareas(List.of(new SubareaDetails(UNTOUCHED_SUBAREA.getId(), "ALL", "ALL")))
+        .withOutputSubareas(List.of(
+            new SubareaDetails(WESTERN_SUBAREA_HALF.getId(), "A", "A"),
+            new SubareaDetails(EASTERN_SUBAREA_HALF.getId(), "B", "B")
+        ))
+        .build();
+    assertThat(operationsCaptor.getAllValues().getLast())
+        .usingRecursiveFieldByFieldElementComparatorIgnoringFields("id")
+        .containsExactly(expectedSubareaChange);
+  }
+
+  @Test
+  void generateLicencePositions_whenPrimaryIsProductionWithNoBlockLeftBySurrender_addsNoSubareaChange() {
+    var licence = production(1);
+    var secondaryLicence = carbonStorage(2);
+    var positions = buildPositions(5);
+    when(licencePositionService.getExecutedChronologicalLicencePositions(licence)).thenReturn(positions);
+    when(licencePositionFeatureTestHarnessService.createAndLinkFeatures(licence)).thenReturn(new SeededFeatures(
+        List.of(FULLY_SURRENDERED_BLOCK, PARTIALLY_SURRENDERED_BLOCK),
+        Map.of(
+            FULLY_SURRENDERED_BLOCK.getId(), List.of(FULLY_SURRENDERED_SUBAREA),
+            PARTIALLY_SURRENDERED_BLOCK.getId(), List.of(PARTIALLY_SURRENDERED_SUBAREA)
+        )
+    ));
+    givenPartiallySurrenderedBlockSplit(positions);
+
+    testHarnessService.generateLicencePositions(licence, secondaryLicence);
+
+    verify(licencePositionChangeService, times(5)).createLicencePositionChange(
+        positionCaptor.capture(),
+        operationsCaptor.capture(),
+        eq(1),
+        eq(LicencePositionChangeStatus.CONSENTED)
+    );
+
+    assertThat(operationsCaptor.getAllValues().stream().flatMap(List::stream))
+        .noneMatch(SubareaOperation.class::isInstance);
   }
 
   @Test
@@ -336,7 +426,8 @@ class TestHarnessServiceTest {
         positionCaptor.capture(), operationsCaptor.capture(), eq(1), eq(LicencePositionChangeStatus.CONSENTED));
 
     assertThat(operationsCaptor.getAllValues().stream().flatMap(List::stream))
-        .noneMatch(PartialSurrenderOperation.class::isInstance);
+        .noneMatch(PartialSurrenderOperation.class::isInstance)
+        .noneMatch(SubareaOperation.class::isInstance);
     verifyNoInteractions(commandJourneyService);
   }
 

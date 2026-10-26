@@ -49,6 +49,8 @@ class LicencePositionFeatureTestHarnessService {
   // no real block is in this quadrant, so it marks out the blocks the harness has seeded
   private static final String QUADRANT_NUMBER = "999";
   private static final String SUBAREA_NAME = "ALL";
+  private static final String WESTERN_SUBAREA_NAME = "A";
+  private static final String EASTERN_SUBAREA_NAME = "B";
   private static final int FIRST_CHANGE_ORDER = 1;
 
   private static final CoordinateSystem COORDINATE_SYSTEM = CoordinateSystem.ED50;
@@ -254,6 +256,48 @@ class LicencePositionFeatureTestHarnessService {
     return croppedSubarea;
   }
 
+  /**
+   * Cuts a subarea down the middle into two new subareas, as a subarea change splitting it would. The original subarea
+   * is ended and both halves start on the date of the change, as applying the change does.
+   *
+   * @param block the block the subarea covers
+   * @return the halves of the subarea, the western one first
+   */
+  @Transactional
+  public List<Feature> splitSubareaInHalf(
+      Feature subarea,
+      Feature block,
+      LocalDate changeDate
+  ) {
+    var blockShape = blockShapeOf(block);
+    var westernHalf = createSubareaHalf(subarea, blockShape.westernHalf(), WESTERN_SUBAREA_NAME, changeDate);
+    var easternHalf = createSubareaHalf(subarea, blockShape.easternHalf(), EASTERN_SUBAREA_NAME, changeDate);
+
+    subarea.setEndDate(changeDate);
+    featureService.saveFeature(subarea);
+
+    return List.of(westernHalf, easternHalf);
+  }
+
+  // unlike a split block, each half of a split subarea is a subarea in its own right, so is given its own name
+  private Feature createSubareaHalf(
+      Feature subarea,
+      Rectangle half,
+      String subareaName,
+      LocalDate startDate
+  ) {
+    var subareaHalf = createShape(
+        "%s_%s".formatted(subarea.getFeatureName(), subareaName),
+        subareaAttributes(subareaName),
+        subarea.getFeatureArea().divide(BigDecimal.TWO),
+        half.edges()
+    );
+    subareaHalf.setStartDate(startDate);
+    featureService.saveFeature(subareaHalf);
+
+    return subareaHalf;
+  }
+
   // a split output keeps the attributes of the shape it came from, and is named after it
   private Feature createHalfBlock(
       Feature block,
@@ -427,9 +471,13 @@ class LicencePositionFeatureTestHarnessService {
   }
 
   private Map<String, String> subareaAttributes() {
+    return subareaAttributes(SUBAREA_NAME);
+  }
+
+  private Map<String, String> subareaAttributes(String subareaName) {
     return Map.of(
         FeatureAttribute.LAYER.name(), Layer.SUBAREAS.name(),
-        FeatureAttribute.NAME.name(), SUBAREA_NAME
+        FeatureAttribute.NAME.name(), subareaName
     );
   }
 

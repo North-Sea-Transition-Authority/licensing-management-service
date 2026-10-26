@@ -33,6 +33,7 @@ class TestHarnessService {
   private static final int SHELL_PLC_ID = 9205;
   private static final int PPRS_TRAINING_ORG = 12845;
   private static final int SURRENDER_CHANGE_ORDER = 1;
+  private static final int SUBAREA_CHANGE_ORDER = 1;
   private static final int BLOCKS_TO_SURRENDER = 2;
 
   private static final BigDecimal SHELL_INITIAL_EQUITY = BigDecimal.valueOf(60);
@@ -96,7 +97,43 @@ class TestHarnessService {
     // a surrender needs blocks to surrender, so it is seeded once the features above exist
     if (licence.getType().isProduction()) {
       generatePartialSurrenderPositionChange(licence, seededFeatures);
+      generateSubareaPositionChange(licence, seededFeatures);
     }
+  }
+
+  /**
+   * The subarea change is made to the first block the surrender leaves alone, so the block still holds the subarea it
+   * was created with going into the most recent position.
+   */
+  private void generateSubareaPositionChange(
+      Licence licence,
+      SeededFeatures seededFeatures
+  ) {
+    if (seededFeatures.blocks().size() <= BLOCKS_TO_SURRENDER) {
+      return;
+    }
+
+    var mostRecentPosition = licencePositionService.getExecutedChronologicalLicencePositions(licence).getLast();
+    var block = seededFeatures.blocks().get(BLOCKS_TO_SURRENDER);
+
+    var subareaHalves = licencePositionFeatureTestHarnessService.splitSubareaInHalf(
+        seededFeatures.subareaOf(block),
+        block,
+        mostRecentPosition.getPositionDate()
+    );
+
+    LicenceOperation subareaOperation = LicenceOperation.newSubAreaOperation()
+        .withBlockFeatureId(block.getId())
+        .withReplacedSubareas(List.of(seededFeatures.subareaDetailsOf(block)))
+        .withOutputSubareas(subareaHalves.stream().map(SeededFeatures::toSubareaDetails).toList())
+        .build();
+
+    licencePositionChangeService.createLicencePositionChange(
+        mostRecentPosition,
+        List.of(subareaOperation),
+        SUBAREA_CHANGE_ORDER,
+        LicencePositionChangeStatus.CONSENTED
+    );
   }
 
   /**

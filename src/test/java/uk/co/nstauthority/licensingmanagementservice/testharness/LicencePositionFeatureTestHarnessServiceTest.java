@@ -88,6 +88,8 @@ class LicencePositionFeatureTestHarnessServiceTest {
 
   private static final LocalDate SURRENDER_DATE = LocalDate.of(2026, Month.AUGUST, 1);
 
+  private static final LocalDate SUBAREA_CHANGE_DATE = LocalDate.of(2026, Month.SEPTEMBER, 1);
+
   private static final Feature BLOCK = FeatureTestUtil.builder()
       .withFeatureName("block 30/1")
       .withAttributes(BLOCK_ATTRIBUTES)
@@ -456,6 +458,52 @@ class LicencePositionFeatureTestHarnessServiceTest {
   }
 
   @Test
+  void splitSubareaInHalf_assertTheSubareaBecomesTwoNamedHalvesStartingOnTheChangeDate() {
+    givenFeaturesCanBePersisted();
+    var subarea = FeatureTestUtil.builder()
+        .withFeatureName("subarea 30/1a")
+        .withAttributes(SUBAREA_ATTRIBUTES)
+        .withFeatureArea(FEATURE_AREA)
+        .build();
+
+    var subareaHalves = licencePositionFeatureTestHarnessService.splitSubareaInHalf(subarea, BLOCK, SUBAREA_CHANGE_DATE);
+
+    assertThat(subareaHalves)
+        .usingRecursiveFieldByFieldElementComparatorIgnoringFields("id")
+        .containsExactly(
+            expectedSubareaHalf("subarea 30/1a_A", "A"),
+            expectedSubareaHalf("subarea 30/1a_B", "B")
+        );
+
+    verify(polygonService, times(2)).savePolygon(polygonCaptor.capture());
+    verify(lineService, times(2)).saveLines(linesCaptor.capture());
+
+    assertThat(linesCaptor.getAllValues().getFirst())
+        .usingRecursiveFieldByFieldElementComparator()
+        .containsExactlyElementsOf(expectedLines(polygonCaptor.getAllValues().getFirst(), WESTERN_HALF_EDGES));
+
+    assertThat(linesCaptor.getAllValues().getLast())
+        .usingRecursiveFieldByFieldElementComparator()
+        .containsExactlyElementsOf(expectedLines(polygonCaptor.getAllValues().getLast(), EASTERN_HALF_EDGES));
+  }
+
+  @Test
+  void splitSubareaInHalf_assertTheOriginalSubareaEndsOnTheChangeDate() {
+    givenFeaturesCanBePersisted();
+    var subarea = FeatureTestUtil.builder()
+        .withAttributes(SUBAREA_ATTRIBUTES)
+        .withFeatureArea(FEATURE_AREA)
+        .build();
+
+    licencePositionFeatureTestHarnessService.splitSubareaInHalf(subarea, BLOCK, SUBAREA_CHANGE_DATE);
+
+    assertThat(subarea)
+        .extracting(Feature::getStartDate, Feature::getEndDate)
+        .containsExactly(null, SUBAREA_CHANGE_DATE);
+    verify(featureService).saveFeature(subarea);
+  }
+
+  @Test
   void getSeedState_whenABlockCreateHasCreatedBlocks_thenFeaturesAreAlreadySeeded() {
     givenSeedOperationCreating(List.of(UUID.randomUUID()));
 
@@ -518,6 +566,16 @@ class LicencePositionFeatureTestHarnessServiceTest {
     var halfBlock = expectedFeature(featureName, BLOCK_ATTRIBUTES);
     halfBlock.setFeatureArea(FEATURE_AREA.divide(BigDecimal.TWO));
     return halfBlock;
+  }
+
+  private static Feature expectedSubareaHalf(
+      String featureName,
+      String subareaName
+  ) {
+    var subareaHalf = expectedFeature(featureName, Map.of("LAYER", "SUBAREAS", "NAME", subareaName));
+    subareaHalf.setFeatureArea(FEATURE_AREA.divide(BigDecimal.TWO));
+    subareaHalf.setStartDate(SUBAREA_CHANGE_DATE);
+    return subareaHalf;
   }
 
   private static Feature expectedFeature(

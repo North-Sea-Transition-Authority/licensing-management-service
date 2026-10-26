@@ -19,6 +19,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOp
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaDetails;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionChangeOperationUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.spatial.LicencePositionSpatialService;
 
 @Service
@@ -82,6 +84,13 @@ public class SubareaChangeService {
   ) {
     return getSubareaOperationForChangeOrThrow(
         licencePositionCorrectionService.getStagedChangeOrThrow(positionCorrection, changeId));
+  }
+
+  public SubareaOperation getLiveSubareaOperationOrThrow(LicencePositionChange liveChange) {
+    return LicencePositionChangeOperationUtil.findOperation(liveChange, SubareaOperation.class)
+        .orElseThrow(() -> new IllegalStateException(
+            "Change with id %s is not a subarea change".formatted(liveChange.getId())
+        ));
   }
 
   public String getBlockName(SubareaOperation subareaOperation) {

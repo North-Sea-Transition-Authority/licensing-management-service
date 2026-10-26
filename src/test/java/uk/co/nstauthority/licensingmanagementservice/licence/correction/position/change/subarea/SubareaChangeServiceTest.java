@@ -37,6 +37,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOp
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaDetails;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.FeatureTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.spatial.LicencePositionSpatialService;
 
@@ -206,6 +207,29 @@ class SubareaChangeServiceTest {
     assertThatThrownBy(() -> subareaChangeService.getStagedSubareaOperationOrThrow(positionCorrection, changeId))
         .isInstanceOf(IllegalStateException.class)
         .hasMessage("Change with id %s is not a subarea change".formatted(changeId));
+  }
+
+  @Test
+  void getLiveSubareaOperationOrThrow_whenChangeIsASubareaChange_returnsItsOperation() {
+    var operation = expectedOperation();
+    var liveChange = LicencePositionChangeTestUtil.newBuilder()
+        .withOperations(List.<LicenceOperation>of(operation))
+        .build();
+
+    var result = subareaChangeService.getLiveSubareaOperationOrThrow(liveChange);
+
+    assertThat(result).isEqualTo(operation);
+  }
+
+  @Test
+  void getLiveSubareaOperationOrThrow_whenChangeIsNotASubareaChange_throws() {
+    var liveChange = LicencePositionChangeTestUtil.newBuilder()
+        .withOperations(List.<LicenceOperation>of(LicenceOperation.newAdministratorChange().withOperator(2).build()))
+        .build();
+
+    assertThatThrownBy(() -> subareaChangeService.getLiveSubareaOperationOrThrow(liveChange))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessage("Change with id %s is not a subarea change".formatted(liveChange.getId()));
   }
 
   @Test

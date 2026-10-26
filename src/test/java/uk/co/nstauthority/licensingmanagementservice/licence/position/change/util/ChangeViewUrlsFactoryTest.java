@@ -105,13 +105,13 @@ class ChangeViewUrlsFactoryTest {
   }
 
   @Test
-  void build_whenLiveChangeHasNoCorrectOrRemoveRoutes_thenOnlyHasPositionUrls() {
+  void build_whenLiveChangeHasNoCorrectRoute_thenHasRemoveAndPositionUrls() {
     var change = change(SUBAREA, null);
 
     var result = ChangeViewUrlsFactory.build(EXECUTED_POSITION, change, POSITION_ID, true, SUBAREA);
 
     assertThat(result).isEqualTo(
-        new ChangeViewUrls(null, null, null, null, correctChangeOrderUrl(), correctPositionUrl())
+        new ChangeViewUrls(null, subareaRemoveUrl(), null, null, correctChangeOrderUrl(), correctPositionUrl())
     );
   }
 
@@ -202,6 +202,7 @@ class ChangeViewUrlsFactoryTest {
     var licenseeUndo = ReverseRouter.route(on(RemoveLicenseeChangeController.class)
         .renderUndoLicenseeChange(CORRECTION, CHANGE_ID.toString()));
 
+    var subareaRemove = subareaRemoveUrl();
     var subareaUndo = subareaUndoUrl();
 
     return Stream.of(
@@ -271,7 +272,7 @@ class ChangeViewUrlsFactoryTest {
             licenseeAdded, null, licenseeUndo, null),
 
         Arguments.of("subarea, live", SUBAREA, EXECUTED_POSITION, live,
-            null, null, null, null),
+            null, subareaRemove, null, null),
         Arguments.of("subarea, added", SUBAREA, EXECUTED_POSITION, added,
             null, null, subareaUndo, null),
         Arguments.of("subarea, operations updated", SUBAREA, EXECUTED_POSITION, operationsUpdated,
@@ -287,6 +288,11 @@ class ChangeViewUrlsFactoryTest {
 
   private static PositionChange change(VisibleLicenceOperation operation, String changeType) {
     return new PositionChange(CHANGE_ID.toString(), 1, changeType, List.of(operation));
+  }
+
+  private static String subareaRemoveUrl() {
+    return ReverseRouter.route(on(RemoveSubareaChangeController.class)
+        .renderRemoveExecutedSubareaChange(CORRECTION, LICENCE_POSITION, CHANGE_ENTITY));
   }
 
   private static String subareaUndoUrl() {

@@ -27,6 +27,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.tasklist.PartialSurrenderTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.setequity.LicencePositionSetEquityController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subarea.RemoveSubareaChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.transferequity.LicencePositionTransferEquityController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeorder.CorrectChangeOrderController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.correctchangetypeposition.CorrectPositionChangeTypeController;
@@ -40,6 +41,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaOp
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.TransferEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPositionTestUtil;
@@ -1383,14 +1385,33 @@ class LicencePositionChangeViewResolverTest {
     assertThat(result)
         .extracting(LicencePositionChangeView::type, LicencePositionChangeView::urls)
         .containsExactly(
-            tuple(LicenceOperation.SUBAREA, new ChangeViewUrls(null, null, null, null,
+            tuple(LicenceOperation.SUBAREA, new ChangeViewUrls(
+                null,
+                ReverseRouter.route(on(RemoveSubareaChangeController.class).renderRemoveExecutedSubareaChange(
+                    correction,
+                    licencePosition,
+                    new LicencePositionChange(firstChangeId)
+                )),
+                null,
+                null,
                 ReverseRouter.route(on(CorrectChangeOrderController.class)
                     .renderCorrectChangeOrder(correction, positionId, firstChangeId)),
-                correctPositionUrl(correction.getId(), positionId, firstChangeId))),
-            tuple(LicenceOperation.SUBAREA, new ChangeViewUrls(null, null, null, null,
+                correctPositionUrl(correction.getId(), positionId, firstChangeId)
+            )),
+            tuple(LicenceOperation.SUBAREA, new ChangeViewUrls(
+                null,
+                ReverseRouter.route(on(RemoveSubareaChangeController.class).renderRemoveExecutedSubareaChange(
+                    correction,
+                    licencePosition,
+                    new LicencePositionChange(secondChangeId)
+                )),
+                null,
+                null,
                 ReverseRouter.route(on(CorrectChangeOrderController.class)
                     .renderCorrectChangeOrder(correction, positionId, secondChangeId)),
-                correctPositionUrl(correction.getId(), positionId, secondChangeId))));
+                correctPositionUrl(correction.getId(), positionId, secondChangeId)
+            ))
+        );
   }
 
   @Test

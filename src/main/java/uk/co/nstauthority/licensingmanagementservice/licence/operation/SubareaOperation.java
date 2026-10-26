@@ -114,7 +114,8 @@ public record SubareaOperation(
 
       @Override
       public String remove(ChangeUrlTarget target) {
-        return null;
+        return ReverseRouter.route(on(RemoveSubareaChangeController.class)
+            .renderRemoveExecutedSubareaChange(target.correction(), target.licencePosition(), target.changeEntity()));
       }
 
       @Override

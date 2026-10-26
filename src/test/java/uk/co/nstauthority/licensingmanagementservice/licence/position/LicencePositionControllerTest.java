@@ -240,7 +240,7 @@ class LicencePositionControllerTest extends AbstractControllerTest {
     var position = LicencePositionTestUtil.newBuilder().withId(POSITION_ID).withLicence(LICENCE).build();
     var pageView = new LicencePositionPageView(
         List.of(new LicencePositionTimelineView(
-            POSITION_ID, "url1", "REF-2", "5 June 2026", List.of("licenseeNames"), false, null, false, null, null, false, null, null, false)),
+            POSITION_ID, "url1", "REF-2", "5 June 2026", false, null, false, null, null, false, null, null, false)),
         position.getFormattedPositionDate(),
         position.getLicence().getLicenceReference(),
         List.of(),

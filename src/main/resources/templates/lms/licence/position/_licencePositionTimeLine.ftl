@@ -75,9 +75,6 @@
             <@fdsTag.tag tagClass="govuk-tag--yellow">Corrected</@fdsTag.tag>
           </p>
         </#if>
-        <#if licencePositionTimelineViewEntry.licenseeNames()?? && licencePositionTimelineViewEntry.licenseeNames()?size != 0>
-          <@licenseesDisplay.displayLicensees names=licencePositionTimelineViewEntry.licenseeNames()/>
-        </#if>
         <#if licencePositionTimelineViewEntry.correctOrderUrl()??>
             <@fdsAction.link
             linkText="Change&nbsp;order"?no_esc

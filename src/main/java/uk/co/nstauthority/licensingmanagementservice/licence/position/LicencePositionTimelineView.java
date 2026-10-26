@@ -1,7 +1,6 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.position;
 
 import jakarta.annotation.Nullable;
-import java.util.List;
 import java.util.UUID;
 
 /**
@@ -17,7 +16,6 @@ import java.util.UUID;
  *                           added positions
  * @param formattedPositionDate the row's date pre-formatted for display (e.g. "5 June 2026") — the
  *                              position date for live rows, the effective date for added rows
- * @param licenseeNames the row's current licensees with the names correct for the position date;
  * @param addedInThisCorrection if this row is a position added in the current correction
  *                              (a draft); {@code false} for existing live (executed) positions.
  *                              Drives the "Added position" tag and Undo link in the template
@@ -43,7 +41,6 @@ public record LicencePositionTimelineView(
     String url,
     String regulatorReference,
     String formattedPositionDate,
-    List<String> licenseeNames,
     boolean addedInThisCorrection,
     @Nullable String undoUrl,
     boolean removedInThisCorrection,
@@ -64,7 +61,6 @@ public record LicencePositionTimelineView(
     private String url;
     private String regulatorReference;
     private String formattedPositionDate;
-    private List<String> licenseeNames;
     private boolean addedInThisCorrection;
     @Nullable private String undoUrl;
     private boolean removedInThisCorrection;
@@ -140,18 +136,12 @@ public record LicencePositionTimelineView(
       return this;
     }
 
-    public Builder withLicenseeNames(List<String> licenseeNames) {
-      this.licenseeNames = licenseeNames;
-      return this;
-    }
-
     public LicencePositionTimelineView build() {
       return new LicencePositionTimelineView(
           positionId,
           url,
           regulatorReference,
           formattedPositionDate,
-          licenseeNames,
           addedInThisCorrection,
           undoUrl,
           removedInThisCorrection,

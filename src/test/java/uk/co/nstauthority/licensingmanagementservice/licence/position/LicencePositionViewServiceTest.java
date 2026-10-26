@@ -275,7 +275,7 @@ class LicencePositionViewServiceTest {
   }
 
   @Test
-  void getCorrectionPositionPageView_timelineAndStateHaveLicenseeNames() {
+  void getCorrectionPositionPageView_stateHasLicenseeNames() {
     var correction = LicenceCorrectionTestUtil.newBuilder().withLicence(LICENCE).build();
 
     var executed = LicencePositionTestUtil.newBuilder()
@@ -299,40 +299,6 @@ class LicencePositionViewServiceTest {
     var result = licencePositionViewService.getCorrectionPositionPageView(correction, executed);
 
     assertThat(result.stateView().licenseeStateView().licenseeNames()).isEqualTo(List.of("Admin Ltd", "Org Ltd"));
-    assertThat(result.timelineViews().size()).isOne();
-    assertThat(result.timelineViews().getFirst().licenseeNames()).isEqualTo(List.of("Admin Ltd", "Org Ltd"));
-  }
-
-  @Test
-  void getPositionPageView_licenseesNamesAreCorrect() {
-    var changeId = UUID.randomUUID();
-
-    var position = LicencePositionTestUtil.newBuilder()
-        .withLicence(LICENCE)
-        .withLicenceTransaction(LicenceTransactionTestUtil.newBuilder().withRegulatorReference("REF-1").build())
-        .withPositionDate(LocalDate.of(2010, Month.JUNE, 1)).withPositionOrder(1).withStatus(LicencePositionStatus.EXECUTED).build();
-
-    var licenseeOperationOne = LicenceOperation.newLicenseeOperation()
-        .withLicenseesToAdd(List.of(1, 2))
-        .build();
-
-    var change = LicencePositionChangeTestUtil.newBuilder().withOperations(List.of(licenseeOperationOne))
-        .withId(changeId).withLicencePosition(position).build();
-
-    when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(position));
-    when(licencePositionChangeService.findByLicencePositionIn(List.of(position))).thenReturn(List.of(change));
-    when(organisationUnitQueryService.getOrganisationNameHistoriesByIds(List.of(1, 2)))
-        .thenReturn(Map.of(1, namePeriods("Shell plc",
-            namePeriod("Shell Expro", LocalDate.of(1999, Month.MARCH, 3), LocalDate.of(2022, Month.JANUARY, 22)),
-            namePeriod("Shell plc", LocalDate.of(2022, Month.JANUARY, 22), null)),
-            2, namePeriods("BP plc",
-                namePeriod("Britoil", LocalDate.of(1980, Month.JANUARY, 1), LocalDate.of(2000, Month.JANUARY, 1)),
-                namePeriod("BP Exploration", LocalDate.of(2000, Month.JANUARY, 1), LocalDate.of(2015, Month.JULY, 7)),
-                namePeriod("BP plc", LocalDate.of(2015, Month.JULY, 7), null))
-        ));
-
-    var result = licencePositionViewService.getPositionPageView(position);
-    assertThat(result.timelineViews().getFirst().licenseeNames()).isEqualTo(List.of( "BP Exploration", "Shell Expro"));
   }
 
   @Test

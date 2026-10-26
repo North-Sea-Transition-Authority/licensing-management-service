@@ -280,7 +280,6 @@ class LicenceCorrectionControllerTest extends AbstractControllerTest {
             .withUrl("/position")
             .withRegulatorReference("REF-1")
             .withFormattedPositionDate("1 Jan 2026")
-            .withLicenseeNames(List.of("licenseeNames"))
             .build()),
         "1 Jan 2026",
         "REF-1",

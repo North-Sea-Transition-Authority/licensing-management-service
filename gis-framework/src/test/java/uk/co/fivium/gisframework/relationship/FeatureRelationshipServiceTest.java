@@ -254,17 +254,17 @@ class FeatureRelationshipServiceTest {
   }
 
   @Test
-  void isTopologicallyEqual_whenNoFeatures_thenThrowsException() {
+  void is2dTopologicallyEqual_whenNoFeatures_thenThrowsException() {
     var otherFeature = FeatureTestUtil.newBuilder().build();
 
-    assertThatThrownBy(() -> featureRelationshipService.isTopologicallyEqual(List.of(), otherFeature))
+    assertThatThrownBy(() -> featureRelationshipService.is2dTopologicallyEqual(List.of(), otherFeature))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessage("Must provide at least one feature to compare");
     verifyNoInteractions(featureService, polygonService, grpcClientService);
   }
 
   @Test
-  void isTopologicallyEqual_whenFeatureCoordinateSystemDiffers_thenThrowsException() {
+  void is2dTopologicallyEqual_whenFeatureCoordinateSystemDiffers_thenThrowsException() {
     var otherFeature = FeatureTestUtil.newBuilder()
         .withCoordinateSystem(CoordinateSystem.ED50)
         .build();
@@ -276,7 +276,7 @@ class FeatureRelationshipServiceTest {
         .build();
     var features = List.of(matchingFeature, differingFeature);
 
-    assertThatThrownBy(() -> featureRelationshipService.isTopologicallyEqual(features, otherFeature))
+    assertThatThrownBy(() -> featureRelationshipService.is2dTopologicallyEqual(features, otherFeature))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessage("All features to compare must use the other feature's coordinate system ED50");
     verifyNoInteractions(featureService, polygonService, grpcClientService);
@@ -284,7 +284,7 @@ class FeatureRelationshipServiceTest {
 
   @ParameterizedTest
   @ValueSource(booleans = {true, false})
-  void isTopologicallyEqual_whenFeaturesShareCoordinateSystem_thenValidationResultReturned(boolean isValid) {
+  void is2dTopologicallyEqual_whenFeaturesShareCoordinateSystem_thenValidationResultReturned(boolean isValid) {
     var firstFeature = FeatureTestUtil.newBuilder().build();
     var secondFeature = FeatureTestUtil.newBuilder().build();
     var otherFeature = FeatureTestUtil.newBuilder().build();
@@ -304,7 +304,7 @@ class FeatureRelationshipServiceTest {
         otherEntityBackedFeature
     )).thenReturn(ValidationResponse.newBuilder().setIsValid(isValid).build());
 
-    var result = featureRelationshipService.isTopologicallyEqual(features, otherFeature);
+    var result = featureRelationshipService.is2dTopologicallyEqual(features, otherFeature);
 
     assertThat(result).isEqualTo(isValid);
   }

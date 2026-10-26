@@ -129,7 +129,8 @@ public class FeatureRelationshipService {
   }
 
   /**
-   * Checks whether the union of the features covers exactly the same shape as another feature.
+   * Checks whether the union of the features covers exactly the same shape as another feature in two dimensions,
+   * ignoring the depth of their polygons.
    *
    * @param features     The features to union and compare.
    * @param otherFeature The feature to compare against.
@@ -137,7 +138,7 @@ public class FeatureRelationshipService {
    * @throws IllegalArgumentException if no features are given, or any feature is not in the other feature's coordinate
    *                                  system.
    */
-  public boolean isTopologicallyEqual(Collection<Feature> features, Feature otherFeature) {
+  public boolean is2dTopologicallyEqual(Collection<Feature> features, Feature otherFeature) {
     if (features.isEmpty()) {
       throw new IllegalArgumentException("Must provide at least one feature to compare");
     }

@@ -116,7 +116,7 @@ class PartialSurrenderValidatorTest {
   void validate_whenSelectedAreasCoverWholeBlock_thenAreaErrorAndNoOverlapCheck() {
     givenBlockOnPosition();
     when(commandJourneyService.getActiveFeatures(COMMAND_JOURNEY_ID)).thenReturn(List.of(SURRENDERED_AREA, RETAINED_AREA));
-    when(featureRelationshipService.isTopologicallyEqual(List.of(SURRENDERED_AREA), BLOCK)).thenReturn(true);
+    when(featureRelationshipService.is2dTopologicallyEqual(List.of(SURRENDERED_AREA), BLOCK)).thenReturn(true);
 
     var errors = partialSurrenderValidator.validate(partialSurrenderOfBlock(), STATE, POSITION_DATE, null);
 
@@ -152,7 +152,7 @@ class PartialSurrenderValidatorTest {
     var secondPartOfRetainedArea = FeatureTestUtil.builder().build();
     when(commandJourneyService.getActiveFeatures(COMMAND_JOURNEY_ID))
         .thenReturn(List.of(SURRENDERED_AREA, firstPartOfRetainedArea, secondPartOfRetainedArea));
-    when(featureRelationshipService.isTopologicallyEqual(List.of(SURRENDERED_AREA), BLOCK)).thenReturn(false);
+    when(featureRelationshipService.is2dTopologicallyEqual(List.of(SURRENDERED_AREA), BLOCK)).thenReturn(false);
 
     var errors = partialSurrenderValidator.validate(partialSurrenderOfBlock(), STATE, POSITION_DATE, null);
 
@@ -214,7 +214,7 @@ class PartialSurrenderValidatorTest {
     var otherRetainedArea = FeatureTestUtil.builder().build();
     when(commandJourneyService.getActiveFeatures(COMMAND_JOURNEY_ID))
         .thenReturn(List.of(SURRENDERED_AREA, RETAINED_AREA, otherRetainedArea));
-    when(featureRelationshipService.isTopologicallyEqual(List.of(SURRENDERED_AREA), BLOCK)).thenReturn(false);
+    when(featureRelationshipService.is2dTopologicallyEqual(List.of(SURRENDERED_AREA), BLOCK)).thenReturn(false);
     var firstOverlappedBlock = blockActiveBetween("30/2", CoordinateSystem.ED50, POSITION_DATE.minusYears(1), null);
     var secondOverlappedBlock = blockActiveBetween("30/3", CoordinateSystem.ED50, POSITION_DATE.minusYears(1), null);
     var otherActiveBlocks = List.of(firstOverlappedBlock, secondOverlappedBlock);
@@ -245,7 +245,7 @@ class PartialSurrenderValidatorTest {
     givenValidAreaSelection();
     when(commandJourneyService.getActiveFeatures(secondCommandJourneyId))
         .thenReturn(List.of(secondSurrenderedArea, secondRetainedArea));
-    when(featureRelationshipService.isTopologicallyEqual(List.of(secondSurrenderedArea), secondBlock))
+    when(featureRelationshipService.is2dTopologicallyEqual(List.of(secondSurrenderedArea), secondBlock))
         .thenReturn(false);
     var overlappedBlock = blockActiveBetween("30/2", CoordinateSystem.ED50, POSITION_DATE.minusYears(1), null);
     when(featureService.findAllByAttribute("LAYER", "BLOCKS")).thenReturn(List.of(secondBlock, overlappedBlock));
@@ -326,7 +326,7 @@ class PartialSurrenderValidatorTest {
 
   private void givenValidAreaSelection() {
     when(commandJourneyService.getActiveFeatures(COMMAND_JOURNEY_ID)).thenReturn(List.of(SURRENDERED_AREA, RETAINED_AREA));
-    when(featureRelationshipService.isTopologicallyEqual(List.of(SURRENDERED_AREA), BLOCK)).thenReturn(false);
+    when(featureRelationshipService.is2dTopologicallyEqual(List.of(SURRENDERED_AREA), BLOCK)).thenReturn(false);
   }
 
   private static PartialSurrenderOperation partialSurrenderOfBlock() {

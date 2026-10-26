@@ -86,7 +86,7 @@ class PartialSurrenderSelectAreasFormValidatorTest {
   @Test
   void hasErrors_whenSelectedAreasCoverWholeBlock_thenErrorWithMessage() {
     form.setSurrenderedFeatureIds(Set.of(FIRST_AREA.getId()));
-    when(featureRelationshipService.isTopologicallyEqual(List.of(FIRST_AREA), BLOCK_FEATURE)).thenReturn(true);
+    when(featureRelationshipService.is2dTopologicallyEqual(List.of(FIRST_AREA), BLOCK_FEATURE)).thenReturn(true);
 
     var result = validator.hasErrors(form, errors, ACTIVE_FEATURES, BLOCK_FEATURE, List.of());
 
@@ -98,7 +98,7 @@ class PartialSurrenderSelectAreasFormValidatorTest {
   @Test
   void hasErrors_whenSomeButNotAllAreasSelected_thenNoErrors() {
     form.setSurrenderedFeatureIds(Set.of(FIRST_AREA.getId()));
-    when(featureRelationshipService.isTopologicallyEqual(List.of(FIRST_AREA), BLOCK_FEATURE)).thenReturn(false);
+    when(featureRelationshipService.is2dTopologicallyEqual(List.of(FIRST_AREA), BLOCK_FEATURE)).thenReturn(false);
 
     var result = validator.hasErrors(form, errors, ACTIVE_FEATURES, BLOCK_FEATURE, List.of());
 
@@ -115,7 +115,7 @@ class PartialSurrenderSelectAreasFormValidatorTest {
         .withCoordinateSystem(CoordinateSystem.WGS84)
         .build();
     form.setSurrenderedFeatureIds(Set.of(FIRST_AREA.getId()));
-    when(featureRelationshipService.isTopologicallyEqual(List.of(FIRST_AREA), BLOCK_FEATURE)).thenReturn(false);
+    when(featureRelationshipService.is2dTopologicallyEqual(List.of(FIRST_AREA), BLOCK_FEATURE)).thenReturn(false);
     when(featureRelationshipService.get2dOverlappingFeatures(
         List.of(SECOND_AREA),
         List.of(firstOverlappedBlock, secondOverlappedBlock)

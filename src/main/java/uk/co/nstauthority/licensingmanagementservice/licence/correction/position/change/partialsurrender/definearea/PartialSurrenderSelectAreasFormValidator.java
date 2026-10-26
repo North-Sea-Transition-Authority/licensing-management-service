@@ -43,7 +43,7 @@ public class PartialSurrenderSelectAreasFormValidator {
           "surrenderedFeatureIds.invalid",
           PartialSurrenderOperationRule.CANNOT_SURRENDER_ALL_AREAS.getMessage()
       );
-    } else if (featureRelationshipService.isTopologicallyEqual(
+    } else if (featureRelationshipService.is2dTopologicallyEqual(
         activeFeatures.stream().filter(feature -> selected.contains(feature.getId())).toList(),
         blockFeature
     )) {

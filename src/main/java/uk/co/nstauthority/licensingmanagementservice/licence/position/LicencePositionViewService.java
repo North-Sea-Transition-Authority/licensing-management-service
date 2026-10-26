@@ -44,7 +44,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.operation.Geospatia
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeService;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicenseeChangeContext;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.licensee.LicenseeChangeContext;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.storageoperator.StorageOperatorChangeContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionChangeViewResolver;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionStateResolver;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionStateViewResolver;
@@ -116,6 +117,24 @@ public class LicencePositionViewService {
         previousState.administratorId(),
         nameOrEmpty(organisationNames, currentState.administratorId()),
         nameOrEmpty(organisationNames, previousState.administratorId())
+    );
+  }
+
+  public StorageOperatorChangeContext getStorageOperatorChangeContext(
+      LicenceCorrection licenceCorrection,
+      UUID licencePositionId
+  ) {
+    var chronologicalPositions = getCorrectedChronologicalPositions(licenceCorrection, licencePositionId);
+    var resolvedStates = LicencePositionStateResolver.resolve(chronologicalPositions);
+    var currentState = resolvedStates.currentState(licencePositionId);
+    var previousState = resolvedStates.previousState(licencePositionId);
+    var organisationNames = resolveOrganisationNames(chronologicalPositions);
+
+    return new StorageOperatorChangeContext(
+        currentState.storageOperatorId(),
+        previousState.storageOperatorId(),
+        nameOrEmpty(organisationNames, currentState.storageOperatorId()),
+        nameOrEmpty(organisationNames, previousState.storageOperatorId())
     );
   }
 

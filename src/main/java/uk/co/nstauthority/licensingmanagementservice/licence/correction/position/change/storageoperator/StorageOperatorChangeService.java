@@ -1,0 +1,74 @@
+package uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.storageoperator;
+
+import java.util.List;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionChangeType;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.AddChange;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayload;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.LicencePositionPayload;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.UpdateLicencePositionPayload;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionStorageOperatorChangeUtil;
+
+@Service
+public class StorageOperatorChangeService {
+
+  private final LicencePositionCorrectionService licencePositionCorrectionService;
+
+  StorageOperatorChangeService(LicencePositionCorrectionService licencePositionCorrectionService) {
+    this.licencePositionCorrectionService = licencePositionCorrectionService;
+  }
+
+  @Transactional
+  public void addStorageOperatorChangeForAddedLicencePosition(
+      LicencePositionCorrection licencePositionCorrection,
+      Integer operatorId
+  ) {
+    var payload = (CreateLicencePositionPayload) licencePositionCorrection.getPayload();
+
+    var changes = LicencePositionStorageOperatorChangeUtil.upsertAddStorageOperatorChange(payload.changes(), operatorId);
+
+    licencePositionCorrection.setPayload(LicencePositionPayload.withChanges(payload, changes));
+    licencePositionCorrectionService.save(licencePositionCorrection);
+  }
+
+  @Transactional
+  public void addStorageOperatorChangeForExistingLicencePosition(
+      LicencePosition licencePosition,
+      LicenceCorrection licenceCorrection,
+      Integer operatorId
+  ) {
+    var existingPositionCorrection = licencePositionCorrectionService
+        .findUpdatePositionCorrection(licenceCorrection, licencePosition);
+
+    LicencePositionCorrection positionCorrection;
+
+    if (existingPositionCorrection.isPresent()) {
+      positionCorrection = existingPositionCorrection.get();
+      var payload = (UpdateLicencePositionPayload) positionCorrection.getPayload();
+
+      var changes = LicencePositionStorageOperatorChangeUtil
+          .upsertAddStorageOperatorChange(payload.changes(), operatorId);
+
+      positionCorrection.setPayload(LicencePositionPayload.withChanges(payload, changes));
+    } else {
+      positionCorrection = new LicencePositionCorrection();
+      var payload = LicencePositionPayload.newUpdateLicencePositionPayload()
+          .withCorrectionReference(licenceCorrection.getCorrectionReference())
+          .withChanges(List.of(AddChange.buildOperationsChange(
+                  List.of(LicencePositionStorageOperatorChangeUtil.storageOperatorOperation(operatorId)),
+                  1)))
+          .build();
+
+      positionCorrection.setLicenceCorrection(licenceCorrection);
+      positionCorrection.setChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION);
+      positionCorrection.setTargetLicencePosition(licencePosition);
+      positionCorrection.setPayload(payload);
+    }
+    licencePositionCorrectionService.save(positionCorrection);
+  }
+}

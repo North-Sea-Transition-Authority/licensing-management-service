@@ -6,6 +6,7 @@ import java.util.Set;
 public class PositionStateTestUtil {
 
   private Integer administratorId = null;
+  private Integer storageOperatorId = null;
 
   public static PositionStateTestUtil newBuilder() {
     return new PositionStateTestUtil();
@@ -16,7 +17,12 @@ public class PositionStateTestUtil {
     return this;
   }
 
+  public PositionStateTestUtil withStorageOperatorId(Integer storageOperatorId) {
+    this.storageOperatorId = storageOperatorId;
+    return this;
+  }
+
   public LicencePositionState build() {
-    return new LicencePositionState(administratorId, Set.of(), Map.of(), Map.of());
+    return new LicencePositionState(administratorId, storageOperatorId, Set.of(), Map.of(), Map.of());
   }
 }

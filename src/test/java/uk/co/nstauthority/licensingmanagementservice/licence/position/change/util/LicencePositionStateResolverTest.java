@@ -472,7 +472,7 @@ class LicencePositionStateResolverTest {
         .ignoringFields("blockFeatureIdToSubareas")
         .withComparatorForType(BigDecimal::compareTo, BigDecimal.class)
         .isEqualTo(
-            new LicencePositionState(1, Set.of(), Map.of(1, new BigDecimal("60"), 2, new BigDecimal("40")), Map.of())
+            new LicencePositionState(1, null, Set.of(), Map.of(1, new BigDecimal("60"), 2, new BigDecimal("40")), Map.of())
         );
   }
 

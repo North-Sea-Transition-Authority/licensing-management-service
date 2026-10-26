@@ -56,6 +56,10 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.vie
     @JsonSubTypes.Type(
         value = BlockEndOperation.class,
         name = LicenceOperation.BLOCK_END
+    ),
+    @JsonSubTypes.Type(
+        value = StorageOperatorOperation.class,
+        name = LicenceOperation.STORAGE_OPERATOR
     )
 })
 public sealed interface LicenceOperation permits HiddenLicenceOperation, VisibleLicenceOperation {
@@ -71,6 +75,7 @@ public sealed interface LicenceOperation permits HiddenLicenceOperation, Visible
   String BLOCK_CREATE = "block-create";
   String BLOCK_REDEFINITION = "block-redefinition";
   String BLOCK_END = "block-end";
+  String STORAGE_OPERATOR = "storage-operator";
 
   String type();
 
@@ -129,5 +134,9 @@ public sealed interface LicenceOperation permits HiddenLicenceOperation, Visible
 
   static BlockEndOperation.Builder newBlockEndOperation() {
     return new BlockEndOperation.Builder();
+  }
+
+  static StorageOperatorOperation.Builder newStorageOperatorOperation() {
+    return new StorageOperatorOperation.Builder();
   }
 }

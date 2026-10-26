@@ -12,7 +12,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenseeOperation;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicenseeChangeContext;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.licensee.LicenseeChangeContext;
 
 class LicencePositionLicenseeChangeUtilTest {
   private static final List<Integer> LICENSEES_TO_ADD = List.of(2, 3, 4);

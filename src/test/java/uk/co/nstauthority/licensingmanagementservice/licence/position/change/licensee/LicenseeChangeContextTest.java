@@ -1,4 +1,4 @@
-package uk.co.nstauthority.licensingmanagementservice.licence.position.change;
+package uk.co.nstauthority.licensingmanagementservice.licence.position.change.licensee;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

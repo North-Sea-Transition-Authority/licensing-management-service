@@ -46,7 +46,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenseeO
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicenseeChangeContext;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.licensee.LicenseeChangeContext;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @ContextConfiguration(classes = LicencePositionLicenseeChangeController.class)

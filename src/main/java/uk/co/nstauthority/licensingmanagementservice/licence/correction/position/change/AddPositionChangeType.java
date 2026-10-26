@@ -9,7 +9,8 @@ public enum AddPositionChangeType implements Displayable {
   TRANSFER_EQUITY(30, "Transfer equity"),
   PARTIAL_SURRENDER(40, "Partial surrender"),
   SUBAREA(50, "Subarea change"),
-  LICENSEE(60, "Licensee change")
+  LICENSEE(60, "Licensee change"),
+  STORAGE_OPERATOR(70, "Storage operator change")
   ;
 
   private final int displayOrder;
@@ -34,7 +35,7 @@ public enum AddPositionChangeType implements Displayable {
     return switch (this) {
       case ADMINISTRATOR, SUBAREA -> licenceType.isProduction();
       case PARTIAL_SURRENDER, LICENSEE -> licenceType.isProduction() || LicenceType.CARBON_STORAGE == licenceType;
-      case SET_EQUITY, TRANSFER_EQUITY -> LicenceType.CARBON_STORAGE.equals(licenceType);
+      case SET_EQUITY, TRANSFER_EQUITY, STORAGE_OPERATOR -> LicenceType.CARBON_STORAGE.equals(licenceType);
     };
   }
 }

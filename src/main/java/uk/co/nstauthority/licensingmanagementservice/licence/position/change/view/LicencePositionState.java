@@ -23,26 +23,55 @@ import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaDe
  */
 public record LicencePositionState(
     @Nullable Integer administratorId,
+    @Nullable Integer storageOperatorId,
     Set<Integer> licenseeIds,
     Map<Integer, BigDecimal> equityByOrganisationId,
     Map<UUID, Set<SubareaDetails>> blockFeatureIdToSubareas
 ) {
 
-  public static final LicencePositionState EMPTY = new LicencePositionState(null, Set.of(), Map.of(), Map.of());
+  public static final LicencePositionState EMPTY = new LicencePositionState(null, null, Set.of(), Map.of(), Map.of());
 
   public LicencePositionState withAdministratorId(Integer administratorId) {
-    return new LicencePositionState(administratorId, licenseeIds, equityByOrganisationId, blockFeatureIdToSubareas);
+    return new LicencePositionState(
+        administratorId,
+        storageOperatorId,
+        licenseeIds,
+        equityByOrganisationId,
+        blockFeatureIdToSubareas
+    );
+  }
+
+  public LicencePositionState withStorageOperatorId(Integer storageOperatorId) {
+    return new LicencePositionState(
+        administratorId,
+        storageOperatorId,
+        licenseeIds,
+        equityByOrganisationId,
+        blockFeatureIdToSubareas
+    );
   }
 
   public LicencePositionState withEquityByOrganisationId(Map<Integer, BigDecimal> equityByOrganisationId) {
-    return new LicencePositionState(administratorId, licenseeIds, equityByOrganisationId, blockFeatureIdToSubareas);
+    return new LicencePositionState(
+        administratorId,
+        storageOperatorId,
+        licenseeIds,
+        equityByOrganisationId,
+        blockFeatureIdToSubareas
+    );
   }
 
   public LicencePositionState withLicenseeIds(Collection<Integer> licenseesToAdd, Collection<Integer> licenseesToRemove) {
     var newLicenseeIds = new HashSet<>(licenseeIds);
     newLicenseeIds.addAll(licenseesToAdd);
     newLicenseeIds.removeAll(licenseesToRemove);
-    return new LicencePositionState(administratorId, newLicenseeIds, equityByOrganisationId, blockFeatureIdToSubareas);
+    return new LicencePositionState(
+        administratorId,
+        storageOperatorId,
+        newLicenseeIds,
+        equityByOrganisationId,
+        blockFeatureIdToSubareas
+    );
   }
 
   public Set<UUID> blockFeatureIds() {
@@ -128,6 +157,7 @@ public record LicencePositionState(
   private LicencePositionState withBlockFeatureIdToSubareas(Map<UUID, Set<SubareaDetails>> blockFeatureIdToSubareas) {
     return new LicencePositionState(
         administratorId,
+        storageOperatorId,
         licenseeIds,
         equityByOrganisationId,
         Collections.unmodifiableMap(blockFeatureIdToSubareas)

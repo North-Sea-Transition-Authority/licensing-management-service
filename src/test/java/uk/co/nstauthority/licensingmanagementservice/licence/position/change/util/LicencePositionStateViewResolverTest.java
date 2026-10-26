@@ -40,7 +40,7 @@ class LicencePositionStateViewResolverTest {
     equityByOrganisationId.put(2, new BigDecimal("35"));
     equityByOrganisationId.put(3, new BigDecimal("25"));
 
-    var state = new LicencePositionState(CURRENT_ADMIN_ID, Set.of(11, 12), equityByOrganisationId, Map.of());
+    var state = new LicencePositionState(CURRENT_ADMIN_ID, null, Set.of(11, 12), equityByOrganisationId, Map.of());
 
     var nameHistories = Map.of(
         CURRENT_ADMIN_ID, heldSince(CURRENT_ADMIN_NAME),
@@ -141,7 +141,7 @@ class LicencePositionStateViewResolverTest {
   void getStateView_whenOrganisationsRenamed_returnsNameHistoriesSortedByOrganisationName() {
     var currentPositionId = UUID.randomUUID();
 
-    var state = new LicencePositionState(CURRENT_ADMIN_ID, Set.of(11), Map.of(1, new BigDecimal("100")), Map.of());
+    var state = new LicencePositionState(CURRENT_ADMIN_ID, null, Set.of(11), Map.of(1, new BigDecimal("100")), Map.of());
 
     var nameHistories = Map.of(
         CURRENT_ADMIN_ID, new OrganisationNamePeriods("zeta admin", List.of(

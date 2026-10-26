@@ -618,6 +618,51 @@ class LicencePositionViewServiceTest {
   }
 
   @Test
+  void getStorageOperatorChangeContext_emptyContext() {
+    var correction = LicenceCorrectionTestUtil.newBuilder().withLicence(LICENCE).build();
+    var position = LicencePositionTestUtil.newBuilder()
+        .withId(POSITION_ID).withLicence(LICENCE).withStatus(LicencePositionStatus.EXECUTED).build();
+
+    when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(position));
+    when(licencePositionChangeService.findByLicencePositionIn(List.of(position))).thenReturn(List.of());
+    when(licencePositionCorrectionService.getPositionCorrections(correction)).thenReturn(List.of());
+
+    var result = licencePositionViewService.getStorageOperatorChangeContext(correction, POSITION_ID);
+
+    assertThat(result.currentOperatorId()).isNull();
+    assertThat(result.previousOperatorId()).isNull();
+    assertThat(result.currentOperatorName()).isEmpty();
+    assertThat(result.previousOperatorName()
+    ).isEmpty();
+    verify(licencePositionService).getExecutedChronologicalLicencePositions(LICENCE);
+  }
+
+  @Test
+  void getStorageOperatorChangeContext_resolvesStorageOperatorNames() {
+    var correction = LicenceCorrectionTestUtil.newBuilder().withLicence(LICENCE).build();
+    var position = LicencePositionTestUtil.newBuilder()
+        .withId(POSITION_ID).withLicence(LICENCE).withStatus(LicencePositionStatus.EXECUTED).build();
+    var operations = List.of((LicenceOperation) LicenceOperation
+        .newStorageOperatorOperation()
+        .withOperator(1).
+        build());
+    var change = LicencePositionChangeTestUtil.newBuilder().withLicencePosition(position).withOperations(operations).build();
+
+    when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(position));
+    when(licencePositionChangeService.findByLicencePositionIn(List.of(position))).thenReturn(List.of(change));
+    when(licencePositionCorrectionService.getPositionCorrections(correction)).thenReturn(List.of());
+    when(organisationUnitQueryService.getOrganisationUnitNamesByIds(List.of(1)))
+        .thenReturn(Map.of(1, "Current Operator Org"));
+
+    var result = licencePositionViewService.getStorageOperatorChangeContext(correction, POSITION_ID);
+
+    assertThat(result.currentOperatorId()).isEqualTo(1);
+    assertThat(result.previousOperatorId()).isNull();
+    assertThat(result.currentOperatorName()).isEqualTo("Current Operator Org");
+    assertThat(result.previousOperatorName()).isEmpty();
+  }
+
+  @Test
   void getLicenseeChangeContext_emptyContext() {
     var correction = LicenceCorrectionTestUtil.newBuilder().withLicence(LICENCE).build();
     var position = LicencePositionTestUtil.newBuilder()

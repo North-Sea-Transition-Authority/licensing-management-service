@@ -1,6 +1,5 @@
-package uk.co.nstauthority.licensingmanagementservice.licence.position.change;
+package uk.co.nstauthority.licensingmanagementservice.licence.position.change.licensee;
 
-import jakarta.annotation.Nullable;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -36,7 +35,7 @@ public record LicenseeChangeContext(
         .toList();
   }
 
-  private static String nameOrEmpty(Map<Integer, String> licenseeNames, @Nullable Integer licenseeId) {
-    return licenseeId == null ? "" : licenseeNames.getOrDefault(licenseeId, "");
+  private static String nameOrEmpty(Map<Integer, String> licenseeNames, Integer licenseeId) {
+    return licenseeNames.getOrDefault(licenseeId, "");
   }
 }

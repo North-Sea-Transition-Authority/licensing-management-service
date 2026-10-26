@@ -66,6 +66,7 @@ class LicencePositionStateTest {
 
     var expected = new LicencePositionState(
         1,
+        null,
         Set.of(1, 2),
         Map.of(1, BigDecimal.TEN),
         Map.of(FIRST_BLOCK_ID, Set.of(FIRST_SUBAREA))

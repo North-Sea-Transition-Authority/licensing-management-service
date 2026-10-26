@@ -96,6 +96,7 @@ public class LicencePositionAddChangeController {
           .renderForExecutedPosition(correction, licencePosition));
       case LICENSEE -> ReverseRouter.redirect(on(LicencePositionLicenseeChangeController.class)
           .renderForExecutedPosition(correction, licencePosition));
+      case STORAGE_OPERATOR -> null;
     };
   }
 
@@ -137,6 +138,7 @@ public class LicencePositionAddChangeController {
           .renderForAddedPosition(correction, licencePositionCorrection));
       case LICENSEE -> ReverseRouter.redirect(on(LicencePositionLicenseeChangeController.class)
           .renderForAddedPosition(correction, licencePositionCorrection));
+      case STORAGE_OPERATOR -> null;
     };
   }
 

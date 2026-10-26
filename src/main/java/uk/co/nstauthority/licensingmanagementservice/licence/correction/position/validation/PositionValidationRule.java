@@ -3,4 +3,8 @@ package uk.co.nstauthority.licensingmanagementservice.licence.correction.positio
 public interface PositionValidationRule {
 
   String getMessage();
+
+  default String getMessage(Object... args) {
+    return getMessage().formatted(args);
+  }
 }

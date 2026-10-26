@@ -1,5 +1,6 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender;
 
+import jakarta.annotation.Nullable;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
@@ -15,12 +16,14 @@ import uk.co.fivium.gisframework.command.CommandJourneyService;
 import uk.co.fivium.gisframework.feature.Feature;
 import uk.co.fivium.gisframework.feature.FeatureService;
 import uk.co.fivium.gisframework.feature.Layer;
-import uk.co.fivium.gisframework.relationship.FeatureRelationshipService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderTypeForm;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderTypeFormValidator;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.definearea.PartialSurrenderSelectAreasForm;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.definearea.PartialSurrenderSelectAreasFormValidator;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PartialSurrenderOperationRule;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeService;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionChangeOperationUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.LicencePositionState;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.FeatureAttribute;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.LicenceBlockFeatureUtil;
@@ -28,15 +31,12 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.Li
 @Service
 public class PartialSurrenderValidator {
 
-  static final String NO_PARTIAL_SURRENDER_ERROR = "Select partial surrender for at least one block";
-  static final String OVERLAP_ERROR = "Block after surrender must not overlap licence block %s";
-
   private final PartialSurrenderDetailsFormValidator partialSurrenderDetailsFormValidator;
   private final BlockSurrenderTypeFormValidator blockSurrenderTypeFormValidator;
   private final PartialSurrenderSelectAreasFormValidator partialSurrenderSelectAreasFormValidator;
   private final CommandJourneyService commandJourneyService;
   private final FeatureService featureService;
-  private final FeatureRelationshipService featureRelationshipService;
+  private final LicencePositionChangeService licencePositionChangeService;
 
   PartialSurrenderValidator(
       PartialSurrenderDetailsFormValidator partialSurrenderDetailsFormValidator,
@@ -44,14 +44,14 @@ public class PartialSurrenderValidator {
       PartialSurrenderSelectAreasFormValidator partialSurrenderSelectAreasFormValidator,
       CommandJourneyService commandJourneyService,
       FeatureService featureService,
-      FeatureRelationshipService featureRelationshipService
+      LicencePositionChangeService licencePositionChangeService
   ) {
     this.partialSurrenderDetailsFormValidator = partialSurrenderDetailsFormValidator;
     this.blockSurrenderTypeFormValidator = blockSurrenderTypeFormValidator;
     this.partialSurrenderSelectAreasFormValidator = partialSurrenderSelectAreasFormValidator;
     this.commandJourneyService = commandJourneyService;
     this.featureService = featureService;
-    this.featureRelationshipService = featureRelationshipService;
+    this.licencePositionChangeService = licencePositionChangeService;
   }
 
   /**
@@ -60,12 +60,15 @@ public class PartialSurrenderValidator {
    * @param surrender            The partial surrender operation being validated.
    * @param stateGoingIntoChange The state before the operation.
    * @param positionDate         The date of the position.
+   * @param changeId             The id of the change holding the surrender. Blocks created by the live version of
+   *                             that change are not treated as overlaps.
    * @return List of error messages.
    */
   public List<String> validate(
       PartialSurrenderOperation surrender,
       LicencePositionState stateGoingIntoChange,
-      LocalDate positionDate
+      LocalDate positionDate,
+      @Nullable String changeId
   ) {
     if (surrender == null) {
       throw new IllegalStateException("Partial surrender must not be null");
@@ -80,17 +83,33 @@ public class PartialSurrenderValidator {
           .toList();
     }
 
-    var activeFeaturesByBlockId = getActiveFeaturesOfPartiallySurrenderedBlocks(surrender);
+    var otherActiveBlocks = surrender.hasPartialSurrender()
+        ? getOtherActiveBlocks(surrender, positionDate, changeId)
+        : List.<Feature>of();
 
-    var selectionErrors = Stream.concat(
-        validateSurrenderTypes(surrender, blockFeaturesById).stream(),
-        validateAreaSelections(surrender, blockFeaturesById, activeFeaturesByBlockId).stream()
-    ).toList();
-    if (!selectionErrors.isEmpty()) {
-      return selectionErrors;
-    }
+    return Stream.of(
+        validateSurrenderTypes(surrender, blockFeaturesById),
+        validateAreaSelections(surrender, blockFeaturesById, otherActiveBlocks),
+        validateRecordedAreasKept(surrender, blockFeaturesById, otherActiveBlocks)
+    )
+        .flatMap(List::stream)
+        .toList();
+  }
 
-    return validateBlocksDontOverlapWithOtherActiveBlocks(surrender, blockFeaturesById, activeFeaturesByBlockId, positionDate);
+  /**
+   * The licence blocks active on the position date, other than the surrender's own and those its live change created.
+   */
+  public List<Feature> getOtherActiveBlocks(
+      PartialSurrenderOperation surrender,
+      LocalDate positionDate,
+      @Nullable String changeId
+  ) {
+    var featureIdsCreatedByLiveSurrender = getFeatureIdsCreatedByLiveSurrender(changeId);
+    return featureService.findAllByAttribute(FeatureAttribute.LAYER.name(), Layer.BLOCKS.name()).stream()
+        .filter(block -> isActiveOn(block, positionDate))
+        .filter(block -> !surrender.surrenderedFeatureIds().contains(block.getId()))
+        .filter(block -> !featureIdsCreatedByLiveSurrender.contains(block.getId()))
+        .toList();
   }
 
   private List<String> validateSurrenderTypes(PartialSurrenderOperation surrender, Map<UUID, Feature> blockFeaturesById) {
@@ -107,7 +126,7 @@ public class PartialSurrenderValidator {
         .toList();
 
     if (errors.isEmpty() && !surrender.hasPartialSurrender()) {
-      return List.of(NO_PARTIAL_SURRENDER_ERROR);
+      return List.of(PartialSurrenderOperationRule.NO_PARTIAL_SURRENDER.getMessage());
     }
 
     return errors;
@@ -116,14 +135,26 @@ public class PartialSurrenderValidator {
   private List<String> validateAreaSelections(
       PartialSurrenderOperation surrender,
       Map<UUID, Feature> blockFeaturesById,
-      Map<UUID, List<Feature>> activeFeaturesByBlockId
+      List<Feature> otherActiveBlocks
   ) {
-    return activeFeaturesByBlockId.entrySet().stream()
+    return getActiveFeaturesOfPartiallySurrenderedBlocks(surrender).entrySet().stream()
         .flatMap(entry -> {
           var blockFeature = blockFeaturesById.get(entry.getKey());
-          var form = PartialSurrenderSelectAreasForm.from(surrender.featureIdToSurrenderDetails().get(entry.getKey()));
+          var surrenderDetails = surrender.featureIdToSurrenderDetails().get(entry.getKey());
+          var form = PartialSurrenderSelectAreasForm.from(surrenderDetails);
           var bindingResult = new BeanPropertyBindingResult(form, "form");
-          partialSurrenderSelectAreasFormValidator.hasErrors(form, bindingResult, entry.getValue(), blockFeature);
+          var hasErrors = partialSurrenderSelectAreasFormValidator.hasErrors(
+              form,
+              bindingResult,
+              entry.getValue(),
+              blockFeature,
+              otherActiveBlocks
+          );
+
+          var areaIds = entry.getValue().stream().map(Feature::getId).toList();
+          if (!hasErrors && !surrenderDetails.isSelectionUpToDate(areaIds)) {
+            return Stream.of(blockError(blockFeature, PartialSurrenderOperationRule.AREAS_CHANGED.getMessage()));
+          }
 
           return bindingResult.getAllErrors().stream()
               .map(DefaultMessageSourceResolvable::getDefaultMessage)
@@ -132,39 +163,30 @@ public class PartialSurrenderValidator {
         .toList();
   }
 
-  private List<String> validateBlocksDontOverlapWithOtherActiveBlocks(
+  private List<String> validateRecordedAreasKept(
       PartialSurrenderOperation surrender,
       Map<UUID, Feature> blockFeaturesById,
-      Map<UUID, List<Feature>> activeFeaturesByBlockId,
-      LocalDate positionDate
+      List<Feature> otherActiveBlocks
   ) {
-    if (activeFeaturesByBlockId.isEmpty()) {
-      return List.of();
-    }
-
-    var otherActiveBlocksByCoordinateSystem = featureService
-        .findAllByAttribute(FeatureAttribute.LAYER.name(), Layer.BLOCKS.name())
-        .stream()
-        .filter(block -> isActiveOn(block, positionDate))
-        .filter(block -> !surrender.surrenderedFeatureIds().contains(block.getId()))
-        .collect(Collectors.groupingBy(Feature::getCoordinateSystem));
-
-    return activeFeaturesByBlockId.entrySet().stream()
+    return surrender.featureIdToSurrenderDetails().entrySet().stream()
+        .filter(entry -> entry.getValue().isPartialSurrender())
+        .filter(entry -> !entry.getValue().hasCommandJourney())
         .flatMap(entry -> {
-          var surrenderedAreaIds = surrender.featureIdToSurrenderDetails().get(entry.getKey()).surrenderedFeatureIds();
-          return entry.getValue().stream()
-              .filter(area -> !surrenderedAreaIds.contains(area.getId()))
-              .flatMap(retainedArea -> featureRelationshipService.get2dOverlappingFeatures(
-                  retainedArea,
-                  otherActiveBlocksByCoordinateSystem.getOrDefault(retainedArea.getCoordinateSystem(), List.of())
-              ).stream())
-              .distinct()
-              .map(overlappingBlock -> blockError(
-                  blockFeaturesById.get(entry.getKey()),
-                  OVERLAP_ERROR.formatted(overlappingBlock.getFeatureName())
-              ));
+          var areasKept = featureService.getFeaturesByIds(entry.getValue().retainedFeatureIds());
+          return partialSurrenderSelectAreasFormValidator.getOverlapErrors(areasKept, otherActiveBlocks).stream()
+              .map(message -> blockError(blockFeaturesById.get(entry.getKey()), message));
         })
         .toList();
+  }
+
+  private Set<UUID> getFeatureIdsCreatedByLiveSurrender(@Nullable String changeId) {
+    if (changeId == null) {
+      return Set.of();
+    }
+    return licencePositionChangeService.findById(UUID.fromString(changeId))
+        .flatMap(change -> LicencePositionChangeOperationUtil.findOperation(change, PartialSurrenderOperation.class))
+        .map(PartialSurrenderOperation::createdFeatureIds)
+        .orElse(Set.of());
   }
 
   private Map<UUID, Feature> getBlockFeaturesById(LicencePositionState stateGoingIntoChange) {

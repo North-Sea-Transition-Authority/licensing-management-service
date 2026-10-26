@@ -26,7 +26,9 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceC
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionRouteUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.PartialSurrenderCorrectionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.PartialSurrenderValidator;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderTypeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.tasklist.PartialSurrenderTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
@@ -51,17 +53,23 @@ public class PartialSurrenderDefineAreaController {
   private final PartialSurrenderCorrectionService partialSurrenderCorrectionService;
   private final PartialSurrenderSelectAreasFormValidator partialSurrenderSelectAreasFormValidator;
   private final PartialSurrenderDefineAreaValidator partialSurrenderDefineAreaValidator;
+  private final PartialSurrenderValidator partialSurrenderValidator;
+  private final LicencePositionCorrectionService licencePositionCorrectionService;
 
   public PartialSurrenderDefineAreaController(
       CommandJourneyService commandJourneyService,
       PartialSurrenderCorrectionService partialSurrenderCorrectionService,
       PartialSurrenderSelectAreasFormValidator partialSurrenderSelectAreasFormValidator,
-      PartialSurrenderDefineAreaValidator partialSurrenderDefineAreaValidator
+      PartialSurrenderDefineAreaValidator partialSurrenderDefineAreaValidator,
+      PartialSurrenderValidator partialSurrenderValidator,
+      LicencePositionCorrectionService licencePositionCorrectionService
   ) {
     this.commandJourneyService = commandJourneyService;
     this.partialSurrenderCorrectionService = partialSurrenderCorrectionService;
     this.partialSurrenderSelectAreasFormValidator = partialSurrenderSelectAreasFormValidator;
     this.partialSurrenderDefineAreaValidator = partialSurrenderDefineAreaValidator;
+    this.partialSurrenderValidator = partialSurrenderValidator;
+    this.licencePositionCorrectionService = licencePositionCorrectionService;
   }
 
   @GetMapping("/define-area")
@@ -151,8 +159,19 @@ public class PartialSurrenderDefineAreaController {
     var activeFeatures = commandJourneyService.getActiveFeatures(surrenderDetails.commandJourneyIdOrThrow());
 
     var blockFeature = partialSurrenderCorrectionService.getSurrenderedBlockFeatureOrThrow(licencePositionCorrection, featureId);
+    var otherActiveBlocks = partialSurrenderValidator.getOtherActiveBlocks(
+        partialSurrenderCorrectionService.getCommittedPartialSurrenderOrThrow(licencePositionCorrection),
+        licencePositionCorrectionService.resolveEffectiveDate(licencePositionCorrection),
+        partialSurrenderCorrectionService.getCommittedPartialSurrenderChangeId(licencePositionCorrection).orElse(null)
+    );
 
-    if (partialSurrenderSelectAreasFormValidator.hasErrors(form, bindingResult, activeFeatures, blockFeature)) {
+    if (partialSurrenderSelectAreasFormValidator.hasErrors(
+        form,
+        bindingResult,
+        activeFeatures,
+        blockFeature,
+        otherActiveBlocks
+    )) {
       return getSelectAreasModelAndView(
           licencePositionCorrection,
           featureId,

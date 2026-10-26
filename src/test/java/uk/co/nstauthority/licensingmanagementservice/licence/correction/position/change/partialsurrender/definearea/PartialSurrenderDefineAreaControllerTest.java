@@ -16,6 +16,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 import static uk.co.nstauthority.licensingmanagementservice.authentication.TestUserProvider.user;
 
+import java.time.LocalDate;
+import java.time.Month;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -42,10 +44,12 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.PartialSurrenderCorrectionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.PartialSurrenderValidator;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderTypeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.tasklist.PartialSurrenderTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.UpdateLicencePositionPayloadTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation.SurrenderDetails;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
@@ -110,6 +114,9 @@ class PartialSurrenderDefineAreaControllerTest extends AbstractControllerTest {
 
   @MockitoBean
   private PartialSurrenderDefineAreaValidator partialSurrenderDefineAreaValidator;
+
+  @MockitoBean
+  private PartialSurrenderValidator partialSurrenderValidator;
 
   @Test
   void renderDefineArea_whenNotAllocated_forbidden() throws Exception {
@@ -281,12 +288,14 @@ class PartialSurrenderDefineAreaControllerTest extends AbstractControllerTest {
   @Test
   void selectAreas_whenValidSelection_savesAndRedirectsToTaskList() throws Exception {
     var positionCorrection = givenBlockSurrender(List.of(), List.of(FIRST_AREA, SECOND_AREA));
+    var otherActiveBlocks = givenOtherActiveBlocks(positionCorrection);
 
     when(partialSurrenderSelectAreasFormValidator.hasErrors(
         any(PartialSurrenderSelectAreasForm.class),
         any(BindingResult.class),
         eq(List.of(FIRST_AREA, SECOND_AREA)),
-        eq(FEATURE)
+        eq(FEATURE),
+        eq(otherActiveBlocks)
     )).thenReturn(false);
 
     mockMvc.perform(post(selectAreasUrl())
@@ -302,12 +311,14 @@ class PartialSurrenderDefineAreaControllerTest extends AbstractControllerTest {
   @Test
   void selectAreas_whenSingleBlock_savesAndRedirectsToReviewAndSubmit() throws Exception {
     var positionCorrection = givenBlockSurrender(List.of(), List.of(FIRST_AREA, SECOND_AREA));
+    var otherActiveBlocks = givenOtherActiveBlocks(positionCorrection);
 
     when(partialSurrenderSelectAreasFormValidator.hasErrors(
         any(PartialSurrenderSelectAreasForm.class),
         any(BindingResult.class),
         eq(List.of(FIRST_AREA, SECOND_AREA)),
-        eq(FEATURE)
+        eq(FEATURE),
+        eq(otherActiveBlocks)
     )).thenReturn(false);
     when(partialSurrenderCorrectionService.findSingleBlockNotOperatedOn(positionCorrection))
         .thenReturn(Optional.of(FEATURE));
@@ -328,12 +339,14 @@ class PartialSurrenderDefineAreaControllerTest extends AbstractControllerTest {
     var correction = givenCorrectionAllocatedToUser(LICENCE);
     var positionCorrection = correctingPositionCorrection(correction);
     givenBlockSurrender(positionCorrection, List.of(), List.of(FIRST_AREA, SECOND_AREA));
+    var otherActiveBlocks = givenOtherActiveBlocks(positionCorrection);
 
     when(partialSurrenderSelectAreasFormValidator.hasErrors(
         any(PartialSurrenderSelectAreasForm.class),
         any(BindingResult.class),
         eq(List.of(FIRST_AREA, SECOND_AREA)),
-        eq(FEATURE)
+        eq(FEATURE),
+        eq(otherActiveBlocks)
     )).thenReturn(false);
     when(partialSurrenderCorrectionService.findSingleBlockNotOperatedOn(positionCorrection))
         .thenReturn(Optional.of(FEATURE));
@@ -350,13 +363,15 @@ class PartialSurrenderDefineAreaControllerTest extends AbstractControllerTest {
 
   @Test
   void selectAreas_whenInvalid_renderForm() throws Exception {
-    givenBlockSurrender(List.of(), List.of(FIRST_AREA, SECOND_AREA));
+    var positionCorrection = givenBlockSurrender(List.of(), List.of(FIRST_AREA, SECOND_AREA));
+    var otherActiveBlocks = givenOtherActiveBlocks(positionCorrection);
 
     when(partialSurrenderSelectAreasFormValidator.hasErrors(
         any(PartialSurrenderSelectAreasForm.class),
         any(BindingResult.class),
         eq(List.of(FIRST_AREA, SECOND_AREA)),
-        eq(FEATURE)
+        eq(FEATURE),
+        eq(otherActiveBlocks)
     )).thenReturn(true);
 
     mockMvc.perform(post(selectAreasUrl())
@@ -365,6 +380,23 @@ class PartialSurrenderDefineAreaControllerTest extends AbstractControllerTest {
             status().isOk(),
             view().name(SELECT_AREAS_VIEW_NAME)
         );
+  }
+
+  private List<Feature> givenOtherActiveBlocks(LicencePositionCorrection positionCorrection) {
+    var surrender = LicenceOperation.newPartialSurrenderOperation()
+        .withSurrenderedFeatureIds(List.of(FEATURE_ID))
+        .build();
+    var positionDate = LocalDate.of(2026, Month.JUNE, 1);
+    var stagedChangeId = UUID.randomUUID().toString();
+    var otherActiveBlocks = List.of(FeatureTestUtil.builder().withFeatureName("30/2").build());
+    when(partialSurrenderCorrectionService.getCommittedPartialSurrenderOrThrow(positionCorrection))
+        .thenReturn(surrender);
+    when(licencePositionCorrectionService.resolveEffectiveDate(positionCorrection)).thenReturn(positionDate);
+    when(partialSurrenderCorrectionService.getCommittedPartialSurrenderChangeId(positionCorrection))
+        .thenReturn(Optional.of(stagedChangeId));
+    when(partialSurrenderValidator.getOtherActiveBlocks(surrender, positionDate, stagedChangeId))
+        .thenReturn(otherActiveBlocks);
+    return otherActiveBlocks;
   }
 
   private void givenBlockSurrenderWithActiveFeatures() {

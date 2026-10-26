@@ -106,7 +106,10 @@ public class CorrectPositionChangeTypeController {
     if (correctPositionChangeTypeFormValidator.hasErrors(
         form,
         bindingResult,
-        changeTypePositionMoveOptions.keySet()
+        changeTypePositionMoveOptions.keySet(),
+        correction,
+        licencePositionId,
+        changeId
     )) {
       return correctChangeTypePositionMoveModelAndView(
           form,

@@ -18,6 +18,7 @@ import org.springframework.validation.BeanPropertyBindingResult;
 import org.springframework.validation.Errors;
 import uk.co.fivium.gisframework.feature.Feature;
 import uk.co.fivium.gisframework.relationship.FeatureRelationshipService;
+import uk.co.fivium.grpc.gis.CoordinateSystem;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.FeatureTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.validation.ValidatorTestingUtil;
 
@@ -53,7 +54,7 @@ class PartialSurrenderSelectAreasFormValidatorTest {
   void hasErrors_whenNoAreasSelected_thenErrorWithMessage() {
     form.setSurrenderedFeatureIds(Set.of());
 
-    var result = validator.hasErrors(form, errors, ACTIVE_FEATURES, BLOCK_FEATURE);
+    var result = validator.hasErrors(form, errors, ACTIVE_FEATURES, BLOCK_FEATURE, List.of());
 
     assertThat(result).isTrue();
     assertThat(ValidatorTestingUtil.getErrorsFieldsAndMessages(errors))
@@ -64,7 +65,7 @@ class PartialSurrenderSelectAreasFormValidatorTest {
   void hasErrors_whenSelectedAreaIsNotActive_thenErrorWithMessage() {
     form.setSurrenderedFeatureIds(Set.of(UUID.randomUUID()));
 
-    var result = validator.hasErrors(form, errors, ACTIVE_FEATURES, BLOCK_FEATURE);
+    var result = validator.hasErrors(form, errors, ACTIVE_FEATURES, BLOCK_FEATURE, List.of());
 
     assertThat(result).isTrue();
     assertThat(ValidatorTestingUtil.getErrorsFieldsAndMessages(errors))
@@ -75,7 +76,7 @@ class PartialSurrenderSelectAreasFormValidatorTest {
   void hasErrors_whenAllAreasSelected_thenErrorWithMessage() {
     form.setSurrenderedFeatureIds(Set.of(FIRST_AREA.getId(), SECOND_AREA.getId()));
 
-    var result = validator.hasErrors(form, errors, ACTIVE_FEATURES, BLOCK_FEATURE);
+    var result = validator.hasErrors(form, errors, ACTIVE_FEATURES, BLOCK_FEATURE, List.of());
 
     assertThat(result).isTrue();
     assertThat(ValidatorTestingUtil.getErrorsFieldsAndMessages(errors))
@@ -87,7 +88,7 @@ class PartialSurrenderSelectAreasFormValidatorTest {
     form.setSurrenderedFeatureIds(Set.of(FIRST_AREA.getId()));
     when(featureRelationshipService.isTopologicallyEqual(List.of(FIRST_AREA), BLOCK_FEATURE)).thenReturn(true);
 
-    var result = validator.hasErrors(form, errors, ACTIVE_FEATURES, BLOCK_FEATURE);
+    var result = validator.hasErrors(form, errors, ACTIVE_FEATURES, BLOCK_FEATURE, List.of());
 
     assertThat(result).isTrue();
     assertThat(ValidatorTestingUtil.getErrorsFieldsAndMessages(errors))
@@ -99,9 +100,71 @@ class PartialSurrenderSelectAreasFormValidatorTest {
     form.setSurrenderedFeatureIds(Set.of(FIRST_AREA.getId()));
     when(featureRelationshipService.isTopologicallyEqual(List.of(FIRST_AREA), BLOCK_FEATURE)).thenReturn(false);
 
-    var result = validator.hasErrors(form, errors, ACTIVE_FEATURES, BLOCK_FEATURE);
+    var result = validator.hasErrors(form, errors, ACTIVE_FEATURES, BLOCK_FEATURE, List.of());
 
     assertThat(result).isFalse();
     assertThat(errors.hasErrors()).isFalse();
+  }
+
+  @Test
+  void hasErrors_whenAreasKeptOverlapOtherActiveBlocks_thenErrorPerOverlappedBlock() {
+    var firstOverlappedBlock = FeatureTestUtil.builder().withFeatureName("30/2").build();
+    var secondOverlappedBlock = FeatureTestUtil.builder().withFeatureName("30/3").build();
+    var blockInAnotherCoordinateSystem = FeatureTestUtil.builder()
+        .withFeatureName("30/4")
+        .withCoordinateSystem(CoordinateSystem.WGS84)
+        .build();
+    form.setSurrenderedFeatureIds(Set.of(FIRST_AREA.getId()));
+    when(featureRelationshipService.isTopologicallyEqual(List.of(FIRST_AREA), BLOCK_FEATURE)).thenReturn(false);
+    when(featureRelationshipService.get2dOverlappingFeatures(
+        List.of(SECOND_AREA),
+        List.of(firstOverlappedBlock, secondOverlappedBlock)
+    )).thenReturn(List.of(firstOverlappedBlock, secondOverlappedBlock));
+
+    var result = validator.hasErrors(
+        form,
+        errors,
+        ACTIVE_FEATURES,
+        BLOCK_FEATURE,
+        List.of(firstOverlappedBlock, secondOverlappedBlock, blockInAnotherCoordinateSystem)
+    );
+
+    assertThat(result).isTrue();
+    assertThat(ValidatorTestingUtil.getErrorsFieldsAndMessages(errors))
+        .containsOnly(entry(FIELD, List.of(
+            "Block after surrender must not overlap licence block 30/2",
+            "Block after surrender must not overlap licence block 30/3"
+        )));
+  }
+
+  @Test
+  void getOverlapErrors_whenAreasKeptInSeveralCoordinateSystems_thenAreasKeptInEachCheckedTogetherAgainstItsBlocks() {
+    var firstEd50AreaKept = FeatureTestUtil.builder().withCoordinateSystem(CoordinateSystem.ED50).build();
+    var secondEd50AreaKept = FeatureTestUtil.builder().withCoordinateSystem(CoordinateSystem.ED50).build();
+    var wgs84AreaKept = FeatureTestUtil.builder().withCoordinateSystem(CoordinateSystem.WGS84).build();
+    var ed50Block = FeatureTestUtil.builder()
+        .withFeatureName("30/2")
+        .withCoordinateSystem(CoordinateSystem.ED50)
+        .build();
+    var wgs84Block = FeatureTestUtil.builder()
+        .withFeatureName("30/3")
+        .withCoordinateSystem(CoordinateSystem.WGS84)
+        .build();
+    when(featureRelationshipService.get2dOverlappingFeatures(
+        List.of(firstEd50AreaKept, secondEd50AreaKept),
+        List.of(ed50Block)
+    )).thenReturn(List.of(ed50Block));
+    when(featureRelationshipService.get2dOverlappingFeatures(List.of(wgs84AreaKept), List.of(wgs84Block)))
+        .thenReturn(List.of(wgs84Block));
+
+    var result = validator.getOverlapErrors(
+        List.of(firstEd50AreaKept, wgs84AreaKept, secondEd50AreaKept),
+        List.of(ed50Block, wgs84Block)
+    );
+
+    assertThat(result).containsExactlyInAnyOrder(
+        "Block after surrender must not overlap licence block 30/2",
+        "Block after surrender must not overlap licence block 30/3"
+    );
   }
 }

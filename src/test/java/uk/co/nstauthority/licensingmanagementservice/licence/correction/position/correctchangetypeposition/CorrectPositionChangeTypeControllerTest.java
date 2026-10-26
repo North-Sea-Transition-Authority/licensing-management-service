@@ -199,8 +199,14 @@ class CorrectPositionChangeTypeControllerTest extends AbstractControllerTest {
     var form = new CorrectPositionChangeTypeForm();
     form.getChangeTypePositionMove().setInputValue(OTHER_POSITION_ID.toString());
 
-    when(correctPositionChangeTypeFormValidator
-        .hasErrors(eq(form), any(BindingResult.class), eq(ALLOWED_MOVES)))
+    when(correctPositionChangeTypeFormValidator.hasErrors(
+        eq(form),
+        any(BindingResult.class),
+        eq(ALLOWED_MOVES),
+        eq(CORRECTION),
+        eq(POSITION_ID),
+        eq(CHANGE_ID)
+    ))
         .thenReturn(false);
 
     mockMvc.perform(post(ReverseRouter.route(on(CorrectPositionChangeTypeController.class)
@@ -486,8 +492,14 @@ class CorrectPositionChangeTypeControllerTest extends AbstractControllerTest {
 
     var form = new CorrectPositionChangeTypeForm();
 
-    when(correctPositionChangeTypeFormValidator
-        .hasErrors(eq(form), any(BindingResult.class), eq(ALLOWED_MOVES)))
+    when(correctPositionChangeTypeFormValidator.hasErrors(
+        eq(form),
+        any(BindingResult.class),
+        eq(ALLOWED_MOVES),
+        eq(CORRECTION),
+        eq(POSITION_ID),
+        eq(CHANGE_ID)
+    ))
         .thenReturn(true);
 
     mockMvc.perform(post(ReverseRouter.route(on(CorrectPositionChangeTypeController.class)
@@ -600,8 +612,14 @@ class CorrectPositionChangeTypeControllerTest extends AbstractControllerTest {
     givenChangeOnPosition();
     givenMoveOptions();
 
-    when(correctPositionChangeTypeFormValidator
-        .hasErrors(eq(otherDateForm), any(BindingResult.class), eq(ALLOWED_MOVES)))
+    when(correctPositionChangeTypeFormValidator.hasErrors(
+        eq(otherDateForm),
+        any(BindingResult.class),
+        eq(ALLOWED_MOVES),
+        eq(CORRECTION),
+        eq(POSITION_ID),
+        eq(CHANGE_ID)
+    ))
         .thenReturn(false);
     when(correctChangeOrderService.moveChangeToDate(CORRECTION, POSITION_ID, CHANGE_ID, OTHER_DATE, null))
         .thenReturn(result);

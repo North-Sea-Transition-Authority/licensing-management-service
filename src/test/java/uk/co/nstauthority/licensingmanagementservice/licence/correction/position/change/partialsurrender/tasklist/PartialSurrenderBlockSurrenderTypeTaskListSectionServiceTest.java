@@ -102,24 +102,39 @@ class PartialSurrenderBlockSurrenderTypeTaskListSectionServiceTest {
             expectedItem(positionCorrection, SECOND_BLOCK, TaskListLabel.NOT_COMPLETE))));
   }
 
-  private static Stream<Arguments> blockSurrenderTypeToLabel() {
+  private static Stream<Arguments> blockSurrenderToLabel() {
+    var partialSurrenderWithAreasSelected = new PartialSurrenderOperation.SurrenderDetails(
+        BlockSurrenderType.PARTIAL_SURRENDER,
+        UUID.randomUUID(),
+        List.of(UUID.randomUUID()),
+        List.of(UUID.randomUUID())
+    );
+
     return Stream.of(
-        Arguments.of(Map.of(FIRST_BLOCK.getId(), BlockSurrenderType.FULL_SURRENDER), TaskListLabel.COMPLETE),
-        Arguments.of(Map.of(FIRST_BLOCK.getId(), BlockSurrenderType.PARTIAL_SURRENDER), TaskListLabel.NOT_COMPLETE),
-        Arguments.of(Map.<UUID, BlockSurrenderType>of(), TaskListLabel.NOT_COMPLETE));
+        Arguments.of(Map.of(FIRST_BLOCK.getId(), surrenderDetails(BlockSurrenderType.FULL_SURRENDER)), TaskListLabel.COMPLETE),
+        Arguments.of(
+            Map.of(FIRST_BLOCK.getId(), surrenderDetails(BlockSurrenderType.PARTIAL_SURRENDER)),
+            TaskListLabel.NOT_COMPLETE
+        ),
+        Arguments.of(Map.of(FIRST_BLOCK.getId(), partialSurrenderWithAreasSelected), TaskListLabel.COMPLETE),
+        Arguments.of(Map.<UUID, PartialSurrenderOperation.SurrenderDetails>of(), TaskListLabel.NOT_COMPLETE)
+    );
   }
 
   @ParameterizedTest
-  @MethodSource("blockSurrenderTypeToLabel")
-  void getSection_whenBlockSurrenderType_thenLabelledCompleteOnlyForFullSurrender(
-      Map<UUID, BlockSurrenderType> blockSurrenderTypeByFeatureId,
+  @MethodSource("blockSurrenderToLabel")
+  void getSection_whenBlockSurrender_thenLabelledCompleteOnceFullOrAreasSelected(
+      Map<UUID, PartialSurrenderOperation.SurrenderDetails> featureIdToSurrenderDetails,
       TaskListLabel expectedLabel
   ) {
     var positionCorrection = positionCorrection();
     var context = new PartialSurrenderTaskListContext.Staged(positionCorrection);
     givenStagedSurrender(
         positionCorrection,
-        operation(List.of(FIRST_BLOCK.getId()), blockSurrenderTypeByFeatureId),
+        LicenceOperation.newPartialSurrenderOperation()
+            .withSurrenderedFeatureIds(List.of(FIRST_BLOCK.getId()))
+            .withSurrenderDetails(featureIdToSurrenderDetails)
+            .build(),
         List.of(FIRST_BLOCK)
     );
 
@@ -186,14 +201,16 @@ class PartialSurrenderBlockSurrenderTypeTaskListSectionServiceTest {
       Map<UUID, BlockSurrenderType> blockSurrenderTypeByFeatureId
   ) {
     var blockSurrenders = blockSurrenderTypeByFeatureId.entrySet().stream()
-        .collect(Collectors.toMap(
-            Map.Entry::getKey,
-            entry -> new PartialSurrenderOperation.SurrenderDetails(entry.getValue(), UUID.randomUUID(), List.of())));
+        .collect(Collectors.toMap(Map.Entry::getKey, entry -> surrenderDetails(entry.getValue())));
 
     return LicenceOperation.newPartialSurrenderOperation()
         .withSurrenderedFeatureIds(featureIds)
         .withSurrenderDetails(blockSurrenders)
         .build();
+  }
+
+  private static PartialSurrenderOperation.SurrenderDetails surrenderDetails(BlockSurrenderType type) {
+    return new PartialSurrenderOperation.SurrenderDetails(type, UUID.randomUUID(), List.of());
   }
 
   private LicencePositionCorrection positionCorrection() {

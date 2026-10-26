@@ -17,6 +17,9 @@ import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -40,6 +43,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.UpdateChangeOrder;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.LicencePositionPayload;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionService;
@@ -620,6 +625,71 @@ class CorrectChangeOrderServiceTest {
         .thenReturn(new OrderablePosition(POSITION_ID, NEW_POSITION_DATE.minusMonths(1), 1, SOURCE_REFERENCE, false));
     when(licencePositionCorrectionService.addNewPosition(CORRECTION, NEW_POSITION_DATE, SOURCE_REFERENCE, TRANSACTION_ID))
         .thenReturn(TARGET_POSITION_ID);
+  }
+
+  @ParameterizedTest
+  @NullSource
+  @ValueSource(strings = {LicencePositionChangeType.ADD_CHANGE, LicencePositionChangeType.REMOVE_CHANGE})
+  void canMoveChangeToPosition_whenMovingAPartialSurrenderOntoAPositionWithOne_thenFalse(String targetChangeType) {
+    givenAddedSourceChanges(List.of(new PositionChange(CHANGE_A.toString(), 1, null, List.of(partialSurrender()))));
+    givenExecutedTargetChanges(
+        TARGET_POSITION,
+        List.of(new PositionChange(CHANGE_B.toString(), 1, targetChangeType, List.of(partialSurrender())))
+    );
+
+    var result = correctChangeOrderService.canMoveChangeToPosition(CORRECTION, POSITION_ID, CHANGE_A, TARGET_POSITION_ID);
+
+    assertThat(result).isFalse();
+  }
+
+  @Test
+  void canMoveChangeToPosition_whenMovingAPartialSurrenderOntoAPositionWithoutOne_thenTrue() {
+    givenAddedSourceChanges(List.of(new PositionChange(CHANGE_A.toString(), 1, null, List.of(partialSurrender()))));
+    givenExecutedTargetChanges(
+        TARGET_POSITION,
+        List.of(new PositionChange(CHANGE_B.toString(), 1, null, List.of(new SubareaOperation(UUID.randomUUID(), List.of(), List.of()))))
+    );
+
+    var result = correctChangeOrderService.canMoveChangeToPosition(CORRECTION, POSITION_ID, CHANGE_A, TARGET_POSITION_ID);
+
+    assertThat(result).isTrue();
+  }
+
+  @Test
+  void canMoveChangeToPosition_whenMovingAPartialSurrenderBackOntoItsLivePosition_thenTrue() {
+    var surrender = partialSurrender();
+    givenAddedSourceChanges(List.of(new PositionChange(CHANGE_A.toString(), 1, null, List.of(surrender))));
+    givenExecutedTargetChanges(TARGET_POSITION, List.of(new PositionChange(CHANGE_A.toString(), 1, null, List.of(surrender))));
+
+    var result = correctChangeOrderService.canMoveChangeToPosition(CORRECTION, POSITION_ID, CHANGE_A, TARGET_POSITION_ID);
+
+    assertThat(result).isTrue();
+  }
+
+  @Test
+  void canMoveChangeToPosition_whenMovingAChangeThatIsNotAPartialSurrender_thenTrue() {
+    givenAddedSourceChanges(List.of(
+        new PositionChange(CHANGE_A.toString(), 1, null, List.of(new SubareaOperation(UUID.randomUUID(), List.of(), List.of()))),
+        new PositionChange(CHANGE_B.toString(), 2, null, List.of(partialSurrender()))
+    ));
+
+    var result = correctChangeOrderService.canMoveChangeToPosition(CORRECTION, POSITION_ID, CHANGE_A, TARGET_POSITION_ID);
+
+    assertThat(result).isTrue();
+    verify(licencePositionCorrectionService, never()).getOrBuildPositionCorrection(CORRECTION, TARGET_POSITION_ID);
+  }
+
+  private void givenAddedSourceChanges(List<PositionChange> changes) {
+    var sourceCorrection = addedPositionCorrection(List.of());
+    when(licencePositionCorrectionService.getOrBuildPositionCorrection(CORRECTION, POSITION_ID))
+        .thenReturn(sourceCorrection);
+    when(licencePositionCorrectionService.getChangesForAddedPosition(sourceCorrection)).thenReturn(changes);
+  }
+
+  private static PartialSurrenderOperation partialSurrender() {
+    return LicenceOperation.newPartialSurrenderOperation()
+        .withSurrenderedFeatureIds(List.of(UUID.randomUUID()))
+        .build();
   }
 
   private AddChange givenAnAddedChangeOnTheSource() {

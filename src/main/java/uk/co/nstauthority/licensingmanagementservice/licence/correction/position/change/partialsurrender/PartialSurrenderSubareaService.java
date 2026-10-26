@@ -46,12 +46,13 @@ class PartialSurrenderSubareaService {
    * Works out what surrendering a block does to its subareas, relative to each part of the block kept. A subarea left
    * wholly on a part is kept on it, one left partly on it is cropped back to it as a new subarea, and one left off it
    * is relinquished from it; the original subareas are left untouched. A fully surrendered block keeps no part, so
-   * records nothing. Subareas carried across from PEARS without a shape can't be cropped, so are kept as they are on
-   * the first part kept.
+   * every subarea is relinquished against the block itself. Subareas carried across from PEARS without a shape can't
+   * be cropped, so are kept as they are on the first part kept.
    *
    * @param retainedFeatureIds The features holding the ground the block keeps.
    * @param previousDetails The block's previous surrender details when its surrender is unchanged. Their outcomes are
-   *                        reused if they were worked out from the same subareas now going into the block.
+   *                        reused if they were worked out from the same subareas now going into the block and the
+   *                        same parts kept.
    * @return The surrender details with the block's subarea outcomes recorded against each part kept.
    */
   @Transactional
@@ -65,15 +66,22 @@ class PartialSurrenderSubareaService {
       @Nullable SurrenderDetails previousDetails
   ) {
     if (surrenderDetails.surrenderedFeatureIds().isEmpty()
-        || surrenderDetails.type() == BlockSurrenderType.FULL_SURRENDER
-        || retainedFeatureIds.isEmpty()) {
+        || (surrenderDetails.isPartialSurrender() && retainedFeatureIds.isEmpty())) {
       return surrenderDetails.withSubareas(Map.of());
     }
 
     var subareas = licencePositionSpatialService
         .getSubareasGoingIntoChange(licenceCorrection, licencePositionId, blockFeatureId, changeId);
 
-    if (previousDetails != null && Set.copyOf(subareas).equals(inputSubareasOf(previousDetails))) {
+    if (surrenderDetails.type() == BlockSurrenderType.FULL_SURRENDER) {
+      return surrenderDetails.withSubareas(
+          Map.of(blockFeatureId, subareas.stream().map(SubareaSurrenderOutcome::relinquished).toList())
+      );
+    }
+
+    if (previousDetails != null
+        && Set.copyOf(subareas).equals(inputSubareasOf(previousDetails))
+        && Set.copyOf(retainedFeatureIds).equals(Set.copyOf(previousDetails.retainedFeatureIds()))) {
       return surrenderDetails.withSubareas(previousDetails.retainedFeatureIdToSubareas());
     }
 

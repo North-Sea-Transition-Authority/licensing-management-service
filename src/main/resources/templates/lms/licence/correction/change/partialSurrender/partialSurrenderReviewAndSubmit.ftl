@@ -25,7 +25,7 @@
 
     <@fdsAction.submitButtons
       primaryButtonText="Submit"
-      <#--TODO: enable when we can submit partial surrenders-->
+      <#--TODO: enable when the review and submit page is reworked-->
       primaryDisabledButton=true
       secondaryLinkText=backLinkText
       linkSecondaryAction=true

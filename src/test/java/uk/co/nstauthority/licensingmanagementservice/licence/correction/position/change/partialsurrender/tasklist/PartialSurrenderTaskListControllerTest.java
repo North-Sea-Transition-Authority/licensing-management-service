@@ -421,7 +421,7 @@ class PartialSurrenderTaskListControllerTest extends AbstractControllerTest {
     when(licencePositionSpatialService.getStateGoingIntoChange(correction, POSITION_ID, LIVE_CHANGE_ID))
         .thenReturn(state);
     when(licencePositionCorrectionService.getEffectivePositionDate(correction, POSITION)).thenReturn(POSITION_DATE);
-    when(partialSurrenderValidator.validate(surrender, state, POSITION_DATE))
+    when(partialSurrenderValidator.validate(surrender, state, POSITION_DATE, LIVE_CHANGE_ID))
         .thenReturn(List.of("First error", "Second error"));
 
     var modelAndView = mockMvc.perform(get(reviewAndSubmitForCorrectingChangeUrl())
@@ -523,7 +523,7 @@ class PartialSurrenderTaskListControllerTest extends AbstractControllerTest {
     when(partialSurrenderCorrectionService.getCommittedPartialSurrenderOrThrow(positionCorrection)).thenReturn(SURRENDER);
     when(licencePositionSpatialService.getStateGoingIntoChange(positionCorrection, stagedChangeId)).thenReturn(state);
     when(licencePositionCorrectionService.resolveEffectiveDate(positionCorrection)).thenReturn(POSITION_DATE);
-    when(partialSurrenderValidator.validate(SURRENDER, state, POSITION_DATE))
+    when(partialSurrenderValidator.validate(SURRENDER, state, POSITION_DATE, stagedChangeId))
         .thenReturn(List.of("First error", "Second error"));
 
     var modelAndView = mockMvc.perform(get(reviewAndSubmitUrl()).with(user(regulatorUser)))

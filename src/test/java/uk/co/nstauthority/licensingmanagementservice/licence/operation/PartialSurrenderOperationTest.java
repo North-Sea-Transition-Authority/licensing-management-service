@@ -31,6 +31,10 @@ class PartialSurrenderOperationTest {
   private static final SubareaDetails SECOND_SUBAREA = new SubareaDetails(UUID.randomUUID(), "Subarea B", "B");
   private static final SubareaDetails CROPPED_SUBAREA = new SubareaDetails(UUID.randomUUID(), "Subarea B", "B");
   private static final SubareaDetails UNSCRIBED_SUBAREA = new SubareaDetails(null, "Unscribed", "U");
+  private static final SubareaDetails THIRD_SUBAREA = new SubareaDetails(UUID.randomUUID(), "Subarea C", "C");
+  private static final UUID SURRENDERED_PART_ID = UUID.randomUUID();
+  private static final UUID FIRST_RETAINED_PART_ID = UUID.randomUUID();
+  private static final UUID SECOND_RETAINED_PART_ID = UUID.randomUUID();
 
   private static SurrenderDetails surrenderDetails(BlockSurrenderType type) {
     return new SurrenderDetails(type, UUID.randomUUID(), List.of());
@@ -187,6 +191,12 @@ class PartialSurrenderOperationTest {
   private static Stream<Arguments> surrendersAndWhetherTheyTakeEffect() {
     var fullSurrender = surrenderDetails(BlockSurrenderType.FULL_SURRENDER);
     var partialSurrenderOnAJourney = surrenderDetails(BlockSurrenderType.PARTIAL_SURRENDER);
+    var partialSurrenderWithAreasSelected = new SurrenderDetails(
+        BlockSurrenderType.PARTIAL_SURRENDER,
+        COMMAND_JOURNEY_ID,
+        List.of(UUID.randomUUID()),
+        List.of(UUID.randomUUID())
+    );
     var executedPartialSurrender = new SurrenderDetails(
         BlockSurrenderType.PARTIAL_SURRENDER,
         null,
@@ -199,7 +209,33 @@ class PartialSurrenderOperationTest {
         Arguments.of(Map.of(FIRST_FEATURE_ID, fullSurrender), false),
         Arguments.of(Map.of(FIRST_FEATURE_ID, fullSurrender, SECOND_FEATURE_ID, partialSurrenderOnAJourney), false),
         Arguments.of(Map.of(FIRST_FEATURE_ID, fullSurrender, SECOND_FEATURE_ID, fullSurrender), true),
+        Arguments.of(Map.of(FIRST_FEATURE_ID, fullSurrender, SECOND_FEATURE_ID, partialSurrenderWithAreasSelected), true),
         Arguments.of(Map.of(FIRST_FEATURE_ID, fullSurrender, SECOND_FEATURE_ID, executedPartialSurrender), true)
+    );
+  }
+
+  @ParameterizedTest
+  @MethodSource("surrenderDetailsAndWhetherTheyAreComplete")
+  void isComplete(
+      SurrenderDetails surrenderDetails,
+      boolean expected
+  ) {
+    assertThat(surrenderDetails.isComplete()).isEqualTo(expected);
+  }
+
+  private static Stream<Arguments> surrenderDetailsAndWhetherTheyAreComplete() {
+    return Stream.of(
+        Arguments.of(surrenderDetails(BlockSurrenderType.FULL_SURRENDER), true),
+        Arguments.of(surrenderDetails(BlockSurrenderType.PARTIAL_SURRENDER), false),
+        Arguments.of(
+            new SurrenderDetails(
+                BlockSurrenderType.PARTIAL_SURRENDER,
+                COMMAND_JOURNEY_ID,
+                List.of(FIRST_FEATURE_ID),
+                List.of(SECOND_FEATURE_ID)
+            ),
+            true
+        )
     );
   }
 
@@ -328,6 +364,55 @@ class PartialSurrenderOperationTest {
   }
 
   @Test
+  void withRetainedFeatureIds() {
+    var retainedFeatureIdToSubareas = Map.of(
+        SECOND_FEATURE_ID, List.of(SubareaSurrenderOutcome.relinquished(FIRST_SUBAREA))
+    );
+    var details = new SurrenderDetails(
+        BlockSurrenderType.PARTIAL_SURRENDER,
+        COMMAND_JOURNEY_ID,
+        List.of(FIRST_FEATURE_ID),
+        List.of(),
+        retainedFeatureIdToSubareas
+    );
+
+    var result = details.withRetainedFeatureIds(List.of(SECOND_FEATURE_ID));
+
+    var expected = new SurrenderDetails(
+        BlockSurrenderType.PARTIAL_SURRENDER,
+        COMMAND_JOURNEY_ID,
+        List.of(FIRST_FEATURE_ID),
+        List.of(SECOND_FEATURE_ID),
+        retainedFeatureIdToSubareas
+    );
+    assertThat(result).isEqualTo(expected);
+  }
+
+  @ParameterizedTest
+  @MethodSource("areasAndWhetherTheSelectionIsUpToDate")
+  void isSelectionUpToDate(
+      List<UUID> areaIds,
+      boolean expected
+  ) {
+    var details = new SurrenderDetails(
+        BlockSurrenderType.PARTIAL_SURRENDER,
+        COMMAND_JOURNEY_ID,
+        List.of(FIRST_FEATURE_ID),
+        List.of(SECOND_FEATURE_ID)
+    );
+
+    assertThat(details.isSelectionUpToDate(areaIds)).isEqualTo(expected);
+  }
+
+  private static Stream<Arguments> areasAndWhetherTheSelectionIsUpToDate() {
+    return Stream.of(
+        Arguments.of(List.of(SECOND_FEATURE_ID, FIRST_FEATURE_ID), true),
+        Arguments.of(List.of(FIRST_FEATURE_ID, UUID.randomUUID(), UUID.randomUUID()), false),
+        Arguments.of(List.of(UUID.randomUUID(), SECOND_FEATURE_ID), false)
+    );
+  }
+
+  @Test
   void croppedSubareaFeatureIds() {
     var details = surrenderDetails(BlockSurrenderType.PARTIAL_SURRENDER).withSubareas(
         Map.of(SECOND_FEATURE_ID, List.of(
@@ -450,6 +535,64 @@ class PartialSurrenderOperationTest {
     var result = surrenderCroppingSecondSubarea().doInputsMatchPreviousStateOutputs(state);
 
     assertThat(result).isFalse();
+  }
+
+  @Test
+  void createdFeatureIds_thenThePartsSplitFromTheBlocksAndTheSubareasCroppedToThem() {
+    var result = surrenderOfAPartAndAWholeBlock().createdFeatureIds();
+
+    assertThat(result).containsExactlyInAnyOrder(
+        SURRENDERED_PART_ID,
+        FIRST_RETAINED_PART_ID,
+        SECOND_RETAINED_PART_ID,
+        CROPPED_SUBAREA.featureId()
+    );
+  }
+
+  @Test
+  void endedFeatureIds_thenTheBlocksAndPartsGivenUpAndTheSubareasNotKeptOnAnyPart() {
+    var result = surrenderOfAPartAndAWholeBlock().endedFeatureIds();
+
+    assertThat(result).containsExactlyInAnyOrder(
+        FIRST_FEATURE_ID,
+        SECOND_FEATURE_ID,
+        SURRENDERED_PART_ID,
+        SECOND_SUBAREA.featureId(),
+        THIRD_SUBAREA.featureId()
+    );
+  }
+
+  private static PartialSurrenderOperation surrenderOfAPartAndAWholeBlock() {
+    var partialSurrenderDetails = new SurrenderDetails(
+        BlockSurrenderType.PARTIAL_SURRENDER,
+        null,
+        List.of(SURRENDERED_PART_ID),
+        List.of(FIRST_RETAINED_PART_ID, SECOND_RETAINED_PART_ID),
+        Map.of(
+            FIRST_RETAINED_PART_ID, List.of(
+                SubareaSurrenderOutcome.kept(FIRST_SUBAREA),
+                SubareaSurrenderOutcome.cropped(SECOND_SUBAREA, CROPPED_SUBAREA),
+                SubareaSurrenderOutcome.kept(UNSCRIBED_SUBAREA)
+            ),
+            SECOND_RETAINED_PART_ID, List.of(
+                SubareaSurrenderOutcome.relinquished(FIRST_SUBAREA),
+                SubareaSurrenderOutcome.relinquished(SECOND_SUBAREA),
+                SubareaSurrenderOutcome.relinquished(UNSCRIBED_SUBAREA)
+            )
+        )
+    );
+    var fullSurrenderDetails = new SurrenderDetails(
+        BlockSurrenderType.FULL_SURRENDER,
+        null,
+        List.of(SECOND_FEATURE_ID),
+        List.of(),
+        Map.of(SECOND_FEATURE_ID, List.of(SubareaSurrenderOutcome.relinquished(THIRD_SUBAREA)))
+    );
+    return new PartialSurrenderOperation(
+        SURRENDER_DATE,
+        List.of(FIRST_FEATURE_ID, SECOND_FEATURE_ID),
+        Map.of(FIRST_FEATURE_ID, partialSurrenderDetails, SECOND_FEATURE_ID, fullSurrenderDetails)
+    );
   }
 
   private static PartialSurrenderOperation surrenderCroppingSecondSubarea() {

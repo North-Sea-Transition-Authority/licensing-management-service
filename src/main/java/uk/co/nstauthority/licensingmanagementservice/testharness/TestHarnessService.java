@@ -147,6 +147,7 @@ class TestHarnessService {
     var croppedSubarea = SeededFeatures.toSubareaDetails(licencePositionFeatureTestHarnessService
         .cropSubareaToRetainedHalf(
             seededFeatures.subareaOf(partiallySurrenderedBlock),
+            partiallySurrenderedBlock,
             licencePosition.getPositionDate()));
 
     var fullSurrender = new SurrenderDetails(

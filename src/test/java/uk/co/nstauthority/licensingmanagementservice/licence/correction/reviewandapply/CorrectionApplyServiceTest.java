@@ -9,6 +9,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import jakarta.persistence.EntityManager;
@@ -357,7 +358,7 @@ class CorrectionApplyServiceTest {
   }
 
   @Test
-  void applyCorrection_whenASurrenderIsAdded_thenItIsInsertedWithoutJourneysAndTheJourneysAreFinalised() {
+  void applyCorrection_whenASurrenderIsAdded_thenItIsInsertedWithoutJourneysAndDatedAndTheJourneysAreFinalised() {
     var livePosition = LicencePositionTestUtil.newBuilder().build();
     var changeId = UUID.randomUUID();
     var commandJourneyId = UUID.randomUUID();
@@ -379,10 +380,11 @@ class CorrectionApplyServiceTest {
     inOrder.verify(licencePositionChangeService).createLicencePositionChange(
         changeId, livePosition, List.of(executedSurrender), 3, LicencePositionChangeStatus.CONSENTED);
     inOrder.verify(commandJourneyService).deleteAllExcludingActiveFeatures(commandJourneyId);
+    verify(partialSurrenderCorrectionService).setFeatureDates(executedSurrender, EFFECTIVE_DATE);
   }
 
   @Test
-  void applyCorrection_whenASurrenderIsUpdated_thenTheLiveOperationsAreOverwrittenWithoutJourneys() {
+  void applyCorrection_whenASurrenderIsUpdated_thenTheLiveOperationsAreOverwrittenWithoutJourneysAndDated() {
     var livePosition = LicencePositionTestUtil.newBuilder().build();
     var liveChange = LicencePositionChangeTestUtil.newBuilder()
         .withLicencePosition(livePosition)
@@ -404,6 +406,116 @@ class CorrectionApplyServiceTest {
 
     assertThat(liveChange.getOperations()).containsExactly(executedSurrender);
     verify(commandJourneyService).deleteAllExcludingActiveFeatures(commandJourneyId);
+    verify(partialSurrenderCorrectionService).setFeatureDates(executedSurrender, EFFECTIVE_DATE);
+  }
+
+  @Test
+  void applyCorrection_whenAnAppliedSurrenderIsReplaced_thenItsFeaturesAreRevertedBeforeTheNewOnesAreDated() {
+    var livePosition = LicencePositionTestUtil.newBuilder().build();
+    var liveSurrender = surrenderWithJourney(null);
+    var liveChange = LicencePositionChangeTestUtil.newBuilder()
+        .withLicencePosition(livePosition)
+        .withOperations(List.of(liveSurrender))
+        .build();
+    var blockId = UUID.randomUUID();
+    var surrenderedPartId = UUID.randomUUID();
+    var retainedPartId = UUID.randomUUID();
+    var stagedSurrender = LicenceOperation.newPartialSurrenderOperation()
+        .withSurrenderedFeatureIds(List.of(blockId))
+        .withSurrenderDetails(Map.of(blockId, new SurrenderDetails(
+            BlockSurrenderType.PARTIAL_SURRENDER,
+            UUID.randomUUID(),
+            List.of(surrenderedPartId),
+            List.of(retainedPartId)
+        )))
+        .build();
+    var executedSurrender = surrenderWithJourney(null);
+    var updateChange = LicencePositionChangeType.updateChangeOperations()
+        .withChangeId(liveChange.getId().toString())
+        .withOperations(List.of(addOperation(stagedSurrender)))
+        .build();
+
+    stubTimeline(List.of(updatePositionCorrection(livePosition, null, List.of(updateChange))), List.of());
+    when(licencePositionChangeService.findById(liveChange.getId())).thenReturn(Optional.of(liveChange));
+    when(partialSurrenderCorrectionService.toExecutedSurrender(stagedSurrender)).thenReturn(executedSurrender);
+
+    correctionApplyService.applyCorrection(licenceCorrection);
+
+    var inOrder = inOrder(partialSurrenderCorrectionService);
+    inOrder.verify(partialSurrenderCorrectionService).revertFeatures(liveSurrender, Set.of(surrenderedPartId, retainedPartId));
+    inOrder.verify(partialSurrenderCorrectionService).setFeatureDates(executedSurrender, EFFECTIVE_DATE);
+  }
+
+  @Test
+  void applyCorrection_whenAnAppliedSurrenderIsRemoved_thenItsFeaturesAreReverted() {
+    var livePosition = LicencePositionTestUtil.newBuilder().build();
+    var liveSurrender = surrenderWithJourney(null);
+    var liveChange = LicencePositionChangeTestUtil.newBuilder()
+        .withLicencePosition(livePosition)
+        .withOperations(List.of(liveSurrender))
+        .build();
+    var removeChange = LicencePositionChangeType.removeChange().withChangeId(liveChange.getId().toString()).build();
+
+    stubTimeline(List.of(updatePositionCorrection(livePosition, null, List.of(removeChange))), List.of());
+    when(licencePositionChangeService.findById(liveChange.getId())).thenReturn(Optional.of(liveChange));
+
+    correctionApplyService.applyCorrection(licenceCorrection);
+
+    verify(partialSurrenderCorrectionService).revertFeatures(liveSurrender, Set.of());
+  }
+
+  @Test
+  void applyCorrection_whenAPositionWithAnAppliedSurrenderIsRemoved_thenItsFeaturesAreReverted() {
+    var livePosition = LicencePositionTestUtil.newBuilder().build();
+    var liveSurrender = surrenderWithJourney(null);
+    var liveChanges = List.of(
+        LicencePositionChangeTestUtil.newBuilder().withLicencePosition(livePosition).withOperations(List.of(OPERATION)).build(),
+        LicencePositionChangeTestUtil.newBuilder().withLicencePosition(livePosition).withOperations(List.of(liveSurrender)).build()
+    );
+
+    stubTimeline(List.of(removePositionCorrection(livePosition)), List.of());
+    when(licencePositionChangeService.findByLicencePositionId(livePosition.getId())).thenReturn(liveChanges);
+
+    correctionApplyService.applyCorrection(licenceCorrection);
+
+    verify(partialSurrenderCorrectionService).revertFeatures(liveSurrender, Set.of());
+    verifyNoMoreInteractions(partialSurrenderCorrectionService);
+  }
+
+  @Test
+  void applyCorrection_whenPositionIsMovedToANewDate_thenTheSurrendersOnItAreDatedAfresh() {
+    var livePosition = LicencePositionTestUtil.newBuilder().build();
+    var liveSurrender = surrenderWithJourney(null);
+    var liveChanges = List.of(
+        LicencePositionChangeTestUtil.newBuilder().withLicencePosition(livePosition).withOperations(List.of(OPERATION)).build(),
+        LicencePositionChangeTestUtil.newBuilder().withLicencePosition(livePosition).withOperations(List.of(liveSurrender)).build()
+    );
+
+    stubTimeline(List.of(updatePositionCorrection(livePosition, null, List.of())), List.of());
+    when(licencePositionChangeService.findByLicencePositionId(livePosition.getId())).thenReturn(liveChanges);
+
+    correctionApplyService.applyCorrection(licenceCorrection);
+
+    verify(partialSurrenderCorrectionService).setFeatureDates(liveSurrender, EFFECTIVE_DATE);
+    verifyNoMoreInteractions(partialSurrenderCorrectionService);
+  }
+
+  @Test
+  void applyCorrection_whenPositionIsNotMovedToANewDate_thenTheSurrendersOnItAreNotDatedAfresh() {
+    var livePosition = LicencePositionTestUtil.newBuilder().build();
+    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withLicenceCorrection(licenceCorrection)
+        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+        .withTargetLicencePosition(livePosition)
+        .withPayload(LicencePositionPayload.newUpdateLicencePositionPayload().withEffectiveDateOrder(2).build())
+        .build();
+
+    stubTimeline(List.of(positionCorrection), List.of());
+
+    correctionApplyService.applyCorrection(licenceCorrection);
+
+    verify(licencePositionChangeService, never()).findByLicencePositionId(livePosition.getId());
+    verifyNoInteractions(partialSurrenderCorrectionService);
   }
 
   @Test

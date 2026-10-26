@@ -87,11 +87,31 @@ class PartialSurrenderSubareaServiceTest {
             new SurrenderDetails(BlockSurrenderType.PARTIAL_SURRENDER, UUID.randomUUID(), List.of())
                 .withSubareas(Map.of(RETAINED_FEATURE.getId(), List.of(SubareaSurrenderOutcome.kept(INSIDE_SUBAREA)))),
             List.of(RETAINED_FEATURE.getId())),
-        Arguments.of(
-            new SurrenderDetails(BlockSurrenderType.FULL_SURRENDER, null, List.of(BLOCK_FEATURE_ID)),
-            List.of()),
         Arguments.of(partialSurrenderDetails(), List.of())
     );
+  }
+
+  @Test
+  void processSubareas_whenFullSurrender_thenEverySubareaIsRelinquishedAgainstTheBlock() {
+    var surrenderDetails = new SurrenderDetails(BlockSurrenderType.FULL_SURRENDER, null, List.of(BLOCK_FEATURE_ID));
+    when(licencePositionSpatialService.getSubareasGoingIntoChange(LICENCE_CORRECTION, POSITION_ID, BLOCK_FEATURE_ID, CHANGE_ID))
+        .thenReturn(List.of(INSIDE_SUBAREA, UNSCRIBED_SUBAREA));
+
+    var result = partialSurrenderSubareaService.processSubareas(
+        LICENCE_CORRECTION,
+        POSITION_ID,
+        CHANGE_ID,
+        BLOCK_FEATURE_ID,
+        surrenderDetails,
+        List.of(),
+        null
+    );
+
+    assertThat(result).isEqualTo(surrenderDetails.withSubareas(Map.of(BLOCK_FEATURE_ID, List.of(
+        SubareaSurrenderOutcome.relinquished(INSIDE_SUBAREA),
+        SubareaSurrenderOutcome.relinquished(UNSCRIBED_SUBAREA)
+    ))));
+    verifyNoInteractions(featureService, cropOperatorService);
   }
 
   @Test
@@ -188,10 +208,12 @@ class PartialSurrenderSubareaServiceTest {
     var surrenderDetails = partialSurrenderDetails();
     givenSubareasGoingIntoTheSurrender(INSIDE_SUBAREA, STRADDLING_SUBAREA, UNSCRIBED_SUBAREA);
     var croppedSubarea = new SubareaDetails(CROPPED_SUBAREA_FEATURE.getId(), "Subarea C", "C");
-    var previousDetails = partialSurrenderDetails().withSubareas(Map.of(RETAINED_FEATURE.getId(), List.of(
-        SubareaSurrenderOutcome.kept(INSIDE_SUBAREA),
-        SubareaSurrenderOutcome.cropped(STRADDLING_SUBAREA, croppedSubarea),
-        SubareaSurrenderOutcome.kept(UNSCRIBED_SUBAREA))));
+    var previousDetails = partialSurrenderDetailsKeeping(RETAINED_FEATURE)
+        .withSubareas(Map.of(RETAINED_FEATURE.getId(), List.of(
+            SubareaSurrenderOutcome.kept(INSIDE_SUBAREA),
+            SubareaSurrenderOutcome.cropped(STRADDLING_SUBAREA, croppedSubarea),
+            SubareaSurrenderOutcome.kept(UNSCRIBED_SUBAREA)
+        )));
 
     var result = partialSurrenderSubareaService.processSubareas(
         LICENCE_CORRECTION,
@@ -233,6 +255,37 @@ class PartialSurrenderSubareaServiceTest {
     assertThat(result).isEqualTo(expected);
   }
 
+  @Test
+  void processSubareas_whenPartsKeptDifferFromPrevious_thenSubareasCroppedAfresh() {
+    var surrenderDetails = partialSurrenderDetails();
+    givenSubareasGoingIntoTheSurrender(INSIDE_SUBAREA);
+    var previouslyRetainedFeature = FeatureTestUtil.blockFeature(UUID.randomUUID(), "30", 2);
+    var previousDetails = partialSurrenderDetailsKeeping(previouslyRetainedFeature).withSubareas(
+        Map.of(previouslyRetainedFeature.getId(), List.of(SubareaSurrenderOutcome.kept(INSIDE_SUBAREA)))
+    );
+    var retainedFeatureIds = List.of(RETAINED_FEATURE.getId());
+    when(featureService.getFeaturesByIds(retainedFeatureIds)).thenReturn(List.of(RETAINED_FEATURE));
+    when(featureService.getFeaturesByIds(Set.of(INSIDE_SUBAREA_FEATURE.getId())))
+        .thenReturn(List.of(INSIDE_SUBAREA_FEATURE));
+    when(cropOperatorService.cropFeaturesToBoundary(RETAINED_FEATURE, List.of(INSIDE_SUBAREA_FEATURE)))
+        .thenReturn(List.of(new CropResultDto(INSIDE_SUBAREA_FEATURE.getId(), IntersectionStatus.FULLY_INSIDE, null)));
+
+    var result = partialSurrenderSubareaService.processSubareas(
+        LICENCE_CORRECTION,
+        POSITION_ID,
+        CHANGE_ID,
+        BLOCK_FEATURE_ID,
+        surrenderDetails,
+        retainedFeatureIds,
+        previousDetails
+    );
+
+    var expected = surrenderDetails.withSubareas(
+        Map.of(RETAINED_FEATURE.getId(), List.of(SubareaSurrenderOutcome.kept(INSIDE_SUBAREA)))
+    );
+    assertThat(result).isEqualTo(expected);
+  }
+
   private void givenSubareasGoingIntoTheSurrender(SubareaDetails... subareas) {
     when(licencePositionSpatialService
         .getSubareasGoingIntoChange(LICENCE_CORRECTION, POSITION_ID, BLOCK_FEATURE_ID, CHANGE_ID))
@@ -241,5 +294,14 @@ class PartialSurrenderSubareaServiceTest {
 
   private static SurrenderDetails partialSurrenderDetails() {
     return new SurrenderDetails(BlockSurrenderType.PARTIAL_SURRENDER, UUID.randomUUID(), List.of(SURRENDERED_PART_ID));
+  }
+
+  private static SurrenderDetails partialSurrenderDetailsKeeping(Feature retainedFeature) {
+    return new SurrenderDetails(
+        BlockSurrenderType.PARTIAL_SURRENDER,
+        UUID.randomUUID(),
+        List.of(SURRENDERED_PART_ID),
+        List.of(retainedFeature.getId())
+    );
   }
 }

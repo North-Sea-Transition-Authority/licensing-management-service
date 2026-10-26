@@ -164,7 +164,8 @@ public class PartialSurrenderTaskListController {
     var errorMessages = partialSurrenderValidator.validate(
         partialSurrenderCorrectionService.getCommittedPartialSurrenderOrThrow(licencePositionCorrection),
         licencePositionSpatialService.getStateGoingIntoChange(licencePositionCorrection, stagedChangeId),
-        licencePositionCorrectionService.resolveEffectiveDate(licencePositionCorrection)
+        licencePositionCorrectionService.resolveEffectiveDate(licencePositionCorrection),
+        stagedChangeId
     );
 
     return reviewAndSubmitModelAndView(
@@ -204,7 +205,8 @@ public class PartialSurrenderTaskListController {
     var errorMessages = partialSurrenderValidator.validate(
         partialSurrenderCorrectionService.getSurrenderUnderCorrectionOrThrow(correction, licencePosition, changeId),
         licencePositionSpatialService.getStateGoingIntoChange(correction, licencePosition.getId(), changeId),
-        licencePositionCorrectionService.getEffectivePositionDate(correction, licencePosition)
+        licencePositionCorrectionService.getEffectivePositionDate(correction, licencePosition),
+        changeId
     );
 
     return reviewAndSubmitModelAndView(

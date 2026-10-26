@@ -11,6 +11,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,6 +45,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.Lic
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeRepository;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeStatus;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionChangeOperationUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.LicencePositionState;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ResolvedStates;
@@ -130,6 +132,8 @@ public class CorrectionApplyService {
 
     var positionCorrections = correctedTimeline.positionCorrections();
     var appliedCommandJourneyIds = new LinkedHashSet<UUID>();
+
+    revertReplacedPartialSurrenders(positionCorrections);
 
     if (!correctedTimeline.displayedPositions().isEmpty()) {
       var latestState = getLatestState(correctedTimeline.resolvedStates(), correctedTimeline.displayedPositions());
@@ -247,6 +251,10 @@ public class CorrectionApplyService {
     payload.changesOfType(UpdateChangeOperations.class)
         .forEach(change -> updateChangeOperations(licencePosition, payload, change, appliedCommandJourneyIds));
     payload.changesOfType(UpdateChangeOrder.class).forEach(this::updateChangeOrder);
+
+    if (payload instanceof UpdateLicencePositionPayload updatePayload && updatePayload.effectiveDate() != null) {
+      setPartialSurrenderFeatureDates(licencePosition);
+    }
   }
 
   private void removeChange(RemoveChange change) {
@@ -258,7 +266,7 @@ public class CorrectionApplyService {
     licencePositionChangeService.createLicencePositionChange(
         UUID.fromString(change.changeId()),
         licencePosition,
-        toExecutedOperations(LicencePositionChangeType.operationsOf(change), appliedCommandJourneyIds),
+        toExecutedOperations(licencePosition, LicencePositionChangeType.operationsOf(change), appliedCommandJourneyIds),
         change.changeOrder(),
         APPLIED_CHANGE_STATUS
     );
@@ -271,7 +279,11 @@ public class CorrectionApplyService {
       Set<UUID> appliedCommandJourneyIds
   ) {
     var changeId = UUID.fromString(change.changeId());
-    var operations = toExecutedOperations(LicencePositionChangeType.operationsOf(change), appliedCommandJourneyIds);
+    var operations = toExecutedOperations(
+        licencePosition,
+        LicencePositionChangeType.operationsOf(change),
+        appliedCommandJourneyIds
+    );
 
     licencePositionChangeService.findById(changeId).ifPresentOrElse(
         licencePositionChange -> {
@@ -290,6 +302,7 @@ public class CorrectionApplyService {
   }
 
   private List<LicenceOperation> toExecutedOperations(
+      LicencePosition licencePosition,
       List<LicenceOperation> stagedOperations,
       Set<UUID> appliedCommandJourneyIds
   ) {
@@ -297,11 +310,51 @@ public class CorrectionApplyService {
         .map(operation -> {
           if (operation instanceof PartialSurrenderOperation stagedSurrender) {
             appliedCommandJourneyIds.addAll(PartialSurrenderCorrectionService.commandJourneyIdsOf(stagedSurrender));
-            return partialSurrenderCorrectionService.toExecutedSurrender(stagedSurrender);
+            var executedSurrender = partialSurrenderCorrectionService.toExecutedSurrender(stagedSurrender);
+            partialSurrenderCorrectionService.setFeatureDates(executedSurrender, licencePosition.getPositionDate());
+            return executedSurrender;
           }
           return operation;
         })
         .toList();
+  }
+
+  private void revertReplacedPartialSurrenders(List<LicencePositionCorrection> positionCorrections) {
+    var stillCreatedFeatureIds = positionCorrections.stream()
+        .filter(positionCorrection -> positionCorrection.getPayload() != null)
+        .flatMap(positionCorrection -> positionCorrection.getPayload().changes().stream())
+        .flatMap(change -> LicencePositionChangeType.operationsOf(change).stream())
+        .filter(PartialSurrenderOperation.class::isInstance)
+        .map(PartialSurrenderOperation.class::cast)
+        .flatMap(surrender -> surrender.createdFeatureIds().stream())
+        .collect(Collectors.toSet());
+
+    positionCorrections.stream()
+        .flatMap(positionCorrection -> liveChangesReplacedBy(positionCorrection).stream())
+        .flatMap(change -> LicencePositionChangeOperationUtil
+            .findOperation(change, PartialSurrenderOperation.class)
+            .stream())
+        .forEach(surrender -> partialSurrenderCorrectionService.revertFeatures(surrender, stillCreatedFeatureIds));
+  }
+
+  private List<LicencePositionChange> liveChangesReplacedBy(LicencePositionCorrection positionCorrection) {
+    if (positionCorrection.getChangeType() == LicencePositionCorrectionChangeType.REMOVE_POSITION) {
+      return licencePositionChangeService.findByLicencePositionId(positionCorrection.getTargetLicencePosition().getId());
+    }
+
+    return positionCorrection.getPayload().changes().stream()
+        .filter(change -> change instanceof RemoveChange || change instanceof UpdateChangeOperations)
+        .flatMap(change -> licencePositionChangeService.findById(UUID.fromString(change.changeId())).stream())
+        .toList();
+  }
+
+  private void setPartialSurrenderFeatureDates(LicencePosition licencePosition) {
+    licencePositionChangeService.findByLicencePositionId(licencePosition.getId()).stream()
+        .flatMap(change -> LicencePositionChangeOperationUtil
+            .findOperation(change, PartialSurrenderOperation.class)
+            .stream())
+        .forEach(surrender ->
+            partialSurrenderCorrectionService.setFeatureDates(surrender, licencePosition.getPositionDate()));
   }
 
   private void updateChangeOrder(UpdateChangeOrder change) {

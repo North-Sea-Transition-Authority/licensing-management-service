@@ -8,6 +8,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.annotation.Nullable;
 import java.time.LocalDate;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -85,12 +86,13 @@ public record PartialSurrenderOperation(
    *                              PEARS, which records the ground a licence kept and nothing at all for the ground it
    *                              gave up.
    * @param retainedFeatureIds The features the licence kept, recorded outright rather than derived from a journey.
-   *                           This is how an executed change holds its shape; a correction in progress leaves it empty
-   *                           and works the parts kept out from its journey instead. A surrender carried across from
-   *                           PEARS arrives with these already set, the successor blocks it left behind being the one
-   *                           thing PEARS records about a surrender's shape.
+   *                           A correction in progress records the parts of its journey left once the areas to
+   *                           surrender are selected, and is empty until then. A surrender carried across from PEARS
+   *                           arrives with these already set, the successor blocks it left behind being the one thing
+   *                           PEARS records about a surrender's shape.
    * @param retainedFeatureIdToSubareas What the surrender did to each of the block's subareas, keyed by the retained
-   *                                    feature it is relative to. Empty for a full surrender, which keeps no part.
+   *                                    feature it is relative to. A full surrender keeps no part, so relinquishes
+   *                                    every subarea against the block itself.
    */
   public record SurrenderDetails(
       BlockSurrenderType type,
@@ -132,6 +134,16 @@ public record PartialSurrenderOperation(
       );
     }
 
+    public SurrenderDetails withRetainedFeatureIds(List<UUID> retainedFeatureIds) {
+      return new SurrenderDetails(
+          type,
+          commandJourneyId,
+          surrenderedFeatureIds,
+          retainedFeatureIds,
+          retainedFeatureIdToSubareas
+      );
+    }
+
     @JsonIgnore
     public List<UUID> subareaFeatureIds() {
       return allSubareaOutcomes()
@@ -158,6 +170,13 @@ public record PartialSurrenderOperation(
     }
 
     @JsonIgnore
+    public boolean isSelectionUpToDate(Collection<UUID> areaIds) {
+      var selectedAreaIds = new HashSet<>(surrenderedFeatureIds);
+      selectedAreaIds.addAll(retainedFeatureIds);
+      return selectedAreaIds.equals(Set.copyOf(areaIds));
+    }
+
+    @JsonIgnore
     public boolean hasCommandJourney() {
       return commandJourneyId != null;
     }
@@ -172,8 +191,7 @@ public record PartialSurrenderOperation(
 
     @JsonIgnore
     public boolean isComplete() {
-      // TODO EPGF-192: Change when criteria for complete partial surrender exists
-      return type == BlockSurrenderType.FULL_SURRENDER;
+      return type == BlockSurrenderType.FULL_SURRENDER || !retainedFeatureIds.isEmpty();
     }
 
     @JsonIgnore
@@ -355,6 +373,52 @@ public record PartialSurrenderOperation(
         .toList();
 
     return licencePositionState.hasFeatures(surrenderedFeatureIds, inputSubareas);
+  }
+
+  @JsonIgnore
+  public Set<UUID> createdFeatureIds() {
+    var createdFeatureIds = new HashSet<>(givenUpFeatureIds());
+    createdFeatureIds.addAll(keptFeatureIds());
+    createdFeatureIds.removeAll(inputFeatureIds());
+    return createdFeatureIds;
+  }
+
+  @JsonIgnore
+  public Set<UUID> endedFeatureIds() {
+    var endedFeatureIds = new HashSet<>(inputFeatureIds());
+    endedFeatureIds.addAll(givenUpFeatureIds());
+    endedFeatureIds.removeAll(keptFeatureIds());
+    return endedFeatureIds;
+  }
+
+  private Set<UUID> inputFeatureIds() {
+    return Stream.concat(
+        surrenderedFeatureIds.stream(),
+        featureIdToSurrenderDetails.values().stream()
+            .flatMap(SurrenderDetails::allSubareaOutcomes)
+            .map(outcome -> outcome.subarea().featureId())
+    )
+        .filter(Objects::nonNull)
+        .collect(Collectors.toSet());
+  }
+
+  private Set<UUID> givenUpFeatureIds() {
+    return featureIdToSurrenderDetails.values().stream()
+        .flatMap(surrenderDetails -> surrenderDetails.surrenderedFeatureIds().stream())
+        .collect(Collectors.toSet());
+  }
+
+  private Set<UUID> keptFeatureIds() {
+    return featureIdToSurrenderDetails.values().stream()
+        .flatMap(surrenderDetails -> Stream.concat(
+            surrenderDetails.retainedFeatureIds().stream(),
+            surrenderDetails.allSubareaOutcomes()
+                .map(SubareaSurrenderOutcome::outputSubarea)
+                .filter(Objects::nonNull)
+                .map(SubareaDetails::featureId)
+        ))
+        .filter(Objects::nonNull)
+        .collect(Collectors.toSet());
   }
 
   public static class Builder {

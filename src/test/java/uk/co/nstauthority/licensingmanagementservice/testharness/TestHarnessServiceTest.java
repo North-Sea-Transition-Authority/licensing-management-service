@@ -151,7 +151,7 @@ class TestHarnessServiceTest {
         .splitBlockInHalf(partialSurrenderCommandJourney, PARTIALLY_SURRENDERED_BLOCK))
         .thenReturn(new SplitBlock(SURRENDERED_HALF, RETAINED_HALF));
     when(licencePositionFeatureTestHarnessService.cropSubareaToRetainedHalf(
-        PARTIALLY_SURRENDERED_SUBAREA, penultimate(positions).getPositionDate()))
+        PARTIALLY_SURRENDERED_SUBAREA, PARTIALLY_SURRENDERED_BLOCK, penultimate(positions).getPositionDate()))
         .thenReturn(CROPPED_SUBAREA);
   }
 

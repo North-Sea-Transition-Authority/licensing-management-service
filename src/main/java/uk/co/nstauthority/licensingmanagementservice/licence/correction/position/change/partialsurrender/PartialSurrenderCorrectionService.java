@@ -5,6 +5,7 @@ import static uk.co.nstauthority.licensingmanagementservice.licence.position.cha
 import static uk.co.nstauthority.licensingmanagementservice.licence.position.feature.LicenceBlockFeatureUtil.BLOCK_ORDER;
 
 import jakarta.annotation.Nullable;
+import java.time.LocalDate;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -212,8 +213,9 @@ public class PartialSurrenderCorrectionService {
         licenceCorrection,
         licencePosition.getId(),
         originalChangeId,
-        operation,
-        () -> staged.or(() -> Optional.of(getLiveSurrenderOrThrow(originalChangeId))));
+        withRetainedFeatureIds(operation),
+        () -> staged.or(() -> Optional.of(getLiveSurrenderOrThrow(originalChangeId)))
+    );
     staged.ifPresent(stagedSurrender ->
         deleteCorrectionOwnedCroppedSubareas(stagedSurrender, processedOperation, originalChangeId));
 
@@ -478,7 +480,7 @@ public class PartialSurrenderCorrectionService {
     var existing = partialSurrenderOperation.featureIdToSurrenderDetails().get(featureId);
     if (existing == null
         || existing.surrenderedFeatureIds().isEmpty()
-        || activeFeatureIds.containsAll(existing.surrenderedFeatureIds())
+        || existing.isSelectionUpToDate(activeFeatureIds)
     ) {
       return;
     }
@@ -604,6 +606,20 @@ public class PartialSurrenderCorrectionService {
         .build();
   }
 
+  private PartialSurrenderOperation withRetainedFeatureIds(PartialSurrenderOperation operation) {
+    var featureIdToSurrenderDetails = operation.featureIdToSurrenderDetails().entrySet().stream()
+        .collect(Collectors.toMap(
+            Map.Entry::getKey,
+            entry -> entry.getValue().withRetainedFeatureIds(getRetainedFeatureIds(entry.getValue()))
+        ));
+
+    return LicenceOperation.newPartialSurrenderOperation()
+        .withSurrenderDate(operation.surrenderDate())
+        .withSurrenderedFeatureIds(operation.surrenderedFeatureIds())
+        .withSurrenderDetails(featureIdToSurrenderDetails)
+        .build();
+  }
+
   private PartialSurrenderOperation getPartialSurrenderForChangeOrThrow(LicencePositionChangeType change) {
     return licencePositionCorrectionService.resolveStagedChangeOperations(change).stream()
         .filter(PartialSurrenderOperation.class::isInstance)
@@ -638,7 +654,7 @@ public class PartialSurrenderCorrectionService {
         licencePositionCorrection.getLicenceCorrection(),
         licencePositionCorrection.getPositionId(),
         getCommittedPartialSurrenderChangeId(licencePositionCorrection).orElse(null),
-        operation,
+        withRetainedFeatureIds(operation),
         () -> staged
     );
     staged.ifPresent(stagedSurrender -> deleteCorrectionOwnedCroppedSubareas(
@@ -758,8 +774,9 @@ public class PartialSurrenderCorrectionService {
               changeId,
               blockFeatureId,
               surrenderDetails,
-              getRetainedFeatureIds(surrenderDetails),
-              previousDetails);
+              surrenderDetails.retainedFeatureIds(),
+              previousDetails
+          );
         }));
 
     return LicenceOperation.newPartialSurrenderOperation()
@@ -865,6 +882,47 @@ public class PartialSurrenderCorrectionService {
         .withSurrenderedFeatureIds(stagedSurrender.surrenderedFeatureIds())
         .withSurrenderDetails(executedSurrenderDetails)
         .build();
+  }
+
+  @Transactional
+  public void setFeatureDates(
+      PartialSurrenderOperation surrender,
+      LocalDate positionDate
+  ) {
+    var createdFeatureIds = surrender.createdFeatureIds();
+    var endedFeatureIds = surrender.endedFeatureIds();
+    var featureIds = new HashSet<>(createdFeatureIds);
+    featureIds.addAll(endedFeatureIds);
+
+    featureService.getFeaturesByIds(featureIds).forEach(feature -> {
+      if (createdFeatureIds.contains(feature.getId())) {
+        feature.setStartDate(positionDate);
+      }
+      if (endedFeatureIds.contains(feature.getId())) {
+        feature.setEndDate(positionDate);
+      }
+      featureService.saveFeature(feature);
+    });
+  }
+
+  @Transactional
+  public void revertFeatures(
+      PartialSurrenderOperation surrender,
+      Set<UUID> stillCreatedFeatureIds
+  ) {
+    var noLongerCreatedFeatureIds = new HashSet<>(surrender.createdFeatureIds());
+    noLongerCreatedFeatureIds.removeAll(stillCreatedFeatureIds);
+    var reopenedFeatureIds = new HashSet<>(surrender.endedFeatureIds());
+    reopenedFeatureIds.removeAll(noLongerCreatedFeatureIds);
+
+    if (!noLongerCreatedFeatureIds.isEmpty()) {
+      featureService.deleteAll(featureService.getFeaturesByIds(noLongerCreatedFeatureIds));
+    }
+
+    featureService.getFeaturesByIds(reopenedFeatureIds).forEach(feature -> {
+      feature.setEndDate(null);
+      featureService.saveFeature(feature);
+    });
   }
 
   public static Set<UUID> commandJourneyIdsOf(PartialSurrenderOperation surrender) {

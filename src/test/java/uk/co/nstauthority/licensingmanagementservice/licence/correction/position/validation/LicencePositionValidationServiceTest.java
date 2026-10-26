@@ -81,7 +81,8 @@ class LicencePositionValidationServiceTest {
     when(partialSurrenderValidator.validate(
         surrender,
         LicencePositionState.EMPTY.withBlock(blockFeatureId, List.of()),
-        POSITION_DATE
+        POSITION_DATE,
+        surrenderChange.changeId()
     )).thenReturn(List.of("Surrender error"));
 
     var errors = service.validate(positions, LicencePositionStateResolver.resolve(positions), corrections, true, true);
@@ -163,6 +164,52 @@ class LicencePositionValidationServiceTest {
         secondContext,
         removedBlockEnd,
         stateAfterFirstPosition.withBlock(blockFeatureId, List.of(subarea))
+    );
+  }
+
+  @Test
+  void validate_whenOnlyAnotherSpatialChangeIsStaged_thenUntouchedSurrendersAreNotValidated() {
+    var blockFeatureId = UUID.randomUUID();
+    var liveSurrender = change(null, LicenceOperation.newPartialSurrenderOperation()
+        .withSurrenderedFeatureIds(List.of(blockFeatureId))
+        .build());
+    var stagedBlockCreate = change(LicencePositionChangeType.ADD_CHANGE, blockCreate(UUID.randomUUID()));
+    var position = position(
+        UUID.randomUUID(),
+        POSITION_DATE,
+        change(null, blockCreate(blockFeatureId)),
+        liveSurrender,
+        stagedBlockCreate
+    );
+    var positions = List.of(position);
+    var corrections = List.of(stagingCorrection(addChange(stagedBlockCreate.changeId())));
+
+    service.validate(positions, LicencePositionStateResolver.resolve(positions), corrections, true, true);
+
+    verifyNoInteractions(partialSurrenderValidator);
+  }
+
+  @Test
+  void validate_whenThePositionOfASurrenderIsMoved_thenTheSurrenderIsValidated() {
+    var licencePosition = LicencePositionTestUtil.newBuilder().build();
+    var surrender = LicenceOperation.newPartialSurrenderOperation()
+        .withSurrenderedFeatureIds(List.of(UUID.randomUUID()))
+        .build();
+    var position = ChronologicalPositionTestUtil.live(licencePosition, surrender);
+    var positions = List.of(position);
+    var corrections = List.of(LicencePositionCorrectionTestUtil.newBuilder()
+        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+        .withTargetLicencePosition(licencePosition)
+        .withPayload(LicencePositionPayload.newUpdateLicencePositionPayload().withEffectiveDate(POSITION_DATE).build())
+        .build());
+
+    service.validate(positions, LicencePositionStateResolver.resolve(positions), corrections, true, true);
+
+    verify(partialSurrenderValidator).validate(
+        surrender,
+        LicencePositionState.EMPTY,
+        position.date(),
+        position.changes().getFirst().changeId()
     );
   }
 

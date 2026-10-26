@@ -40,12 +40,14 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.Lic
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionChangeOperationUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.FeatureAttribute;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.LicenceBlockFeatureUtil;
 
 @Service
 @Profile("test-harness")
 class LicencePositionFeatureTestHarnessService {
 
-  private static final String QUADRANT_NUMBER = "30";
+  // no real block is in this quadrant, so it marks out the blocks the harness has seeded
+  private static final String QUADRANT_NUMBER = "999";
   private static final String SUBAREA_NAME = "ALL";
   private static final int FIRST_CHANGE_ORDER = 1;
 
@@ -58,11 +60,15 @@ class LicencePositionFeatureTestHarnessService {
   private static final String LINE_TEMPLATE =
       "{\"spatialReference\":{\"wkid\":4230},\"paths\":[[[%s,%s],[%s,%s]]]}";
 
-  private static final String WESTERN_LONGITUDE = "2.8";
-  private static final String MIDDLE_LONGITUDE = "2.9";
-  private static final String EASTERN_LONGITUDE = "3.0";
-  private static final String SOUTHERN_LATITUDE = "53.8333333333333";
-  private static final String NORTHERN_LATITUDE = "54.0";
+  // Seeded blocks are laid out in rows from the south west, starting east of every real block so a seeded block never
+  // overlaps one. Blocks are spaced further apart than their size so neighbouring blocks never share an edge.
+  private static final int BLOCKS_PER_ROW = 10;
+  private static final BigDecimal FIRST_BLOCK_WESTERN_LONGITUDE = new BigDecimal("3.6");
+  private static final BigDecimal FIRST_BLOCK_SOUTHERN_LATITUDE = new BigDecimal("54.0");
+  private static final BigDecimal BLOCK_WIDTH = new BigDecimal("0.2");
+  private static final BigDecimal BLOCK_HEIGHT = new BigDecimal("0.1666666666667");
+  private static final BigDecimal BLOCK_COLUMN_SPACING = new BigDecimal("0.3");
+  private static final BigDecimal BLOCK_ROW_SPACING = new BigDecimal("0.25");
 
   private final FeatureService featureService;
   private final PolygonService polygonService;
@@ -105,6 +111,9 @@ class LicencePositionFeatureTestHarnessService {
   /**
    * Creates the spatial data a licence holds and anchors it to the timeline with a block create on the earliest
    * position, from which every later position derives its own features.
+   *
+   * <p>Every block is given the next free place after the blocks already seeded, so any number of licences can be
+   * seeded without their blocks overlapping.</p>
    *
    * @return the blocks and subareas created
    */
@@ -159,16 +168,20 @@ class LicencePositionFeatureTestHarnessService {
     var featureLayout = FeatureLayout.of(licence.getType());
     var blocks = new ArrayList<Feature>();
     var blockIdToSubareas = new LinkedHashMap<UUID, List<Feature>>();
+    var highestSeededBlockNumber = getHighestSeededBlockNumber();
 
     for (var blockIndex = 1; blockIndex <= featureLayout.blockCount(); blockIndex++) {
       var shapeIndex = (blockIndex - 1) * featureLayout.shapesPerBlock() + 1;
+      var blockNumber = highestSeededBlockNumber + blockIndex;
+      var blockShape = blockShape(blockNumber);
 
-      var block = createFeature(licence, shapeIndex, blockAttributes(blockIndex));
+      var block = createFeature(licence, shapeIndex, blockAttributes(blockNumber), blockShape);
       blocks.add(block);
 
+      // each subarea covers the whole of its block
       var subareas = new ArrayList<Feature>();
       for (var subareaIndex = 1; subareaIndex <= featureLayout.subareasPerBlock(); subareaIndex++) {
-        subareas.add(createFeature(licence, shapeIndex + subareaIndex, subareaAttributes()));
+        subareas.add(createFeature(licence, shapeIndex + subareaIndex, subareaAttributes(), blockShape));
       }
       blockIdToSubareas.put(block.getId(), subareas);
     }
@@ -176,20 +189,30 @@ class LicencePositionFeatureTestHarnessService {
     return new SeededFeatures(blocks, blockIdToSubareas);
   }
 
+  // the halves of a split block keep its number, so they never free up its place for another block
+  private int getHighestSeededBlockNumber() {
+    return featureService.findAllByAttribute(FeatureAttribute.QUADRANT_NO.name(), QUADRANT_NUMBER).stream()
+        .filter(LicenceBlockFeatureUtil::isLicenceBlock)
+        .mapToInt(block -> Integer.parseInt(block.getAttributes().get(FeatureAttribute.BLOCK_NO.name())))
+        .max()
+        .orElse(0);
+  }
+
   /**
    * Cuts a block down the middle, as drawing a split on the map would. The two halves become the journey's active
    * features and the block itself is deactivated, so the surrender journey's map and select-areas pages read back the
    * halves rather than the whole block.
    *
-   * <p>The node server calculates neither the halves' geometry nor their area here - the block is a fixed square, so
-   * both halves are known up front.</p>
+   * <p>The node server calculates neither the halves' geometry nor their area here - the block is a fixed rectangle,
+   * so both halves are known up front.</p>
    *
    * @return the halves of the block, the western one to be surrendered
    */
   @Transactional
   public SplitBlock splitBlockInHalf(CommandJourney commandJourney, Feature block) {
-    var westernHalf = createHalfBlock(block, WESTERN_LONGITUDE, MIDDLE_LONGITUDE, 1);
-    var easternHalf = createHalfBlock(block, MIDDLE_LONGITUDE, EASTERN_LONGITUDE, 2);
+    var blockShape = blockShapeOf(block);
+    var westernHalf = createHalfBlock(block, blockShape.westernHalf(), 1);
+    var easternHalf = createHalfBlock(block, blockShape.easternHalf(), 2);
 
     var splitCommand = operatorCommandService.createOperatorCommand(
         commandJourney,
@@ -212,14 +235,16 @@ class LicencePositionFeatureTestHarnessService {
    * block would. The original subarea is ended and the cropped one starts on the date of the surrender, as applying the
    * surrender does.
    *
+   * @param block the block the subarea covers
    * @return the cropped subarea
    */
   @Transactional
   public Feature cropSubareaToRetainedHalf(
       Feature subarea,
+      Feature block,
       LocalDate surrenderDate
   ) {
-    var croppedSubarea = createHalfBlock(subarea, MIDDLE_LONGITUDE, EASTERN_LONGITUDE, 2);
+    var croppedSubarea = createHalfBlock(subarea, blockShapeOf(block).easternHalf(), 2);
     croppedSubarea.setStartDate(surrenderDate);
     featureService.saveFeature(croppedSubarea);
 
@@ -232,16 +257,73 @@ class LicencePositionFeatureTestHarnessService {
   // a split output keeps the attributes of the shape it came from, and is named after it
   private Feature createHalfBlock(
       Feature block,
-      String westernLongitude,
-      String easternLongitude,
+      Rectangle half,
       int splitPartNumber
   ) {
     return createShape(
         "%s_%s".formatted(block.getFeatureName(), splitPartNumber),
         Map.copyOf(block.getAttributes()),
         block.getFeatureArea().divide(BigDecimal.TWO),
-        rectangleEdges(westernLongitude, easternLongitude)
+        half.edges()
     );
+  }
+
+  // a seeded block's number is its place in the layout
+  private static Rectangle blockShapeOf(Feature block) {
+    return blockShape(Integer.parseInt(block.getAttributes().get(FeatureAttribute.BLOCK_NO.name())));
+  }
+
+  private static Rectangle blockShape(int blockNumber) {
+    var column = (blockNumber - 1) % BLOCKS_PER_ROW;
+    var row = (blockNumber - 1) / BLOCKS_PER_ROW;
+    var westernLongitude = FIRST_BLOCK_WESTERN_LONGITUDE.add(BLOCK_COLUMN_SPACING.multiply(BigDecimal.valueOf(column)));
+    var southernLatitude = FIRST_BLOCK_SOUTHERN_LATITUDE.add(BLOCK_ROW_SPACING.multiply(BigDecimal.valueOf(row)));
+    return new Rectangle(
+        westernLongitude,
+        westernLongitude.add(BLOCK_WIDTH),
+        southernLatitude,
+        southernLatitude.add(BLOCK_HEIGHT)
+    );
+  }
+
+  private record Rectangle(
+      BigDecimal westernLongitude,
+      BigDecimal easternLongitude,
+      BigDecimal southernLatitude,
+      BigDecimal northernLatitude
+  ) {
+
+    Rectangle westernHalf() {
+      return new Rectangle(westernLongitude, middleLongitude(), southernLatitude, northernLatitude);
+    }
+
+    Rectangle easternHalf() {
+      return new Rectangle(middleLongitude(), easternLongitude, southernLatitude, northernLatitude);
+    }
+
+    private BigDecimal middleLongitude() {
+      return westernLongitude.add(easternLongitude).divide(BigDecimal.TWO);
+    }
+
+    /**
+     * The four edges of the rectangle, clockwise from its southern edge.
+     */
+    List<String> edges() {
+      var western = coordinate(westernLongitude);
+      var eastern = coordinate(easternLongitude);
+      var southern = coordinate(southernLatitude);
+      var northern = coordinate(northernLatitude);
+      return List.of(
+          LINE_TEMPLATE.formatted(western, southern, eastern, southern),
+          LINE_TEMPLATE.formatted(eastern, southern, eastern, northern),
+          LINE_TEMPLATE.formatted(eastern, northern, western, northern),
+          LINE_TEMPLATE.formatted(western, northern, western, southern)
+      );
+    }
+
+    private static String coordinate(BigDecimal degrees) {
+      return degrees.stripTrailingZeros().toPlainString();
+    }
   }
 
   /**
@@ -282,13 +364,14 @@ class LicencePositionFeatureTestHarnessService {
   private Feature createFeature(
       Licence licence,
       int shapeIndex,
-      Map<String, String> attributes
+      Map<String, String> attributes,
+      Rectangle shape
   ) {
     return createShape(
         "test harness for %s %s".formatted(licence.getLicenceReference(), shapeIndex),
         attributes,
         FEATURE_AREA,
-        rectangleEdges(WESTERN_LONGITUDE, EASTERN_LONGITUDE)
+        shape.edges()
     );
   }
 
@@ -317,19 +400,6 @@ class LicencePositionFeatureTestHarnessService {
     lineService.saveLines(lines(polygon, edges));
 
     return feature;
-  }
-
-  /**
-   * The four edges of a rectangle spanning the two longitudes, clockwise from its southern edge. Every shape the
-   * harness creates is one of these, so a block and either half of a split block differ only in their longitudes.
-   */
-  private static List<String> rectangleEdges(String westernLongitude, String easternLongitude) {
-    return List.of(
-        LINE_TEMPLATE.formatted(westernLongitude, SOUTHERN_LATITUDE, easternLongitude, SOUTHERN_LATITUDE),
-        LINE_TEMPLATE.formatted(easternLongitude, SOUTHERN_LATITUDE, easternLongitude, NORTHERN_LATITUDE),
-        LINE_TEMPLATE.formatted(easternLongitude, NORTHERN_LATITUDE, westernLongitude, NORTHERN_LATITUDE),
-        LINE_TEMPLATE.formatted(westernLongitude, NORTHERN_LATITUDE, westernLongitude, SOUTHERN_LATITUDE)
-    );
   }
 
   private List<Line> lines(Polygon polygon, List<String> edges) {

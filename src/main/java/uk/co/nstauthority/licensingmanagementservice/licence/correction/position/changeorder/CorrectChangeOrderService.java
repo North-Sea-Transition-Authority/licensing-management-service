@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
@@ -24,10 +25,12 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.UpdateChangeOperations;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.UpdateChangeOrder;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.LicencePositionPayload;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionViewService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeService;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.PositionChange;
 
 @Service
 public class CorrectChangeOrderService {
@@ -85,6 +88,23 @@ public class CorrectChangeOrderService {
     licencePositionCorrectionService.findFirstAddedPositionCorrection(licenceCorrection, licencePositionId).ifPresentOrElse(
         addedPositionCorrection -> reorderAddedPositionChanges(addedPositionCorrection, newChangeOrders),
         () -> reorderExecutedPositionChanges(licenceCorrection, licencePositionId, newChangeOrders));
+  }
+
+  public boolean canMoveChangeToPosition(
+      LicenceCorrection licenceCorrection,
+      UUID sourcePositionId,
+      UUID changeId,
+      UUID targetPositionId
+  ) {
+    var isPartialSurrender = holdsPartialSurrender(
+        getChangesOn(licenceCorrection, sourcePositionId).stream()
+            .filter(change -> change.changeId().equals(changeId.toString()))
+    );
+
+    return !isPartialSurrender || !holdsPartialSurrender(
+        getChangesOn(licenceCorrection, targetPositionId).stream()
+            .filter(change -> !change.changeId().equals(changeId.toString()))
+    );
   }
 
   @Transactional
@@ -217,25 +237,37 @@ public class CorrectChangeOrderService {
   }
 
   private int nextChangeOrderOn(LicenceCorrection licenceCorrection, UUID licencePositionId, UUID movedChangeId) {
-    var positionCorrection =
-        licencePositionCorrectionService.getOrBuildPositionCorrection(licenceCorrection, licencePositionId);
-
-    var changes = positionCorrection.getChangeType() == LicencePositionCorrectionChangeType.ADD_POSITION
-        ? licencePositionCorrectionService.getChangesForAddedPosition(positionCorrection)
-        : licencePositionCorrectionService.getChangesForExecutedPosition(
-            licenceCorrection,
-            positionCorrection.getTargetLicencePosition(),
-            positionCorrection
-        );
-
     var changeOrders = new HashMap<>(liveChangeOrdersByChangeId(licencePositionId));
-    changes.forEach(change -> changeOrders.put(change.changeId(), change.changeOrder()));
+    getChangesOn(licenceCorrection, licencePositionId)
+        .forEach(change -> changeOrders.put(change.changeId(), change.changeOrder()));
     changeOrders.remove(movedChangeId.toString());
 
     return changeOrders.values().stream()
         .filter(Objects::nonNull)
         .max(Integer::compareTo)
         .orElse(0) + 1;
+  }
+
+  private List<PositionChange> getChangesOn(
+      LicenceCorrection licenceCorrection,
+      UUID licencePositionId
+  ) {
+    var positionCorrection =
+        licencePositionCorrectionService.getOrBuildPositionCorrection(licenceCorrection, licencePositionId);
+
+    return positionCorrection.getChangeType() == LicencePositionCorrectionChangeType.ADD_POSITION
+        ? licencePositionCorrectionService.getChangesForAddedPosition(positionCorrection)
+        : licencePositionCorrectionService.getChangesForExecutedPosition(
+            licenceCorrection,
+            positionCorrection.getTargetLicencePosition(),
+            positionCorrection
+        );
+  }
+
+  private static boolean holdsPartialSurrender(Stream<PositionChange> changes) {
+    return changes
+        .flatMap(change -> change.operations().stream())
+        .anyMatch(PartialSurrenderOperation.class::isInstance);
   }
 
   private static Map<String, Integer> newChangeOrders(List<OrderableChange> reorderedChanges) {

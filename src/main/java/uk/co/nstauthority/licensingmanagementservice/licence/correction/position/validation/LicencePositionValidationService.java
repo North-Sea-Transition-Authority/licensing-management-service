@@ -48,7 +48,12 @@ public class LicencePositionValidationService {
         ? transactionIdsWithMultipleBeneficialInterestChanges(allChronologicalPositions)
         : Set.<UUID>of();
 
-    var hasStagedSpatialChange = hasStagedSpatialChange(allChronologicalPositions, positionCorrections);
+    var correctedChangeIds = getCorrectedChangeIds(allChronologicalPositions, positionCorrections);
+    var hasStagedSpatialChange = hasStagedSpatialChange(
+        allChronologicalPositions,
+        positionCorrections,
+        correctedChangeIds
+    );
 
     var isFirstPosition = true;
     ChronologicalPosition lastPosition = allChronologicalPositions.isEmpty()
@@ -68,7 +73,7 @@ public class LicencePositionValidationService {
 
       positionValidationErrors.addAll(chronologicalPosition.validate(positionValidationContext));
       if (hasStagedSpatialChange) {
-        positionValidationErrors.addAll(validateSpatialChanges(positionValidationContext));
+        positionValidationErrors.addAll(validateSpatialChanges(positionValidationContext, correctedChangeIds));
       }
 
       if (chronologicalPosition.beneficialInterestChangeCount() > 0
@@ -85,13 +90,18 @@ public class LicencePositionValidationService {
     return positionValidationErrors;
   }
 
-  private List<PositionValidationError> validateSpatialChanges(PositionValidationContext positionValidationContext) {
+  private List<PositionValidationError> validateSpatialChanges(
+      PositionValidationContext positionValidationContext,
+      Set<String> correctedChangeIds
+  ) {
     var errors = new ArrayList<PositionValidationError>();
 
     var stateGoingIntoChange = positionValidationContext.previousState();
     for (var change : positionValidationContext.position().changes()) {
       if (!LicencePositionChangeType.REMOVE_CHANGE.equals(change.changeType())) {
-        errors.addAll(validatePartialSurrenders(positionValidationContext, change, stateGoingIntoChange));
+        if (correctedChangeIds.contains(change.changeId())) {
+          errors.addAll(validatePartialSurrenders(positionValidationContext, change, stateGoingIntoChange));
+        }
         errors.addAll(spatialStateValidator.validate(positionValidationContext, change, stateGoingIntoChange));
       }
 
@@ -110,7 +120,8 @@ public class LicencePositionValidationService {
 
     for (var operation : change.operations()) {
       if (operation instanceof PartialSurrenderOperation surrender) {
-        partialSurrenderValidator.validate(surrender, stateGoingIntoChange, positionValidationContext.position().date())
+        partialSurrenderValidator
+            .validate(surrender, stateGoingIntoChange, positionValidationContext.position().date(), change.changeId())
             .forEach(message -> errors.add(PositionValidationError
                 .forOperation(positionValidationContext, LicenceOperation.PARTIAL_SURRENDER, message)
                 .withChangeId(change.changeId())));
@@ -120,7 +131,7 @@ public class LicencePositionValidationService {
     return errors;
   }
 
-  private static boolean hasStagedSpatialChange(
+  private static Set<String> getCorrectedChangeIds(
       List<ChronologicalPosition> chronologicalPositions,
       List<LicencePositionCorrection> positionCorrections
   ) {
@@ -136,14 +147,25 @@ public class LicencePositionValidationService {
         .map(correction -> correction.getTargetLicencePosition().getId())
         .collect(Collectors.toSet());
 
+    return chronologicalPositions.stream()
+        .flatMap(chronologicalPosition -> chronologicalPosition.changes().stream()
+            .filter(change -> movedPositionIds.contains(chronologicalPosition.id())
+                || stagedChangeIds.contains(change.changeId())))
+        .map(PositionChange::changeId)
+        .collect(Collectors.toSet());
+  }
+
+  private static boolean hasStagedSpatialChange(
+      List<ChronologicalPosition> chronologicalPositions,
+      List<LicencePositionCorrection> positionCorrections,
+      Set<String> correctedChangeIds
+  ) {
     var hasRemovedPosition = positionCorrections.stream()
         .anyMatch(correction -> correction.getChangeType() == LicencePositionCorrectionChangeType.REMOVE_POSITION);
 
     return chronologicalPositions.stream()
-        .flatMap(chronologicalPosition -> chronologicalPosition.changes().stream()
-            .filter(change -> hasRemovedPosition
-                || movedPositionIds.contains(chronologicalPosition.id())
-                || stagedChangeIds.contains(change.changeId())))
+        .flatMap(chronologicalPosition -> chronologicalPosition.changes().stream())
+        .filter(change -> hasRemovedPosition || correctedChangeIds.contains(change.changeId()))
         .flatMap(change -> change.operations().stream())
         .anyMatch(GeospatialLicenceOperation.class::isInstance);
   }

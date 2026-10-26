@@ -621,10 +621,7 @@ public class PartialSurrenderCorrectionService {
   }
 
   private PartialSurrenderOperation getPartialSurrenderForChangeOrThrow(LicencePositionChangeType change) {
-    return licencePositionCorrectionService.resolveStagedChangeOperations(change).stream()
-        .filter(PartialSurrenderOperation.class::isInstance)
-        .map(PartialSurrenderOperation.class::cast)
-        .findFirst()
+    return licencePositionCorrectionService.findStagedChangeOperation(change, PartialSurrenderOperation.class)
         .orElseThrow(() -> new IllegalStateException(NOT_A_PARTIAL_SURRENDER.formatted(change.changeId())));
   }
 

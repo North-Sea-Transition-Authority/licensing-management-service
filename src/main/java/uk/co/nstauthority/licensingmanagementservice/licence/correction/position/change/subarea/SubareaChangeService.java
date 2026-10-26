@@ -76,6 +76,39 @@ public class SubareaChangeService {
                 .formatted(blockFeatureId, licencePositionCorrection.getId())));
   }
 
+  public SubareaOperation getStagedSubareaOperationOrThrow(
+      LicencePositionCorrection positionCorrection,
+      String changeId
+  ) {
+    return getSubareaOperationForChangeOrThrow(
+        licencePositionCorrectionService.getStagedChangeOrThrow(positionCorrection, changeId));
+  }
+
+  public String getBlockName(SubareaOperation subareaOperation) {
+    return featureService.getFeatureOrThrow(subareaOperation.blockFeatureId()).getFeatureName();
+  }
+
+  @Transactional
+  public void undoSubareaChange(
+      LicencePositionCorrection positionCorrection,
+      String changeId
+  ) {
+    var change = licencePositionCorrectionService.getStagedChangeOrThrow(positionCorrection, changeId);
+    var subareaOperation = getSubareaOperationForChangeOrThrow(change);
+
+    if (change instanceof AddChange && subareaOperation.commandJourneyId() != null) {
+      commandJourneyService.deleteCommandJourney(subareaOperation.commandJourneyId());
+    }
+
+    licencePositionCorrectionService.dropStagedChange(positionCorrection, changeId);
+  }
+
+  private SubareaOperation getSubareaOperationForChangeOrThrow(LicencePositionChangeType change) {
+    return licencePositionCorrectionService.findStagedChangeOperation(change, SubareaOperation.class)
+        .orElseThrow(() -> new IllegalStateException(
+            "Change with id %s is not a subarea change".formatted(change.changeId())));
+  }
+
   private void replaceAddSubareaChangeForBlock(
       LicencePositionCorrection licencePositionCorrection,
       UUID blockFeatureId

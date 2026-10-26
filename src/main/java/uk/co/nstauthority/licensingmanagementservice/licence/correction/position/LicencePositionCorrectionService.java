@@ -429,6 +429,16 @@ public class LicencePositionCorrectionService {
     return LicencePositionChangeType.operationsOf(change);
   }
 
+  public <T extends LicenceOperation> Optional<T> findStagedChangeOperation(
+      LicencePositionChangeType change,
+      Class<T> operationType
+  ) {
+    return resolveStagedChangeOperations(change).stream()
+        .filter(operationType::isInstance)
+        .map(operationType::cast)
+        .findFirst();
+  }
+
   @Transactional
   public void dropStagedChange(LicencePositionCorrection positionCorrection, String changeId) {
     var changes = positionCorrection.getPayload().changes();

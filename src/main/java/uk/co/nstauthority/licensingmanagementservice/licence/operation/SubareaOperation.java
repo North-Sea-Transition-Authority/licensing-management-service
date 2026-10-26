@@ -1,5 +1,6 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.operation;
 
+import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 import static uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionChangeUtil.NOT_AVAILABLE;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -13,14 +14,17 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subarea.RemoveSubareaChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationError;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeViewContext;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.ChangeUrlTarget;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.LicencePositionState;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.PositionChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.ChangeViewUrls;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.LicencePositionChangeView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.SubareaChangeView;
+import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 /**
  * Subarea operation contains information identifying what subareas were changed.
@@ -102,7 +106,23 @@ public record SubareaOperation(
 
   @Override
   public OperationRoutes getOperationUrls() {
-    return OperationRoutes.none();
+    return new OperationRoutes() {
+      @Override
+      public String correct(ChangeUrlTarget target) {
+        return null;
+      }
+
+      @Override
+      public String remove(ChangeUrlTarget target) {
+        return null;
+      }
+
+      @Override
+      public String undo(ChangeUrlTarget target) {
+        return ReverseRouter.route(on(RemoveSubareaChangeController.class)
+            .renderUndoSubareaChange(target.correction(), target.changeId()));
+      }
+    };
   }
 
   @Override

@@ -23,6 +23,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.RemovePartialSurrenderChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.tasklist.PartialSurrenderTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.setequity.LicencePositionSetEquityController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subarea.RemoveSubareaChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.transferequity.LicencePositionTransferEquityController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeorder.CorrectChangeOrderController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
@@ -104,7 +105,7 @@ class ChangeViewUrlsFactoryTest {
   }
 
   @Test
-  void build_whenOperationHasNoActionRoutes_thenOnlyHasPositionUrls() {
+  void build_whenLiveChangeHasNoCorrectOrRemoveRoutes_thenOnlyHasPositionUrls() {
     var change = change(SUBAREA, null);
 
     var result = ChangeViewUrlsFactory.build(EXECUTED_POSITION, change, POSITION_ID, true, SUBAREA);
@@ -129,7 +130,7 @@ class ChangeViewUrlsFactoryTest {
 
     var result = ChangeViewUrlsFactory.build(EXECUTED_POSITION, change, POSITION_ID, true, SUBAREA);
 
-    assertThat(result).isEqualTo(ChangeViewUrls.none());
+    assertThat(result).isEqualTo(new ChangeViewUrls(null, null, null, subareaUndoUrl(), null, null));
   }
 
   @Test
@@ -201,6 +202,8 @@ class ChangeViewUrlsFactoryTest {
     var licenseeUndo = ReverseRouter.route(on(RemoveLicenseeChangeController.class)
         .renderUndoLicenseeChange(CORRECTION, CHANGE_ID.toString()));
 
+    var subareaUndo = subareaUndoUrl();
+
     return Stream.of(
         Arguments.of("administrator, live", ADMINISTRATOR, EXECUTED_POSITION, live,
             adminCorrecting, adminRemove, null, null),
@@ -265,12 +268,30 @@ class ChangeViewUrlsFactoryTest {
         Arguments.of("licensee, removed", LICENSEE, EXECUTED_POSITION, removed,
             null, null, null, licenseeUndo),
         Arguments.of("licensee, added position", LICENSEE, ADDED_POSITION, added,
-            licenseeAdded, null, licenseeUndo, null)
+            licenseeAdded, null, licenseeUndo, null),
+
+        Arguments.of("subarea, live", SUBAREA, EXECUTED_POSITION, live,
+            null, null, null, null),
+        Arguments.of("subarea, added", SUBAREA, EXECUTED_POSITION, added,
+            null, null, subareaUndo, null),
+        Arguments.of("subarea, operations updated", SUBAREA, EXECUTED_POSITION, operationsUpdated,
+            null, null, subareaUndo, null),
+        Arguments.of("subarea, order updated", SUBAREA, EXECUTED_POSITION, orderUpdated,
+            null, null, subareaUndo, null),
+        Arguments.of("subarea, removed", SUBAREA, EXECUTED_POSITION, removed,
+            null, null, null, subareaUndo),
+        Arguments.of("subarea, added position", SUBAREA, ADDED_POSITION, added,
+            null, null, subareaUndo, null)
     );
   }
 
   private static PositionChange change(VisibleLicenceOperation operation, String changeType) {
     return new PositionChange(CHANGE_ID.toString(), 1, changeType, List.of(operation));
+  }
+
+  private static String subareaUndoUrl() {
+    return ReverseRouter.route(on(RemoveSubareaChangeController.class)
+        .renderUndoSubareaChange(CORRECTION, CHANGE_ID.toString()));
   }
 
   private static String correctChangeOrderUrl() {

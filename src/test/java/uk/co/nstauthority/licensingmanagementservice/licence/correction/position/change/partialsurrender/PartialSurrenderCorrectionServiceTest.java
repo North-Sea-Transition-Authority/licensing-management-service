@@ -1000,8 +1000,9 @@ class PartialSurrenderCorrectionServiceTest {
 
   @Test
   void undoPartialSurrenderChange_whenTheSurrenderWasAddedByThisCorrection_thenDeletesItsCommandJourneys() {
-    var addChange = AddChange.buildOperationsChange(List.of(fullSurrenderOf(FIRST_FEATURE_ID)), 1);
-    var positionCorrection = givenStagedChange(addChange);
+    var surrender = fullSurrenderOf(FIRST_FEATURE_ID);
+    var addChange = AddChange.buildOperationsChange(List.of(surrender), 1);
+    var positionCorrection = givenStagedChange(addChange, surrender);
 
     partialSurrenderCorrectionService.undoPartialSurrenderChange(LICENCE_CORRECTION, addChange.changeId());
 
@@ -1011,9 +1012,9 @@ class PartialSurrenderCorrectionServiceTest {
 
   @Test
   void undoPartialSurrenderChange_whenTheSurrenderCorrectsALiveChange_thenDeletesItsCommandJourneys() {
-    var updateChange = UpdateChangeOperations.buildUpdateChange(
-        LIVE_CHANGE_ID, twoBlockSurrenderOf(FIRST_FEATURE_ID, SECOND_FEATURE_ID));
-    var positionCorrection = givenStagedChange(updateChange);
+    var surrender = twoBlockSurrenderOf(FIRST_FEATURE_ID, SECOND_FEATURE_ID);
+    var updateChange = UpdateChangeOperations.buildUpdateChange(LIVE_CHANGE_ID, surrender);
+    var positionCorrection = givenStagedChange(updateChange, surrender);
 
     partialSurrenderCorrectionService.undoPartialSurrenderChange(LICENCE_CORRECTION, updateChange.changeId());
 
@@ -1039,7 +1040,7 @@ class PartialSurrenderCorrectionServiceTest {
     var administratorChange = AddChange.buildOperationsChange(
         List.of(LicenceOperation.newAdministratorChange().withOperator(ADMINISTRATOR_ID).build()), 1);
     var changeId = administratorChange.changeId();
-    givenStagedChange(administratorChange);
+    givenStagedChange(administratorChange, Optional.empty());
 
     assertThatThrownBy(() ->
         partialSurrenderCorrectionService.undoPartialSurrenderChange(LICENCE_CORRECTION, changeId))
@@ -1057,8 +1058,8 @@ class PartialSurrenderCorrectionServiceTest {
     var positionCorrection = updatePositionCorrection(List.of(removeChange));
     when(licencePositionCorrectionService.getStagedChangeOrThrow(positionCorrection, LIVE_CHANGE_ID))
         .thenReturn(removeChange);
-    when(licencePositionCorrectionService.resolveStagedChangeOperations(removeChange))
-        .thenReturn(List.of(live));
+    when(licencePositionCorrectionService.findStagedChangeOperation(removeChange, PartialSurrenderOperation.class))
+        .thenReturn(Optional.of(live));
 
     var result = partialSurrenderCorrectionService
         .getStagedPartialSurrenderOrThrow(positionCorrection, LIVE_CHANGE_ID);
@@ -1073,8 +1074,8 @@ class PartialSurrenderCorrectionServiceTest {
     var positionCorrection = updatePositionCorrection(List.of(addChange));
     when(licencePositionCorrectionService.getStagedChangeOrThrow(positionCorrection, addChange.changeId()))
         .thenReturn(addChange);
-    when(licencePositionCorrectionService.resolveStagedChangeOperations(addChange))
-        .thenReturn(List.of(staged));
+    when(licencePositionCorrectionService.findStagedChangeOperation(addChange, PartialSurrenderOperation.class))
+        .thenReturn(Optional.of(staged));
 
     var result = partialSurrenderCorrectionService
         .getStagedPartialSurrenderOrThrow(positionCorrection, addChange.changeId());
@@ -1942,8 +1943,9 @@ class PartialSurrenderCorrectionServiceTest {
   @Test
   void undoPartialSurrenderChange_whenTheSurrenderWasAddedByThisCorrection_thenDeletesItsCroppedSubareas() {
     var croppedFeature = FeatureTestUtil.builder().build();
-    var addChange = AddChange.buildOperationsChange(List.of(croppedSurrenderOf(FIRST_FEATURE_ID, croppedFeature)), 1);
-    givenStagedChange(addChange);
+    var croppedSurrender = croppedSurrenderOf(FIRST_FEATURE_ID, croppedFeature);
+    var addChange = AddChange.buildOperationsChange(List.of(croppedSurrender), 1);
+    givenStagedChange(addChange, croppedSurrender);
     when(featureService.getFeaturesByIds(Set.of(croppedFeature.getId()))).thenReturn(List.of(croppedFeature));
 
     partialSurrenderCorrectionService.undoPartialSurrenderChange(LICENCE_CORRECTION, addChange.changeId());
@@ -1955,7 +1957,7 @@ class PartialSurrenderCorrectionServiceTest {
   void undoPartialSurrenderChange_whenTheSurrenderCorrectsALiveChange_thenKeepsTheLiveCroppedSubareas() {
     var croppedSurrender = croppedSurrenderOf(FIRST_FEATURE_ID, FeatureTestUtil.builder().build());
     var updateChange = UpdateChangeOperations.buildUpdateChange(LIVE_CHANGE_ID, croppedSurrender);
-    givenStagedChange(updateChange);
+    givenStagedChange(updateChange, croppedSurrender);
     givenLiveSurrenderChange(croppedSurrender);
 
     partialSurrenderCorrectionService.undoPartialSurrenderChange(LICENCE_CORRECTION, updateChange.changeId());
@@ -2160,13 +2162,16 @@ class PartialSurrenderCorrectionServiceTest {
         .build();
   }
 
-  private LicencePositionCorrection givenStagedChange(LicencePositionChangeType change) {
-    return givenStagedChange(change, LicencePositionChangeType.operationsOf(change).toArray(LicenceOperation[]::new));
+  private LicencePositionCorrection givenStagedChange(
+      LicencePositionChangeType change,
+      PartialSurrenderOperation resolvedSurrender
+  ) {
+    return givenStagedChange(change, Optional.of(resolvedSurrender));
   }
 
   private LicencePositionCorrection givenStagedChange(
       LicencePositionChangeType change,
-      LicenceOperation... resolvedOperations
+      Optional<PartialSurrenderOperation> resolvedSurrender
   ) {
     var positionCorrection = updatePositionCorrection(List.of(change));
 
@@ -2175,8 +2180,8 @@ class PartialSurrenderCorrectionServiceTest {
         .thenReturn(positionCorrection);
     when(licencePositionCorrectionService.getStagedChangeOrThrow(positionCorrection, change.changeId()))
         .thenReturn(change);
-    when(licencePositionCorrectionService.resolveStagedChangeOperations(change))
-        .thenReturn(List.of(resolvedOperations));
+    when(licencePositionCorrectionService.findStagedChangeOperation(change, PartialSurrenderOperation.class))
+        .thenReturn(resolvedSurrender);
 
     return positionCorrection;
   }

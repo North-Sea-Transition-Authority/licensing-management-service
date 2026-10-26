@@ -3,13 +3,18 @@ package uk.co.nstauthority.licensingmanagementservice.licence.correction.positio
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -25,7 +30,10 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.AddChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.RemoveChange;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.UpdateChangeOperations;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.LicencePositionPayload;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaDetails;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
@@ -167,6 +175,102 @@ class SubareaChangeServiceTest {
 
     assertThatThrownBy(() -> subareaChangeService.getSubareaOperationOrThrow(positionCorrection, BLOCK_FEATURE_ID))
         .isInstanceOf(LmsEntityNotFoundException.class);
+  }
+
+  @Test
+  void getStagedSubareaOperationOrThrow_whenChangeIsASubareaChange_returnsItsOperation() {
+    var operation = expectedOperation();
+    var change = AddChange.buildOperationsChange(List.of(operation), 1);
+    var positionCorrection = positionCorrectionWithChanges(List.of(change));
+    when(licencePositionCorrectionService.getStagedChangeOrThrow(positionCorrection, change.changeId()))
+        .thenReturn(change);
+    when(licencePositionCorrectionService.findStagedChangeOperation(change, SubareaOperation.class))
+        .thenReturn(Optional.of(operation));
+
+    var result = subareaChangeService.getStagedSubareaOperationOrThrow(positionCorrection, change.changeId());
+
+    assertThat(result).isEqualTo(operation);
+  }
+
+  @Test
+  void getStagedSubareaOperationOrThrow_whenChangeIsNotASubareaChange_throws() {
+    var operation = LicenceOperation.newAdministratorChange().withOperator(2).build();
+    var change = AddChange.buildOperationsChange(List.of(operation), 1);
+    var changeId = change.changeId();
+    var positionCorrection = positionCorrectionWithChanges(List.of(change));
+    when(licencePositionCorrectionService.getStagedChangeOrThrow(positionCorrection, changeId))
+        .thenReturn(change);
+    when(licencePositionCorrectionService.findStagedChangeOperation(change, SubareaOperation.class))
+        .thenReturn(Optional.empty());
+
+    assertThatThrownBy(() -> subareaChangeService.getStagedSubareaOperationOrThrow(positionCorrection, changeId))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessage("Change with id %s is not a subarea change".formatted(changeId));
+  }
+
+  @Test
+  void getBlockName() {
+    var blockFeature = FeatureTestUtil.builder().withId(BLOCK_FEATURE_ID).withFeatureName("30/1").build();
+    when(featureService.getFeatureOrThrow(BLOCK_FEATURE_ID)).thenReturn(blockFeature);
+
+    var result = subareaChangeService.getBlockName(expectedOperation());
+
+    assertThat(result).isEqualTo("30/1");
+  }
+
+  @Test
+  void undoSubareaChange_whenCommandJourneyStarted_deletesJourneyAndDropsChange() {
+    var operation = expectedOperation();
+    var change = AddChange.buildOperationsChange(List.of(operation), 1);
+    var positionCorrection = positionCorrectionWithChanges(List.of(change));
+    when(licencePositionCorrectionService.getStagedChangeOrThrow(positionCorrection, change.changeId()))
+        .thenReturn(change);
+    when(licencePositionCorrectionService.findStagedChangeOperation(change, SubareaOperation.class))
+        .thenReturn(Optional.of(operation));
+
+    subareaChangeService.undoSubareaChange(positionCorrection, change.changeId());
+
+    verify(commandJourneyService).deleteCommandJourney(COMMAND_JOURNEY_ID);
+    verify(licencePositionCorrectionService).dropStagedChange(positionCorrection, change.changeId());
+  }
+
+  @Test
+  void undoSubareaChange_whenNoCommandJourneyStarted_onlyDropsChange() {
+    var operation = new SubareaOperation(BLOCK_FEATURE_ID, List.of(), List.of());
+    var change = AddChange.buildOperationsChange(List.of(operation), 1);
+    var positionCorrection = positionCorrectionWithChanges(List.of(change));
+    when(licencePositionCorrectionService.getStagedChangeOrThrow(positionCorrection, change.changeId()))
+        .thenReturn(change);
+    when(licencePositionCorrectionService.findStagedChangeOperation(change, SubareaOperation.class))
+        .thenReturn(Optional.of(operation));
+
+    subareaChangeService.undoSubareaChange(positionCorrection, change.changeId());
+
+    verifyNoInteractions(commandJourneyService);
+    verify(licencePositionCorrectionService).dropStagedChange(positionCorrection, change.changeId());
+  }
+
+  @ParameterizedTest
+  @MethodSource("liveChangesWithCommandJourney")
+  void undoSubareaChange_whenChangeIsToALiveChange_thenOnlyDropsChange(LicencePositionChangeType change) {
+    var positionCorrection = positionCorrectionWithChanges(List.of(change));
+    when(licencePositionCorrectionService.getStagedChangeOrThrow(positionCorrection, change.changeId()))
+        .thenReturn(change);
+    when(licencePositionCorrectionService.findStagedChangeOperation(change, SubareaOperation.class))
+        .thenReturn(Optional.of(expectedOperation()));
+
+    subareaChangeService.undoSubareaChange(positionCorrection, change.changeId());
+
+    verifyNoInteractions(commandJourneyService);
+    verify(licencePositionCorrectionService).dropStagedChange(positionCorrection, change.changeId());
+  }
+
+  private static Stream<LicencePositionChangeType> liveChangesWithCommandJourney() {
+    var liveChangeId = UUID.randomUUID().toString();
+    return Stream.of(
+        UpdateChangeOperations.buildUpdateChange(liveChangeId, expectedOperation()),
+        new RemoveChange(liveChangeId)
+    );
   }
 
   private void givenCommandJourneyCreatedForSubareas(LicencePositionCorrection positionCorrection) {

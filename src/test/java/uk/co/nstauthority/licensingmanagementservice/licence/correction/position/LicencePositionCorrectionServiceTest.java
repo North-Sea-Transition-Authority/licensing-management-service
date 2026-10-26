@@ -1851,6 +1851,27 @@ class LicencePositionCorrectionServiceTest {
   }
 
   @Test
+  void findStagedChangeOperation_whenTheChangeStagesAnOperationOfTheType_thenReturnsIt() {
+    var subareaOperation = new SubareaOperation(UUID.randomUUID(), List.of(), List.of());
+    var administratorOperation = LicenceOperation.newAdministratorChange().withOperator(ADMINISTRATOR_ID).build();
+    var change = AddChange.buildOperationsChange(List.of(administratorOperation, subareaOperation), 1);
+
+    var result = licencePositionCorrectionService.findStagedChangeOperation(change, SubareaOperation.class);
+
+    assertThat(result).contains(subareaOperation);
+  }
+
+  @Test
+  void findStagedChangeOperation_whenTheChangeStagesNoOperationOfTheType_thenReturnsEmpty() {
+    var administratorOperation = LicenceOperation.newAdministratorChange().withOperator(ADMINISTRATOR_ID).build();
+    var change = AddChange.buildOperationsChange(List.of(administratorOperation), 1);
+
+    var result = licencePositionCorrectionService.findStagedChangeOperation(change, SubareaOperation.class);
+
+    assertThat(result).isEmpty();
+  }
+
+  @Test
   void dropStagedChange_whenTheCorrectionIsLeftEmptyAndTheDateAndOrderAreUnchanged_thenDeletesTheCorrection() {
     var change = AddChange.buildOperationsChange(List.of(new SubareaOperation(UUID.randomUUID(), List.of(), List.of())), 1);
     var positionCorrection = updatePositionCorrectionWith(List.of(change));

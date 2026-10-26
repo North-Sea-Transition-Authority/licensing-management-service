@@ -2,7 +2,6 @@ package uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsible
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -23,7 +22,6 @@ import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
-import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.OrganisationUnit;
 import uk.co.nstauthority.licensingmanagementservice.licence.contact.LicenceContact;
 import uk.co.nstauthority.licensingmanagementservice.licence.contact.LicenceContactRepository;
@@ -321,56 +319,12 @@ class LicenceResponsibleOrganisationServiceTest {
   }
 
   @Test
-  void getOrgUnitToGroupIdMap_whenMapAndApplicationDetailsProvided_combinesOrgUnitIds() {
-    var licence = new Licence();
-    licence.setId(1);
-
-    var responsibleOrganisations = Map.of(licence, List.of(new OrganisationUnit(100, "Org A")));
-
-    var appDetail = mock(LicenceApplicationDetail.class);
-    when(appDetail.getResponsibleOrganisationUnitId()).thenReturn(200);
-
+  void getOrgGroupIdByOrgUnitIds() {
     when(organisationUnitQueryService.findOrganisationGroupIdMapByUnitIds(List.of(100, 200)))
         .thenReturn(Map.of(100, 10, 200, 20));
 
-    var result = licenceResponsibleOrganisationService.getOrgUnitToGroupIdMap(responsibleOrganisations, List.of(appDetail));
+    var result = licenceResponsibleOrganisationService.getOrgGroupIdByOrgUnitIds(List.of(100, 200));
 
-    assertThat(result).containsEntry(100, 10).containsEntry(200, 20);
-  }
-
-  @Test
-  void getOrgUnitToGroupIdMap_whenApplicationDetailHasNullOrgUnitId_excludesFromIds() {
-    var licence = new Licence();
-    licence.setId(1);
-
-    var responsibleOrganisations = Map.of(licence, List.of(new OrganisationUnit(100, "Org A")));
-
-    var appDetail = mock(LicenceApplicationDetail.class);
-    when(appDetail.getResponsibleOrganisationUnitId()).thenReturn(null);
-
-    when(organisationUnitQueryService.findOrganisationGroupIdMapByUnitIds(List.of(100)))
-        .thenReturn(Map.of(100, 10));
-
-    var result = licenceResponsibleOrganisationService.getOrgUnitToGroupIdMap(responsibleOrganisations, List.of(appDetail));
-
-    assertThat(result).containsOnlyKeys(100);
-  }
-
-  @Test
-  void getOrgUnitToGroupIdMap_whenSameOrgUnitIdInBothSources_deduplicates() {
-    var licence = new Licence();
-    licence.setId(1);
-
-    var responsibleOrganisations = Map.of(licence, List.of(new OrganisationUnit(100, "Org A")));
-
-    var appDetail = mock(LicenceApplicationDetail.class);
-    when(appDetail.getResponsibleOrganisationUnitId()).thenReturn(100);
-
-    when(organisationUnitQueryService.findOrganisationGroupIdMapByUnitIds(List.of(100)))
-        .thenReturn(Map.of(100, 10));
-
-    var result = licenceResponsibleOrganisationService.getOrgUnitToGroupIdMap(responsibleOrganisations, List.of(appDetail));
-
-    assertThat(result).containsOnlyKeys(100);
+    assertThat(result).isEqualTo(Map.of(100, 10, 200, 20));
   }
 }

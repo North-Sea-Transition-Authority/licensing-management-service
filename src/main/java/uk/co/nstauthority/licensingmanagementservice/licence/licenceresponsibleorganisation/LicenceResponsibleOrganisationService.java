@@ -7,14 +7,12 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitJson;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
-import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.OrganisationUnit;
 import uk.co.nstauthority.licensingmanagementservice.licence.contact.LicenceContactRepository;
 import uk.co.nstauthority.licensingmanagementservice.teams.IndustryRoleService;
@@ -114,22 +112,8 @@ public class LicenceResponsibleOrganisationService {
     return getOrgUnitToGroupIdMap(orgUnitIds);
   }
 
-  public Map<Integer, Integer> getOrgUnitToGroupIdMap(
-      Map<Licence, List<OrganisationUnit>> responsibleOrganisations,
-      List<? extends LicenceApplicationDetail> applicationDetails
-  ) {
-    var allOrgUnitIds = Stream.concat(
-            responsibleOrganisations.values().stream()
-                .flatMap(List::stream)
-                .map(OrganisationUnit::organisationUnitId),
-            applicationDetails.stream()
-                .map(LicenceApplicationDetail::getResponsibleOrganisationUnitId)
-                .filter(Objects::nonNull)
-        )
-        .distinct()
-        .toList();
-
-    return getOrgUnitToGroupIdMap(allOrgUnitIds);
+  public Map<Integer, Integer> getOrgGroupIdByOrgUnitIds(Collection<Integer> organisationUnitIds) {
+    return getOrgUnitToGroupIdMap(organisationUnitIds);
   }
 
   public List<Integer> getOrganisationUnitIdsFromLicenceOrgUnitMap(

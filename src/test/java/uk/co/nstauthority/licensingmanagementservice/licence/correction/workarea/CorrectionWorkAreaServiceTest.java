@@ -1,9 +1,8 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.correction.workarea;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
@@ -11,14 +10,16 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.energyportal.organisationgroup.OrganisationGroupQueryService;
 import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
@@ -29,14 +30,14 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceC
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisationService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.query.SearchResultItem;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryDataView;
+import uk.co.nstauthority.licensingmanagementservice.workarea.WorkAreaContextTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.workarea.WorkAreaFilterForm;
+import uk.co.nstauthority.licensingmanagementservice.workarea.WorkAreaScope;
 import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.WorkAreaDataItemType;
 import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.WorkAreaItemView;
-import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.WorkAreaItemViewService;
 
 @ExtendWith(MockitoExtension.class)
 class CorrectionWorkAreaServiceTest {
@@ -46,27 +47,15 @@ class CorrectionWorkAreaServiceTest {
   @Mock
   private LicenceCorrectionService licenceCorrectionService;
 
-  @Mock
-  private LicenceResponsibleOrganisationService licenceResponsibleOrganisationService;
-
-  @Mock
-  private OrganisationGroupQueryService organisationGroupQueryService;
-
-  @Mock
-  private WorkAreaItemViewService workAreaItemViewService;
-
   private CorrectionWorkAreaService correctionWorkAreaService;
 
   private ServiceUserDetail user;
 
+  private final WorkAreaContextTestUtil.Builder contextBuilder = WorkAreaContextTestUtil.builder();
+
   @BeforeEach
   void setUp() {
-    correctionWorkAreaService = new CorrectionWorkAreaService(
-        licenceCorrectionService,
-        licenceResponsibleOrganisationService,
-        organisationGroupQueryService,
-        workAreaItemViewService
-    );
+    correctionWorkAreaService = new CorrectionWorkAreaService(licenceCorrectionService);
     user = ServiceUserDetailTestUtil.newBuilder().withWuaId(WUA_ID).build();
   }
 
@@ -75,7 +64,7 @@ class CorrectionWorkAreaServiceTest {
     when(licenceCorrectionService.getAllInProgressCorrectionsForUser(user))
         .thenReturn(List.of());
 
-    correctionWorkAreaService.getAllWorkItems(filterForm(null), user);
+    getAllWorkItems(filterForm(null), user);
 
     verify(licenceCorrectionService).getAllInProgressCorrectionsForUser(user);
   }
@@ -85,7 +74,7 @@ class CorrectionWorkAreaServiceTest {
     when(licenceCorrectionService.getAllInProgressCorrectionsForUser(user))
         .thenReturn(List.of());
 
-    var result = correctionWorkAreaService.getAllWorkItems(filterForm(null), user);
+    var result = getAllWorkItems(filterForm(null), user);
 
     assertThat(result).isEmpty();
   }
@@ -100,7 +89,7 @@ class CorrectionWorkAreaServiceTest {
     when(licenceCorrectionService.getAllInProgressCorrectionsForUser(user))
         .thenReturn(List.of(matching, other));
 
-    var result = correctionWorkAreaService.getAllWorkItems(filterForm("P1234"), user);
+    var result = getAllWorkItems(filterForm("P1234"), user);
 
     var expected = SearchResultItem.newBuilder()
         .withId(matchingId.toString())
@@ -126,14 +115,11 @@ class CorrectionWorkAreaServiceTest {
 
     when(licenceCorrectionService.getAllInProgressCorrectionsForUser(user))
         .thenReturn(List.of(correction));
-    when(workAreaItemViewService.getWorkAreaItemLogsForUser(
-        List.of(WorkAreaDataItemType.LICENCE_CORRECTION),
-        WUA_ID
-    )).thenReturn(List.of(
+    contextBuilder.withViewedItems(List.of(
         new WorkAreaItemView(correctionId, WorkAreaDataItemType.LICENCE_CORRECTION, WUA_ID)
     ));
 
-    var result = correctionWorkAreaService.getAllWorkItems(filterForm(null), user);
+    var result = getAllWorkItems(filterForm(null), user);
 
     assertThat(result).extracting(SearchResultItem::hasNewLabel).containsExactly(false);
   }
@@ -150,7 +136,7 @@ class CorrectionWorkAreaServiceTest {
 
     var form = new WorkAreaFilterForm();
     form.setLicenceTypes(List.of(LicenceType.SEAWARD_PRODUCTION.name()));
-    var result = correctionWorkAreaService.getAllWorkItems(form, user);
+    var result = getAllWorkItems(form, user);
 
     assertThat(result).extracting(SearchResultItem::id).containsExactly(matchingId.toString());
   }
@@ -164,18 +150,14 @@ class CorrectionWorkAreaServiceTest {
 
     when(licenceCorrectionService.getAllInProgressCorrectionsForUser(user))
         .thenReturn(List.of(matching, other));
-    when(licenceResponsibleOrganisationService.getResponsibleOrganisationsByLicences(any())).thenReturn(Map.of(
+    contextBuilder.withLicenseesByLicence(Map.of(
         matching.getLicence(), List.of(new OrganisationUnit(1, "Org 1")),
         other.getLicence(), List.of(new OrganisationUnit(2, "Org 2"))
     ));
-    when(licenceResponsibleOrganisationService.getOrganisationUnitIdsFromLicenceOrgUnitMap(any(), eq(matching.getLicence())))
-        .thenReturn(List.of(1));
-    when(licenceResponsibleOrganisationService.getOrganisationUnitIdsFromLicenceOrgUnitMap(any(), eq(other.getLicence())))
-        .thenReturn(List.of(2));
 
     var form = new WorkAreaFilterForm();
     form.setLicenseeOrgUnitId(1);
-    var result = correctionWorkAreaService.getAllWorkItems(form, user);
+    var result = getAllWorkItems(form, user);
 
     assertThat(result).extracting(SearchResultItem::id).containsExactly(matchingId.toString());
   }
@@ -189,70 +171,36 @@ class CorrectionWorkAreaServiceTest {
 
     when(licenceCorrectionService.getAllInProgressCorrectionsForUser(user))
         .thenReturn(List.of(matching, other));
-    when(licenceResponsibleOrganisationService.getResponsibleOrganisationsByLicences(any())).thenReturn(Map.of(
+    contextBuilder.withLicenseesByLicence(Map.of(
         matching.getLicence(), List.of(new OrganisationUnit(1, "Org 1")),
         other.getLicence(), List.of(new OrganisationUnit(2, "Org 2"))
     ));
-    when(licenceResponsibleOrganisationService.getOrganisationUnitIdsFromLicenceOrgUnitMap(any(), eq(matching.getLicence())))
-        .thenReturn(List.of(1));
-    when(licenceResponsibleOrganisationService.getOrganisationUnitIdsFromLicenceOrgUnitMap(any(), eq(other.getLicence())))
-        .thenReturn(List.of(2));
-    when(organisationGroupQueryService.getOrganisationUnitIdsByOrganisationGroupId(99))
-        .thenReturn(List.of(1));
+    contextBuilder.withLicenseeGroupOrganisationUnitIds(List.of(1));
 
     var form = new WorkAreaFilterForm();
     form.setLicenseeOrgGroupId(99);
-    var result = correctionWorkAreaService.getAllWorkItems(form, user);
+    var result = getAllWorkItems(form, user);
 
     assertThat(result).extracting(SearchResultItem::id).containsExactly(matchingId.toString());
   }
 
-  @Test
-  void getAllWorkItems_whenApplicationReferenceFilterApplied_thenExcluded() {
-    var createdInstant = Instant.parse("2024-01-01T00:00:00Z");
-    var correctionId = UUID.randomUUID();
-    var correction = correction(correctionId, "P1234", LicenceType.SEAWARD_PRODUCTION, "COR-1", createdInstant);
+  @ParameterizedTest
+  @MethodSource("applicationFilters")
+  void getAllWorkItems_whenApplicationFilterApplied_thenNoItemsAndNotQueried(WorkAreaFilterForm workAreaFilter) {
+    var workAreaItems = getAllWorkItems(workAreaFilter, user);
 
-    when(licenceCorrectionService.getAllInProgressCorrectionsForUser(user))
-        .thenReturn(List.of(correction));
-
-    var form = new WorkAreaFilterForm();
-    form.setApplicationReference("LMS/EEA/001");
-    var result = correctionWorkAreaService.getAllWorkItems(form, user);
-
-    assertThat(result).isEmpty();
+    assertThat(workAreaItems).isEmpty();
+    verifyNoInteractions(licenceCorrectionService);
   }
 
-  @Test
-  void getAllWorkItems_whenApplicationTypeFilterApplied_thenExcluded() {
-    var createdInstant = Instant.parse("2024-01-01T00:00:00Z");
-    var correctionId = UUID.randomUUID();
-    var correction = correction(correctionId, "P1234", LicenceType.SEAWARD_PRODUCTION, "COR-1", createdInstant);
-
-    when(licenceCorrectionService.getAllInProgressCorrectionsForUser(user))
-        .thenReturn(List.of(correction));
-
-    var form = new WorkAreaFilterForm();
-    form.setApplicationTypes(List.of(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION.name()));
-    var result = correctionWorkAreaService.getAllWorkItems(form, user);
-
-    assertThat(result).isEmpty();
-  }
-
-  @Test
-  void getAllWorkItems_whenApplicationStatusFilterApplied_thenExcluded() {
-    var createdInstant = Instant.parse("2024-01-01T00:00:00Z");
-    var correctionId = UUID.randomUUID();
-    var correction = correction(correctionId, "P1234", LicenceType.SEAWARD_PRODUCTION, "COR-1", createdInstant);
-
-    when(licenceCorrectionService.getAllInProgressCorrectionsForUser(user))
-        .thenReturn(List.of(correction));
-
-    var form = new WorkAreaFilterForm();
-    form.setApplicationStatuses(List.of(ApplicationStatus.DRAFT.name()));
-    var result = correctionWorkAreaService.getAllWorkItems(form, user);
-
-    assertThat(result).isEmpty();
+  private static Stream<WorkAreaFilterForm> applicationFilters() {
+    var applicationReferenceFilter = new WorkAreaFilterForm();
+    applicationReferenceFilter.setApplicationReference("LMS/EEA/001");
+    var applicationTypeFilter = new WorkAreaFilterForm();
+    applicationTypeFilter.setApplicationTypes(List.of(ApplicationType.CONTINUATION_APPLICATION.name()));
+    var applicationStatusFilter = new WorkAreaFilterForm();
+    applicationStatusFilter.setApplicationStatuses(List.of(ApplicationStatus.DRAFT.name()));
+    return Stream.of(applicationReferenceFilter, applicationTypeFilter, applicationStatusFilter);
   }
 
   private WorkAreaFilterForm filterForm(String licenceReference) {
@@ -278,5 +226,9 @@ class CorrectionWorkAreaServiceTest {
         .withCorrectionReference(correctionReference)
         .withCreatedInstant(createdInstant)
         .build();
+  }
+
+  private List<SearchResultItem> getAllWorkItems(WorkAreaFilterForm workAreaFilterForm, ServiceUserDetail serviceUserDetail) {
+    return correctionWorkAreaService.loadSection(workAreaFilterForm, serviceUserDetail, WorkAreaScope.ALL_WORK).buildItems(contextBuilder.build());
   }
 }

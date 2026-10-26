@@ -3,15 +3,10 @@ package uk.co.nstauthority.licensingmanagementservice.workarea;
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.UUID;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
-import uk.co.nstauthority.licensingmanagementservice.energyportal.organisationgroup.OrganisationGroupQueryService;
 import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
@@ -24,7 +19,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.continuation.Licenc
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.overview.LicenceContinuationApplicationOverviewController;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.tasklist.LicenceContinuationApplicationTaskListController;
-import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisationService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.phasedrelease.ReleaseFeature;
 import uk.co.nstauthority.licensingmanagementservice.query.SearchResultItem;
@@ -34,8 +28,6 @@ import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamRole;
 import uk.co.nstauthority.licensingmanagementservice.util.FilterUtil;
 import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.WorkAreaDataItemType;
-import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.WorkAreaItemView;
-import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.WorkAreaItemViewService;
 
 @Service
 public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvider {
@@ -45,28 +37,19 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
   private final RegulatorRoleService regulatorRoleService;
   private final TeamQueryService teamQueryService;
   private final ApplicationWorkAreaService applicationWorkAreaService;
-  private final WorkAreaItemViewService workAreaItemViewService;
-  private final LicenceResponsibleOrganisationService licenceResponsibleOrganisationService;
-  private final OrganisationGroupQueryService organisationGroupQueryService;
 
   public ContinuationApplicationWorkAreaService(
       LicenceContinuationService licenceContinuationService,
       ApplicationAccessService applicationAccessService,
       RegulatorRoleService regulatorRoleService,
       TeamQueryService teamQueryService,
-      ApplicationWorkAreaService applicationWorkAreaService,
-      WorkAreaItemViewService workAreaItemViewService,
-      LicenceResponsibleOrganisationService licenceResponsibleOrganisationService,
-      OrganisationGroupQueryService organisationGroupQueryService
+      ApplicationWorkAreaService applicationWorkAreaService
   ) {
     this.licenceContinuationService = licenceContinuationService;
     this.applicationAccessService = applicationAccessService;
     this.regulatorRoleService = regulatorRoleService;
     this.teamQueryService = teamQueryService;
     this.applicationWorkAreaService = applicationWorkAreaService;
-    this.workAreaItemViewService = workAreaItemViewService;
-    this.licenceResponsibleOrganisationService = licenceResponsibleOrganisationService;
-    this.organisationGroupQueryService = organisationGroupQueryService;
   }
 
   @Override
@@ -75,25 +58,32 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
   }
 
   @Override
-  public List<SearchResultItem> getMyWorkItems(
+  public WorkAreaSection loadSection(
       WorkAreaFilterForm workAreaFilterForm,
-      ServiceUserDetail serviceUserDetail
+      ServiceUserDetail serviceUserDetail,
+      WorkAreaScope workAreaScope
   ) {
-    return getWorkAreaItems(workAreaFilterForm, serviceUserDetail, true);
-  }
+    var allApplicationDetails = licenceContinuationService
+        .getAllContinuationApplicationDetailsByStatuses(ApplicationStatus.getSearchableStatuses());
 
-  @Override
-  public List<SearchResultItem> getAllWorkItems(
-      WorkAreaFilterForm workAreaFilterForm,
-      ServiceUserDetail serviceUserDetail
-  ) {
-    return getWorkAreaItems(workAreaFilterForm, serviceUserDetail, false);
+    var licences = allApplicationDetails.stream()
+        .map(LicenceContinuationApplicationDetail::getLicence)
+        .toList();
+
+    return new WorkAreaSection(
+        WorkAreaDataItemType.LICENCE_CONTINUATION_APPLICATION,
+        licences,
+        OrganisationGroupLookup.REQUIRED,
+        context -> getWorkAreaItems(allApplicationDetails, workAreaFilterForm, serviceUserDetail, workAreaScope, context)
+    );
   }
 
   private List<SearchResultItem> getWorkAreaItems(
+      List<LicenceContinuationApplicationDetail> allApplicationDetails,
       WorkAreaFilterForm workAreaFilterForm,
       ServiceUserDetail serviceUserDetail,
-      boolean myWorkOnly
+      WorkAreaScope workAreaScope,
+      WorkAreaContext context
   ) {
     var userTeamRoles = teamQueryService.getTeamRolesForUser(serviceUserDetail.wuaId());
     var regulatorRoles = new RegulatorRoles(
@@ -101,51 +91,23 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
         regulatorRoleService.isContinuationIssuer(userTeamRoles)
     );
 
-    var allApplicationDetails = licenceContinuationService
-        .getAllContinuationApplicationDetailsByStatuses(ApplicationStatus.getSearchableStatuses());
-
-    var licenceByApplicationDetail = allApplicationDetails.stream()
-        .collect(Collectors.toMap(Function.identity(),
-            LicenceContinuationApplicationDetail::getLicence));
-
-    var licences = allApplicationDetails.stream()
-        .map(licenceByApplicationDetail::get)
-        .toList();
-
-    var responsibleOrganisations = licenceResponsibleOrganisationService.getResponsibleOrganisationsByLicences(licences);
-    var orgUnitToGroupMap = licenceResponsibleOrganisationService
-        .getOrgUnitToGroupIdMap(responsibleOrganisations, allApplicationDetails);
-    var licenseeGroupOrgUnitIds = workAreaFilterForm.getLicenseeOrgGroupId() == null
-        ? null
-        : organisationGroupQueryService.getOrganisationUnitIdsByOrganisationGroupId(workAreaFilterForm.getLicenseeOrgGroupId());
-
-    var viewedItemIds = workAreaItemViewService.getWorkAreaItemLogsForUser(
-            List.of(WorkAreaDataItemType.LICENCE_CONTINUATION_APPLICATION),
-            serviceUserDetail.wuaId()
-        ).stream()
-        .map(WorkAreaItemView::getItemId)
-        .collect(Collectors.toSet());
-
     return allApplicationDetails.stream()
         .filter(applicationDetail -> matchesFilterAndHasAccess(
             applicationDetail,
-            licenceByApplicationDetail.get(applicationDetail),
+            applicationDetail.getLicence(),
             workAreaFilterForm,
             serviceUserDetail.wuaId(),
             userTeamRoles,
-            responsibleOrganisations,
-            orgUnitToGroupMap,
-            licenseeGroupOrgUnitIds,
+            context,
             regulatorRoles,
-            myWorkOnly
+            workAreaScope
         ))
         .map(applicationDetail ->
             createWorkAreaItem(
                 applicationDetail,
-                licenceByApplicationDetail.get(applicationDetail),
-                responsibleOrganisations,
-                regulatorRoles.continuationIssuer(),
-                viewedItemIds
+                applicationDetail.getLicence(),
+                context,
+                regulatorRoles.continuationIssuer()
             )
         )
         .toList();
@@ -154,14 +116,10 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
   private SearchResultItem createWorkAreaItem(
       LicenceContinuationApplicationDetail applicationDetail,
       Licence licence,
-      Map<Licence, List<OrganisationUnit>> responsibleOrganisationsByLicences,
-      boolean isContinuationIssuer,
-      Set<UUID> viewedItemIds
+      WorkAreaContext context,
+      boolean isContinuationIssuer
   ) {
-    var licensees = responsibleOrganisationsByLicences.getOrDefault(
-            licence,
-            List.of()
-        )
+    var licensees = context.getLicensees(licence)
         .stream()
         .filter(Objects::nonNull)
         .map(OrganisationUnit::organisationUnitName)
@@ -213,7 +171,7 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
         .withDataItemRow(dataItemRow)
         .withTransactionDatetime(transactionDateTime);
 
-    if (isNewItem(applicationDetail, isContinuationIssuer, viewedItemIds)) {
+    if (isNewItem(applicationDetail, isContinuationIssuer, context)) {
       builder.withNewLabel();
     }
 
@@ -223,12 +181,12 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
   private boolean isNewItem(
       LicenceContinuationApplicationDetail applicationDetail,
       boolean isContinuationIssuer,
-      Set<UUID> viewedItemIds
+      WorkAreaContext context
   ) {
-    if (applicationDetail.getStatus() == ApplicationStatus.ISSUE_DECISION && isContinuationIssuer) {
-      return !viewedItemIds.contains(applicationDetail.getLicenceContinuationApplication().getId());
-    }
-    return !viewedItemIds.contains(applicationDetail.getId());
+    var itemId = applicationDetail.getStatus() == ApplicationStatus.ISSUE_DECISION && isContinuationIssuer
+        ? applicationDetail.getLicenceContinuationApplication().getId()
+        : applicationDetail.getId();
+    return context.isNewItem(WorkAreaDataItemType.LICENCE_CONTINUATION_APPLICATION, itemId);
   }
 
   private boolean matchesFilterAndHasAccess(
@@ -237,11 +195,9 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
       WorkAreaFilterForm filterForm,
       Long wuaId,
       Set<TeamRole> userTeamRoles,
-      Map<Licence, List<OrganisationUnit>> responsibleOrganisations,
-      Map<Integer, Integer> orgUnitToGroupMap,
-      List<Integer> licenseeGroupOrgUnitIds,
+      WorkAreaContext context,
       RegulatorRoles regulatorRoles,
-      boolean myWorkOnly
+      WorkAreaScope workAreaScope
   ) {
     if (!FilterUtil.matchesTextInput(licence.getLicenceReference(), filterForm.getLicenceReference())) {
       return false;
@@ -270,22 +226,13 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
       return false;
     }
 
-    var licenceUnitIds = licenceResponsibleOrganisationService
-        .getOrganisationUnitIdsFromLicenceOrgUnitMap(responsibleOrganisations, licence);
-
-    if (!FilterUtil.matchesIdList(licenceUnitIds, filterForm.getLicenseeOrgUnitId())) {
+    if (!context.matchesLicenseeFilters(licence, filterForm)) {
       return false;
     }
 
-    if (!FilterUtil.listMatchesIdList(licenceUnitIds, licenseeGroupOrgUnitIds)) {
-      return false;
-    }
+    var licenceOrgUnitGroupMap = context.getOrganisationGroupIdsByUnitId(context.getLicenseeOrganisationUnitIds(licence));
 
-    var licenceOrgUnitGroupMap = licenceUnitIds.stream()
-        .filter(orgUnitToGroupMap::containsKey)
-        .collect(Collectors.toMap(Function.identity(), orgUnitToGroupMap::get));
-
-    if (myWorkOnly && !regulatorRoles.regulator()
+    if (workAreaScope == WorkAreaScope.MY_WORK && !regulatorRoles.regulator()
         && !applicationWorkAreaService.isIndustryMyWork(applicationDetail, licenceOrgUnitGroupMap, wuaId, userTeamRoles)) {
       return false;
     }
@@ -304,7 +251,7 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
       return false;
     }
 
-    return myWorkOnly
+    return workAreaScope == WorkAreaScope.MY_WORK
         ? applicationWorkAreaService.isRegulatorMyWork(applicationDetail, wuaId, userTeamRoles)
         : applicationWorkAreaService.isRegulatorAllWork(applicationDetail, wuaId, userTeamRoles);
   }

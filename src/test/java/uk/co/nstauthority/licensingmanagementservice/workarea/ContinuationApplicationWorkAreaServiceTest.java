@@ -6,9 +6,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
@@ -24,7 +21,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.energyportal.organisationgroup.OrganisationGroupQueryService;
 import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
@@ -39,7 +35,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.continuation.Licenc
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.overview.LicenceContinuationApplicationOverviewController;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.tasklist.LicenceContinuationApplicationTaskListController;
-import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.query.SearchResultItem;
@@ -48,7 +43,6 @@ import uk.co.nstauthority.licensingmanagementservice.teams.RegulatorRoleService;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
 import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.WorkAreaDataItemType;
 import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.WorkAreaItemView;
-import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.WorkAreaItemViewService;
 
 @ExtendWith(MockitoExtension.class)
 class ContinuationApplicationWorkAreaServiceTest {
@@ -66,16 +60,7 @@ class ContinuationApplicationWorkAreaServiceTest {
   private LicenceContinuationService licenceContinuationService;
 
   @Mock
-  private LicenceResponsibleOrganisationService licenceResponsibleOrganisationService;
-
-  @Mock
-  private OrganisationGroupQueryService organisationGroupQueryService;
-
-  @Mock
   private ApplicationAccessService applicationAccessService;
-
-  @Mock
-  private WorkAreaItemViewService workAreaItemViewService;
 
   @InjectMocks
   private ContinuationApplicationWorkAreaService continuationApplicationWorkAreaService;
@@ -84,6 +69,8 @@ class ContinuationApplicationWorkAreaServiceTest {
   private LicenceContinuationApplicationDetail licenceContinuationApplicationDetail, licenceContinuationApplicationDetail2;
   private ServiceUserDetail serviceUserDetail;
   private Instant testInstant;
+
+  private final WorkAreaContextTestUtil.Builder contextBuilder = WorkAreaContextTestUtil.builder();
 
   @BeforeEach
   void setUp() {
@@ -122,7 +109,7 @@ class ContinuationApplicationWorkAreaServiceTest {
     licenceContinuationApplicationDetail2.setSubmittedDatetime(testInstant.plus(1, ChronoUnit.HOURS));
     licenceContinuationApplicationDetail2.getLicenceContinuationApplication().setApplicationReference("LMS/CA/002");
 
-    when(workAreaItemViewService.getWorkAreaItemLogsForUser(any(), any())).thenReturn(List.of());
+    contextBuilder.withViewedItems(List.of());
   }
 
   @Test
@@ -137,13 +124,12 @@ class ContinuationApplicationWorkAreaServiceTest {
     var orgList1 = List.of(org1, org2);
     var orgList2 = List.of(org1);
 
-    when(licenceResponsibleOrganisationService.getResponsibleOrganisationsByLicences(any()))
-        .thenReturn(Map.of(
+    contextBuilder.withLicenseesByLicence(Map.of(
             licence1, List.of(new OrganisationUnit(1, org1), new OrganisationUnit(2, org2)),
             licence2, List.of(new OrganisationUnit(3, org1))
         ));
 
-    var workAreaItems = continuationApplicationWorkAreaService.getAllWorkItems(new WorkAreaFilterForm(), serviceUserDetail);
+    var workAreaItems = getAllWorkItems(new WorkAreaFilterForm(), serviceUserDetail);
 
     var summaryDataView1 = SummaryDataView
         .newBuilder()
@@ -195,12 +181,11 @@ class ContinuationApplicationWorkAreaServiceTest {
 
     var org1 = "Org 1";
 
-    when(licenceResponsibleOrganisationService.getResponsibleOrganisationsByLicences(any()))
-        .thenReturn(Map.of(licence2, List.of(new OrganisationUnit(3, org1))));
+    contextBuilder.withLicenseesByLicence(Map.of(licence2, List.of(new OrganisationUnit(3, org1))));
 
     var workAreaFilter = new WorkAreaFilterForm();
     workAreaFilter.setLicenceReference("2");
-    var workAreaItems = continuationApplicationWorkAreaService.getAllWorkItems(workAreaFilter, serviceUserDetail);
+    var workAreaItems = getAllWorkItems(workAreaFilter, serviceUserDetail);
 
     var summaryDataView = SummaryDataView.newBuilder()
         .addStringValue("Licence", licence2.getLicenceReference())
@@ -239,12 +224,11 @@ class ContinuationApplicationWorkAreaServiceTest {
     licence1.setType(LicenceType.CARBON_STORAGE);
 
     var org1 = "Org 1";
-    when(licenceResponsibleOrganisationService.getResponsibleOrganisationsByLicences(any()))
-        .thenReturn(Map.of(licence1, List.of(new OrganisationUnit(1, org1))));
+    contextBuilder.withLicenseesByLicence(Map.of(licence1, List.of(new OrganisationUnit(1, org1))));
 
     var workAreaFilter = new WorkAreaFilterForm();
     workAreaFilter.setLicenceTypes(List.of(LicenceType.CARBON_STORAGE.name()));
-    var workAreaItems = continuationApplicationWorkAreaService.getAllWorkItems(workAreaFilter, serviceUserDetail);
+    var workAreaItems = getAllWorkItems(workAreaFilter, serviceUserDetail);
 
     assertThat(workAreaItems)
         .extracting(SearchResultItem::id)
@@ -258,19 +242,14 @@ class ContinuationApplicationWorkAreaServiceTest {
 
     when(applicationAccessService.userHasIndustryAccessToApplication(any(), any(), any())).thenReturn(true);
 
-    when(licenceResponsibleOrganisationService.getResponsibleOrganisationsByLicences(any()))
-        .thenReturn(Map.of(
+    contextBuilder.withLicenseesByLicence(Map.of(
             licence1, List.of(new OrganisationUnit(1, "Org 1")),
             licence2, List.of(new OrganisationUnit(2, "Org 2"))
         ));
-    when(licenceResponsibleOrganisationService.getOrganisationUnitIdsFromLicenceOrgUnitMap(any(), eq(licence1)))
-        .thenReturn(List.of(1));
-    when(licenceResponsibleOrganisationService.getOrganisationUnitIdsFromLicenceOrgUnitMap(any(), eq(licence2)))
-        .thenReturn(List.of(2));
 
     var workAreaFilter = new WorkAreaFilterForm();
     workAreaFilter.setLicenseeOrgUnitId(1);
-    var workAreaItems = continuationApplicationWorkAreaService.getAllWorkItems(workAreaFilter, serviceUserDetail);
+    var workAreaItems = getAllWorkItems(workAreaFilter, serviceUserDetail);
 
     assertThat(workAreaItems)
         .extracting(SearchResultItem::id)
@@ -284,21 +263,15 @@ class ContinuationApplicationWorkAreaServiceTest {
 
     when(applicationAccessService.userHasIndustryAccessToApplication(any(), any(), any())).thenReturn(true);
 
-    when(licenceResponsibleOrganisationService.getResponsibleOrganisationsByLicences(any()))
-        .thenReturn(Map.of(
+    contextBuilder.withLicenseesByLicence(Map.of(
             licence1, List.of(new OrganisationUnit(1, "Org 1")),
             licence2, List.of(new OrganisationUnit(2, "Org 2"))
         ));
-    when(licenceResponsibleOrganisationService.getOrganisationUnitIdsFromLicenceOrgUnitMap(any(), eq(licence1)))
-        .thenReturn(List.of(1));
-    when(licenceResponsibleOrganisationService.getOrganisationUnitIdsFromLicenceOrgUnitMap(any(), eq(licence2)))
-        .thenReturn(List.of(2));
-    when(organisationGroupQueryService.getOrganisationUnitIdsByOrganisationGroupId(99))
-        .thenReturn(List.of(2));
+    contextBuilder.withLicenseeGroupOrganisationUnitIds(List.of(2));
 
     var workAreaFilter = new WorkAreaFilterForm();
     workAreaFilter.setLicenseeOrgGroupId(99);
-    var workAreaItems = continuationApplicationWorkAreaService.getAllWorkItems(workAreaFilter, serviceUserDetail);
+    var workAreaItems = getAllWorkItems(workAreaFilter, serviceUserDetail);
 
     assertThat(workAreaItems)
         .extracting(SearchResultItem::id)
@@ -313,12 +286,11 @@ class ContinuationApplicationWorkAreaServiceTest {
     when(applicationAccessService.userHasIndustryAccessToApplication(any(), any(), any())).thenReturn(true);
 
     var org1 = "Org 1";
-    when(licenceResponsibleOrganisationService.getResponsibleOrganisationsByLicences(any()))
-        .thenReturn(Map.of(licence2, List.of(new OrganisationUnit(1, org1))));
+    contextBuilder.withLicenseesByLicence(Map.of(licence2, List.of(new OrganisationUnit(1, org1))));
 
     var workAreaFilter = new WorkAreaFilterForm();
     workAreaFilter.setApplicationReference("002");
-    var workAreaItems = continuationApplicationWorkAreaService.getAllWorkItems(workAreaFilter, serviceUserDetail);
+    var workAreaItems = getAllWorkItems(workAreaFilter, serviceUserDetail);
 
     assertThat(workAreaItems)
         .extracting(SearchResultItem::id)
@@ -334,7 +306,7 @@ class ContinuationApplicationWorkAreaServiceTest {
 
     var workAreaFilter = new WorkAreaFilterForm();
     workAreaFilter.setApplicationReference("CA");
-    var workAreaItems = continuationApplicationWorkAreaService.getAllWorkItems(workAreaFilter, serviceUserDetail);
+    var workAreaItems = getAllWorkItems(workAreaFilter, serviceUserDetail);
 
     assertThat(workAreaItems).isEmpty();
   }
@@ -346,15 +318,14 @@ class ContinuationApplicationWorkAreaServiceTest {
 
     when(applicationAccessService.userHasIndustryAccessToApplication(any(), any(), any())).thenReturn(true);
 
-    when(licenceResponsibleOrganisationService.getResponsibleOrganisationsByLicences(any()))
-        .thenReturn(Map.of(
+    contextBuilder.withLicenseesByLicence(Map.of(
             licence1, List.of(new OrganisationUnit(1, "Org 1")),
             licence2, List.of(new OrganisationUnit(2, "Org 2"))
         ));
 
     var workAreaFilter = new WorkAreaFilterForm();
     workAreaFilter.setApplicationTypes(List.of(ApplicationType.CONTINUATION_APPLICATION.name()));
-    var workAreaItems = continuationApplicationWorkAreaService.getAllWorkItems(workAreaFilter, serviceUserDetail);
+    var workAreaItems = getAllWorkItems(workAreaFilter, serviceUserDetail);
 
     assertThat(workAreaItems)
         .extracting(SearchResultItem::id)
@@ -371,7 +342,7 @@ class ContinuationApplicationWorkAreaServiceTest {
 
     var workAreaFilter = new WorkAreaFilterForm();
     workAreaFilter.setApplicationTypes(List.of(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION.name()));
-    var workAreaItems = continuationApplicationWorkAreaService.getAllWorkItems(workAreaFilter, serviceUserDetail);
+    var workAreaItems = getAllWorkItems(workAreaFilter, serviceUserDetail);
 
     assertThat(workAreaItems).isEmpty();
   }
@@ -384,12 +355,11 @@ class ContinuationApplicationWorkAreaServiceTest {
     when(applicationAccessService.userHasIndustryAccessToApplication(any(), any(), any())).thenReturn(true);
 
     var org1 = "Org 1";
-    when(licenceResponsibleOrganisationService.getResponsibleOrganisationsByLicences(any()))
-        .thenReturn(Map.of(licence2, List.of(new OrganisationUnit(1, org1))));
+    contextBuilder.withLicenseesByLicence(Map.of(licence2, List.of(new OrganisationUnit(1, org1))));
 
     var workAreaFilter = new WorkAreaFilterForm();
     workAreaFilter.setApplicationStatuses(List.of(ApplicationStatus.SUBMITTED.name()));
-    var workAreaItems = continuationApplicationWorkAreaService.getAllWorkItems(workAreaFilter, serviceUserDetail);
+    var workAreaItems = getAllWorkItems(workAreaFilter, serviceUserDetail);
 
     assertThat(workAreaItems)
         .extracting(SearchResultItem::id)
@@ -403,7 +373,7 @@ class ContinuationApplicationWorkAreaServiceTest {
 
     var workAreaFilter = new WorkAreaFilterForm();
     workAreaFilter.setApplicationStatuses(List.of(ApplicationStatus.ISSUE_DECISION.name()));
-    var workAreaItems = continuationApplicationWorkAreaService.getAllWorkItems(workAreaFilter, serviceUserDetail);
+    var workAreaItems = getAllWorkItems(workAreaFilter, serviceUserDetail);
 
     assertThat(workAreaItems).isEmpty();
   }
@@ -429,13 +399,12 @@ class ContinuationApplicationWorkAreaServiceTest {
     var org2 = "Org 2";
     var orgList1 = List.of(org1, org2);
 
-    when(licenceResponsibleOrganisationService.getResponsibleOrganisationsByLicences(any()))
-        .thenReturn(Map.of(
+    contextBuilder.withLicenseesByLicence(Map.of(
             licence1, List.of(new OrganisationUnit(1, org1), new OrganisationUnit(2, org2)),
             licence2, List.of(new OrganisationUnit(3, org1))
         ));
 
-    var workAreaItems = continuationApplicationWorkAreaService.getAllWorkItems(new WorkAreaFilterForm(), serviceUserDetail);
+    var workAreaItems = getAllWorkItems(new WorkAreaFilterForm(), serviceUserDetail);
 
     var summaryDataView = SummaryDataView.newBuilder()
         .addStringValue("Licence", licence1.getLicenceReference())
@@ -477,10 +446,9 @@ class ContinuationApplicationWorkAreaServiceTest {
 
     var org1 = "Org 1";
 
-    when(licenceResponsibleOrganisationService.getResponsibleOrganisationsByLicences(any()))
-        .thenReturn(Map.of(licence2, List.of(new OrganisationUnit(1, org1))));
+    contextBuilder.withLicenseesByLicence(Map.of(licence2, List.of(new OrganisationUnit(1, org1))));
 
-    var workAreaItems = continuationApplicationWorkAreaService.getAllWorkItems(new WorkAreaFilterForm(), serviceUserDetail);
+    var workAreaItems = getAllWorkItems(new WorkAreaFilterForm(), serviceUserDetail);
 
     var summaryDataView = SummaryDataView.newBuilder()
         .addStringValue("Licence", licence2.getLicenceReference())
@@ -527,10 +495,9 @@ class ContinuationApplicationWorkAreaServiceTest {
         anySet()
     )).thenReturn(true);
 
-    when(licenceResponsibleOrganisationService.getResponsibleOrganisationsByLicences(any()))
-        .thenReturn(Map.of(licence2, List.of(new OrganisationUnit(1, "Org 1"))));
+    contextBuilder.withLicenseesByLicence(Map.of(licence2, List.of(new OrganisationUnit(1, "Org 1"))));
 
-    var workAreaItems = continuationApplicationWorkAreaService.getAllWorkItems(new WorkAreaFilterForm(), serviceUserDetail);
+    var workAreaItems = getAllWorkItems(new WorkAreaFilterForm(), serviceUserDetail);
 
     assertThat(workAreaItems)
         .extracting(SearchResultItem::linkHeadingUrl)
@@ -545,10 +512,9 @@ class ContinuationApplicationWorkAreaServiceTest {
     when(licenceContinuationService.getAllContinuationApplicationDetailsByStatuses(any()))
         .thenReturn(List.of(licenceContinuationApplicationDetail, licenceContinuationApplicationDetail2));
     mockRegulatorWithAllWorkAccess();
-    when(licenceResponsibleOrganisationService.getResponsibleOrganisationsByLicences(any()))
-        .thenReturn(Map.of(licence2, List.of(new OrganisationUnit(1, "Org 1"))));
+    contextBuilder.withLicenseesByLicence(Map.of(licence2, List.of(new OrganisationUnit(1, "Org 1"))));
 
-    var workAreaItems = continuationApplicationWorkAreaService.getAllWorkItems(new WorkAreaFilterForm(), serviceUserDetail);
+    var workAreaItems = getAllWorkItems(new WorkAreaFilterForm(), serviceUserDetail);
 
     assertThat(workAreaItems)
         .extracting(SearchResultItem::id)
@@ -566,7 +532,7 @@ class ContinuationApplicationWorkAreaServiceTest {
     )).thenReturn(false);
     when(regulatorRoleService.isRegulator(anySet())).thenReturn(true);
 
-    var workAreaItems = continuationApplicationWorkAreaService.getAllWorkItems(new WorkAreaFilterForm(), serviceUserDetail);
+    var workAreaItems = getAllWorkItems(new WorkAreaFilterForm(), serviceUserDetail);
 
     assertThat(workAreaItems).isEmpty();
   }
@@ -579,7 +545,7 @@ class ContinuationApplicationWorkAreaServiceTest {
         .thenReturn(List.of(licenceContinuationApplicationDetail, licenceContinuationApplicationDetail2));
     mockRegulatorWithoutIndustryAccess();
 
-    var workAreaItems = continuationApplicationWorkAreaService.getAllWorkItems(new WorkAreaFilterForm(), serviceUserDetail);
+    var workAreaItems = getAllWorkItems(new WorkAreaFilterForm(), serviceUserDetail);
 
     assertThat(workAreaItems).isEmpty();
   }
@@ -589,17 +555,13 @@ class ContinuationApplicationWorkAreaServiceTest {
     when(licenceContinuationService.getAllContinuationApplicationDetailsByStatuses(any()))
         .thenReturn(List.of(licenceContinuationApplicationDetail, licenceContinuationApplicationDetail2));
     mockRegulatorWithAllWorkAccess();
-    when(licenceResponsibleOrganisationService.getResponsibleOrganisationsByLicences(any()))
-        .thenReturn(Map.of(licence2, List.of(new OrganisationUnit(1, "Org 1"))));
+    contextBuilder.withLicenseesByLicence(Map.of(licence2, List.of(new OrganisationUnit(1, "Org 1"))));
 
-    var workAreaItems = continuationApplicationWorkAreaService.getAllWorkItems(new WorkAreaFilterForm(), serviceUserDetail);
+    var workAreaItems = getAllWorkItems(new WorkAreaFilterForm(), serviceUserDetail);
 
     assertThat(workAreaItems)
         .extracting(SearchResultItem::hasNewLabel)
         .containsExactly(true);
-
-    verify(workAreaItemViewService, times(1)).getWorkAreaItemLogsForUser(any(), any());
-    verify(workAreaItemViewService, never()).hasUserViewedItem(any());
   }
 
   @Test
@@ -607,16 +569,14 @@ class ContinuationApplicationWorkAreaServiceTest {
     when(licenceContinuationService.getAllContinuationApplicationDetailsByStatuses(any()))
         .thenReturn(List.of(licenceContinuationApplicationDetail, licenceContinuationApplicationDetail2));
     mockRegulatorWithAllWorkAccess();
-    when(workAreaItemViewService.getWorkAreaItemLogsForUser(any(), any()))
-        .thenReturn(List.of(new WorkAreaItemView(
+    contextBuilder.withViewedItems(List.of(new WorkAreaItemView(
             licenceContinuationApplicationDetail2.getId(),
             WorkAreaDataItemType.LICENCE_CONTINUATION_APPLICATION,
             serviceUserDetail.wuaId()
         )));
-    when(licenceResponsibleOrganisationService.getResponsibleOrganisationsByLicences(any()))
-        .thenReturn(Map.of(licence2, List.of(new OrganisationUnit(1, "Org 1"))));
+    contextBuilder.withLicenseesByLicence(Map.of(licence2, List.of(new OrganisationUnit(1, "Org 1"))));
 
-    var workAreaItems = continuationApplicationWorkAreaService.getAllWorkItems(new WorkAreaFilterForm(), serviceUserDetail);
+    var workAreaItems = getAllWorkItems(new WorkAreaFilterForm(), serviceUserDetail);
 
     assertThat(workAreaItems)
         .extracting(SearchResultItem::hasNewLabel)
@@ -632,16 +592,14 @@ class ContinuationApplicationWorkAreaServiceTest {
         anyMap(),
         anySet()
     )).thenReturn(true);
-    when(licenceResponsibleOrganisationService.getResponsibleOrganisationsByLicences(any()))
-        .thenReturn(Map.of(licence1, List.of(new OrganisationUnit(1, "Org 1"))));
-    when(workAreaItemViewService.getWorkAreaItemLogsForUser(any(), any()))
-        .thenReturn(List.of(new WorkAreaItemView(
+    contextBuilder.withLicenseesByLicence(Map.of(licence1, List.of(new OrganisationUnit(1, "Org 1"))));
+    contextBuilder.withViewedItems(List.of(new WorkAreaItemView(
             licenceContinuationApplicationDetail.getId(),
             WorkAreaDataItemType.LICENCE_CONTINUATION_APPLICATION,
             serviceUserDetail.wuaId()
         )));
 
-    var workAreaItems = continuationApplicationWorkAreaService.getAllWorkItems(new WorkAreaFilterForm(), serviceUserDetail);
+    var workAreaItems = getAllWorkItems(new WorkAreaFilterForm(), serviceUserDetail);
 
     assertThat(workAreaItems)
         .extracting(SearchResultItem::hasNewLabel)
@@ -657,10 +615,9 @@ class ContinuationApplicationWorkAreaServiceTest {
         anyMap(),
         anySet()
     )).thenReturn(true);
-    when(licenceResponsibleOrganisationService.getResponsibleOrganisationsByLicences(any()))
-        .thenReturn(Map.of(licence1, List.of(new OrganisationUnit(1, "Org 1"))));
+    contextBuilder.withLicenseesByLicence(Map.of(licence1, List.of(new OrganisationUnit(1, "Org 1"))));
 
-    var workAreaItems = continuationApplicationWorkAreaService.getAllWorkItems(new WorkAreaFilterForm(), serviceUserDetail);
+    var workAreaItems = getAllWorkItems(new WorkAreaFilterForm(), serviceUserDetail);
 
     assertThat(workAreaItems)
         .extracting(SearchResultItem::hasNewLabel)
@@ -676,10 +633,9 @@ class ContinuationApplicationWorkAreaServiceTest {
         .thenReturn(List.of(licenceContinuationApplicationDetail, licenceContinuationApplicationDetail2));
     mockRegulatorWithAllWorkAccess();
     when(regulatorRoleService.isContinuationIssuer(anySet())).thenReturn(true);
-    when(licenceResponsibleOrganisationService.getResponsibleOrganisationsByLicences(any()))
-        .thenReturn(Map.of(licence2, List.of(new OrganisationUnit(1, "Org 1"))));
+    contextBuilder.withLicenseesByLicence(Map.of(licence2, List.of(new OrganisationUnit(1, "Org 1"))));
 
-    var workAreaItems = continuationApplicationWorkAreaService.getAllWorkItems(new WorkAreaFilterForm(), serviceUserDetail);
+    var workAreaItems = getAllWorkItems(new WorkAreaFilterForm(), serviceUserDetail);
 
     assertThat(workAreaItems)
         .extracting(SearchResultItem::hasNewLabel)
@@ -696,16 +652,14 @@ class ContinuationApplicationWorkAreaServiceTest {
     mockRegulatorWithAllWorkAccess();
     when(regulatorRoleService.isContinuationIssuer(anySet())).thenReturn(true);
     // Issuer views are logged against the application id, not the detail id
-    when(workAreaItemViewService.getWorkAreaItemLogsForUser(any(), any()))
-        .thenReturn(List.of(new WorkAreaItemView(
+    contextBuilder.withViewedItems(List.of(new WorkAreaItemView(
             licenceContinuationApplicationDetail2.getLicenceContinuationApplication().getId(),
             WorkAreaDataItemType.LICENCE_CONTINUATION_APPLICATION,
             serviceUserDetail.wuaId()
         )));
-    when(licenceResponsibleOrganisationService.getResponsibleOrganisationsByLicences(any()))
-        .thenReturn(Map.of(licence2, List.of(new OrganisationUnit(1, "Org 1"))));
+    contextBuilder.withLicenseesByLicence(Map.of(licence2, List.of(new OrganisationUnit(1, "Org 1"))));
 
-    var workAreaItems = continuationApplicationWorkAreaService.getAllWorkItems(new WorkAreaFilterForm(), serviceUserDetail);
+    var workAreaItems = getAllWorkItems(new WorkAreaFilterForm(), serviceUserDetail);
 
     assertThat(workAreaItems)
         .extracting(SearchResultItem::hasNewLabel)
@@ -742,7 +696,7 @@ class ContinuationApplicationWorkAreaServiceTest {
     when(applicationWorkAreaService.isIndustryMyWork(eq(licenceContinuationApplicationDetail2), anyMap(), eq(serviceUserDetail.wuaId()), anySet())).thenReturn(false);
     mockViewAccess();
 
-    var workAreaItems = continuationApplicationWorkAreaService.getMyWorkItems(new WorkAreaFilterForm(), serviceUserDetail);
+    var workAreaItems = getMyWorkItems(new WorkAreaFilterForm(), serviceUserDetail);
 
     assertThat(workAreaItems).extracting(SearchResultItem::id).containsExactly(licenceContinuationApplicationDetail.getId().toString());
   }
@@ -751,7 +705,7 @@ class ContinuationApplicationWorkAreaServiceTest {
   void getMyWorkItems_whenNoApplicationisIndustryMyWork_returnsNothing() {
     mockApplications();
 
-    var workAreaItems = continuationApplicationWorkAreaService.getMyWorkItems(new WorkAreaFilterForm(), serviceUserDetail);
+    var workAreaItems = getMyWorkItems(new WorkAreaFilterForm(), serviceUserDetail);
 
     assertThat(workAreaItems).isEmpty();
   }
@@ -765,10 +719,9 @@ class ContinuationApplicationWorkAreaServiceTest {
         eq(serviceUserDetail.wuaId()),
         anySet()
     )).thenReturn(true);
-    when(licenceResponsibleOrganisationService.getResponsibleOrganisationsByLicences(any()))
-        .thenReturn(Map.of(licence2, List.of(new OrganisationUnit(1, "Org 1"))));
+    contextBuilder.withLicenseesByLicence(Map.of(licence2, List.of(new OrganisationUnit(1, "Org 1"))));
 
-    var workAreaItems = continuationApplicationWorkAreaService.getMyWorkItems(new WorkAreaFilterForm(), serviceUserDetail);
+    var workAreaItems = getMyWorkItems(new WorkAreaFilterForm(), serviceUserDetail);
 
     assertThat(workAreaItems)
         .extracting(SearchResultItem::id)
@@ -780,7 +733,7 @@ class ContinuationApplicationWorkAreaServiceTest {
     mockApplications();
     mockRegulatorWithoutIndustryAccess();
 
-    var workAreaItems = continuationApplicationWorkAreaService.getMyWorkItems(new WorkAreaFilterForm(), serviceUserDetail);
+    var workAreaItems = getMyWorkItems(new WorkAreaFilterForm(), serviceUserDetail);
 
     assertThat(workAreaItems).isEmpty();
   }
@@ -792,5 +745,13 @@ class ContinuationApplicationWorkAreaServiceTest {
 
   private void mockViewAccess() {
     when(applicationAccessService.userHasIndustryAccessToApplication(any(), anyMap(), anySet())).thenReturn(true);
+  }
+
+  private List<SearchResultItem> getMyWorkItems(WorkAreaFilterForm workAreaFilterForm, ServiceUserDetail serviceUserDetail) {
+    return continuationApplicationWorkAreaService.loadSection(workAreaFilterForm, serviceUserDetail, WorkAreaScope.MY_WORK).buildItems(contextBuilder.build());
+  }
+
+  private List<SearchResultItem> getAllWorkItems(WorkAreaFilterForm workAreaFilterForm, ServiceUserDetail serviceUserDetail) {
+    return continuationApplicationWorkAreaService.loadSection(workAreaFilterForm, serviceUserDetail, WorkAreaScope.ALL_WORK).buildItems(contextBuilder.build());
   }
 }

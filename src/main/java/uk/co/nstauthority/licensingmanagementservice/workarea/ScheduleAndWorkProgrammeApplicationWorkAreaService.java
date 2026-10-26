@@ -7,12 +7,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.UUID;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
-import uk.co.nstauthority.licensingmanagementservice.energyportal.organisationgroup.OrganisationGroupQueryService;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserJson;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserService;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.WebUserAccountId;
@@ -24,7 +21,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.application.Applica
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.letter.ApplicationLetterController;
-import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overview.ScheduleWorkProgrammeApplicationOverviewController;
@@ -38,8 +34,6 @@ import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamRole;
 import uk.co.nstauthority.licensingmanagementservice.util.FilterUtil;
 import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.WorkAreaDataItemType;
-import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.WorkAreaItemView;
-import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.WorkAreaItemViewService;
 
 @Service
 public class ScheduleAndWorkProgrammeApplicationWorkAreaService implements WorkAreaItemProvider {
@@ -48,33 +42,24 @@ public class ScheduleAndWorkProgrammeApplicationWorkAreaService implements WorkA
 
   private final ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService;
   private final ApplicationAccessService applicationAccessService;
-  private final WorkAreaItemViewService workAreaItemViewService;
   private final RegulatorRoleService regulatorRoleService;
   private final TeamQueryService teamQueryService;
   private final ApplicationWorkAreaService applicationWorkAreaService;
-  private final LicenceResponsibleOrganisationService licenceResponsibleOrganisationService;
-  private final OrganisationGroupQueryService organisationGroupQueryService;
   private final EnergyPortalUserService energyPortalUserService;
 
   public ScheduleAndWorkProgrammeApplicationWorkAreaService(
       ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService,
       ApplicationAccessService applicationAccessService,
-      WorkAreaItemViewService workAreaItemViewService,
       RegulatorRoleService regulatorRoleService,
       TeamQueryService teamQueryService,
       ApplicationWorkAreaService applicationWorkAreaService,
-      LicenceResponsibleOrganisationService licenceResponsibleOrganisationService,
-      OrganisationGroupQueryService organisationGroupQueryService,
       EnergyPortalUserService energyPortalUserService
   ) {
     this.scheduleWorkProgrammeApplicationService = scheduleWorkProgrammeApplicationService;
     this.applicationAccessService = applicationAccessService;
-    this.workAreaItemViewService = workAreaItemViewService;
     this.regulatorRoleService = regulatorRoleService;
     this.teamQueryService = teamQueryService;
     this.applicationWorkAreaService = applicationWorkAreaService;
-    this.licenceResponsibleOrganisationService = licenceResponsibleOrganisationService;
-    this.organisationGroupQueryService = organisationGroupQueryService;
     this.energyPortalUserService = energyPortalUserService;
   }
 
@@ -84,69 +69,47 @@ public class ScheduleAndWorkProgrammeApplicationWorkAreaService implements WorkA
   }
 
   @Override
-  public List<SearchResultItem> getMyWorkItems(
+  public WorkAreaSection loadSection(
       WorkAreaFilterForm workAreaFilterForm,
-      ServiceUserDetail serviceUserDetail
+      ServiceUserDetail serviceUserDetail,
+      WorkAreaScope workAreaScope
   ) {
-    return getWorkAreaItems(workAreaFilterForm, serviceUserDetail, true);
-  }
+    var allApplicationDetails = scheduleWorkProgrammeApplicationService
+        .getAllScheduleWorkProgrammeApplicationDetailsByStatuses(ApplicationStatus.getSearchableStatuses());
 
-  @Override
-  public List<SearchResultItem> getAllWorkItems(
-      WorkAreaFilterForm workAreaFilterForm,
-      ServiceUserDetail serviceUserDetail
-  ) {
-    return getWorkAreaItems(workAreaFilterForm, serviceUserDetail, false);
+    var licences = allApplicationDetails.stream()
+        .map(ScheduleWorkProgrammeApplicationDetail::getLicence)
+        .toList();
+
+    return new WorkAreaSection(
+        WorkAreaDataItemType.SCHEDULE_WORK_PROGRAMME_APPLICATION,
+        licences,
+        OrganisationGroupLookup.REQUIRED,
+        context -> getWorkAreaItems(allApplicationDetails, workAreaFilterForm, serviceUserDetail, workAreaScope, context)
+    );
   }
 
   private List<SearchResultItem> getWorkAreaItems(
+      List<ScheduleWorkProgrammeApplicationDetail> allApplicationDetails,
       WorkAreaFilterForm workAreaFilterForm,
       ServiceUserDetail serviceUserDetail,
-      boolean myWorkOnly
+      WorkAreaScope workAreaScope,
+      WorkAreaContext context
   ) {
     var userTeamRoles = teamQueryService.getTeamRolesForUser(serviceUserDetail.wuaId());
     var isRegulator = regulatorRoleService.isRegulator(userTeamRoles);
     var regulatorRoles = new RegulatorRoles(isRegulator, regulatorRoleService.isDecisionIssuer(userTeamRoles));
 
-    var allApplicationDetails = scheduleWorkProgrammeApplicationService
-        .getAllScheduleWorkProgrammeApplicationDetailsByStatuses(ApplicationStatus.getSearchableStatuses());
-
-    var licenceByApplicationDetail = allApplicationDetails.stream()
-        .collect(Collectors.toMap(Function.identity(),
-            ScheduleWorkProgrammeApplicationDetail::getLicence));
-
-    var licences = allApplicationDetails.stream()
-        .map(licenceByApplicationDetail::get)
-        .toList();
-
-    var responsibleOrganisations = licenceResponsibleOrganisationService.getResponsibleOrganisationsByLicences(licences);
-    var orgUnitToGroupMap = licenceResponsibleOrganisationService.getOrgUnitToGroupIdMap(
-        responsibleOrganisations,
-        allApplicationDetails
-    );
-    var licenseeGroupOrgUnitIds = workAreaFilterForm.getLicenseeOrgGroupId() == null
-        ? null
-        : organisationGroupQueryService.getOrganisationUnitIdsByOrganisationGroupId(workAreaFilterForm.getLicenseeOrgGroupId());
-
-    var viewedItemIds = workAreaItemViewService.getWorkAreaItemLogsForUser(
-            List.of(WorkAreaDataItemType.SCHEDULE_WORK_PROGRAMME_APPLICATION),
-            serviceUserDetail.wuaId()
-        ).stream()
-        .map(WorkAreaItemView::getItemId)
-        .collect(Collectors.toSet());
-
     var visibleApplicationDetails = allApplicationDetails.stream()
         .filter(applicationDetail -> matchesFilterAndHasAccess(
             applicationDetail,
-            licenceByApplicationDetail.get(applicationDetail),
+            applicationDetail.getLicence(),
             workAreaFilterForm,
             serviceUserDetail.wuaId(),
             userTeamRoles,
-            responsibleOrganisations,
-            orgUnitToGroupMap,
-            licenseeGroupOrgUnitIds,
+            context,
             regulatorRoles,
-            myWorkOnly
+            workAreaScope
         ))
         .toList();
 
@@ -155,9 +118,8 @@ public class ScheduleAndWorkProgrammeApplicationWorkAreaService implements WorkA
     return visibleApplicationDetails.stream()
         .map(applicationDetail -> createWorkAreaItem(
             applicationDetail,
-            licenceByApplicationDetail.get(applicationDetail),
-            responsibleOrganisations,
-            viewedItemIds,
+            applicationDetail.getLicence(),
+            context,
             stewardsByWuaId,
             regulatorRoles.decisionIssuer()
         ))
@@ -179,15 +141,11 @@ public class ScheduleAndWorkProgrammeApplicationWorkAreaService implements WorkA
   private SearchResultItem createWorkAreaItem(
       ScheduleWorkProgrammeApplicationDetail applicationDetail,
       Licence licence,
-      Map<Licence, List<OrganisationUnit>> responsibleOrganisationsByLicences,
-      Set<UUID> viewedItemIds,
+      WorkAreaContext context,
       Map<WebUserAccountId, EnergyPortalUserJson> stewardsByWuaId,
       boolean isDecisionIssuer
   ) {
-    var licensees = responsibleOrganisationsByLicences.getOrDefault(
-            licence,
-            List.of()
-        )
+    var licensees = context.getLicensees(licence)
         .stream()
         .filter(Objects::nonNull)
         .map(OrganisationUnit::organisationUnitName)
@@ -236,8 +194,6 @@ public class ScheduleAndWorkProgrammeApplicationWorkAreaService implements WorkA
         ? String.format("Created %s", DateFormatUtil.convertToDisplayTextWithTime(applicationDetail.getCreatedDatetime()))
         : String.format("Submitted %s", DateFormatUtil.convertToDisplayTextWithTime(applicationDetail.getSubmittedDatetime()));
 
-    var isNewItem = !viewedItemIds.contains(applicationDetail.getId());
-
     var builder = SearchResultItem.newBuilder()
         .withId(applicationDetail.getId().toString())
         .withLinkHeadingText(String.format("%s - %s",
@@ -249,7 +205,7 @@ public class ScheduleAndWorkProgrammeApplicationWorkAreaService implements WorkA
         .withDataItemRow(dataItemRow)
         .withTransactionDatetime(transactionDateTime);
 
-    if (isNewItem) {
+    if (context.isNewItem(WorkAreaDataItemType.SCHEDULE_WORK_PROGRAMME_APPLICATION, applicationDetail.getId())) {
       builder.withNewLabel();
     }
 
@@ -262,11 +218,9 @@ public class ScheduleAndWorkProgrammeApplicationWorkAreaService implements WorkA
       WorkAreaFilterForm filterForm,
       Long wuaId,
       Set<TeamRole> userTeamRoles,
-      Map<Licence, List<OrganisationUnit>> responsibleOrganisations,
-      Map<Integer, Integer> orgUnitToGroupMap,
-      List<Integer> licenseeGroupOrgUnitIds,
+      WorkAreaContext context,
       RegulatorRoles regulatorRoles,
-      boolean myWorkOnly
+      WorkAreaScope workAreaScope
   ) {
     if (!FilterUtil.matchesTextInput(licence.getLicenceReference(), filterForm.getLicenceReference())) {
       return false;
@@ -295,22 +249,13 @@ public class ScheduleAndWorkProgrammeApplicationWorkAreaService implements WorkA
       return false;
     }
 
-    var licenceUnitIds = licenceResponsibleOrganisationService
-        .getOrganisationUnitIdsFromLicenceOrgUnitMap(responsibleOrganisations, licence);
-
-    if (!FilterUtil.matchesIdList(licenceUnitIds, filterForm.getLicenseeOrgUnitId())) {
+    if (!context.matchesLicenseeFilters(licence, filterForm)) {
       return false;
     }
 
-    if (!FilterUtil.listMatchesIdList(licenceUnitIds, licenseeGroupOrgUnitIds)) {
-      return false;
-    }
+    var licenceOrgUnitGroupMap = context.getOrganisationGroupIdsByUnitId(context.getLicenseeOrganisationUnitIds(licence));
 
-    var licenceOrgUnitGroupMap = licenceUnitIds.stream()
-        .filter(orgUnitToGroupMap::containsKey)
-        .collect(Collectors.toMap(Function.identity(), orgUnitToGroupMap::get));
-
-    if (myWorkOnly && !regulatorRoles.regulator()
+    if (workAreaScope == WorkAreaScope.MY_WORK && !regulatorRoles.regulator()
         && !applicationWorkAreaService.isIndustryMyWork(applicationDetail, licenceOrgUnitGroupMap, wuaId, userTeamRoles)) {
       return false;
     }
@@ -329,7 +274,7 @@ public class ScheduleAndWorkProgrammeApplicationWorkAreaService implements WorkA
       return false;
     }
 
-    return myWorkOnly
+    return workAreaScope == WorkAreaScope.MY_WORK
         ? applicationWorkAreaService.isRegulatorMyWork(applicationDetail, wuaId, userTeamRoles)
         : applicationWorkAreaService.isRegulatorAllWork(applicationDetail, wuaId, userTeamRoles);
   }

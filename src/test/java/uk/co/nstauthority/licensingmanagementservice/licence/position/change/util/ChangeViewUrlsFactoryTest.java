@@ -24,6 +24,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.tasklist.PartialSurrenderTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.setequity.LicencePositionSetEquityController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subarea.RemoveSubareaChangeController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subarea.SubareaChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.transferequity.LicencePositionTransferEquityController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeorder.CorrectChangeOrderController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
@@ -67,8 +68,9 @@ class ChangeViewUrlsFactoryTest {
   private static final VisibleLicenceOperation PARTIAL_SURRENDER = LicenceOperation.newPartialSurrenderOperation()
       .withSurrenderedFeatureIds(List.of(UUID.randomUUID()))
       .build();
+  private static final UUID SUBAREA_BLOCK_FEATURE_ID = UUID.randomUUID();
   private static final VisibleLicenceOperation SUBAREA =
-      LicenceOperation.newSubAreaOperation().withBlockFeatureId(UUID.randomUUID()).build();
+      LicenceOperation.newSubAreaOperation().withBlockFeatureId(SUBAREA_BLOCK_FEATURE_ID).build();
   private static final VisibleLicenceOperation LICENSEE = LicenceOperation.newLicenseeOperation().build();
 
   @Test
@@ -202,6 +204,8 @@ class ChangeViewUrlsFactoryTest {
     var licenseeUndo = ReverseRouter.route(on(RemoveLicenseeChangeController.class)
         .renderUndoLicenseeChange(CORRECTION, CHANGE_ID.toString()));
 
+    var subareaCorrect = ReverseRouter.route(on(SubareaChangeController.class)
+        .renderSubareaChange(CORRECTION, POSITION_CORRECTION, SUBAREA_BLOCK_FEATURE_ID));
     var subareaRemove = subareaRemoveUrl();
     var subareaUndo = subareaUndoUrl();
 
@@ -274,7 +278,7 @@ class ChangeViewUrlsFactoryTest {
         Arguments.of("subarea, live", SUBAREA, EXECUTED_POSITION, live,
             null, subareaRemove, null, null),
         Arguments.of("subarea, added", SUBAREA, EXECUTED_POSITION, added,
-            null, null, subareaUndo, null),
+            subareaCorrect, null, subareaUndo, null),
         Arguments.of("subarea, operations updated", SUBAREA, EXECUTED_POSITION, operationsUpdated,
             null, null, subareaUndo, null),
         Arguments.of("subarea, order updated", SUBAREA, EXECUTED_POSITION, orderUpdated,
@@ -282,7 +286,7 @@ class ChangeViewUrlsFactoryTest {
         Arguments.of("subarea, removed", SUBAREA, EXECUTED_POSITION, removed,
             null, null, null, subareaUndo),
         Arguments.of("subarea, added position", SUBAREA, ADDED_POSITION, added,
-            null, null, subareaUndo, null)
+            subareaCorrect, null, subareaUndo, null)
     );
   }
 

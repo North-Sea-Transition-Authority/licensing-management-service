@@ -15,6 +15,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subarea.RemoveSubareaChangeController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subarea.SubareaChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationError;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeViewContext;
@@ -109,7 +110,12 @@ public record SubareaOperation(
     return new OperationRoutes() {
       @Override
       public String correct(ChangeUrlTarget target) {
-        return null;
+        if (target.state() != ChangeUrlTarget.State.ADDED) {
+          return null;
+        }
+        //TODO LMS2-269 update to redirect to review and submit page
+        return ReverseRouter.route(on(SubareaChangeController.class)
+            .renderSubareaChange(target.correction(), target.positionCorrection(), blockFeatureId));
       }
 
       @Override

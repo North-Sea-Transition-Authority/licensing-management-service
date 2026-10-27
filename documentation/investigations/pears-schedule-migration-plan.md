@@ -1,14 +1,14 @@
 # Investigation: Migrating PEARS Licence Schedules into LMS
 
-> **Status: Proposal.** Nothing here is implemented. It plans a schedule migration for PEARS
-> licences, offshore and onshore, that reuses the PEARS Oracle datasource
+> **Status: Proposal.** Nothing here is implemented. It plans a schedule migration for every PEARS
+> licence that has a schedule, whatever its licence type or status, that reuses the PEARS Oracle datasource
 > (`migration/pears`) and the schedule-building pattern from the carbon storage migration
 > (`migration/carbonstorage`). Survey queries and their live results are kept in
 > [pears-schedule-migration-data-survey.md](pears-schedule-migration-data-survey.md).
 
 ## Problem
 
-Production licences are already refreshed into LMS from PEARS (`PearsLicenceRefreshService`), and
+PEARS licences are already refreshed into LMS from PEARS (`PearsLicenceRefreshService`), and
 their positions are rebuilt from the PEARS operation history (`LicenceWritebackService`). Their
 **schedules** are not migrated: terms, phases, rates, mandatory relinquishments, expiry and the
 user-defined event types (Bespoke Milestone, Drill-or-drop, and so on) exist only in the legacy Fox
@@ -21,10 +21,60 @@ development and pre-producing areas").
 The migration needs to:
 
 - Read each licence's schedule from PEARS over the existing read-only Oracle connection.
+- **Decided: migrate every PEARS licence schedule on a PEARS-managed licence type
+  (`LicenceType.isManagedByLms() == false`), whatever the licence status.** See "Scope: licence
+  types and statuses".
 - Build a `LicenceSchedule`, `LicenceScheduleDetail`, `LicenceStartDate` and the schedule events
   (terms, phases, rates, expiry, other schedule events) through the existing services.
 - Arrive at the **same dates PEARS shows**, and report every licence where it cannot.
 - Be safe to re-run, like `CarbonStorageLicenceMigrationService.migrateSchedules()`.
+
+### Scope: licence types and statuses
+
+**Decided:** the migration includes every PEARS licence schedule where one exists, on **every
+licence type LMS doesn't manage itself** (`LicenceType.managedByLms = false`), **regardless of
+licence status**. Those types are:
+- `SEAWARD_PRODUCTION` (`P`);
+- `LANDWARD_PRODUCTION`, which `getFromPrefix` maps from `PEDL`, `PL`, `EXL` and `ML`;
+- the placeholder types `A`, `AL`, `B`, `CE`, `DL`, `NA` and `XL`.
+
+LMS-managed types (carbon storage, gas storage, landward and seaward exploration, methane drainage)
+are excluded and have no PEARS schedules anyway. Every licence type that has a PEARS schedule maps
+to a PEARS-managed type. `A`, `B`, `NA` and `XL` have no schedules (S17). On live (27 October 2026;
+data survey S2 and S18) that is 1,808 licences and 10,858 schedule versions:
+
+| PEARS type | Licences | Versions | LMS `LicenceType` (`LicenceType.getFromPrefix`) | LMS term types today |
+|---|---|---|---|---|
+| `P` | 1,525 | 8,312 | `SEAWARD_PRODUCTION` | Initial, Second, Third |
+| `PEDL` | 220 | 1,927 | `LANDWARD_PRODUCTION` | Initial, Second, Third |
+| `PL` | 26 | 336 | `LANDWARD_PRODUCTION` | Initial, Second, Third |
+| `EXL` | 12 | 91 | `LANDWARD_PRODUCTION` | Initial, Second, Third |
+| `ML` | 7 | 80 | `LANDWARD_PRODUCTION` | Initial, Second, Third |
+| `DL` | 5 | 53 | `DL` (placeholder, no display name) | **none** |
+| `AL` | 3 | 30 | `AL` (placeholder, no display name) | **none** |
+| `CE` | 1 | 5 | `CE` (placeholder, no display name) | **none** |
+| *(blank)* | 9 | 24 | none: no LMS licence can exist | — |
+
+- **Status:** extant, surrendered, expired, revoked and no-status licences are all migrated. The
+  report shows each licence's status, so skipped live licences stand out. Of
+  the `P` and `PEDL` licences, only 381 of 1,745 are extant (S18). Of the other 54 typed licences,
+  39 are extant (S18), including 6 of the 9 `AL`/`DL`/`CE` licences.
+- **`PL`, `EXL`, `ML`** already map to `LANDWARD_PRODUCTION` in LMS. They migrate exactly like
+  `PEDL`, with `RD` area events (onshore).
+- **`AL`, `DL`, `CE`** map to LMS placeholder types with no term types
+  (`TermType.getTermsFor` returns nothing). The migration can still save their terms, because the
+  entity doesn't check the licence type. But LMS would offer no term options to maintain them, and
+  the phase and feature rules don't cover them. **Prerequisite LMS change (Open question 14):**
+  give these types the production term types, or decide how their schedules are shown and
+  maintained. In practice only the 3 `AL` schedules have terms. The `DL` and `CE` schedules have
+  none, so they are not migrated; the licensing team creates them manually (rule 7).
+- **Schedules with no terms** (all `ML`, `DL` and `CE`, 5 `PL`, 22 `P`) are not migrated: they are
+  reported, and the licensing team creates them in LMS manually ("Term boundaries" rule 7).
+- **Blank licence type** (9 licences): the LMS licence reference is type + number, and
+  `getFromPrefix` has no blank case, so no LMS licence exists for them. They are skipped and
+  reported until the type is fixed in PEARS (data survey L4).
+- **Data survey coverage:** the survey has been re-run for the other types, and the results are
+  merged into each section. Done for every section (27 October 2026).
 
 ## Source: how PEARS holds a schedule
 
@@ -122,10 +172,10 @@ the LMS result against it (see Validation).
 | licence `type \|\| no` | `Licence` by `licenceReference` | The licence must already exist (from the PEARS refresh); skip and report otherwise. |
 | every `ped_licence_schedule_details` row for the licence | one `LicenceScheduleDetail` per version: the row with `end_datetime IS NULL` is `ACTIVE`, the rest `REPLACED`; `createdInstant = start_datetime` | **Decided: full history.** See "Schedule history". |
 | `ORIGIN_DATE` (per version) | `LicenceStartDate.startDate` on **every** detail | Missing on some migrated PEARS licences (`PED012X` initialises an empty one). Without it, no dates can be calculated: skip and report. |
-| `T` (`TERM_NO` 1/2/3) | `LicenceScheduleTerm` `INITIAL`/`SECOND`/`THIRD` | **Decided (licence 5856):** the first term present starts on `ORIGIN_DATE`; terms may be missing but must be in order (business rule). A `T` event with `TERM_NO` n marks the **end boundary of term n**: the anniversary on which the next term present starts. Term n's duration = `Period.between(start of term n, T(n) date)`. LMS then ends term n the day before and starts term n+1 on the `T(n)` date. See "Term boundaries". |
-| `P` (`PHASE` A/B/C) | `LicenceSchedulePhase` `PHASE_A/B/C` linked to the initial term **Decided (licence 7488):** same boundary convention as terms. The first phase starts on `ORIGIN_DATE`. A `P` event's `PHASE` value names the phase that **ends** on its date, and the next phase present starts on that date. Phases can be **skipped**: 7488 has A and C, with no B ("Continuation into Phase C"). The last phase's `P` date must equal `T(1)`; otherwise skip and report. See "Phase boundaries". |
+| `T` (`TERM_NO` 1/2/3, and 4 on 13 licences) | `LicenceScheduleTerm` `INITIAL`/`SECOND`/`THIRD`, and `FOURTH` (see "Decision: four-term licences") | **Decided (licence 5856):** the first term present starts on `ORIGIN_DATE`; terms may be missing but must be in order (business rule). A `T` event with `TERM_NO` n marks the **end boundary of term n**: the anniversary on which the next term present starts. Term n's duration = `Period.between(start of term n, T(n) date)`. LMS then ends term n the day before and starts the next term present on the `T(n)` date. A `T` with no `TERM_NO` is ignored. See "Term boundaries". |
+| `P` (`PHASE` A/B/C) | `LicenceSchedulePhase` `PHASE_A/B/C` linked to the initial term | **Decided (licence 7488):** same boundary convention as terms. The first phase present starts on `ORIGIN_DATE`. A `P` event's `PHASE` value names the phase that **ends** on its date, and the next phase present starts on that date. Phases may be missing but must be in order (business rule): 7488 has A and C, with no B ("Continuation into Phase C"). The last phase's `P` date must equal `T(1)`; otherwise skip and report. See "Phase boundaries". |
 | `R` (`RATE`, `RECURRING=YEARLY`, `RECURRANCES`) | `LicenceScheduleRate`, one per term/phase the rate's yearly dates fall into | **Decided:** `RECURRING=YEARLY` means the rate is redefined every year at the same value. The yearly dates are expanded, and each is migrated against the phase (or, outside phases, the term) whose dates contain it. See "Rates and yearly recurrence". `rentalRate` = `RATE` as a decimal, rounded to 2 dp where needed; values that do not fit are reported (see "Rate values"). |
-| `MR` (`PERCENTAGE`) | `OtherScheduleEvent` `MANDATORY_RELINQUISHMENT`, `RELATIVE_DATE` against the containing term `description = COMMENTS`, or the default "Mandatory relinquishment" when `COMMENTS` is empty (see "Default descriptions"). **Percentage: pending decision (Open question 4).** PEARS holds it nowhere else, and it feeds generated licence documents. Not migrating it means it is lost. See "Decision: mandatory relinquishment percentage". |
+| `MR` (`PERCENTAGE`) | `OtherScheduleEvent` `MANDATORY_RELINQUISHMENT`, `RELATIVE_DATE` against the containing term, `description = COMMENTS`, or the default "Mandatory relinquishment" when `COMMENTS` is empty (see "Default descriptions") | **Percentage: pending decision (Open question 4).** PEARS holds it nowhere else, and it feeds generated licence documents. Not migrating it means it is lost. See "Decision: mandatory relinquishment percentage". |
 | `E` (optional) | (1) confirms the **end boundary of the final term** (the final `T` sets it), and (2) `LicenceScheduleExpiry` with `comments = COMMENTS` | **Decided:** the expiry event marks the end of the final term. On 5856 it shares its date with the final `T` (01-Dec-2040), and the final term's LMS end date is `E - 1 day` (30-Nov-2040). **`expiryDate`: pending (Open question 8)**: `E` (01-Dec-2040) or `E - 1 day` (30-Nov-2040), because LMS checks that the expiry date equals the final term end. **No `E` event:** migrated without an expiry record (see "Term boundaries" rule 3). An `E` whose date differs from the final `T`: migrated as it is (no extra term), and reported (see "Term boundaries" rule 3). |
 | `BM` | `OtherScheduleEvent` with a **new dedicated category** `BESPOKE_MILESTONE` ("Bespoke milestone"), `description = COMMENTS` (default "Bespoke milestone" when empty), `RELATIVE_DATE` against the containing term with `relativeDuration` = offset from that term's start | **Decided.** Prerequisite: add `BESPOKE_MILESTONE` to `OtherScheduleEventCategory` (production licence types), so the category is selectable in the UI and `getCategoryString()` returns its display name. |
 | `DD`, `2M`, `2N` | `OtherScheduleEvent` `OTHER_ACTIVITY`, `otherCategoryName = ped_template_event_types.short_title` ("Drill-or-drop", "Second Term with autosurrender", "2nd term with all acreage"), `description = COMMENTS` (default: the same `short_title` when empty), `RELATIVE_DATE` as for `BM` | **Decided.** On the timeline, `getCategoryString()` returns `otherCategoryName`, so the PEARS title is the caption. |
@@ -141,8 +191,8 @@ the LMS result against it (see Validation).
 
 - **PEARS:** every event (terms included) is an offset from the single `ORIGIN_DATE`. Term 2 is
   "n years from the licence start", not "n years after Term 1".
-- **LMS terms and phases chain:** each has a duration. Term 1 starts on the licence start date and
-  each later term starts the day after the previous one ends (`endDate.plusDays(1)`). Phases chain
+- **LMS terms and phases chain:** each has a duration. The first term starts on the licence start
+  date and each later term starts the day after the previous one ends (`endDate.plusDays(1)`). Phases chain
   the same way within the initial term.
 - **LMS rates, other events and work programme activities are anchored:** they are relative to the
   start of a chosen term or phase (`RELATIVE_DATE` / `CUSTOM_PERIOD`), or fall on its end
@@ -221,12 +271,18 @@ Rules:
    the term rules and is not migrated. It is listed in the report. On live, these are 7 schedules
    with a start marker dated on `ORIGIN_DATE` (data survey pattern D: P2313, P2322, P2326, P2327,
    P2331, P2332, P1159). Once it is ignored, their numbered terms fit the rules above.
-7. **Decided:** a schedule with **no numbered `T` event** is **not migrated**. It is listed in the
-   report so it can be handled manually. On live, these are 22 rate-only `P` schedules (data survey
-   pattern E): P249, P251, P252, P256, P257, P258, P288, P291–P296, P324, P404, P416, P474, P2333,
-   P2334, P2349, P2495 and P2643. LMS anchors every rate to a term or phase, so there is nothing to
-   build them on. Until they are handled, they have no `ped_lms_schedule_sync` row, so PEARS keeps
-   owning them.
+7. **Decided:** a schedule with **no numbered `T` event is not migrated.** It is reported as
+   **"No terms in PEARS"**, with the licence status, and creating its LMS schedule is a **manual
+   step for the licensing team**. LMS anchors every rate and other event to a term or phase, so a
+   migrated schedule could only hold a start date and expiry, and the write-back would then delete
+   the PEARS rates and events. Until a schedule is created in LMS, the licence has no
+   `ped_lms_schedule_sync` row, so PEARS keeps owning its schedule.
+
+   On live (data survey pattern E, S8 and S8b) there are 40:
+   - **22 `P`** rate-only schedules (14 extant, 7 surrendered, 1 expired). Only 3 have an `E`
+     (S8d).
+   - **All 7 `ML`, all 5 `DL`, CE1 and 5 `PL`** (PL89, PL199, PL240, PL241, PL249). 17 of these 18
+     are extant (all but DL5), and all but CE1 have an `E`.
 
 ### Decision: four-term licences
 
@@ -238,7 +294,8 @@ LMS will support a **Fourth term**, but **only on licences whose schedule alread
 schedule without a Fourth term can never have one added or maintained.
 
 - **Mapping:** `T(4)` ends the Fourth term, using the same rules as the other terms. The Fourth term
-  starts on the `T(3)` boundary. The final `T` (here `T(4)`) equals `E`.
+  starts on the `T(3)` boundary. As on any schedule, the final `T` (here `T(4)`) should equal `E`.
+  Where it doesn't, rule 3 applies (migrated as it is and reported).
 - **LMS model:** add `TermType.FOURTH` ("Fourth Term", display order 40) for
   `SEAWARD_PRODUCTION` and `LANDWARD_PRODUCTION`. `term_type` is `TEXT` with no check constraint
   (`V12`), so no schema change is needed. `LicenceScheduleCalculationService` chains terms by
@@ -260,8 +317,8 @@ schedule without a Fourth term can never have one added or maintained.
 
 ### Which term an event belongs to
 
-Everything dated from `ORIGIN_DATE` up to and **including** the `T(1)` boundary belongs to the
-initial term. The same applies to each later term up to its own boundary. Each event is anchored to
+Everything dated from `ORIGIN_DATE` up to and **including** the first term's boundary (`T(1)` on
+most schedules) belongs to that term. The same applies to each later term up to its own boundary. Each event is anchored to
 its term with `RELATIVE_DATE` / `CUSTOM_PERIOD` and `relativeDuration = Period.between(term start,
 event date)`.
 
@@ -319,8 +376,9 @@ Rules:
    that exist in `PhaseType` order (`calculateAndSavePhaseDatesForTerm`), so a missing `PHASE_B`
    lets C start the day after A ends, which is what 7488 needs.
 3. The last phase's `P` date must equal the `T(1)` date, so the phases exactly fill the initial
-   term. Otherwise, or if the `PHASE` values are out of order, missing or duplicated, skip the
-   licence and report it.
+   term. Otherwise, or if the `PHASE` values are out of order, duplicated, empty or not A/B/C, skip
+   the licence and report it. (A phase that is simply absent is allowed, per the business rule.)
+   Live data passes on every schedule with phases (data survey, S9).
 4. A rate on a phase boundary starts the next phase (`RateDefinitionOption.PHASE`). Other events on
    a phase boundary are anchored to the term (see "Which term an event belongs to"), not the phase.
 
@@ -366,7 +424,7 @@ detail per case date (`cs-migration-schedule-details-per-case.md`).
 - **Older versions with no `ORIGIN_DATE`.** **Decided:** migrate them. If a replaced version has
   no `ORIGIN_DATE`, use the next version's start date, then the earliest that exists, and record
   the substitution. If no version has one, skip the licence. On live (27 October 2026) that is
-  1,071 historical versions (1,004 `P`, 67 `PEDL`); every current version has one (data survey,
+  1,125 historical versions (1,004 `P`, 67 `PEDL`, 54 other types); every current version has one (data survey,
   [S10](pears-schedule-migration-data-survey.md#s10-origin_date-all-versions)). PEARS calculated
   these versions' `EVENT_DATE`s from its `1900-01-01` base, so they are not real dates. The
   comparison report marks every event in such a version **"No start date in PEARS"** rather than
@@ -389,7 +447,8 @@ and unit test it against Oracle results. Stop at the first of:
 - `k > RECURRANCES` (when `RECURRANCES` is set; empty means indefinite);
 - `RECUR_END_DATE`, when set;
 - the date of the next `R` event (a later rate supersedes it);
-- the end of the final term (the `E` date).
+- the end of the final term (its final `T` date, which is the `E` date except on the schedules
+  under "Term boundaries" rule 3).
 
 A non-recurring `R` is a single occurrence (k = 0).
 
@@ -414,7 +473,9 @@ term. Periods come from the terms and phases already derived for the same versio
 **4. Gaps.** If a recurrence stops (`RECURRANCES` or `RECUR_END_DATE`) before the next rate or the
 final term end, PEARS has a period with no rate and LMS would carry the rate on. The same applies to a
 **non-recurring** `R` followed by one or more anniversaries with no `R` at all. Report each such gap as
-a migration note rather than guessing. The data survey counts them.
+a migration note rather than guessing. On live there are 298, all deliberate no-payment years on
+`P` licences (data survey,
+[S12b](pears-schedule-migration-data-survey.md#s12b-rate-gaps-one-row-per-gap)).
 
 ### Rates and the PEARS write-back (separate piece of work)
 
@@ -456,7 +517,8 @@ gain payments. Those licences must be listed and agreed with the licensing team 
 migration runs.
 
 **Round-trip test (owned by the write-back work, specified here):** for a sample of licences
-(including 5856, 7488 and every licence with a recurrence gap), run PEARS → LMS → write-back XML.
+(including 5856, 7488, every licence with a recurrence gap, and an `AL` and a `PL` licence with
+fixed-count recurrences, data survey S12b), run PEARS → LMS → write-back XML.
 Run the payments report's `R` selection over both the original and the written-back XML for each
 year of the schedule. Assert the same `(payment date, rate)` rows. Do not compare raw event shape:
 PEARS can hold the same series as several non-recurring rows or one recurring row, and the report
@@ -519,8 +581,8 @@ phase 1. The background below explains where PEARS derives the events from, for 
 | `pears_event_id` | `EVENT_ID` (kept so PEARS acknowledgements still match after write-back), **nullable** |
 
 **Live data (data survey,
-[S15](pears-schedule-migration-data-survey.md#s15-rdpa-events-current-versions)):** 403 current
-`RD`/`PA` events. Subtypes include **`END`** (22 events) as well as approval, expiry and work
+[S15](pears-schedule-migration-data-survey.md#s15-rdpa-events-current-versions)):** 463 current
+`RD`/`PA` events (60 of them on the other onshore types, all complete). Subtypes include **`END`** (25 events) as well as approval, expiry and work
 programme. **51 `PA` events have no subtype, no `RETENTION_AREA` block and no `EVENT_ID`**: older,
 hand-entered pre-producing area events. They are copied as is with those columns empty. Their
 timeline caption falls back to the comments, or "Pre-producing area". The write-back writes them
@@ -587,7 +649,7 @@ The round trip for an area change:
   `generate_acknowledgements`, they **publish** the resulting complete `RD`/`PA` set. The starting
   point is the `RD`/`PA` events of the current PEARS schedule version, which the last LMS write-back
   produced.
-- **Licences not managed by LMS** (never migrated, or skipped by the migration) keep today's
+- **Licences whose schedule LMS does not own** (never migrated, or skipped by the migration) keep today's
   behaviour unchanged. This needs a per-licence flag PEARS can check, e.g.
   `pedmgr.ped_lms_schedule_sync` (below) or a column on `ped_licence_master`, set when a licence's
   schedule is migrated.
@@ -694,12 +756,15 @@ puts these requirements on the migration and the write-back (building it is sepa
 **Decided:** the write-back travels over EPMQ, the reverse of the `RD`/`PA` updates. LMS publishes
 the licence's schedule, and a PEARS-side consumer applies it.
 
-**Which licences:** only **PEARS licences**, which are production licences
-(`SEAWARD_PRODUCTION`, `LANDWARD_PRODUCTION`) that came from PEARS. Licence types managed only in
-LMS (carbon storage, gas storage, exploration, methane drainage, …) have no PEARS schedule. LMS never
-publishes the write-back for them, and the `RD`/`PA` round trip does not apply. LMS checks the
-licence type before publishing (a `LicenceTypeRulesResolver`/feature rule, e.g.
-`hasPearsScheduleWriteback`) rather than relying on PEARS to reject the message.
+**Which licences:** every licence on a **PEARS-managed licence type**
+(`LicenceType.isManagedByLms() == false`), the same set the migration covers (see "Scope: licence
+types and statuses"). That is `SEAWARD_PRODUCTION` and `LANDWARD_PRODUCTION` (`P`, `PEDL`, `PL`,
+`EXL`, `ML`) and the placeholder types (`AL`, `DL`, `CE`, …). It includes new licences raised in
+PEARS whose first schedule is created in LMS. LMS-managed types (carbon storage, gas storage,
+landward and seaward exploration, methane drainage) have no PEARS schedule, so LMS never publishes
+the write-back for them, and the `RD`/`PA` round trip does not apply. LMS checks
+`isManagedByLms()` before publishing (e.g. a `LicenceTypeRulesResolver`/feature rule
+`hasPearsScheduleWriteback`), rather than relying on PEARS to reject the message.
 
 **When LMS publishes:**
 
@@ -752,7 +817,7 @@ keep empty offsets, as PEARS writes them today.
 6. It must **not** publish the area EPMQ message. Only area changes publish it, so PEARS → LMS →
    PEARS cannot loop.
 
-`ped_lms_schedule_sync` also serves as the "managed by LMS" flag that `LICENSING_RETENTION_AREAS`
+`ped_lms_schedule_sync` also serves as the "schedule owned by LMS" flag that `LICENSING_RETENTION_AREAS`
 checks before publishing rather than writing the schedule. The migration creates the row for each
 licence it migrates.
 
@@ -817,7 +882,7 @@ XML and calls `process_event_date_from_origin`.
    - inserts the **first** `ped_licence_schedule_details` version. `update_licence_schedule`'s
      end-date step simply matches no rows;
    - handles **no template**. `ped_ts_id` is null, so the template name/description update is skipped.
-     The Fox schedule screen is not affected, because it redirects to LMS for LMS-managed licences.
+     The Fox schedule screen is not affected, because it redirects to LMS for licences whose schedule LMS owns.
      Any other PEARS code that joins `ped_template_schedules` for a licence must cope with no
      template, or a placeholder template per licence is created (Open question 12);
    - creates the `ped_lms_schedule_sync` row, so from then on the licence is treated as LMS-managed;
@@ -828,7 +893,11 @@ XML and calls `process_event_date_from_origin`.
    publishes it to LMS, so the round trip fills them in.
 
 **Migration:** licences with no PEARS schedule at migration time are not given one. Their LMS schedule
-is created by users. The comparison report lists them as "No PEARS schedule".
+is created by users. The comparison report lists them as "No PEARS schedule". On live (27 October
+2026) there are 1,114 `P` and 124 `PEDL` licences with no schedule, and **none is extant**. They
+are surrendered or revoked licences, or records with no live data point that never became licences (data survey,
+[S17](pears-schedule-migration-data-survey.md#s17-licences-with-no-pears-schedule)). So no existing
+licence needs a schedule created by hand at go-live.
 
 **Licence start date:** the LMS `LicenceStartDate` becomes PEARS's `ORIGIN_DATE`, while PEARS's own
 licence start date (`xview_ped_ld_current.licence_start_date`, set at raise) is separate. LMS should
@@ -943,11 +1012,12 @@ Against:
   free text.
 - If the value is later wanted as a field (option 1), the comments would need converting.
 
-**Inputs for the decision (data survey):** how many current schedules have an `MR` with
-`PERCENTAGE` set, how many of those are on the `T(1)` date (the value licence documents use),
-and how many already state the figure in `COMMENTS`. Also confirm with the licensing team
-whether licence documents are still generated from PEARS for existing licences after LMS
-go-live.
+**Inputs for the decision (data survey,
+[S13](pears-schedule-migration-data-survey.md#s13-mandatory-relinquishment-percentages-current-versions),
+live 27 October 2026):** 585 current `MR` events hold a number on the `T(1)` date (428 `P`, 149
+`PEDL`, 8 `PL`), so they feed licence documents today. 713 `P` events hold the figure only in `COMMENTS`,
+with an empty `PERCENTAGE`. 303 hold `x`. Also confirm with the licensing team whether licence
+documents are still generated from PEARS for existing licences after LMS go-live.
 
 ### Retention/development area rate: unused
 
@@ -964,8 +1034,8 @@ outside the schedule write-back.
 
 ### Events with no event type
 
-**Found on live (October 2026):** 1,462 non-dummy events across all versions have an empty
-`EVENT_MNEM`, 201 of them on current versions (209 licences). The Fox grid and every report select
+**Found on live (27 October 2026):** 1,498 non-dummy events across all versions, on 209 licences,
+have an empty `EVENT_MNEM`. 201 of them are on current versions. The Fox grid and every report select
 events by type (the payments report reads `R` only), so these rows are **invisible in PEARS today**.
 About 180 of the 201 current ones are **empty rows** (template or grid leftovers). About 20 **hold
 data**: rates missing their `R` code, terms missing their `T` code, text in the wrong field, and
@@ -979,8 +1049,9 @@ comment-only rows. The queries and the per-licence list are in the data survey,
   version, date, values). Those on **current** versions go to the licensing team to fix in PEARS
   before the production run, e.g. by setting `R` on the missing rates. Those only on **historical**
   versions (e.g. P1328, P1665, P2329) are listed for information only, since past PEARS versions
-  cannot be corrected. A licence whose term structure depends on an untyped `T`
-  (P1272, P328) is skipped by the term rules until fixed.
+  cannot be corrected. A licence with an untyped `T` (P1272, P328) would otherwise migrate with
+  that term **missing**, since missing terms are allowed. So these two must be fixed in PEARS
+  before the production run, or their terms will be wrong in LMS.
 - **Write-back:** the rebuilt PEARS XML has no untyped rows. Nothing visible in PEARS changes,
   because they are not shown or reported today.
 
@@ -1014,8 +1085,10 @@ not `7500.00`). Values with pence are written with **2** decimal places (`12.50`
 `rentalRate.stripTrailingZeros()` when it is whole, otherwise `setScale(2)`, in plain notation (never
 `7.5E+3`).
 
-**Data survey:** count `R` events per category above (whole, 1–2 dp, more than 2 dp, does not fit)
-on current and historical versions, with the "does not fit" values listed.
+**Data survey (live, 27 October 2026,
+[S11](pears-schedule-migration-data-survey.md#s11-rate-values)):** every populated `RATE` is a whole
+number, so rounding is never needed on today's data. 12 `R` events have an empty rate, all on two
+rate-only schedules (P293, P295) with no terms (pattern E), which aren't migrated anyway.
 
 ### `RECUR_END_DATE`: unused
 
@@ -1085,12 +1158,12 @@ Against:
 **Either way:**
 - The migration's comparison report checks the rate in force on every anniversary against PEARS.
 - The write-back round-trip test (below) compares payment rows, not event shape.
-- PEARS gaps are listed by the data survey and need a decision for each licence.
+- PEARS gaps are listed by the data survey (298, S12b) and need agreeing with the licensing team.
 
 ### Anchoring "other" events to a term
 
 LMS other events cannot be anchored to the licence start, only to a term or phase. Because the
-initial term starts on the licence start date, an event in the initial term keeps PEARS's offsets
+first term starts on the licence start date, an event in the first term keeps PEARS's offsets
 unchanged. For events in later terms, convert the offset to one measured from that term's start:
 `Period.between(termStart, pearsEventDate)` normalised to years, months and days. Then recompute
 the date with `calculateRelativeStartDueDate` and check it equals the PEARS date (see Validation).
@@ -1327,21 +1400,29 @@ cannot disagree.
 
 ## Migration size (live, 27 October 2026)
 
-- **In scope (P + PEDL):** 1,745 licences, 10,239 schedule versions (largest licence 66), 1,744
-  current. A further 63 licences (619 versions) are on other or blank licence types, outside the decided scope.
+- **In scope (every licence with a schedule):** 1,808 licences, 10,858 schedule versions (largest
+  licence 66), 1,807 current. Of these, `P` and `PEDL` are 1,745 licences and 10,239 versions. The
+  other 63 licences (619 versions) are `PL`, `EXL`, `ML`, `DL`, `AL`, `CE`, plus 9 with a blank
+  type, which are skipped until fixed.
 - **Events (all licences):** 216,366 across all versions (35,947 current), about three-quarters of
   them rates.
 - **Estimated LMS rows for the full history:** about **450k**.
+- **By licence status (all typed licences):** 420 are extant (4,607 versions). 1,354 are
+  surrendered, expired or revoked (6,113 versions), and 25 have no status (114 versions). All of
+  them are migrated. The write-back and the `RD`/`PA` round trip only realistically come into play
+  for the extant ones.
 
 The queries, full results and breakdowns are in the data survey,
-[S2](pears-schedule-migration-data-survey.md#s2-licences-and-schedule-versions) and
-[S3](pears-schedule-migration-data-survey.md#s3-events-by-type).
+[S2](pears-schedule-migration-data-survey.md#s2-licences-and-schedule-versions),
+[S3](pears-schedule-migration-data-survey.md#s3-events-by-type) and
+[S18](pears-schedule-migration-data-survey.md#s18-licences-with-a-schedule-by-status).
 
 ## Delivery steps
 
-1. **Data survey (before writing code).** Against live (read-only). Queries, results and progress
-   are recorded in [pears-schedule-migration-data-survey.md](pears-schedule-migration-data-survey.md).
-   Count:
+1. **Data survey: done** (live, read-only, 27 October 2026). Queries, results and the list of items
+   for the licensing team are in
+   [pears-schedule-migration-data-survey.md](pears-schedule-migration-data-survey.md). Re-run it
+   before the production run, since PEARS keeps changing. It covers:
    - schedules per licence type (PEARS prefix **and** the LMS `LicenceType` it maps to, onshore
      and offshore) and per `event_mnem`;
    - licences with no `ORIGIN_DATE`;
@@ -1371,16 +1452,22 @@ The queries, full results and breakdowns are in the data survey,
      payments report after write-back);
    - events with an `EVENT_ID`, and same-type events with identical comments in one version
      (the cases where cross-version matching is ambiguous).
-2. Review the survey output with the licensing team, in particular recurrence gaps and the skipped
-   licence categories, before coding. Take Open questions 4 (mandatory relinquishment percentage),
-   7 (how yearly-recurring rates are held in LMS) and 8 (expiry date convention) to the licensing
-   and data warehouse owners at the same review, using the survey counts.
+2. Take the survey's "For the licensing team" list to the licensing team before coding: the PEARS
+   fixes (L1–L4) and the items still to confirm or decide (L12–L14). Those include Open questions 4
+   (mandatory relinquishment percentage), 7 (how yearly-recurring rates are held in LMS) and 8
+   (expiry date convention), which also need the data warehouse owners. The term and phase
+   patterns are already decided (L5–L11).
 3. Add `BESPOKE_MILESTONE` to `OtherScheduleEventCategory`, with its form/timeline tests, as its
    own change ahead of the migration.
+3a. Add `TermType.FOURTH`, offered only when the licence's active schedule version already has a
+    Fourth term, and check every `TermType` consumer handles it (see "Decision: four-term
+    licences"). Its own change, ahead of the migration.
+3b. Term support for `AL` schedules (Open question 14), after re-running the data
+    survey for the non-`P`/`PEDL` types.
 4. `PearsScheduleService` + SQL resources + grant check.
 5. `PearsScheduleMapper` + unit tests from fixture XML (include licence 5856's two BM events, and a
-   multi-version licence to test `original_event_id` matching across versions, and yearly rates
-   that cross phase and term boundaries). Unit test the Java port of PEARS date arithmetic
+   multi-version licence to test `original_event_id` matching across versions, yearly rates
+   that cross phase and term boundaries, and one licence per term pattern A–G from the data survey). Unit test the Java port of PEARS date arithmetic
    (`ADD_MONTHS` included) against values computed in Oracle.
 6. `PearsScheduleMigrationService` + integration test (Testcontainers Postgres, mapper input stubbed).
    In the same step: `licence_schedule_area_events` (Flyway), with `RD`/`PA` events copied as is from
@@ -1388,7 +1475,7 @@ The queries, full results and breakdowns are in the data survey,
 6a. LMS timeline display of area events (read-only, filterable), with tests.
 6b. EPMQ: for migrated licences, `LICENSING_RETENTION_AREAS` (`apply_active_…`, `apply_removed_…`,
     `auto_expire_areas`) publishes the new `RD`/`PA` set instead of writing the schedule (PEARS
-    change; licences not managed by LMS keep today's behaviour). LMS maps the message type and handles it (replace on `ACTIVE`
+    change; licences whose schedule LMS doesn't own keep today's behaviour). LMS maps the message type and handles it (replace on `ACTIVE`
     and open `DRAFT` details, idempotent, ordered), with tests. Switch it on at go-live after a final
     `RD`/`PA` refresh.
 6c. Write-back over EPMQ (separate piece of work, specified here): the EPMQ message library release
@@ -1412,11 +1499,13 @@ The queries, full results and breakdowns are in the data survey,
 
 1. **History.** Resolved: the full history is migrated, with one LMS schedule version per PEARS
    edit and no merging (see "Schedule history").
-2. **Term and phase boundaries.** Resolved (from licence 5856): the initial term starts on
-   `ORIGIN_DATE`. A `T(n)` event is the **end boundary** of term n, the anniversary on which term
-   n+1 starts. The final `T` equals `E`. Events up to and including a boundary belong to the term
-   ending there, apart from rates, which start the next term. See "Term boundaries". Phases follow
-   the same convention, and can be skipped (licence 7488: A and C, no B). See "Phase boundaries".
+2. **Term and phase boundaries.** Resolved (from licences 5856 and 7488, plus the business rule):
+   the first term present starts on `ORIGIN_DATE`. A `T(n)` event is the **end boundary** of term
+   n, the anniversary on which the next term present starts. Terms and phases may be missing but
+   must be in order. Events up to and including a boundary belong to the term ending there, apart
+   from rates, which start the next term. Every term pattern found by the data survey has a decided
+   rule ("Term boundaries" rules 3, 5–7 and "Decision: four-term licences"). Phases follow the same
+   convention (licence 7488: A and C, no B). See "Phase boundaries".
 3. **Rates.** Resolved: `RECURRING=YEARLY` redefines the rate each year at the same value. Each
    yearly date is migrated against the phase or term it falls in (see "Rates and yearly
    recurrence"). How many LMS rows a yearly rate becomes is still open: see Open question 7.
@@ -1433,19 +1522,26 @@ The queries, full results and breakdowns are in the data survey,
    Retention/development areas (`RD`) and pre-producing areas (`PA`) are migrated in this exercise
    (see "Retention, development and pre-producing areas"). `RETENTION_AREA_RATE` is unused in PEARS
    and needs no migration (see "Retention/development area rate: unused").
-   The data survey still counts schedules per LMS licence type, to catch any PEARS schedule on a
-   licence that does not map to `SEAWARD_PRODUCTION` or `LANDWARD_PRODUCTION`. Such a licence is
-   skipped and reported.
+   **Superseded by the scope decision:** every PEARS-managed licence type (`managedByLms = false`)
+   with a PEARS schedule is migrated, not only those mapping to `SEAWARD_PRODUCTION` or
+   `LANDWARD_PRODUCTION`. `PL`, `EXL` and `ML` map to
+   `LANDWARD_PRODUCTION`. `AL` needs Open question 14. Schedules with no terms (incl. all `ML`,
+   `DL`, `CE`) are not migrated and are left to the licensing team (rule 7). Blank-type licences are
+   skipped and reported. See "Scope: licence types and statuses".
 6. **Date mismatches.** When LMS arithmetic gives a different date from PEARS, adjust the stored
    `relativeDuration` so LMS lands on the PEARS date (the legal deadline), or keep PEARS offsets and
    accept the difference? Recommendation: adjust, and list every adjustment in the report.
+   **Evidence (data survey, S14):** copying PEARS offsets would move 96 current events (0.3%: 94
+   `P`, 2 `EXL`) by up to 3 days. The mapper already derives LMS durations and offsets from the PEARS dates
+   (`Period.between`), which lands every one of them on the PEARS date. So the recommendation is
+   what the design does. It only needs confirming.
 7. **Yearly-recurring rates in LMS.** Open, a decision to be made with the licensing and data
    warehouse owners. Option A: one LMS rate per phase/term, with the PEARS write-back rebuilding
    recurrence. Option B: one LMS rate row per year, with a one-to-one write-back. The arguments for
    both are in "Decision: how yearly-recurring rates are held in LMS". The plan assumes option A
    until decided.
    **New evidence (data survey, S12/S12b, live 27 October 2026):** every current schedule is "one
-   non-recurring `R` per payment, then one indefinite yearly `R`". `RECURRANCES` is never used. But
+   non-recurring `R` per payment, then one indefinite yearly `R`". `RECURRANCES` is never used on `P`/`PEDL`, but 9 `PL` and 3 `AL` schedules use it, so the write-back must be able to emit a count. But
    **298 deliberate gaps** exist, mostly on pre-1999 licences (e.g. an initial rental, then the next
    rate 6 years later). PEARS shows no payment in those years. Option A's write-back, as written
    (each LMS rate recurs until the next one), would **invent payments for every gap year**. Whichever
@@ -1487,7 +1583,7 @@ The queries, full results and breakdowns are in the data survey,
 12. **No template for LMS-created schedules.** Open. New licences have no `ped_ts_id`. Either the
     PEARS code that reads a licence's template is changed to cope with none, or `apply_lms_schedule`
     creates a placeholder template per licence. The Fox schedule screen is no longer a concern: it
-    redirects to LMS for LMS-managed licences. Remaining readers to check include Raise Licence
+    redirects to LMS for licences whose schedule LMS owns. Remaining readers to check include Raise Licence
     (`PED017X`, which joins `ped_template_schedules` on `ped_ts_id`) and licence document data.
 13. **LMS-only "Other activity" events.** Open, pending a check of what PEARS currently reports on.
     If they are not reported on, events whose category has no PEARS event type are **not written
@@ -1502,10 +1598,22 @@ The queries, full results and breakdowns are in the data survey,
     - The external data warehouse feeds from `xview_ped_lic_schedule_events`, which are not in this
       repository.
 
+14. **Schedules on `AL` licences (and `DL`, `CE`).** Open. They are migrated (all licence types are
+    in scope), but LMS maps them to placeholder `LicenceType`s with no display name and no
+    `TermType`s. So LMS offers no term options for them, and phase and feature rules don't apply.
+    The options are: add these types to the production `TermType`s (`INITIAL`, `SECOND`, `THIRD`)
+    and the matching feature rules, or give them their own term types. Either way it is an LMS
+    change ahead of the migration. Only the 3 `AL` licences (30 versions) are affected, and **1 is
+    extant** (AL10; data survey S18). The data
+    survey (S8b) shows their term structure: all 3 `AL` have a clean `T(1)`, `T(2)`, `T(3)` = `E`, which
+    fits `INITIAL`/`SECOND`/`THIRD` directly. **`DL` and `CE` have no terms at all** (pattern E),
+    so they are not migrated (rule 7), and this question only matters for `AL`.
+
 ## Out of scope
 
 - The onshore retention area rate (`RETENTION_AREA_RATE`): unused in PEARS. Onshore schedules and
   retention/development/pre-producing areas are otherwise **in scope**.
+- Licences on LMS-managed licence types (`managedByLms = true`): they have no PEARS schedule.
 - Area **records and work programmes** (`ped_retention_areas`, `work_programme_xml`): later phase.
   Phase 1 migrates only the `RD`/`PA` schedule events as they are in the PEARS XML.
 - Area **geometry**: already migrated by the gis-framework GIS migration (`Layer.RETENTION_AREAS`,

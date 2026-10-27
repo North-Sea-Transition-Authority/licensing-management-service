@@ -344,6 +344,29 @@ class OrganisationUnitQueryServiceTest {
     verifyNoInteractions(organisationApi);
   }
 
+  @Test
+  void getOrganisationUnitSelectOption_isBlank_returnsEmptyMap() {
+    assertThat(organisationUnitQueryService.getOrganisationUnitSelectOption("")).isEqualTo(Map.of());
+  }
+
+  @Test
+  void getOrganisationUnitSelectOption_invalidInteger_returnsEmptyMap() {
+    assertThat(organisationUnitQueryService.getOrganisationUnitSelectOption("21@1")).isEqualTo(Map.of());
+  }
+
+  @Test
+  void getOrganisationUnitSelectOption_noOrganisationName_returnsEmptyMap() {
+    when(organisationUnitRequestCache.getOrganisationUnitsByIds(List.of(1))).thenReturn(List.of());
+    assertThat(organisationUnitQueryService.getOrganisationUnitSelectOption("1")).isEqualTo(Map.of());
+  }
+
+  @Test
+  void getOrganisationUnitSelectOption_returnsMap() {
+    when(organisationUnitRequestCache.getOrganisationUnitsByIds(List.of(1))).thenReturn(List.of(OrganisationUnitTestUtil.ORG_UNIT_1));
+    assertThat(organisationUnitQueryService.getOrganisationUnitSelectOption("1"))
+        .isEqualTo(Map.of("1", OrganisationUnitTestUtil.ORG_UNIT_1.getName()));
+  }
+
   private static OrganisationNameHistory organisationNameHistory(String name, LocalDate startDate, LocalDate endDate) {
     var organisationNameHistory = new OrganisationNameHistory();
     organisationNameHistory.setName(name);

@@ -27,12 +27,14 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.AddChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayload;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.LicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.UpdateLicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.StorageOperatorOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.storageoperator.StorageOperatorChangeContext;
 
 @ExtendWith(MockitoExtension.class)
 class StorageOperatorChangeServiceTest {
@@ -155,6 +157,59 @@ class StorageOperatorChangeServiceTest {
         .withTargetLicencePosition(null)
         .withPayload(payload)
         .build();
+  }
+
+  @Test
+  void populateAddedStorageOperatorForm_storageOperatorChangeExists_returnsPopulatedForm() {
+    var context = new StorageOperatorChangeContext(OPERATOR_ID, null, "org1", "org2");
+    var operation = LicenceOperation.newStorageOperatorOperation().withOperator(OPERATOR_ID).build();
+    var changes = List.<LicencePositionChangeType>of(
+        AddChange.buildOperationsChange(List.of(operation), 1)
+    );
+    var payload = CreateLicencePositionPayloadTestUtil.newBuilder().withChanges(changes).build();
+    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder().withPayload(payload).build();
+    var expectedForm = new StorageOperatorChangeForm();
+    expectedForm.getOperatorId().setInputValue(OPERATOR_ID.toString());
+    assertThat(storageOperatorChangeService.populateAddedStorageOperatorForm(context, positionCorrection))
+        .usingRecursiveComparison().isEqualTo(expectedForm);
+  }
+
+  @Test
+  void populateAddedStorageOperatorForm_storageOperatorChangeDoesNotExists_returnsEmptyForm() {
+    var context = new StorageOperatorChangeContext(null, null, "org1", "org2");
+    var payload = CreateLicencePositionPayloadTestUtil.newBuilder().withChanges(List.of()).build();
+    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder().withPayload(payload).build();
+    var expectedForm = new StorageOperatorChangeForm();
+    assertThat(storageOperatorChangeService.populateAddedStorageOperatorForm(context, positionCorrection))
+        .usingRecursiveComparison().isEqualTo(expectedForm);
+  }
+
+  @Test
+  void populateExistingStorageOperatorForm_hasPendingStorageOperatorChange_returnsPopulatedForm() {
+    var context = new StorageOperatorChangeContext(OPERATOR_ID, null, "org1", "org2");
+    var operation = LicenceOperation.newStorageOperatorOperation().withOperator(OPERATOR_ID).build();
+    var changes = List.<LicencePositionChangeType>of(
+        AddChange.buildOperationsChange(List.of(operation), 1)
+    );
+    var payload = CreateLicencePositionPayloadTestUtil.newBuilder().withChanges(changes).build();
+    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder().withPayload(payload).build();
+    when(licencePositionCorrectionService.findUpdatePositionCorrection(LICENCE_CORRECTION, LICENCE_POSITION))
+        .thenReturn(Optional.of(positionCorrection));
+    var expectedForm = new StorageOperatorChangeForm();
+    expectedForm.getOperatorId().setInputValue(OPERATOR_ID.toString());
+    assertThat(storageOperatorChangeService.populateExistingStorageOperatorForm(context, LICENCE_CORRECTION, LICENCE_POSITION))
+        .usingRecursiveComparison().isEqualTo(expectedForm);
+  }
+
+  @Test
+  void populateExistingStorageOperatorForm_hasNoPendingStorageOperatorChange_returnsEmptyForm() {
+    var context = new StorageOperatorChangeContext(OPERATOR_ID, null, "org1", "org2");
+
+    when(licencePositionCorrectionService.findUpdatePositionCorrection(LICENCE_CORRECTION, LICENCE_POSITION))
+        .thenReturn(Optional.empty());
+    var expectedForm = new StorageOperatorChangeForm();
+    assertThat(storageOperatorChangeService.populateExistingStorageOperatorForm(context, LICENCE_CORRECTION, LICENCE_POSITION))
+        .usingRecursiveComparison().isEqualTo(expectedForm);
   }
 
   private LicencePositionChangeType storageOperatorAddChange() {

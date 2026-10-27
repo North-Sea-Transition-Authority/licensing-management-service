@@ -26,6 +26,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.SingleBlockSurrender;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.definearea.PartialSurrenderDefineAreaController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.setequity.LicencePositionSetEquityController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.storageoperator.LicencePositionStorageOperatorChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subarea.LicencePositionSubareaChangeStartController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.transferequity.LicencePositionTransferEquityController;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
@@ -96,7 +97,8 @@ public class LicencePositionAddChangeController {
           .renderForExecutedPosition(correction, licencePosition));
       case LICENSEE -> ReverseRouter.redirect(on(LicencePositionLicenseeChangeController.class)
           .renderForExecutedPosition(correction, licencePosition));
-      case STORAGE_OPERATOR -> null;
+      case STORAGE_OPERATOR -> ReverseRouter.redirect(on(LicencePositionStorageOperatorChangeController.class)
+          .renderForExecutedPosition(correction, licencePosition));
     };
   }
 
@@ -138,7 +140,8 @@ public class LicencePositionAddChangeController {
           .renderForAddedPosition(correction, licencePositionCorrection));
       case LICENSEE -> ReverseRouter.redirect(on(LicencePositionLicenseeChangeController.class)
           .renderForAddedPosition(correction, licencePositionCorrection));
-      case STORAGE_OPERATOR -> null;
+      case STORAGE_OPERATOR -> ReverseRouter.redirect(on(LicencePositionStorageOperatorChangeController.class)
+          .renderForAddedPosition(correction, licencePositionCorrection));
     };
   }
 

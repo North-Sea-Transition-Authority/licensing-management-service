@@ -12,6 +12,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.LicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.UpdateLicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.storageoperator.StorageOperatorChangeContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionStorageOperatorChangeUtil;
 
 @Service
@@ -70,5 +71,41 @@ public class StorageOperatorChangeService {
       positionCorrection.setPayload(payload);
     }
     licencePositionCorrectionService.save(positionCorrection);
+  }
+
+  public StorageOperatorChangeForm populateAddedStorageOperatorForm(
+      StorageOperatorChangeContext changeContext,
+      LicencePositionCorrection positionCorrection
+  ) {
+    var payload = (CreateLicencePositionPayload) positionCorrection.getPayload();
+    var form = new StorageOperatorChangeForm();
+    if (changeContext.currentOperatorId() != null
+        && LicencePositionStorageOperatorChangeUtil.storageOperatorChangeExists(payload.changes())
+    ) {
+      form.getOperatorId().setInputValue(String.valueOf(changeContext.currentOperatorId()));
+    }
+    return form;
+  }
+
+  public StorageOperatorChangeForm populateExistingStorageOperatorForm(
+      StorageOperatorChangeContext changeContext,
+      LicenceCorrection correction,
+      LicencePosition position
+  ) {
+    var form = new StorageOperatorChangeForm();
+    if (changeContext.currentOperatorId() != null
+        && hasPendingStorageOperatorChange(position, correction)
+    ) {
+      form.getOperatorId().setInputValue(String.valueOf(changeContext.currentOperatorId()));
+    }
+    return form;
+  }
+
+  private boolean hasPendingStorageOperatorChange(LicencePosition licencePosition, LicenceCorrection licenceCorrection) {
+    return licencePositionCorrectionService
+        .findUpdatePositionCorrection(licenceCorrection, licencePosition)
+        .map(positionCorrection ->
+            LicencePositionStorageOperatorChangeUtil.storageOperatorChangeExists(positionCorrection.getPayload().changes()))
+        .orElse(false);
   }
 }

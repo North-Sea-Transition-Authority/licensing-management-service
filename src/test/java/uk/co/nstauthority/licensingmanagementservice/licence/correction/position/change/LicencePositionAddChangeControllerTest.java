@@ -38,6 +38,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.SingleBlockSurrender;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.definearea.PartialSurrenderDefineAreaController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.setequity.LicencePositionSetEquityController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.storageoperator.LicencePositionStorageOperatorChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subarea.LicencePositionSubareaChangeStartController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.transferequity.LicencePositionTransferEquityController;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
@@ -210,6 +211,30 @@ class LicencePositionAddChangeControllerTest extends AbstractControllerTest {
             status().isOk(),
             view().name(VIEW_NAME),
             model().attributeExists("form", "changeTypeOptions", "backLinkUrl"));
+  }
+
+  @Test
+  void submitForExecutedPosition_whenStorageOperatorChange_redirectsToStorageOperatorLicenseeChangeForm() throws Exception{
+    var correction = givenCorrectionAllocatedToUser();
+    var licencePosition = givenExecutedPosition();
+    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder().build();
+    when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(licencePosition);
+    when(licencePositionCorrectionService.getOrBuildUpdatePositionCorrection(correction, licencePosition))
+        .thenReturn(positionCorrection);
+
+    var form = new AddPositionChangeForm();
+    form.setChangeType(AddPositionChangeType.STORAGE_OPERATOR.name());
+    when(addPositionChangeFormValidator.hasErrors(
+        eq(form), any(BindingResult.class), eq(correction), eq(positionCorrection)))
+        .thenReturn(false);
+
+    mockMvc.perform(post(ReverseRouter.route(on(LicencePositionAddChangeController.class)
+            .submitForExecutedPosition(correction, licencePosition, null, null)))
+            .with(user(regulatorUser)).with(csrf())
+            .flashAttr("form", form))
+        .andExpect(status().is3xxRedirection())
+        .andExpect(redirectedUrl(ReverseRouter.route(on(LicencePositionStorageOperatorChangeController.class)
+            .renderForExecutedPosition(correction, licencePosition))));
   }
 
   @Test
@@ -396,6 +421,26 @@ class LicencePositionAddChangeControllerTest extends AbstractControllerTest {
             status().isOk(),
             view().name(VIEW_NAME),
             model().attributeExists("form", "changeTypeOptions", "backLinkUrl"));
+  }
+
+  @Test
+  void submitForAddedPosition_whenStorageOperatorChange_redirectsToStorageOperatorChangeForm() throws Exception {
+    var correction = givenCorrectionAllocatedToUser();
+    var positionCorrection = givenAddedPositionCorrection(correction);
+
+    var form = new AddPositionChangeForm();
+    form.setChangeType(AddPositionChangeType.STORAGE_OPERATOR.name());
+    when(addPositionChangeFormValidator.hasErrors(
+        eq(form), any(BindingResult.class), eq(correction), eq(positionCorrection)))
+        .thenReturn(false);
+
+    mockMvc.perform(post(ReverseRouter.route(on(LicencePositionAddChangeController.class)
+            .submitForAddedPosition(correction, positionCorrection, null, null)))
+            .with(user(regulatorUser)).with(csrf())
+            .flashAttr("form", form))
+        .andExpect(status().is3xxRedirection())
+        .andExpect(redirectedUrl(ReverseRouter.route(on(LicencePositionStorageOperatorChangeController.class)
+            .renderForAddedPosition(correction, positionCorrection))));
   }
 
   @Test

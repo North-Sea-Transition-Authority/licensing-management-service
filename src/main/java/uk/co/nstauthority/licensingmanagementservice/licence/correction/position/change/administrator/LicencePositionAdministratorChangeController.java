@@ -4,7 +4,6 @@ import static org.springframework.web.servlet.mvc.method.annotation.MvcUriCompon
 
 import java.util.Map;
 import java.util.UUID;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -268,17 +267,7 @@ public class LicencePositionAdministratorChangeController {
 
   private Map<String, String> preselectedAdministrator(AdministratorChangeForm form) {
     var inputValue = form.getAdminId().getInputValue();
-    if (StringUtils.isBlank(inputValue)) {
-      return Map.of();
-    }
-    try {
-      var administratorId = Integer.parseInt(inputValue);
-      return organisationUnitQueryService.getOrganisationUnitNameById(administratorId)
-          .map(name -> Map.of(inputValue, name))
-          .orElse(Map.of());
-    } catch (NumberFormatException ex) {
-      return Map.of();
-    }
+    return organisationUnitQueryService.getOrganisationUnitSelectOption(inputValue);
   }
 
   private ModelAndView getAdministratorChangeModelAndView(

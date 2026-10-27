@@ -1,0 +1,1734 @@
+# PEARS Schedule Migration: Data Survey
+
+> Companion to [pears-schedule-migration-plan.md](pears-schedule-migration-plan.md). This document
+> holds the read-only survey queries run against PEARS and their results. The plan holds the
+> decisions that come from them, and links here for the evidence.
+
+## Conventions
+
+- **Run against live**, read-only, unless a result says otherwise. Record the date each was run.
+- **In scope** means licence types `P` (seaward production) and `PEDL` (landward production).
+  Several queries cover every licence and say so.
+- **Placeholder grid rows** (`DUMMY_EVENT = 'true'`), which the Fox grid builds, are always excluded.
+- "Current" means the schedule version with `end_datetime IS NULL`. "All versions" includes history.
+
+## Status
+
+| # | Survey item | Status | Section |
+|---|---|---|---|
+| S1 | Event type catalogue | ✅ Live, 27 Oct 2026 | [S1](#s1-event-type-catalogue) |
+| S2 | Licences and schedule versions by licence type | ✅ Live, 27 Oct 2026 | [S2](#s2-licences-and-schedule-versions) |
+| S3 | Events by type | ✅ Live, 27 Oct 2026 | [S3](#s3-events-by-type) |
+| S4 | Retention/development area rate | ✅ Live, 27 Oct 2026: never used | [S4](#s4-retentiondevelopment-area-rate) |
+| S5 | `RECUR_END_DATE` | ✅ Live, 27 Oct 2026: never used | [S5](#s5-recur_end_date) |
+| S6 | Events with no event type | ✅ Live, 27 Oct 2026 (current and history) | [S6](#s6-events-with-no-event-type) |
+| S7 | Expiry events per current schedule | ✅ Live, 27 Oct 2026 | [S7](#s7-expiry-events-per-current-schedule) |
+| S8 | Term structure (current versions) | ✅ Live, 27 Oct 2026 (summary, S8b, S8c, S8d) | [S8](#s8-term-structure-current-versions) |
+| S9 | Phase structure (current versions) | ✅ Live, 27 Oct 2026: all pass | [S9](#s9-phase-structure-current-versions) |
+| S10 | `ORIGIN_DATE` missing or different from the licence start date (all versions) | ✅ Live, 27 Oct 2026 (with S10b) | [S10](#s10-origin_date-all-versions) |
+| S11 | `RATE` values (whole, 1–2 dp, > 2 dp, does not fit) | ✅ Live, 27 Oct 2026 (with S11b) | [S11](#s11-rate-values) |
+| S12 | Rate recurrence and gaps (current versions) | ✅ Live, 27 Oct 2026 (with S12b) | [S12](#s12-rate-recurrence-and-gaps-current-versions) |
+| S13 | Mandatory relinquishment percentages (current versions) | ✅ Live, 27 Oct 2026 (with S13b) | [S13](#s13-mandatory-relinquishment-percentages-current-versions) |
+| S14 | LMS vs PEARS date arithmetic differences | ✅ Live, 27 Oct 2026 | [S14](#s14-lms-vs-pears-date-arithmetic) |
+| S15 | `RD`/`PA` events (current versions) | ✅ Live, 27 Oct 2026 | [S15](#s15-rdpa-events-current-versions) |
+| S16 | `EVENT_ID` and ambiguous cross-version matches | ✅ Live, 27 Oct 2026 | [S16](#s16-event_id-and-ambiguous-cross-version-matches) |
+| — | Event types beyond the known catalogue | ✅ None on live (S1) | [S1](#s1-event-type-catalogue) |
+| — | Production licences with no PEARS schedule | Query ready, not run | [Other queries](#other-queries-not-yet-run) |
+
+## Summary (live, 27 October 2026)
+
+The survey is complete (S1–S16). Overall the data is consistent enough to migrate by rule. The
+exceptions are mostly systematic, by licensing round, rather than one-off errors.
+
+| Area | Finding | Section |
+|---|---|---|
+| Size | 1,745 in-scope licences (1,525 `P`, 220 `PEDL`), 10,239 schedule versions, ~216k events, ~450k LMS rows. 63 further licences are on out-of-scope or blank licence types. | S2, S3 |
+| Event types | The 11 known types only. `2N` is never used. | S1, S3 |
+| Start dates | Every current version has one. 1,071 historical versions have none and use a borrowed date (decided). 5 current versions differ from the licence start date. | S10 |
+| Terms | 1,519 of 1,744 current schedules follow the plan's rule exactly, and 166 more have terms but no expiry. 134 break it, in 7 patterns (A–G). | S7, S8 |
+| Phases | All 309 schedules with phases follow the rule (last phase ends at `T(1)`). Skipped phases are normal. | S9 |
+| Rates | All populated values are whole numbers; 2 rate-only schedules have an empty rate. Every schedule ends in one indefinite yearly rate. 298 deliberate gaps between rates, mostly pre-1999. | S11, S12 |
+| Date arithmetic | PEARS stored dates are reliable (1 exception). Copying offsets would move 94 events by up to 3 days, which deriving offsets from dates avoids. | S14 |
+| Untyped events | 201 on current versions: ~180 empty leftovers, ~20 holding data on 16 licences. | S6 |
+| Relinquishment % | 577 feed licence documents. 713 hold the figure only in comments. 303 hold `x` (not migrated, decided). | S13 |
+| `RD`/`PA` | 403 current events. A fourth subtype, `END`. 51 older `PA` events have no subtype, area block or `EVENT_ID`. | S15 |
+| History matching | `EVENT_ID` only on `RD`/`PA`. Type + offset is unique within a version; comments often repeat. | S16 |
+| Never used | Retention/development area rate, `RECUR_END_DATE`, `RECURRANCES` counts, `PRODUCING` area type. | S4, S5, S12, S15 |
+
+## For the licensing team
+
+Items that need the licensing team, as either a **fix in PEARS** before the production run or a
+**confirmation or decision** on a migration rule. Each links to its evidence.
+
+### Fix in PEARS before the production run
+
+| # | Item | Licences | Why it matters | Section |
+|---|---|---|---|---|
+| L1 | **Untyped events holding data** on current schedules: rates missing their `R` code, terms missing their `T` code, text in the wrong field, comment-only rows | P1159, P1272, P2036, P2311, P2314, P2318, P2319, P2356, P2397, P2438, P2476, P2582, P2660, P328, P335, PL179 | Not migrated, and the type is never guessed. The untyped rates are **missing from the payments report today** (e.g. P2582's final 7500 rate since 2022). The untyped terms (P1272, P328) stop those licences' terms being built. | S6 |
+| L2 | **Indefinite yearly rate followed by another rate** | P2644 (7500 yearly from 2038, then a one-off 150 in 2039) | The payments report pays both. Probably a data error. | S12b |
+| L3 | **Schedule start date differs from the licence start date** | P1064, P1930, P2138, P2139, P2349 | If the licence start date is right, every schedule date (terms, rates) is shifted, including payments report dates. | S10b |
+| L4 | **Blank licence type** on licences with a schedule | 9 licences (query in "Other queries") | They cannot be classified, so they are not migrated. | S2 |
+
+### Confirm or decide a migration rule
+
+| # | Question | Licences | Proposed rule | Section |
+|---|---|---|---|---|
+| L5 | **Terms numbered by start date (pattern A):** no `T(1)`, only `T(2)` and `T(3)` = expiry | 49 `P` (2017–2024 rounds) and PEDL141 | Read `T(n)` as the start of term n: Initial = start → `T(2)`, Second = `T(2)` → expiry, no Third. | S8b, S8c |
+| L6 | **Expiry ends a further term (pattern B):** last `T` earlier than the expiry | ~30, mostly 1980s (P328, P351, P473, P483–P614, P556, P726, P774, P799, P1055, P1192, P1262, P1577, P1722, P1885, P2316, PEDL116, PEDL155, PEDL255) | Add the next term, running from the last `T` to the expiry. | S8b |
+| L7 | **Four terms (pattern C)** | 13: P1162, P1165, P1368, P1373, P1374, P1484, P1485, P1487, P1488, P1636, P1638, P1640, P1641 | Decide: LMS production licences have only Initial, Second and Third. Is `T(1)` a boundary inside the initial term (e.g. Promote)? | S8b |
+| L8 | **Unnumbered `T` on the start date (pattern D)** | P2313, P2322, P2326, P2327, P2331, P2332, P1159 | Ignore it as a start marker. | S8b |
+| L9 | **Rate-only schedules with no terms (pattern E)** | 22 `P` (14 extant): P249, P251, P252, P256, P257, P258, P288, P291–P296, P324, P404, P416, P474, P2333, P2334, P2349, P2495, P2643 | Don't migrate. Leave them PEARS-owned until a user creates their LMS schedule. Also confirm what statuses `S` and `X` mean here. | S8d |
+| L10 | **`T(1)` and `T(3)` = expiry, no `T(2)` (pattern F)** | P1800, PEDL143, PEDL189, PEDL235 | Decide: treat `T(3)` as the end of the second term, or fix in PEARS. | S8b |
+| L11 | **Phases `C` only or `BC`** | 16 (`C`), 15 (`BC`) | Confirm the first phase present starts on the licence start date, rather than earlier phases never recorded. | S9 |
+| L12 | **Rate gaps are deliberate no-payment years** | 298 gaps, mostly pre-1999 (e.g. initial rental, then the next rate 6 years later) | Confirm from the licence terms (one licence per pattern). This drives the write-back design: Open question 7. | S12b |
+| L13 | **Mandatory relinquishment percentage** | 577 feed licence documents. 713 hold the figure only in comments. | Decide Open question 4 (field, comment, or drop). Also confirm whether licence documents are still generated from PEARS. | S13 |
+| L14 | **Expiry date convention** | 1,559 current schedules with an expiry | Decide Open question 8: LMS stores the day before the PEARS expiry, or LMS's check changes. | plan |
+| L15 | **Out-of-scope licence types** | 54: PL 26, EXL 12, ML 7, DL 5, AL 3, CE 1 | Confirm they stay out of this migration. | S2 |
+
+### For information only
+
+- **Untyped events in history only:** P1328, P1665, P2329. Past versions can't be corrected.
+- **185 current `P` schedules have no expiry event.** They migrate without an expiry record.
+- **`x` in the relinquishment percentage** (303 events) is not migrated (decided). The event is.
+- **One `P` rate** has a stored date that differs from PEARS's own formula (S14). It will show in the
+  comparison report.
+
+## S1. Event type catalogue
+
+```sql
+SELECT mnem, short_title, display_seq, active_offshore, active_onshore, recurrable, acknowledgeable
+FROM pedmgr.ped_template_event_types
+ORDER BY display_seq;
+```
+
+**Result (live, 27 October 2026; identical to UAT):**
+
+| MNEM | SHORT_TITLE | DISPLAY_SEQ | OFFSHORE | ONSHORE | RECURRABLE | ACKNOWLEDGEABLE |
+|---|---|---|---|---|---|---|
+| P | Phase | -4 | Y | Y | N | Y |
+| T | Term | -3 | Y | Y | N | Y |
+| R | Rate | -2 | Y | Y | Y | N |
+| MR | Mandatory Relinquishment | -1 | Y | Y | N | Y |
+| E | Licence Expiry Date | 1 | Y | Y | | Y |
+| PA | Prospective Area | 5 | Y | N | | Y |
+| BM | Bespoke Milestone | 6 | Y | Y | | Y |
+| DD | Drill-or-drop | 7 | Y | Y | | Y |
+| 2M | Second Term with autosurrender | 8 | Y | Y | | Y |
+| 2N | 2nd term with all acreage | 9 | Y | Y | | Y |
+| RD | Retention/Development Area | 10 | N | Y | N | Y |
+
+**Reading:**
+
+- 11 types, the same 11 the plan maps. No other user-created types exist on live.
+- Every type is **acknowledgeable except `R`**. Rate dates never create PEARS acknowledgements, so
+  the write-back's acknowledgement matching (event type + date + `EVENT_ID`) matters for every
+  other type, including `RD`/`PA` and the user-defined ones.
+- `RECURRABLE` is only `Y` for `R`. It is empty, not `N`, for `E`, `PA`, `BM`, `DD`, `2M`, `2N`; the
+  Fox screen tests for `= 'Y'`, so those are not recurrable.
+
+## S2. Licences and schedule versions
+
+```sql
+WITH per_licence AS (
+  SELECT plm.id ped_lm_id
+       , plm.licence_type
+       , COUNT(*)                                                   versions
+       , SUM(CASE WHEN plsd.end_datetime IS NULL THEN 1 ELSE 0 END) open_versions
+  FROM pedmgr.ped_licence_master plm
+  JOIN pedmgr.ped_licence_schedule_details plsd ON plsd.ped_lm_id = plm.id
+  GROUP BY plm.id, plm.licence_type
+)
+SELECT CASE WHEN GROUPING(pl.licence_type) = 1 THEN 'ALL' ELSE pl.licence_type END AS lic_type
+     , COUNT(*)                                                   AS licences_with_schedule
+     , SUM(pl.versions)                                           AS schedule_versions
+     , SUM(pl.open_versions)                                      AS current_versions
+     , ROUND(AVG(pl.versions), 1)                                 AS avg_versions_per_licence
+     , MAX(pl.versions)                                           AS max_versions_per_licence
+     , SUM(CASE WHEN pl.open_versions = 0 THEN 1 ELSE 0 END)      AS licences_no_open_version
+     , SUM(CASE WHEN pl.open_versions > 1 THEN 1 ELSE 0 END)      AS licences_multiple_open
+     , GROUPING(pl.licence_type)                                  AS is_total
+FROM per_licence pl
+GROUP BY ROLLUP(pl.licence_type)
+ORDER BY 9, 1;
+```
+
+**Result (live, 27 October 2026):**
+
+| LIC_TYPE | LICENCES | VERSIONS | CURRENT | AVG | MAX | NO OPEN | MULTIPLE OPEN |
+|---|---|---|---|---|---|---|---|
+| AL | 3 | 30 | 3 | 10 | 14 | 0 | 0 |
+| CE | 1 | 5 | 1 | 5 | 5 | 0 | 0 |
+| DL | 5 | 53 | 5 | 10.6 | 15 | 0 | 0 |
+| EXL | 12 | 91 | 12 | 7.6 | 13 | 0 | 0 |
+| ML | 7 | 80 | 7 | 11.4 | 23 | 0 | 0 |
+| **P** | **1,525** | **8,312** | **1,524** | 5.5 | 66 | **1** | 0 |
+| **PEDL** | **220** | **1,927** | **220** | 8.8 | 28 | 0 | 0 |
+| PL | 26 | 336 | 26 | 12.9 | 24 | 0 | 0 |
+| *(blank)* | 9 | 24 | 9 | 2.7 | 5 | 0 | 0 |
+| **ALL** | **1,808** | **10,858** | **1,807** | 6 | 66 | 1 | 0 |
+
+**Reading:**
+
+- **In scope (P + PEDL):** 1,745 licences, **10,239** schedule versions, 1,744 current.
+- **Outside the decided scope:** 63 licences, 619 versions. That covers PL, EXL, ML, DL, AL, CE,
+  and 9 licences with a blank `licence_type`, which is a data fix.
+- One `P` licence has no current version (skipped and reported). The largest history is now **66**
+  versions.
+- An earlier run (October 2026, environment not recorded) gave 10,547 versions in total (9,938 in
+  scope, max 59). Licence counts are unchanged; only versions have grown. PEARS keeps adding a
+  version on every save, so the final run's size will be higher again.
+
+## S3. Events by type
+
+```sql
+SELECT CASE WHEN GROUPING(e.event_mnem) = 1 THEN 'ALL' ELSE e.event_mnem END AS mnem
+     , COUNT(*)                                                   AS events_all_versions
+     , SUM(CASE WHEN plsd.end_datetime IS NULL THEN 1 ELSE 0 END) AS events_current_versions
+     , COUNT(DISTINCT plsd.ped_lm_id)                             AS licences
+     , GROUPING(e.event_mnem)                                     AS is_total
+FROM pedmgr.ped_licence_schedule_details plsd
+, XMLTABLE('/SCHEDULE/EVENT_LIST/EVENT[not(DUMMY_EVENT = "true")]'
+    PASSING plsd.xml_data
+    COLUMNS event_mnem VARCHAR2(10) PATH 'EVENT_MNEM'
+  ) e
+GROUP BY ROLLUP(e.event_mnem)
+ORDER BY 5, 2 DESC;
+```
+
+**Result (live, 27 October 2026; all 1,808 licences):**
+
+| MNEM | ALL VERSIONS | CURRENT | LICENCES |
+|---|---|---|---|
+| R | 157,791 | 25,839 | 1,807 |
+| T | 27,506 | 4,844 | 1,774 |
+| MR | 10,837 | 2,039 | 1,428 |
+| E | 9,340 | 1,621 | 1,800 |
+| P | 4,412 | 666 | 314 |
+| RD | 2,091 | 264 | 60 |
+| *(no type)* | 1,498 | 201 | 209 |
+| PA | 1,449 | 151 | 27 |
+| DD | 1,004 | 240 | 249 |
+| 2M | 253 | 37 | 39 |
+| BM | 185 | 45 | 26 |
+| **ALL** | **216,366** | **35,947** | **1,807** |
+
+**Reading:**
+
+- `2N` has never been used.
+- Rates are about three-quarters of all events, roughly one per anniversary per version.
+- Estimated LMS rows for the full history: about **450k**:
+
+  | LMS table | Rows |
+  |---|---|
+  | Schedule details + start dates | ~10.9k each |
+  | Rates | ~158k (more under yearly-rate option B) |
+  | Terms | ~27.5k |
+  | Other schedule events (`MR`, `DD`, `2M`, `BM`) | ~12.3k |
+  | Expiries | ~9.3k |
+  | Phases | ~4.4k |
+  | Area events (`RD`, `PA`) | ~3.5k |
+  | Migration links (all typed events) | ~215k |
+  | Event comments | up to the commented T/P/R events, fewer after removing repeats |
+
+- About 186 current schedules have no `E` (1,807 − 1,621), unless some have more than one (S7).
+- These counts include the 63 licences outside the decided scope, so in-scope figures are slightly
+  lower.
+- An earlier run (October 2026, environment not recorded) gave 210,497 events (35,923 current).
+  Current-version counts barely moved; the growth is in history, from new versions.
+
+## S4. Retention/development area rate
+
+```sql
+-- 1. Any schedule version, current or historical, with a value set
+SELECT plm.licence_type || plm.licence_no licence_reference, plsd.id plsd_id,
+       plsd.start_datetime, plsd.end_datetime, x.rate
+FROM pedmgr.ped_licence_schedule_details plsd
+JOIN pedmgr.ped_licence_master plm ON plm.id = plsd.ped_lm_id
+, XMLTABLE('/SCHEDULE' PASSING plsd.xml_data
+    COLUMNS rate VARCHAR2(4000) PATH 'RETENTION_AREA_RATE/text()') x
+WHERE TRIM(x.rate) IS NOT NULL;
+```
+
+```sql
+-- 2. Current schedules: element missing, present but empty, or set
+SELECT plm.licence_type,
+       CASE
+         WHEN XMLEXISTS('/SCHEDULE/RETENTION_AREA_RATE/text()' PASSING plsd.xml_data) THEN 'value set'
+         WHEN XMLEXISTS('/SCHEDULE/RETENTION_AREA_RATE' PASSING plsd.xml_data) THEN 'element empty'
+         ELSE 'element missing'
+       END rate_state,
+       COUNT(*) schedules
+FROM pedmgr.ped_licence_schedule_details plsd
+JOIN pedmgr.ped_licence_master plm ON plm.id = plsd.ped_lm_id
+WHERE plsd.end_datetime IS NULL
+GROUP BY plm.licence_type,
+       CASE
+         WHEN XMLEXISTS('/SCHEDULE/RETENTION_AREA_RATE/text()' PASSING plsd.xml_data) THEN 'value set'
+         WHEN XMLEXISTS('/SCHEDULE/RETENTION_AREA_RATE' PASSING plsd.xml_data) THEN 'element empty'
+         ELSE 'element missing'
+       END
+ORDER BY 1, 2;
+```
+
+```sql
+-- 3. Cross-check through the data warehouse view
+SELECT COUNT(*) FROM pedmgr.xview_ped_lic_schedule_events WHERE retention_area_rate IS NOT NULL;
+```
+
+**Result (live, 27 October 2026):**
+
+- **Query 1:** no rows.
+- **Query 2 (current schedules):**
+
+  | LICENCE_TYPE | RATE_STATE | SCHEDULES |
+  |---|---|---|
+  | AL | element empty | 3 |
+  | CE | element missing | 1 |
+  | DL | element empty | 5 |
+  | EXL | element empty / missing | 8 / 4 |
+  | ML | element empty / missing | 3 / 4 |
+  | **P** | element missing | **1,524** |
+  | **PEDL** | element empty / missing | **114 / 106** |
+  | PL | element empty / missing | 25 / 1 |
+  | *(blank)* | element missing | 9 |
+
+  No schedule has a value set. Offshore (`P`) schedules never have the element. Onshore schedules
+  have an empty element when they have been opened for editing on the onshore schedule screen,
+  which adds it, and no element otherwise.
+- **Query 3:** 0.
+
+**Never used.** See the plan, "Retention/development area rate: unused". For the write-back,
+writing an empty element for onshore licences (as the plan says) or omitting it are both
+consistent with today's data.
+
+## S5. `RECUR_END_DATE`
+
+```sql
+-- 1. Summary, current and historical
+SELECT
+  CASE WHEN plsd.end_datetime IS NULL THEN 'current' ELSE 'historical' END AS version_state
+, e.event_mnem
+, e.recurring
+, CASE WHEN e.recurrances IS NOT NULL THEN 'Y' ELSE 'N' END AS has_recurrances
+, COUNT(*)                         AS events
+, COUNT(DISTINCT plsd.ped_lm_id)   AS licences
+FROM pedmgr.ped_licence_schedule_details plsd
+, XMLTABLE('/SCHEDULE/EVENT_LIST/EVENT[normalize-space(RECUR_END_DATE) != "" and not(DUMMY_EVENT = "true")]'
+    PASSING plsd.xml_data
+    COLUMNS
+      event_mnem     VARCHAR2(10)   PATH 'EVENT_MNEM'
+    , recurring      VARCHAR2(20)   PATH 'RECURRING'
+    , recurrances    VARCHAR2(10)   PATH 'RECURRANCES'
+    , recur_end_date VARCHAR2(10)   PATH 'RECUR_END_DATE'
+  ) e
+GROUP BY
+  CASE WHEN plsd.end_datetime IS NULL THEN 'current' ELSE 'historical' END
+, e.event_mnem
+, e.recurring
+, CASE WHEN e.recurrances IS NOT NULL THEN 'Y' ELSE 'N' END
+ORDER BY 1, 2;
+```
+
+```sql
+-- 3. Cross-check through the data warehouse view
+SELECT COUNT(*) events, COUNT(DISTINCT ped_lm_id) licences
+FROM pedmgr.xview_ped_lic_schedule_events
+WHERE recur_end_date IS NOT NULL
+AND end_datetime IS NULL
+AND NVL(dummy_event_flag, 'false') != 'true';
+```
+
+**Result (live, 27 October 2026):** query 1 returned no rows, and query 3 returned 0 events and
+0 licences. **Never used.** See the plan, "`RECUR_END_DATE`: unused".
+
+## S6. Events with no event type
+
+```sql
+-- 1. All untyped events on current versions (remove the end_datetime filter for history)
+SELECT plm.licence_type || plm.licence_no licence_reference
+     , plsd.id plsd_id
+     , CASE WHEN plsd.end_datetime IS NULL THEN 'current' ELSE 'historical' END version_state
+     , e.event_date, e.term_no, e.phase, e.rate, e.percentage, e.event_subtype, e.comments
+FROM pedmgr.ped_licence_schedule_details plsd
+JOIN pedmgr.ped_licence_master plm ON plm.id = plsd.ped_lm_id
+, XMLTABLE('/SCHEDULE/EVENT_LIST/EVENT[normalize-space(EVENT_MNEM) = "" and not(DUMMY_EVENT = "true")]'
+    PASSING plsd.xml_data
+    COLUMNS event_date VARCHAR2(10) PATH 'EVENT_DATE', term_no VARCHAR2(5) PATH 'TERM_NO'
+          , phase VARCHAR2(5) PATH 'PHASE', rate VARCHAR2(50) PATH 'RATE'
+          , percentage VARCHAR2(10) PATH 'PERCENTAGE', event_subtype VARCHAR2(30) PATH 'EVENT_SUBTYPE'
+          , comments VARCHAR2(4000) PATH 'COMMENTS'
+  ) e
+WHERE plsd.end_datetime IS NULL
+ORDER BY 1, e.event_date;
+```
+
+```sql
+-- 2. Only the untyped events that hold data (for the licensing team)
+SELECT plm.licence_type || plm.licence_no licence_reference
+     , plsd.id plsd_id
+     , CASE WHEN plsd.end_datetime IS NULL THEN 'current' ELSE 'historical' END version_state
+     , e.event_date, e.term_no, e.phase, e.rate, e.percentage, e.comments
+FROM pedmgr.ped_licence_schedule_details plsd
+JOIN pedmgr.ped_licence_master plm ON plm.id = plsd.ped_lm_id
+, XMLTABLE('/SCHEDULE/EVENT_LIST/EVENT[normalize-space(EVENT_MNEM) = "" and not(DUMMY_EVENT = "true")
+            and (normalize-space(RATE) != "" or normalize-space(TERM_NO) != "" or normalize-space(PHASE) != ""
+                 or normalize-space(PERCENTAGE) != "" or normalize-space(COMMENTS) != "")]'
+    PASSING plsd.xml_data
+    COLUMNS event_date VARCHAR2(10) PATH 'EVENT_DATE', term_no VARCHAR2(5) PATH 'TERM_NO'
+          , phase VARCHAR2(5) PATH 'PHASE', rate VARCHAR2(50) PATH 'RATE'
+          , percentage VARCHAR2(4000) PATH 'PERCENTAGE', comments VARCHAR2(4000) PATH 'COMMENTS'
+  ) e
+WHERE plsd.end_datetime IS NULL
+ORDER BY 1, e.event_date;
+```
+
+**Result (live, 27 October 2026; query 1, current versions):** 201 untyped events, in two groups.
+The same rows as the earlier October run. Some licences now show a newer `plsd_id` (e.g. AL10,
+P335, P362, P57, PEDL165, PL81) because they have been saved since. Untyped rows carry over into
+each new version on save.
+
+1. **Empty rows, about 180:** no rate, term, phase, percentage or comments. Most are dated on the
+   licence start date (e.g. AL, EXL, PL and PEDL licences on their start dates, P23xx on
+   2017-05-15, often twice). Some have no date (P2128, P2158, P2594, P2607, P421 ×3).
+2. **Rows that hold data, about 20:**
+
+   | Looks like | Licences |
+   |---|---|
+   | Rate missing its `R` code | P1159 (6600, 2015-12-01), P2311, P2314, P2318, P2319 (15, 2017-05-15), P2356 (300, no date), P2397 (7500, no date), P2438 (7500, 2031-10-01), P2476 (300, 2023-07-15), P2582 (7500, 2032-12-01), P2660 (6900, 2035-06-01) |
+   | Term missing its `T` code | P1272 (term 2, 2022-06-01), P328 (term 1, 1986-12-17) |
+   | Text in the wrong field | P2036 (text in `PERCENTAGE`, 2013-01-01) |
+   | Comment only | P2582 ("DOV 20/09/22: 2 month extension of Phase A, Phase C preserved. New event row added for final recurring rate."), P335 ("Mariner PPA's Longstop date", no date), PL179 (DoV note on term durations, no date) |
+
+**Query 2, history version** (groups identical rows across versions):
+
+```sql
+SELECT plm.licence_type || plm.licence_no licence_reference
+     , COUNT(DISTINCT plsd.id) versions_affected
+     , MIN(plsd.start_datetime) first_seen
+     , MAX(CASE WHEN plsd.end_datetime IS NULL THEN 'Y' ELSE 'N' END) still_current
+     , e.event_date, e.term_no, e.phase, e.rate, e.percentage
+     , SUBSTR(e.comments, 1, 100) comments
+FROM pedmgr.ped_licence_schedule_details plsd
+JOIN pedmgr.ped_licence_master plm ON plm.id = plsd.ped_lm_id
+, XMLTABLE('/SCHEDULE/EVENT_LIST/EVENT[normalize-space(EVENT_MNEM) = "" and not(DUMMY_EVENT = "true")
+            and (normalize-space(RATE) != "" or normalize-space(TERM_NO) != "" or normalize-space(PHASE) != ""
+                 or normalize-space(PERCENTAGE) != "" or normalize-space(COMMENTS) != "")]'
+    PASSING plsd.xml_data
+    COLUMNS event_date VARCHAR2(10) PATH 'EVENT_DATE', term_no VARCHAR2(5) PATH 'TERM_NO'
+          , phase VARCHAR2(5) PATH 'PHASE', rate VARCHAR2(50) PATH 'RATE'
+          , percentage VARCHAR2(4000) PATH 'PERCENTAGE', comments VARCHAR2(4000) PATH 'COMMENTS'
+  ) e
+GROUP BY plm.licence_type, plm.licence_no, e.event_date, e.term_no, e.phase, e.rate, e.percentage
+       , SUBSTR(e.comments, 1, 100)
+ORDER BY 1, e.event_date;
+```
+
+**Result (live, 27 October 2026, all versions):**
+
+| Licence | Versions | First seen | Current | Event date | Term | Rate | Percentage | Comments |
+|---|---|---|---|---|---|---|---|---|
+| P1159 | 1 → 11 | 06/02/2013 | Y | (none) → 2015-12-01 | | 6600 | | |
+| P1272 | 1 → 5 | 31/05/2022 | Y | (none) → 2022-06-01 | 2 | | | |
+| P1328 | 1 → 2 | 19/03/2013 | **N** | (none) → 2013-03-22 | 2 | | "You must enter this item" | |
+| P1665 | 1 → 1 | 25/11/2021 | **N** | (none) → 2022-06-03 | 2 | | | |
+| P2036 | 1 → 5 → 1 | 16/11/2012 | Y | (none) → 1900-01-01 → 2013-01-01 | | | "You must enter this item" | |
+| P2311 | 1 → 13 | 24/04/2017 | Y | 1900-01-01 → 2017-05-15 | | 15 | | |
+| P2314 | 1 → 3 | 24/04/2017 | Y | (none) → 2017-05-15 | | 15 | | |
+| P2318 | 1 → 3 | 24/04/2017 | Y | (none) → 2017-05-15 | | 15 | | |
+| P2319 | 1 → 4 | 24/04/2017 | Y | (none) → 2017-05-15 | | 15 | | |
+| P2329 | 1 → 1 | 24/04/2017 | **N** | 1900-01-01 → 2017-05-15 | | 15 | | |
+| P2356 | 1 | 17/08/2020 | Y | (none) | | 300 | | |
+| P2397 | 10 | 19/08/2021 | Y | (none) | | 7500 | | |
+| P2438 | 1 → 2 | 17/04/2023 | Y | (none) → 2031-10-01 | | 7500 | | |
+| P2476 | 1 → 5 | 17/08/2020 | Y | (none) → 2023-07-15 | | 300 | | |
+| P2582 | 2 → 3 | 22/09/2022 | Y | (none) → 2032-12-01 | | 7500 | | (plus a separate comment row "DOV 20/09/22: … New event row added for final recurring rate", 2 → 3 versions) |
+| P2660 | 1 → 9 | 13/05/2024 | Y | (none) → 2035-06-01 | | 6900 | | |
+| P328 | 1 → 7 | 27/01/2016 | Y | (none) → 1986-12-17 | 1 | | | |
+| P335 | 7 | 14/11/2018 | Y | (none) | | | | "Mariner PPA's Longstop date" |
+| PL179 | 6 | 04/01/2021 | Y | (none) | | | | "DoV 14/11/2020 (Term durations regularised …" |
+
+("1 → 11" means the row appeared in 1 version without a date, then in 11 versions with one.)
+
+**Reading:**
+
+- **How they arise:** each row first appears **without a date**, and gets one on a later save, once
+  the Fox screen calculates it from the offset. A `1900-01-01` date means it was calculated before
+  the schedule had an `ORIGIN_DATE` (PEARS's date base). So these are events added with a value but
+  without choosing an event type, and they carry forward on every save.
+- **"You must enter this item"** in `PERCENTAGE` (P1328, P2036) is a Fox validation message saved
+  as data, not a real percentage.
+- **Long-standing:** P2311 has had an untyped rate of 15 since April 2017 (13 versions), P2397 a
+  rate of 7500 since August 2021, and P2582 7500 since September 2022. None appear in the payments
+  report.
+- **History only, already gone from current:** P1328, P1665, P2329. Nothing to fix. The migration
+  skips their historical untyped rows and lists them as **information only**, since past PEARS
+  versions cannot be corrected.
+- **Still current:** the other 16 licences, the ones listed in query 1's data rows. These are the
+  ones for the licensing team to fix in PEARS before the production run.
+
+The handling rule is in the plan, under "Events with no event type".
+
+## S7. Expiry events per current schedule
+
+```sql
+SELECT plm.licence_type
+     , x.e_count                  AS expiry_events
+     , COUNT(*)                   AS current_schedules
+FROM pedmgr.ped_licence_schedule_details plsd
+JOIN pedmgr.ped_licence_master plm ON plm.id = plsd.ped_lm_id
+, XMLTABLE('/SCHEDULE'
+    PASSING plsd.xml_data
+    COLUMNS e_count NUMBER PATH 'count(EVENT_LIST/EVENT[EVENT_MNEM = "E" and not(DUMMY_EVENT = "true")])'
+  ) x
+WHERE plsd.end_datetime IS NULL
+AND plm.licence_type IN ('P', 'PEDL')
+GROUP BY plm.licence_type, x.e_count
+ORDER BY plm.licence_type, x.e_count;
+```
+
+**Result (live, 27 October 2026):**
+
+| LICENCE_TYPE | EXPIRY_EVENTS | CURRENT_SCHEDULES |
+|---|---|---|
+| P | 0 | 185 |
+| P | 1 | 1,339 |
+| PEDL | 1 | 220 |
+
+**Reading:**
+
+- **185 current `P` schedules have no expiry event.** They are migrated without an expiry record,
+  and their final term ends at its last `T` (see the plan, "Term boundaries", rule 3).
+- **No schedule has more than one** expiry event, so the "more than one `E`" skip rule never
+  triggers on current versions.
+- Every `PEDL` schedule has exactly one.
+
+## S8. Term structure (current versions)
+
+Checks the term rules in the plan ("Term boundaries"): each `T(n)` marks the end of term n, the
+numbers run 1..n without gaps or duplicates, the dates increase with the number, `T(1)` is after
+`ORIGIN_DATE`, and the final `T` equals `E` when there is an `E`. Typed, non-dummy events only;
+in-scope licences only.
+
+```sql
+WITH sched AS (
+  SELECT plsd.id plsd_id, plm.licence_type, plsd.xml_data
+       , TO_DATE(x.origin DEFAULT NULL ON CONVERSION ERROR, 'YYYY-MM-DD') origin_date
+  FROM pedmgr.ped_licence_schedule_details plsd
+  JOIN pedmgr.ped_licence_master plm ON plm.id = plsd.ped_lm_id
+  , XMLTABLE('/SCHEDULE' PASSING plsd.xml_data
+      COLUMNS origin VARCHAR2(20) PATH 'ORIGIN_DATE') x
+  WHERE plsd.end_datetime IS NULL
+  AND plm.licence_type IN ('P', 'PEDL')
+)
+, terms AS (
+  SELECT s.plsd_id
+       , TO_NUMBER(TRIM(t.term_no) DEFAULT NULL ON CONVERSION ERROR) term_no
+       , TO_DATE(t.event_date DEFAULT NULL ON CONVERSION ERROR, 'YYYY-MM-DD') event_date
+  FROM sched s
+  , XMLTABLE('/SCHEDULE/EVENT_LIST/EVENT[EVENT_MNEM = "T" and not(DUMMY_EVENT = "true")]'
+      PASSING s.xml_data
+      COLUMNS term_no VARCHAR2(10) PATH 'TERM_NO', event_date VARCHAR2(20) PATH 'EVENT_DATE') t
+)
+, terms_ordered AS (
+  SELECT t.*
+       , LAG(t.event_date) OVER (PARTITION BY t.plsd_id ORDER BY t.term_no) prev_date
+  FROM terms t
+)
+, expiry AS (
+  SELECT s.plsd_id, MAX(TO_DATE(e.event_date DEFAULT NULL ON CONVERSION ERROR, 'YYYY-MM-DD')) e_date
+  FROM sched s
+  , XMLTABLE('/SCHEDULE/EVENT_LIST/EVENT[EVENT_MNEM = "E" and not(DUMMY_EVENT = "true")]'
+      PASSING s.xml_data COLUMNS event_date VARCHAR2(20) PATH 'EVENT_DATE') e
+  GROUP BY s.plsd_id
+)
+, per_schedule AS (
+  SELECT s.plsd_id, s.licence_type, s.origin_date, ex.e_date
+       , COUNT(t.plsd_id)                                                  t_events
+       , COUNT(DISTINCT t.term_no)                                         distinct_terms
+       , MIN(t.term_no)                                                    min_term
+       , MAX(t.term_no)                                                    max_term
+       , SUM(CASE WHEN t.plsd_id IS NOT NULL AND t.term_no IS NULL THEN 1 ELSE 0 END)     t_no_number
+       , SUM(CASE WHEN t.plsd_id IS NOT NULL AND t.event_date IS NULL THEN 1 ELSE 0 END)  t_no_date
+       , SUM(CASE WHEN t.event_date <= t.prev_date THEN 1 ELSE 0 END)      t_out_of_order
+       , MAX(CASE WHEN t.term_no = 1 THEN t.event_date END)                t1_date
+       , MAX(t.event_date) KEEP (DENSE_RANK LAST ORDER BY t.term_no NULLS FIRST) final_t_date
+  FROM sched s
+  LEFT JOIN terms_ordered t ON t.plsd_id = s.plsd_id
+  LEFT JOIN expiry ex ON ex.plsd_id = s.plsd_id
+  GROUP BY s.plsd_id, s.licence_type, s.origin_date, ex.e_date
+)
+SELECT licence_type
+     , COUNT(*)                                                                         schedules
+     , SUM(CASE WHEN t_events = 0 THEN 1 ELSE 0 END)                                    no_t_events
+     , SUM(CASE WHEN t_events > 0 AND (min_term != 1 OR distinct_terms != max_term) THEN 1 ELSE 0 END) numbering_gap
+     , SUM(CASE WHEN t_events > distinct_terms + t_no_number THEN 1 ELSE 0 END)         duplicate_term_no
+     , SUM(CASE WHEN t_no_number > 0 THEN 1 ELSE 0 END)                                 t_without_number
+     , SUM(CASE WHEN t_no_date > 0 THEN 1 ELSE 0 END)                                   t_without_date
+     , SUM(CASE WHEN t_out_of_order > 0 THEN 1 ELSE 0 END)                              dates_out_of_order
+     , SUM(CASE WHEN max_term > 3 THEN 1 ELSE 0 END)                                    more_than_3_terms
+     , SUM(CASE WHEN origin_date IS NULL THEN 1 ELSE 0 END)                             no_origin_date
+     , SUM(CASE WHEN t1_date <= origin_date THEN 1 ELSE 0 END)                          t1_on_or_before_origin
+     , SUM(CASE WHEN e_date IS NOT NULL AND final_t_date = e_date THEN 1 ELSE 0 END)    final_t_equals_e
+     , SUM(CASE WHEN e_date IS NOT NULL AND final_t_date != e_date THEN 1 ELSE 0 END)   final_t_differs_from_e
+     , SUM(CASE WHEN e_date IS NULL AND t_events > 0 THEN 1 ELSE 0 END)                 no_e_has_terms
+FROM per_schedule
+GROUP BY ROLLUP(licence_type)
+ORDER BY GROUPING(licence_type), licence_type;
+```
+
+**Result (live, 27 October 2026; current versions):**
+
+| Check | P | PEDL | Total |
+|---|---|---|---|
+| Schedules | 1,524 | 220 | 1,744 |
+| No `T` events | **22** | 0 | 22 |
+| Term numbering gap (not 1..n) | **50** | **4** | 54 |
+| Duplicate term number | 0 | 0 | 0 |
+| `T` without a term number | **7** | 0 | 7 |
+| `T` without a date | 0 | 0 | 0 |
+| Term dates out of order | **7** | 0 | 7 |
+| More than 3 terms | **13** | 0 | 13 |
+| No `ORIGIN_DATE` | 0 | 0 | 0 |
+| `T(1)` on or before `ORIGIN_DATE` | 0 | 0 | 0 |
+| Final `T` = `E` | 1,303 | 216 | 1,519 |
+| Final `T` ≠ `E` | **33** | **4** | 37 |
+| No `E`, but has terms | 166 | 0 | 166 |
+
+**Reading:**
+
+- **Clean on the basics:** every current schedule has an `ORIGIN_DATE`, no `T(1)` is on or before
+  it, no term number is duplicated, and every `T` has a date.
+- **Follows the plan's rule:** 1,519 of 1,744 schedules have their final `T` equal to `E`. A further
+  166 have terms but no `E`, and migrate without an expiry record.
+- **Would be skipped under the current rules** (the categories overlap, so the totals do not add
+  up; the detail query below gives the distinct list):
+  - 22 `P` schedules with no `T` at all. There is nothing to build terms from.
+  - 54 with a numbering gap (e.g. no `T(1)`, or 1 and 3 without 2), and 7 with a `T` that has no
+    number.
+  - 7 with term dates out of order.
+  - 13 `P` schedules with more than 3 terms. LMS production licences only have Initial, Second and
+    Third.
+  - 37 whose final `T` differs from `E`.
+- The licensing team needs to see these before deciding whether to fix them in PEARS or adjust the
+  rules (e.g. allow a final `T` ≠ `E` by taking `E` as the final boundary). The detail query
+  (S8b) lists them.
+
+### S8b. Term structure problems, one row per schedule
+
+```sql
+WITH sched AS (
+  SELECT plsd.id plsd_id, plm.licence_type, plm.licence_type || plm.licence_no licence_reference
+       , plsd.xml_data
+       , TO_DATE(x.origin DEFAULT NULL ON CONVERSION ERROR, 'YYYY-MM-DD') origin_date
+  FROM pedmgr.ped_licence_schedule_details plsd
+  JOIN pedmgr.ped_licence_master plm ON plm.id = plsd.ped_lm_id
+  , XMLTABLE('/SCHEDULE' PASSING plsd.xml_data
+      COLUMNS origin VARCHAR2(20) PATH 'ORIGIN_DATE') x
+  WHERE plsd.end_datetime IS NULL
+  AND plm.licence_type IN ('P', 'PEDL')
+)
+, terms AS (
+  SELECT s.plsd_id
+       , TRIM(t.term_no) term_no_text
+       , TO_NUMBER(TRIM(t.term_no) DEFAULT NULL ON CONVERSION ERROR) term_no
+       , TO_DATE(t.event_date DEFAULT NULL ON CONVERSION ERROR, 'YYYY-MM-DD') event_date
+  FROM sched s
+  , XMLTABLE('/SCHEDULE/EVENT_LIST/EVENT[EVENT_MNEM = "T" and not(DUMMY_EVENT = "true")]'
+      PASSING s.xml_data
+      COLUMNS term_no VARCHAR2(10) PATH 'TERM_NO', event_date VARCHAR2(20) PATH 'EVENT_DATE') t
+)
+, terms_ordered AS (
+  SELECT t.*, LAG(t.event_date) OVER (PARTITION BY t.plsd_id ORDER BY t.term_no) prev_date
+  FROM terms t
+)
+, expiry AS (
+  SELECT s.plsd_id, MAX(TO_DATE(e.event_date DEFAULT NULL ON CONVERSION ERROR, 'YYYY-MM-DD')) e_date
+  FROM sched s
+  , XMLTABLE('/SCHEDULE/EVENT_LIST/EVENT[EVENT_MNEM = "E" and not(DUMMY_EVENT = "true")]'
+      PASSING s.xml_data COLUMNS event_date VARCHAR2(20) PATH 'EVENT_DATE') e
+  GROUP BY s.plsd_id
+)
+, per_schedule AS (
+  SELECT s.plsd_id, s.licence_type, s.licence_reference, s.origin_date, ex.e_date
+       , COUNT(t.plsd_id) t_events
+       , COUNT(DISTINCT t.term_no) distinct_terms
+       , MIN(t.term_no) min_term
+       , MAX(t.term_no) max_term
+       , SUM(CASE WHEN t.plsd_id IS NOT NULL AND t.term_no IS NULL THEN 1 ELSE 0 END) t_no_number
+       , SUM(CASE WHEN t.event_date <= t.prev_date THEN 1 ELSE 0 END) t_out_of_order
+       , MAX(t.event_date) KEEP (DENSE_RANK LAST ORDER BY t.term_no NULLS FIRST) final_t_date
+       , LISTAGG(NVL(t.term_no_text, '?') || '@' || TO_CHAR(t.event_date, 'YYYY-MM-DD'), ', ')
+           WITHIN GROUP (ORDER BY t.event_date, t.term_no) term_sequence
+  FROM sched s
+  LEFT JOIN terms_ordered t ON t.plsd_id = s.plsd_id
+  LEFT JOIN expiry ex ON ex.plsd_id = s.plsd_id
+  GROUP BY s.plsd_id, s.licence_type, s.licence_reference, s.origin_date, ex.e_date
+)
+SELECT licence_reference
+     , plsd_id
+     , TO_CHAR(origin_date, 'YYYY-MM-DD') origin_date
+     , TO_CHAR(e_date, 'YYYY-MM-DD') expiry_date
+     , term_sequence
+     , RTRIM(
+         CASE WHEN t_events = 0 THEN 'NO_TERMS, ' END ||
+         CASE WHEN t_events > 0 AND (min_term != 1 OR distinct_terms != max_term) THEN 'NUMBERING_GAP, ' END ||
+         CASE WHEN t_no_number > 0 THEN 'TERM_WITHOUT_NUMBER, ' END ||
+         CASE WHEN t_out_of_order > 0 THEN 'DATES_OUT_OF_ORDER, ' END ||
+         CASE WHEN max_term > 3 THEN 'MORE_THAN_3_TERMS, ' END ||
+         CASE WHEN e_date IS NOT NULL AND final_t_date != e_date THEN 'FINAL_T_DIFFERS_FROM_E, ' END
+       , ', ') problems
+FROM per_schedule
+WHERE t_events = 0
+   OR (t_events > 0 AND (min_term != 1 OR distinct_terms != max_term))
+   OR t_no_number > 0
+   OR t_out_of_order > 0
+   OR max_term > 3
+   OR (e_date IS NOT NULL AND final_t_date != e_date)
+ORDER BY licence_reference;
+```
+
+`term_sequence` shows each `T` as `term number@date` in date order (`?` = no number), e.g.
+`1@2018-12-01, 2@2028-12-01, 3@2040-12-01`.
+
+**Result (live, 27 October 2026):** 134 current schedules (127 `P`, 7 `PEDL`). They fall into
+clear patterns, each with a candidate rule for the licensing team to confirm:
+
+| # | Pattern | Licences | Example | Candidate rule |
+|---|---|---|---|---|
+| A | **No `T(1)`, only `T(2)` and `T(3)` = `E`** (modern rounds, 2017–2024) | 49 `P` (see S8c) | P2505: `2@2027-12-01, 3@2042-12-01`, `E` 2042-12-01 | No phases exist (S8c). Read `T(n)` as the **start** of term n: Initial = `ORIGIN_DATE`→`T(2)`, Second = `T(2)`→`T(3)`/`E`, no Third term. To be confirmed with the licensing team. |
+| B | **Last `T` earlier than `E`**: only `T(1)` (or `T(1)`, `T(2)`), then `E` years later (mostly 1980s licences, some later) | ~30: P328, P351, P473, P483–P614, P556, P726, P774, P799, P1055, P1192, P1262, P1577, P1722, P1885, P2316, PEDL116, PEDL155, PEDL255 | P516: `1@1991-06-14`, `E` 2021-06-14 | `E` is the end of the **next** term: add the following term (Second or Third), running from the last `T` to `E`. This matches PL179's DoV note ("4yr initial term + 50yrs means adding term end event"). |
+| C | **4 terms** (2004–2009 rounds) | 13: P1162, P1165, P1368, P1373, P1374, P1484, P1485, P1487, P1488, P1636, P1638, P1640, P1641 | P1484: `1@2009-04-01, 2@2013-04-01, 3@2019-04-01, 4@2037-04-01` | Looks like a split initial term (e.g. Promote licences). Possibly `T(1)` is a phase-like boundary inside the initial term. Needs a licensing decision; LMS production licences only have Initial, Second and Third. |
+| D | **Unnumbered `T` on `ORIGIN_DATE`**, plus 1, 2, 3 | 7: P2313, P2322, P2326, P2327, P2331, P2332, and P1159 | P2313: `?@2017-05-15, 1@2026-05-15, 2@2032-05-15, 3@2050-05-15` | A start marker, not a term end. **Ignore a `T` with no number dated on `ORIGIN_DATE`**; the rest then fit the rules. P1159 also has a `T(3)` earlier than `E` (pattern B, but a 4th term is not possible). |
+| E | **No `T` events at all** | 22 `P`: old licences 1976–1982 (P249–P474) and some recent ones (P2333, P2334, P2349, P2495, P2643) | P249: one `R`, no terms, no `E` | Rate-only schedules (S8d), 14 of them extant. Don't migrate; report them, and they stay PEARS-owned until a user creates their LMS schedule. To be confirmed. |
+| F | **`T(1)` and `T(3)` = `E`, no `T(2)`** | 4: P1800, PEDL143, PEDL189, PEDL235 | PEDL189: `1@2025-07-01, 3@2039-07-01` | Likely a skipped second term or a numbering slip. Licensing decision: treat `T(3)` as the second term's end, or fix in PEARS. |
+| G | **`T(2)` only, `E` later** | 1: PEDL141 | `2@2013-10-01`, `E` 2031-10-01 | Fits pattern A's "starts" reading on its own: Initial 2004→2013, Second 2013→`E`. |
+
+None of these rules are adopted yet. They need the licensing team's confirmation, and S8c (the
+phases on pattern A licences) and the licence status of pattern E.
+
+### S8c. Phases on schedules with no `T(1)` (pattern A check)
+
+Shows whether the schedules with terms but no `T(1)` have phase events whose last boundary could
+stand in for the end of the initial term.
+
+```sql
+WITH sched AS (
+  SELECT plsd.id plsd_id, plm.licence_type || plm.licence_no licence_reference, plsd.xml_data
+       , x.origin origin_date
+  FROM pedmgr.ped_licence_schedule_details plsd
+  JOIN pedmgr.ped_licence_master plm ON plm.id = plsd.ped_lm_id
+  , XMLTABLE('/SCHEDULE' PASSING plsd.xml_data COLUMNS origin VARCHAR2(20) PATH 'ORIGIN_DATE') x
+  WHERE plsd.end_datetime IS NULL
+  AND plm.licence_type IN ('P', 'PEDL')
+  AND XMLEXISTS('/SCHEDULE/EVENT_LIST/EVENT[EVENT_MNEM = "T" and not(DUMMY_EVENT = "true")]' PASSING plsd.xml_data)
+  AND NOT XMLEXISTS('/SCHEDULE/EVENT_LIST/EVENT[EVENT_MNEM = "T" and normalize-space(TERM_NO) = "1" and not(DUMMY_EVENT = "true")]' PASSING plsd.xml_data)
+)
+SELECT s.licence_reference
+     , s.origin_date
+     , (SELECT LISTAGG(NVL(TRIM(p.phase), '?') || '@' || p.event_date, ', ') WITHIN GROUP (ORDER BY p.event_date)
+        FROM XMLTABLE('/SCHEDULE/EVENT_LIST/EVENT[EVENT_MNEM = "P" and not(DUMMY_EVENT = "true")]'
+               PASSING s.xml_data
+               COLUMNS phase VARCHAR2(5) PATH 'PHASE', event_date VARCHAR2(20) PATH 'EVENT_DATE') p) phase_sequence
+     , (SELECT LISTAGG(NVL(TRIM(t.term_no), '?') || '@' || t.event_date, ', ') WITHIN GROUP (ORDER BY t.event_date)
+        FROM XMLTABLE('/SCHEDULE/EVENT_LIST/EVENT[EVENT_MNEM = "T" and not(DUMMY_EVENT = "true")]'
+               PASSING s.xml_data
+               COLUMNS term_no VARCHAR2(10) PATH 'TERM_NO', event_date VARCHAR2(20) PATH 'EVENT_DATE') t) term_sequence
+     , (SELECT MAX(e.event_date)
+        FROM XMLTABLE('/SCHEDULE/EVENT_LIST/EVENT[EVENT_MNEM = "E" and not(DUMMY_EVENT = "true")]'
+               PASSING s.xml_data COLUMNS event_date VARCHAR2(20) PATH 'EVENT_DATE') e) expiry_date
+FROM sched s
+ORDER BY s.licence_reference;
+```
+
+**Result (live, 27 October 2026):** 50 schedules (49 `P`, plus PEDL141). **None has any phase
+event**, so the "last phase boundary" idea for pattern A is wrong.
+
+| Shape | Licences |
+|---|---|
+| `2@x, 3@E`, no phases | 49 `P`: P2341, P2448–P2460, P2494, P2498, P2505, P2508, P2513, P2518, P2520, P2532, P2535, P2538, P2550, P2571, P2573–P2577, P2579, P2580, P2596, P2601, P2608, P2609, P2611–P2613, P2616, P2618–P2620, P2624, P2662, P2673, P2678, P2681 |
+| `2@x`, `E` later | PEDL141: `2@2013-10-01`, `E` 2031-10-01 |
+
+**Reading:** these schedules number terms by the term that **starts** on the date, not the one
+that ends. `T(1)` is missing because the first term starts on `ORIGIN_DATE`:
+
+| Licence | `ORIGIN_DATE` | `T(2)` | `T(3)` = `E` | "Starts" reading |
+|---|---|---|---|---|
+| P2505 | 2020-12-01 | 2027-12-01 | 2042-12-01 | Initial 2020→2027; Second 2027→2042; licence ends at `E` |
+| P2449 | 2018-10-01 | 2030-10-01 | 2040-10-01 | Initial 2018→2030; Second 2030→2040 |
+| PEDL141 | 2004-10-01 | 2013-10-01 | `E` 2031-10-01 | Initial 2004→2013; Second 2013→2031 |
+
+Under this reading, `T(3)` = `E` is the **start of a third term that has not been granted**, so the
+licence ends there. Every schedule in the set fits it, PEDL141 included, with no extra rule.
+
+**Candidate rule A (replaces "last phase boundary"):** when a schedule has no `T(1)` and its terms
+start at 2, read each `T(n)` as the **start of term n**. That makes `T(n)` the end of term n−1:
+Initial ends at `T(2)`, Second ends at `T(3)` or `E`, and there is no Third term. This needs the
+licensing team to confirm the convention for these rounds. Other schedules (e.g. 5856, 7488, the
+P23xx licences) use the "ends" convention with a `T(1)`.
+
+### S8d. Schedules with no terms (pattern E): status and content
+
+```sql
+WITH latest_dp AS (
+  SELECT licence_type, licence_no, ped_dp_id
+  FROM (
+    SELECT pdp.licence_type, pdp.licence_no, pdp.id ped_dp_id
+         , ROW_NUMBER() OVER (PARTITION BY pdp.licence_type, pdp.licence_no
+                              ORDER BY pdp.position_datetime DESC, pdp.position_sequence DESC) rn
+    FROM pedmgr.ped_data_points pdp
+    WHERE pdp.ped_sim_id = 0
+  )
+  WHERE rn = 1
+)
+, current_status AS (
+  SELECT plm.id ped_lm_id, xplc.licence_status
+  FROM pedmgr.ped_licence_master plm
+  JOIN latest_dp ld ON ld.licence_type = plm.licence_type AND ld.licence_no = plm.licence_no
+  JOIN pedmgr.ped_licences pl ON pl.ped_dp_id = ld.ped_dp_id AND pl.end_datetime IS NULL
+  JOIN pedmgr.xview_ped_ld_current xplc ON xplc.ped_licence_id = pl.id AND xplc.ped_lm_id = plm.id
+)
+SELECT plm.licence_type || plm.licence_no licence_reference
+     , cs.licence_status
+     , x.origin_date
+     , (SELECT MAX(e.event_date)
+        FROM XMLTABLE('/SCHEDULE/EVENT_LIST/EVENT[EVENT_MNEM = "E" and not(DUMMY_EVENT = "true")]'
+               PASSING plsd.xml_data COLUMNS event_date VARCHAR2(20) PATH 'EVENT_DATE') e) expiry_date
+     , (SELECT LISTAGG(c.event_mnem || ':' || c.cnt, ', ') WITHIN GROUP (ORDER BY c.event_mnem)
+        FROM (SELECT ev.event_mnem, COUNT(*) cnt
+              FROM XMLTABLE('/SCHEDULE/EVENT_LIST/EVENT[normalize-space(EVENT_MNEM) != "" and not(DUMMY_EVENT = "true")]'
+                     PASSING plsd.xml_data COLUMNS event_mnem VARCHAR2(10) PATH 'EVENT_MNEM') ev
+              GROUP BY ev.event_mnem) c) events_by_type
+FROM pedmgr.ped_licence_schedule_details plsd
+JOIN pedmgr.ped_licence_master plm ON plm.id = plsd.ped_lm_id
+LEFT JOIN current_status cs ON cs.ped_lm_id = plm.id
+, XMLTABLE('/SCHEDULE' PASSING plsd.xml_data COLUMNS origin_date VARCHAR2(20) PATH 'ORIGIN_DATE') x
+WHERE plsd.end_datetime IS NULL
+AND plm.licence_type IN ('P', 'PEDL')
+AND NOT XMLEXISTS('/SCHEDULE/EVENT_LIST/EVENT[EVENT_MNEM = "T" and not(DUMMY_EVENT = "true")]' PASSING plsd.xml_data)
+ORDER BY 1;
+```
+
+**Result (live, 27 October 2026):** 22 `P` schedules. **Every one holds a single `R` event and
+nothing else.** Three also have an `E`; none has terms.
+
+| Status | Licences |
+|---|---|
+| `E` (extant) | 14: P249, P251, P256, P257, P291, P292, P293, P295, P296, P324, P416 (1976–1982), and P2333, P2495, P2643 (2017–2024) |
+| `S` | 7: P252 (`E` 2016-06-08), P258, P288 (`E` 2016-04-06), P404, P474, P2334, P2349 |
+| `X` | 1: P294 (`E` 2018-03-15) |
+
+**Reading:**
+
+- These are rate-only schedules: one rate, presumably recurring yearly, with no term structure.
+  The older extant ones are 1970s–80s licences with no expiry at all.
+- LMS anchors every rate to a term or phase, so they cannot migrate as they are.
+- **Candidate rule E:** do not migrate a schedule with no terms. Report it, and it stays
+  PEARS-owned: no `ped_lms_schedule_sync` row, so PEARS keeps writing it. Its LMS schedule is
+  created by a user (as for new licences), which then makes it LMS-managed through the write-back.
+  The alternative, an Initial term from `ORIGIN_DATE` to `E`, only works for the 3 with an `E`, and
+  all three are not extant.
+- The licensing team to confirm, including what the status codes `S` and `X` mean for these.
+
+## S9. Phase structure (current versions)
+
+Checks the phase rules in the plan ("Phase boundaries"): each `P` names the phase ending on its
+date, phases are A, B, C in date order, phases may be skipped, and the last phase ends on the end of
+the initial term. Groups schedules by the phases present and how the last phase relates to `T(1)`.
+
+```sql
+WITH sched AS (
+  SELECT plsd.id plsd_id, plm.licence_type, plsd.xml_data
+  FROM pedmgr.ped_licence_schedule_details plsd
+  JOIN pedmgr.ped_licence_master plm ON plm.id = plsd.ped_lm_id
+  WHERE plsd.end_datetime IS NULL
+  AND plm.licence_type IN ('P', 'PEDL')
+  AND XMLEXISTS('/SCHEDULE/EVENT_LIST/EVENT[EVENT_MNEM = "P" and not(DUMMY_EVENT = "true")]' PASSING plsd.xml_data)
+)
+, phases AS (
+  SELECT s.plsd_id
+       , UPPER(TRIM(p.phase)) phase
+       , TO_DATE(p.event_date DEFAULT NULL ON CONVERSION ERROR, 'YYYY-MM-DD') event_date
+  FROM sched s
+  , XMLTABLE('/SCHEDULE/EVENT_LIST/EVENT[EVENT_MNEM = "P" and not(DUMMY_EVENT = "true")]'
+      PASSING s.xml_data COLUMNS phase VARCHAR2(10) PATH 'PHASE', event_date VARCHAR2(20) PATH 'EVENT_DATE') p
+)
+, terms AS (
+  SELECT s.plsd_id
+       , MAX(CASE WHEN TRIM(t.term_no) = '1' THEN TO_DATE(t.event_date DEFAULT NULL ON CONVERSION ERROR, 'YYYY-MM-DD') END) t1_date
+       , MIN(CASE WHEN TRIM(t.term_no) = '2' THEN TO_DATE(t.event_date DEFAULT NULL ON CONVERSION ERROR, 'YYYY-MM-DD') END) t2_date
+  FROM sched s
+  , XMLTABLE('/SCHEDULE/EVENT_LIST/EVENT[EVENT_MNEM = "T" and not(DUMMY_EVENT = "true")]'
+      PASSING s.xml_data COLUMNS term_no VARCHAR2(10) PATH 'TERM_NO', event_date VARCHAR2(20) PATH 'EVENT_DATE') t
+  GROUP BY s.plsd_id
+)
+, per_schedule AS (
+  SELECT s.plsd_id, s.licence_type
+       , LISTAGG(NVL(p.phase, '?'), '') WITHIN GROUP (ORDER BY p.event_date, p.phase) phases_in_date_order
+       , COUNT(*) p_events
+       , COUNT(DISTINCT p.phase) distinct_phases
+       , SUM(CASE WHEN p.phase IS NULL OR p.phase NOT IN ('A', 'B', 'C') THEN 1 ELSE 0 END) bad_phase_value
+       , SUM(CASE WHEN p.event_date IS NULL THEN 1 ELSE 0 END) p_no_date
+       , MAX(p.event_date) last_p_date
+       , MAX(t.t1_date) t1_date
+       , MAX(t.t2_date) t2_date
+  FROM sched s
+  JOIN phases p ON p.plsd_id = s.plsd_id
+  LEFT JOIN terms t ON t.plsd_id = s.plsd_id
+  GROUP BY s.plsd_id, s.licence_type
+)
+SELECT licence_type
+     , phases_in_date_order
+     , CASE
+         WHEN bad_phase_value > 0 THEN 'PHASE_NOT_A_B_C'
+         WHEN p_events > distinct_phases THEN 'DUPLICATE_PHASE'
+         WHEN p_no_date > 0 THEN 'PHASE_WITHOUT_DATE'
+         WHEN t1_date IS NOT NULL AND last_p_date = t1_date THEN 'LAST_P_EQUALS_T1'
+         WHEN t1_date IS NULL AND t2_date IS NOT NULL AND last_p_date = t2_date THEN 'LAST_P_EQUALS_T2_NO_T1'
+         WHEN t1_date IS NOT NULL AND last_p_date < t1_date THEN 'LAST_P_BEFORE_T1'
+         WHEN t1_date IS NOT NULL AND last_p_date > t1_date THEN 'LAST_P_AFTER_T1'
+         WHEN t1_date IS NULL AND t2_date IS NULL THEN 'NO_T1_OR_T2'
+         ELSE 'OTHER'
+       END last_phase_vs_initial_term_end
+     , COUNT(*) schedules
+FROM per_schedule
+GROUP BY licence_type, phases_in_date_order
+       , CASE
+           WHEN bad_phase_value > 0 THEN 'PHASE_NOT_A_B_C'
+           WHEN p_events > distinct_phases THEN 'DUPLICATE_PHASE'
+           WHEN p_no_date > 0 THEN 'PHASE_WITHOUT_DATE'
+           WHEN t1_date IS NOT NULL AND last_p_date = t1_date THEN 'LAST_P_EQUALS_T1'
+           WHEN t1_date IS NULL AND t2_date IS NOT NULL AND last_p_date = t2_date THEN 'LAST_P_EQUALS_T2_NO_T1'
+           WHEN t1_date IS NOT NULL AND last_p_date < t1_date THEN 'LAST_P_BEFORE_T1'
+           WHEN t1_date IS NOT NULL AND last_p_date > t1_date THEN 'LAST_P_AFTER_T1'
+           WHEN t1_date IS NULL AND t2_date IS NULL THEN 'NO_T1_OR_T2'
+           ELSE 'OTHER'
+         END
+ORDER BY licence_type, schedules DESC;
+```
+
+`phases_in_date_order` shows which phases are present, in date order (e.g. `ABC`, `AC`, `A`; `?` =
+no phase letter). The expected result is `LAST_P_EQUALS_T1` throughout, as on licence 7488.
+
+**Result (live, 27 October 2026):**
+
+| LICENCE_TYPE | PHASES (date order) | LAST PHASE vs INITIAL TERM END | SCHEDULES |
+|---|---|---|---|
+| P | AC | LAST_P_EQUALS_T1 | 222 |
+| P | ABC | LAST_P_EQUALS_T1 | 56 |
+| P | C | LAST_P_EQUALS_T1 | 16 |
+| P | BC | LAST_P_EQUALS_T1 | 15 |
+
+**Reading:**
+
+- **309 current `P` schedules have phases, and every one passes:** the last phase ends exactly on
+  `T(1)`. Phases are always in A → B → C order, with no duplicates, no missing dates and no other
+  letters. No `PEDL` schedule has phases.
+- **Skipped phases are common:** `AC` (no B) is the most frequent shape, as on licence 7488. The
+  plan's rule (only phases with a `P` event are created, chained in A/B/C order) handles all four
+  shapes.
+- **`C` only (16) and `BC` (15):** under the rule, the first phase present starts on `ORIGIN_DATE`.
+  So with `C` only, Phase C covers the whole initial term; with `BC`, Phase B starts on
+  `ORIGIN_DATE`. The licensing team to confirm that is the intended meaning, rather than earlier
+  phases that were never recorded.
+- The phase rule in the plan ("Phase boundaries") is confirmed by live data.
+
+## S10. `ORIGIN_DATE` (all versions)
+
+Checks the schedule start date on every version: missing (the plan borrows the nearest version's
+for history, and skips the licence if none has one), unparseable, and whether it matches the
+licence's own start date in `xview_ped_ld_current`. The payments report uses the latter, and new
+licences default the LMS start date from it.
+
+```sql
+WITH licence_start AS (
+  SELECT ped_lm_id, MIN(licence_start_date) licence_start_date, COUNT(DISTINCT licence_start_date) start_dates
+  FROM pedmgr.xview_ped_ld_current
+  GROUP BY ped_lm_id
+)
+, versions AS (
+  SELECT plm.licence_type
+       , CASE WHEN plsd.end_datetime IS NULL THEN 'current' ELSE 'historical' END version_state
+       , x.origin_text
+       , TO_DATE(x.origin_text DEFAULT NULL ON CONVERSION ERROR, 'YYYY-MM-DD') origin_date
+       , ls.licence_start_date
+       , ls.start_dates
+  FROM pedmgr.ped_licence_schedule_details plsd
+  JOIN pedmgr.ped_licence_master plm ON plm.id = plsd.ped_lm_id
+  LEFT JOIN licence_start ls ON ls.ped_lm_id = plm.id
+  , XMLTABLE('/SCHEDULE' PASSING plsd.xml_data COLUMNS origin_text VARCHAR2(30) PATH 'ORIGIN_DATE') x
+  WHERE plm.licence_type IN ('P', 'PEDL')
+)
+SELECT licence_type
+     , version_state
+     , CASE
+         WHEN TRIM(origin_text) IS NULL THEN 'ORIGIN_MISSING'
+         WHEN origin_date IS NULL THEN 'ORIGIN_UNPARSEABLE'
+         WHEN licence_start_date IS NULL THEN 'NO_LICENCE_START_DATE'
+         WHEN start_dates > 1 THEN 'SEVERAL_LICENCE_START_DATES'
+         WHEN origin_date = TRUNC(licence_start_date) THEN 'MATCHES_LICENCE_START'
+         ELSE 'DIFFERS_FROM_LICENCE_START'
+       END origin_state
+     , COUNT(*) versions
+FROM versions
+GROUP BY licence_type, version_state
+       , CASE
+           WHEN TRIM(origin_text) IS NULL THEN 'ORIGIN_MISSING'
+           WHEN origin_date IS NULL THEN 'ORIGIN_UNPARSEABLE'
+           WHEN licence_start_date IS NULL THEN 'NO_LICENCE_START_DATE'
+           WHEN start_dates > 1 THEN 'SEVERAL_LICENCE_START_DATES'
+           WHEN origin_date = TRUNC(licence_start_date) THEN 'MATCHES_LICENCE_START'
+           ELSE 'DIFFERS_FROM_LICENCE_START'
+         END
+ORDER BY 1, 2, 3;
+```
+
+**Result (live, 27 October 2026):**
+
+| LICENCE_TYPE | VERSION_STATE | ORIGIN_STATE | VERSIONS |
+|---|---|---|---|
+| P | current | MATCHES_LICENCE_START | 1,519 |
+| P | current | DIFFERS_FROM_LICENCE_START | **5** |
+| P | historical | MATCHES_LICENCE_START | 5,711 |
+| P | historical | DIFFERS_FROM_LICENCE_START | 73 |
+| P | historical | ORIGIN_MISSING | **1,004** |
+| PEDL | current | MATCHES_LICENCE_START | 220 |
+| PEDL | historical | MATCHES_LICENCE_START | 1,333 |
+| PEDL | historical | DIFFERS_FROM_LICENCE_START | 307 |
+| PEDL | historical | ORIGIN_MISSING | **67** |
+
+(Totals reconcile with S2: 8,312 `P` and 1,927 `PEDL` versions.)
+
+**Reading:**
+
+- **Current versions:** all have an `ORIGIN_DATE`, and all but **5 `P`** match the licence start
+  date. S10b lists those 5.
+- **1,071 historical versions have no `ORIGIN_DATE`** (1,004 `P`, 67 `PEDL`), about 10% of the
+  history. These are most likely the first versions saved when a template was attached at raise,
+  before `licence_raise` set the start date. Their `EVENT_DATE`s were calculated from PEARS's
+  `1900-01-01` base (as seen in S6), so the dates PEARS stored for them are not real.
+- **380 historical versions differ** from today's licence start date (73 `P`, 307 `PEDL`). The
+  start date was changed later. History keeps the date each version had, which is what the
+  migration copies.
+- **Decided (27 October 2026)** for the 1,071 versions with no start date: migrate them with the
+  borrowed start date, and mark them "No start date in PEARS" in the comparison report rather than
+  as date mismatches. See the plan, "Schedule history".
+
+### S10b. Current versions whose start date differs from the licence start date
+
+```sql
+SELECT plm.licence_type || plm.licence_no licence_reference
+     , plsd.id plsd_id
+     , x.origin_text schedule_origin_date
+     , (SELECT LISTAGG(TO_CHAR(xplc.licence_start_date, 'YYYY-MM-DD'), ', ') WITHIN GROUP (ORDER BY xplc.licence_start_date)
+        FROM pedmgr.xview_ped_ld_current xplc WHERE xplc.ped_lm_id = plm.id) licence_start_dates
+     , (SELECT LISTAGG(DISTINCT xplc.licence_status, ', ') WITHIN GROUP (ORDER BY xplc.licence_status)
+        FROM pedmgr.xview_ped_ld_current xplc WHERE xplc.ped_lm_id = plm.id) licence_statuses
+FROM pedmgr.ped_licence_schedule_details plsd
+JOIN pedmgr.ped_licence_master plm ON plm.id = plsd.ped_lm_id
+, XMLTABLE('/SCHEDULE' PASSING plsd.xml_data COLUMNS origin_text VARCHAR2(30) PATH 'ORIGIN_DATE') x
+WHERE plsd.end_datetime IS NULL
+AND plm.licence_type IN ('P', 'PEDL')
+AND NOT EXISTS (
+  SELECT 1 FROM pedmgr.xview_ped_ld_current xplc
+  WHERE xplc.ped_lm_id = plm.id
+  AND TRUNC(xplc.licence_start_date) = TO_DATE(x.origin_text DEFAULT NULL ON CONVERSION ERROR, 'YYYY-MM-DD')
+)
+ORDER BY 1;
+```
+
+**Result (live, 27 October 2026):**
+
+| Licence | Schedule `ORIGIN_DATE` | Licence start date | Difference |
+|---|---|---|---|
+| P1064 | 2003-12-01 | 2003-10-01 | schedule 2 months later |
+| P1930 | 2012-05-21 | 2012-07-01 | schedule ~6 weeks earlier |
+| P2138 | 2015-05-10 | 2015-02-10 | schedule 3 months later (month 05 vs 02, possibly a typo) |
+| P2139 | 2015-05-10 | 2015-02-10 | as P2138 |
+| P2349 | 2018-07-01 | 2018-10-01 | schedule 3 months earlier (also pattern E: rate-only, no terms) |
+
+Each licence has several "current" licence-detail rows, one per data point, all with the same start
+date (and statuses `E` and `S` across them, as noted earlier).
+
+**Reading:**
+
+- **The migration is unaffected.** It takes `ORIGIN_DATE` as the LMS start date, so LMS calculates
+  the same dates PEARS shows. The write-back writes the same `ORIGIN_DATE` back.
+- **For the licensing team:** 5 possible data errors in PEARS, where the schedule and the licence
+  disagree on the start date. If the licence start date is right, the schedule's dates (rates,
+  terms) are all shifted. The payments report costs by the schedule's rate dates, so it is affected
+  too.
+
+## S11. Rate values
+
+Classifies every typed `R` event's `RATE` text by the plan's "Rate values" rules: whole number,
+1–2 decimal places, more than 2 (to be rounded), or does not fit (empty, non-numeric, negative).
+
+```sql
+WITH rates AS (
+  SELECT plm.licence_type
+       , CASE WHEN plsd.end_datetime IS NULL THEN 'current' ELSE 'historical' END version_state
+       , TRIM(r.rate) rate_text
+  FROM pedmgr.ped_licence_schedule_details plsd
+  JOIN pedmgr.ped_licence_master plm ON plm.id = plsd.ped_lm_id
+  , XMLTABLE('/SCHEDULE/EVENT_LIST/EVENT[EVENT_MNEM = "R" and not(DUMMY_EVENT = "true")]'
+      PASSING plsd.xml_data COLUMNS rate VARCHAR2(100) PATH 'RATE') r
+  WHERE plm.licence_type IN ('P', 'PEDL')
+)
+, classified AS (
+  SELECT licence_type, version_state, rate_text
+       , CASE
+           WHEN rate_text IS NULL THEN 'DOES_NOT_FIT_EMPTY'
+           WHEN NOT REGEXP_LIKE(rate_text, '^-?[0-9]+(\.[0-9]+)?$') THEN 'DOES_NOT_FIT_NOT_NUMERIC'
+           WHEN rate_text LIKE '-%' THEN 'DOES_NOT_FIT_NEGATIVE'
+           WHEN INSTR(rate_text, '.') = 0 THEN 'WHOLE'
+           WHEN LENGTH(rate_text) - INSTR(rate_text, '.') <= 2 THEN 'DECIMAL_1_2_DP'
+           ELSE 'DECIMAL_MORE_THAN_2_DP'
+         END rate_class
+  FROM rates
+)
+SELECT licence_type, version_state, rate_class
+     , COUNT(*) events
+     , COUNT(DISTINCT rate_text) distinct_values
+     , MIN(rate_text) KEEP (DENSE_RANK FIRST ORDER BY rate_text) example_value
+FROM classified
+GROUP BY licence_type, version_state, rate_class
+ORDER BY 1, 2, 3;
+```
+
+**Result (live, 27 October 2026):**
+
+| LICENCE_TYPE | VERSION_STATE | RATE_CLASS | EVENTS | DISTINCT VALUES | EXAMPLE |
+|---|---|---|---|---|---|
+| P | current | WHOLE | 20,524 | 138 | 0 |
+| P | current | DOES_NOT_FIT_EMPTY | **2** | 0 | |
+| P | historical | WHOLE | 90,947 | 126 | 0 |
+| P | historical | DOES_NOT_FIT_EMPTY | **10** | 0 | |
+| PEDL | current | WHOLE | 4,532 | 16 | 100 |
+| PEDL | historical | WHOLE | 34,989 | 29 | 100 |
+
+**Reading:**
+
+- **Every populated rate is a whole number.** No decimals, nothing over 2 dp, nothing non-numeric
+  and nothing negative. The rounding rule in the plan is never needed on today's data. It stays as
+  a safeguard. The write-back writes whole numbers without decimals.
+- **`0` is a real rate value** (the lowest `P` value). It is valid in LMS (0 or more) and must be
+  migrated as a rate, not treated as empty.
+- **12 `R` events have an empty `RATE`** (2 current, 10 historical, all `P`). Under the plan they
+  are not migrated and are reported. S11b lists them.
+
+### S11b. `R` events with an empty rate
+
+```sql
+SELECT plm.licence_type || plm.licence_no licence_reference
+     , plsd.id plsd_id
+     , CASE WHEN plsd.end_datetime IS NULL THEN 'current' ELSE 'historical' END version_state
+     , plsd.start_datetime version_from
+     , r.event_date, r.years || 'y ' || r.months || 'm ' || r.days || 'd' offset_from_start
+     , r.recurring, r.recurrances, r.comments
+FROM pedmgr.ped_licence_schedule_details plsd
+JOIN pedmgr.ped_licence_master plm ON plm.id = plsd.ped_lm_id
+, XMLTABLE('/SCHEDULE/EVENT_LIST/EVENT[EVENT_MNEM = "R" and normalize-space(RATE) = "" and not(DUMMY_EVENT = "true")]'
+    PASSING plsd.xml_data
+    COLUMNS event_date VARCHAR2(20) PATH 'EVENT_DATE', years VARCHAR2(5) PATH 'YEARS'
+          , months VARCHAR2(5) PATH 'MONTHS', days VARCHAR2(5) PATH 'DAYS'
+          , recurring VARCHAR2(20) PATH 'RECURRING', recurrances VARCHAR2(10) PATH 'RECURRANCES'
+          , comments VARCHAR2(4000) PATH 'COMMENTS') r
+WHERE plm.licence_type IN ('P', 'PEDL')
+ORDER BY 1, plsd.start_datetime, r.event_date;
+```
+
+**Result (live, 27 October 2026):** 12 events on **2 licences**, P293 (7 versions) and P295 (5
+versions). Each is the schedule's only `R`, dated on the licence start (1979-04-27, 1979-01-17),
+with no rate, offset, recurrence or comments. The earliest version of each also has an undated copy.
+
+**Reading:** both licences are pattern E (S8d: rate-only, no terms), so their schedules are not
+migrated anyway. Once these are excluded, every `R` event on a migrated schedule has a whole-number
+rate.
+
+## S12. Rate recurrence and gaps (current versions)
+
+Classifies each current `R` event by recurrence and finds **gaps**: licence anniversaries with no
+rate in force under PEARS's payments logic. A gap is either between two rates, where the next rate
+starts more than a year after this rate's last occurrence, or at the end, where the last rate stops
+before the licence's final boundary. The final boundary is the last `T` or `E`, whichever is later.
+Gaps matter because LMS carries a rate on until the next one, so after write-back those years would
+gain payments (see the plan, "Rates and the PEARS write-back").
+
+```sql
+WITH sched AS (
+  SELECT plsd.id plsd_id, plm.licence_type, plm.licence_type || plm.licence_no licence_reference, plsd.xml_data
+  FROM pedmgr.ped_licence_schedule_details plsd
+  JOIN pedmgr.ped_licence_master plm ON plm.id = plsd.ped_lm_id
+  WHERE plsd.end_datetime IS NULL
+  AND plm.licence_type IN ('P', 'PEDL')
+)
+, rates AS (
+  SELECT s.plsd_id, s.licence_type, s.licence_reference
+       , TO_DATE(r.event_date DEFAULT NULL ON CONVERSION ERROR, 'YYYY-MM-DD') event_date
+       , UPPER(TRIM(r.recurring)) recurring
+       , TO_NUMBER(TRIM(r.recurrances) DEFAULT NULL ON CONVERSION ERROR) recurrances
+  FROM sched s
+  , XMLTABLE('/SCHEDULE/EVENT_LIST/EVENT[EVENT_MNEM = "R" and normalize-space(RATE) != "" and not(DUMMY_EVENT = "true")]'
+      PASSING s.xml_data
+      COLUMNS event_date VARCHAR2(20) PATH 'EVENT_DATE', recurring VARCHAR2(20) PATH 'RECURRING'
+            , recurrances VARCHAR2(10) PATH 'RECURRANCES') r
+)
+, final_boundary AS (
+  SELECT s.plsd_id
+       , MAX(TO_DATE(b.event_date DEFAULT NULL ON CONVERSION ERROR, 'YYYY-MM-DD')) boundary_date
+  FROM sched s
+  , XMLTABLE('/SCHEDULE/EVENT_LIST/EVENT[EVENT_MNEM = ("T", "E") and not(DUMMY_EVENT = "true")]'
+      PASSING s.xml_data COLUMNS event_date VARCHAR2(20) PATH 'EVENT_DATE') b
+  GROUP BY s.plsd_id
+)
+, rate_coverage AS (
+  SELECT r.*
+       , CASE
+           WHEN r.recurring IS NULL THEN 'NOT_RECURRING'
+           WHEN r.recurring = 'YEARLY' AND r.recurrances IS NULL THEN 'YEARLY_INDEFINITE'
+           WHEN r.recurring = 'YEARLY' THEN 'YEARLY_WITH_COUNT'
+           ELSE 'OTHER_RECURRING'
+         END recurrence_class
+       , CASE
+           WHEN r.recurring = 'YEARLY' AND r.recurrances IS NULL THEN NULL
+           ELSE ADD_MONTHS(r.event_date, 12 * NVL(CASE WHEN r.recurring = 'YEARLY' THEN r.recurrances END, 0))
+         END last_occurrence
+       , LEAD(r.event_date) OVER (PARTITION BY r.plsd_id ORDER BY r.event_date) next_rate_date
+       , fb.boundary_date
+  FROM rates r
+  LEFT JOIN final_boundary fb ON fb.plsd_id = r.plsd_id
+)
+SELECT licence_type
+     , recurrence_class
+     , COUNT(*) r_events
+     , COUNT(DISTINCT plsd_id) schedules
+     , SUM(CASE WHEN next_rate_date IS NOT NULL AND last_occurrence IS NOT NULL
+                 AND next_rate_date > ADD_MONTHS(last_occurrence, 12) THEN 1 ELSE 0 END) gap_before_next_rate
+     , SUM(CASE WHEN next_rate_date IS NULL AND last_occurrence IS NOT NULL AND boundary_date IS NOT NULL
+                 AND boundary_date > ADD_MONTHS(last_occurrence, 12) THEN 1 ELSE 0 END) gap_before_licence_end
+     , SUM(CASE WHEN event_date IS NULL THEN 1 ELSE 0 END) no_date
+FROM rate_coverage
+GROUP BY ROLLUP(licence_type, recurrence_class)
+ORDER BY GROUPING(licence_type), licence_type, GROUPING(recurrence_class), recurrence_class;
+```
+
+**Result (live, 27 October 2026):**
+
+| LICENCE_TYPE | RECURRENCE | R EVENTS | SCHEDULES | GAP BEFORE NEXT RATE | GAP BEFORE LICENCE END |
+|---|---|---|---|---|---|
+| P | NOT_RECURRING | 19,001 | 1,518 | **298** | **1** |
+| P | YEARLY_INDEFINITE | 1,523 | 1,523 | 0 | 0 |
+| PEDL | NOT_RECURRING | 4,312 | 220 | 0 | 0 |
+| PEDL | YEARLY_INDEFINITE | 220 | 220 | 0 | 0 |
+| **Total** | | **25,056** | **1,744** | **298** | **1** |
+
+No `R` without a date. No `YEARLY` recurrence with a count (`RECURRANCES`), and no other recurrence
+type.
+
+**Reading:**
+
+- **One shape everywhere:** one non-recurring `R` per anniversary, ending in a single
+  **indefinite yearly** rate. 1,523 of 1,524 `P` schedules and all 220 `PEDL` schedules have
+  exactly one indefinite yearly rate. That matches licences 5856 and 7488, and the plan's
+  write-back rule (the last LMS rate becomes an indefinite yearly `R`).
+- **`PEDL` has no gaps at all.**
+- **298 gaps on `P` schedules**, each after a non-recurring rate: the next rate starts more than a
+  year later, so the payments report shows no rate for the anniversaries in between. After the
+  write-back, LMS carries the earlier rate on through those years, which would add payments. S12b
+  lists them.
+- **1 gap before the licence end:** a `P` schedule whose last rate is not recurring and stops
+  before its final term or expiry. It is probably the one `P` schedule with no indefinite yearly
+  rate. S12b shows it.
+- `RECURRANCES` with a count is never used, so the write-back only needs "non-recurring" and
+  "yearly, indefinite" in practice.
+
+### S12b. Rate gaps, one row per gap
+
+Also flags an indefinite yearly rate that is **not** the last rate. The payments report would then
+pay both the recurring rate and the later rates (its recurring and non-recurring branches are
+independent).
+
+```sql
+WITH sched AS (
+  SELECT plsd.id plsd_id, plm.licence_type || plm.licence_no licence_reference, plsd.xml_data
+  FROM pedmgr.ped_licence_schedule_details plsd
+  JOIN pedmgr.ped_licence_master plm ON plm.id = plsd.ped_lm_id
+  WHERE plsd.end_datetime IS NULL
+  AND plm.licence_type IN ('P', 'PEDL')
+)
+, rates AS (
+  SELECT s.plsd_id, s.licence_reference
+       , TO_DATE(r.event_date DEFAULT NULL ON CONVERSION ERROR, 'YYYY-MM-DD') event_date
+       , TRIM(r.rate) rate
+       , UPPER(TRIM(r.recurring)) recurring
+  FROM sched s
+  , XMLTABLE('/SCHEDULE/EVENT_LIST/EVENT[EVENT_MNEM = "R" and normalize-space(RATE) != "" and not(DUMMY_EVENT = "true")]'
+      PASSING s.xml_data
+      COLUMNS event_date VARCHAR2(20) PATH 'EVENT_DATE', rate VARCHAR2(50) PATH 'RATE'
+            , recurring VARCHAR2(20) PATH 'RECURRING') r
+)
+, final_boundary AS (
+  SELECT s.plsd_id, MAX(TO_DATE(b.event_date DEFAULT NULL ON CONVERSION ERROR, 'YYYY-MM-DD')) boundary_date
+  FROM sched s
+  , XMLTABLE('/SCHEDULE/EVENT_LIST/EVENT[EVENT_MNEM = ("T", "E") and not(DUMMY_EVENT = "true")]'
+      PASSING s.xml_data COLUMNS event_date VARCHAR2(20) PATH 'EVENT_DATE') b
+  GROUP BY s.plsd_id
+)
+, ordered AS (
+  SELECT r.*
+       , LEAD(r.event_date) OVER (PARTITION BY r.plsd_id ORDER BY r.event_date) next_rate_date
+       , LEAD(r.rate) OVER (PARTITION BY r.plsd_id ORDER BY r.event_date) next_rate
+       , fb.boundary_date
+  FROM rates r
+  LEFT JOIN final_boundary fb ON fb.plsd_id = r.plsd_id
+)
+SELECT licence_reference
+     , TO_CHAR(event_date, 'YYYY-MM-DD') rate_date
+     , rate
+     , NVL(recurring, '-') recurring
+     , TO_CHAR(next_rate_date, 'YYYY-MM-DD') next_rate_date
+     , next_rate
+     , TO_CHAR(boundary_date, 'YYYY-MM-DD') final_boundary
+     , CASE
+         WHEN recurring = 'YEARLY' AND next_rate_date IS NOT NULL THEN 'INDEFINITE_RATE_NOT_LAST'
+         WHEN next_rate_date IS NOT NULL THEN 'GAP_BEFORE_NEXT_RATE'
+         ELSE 'GAP_BEFORE_LICENCE_END'
+       END problem
+     , TRUNC(MONTHS_BETWEEN(NVL(next_rate_date, boundary_date), event_date) / 12) - 1 missing_anniversaries
+FROM ordered
+WHERE (recurring = 'YEARLY' AND next_rate_date IS NOT NULL)
+   OR (recurring IS NULL AND next_rate_date > ADD_MONTHS(event_date, 12))
+   OR (recurring IS NULL AND next_rate_date IS NULL AND boundary_date > ADD_MONTHS(event_date, 12))
+ORDER BY licence_reference, event_date;
+```
+
+`missing_anniversaries` is the approximate number of anniversaries with no rate in force.
+
+**Result (live, 27 October 2026):** 299 rows (298 gaps before the next rate, 1 gap before licence
+end, 1 indefinite rate that is not last). They are almost all **systematic, round-by-round
+patterns**, not one-off errors:
+
+| Pattern | Typical example | Licences |
+|---|---|---|
+| Rate at the licence start, next rate **6 years** later (5 anniversaries with no rate) | P516: `330@1985-06-14` → `400@1991-06-14` | Most licences from 1964–1998 rounds: P1–P99, P101–P244, P250, P254, P328–P363, P380, P449–P496, P516–P614, P622–P721, P724–P791, P803–P865, P886–P995, P1006–P1034 |
+| Rate at start, next **4 years** later, then **3 years** later | P297: `100@1979` → `150@1983` → `250@1986` | P261–P287, P297–P317, P361 (1977–1980 rounds) |
+| Rate at start, next **4 years** later (3 anniversaries with no rate) | P1083: `150@2003-10-01` → `300@2007-10-01` | P1083, P1084, P1154 (2003 round) |
+| Next rate **2 years** later (1 with no rate) | P1715: `150@2011` → `300@2013`; P2644: `15@2024` → `15@2026`, `150@2028` → `300@2030` | P1715, P2644 |
+| Other | P556: `330@1985` → `400@1993` (7); P799: `60@1991` → `20@1994` (2, rate goes down) | P556, P799 |
+| Next rate less than a year after an off-anniversary date (0 missing) | P2490: `150@2025-02-15` → `300@2026-07-15`; P251, P295 (no final boundary) | P2490, P251, P295 |
+
+**Anomaly: P2644.** The indefinite yearly rate `7500@2038-03-01` is followed by a non-recurring
+`150@2039-03-01`, which in turn leaves a 12-year gap to the licence end (2052). The payments
+report would pay 7500 every year from 2038 **and** 150 in 2039. That looks like a data error for the
+licensing team.
+
+**Reading:**
+
+- The gaps follow the **rental terms of each licensing round**: e.g. older Model Clauses with an
+  initial rental, then annual rentals from the 6th anniversary. PEARS deliberately has **no rate**
+  in those years, and the payments report correctly shows no payment.
+- **This affects the write-back design (Open question 7).** The plan's option A write-back turns
+  each LMS rate into a yearly recurrence until the next rate. That would **invent payments** for
+  every one of these gap years, on almost every pre-1999 licence. The migration and write-back
+  must keep PEARS's "one `R` per payment, final rate indefinite" shape: each non-recurring PEARS
+  `R` is written back as a non-recurring `R`, and only the final rate recurs. See the plan, Open
+  question 7.
+- To confirm with the licensing team: that the gap years really are no-payment years (e.g. by
+  checking the licence terms for one licence per pattern).
+
+## S13. Mandatory relinquishment percentages (current versions)
+
+Input to the plan's Open question 4. Counts `MR` events by:
+- whether `PERCENTAGE` holds a number, other text, or nothing;
+- whether the event is on the `T(1)` date. That one feeds `MAND_SURRENDER_AREA` in licence
+  documents (`template_schedule.get_mand_relinquishment_perc`).
+- whether the `COMMENTS` already state a percentage.
+
+```sql
+WITH mr AS (
+  SELECT plm.licence_type
+       , plsd.id plsd_id
+       , TRIM(m.percentage) percentage
+       , m.event_date
+       , m.comments
+       , (SELECT MAX(t.event_date)
+          FROM XMLTABLE('/SCHEDULE/EVENT_LIST/EVENT[EVENT_MNEM = "T" and normalize-space(TERM_NO) = "1" and not(DUMMY_EVENT = "true")]'
+                 PASSING plsd.xml_data COLUMNS event_date VARCHAR2(20) PATH 'EVENT_DATE') t) t1_date
+  FROM pedmgr.ped_licence_schedule_details plsd
+  JOIN pedmgr.ped_licence_master plm ON plm.id = plsd.ped_lm_id
+  , XMLTABLE('/SCHEDULE/EVENT_LIST/EVENT[EVENT_MNEM = "MR" and not(DUMMY_EVENT = "true")]'
+      PASSING plsd.xml_data
+      COLUMNS percentage VARCHAR2(4000) PATH 'PERCENTAGE', event_date VARCHAR2(20) PATH 'EVENT_DATE'
+            , comments VARCHAR2(4000) PATH 'COMMENTS') m
+  WHERE plsd.end_datetime IS NULL
+  AND plm.licence_type IN ('P', 'PEDL')
+)
+SELECT licence_type
+     , CASE
+         WHEN percentage IS NULL THEN 'EMPTY'
+         WHEN REGEXP_LIKE(percentage, '^[0-9]+(\.[0-9]+)?%?$') THEN 'NUMBER'
+         ELSE 'OTHER_TEXT'
+       END percentage_state
+     , CASE WHEN event_date = t1_date THEN 'ON_T1' ELSE 'NOT_ON_T1' END t1_position
+     , CASE WHEN REGEXP_LIKE(comments, '[0-9]+(\.[0-9]+)? ?%') THEN 'COMMENT_HAS_PERCENT' ELSE 'NO_PERCENT_IN_COMMENT' END comment_state
+     , COUNT(*) mr_events
+     , COUNT(DISTINCT plsd_id) schedules
+     , LISTAGG(DISTINCT CASE WHEN REGEXP_LIKE(percentage, '^[0-9]+(\.[0-9]+)?%?$') THEN percentage END, ', ')
+         WITHIN GROUP (ORDER BY CASE WHEN REGEXP_LIKE(percentage, '^[0-9]+(\.[0-9]+)?%?$') THEN percentage END) percentage_values
+FROM mr
+GROUP BY licence_type
+       , CASE
+           WHEN percentage IS NULL THEN 'EMPTY'
+           WHEN REGEXP_LIKE(percentage, '^[0-9]+(\.[0-9]+)?%?$') THEN 'NUMBER'
+           ELSE 'OTHER_TEXT'
+         END
+       , CASE WHEN event_date = t1_date THEN 'ON_T1' ELSE 'NOT_ON_T1' END
+       , CASE WHEN REGEXP_LIKE(comments, '[0-9]+(\.[0-9]+)? ?%') THEN 'COMMENT_HAS_PERCENT' ELSE 'NO_PERCENT_IN_COMMENT' END
+ORDER BY 1, 2, 3, 4;
+```
+
+**Result (live, 27 October 2026; current versions):**
+
+| Type | `PERCENTAGE` | On `T(1)`? | % in comments? | `MR` events | Values |
+|---|---|---|---|---|---|
+| P | empty | no | yes | 8 | |
+| P | empty | no | no | 267 | |
+| P | empty | **yes** | yes | **713** | |
+| P | empty | yes | no | 41 | |
+| P | number | no | yes | 8 | 50, 75 |
+| P | number | no | no | 95 | 0, 50, 75, 87.5 |
+| P | number | **yes** | yes | **90** | 0, 50, 87.5, 100 |
+| P | number | **yes** | no | **338** | 0, 50, `50%`, 75, 87.5 |
+| P | other text | no | yes | 1 | |
+| P | other text | no | no | **301** | |
+| P | other text | yes | no | 1 | |
+| PEDL | number | no | no | 6 | 50 |
+| PEDL | number | **yes** | no | **149** | 50 |
+
+Totals: `P` 1,863 (1,029 empty, 531 number, 303 other text); `PEDL` 155 (all number).
+
+**Reading:**
+
+- **577 `MR` events drive licence documents today:** a number on the `T(1)` date (428 `P`, 149
+  `PEDL`). If the percentage is lost (Open question 4, option 2), any of these licences' documents
+  regenerated in PEARS after write-back lose the "Mandatory Surrender Area is … X%" sentence.
+- **713 `P` events hold the percentage only in comments**, with an empty `PERCENTAGE` on the `T(1)`
+  date. Their licence documents already lack the sentence today. Options 1 and 3 keep the comment,
+  and option 1 could also parse the figure out of it.
+- **Values:** 0, 50, 75, 87.5, 100, plus one `50%` with a percent sign. **Noted in the plan
+  (Open question 4, option 1):** the LMS field allows 1 decimal place, and the migration strips a
+  trailing `%`.
+- **303 `P` events have other text in `PERCENTAGE`.** Likely the Fox validation message "You must
+  enter this item" saved as data (as seen in S6). S13b checks.
+
+### S13b. Non-numeric `PERCENTAGE` values
+
+```sql
+SELECT SUBSTR(TRIM(m.percentage), 1, 60) percentage_text
+     , COUNT(*) mr_events
+     , COUNT(DISTINCT plsd.ped_lm_id) licences
+     , MIN(plm.licence_type || plm.licence_no) example_licence
+FROM pedmgr.ped_licence_schedule_details plsd
+JOIN pedmgr.ped_licence_master plm ON plm.id = plsd.ped_lm_id
+, XMLTABLE('/SCHEDULE/EVENT_LIST/EVENT[EVENT_MNEM = "MR" and not(DUMMY_EVENT = "true")]'
+    PASSING plsd.xml_data COLUMNS percentage VARCHAR2(4000) PATH 'PERCENTAGE') m
+WHERE plsd.end_datetime IS NULL
+AND plm.licence_type IN ('P', 'PEDL')
+AND TRIM(m.percentage) IS NOT NULL
+AND NOT REGEXP_LIKE(TRIM(m.percentage), '^[0-9]+(\.[0-9]+)?%?$')
+GROUP BY SUBSTR(TRIM(m.percentage), 1, 60)
+ORDER BY 2 DESC;
+```
+
+**Result (live, 27 October 2026):** all 303 are the single character **`x`**. There are no Fox
+validation messages on current versions.
+
+**Reading:** `x` is a placeholder (e.g. "percentage not set", or "not applicable"), not a value.
+**Decided (27 October 2026):** the `x` value is not migrated. The relinquishment event is still
+migrated with an empty percentage, and the `x` values are counted once in the report rather than
+listed 303 times. Any other non-numeric text is still reported per event.
+
+## S14. LMS vs PEARS date arithmetic
+
+Input to the plan's Open question 6. For every typed event with a years/months/days offset (`RD`/`PA`
+excluded) on current versions, it compares three dates:
+
+- **stored**: `EVENT_DATE` as PEARS saved it;
+- **PEARS formula**: `ADD_MONTHS(origin + days, years*12 + months)`
+  (`template_schedule.get_julian_or_event_date`);
+- **LMS formula**: `origin.plusYears(y).plusMonths(m).plusDays(d)`, emulated in SQL. Java clamps the
+  day to the target month's length, while `ADD_MONTHS` also snaps a month-end date to month-end.
+
+It counts events where the stored date is not the PEARS formula (a stale stored date), and events
+where the LMS formula would land on a different day from the PEARS formula (the arithmetic
+difference).
+
+```sql
+WITH ev AS (
+  SELECT plm.licence_type
+       , e.event_mnem
+       , TO_DATE(x.origin DEFAULT NULL ON CONVERSION ERROR, 'YYYY-MM-DD') origin_date
+       , TO_DATE(e.event_date DEFAULT NULL ON CONVERSION ERROR, 'YYYY-MM-DD') stored_date
+       , NVL(TO_NUMBER(TRIM(e.years)  DEFAULT NULL ON CONVERSION ERROR), 0) y
+       , NVL(TO_NUMBER(TRIM(e.months) DEFAULT NULL ON CONVERSION ERROR), 0) m
+       , NVL(TO_NUMBER(TRIM(e.days)   DEFAULT NULL ON CONVERSION ERROR), 0) d
+       , TRIM(e.years) || TRIM(e.months) || TRIM(e.days) offset_text
+  FROM pedmgr.ped_licence_schedule_details plsd
+  JOIN pedmgr.ped_licence_master plm ON plm.id = plsd.ped_lm_id
+  , XMLTABLE('/SCHEDULE' PASSING plsd.xml_data COLUMNS origin VARCHAR2(20) PATH 'ORIGIN_DATE') x
+  , XMLTABLE('/SCHEDULE/EVENT_LIST/EVENT[normalize-space(EVENT_MNEM) != "" and not(EVENT_MNEM = ("RD", "PA")) and not(DUMMY_EVENT = "true")]'
+      PASSING plsd.xml_data
+      COLUMNS event_mnem VARCHAR2(10) PATH 'EVENT_MNEM', event_date VARCHAR2(20) PATH 'EVENT_DATE'
+            , years VARCHAR2(10) PATH 'YEARS', months VARCHAR2(10) PATH 'MONTHS', days VARCHAR2(10) PATH 'DAYS') e
+  WHERE plsd.end_datetime IS NULL
+  AND plm.licence_type IN ('P', 'PEDL')
+)
+, calc AS (
+  SELECT ev.*
+       , ADD_MONTHS(origin_date + d, y * 12 + m) pears_date
+       -- Java LocalDate.plusYears().plusMonths(): same day of month, clamped to the target month's length
+       , CASE
+           WHEN EXTRACT(DAY FROM origin_date) <= EXTRACT(DAY FROM LAST_DAY(ADD_MONTHS(TRUNC(origin_date, 'MM'), y * 12 + m)))
+             THEN ADD_MONTHS(TRUNC(origin_date, 'MM'), y * 12 + m) + (EXTRACT(DAY FROM origin_date) - 1)
+           ELSE LAST_DAY(ADD_MONTHS(TRUNC(origin_date, 'MM'), y * 12 + m))
+         END + d lms_date
+  FROM ev
+  WHERE origin_date IS NOT NULL
+  AND offset_text IS NOT NULL
+)
+SELECT licence_type
+     , event_mnem
+     , COUNT(*) events_with_offset
+     , SUM(CASE WHEN stored_date IS NULL THEN 1 ELSE 0 END) stored_date_missing
+     , SUM(CASE WHEN stored_date != pears_date THEN 1 ELSE 0 END) stored_differs_from_pears_formula
+     , SUM(CASE WHEN lms_date != pears_date THEN 1 ELSE 0 END) lms_formula_differs
+     , MIN(CASE WHEN lms_date != pears_date THEN lms_date - pears_date END) min_day_difference
+     , MAX(CASE WHEN lms_date != pears_date THEN lms_date - pears_date END) max_day_difference
+FROM calc
+GROUP BY ROLLUP(licence_type, event_mnem)
+ORDER BY GROUPING(licence_type), licence_type, GROUPING(event_mnem), event_mnem;
+```
+
+The day differences are LMS date minus PEARS date: positive means LMS lands later.
+
+**Result (live, 27 October 2026; current versions):**
+
+| Type | Event | With offset | Stored ≠ PEARS formula | LMS formula ≠ PEARS | Day difference |
+|---|---|---|---|---|---|
+| P | 2M | 36 | 0 | 0 | |
+| P | BM | 37 | 0 | 8 | −3 to −1 |
+| P | DD | 215 | 0 | 2 | −1 |
+| P | E | 1,339 | 0 | 1 | +3 |
+| P | MR | 1,863 | 0 | 7 | −3 to +1 |
+| P | P | 658 | 0 | 0 | |
+| P | R | 20,524 | **1** | 61 | −1 to +3 |
+| P | T | 4,075 | 0 | 15 | −3 to +1 |
+| **P total** | | **28,747** | **1** | **94** | −3 to +3 |
+| PEDL | all | 5,592 | 0 | 0 | |
+| **Total** | | **34,339** | **1** | **94** | −3 to +3 |
+
+No stored date is missing.
+
+**Reading:**
+
+- **Stored dates are reliable:** all but one match PEARS's own formula, so the migration can trust
+  `EVENT_DATE`. One `P` rate has a stored date that differs, probably left over from an older
+  calculation. It will show up in the comparison report.
+- **Copying offsets would move 94 events (0.3%)** by up to 3 days, all on `P` licences and never on
+  `PEDL`. That includes 15 terms, 1 expiry, 8 bespoke milestones and 61 rates.
+- **This supports the plan's recommendation for Open question 6:** LMS offsets and durations are
+  worked out from the PEARS **dates** (`Period.between`), not copied, so every event lands on the
+  PEARS date and none of these 94 differ. Term and phase durations already follow that rule.
+
+## S15. `RD`/`PA` events (current versions)
+
+Checks what the plan's phase 1 copies as is into `licence_schedule_area_events`:
+- subtype;
+- `RETENTION_AREA` block (name, short name, type, version);
+- `EVENT_ID`;
+- code against licence type (`RD` onshore, `PA` offshore).
+
+```sql
+WITH ev AS (
+  SELECT plm.licence_type
+       , e.event_mnem
+       , TRIM(e.event_subtype) event_subtype
+       , TRIM(e.event_id) event_id
+       , TRIM(e.ra_name) ra_name
+       , TRIM(e.ra_short_name) ra_short_name
+       , TRIM(e.ra_type) ra_type
+       , TRIM(e.ra_version) ra_version
+       , TRIM(e.event_date) event_date
+  FROM pedmgr.ped_licence_schedule_details plsd
+  JOIN pedmgr.ped_licence_master plm ON plm.id = plsd.ped_lm_id
+  , XMLTABLE('/SCHEDULE/EVENT_LIST/EVENT[EVENT_MNEM = ("RD", "PA") and not(DUMMY_EVENT = "true")]'
+      PASSING plsd.xml_data
+      COLUMNS event_mnem VARCHAR2(10) PATH 'EVENT_MNEM', event_subtype VARCHAR2(50) PATH 'EVENT_SUBTYPE'
+            , event_id VARCHAR2(20) PATH 'EVENT_ID', event_date VARCHAR2(20) PATH 'EVENT_DATE'
+            , ra_name VARCHAR2(200) PATH 'RETENTION_AREA/NAME'
+            , ra_short_name VARCHAR2(50) PATH 'RETENTION_AREA/SHORT_NAME'
+            , ra_type VARCHAR2(50) PATH 'RETENTION_AREA/TYPE'
+            , ra_version VARCHAR2(10) PATH 'RETENTION_AREA/VERSION') e
+  WHERE plsd.end_datetime IS NULL
+  AND plm.licence_type IN ('P', 'PEDL')
+)
+SELECT licence_type AS lic_type
+     , event_mnem AS mnem
+     , NVL(event_subtype, '(none)') AS subtype_label
+     , NVL(ra_type, '(none)') AS area_type_label
+     , COUNT(*) AS events
+     , SUM(CASE WHEN event_id IS NULL THEN 1 ELSE 0 END) AS no_event_id
+     , SUM(CASE WHEN ra_name IS NULL OR ra_short_name IS NULL OR ra_version IS NULL THEN 1 ELSE 0 END) AS incomplete_area_block
+     , SUM(CASE WHEN event_date IS NULL THEN 1 ELSE 0 END) AS no_date
+     , SUM(CASE WHEN (licence_type = 'P' AND event_mnem = 'RD') OR (licence_type != 'P' AND event_mnem = 'PA') THEN 1 ELSE 0 END) AS wrong_code_for_licence_type
+     , COUNT(DISTINCT event_id) AS distinct_event_ids
+FROM ev
+GROUP BY licence_type, event_mnem, NVL(event_subtype, '(none)'), NVL(ra_type, '(none)')
+ORDER BY 1, 2, 3, 4;
+```
+
+`distinct_event_ids` lower than `events` means some `EVENT_ID`s repeat within the group.
+
+**Result (live, 27 October 2026; current versions):**
+
+| Type | Code | Subtype | Area type | Events | No `EVENT_ID` | Incomplete area block |
+|---|---|---|---|---|---|---|
+| P | PA | **(none)** | **(none)** | **51** | **51** | **51** |
+| P | PA | APPROVAL | PROSPECTIVE | 15 | 0 | 0 |
+| P | PA | **END** | PROSPECTIVE | 7 | 0 | 0 |
+| P | PA | EXPIRY | PROSPECTIVE | 13 | 0 | 0 |
+| P | PA | WORK_PROGRAMME | PROSPECTIVE | 65 | 0 | 0 |
+| PEDL | RD | APPROVAL | DEVELOPMENT | 4 | 0 | 0 |
+| PEDL | RD | APPROVAL | RETENTION | 46 | 0 | 0 |
+| PEDL | RD | **END** | RETENTION | 15 | 0 | 0 |
+| PEDL | RD | EXPIRY | RETENTION | 33 | 0 | 0 |
+| PEDL | RD | WORK_PROGRAMME | DEVELOPMENT | 1 | 0 | 0 |
+| PEDL | RD | WORK_PROGRAMME | RETENTION | 105 | 0 | 0 |
+
+No event has a missing date or the wrong code for its licence type, and every `EVENT_ID` is unique.
+
+**Reading:**
+
+- **A fourth subtype, `END`** (22 events), alongside `APPROVAL`, `EXPIRY` and `WORK_PROGRAMME`. It
+  is presumably written when an area is ended or removed, and it was not in the code read for the
+  plan. The LMS subtype must allow it.
+- **51 `P` `PA` events have no subtype, no area block and no `EVENT_ID`.** They look like
+  pre-producing area events entered by hand on the schedule screen, before the retention area
+  functionality generated them. The LMS table must allow these fields to be empty. The timeline
+  caption falls back to the event's comments (or "Pre-producing area"). The write-back reproduces
+  them without those elements, and PEARS acknowledgements match an empty `EVENT_ID` to an empty one,
+  so they still line up.
+- **Area types in use:** `PROSPECTIVE` on `P` licences; `RETENTION` and `DEVELOPMENT` on `PEDL`.
+  `PRODUCING` is never used.
+
+## S16. `EVENT_ID` and ambiguous cross-version matches
+
+Input to the plan's "Schedule history" matching rules. Across **all** versions, per event type, it
+counts:
+- how many events carry an `EVENT_ID` (matching rule 1);
+- duplicates **within one version** that make matching ambiguous: same type with the same comments
+  (rule 4), and same type with the same offset (rule 4 fallback). `T` duplicates by term number and
+  `P` duplicates by phase are covered in S8 and S9.
+
+```sql
+WITH ev AS (
+  SELECT plsd.id plsd_id
+       , e.event_mnem
+       , TRIM(e.event_id) event_id
+       , TRIM(e.comments) comments
+       , NVL(TRIM(e.years), '-') || '/' || NVL(TRIM(e.months), '-') || '/' || NVL(TRIM(e.days), '-') offset_key
+  FROM pedmgr.ped_licence_schedule_details plsd
+  JOIN pedmgr.ped_licence_master plm ON plm.id = plsd.ped_lm_id
+  , XMLTABLE('/SCHEDULE/EVENT_LIST/EVENT[normalize-space(EVENT_MNEM) != "" and not(DUMMY_EVENT = "true")]'
+      PASSING plsd.xml_data
+      COLUMNS event_mnem VARCHAR2(10) PATH 'EVENT_MNEM', event_id VARCHAR2(20) PATH 'EVENT_ID'
+            , comments VARCHAR2(4000) PATH 'COMMENTS'
+            , years VARCHAR2(10) PATH 'YEARS', months VARCHAR2(10) PATH 'MONTHS', days VARCHAR2(10) PATH 'DAYS') e
+  WHERE plm.licence_type IN ('P', 'PEDL')
+)
+, dup_comments AS (
+  SELECT event_mnem, COUNT(*) groups, SUM(cnt) events
+  FROM (SELECT plsd_id, event_mnem, comments, COUNT(*) cnt
+        FROM ev WHERE comments IS NOT NULL
+        GROUP BY plsd_id, event_mnem, comments HAVING COUNT(*) > 1)
+  GROUP BY event_mnem
+)
+, dup_offsets AS (
+  SELECT event_mnem, COUNT(*) groups, SUM(cnt) events
+  FROM (SELECT plsd_id, event_mnem, offset_key, COUNT(*) cnt
+        FROM ev WHERE offset_key != '-/-/-'
+        GROUP BY plsd_id, event_mnem, offset_key HAVING COUNT(*) > 1)
+  GROUP BY event_mnem
+)
+SELECT a.event_mnem
+     , a.events
+     , a.with_event_id
+     , NVL(dc.groups, 0) same_comment_groups
+     , NVL(dc.events, 0) same_comment_events
+     , NVL(dof.groups, 0) same_offset_groups
+     , NVL(dof.events, 0) same_offset_events
+FROM (SELECT event_mnem, COUNT(*) events, SUM(CASE WHEN event_id IS NOT NULL THEN 1 ELSE 0 END) with_event_id
+      FROM ev GROUP BY event_mnem) a
+LEFT JOIN dup_comments dc ON dc.event_mnem = a.event_mnem
+LEFT JOIN dup_offsets dof ON dof.event_mnem = a.event_mnem
+ORDER BY a.events DESC;
+```
+
+**Result (live, 27 October 2026; all versions, in-scope licences):**
+
+| Event | Events | With `EVENT_ID` | Same-comment groups (events) | Same-offset groups (events) |
+|---|---|---|---|---|
+| R | 151,004 | 0 | 472 (1,477) | 0 |
+| T | 26,730 | 0 | 246 (495) | 0 |
+| MR | 10,705 | 0 | 107 (214) | 0 |
+| E | 8,732 | 0 | 0 | 0 |
+| P | 4,384 | 0 | 148 (299) | 0 |
+| RD | 1,634 | **1,634** | 133 (307) | 0 |
+| PA | 1,449 | **956** | 76 (169) | 0 |
+| DD | 1,004 | 0 | 0 | 0 |
+| 2M | 251 | 0 | 0 | 0 |
+| BM | 185 | 0 | 0 | 0 |
+
+**Reading:**
+
+- **`EVENT_ID` is only used on `RD`/`PA` events**: every `RD` and 956 of 1,449 `PA` (the rest
+  are the older hand-entered ones, S15). Matching rule 1 only ever helps area events.
+- **The same offset never repeats within a version** for any type. Type + offset identifies an event
+  uniquely inside a version.
+- **The same comments often repeat**, e.g. several rates sharing a "Direction … rates affected" note,
+  or several terms sharing an extension note. Comments are a poor first key.
+- **Change made in the plan ("Schedule history"):** match by type + **offset before** type +
+  comments. Comments are only used when the offset changed between versions (e.g. a date moved by an
+  extension) and the comment is unique within the version.
+
+## Other queries (not yet run)
+
+```sql
+-- Production licences with no PEARS schedule (their schedule will be created in LMS)
+SELECT plm.licence_type, COUNT(*) licences_without_schedule
+FROM pedmgr.ped_licence_master plm
+WHERE NOT EXISTS (
+  SELECT 1 FROM pedmgr.ped_licence_schedule_details plsd WHERE plsd.ped_lm_id = plm.id
+)
+GROUP BY plm.licence_type
+ORDER BY 1;
+```
+
+```sql
+-- The licence with no current schedule version
+SELECT plm.licence_type || plm.licence_no licence_reference, plm.id ped_lm_id,
+       COUNT(*) versions, MAX(plsd.end_datetime) last_ended
+FROM pedmgr.ped_licence_master plm
+JOIN pedmgr.ped_licence_schedule_details plsd ON plsd.ped_lm_id = plm.id
+GROUP BY plm.licence_type, plm.licence_no, plm.id
+HAVING SUM(CASE WHEN plsd.end_datetime IS NULL THEN 1 ELSE 0 END) = 0;
+```
+
+```sql
+-- Licences with a schedule but no licence type
+SELECT plm.id ped_lm_id, plm.licence_no, COUNT(*) versions
+FROM pedmgr.ped_licence_master plm
+JOIN pedmgr.ped_licence_schedule_details plsd ON plsd.ped_lm_id = plm.id
+WHERE plm.licence_type IS NULL
+GROUP BY plm.id, plm.licence_no;
+```

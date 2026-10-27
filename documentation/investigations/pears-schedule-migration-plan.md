@@ -137,6 +137,7 @@ the LMS result against it (see Validation).
 | `BM` | `OtherScheduleEvent` with a **new dedicated category** `BESPOKE_MILESTONE` ("Bespoke milestone"), `description = COMMENTS` (default "Bespoke milestone" when empty), `RELATIVE_DATE` against the containing term with `relativeDuration` = offset from that term's start | **Decided.** Prerequisite: add `BESPOKE_MILESTONE` to `OtherScheduleEventCategory` (production licence types), so the category is selectable in the UI and `getCategoryString()` returns its display name. |
 | `DD`, `2M`, `2N` | `OtherScheduleEvent` `OTHER_ACTIVITY`, `otherCategoryName = ped_template_event_types.short_title` ("Drill-or-drop", "Second Term with autosurrender", "2nd term with all acreage"), `description = COMMENTS` (default: the same `short_title` when empty), `RELATIVE_DATE` as for `BM` | **Decided.** On the timeline, `getCategoryString()` returns `otherCategoryName`, so the PEARS title is the caption. |
 | Any other user-defined type with `display_seq >= 0` | Same as `DD`/`2M`/`2N` (`OTHER_ACTIVITY` + `short_title`) | The data survey must list any such types on live. Confirm each one before the production run. |
+| Empty `EVENT_MNEM` | Not migrated | **Decided:** empty rows are ignored and counted. Rows that hold data are reported for the licensing team to fix in PEARS, never guessed. See "Events with no event type". |
 | `RD` (onshore), `PA` (offshore) | **Not migrated as schedule events.** The areas they come from are migrated into new LMS area tables, and the LMS schedule looks them up for display | **Decided:** migrated in this exercise. `RD`/`PA` events are derived in PEARS from `ped_retention_areas` (approval, expiry and work programme events per area). LMS stores the areas and their events in their own tables, and the write-back regenerates the `RD`/`PA` events from them. See "Retention, development and pre-producing areas". |
 | `DUMMY_EVENT='true'` | Not migrated | UI padding. |
 | `COMMENTS` on T/P/R | LMS event comments: `EventComment` `PUBLISHED`, `timestamp` = the PEARS version's `start_datetime` | **Decided:** written to LMS comments. Same as `buildWorkProgrammeActivityComments` in the CS migration. Comments attach to the event's `original_event_id`, which is shared across versions. So a comment is only added when the event's `COMMENTS` text is **new or different** from the matched event in the previous version. The LMS comment history then shows when each PEARS comment first appeared or changed, without repeats. LMS-only from then on: event comments are not written back to PEARS (not reported on). |
@@ -882,6 +883,61 @@ Areas (block and retention/development) are not schedule data: the report takes 
 licence positions (`ped_data_points` / `ped_licence_blocks`) and retention area data, so they are
 outside the schedule write-back.
 
+### Events with no event type
+
+**Found on live (October 2026):** 1,462 non-dummy events across all versions have an empty
+`EVENT_MNEM`, 201 of them on current versions (209 licences). The Fox grid and every report select
+events by type (the payments report reads `R` only), so these rows are **invisible in PEARS today**.
+
+They fall into two groups (current versions):
+
+1. **Empty rows, about 180 of 201:** no rate, term, phase, percentage or comments. Most are dated on
+   the licence start date (e.g. PEDL… on 2008-07-01, P23xx on 2017-05-15, often twice), and some have
+   no date (e.g. P2128, P2158, P2594, P2607, P421 ×3). They are template or grid leftovers.
+2. **Rows that hold data, about 20:**
+
+   | Looks like | Licences (current versions) |
+   |---|---|
+   | Rate missing its `R` code | P1159 (6600, 2015-12-01), P2311, P2314, P2318, P2319 (15, 2017-05-15), P2356 (300, no date), P2397 (7500, no date), P2438 (7500, 2031-10-01), P2476 (300, 2023-07-15), P2582 (7500, 2032-12-01), P2660 (6900, 2035-06-01) |
+   | Term missing its `T` code | P1272 (term 2, 2022-06-01), P328 (term 1, 1986-12-17) |
+   | Text in the wrong field | P2036 (text in `PERCENTAGE`, 2013-01-01) |
+   | Comment only | P2582 ("DOV 20/09/22: 2 month extension of Phase A, Phase C preserved. New event row added for final recurring rate."), P335 ("Mariner PPA's Longstop date", no date), PL179 (DoV note on term durations, no date) |
+
+**Decided rule:**
+
+- **Empty rows:** not migrated; counted in the migration report.
+- **Rows with data:** not migrated, and their type is **never guessed**. Each is listed (licence,
+  version, date, values) for the licensing team to fix in PEARS before the production run, e.g. by
+  setting `R` on the missing rates. A licence whose term structure depends on an untyped `T`
+  (P1272, P328) is skipped by the term rules until fixed.
+- **Write-back:** the rebuilt PEARS XML has no untyped rows. Nothing visible in PEARS changes,
+  because they are not shown or reported today.
+
+**Wider finding for the licensing team:** the untyped rates are **missing from the payments report
+today**, not just from the migration. P2582's comment says a final recurring rate was added, but
+the row was saved without a type, so the 7500 rate from 2032 is never reported. Licences P1159,
+P2438, P2660 and the others in the table may be under-reported in the same way.
+
+```sql
+-- Untyped events that hold data (add history by removing the end_datetime filter)
+SELECT plm.licence_type || plm.licence_no licence_reference
+     , plsd.id plsd_id
+     , CASE WHEN plsd.end_datetime IS NULL THEN 'current' ELSE 'historical' END version_state
+     , e.event_date, e.term_no, e.phase, e.rate, e.percentage, e.comments
+FROM pedmgr.ped_licence_schedule_details plsd
+JOIN pedmgr.ped_licence_master plm ON plm.id = plsd.ped_lm_id
+, XMLTABLE('/SCHEDULE/EVENT_LIST/EVENT[normalize-space(EVENT_MNEM) = "" and not(DUMMY_EVENT = "true")
+            and (normalize-space(RATE) != "" or normalize-space(TERM_NO) != "" or normalize-space(PHASE) != ""
+                 or normalize-space(PERCENTAGE) != "" or normalize-space(COMMENTS) != "")]'
+    PASSING plsd.xml_data
+    COLUMNS event_date VARCHAR2(10) PATH 'EVENT_DATE', term_no VARCHAR2(5) PATH 'TERM_NO'
+          , phase VARCHAR2(5) PATH 'PHASE', rate VARCHAR2(50) PATH 'RATE'
+          , percentage VARCHAR2(4000) PATH 'PERCENTAGE', comments VARCHAR2(4000) PATH 'COMMENTS'
+  ) e
+WHERE plsd.end_datetime IS NULL
+ORDER BY 1, e.event_date;
+```
+
 ### Rate values
 
 PEARS stores `RATE` as text. LMS stores `LicenceScheduleRate.rentalRate` as `BigDecimal`
@@ -1038,7 +1094,8 @@ A pure function from `PearsSchedule` + event type catalogue to a `MigratedSchedu
 unit-testable from fixtures, as `PearsOperationMapper` is. It:
 
 1. Builds terms, then phases, then rates and other events, in that order, so anchors exist.
-2. Throws a mapping exception for an unknown `event_mnem`, a missing `ORIGIN_DATE`, or a `T`/`P`
+2. Skips events with an empty `event_mnem` per "Events with no event type" (ignored when empty,
+   reported when they hold data). Throws a mapping exception for an unknown non-empty `event_mnem`, a missing `ORIGIN_DATE`, or a `T`/`P`
    numbering it cannot place. These are collected per licence, not thrown out of the whole run.
 
 ### 3. Write: `PearsScheduleMigrationService`
@@ -1177,6 +1234,8 @@ cannot disagree.
    - schedule versions per licence (total, max, and how many are identical to the version before),
      and licences with no open version or more than one;
    - versions with no `ORIGIN_DATE`;
+   - events with an empty `EVENT_MNEM`: empty rows (count) and rows holding data (listed for the
+     licensing team); see "Events with no event type";
    - `R` event `RATE` values: whole, 1–2 dp, more than 2 dp (to be rounded), and values that do not
      fit (listed); see "Rate values";
    - `RD`/`PA` events: count per licence type and subtype, events with no `RETENTION_AREA` block,

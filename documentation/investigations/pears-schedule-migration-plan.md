@@ -1115,14 +1115,78 @@ Modelled on `CarbonStorageLicenceMigrationService.migrateSchedules()`:
   same transaction.
 - Throw `MigrationPreconditionException` if PEARS returns no schedules at all (for example the
   wrong datasource or a missing grant), so an empty run cannot look like success.
-- Return `MigrationResult(migrated, skipped)`.
+- Exposes `migrateLicence(licenceReference)`: migrates **one** licence in its own transaction and
+  returns its outcome (`MIGRATED`, `SKIPPED` with reason, or `FAILED` with notes). The background
+  worker (section 4) calls it per licence. The service does not loop over the estate itself.
 
-### 4. Trigger: `PearsScheduleMigrationController`
+### 4. Run in the background: queue, worker and controller
 
-`@Profile("migration") @RestController @RequestMapping("/migration/pears-schedules")`, with
-GET + POST (the same reason documented on `CarbonStorageLicenceMigrationController`), an optional
-`licenceReference` parameter for single-licence runs, and an `@ExceptionHandler` for
-`MigrationPreconditionException` returning 409.
+**Decided:** the migration runs as a **background job**, not inside the HTTP request. At about
+1,745 licences, 9,938 versions and ~430k LMS rows (see "Migration size (live, October 2026)"), a
+request would hit the load balancer/proxy timeout, leave the outcome unclear and give no progress.
+The existing LMS migrations (carbon storage, industry teams) run inside the request and LMS has no
+`@Async`, so this is new. It reuses what LMS already has: ShedLock (`ShedlockConfiguration`) and
+`@Scheduled` jobs (e.g. `LicenceScheduledJobService`).
+
+**Tables (Flyway):**
+
+```sql
+CREATE TABLE lms.pears_schedule_migration_runs (
+  id            UUID PRIMARY KEY,
+  status        TEXT NOT NULL,          -- QUEUED, RUNNING, COMPLETE, CANCELLED
+  requested_by  INTEGER NOT NULL,       -- wua_id
+  requested_at  TIMESTAMPTZ NOT NULL,
+  completed_at  TIMESTAMPTZ
+);
+
+CREATE TABLE lms.pears_schedule_migration_queue (
+  run_id             UUID NOT NULL REFERENCES lms.pears_schedule_migration_runs (id),
+  licence_reference  TEXT NOT NULL,
+  status             TEXT NOT NULL,     -- PENDING, MIGRATED, SKIPPED, FAILED
+  attempts           INTEGER NOT NULL DEFAULT 0,
+  outcome            TEXT,              -- skip reason / failure summary
+  notes              JSONB,             -- migration notes (rounded rates, defaults, untyped rows ...)
+  started_at         TIMESTAMPTZ,
+  finished_at        TIMESTAMPTZ,
+  PRIMARY KEY (run_id, licence_reference)
+);
+```
+
+**Controller** (`@Profile("migration")`, `/migration/pears-schedules`, GET + POST as on the other
+migration controllers):
+
+| Endpoint | Does |
+|---|---|
+| `POST /migration/pears-schedules` (optional `licenceReference`) | Reads the in-scope licence list from PEARS, creates a run and one `PENDING` queue row per licence (or just the one licence), returns **202 Accepted** with the run id. Returns 409 (`MigrationPreconditionException`) if PEARS returns no licences, or if a run is already `RUNNING`. |
+| `GET /migration/pears-schedules/{runId}` | Run status: counts by status, started/finished, and the failed and skipped licences with reasons. |
+| `POST /migration/pears-schedules/{runId}/retry-failed` | Sets `FAILED` rows back to `PENDING` (e.g. after the licensing team fixes data in PEARS). |
+| `POST /migration/pears-schedules/{runId}/cancel` | Marks the run `CANCELLED`. The worker stops claiming its rows, and a licence mid-flight finishes. |
+
+**Worker** (`PearsScheduleMigrationJob`, `@Profile("migration")`):
+
+- `@Scheduled(fixedDelayString = "${pears.schedule-migration.poll:PT5S}")` with
+  `@SchedulerLock(name = "pearsScheduleMigration", …)`, so only one LMS instance works a run at a
+  time.
+- Each pass claims a small batch of `PENDING` rows from the oldest `RUNNING`/`QUEUED` run
+  (`pears.schedule-migration.batch-size`, start at 10; tune after the UAT rehearsal). For each
+  licence it calls `PearsScheduleMigrationService.migrateLicence` (one transaction per licence),
+  then records the outcome, notes, attempts and timings in a separate short transaction.
+- When no `PENDING` rows remain, the run becomes `COMPLETE`.
+- **Restarts and deployments:** a licence in flight when an instance stops is rolled back and stays
+  `PENDING`, so the next pass carries on. Re-running is safe anyway, because licences with a schedule
+  are skipped.
+- **PEARS load:** one licence at a time on a 3-connection read-only pool
+  (`pears.datasource.hikari.maximum-pool-size=3`) keeps the load on PEARS predictable.
+
+**Operational notes:**
+
+- Time the largest licence (59 schedule versions) in the UAT rehearsal. It is the biggest single
+  transaction.
+- Run the **current-only** rehearsal first (~1,744 versions, ~35k events), then the full history.
+- **Go-live:** the final run must be `COMPLETE`, with failures reviewed or accepted, before the
+  `RD`/`PA` EPMQ round trip and the write-back are switched on (see "Write-back transport").
+- The comparison report (section 6) and the validation test (section 5) are unchanged. The
+  validation test stays a separate Gradle task.
 
 ### 5. Validate: `PearsScheduleMigrationValidationTest`
 
@@ -1216,6 +1280,36 @@ model (`PearsScheduleComparisonService.compare(licenceReference)`) and fails not
 same rows into `MigrationValidationReport`, so the full-estate sweep and the per-licence report
 cannot disagree.
 
+## Migration size (live, October 2026)
+
+Placeholder grid rows (`DUMMY_EVENT = 'true'`) are excluded.
+
+| Licences | Licences | Schedule versions | Current versions |
+|---|---|---|---|
+| In scope: `P` (seaward production) | 1,525 | 8,030 | 1,524 |
+| In scope: `PEDL` (landward production) | 220 | 1,908 | 220 |
+| **In-scope total** | **1,745** | **9,938** | **1,744** |
+| Outside scope: PL 26, EXL 12, ML 7, DL 5, AL 3, CE 1, blank type 9 | 63 | 609 | 63 |
+
+Average 5.3 versions per `P` licence and 8.7 per `PEDL` licence, with a maximum of 59. One `P`
+licence has no current version. No licence has more than one.
+
+| Events (all 1,808 licences) | All versions | Current |
+|---|---|---|
+| `R` | 153,430 | 25,831 |
+| `T` | 26,900 | 4,844 |
+| `MR` | 10,668 | 2,039 |
+| `E` | 9,201 | 1,621 |
+| `P` | 4,342 | 666 |
+| `RD` / `PA` | 1,867 / 1,205 | 252 / 151 |
+| `DD` / `2M` / `BM` / `2N` | 997 / 253 / 172 / 0 | 240 / 37 / 41 / 0 |
+| no type | 1,462 | 201 |
+| **Total** | **210,497** | **35,923** |
+
+Estimated LMS rows for the full history: about **430k**. That is ~10.5k schedule details and start
+dates, ~153k rates (more under option B for yearly rates), ~27k terms, ~12k other events, ~9k
+expiries, ~4k phases, ~3k area events and ~209k migration links, plus event comments.
+
 ## Delivery steps
 
 1. **Data survey (before writing code).** Against live (read-only), count:
@@ -1275,7 +1369,9 @@ cannot disagree.
     schedule, no template, sync row created, existing areas published),
     `apply_lms_schedule` (full rebuild, acknowledgement end-dating, sync table), and the round-trip
     test.
-7. Controller + controller test.
+7. Background run: queue and run tables (Flyway), `PearsScheduleMigrationJob` (ShedLock-guarded
+   worker), controller (start, status, retry-failed, cancel), with tests including restart mid-run
+   and a second instance.
 8. Link table migration, `PearsScheduleComparisonService` + `PearsScheduleComparisonController`
    (HTML + CSV) + tests. Build this **before** the first UAT run, so the licensing team can review
    chosen licences from the first run onwards.

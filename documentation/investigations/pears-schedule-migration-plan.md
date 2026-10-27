@@ -578,7 +578,8 @@ puts these requirements on the migration and the write-back (building it is sepa
   `COMMENTS` were migrated as `EventComment`s and are **not** written back. After the first
   write-back, PEARS's Term/Phase/Rate comments are empty: for example 5856's Term 2 extension
   history, and 7488's "Was £150, now £15" rate notes. They remain visible in LMS. They also drop
-  out of PEARS's read-only schedule screen and the text summary (`scribe_schedule_events`).
+  out of PEARS's text summary (`scribe_schedule_events`). The PEARS schedule screen redirects to LMS,
+  so nobody sees them missing there.
 - **Not written**: LMS work programme activities (no PEARS equivalent). LMS other events whose
   category has no PEARS event type (a free-typed "Other activity" name that matches no
   `ped_template_event_types.short_title`). **Pending check (Open question 13):** if nothing in PEARS
@@ -591,8 +592,13 @@ puts these requirements on the migration and the write-back (building it is sepa
   `template_schedule.generate_acknowledgements`. Exactly one new PEARS version per write-back message,
   changed or not (see "Write-back transport (EPMQ, LMS → PEARS)").
 - **One writer**: from go-live, only the LMS write-back writes a migrated licence's
-  `ped_licence_schedule_details`. The Fox schedule screen (`PED012X`) becomes read-only for these
-  licences. The area screens (`PED031L`/`PED033X`) and `LICENSING_RETENTION_AREAS` keep working,
+  `ped_licence_schedule_details`. **Decided:** the Fox schedule screen (`PED012X`) **redirects to
+  the LMS schedule** for these licences rather than becoming read-only. Use the existing
+  `LMS_REDIRECT` module's `view-schedule` theme (→ `{LMS}/redirect-to-licence/{licence ref}/schedule`),
+  as the licence search's "View Schedule" link already does. Every route into `PED012X` for a
+  migrated licence (`licenceView`, `licenceMaintain`, `licenceMaintainAndAcknowledge`, and calls
+  from Raise Licence `PED017X` or retention area screens) redirects. Template themes (`new`,
+  `templateMaintain`, `templateView`, `copy`) are unaffected. The area screens (`PED031L`/`PED033X`) and `LICENSING_RETENTION_AREAS` keep working,
   because PEARS still owns the areas, but for migrated licences they publish the `RD`/`PA` set to LMS
   instead of writing the schedule (Open question 9).
 - **Round-trip test**: PEARS XML → LMS → regenerated XML for sample licences (5856, 7488, licences
@@ -696,7 +702,8 @@ does not yet include the first. PEARS should therefore base the next change on t
 **published** for the licence (kept in a small outbox or the sync table), not on the schedule XML.
 
 **Go-live order:**
-1. Freeze the PEARS schedule screen (`PED012X`) for migrated licences.
+1. Switch the PEARS schedule screen (`PED012X`) to redirect to LMS for migrated licences, so no
+   further schedule edits are made in PEARS.
 2. Run the final migration and `RD`/`PA` refresh, and create the `ped_lms_schedule_sync` rows.
 3. Switch on the LMS → PEARS write-back consumer.
 4. Switch `LICENSING_RETENTION_AREAS` to publish for migrated licences, and switch on LMS's
@@ -726,9 +733,9 @@ XML and calls `process_event_date_from_origin`.
    - inserts the **first** `ped_licence_schedule_details` version. `update_licence_schedule`'s
      end-date step simply matches no rows;
    - handles **no template**. `ped_ts_id` is null, so the template name/description update is skipped.
-     The Fox schedule screen and anything else that joins `ped_template_schedules` (e.g. `PED012X`
-     `qry-populate-details`) must cope with no template, or a placeholder template per licence is
-     created (Open question 12);
+     The Fox schedule screen is not affected, because it redirects to LMS for LMS-managed licences.
+     Any other PEARS code that joins `ped_template_schedules` for a licence must cope with no
+     template, or a placeholder template per licence is created (Open question 12);
    - creates the `ped_lms_schedule_sync` row, so from then on the licence is treated as LMS-managed;
    - runs `generate_acknowledgements`.
 5. **Existing areas:** `apply_active_to_lic_schedule` returns early today when a licence has no
@@ -1282,8 +1289,10 @@ cannot disagree.
     regenerated once it arrives, or document generation moves to LMS. Confirm the raise process
     order with the licensing team.
 12. **No template for LMS-created schedules.** Open. New licences have no `ped_ts_id`. Either the
-    PEARS code that reads a licence's template (e.g. the Fox schedule screen's `qry-populate-details`)
-    is changed to cope with none, or `apply_lms_schedule` creates a placeholder template per licence.
+    PEARS code that reads a licence's template is changed to cope with none, or `apply_lms_schedule`
+    creates a placeholder template per licence. The Fox schedule screen is no longer a concern: it
+    redirects to LMS for LMS-managed licences. Remaining readers to check include Raise Licence
+    (`PED017X`, which joins `ped_template_schedules` on `ped_ts_id`) and licence document data.
 13. **LMS-only "Other activity" events.** Open, pending a check of what PEARS currently reports on.
     If they are not reported on, events whose category has no PEARS event type are **not written
     back** and stay in LMS only. Starting points for the check (PEARS consumers of schedule events):

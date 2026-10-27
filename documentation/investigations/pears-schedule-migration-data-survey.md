@@ -10,7 +10,7 @@
 - **Scope (decided after S1–S18 were run):** every PEARS licence schedule on a PEARS-managed licence
   type (`LicenceType.managedByLms = false` in LMS), regardless of licence status. That is every
   licence type with a PEARS schedule: `P`, `PEDL`, `PL`, `EXL`, `ML`, `DL`, `AL` and `CE`. Only
-  blank-type licences (no LMS licence) and schedules with no terms (left to the licensing team) are
+  schedules with no terms (left to the licensing team) are
   not migrated. See the plan, "Scope: licence types and
   statuses".
 - **Coverage:** every section covers every licence type. S2, S3, S6 and S17 had no type filter.
@@ -28,7 +28,7 @@
 | # | Survey item | Status | Section |
 |---|---|---|---|
 | S1 | Event type catalogue | ✅ Live, 27 Oct 2026 | [S1](#s1-event-type-catalogue) |
-| S2 | Licences and schedule versions by licence type | ✅ Live, 27 Oct 2026 (with S2b, S2c) | [S2](#s2-licences-and-schedule-versions) |
+| S2 | Licences and schedule versions by licence type | ✅ Live, 27 Oct 2026 (with S2b) | [S2](#s2-licences-and-schedule-versions) |
 | S3 | Events by type | ✅ Live, 27 Oct 2026 | [S3](#s3-events-by-type) |
 | S4 | Retention/development area rate | ✅ Live, 27 Oct 2026: never used | [S4](#s4-retentiondevelopment-area-rate) |
 | S5 | `RECUR_END_DATE` | ✅ Live, 27 Oct 2026: never used | [S5](#s5-recur_end_date) |
@@ -54,14 +54,14 @@ exceptions are mostly systematic, by licensing round, rather than one-off errors
 
 | Area | Finding | Section |
 |---|---|---|
-| Size | 1,808 licences with a schedule, 10,858 versions, ~216k events, ~450k LMS rows, all in scope. `P` and `PEDL` are 1,745 licences and 10,239 versions. The other 63 are `PL`, `EXL`, `ML`, `DL`, `AL`, `CE`, plus 9 records with no type or number (skipped, S2c). Only 420 typed licences (23%) are extant (381 `P`/`PEDL`, 39 others); 1,354 are surrendered, expired or revoked, and 25 have no status. | S2, S3, S18 |
+| Size | 1,799 licences with a licence type and a schedule, 10,834 versions, ~215.8k events, ~450k LMS rows, all in scope. `P` and `PEDL` are 1,745 licences and 10,239 versions. The other 54 are `PL`, `EXL`, `ML`, `DL`, `AL`, `CE`. Only 420 typed licences (23%) are extant (381 `P`/`PEDL`, 39 others); 1,354 are surrendered, expired or revoked, and 25 have no status. | S2, S3, S18 |
 | Event types | The 11 known types only. `2N` is never used. | S1, S3 |
 | Start dates | Every current version has one. 1,125 historical versions have none and use a borrowed date (decided). 7 current versions (5 `P`, 1 `PL`, 1 `ML`) differ from the licence start date. | S10 |
 | Terms | 1,540 of 1,798 current schedules follow the plan's rule exactly, and 166 more have terms but no expiry. 172 don't fit the original rule (134 `P`/`PEDL`, 38 other types). They fall into 7 patterns (A–G), and every pattern now has a decided rule (L5–L10). 40 have no terms and are left to the licensing team (L9). | S7, S8 |
 | Phases | All 309 schedules with phases follow the rule (last phase ends at `T(1)`). Skipped phases are normal and allowed by business rule (in order). | S9 |
 | Rates | All populated `P`, `PEDL`, `EXL`, `DL` and `AL` values are whole numbers; 2 rate-only schedules have an empty rate. `ML` has pence, and `PL`/`ML` have decimals with no leading zero (e.g. `.5`), which parse fine (S11c). On migrated schedules every rate fits. Every schedule ends in one indefinite yearly rate. About 310 deliberate gaps between rates on migrated schedules (298 `P`, 12 `PL`), mostly pre-1999. Fixed-count yearly rates on 9 `PL` and 3 `AL`. | S11, S12 |
 | Date arithmetic | PEARS stored dates are reliable (1 exception). Copying offsets would move 96 events (94 `P`, 2 `EXL`) by up to 3 days, which deriving offsets from dates avoids. | S14 |
-| Untyped events | 201 on current versions: ~180 empty leftovers, ~20 holding data on 16 licences. | S6 |
+| Untyped events | 201 on current versions: ~180 empty leftovers, ~20 holding data on 16 licences. Never shown on the schedule screen, so ignored by the migration (L1). | S6 |
 | Relinquishment % | 585 feed licence documents (incl. 8 `PL`). 713 hold the figure only in comments. 303 hold `x` (not migrated, decided). | S13 |
 | `RD`/`PA` | 463 current events (403 `P`/`PEDL`, 60 other types). A fourth subtype, `END`. 51 older `PA` events have no subtype, area block or `EVENT_ID`. | S15 |
 | History matching | `EVENT_ID` only on `RD`/`PA`. Type + offset is unique within a version; comments often repeat. | S16 |
@@ -76,10 +76,8 @@ Items that need the licensing team, as either a **fix in PEARS** before the prod
 
 | # | Item | Licences | Why it matters | Section |
 |---|---|---|---|---|
-| L1 | **Untyped events holding data** on current schedules: rates missing their `R` code, terms missing their `T` code, text in the wrong field, comment-only rows | P1159, P1272, P2036, P2311, P2314, P2318, P2319, P2356, P2397, P2438, P2476, P2582, P2660, P328, P335, PL179 | Not migrated, and the type is never guessed. The untyped rates are **missing from the payments report today** (e.g. P2582's final 7500 rate since 2022). Because missing terms are allowed, P1272 and P328 would migrate **without** the untyped term, so their LMS terms would be wrong. | S6 |
 | L2 | **Indefinite yearly rate followed by another rate** | P2644 (7500 yearly from 2038, then a one-off 150 in 2039) | The payments report pays both. Probably a data error. | S12b |
 | L3 | **Schedule start date differs from the licence start date** | P1064, P1930, P2138, P2139, P2349, PL220, ML6 | If the licence start date is right, every schedule date (terms, rates) is shifted, including payments report dates. (P2349 and ML6 have no terms, pattern E, so they aren't migrated; fix before the licensing team creates them in LMS.) | S10b |
-| L4 | **Licence records with a schedule but no licence type or number** | 9 records (`ped_lm_id` 6096, 6157, 6159, 6160, 6415, 7538, 7540, 7544, 7968), 24 versions | They have no licence reference, so they can't be matched to an LMS licence or migrated. Confirm they are abandoned records that can be ignored. | S2c |
 | L17 | **Licence with no current schedule version** | P1161 (both versions end-dated 14/10/2011) | Skipped and reported: there is no current version to migrate. Confirm whether it should have a schedule, and if so restore one in PEARS. | S2b |
 
 ### Confirm or decide a migration rule
@@ -98,10 +96,11 @@ present, and the first phase present, start on the licence start date.
 
 | # | Item | Licences | Rule | Section |
 |---|---|---|---|---|
+| L1 | **Events saved without an event type** (current and history) | 201 on current versions: ~180 empty rows, ~20 holding data on 16 licences (P1159, P1272, P2036, P2311, P2314, P2318, P2319, P2356, P2397, P2438, P2476, P2582, P2660, P328, P335, PL179) | **Ignored by the migration** and only counted in the report. The schedule screen never shows them, so the licensing team never sees them and can't fix them there. LMS matches what PEARS shows today: P1272 and P328 have no term for their untyped rows, and the untyped rates (e.g. P2582's 7500 from 2032) aren't migrated, just as the payments report doesn't pay them. | S6 |
 | L5 | **No `T(1)`, only `T(2)` and `T(3)` = expiry (pattern A)** | 49 `P` (2017–2024 rounds) and PEDL141 (pattern G) | Business rule. No Initial term. Second = start → `T(2)`, Third = `T(2)` → `T(3)`/expiry. None has phases, so LMS's phase checks (which need an Initial term) don't apply. | S8b, S8c |
 | L6 | **Last `T` earlier than the expiry (pattern B)** | ~30, mostly 1980s (P328, P351, P473, P483–P614, P556, P726, P774, P799, P1055, P1192, P1262, P1577, P1722, P1885, P2316, PEDL116, PEDL155, PEDL255), plus PEDL141 and P1159; and 15 others (PL55, PL77, PL79, PL80, PL81, PL90, PL116, PL161, PL162, PL211, PL233, PL234, PL259, EXL250, EXL273) | Migrated as they are: no extra term, the final term ends on its `T`, and the expiry keeps the `E` date. Each one is reported. LMS's Review and Apply check will flag the difference the next time the schedule is edited. | S8b |
 | L7 | **Four terms (pattern C)** | 13: P1162, P1165, P1368, P1373, P1374, P1484, P1485, P1487, P1488, P1636, P1638, P1640, P1641 | LMS gets a Fourth term (`T(4)` ends it). It can only be maintained on licences whose schedule already has one, and can't be added to any other schedule. See the plan's "Decision: four-term licences". | S8b |
-| L8 | **Unnumbered `T` on the start date (pattern D)** | P2313, P2322, P2326, P2327, P2331, P2332, P1159; PL205, PL211, PL213, PL215, PL220, PL233, PL234, PL259 | A `T` event with no number is ignored and not migrated. The numbered terms then fit the rules. | S8b |
+| L8 | **Unnumbered `T` on the start date (pattern D)** | P2313, P2322, P2326, P2327, P2331, P2332, P1159; PL205, PL211, PL213, PL215, PL220, PL233, PL234, PL259 | A `T` event with no number is ignored and not migrated, and only counted in the report (as untyped events, L1). The numbered terms then fit the rules. | S8b |
 | L9 | **Schedules with no terms (pattern E)** | 40. 22 `P`: 14 extant (P249, P251, P256, P257, P291, P292, P293, P295, P296, P324, P416, P2333, P2495, P2643), 7 surrendered (P252, P258, P288, P404, P474, P2334, P2349), 1 expired (P294). 18 others: ML3, ML4, ML5, ML6, ML7, ML18, ML21, DL1–DL5, PL89, PL199, PL240, PL241, PL249, CE1 (17 extant, all but DL5) | **Not migrated.** Reported with their licence status, and the licensing team creates the LMS schedule manually. | S8, S8b, S8d |
 | L10 | **`T(1)` and `T(3)` = expiry, no `T(2)` (pattern F)** | P1800, PEDL143, PEDL189, PEDL235, PL235 | Business rule. No Second term. Initial = start → `T(1)`, Third = `T(1)` → `T(3)`. | S8b |
 | L11 | **Phases `C` only or `BC`** | 16 (`C`), 15 (`BC`) | Business rule. The first phase present starts on the licence start date. With `C` only, Phase C covers the whole initial term. | S9 |
@@ -109,7 +108,7 @@ present, and the first phase present, start on the licence start date.
 
 ### For information only
 
-- **Untyped events in history only:** P1328, P1665, P2329. Past versions can't be corrected.
+- **Untyped events in history only:** P1328, P1665, P2329. Ignored like all untyped events (L1).
 - **186 current schedules have no expiry event** (185 `P` and CE1). The 166 that have terms migrate
   without an expiry record. The other 20 have no terms either (pattern E), so they aren't migrated.
 - **`x` in the relinquishment percentage** (303 events) is not migrated (decided). The event is.
@@ -167,6 +166,7 @@ WITH per_licence AS (
        , SUM(CASE WHEN plsd.end_datetime IS NULL THEN 1 ELSE 0 END) open_versions
   FROM pedmgr.ped_licence_master plm
   JOIN pedmgr.ped_licence_schedule_details plsd ON plsd.ped_lm_id = plm.id
+  WHERE plm.licence_type IS NOT NULL
   GROUP BY plm.id, plm.licence_type
 )
 SELECT CASE WHEN GROUPING(pl.licence_type) = 1 THEN 'ALL' ELSE pl.licence_type END AS lic_type
@@ -195,18 +195,15 @@ ORDER BY 9, 1;
 | **P** | **1,525** | **8,312** | **1,524** | 5.5 | 66 | **1** | 0 |
 | **PEDL** | **220** | **1,927** | **220** | 8.8 | 28 | 0 | 0 |
 | PL | 26 | 336 | 26 | 12.9 | 24 | 0 | 0 |
-| *(blank)* | 9 | 24 | 9 | 2.7 | 5 | 0 | 0 |
-| **ALL** | **1,808** | **10,858** | **1,807** | 6 | 66 | 1 | 0 |
+| **ALL** | **1,799** | **10,834** | **1,798** | 6 | 66 | 1 | 0 |
 
 **Reading:**
 
-- **All in scope** (scope decision, see Conventions): 1,808 licences, 10,858 versions, 1,807
-  current.
+- **In scope** (scope decision, see Conventions): the 1,799 licences with a licence type, 10,834
+  versions, 1,798 current.
 - **`P` and `PEDL`:** 1,745 licences, **10,239** schedule versions, 1,744 current. Most of the
   survey (S7–S16, S18) looked at these only.
-- **Other types:** 63 licences, 619 versions. That covers PL, EXL, ML, DL, AL, CE, and 9 licences
-  with no `licence_type` (and, S2c shows, no licence number either). They can't be matched to an LMS
-  licence, so they are skipped and reported (L4).
+- **Other types:** 54 licences, 595 versions: PL, EXL, ML, DL, AL and CE.
 - One `P` licence has no current version (P1161, S2b; skipped and reported). The largest history is now **66**
   versions.
 - An earlier run (October 2026, environment not recorded) gave 10,547 versions in total (9,938 in
@@ -231,25 +228,6 @@ versions, and the last was end-dated on 14/10/2011 at 14:13:29 with no new versi
 is skipped and reported (plan, "Schedule history"). Nothing records why its schedule was ended
 in 2011. The licensing team should confirm whether P1161 should have a schedule at all (L17).
 
-### S2c. Licences with a schedule but no licence type
-
-```sql
-SELECT plm.id ped_lm_id, plm.licence_no, COUNT(*) versions
-FROM pedmgr.ped_licence_master plm
-JOIN pedmgr.ped_licence_schedule_details plsd ON plsd.ped_lm_id = plm.id
-WHERE plm.licence_type IS NULL
-GROUP BY plm.id, plm.licence_no;
-```
-
-**Result (live, 27 October 2026):** 9 records, 24 versions (matching S2). **None has a licence
-number either**: `ped_lm_id` 6096, 6157, 6159, 6160, 6415 (2 versions each), 7538, 7544, 7968 (3
-each) and 7540 (5).
-
-**Reading:** with no type and no number, these aren't identifiable licences. LMS has no licence
-reference to match them to, so they can't be migrated. They look like licence records abandoned
-part-way through being set up, after a template schedule was attached. The licensing team should
-confirm they can be ignored (L4).
-
 ## S3. Events by type
 
 ```sql
@@ -259,30 +237,32 @@ SELECT CASE WHEN GROUPING(e.event_mnem) = 1 THEN 'ALL' ELSE e.event_mnem END AS 
      , COUNT(DISTINCT plsd.ped_lm_id)                             AS licences
      , GROUPING(e.event_mnem)                                     AS is_total
 FROM pedmgr.ped_licence_schedule_details plsd
+JOIN pedmgr.ped_licence_master plm ON plm.id = plsd.ped_lm_id
 , XMLTABLE('/SCHEDULE/EVENT_LIST/EVENT[not(DUMMY_EVENT = "true")]'
     PASSING plsd.xml_data
     COLUMNS event_mnem VARCHAR2(10) PATH 'EVENT_MNEM'
   ) e
+WHERE plm.licence_type IS NOT NULL
 GROUP BY ROLLUP(e.event_mnem)
 ORDER BY 5, 2 DESC;
 ```
 
-**Result (live, 27 October 2026; all 1,808 licences):**
+**Result (live, 27 October 2026; all 1,799 licences with a licence type):**
 
 | MNEM | ALL VERSIONS | CURRENT | LICENCES |
 |---|---|---|---|
-| R | 157,791 | 25,839 | 1,807 |
-| T | 27,506 | 4,844 | 1,774 |
-| MR | 10,837 | 2,039 | 1,428 |
-| E | 9,340 | 1,621 | 1,800 |
-| P | 4,412 | 666 | 314 |
+| R | 157,401 | 25,685 | 1,798 |
+| T | 27,434 | 4,817 | 1,765 |
+| MR | 10,799 | 2,026 | 1,419 |
+| E | 9,316 | 1,612 | 1,791 |
+| P | 4,384 | 658 | 310 |
 | RD | 2,091 | 264 | 60 |
 | *(no type)* | 1,498 | 201 | 209 |
 | PA | 1,449 | 151 | 27 |
 | DD | 1,004 | 240 | 249 |
-| 2M | 253 | 37 | 39 |
+| 2M | 251 | 36 | 38 |
 | BM | 185 | 45 | 26 |
-| **ALL** | **216,366** | **35,947** | **1,807** |
+| **ALL** | **215,812** | **35,735** | **1,798** |
 
 **Reading:**
 
@@ -292,17 +272,19 @@ ORDER BY 5, 2 DESC;
 
   | LMS table | Rows |
   |---|---|
-  | Schedule details + start dates | ~10.9k each |
-  | Rates | ~158k (more under yearly-rate option B) |
-  | Terms | ~27.5k |
-  | Other schedule events (`MR`, `DD`, `2M`, `BM`) | ~12.3k |
+  | Schedule details + start dates | ~10.8k each |
+  | Rates | ~157k (more under yearly-rate option B) |
+  | Terms | ~27.4k |
+  | Other schedule events (`MR`, `DD`, `2M`, `BM`) | ~12.2k |
   | Expiries | ~9.3k |
   | Phases | ~4.4k |
   | Area events (`RD`, `PA`) | ~3.5k |
-  | Migration links (all typed events) | ~215k |
+  | Migration links (all typed events) | ~214k |
   | Event comments | up to the commented T/P/R events, fewer after removing repeats |
 
-- About 186 current schedules have no `E` (1,807 − 1,621), unless some have more than one (S7).
+  These are upper bounds: the 40 schedules with no terms (S8) and P1161 (S2b) are not migrated.
+- 186 current schedules have no `E` (1,798 − 1,612), which matches S7 (no schedule has more than
+  one).
 - These counts cover every licence with a schedule, which is the migration's scope.
 - An earlier run (October 2026, environment not recorded) gave 210,497 events (35,923 current).
   Current-version counts barely moved; the growth is in history, from new versions.
@@ -332,6 +314,7 @@ SELECT plm.licence_type,
 FROM pedmgr.ped_licence_schedule_details plsd
 JOIN pedmgr.ped_licence_master plm ON plm.id = plsd.ped_lm_id
 WHERE plsd.end_datetime IS NULL
+AND plm.licence_type IS NOT NULL
 GROUP BY plm.licence_type,
        CASE
          WHEN XMLEXISTS('/SCHEDULE/RETENTION_AREA_RATE/text()' PASSING plsd.xml_data) THEN 'value set'
@@ -361,7 +344,6 @@ SELECT COUNT(*) FROM pedmgr.xview_ped_lic_schedule_events WHERE retention_area_r
   | **P** | element missing | **1,524** |
   | **PEDL** | element empty / missing | **114 / 106** |
   | PL | element empty / missing | 25 / 1 |
-  | *(blank)* | element missing | 9 |
 
   No schedule has a value set. Offshore (`P`) schedules never have the element. Onshore schedules
   have an empty element when they have been opened for editing on the onshore schedule screen,
@@ -531,16 +513,16 @@ ORDER BY 1, e.event_date;
 - **Long-standing:** P2311 has had an untyped rate of 15 since April 2017 (13 versions), P2397 a
   rate of 7500 since August 2021, and P2582 7500 since September 2022. None appear in the payments
   report.
-- **History only, already gone from current:** P1328, P1665, P2329. Nothing to fix. The migration
-  skips their historical untyped rows and lists them as **information only**, since past PEARS
-  versions cannot be corrected.
-- **Still current:** the other 16 licences, the ones listed in query 1's data rows. These are the
-  ones for the licensing team to fix in PEARS before the production run.
+- **History only, already gone from current:** P1328, P1665, P2329.
+- **Still current:** the other 16 licences, the ones listed in query 1's data rows.
+- **Decided (L1):** all untyped events, current and historical, are **ignored by the migration** and
+  only counted. The schedule screen (`PED012X`) only shows events by type, so the licensing team
+  never sees these rows and can't fix them there. LMS then matches what PEARS shows.
 
 **Other types, checked separately (live, 27 October 2026):** query 1 filtered to
 `NOT IN ('P', 'PEDL')` returned 25 rows, all already counted above. 24 are empty rows dated on the
 licence start date (all 3 `AL`, 11 `EXL` and 10 `PL`), which are ignored. The other is PL179's
-comment-only row, already on the licensing team's list (L1). Nothing new holds data.
+comment-only row, already counted above. Nothing new holds data.
 
 The handling rule is in the plan, under "Events with no event type".
 
@@ -793,7 +775,7 @@ each now with a decided rule:
 | A | **No `T(1)`, only `T(2)` and `T(3)` = `E`** (modern rounds, 2017–2024) | 49 `P` (see S8c) | P2505: `2@2027-12-01, 3@2042-12-01`, `E` 2042-12-01 | **Decided (business rule: terms may be skipped but must be in order).** No Initial term: **Second** = `ORIGIN_DATE`→`T(2)`, **Third** = `T(2)`→`T(3)`/`E`. No phases exist (S8c), so the phase checks' need for an Initial term doesn't arise. |
 | B | **Last `T` earlier than `E`**: only `T(1)` (or `T(1)`, `T(2)`), then `E` years later (mostly 1980s licences, some later) | ~30 `P`/`PEDL`: P328, P351, P473, P483–P614, P556, P726, P774, P799, P1055, P1192, P1262, P1577, P1722, P1885, P2316, PEDL116, PEDL155, PEDL255. **Plus 15 others:** PL55, PL77, PL79, PL80, PL81, PL90, PL116, PL161, PL162 (only `T(1)`, then `E` decades later), PL211, PL233, PL234, PL259 (also pattern D), EXL250, EXL273 | P516: `1@1991-06-14`, `E` 2021-06-14; PL116: `1@1975-08-01`, `E` 2045-08-01 | **Decided: migrate as they are and report.** No extra term is added. The final term ends on its `T`, and the expiry keeps the `E` date. (The earlier candidate was to add the next term from the last `T` to `E`, as PL179's DoV note suggests.) |
 | C | **4 terms** (2004–2009 rounds) | 13: P1162, P1165, P1368, P1373, P1374, P1484, P1485, P1487, P1488, P1636, P1638, P1640, P1641 | P1484: `1@2009-04-01, 2@2013-04-01, 3@2019-04-01, 4@2037-04-01` | **Decided.** Migrate as four terms: LMS gets a `FOURTH` term type, and `T(4)` ends the Fourth term. It can only be maintained on licences whose schedule already has one. No other schedule can have it added. |
-| D | **Unnumbered `T` on `ORIGIN_DATE`**, plus 1, 2, 3 | 7 `P`: P2313, P2322, P2326, P2327, P2331, P2332, and P1159. **Plus 8 `PL`:** PL205, PL211, PL213, PL215, PL220, PL233, PL234, PL259 | P2313: `?@2017-05-15, 1@2026-05-15, 2@2032-05-15, 3@2050-05-15`; PL213: `?@1982-08-09, 1@1986-08-09, 2@2006-08-09, 3@2029-08-09` | **Decided: ignore any `T` event with no number** (not migrated, listed in the report). The rest then fit the rules. P1159 also has a `T(3)` earlier than `E`. It is pattern B, so it is migrated as it is and reported (see L6). |
+| D | **Unnumbered `T` on `ORIGIN_DATE`**, plus 1, 2, 3 | 7 `P`: P2313, P2322, P2326, P2327, P2331, P2332, and P1159. **Plus 8 `PL`:** PL205, PL211, PL213, PL215, PL220, PL233, PL234, PL259 | P2313: `?@2017-05-15, 1@2026-05-15, 2@2032-05-15, 3@2050-05-15`; PL213: `?@1982-08-09, 1@1986-08-09, 2@2006-08-09, 3@2029-08-09` | **Decided: ignore any `T` event with no number** (not migrated; only counted in the report, as untyped events are). The rest then fit the rules. P1159 also has a `T(3)` earlier than `E`. It is pattern B, so it is migrated as it is and reported (see L6). |
 | E | **No `T` events at all** | 22 `P`: old licences 1976–1982 (P249–P474) and some recent ones (P2333, P2334, P2349, P2495, P2643). **Plus 18 others:** ML3, ML4, ML5, ML6, ML7, ML18, ML21, DL1–DL5, PL89, PL199, PL240, PL241, PL249, CE1 | P249: one `R`, no terms, no `E`; ML3: no terms, `E` 2034-01-01 | **Decided: not migrated.** Reported with the licence status; the licensing team creates the LMS schedule manually. `P`: rate-only schedules (S8d), 14 extant, 7 surrendered, 1 expired. Others: 17 of 18 extant (all but DL5); all but CE1 have an `E`. |
 | F | **`T(1)` and `T(3)` = `E`, no `T(2)`** | 4: P1800, PEDL143, PEDL189, PEDL235. **Plus PL235** (`1@1987-10-28, 3@2035-10-28`) | PEDL189: `1@2025-07-01, 3@2039-07-01` | **Decided (business rule).** A skipped second term: **Initial** = `ORIGIN_DATE`→`T(1)`, **Third** = `T(1)`→`T(3)`. No Second term. |
 | G | **`T(2)` only, `E` later** | 1: PEDL141 | `2@2013-10-01`, `E` 2031-10-01 | **Decided (business rule), then pattern B.** **Second** = `ORIGIN_DATE` (2004-10-01)→`T(2)` (2013). No Third term is added. The expiry keeps `E` (2031-10-01), and the licence is reported. |
@@ -1045,9 +1027,7 @@ no phase letter). The expected result is `LAST_P_EQUALS_T1` throughout, as on li
 - The phase rule in the plan ("Phase boundaries") is confirmed by live data.
 - **Other types (`PL`, `EXL`, `ML`, `DL`, `AL`, `CE`): no phase events at all**, in any version,
   current or historical (checked 27 October 2026 with a cut-down query: every `P` event on a
-  licence type other than `P`/`PEDL`, grouped by licence; no rows). The 28 phase events that S3
-  counts beyond S16's `P`/`PEDL` total must be on the blank-type licences, which the
-  `NOT IN` filter leaves out.
+  licence type other than `P`/`PEDL`, grouped by licence; no rows).
 
 ## S10. `ORIGIN_DATE` (all versions)
 
@@ -2014,7 +1994,8 @@ the schedule in LMS, and the comparison report lists them as "No PEARS schedule"
 ```sql
 SELECT plm.licence_type, COUNT(*) licences_without_schedule
 FROM pedmgr.ped_licence_master plm
-WHERE NOT EXISTS (
+WHERE plm.licence_type IS NOT NULL
+AND NOT EXISTS (
   SELECT 1 FROM pedmgr.ped_licence_schedule_details plsd WHERE plsd.ped_lm_id = plm.id
 )
 GROUP BY plm.licence_type
@@ -2035,7 +2016,6 @@ ORDER BY 1;
 | **PEDL** | **124** |
 | PL | 240 |
 | XL | 211 |
-| *(blank)* | 171 |
 
 **Reading:**
 
@@ -2046,8 +2026,8 @@ ORDER BY 1;
   would need its schedule created by hand in LMS at go-live, so S17b breaks them down by status.
   **None is extant:** they are surrendered or revoked licences, or records with no live data point.
 - **The other PEARS-managed types also have licences with no schedule:** 283 `EXL`, 240 `PL`, 25 `ML`,
-  7 `AL`, and 103 `A`, 13 `B`, 1 `NA`, 211 `XL` (types that never have a schedule, S2), plus 171 with
-  a blank type. **None of them is extant either** (S17b).
+  7 `AL`, and 103 `A`, 13 `B`, 1 `NA`, 211 `XL` (types that never have a schedule, S2).
+  **None of them is extant either** (S17b).
 
 ### S17b. Licences with no PEARS schedule, by status
 
@@ -2090,11 +2070,11 @@ GROUP BY plm.licence_type, NVL(cs.licence_status, '(no status)')
 ORDER BY 1, 3 DESC;
 ```
 
-Second run, for the other PEARS-managed types and blank types. It lists the extant licences instead
+Second run, for the other PEARS-managed types. It lists the extant licences instead
 of the number range:
 
 ```sql
--- Other PEARS-managed types (and blank) with no PEARS schedule, by status (as S17b, other types)
+-- Other PEARS-managed types with no PEARS schedule, by status (as S17b, other types)
 WITH latest_dp AS (
   SELECT licence_type, licence_no, ped_dp_id
   FROM (
@@ -2114,18 +2094,18 @@ WITH latest_dp AS (
   JOIN pedmgr.xview_ped_ld_current xplc ON xplc.ped_licence_id = pl.id AND xplc.ped_lm_id = plm.id
   GROUP BY plm.id
 )
-SELECT NVL(plm.licence_type, '(blank)') licence_type
+SELECT plm.licence_type
      , NVL(cs.licence_status, '(no status)') licence_status
      , COUNT(*) licences
      , LISTAGG(CASE WHEN cs.licence_status = 'E' THEN plm.licence_type || plm.licence_no END, ', ')
          WITHIN GROUP (ORDER BY plm.licence_no) extant_licences
 FROM pedmgr.ped_licence_master plm
 LEFT JOIN current_status cs ON cs.ped_lm_id = plm.id
-WHERE (plm.licence_type IS NULL OR plm.licence_type NOT IN ('P', 'PEDL'))
+WHERE plm.licence_type NOT IN ('P', 'PEDL')
 AND NOT EXISTS (
   SELECT 1 FROM pedmgr.ped_licence_schedule_details plsd WHERE plsd.ped_lm_id = plm.id
 )
-GROUP BY NVL(plm.licence_type, '(blank)'), NVL(cs.licence_status, '(no status)')
+GROUP BY plm.licence_type, NVL(cs.licence_status, '(no status)')
 ORDER BY 1, 3 DESC;
 ```
 
@@ -2148,7 +2128,6 @@ ORDER BY 1, 3 DESC;
 | B | (no status) | 13 | | |
 | NA | (no status) | 1 | | |
 | XL | (no status) | 211 | | |
-| *(blank)* | (no status) | 171 | | |
 
 (The second run's counts match S17 for every type. Its extant-licence column was empty throughout.)
 
@@ -2162,7 +2141,7 @@ ORDER BY 1, 3 DESC;
   schedules.
 - **5 `P` have status `R` (Revoked)** (numbers 124–1065).
 - **Everything else has no status** (no live data point): 64 `P`/`PEDL`, and almost all of the
-  other types (281 `EXL`, 238 `PL`, 25 `ML`, 7 `AL`, every `A`, `B`, `NA`, `XL` and blank-type
+  other types (281 `EXL`, 238 `PL`, 25 `ML`, 7 `AL`, and every `A`, `B`, `NA` and `XL`
   licence). These are probably records that never became licences, e.g. applications that weren't
   awarded, or older licences never loaded as PEARS positions.
 - The comparison report's "No PEARS schedule" case only needs to cover licences raised after
@@ -2242,7 +2221,7 @@ ORDER BY 1, 3 DESC;
 | CE | `CE` (placeholder) | `E` Extant | 1 | 5 | CE1 |
 
 (Totals reconcile with S2 for every type: `P` 1,525/8,312, `PEDL` 220/1,927, `PL` 26/336, `EXL`
-12/91, `ML` 7/80, `DL` 5/53, `AL` 3/30, `CE` 1/5. The 9 blank-type licences are not included.)
+12/91, `ML` 7/80, `DL` 5/53, `AL` 3/30, `CE` 1/5.)
 
 **Reading:**
 

@@ -41,7 +41,7 @@ licence status**. Those types are:
 LMS-managed types (carbon storage, gas storage, landward and seaward exploration, methane drainage)
 are excluded and have no PEARS schedules anyway. Every licence type that has a PEARS schedule maps
 to a PEARS-managed type. `A`, `B`, `NA` and `XL` have no schedules (S17). On live (27 October 2026;
-data survey S2 and S18) that is 1,808 licences and 10,858 schedule versions:
+data survey S2 and S18) that is 1,799 licences and 10,834 schedule versions:
 
 | PEARS type | Licences | Versions | LMS `LicenceType` (`LicenceType.getFromPrefix`) | LMS term types today |
 |---|---|---|---|---|
@@ -53,7 +53,6 @@ data survey S2 and S18) that is 1,808 licences and 10,858 schedule versions:
 | `DL` | 5 | 53 | `DL` (placeholder, no display name) | **none** |
 | `AL` | 3 | 30 | `AL` (placeholder, no display name) | **none** |
 | `CE` | 1 | 5 | `CE` (placeholder, no display name) | **none** |
-| *(blank, and no licence number)* | 9 | 24 | none: no LMS licence can exist | — |
 
 - **Status:** extant, surrendered, expired, revoked and no-status licences are all migrated. The
   report shows each licence's status, so skipped live licences stand out. Of
@@ -70,9 +69,6 @@ data survey S2 and S18) that is 1,808 licences and 10,858 schedule versions:
   none, so they are not migrated; the licensing team creates them manually (rule 7).
 - **Schedules with no terms** (all `ML`, `DL` and `CE`, 5 `PL`, 22 `P`) are not migrated: they are
   reported, and the licensing team creates them in LMS manually ("Term boundaries" rule 7).
-- **No licence type or number** (9 records): the LMS licence reference is type + number, and these
-  have neither, so no LMS licence exists for them. They look like records abandoned part-way through
-  being set up. They are skipped and reported (data survey S2c, L4).
 - **Data survey coverage:** the survey has been re-run for the other types, and the results are
   merged into each section. Done for every section (27 October 2026).
 
@@ -180,7 +176,7 @@ the LMS result against it (see Validation).
 | `BM` | `OtherScheduleEvent` with a **new dedicated category** `BESPOKE_MILESTONE` ("Bespoke milestone"), `description = COMMENTS` (default "Bespoke milestone" when empty), `RELATIVE_DATE` against the containing term with `relativeDuration` = offset from that term's start | **Decided.** Prerequisite: add `BESPOKE_MILESTONE` to `OtherScheduleEventCategory` (production licence types), so the category is selectable in the UI and `getCategoryString()` returns its display name. |
 | `DD`, `2M`, `2N` | `OtherScheduleEvent` `OTHER_ACTIVITY`, `otherCategoryName = ped_template_event_types.short_title` ("Drill-or-drop", "Second Term with autosurrender", "2nd term with all acreage"), `description = COMMENTS` (default: the same `short_title` when empty), `RELATIVE_DATE` as for `BM` | **Decided.** On the timeline, `getCategoryString()` returns `otherCategoryName`, so the PEARS title is the caption. |
 | Any other user-defined type with `display_seq >= 0` | Same as `DD`/`2M`/`2N` (`OTHER_ACTIVITY` + `short_title`) | None on live (data survey S1). The migration re-reads the catalogue at run time and fails on any type it has no mapping for, so a type added later is caught before it is migrated. |
-| Empty `EVENT_MNEM` | Not migrated | **Decided:** empty rows are ignored and counted. Rows that hold data are reported for the licensing team to fix in PEARS, never guessed. See "Events with no event type". |
+| Empty `EVENT_MNEM` | Not migrated | **Decided:** ignored, whether empty or holding data, and only counted in the report. The schedule screen never shows them, so the licensing team never sees them. See "Events with no event type". |
 | `RD` (onshore), `PA` (offshore) | **Not migrated as schedule events.** Copied as they are into a new LMS table, `licence_schedule_area_events`, which the LMS schedule looks up for display | **Decided:** migrated in this exercise. Phase 1 copies the events as they are in the PEARS XML (subtype, date, comments, `EVENT_ID`, area block). The area records (`ped_retention_areas`) and work programmes come in a later phase. The write-back writes the `RD`/`PA` events back from the LMS table. See "Retention, development and pre-producing areas". |
 | `DUMMY_EVENT='true'` | Not migrated | UI padding. |
 | `COMMENTS` on T/P/R | LMS event comments: `EventComment` `PUBLISHED`, `timestamp` = the PEARS version's `start_datetime` | **Decided:** written to LMS comments. Same as `buildWorkProgrammeActivityComments` in the CS migration. Comments attach to the event's `original_event_id`, which is shared across versions. So a comment is only added when the event's `COMMENTS` text is **new or different** from the matched event in the previous version. The LMS comment history then shows when each PEARS comment first appeared or changed, without repeats. LMS-only from then on: event comments are not written back to PEARS (not reported on). |
@@ -270,7 +266,8 @@ Rules:
    outside 1–4, and phases without a `T(1)`. Missing term numbers are **not** errors (business
    rule above). `T(4)` maps to the Fourth term (see "Decision: four-term licences").
 6. **Decided:** a `T` event with no `TERM_NO` is **ignored**. It creates no term, takes no part in
-   the term rules and is not migrated. It is listed in the report. On live, these are 15 schedules
+   the term rules and is not migrated. Like untyped events, it is only counted in the report, not
+   listed. On live, these are 15 schedules
    with a start marker dated on `ORIGIN_DATE` (data survey pattern D: P2313, P2322, P2326, P2327,
    P2331, P2332, P1159, and PL205, PL211, PL213, PL215, PL220, PL233, PL234, PL259). Once it is
    ignored, their numbered terms are in order and fit the rules above.
@@ -1048,24 +1045,22 @@ data**: rates missing their `R` code, terms missing their `T` code, text in the 
 comment-only rows. The queries and the per-licence list are in the data survey,
 [S6](pears-schedule-migration-data-survey.md#s6-events-with-no-event-type).
 
-**Decided rule:**
+**Decided rule: untyped events are ignored by the migration**, whether they are empty or hold
+data. The licensing team never sees them: the schedule screen (`PED012X`) only displays and edits
+events by type, so these rows can't be viewed, corrected or removed there. The LMS schedule
+therefore matches the schedule the licensing team works with in PEARS today.
 
-- **Empty rows:** not migrated; counted in the migration report.
-- **Rows with data:** not migrated, and their type is **never guessed**. Each is listed (licence,
-  version, date, values). Those on **current** versions go to the licensing team to fix in PEARS
-  before the production run, e.g. by setting `R` on the missing rates. Those only on **historical**
-  versions (e.g. P1328, P1665, P2329) are listed for information only, since past PEARS versions
-  cannot be corrected. A licence with an untyped `T` (P1272, P328) would otherwise migrate with
-  that term **missing**, since missing terms are allowed. So these two must be fixed in PEARS
-  before the production run, or their terms will be wrong in LMS.
+- **Not migrated, and never guessed.** The migration report only counts them (empty and holding
+  data), for information.
+- **No fix in PEARS is asked for.** It would need a data patch rather than the screen, and the
+  rows have no effect today.
+- **Consequence:** P1272 and P328, whose untyped rows look like terms, migrate without those terms,
+  the same as the schedule shows in PEARS. P2582, P1159, P2438, P2660 and the others with untyped
+  rates migrate without those rates, the same as the payments report today. (P2582's comment says
+  a final 7500 rate from 2032 was added, but the row was saved without a type, so it has never
+  been shown or reported.)
 - **Write-back:** the rebuilt PEARS XML has no untyped rows. Nothing visible in PEARS changes,
   because they are not shown or reported today.
-
-**Wider finding for the licensing team:** the untyped rates are **missing from the payments report
-today**, not just from the migration. P2582's comment says a final recurring rate was added, but
-the row was saved without a type, so the 7500 rate from 2032 is never reported. Licences P1159,
-P2438, P2660 and the other untyped rates in the data survey (S6) may be under-reported in the same
-way.
 
 ### Rate values
 
@@ -1217,8 +1212,8 @@ A pure function from `PearsSchedule` + event type catalogue to a `MigratedSchedu
 unit-testable from fixtures, as `PearsOperationMapper` is. It:
 
 1. Builds terms, then phases, then rates and other events, in that order, so anchors exist.
-2. Skips events with an empty `event_mnem` per "Events with no event type" (ignored when empty,
-   reported when they hold data). Throws a mapping exception for an unknown non-empty `event_mnem`, a missing `ORIGIN_DATE`, or a `T`/`P`
+2. Skips events with an empty `event_mnem` per "Events with no event type" (ignored and only
+   counted, whether empty or holding data). Throws a mapping exception for an unknown non-empty `event_mnem`, a missing `ORIGIN_DATE`, or a `T`/`P`
    numbering it cannot place. These are collected per licence, not thrown out of the whole run.
 
 ### 3. Write: `PearsScheduleMigrationService`
@@ -1245,7 +1240,7 @@ Modelled on `CarbonStorageLicenceMigrationService.migrateSchedules()`:
 ### 4. Run in the background: queue, worker and controller
 
 **Decided:** the migration runs as a **background job**, not inside the HTTP request. At about
-1,808 licences, 10,858 versions and ~450k LMS rows (see "Migration size (live, 27 October 2026)"), a
+1,799 licences, 10,834 versions and ~450k LMS rows (see "Migration size (live, 27 October 2026)"), a
 request would hit the load balancer/proxy timeout, leave the outcome unclear and give no progress.
 The existing LMS migrations (carbon storage, industry teams) run inside the request and LMS has no
 `@Async`, so this is new. It reuses what LMS already has: ShedLock (`ShedlockConfiguration`) and
@@ -1406,12 +1401,12 @@ cannot disagree.
 
 ## Migration size (live, 27 October 2026)
 
-- **In scope (every licence with a schedule):** 1,808 licences, 10,858 schedule versions (largest
-  licence 66), 1,807 current. Of these, `P` and `PEDL` are 1,745 licences and 10,239 versions. The
-  other 63 licences (619 versions) are `PL`, `EXL`, `ML`, `DL`, `AL`, `CE`, plus 9 records with no
-  type or number, which are skipped. The 40 schedules with no terms are not migrated either
-  (rule 7), so about 1,760 licences are migrated.
-- **Events (all licences):** 216,366 across all versions (35,947 current), about three-quarters of
+- **In scope (every licence with a schedule):** 1,799 licences, 10,834 schedule versions (largest
+  licence 66), 1,798 current. Of these, `P` and `PEDL` are 1,745 licences and 10,239 versions. The
+  other 54 licences (595 versions) are `PL`, `EXL`, `ML`, `DL`, `AL`, `CE`. The 40 schedules with no
+  terms are not migrated (rule 7), and P1161 has no current version, so about 1,758 licences are
+  migrated.
+- **Events (all licences with a type):** 215,812 across all versions (35,735 current), about three-quarters of
   them rates.
 - **Estimated LMS rows for the full history:** about **450k**.
 - **By licence status (all typed licences):** 420 are extant (4,607 versions). 1,354 are
@@ -1445,8 +1440,8 @@ The queries, full results and breakdowns are in the data survey,
    - schedule versions per licence (total and max; how many are identical to the version before was
      **not surveyed**, since every version is migrated), and licences with no open version or more than one;
    - versions with no `ORIGIN_DATE`;
-   - events with an empty `EVENT_MNEM`: empty rows (count) and rows holding data (listed for the
-     licensing team); see "Events with no event type";
+   - events with an empty `EVENT_MNEM`: empty rows and rows holding data (counted; they are ignored,
+     see "Events with no event type");
    - `R` event `RATE` values: whole, 1–2 dp, more than 2 dp (to be rounded), and values that do not
      fit (listed); see "Rate values";
    - `RD`/`PA` events: count per licence type and subtype, events with no `RETENTION_AREA` block,
@@ -1460,7 +1455,7 @@ The queries, full results and breakdowns are in the data survey,
    - events with an `EVENT_ID`, and same-type events with identical comments in one version
      (the cases where cross-version matching is ambiguous).
 2. Take the survey's "For the licensing team" list to the licensing team before coding: the PEARS
-   fixes (L1–L4) and the items still to confirm or decide (L12–L14). Those include Open questions 4
+   fixes (L2, L3, L17) and the items still to confirm or decide (L12–L14). Those include Open questions 4
    (mandatory relinquishment percentage), 7 (how yearly-recurring rates are held in LMS) and 8
    (expiry date convention), which also need the data warehouse owners. The term and phase
    patterns are already decided (L5–L11).
@@ -1533,8 +1528,8 @@ The queries, full results and breakdowns are in the data survey,
    with a PEARS schedule is migrated, not only those mapping to `SEAWARD_PRODUCTION` or
    `LANDWARD_PRODUCTION`. `PL`, `EXL` and `ML` map to
    `LANDWARD_PRODUCTION`. `AL` needs Open question 14. Schedules with no terms (incl. all `ML`,
-   `DL`, `CE`) are not migrated and are left to the licensing team (rule 7). Records with no type or number are
-   skipped and reported. See "Scope: licence types and statuses".
+   `DL`, `CE`) are not migrated and are left to the licensing team (rule 7). See
+   "Scope: licence types and statuses".
 6. **Date mismatches.** When LMS arithmetic gives a different date from PEARS, adjust the stored
    `relativeDuration` so LMS lands on the PEARS date (the legal deadline), or keep PEARS offsets and
    accept the difference? Recommendation: adjust, and list every adjustment in the report.

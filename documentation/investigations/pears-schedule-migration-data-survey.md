@@ -10,7 +10,8 @@
 - **Scope (decided after S1–S18 were run):** every PEARS licence schedule on a PEARS-managed licence
   type (`LicenceType.managedByLms = false` in LMS), regardless of licence status. That is every
   licence type with a PEARS schedule: `P`, `PEDL`, `PL`, `EXL`, `ML`, `DL`, `AL` and `CE`. Only
-  blank-type licences can't be migrated (no LMS licence). See the plan, "Scope: licence types and
+  blank-type licences (no LMS licence) and schedules with no terms (left to the licensing team) are
+  not migrated. See the plan, "Scope: licence types and
   statuses".
 - **Coverage:** every section covers every licence type. S2, S3, S6 and S17 had no type filter.
   **S7–S16 and S18 were first run on `P` and `PEDL` only** (`licence_type IN ('P', 'PEDL')`), then
@@ -33,7 +34,7 @@
 | S5 | `RECUR_END_DATE` | ✅ Live, 27 Oct 2026: never used | [S5](#s5-recur_end_date) |
 | S6 | Events with no event type | ✅ Live, 27 Oct 2026 (current and history) | [S6](#s6-events-with-no-event-type) |
 | S7 | Expiry events per current schedule | ✅ Live, 27 Oct 2026, all types | [S7](#s7-expiry-events-per-current-schedule) |
-| S8 | Term structure (current versions) | ✅ Live, 27 Oct 2026 (summary all types; S8b, S8c, S8d `P`/`PEDL` only) | [S8](#s8-term-structure-current-versions) |
+| S8 | Term structure (current versions) | ✅ Live, 27 Oct 2026 (summary and S8b all types; S8c, S8d `P`/`PEDL` only) | [S8](#s8-term-structure-current-versions) |
 | S9 | Phase structure (current versions) | ✅ Live, 27 Oct 2026: all pass; other types have no phases | [S9](#s9-phase-structure-current-versions) |
 | S10 | `ORIGIN_DATE` missing or different from the licence start date (all versions) | ✅ Live, 27 Oct 2026, all types (with S10b) | [S10](#s10-origin_date-all-versions) |
 | S11 | `RATE` values (whole, 1–2 dp, > 2 dp, does not fit) | ✅ Live, 27 Oct 2026, all types (with S11b, S11c) | [S11](#s11-rate-values) |
@@ -43,12 +44,12 @@
 | S15 | `RD`/`PA` events (current versions) | ✅ Live, 27 Oct 2026, all types | [S15](#s15-rdpa-events-current-versions) |
 | S16 | `EVENT_ID` and ambiguous cross-version matches | ✅ Live, 27 Oct 2026, all types | [S16](#s16-event_id-and-ambiguous-cross-version-matches) |
 | — | Event types beyond the known catalogue | ✅ None on live (S1) | [S1](#s1-event-type-catalogue) |
-| S17 | Licences with no PEARS schedule | ✅ Live, 27 Oct 2026 (with S17b): none extant | [S17](#s17-licences-with-no-pears-schedule) |
+| S17 | Licences with no PEARS schedule | ✅ Live, 27 Oct 2026 (with S17b): no `P`/`PEDL` one is extant; other types' statuses not yet checked | [S17](#s17-licences-with-no-pears-schedule) |
 | S18 | Licences with a schedule, by status | ✅ Live, 27 Oct 2026, all types: 420 extant | [S18](#s18-licences-with-a-schedule-by-status) |
 
 ## Summary (live, 27 October 2026)
 
-The survey is complete (S1–S16). Overall the data is consistent enough to migrate by rule. The
+The survey is complete (S1–S18, all licence types). Overall the data is consistent enough to migrate by rule. The
 exceptions are mostly systematic, by licensing round, rather than one-off errors.
 
 | Area | Finding | Section |
@@ -56,9 +57,9 @@ exceptions are mostly systematic, by licensing round, rather than one-off errors
 | Size | 1,808 licences with a schedule, 10,858 versions, ~216k events, ~450k LMS rows, all in scope. `P` and `PEDL` are 1,745 licences and 10,239 versions. The other 63 are `PL`, `EXL`, `ML`, `DL`, `AL`, `CE`, plus 9 with a blank type (skipped until fixed). Only 420 typed licences (23%) are extant (381 `P`/`PEDL`, 39 others); 1,354 are surrendered, expired or revoked, and 25 have no status. | S2, S3, S18 |
 | Event types | The 11 known types only. `2N` is never used. | S1, S3 |
 | Start dates | Every current version has one. 1,125 historical versions have none and use a borrowed date (decided). 7 current versions (5 `P`, 1 `PL`, 1 `ML`) differ from the licence start date. | S10 |
-| Terms | 1,519 of 1,744 current schedules follow the plan's rule exactly, and 166 more have terms but no expiry. 134 don't fit the original rule. They fall into 7 patterns (A–G), and every pattern now has a decided rule (L5–L10). | S7, S8 |
+| Terms | 1,540 of 1,798 current schedules follow the plan's rule exactly, and 166 more have terms but no expiry. 172 don't fit the original rule (134 `P`/`PEDL`, 38 other types). They fall into 7 patterns (A–G), and every pattern now has a decided rule (L5–L10). 40 have no terms and are left to the licensing team (L9). | S7, S8 |
 | Phases | All 309 schedules with phases follow the rule (last phase ends at `T(1)`). Skipped phases are normal and allowed by business rule (in order). | S9 |
-| Rates | All populated `P`, `PEDL`, `EXL`, `DL` and `AL` values are whole numbers; 2 rate-only schedules have an empty rate. `ML` has pence, and `PL`/`ML` have decimals with no leading zero (e.g. `.5`), which parse fine (S11c). On migrated schedules every rate fits. Every schedule ends in one indefinite yearly rate. 298 deliberate gaps between rates, mostly pre-1999. | S11, S12 |
+| Rates | All populated `P`, `PEDL`, `EXL`, `DL` and `AL` values are whole numbers; 2 rate-only schedules have an empty rate. `ML` has pence, and `PL`/`ML` have decimals with no leading zero (e.g. `.5`), which parse fine (S11c). On migrated schedules every rate fits. Every schedule ends in one indefinite yearly rate. About 310 deliberate gaps between rates on migrated schedules (298 `P`, 12 `PL`), mostly pre-1999. Fixed-count yearly rates on 9 `PL` and 3 `AL`. | S11, S12 |
 | Date arithmetic | PEARS stored dates are reliable (1 exception). Copying offsets would move 96 events (94 `P`, 2 `EXL`) by up to 3 days, which deriving offsets from dates avoids. | S14 |
 | Untyped events | 201 on current versions: ~180 empty leftovers, ~20 holding data on 16 licences. | S6 |
 | Relinquishment % | 585 feed licence documents (incl. 8 `PL`). 713 hold the figure only in comments. 303 hold `x` (not migrated, decided). | S13 |
@@ -86,7 +87,7 @@ Items that need the licensing team, as either a **fix in PEARS** before the prod
 |---|---|---|---|---|
 | L12 | **Rate gaps are deliberate no-payment years** | 298 `P` gaps, mostly pre-1999 (e.g. initial rental, then the next rate 6 years later), plus 12 on `PL` (e.g. `40` then `90` 4 years later) | Confirm from the licence terms (one licence per pattern). This drives the write-back design: Open question 7. | S12b |
 | L13 | **Mandatory relinquishment percentage** | 585 feed licence documents (incl. 8 `PL`). 713 hold the figure only in comments. | Decide Open question 4 (field, comment, or drop). Also confirm whether licence documents are still generated from PEARS. | S13 |
-| L14 | **Expiry date convention** | 1,559 current schedules with an expiry | Decide Open question 8: LMS stores the day before the PEARS expiry, or LMS's check changes. | plan |
+| L14 | **Expiry date convention** | 1,612 current schedules with an expiry (all types) | Decide Open question 8: LMS stores the day before the PEARS expiry, or LMS's check changes. | plan |
 
 ### Decided
 
@@ -108,7 +109,8 @@ present, and the first phase present, start on the licence start date.
 ### For information only
 
 - **Untyped events in history only:** P1328, P1665, P2329. Past versions can't be corrected.
-- **186 current schedules have no expiry event** (185 `P` and CE1). They migrate without an expiry record.
+- **186 current schedules have no expiry event** (185 `P` and CE1). The 166 that have terms migrate
+  without an expiry record. The other 20 have no terms either (pattern E), so they aren't migrated.
 - **`x` in the relinquishment percentage** (303 events) is not migrated (decided). The event is.
 - **One `P` rate** has a stored date that differs from PEARS's own formula (S14). It will show in the
   comparison report.
@@ -538,9 +540,9 @@ ORDER BY plm.licence_type, x.e_count;
 
 **Reading:**
 
-- **186 current schedules have no expiry event:** 185 `P` and CE1. They are migrated without an
-  expiry record, and their final term ends at its last `T` (see the plan, "Term boundaries",
-  rule 3).
+- **186 current schedules have no expiry event:** 185 `P` and CE1. The 166 with terms are migrated
+  without an expiry record, and their final term ends at its last `T` (see the plan, "Term
+  boundaries", rule 3). The other 20 (19 `P` and CE1) have no terms either, so they aren't migrated (pattern E).
 - **No schedule has more than one** expiry event, so the "more than one `E`" skip rule never
   triggers on current versions.
 - Every other schedule (`PEDL`, `PL`, `EXL`, `ML`, `DL`, `AL`) has exactly one.
@@ -550,7 +552,7 @@ ORDER BY plm.licence_type, x.e_count;
 Checks the term rules in the plan ("Term boundaries"): each `T(n)` marks the end of term n, the
 numbers run 1..n without gaps or duplicates, the dates increase with the number, `T(1)` is after
 `ORIGIN_DATE`, and the final `T` equals `E` when there is an `E`. Typed, non-dummy events only;
-in-scope licences only.
+`P` and `PEDL` in the first run, the other types in the second.
 
 ```sql
 WITH sched AS (
@@ -1968,7 +1970,7 @@ ORDER BY a.events DESC;
 ## S17. Licences with no PEARS schedule
 
 Licences in `ped_licence_master` with no `ped_licence_schedule_details` row at all, by licence type.
-For production licences, the plan says these get no schedule from the migration: a user creates
+For PEARS-managed licence types, the plan says these get no schedule from the migration: a user creates
 the schedule in LMS, and the comparison report lists them as "No PEARS schedule".
 
 ```sql
@@ -2005,8 +2007,10 @@ ORDER BY 1;
 - They don't affect the migration, which only reads licences with a schedule. An **extant** one
   would need its schedule created by hand in LMS at go-live, so S17b breaks them down by status.
   **None is extant:** they are surrendered or revoked licences, or records with no live data point.
-- The other licence types (`A`, `B`, `NA`, `XL` and blank) never appear in S2, so they have never had
-  a schedule. They are out of scope.
+- **The other PEARS-managed types also have licences with no schedule:** 283 `EXL`, 240 `PL`, 25 `ML`,
+  7 `AL`, and 103 `A`, 13 `B`, 1 `NA`, 211 `XL` (types that never have a schedule, S2), plus 171 with
+  a blank type. S17b only checked `P` and `PEDL`. **Their statuses have not been checked yet:** an
+  extant one would need its schedule created by hand (query in "Other queries").
 
 ### S17b. Production licences with no PEARS schedule, by status
 
@@ -2167,9 +2171,46 @@ ORDER BY 1, 3 DESC;
   - The ongoing parts, though (schedule edits in LMS, the `RD`/`PA` round trip and the write-back),
     only realistically apply to the 420 extant licences.
   - The PEARS fixes and rule-based skips matter most where they hit extant licences. The pattern
-    lists (S8b) don't show status yet.
+    lists (S8b) don't show status yet. For the other types, S18 and S8b together show which
+    licences are which, e.g. 17 of the 18 schedules with no terms are extant (L9).
 
 ## Other queries (not yet run)
+
+```sql
+-- Other PEARS-managed types (and blank) with no PEARS schedule, by status (as S17b, other types)
+WITH latest_dp AS (
+  SELECT licence_type, licence_no, ped_dp_id
+  FROM (
+    SELECT pdp.licence_type, pdp.licence_no, pdp.id ped_dp_id
+         , ROW_NUMBER() OVER (PARTITION BY pdp.licence_type, pdp.licence_no
+                              ORDER BY pdp.position_datetime DESC, pdp.position_sequence DESC) rn
+    FROM pedmgr.ped_data_points pdp
+    WHERE pdp.ped_sim_id = 0
+  )
+  WHERE rn = 1
+)
+, current_status AS (
+  SELECT plm.id ped_lm_id, MAX(xplc.licence_status) licence_status
+  FROM pedmgr.ped_licence_master plm
+  JOIN latest_dp ld ON ld.licence_type = plm.licence_type AND ld.licence_no = plm.licence_no
+  JOIN pedmgr.ped_licences pl ON pl.ped_dp_id = ld.ped_dp_id AND pl.end_datetime IS NULL
+  JOIN pedmgr.xview_ped_ld_current xplc ON xplc.ped_licence_id = pl.id AND xplc.ped_lm_id = plm.id
+  GROUP BY plm.id
+)
+SELECT NVL(plm.licence_type, '(blank)') licence_type
+     , NVL(cs.licence_status, '(no status)') licence_status
+     , COUNT(*) licences
+     , CASE WHEN NVL(cs.licence_status, '-') = 'E'
+            THEN LISTAGG(plm.licence_type || plm.licence_no, ', ') WITHIN GROUP (ORDER BY plm.licence_no) END extant_licences
+FROM pedmgr.ped_licence_master plm
+LEFT JOIN current_status cs ON cs.ped_lm_id = plm.id
+WHERE (plm.licence_type IS NULL OR plm.licence_type NOT IN ('P', 'PEDL'))
+AND NOT EXISTS (
+  SELECT 1 FROM pedmgr.ped_licence_schedule_details plsd WHERE plsd.ped_lm_id = plm.id
+)
+GROUP BY NVL(plm.licence_type, '(blank)'), NVL(cs.licence_status, '(no status)')
+ORDER BY 1, 3 DESC;
+```
 
 ```sql
 -- The licence with no current schedule version

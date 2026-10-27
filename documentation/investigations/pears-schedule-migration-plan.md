@@ -155,7 +155,7 @@ startDate.plusYears(y).plusMonths(m).plusDays(d)
 ```
 
 Months are added **first**, then days, the opposite order to PEARS. The two agree for most
-schedules (for example licence 5856: start 01-Dec-2014, BM at 8y 11m 29d and 9y 3m 30d give
+schedules (for example licence P2244: start 01-Dec-2014, BM at 8y 11m 29d and 9y 3m 30d give
 30-Nov-2023 and 31-Mar-2024 either way), but they diverge around month ends. For example:
 start 30-Jan, +1m +1d is 28-Feb in PEARS (31-Jan then `ADD_MONTHS` snaps to month end) and
 01-Mar in LMS. The migration therefore treats PEARS `EVENT_DATE` as authoritative and checks
@@ -168,11 +168,11 @@ the LMS result against it (see Validation).
 | licence `type \|\| no` | `Licence` by `licenceReference` | The licence must already exist (from the PEARS refresh); skip and report otherwise. |
 | every `ped_licence_schedule_details` row for the licence | one `LicenceScheduleDetail` per version: the row with `end_datetime IS NULL` is `ACTIVE`, the rest `REPLACED`; `createdInstant = start_datetime` | **Decided: full history.** See "Schedule history". |
 | `ORIGIN_DATE` (per version) | `LicenceStartDate.startDate` on **every** detail | Every current version has one. 1,125 historical versions don't (`PED012X` initialises an empty one at raise): they borrow a neighbouring version's start date (see "Schedule history"). Only a licence where no version has one is skipped and reported. |
-| `T` (`TERM_NO` 1/2/3, and 4 on 13 licences) | `LicenceScheduleTerm` `INITIAL`/`SECOND`/`THIRD`, and `FOURTH` (see "Decision: four-term licences") | **Decided (licence 5856):** the first term present starts on `ORIGIN_DATE`; terms may be missing but must be in order (business rule). A `T` event with `TERM_NO` n marks the **end boundary of term n**: the anniversary on which the next term present starts. Term n's duration = `Period.between(start of term n, T(n) date)`. LMS then ends term n the day before and starts the next term present on the `T(n)` date. A `T` with no `TERM_NO` is ignored. See "Term boundaries". |
-| `P` (`PHASE` A/B/C) | `LicenceSchedulePhase` `PHASE_A/B/C` linked to the initial term | **Decided (licence 7488):** same boundary convention as terms. The first phase present starts on `ORIGIN_DATE`. A `P` event's `PHASE` value names the phase that **ends** on its date, and the next phase present starts on that date. Phases may be missing but must be in order (business rule): 7488 has A and C, with no B ("Continuation into Phase C"). The last phase's `P` date must equal `T(1)`; otherwise skip and report. See "Phase boundaries". |
+| `T` (`TERM_NO` 1/2/3, and 4 on 13 licences) | `LicenceScheduleTerm` `INITIAL`/`SECOND`/`THIRD`, and `FOURTH` (see "Decision: four-term licences") | **Decided (licence P2244):** the first term present starts on `ORIGIN_DATE`; terms may be missing but must be in order (business rule). A `T` event with `TERM_NO` n marks the **end boundary of term n**: the anniversary on which the next term present starts. Term n's duration = `Period.between(start of term n, T(n) date)`. LMS then ends term n the day before and starts the next term present on the `T(n)` date. A `T` with no `TERM_NO` is ignored. See "Term boundaries". |
+| `P` (`PHASE` A/B/C) | `LicenceSchedulePhase` `PHASE_A/B/C` linked to the initial term | **Decided (licence P2522):** same boundary convention as terms. The first phase present starts on `ORIGIN_DATE`. A `P` event's `PHASE` value names the phase that **ends** on its date, and the next phase present starts on that date. Phases may be missing but must be in order (business rule): P2522 has A and C, with no B ("Continuation into Phase C"). The last phase's `P` date must equal `T(1)`; otherwise skip and report. See "Phase boundaries". |
 | `R` (`RATE`, `RECURRING=YEARLY`, `RECURRANCES`) | `LicenceScheduleRate`, one per term/phase the rate's yearly dates fall into | **Decided:** `RECURRING=YEARLY` means the rate is redefined every year at the same value. The yearly dates are expanded, and each is migrated against the phase (or, outside phases, the term) whose dates contain it. See "Rates and yearly recurrence". `rentalRate` = `RATE` as a decimal, rounded to 2 dp where needed; values that do not fit are reported (see "Rate values"). |
 | `MR` (`PERCENTAGE`) | `OtherScheduleEvent` `MANDATORY_RELINQUISHMENT`, `RELATIVE_DATE` against the containing term, `description = COMMENTS`, or the default "Mandatory relinquishment" when `COMMENTS` is empty (see "Default descriptions") | **Percentage: pending decision (Open question 4).** PEARS holds it nowhere else, and it feeds generated licence documents. Not migrating it means it is lost. See "Decision: mandatory relinquishment percentage". |
-| `E` (optional) | (1) confirms the **end boundary of the final term** (the final `T` sets it), and (2) `LicenceScheduleExpiry` with `comments = COMMENTS` | **Decided:** the expiry event marks the end of the final term. On 5856 it shares its date with the final `T` (01-Dec-2040), and the final term's LMS end date is `E - 1 day` (30-Nov-2040). **`expiryDate`: pending (Open question 8)**: `E` (01-Dec-2040) or `E - 1 day` (30-Nov-2040), because LMS checks that the expiry date equals the final term end. **No `E` event:** migrated without an expiry record (see "Term boundaries" rule 3). An `E` whose date differs from the final `T`: migrated as it is (no extra term), and reported (see "Term boundaries" rule 3). |
+| `E` (optional) | (1) confirms the **end boundary of the final term** (the final `T` sets it), and (2) `LicenceScheduleExpiry` with `comments = COMMENTS` | **Decided:** the expiry event marks the end of the final term. On P2244 it shares its date with the final `T` (01-Dec-2040), and the final term's LMS end date is `E - 1 day` (30-Nov-2040). **`expiryDate`: pending (Open question 8)**: `E` (01-Dec-2040) or `E - 1 day` (30-Nov-2040), because LMS checks that the expiry date equals the final term end. **No `E` event:** migrated without an expiry record (see "Term boundaries" rule 3). An `E` whose date differs from the final `T`: migrated as it is (no extra term), and reported (see "Term boundaries" rule 3). |
 | `BM` | `OtherScheduleEvent` with a **new dedicated category** `BESPOKE_MILESTONE` ("Bespoke milestone"), `description = COMMENTS` (default "Bespoke milestone" when empty), `RELATIVE_DATE` against the containing term with `relativeDuration` = offset from that term's start | **Decided.** Prerequisite: add `BESPOKE_MILESTONE` to `OtherScheduleEventCategory` (production licence types), so the category is selectable in the UI and `getCategoryString()` returns its display name. |
 | `DD`, `2M`, `2N` | `OtherScheduleEvent` `OTHER_ACTIVITY`, `otherCategoryName = ped_template_event_types.short_title` ("Drill-or-drop", "Second Term with autosurrender", "2nd term with all acreage"), `description = COMMENTS` (default: the same `short_title` when empty), `RELATIVE_DATE` as for `BM` | **Decided.** On the timeline, `getCategoryString()` returns `otherCategoryName`, so the PEARS title is the caption. |
 | Any other user-defined type with `display_seq >= 0` | Same as `DD`/`2M`/`2N` (`OTHER_ACTIVITY` + `short_title`) | None on live (data survey S1). The migration re-reads the catalogue at run time and fails on any type it has no mapping for, so a type added later is caught before it is migrated. |
@@ -206,7 +206,7 @@ Conversion:
 
 ### Term boundaries
 
-PEARS dates terms by their **end boundary**, not their start. Licence 5856 (`ORIGIN_DATE`
+PEARS dates terms by their **end boundary**, not their start. Licence P2244 (`ORIGIN_DATE`
 2014-12-01) has no `T` at the licence start. Its `T` events are:
 
 | `TERM_NO` | PEARS date | Meaning | LMS term |
@@ -224,7 +224,7 @@ Rules:
 
 1. Only terms with a `T` event are created. The **first term present** starts on `ORIGIN_DATE` (the
    `LicenceStartDate`), and each later term present starts on the previous `T` boundary. Examples:
-   - `T(1)`, `T(2)`, `T(3)` (licence 5856): Initial, Second, Third.
+   - `T(1)`, `T(2)`, `T(3)` (licence P2244): Initial, Second, Third.
    - `T(2)`, `T(3)` = `E` (49 recent `P` licences, data survey pattern A): **Second** from
      `ORIGIN_DATE` to `T(2)`, **Third** from `T(2)` to `T(3)`. No Initial term.
    - `T(1)`, `T(3)` = `E` (pattern F): Initial to `T(1)`, then **Third** from `T(1)` to `T(3)`. No
@@ -322,7 +322,7 @@ most schedules) belongs to that term. The same applies to each later term up to 
 its term with `RELATIVE_DATE` / `CUSTOM_PERIOD` and `relativeDuration = Period.between(term start,
 event date)`.
 
-- An event **on** a boundary (on 5856: the "50% Relinquishment" and the rate of 300, both
+- An event **on** a boundary (on P2244: the "50% Relinquishment" and the rate of 300, both
   01-Dec-2018) belongs to the term that **ends** there. It is anchored to the initial term with the
   term's full duration as its offset (Initial + 4y = 01-Dec-2018). LMS only checks that a relative
   date falls before the end of the **final** term (`ScheduleRelativeDateValidationService`), so an
@@ -349,12 +349,12 @@ whitespace, the mapper uses a default:
 
 `COMMENTS` is trimmed before the check. Each default applied is recorded as a migration note, and
 the comparison report marks those rows "default description", so the licensing team can see
-which descriptions did not come from PEARS. Example: licence 7488's relinquishment on 01-Dec-2027
+which descriptions did not come from PEARS. Example: licence P2522's relinquishment on 01-Dec-2027
 has no percentage and no comments, so it becomes "Mandatory relinquishment".
 
 ### Phase boundaries
 
-Phases use the same end-boundary convention, inside the initial term. Licence 7488
+Phases use the same end-boundary convention, inside the initial term. Licence P2522
 (`ORIGIN_DATE` 2020-12-01):
 
 | `P` event | PEARS date | Meaning | LMS phase |
@@ -374,7 +374,7 @@ Rules:
    **present** starts on that date.
 2. Only phases with a `P` event are created. `LicenceScheduleCalculationService` chains the phases
    that exist in `PhaseType` order (`calculateAndSavePhaseDatesForTerm`), so a missing `PHASE_B`
-   lets C start the day after A ends, which is what 7488 needs.
+   lets C start the day after A ends, which is what P2522 needs.
 3. The last phase's `P` date must equal the `T(1)` date, so the phases exactly fill the initial
    term. Otherwise, or if the `PHASE` values are out of order, duplicated, empty or not A/B/C, skip
    the licence and report it. (A phase that is simply absent is allowed, per the business rule.)
@@ -489,7 +489,7 @@ reads `xview_ped_lic_schedule_events` for the current version and treats:
 
 An anniversary with neither kind of row produces **no payment**. A naive write-back of one
 non-recurring `R` per LMS rate row would therefore drop every year between rate changes. For
-licence 7488, rate 7500 would be paid in 2032 only, instead of every year to 2044.
+licence P2522, rate 7500 would be paid in 2032 only, instead of every year to 2044.
 
 How LMS should hold yearly-recurring rates is an **open decision**: see "Decision: how
 yearly-recurring rates are held in LMS" below. Whichever option is chosen, rates created in LMS
@@ -502,7 +502,7 @@ every rate:
    `RECURRING = YEARLY`:
    - `RECURRANCES` = the number of further anniversaries before the next rate starts;
    - `RECURRANCES` empty (indefinite) when it runs to the final term end. That matches how
-     PEARS holds the tail rate today (5856 and 7488 both end on an indefinite rate of 7500).
+     PEARS holds the tail rate today (P2244 and P2522 both end on an indefinite rate of 7500).
 3. Merge adjacent LMS rates with the same value that only exist because of a phase/term split.
    One recurring `R` is emitted rather than two, so the write-back does not rely on the payments
    report's `GROUP BY rate` folding them together.
@@ -517,7 +517,7 @@ gain payments. Those licences must be listed and agreed with the licensing team 
 migration runs.
 
 **Round-trip test (owned by the write-back work, specified here):** for a sample of licences
-(including 5856, 7488, every licence with a recurrence gap, and an `AL` and a `PL` licence with
+(including P2244, P2522, every licence with a recurrence gap, and an `AL` and a `PL` licence with
 fixed-count recurrences, data survey S12b), run PEARS → LMS → write-back XML.
 Run the payments report's `R` selection over both the original and the written-back XML for each
 year of the schedule. Assert the same `(payment date, rate)` rows. Do not compare raw event shape:
@@ -722,8 +722,8 @@ puts these requirements on the migration and the write-back (building it is sepa
   activity), `LicenceScheduleExpiry.comments`, and the `RD`/`PA` events' own `comments`. Those
   round-trip. **Consequence:** terms, phases and rates have no description in LMS, so their PEARS
   `COMMENTS` were migrated as `EventComment`s and are **not** written back. After the first
-  write-back, PEARS's Term/Phase/Rate comments are empty: for example 5856's Term 2 extension
-  history, and 7488's "Was £150, now £15" rate notes. They remain visible in LMS. They also drop
+  write-back, PEARS's Term/Phase/Rate comments are empty: for example P2244's Term 2 extension
+  history, and P2522's "Was £150, now £15" rate notes. They remain visible in LMS. They also drop
   out of PEARS's text summary (`scribe_schedule_events`). The PEARS schedule screen redirects to LMS,
   so nobody sees them missing there.
 - **Not written**: LMS work programme activities (no PEARS equivalent). LMS other events whose
@@ -747,7 +747,7 @@ puts these requirements on the migration and the write-back (building it is sepa
   `templateMaintain`, `templateView`, `copy`) are unaffected. The area screens (`PED031L`/`PED033X`) and `LICENSING_RETENTION_AREAS` keep working,
   because PEARS still owns the areas, but for migrated licences they publish the `RD`/`PA` set to LMS
   instead of writing the schedule (Open question 9).
-- **Round-trip test**: PEARS XML → LMS → regenerated XML for sample licences (5856, 7488, licences
+- **Round-trip test**: PEARS XML → LMS → regenerated XML for sample licences (P2244, P2522, licences
   with areas, removed areas and gaps). Compare event by event on (type, subtype, date, key fields,
   `EVENT_ID`), plus the payments report rows (see "Rates and the PEARS write-back").
 
@@ -936,7 +936,7 @@ used downstream.
 | Document templates `PED_PRODUCTION_LICENCE`, `…_OFF_V2`, `…_OFF_V4`, `…_ONSHORE` | "The **Mandatory Surrender Area** is an area comprising X% of the Initial Licensed Area." The sentence is omitted when empty |
 | `template_schedule.scribe_schedule_events` | Text schedule summary (" : 50%") |
 
-Real data: licence 7488 has `PERCENTAGE` 50 with no comment. Licence 5856 has no `PERCENTAGE` but
+Real data: licence P2522 has `PERCENTAGE` 50 with no comment. Licence P2244 has no `PERCENTAGE` but
 comment "50% Relinquishment". Its later relinquishment has `PERCENTAGE` 0 and comment "Everything
 outside FD areas".
 
@@ -975,7 +975,7 @@ Against:
 
 For:
 - No LMS model change; the migration stays smaller.
-- Comments often already carry the figure (5856), and the text fallback keeps it readable in LMS.
+- Comments often already carry the figure (P2244), and the text fallback keeps it readable in LMS.
 
 Against:
 - **Data loss.** After write-back, PEARS licence documents generated or refreshed for affected
@@ -1108,11 +1108,11 @@ built.** The rest of the plan assumes option A until then.
 PEARS can hold a rate as a `RECURRING = YEARLY` event. LMS has no recurrence: a rate is a start date
 and a value, in force until the next rate. The PEARS payments report
 (`PED_LICENCE_PAYMENTS_REPORT.xml`) needs either a non-recurring `R` or a yearly recurrence on every
-anniversary a payment is due. Example: licence 7488, rate 7500 from 01-Dec-2032, recurring yearly
+anniversary a payment is due. Example: licence P2522, rate 7500 from 01-Dec-2032, recurring yearly
 until the licence ends on 01-Dec-2045.
 
 **Option A: one LMS rate per phase/term the recurrence touches; the write-back rebuilds recurrence.**
-7488 gets one LMS rate (Third term + 5y). The write-back emits `R 7500, RECURRING=YEARLY`.
+P2522 gets one LMS rate (Third term + 5y). The write-back emits `R 7500, RECURRING=YEARLY`.
 
 For:
 - It matches the LMS model. A rate is entered once and stays in force until changed, which is how
@@ -1135,7 +1135,7 @@ Against:
   (rather than the payments logic) could see a different shape.
 
 **Option B: one LMS rate row per yearly redefinition; the write-back is one row to one row.**
-7488 gets 13 LMS rates of 7500 (2032 to 2044). The write-back emits 13 non-recurring `R` events.
+P2522 gets 13 LMS rates of 7500 (2032 to 2044). The write-back emits 13 non-recurring `R` events.
 
 For:
 - The write-back is a direct copy: each LMS rate becomes one non-recurring `R`, with no inference.
@@ -1381,7 +1381,7 @@ Header: licence reference, PEARS `ORIGIN_DATE` vs LMS start date, PEARS schedule
 | Expiry | Licence Expiry Date record | 26y 0m 0d | 01-Dec-2040 | expiry record (Open question 8) | 30-Nov-2040 or 01-Dec-2040 | Expected convention difference or Match |
 | Expiry | (licence with no `E`) | — | none | final term ends day before final `T`; no expiry record | — | No expiry in PEARS |
 
-(The Term, Bespoke milestone and final-term rows are real licence 5856 data. The Drill-or-drop and Licence Expiry Date rows only illustrate the other result types.)
+(The Term, Bespoke milestone and final-term rows are real licence P2244 data. The Drill-or-drop and Licence Expiry Date rows only illustrate the other result types.)
 
 - **PEARS offset** shows the absolute offset PEARS stores. **LMS basis** shows the anchor and
   relative offset LMS stores (or "follows previous term" for chained terms/phases), so the
@@ -1467,7 +1467,7 @@ The queries, full results and breakdowns are in the data survey,
 3b. Term support for `AL` schedules (Open question 14), after re-running the data
     survey for the non-`P`/`PEDL` types.
 4. `PearsScheduleService` + SQL resources + grant check.
-5. `PearsScheduleMapper` + unit tests from fixture XML (include licence 5856's two BM events, and a
+5. `PearsScheduleMapper` + unit tests from fixture XML (include licence P2244's two BM events, and a
    multi-version licence to test `original_event_id` matching across versions, yearly rates
    that cross phase and term boundaries, and one licence per term pattern A–G from the data survey). Unit test the Java port of PEARS date arithmetic
    (`ADD_MONTHS` included) against values computed in Oracle.
@@ -1501,13 +1501,13 @@ The queries, full results and breakdowns are in the data survey,
 
 1. **History.** Resolved: the full history is migrated, with one LMS schedule version per PEARS
    edit and no merging (see "Schedule history").
-2. **Term and phase boundaries.** Resolved (from licences 5856 and 7488, plus the business rule):
+2. **Term and phase boundaries.** Resolved (from licences P2244 and P2522, plus the business rule):
    the first term present starts on `ORIGIN_DATE`. A `T(n)` event is the **end boundary** of term
    n, the anniversary on which the next term present starts. Terms and phases may be missing but
    must be in order. Events up to and including a boundary belong to the term ending there, apart
    from rates, which start the next term. Every term pattern found by the data survey has a decided
    rule ("Term boundaries" rules 3, 5–7 and "Decision: four-term licences"). Phases follow the same
-   convention (licence 7488: A and C, no B). See "Phase boundaries".
+   convention (licence P2522: A and C, no B). See "Phase boundaries".
 3. **Rates.** Resolved: `RECURRING=YEARLY` redefines the rate each year at the same value. Each
    yearly date is migrated against the phase or term it falls in (see "Rates and yearly
    recurrence"). How many LMS rows a yearly rate becomes is still open: see Open question 7.
@@ -1553,7 +1553,7 @@ The queries, full results and breakdowns are in the data survey,
    single payment, e.g. a "recurs yearly" flag on `LicenceScheduleRate`. That is part of this
    decision.
 8. **Expiry date convention.** Open. PEARS dates the expiry on the anniversary the licence ends
-   (5856: 01-Dec-2040). In LMS the final term ends the day before (30-Nov-2040), and Review and
+   (P2244: 01-Dec-2040). In LMS the final term ends the day before (30-Nov-2040), and Review and
    Apply (`ReviewAndApplyScheduleController` → `doesExpiryDateMatchEndOfFinalTerm`) shows a
    validation error unless `expiryDate` **equals** the final term end date.
    - **Option A, store `E - 1 day` (30-Nov-2040).** Every migrated schedule passes the LMS check,

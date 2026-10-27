@@ -849,7 +849,7 @@ event**, so the "last phase boundary" idea for pattern A is wrong.
 
 **Reading (decided by business rule):** terms may be skipped but must be in order. These schedules
 have **no Initial term**. The first term present (Second) starts on `ORIGIN_DATE`, and each `T(n)`
-ends term n, the same convention as every other schedule (e.g. 5856, 7488):
+ends term n, the same convention as every other schedule (e.g. P2244, P2522):
 
 | Licence | `ORIGIN_DATE` | `T(2)` | `T(3)` = `E` | LMS terms |
 |---|---|---|---|---|
@@ -1001,7 +1001,7 @@ ORDER BY licence_type, schedules DESC;
 ```
 
 `phases_in_date_order` shows which phases are present, in date order (e.g. `ABC`, `AC`, `A`; `?` =
-no phase letter). The expected result is `LAST_P_EQUALS_T1` throughout, as on licence 7488.
+no phase letter). The expected result is `LAST_P_EQUALS_T1` throughout, as on licence P2522.
 
 **Result (live, 27 October 2026):**
 
@@ -1017,7 +1017,7 @@ no phase letter). The expected result is `LAST_P_EQUALS_T1` throughout, as on li
 - **309 current `P` schedules have phases, and every one passes:** the last phase ends exactly on
   `T(1)`. Phases are always in A → B → C order, with no duplicates, no missing dates and no other
   letters. No `PEDL` schedule has phases.
-- **Skipped phases are common:** `AC` (no B) is the most frequent shape, as on licence 7488. The
+- **Skipped phases are common:** `AC` (no B) is the most frequent shape, as on licence P2522. The
   plan's rule (only phases with a `P` event are created, chained in A/B/C order) handles all four
   shapes.
 - **`C` only (16) and `BC` (15):** under the rule, the first phase present starts on `ORIGIN_DATE`.
@@ -1437,7 +1437,7 @@ No `R` without a date, and no recurrence type other than `YEARLY`. `CE1` has no 
 
 - **One shape on `P` and `PEDL`:** one non-recurring `R` per anniversary, ending in a single
   **indefinite yearly** rate. 1,523 of 1,524 `P` schedules and all 220 `PEDL` schedules have
-  exactly one indefinite yearly rate. That matches licences 5856 and 7488, and the plan's
+  exactly one indefinite yearly rate. That matches licences P2244 and P2522, and the plan's
   write-back rule (the last LMS rate becomes an indefinite yearly `R`).
 - **The other types end the same way.** Every schedule with rates has exactly one indefinite
   yearly rate.

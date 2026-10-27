@@ -53,7 +53,7 @@ data survey S2 and S18) that is 1,808 licences and 10,858 schedule versions:
 | `DL` | 5 | 53 | `DL` (placeholder, no display name) | **none** |
 | `AL` | 3 | 30 | `AL` (placeholder, no display name) | **none** |
 | `CE` | 1 | 5 | `CE` (placeholder, no display name) | **none** |
-| *(blank)* | 9 | 24 | none: no LMS licence can exist | — |
+| *(blank, and no licence number)* | 9 | 24 | none: no LMS licence can exist | — |
 
 - **Status:** extant, surrendered, expired, revoked and no-status licences are all migrated. The
   report shows each licence's status, so skipped live licences stand out. Of
@@ -70,9 +70,9 @@ data survey S2 and S18) that is 1,808 licences and 10,858 schedule versions:
   none, so they are not migrated; the licensing team creates them manually (rule 7).
 - **Schedules with no terms** (all `ML`, `DL` and `CE`, 5 `PL`, 22 `P`) are not migrated: they are
   reported, and the licensing team creates them in LMS manually ("Term boundaries" rule 7).
-- **Blank licence type** (9 licences): the LMS licence reference is type + number, and
-  `getFromPrefix` has no blank case, so no LMS licence exists for them. They are skipped and
-  reported until the type is fixed in PEARS (data survey L4).
+- **No licence type or number** (9 records): the LMS licence reference is type + number, and these
+  have neither, so no LMS licence exists for them. They look like records abandoned part-way through
+  being set up. They are skipped and reported (data survey S2c, L4).
 - **Data survey coverage:** the survey has been re-run for the other types, and the results are
   merged into each section. Done for every section (27 October 2026).
 
@@ -901,8 +901,9 @@ is created by users. The comparison report lists them as "No PEARS schedule". On
 are surrendered or revoked licences, or records with no live data point that never became licences
 (data survey, [S17](pears-schedule-migration-data-survey.md#s17-licences-with-no-pears-schedule)).
 The other PEARS-managed types also have licences with no schedule (e.g. 283 `EXL`, 240 `PL`, 25
-`ML`, 7 `AL`), and their **statuses have not been checked yet** (data survey, "Other queries"). Any
-extant one would need its schedule created by hand at go-live.
+`ML`, 7 `AL`), and **none of them is extant either**. So no existing licence without a PEARS
+schedule needs one created by hand at go-live. (The 40 schedules with no terms are a separate
+manual step for the licensing team: "Term boundaries" rule 7.)
 
 **Licence start date:** the LMS `LicenceStartDate` becomes PEARS's `ORIGIN_DATE`, while PEARS's own
 licence start date (`xview_ped_ld_current.licence_start_date`, set at raise) is separate. LMS should
@@ -1407,8 +1408,8 @@ cannot disagree.
 
 - **In scope (every licence with a schedule):** 1,808 licences, 10,858 schedule versions (largest
   licence 66), 1,807 current. Of these, `P` and `PEDL` are 1,745 licences and 10,239 versions. The
-  other 63 licences (619 versions) are `PL`, `EXL`, `ML`, `DL`, `AL`, `CE`, plus 9 with a blank
-  type, which are skipped until fixed. The 40 schedules with no terms are not migrated either
+  other 63 licences (619 versions) are `PL`, `EXL`, `ML`, `DL`, `AL`, `CE`, plus 9 records with no
+  type or number, which are skipped. The 40 schedules with no terms are not migrated either
   (rule 7), so about 1,760 licences are migrated.
 - **Events (all licences):** 216,366 across all versions (35,947 current), about three-quarters of
   them rates.
@@ -1532,7 +1533,7 @@ The queries, full results and breakdowns are in the data survey,
    with a PEARS schedule is migrated, not only those mapping to `SEAWARD_PRODUCTION` or
    `LANDWARD_PRODUCTION`. `PL`, `EXL` and `ML` map to
    `LANDWARD_PRODUCTION`. `AL` needs Open question 14. Schedules with no terms (incl. all `ML`,
-   `DL`, `CE`) are not migrated and are left to the licensing team (rule 7). Blank-type licences are
+   `DL`, `CE`) are not migrated and are left to the licensing team (rule 7). Records with no type or number are
    skipped and reported. See "Scope: licence types and statuses".
 6. **Date mismatches.** When LMS arithmetic gives a different date from PEARS, adjust the stored
    `relativeDuration` so LMS lands on the PEARS date (the legal deadline), or keep PEARS offsets and

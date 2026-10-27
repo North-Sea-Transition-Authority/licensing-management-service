@@ -45,8 +45,8 @@ exceptions are mostly systematic, by licensing round, rather than one-off errors
 | Size | 1,745 in-scope licences (1,525 `P`, 220 `PEDL`), 10,239 schedule versions, ~216k events, ~450k LMS rows. 63 further licences are on out-of-scope or blank licence types. | S2, S3 |
 | Event types | The 11 known types only. `2N` is never used. | S1, S3 |
 | Start dates | Every current version has one. 1,071 historical versions have none and use a borrowed date (decided). 5 current versions differ from the licence start date. | S10 |
-| Terms | 1,519 of 1,744 current schedules follow the plan's rule exactly, and 166 more have terms but no expiry. 134 break it, in 7 patterns (A–G). | S7, S8 |
-| Phases | All 309 schedules with phases follow the rule (last phase ends at `T(1)`). Skipped phases are normal. | S9 |
+| Terms | 1,519 of 1,744 current schedules follow the plan's rule exactly, and 166 more have terms but no expiry. 134 break it, in 7 patterns (A–G). Patterns A, F and G (54) are settled by the business rule that terms may be skipped but must be in order. | S7, S8 |
+| Phases | All 309 schedules with phases follow the rule (last phase ends at `T(1)`). Skipped phases are normal and allowed by business rule (in order). | S9 |
 | Rates | All populated values are whole numbers; 2 rate-only schedules have an empty rate. Every schedule ends in one indefinite yearly rate. 298 deliberate gaps between rates, mostly pre-1999. | S11, S12 |
 | Date arithmetic | PEARS stored dates are reliable (1 exception). Copying offsets would move 94 events by up to 3 days, which deriving offsets from dates avoids. | S14 |
 | Untyped events | 201 on current versions: ~180 empty leftovers, ~20 holding data on 16 licences. | S6 |
@@ -73,17 +73,31 @@ Items that need the licensing team, as either a **fix in PEARS** before the prod
 
 | # | Question | Licences | Proposed rule | Section |
 |---|---|---|---|---|
-| L5 | **Terms numbered by start date (pattern A):** no `T(1)`, only `T(2)` and `T(3)` = expiry | 49 `P` (2017–2024 rounds) and PEDL141 | Read `T(n)` as the start of term n: Initial = start → `T(2)`, Second = `T(2)` → expiry, no Third. | S8b, S8c |
-| L6 | **Expiry ends a further term (pattern B):** last `T` earlier than the expiry | ~30, mostly 1980s (P328, P351, P473, P483–P614, P556, P726, P774, P799, P1055, P1192, P1262, P1577, P1722, P1885, P2316, PEDL116, PEDL155, PEDL255) | Add the next term, running from the last `T` to the expiry. | S8b |
-| L7 | **Four terms (pattern C)** | 13: P1162, P1165, P1368, P1373, P1374, P1484, P1485, P1487, P1488, P1636, P1638, P1640, P1641 | Decide: LMS production licences have only Initial, Second and Third. Is `T(1)` a boundary inside the initial term (e.g. Promote)? | S8b |
-| L8 | **Unnumbered `T` on the start date (pattern D)** | P2313, P2322, P2326, P2327, P2331, P2332, P1159 | Ignore it as a start marker. | S8b |
-| L9 | **Rate-only schedules with no terms (pattern E)** | 22 `P` (14 extant): P249, P251, P252, P256, P257, P258, P288, P291–P296, P324, P404, P416, P474, P2333, P2334, P2349, P2495, P2643 | Don't migrate. Leave them PEARS-owned until a user creates their LMS schedule. Also confirm what statuses `S` and `X` mean here. | S8d |
-| L10 | **`T(1)` and `T(3)` = expiry, no `T(2)` (pattern F)** | P1800, PEDL143, PEDL189, PEDL235 | Decide: treat `T(3)` as the end of the second term, or fix in PEARS. | S8b |
-| L11 | **Phases `C` only or `BC`** | 16 (`C`), 15 (`BC`) | Confirm the first phase present starts on the licence start date, rather than earlier phases never recorded. | S9 |
 | L12 | **Rate gaps are deliberate no-payment years** | 298 gaps, mostly pre-1999 (e.g. initial rental, then the next rate 6 years later) | Confirm from the licence terms (one licence per pattern). This drives the write-back design: Open question 7. | S12b |
 | L13 | **Mandatory relinquishment percentage** | 577 feed licence documents. 713 hold the figure only in comments. | Decide Open question 4 (field, comment, or drop). Also confirm whether licence documents are still generated from PEARS. | S13 |
 | L14 | **Expiry date convention** | 1,559 current schedules with an expiry | Decide Open question 8: LMS stores the day before the PEARS expiry, or LMS's check changes. | plan |
 | L15 | **Out-of-scope licence types** | 54: PL 26, EXL 12, ML 7, DL 5, AL 3, CE 1 | Confirm they stay out of this migration. | S2 |
+
+### Decided by business rule
+
+Business rule: **not every term or phase needs to exist on a licence schedule, but those present
+must be in order** (e.g. only Term 2 and Term 3, or only Phase A and Phase C). The first term
+present, and the first phase present, start on the licence start date.
+
+| # | Item | Licences | Rule | Section |
+|---|---|---|---|---|
+| L5 | **No `T(1)`, only `T(2)` and `T(3)` = expiry (pattern A)** | 49 `P` (2017–2024 rounds) and PEDL141 (pattern G) | No Initial term. Second = start → `T(2)`, Third = `T(2)` → `T(3)`/expiry. None has phases, so LMS's phase checks (which need an Initial term) don't apply. | S8b, S8c |
+| L10 | **`T(1)` and `T(3)` = expiry, no `T(2)` (pattern F)** | P1800, PEDL143, PEDL189, PEDL235 | No Second term. Initial = start → `T(1)`, Third = `T(1)` → `T(3)`. | S8b |
+| L11 | **Phases `C` only or `BC`** | 16 (`C`), 15 (`BC`) | The first phase present starts on the licence start date. With `C` only, Phase C covers the whole initial term. | S9 |
+
+Also decided:
+
+| # | Item | Licences | Rule | Section |
+|---|---|---|---|---|
+| L7 | **Four terms (pattern C)** | 13: P1162, P1165, P1368, P1373, P1374, P1484, P1485, P1487, P1488, P1636, P1638, P1640, P1641 | LMS gets a Fourth term (`T(4)` ends it). It can only be maintained on licences whose schedule already has one, and can't be added to any other schedule. See the plan's "Decision: four-term licences". | S8b |
+| L8 | **Unnumbered `T` on the start date (pattern D)** | P2313, P2322, P2326, P2327, P2331, P2332, P1159 | A `T` event with no number is ignored and not migrated. The numbered terms then fit the rules. | S8b |
+| L9 | **Rate-only schedules with no terms (pattern E)** | 22 `P` (14 extant): P249, P251, P252, P256, P257, P258, P288, P291–P296, P324, P404, P416, P474, P2333, P2334, P2349, P2495, P2643 | Not migrated. Listed in the report, to be handled manually. | S8d |
+| L6 | **Last `T` earlier than the expiry (pattern B)** | ~30, mostly 1980s (P328, P351, P473, P483–P614, P556, P726, P774, P799, P1055, P1192, P1262, P1577, P1722, P1885, P2316, PEDL116, PEDL155, PEDL255), plus PEDL141 and P1159 | Migrated as they are: no extra term, the final term ends on its `T`, and the expiry keeps the `E` date. Each one is reported. LMS's Review and Apply check will flag the difference the next time the schedule is edited. | S8b |
 
 ### For information only
 
@@ -602,13 +616,15 @@ ORDER BY GROUPING(licence_type), licence_type;
   166 have terms but no `E`, and migrate without an expiry record.
 - **Would be skipped under the current rules** (the categories overlap, so the totals do not add
   up; the detail query below gives the distinct list):
-  - 22 `P` schedules with no `T` at all. There is nothing to build terms from.
+  - 22 `P` schedules with no `T` at all. There is nothing to build terms from. **Decided:** not
+    migrated, and reported for manual handling (pattern E).
   - 54 with a numbering gap (e.g. no `T(1)`, or 1 and 3 without 2), and 7 with a `T` that has no
-    number.
+    number. **Update:** numbering gaps are allowed by business rule (terms may be skipped but must
+    be in order), so the 54 are no longer skipped for that reason (patterns A, F and G in S8b).
   - 7 with term dates out of order.
-  - 13 `P` schedules with more than 3 terms. LMS production licences only have Initial, Second and
-    Third.
-  - 37 whose final `T` differs from `E`.
+  - 13 `P` schedules with more than 3 terms. **Update:** decided. LMS gets a Fourth term for
+    these licences only (pattern C in S8b).
+  - 37 whose final `T` differs from `E`. **Decided:** migrated as they are and reported (pattern B).
 - The licensing team needs to see these before deciding whether to fix them in PEARS or adjust the
   rules (e.g. allow a final `T` ≠ `E` by taking `E` as the final boundary). The detail query
   (S8b) lists them.
@@ -695,16 +711,22 @@ clear patterns, each with a candidate rule for the licensing team to confirm:
 
 | # | Pattern | Licences | Example | Candidate rule |
 |---|---|---|---|---|
-| A | **No `T(1)`, only `T(2)` and `T(3)` = `E`** (modern rounds, 2017–2024) | 49 `P` (see S8c) | P2505: `2@2027-12-01, 3@2042-12-01`, `E` 2042-12-01 | No phases exist (S8c). Read `T(n)` as the **start** of term n: Initial = `ORIGIN_DATE`→`T(2)`, Second = `T(2)`→`T(3)`/`E`, no Third term. To be confirmed with the licensing team. |
-| B | **Last `T` earlier than `E`**: only `T(1)` (or `T(1)`, `T(2)`), then `E` years later (mostly 1980s licences, some later) | ~30: P328, P351, P473, P483–P614, P556, P726, P774, P799, P1055, P1192, P1262, P1577, P1722, P1885, P2316, PEDL116, PEDL155, PEDL255 | P516: `1@1991-06-14`, `E` 2021-06-14 | `E` is the end of the **next** term: add the following term (Second or Third), running from the last `T` to `E`. This matches PL179's DoV note ("4yr initial term + 50yrs means adding term end event"). |
-| C | **4 terms** (2004–2009 rounds) | 13: P1162, P1165, P1368, P1373, P1374, P1484, P1485, P1487, P1488, P1636, P1638, P1640, P1641 | P1484: `1@2009-04-01, 2@2013-04-01, 3@2019-04-01, 4@2037-04-01` | Looks like a split initial term (e.g. Promote licences). Possibly `T(1)` is a phase-like boundary inside the initial term. Needs a licensing decision; LMS production licences only have Initial, Second and Third. |
-| D | **Unnumbered `T` on `ORIGIN_DATE`**, plus 1, 2, 3 | 7: P2313, P2322, P2326, P2327, P2331, P2332, and P1159 | P2313: `?@2017-05-15, 1@2026-05-15, 2@2032-05-15, 3@2050-05-15` | A start marker, not a term end. **Ignore a `T` with no number dated on `ORIGIN_DATE`**; the rest then fit the rules. P1159 also has a `T(3)` earlier than `E` (pattern B, but a 4th term is not possible). |
-| E | **No `T` events at all** | 22 `P`: old licences 1976–1982 (P249–P474) and some recent ones (P2333, P2334, P2349, P2495, P2643) | P249: one `R`, no terms, no `E` | Rate-only schedules (S8d), 14 of them extant. Don't migrate; report them, and they stay PEARS-owned until a user creates their LMS schedule. To be confirmed. |
-| F | **`T(1)` and `T(3)` = `E`, no `T(2)`** | 4: P1800, PEDL143, PEDL189, PEDL235 | PEDL189: `1@2025-07-01, 3@2039-07-01` | Likely a skipped second term or a numbering slip. Licensing decision: treat `T(3)` as the second term's end, or fix in PEARS. |
-| G | **`T(2)` only, `E` later** | 1: PEDL141 | `2@2013-10-01`, `E` 2031-10-01 | Fits pattern A's "starts" reading on its own: Initial 2004→2013, Second 2013→`E`. |
+| A | **No `T(1)`, only `T(2)` and `T(3)` = `E`** (modern rounds, 2017–2024) | 49 `P` (see S8c) | P2505: `2@2027-12-01, 3@2042-12-01`, `E` 2042-12-01 | **Decided (business rule: terms may be skipped but must be in order).** No Initial term: **Second** = `ORIGIN_DATE`→`T(2)`, **Third** = `T(2)`→`T(3)`/`E`. No phases exist (S8c), so the phase checks' need for an Initial term doesn't arise. |
+| B | **Last `T` earlier than `E`**: only `T(1)` (or `T(1)`, `T(2)`), then `E` years later (mostly 1980s licences, some later) | ~30: P328, P351, P473, P483–P614, P556, P726, P774, P799, P1055, P1192, P1262, P1577, P1722, P1885, P2316, PEDL116, PEDL155, PEDL255 | P516: `1@1991-06-14`, `E` 2021-06-14 | **Decided: migrate as they are and report.** No extra term is added. The final term ends on its `T`, and the expiry keeps the `E` date. (The earlier candidate was to add the next term from the last `T` to `E`, as PL179's DoV note suggests.) |
+| C | **4 terms** (2004–2009 rounds) | 13: P1162, P1165, P1368, P1373, P1374, P1484, P1485, P1487, P1488, P1636, P1638, P1640, P1641 | P1484: `1@2009-04-01, 2@2013-04-01, 3@2019-04-01, 4@2037-04-01` | **Decided.** Migrate as four terms: LMS gets a `FOURTH` term type, and `T(4)` ends the Fourth term. It can only be maintained on licences whose schedule already has one. No other schedule can have it added. |
+| D | **Unnumbered `T` on `ORIGIN_DATE`**, plus 1, 2, 3 | 7: P2313, P2322, P2326, P2327, P2331, P2332, and P1159 | P2313: `?@2017-05-15, 1@2026-05-15, 2@2032-05-15, 3@2050-05-15` | **Decided: ignore any `T` event with no number** (not migrated, listed in the report). The rest then fit the rules. P1159 also has a `T(3)` earlier than `E`. It is pattern B, so it is migrated as it is and reported (see L6). |
+| E | **No `T` events at all** | 22 `P`: old licences 1976–1982 (P249–P474) and some recent ones (P2333, P2334, P2349, P2495, P2643) | P249: one `R`, no terms, no `E` | Rate-only schedules (S8d), 14 of them extant. **Decided: not migrated.** Listed in the report, to be handled manually. |
+| F | **`T(1)` and `T(3)` = `E`, no `T(2)`** | 4: P1800, PEDL143, PEDL189, PEDL235 | PEDL189: `1@2025-07-01, 3@2039-07-01` | **Decided (business rule).** A skipped second term: **Initial** = `ORIGIN_DATE`→`T(1)`, **Third** = `T(1)`→`T(3)`. No Second term. |
+| G | **`T(2)` only, `E` later** | 1: PEDL141 | `2@2013-10-01`, `E` 2031-10-01 | **Decided (business rule), then pattern B.** **Second** = `ORIGIN_DATE` (2004-10-01)→`T(2)` (2013). No Third term is added. The expiry keeps `E` (2031-10-01), and the licence is reported. |
 
-None of these rules are adopted yet. They need the licensing team's confirmation, and S8c (the
-phases on pattern A licences) and the licence status of pattern E.
+**Business rule (confirmed after the survey):** a licence schedule does not need every term (e.g.
+only Term 2 and Term 3), but the terms present must be in order. So a **numbering gap is not a data
+error**, and patterns A, F and G need no special reading: the first term present starts on
+`ORIGIN_DATE` and each `T(n)` ends term n, as everywhere else. The other patterns (B, C, D, E) are
+candidate rules still to be confirmed by the licensing team, except pattern C, which is decided (a
+Fourth term in LMS, for these licences only), pattern D (`T` events with no number are ignored) and
+pattern E (not migrated, reported for manual handling) and pattern B (migrated as it is, with the
+expiry and final term end different, and reported). **All patterns are now decided.**
 
 ### S8c. Phases on schedules with no `T(1)` (pattern A check)
 
@@ -748,23 +770,19 @@ event**, so the "last phase boundary" idea for pattern A is wrong.
 | `2@x, 3@E`, no phases | 49 `P`: P2341, P2448–P2460, P2494, P2498, P2505, P2508, P2513, P2518, P2520, P2532, P2535, P2538, P2550, P2571, P2573–P2577, P2579, P2580, P2596, P2601, P2608, P2609, P2611–P2613, P2616, P2618–P2620, P2624, P2662, P2673, P2678, P2681 |
 | `2@x`, `E` later | PEDL141: `2@2013-10-01`, `E` 2031-10-01 |
 
-**Reading:** these schedules number terms by the term that **starts** on the date, not the one
-that ends. `T(1)` is missing because the first term starts on `ORIGIN_DATE`:
+**Reading (decided by business rule):** terms may be skipped but must be in order. These schedules
+have **no Initial term**. The first term present (Second) starts on `ORIGIN_DATE`, and each `T(n)`
+ends term n, the same convention as every other schedule (e.g. 5856, 7488):
 
-| Licence | `ORIGIN_DATE` | `T(2)` | `T(3)` = `E` | "Starts" reading |
+| Licence | `ORIGIN_DATE` | `T(2)` | `T(3)` = `E` | LMS terms |
 |---|---|---|---|---|
-| P2505 | 2020-12-01 | 2027-12-01 | 2042-12-01 | Initial 2020→2027; Second 2027→2042; licence ends at `E` |
-| P2449 | 2018-10-01 | 2030-10-01 | 2040-10-01 | Initial 2018→2030; Second 2030→2040 |
-| PEDL141 | 2004-10-01 | 2013-10-01 | `E` 2031-10-01 | Initial 2004→2013; Second 2013→2031 |
+| P2505 | 2020-12-01 | 2027-12-01 | 2042-12-01 | Second 2020→2027; Third 2027→2042 |
+| P2449 | 2018-10-01 | 2030-10-01 | 2040-10-01 | Second 2018→2030; Third 2030→2040 |
+| PEDL141 | 2004-10-01 | 2013-10-01 | `E` 2031-10-01 | Second 2004→2013; expiry 2031 kept as it is (pattern B: reported) |
 
-Under this reading, `T(3)` = `E` is the **start of a third term that has not been granted**, so the
-licence ends there. Every schedule in the set fits it, PEDL141 included, with no extra rule.
-
-**Candidate rule A (replaces "last phase boundary"):** when a schedule has no `T(1)` and its terms
-start at 2, read each `T(n)` as the **start of term n**. That makes `T(n)` the end of term n−1:
-Initial ends at `T(2)`, Second ends at `T(3)` or `E`, and there is no Third term. This needs the
-licensing team to confirm the convention for these rounds. Other schedules (e.g. 5856, 7488, the
-P23xx licences) use the "ends" convention with a `T(1)`.
+Because none of these schedules has phases, LMS's phase checks (which look up the Initial term) are
+never reached for them. (An earlier candidate read `T(n)` here as the **start** of term n, giving
+Initial and Second. The business rule replaces it.)
 
 ### S8d. Schedules with no terms (pattern E): status and content
 
@@ -822,7 +840,9 @@ nothing else.** Three also have an `E`; none has terms.
 - These are rate-only schedules: one rate, presumably recurring yearly, with no term structure.
   The older extant ones are 1970s–80s licences with no expiry at all.
 - LMS anchors every rate to a term or phase, so they cannot migrate as they are.
-- **Candidate rule E:** do not migrate a schedule with no terms. Report it, and it stays
+- **Decided:** these schedules are not migrated. They are listed in the report to be handled
+  manually.
+- **Original candidate rule E (for context):** do not migrate a schedule with no terms. Report it, and it stays
   PEARS-owned: no `ped_lms_schedule_sync` row, so PEARS keeps writing it. Its LMS schedule is
   created by a user (as for new licences), which then makes it LMS-managed through the write-back.
   The alternative, an Initial term from `ORIGIN_DATE` to `E`, only works for the 3 with an `E`, and
@@ -928,8 +948,8 @@ no phase letter). The expected result is `LAST_P_EQUALS_T1` throughout, as on li
   shapes.
 - **`C` only (16) and `BC` (15):** under the rule, the first phase present starts on `ORIGIN_DATE`.
   So with `C` only, Phase C covers the whole initial term; with `BC`, Phase B starts on
-  `ORIGIN_DATE`. The licensing team to confirm that is the intended meaning, rather than earlier
-  phases that were never recorded.
+  `ORIGIN_DATE`. **Decided (business rule):** phases may be missing (e.g. only A and C) but must be
+  in order, so this is the intended meaning.
 - The phase rule in the plan ("Phase boundaries") is confirmed by live data.
 
 ## S10. `ORIGIN_DATE` (all versions)

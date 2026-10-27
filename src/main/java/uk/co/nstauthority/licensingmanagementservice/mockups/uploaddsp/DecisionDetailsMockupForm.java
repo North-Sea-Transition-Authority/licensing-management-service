@@ -7,6 +7,8 @@ import java.util.List;
 // Serializable because it is held in the HTTP session, which Spring Session persists to the database
 public class DecisionDetailsMockupForm implements Serializable {
 
+  private static final long serialVersionUID = 1L;
+
   private String decisionMaker;
   private String delegated;
   private String delegatedTo;

@@ -1,9 +1,8 @@
 package uk.co.nstauthority.licensingmanagementservice.mockups.uploaddsp;
 
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
+import uk.co.nstauthority.licensingmanagementservice.util.StreamUtil;
 
 final class DecisionDetailsMockupData {
 
@@ -23,8 +22,7 @@ final class DecisionDetailsMockupData {
 
   // Ordered, because the search selector shows options in map order
   static final Map<String, String> DECISION_MAKER_OPTIONS = DECISION_MAKERS.stream()
-      .collect(Collectors.toMap(
-          DecisionDetailsPerson::id, DecisionDetailsPerson::name, (first, second) -> first, LinkedHashMap::new));
+      .collect(StreamUtil.toLinkedHashMap(DecisionDetailsPerson::id, DecisionDetailsPerson::name));
 
   private DecisionDetailsMockupData() {
   }

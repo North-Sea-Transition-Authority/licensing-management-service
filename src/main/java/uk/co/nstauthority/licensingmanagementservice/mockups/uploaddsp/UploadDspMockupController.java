@@ -2,15 +2,14 @@ package uk.co.nstauthority.licensingmanagementservice.mockups.uploaddsp;
 
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
-import jakarta.servlet.http.HttpSession;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.apache.commons.lang3.StringUtils;
@@ -40,7 +39,6 @@ import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.Noti
 import uk.co.nstauthority.licensingmanagementservice.fds.searchselector.SearchSelectorService;
 import uk.co.nstauthority.licensingmanagementservice.file.FileControllerHelperService;
 import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.application.caseprocessing.OverviewTab;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overview.ScheduleWorkProgrammeApplicationContext;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryCard;
@@ -51,22 +49,21 @@ import uk.co.nstauthority.licensingmanagementservice.summary.SummarySection;
 import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListItem;
 import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListLabel;
 import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListSection;
+import uk.co.nstauthority.licensingmanagementservice.util.StreamUtil;
 
 @Controller
 @RequestMapping("/mockups/upload-dsp")
 @Profile("mockups")
 public class UploadDspMockupController {
 
-  private static final String APPLICATION_REFERENCE = "P1234/5678";
-  private static final String CAPTION = "Offshore";
-  private static final String JOURNEY = "uploadDspMockupJourney";
+  static final String APPLICATION_REFERENCE = "P1234/5678";
+  static final String CAPTION = "Offshore";
   private static final String ACTION_CORRECT = "CORRECT";
   private static final String ACTION_ADDENDUM = "ADDENDUM";
   private static final String ADDENDUM_TARGET_PREFIX = "ADDENDUM_";
-  private static final String OVERVIEW_VIEW =
-      "lms/licence/scheduleWorkProgrammeApplication/scheduleWorkProgrammeApplicationOverview";
+  private static final String OVERVIEW_VIEW = "lms/mockups/uploaddsp/applicationOverview";
 
-  private static final ScheduleWorkProgrammeApplicationContext APPLICATION_CONTEXT =
+  static final ScheduleWorkProgrammeApplicationContext APPLICATION_CONTEXT =
       new ScheduleWorkProgrammeApplicationContext(
           APPLICATION_REFERENCE,
           "P1234 - Traditional",
@@ -104,80 +101,244 @@ public class UploadDspMockupController {
           Map.entry("1", "Jane Smith"),
           Map.entry("2", "Chris Morgan"),
           Map.entry("3", "Priya Shah"))
-      .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (first, second) -> first, LinkedHashMap::new));
+      .collect(StreamUtil.toLinkedHashMap(Map.Entry::getKey, Map.Entry::getValue));
 
   private enum OverviewView {
     INITIAL,
     SENT_BACK,
     DSP_UPLOADED,
     DECISION_ISSUER,
-    EXECUTION
+    DECISION_ISSUED,
+    EXECUTION,
+    SIGNATORY,
+    INDUSTRY
   }
 
   private final FileControllerHelperService fileControllerHelperService;
-  private final HttpSession session;
+  private final UploadDspMockupJourneyStore journeyStore;
 
-  public UploadDspMockupController(FileControllerHelperService fileControllerHelperService, HttpSession session) {
+  UploadDspMockupController(
+      FileControllerHelperService fileControllerHelperService,
+      UploadDspMockupJourneyStore journeyStore
+  ) {
     this.fileControllerHelperService = fileControllerHelperService;
-    this.session = session;
+    this.journeyStore = journeyStore;
   }
 
   // Opening the SUBMITTED overview starts the mockup journey afresh
   @GetMapping
-  ModelAndView renderOverview(@RequestParam(name = "tab", defaultValue = "overview") OverviewTab tab) {
+  ModelAndView renderOverview(@RequestParam(name = "tab", defaultValue = "overview") String tab) {
     resetJourney();
     return buildOverview(OverviewView.INITIAL, tab);
   }
 
   // Same actions as the start page, but the journey state carries on instead of being cleared
   @GetMapping("/sent-back")
-  ModelAndView renderOverviewSentBack(@RequestParam(name = "tab", defaultValue = "overview") OverviewTab tab) {
+  ModelAndView renderOverviewSentBack(@RequestParam(name = "tab", defaultValue = "overview") String tab) {
     return buildOverview(OverviewView.SENT_BACK, tab);
   }
 
   @GetMapping("/dsp-uploaded")
-  ModelAndView renderOverviewDspUploaded(@RequestParam(name = "tab", defaultValue = "overview") OverviewTab tab) {
+  ModelAndView renderOverviewDspUploaded(@RequestParam(name = "tab", defaultValue = "overview") String tab) {
     return buildOverview(OverviewView.DSP_UPLOADED, tab);
   }
 
   // The decision issuer sees the application summary with their own actions
   @GetMapping("/decision-issuer")
-  ModelAndView renderOverviewDecisionIssuer(@RequestParam(name = "tab", defaultValue = "overview") OverviewTab tab) {
+  ModelAndView renderOverviewDecisionIssuer(@RequestParam(name = "tab", defaultValue = "overview") String tab) {
     return buildOverview(OverviewView.DECISION_ISSUER, tab);
   }
 
   // Once the decision letter has been approved and issued
   @GetMapping("/execution")
-  ModelAndView renderOverviewExecution(@RequestParam(name = "tab", defaultValue = "overview") OverviewTab tab) {
+  ModelAndView renderOverviewExecution(@RequestParam(name = "tab", defaultValue = "overview") String tab) {
     return buildOverview(OverviewView.EXECUTION, tab);
   }
 
-  private ModelAndView buildOverview(OverviewView view, OverviewTab requestedTab) {
-    var selectedTab = requestedTab == OverviewTab.CASE_EVENTS ? OverviewTab.CASE_EVENTS : OverviewTab.OVERVIEW;
-    var modelAndView = new ModelAndView(OVERVIEW_VIEW)
-        .addObject("availableTabs", List.of(OverviewTab.OVERVIEW, OverviewTab.CASE_EVENTS))
-        .addObject("selectedTab", selectedTab)
-        .addObject("controllerUrl", overviewUrl(view));
+  // The decision letter has been issued but industry has not accepted yet, so the case manager still has the case
+  @GetMapping("/decision-issued")
+  ModelAndView renderOverviewDecisionIssued(@RequestParam(name = "tab", defaultValue = "overview") String tab) {
+    return buildOverview(OverviewView.DECISION_ISSUED, tab);
+  }
 
-    if (selectedTab == OverviewTab.CASE_EVENTS) {
-      return modelAndView.addObject("caseEventsSummaryItem",
-          SummaryItem.withCards(OverviewTab.CASE_EVENTS.label(), getCaseEventCards()));
+  // Mockup navigation: switches from the case manager to industry accepting, which hands the case to the executor
+  @GetMapping("/industry-accept")
+  ModelAndView industryAcceptDecision() {
+    updateJourney(UploadDspMockupJourney::acceptDecision);
+    return ReverseRouter.redirect(on(this.getClass()).renderOverviewExecution(null));
+  }
+
+  // Fresh journey that skips ahead: DSP uploaded, decision recorded and issued, industry accepted
+  @GetMapping("/decision-accepted-dov")
+  ModelAndView startAtDecisionAcceptedDov() {
+    startAcceptedScenario("DOV");
+    return ReverseRouter.redirect(on(this.getClass()).renderOverviewExecution(null));
+  }
+
+  // Same as above, but the recorded document type is a direction letter
+  @GetMapping("/decision-accepted-dl")
+  ModelAndView startAtDecisionAcceptedDirectionLetter() {
+    startAcceptedScenario("DIRECTION_LETTER");
+    return ReverseRouter.redirect(on(this.getClass()).renderOverviewExecution(null));
+  }
+
+  private void startAcceptedScenario(String documentType) {
+    resetJourney();
+    var details = new DecisionDetailsMockupForm();
+    details.setDecisionMaker("1");
+    details.setDelegated("NO");
+    details.setDocumentType(documentType);
+    details.setRaciConsulteeIds(List.of("1", "5"));
+    details.setLegalApproval("YES");
+    updateJourney(journey -> {
+      journey.uploadFirstDsp(null);
+      journey.startDecision();
+      journey.saveDecisionDetails(details);
+      journey.recordDecision();
+      journey.issueDecisionLetter();
+      journey.acceptDecision();
+    });
+  }
+
+  // The NSTA authorised signatory's view of the application while the direction letter awaits signature
+  @GetMapping("/signatory")
+  ModelAndView renderOverviewSignatory(@RequestParam(name = "tab", defaultValue = "overview") String tab) {
+    return buildOverview(OverviewView.SIGNATORY, tab);
+  }
+
+  // A licensee's view of the application, once there is a deed of variation to sign
+  @GetMapping("/industry/{licensee}")
+  ModelAndView renderOverviewIndustry(
+      @PathVariable("licensee") int licensee,
+      @RequestParam(name = "tab", defaultValue = "overview") String tab
+  ) {
+    return buildOverview(OverviewView.INDUSTRY, tab, licensee);
+  }
+
+  private ModelAndView buildOverview(OverviewView view, String requestedTab) {
+    return buildOverview(view, requestedTab, 0);
+  }
+
+  private ModelAndView buildOverview(OverviewView view, String requestedTab, int licensee) {
+    var issuedLetters = getIssuedLetters();
+    var regulator = view != OverviewView.INDUSTRY;
+    List<MockupTab> availableTabs = new ArrayList<>(List.of(OVERVIEW_TAB));
+    if (!issuedLetters.isEmpty()) {
+      availableTabs.add(LETTER_TAB);
     }
-    return modelAndView
+    // Like the real overview, only the regulator sees case events. The DPEA is for them once industry has accepted
+    if (regulator && journey().isDecisionAccepted()) {
+      availableTabs.add(DPEA_TAB);
+    }
+    if (regulator) {
+      availableTabs.add(CASE_EVENTS_TAB);
+    }
+    var selectedTab = availableTabs.stream()
+        .filter(tab -> tab.value().equals(requestedTab))
+        .findFirst()
+        .orElse(OVERVIEW_TAB);
+    var modelAndView = new ModelAndView(OVERVIEW_VIEW)
+        .addObject("availableTabs", availableTabs)
+        .addObject("selectedTab", selectedTab)
+        .addObject("controllerUrl", view == OverviewView.INDUSTRY ? industryUrl(licensee) : overviewUrl(view));
+
+    // Like the continuation Letter tab: the issued document and who issued it, where licensees download it
+    if (selectedTab == LETTER_TAB) {
+      return modelAndView
+          .addObject("accordionId", UUID.randomUUID().toString())
+          .addObject("issuedLetters", issuedLetters);
+    }
+
+    if (selectedTab == DPEA_TAB) {
+      return modelAndView.addObject("dpeaSections", DpeaSummary.build(journey()));
+    }
+
+    if (selectedTab == CASE_EVENTS_TAB) {
+      return modelAndView.addObject("caseEventsSummaryItem",
+          SummaryItem.withCards(CASE_EVENTS_TAB.label(), getCaseEventCards()));
+    }
+    modelAndView
         .addObject("applicationContext", APPLICATION_CONTEXT)
         .addObject("summarySections", SUMMARY_SECTIONS)
         .addObject("accordionId", UUID.randomUUID().toString())
-        .addObject("applicationActions", getApplicationActions(view));
+        .addObject("applicationActions", getApplicationActions(view, licensee));
+    if (view == OverviewView.INDUSTRY) {
+      getLicenseeNotice(licensee).ifPresent(notice -> modelAndView.addObject("licenseeNotice", notice));
+    }
+    return modelAndView;
   }
 
-  private List<ActionItemView> getApplicationActions(OverviewView view) {
+  // Not the real OverviewTab, which has no DPEA tab. The tabs macro reads label(), value() and anchor()
+  public record MockupTab(String label, String value, String anchor) {
+  }
+
+  private static final MockupTab OVERVIEW_TAB = new MockupTab("Overview", "overview", "overview");
+  private static final MockupTab LETTER_TAB = new MockupTab("Letter", "letter", "letter");
+  private static final MockupTab DPEA_TAB = new MockupTab("DPEA", "dpea", "dpea");
+  private static final MockupTab CASE_EVENTS_TAB = new MockupTab("Case events", "case-events", "case-events");
+
+  public record IssuedLetter(String name, String issuedBy, String issuedDate, String fileName) {
+  }
+
+  private List<IssuedLetter> getIssuedLetters() {
+    var journey = journey();
+    var letters = new ArrayList<IssuedLetter>();
+    addIssuedLetter(letters, "Decision letter", "decision-letter.pdf",
+        journey.latestEvent(UploadDspMockupJourney.DECISION_LETTER_ISSUED));
+    addIssuedLetter(letters, "Direction letter", "direction-letter.pdf",
+        journey.latestEvent(UploadDspMockupJourney.DIRECTION_LETTER_ISSUED));
+    addIssuedLetter(letters, "Deed of variation", "deed-of-variation.pdf",
+        journey.latestEvent(UploadDspMockupJourney.DEED_SENT));
+    return letters;
+  }
+
+  private void addIssuedLetter(
+      List<IssuedLetter> letters,
+      String name,
+      String fileName,
+      Optional<UploadDspMockupJourney.CaseEvent> event
+  ) {
+    event.ifPresent(e -> letters.add(new IssuedLetter(
+        name, e.eventBy(), DateFormatUtil.convertToDisplayTextWithTime(e.at()), fileName)));
+  }
+
+  // A licensee is asked to post their hardcopies as soon as their own signed deed is accepted
+  private Optional<String> getLicenseeNotice(int licensee) {
+    var journey = journey();
+    if (journey.canUploadSignedDeed(licensee) && journey.sendBackReason(licensee) != null) {
+      return Optional.of("The NSTA sent your signed deed back: " + journey.sendBackReason(licensee));
+    }
+    if (journey.isAwaitingHardcopy(licensee)) {
+      return Optional.of("Your signed deed has been accepted. Post the 2 signed hardcopies to the NSTA.");
+    }
+    return Optional.empty();
+  }
+
+  static String executionUrl() {
+    return ReverseRouter.route(on(UploadDspMockupController.class).renderOverviewExecution(null));
+  }
+
+  static String industryUrl(int licensee) {
+    return ReverseRouter.route(on(UploadDspMockupController.class).renderOverviewIndustry(licensee, null));
+  }
+
+  private List<ActionItemView> getApplicationActions(OverviewView view, int licensee) {
     return switch (view) {
-      case EXECUTION -> List.of(
-          new ActionItemView("Send back to recommendation", 10, false,
-              ReverseRouter.route(on(this.getClass()).sendBackToRecommendation()), null)
-      );
+      case EXECUTION -> getExecutionActions();
+      case DECISION_ISSUED -> journey().isDecisionAccepted()
+          ? List.of()
+          : List.of(new ActionItemView("Send back to recommendation", 10, false,
+              ReverseRouter.route(on(this.getClass()).sendBackToRecommendation()), null));
+      case INDUSTRY -> journey().canUploadSignedDeed(licensee)
+          ? List.of(new ActionItemView("Upload signed deed", 10, true,
+              ReverseRouter.route(on(DeedOfVariationMockupController.class).renderSignedDeed(licensee)), null))
+          : List.of();
+      case SIGNATORY -> journey().signatureStatus() == UploadDspMockupJourney.SignatureStatus.AWAITING
+          ? List.of(new ActionItemView("Sign direction letter", 10, true,
+              ReverseRouter.route(on(DirectionLetterMockupController.class).renderSign()), null))
+          : List.of();
       case DECISION_ISSUER -> List.of(
-          new ActionItemView("Decision letter", 10, true,
+          new ActionItemView("Prepare decision letter", 10, true,
               ReverseRouter.route(on(this.getClass()).renderDecisionLetter()), null),
           new ActionItemView("Send back to record decision", 20, false,
               ReverseRouter.route(on(this.getClass()).sendBackToRecordDecision()), null)
@@ -212,13 +373,59 @@ public class UploadDspMockupController {
     };
   }
 
+  private List<ActionItemView> getDeedActions(UploadDspMockupJourney.DeedStatus deedStatus) {
+    return switch (deedStatus) {
+      case LICENSEE_SIGNING -> List.of(new ActionItemView("Signed deeds and hardcopies", 10, true,
+          ReverseRouter.route(on(DeedOfVariationMockupController.class).renderSignedCopies()), null));
+      case NSTA_SIGNING -> List.of(new ActionItemView("Send conformed deed", 10, true,
+          ReverseRouter.route(on(DeedOfVariationMockupController.class).renderComplete()), null));
+      case POSTING_BACK -> List.of(new ActionItemView("Record hardcopies posted", 10, true,
+          ReverseRouter.route(on(DeedOfVariationMockupController.class).renderPosted()), null));
+      case NOT_STARTED, COMPLETE -> List.of();
+    };
+  }
+
+  // The decision executor's actions: the recorded document type is only a starting point they can ignore
+  private List<ActionItemView> getExecutionActions() {
+    var journey = journey();
+    if (journey.deedStatus() != UploadDspMockupJourney.DeedStatus.NOT_STARTED) {
+      return getDeedActions(journey.deedStatus());
+    }
+    if (journey.isLetterIssued()) {
+      return List.of();
+    }
+    var directionLetterUrl = ReverseRouter.route(on(DirectionLetterMockupController.class).renderDirectionLetter());
+    return switch (journey.signatureStatus()) {
+      case AWAITING -> List.of(
+          new ActionItemView("Send reminder", 10, false,
+              ReverseRouter.route(on(DirectionLetterMockupController.class).sendReminder(null)), null),
+          new ActionItemView("Change signatory", 20, false, directionLetterUrl, null)
+      );
+      case SIGNED -> List.of(
+          new ActionItemView("Issue direction letter", 10, true,
+              ReverseRouter.route(on(DirectionLetterMockupController.class).issueLetter(null)), null)
+      );
+      case NOT_REQUESTED -> {
+        var deedRecorded = "DOV".equals(journey.recordedDocumentType());
+        yield List.of(
+            new ActionItemView("Prepare direction letter", 10, !deedRecorded, directionLetterUrl, null),
+            new ActionItemView("Prepare deed of variation", 20, deedRecorded,
+                ReverseRouter.route(on(DeedOfVariationMockupController.class).renderDeed()), null)
+        );
+      }
+    };
+  }
+
   private String overviewUrl(OverviewView view) {
     return switch (view) {
       case INITIAL -> ReverseRouter.route(on(this.getClass()).renderOverview(null));
       case SENT_BACK -> ReverseRouter.route(on(this.getClass()).renderOverviewSentBack(null));
       case DSP_UPLOADED -> ReverseRouter.route(on(this.getClass()).renderOverviewDspUploaded(null));
       case DECISION_ISSUER -> ReverseRouter.route(on(this.getClass()).renderOverviewDecisionIssuer(null));
+      case DECISION_ISSUED -> ReverseRouter.route(on(this.getClass()).renderOverviewDecisionIssued(null));
       case EXECUTION -> ReverseRouter.route(on(this.getClass()).renderOverviewExecution(null));
+      case SIGNATORY -> ReverseRouter.route(on(this.getClass()).renderOverviewSignatory(null));
+      case INDUSTRY -> industryUrl(0);
     };
   }
 
@@ -234,7 +441,7 @@ public class UploadDspMockupController {
   private List<SummaryCard> getCaseEventCards() {
     var cards = new ArrayList<SummaryCard>();
     for (var event : journey().eventsNewestFirst()) {
-      cards.add(caseEventCard(event.heading(), Map.of(event.detailKey(), event.detailValue()), "Jane Smith",
+      cards.add(caseEventCard(event.heading(), Map.of(event.detailKey(), event.detailValue()), event.eventBy(),
           event.at()));
     }
     cards.add(caseEventCard("Steward allocated", Map.of("Steward", "Jane Smith"), "Alex Taylor",
@@ -368,9 +575,16 @@ public class UploadDspMockupController {
 
   @GetMapping("/issue-decision")
   ModelAndView renderDecisionLetter() {
-    var modelAndView = new ModelAndView("lms/mockups/uploaddsp/issueDecision")
+    var modelAndView = new ModelAndView("lms/mockups/uploaddsp/decisionLetter")
         .addObject("pageTitle", "Decision letter for Shell UK limited")
-        .addObject("approveUrl", ReverseRouter.route(on(this.getClass()).approveAndIssueLetter()));
+        .addObject("signUrl", ReverseRouter.route(on(this.getClass()).approveAndIssueLetter()))
+        .addObject("previewUrl", "#")
+        .addObject("reloadUrl", "#")
+        .addObject("documentInstanceSectionsSummaryView", MockLetter.decisionLetter())
+        .addObject("accordionId", UUID.randomUUID().toString())
+        .addObject("hasMoreThanOneSection", true)
+        .addObject("userHasValidPermission", true)
+        .addObject("errorList", List.of());
 
     var breadcrumbs = Breadcrumbs.builder("Decision letter")
         .addWorkAreaBreadcrumb()
@@ -382,25 +596,33 @@ public class UploadDspMockupController {
 
   @PostMapping("/issue-decision")
   ModelAndView approveAndIssueLetter() {
-    return ReverseRouter.redirect(on(this.getClass()).renderOverviewExecution(null));
+    updateJourney(UploadDspMockupJourney::issueDecisionLetter);
+    return ReverseRouter.redirect(on(this.getClass()).renderOverviewDecisionIssued(null));
   }
 
-  // Execution stage: goes further back than the issuer's send back, to the Upload DSP stage
+  // Goes further back than the issuer's send back, to the Upload DSP stage
   @GetMapping("/send-back-to-recommendation")
   ModelAndView sendBackToRecommendation() {
-    updateJourney(journey -> journey.setSentBack(true));
+    updateJourney(journey -> {
+      journey.setSentBack(true);
+      journey.returnToCaseManager();
+    });
     return ReverseRouter.redirect(on(this.getClass()).renderOverviewSentBack(null));
   }
 
   // Undoes a send back made by mistake: returns the case to the decision issuer
   @GetMapping("/send-back-to-issue-decision")
   ModelAndView sendBackToIssueDecision() {
+    updateJourney(UploadDspMockupJourney::passToDecisionIssuer);
     return ReverseRouter.redirect(on(this.getClass()).renderOverviewDecisionIssuer(null));
   }
 
   @GetMapping("/send-back-to-record-decision")
   ModelAndView sendBackToRecordDecision() {
-    updateJourney(journey -> journey.setSentBack(false));
+    updateJourney(journey -> {
+      journey.setSentBack(false);
+      journey.returnToCaseManager();
+    });
     return ReverseRouter.redirect(on(this.getClass()).renderOverviewDspUploaded(null));
   }
 
@@ -447,6 +669,7 @@ public class UploadDspMockupController {
         .addObject("form", form)
         .addObject("dspUploaded", dspUploaded)
         .addObject("decisionInProgress", dspUploaded && journey.isDecisionInProgress())
+        .addObject("decisionDate", DateFormatUtil.convertToDisplayText(journey.decisionDate()))
         .addObject("currentDspFileName", journey.currentDspFileName())
         .addObject("dspCorrected", journey.dspCorrected())
         .addObject("addendumFileNames", journey.addendumFileNames())
@@ -505,14 +728,20 @@ public class UploadDspMockupController {
         yield "DSP uploaded on ";
       }
     };
-    updateJourney(journey -> applyUpload(journey, action, form.getReplaceTarget()));
+    var decisionDate = form.getDecisionDate().getAsLocalDate().orElse(null);
+    updateJourney(journey -> applyUpload(journey, action, form.getReplaceTarget(), decisionDate));
     NotificationBanner.newSuccessBanner()
         .withHeadingContent(message + APPLICATION_REFERENCE)
         .applyTo(redirectAttributes);
     return ReverseRouter.redirect(on(this.getClass()).renderOverviewDspUploaded(null));
   }
 
-  private void applyUpload(UploadDspMockupJourney journey, String action, String replaceTarget) {
+  private void applyUpload(
+      UploadDspMockupJourney journey,
+      String action,
+      String replaceTarget,
+      LocalDate decisionDate
+  ) {
     journey.setSentBack(false);
     switch (action) {
       case ACTION_CORRECT -> {
@@ -524,7 +753,7 @@ public class UploadDspMockupController {
         }
       }
       case ACTION_ADDENDUM -> journey.addAddendum();
-      default -> journey.uploadFirstDsp();
+      default -> journey.uploadFirstDsp(decisionDate);
     }
   }
 
@@ -569,29 +798,20 @@ public class UploadDspMockupController {
             .map(DecisionDetailsMockupData::consulteeName)
             .toList())
         .addStringValue("Legal approval for obligations/milestones wording",
-            switch (String.valueOf(details.getLegalApproval())) {
-              case "YES" -> "Yes";
-              case "NO" -> "No";
-              default -> "N/A (no obligations/milestones are included)";
-            });
+            DpeaSummary.legalApproval(details.getLegalApproval()));
     return summary.build();
   }
 
   private UploadDspMockupJourney journey() {
-    return session.getAttribute(JOURNEY) instanceof UploadDspMockupJourney existing
-        ? existing
-        : new UploadDspMockupJourney();
+    return journeyStore.journey();
   }
 
-  // Spring Session JDBC only persists an attribute when it is set, so always save after changing the journey
   private void updateJourney(Consumer<UploadDspMockupJourney> change) {
-    var journey = journey();
-    change.accept(journey);
-    session.setAttribute(JOURNEY, journey);
+    journeyStore.update(change);
   }
 
   private void resetJourney() {
-    session.removeAttribute(JOURNEY);
+    journeyStore.reset();
   }
 
   private SummaryFileView fileView(String fileName) {

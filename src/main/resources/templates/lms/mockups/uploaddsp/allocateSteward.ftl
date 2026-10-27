@@ -1,10 +1,12 @@
 <#include '../../layout/layout.ftl'>
+<#include '_mockupNav.ftl'>
 
 <@defaultPage
 htmlTitle=pageTitle
 pageHeading=""
 caption=caption
 pageSize=PageSize.TWO_THIRDS_COLUMN>
+  <@mockupNavigation/>
     <@fdsForm.htmlForm>
         <@fdsSelect.select
             path="form.stewardWuaId"

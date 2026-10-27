@@ -1,21 +1,7 @@
 <#include '../../layout/layout.ftl'>
+<#include '_mockupNav.ftl'>
 
-<#-- fileUpload rebinds spring status to its own path, so restore the parent radio's binding afterwards -->
-<#macro dspFileUpload attributes legend nestingPath="">
-  <@fdsFieldset.fieldset legendHeading=legend legendHeadingClass="govuk-fieldset__legend--s">
-    <@fdsFileUpload.fileUpload
-      path=attributes.path()
-      allowedExtensions=attributes.allowedExtensions()
-      uploadUrl=attributes.uploadUrl()
-      downloadUrl=attributes.downloadUrl()
-      deleteUrl=attributes.deleteUrl()
-      existingFiles=attributes.existingFiles()
-      maxAllowedSize=attributes.maxAllowedSize()/>
-  </@fdsFieldset.fieldset>
-  <#if nestingPath?has_content>
-    <@spring.bind nestingPath/>
-  </#if>
-</#macro>
+<#include '_upload.ftl'>
 
 <@defaultPage
   htmlTitle=pageTitle
@@ -24,6 +10,7 @@
   pageSize=PageSize.TWO_THIRDS_COLUMN
   errorSummaryItems=errorSummaryItems
   backLinkUrl=springUrl(backUrl)>
+  <@mockupNavigation/>
 
   <#if decisionInProgress>
     <@fdsWarning.warning>
@@ -35,7 +22,7 @@
     <h2 class="govuk-heading-m">Current DSP</h2>
     <@fdsSummaryList.summaryList>
       <@fdsSummaryList.summaryListRowNoAction keyText="Decision date">
-        14 Apr 2026
+        ${decisionDate}
       </@fdsSummaryList.summaryListRowNoAction>
       <@fdsSummaryList.summaryListRowNoAction keyText="Final Decision Support Paper">
         <a class="govuk-link" href="#">${currentDspFileName}</a>

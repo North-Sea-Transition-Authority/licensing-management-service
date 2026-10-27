@@ -1,4 +1,5 @@
 <#include '../../layout/layout.ftl'>
+<#include '_mockupNav.ftl'>
 <#import '../../summary/_summaryDetails.ftl' as summaryDetails>
 <#import '../../tasklist/standardTaskList.ftl' as taskList>
 <#import '../../licence/scheduleWorkProgrammeApplication/_applicationContext.ftl' as applicationContextInfo>
@@ -8,6 +9,7 @@ htmlTitle=pageTitle
 pageHeading=""
 pageSize=PageSize.TWO_THIRDS_COLUMN
 breadcrumbs=breadcrumbs>
+  <@mockupNavigation/>
 
     <@applicationContextInfo.applicationContextInfo applicationContext=applicationContext/>
 

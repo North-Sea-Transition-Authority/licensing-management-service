@@ -171,7 +171,7 @@ the LMS result against it (see Validation).
 | `T` (`TERM_NO` 1/2/3, and 4 on 13 licences) | `LicenceScheduleTerm` `INITIAL`/`SECOND`/`THIRD`, and `FOURTH` (see "Decision: four-term licences") | **Decided (licence P2244):** the first term present starts on `ORIGIN_DATE`; terms may be missing but must be in order (business rule). A `T` event with `TERM_NO` n marks the **end boundary of term n**: the anniversary on which the next term present starts. Term n's duration = `Period.between(start of term n, T(n) date)`. LMS then ends term n the day before and starts the next term present on the `T(n)` date. A `T` with no `TERM_NO` is ignored. See "Term boundaries". |
 | `P` (`PHASE` A/B/C) | `LicenceSchedulePhase` `PHASE_A/B/C` linked to the initial term | **Decided (licence P2522):** same boundary convention as terms. The first phase present starts on `ORIGIN_DATE`. A `P` event's `PHASE` value names the phase that **ends** on its date, and the next phase present starts on that date. Phases may be missing but must be in order (business rule): P2522 has A and C, with no B ("Continuation into Phase C"). The last phase's `P` date must equal `T(1)`; otherwise skip and report. See "Phase boundaries". |
 | `R` (`RATE`, `RECURRING=YEARLY`, `RECURRANCES`) | `LicenceScheduleRate`, one per term/phase the rate's yearly dates fall into | **Decided:** `RECURRING=YEARLY` means the rate is redefined every year at the same value. The yearly dates are expanded, and each is migrated against the phase (or, outside phases, the term) whose dates contain it. See "Rates and yearly recurrence". `rentalRate` = `RATE` as a decimal, rounded to 2 dp where needed; values that do not fit are reported (see "Rate values"). |
-| `MR` (`PERCENTAGE`) | `OtherScheduleEvent` `MANDATORY_RELINQUISHMENT`, `RELATIVE_DATE` against the containing term, `description = COMMENTS`, or the default "Mandatory relinquishment" when `COMMENTS` is empty (see "Default descriptions") | **Percentage: pending decision (Open question 4).** PEARS holds it nowhere else, and it feeds generated licence documents. Not migrating it means it is lost. See "Decision: mandatory relinquishment percentage". |
+| `MR` (`PERCENTAGE`) | `OtherScheduleEvent` `MANDATORY_RELINQUISHMENT`, `RELATIVE_DATE` against the containing term, `description = COMMENTS`, or the default "Mandatory relinquishment" when `COMMENTS` is empty (see "Default descriptions") | **Percentage: decided, migrated** into a new LMS percentage field on the event (0–100, up to 1 dp), and written back. PEARS holds it nowhere else, and it feeds generated licence documents. See "Decision: mandatory relinquishment percentage". |
 | `E` (optional) | (1) confirms the **end boundary of the final term** (the final `T` sets it), and (2) `LicenceScheduleExpiry` with `comments = COMMENTS` | **Decided:** the expiry event marks the end of the final term. On P2244 it shares its date with the final `T` (01-Dec-2040), and the final term's LMS end date is `E - 1 day` (30-Nov-2040). **`expiryDate`: pending (Open question 8)**: `E` (01-Dec-2040) or `E - 1 day` (30-Nov-2040), because LMS checks that the expiry date equals the final term end. **No `E` event:** migrated without an expiry record (see "Term boundaries" rule 3). An `E` whose date differs from the final `T`: migrated as it is (no extra term), and reported (see "Term boundaries" rule 3). |
 | `BM` | `OtherScheduleEvent` with a **new dedicated category** `BESPOKE_MILESTONE` ("Bespoke milestone"), `description = COMMENTS` (default "Bespoke milestone" when empty), `RELATIVE_DATE` against the containing term with `relativeDuration` = offset from that term's start | **Decided.** Prerequisite: add `BESPOKE_MILESTONE` to `OtherScheduleEventCategory` (production licence types), so the category is selectable in the UI and `getCategoryString()` returns its display name. |
 | `DD`, `2M`, `2N` | `OtherScheduleEvent` `OTHER_ACTIVITY`, `otherCategoryName = ped_template_event_types.short_title` ("Drill-or-drop", "Second Term with autosurrender", "2nd term with all acreage"), `description = COMMENTS` (default: the same `short_title` when empty), `RELATIVE_DATE` as for `BM` | **Decided.** On the timeline, `getCategoryString()` returns `otherCategoryName`, so the PEARS title is the caption. |
@@ -477,6 +477,21 @@ a migration note rather than guessing. On live there are about 310 on migrated s
 no-payment years: 298 on `P` and 12 on `PL` (data survey,
 [S12b](pears-schedule-migration-data-survey.md#s12b-rate-gaps-one-row-per-gap)).
 
+**How gaps are handled depends on what they are. The licensing team confirms which, per pattern:**
+
+- **(a) Errors** in how those schedules were managed at the time: the previous rate should have
+  run on through each gap year. The migration needs nothing extra. The LMS rate stays in force
+  until the next rate, and the write-back fills the gap years in PEARS, which corrects them.
+- **(b) Legitimate no-payment years:** LMS uses a **£0 rate** for them. LMS already accepts a rate
+  of 0. The migration adds a £0 `LicenceScheduleRate` on the first anniversary with no payment,
+  anchored to the period it falls in, and the next PEARS rate ends it. The write-back writes it back
+  as a yearly rate of 0 until the next rate, so the payments report pays nothing in those years, as
+  today. Users defining schedules in LMS use the same £0 rate for any future gap. The data
+  warehouse owners should confirm a 0 rate row is acceptable where PEARS had no row.
+
+Either way, LMS's "in force until the next rate" model then describes every year correctly, so the
+write-back can rebuild yearly recurrence without inventing payments.
+
 ### Rates and the PEARS write-back (separate piece of work)
 
 LMS schedules will be written back to PEARS so data warehouse reporting keeps working from PEARS.
@@ -511,10 +526,10 @@ every rate:
 
 **What the migration must guarantee for this to work:** the LMS rates must carry the same
 **per-anniversary rate series** as PEARS, meaning which rate is in force on every licence
-anniversary. This is the same per-occurrence comparison the comparison report already runs. The
-one case it cannot round-trip is a PEARS gap (see 4 above): after write-back the gap years would
-gain payments. Those licences must be listed and agreed with the licensing team before the
-migration runs.
+anniversary. This is the same per-occurrence comparison the comparison report already runs. A
+PEARS gap (see 4 above) is the one case that needs a decision first. If the gaps are errors (a),
+the write-back fills them, which is the intended correction. If they are legitimate (b), the
+migrated £0 rate keeps them as no-payment years.
 
 **Round-trip test (owned by the write-back work, specified here):** for a sample of licences
 (including P2244, P2522, every licence with a recurrence gap, and an `AL` and a `PL` licence with
@@ -704,7 +719,7 @@ puts these requirements on the migration and the write-back (building it is sepa
   date (expiry per Open question 8). `YEARS`/`MONTHS`/`DAYS` are the offset from `ORIGIN_DATE` that
   reproduces that date under **PEARS** arithmetic, otherwise the Fox screen recalculates and moves
   it on the next save. Also `TERM_NO`, `PHASE`, `RATE` (rates per "Rates and the PEARS write-back"),
-  `PERCENTAGE` (Open question 4) and `COMMENTS`.
+  `PERCENTAGE` (from the LMS percentage field, see "Decision: mandatory relinquishment percentage") and `COMMENTS`.
 - **`RD`/`PA` events: from LMS, in the message.** PEARS sends area changes to LMS instead of
   writing them itself (see "Keeping `RD`/`PA` events in step (EPMQ)"), so LMS's
   `licence_schedule_area_events` on the active detail **is** the current set, and the write-back
@@ -790,7 +805,7 @@ in the shared `energyportalmessagequeue:messages` library, so a library release 
 | `lmsScheduleDetailId`, `lmsAppliedAt` | the `ACTIVE` detail and when it became active (ordering key) |
 | `basedOnPearsAreaChange` | the PEARS area change sequence LMS has applied: for (b), the one just processed (the confirmation); for (a), the latest one |
 | `originDate` | `LicenceStartDate` |
-| `events` | **every** event of the active detail in PEARS terms: the schedule events (`eventMnem`, `eventDate`, `termNo`, `phase`, `rate`, `recurring`/`recurrances`, `percentage` per Open question 4, `comments`, `pearsEventId`) **and** the `RD`/`PA` events (`eventMnem`, `eventSubtype`, `eventDate`, `comments`, `retentionArea` {name, shortName, type, version}, `pearsEventId`) |
+| `events` | **every** event of the active detail in PEARS terms: the schedule events (`eventMnem`, `eventDate`, `termNo`, `phase`, `rate`, `recurring`/`recurrances`, `percentage` (mandatory relinquishments), `comments`, `pearsEventId`) **and** the `RD`/`PA` events (`eventMnem`, `eventSubtype`, `eventDate`, `comments`, `retentionArea` {name, shortName, type, version}, `pearsEventId`) |
 
 The message is **complete**: PEARS reconstructs the whole schedule XML from it and nothing else.
 `YEARS`/`MONTHS`/`DAYS` are not sent: the PEARS procedure works them out from `originDate` with its
@@ -921,9 +936,10 @@ schedules are created in LMS.** Open questions 11 and 12 stay open.
 
 ### Decision: mandatory relinquishment percentage
 
-**Status: open, to be decided with the licensing team before the mapper is built.** Earlier the
-percentage was marked out of scope. It is reopened because PEARS holds it nowhere else and it is
-used downstream.
+**Decided (28 October 2026): option 1.** The mandatory relinquishment percentage becomes its own
+data point on the LMS schedule, entered with a mandatory relinquishment event. The migration
+brings the PEARS values in, and the write-back includes the percentage. (Earlier it was marked out
+of scope. It was reopened because PEARS holds it nowhere else and it is used downstream.)
 
 **Where PEARS holds and uses it.** Only `PERCENTAGE` on an `MR` event in
 `ped_licence_schedule_details.xml_data`. Everything else reads it from there:
@@ -940,7 +956,7 @@ Real data: licence P2522 has `PERCENTAGE` 50 with no comment. Licence P2244 has 
 comment "50% Relinquishment". Its later relinquishment has `PERCENTAGE` 0 and comment "Everything
 outside FD areas".
 
-**Option 1: bring it into LMS and write it back to PEARS.**
+**Chosen: bring it into LMS as a field and write it back to PEARS.**
 - LMS change (prerequisite, its own change): add an optional percentage to mandatory
   relinquishment events, e.g. `OtherScheduleEvent.relinquishmentPercentage` (`BigDecimal`, 0–100),
   shown and editable only for `MANDATORY_RELINQUISHMENT`, plus Flyway column, form, validator and
@@ -956,71 +972,23 @@ outside FD areas".
 - Write-back: `PERCENTAGE = relinquishmentPercentage` on the written `MR` event, written without a
   `%` sign and without trailing zeros (`50`, `87.5`).
 
-For:
-- Nothing is lost. Licence documents generated from PEARS after write-back keep the "Mandatory
-  Surrender Area" sentence, and the data warehouse column stays populated.
-- LMS users see the percentage as data, not buried in free text, and can maintain it.
-- It round-trips exactly; the comparison report can check it per event.
+Why: nothing is lost. Licence documents generated from PEARS after write-back keep the
+"Mandatory Surrender Area" sentence, the data warehouse column stays populated, and LMS users see
+and maintain the percentage as data rather than free text. It round-trips exactly, and the
+comparison report checks it per event. The cost is an LMS model change before the migration, on a
+field only mandatory relinquishments use.
 
-Against:
-- It needs an LMS model change before the migration (entity, Flyway, form, validation, timeline).
-- It is a field only mandatory relinquishments use, on a shared `OtherScheduleEvent` entity.
-- If LMS later generates licence documents itself, the PEARS-side value only matters for the
-  write-back period.
-
-**Option 2: do not bring it into LMS; it is lost.**
-- Migration: ignore `PERCENTAGE`. Optionally append it to the description when the comments do not
-  already mention it (e.g. "Mandatory relinquishment: 50%"), so the information survives as text.
-- Write-back: `MR` events are written with no `PERCENTAGE`.
-
-For:
-- No LMS model change; the migration stays smaller.
-- Comments often already carry the figure (P2244), and the text fallback keeps it readable in LMS.
-
-Against:
-- **Data loss.** After write-back, PEARS licence documents generated or refreshed for affected
-  licences silently drop the "Mandatory Surrender Area" sentence, and
-  `relinquishment_percentage` goes empty in the data warehouse.
-- A text fallback cannot be written back as `PERCENTAGE` reliably (it would need parsing free text).
-- Once lost, it cannot be recovered from LMS later. It would have to be re-read from PEARS
-  history.
-
-**Option 3: bring it into LMS as a comment only.**
-- Migration: when `PERCENTAGE` is set, add a published `EventComment` to the mandatory
-  relinquishment event in a fixed format, e.g. "Mandatory relinquishment percentage (migrated from
-  PEARS): 50%". The comment is timestamped with the PEARS version's `start_datetime`, the same way
-  the CS migration and this plan already migrate `COMMENTS` on other events. The description is
-  unchanged (`COMMENTS` or the default).
-- Write-back: either
-  - (a) write no `PERCENTAGE`. The figure stays visible in LMS but is lost to PEARS, as in option 2; or
-  - (b) recognise the migration's fixed-format comment and write its figure back as `PERCENTAGE`.
-    That only works while the comment is untouched, and a percentage changed in LMS later would
-    have to be a new comment in the same format.
-
-For:
-- No LMS model change. It uses the existing `EventComment` feature, which every schedule event
-  already supports.
-- The figure is visible to LMS users against the event, clearly labelled as migrated, without
-  cluttering or changing the description.
-- Comment history is kept across schedule versions (comments follow `original_event_id`), so the
-  figure carries forward to later versions.
-
-Against:
-- It is not data: LMS cannot validate, report on or calculate with it, and users cannot edit it as a
-  value (they would add a new comment).
-- With write-back (a), PEARS licence documents and the data warehouse lose the value exactly as in
-  option 2.
-- With write-back (b), the write-back depends on parsing comment text in a fixed format. That is
-  fragile, and it breaks if someone edits or deletes the comment, or records a new percentage in
-  free text.
-- If the value is later wanted as a field (option 1), the comments would need converting.
-
-**Inputs for the decision (data survey,
+**Data (data survey,
 [S13](pears-schedule-migration-data-survey.md#s13-mandatory-relinquishment-percentages-current-versions),
 live 27 October 2026):** 585 current `MR` events hold a number on the `T(1)` date (428 `P`, 149
-`PEDL`, 8 `PL`), so they feed licence documents today. 713 `P` events hold the figure only in `COMMENTS`,
-with an empty `PERCENTAGE`. 303 hold `x`. Also confirm with the licensing team whether licence
-documents are still generated from PEARS for existing licences after LMS go-live.
+`PEDL`, 8 `PL`), so they feed licence documents today. They migrate into the new field. 303 hold
+`x` and migrate with an empty percentage. 713 `P` events hold the figure only in `COMMENTS`, with an
+empty `PERCENTAGE`. They migrate with an empty percentage and the comment as their description, so
+the figure stays visible in LMS, but not as data.
+
+**Alternatives considered, not chosen:** dropping the percentage (licence documents and the data
+warehouse would lose it), or keeping it only as an LMS comment (not data, and the write-back would
+have to parse comment text to send it back).
 
 ### Retention/development area rate: unused
 
@@ -1129,8 +1097,10 @@ For:
 Against:
 - The write-back has to infer recurrence (count anniversaries until the next rate or the final term
   end). That is logic in a second system that must stay right.
-- It cannot reproduce PEARS gaps (anniversaries with no `R`, or a recurrence that stops early). After
-  write-back those years gain payments. They need agreeing with the licensing team.
+- On its own it cannot reproduce PEARS gaps (anniversaries with no `R`, or a recurrence that stops
+  early): after write-back those years would gain payments. The gap handling in "Rates and yearly
+  recurrence" (step 4) removes this. Either the gaps are errors and are meant to be filled, or a
+  migrated £0 rate keeps them as no-payment years.
 - The round trip is equal in payments, not in raw XML. Anything else that reads raw `R` rows
   (rather than the payments logic) could see a different shape.
 
@@ -1159,7 +1129,8 @@ Against:
 **Either way:**
 - The migration's comparison report checks the rate in force on every anniversary against PEARS.
 - The write-back round-trip test (below) compares payment rows, not event shape.
-- PEARS gaps are listed by the data survey (298, S12b) and need agreeing with the licensing team.
+- PEARS gaps are listed by the data survey (about 310, S12b). The licensing team confirms whether
+  they are errors (filled) or legitimate (a £0 rate), per "Rates and yearly recurrence" step 4.
 
 ### Anchoring "other" events to a term
 
@@ -1447,7 +1418,7 @@ The queries, full results and breakdowns are in the data survey,
    - `RD`/`PA` events: count per licence type and subtype, events with no `RETENTION_AREA` block,
      subtype or `EVENT_ID`, and `RD` on `P` licences / `PA` on onshore licences;
    - `MR` events with `PERCENTAGE` set (current versions), how many are on the `T(1)` date, and how
-     many already state the figure in `COMMENTS` (input to Open question 4);
+     many already state the figure in `COMMENTS` (input to the percentage decision);
    - `R` events by recurrence (none, yearly with `RECURRANCES`, yearly indefinite, with
      `RECUR_END_DATE`), and gaps: recurrences that stop before the next rate or the final term
      end, and non-recurring `R` events followed by anniversaries with no `R` (these change the
@@ -1455,8 +1426,8 @@ The queries, full results and breakdowns are in the data survey,
    - events with an `EVENT_ID`, and same-type events with identical comments in one version
      (the cases where cross-version matching is ambiguous).
 2. Take the survey's "For the licensing team" list to the licensing team before coding: the PEARS
-   fixes (L2, L3, L17) and the items still to confirm or decide (L12–L14). Those include Open questions 4
-   (mandatory relinquishment percentage), 7 (how yearly-recurring rates are held in LMS) and 8
+   fixes (L2, L3, L17) and the items still to confirm or decide (L12, L14). Those include Open questions
+   7 (how yearly-recurring rates are held in LMS) and 8
    (expiry date convention), which also need the data warehouse owners. The term and phase
    patterns are already decided (L5–L11).
 3. Add `BESPOKE_MILESTONE` to `OtherScheduleEventCategory`, with its form/timeline tests, as its
@@ -1464,8 +1435,11 @@ The queries, full results and breakdowns are in the data survey,
 3a. Add `TermType.FOURTH`, offered only when the licence's active schedule version already has a
     Fourth term, and check every `TermType` consumer handles it (see "Decision: four-term
     licences"). Its own change, ahead of the migration.
-3b. Term support for `AL` schedules (Open question 14), after re-running the data
-    survey for the non-`P`/`PEDL` types.
+3b. Add the mandatory relinquishment percentage field to LMS (see "Decision: mandatory
+    relinquishment percentage"), with form, validation (0–100, up to 1 dp), timeline display and
+    tests. Its own change, ahead of the migration.
+3c. Term support for `AL` schedules (Open question 14). All 3 `AL` schedules fit Initial, Second and
+    Third (data survey S8b).
 4. `PearsScheduleService` + SQL resources + grant check.
 5. `PearsScheduleMapper` + unit tests from fixture XML (include licence P2244's two BM events, and a
    multi-version licence to test `original_event_id` matching across versions, yearly rates
@@ -1511,12 +1485,9 @@ The queries, full results and breakdowns are in the data survey,
 3. **Rates.** Resolved: `RECURRING=YEARLY` redefines the rate each year at the same value. Each
    yearly date is migrated against the phase or term it falls in (see "Rates and yearly
    recurrence"). How many LMS rows a yearly rate becomes is still open: see Open question 7.
-4. **Mandatory relinquishment percentage.** Open, a decision to be made with the licensing team
-   (and whoever owns PEARS licence document generation). Option 1: bring the percentage into LMS
-   as a field and write it back to PEARS. Option 2: accept that it is lost. Option 3: bring it
-   into LMS as a comment only, with it either lost to PEARS or written back by parsing the comment. PEARS stores it only on the schedule event and uses
-   it in licence documents. See "Decision: mandatory relinquishment percentage". Previously marked
-   out of scope; reopened.
+4. **Mandatory relinquishment percentage.** Resolved (28 October 2026): the percentage becomes its
+   own data point on mandatory relinquishment events in LMS, is migrated from PEARS, and is written
+   back. See "Decision: mandatory relinquishment percentage".
 5. **Onshore.** Resolved: onshore licences are `LANDWARD_PRODUCTION`, which LMS `TermType`
    `INITIAL`/`SECOND`/`THIRD` already supports, so they are in scope with no model changes. (The
    one term model change is `FOURTH`, for the 13 four-term `P` licences: see "Decision: four-term
@@ -1544,14 +1515,15 @@ The queries, full results and breakdowns are in the data survey,
    until decided.
    **New evidence (data survey, S12/S12b, live 27 October 2026):** every current schedule is "one
    non-recurring `R` per payment, then one indefinite yearly `R`". `RECURRANCES` is never used on `P`/`PEDL`, but 9 `PL` and 3 `AL` schedules use it, so the write-back must be able to emit a count. But
-   **298 deliberate gaps** exist, mostly on pre-1999 licences (e.g. an initial rental, then the next
-   rate 6 years later). PEARS shows no payment in those years. Option A's write-back, as written
-   (each LMS rate recurs until the next one), would **invent payments for every gap year**. Whichever
-   option is chosen, the write-back must keep PEARS's shape: each migrated non-recurring `R` goes
-   back as a non-recurring `R`, and only the final rate recurs indefinitely. For rates created in
-   LMS after go-live, LMS needs a way to say whether a rate recurs yearly until the next one or is a
-   single payment, e.g. a "recurs yearly" flag on `LicenceScheduleRate`. That is part of this
-   decision.
+   **About 310 gaps** exist (298 `P`, 12 `PL`), mostly on pre-1999 licences (e.g. an initial
+   rental, then the next rate 6 years later). PEARS shows no payment in those years. Option A's
+   write-back on its own (each LMS rate recurs until the next one) would **invent payments for
+   every gap year**.
+   **Gap handling (28 October 2026):** either the gaps are errors, and the rate should have run on
+   (the write-back fills them), or they are legitimate, and LMS uses a **£0 rate** for those
+   years (migrated in, written back as 0, and used by users for future gaps). See "Rates and yearly
+   recurrence" step 4. Either way option A no longer invents payments, and a "recurs yearly" flag
+   on LMS rates isn't needed for gaps. The licensing team still has to say which case applies.
 8. **Expiry date convention.** Open. PEARS dates the expiry on the anniversary the licence ends
    (P2244: 01-Dec-2040). In LMS the final term ends the day before (30-Nov-2040), and Review and
    Apply (`ReviewAndApplyScheduleController` → `doesExpiryDateMatchEndOfFinalTerm`) shows a

@@ -62,7 +62,7 @@ exceptions are mostly systematic, by licensing round, rather than one-off errors
 | Rates | All populated `P`, `PEDL`, `EXL`, `DL` and `AL` values are whole numbers; 2 rate-only schedules have an empty rate. `ML` has pence, and `PL`/`ML` have decimals with no leading zero (e.g. `.5`), which parse fine (S11c). On migrated schedules every rate fits. Every schedule ends in one indefinite yearly rate. About 310 deliberate gaps between rates on migrated schedules (298 `P`, 12 `PL`), mostly pre-1999. Fixed-count yearly rates on 9 `PL` and 3 `AL`. | S11, S12 |
 | Date arithmetic | PEARS stored dates are reliable (1 exception). Copying offsets would move 96 events (94 `P`, 2 `EXL`) by up to 3 days, which deriving offsets from dates avoids. | S14 |
 | Untyped events | 201 on current versions: ~180 empty leftovers, ~20 holding data on 16 licences. Never shown on the schedule screen, so ignored by the migration (L1). | S6 |
-| Relinquishment % | 585 feed licence documents (incl. 8 `PL`). 713 hold the figure only in comments. 303 hold `x` (not migrated, decided). | S13 |
+| Relinquishment % | Decided: its own LMS field, migrated and written back. 585 feed licence documents (incl. 8 `PL`). 713 hold the figure only in comments. 303 hold `x` (not migrated). | S13 |
 | `RD`/`PA` | 463 current events (403 `P`/`PEDL`, 60 other types). A fourth subtype, `END`. 51 older `PA` events have no subtype, area block or `EVENT_ID`. | S15 |
 | History matching | `EVENT_ID` only on `RD`/`PA`. Type + offset is unique within a version; comments often repeat. | S16 |
 | Never used | Retention/development area rate, `RECUR_END_DATE`, `PRODUCING` area type. (`RECURRANCES` counts are unused on `P`/`PEDL` but used on 9 `PL` and 3 `AL` schedules, S12.) | S4, S5, S12, S15 |
@@ -84,8 +84,7 @@ Items that need the licensing team, as either a **fix in PEARS** before the prod
 
 | # | Question | Licences | Proposed rule | Section |
 |---|---|---|---|---|
-| L12 | **Rate gaps are deliberate no-payment years** | 298 `P` gaps, mostly pre-1999 (e.g. initial rental, then the next rate 6 years later), plus 12 on `PL` (e.g. `40` then `90` 4 years later) | Confirm from the licence terms (one licence per pattern). This drives the write-back design: Open question 7. | S12b |
-| L13 | **Mandatory relinquishment percentage** | 585 feed licence documents (incl. 8 `PL`). 713 hold the figure only in comments. | Decide Open question 4 (field, comment, or drop). Also confirm whether licence documents are still generated from PEARS. | S13 |
+| L12 | **Rate gaps: errors or deliberate no-payment years?** | 298 `P` gaps, mostly pre-1999 (e.g. initial rental, then the next rate 6 years later), plus 12 on `PL` (e.g. `40` then `90` 4 years later) | Confirm from the licence terms (one licence per pattern). If they are **errors**, the previous rate runs on in LMS and the write-back fills the gap. If they are **legitimate**, LMS uses a **£0 rate** for those years, migrated in and written back. | S12b |
 | L14 | **Expiry date convention** | 1,612 current schedules with an expiry (all types) | Decide Open question 8: LMS stores the day before the PEARS expiry, or LMS's check changes. | plan |
 
 ### Decided
@@ -104,6 +103,7 @@ present, and the first phase present, start on the licence start date.
 | L9 | **Schedules with no terms (pattern E)** | 40. 22 `P`: 14 extant (P249, P251, P256, P257, P291, P292, P293, P295, P296, P324, P416, P2333, P2495, P2643), 7 surrendered (P252, P258, P288, P404, P474, P2334, P2349), 1 expired (P294). 18 others: ML3, ML4, ML5, ML6, ML7, ML18, ML21, DL1–DL5, PL89, PL199, PL240, PL241, PL249, CE1 (17 extant, all but DL5) | **Not migrated.** Reported with their licence status, and the licensing team creates the LMS schedule manually. | S8, S8b, S8d |
 | L10 | **`T(1)` and `T(3)` = expiry, no `T(2)` (pattern F)** | P1800, PEDL143, PEDL189, PEDL235, PL235 | Business rule. No Second term. Initial = start → `T(1)`, Third = `T(1)` → `T(3)`. | S8b |
 | L11 | **Phases `C` only or `BC`** | 16 (`C`), 15 (`BC`) | Business rule. The first phase present starts on the licence start date. With `C` only, Phase C covers the whole initial term. | S9 |
+| L13 | **Mandatory relinquishment percentage** | 585 events feed licence documents (incl. 8 `PL`). 713 hold the figure only in comments. 303 hold `x`. | **Decided (28 October 2026):** the percentage becomes its own data point on mandatory relinquishment events in LMS (0–100, up to 1 dp). It is migrated from PEARS (`x` and comment-only figures migrate with an empty percentage) and written back. | S13 |
 | L15 | **Other licence types** | 54: PL 26, EXL 12, ML 7, DL 5, AL 3, CE 1 | **Migrated.** Every PEARS-managed licence type (`managedByLms = false`) is in scope, whatever its status. `PL`, `EXL` and `ML` are `LANDWARD_PRODUCTION` in LMS. `AL` needs LMS term support first (plan, Open question 14). Every `ML`, `DL` and `CE` schedule, and 5 `PL`, have no terms, so they are not migrated: they are reported and left to the licensing team (L9). | S2, S8b |
 
 ### For information only
@@ -1543,17 +1543,20 @@ licensing team.
 
 **Reading:**
 
-- The gaps follow the **rental terms of each licensing round**: e.g. older Model Clauses with an
-  initial rental, then annual rentals from the 6th anniversary. PEARS deliberately has **no rate**
+- The gaps appear to follow the **rental terms of each licensing round**: e.g. older Model Clauses with an
+  initial rental, then annual rentals from the 6th anniversary. If so, PEARS deliberately has **no rate**
   in those years, and the payments report correctly shows no payment.
 - **This affects the write-back design (Open question 7).** The plan's option A write-back turns
-  each LMS rate into a yearly recurrence until the next rate. That would **invent payments** for
-  every one of these gap years, on almost every pre-1999 licence. The migration and write-back
-  must keep PEARS's "one `R` per payment, final rate indefinite" shape: each non-recurring PEARS
-  `R` is written back as a non-recurring `R`, and only the final rate recurs. See the plan, Open
-  question 7.
-- To confirm with the licensing team: that the gap years really are no-payment years (e.g. by
-  checking the licence terms for one licence per pattern).
+  each LMS rate into a yearly recurrence until the next rate. On its own, that would **invent
+  payments** for every one of these gap years, on almost every pre-1999 licence.
+- **Gap handling (plan, "Rates and yearly recurrence" step 4):** the licensing team confirms, per
+  pattern, whether the gaps are:
+  - (a) **errors**: the previous rate should have run on, so LMS keeps it in force and the
+    write-back fills the gap years; or
+  - (b) **legitimate no-payment years**: LMS uses a **£0 rate** for them, migrated in on the first
+    missing anniversary and written back as 0.
+  Either way, the write-back no longer invents payments. Checking the licence terms for one
+  licence per pattern should settle it.
 
 **Second run (other types).** The query was extended to also list every yearly rate with a count
 (`YEARLY_WITH_COUNT`, shown as `xN`). 36 rows: 21 fixed-count rates and 15 gaps.
@@ -1587,7 +1590,7 @@ before the licence end.
 
 ## S13. Mandatory relinquishment percentages (current versions)
 
-Input to the plan's Open question 4. Counts `MR` events by:
+Input to the plan's decision on the mandatory relinquishment percentage (decided: its own LMS field). Counts `MR` events by:
 - whether `PERCENTAGE` holds a number, other text, or nothing;
 - whether the event is on the `T(1)` date. That one feeds `MAND_SURRENDER_AREA` in licence
   documents (`template_schedule.get_mand_relinquishment_perc`).
@@ -1661,14 +1664,13 @@ number, all 50, on `T(1)`). No other type has an `MR` on its current schedule.
 **Reading:**
 
 - **585 `MR` events drive licence documents today:** a number on the `T(1)` date (428 `P`, 149
-  `PEDL`, 8 `PL`). If the percentage is lost (Open question 4, option 2), any of these licences' documents
-  regenerated in PEARS after write-back lose the "Mandatory Surrender Area is … X%" sentence.
+  `PEDL`, 8 `PL`). **Decided (28 October 2026):** the percentage is migrated into its own LMS field
+  and written back, so these documents keep the "Mandatory Surrender Area is … X%" sentence.
 - **713 `P` events hold the percentage only in comments**, with an empty `PERCENTAGE` on the `T(1)`
-  date. Their licence documents already lack the sentence today. Options 1 and 3 keep the comment,
-  and option 1 could also parse the figure out of it.
-- **Values:** 0, 50, 75, 87.5, 100, plus one `50%` with a percent sign. **Noted in the plan
-  (Open question 4, option 1):** the LMS field allows 1 decimal place, and the migration strips a
-  trailing `%`.
+  date. Their licence documents already lack the sentence today. They migrate with an empty
+  percentage, and the comment becomes the description, so the figure stays visible in LMS.
+- **Values:** 0, 50, 75, 87.5, 100, plus one `50%` with a percent sign. **Noted in the plan's
+  decision:** the LMS field allows 1 decimal place, and the migration strips a trailing `%`.
 - **303 `P` events have other text in `PERCENTAGE`.** Likely the Fox validation message "You must
   enter this item" saved as data (as seen in S6). S13b checks.
 

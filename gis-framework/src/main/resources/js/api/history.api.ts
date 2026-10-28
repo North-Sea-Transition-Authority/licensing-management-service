@@ -1,6 +1,8 @@
+import type { TransformationType } from "@/transformation-type";
+
 export interface JsonHistoryStatus {
-  canUndo: boolean;
-  canRedo: boolean;
+  undoTransformationType: TransformationType | null;
+  redoTransformationType: TransformationType | null;
 }
 
 export async function getHistoryStatus(historyUrl: string): Promise<JsonHistoryStatus> {

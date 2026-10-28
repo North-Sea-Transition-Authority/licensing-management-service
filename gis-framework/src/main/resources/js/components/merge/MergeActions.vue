@@ -1,7 +1,7 @@
 <template>
   <undo-redo-actions
     v-model:processing="isProcessing"
-    :refresh-counter="refreshCounter"
+    :history-status="historyStatus"
     :base-url="baseUrl"
     :command-journey-id="commandJourneyId"
     :csrf-header-name="csrfHeaderName"
@@ -17,6 +17,7 @@
 </template>
 
 <script setup lang="ts">
+import { useHistoryStatus } from "@/composables/useHistoryStatus";
 import { useMergeFeature } from "@/composables/useMergeFeature";
 import GvButton from "../govukVue/button/GvButton.vue";
 import UndoRedoActions from "../undoRedo/UndoRedoActions.vue";
@@ -37,6 +38,10 @@ const emit = defineEmits<{
   "action-success": [],
   "action-error": [message: string],
 }>();
+
+const { historyStatus } = useHistoryStatus(props.baseUrl, props.commandJourneyId, () => props.refreshCounter, {
+  onError: () => emit("action-error", "Unable to load undo/redo status."),
+});
 
 const { isProcessing, merge } = useMergeFeature(() => props, () => props.featureIds, {
   onSuccess: () => emit("action-success"),

@@ -44,7 +44,7 @@
 
 <script setup lang="ts">
 import type { FeatureOption } from "@/feature-option-utils";
-import type { MapActionValidationError } from "@/map-action";
+import type { ValidationError } from "@/validation-error";
 import { ref, useTemplateRef } from "vue";
 import GvButton from "@/components/govukVue/button/GvButton.vue";
 import GvButtonGroup from "@/components/govukVue/button/GvButtonGroup.vue";
@@ -70,7 +70,7 @@ const emit = defineEmits<{
   "success": [],
   "error": [message: string],
   "back": [],
-  "validation-error": [errors: MapActionValidationError[]],
+  "validation-error": [errors: ValidationError[]],
 }>();
 
 const selectedFeatureIds = defineModel<string[]>("selectedFeatureIds", { required: true });
@@ -132,7 +132,7 @@ async function onSubmit() {
   const depth = validateDepth();
   validateFeatures(depth);
 
-  const errors: MapActionValidationError[] = [];
+  const errors: ValidationError[] = [];
   if (featuresError.value) {
     errors.push({ message: featuresError.value, fieldId: firstCheckboxId });
   }

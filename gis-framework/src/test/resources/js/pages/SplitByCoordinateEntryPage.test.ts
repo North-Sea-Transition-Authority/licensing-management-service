@@ -89,7 +89,7 @@ function cardHeadings(): string[] {
 describe("splitByCoordinateEntryPage", () => {
   beforeEach(() => {
     getTextualDescriptionMock.mockReset().mockResolvedValue("");
-    getHistoryStatusMock.mockReset().mockResolvedValue({ canUndo: false, canRedo: false });
+    getHistoryStatusMock.mockReset().mockResolvedValue({ undoTransformationType: null, redoTransformationType: null });
     splitFeatureMock.mockReset();
     getFeaturesMock.mockReset().mockResolvedValue([]);
     getOutlineNodesMock.mockReset().mockResolvedValue([]);

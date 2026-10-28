@@ -8,7 +8,7 @@ describe("historyApi", () => {
 
   describe("getHistoryStatus", () => {
     it("getHistoryStatus_whenResponseOk_returnsResponse", async () => {
-      const expected = { canUndo: true };
+      const expected = { undoTransformationType: "SPLIT", redoTransformationType: null };
       const fetchMock = vi.fn().mockResolvedValue({
         ok: true,
         json: vi.fn().mockResolvedValue(expected),

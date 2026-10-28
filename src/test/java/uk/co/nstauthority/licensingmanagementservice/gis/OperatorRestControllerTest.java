@@ -22,7 +22,9 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.json.JsonCompareMode;
 import uk.co.fivium.gisframework.command.CommandJourney;
 import uk.co.fivium.gisframework.command.CommandJourneyService;
+import uk.co.fivium.gisframework.command.OperatorCommand;
 import uk.co.fivium.gisframework.command.OperatorCommandService;
+import uk.co.fivium.gisframework.command.TransformationType;
 import uk.co.fivium.gisframework.operator.JsonHistoryStatus;
 import uk.co.fivium.gisframework.operator.JsonMergeResponse;
 import uk.co.fivium.gisframework.operator.JsonSplitResponse;
@@ -162,63 +164,45 @@ class OperatorRestControllerTest extends AbstractControllerTest {
   }
 
   @Test
-  void getHistory_whenCanUndoAndCanRedo_assertBothTrue() throws Exception {
+  void getHistory_whenUndoAndRedoCommandsExist_assertCanUndoAndRedoWithTheirTransformationTypes() throws Exception {
     var commandJourneyId = UUID.randomUUID();
     var commandJourney = new CommandJourney();
+    var undoCommand = operatorCommand(TransformationType.MERGE);
+    var redoCommand = operatorCommand(TransformationType.STRATA_SPLIT);
 
     when(commandJourneyService.getCommandJourneyOrThrow(commandJourneyId)).thenReturn(commandJourney);
-    when(operatorCommandService.canUndo(commandJourney)).thenReturn(true);
-    when(operatorCommandService.canRedo(commandJourney)).thenReturn(true);
+    when(operatorCommandService.getCurrentActiveCommand(commandJourney)).thenReturn(Optional.of(undoCommand));
+    when(operatorCommandService.getNextRedoCommand(commandJourney)).thenReturn(Optional.of(redoCommand));
+
+    var expected = new JsonHistoryStatus(TransformationType.MERGE, TransformationType.STRATA_SPLIT);
 
     mockMvc.perform(get("/api/gis-framework/history/{commandJourneyId}", commandJourneyId)
             .with(user(regulatorUser)))
         .andExpect(status().isOk())
-        .andExpect(content().json(objectMapper.writeValueAsString(new JsonHistoryStatus(true, true)), JsonCompareMode.STRICT));
+        .andExpect(content().json(objectMapper.writeValueAsString(expected), JsonCompareMode.STRICT));
   }
 
   @Test
-  void getHistory_whenCanUndoOnly_assertCanUndoTrueCanRedoFalse() throws Exception {
+  void getHistory_whenNoUndoOrRedoCommands_assertCannotUndoOrRedoWithNoTransformationTypes() throws Exception {
     var commandJourneyId = UUID.randomUUID();
     var commandJourney = new CommandJourney();
 
     when(commandJourneyService.getCommandJourneyOrThrow(commandJourneyId)).thenReturn(commandJourney);
-    when(operatorCommandService.canUndo(commandJourney)).thenReturn(true);
-    when(operatorCommandService.canRedo(commandJourney)).thenReturn(false);
+    when(operatorCommandService.getCurrentActiveCommand(commandJourney)).thenReturn(Optional.empty());
+    when(operatorCommandService.getNextRedoCommand(commandJourney)).thenReturn(Optional.empty());
+
+    var expected = new JsonHistoryStatus(null, null);
 
     mockMvc.perform(get("/api/gis-framework/history/{commandJourneyId}", commandJourneyId)
             .with(user(regulatorUser)))
         .andExpect(status().isOk())
-        .andExpect(content().json(objectMapper.writeValueAsString(new JsonHistoryStatus(true, false)), JsonCompareMode.STRICT));
+        .andExpect(content().json(objectMapper.writeValueAsString(expected), JsonCompareMode.STRICT));
   }
 
-  @Test
-  void getHistory_whenCanRedoOnly_assertCanUndoFalseCanRedoTrue() throws Exception {
-    var commandJourneyId = UUID.randomUUID();
-    var commandJourney = new CommandJourney();
-
-    when(commandJourneyService.getCommandJourneyOrThrow(commandJourneyId)).thenReturn(commandJourney);
-    when(operatorCommandService.canUndo(commandJourney)).thenReturn(false);
-    when(operatorCommandService.canRedo(commandJourney)).thenReturn(true);
-
-    mockMvc.perform(get("/api/gis-framework/history/{commandJourneyId}", commandJourneyId)
-            .with(user(regulatorUser)))
-        .andExpect(status().isOk())
-        .andExpect(content().json(objectMapper.writeValueAsString(new JsonHistoryStatus(false, true)), JsonCompareMode.STRICT));
-  }
-
-  @Test
-  void getHistory_whenCannotUndoOrRedo_assertBothFalse() throws Exception {
-    var commandJourneyId = UUID.randomUUID();
-    var commandJourney = new CommandJourney();
-
-    when(commandJourneyService.getCommandJourneyOrThrow(commandJourneyId)).thenReturn(commandJourney);
-    when(operatorCommandService.canUndo(commandJourney)).thenReturn(false);
-    when(operatorCommandService.canRedo(commandJourney)).thenReturn(false);
-
-    mockMvc.perform(get("/api/gis-framework/history/{commandJourneyId}", commandJourneyId)
-            .with(user(regulatorUser)))
-        .andExpect(status().isOk())
-        .andExpect(content().json(objectMapper.writeValueAsString(new JsonHistoryStatus(false, false)), JsonCompareMode.STRICT));
+  private static OperatorCommand operatorCommand(TransformationType transformationType) {
+    var command = new OperatorCommand();
+    command.setTransformationType(transformationType);
+    return command;
   }
 
   @Test

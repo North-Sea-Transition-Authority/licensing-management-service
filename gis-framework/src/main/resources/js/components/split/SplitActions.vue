@@ -1,7 +1,7 @@
 <template>
   <undo-redo-actions
     v-model:processing="isProcessing"
-    :refresh-counter="refreshCounter"
+    :history-status="historyStatus"
     :base-url="baseUrl"
     :command-journey-id="commandJourneyId"
     :csrf-header-name="csrfHeaderName"
@@ -18,6 +18,7 @@
 
 <script setup lang="ts">
 import type { LinePoint } from "@/grid-utils";
+import { useHistoryStatus } from "@/composables/useHistoryStatus";
 import { useSplitFeature } from "@/composables/useSplitFeature";
 import GvButton from "../govukVue/button/GvButton.vue";
 import UndoRedoActions from "../undoRedo/UndoRedoActions.vue";
@@ -40,6 +41,10 @@ const emit = defineEmits<{
   "action-success": [],
   "action-error": [message: string],
 }>();
+
+const { historyStatus } = useHistoryStatus(props.baseUrl, props.commandJourneyId, () => props.refreshCounter, {
+  onError: () => emit("action-error", "Unable to load undo/redo status."),
+});
 
 const { isProcessing, split } = useSplitFeature(() => props, () => props.points, {
   autoSplit: () => props.autoSplit,

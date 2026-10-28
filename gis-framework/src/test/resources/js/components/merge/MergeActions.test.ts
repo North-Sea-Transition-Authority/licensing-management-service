@@ -35,7 +35,7 @@ function renderComponent(props = {}) {
 
 describe("mergeActions", () => {
   beforeEach(() => {
-    getHistoryStatusMock.mockReset().mockResolvedValue({ canUndo: false, canRedo: false });
+    getHistoryStatusMock.mockReset().mockResolvedValue({ undoTransformationType: null, redoTransformationType: null });
     mergeFeaturesMock.mockReset();
     undoMock.mockReset();
     redoMock.mockReset();
@@ -79,6 +79,16 @@ describe("mergeActions", () => {
       expect(emitted("action-error")).toEqual([
         ["An error occurred while attempting to merge the features. Please try again."],
       ]);
+    });
+  });
+
+  it("emits action-error when the history status cannot be loaded", async () => {
+    getHistoryStatusMock.mockReset().mockRejectedValue(new Error("network error"));
+
+    const { emitted } = renderComponent();
+
+    await waitFor(() => {
+      expect(emitted("action-error")).toEqual([["Unable to load undo/redo status."]]);
     });
   });
 });

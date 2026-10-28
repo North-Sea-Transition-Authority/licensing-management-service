@@ -1,4 +1,9 @@
 package uk.co.fivium.gisframework.operator;
 
-public record JsonHistoryStatus(boolean canUndo, boolean canRedo) {
+import uk.co.fivium.gisframework.command.TransformationType;
+
+public record JsonHistoryStatus(
+    TransformationType undoTransformationType,
+    TransformationType redoTransformationType
+) {
 }

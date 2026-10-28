@@ -86,6 +86,48 @@ describe("useCommandJourneyFeatures", () => {
     app.unmount();
   });
 
+  it.each([
+    { outcome: "succeeds", settle: (resolve: (features: Feature[]) => void) => resolve([feature("feature-1")]) },
+    { outcome: "fails", settle: (_: unknown, reject: (error: Error) => void) => reject(new Error("network error")) },
+  ])("flags loading until a reload $outcome", async ({ settle }) => {
+    const refreshCounter = ref(0);
+    const [{ isLoading }, app] = withSetup(() => useCommandJourneyFeatures(featuresUrl, outlineNodesUrl, refreshCounter));
+    await flushPromises();
+    let resolveReload!: (features: Feature[]) => void;
+    let rejectReload!: (error: Error) => void;
+    getFeaturesMock.mockReturnValue(new Promise((resolve, reject) => {
+      resolveReload = resolve;
+      rejectReload = reject;
+    }));
+
+    refreshCounter.value++;
+    await flushPromises();
+    const loadingDuringReload = isLoading.value;
+    settle(resolveReload, rejectReload);
+    await flushPromises();
+
+    expect([loadingDuringReload, isLoading.value]).toEqual([true, false]);
+
+    app.unmount();
+  });
+
+  it("calls onError on every failed reload", async () => {
+    getFeaturesMock.mockReset().mockRejectedValue(new Error("network error"));
+    const onError = vi.fn();
+    const refreshCounter = ref(0);
+    const [, app] = withSetup(
+      () => useCommandJourneyFeatures(featuresUrl, outlineNodesUrl, refreshCounter, { onError }),
+    );
+    await flushPromises();
+
+    refreshCounter.value++;
+    await flushPromises();
+
+    expect(onError).toHaveBeenCalledTimes(2);
+
+    app.unmount();
+  });
+
   it("reloads the features and outline nodes when the refresh counter changes", async () => {
     const refreshCounter = ref(0);
     const [, app] = withSetup(() => useCommandJourneyFeatures(featuresUrl, outlineNodesUrl, refreshCounter));

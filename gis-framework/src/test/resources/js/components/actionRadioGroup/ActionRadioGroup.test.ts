@@ -43,13 +43,18 @@ describe("depthActionSelect", () => {
     expect(radioLabels()).toEqual(expectedLabels);
   });
 
-  it("shows the inline error and emits it for the error summary when continuing without a selection", async () => {
+  it("shows the given error message inline", () => {
+    render(ActionRadioGroup, { props: { hasActions: false, canMerge: true, canAddStrata: true, errorMessage: validationError } });
+
+    expect(screen.getByRole("group", { name: "What action would you like to perform first?" }))
+      .toHaveAccessibleDescription(`${hint} Error:${validationError}`);
+  });
+
+  it("emits a validation error linking to the first radio when continuing without a selection", async () => {
     const { emitted } = renderSelect();
 
     await fireEvent.click(screen.getByRole("button", { name: "Continue" }));
 
-    expect(screen.getByRole("group", { name: "What action would you like to perform first?" }))
-      .toHaveAccessibleDescription(`${hint} Error:${validationError}`);
     expect(emitted()["validation-error"]).toEqual([
       [{ message: validationError, fieldId: screen.getByRole("radio", { name: "Add strata" }).id }],
     ]);
@@ -65,15 +70,13 @@ describe("depthActionSelect", () => {
     expect(emitted().select).toEqual([["MERGE"]]);
   });
 
-  it("clears the error when continuing with a selection after an error", async () => {
+  it("emits a cleared validation error when continuing with a selection after an error", async () => {
     const { emitted } = renderSelect();
     await fireEvent.click(screen.getByRole("button", { name: "Continue" }));
 
     await fireEvent.click(screen.getByRole("radio", { name: "Split" }));
     await fireEvent.click(screen.getByRole("button", { name: "Continue" }));
 
-    expect(screen.getByRole("group", { name: "What action would you like to perform first?" }))
-      .toHaveAccessibleDescription(hint);
     expect(emitted()["validation-error"]?.at(-1)).toEqual([null]);
   });
 
@@ -84,8 +87,18 @@ describe("depthActionSelect", () => {
     await rerender({ hasActions: false, canMerge: false, canAddStrata: true });
     await fireEvent.click(screen.getByRole("button", { name: "Continue" }));
 
-    expect(screen.getByRole("group", { name: "What action would you like to perform first?" }))
-      .toHaveAccessibleDescription(`${hint} Error:${validationError}`);
+    expect(emitted()["validation-error"]).toEqual([
+      [{ message: validationError, fieldId: screen.getByRole("radio", { name: "Add strata" }).id }],
+    ]);
     expect(emitted().select).toBeUndefined();
+  });
+
+  it.each([
+    { processing: false, continueEnabled: true },
+    { processing: true, continueEnabled: false },
+  ])("sets continue enabled to $continueEnabled when processing is $processing", ({ processing, continueEnabled }) => {
+    render(ActionRadioGroup, { props: { hasActions: false, canMerge: true, canAddStrata: true, processing } });
+
+    expect((screen.getByRole("button", { name: "Continue" }) as HTMLButtonElement).disabled).toBe(!continueEnabled);
   });
 });

@@ -1,3 +1,5 @@
+import type { JsonHistoryStatus } from "@/api/history.api";
+import type { TransformationType } from "@/transformation-type";
 import { fireEvent, render, screen, waitFor } from "@testing-library/vue";
 import Feature from "ol/Feature";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -12,6 +14,8 @@ const {
   splitFeatureMock,
   mergeFeaturesMock,
   strataSplitFeaturesMock,
+  undoMock,
+  redoMock,
 } = vi.hoisted(() => ({
   getFeaturesMock: vi.fn(),
   getOutlineNodesMock: vi.fn(),
@@ -19,6 +23,8 @@ const {
   splitFeatureMock: vi.fn(),
   mergeFeaturesMock: vi.fn(),
   strataSplitFeaturesMock: vi.fn(),
+  undoMock: vi.fn(),
+  redoMock: vi.fn(),
 }));
 
 vi.mock("@/api/features.api", () => ({
@@ -35,7 +41,22 @@ vi.mock("@/api/operator.api", () => ({
   splitFeature: splitFeatureMock,
   mergeFeatures: mergeFeaturesMock,
   strataSplitFeatures: strataSplitFeaturesMock,
+  undo: undoMock,
+  redo: redoMock,
 }));
+
+const noHistory: JsonHistoryStatus = {
+  undoTransformationType: null,
+  redoTransformationType: null,
+};
+
+function historyAfter(transformationType: TransformationType): JsonHistoryStatus {
+  return { ...noHistory, undoTransformationType: transformationType };
+}
+
+function historyAfterUndoing(transformationType: TransformationType): JsonHistoryStatus {
+  return { ...noHistory, redoTransformationType: transformationType };
+}
 
 const firstPoint = { id: "point-1", displayName: "Point one", coordinates: [0, 0], originalSrsCoordinates: [1, 2] };
 const secondPoint = { id: "point-2", displayName: "Point two", coordinates: [0, 0], originalSrsCoordinates: [3, 4] };
@@ -111,10 +132,12 @@ describe("mapActionsPage", () => {
   beforeEach(() => {
     getFeaturesMock.mockReset().mockResolvedValue([feature("shallow", 0, -100), feature("deep", -100, -200)]);
     getOutlineNodesMock.mockReset().mockResolvedValue([]);
-    getHistoryStatusMock.mockReset().mockResolvedValue({ canUndo: false, canRedo: false });
+    getHistoryStatusMock.mockReset().mockResolvedValue(noHistory);
     splitFeatureMock.mockReset();
     mergeFeaturesMock.mockReset();
     strataSplitFeaturesMock.mockReset();
+    undoMock.mockReset();
+    redoMock.mockReset();
   });
 
   it("loads the features and outline nodes from the urls built from the command journey id", async () => {
@@ -185,7 +208,7 @@ describe("mapActionsPage", () => {
       .toBeInTheDocument();
   });
 
-  it("shows the error summary above the map linking to the first action when continuing without a selection", async () => {
+  it("shows the error summary above the map linking to the first action, and the inline error, when continuing without a selection", async () => {
     renderPage();
     await screen.findByRole("radio", { name: "Split" });
 
@@ -195,17 +218,21 @@ describe("mapActionsPage", () => {
     expect(summaryLink).toHaveAttribute("href", `#${screen.getByRole("radio", { name: "Add strata" }).id}`);
     expect(summaryLink.compareDocumentPosition(screen.getByText(/^Map of/)))
       .toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(screen.getByRole("group", { name: "What action would you like to perform first?" }))
+      .toHaveAccessibleDescription("You can perform multiple actions before finalising. Error:Select what action you would like to perform");
   });
 
-  it("removes the error summary when continuing with a selection after an error", async () => {
+  it("removes the error summary and inline error when continuing with a selection after an error", async () => {
     renderPage();
-    await screen.findByRole("radio", { name: "Split" });
+    await screen.findByRole("radio", { name: "Rename" });
     await fireEvent.click(screen.getByRole("button", { name: "Continue" }));
 
-    await fireEvent.click(screen.getByRole("radio", { name: "Split" }));
+    await fireEvent.click(screen.getByRole("radio", { name: "Rename" }));
     await fireEvent.click(screen.getByRole("button", { name: "Continue" }));
 
     expect(screen.queryByRole("link", { name: "Select what action you would like to perform" })).not.toBeInTheDocument();
+    expect(screen.getByRole("group", { name: "What action would you like to perform first?" }))
+      .toHaveAccessibleDescription("You can perform multiple actions before finalising.");
   });
 
   it("shows an error when the features request fails", async () => {
@@ -213,7 +240,7 @@ describe("mapActionsPage", () => {
 
     renderPage();
 
-    expect(await screen.findByText("Unable to load the subareas.")).toBeInTheDocument();
+    expect(await screen.findByText("Unable to load the features.")).toBeInTheDocument();
   });
 
   it("loads the history status from the url built from the base url and command journey id", async () => {
@@ -225,7 +252,7 @@ describe("mapActionsPage", () => {
   });
 
   it("asks for the next action when the journey already has actions", async () => {
-    getHistoryStatusMock.mockReset().mockResolvedValue({ canUndo: true, canRedo: false });
+    getHistoryStatusMock.mockReset().mockResolvedValue(historyAfter("SPLIT"));
 
     renderPage();
 
@@ -239,6 +266,149 @@ describe("mapActionsPage", () => {
     renderPage();
 
     expect(await screen.findByText("Unable to load the actions taken.")).toBeInTheDocument();
+  });
+
+  describe("undo and redo", () => {
+    it("names the undo and redo buttons after the commands they would reverse", async () => {
+      getHistoryStatusMock.mockReset().mockResolvedValue({
+        undoTransformationType: "STRATA_SPLIT",
+        redoTransformationType: "MERGE",
+      });
+
+      renderPage();
+
+      expect(await screen.findByRole("button", { name: "Undo add strata" })).toBeEnabled();
+      expect(screen.getByRole("button", { name: "Redo merge" })).toBeEnabled();
+    });
+
+    it.each(["Split", "Merge", "Add strata"])("hides undo and redo while the %s panel is open", async (action) => {
+      getHistoryStatusMock.mockReset().mockResolvedValue(historyAfter("SPLIT"));
+      renderPage();
+      await screen.findByRole("button", { name: "Undo split" });
+
+      await fireEvent.click(screen.getByRole("radio", { name: action }));
+      await fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+
+      expect(screen.queryByRole("button", { name: /^(Undo|Redo)/ })).not.toBeInTheDocument();
+    });
+
+    it("undoes the last action, then reloads the map and offers only the actions still available", async () => {
+      getFeaturesMock.mockReset()
+        .mockResolvedValueOnce([feature("shallow", 0, -100), feature("deep", -100, -200)])
+        .mockResolvedValue([feature("merged", 0, -200)]);
+      getHistoryStatusMock.mockReset()
+        .mockResolvedValueOnce(historyAfter("SPLIT"))
+        .mockResolvedValue(historyAfterUndoing("SPLIT"));
+      undoMock.mockResolvedValue(undefined);
+      renderPage();
+
+      await fireEvent.click(await screen.findByRole("button", { name: "Undo split" }));
+
+      expect(await screen.findByRole("group", { name: "What action would you like to perform first?" }))
+        .toBeInTheDocument();
+      expect(undoMock).toHaveBeenCalledWith("/api/gis-framework/undo/journey-1", "X-CSRF-TOKEN", "csrf-token");
+      expect(screen.getByText("Map of merged, refits: false")).toBeInTheDocument();
+      expect(screen.queryByRole("radio", { name: "Merge" })).not.toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Redo split" })).toBeEnabled();
+    });
+
+    it("redoes the last undone action, then reloads the map and asks for the next action", async () => {
+      getHistoryStatusMock.mockReset()
+        .mockResolvedValueOnce(historyAfterUndoing("MERGE"))
+        .mockResolvedValue(historyAfter("MERGE"));
+      redoMock.mockResolvedValue(undefined);
+      renderPage();
+
+      await fireEvent.click(await screen.findByRole("button", { name: "Redo merge" }));
+
+      expect(await screen.findByRole("group", { name: "What action would you like to perform next?" }))
+        .toBeInTheDocument();
+      expect(redoMock).toHaveBeenCalledWith("/api/gis-framework/redo/journey-1", "X-CSRF-TOKEN", "csrf-token");
+      expect(getFeaturesMock).toHaveBeenCalledTimes(2);
+      expect(screen.getByRole("button", { name: "Undo merge" })).toBeEnabled();
+    });
+
+    it("shows an error and stays on the action select when the undo request fails", async () => {
+      getHistoryStatusMock.mockReset().mockResolvedValue(historyAfter("STRATA_SPLIT"));
+      undoMock.mockRejectedValue(new Error("network error"));
+      renderPage();
+
+      await fireEvent.click(await screen.findByRole("button", { name: "Undo add strata" }));
+
+      expect(await screen.findByText("An error occurred while attempting to undo the last add strata. Please try again."))
+        .toBeInTheDocument();
+      expect(screen.getByRole("radio", { name: "Split" })).toBeInTheDocument();
+    });
+
+    it.each([
+      { pendingReload: "history", pendingMock: getHistoryStatusMock },
+      { pendingReload: "features", pendingMock: getFeaturesMock },
+    ])("keeps undo, redo and continue disabled until the $pendingReload reload after an undo finishes", async ({ pendingMock }) => {
+      const history: JsonHistoryStatus = {
+        undoTransformationType: "SPLIT",
+        redoTransformationType: "MERGE",
+      };
+      const features = [feature("shallow", 0, -100), feature("deep", -100, -200)];
+      getHistoryStatusMock.mockReset().mockResolvedValue(history);
+      getFeaturesMock.mockReset().mockResolvedValue(features);
+      undoMock.mockResolvedValue(undefined);
+      renderPage();
+      await screen.findByRole("button", { name: "Undo split" });
+      let finishReload!: () => void;
+      pendingMock.mockReturnValueOnce(new Promise((resolve) => {
+        finishReload = () => resolve(pendingMock === getHistoryStatusMock ? history : features);
+      }));
+
+      await fireEvent.click(screen.getByRole("button", { name: "Undo split" }));
+      await waitFor(() => expect(pendingMock).toHaveBeenCalledTimes(2));
+
+      expect(screen.getByRole("button", { name: "Undo split" })).toBeDisabled();
+      expect(screen.getByRole("button", { name: "Redo merge" })).toBeDisabled();
+      expect(screen.getByRole("button", { name: "Continue" })).toBeDisabled();
+      finishReload();
+      await waitFor(() => expect(screen.getByRole("button", { name: "Continue" })).toBeEnabled());
+      expect(screen.getByRole("button", { name: "Undo split" })).toBeEnabled();
+    });
+
+    it("removes the validation error summary and inline error after a successful undo", async () => {
+      getHistoryStatusMock.mockReset().mockResolvedValue(historyAfter("SPLIT"));
+      undoMock.mockResolvedValue(undefined);
+      renderPage();
+      await screen.findByRole("button", { name: "Undo split" });
+      await fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+      await screen.findByRole("link", { name: "Select what action you would like to perform" });
+
+      await fireEvent.click(screen.getByRole("button", { name: "Undo split" }));
+
+      await waitFor(() => {
+        expect(screen.queryByRole("link", { name: "Select what action you would like to perform" })).not.toBeInTheDocument();
+      });
+      expect(screen.getByRole("group", { name: "What action would you like to perform next?" }))
+        .toHaveAccessibleDescription("");
+    });
+
+    it("removes the error from a failed undo after a successful retry", async () => {
+      const undoError = "An error occurred while attempting to undo the last split. Please try again.";
+      getHistoryStatusMock.mockReset().mockResolvedValue(historyAfter("SPLIT"));
+      undoMock.mockRejectedValueOnce(new Error("network error")).mockResolvedValue(undefined);
+      renderPage();
+      await fireEvent.click(await screen.findByRole("button", { name: "Undo split" }));
+      await screen.findByText(undoError);
+
+      await fireEvent.click(screen.getByRole("button", { name: "Undo split" }));
+
+      await waitFor(() => expect(screen.queryByText(undoError)).not.toBeInTheDocument());
+    });
+
+    it("disables continue while an undo is in flight", async () => {
+      getHistoryStatusMock.mockReset().mockResolvedValue(historyAfter("SPLIT"));
+      undoMock.mockReturnValue(new Promise(() => {}));
+      renderPage();
+
+      await fireEvent.click(await screen.findByRole("button", { name: "Undo split" }));
+
+      expect(screen.getByRole("button", { name: "Continue" })).toBeDisabled();
+    });
   });
 
   describe("when split is chosen", () => {
@@ -311,8 +481,8 @@ describe("mapActionsPage", () => {
 
     it("reloads the map and returns to the action select with the first action focused after a split", async () => {
       getHistoryStatusMock.mockReset()
-        .mockResolvedValueOnce({ canUndo: false, canRedo: false })
-        .mockResolvedValue({ canUndo: true, canRedo: false });
+        .mockResolvedValueOnce(noHistory)
+        .mockResolvedValue(historyAfter("SPLIT"));
       splitFeatureMock.mockResolvedValue({ outputFeatureIds: ["feature-2"] });
       renderPage();
       await chooseSplit();
@@ -461,8 +631,8 @@ describe("mapActionsPage", () => {
 
     it("merges the selected features, then reloads the map and returns to the action select with the first action focused", async () => {
       getHistoryStatusMock.mockReset()
-        .mockResolvedValueOnce({ canUndo: false, canRedo: false })
-        .mockResolvedValue({ canUndo: true, canRedo: false });
+        .mockResolvedValueOnce(noHistory)
+        .mockResolvedValue(historyAfter("MERGE"));
       mergeFeaturesMock.mockResolvedValue({ outputFeatureId: "merged" });
       renderPage();
       await chooseMerge();
@@ -602,8 +772,8 @@ describe("mapActionsPage", () => {
 
     it("strata splits the selected features, then reloads the map and returns to the action select with the first action focused", async () => {
       getHistoryStatusMock.mockReset()
-        .mockResolvedValueOnce({ canUndo: false, canRedo: false })
-        .mockResolvedValue({ canUndo: true, canRedo: false });
+        .mockResolvedValueOnce(noHistory)
+        .mockResolvedValue(historyAfter("STRATA_SPLIT"));
       strataSplitFeaturesMock.mockResolvedValue({ outputFeatureIds: ["deep_above", "deep_below"] });
       renderPage();
       await chooseAddStrata();

@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import uk.co.fivium.gisframework.command.CommandJourneyService;
+import uk.co.fivium.gisframework.command.OperatorCommand;
 import uk.co.fivium.gisframework.command.OperatorCommandService;
 import uk.co.fivium.gisframework.operator.JsonHistoryStatus;
 import uk.co.fivium.gisframework.operator.JsonMergeResponse;
@@ -96,9 +97,11 @@ class OperatorRestController {
   @GetMapping("/history/{commandJourneyId}")
   ResponseEntity<JsonHistoryStatus> getHistory(@PathVariable UUID commandJourneyId) {
     var commandJourney = commandJourneyService.getCommandJourneyOrThrow(commandJourneyId);
+    var undoCommand = operatorCommandService.getCurrentActiveCommand(commandJourney);
+    var redoCommand = operatorCommandService.getNextRedoCommand(commandJourney);
     return ResponseEntity.ok(new JsonHistoryStatus(
-        operatorCommandService.canUndo(commandJourney),
-        operatorCommandService.canRedo(commandJourney)
+        undoCommand.map(OperatorCommand::getTransformationType).orElse(null),
+        redoCommand.map(OperatorCommand::getTransformationType).orElse(null)
     ));
   }
 

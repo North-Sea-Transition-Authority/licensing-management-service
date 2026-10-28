@@ -21,12 +21,12 @@
         :outline-nodes="visibleOutlineNodes"
         :include-nsta-quadrants="includeNstaQuadrants"
         :include-nsta-blocks="includeNstaBlocks"
-        :include-snap-points="mode === MapAction.SPLIT"
-        :include-draw-line="mode === MapAction.SPLIT"
+        :include-snap-points="mode === 'SPLIT'"
+        :include-draw-line="mode === 'SPLIT'"
         :refresh-counter="refreshCounter"
         :refit-on-features-change="false"
         :map-style-override="mapStyleOverride"
-        :selected-feature-ids="mode === MapAction.MERGE || mode === MapAction.ADD_STRATA ? selectedFeatureIds : []"
+        :selected-feature-ids="mode === 'MERGE' || mode === 'STRATA_SPLIT' ? selectedFeatureIds : []"
         @update:points="points = $event"
       />
     </div>
@@ -38,17 +38,31 @@
       />
     </div>
   </div>
-  <action-radio-group
-    v-if="mode === 'select'"
-    ref="actionRadioGroup"
-    :has-actions="historyStatus?.canUndo ?? false"
-    :can-merge="activeFeatureCount >= 2"
-    :can-add-strata="hasDepths"
-    @select="onSelect"
-    @validation-error="onValidationError($event ? [$event] : [])"
-  />
+  <div v-if="mode === 'select'">
+    <undo-redo-actions
+      v-model:processing="isProcessing"
+      :history-status="historyStatus"
+      :base-url="baseUrl"
+      :command-journey-id="commandJourneyId"
+      :csrf-header-name="csrfHeaderName"
+      :csrf-token="csrfToken"
+      :disabled="isReloading"
+      @action-success="onHistoryActionSuccess"
+      @action-error="error = $event"
+    />
+    <action-radio-group
+      ref="actionRadioGroup"
+      :has-actions="!!historyStatus?.undoTransformationType"
+      :can-merge="activeFeatureCount >= 2"
+      :can-add-strata="hasDepths"
+      :processing="isProcessing || isReloading"
+      :error-message="validationErrors[0]?.message"
+      @select="onSelect"
+      @validation-error="onValidationError($event ? [$event] : [])"
+    />
+  </div>
   <split-panel
-    v-else-if="mode === MapAction.SPLIT"
+    v-else-if="mode === 'SPLIT'"
     ref="actionPanel"
     :base-url="baseUrl"
     :command-journey-id="commandJourneyId"
@@ -63,7 +77,7 @@
     @undo-last-point="undoLastPoint"
   />
   <merge-panel
-    v-else-if="mode === MapAction.MERGE"
+    v-else-if="mode === 'MERGE'"
     ref="actionPanel"
     v-model:selected-feature-ids="selectedFeatureIds"
     :base-url="baseUrl"
@@ -77,7 +91,7 @@
     @back="returnToSelect"
   />
   <strata-split-panel
-    v-else-if="mode === MapAction.ADD_STRATA"
+    v-else-if="mode === 'STRATA_SPLIT'"
     ref="actionPanel"
     v-model:selected-feature-ids="selectedFeatureIds"
     :base-url="baseUrl"
@@ -93,12 +107,11 @@
 </template>
 
 <script setup lang="ts">
-import type { JsonHistoryStatus } from "@/api/history.api";
 import type { SupportedWkid } from "@/coordinate-system-utils";
 import type { SnapPoint } from "@/grid-utils";
-import type { MapActionValidationError } from "@/map-action";
-import { computed, CSSProperties, nextTick, ref, useTemplateRef, watch } from "vue";
-import { getHistoryStatus } from "@/api/history.api";
+import type { TransformationType } from "@/transformation-type";
+import type { ValidationError } from "@/validation-error";
+import { computed, CSSProperties, nextTick, ref, useTemplateRef } from "vue";
 import { buildCommandJourneyUrl } from "@/command-journey-utils";
 import ActionRadioGroup from "@/components/actionRadioGroup/ActionRadioGroup.vue";
 import BaseMap from "@/components/baseMap/BaseMap.vue";
@@ -108,10 +121,11 @@ import MergePanel from "@/components/mapActions/MergePanel.vue";
 import SplitPanel from "@/components/mapActions/SplitPanel.vue";
 import StrataSplitPanel from "@/components/mapActions/StrataSplitPanel.vue";
 import TextualDescription from "@/components/textualDescription/TextualDescription.vue";
+import UndoRedoActions from "@/components/undoRedo/UndoRedoActions.vue";
 import { useCommandJourneyFeatures } from "@/composables/useCommandJourneyFeatures";
 import { useDepthBands } from "@/composables/useDepthBands";
+import { useHistoryStatus } from "@/composables/useHistoryStatus";
 import { toSortedFeatureOptions } from "@/feature-option-utils";
-import { MapAction } from "@/map-action";
 
 interface MapActionsPageProps {
   commandJourneyId: string,
@@ -138,7 +152,7 @@ const mapStyleOverride: CSSProperties = {
   display: "block",
 };
 
-const mode = ref<"select" | MapAction>("select");
+const mode = ref<"select" | TransformationType>("select");
 const baseMapRef = useTemplateRef<InstanceType<typeof BaseMap>>("baseMapRef");
 const actionPanel = useTemplateRef<{ focus: () => void }>("actionPanel");
 const actionRadioGroup = useTemplateRef<InstanceType<typeof ActionRadioGroup>>("actionRadioGroup");
@@ -151,29 +165,28 @@ const refreshCounter = ref(0);
 const featuresUrl = buildCommandJourneyUrl(props.featuresBaseUrl, props.commandJourneyId);
 const outlineNodesUrl = buildCommandJourneyUrl(props.outlineNodesBaseUrl, props.commandJourneyId);
 
-const { features, outlineNodes, hasError } = useCommandJourneyFeatures(featuresUrl, outlineNodesUrl, refreshCounter);
+const { features, outlineNodes, isLoading: isFeaturesLoading } = useCommandJourneyFeatures(
+  featuresUrl,
+  outlineNodesUrl,
+  refreshCounter,
+  {
+    onError: () => {
+      error.value = "Unable to load the features.";
+    },
+  },
+);
 const { hasDepths, depths, currentDepthLevel, visibleFeatures, visibleOutlineNodes } = useDepthBands(features, outlineNodes);
 
-watch(hasError, (errored) => {
-  if (errored) {
-    error.value = "Unable to load the subareas.";
-  }
+const { historyStatus, isLoading: isHistoryLoading } = useHistoryStatus(props.baseUrl, props.commandJourneyId, refreshCounter, {
+  onError: () => {
+    error.value = "Unable to load the actions taken.";
+  },
 });
 
-// TODO - EPGF-271: The history status functions could be moved into a composable when undo / redo is added to this page.
-const historyUrl = buildCommandJourneyUrl(`${props.baseUrl}/history`, props.commandJourneyId);
-const historyStatus = ref<JsonHistoryStatus | null>(null);
+const isProcessing = ref(false);
 
-async function fetchHistoryStatus() {
-  try {
-    historyStatus.value = await getHistoryStatus(historyUrl);
-  } catch {
-    error.value = "Unable to load the actions taken.";
-  }
-}
-
-void fetchHistoryStatus();
-watch(refreshCounter, fetchHistoryStatus);
+// Until both reloads finish, undo/redo would act on a stale history entry and Continue on stale features.
+const isReloading = computed(() => isHistoryLoading.value || isFeaturesLoading.value);
 
 // Features are returned one per polygon, so count distinct feature IDs.
 const activeFeatureCount = computed(() => new Set(features.value.map(feature => feature.get("featureId"))).size);
@@ -181,11 +194,11 @@ const activeFeatureCount = computed(() => new Set(features.value.map(feature => 
 // Lists every feature, not only those in the current depth band.
 const featureOptions = computed(() => toSortedFeatureOptions(features.value));
 
-const validationErrors = ref<MapActionValidationError[]>([]);
+const validationErrors = ref<ValidationError[]>([]);
 // Re-mounts the error summary on each failed attempt so it takes focus again.
 const validationAttempt = ref(0);
 
-function onValidationError(errors: MapActionValidationError[]) {
+function onValidationError(errors: ValidationError[]) {
   validationErrors.value = errors;
   if (errors.length) {
     error.value = null;
@@ -193,15 +206,19 @@ function onValidationError(errors: MapActionValidationError[]) {
   }
 }
 
-// TODO - LMS2-268: include rename.
-const panelActions: MapAction[] = [MapAction.SPLIT, MapAction.MERGE, MapAction.ADD_STRATA];
+// TODO - LMS2-268: include rename. Can remove once all actions have panels
+const hasPanel: Record<TransformationType, boolean> = {
+  SPLIT: true,
+  MERGE: true,
+  STRATA_SPLIT: true,
+  RENAME: false,
+};
 
-async function onSelect(action: MapAction) {
-  if (!panelActions.includes(action)) {
+async function onSelect(action: TransformationType) {
+  if (!hasPanel[action]) {
     return;
   }
-  error.value = null;
-  validationErrors.value = [];
+  clearErrors();
   mode.value = action;
   await nextTick();
   actionPanel.value?.focus();
@@ -211,15 +228,23 @@ function undoLastPoint() {
   baseMapRef.value?.removeLastPoint();
 }
 
-function onActionSuccess() {
+function clearErrors() {
   error.value = null;
+  validationErrors.value = [];
+}
+
+function onActionSuccess() {
   refreshCounter.value++;
   void returnToSelect();
 }
 
+function onHistoryActionSuccess() {
+  clearErrors();
+  refreshCounter.value++;
+}
+
 async function returnToSelect() {
-  error.value = null;
-  validationErrors.value = [];
+  clearErrors();
   points.value = [];
   selectedFeatureIds.value = [];
   mode.value = "select";

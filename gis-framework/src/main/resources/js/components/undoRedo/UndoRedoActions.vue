@@ -1,34 +1,38 @@
 <template>
   <gv-button-group>
     <slot/>
-    <gv-button variant="secondary" :disabled="!historyStatus?.canUndo || isProcessing" @click="undoAction">
-      Undo {{ operationName }}
+    <gv-button variant="secondary" :disabled="!historyStatus?.undoTransformationType || isProcessing || disabled" @click="undoAction">
+      Undo {{ undoLabel }}
     </gv-button>
-    <gv-button variant="secondary" :disabled="!historyStatus?.canRedo || isProcessing" @click="redoAction">
-      Redo {{ operationName }}
+    <gv-button variant="secondary" :disabled="!historyStatus?.redoTransformationType || isProcessing || disabled" @click="redoAction">
+      Redo {{ redoLabel }}
     </gv-button>
   </gv-button-group>
 </template>
 
 <script setup lang="ts">
 import type { JsonHistoryStatus } from "@/api/history.api";
-import { computed, onMounted, ref, watch } from "vue";
-import { getHistoryStatus } from "@/api/history.api";
+import type { TransformationType } from "@/transformation-type";
+import { computed } from "vue";
 import { redo, undo } from "@/api/operator.api";
 import { buildCommandJourneyUrl } from "@/command-journey-utils";
+import { getTransformationTypeLabel } from "@/transformation-type";
 import GvButton from "../govukVue/button/GvButton.vue";
 import GvButtonGroup from "../govukVue/button/GvButtonGroup.vue";
 
 interface UndoRedoActionsProps {
-  refreshCounter: number,
+  historyStatus: JsonHistoryStatus | null,
   baseUrl: string,
   commandJourneyId: string,
   csrfHeaderName: string,
   csrfToken: string,
-  operationName: string,
+  operationName?: string,
+  disabled?: boolean,
 }
 
-const props = defineProps<UndoRedoActionsProps>();
+const props = withDefaults(defineProps<UndoRedoActionsProps>(), {
+  disabled: false,
+});
 
 const emit = defineEmits<{
   "action-success": [],
@@ -38,22 +42,15 @@ const emit = defineEmits<{
 // Shared with the parent's primary action so all buttons disable together while any request is in flight.
 const isProcessing = defineModel<boolean>("processing", { default: false });
 
-const historyStatus = ref<JsonHistoryStatus | null>(null);
-
-const historyUrl = computed(() => buildCommandJourneyUrl(`${props.baseUrl}/history`, props.commandJourneyId));
 const undoUrl = computed(() => buildCommandJourneyUrl(`${props.baseUrl}/undo`, props.commandJourneyId));
 const redoUrl = computed(() => buildCommandJourneyUrl(`${props.baseUrl}/redo`, props.commandJourneyId));
 
-async function fetchHistoryStatus() {
-  try {
-    historyStatus.value = await getHistoryStatus(historyUrl.value);
-  } catch {
-    emit("action-error", "Unable to load undo/redo status.");
-  }
+function labelFor(type: TransformationType | null | undefined) {
+  return props.operationName ?? (type ? getTransformationTypeLabel(type).toLowerCase() : undefined);
 }
 
-onMounted(fetchHistoryStatus);
-watch(() => props.refreshCounter, fetchHistoryStatus);
+const undoLabel = computed(() => labelFor(props.historyStatus?.undoTransformationType));
+const redoLabel = computed(() => labelFor(props.historyStatus?.redoTransformationType));
 
 async function undoAction() {
   isProcessing.value = true;
@@ -61,7 +58,7 @@ async function undoAction() {
     await undo(undoUrl.value, props.csrfHeaderName, props.csrfToken);
     emit("action-success");
   } catch {
-    emit("action-error", `An error occurred while attempting to undo the last ${props.operationName}. Please try again.`);
+    emit("action-error", `An error occurred while attempting to undo the last ${undoLabel.value ?? "action"}. Please try again.`);
   } finally {
     isProcessing.value = false;
   }
@@ -73,7 +70,7 @@ async function redoAction() {
     await redo(redoUrl.value, props.csrfHeaderName, props.csrfToken);
     emit("action-success");
   } catch {
-    emit("action-error", `An error occurred while attempting to redo the last ${props.operationName}. Please try again.`);
+    emit("action-error", `An error occurred while attempting to redo the last ${redoLabel.value ?? "action"}. Please try again.`);
   } finally {
     isProcessing.value = false;
   }

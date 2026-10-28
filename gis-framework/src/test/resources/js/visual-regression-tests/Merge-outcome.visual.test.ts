@@ -13,7 +13,7 @@ import { settleForScreenshot, waitForMapFullyLoaded } from "./visual-test-util";
 /**
  * Registers stateful handlers for the merge page. `GET features` returns the merge result once a merge
  * has taken place and the original blocks otherwise, so the map redraws whenever the page bumps its
- * refresh counter. `canUndo`/`canRedo` track the same state so the undo/redo buttons enable correctly.
+ * refresh counter. History tracks the same state so the undo/redo buttons enable correctly.
  * Returns a getter for the number of `GET features` requests, used to wait for the map to reload.
  */
 function installMergePageHandlers({ hasMerged = false, hasUndone = false } = {}): { featuresRequests: () => number } {
@@ -28,7 +28,10 @@ function installMergePageHandlers({ hasMerged = false, hasUndone = false } = {})
     }),
     http.get("/api/outline-nodes/1", () => HttpResponse.json({ featureOutlineNodes: [] })),
     http.get("/api/textual-description/1", () => HttpResponse.text("")),
-    http.get("/api/history/1", () => HttpResponse.json({ canUndo: merged, canRedo: undone })),
+    http.get("/api/history/1", () => HttpResponse.json({
+      undoTransformationType: merged ? "MERGE" : null,
+      redoTransformationType: undone ? "MERGE" : null,
+    })),
     http.post("/api/merge", () => {
       merged = true;
       undone = false;

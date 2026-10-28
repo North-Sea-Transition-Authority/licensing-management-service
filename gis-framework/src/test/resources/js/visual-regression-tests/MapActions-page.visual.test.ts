@@ -1,4 +1,6 @@
 import type { JsonBodyType } from "msw";
+import type { JsonHistoryStatus } from "@/api/history.api";
+import type { TransformationType } from "@/transformation-type";
 import { page } from "@vitest/browser/context";
 import { http, HttpResponse } from "msw";
 import { beforeEach, describe, expect, it } from "vitest";
@@ -29,12 +31,21 @@ const textualDescriptionHtml = `<div class="gis-textual-description">
 
 /**
  * Registers stateful handlers: `GET features` returns the split, merge or strata split fixture once `POST split`,
- * `POST merge` or `POST strata-split` has been called, and history reports an undoable action from then on. Returns
- * a getter for the number of `GET features` requests, used to wait for the map to reload.
+ * `POST merge` or `POST strata-split` has been called, and the original fixture again after `POST undo`. History
+ * reports the last action as undoable, or redoable once undone. Returns a getter for the number of `GET features`
+ * requests, used to wait for the map to reload.
  */
 function mockEndpoints(): { featuresRequests: () => number } {
   let features: JsonBodyType = depthMapEd50;
   let featuresRequests = 0;
+  let lastTransformationType: TransformationType | null = null;
+  let undone = false;
+
+  function perform(transformationType: TransformationType, result: JsonBodyType) {
+    features = result;
+    lastTransformationType = transformationType;
+    undone = false;
+  }
 
   worker.use(
     http.get("/api/features/1", () => {
@@ -43,18 +54,26 @@ function mockEndpoints(): { featuresRequests: () => number } {
     }),
     http.get("/api/outline-nodes/1", () => HttpResponse.json({ featureOutlineNodes: depthMapOutlineNodes })),
     http.get("/api/textual-description/1", () => HttpResponse.json({ textualDescription: textualDescriptionHtml })),
-    http.get("/api/history/1", () => HttpResponse.json({ canUndo: features !== depthMapEd50, canRedo: false })),
+    http.get("/api/history/1", () => HttpResponse.json({
+      undoTransformationType: undone ? null : lastTransformationType,
+      redoTransformationType: undone ? lastTransformationType : null,
+    } satisfies JsonHistoryStatus)),
     http.post("/api/split", () => {
-      features = depthMapSplitEd50;
+      perform("SPLIT", depthMapSplitEd50);
       return HttpResponse.json({ outputFeatureIds: ["middle-west", "middle-east"] });
     }),
     http.post("/api/merge", () => {
-      features = depthMapMergeEd50;
+      perform("MERGE", depthMapMergeEd50);
       return HttpResponse.json({ outputFeatureId: "merged" });
     }),
     http.post("/api/strata-split", () => {
-      features = depthMapStrataSplitEd50;
+      perform("STRATA_SPLIT", depthMapStrataSplitEd50);
       return HttpResponse.json({ outputFeatureIds: ["middle-above", "middle-below"] });
+    }),
+    http.post("/api/undo/1", () => {
+      features = depthMapEd50;
+      undone = true;
+      return new HttpResponse(null, { status: 200 });
     }),
   );
 
@@ -188,7 +207,7 @@ describe("map actions page", () => {
     await expect(screen.locator).toMatchScreenshot("map-actions-split-line-in-progress");
   });
 
-  it("redraws the split band and returns to the action select once the line crosses the block", async () => {
+  it("redraws the split band and returns to the action select once cut", async () => {
     const { featuresRequests } = mockEndpoints();
     const screen = renderInFixedWidthContainer();
     await waitForPageLoaded();
@@ -288,5 +307,27 @@ describe("map actions page", () => {
     await settleForScreenshot();
 
     await expect(screen.locator).toMatchScreenshot("map-actions-add-strata-result");
+  });
+
+  it("removes the added depth band and asks for the first action again once add strata is undone", async () => {
+    const { featuresRequests } = mockEndpoints();
+    const screen = renderInFixedWidthContainer();
+    await waitForPageLoaded();
+    await chooseAddStrata(screen);
+    await addStrataToMiddleBlockAt(screen, "-150");
+    await expect.poll(() => document.querySelectorAll(".depth-marker").length).toBe(4);
+    await screen.getByText("-150 to -200", { exact: true }).click();
+    const before = featuresRequests();
+
+    await screen.getByRole("button", { name: "Undo add strata" }).click();
+
+    await expect.poll(() => featuresRequests(), { timeout: 15000, interval: 100 }).toBeGreaterThan(before);
+    await expect.element(screen.getByRole("group", { name: "What action would you like to perform first?" }))
+      .toBeVisible();
+    await expect.poll(() => document.querySelectorAll(".depth-marker").length).toBe(3);
+    await expect.element(screen.getByRole("button", { name: "Redo add strata" })).toBeEnabled();
+    await settleForScreenshot();
+
+    await expect(screen.locator).toMatchScreenshot("map-actions-add-strata-undone");
   });
 });

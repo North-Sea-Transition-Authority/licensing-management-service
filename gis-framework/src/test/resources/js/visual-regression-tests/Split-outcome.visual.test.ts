@@ -44,7 +44,7 @@ async function settle(): Promise<void> {
 /**
  * Registers stateful handlers for the split page. `GET features` returns the split result once a split
  * has taken place and the original block otherwise, so the map redraws whenever the page bumps its
- * refresh counter. `canUndo`/`canRedo` track the same state so the undo/redo buttons enable correctly.
+ * refresh counter. History tracks the same state so the undo/redo buttons enable correctly.
  * Returns a getter for the number of `GET features` requests, used to wait for the map to reload.
  */
 function installSplitPageHandlers({ hasSplit = false, hasUndone = false } = {}): { featuresRequests: () => number } {
@@ -59,7 +59,10 @@ function installSplitPageHandlers({ hasSplit = false, hasUndone = false } = {}):
     }),
     http.get("/api/outline-nodes/1", () => HttpResponse.json({ featureOutlineNodes: [] })),
     http.get("/api/textual-description/1", () => HttpResponse.text("")),
-    http.get("/api/history/1", () => HttpResponse.json({ canUndo: split, canRedo: undone })),
+    http.get("/api/history/1", () => HttpResponse.json({
+      undoTransformationType: split ? "SPLIT" : null,
+      redoTransformationType: undone ? "SPLIT" : null,
+    })),
     http.post("/api/split", () => {
       split = true;
       undone = false;

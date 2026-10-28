@@ -40,7 +40,7 @@ function renderComponent(props = {}) {
 
 describe("splitActions", () => {
   beforeEach(() => {
-    getHistoryStatusMock.mockReset().mockResolvedValue({ canUndo: false, canRedo: false });
+    getHistoryStatusMock.mockReset().mockResolvedValue({ undoTransformationType: null, redoTransformationType: null });
     splitFeatureMock.mockReset();
     undoMock.mockReset();
     redoMock.mockReset();
@@ -138,5 +138,15 @@ describe("splitActions", () => {
     await rerender({ ...baseProps, autoSplit: true, points: [twoPoints[0]] });
 
     expect(splitFeatureMock).not.toHaveBeenCalled();
+  });
+
+  it("emits action-error when the history status cannot be loaded", async () => {
+    getHistoryStatusMock.mockReset().mockRejectedValue(new Error("network error"));
+
+    const { emitted } = renderComponent();
+
+    await waitFor(() => {
+      expect(emitted("action-error")).toEqual([["Unable to load undo/redo status."]]);
+    });
   });
 });

@@ -492,6 +492,20 @@ no-payment years: 298 on `P` and 12 on `PL` (data survey,
 Either way, LMS's "in force until the next rate" model then describes every year correctly, so the
 write-back can rebuild yearly recurrence without inventing payments.
 
+**5. Fixed-count recurrences.** A yearly `R` with a `RECURRANCES` count needs no extra handling
+when the count runs up to the next rate: LMS's "in force until the next rate" means the same, and
+LMS does not store the count. On live, 9 `PL` and 3 `AL` schedules use a count (data survey S12b):
+
+- **`PL` (e.g. PL116): contiguous.** `.5` ×2 from 1969 covers 1969 to 1971 and `1` starts in
+  1972. One LMS rate per PEARS rate, and the write-back emits the same counts.
+- **`AL` (AL6, AL9, AL10): the count overlaps the next rate.** `25` ×6 from 1995 covers 1995 to
+  2001 and `50` also starts in 2001, so PEARS may pay both in 2001. LMS holds one rate at a time,
+  so `25` stops when `50` starts, and the write-back emits `25` ×5. The overlap is dropped. **The
+  licensing team confirms the 2001 double payment was never intended** (open question 14). These
+  are 1990s dates, so it only matters if the payments report is run for those years.
+
+No count leaves a gap before the next rate, and no schedule ends on a counted rate.
+
 ### Rates and the PEARS write-back (separate piece of work)
 
 LMS schedules will be written back to PEARS so data warehouse reporting keeps working from PEARS.
@@ -1103,6 +1117,10 @@ Against:
   migrated £0 rate keeps them as no-payment years.
 - The round trip is equal in payments, not in raw XML. Anything else that reads raw `R` rows
   (rather than the payments logic) could see a different shape.
+- In particular, `RECURRANCES` counts would appear on every licence type. Today only 9 `PL` and
+  3 `AL` schedules have them; `P` and `PEDL` have only non-recurring rows and one indefinite
+  yearly rate. The data
+  warehouse owners need to confirm their feed handles a counted yearly `R` on `P` and `PEDL`.
 
 **Option B: one LMS rate row per yearly redefinition; the write-back is one row to one row.**
 P2522 gets 13 LMS rates of 7500 (2032 to 2044). The write-back emits 13 non-recurring `R` events.
@@ -1524,6 +1542,9 @@ The queries, full results and breakdowns are in the data survey,
    years (migrated in, written back as 0, and used by users for future gaps). See "Rates and yearly
    recurrence" step 4. Either way option A no longer invents payments, and a "recurs yearly" flag
    on LMS rates isn't needed for gaps. The licensing team still has to say which case applies.
+   **Data warehouse (option A):** the write-back would put `RECURRANCES` counts on `P` and `PEDL`
+   schedules, which have never had them. The data warehouse owners confirm their feed handles
+   that, alongside the 0-rate rows of gap case (b).
 8. **Expiry date convention.** Open. PEARS dates the expiry on the anniversary the licence ends
    (P2244: 01-Dec-2040). In LMS the final term ends the day before (30-Nov-2040), and Review and
    Apply (`ReviewAndApplyScheduleController` → `doesExpiryDateMatchEndOfFinalTerm`) shows a
@@ -1582,6 +1603,10 @@ The queries, full results and breakdowns are in the data survey,
     survey (S8b) shows their term structure: all 3 `AL` have a clean `T(1)`, `T(2)`, `T(3)` = `E`, which
     fits `INITIAL`/`SECOND`/`THIRD` directly. **`DL` and `CE` have no terms at all** (pattern E),
     so they are not migrated (rule 7), and this question only matters for `AL`.
+    **Rate overlap:** all 3 `AL` have `25` yearly ×6 from their start, reaching the year `50`
+    starts, so PEARS may pay both in that year (AL10: 2001). LMS and the write-back drop the
+    overlap ("Rates and yearly recurrence" step 5). The licensing team confirms the double payment
+    was never intended.
 
 ## Out of scope
 

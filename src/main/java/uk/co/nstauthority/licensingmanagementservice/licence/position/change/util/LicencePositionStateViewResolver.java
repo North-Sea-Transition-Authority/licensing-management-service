@@ -43,6 +43,7 @@ public final class LicencePositionStateViewResolver {
     return new LicencePositionStateView(
         new AdministratorStateView(nameContext.getNameForDate(currentState.administratorId(), positionDate, "")),
         new LicenseeStateView(licenseeNames),
+        nameContext.getNameForDate(currentState.storageOperatorId(), positionDate, ""),
         buildBeneficialInterests(currentState.equityByOrganisationId(), nameContext, positionDate),
         buildOrganisationNameHistories(currentState, nameContext, positionDate)
     );
@@ -63,8 +64,9 @@ public final class LicencePositionStateViewResolver {
   }
 
   /**
-   * The name history of the licence administrator and each beneficial interest holder. Organisations that were never
-   * renamed either side of the position date are left out, so the section stays empty when there is nothing to tell.
+   * The name history of the licence administrator/storage operator, licensees and each beneficial interest holder.
+   * Organisations that were never renamed either side of the position date are left out,
+   * so the section stays empty when there is nothing to tell.
    */
   private static List<OrganisationNameHistoryView> buildOrganisationNameHistories(
       LicencePositionState currentState,
@@ -73,6 +75,7 @@ public final class LicencePositionStateViewResolver {
   ) {
     var distinctOrganisationIds = new HashSet<Integer>();
     Optional.ofNullable(currentState.administratorId()).ifPresent(distinctOrganisationIds::add);
+    Optional.ofNullable(currentState.storageOperatorId()).ifPresent(distinctOrganisationIds::add);
     distinctOrganisationIds.addAll(currentState.licenseeIds());
     distinctOrganisationIds.addAll(currentState.equityByOrganisationId().keySet());
 

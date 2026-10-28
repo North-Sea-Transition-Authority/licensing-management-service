@@ -13,7 +13,18 @@
     <#if licencePositionState.licenseeStateView().licenseeNames()?size != 0>
       <@licenseesDisplay.displayLicensees names=licencePositionState.licenseeStateView().licenseeNames()/>
     </#if>
-    <#if !isCarbonStorage>
+    <#if isCarbonStorage>
+      <#assign storageOperatorName>
+        <#if licencePositionState.storageOperatorName()?has_content>
+          ${licencePositionState.storageOperatorName()}
+        <#else>
+          None
+        </#if>
+      </#assign>
+      <@fdsDataItems.dataItem>
+          <@fdsDataItems.dataValues key="Storage operator" value=storageOperatorName/>
+      </@fdsDataItems.dataItem>
+    <#else>
       <#assign adminName>
         <#if licencePositionState.administratorStateView().organisationName()?has_content>
           ${licencePositionState.administratorStateView().organisationName()}

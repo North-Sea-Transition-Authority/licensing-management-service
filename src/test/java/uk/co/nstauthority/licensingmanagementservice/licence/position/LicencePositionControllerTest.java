@@ -247,6 +247,7 @@ class LicencePositionControllerTest extends AbstractControllerTest {
         new LicencePositionStateView(
             new AdministratorStateView("admin organisation"),
             new LicenseeStateView(List.of("licenseeNames")),
+            "",
             List.of(),
             List.of()
         ),

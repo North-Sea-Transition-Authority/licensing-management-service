@@ -293,6 +293,7 @@ class LicenceCorrectionControllerTest extends AbstractControllerTest {
         new LicencePositionStateView(
             new AdministratorStateView("Operator Ltd"),
             new LicenseeStateView(List.of("Licensee")),
+            "",
             List.of(),
             List.of()),
         position.getId(),

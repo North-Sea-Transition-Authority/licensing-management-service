@@ -68,7 +68,7 @@
   </@fdsSummaryList.summaryListCardActionList>
 </#macro>
 
-<#macro administratorRows change>
+<#macro organisationRows change>
   <#local removed>
     <@fdsTag.tag tagClass="govuk-tag--red">Withdrawing</@fdsTag.tag>
   </#local>
@@ -102,7 +102,26 @@
     cardActionsContent=cardActions
   >
     <@correctionRows correction=correction/>
-    <@administratorRows change=change/>
+    <@organisationRows change=change/>
+  </@fdsSummaryList.summaryListCard>
+</#macro>
+
+<#macro storageOperatorChange change summaryListId="storage-operator" correction="">
+  <#assign headingText>
+    <@changeHeading change=change headingText="Storage operator change" correction=correction/>
+  </#assign>
+
+  <#assign cardActions>
+    <@changeCardActions screenReaderText="storage operator change" urls=change.urls()/>
+  </#assign>
+
+  <@fdsSummaryList.summaryListCard
+    headingText=headingText
+    summaryListId=summaryListId
+    cardActionsContent=cardActions
+  >
+    <@correctionRows correction=correction/>
+    <@organisationRows change=change/>
   </@fdsSummaryList.summaryListCard>
 </#macro>
 
@@ -315,7 +334,7 @@
 
 <#macro changeRows change>
   <#if change.type() == "licence-administrator">
-    <@administratorRows change=change/>
+    <@organisationRows change=change/>
   <#elseif change.type() == "set-equity">
     <@setEquityRows change=change/>
   <#elseif change.type() == "transfer-equity">
@@ -360,6 +379,8 @@
 <#macro changeCard change summaryListId isCarbonStorage=false correction="">
   <#if change.type() == "licence-administrator" && !isCarbonStorage>
     <@administratorChange change=change summaryListId=summaryListId correction=correction/>
+  <#elseif change.type() == "storage-operator">
+    <@storageOperatorChange change=change summaryListId=summaryListId correction=correction/>
   <#elseif change.type() == "licensee">
     <@licenseeChange change=change summaryListId=summaryListId correction=correction/>
   <#elseif change.type() == "set-equity">

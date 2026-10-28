@@ -53,13 +53,13 @@ describe("canSplitAt", () => {
 });
 
 describe("formatDepthRanges", () => {
-  it("joins each range and shows a range with no end as -infinity", () => {
+  it("joins each range and shows a range with no end as -∞m", () => {
     const formatted = formatDepthRanges([
       { startDepth: 0, endDepth: -1000 },
       { startDepth: -1000, endDepth: Number.NEGATIVE_INFINITY },
     ]);
 
-    expect(formatted).toBe("0 to -1000, -1000 to -infinity");
+    expect(formatted).toBe("0m to -1000m, -1000m to -∞m");
   });
 });
 

@@ -111,7 +111,7 @@ async function waitForPageLoaded() {
 }
 
 async function chooseSplitAtMiddleBand(screen: ReturnType<typeof renderInFixedWidthContainer>) {
-  await screen.getByText("-100 to -200", { exact: true }).click();
+  await screen.getByText("-100m to -200m", { exact: true }).click();
   await screen.getByRole("radio", { name: "Split" }).click();
   await screen.getByRole("button", { name: "Continue" }).click();
   await expect.element(screen.getByRole("heading", { name: "Split" })).toBeVisible();
@@ -158,8 +158,8 @@ describe("map actions page", () => {
   });
 
   it.each([
-    { band: "-100 to -200", screenshot: "map-actions-middle-band" },
-    { band: "-200 to -infinity", screenshot: "map-actions-deepest-band" },
+    { band: "-100m to -200m", screenshot: "map-actions-middle-band" },
+    { band: "-200m to -300m", screenshot: "map-actions-deepest-band" },
   ])("renders the $band band when it is selected", async ({ band, screenshot }) => {
     mockEndpoints();
     const screen = renderInFixedWidthContainer();
@@ -316,7 +316,7 @@ describe("map actions page", () => {
     await chooseAddStrata(screen);
     await addStrataToMiddleBlockAt(screen, "-150");
     await expect.poll(() => document.querySelectorAll(".depth-marker").length).toBe(4);
-    await screen.getByText("-150 to -200", { exact: true }).click();
+    await screen.getByText("-150m to -200m", { exact: true }).click();
     const before = featuresRequests();
 
     await screen.getByRole("button", { name: "Undo add strata" }).click();

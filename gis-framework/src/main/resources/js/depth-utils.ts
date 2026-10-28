@@ -20,7 +20,7 @@ export function canSplitAt(depthRanges: DepthRange[], depth: number): boolean {
 
 export function formatDepthRanges(depthRanges: DepthRange[]): string {
   return depthRanges
-    .map(range => `${range.startDepth} to ${Number.isFinite(range.endDepth) ? range.endDepth : "-infinity"}`)
+    .map(range => `${range.startDepth}m to ${Number.isFinite(range.endDepth) ? `${range.endDepth}m` : "-∞m"}`)
     .join(", ");
 }
 

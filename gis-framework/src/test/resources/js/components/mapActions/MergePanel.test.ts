@@ -75,10 +75,10 @@ describe("mergePanel", () => {
   it("describes each feature option by its depth ranges", () => {
     render(host);
 
-    expect(screen.getByRole("checkbox", { name: "Block A" })).toHaveAccessibleDescription("0 to -1000");
+    expect(screen.getByRole("checkbox", { name: "Block A" })).toHaveAccessibleDescription("0m to -1000m");
     expect(screen.getByRole("checkbox", { name: "Block B" }))
-      .toHaveAccessibleDescription("0 to -1000, -1000 to -infinity");
-    expect(screen.getByRole("checkbox", { name: "Block C" })).toHaveAccessibleDescription("-1000 to -3000");
+      .toHaveAccessibleDescription("0m to -1000m, -1000m to -∞m");
+    expect(screen.getByRole("checkbox", { name: "Block C" })).toHaveAccessibleDescription("-1000m to -3000m");
   });
 
   it.each([

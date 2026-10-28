@@ -179,7 +179,7 @@ describe("mapActionsPage", () => {
     renderPage();
     expect(await screen.findByText("Map of shallow, refits: false")).toBeInTheDocument();
 
-    await fireEvent.update(screen.getByRole("slider", { name: "Select depth" }), "1");
+    await fireEvent.update(screen.getByRole("slider", { name: "Select depth" }), "0");
 
     expect(await screen.findByText("Map of deep, refits: false")).toBeInTheDocument();
   });
@@ -431,7 +431,7 @@ describe("mapActionsPage", () => {
       splitFeatureMock.mockResolvedValue({ outputFeatureIds: ["feature-2"] });
       renderPage();
       await screen.findByText("Map of shallow, refits: false");
-      await fireEvent.update(screen.getByRole("slider", { name: "Select depth" }), "1");
+      await fireEvent.update(screen.getByRole("slider", { name: "Select depth" }), "0");
       await chooseSplit();
 
       await fireEvent.click(screen.getByRole("button", { name: "Draw line" }));
@@ -503,7 +503,7 @@ describe("mapActionsPage", () => {
       splitFeatureMock.mockResolvedValue({ outputFeatureIds: ["deep-west", "deep-east"] });
       renderPage();
       await screen.findByText("Map of shallow, refits: false");
-      await fireEvent.update(screen.getByRole("slider", { name: "Select depth" }), "1");
+      await fireEvent.update(screen.getByRole("slider", { name: "Select depth" }), "0");
       await chooseSplit();
 
       await fireEvent.click(screen.getByRole("button", { name: "Draw line" }));
@@ -744,8 +744,8 @@ describe("mapActionsPage", () => {
       await chooseAddStrata();
 
       expect(screen.getByText("Map of shallow, refits: false")).toBeInTheDocument();
-      expect(screen.getByRole("checkbox", { name: "deep block" })).toHaveAccessibleDescription("-100 to -200");
-      expect(screen.getByRole("checkbox", { name: "shallow block" })).toHaveAccessibleDescription("0 to -100");
+      expect(screen.getByRole("checkbox", { name: "deep block" })).toHaveAccessibleDescription("-100m to -200m");
+      expect(screen.getByRole("checkbox", { name: "shallow block" })).toHaveAccessibleDescription("0m to -100m");
     });
 
     it("highlights the ticked features on the map", async () => {

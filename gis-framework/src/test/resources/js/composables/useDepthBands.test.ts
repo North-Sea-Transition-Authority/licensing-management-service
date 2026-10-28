@@ -34,12 +34,25 @@ describe("useDepthBands", () => {
     expect(hasDepths.value).toBe(expected);
   });
 
-  it("builds a depth band for each distinct start depth", () => {
+  it("builds a depth band between each distinct start and end depth, ending at the deepest end depth", () => {
     const { depths } = useDepthBands(shallowRef([shallowFeature, deepFeature, feature("other", 0, -50)]), shallowRef([]));
 
     expect(depths.value).toEqual(new Map([
-      [-100, "-100 to -infinity"],
-      [0, "0 to -100"],
+      [-100, "-100m to -200m"],
+      [-50, "-50m to -100m"],
+      [0, "0m to -50m"],
+    ]));
+  });
+
+  it("ends the deepest band at -∞ when a feature has no end depth", () => {
+    const bottomless = new Feature();
+    bottomless.set("startDepth", -100);
+
+    const { depths } = useDepthBands(shallowRef([shallowFeature, bottomless]), shallowRef([]));
+
+    expect(depths.value).toEqual(new Map([
+      [-100, "-100m to -∞m"],
+      [0, "0m to -100m"],
     ]));
   });
 

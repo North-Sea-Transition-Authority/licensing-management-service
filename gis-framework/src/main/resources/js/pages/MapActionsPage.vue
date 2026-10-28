@@ -5,7 +5,7 @@
       <a :href="`#${validationError.fieldId}`">{{ validationError.message }}</a>
     </li>
   </error-summary>
-  <div class="gis-depth-layout">
+  <div class="gis-depth-layout govuk-!-margin-bottom-6" :class="{ 'gis-depth-layout--no-slider': !hasDepths }">
     <depth-slider
       v-if="hasDepths"
       v-model="currentDepthLevel"
@@ -30,13 +30,13 @@
         @update:points="points = $event"
       />
     </div>
-    <div class="gis-depth-layout__description">
+    <section class="gis-depth-layout__description" aria-label="Textual description">
       <textual-description
         :textual-description-url="textualDescriptionUrl"
         :command-journey-id="commandJourneyId"
         :refresh-counter="refreshCounter"
       />
-    </div>
+    </section>
   </div>
   <div v-if="mode === 'select'">
     <undo-redo-actions
@@ -256,28 +256,34 @@ async function returnToSelect() {
 <style scoped>
 .gis-depth-layout {
   display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  grid-template-columns: auto minmax(0, calc((100% - 1rem) * 2 / 3));
   grid-template-areas:
-    "slider ."
-    "map    description";
-  column-gap: 1rem;
+    "slider      map"
+    "description description";
+  justify-content: start;
+  gap: 1rem;
+}
+
+.gis-depth-layout--no-slider {
+  grid-template-columns: calc((100% - 1rem) * 2 / 3);
+  grid-template-areas:
+    "map"
+    "description";
 }
 
 .gis-depth-layout__slider {
   grid-area: slider;
-  margin-bottom: 1rem;
 }
 
 .gis-depth-layout__map-canvas {
   grid-area: map;
-  justify-self: stretch;
-  align-self: start;
   aspect-ratio: 1 / 1;
 }
 
 .gis-depth-layout__description {
   grid-area: description;
-  contain: size;
-  overflow: auto;
+  contain: inline-size;
+  max-height: 14rem;
+  overflow-y: auto;
 }
 </style>

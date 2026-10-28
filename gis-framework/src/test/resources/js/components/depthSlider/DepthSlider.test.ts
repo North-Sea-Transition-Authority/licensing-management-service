@@ -25,9 +25,9 @@ describe("depthSlider", () => {
   });
 
   it.each([
-    { modelValue: 0, expectedSliderValue: "0" },
+    { modelValue: -200, expectedSliderValue: "0" },
     { modelValue: -100, expectedSliderValue: "1" },
-    { modelValue: -200, expectedSliderValue: "2" },
+    { modelValue: 0, expectedSliderValue: "2" },
   ])("positions the slider at $expectedSliderValue when the selected depth is $modelValue", ({ modelValue, expectedSliderValue }) => {
     renderSlider(modelValue);
 
@@ -35,9 +35,9 @@ describe("depthSlider", () => {
   });
 
   it.each([
-    { selectedDepth: -200, sliderValue: "0", expectedDepth: 0 },
+    { selectedDepth: 0, sliderValue: "0", expectedDepth: -200 },
     { selectedDepth: 0, sliderValue: "1", expectedDepth: -100 },
-    { selectedDepth: 0, sliderValue: "2", expectedDepth: -200 },
+    { selectedDepth: -200, sliderValue: "2", expectedDepth: 0 },
   ])("selects depth $expectedDepth when the slider is moved to $sliderValue", async ({ selectedDepth, sliderValue, expectedDepth }) => {
     const { emitted } = renderSlider(selectedDepth);
 

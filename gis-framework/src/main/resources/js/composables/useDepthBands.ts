@@ -12,6 +12,10 @@ export interface DepthBands {
   visibleOutlineNodes: ComputedRef<JsonFeatureOutlineNodes[]>,
 }
 
+function formatDepth(depth: number): string {
+  return depth === Number.NEGATIVE_INFINITY ? "-∞" : `${depth}`;
+}
+
 export function useDepthBands(
   features: Ref<Feature<Geometry>[]>,
   outlineNodes: Ref<JsonFeatureOutlineNodes[]>,
@@ -21,13 +25,14 @@ export function useDepthBands(
     features.value.some(feature => feature.get("startDepth") != null || feature.get("endDepth") != null));
 
   const depths = computed<Map<number, string>>(() => {
-    const starts = [...new Set(features.value.map(startDepthOf))].sort((a, b) => a - b);
-    if (!starts.length) {
+    const boundaries = [...new Set(features.value.flatMap(f => [startDepthOf(f), endDepthOf(f)]))]
+      .sort((a, b) => a - b);
+    if (!boundaries.length) {
       return new Map([[0, "All depths"]]);
     }
-    const bands = new Map<number, string>([[starts[0], `${starts[0]} to -infinity`]]);
-    for (let i = 1; i < starts.length; i++) {
-      bands.set(starts[i], `${starts[i]} to ${starts[i - 1]}`);
+    const bands = new Map<number, string>();
+    for (let i = 1; i < boundaries.length; i++) {
+      bands.set(boundaries[i], `${boundaries[i]}m to ${formatDepth(boundaries[i - 1])}m`);
     }
     return bands;
   });

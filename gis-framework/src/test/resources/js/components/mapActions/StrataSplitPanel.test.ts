@@ -54,7 +54,7 @@ const host = defineComponent({
 });
 
 const depthLabel = "What depth is the new stratigraphic boundary at?";
-const depthHint = "Enter a whole number below 0, for example -2000";
+const depthHint = "Enter a whole number, in metres, below 0. For example -2000";
 const featuresLegend = "Select the subareas to add strata";
 
 async function enterDepth(depth: string) {
@@ -80,9 +80,9 @@ describe("strataSplitPanel", () => {
     render(host);
 
     expect(screen.getByRole("group", { name: featuresLegend })).toBeInTheDocument();
-    expect(screen.getByRole("checkbox", { name: "Block A" })).toHaveAccessibleDescription("0 to -infinity");
+    expect(screen.getByRole("checkbox", { name: "Block A" })).toHaveAccessibleDescription("0m to -∞m");
     expect(screen.getByRole("checkbox", { name: "Block B" }))
-      .toHaveAccessibleDescription("0 to -1000, -1000 to -3000");
+      .toHaveAccessibleDescription("0m to -1000m, -1000m to -3000m");
   });
 
   it("updates the selected feature ids when features are ticked", async () => {

@@ -551,12 +551,14 @@ the write-back fills them, which is the intended correction. If they are legitim
 migrated £0 rate keeps them as no-payment years.
 
 **Round-trip test (owned by the write-back work, specified here):** for a sample of licences
-(including P2244, P2522, every licence with a recurrence gap, and an `AL` and a `PL` licence with
-fixed-count recurrences, data survey S12b), run PEARS → LMS → write-back XML.
+(including P2244, P2522, every licence with a recurrence gap, an `AL` and a `PL` licence with
+fixed-count recurrences (data survey S12b), and the migrated licences whose LMS offsets differ from
+PEARS's, e.g. P1609, P1890, P2301 and P255 (S14b)), run PEARS → LMS → write-back XML.
 Run the payments report's `R` selection over both the original and the written-back XML for each
 year of the schedule. Assert the same `(payment date, rate)` rows. Do not compare raw event shape:
 PEARS can hold the same series as several non-recurring rows or one recurring row, and the report
-treats both the same.
+treats both the same. Also assert that every written-back event's `EVENT_DATE` equals the original
+PEARS date and `get_julian_or_event_date` on its written-back offset.
 
 **Comparison.** The report expands PEARS rates into their yearly occurrences. For each occurrence it
 shows the LMS rate in force on that date (value, anchor period, start date). Mismatched values or
@@ -737,8 +739,47 @@ puts these requirements on the migration and the write-back (building it is sepa
 - **Schedule events** (`T`, `P`, `R`, `MR`, `E`, `BM`, `DD`, `2M`, `2N`, …): `EVENT_DATE` = the LMS
   date (expiry per Open question 8). `YEARS`/`MONTHS`/`DAYS` are the offset from `ORIGIN_DATE` that
   reproduces that date under **PEARS** arithmetic, otherwise the Fox screen recalculates and moves
-  it on the next save. Also `TERM_NO`, `PHASE`, `RATE` (rates per "Rates and the PEARS write-back"),
-  `PERCENTAGE` (from the LMS percentage field, see "Decision: mandatory relinquishment percentage") and `COMMENTS`.
+  it on the next save (see "Offsets in the write-back" below). Also `TERM_NO`, `PHASE`, `RATE`
+  (rates per "Rates and the PEARS write-back"), `PERCENTAGE` (from the LMS percentage field, see
+  "Decision: mandatory relinquishment percentage") and `COMMENTS`.
+
+**Offsets in the write-back.** LMS lands on the PEARS dates (Open question 6), so the write-back
+must keep them there. PEARS never trusts a stored `EVENT_DATE`: on every rebuild
+(`template_schedule.process_event_date_from_origin`, and `PED012X`'s `qry-populate-event-dates`)
+it recalculates it from the offset with `get_julian_or_event_date`, which adds **days first, then
+months** (`ADD_MONTHS(origin + days, years * 12 + months)`). So the stored offset must give back
+exactly the date LMS sent.
+
+PEARS's existing date-to-offset procedure, `template_schedule.get_offset_from_event_date` (used by
+`PED012X`'s "enter a date" popup), works **months first, then days**
+(`FLOOR(MONTHS_BETWEEN(...))`, then the remaining days). It is **not** an exact reverse of
+`get_julian_or_event_date`, so it cannot be used as is. Example, P1609 (origin 12-Feb-2009):
+
+| | Result |
+|---|---|
+| Date LMS sends | 31-Dec-2016 |
+| `get_offset_from_event_date` | 7y 10m 19d |
+| `get_julian_or_event_date` on that offset | **03-Jan-2017** (moved) |
+| Offset PEARS holds today | 7y 10m 16d → 31-Dec-2016 |
+
+This is probably why so many PEARS offsets are irregular (data survey S14b): users adjusted the days
+until the screen showed the date they wanted.
+
+`apply_lms_schedule` therefore:
+
+1. **Finds an offset that reproduces the date.** Take the whole months from `MONTHS_BETWEEN`, then
+   find the days for which `get_julian_or_event_date` returns exactly the LMS date, trying one
+   month fewer if none does. A days-only offset (0y 0m n days) always works as the fallback.
+2. **Checks every event before saving.** If `get_julian_or_event_date` on the chosen offset doesn't
+   equal the date LMS sent, the message is rejected (and acknowledged as failed), not saved with a
+   moved date.
+3. **Yearly rates depend on the offset too.** PEARS places each later occurrence from the same
+   offset (`years + k`), so two offsets giving the same first date can give different later
+   payment dates around month ends (e.g. 28 vs 29 February, or a month-end that `ADD_MONTHS`
+   snaps). The round-trip test (below) compares every payment date, which catches this.
+
+The offset is calculated in PEARS, not LMS, so it uses Oracle's own `ADD_MONTHS` rather than a
+Java copy of it. `RD`/`PA` events keep empty offsets, as today.
 - **`RD`/`PA` events: from LMS, in the message.** PEARS sends area changes to LMS instead of
   writing them itself (see "Keeping `RD`/`PA` events in step (EPMQ)"), so LMS's
   `licence_schedule_area_events` on the active detail **is** the current set, and the write-back
@@ -828,9 +869,10 @@ in the shared `energyportalmessagequeue:messages` library, so a library release 
 | `events` | **every** event of the active detail in PEARS terms: the schedule events (`eventMnem`, `eventDate`, `termNo`, `phase`, `rate`, `recurring`/`recurrances`, `percentage` (mandatory relinquishments), `comments`, `pearsEventId`) **and** the `RD`/`PA` events (`eventMnem`, `eventSubtype`, `eventDate`, `comments`, `retentionArea` {name, shortName, type, version}, `pearsEventId`) |
 
 The message is **complete**: PEARS reconstructs the whole schedule XML from it and nothing else.
-`YEARS`/`MONTHS`/`DAYS` are not sent: the PEARS procedure works them out from `originDate` with its
-own `get_julian_or_event_date` arithmetic, so they always agree with the Fox screen. `RD`/`PA` events
-keep empty offsets, as PEARS writes them today.
+`YEARS`/`MONTHS`/`DAYS` are not sent: the PEARS procedure works them out from `originDate` so that
+`get_julian_or_event_date` gives back each event's date exactly, and rejects the message if it
+can't (see "Offsets in the write-back"; PEARS's own `get_offset_from_event_date` is not an exact
+reverse and is not used as is). `RD`/`PA` events keep empty offsets, as PEARS writes them today.
 
 **PEARS applies it** in one PL/SQL procedure, e.g. `pedmgr.template_schedule.apply_lms_schedule`:
 
@@ -1527,13 +1569,19 @@ The queries, full results and breakdowns are in the data survey,
    `LANDWARD_PRODUCTION`. Schedules with no terms (incl. all `ML`,
    `DL`, `CE`) are not migrated and are left to the licensing team (rule 7). See
    "Scope: licence types and statuses".
-6. **Date mismatches.** When LMS arithmetic gives a different date from PEARS, adjust the stored
-   `relativeDuration` so LMS lands on the PEARS date (the legal deadline), or keep PEARS offsets and
-   accept the difference? Recommendation: adjust, and list every adjustment in the report.
+6. **Date mismatches.** Resolved (28 October 2026): **LMS lands on the same dates as PEARS.**
+   Where LMS arithmetic on the PEARS offset would give a different date, the migration stores the
+   `relativeDuration` (or term/phase duration) that reproduces the PEARS date, and lists every such
+   event in the report.
    **Evidence (data survey, S14):** copying PEARS offsets would move 96 current events (0.3%: 94
    `P`, 2 `EXL`) by up to 3 days. The mapper already derives LMS durations and offsets from the PEARS dates
-   (`Period.between`), which lands every one of them on the PEARS date. So the recommendation is
-   what the design does. It only needs confirming.
+   (`Period.between`), which lands every one of them on the PEARS date, so the design already does
+   this.
+   **Per event (data survey S14b, 28 October 2026):** the PEARS offsets are themselves irregular
+   (e.g. 7y 10m 16d), so these events were set by date in PEARS and the dates (month ends, the 1st,
+   fixed rent days) are what was meant. 49 of the 96 are rates on no-terms schedules that aren't
+   migrated, leaving 47. Example: P1609's initial term ends 31-Dec-2016 in PEARS and in LMS;
+   copying the offset would have given 28-Dec-2016.
 7. **Yearly-recurring rates in LMS.** Open, a decision to be made with the licensing and data
    warehouse owners. Option A: one LMS rate per phase/term, with the PEARS write-back rebuilding
    recurrence. Option B: one LMS rate row per year, with a one-to-one write-back. The arguments for

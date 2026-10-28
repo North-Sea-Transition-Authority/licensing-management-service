@@ -40,7 +40,7 @@
 | S11 | `RATE` values (whole, 1–2 dp, > 2 dp, does not fit) | ✅ Live, 27 Oct 2026, all types (with S11b, S11c) | [S11](#s11-rate-values) |
 | S12 | Rate recurrence and gaps (current versions) | ✅ Live, 27 Oct 2026, all types (with S12b) | [S12](#s12-rate-recurrence-and-gaps-current-versions) |
 | S13 | Mandatory relinquishment percentages (current versions) | ✅ Live, 27 Oct 2026, all types (with S13b) | [S13](#s13-mandatory-relinquishment-percentages-current-versions) |
-| S14 | LMS vs PEARS date arithmetic differences | ✅ Live, 27 Oct 2026, all types | [S14](#s14-lms-vs-pears-date-arithmetic) |
+| S14 | LMS vs PEARS date arithmetic differences | ✅ Live, 27 Oct 2026, all types (with S14b, 28 Oct 2026) | [S14](#s14-lms-vs-pears-date-arithmetic) |
 | S15 | `RD`/`PA` events (current versions) | ✅ Live, 27 Oct 2026, all types | [S15](#s15-rdpa-events-current-versions) |
 | S16 | `EVENT_ID` and ambiguous cross-version matches | ✅ Live, 27 Oct 2026, all types | [S16](#s16-event_id-and-ambiguous-cross-version-matches) |
 | — | Event types beyond the known catalogue | ✅ None on live (S1) | [S1](#s1-event-type-catalogue) |
@@ -60,7 +60,7 @@ exceptions are mostly systematic, by licensing round, rather than one-off errors
 | Terms | 1,540 of 1,798 current schedules follow the plan's rule exactly, and 166 more have terms but no expiry. 172 don't fit the original rule (134 `P`/`PEDL`, 38 other types). They fall into 7 patterns (A–G), and every pattern now has a decided rule (L5–L10). 40 have no terms and are left to the licensing team (L9). | S7, S8 |
 | Phases | All 309 schedules with phases follow the rule (last phase ends at `T(1)`). Skipped phases are normal and allowed by business rule (in order). | S9 |
 | Rates | All populated `P`, `PEDL`, `EXL`, `DL` and `AL` values are whole numbers; 2 rate-only schedules have an empty rate. `ML` has pence, and `PL`/`ML` have decimals with no leading zero (e.g. `.5`), which parse fine (S11c). On migrated schedules every rate fits. Every schedule ends in one indefinite yearly rate. About 310 deliberate gaps between rates on migrated schedules (298 `P`, 12 `PL`), mostly pre-1999. Fixed-count yearly rates on 9 `PL` and 3 `AL`. | S11, S12 |
-| Date arithmetic | PEARS stored dates are reliable (1 exception). Copying offsets would move 96 events (94 `P`, 2 `EXL`) by up to 3 days, which deriving offsets from dates avoids. | S14 |
+| Date arithmetic | PEARS stored dates are reliable (1 exception). Copying offsets would move 96 events (94 `P`, 2 `EXL`; 47 on migrated schedules) by up to 3 days. Decided: LMS lands on the PEARS dates, deriving its offsets from them. | S14 |
 | Untyped events | 201 on current versions: ~180 empty leftovers, ~20 holding data on 16 licences. Never shown on the schedule screen, so ignored by the migration (L1). | S6 |
 | Relinquishment % | Decided: its own LMS field, migrated and written back. 585 feed licence documents (incl. 8 `PL`). 713 hold the figure only in comments. 303 hold `x` (not migrated). | S13 |
 | `RD`/`PA` | 463 current events (403 `P`/`PEDL`, 60 other types). A fourth subtype, `END`. 51 older `PA` events have no subtype, area block or `EVENT_ID`. | S15 |
@@ -1810,9 +1810,99 @@ No stored date is missing.
 - **Copying offsets would move 96 events (0.3%)** by up to 3 days: 94 on `P`, 2 on `EXL` (a `T` and
   an `E`, +1 day each), none on `PEDL` or the other types. The `P` ones include 15 terms, 1 expiry,
   8 bespoke milestones and 61 rates.
-- **This supports the plan's recommendation for Open question 6:** LMS offsets and durations are
-  worked out from the PEARS **dates** (`Period.between`), not copied, so every event lands on the
-  PEARS date and none of these 96 differ. Term and phase durations already follow that rule.
+- **Decided (28 October 2026, plan Open question 6): LMS lands on the same dates as PEARS.** LMS
+  offsets and durations are worked out from the PEARS **dates** (`Period.between`), not copied, so
+  every event lands on the PEARS date and none of these 96 differ. Term and phase durations already
+  follow that rule.
+
+### S14b. The 96 events, one row each
+
+```sql
+WITH ev AS (
+  SELECT plm.licence_type || plm.licence_no licence_reference
+       , plm.licence_type
+       , e.event_mnem
+       , e.term_no
+       , e.phase
+       , e.rate
+       , TO_DATE(x.origin DEFAULT NULL ON CONVERSION ERROR, 'YYYY-MM-DD') origin_date
+       , TO_DATE(e.event_date DEFAULT NULL ON CONVERSION ERROR, 'YYYY-MM-DD') stored_date
+       , NVL(TO_NUMBER(TRIM(e.years)  DEFAULT NULL ON CONVERSION ERROR), 0) y
+       , NVL(TO_NUMBER(TRIM(e.months) DEFAULT NULL ON CONVERSION ERROR), 0) m
+       , NVL(TO_NUMBER(TRIM(e.days)   DEFAULT NULL ON CONVERSION ERROR), 0) d
+       , TRIM(e.years) || TRIM(e.months) || TRIM(e.days) offset_text
+  FROM pedmgr.ped_licence_schedule_details plsd
+  JOIN pedmgr.ped_licence_master plm ON plm.id = plsd.ped_lm_id
+  , XMLTABLE('/SCHEDULE' PASSING plsd.xml_data COLUMNS origin VARCHAR2(20) PATH 'ORIGIN_DATE') x
+  , XMLTABLE('/SCHEDULE/EVENT_LIST/EVENT[normalize-space(EVENT_MNEM) != "" and not(EVENT_MNEM = ("RD", "PA")) and not(DUMMY_EVENT = "true")]'
+      PASSING plsd.xml_data
+      COLUMNS event_mnem VARCHAR2(10) PATH 'EVENT_MNEM', event_date VARCHAR2(20) PATH 'EVENT_DATE'
+            , term_no VARCHAR2(10) PATH 'TERM_NO', phase VARCHAR2(10) PATH 'PHASE', rate VARCHAR2(30) PATH 'RATE'
+            , years VARCHAR2(10) PATH 'YEARS', months VARCHAR2(10) PATH 'MONTHS', days VARCHAR2(10) PATH 'DAYS') e
+  WHERE plsd.end_datetime IS NULL
+  AND plm.licence_type IS NOT NULL
+)
+, calc AS (
+  SELECT ev.*
+       , ADD_MONTHS(origin_date + d, y * 12 + m) pears_date
+       , CASE
+           WHEN EXTRACT(DAY FROM origin_date) <= EXTRACT(DAY FROM LAST_DAY(ADD_MONTHS(TRUNC(origin_date, 'MM'), y * 12 + m)))
+             THEN ADD_MONTHS(TRUNC(origin_date, 'MM'), y * 12 + m) + (EXTRACT(DAY FROM origin_date) - 1)
+           ELSE LAST_DAY(ADD_MONTHS(TRUNC(origin_date, 'MM'), y * 12 + m))
+         END + d lms_date
+  FROM ev
+  WHERE origin_date IS NOT NULL
+  AND offset_text IS NOT NULL
+)
+SELECT licence_reference, event_mnem, term_no, phase, rate
+     , TO_CHAR(origin_date, 'DD-MON-YYYY') schedule_start
+     , y || 'y ' || m || 'm ' || d || 'd' pears_offset
+     , TO_CHAR(stored_date, 'DD-MON-YYYY') pears_stored_date
+     , TO_CHAR(pears_date, 'DD-MON-YYYY') pears_formula_date
+     , TO_CHAR(lms_date, 'DD-MON-YYYY') lms_date_if_offset_copied
+     , lms_date - pears_date day_difference
+FROM calc
+WHERE lms_date != pears_date
+ORDER BY licence_type, licence_reference, origin_date + 0, pears_date;
+```
+
+**Result (live, 28 October 2026): 96 rows**, matching S14. Stored date = PEARS formula on every
+row. Grouped by licence, with one example each (difference = copied-offset date minus PEARS
+date):
+
+| Licence(s) | Events | Schedule start | Example: PEARS offset → PEARS date | If offset copied | Difference |
+|---|---|---|---|---|---|
+| EXL253 | `T(3)`, `E` | 05-Jul-1992 | 35y 11m 27d → 01-Jul-2028 | 02-Jul-2028 | +1 |
+| P1026, P1028 | 3 `BM` | 01-Jun-2001 | 22y 2m 29d → 31-Aug-2023 | 30-Aug-2023 | −1 |
+| P1328 | `T(2)`, `MR` | 22-Dec-2005 | 15y 6m 10d → 01-Jul-2021 | 02-Jul-2021 | +1 |
+| P1453 | `DD`, `BM` | 01-Apr-2007 | 9y 11m 29d → 31-Mar-2017 | 30-Mar-2017 | −1 |
+| P1570, P1606, P1607, P1609, P1630, P1664, P1665 | 10: `T(1)`/`T(2)`, `MR`, `BM` | 12-Feb-2009 | P1609 `T(1)`: 7y 10m 16d → **31-Dec-2016** | **28-Dec-2016** | −2 to −3 |
+| P1820 | `T(2)` | 10-Jan-2011 | 15y 8m 22d → 01-Oct-2026 | 02-Oct-2026 | +1 |
+| P1890, P1912 | 4: `T(1)`, `MR` | 01-Feb-2012 | 4y 10m 28d → 31-Dec-2016 | 29-Dec-2016 | −2 |
+| P1929 | `T(1)`, `MR` | 20-Apr-2013 | 11y 1m 11d → 01-Jun-2024 | 31-May-2024 | −1 |
+| P2301 | `T(1)`, `MR` | 30-Nov-2015 | 4y 1m 0d → 31-Dec-2019 | 30-Dec-2019 | −1 |
+| P2498 | `T(2)`, `MR` | 30-Aug-2019 | 7y 6m 2d → 01-Mar-2027 | 02-Mar-2027 | +1 |
+| P2500 | 2 `BM` | 01-Sep-2019 | 8y 1m 29d → 31-Oct-2027 | 30-Oct-2027 | −1 |
+| P726 | `DD`, `T(2)` | 14-Jun-1991 | 31y 9m 16d → 31-Mar-2023 | 30-Mar-2023 | −1 |
+| P473 | `E` | 20-Jul-1984 | 33y 7m 26d → 15-Mar-2018 | 18-Mar-2018 | +3 |
+| P249, P251, P255, P256, P258, P296, P421, P472 | 61 `R` (1976–1988) | 1976–1984 | P249: 1y 11m 20d → 15-Mar-1978 | 18-Mar-1978 | −1 to +3 |
+
+**Reading:**
+
+- **The PEARS dates are deliberate, the offsets are not.** Almost every offset is irregular (e.g.
+  7y 10m 16d), so these events were set by date and PEARS worked the offset back. The dates fall on
+  month ends (31-Dec, 31-Mar), the 1st of a month, or a fixed rent day (15-Mar). Copying the
+  offset would move them off those dates, which is why LMS keeps the PEARS date (decided, Open
+  question 6).
+- **Clearest example:** P1609's initial term ends on **31-Dec-2016** (7y 10m 16d from
+  12-Feb-2009) in PEARS and in LMS. Copying the offset would have ended it on 28-Dec-2016.
+- **Only P2301 has a round offset** (4y 1m from 30-Nov-2015 → 31-Dec-2019, because PEARS keeps
+  a month-end start on month end). LMS will show 4y 1m 1d to land on the same date.
+- **How they diverge:** PEARS adds days before months, LMS after. When the days take the start to a
+  month end (12-Feb + 16 days = 28-Feb), `ADD_MONTHS` snaps every later month to its last day.
+- **49 of the 96 aren't migrated:** the rates on P249, P251, P256, P258 and P296 are on schedules
+  with no terms (pattern E, L9). So **47 migrated events** get a derived offset that differs from
+  PEARS's.
 
 ## S15. `RD`/`PA` events (current versions)
 

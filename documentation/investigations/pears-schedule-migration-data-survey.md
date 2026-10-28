@@ -56,7 +56,7 @@ exceptions are mostly systematic, by licensing round, rather than one-off errors
 |---|---|---|
 | Size | 1,799 licences with a licence type and a schedule, 10,834 versions, ~215.8k events, ~450k LMS rows, all in scope. `P` and `PEDL` are 1,745 licences and 10,239 versions. The other 54 are `PL`, `EXL`, `ML`, `DL`, `AL`, `CE`. Only 420 typed licences (23%) are extant (381 `P`/`PEDL`, 39 others); 1,354 are surrendered, expired or revoked, and 25 have no status. | S2, S3, S18 |
 | Event types | The 11 known types only. `2N` is never used. | S1, S3 |
-| Start dates | Every current version has one. 1,125 historical versions have none and use a borrowed date (decided). 7 current versions (5 `P`, 1 `PL`, 1 `ML`) differ from the licence start date. | S10 |
+| Start dates | Every current version has one. 1,125 historical versions have none and use a borrowed date (decided). 7 current versions (5 `P`, 1 `PL`, 1 `ML`) differ from the licence start date, which is legitimate: the schedule start date is migrated (L3). | S10 |
 | Terms | 1,540 of 1,798 current schedules follow the plan's rule exactly, and 166 more have terms but no expiry. 172 don't fit the original rule (134 `P`/`PEDL`, 38 other types). They fall into 7 patterns (A–G), and every pattern now has a decided rule (L5–L10). 40 have no terms and are left to the licensing team (L9). | S7, S8 |
 | Phases | All 309 schedules with phases follow the rule (last phase ends at `T(1)`). Skipped phases are normal and allowed by business rule (in order). | S9 |
 | Rates | All populated `P`, `PEDL`, `EXL`, `DL` and `AL` values are whole numbers; 2 rate-only schedules have an empty rate. `ML` has pence, and `PL`/`ML` have decimals with no leading zero (e.g. `.5`), which parse fine (S11c). On migrated schedules every rate fits. Every schedule ends in one indefinite yearly rate. About 310 deliberate gaps between rates on migrated schedules (298 `P`, 12 `PL`), mostly pre-1999. Fixed-count yearly rates on 9 `PL` and 3 `AL`. | S11, S12 |
@@ -77,8 +77,6 @@ Items that need the licensing team, as either a **fix in PEARS** before the prod
 | # | Item | Licences | Why it matters | Section |
 |---|---|---|---|---|
 | L2 | **Indefinite yearly rate followed by another rate** | P2644 (7500 yearly from 2038, then a one-off 150 in 2039) | The payments report pays both. Probably a data error. | S12b |
-| L3 | **Schedule start date differs from the licence start date** | P1064, P1930, P2138, P2139, P2349, PL220, ML6 | If the licence start date is right, every schedule date (terms, rates) is shifted, including payments report dates. (P2349 and ML6 have no terms, pattern E, so they aren't migrated; fix before the licensing team creates them in LMS.) | S10b |
-| L17 | **Licence with no current schedule version** | P1161 (both versions end-dated 14/10/2011) | Skipped and reported: there is no current version to migrate. Confirm whether it should have a schedule, and if so restore one in PEARS. | S2b |
 
 ### Confirm or decide a migration rule
 
@@ -96,6 +94,7 @@ present, and the first phase present, start on the licence start date.
 | # | Item | Licences | Rule | Section |
 |---|---|---|---|---|
 | L1 | **Events saved without an event type** (current and history) | 201 on current versions: ~180 empty rows, ~20 holding data on 16 licences (P1159, P1272, P2036, P2311, P2314, P2318, P2319, P2356, P2397, P2438, P2476, P2582, P2660, P328, P335, PL179) | **Ignored by the migration** and only counted in the report. The schedule screen never shows them, so the licensing team never sees them and can't fix them there. LMS matches what PEARS shows today: P1272 and P328 have no term for their untyped rows, and the untyped rates (e.g. P2582's 7500 from 2032) aren't migrated, just as the payments report doesn't pay them. | S6 |
+| L3 | **Schedule start date differs from the licence start date** | P1064, P1930, P2138, P2139, P2349, PL220, ML6 | **Decided (28 October 2026): legitimate.** The LMS schedule start date is the PEARS schedule start date (`ORIGIN_DATE`), not the licence start date, and the difference is not reported. (P2349 and ML6 have no terms, pattern E, so they aren't migrated.) | S10b |
 | L5 | **No `T(1)`, only `T(2)` and `T(3)` = expiry (pattern A)** | 49 `P` (2017–2024 rounds) and PEDL141 (pattern G) | Business rule. No Initial term. Second = start → `T(2)`, Third = `T(2)` → `T(3)`/expiry. None has phases, so LMS's phase checks (which need an Initial term) don't apply. | S8b, S8c |
 | L6 | **Last `T` earlier than the expiry (pattern B)** | ~30, mostly 1980s (P328, P351, P473, P483–P614, P556, P726, P774, P799, P1055, P1192, P1262, P1577, P1722, P1885, P2316, PEDL116, PEDL155, PEDL255), plus PEDL141 and P1159; and 15 others (PL55, PL77, PL79, PL80, PL81, PL90, PL116, PL161, PL162, PL211, PL233, PL234, PL259, EXL250, EXL273) | Migrated as they are: no extra term, the final term ends on its `T`, and the expiry keeps the `E` date. Each one is reported. LMS's Review and Apply check will flag the difference the next time the schedule is edited. | S8b |
 | L7 | **Four terms (pattern C)** | 13: P1162, P1165, P1368, P1373, P1374, P1484, P1485, P1487, P1488, P1636, P1638, P1640, P1641 | LMS gets a Fourth term (`T(4)` ends it). It can only be maintained on licences whose schedule already has one, and can't be added to any other schedule. See the plan's "Decision: four-term licences". | S8b |
@@ -104,7 +103,8 @@ present, and the first phase present, start on the licence start date.
 | L10 | **`T(1)` and `T(3)` = expiry, no `T(2)` (pattern F)** | P1800, PEDL143, PEDL189, PEDL235, PL235 | Business rule. No Second term. Initial = start → `T(1)`, Third = `T(1)` → `T(3)`. | S8b |
 | L11 | **Phases `C` only or `BC`** | 16 (`C`), 15 (`BC`) | Business rule. The first phase present starts on the licence start date. With `C` only, Phase C covers the whole initial term. | S9 |
 | L13 | **Mandatory relinquishment percentage** | 585 events feed licence documents (incl. 8 `PL`). 713 hold the figure only in comments. 303 hold `x`. | **Decided (28 October 2026):** the percentage becomes its own data point on mandatory relinquishment events in LMS (0–100, up to 1 dp). It is migrated from PEARS (`x` and comment-only figures migrate with an empty percentage) and written back. | S13 |
-| L15 | **Other licence types** | 54: PL 26, EXL 12, ML 7, DL 5, AL 3, CE 1 | **Migrated.** Every PEARS-managed licence type (`managedByLms = false`) is in scope, whatever its status. `PL`, `EXL` and `ML` are `LANDWARD_PRODUCTION` in LMS. `AL` needs LMS term support first (plan, Open question 14). Every `ML`, `DL` and `CE` schedule, and 5 `PL`, have no terms, so they are not migrated: they are reported and left to the licensing team (L9). | S2, S8b |
+| L15 | **Other licence types** | 54: PL 26, EXL 12, ML 7, DL 5, AL 3, CE 1 | **Migrated.** Every PEARS-managed licence type (`managedByLms = false`) is in scope, whatever its status. All six are `LANDWARD_PRODUCTION` in LMS (`AL`, `CE` and `DL` since 28 October 2026, plan Open question 14). Every `ML`, `DL` and `CE` schedule, and 5 `PL`, have no terms, so they are not migrated: they are reported and left to the licensing team (L9). | S2, S8b |
+| L17 | **Licence with no current schedule version** | P1161 (surrendered 30/11/2012; both versions end-dated 14/10/2011, while still extant) | **Decided (28 October 2026): migrated** with both versions. The later one becomes the active LMS version, and the licence is reported as "No current version in PEARS". | S2b |
 
 ### For information only
 
@@ -204,7 +204,8 @@ ORDER BY 9, 1;
 - **`P` and `PEDL`:** 1,745 licences, **10,239** schedule versions, 1,744 current. Most of the
   survey (S7–S16, S18) looked at these only.
 - **Other types:** 54 licences, 595 versions: PL, EXL, ML, DL, AL and CE.
-- One `P` licence has no current version (P1161, S2b; skipped and reported). The largest history is now **66**
+- One `P` licence has no current version (P1161, surrendered, S2b). It is migrated with its latest
+  version as the active one, and reported. The largest history is now **66**
   versions.
 - An earlier run (October 2026, environment not recorded) gave 10,547 versions in total (9,938 in
   scope, max 59). Licence counts are unchanged; only versions have grown. PEARS keeps adding a
@@ -224,9 +225,21 @@ HAVING SUM(CASE WHEN plsd.end_datetime IS NULL THEN 1 ELSE 0 END) = 0;
 **Result (live, 27 October 2026):** one licence, **P1161** (`ped_lm_id` 3728). It has 2 schedule
 versions, and the last was end-dated on 14/10/2011 at 14:13:29 with no new version saved.
 
-**Reading:** with no current version there is nothing to make the `ACTIVE` LMS detail, so P1161
-is skipped and reported (plan, "Schedule history"). Nothing records why its schedule was ended
-in 2011. The licensing team should confirm whether P1161 should have a schedule at all (L17).
+**Licence status (live, 28 October 2026):** extant from 01/12/2004, **surrendered** at the data
+point of 30/11/2012. So its schedule was ended about a year before the licence was surrendered.
+
+| Data point | Status |
+|---|---|
+| 30/11/2012 | `S` Surrendered |
+| 30/11/2011 | `E` Extant |
+| 17/01/2011 | `E` Extant |
+| 30/11/2006 | `E` Extant |
+| 01/12/2004 | `E` Extant |
+
+**Reading:** nothing records why its schedule was ended in 2011. **Decided (28 October 2026):**
+P1161 is migrated with both versions. The later one becomes the `ACTIVE` LMS detail, and it is
+reported as "No current version in PEARS" (plan, "Schedule history"). Nothing to fix in PEARS
+(L17).
 
 ## S3. Events by type
 
@@ -282,7 +295,8 @@ ORDER BY 5, 2 DESC;
   | Migration links (all typed events) | ~214k |
   | Event comments | up to the commented T/P/R events, fewer after removing repeats |
 
-  These are upper bounds: the 40 schedules with no terms (S8) and P1161 (S2b) are not migrated.
+  These are upper bounds: the 40 schedules with no terms (S8) are not migrated. P1161 (S2b) is
+  migrated, but its events aren't in the "current" counts, as neither of its versions is current.
 - 186 current schedules have no `E` (1,798 − 1,612), which matches S7 (no schedule has more than
   one).
 - These counts cover every licence with a schedule, which is the migration's scope.
@@ -1121,7 +1135,7 @@ ORDER BY 1, 2, 3;
 **Reading:**
 
 - **Current versions:** all have an `ORIGIN_DATE`, and all but **7** match the licence start date:
-  5 `P`, PL220 and ML6 (S10b).
+  5 `P`, PL220 and ML6 (S10b). The difference is legitimate (L3).
   ML6 has no terms (as no `ML`
   schedule does), so it isn't migrated (pattern E).
 - **1,125 historical versions have no `ORIGIN_DATE`** (1,004 `P`, 67 `PEDL`, 54 other types),
@@ -1179,10 +1193,9 @@ date (and statuses `E` extant and `S` surrendered across them, as noted earlier)
 
 - **The migration is unaffected.** It takes `ORIGIN_DATE` as the LMS start date, so LMS calculates
   the same dates PEARS shows. The write-back writes the same `ORIGIN_DATE` back.
-- **For the licensing team:** 5 possible data errors in PEARS, where the schedule and the licence
-  disagree on the start date. If the licence start date is right, the schedule's dates (rates,
-  terms) are all shifted. The payments report costs by the schedule's rate dates, so it is affected
-  too.
+- **Decided (28 October 2026):** a schedule start date that differs from the licence start date
+  is a legitimate use case, not a data error (L3). Nothing to fix in PEARS, and the difference is
+  not reported.
 
 ## S11. Rate values
 
@@ -2215,12 +2228,12 @@ ORDER BY 1, 3 DESC;
 | EXL | | `E` Extant | 5 | 53 | EXL141, EXL250, EXL253, EXL269, EXL294 |
 | EXL | | `R` Revoked | 1 | 4 | EXL203 |
 | ML | `LANDWARD_PRODUCTION` | `E` Extant | 7 | 80 | ML3, ML4, ML5, ML6, ML7, ML18, ML21 |
-| DL | `DL` (placeholder) | `E` Extant | 4 | 38 | DL1, DL2, DL3, DL4 |
+| DL | `LANDWARD_PRODUCTION` | `E` Extant | 4 | 38 | DL1, DL2, DL3, DL4 |
 | DL | | `X` Expired | 1 | 15 | DL5 |
-| AL | `AL` (placeholder) | `E` Extant | 1 | 8 | AL10 |
+| AL | `LANDWARD_PRODUCTION` | `E` Extant | 1 | 8 | AL10 |
 | AL | | `S` Surrendered | 1 | 14 | AL6 |
 | AL | | `X` Expired | 1 | 8 | AL9 |
-| CE | `CE` (placeholder) | `E` Extant | 1 | 5 | CE1 |
+| CE | `LANDWARD_PRODUCTION` | `E` Extant | 1 | 5 | CE1 |
 
 (Totals reconcile with S2 for every type: `P` 1,525/8,312, `PEDL` 220/1,927, `PL` 26/336, `EXL`
 12/91, `ML` 7/80, `DL` 5/53, `AL` 3/30, `CE` 1/5.)
@@ -2233,8 +2246,10 @@ ORDER BY 1, 3 DESC;
 - **The other types are mostly live:** 39 of 54 are extant, against 22% of `P` and `PEDL`. All 7
   `ML` licences are extant, and 21 of the 26 `PL`.
 - **6 of the 9 `AL`, `DL` and `CE` licences are extant** (AL10, CE1, DL1–DL4). The `DL` and `CE`
-  schedules have no terms, so they are not migrated (pattern E). Open question 14 (LMS term support)
-  only matters for the 3 `AL` licences, one of which (AL10) is extant.
+  schedules have no terms, so they are not migrated (pattern E). Since 28 October 2026 LMS maps all
+  three types to `LANDWARD_PRODUCTION`, so the 3 `AL` licences (one extant, AL10) migrate with
+  their terms, and the licensing team can create the `DL` and `CE` schedules in LMS (plan, Open
+  question 14, resolved).
 - **1,354 have ended:** 1,079 surrendered, 258 expired and 17 revoked. Between them they hold 6,113
   versions.
 - **25 have a schedule but no status** (20 `P`, 5 `PEDL`), meaning no live data point. Unlike the

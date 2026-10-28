@@ -38,7 +38,7 @@ steps:
       - git diff --name-only HEAD~1 HEAD 2>/dev/null | grep -q "^gis-framework/" && touch .gis-framework-changed && echo "GIS changes detected" || echo "No GIS changes detected"
 
   - name: build-gis-node-backend
-    image: node:24.16.0
+    image: node:24.22.1
     depends_on: [ detect-gis-changes ]
     commands:
       - test -f .gis-framework-changed || exit 0
@@ -50,7 +50,7 @@ steps:
       - npm test
 
   - name: gis-frontend-visual-tests
-    image: node:24.16.0
+    image: node:24.22.1
     depends_on: [ detect-gis-changes ]
     commands:
       - test -f .gis-framework-changed || exit 0
@@ -101,7 +101,7 @@ steps:
       build_image: repo1.dev.fivium.local:5000/docker-compose-java21
 
   - name: build-frontend
-    image: node:24.16.0
+    image: node:24.22.1
     depends_on: [ restore-cache ]
     commands:
       - cd fivium-design-system-core && npm install --no-audit --no-fund --prefer-offline && npx gulp buildAll && cd ..
@@ -425,7 +425,7 @@ steps:
       - git diff --name-only origin/$DRONE_TARGET_BRANCH...HEAD | grep -q "^gis-framework/" && touch .gis-framework-changed && echo "GIS changes detected" || echo "No GIS changes detected"
 
   - name: build-gis-node-backend
-    image: node:24.16.0
+    image: node:24.22.1
     depends_on: [ detect-gis-changes ]
     commands:
       - test -f .gis-framework-changed || exit 0
@@ -437,7 +437,7 @@ steps:
       - npm test
 
   - name: gis-frontend-visual-tests
-    image: node:24.16.0
+    image: node:24.22.1
     depends_on: [ detect-gis-changes ]
     commands:
       - test -f .gis-framework-changed || exit 0
@@ -489,7 +489,7 @@ steps:
 
   # This is in the PR pipeline so the code-analysis below can access the test data (to see coverage)
   - name: build-frontend
-    image: node:24.16.0
+    image: node:24.22.1
     depends_on: [ restore-cache ]
     commands:
       - cd fivium-design-system-core && npm install --no-audit --no-fund --prefer-offline && npx gulp buildAll && cd ..

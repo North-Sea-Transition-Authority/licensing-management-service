@@ -1,6 +1,6 @@
 services:
   update-gis-screenshots:
-    image: node:24.16.0
+    image: node:24.22.1
     working_dir: /gis-framework
     environment:
       CI: "true"

@@ -128,7 +128,7 @@ npm run lint                 # ESLint over frontend + arcgis-node (lint:fix to a
 npm run dev                  # Vite dev server on :5173 for HMR
 ```
 
-Gradle wrappers that use the pinned Node 24.16.0 / npm 10.9.0 (no system node needed):
+Gradle wrappers that use the pinned Node 24.22.1 / npm 10.9.0 (no system node needed):
 `installFrontendDependencies`, `buildFrontend`, `testFrontend`, `lintFrontendAndArcGisNode`.
 `processResources` depends on `buildFrontend`, so a plain `build` packages the Vite assets into the jar.
 

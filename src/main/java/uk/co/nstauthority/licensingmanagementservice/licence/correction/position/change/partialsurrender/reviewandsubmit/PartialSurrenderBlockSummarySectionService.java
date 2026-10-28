@@ -349,8 +349,7 @@ public class PartialSurrenderBlockSummarySectionService
       }
     }
 
-    var heading = subarea.name() != null ? subarea.name() : "Subarea %s".formatted(subarea.shortName());
-    return SummaryCard.simpleSummaryCardWithHeading(heading, details.build());
+    return SummaryCard.simpleSummaryCardWithHeading(subarea.displayName(), details.build());
   }
 
   private Feature getSubareaFeatureOrThrow(

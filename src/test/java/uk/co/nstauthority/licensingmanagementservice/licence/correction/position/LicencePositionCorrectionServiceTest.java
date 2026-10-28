@@ -42,7 +42,9 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquityOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaDetails;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaSetEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionRepository;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionStatus;
@@ -1771,6 +1773,122 @@ class LicencePositionCorrectionServiceTest {
         addedCorrection, excludedChange.changeId());
 
     assertThat(result).containsExactly(retainedFeatureId);
+  }
+
+  @Test
+  void replaceAddChangeFor_whenOperationToReplaceGiven_thenReplacesOnlyTheMatchingChange() {
+    var blockFeatureId = UUID.randomUUID();
+    var subareaA = new SubareaDetails(UUID.randomUUID(), "Subarea A", "A");
+    var subareaB = new SubareaDetails(UUID.randomUUID(), "Subarea B", "B");
+    var subareaBOperation = new SubareaSetEquityOperation(blockFeatureId, subareaB, 2, BigDecimal.valueOf(100));
+    var replacementOperation = new SubareaSetEquityOperation(blockFeatureId, subareaA, 3, BigDecimal.valueOf(100));
+    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withPayload(CreateLicencePositionPayloadTestUtil.newBuilder()
+            .withChanges(List.of(
+                AddChange.buildOperationsChange(
+                    List.of(new SubareaSetEquityOperation(blockFeatureId, subareaA, 1, BigDecimal.valueOf(100))), 1),
+                AddChange.buildOperationsChange(List.of(subareaBOperation), 2)))
+            .build())
+        .build();
+
+    licencePositionCorrectionService.replaceAddChangeFor(
+        positionCorrection,
+        SubareaSetEquityOperation.class,
+        operation -> operation.subarea().equals(subareaA),
+        List.of(replacementOperation));
+
+    verify(licencePositionCorrectionRepository).save(licencePositionCorrectionCaptor.capture());
+    var payload = (CreateLicencePositionPayload) licencePositionCorrectionCaptor.getValue().getPayload();
+    assertThat(licencePositionCorrectionService.getAddOperationsOfType(payload.changes(), SubareaSetEquityOperation.class))
+        .containsExactly(subareaBOperation, replacementOperation);
+  }
+
+  @Test
+  void replaceAddChangeForExecutedPosition_whenLiveChangeOrderedAfterStagedChanges_thenOrdersNewChangeAfterLiveChange() {
+    var liveChange = LicencePositionChangeTestUtil.newBuilder()
+        .withLicencePosition(LICENCE_POSITION)
+        .withChangeOrder(2)
+        .withOperations(List.of(new SubareaOperation(UUID.randomUUID(), List.of(), List.of())))
+        .build();
+    var updateCorrection = updatePositionCorrectionWith(List.of());
+    var newOperation = new SubareaSetEquityOperation(
+        UUID.randomUUID(), new SubareaDetails(UUID.randomUUID(), "Subarea A", "A"), 1, BigDecimal.valueOf(100));
+
+    when(licencePositionChangeService.findByLicencePositionId(LICENCE_POSITION.getId()))
+        .thenReturn(List.of(liveChange));
+
+    licencePositionCorrectionService.replaceAddChangeForExecutedPosition(
+        LICENCE_CORRECTION,
+        LICENCE_POSITION,
+        updateCorrection,
+        SubareaSetEquityOperation.class,
+        operation -> true,
+        List.of(newOperation));
+
+    verify(licencePositionCorrectionRepository).save(licencePositionCorrectionCaptor.capture());
+    assertThat(licencePositionCorrectionCaptor.getValue().getPayload().changes())
+        .usingRecursiveComparison()
+        .ignoringFields("changeId", "operations.operationId")
+        .isEqualTo(List.of(AddChange.buildOperationsChange(List.of(newOperation), 3)));
+  }
+
+  @Test
+  void replaceAddChangeForExecutedPosition_whenReplacingStagedChange_thenOrdersAfterTheRemainingChanges() {
+    var blockFeatureId = UUID.randomUUID();
+    var subareaA = new SubareaDetails(UUID.randomUUID(), "Subarea A", "A");
+    var subareaB = new SubareaDetails(UUID.randomUUID(), "Subarea B", "B");
+    var liveChange = LicencePositionChangeTestUtil.newBuilder()
+        .withLicencePosition(LICENCE_POSITION)
+        .withChangeOrder(1)
+        .withOperations(List.of(new SubareaOperation(UUID.randomUUID(), List.of(), List.of())))
+        .build();
+    var subareaBChange = AddChange.buildOperationsChange(
+        List.of(new SubareaSetEquityOperation(blockFeatureId, subareaB, 2, BigDecimal.valueOf(100))), 2);
+    var updateCorrection = updatePositionCorrectionWith(List.of(
+        subareaBChange,
+        AddChange.buildOperationsChange(
+            List.of(new SubareaSetEquityOperation(blockFeatureId, subareaA, 1, BigDecimal.valueOf(100))), 3)
+    ));
+    var replacementOperation = new SubareaSetEquityOperation(blockFeatureId, subareaA, 3, BigDecimal.valueOf(100));
+
+    when(licencePositionChangeService.findByLicencePositionId(LICENCE_POSITION.getId()))
+        .thenReturn(List.of(liveChange));
+
+    licencePositionCorrectionService.replaceAddChangeForExecutedPosition(
+        LICENCE_CORRECTION,
+        LICENCE_POSITION,
+        updateCorrection,
+        SubareaSetEquityOperation.class,
+        operation -> operation.subarea().equals(subareaA),
+        List.of(replacementOperation));
+
+    verify(licencePositionCorrectionRepository).save(licencePositionCorrectionCaptor.capture());
+    assertThat(licencePositionCorrectionCaptor.getValue().getPayload().changes())
+        .usingRecursiveComparison()
+        .ignoringFields("changeId", "operations.operationId")
+        .isEqualTo(List.of(subareaBChange, AddChange.buildOperationsChange(List.of(replacementOperation), 3)));
+  }
+
+  @Test
+  void replaceAddChangeForExecutedPosition_whenStagedRemovalHasNoLiveChange_thenIgnoresItsPlaceholderOrder() {
+    var removeChange = LicencePositionChangeType.removeChange().withChangeId(UUID.randomUUID().toString()).build();
+    var updateCorrection = updatePositionCorrectionWith(List.of(removeChange));
+    var newOperation = new SubareaSetEquityOperation(
+        UUID.randomUUID(), new SubareaDetails(UUID.randomUUID(), "Subarea A", "A"), 1, BigDecimal.valueOf(100));
+
+    licencePositionCorrectionService.replaceAddChangeForExecutedPosition(
+        LICENCE_CORRECTION,
+        LICENCE_POSITION,
+        updateCorrection,
+        SubareaSetEquityOperation.class,
+        operation -> true,
+        List.of(newOperation));
+
+    verify(licencePositionCorrectionRepository).save(licencePositionCorrectionCaptor.capture());
+    assertThat(licencePositionCorrectionCaptor.getValue().getPayload().changes())
+        .usingRecursiveComparison()
+        .ignoringFields("changeId", "operations.operationId")
+        .isEqualTo(List.of(removeChange, AddChange.buildOperationsChange(List.of(newOperation), 1)));
   }
 
   @Test

@@ -7,6 +7,7 @@ public record LicencePositionStateView(
     LicenseeStateView licenseeStateView,
     String storageOperatorName,
     List<BeneficialInterestView> beneficialInterests,
-    List<OrganisationNameHistoryView> organisationNameHistories
+    List<OrganisationNameHistoryView> organisationNameHistories,
+    List<SubareaBeneficialInterestView> subareaBeneficialInterests
 ) {
 }

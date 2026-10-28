@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaDetails;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.VisibleLicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPositionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.PositionChangeTestUtil;
@@ -50,7 +51,15 @@ class LicenceTimelineChangeTypeFilterTest {
                     .withOperations(List.of(LicenceOperation.newLicenseeOperation().withLicenseesToAdd(List.of(3)).build()))
                     .build(),
                 PositionChangeTestUtil.newBuilder().withAdministratorOperation(1).build(),
-                PositionChangeTestUtil.newBuilder().withSetEquityOperation(2, new BigDecimal("50")).build()
+                PositionChangeTestUtil.newBuilder().withSetEquityOperation(2, new BigDecimal("50")).build(),
+                PositionChangeTestUtil.newBuilder()
+                    .withOperations(List.of(LicenceOperation.newSubareaSetEquityOperation()
+                        .withBlockFeatureId(UUID.randomUUID())
+                        .withSubarea(new SubareaDetails(UUID.randomUUID(), "Subarea A", "A"))
+                        .withTransferTo(1)
+                        .withEquity(new BigDecimal("100"))
+                        .build()))
+                    .build()
             ))
             .build()
     );
@@ -64,6 +73,7 @@ class LicenceTimelineChangeTypeFilterTest {
     expected.put(LicenceOperation.TRANSFER_EQUITY, "Transfer equity");
     expected.put(LicenceOperation.PARTIAL_SURRENDER, "Partial surrender");
     expected.put(LicenceOperation.SUBAREA, "Subarea change");
+    expected.put(LicenceOperation.SUBAREA_SET_EQUITY, "Subarea set equity");
     assertThat(result).containsExactlyEntriesOf(expected);
   }
 

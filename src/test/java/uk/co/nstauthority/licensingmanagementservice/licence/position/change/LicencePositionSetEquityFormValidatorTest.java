@@ -3,7 +3,6 @@ package uk.co.nstauthority.licensingmanagementservice.licence.position.change;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 
-import java.math.BigDecimal;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -17,7 +16,6 @@ import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.setequity.LicencePositionSetEquityForm;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.setequity.LicencePositionSetEquityFormValidator;
-import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquityOperation;
 
 @ExtendWith(MockitoExtension.class)
 class LicencePositionSetEquityFormValidatorTest {
@@ -100,9 +98,7 @@ class LicencePositionSetEquityFormValidatorTest {
     form.setTransferTo("123");
     form.getEquity().setInputValue("50");
 
-    var existingOperations = List.of(new SetEquityOperation(123, BigDecimal.valueOf(25)));
-
-    var hasErrors = validator.hasErrors(form, bindingResult, existingOperations);
+    var hasErrors = validator.hasErrors(form, bindingResult, List.of(123));
 
     assertThat(bindingResult.getFieldErrors("transferTo"))
         .extracting(FieldError::getCode, FieldError::getDefaultMessage)

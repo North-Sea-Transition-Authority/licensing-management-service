@@ -56,7 +56,9 @@ import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOp
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenseeOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquityOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaDetails;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaSetEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.TransferEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeService;
@@ -75,6 +77,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.vie
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.LicenseeStateView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.NameHistoryEntryView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.OrganisationNameHistoryView;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.SubareaBeneficialInterestView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.FeatureTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.filter.LicenceTimelineFilter;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.filter.LicenceTimelineFilterOptions;
@@ -121,12 +124,6 @@ class LicencePositionViewServiceTest {
 
   @Captor
   private ArgumentCaptor<ResolvedStates> validationStatesCaptor;
-
-  @Captor
-  private ArgumentCaptor<Boolean> isCarbonStorageCaptor;
-
-  @Captor
-  private ArgumentCaptor<Boolean> isExtantLicenceCaptor;
 
   @Test
   void getCorrectionPositionPageView_whenPartialSurrenderIsUntouched_linksCorrectToTheTaskListForThatChange() {
@@ -340,7 +337,8 @@ class LicencePositionViewServiceTest {
                 "Shell Expro",
                 List.of(),
                 List.of(new NameHistoryEntryView("Shell plc", "from 22 January 2022"))
-            ))
+            )),
+            List.of()
         ));
   }
 
@@ -391,7 +389,89 @@ class LicencePositionViewServiceTest {
                     "Shell Expro",
                     List.of(),
                     List.of(new NameHistoryEntryView("Shell plc", "from 22 January 2022")))
-            )
+            ),
+            List.of()
+        ));
+  }
+
+  @Test
+  void getPositionPageView_whenSubareaBeneficialInterestSet_labelsTheSubareaWithItsBlockName() {
+    var position = LicencePositionTestUtil.newBuilder()
+        .withLicence(LICENCE)
+        .withLicenceTransaction(LicenceTransactionTestUtil.newBuilder().withRegulatorReference("REF-1").build())
+        .withPositionDate(LocalDate.of(2010, Month.JUNE, 1)).withPositionOrder(1).withStatus(LicencePositionStatus.EXECUTED).build();
+
+    var block = FeatureTestUtil.blockFeature(UUID.randomUUID(), "21", 1);
+    var subarea = new SubareaDetails(UUID.randomUUID(), "Subarea A", "A");
+
+    var change = LicencePositionChangeTestUtil.newBuilder()
+        .withLicencePosition(position)
+        .withOperations(List.of(new SubareaSetEquityOperation(block.getId(), subarea, 1, new BigDecimal("100"))))
+        .build();
+
+    when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(position));
+    when(licencePositionChangeService.findByLicencePositionIn(List.of(position))).thenReturn(List.of(change));
+    when(featureService.getFeaturesByIds(Set.of(block.getId()))).thenReturn(List.of(block));
+    when(organisationUnitQueryService.getOrganisationNameHistoriesByIds(List.of(1))).thenReturn(Map.of(
+        1, namePeriods("Shell plc",
+            namePeriod("Shell Expro", LocalDate.of(1999, Month.MARCH, 3), LocalDate.of(2022, Month.JANUARY, 22)),
+            namePeriod("Shell plc", LocalDate.of(2022, Month.JANUARY, 22), null))
+    ));
+
+    var result = licencePositionViewService.getPositionPageView(position);
+
+    assertThat(result.stateView())
+        .isEqualTo(new LicencePositionStateView(
+            new AdministratorStateView(""),
+            new LicenseeStateView(List.of()),
+            "",
+            List.of(),
+            List.of(new OrganisationNameHistoryView(
+                "Shell Expro",
+                List.of(),
+                List.of(new NameHistoryEntryView("Shell plc", "from 22 January 2022"))
+            )),
+            List.of(new SubareaBeneficialInterestView(
+                "Block %s - Subarea A".formatted(block.getFeatureName()),
+                List.of(new BeneficialInterestView("Shell Expro", new BigDecimal("100")))
+            ))
+        ));
+  }
+
+  @Test
+  void getPositionPageView_whenSubareaBeneficialInterestSetAtAnEarlierPosition_showsItWithItsBlockName() {
+    var earlierPosition = LicencePositionTestUtil.newBuilder()
+        .withLicence(LICENCE)
+        .withLicenceTransaction(LicenceTransactionTestUtil.newBuilder().withRegulatorReference("REF-1").build())
+        .withPositionDate(LocalDate.of(2010, Month.JUNE, 1)).withPositionOrder(1).withStatus(LicencePositionStatus.EXECUTED).build();
+    var laterPosition = LicencePositionTestUtil.newBuilder()
+        .withLicence(LICENCE)
+        .withLicenceTransaction(LicenceTransactionTestUtil.newBuilder().withRegulatorReference("REF-2").build())
+        .withPositionDate(LocalDate.of(2015, Month.JUNE, 1)).withPositionOrder(2).withStatus(LicencePositionStatus.EXECUTED).build();
+
+    var block = FeatureTestUtil.blockFeature(UUID.randomUUID(), "21", 1);
+    var subarea = new SubareaDetails(UUID.randomUUID(), "Subarea A", "A");
+
+    var change = LicencePositionChangeTestUtil.newBuilder()
+        .withLicencePosition(earlierPosition)
+        .withOperations(List.of(new SubareaSetEquityOperation(block.getId(), subarea, 1, new BigDecimal("100"))))
+        .build();
+
+    when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE))
+        .thenReturn(List.of(earlierPosition, laterPosition));
+    when(licencePositionChangeService.findByLicencePositionIn(List.of(earlierPosition, laterPosition)))
+        .thenReturn(List.of(change));
+    when(featureService.getFeaturesByIds(Set.of(block.getId()))).thenReturn(List.of(block));
+    when(organisationUnitQueryService.getOrganisationNameHistoriesByIds(List.of(1))).thenReturn(Map.of(
+        1, namePeriods("Shell plc", namePeriod("Shell plc", LocalDate.of(2000, Month.JANUARY, 1), null))
+    ));
+
+    var result = licencePositionViewService.getPositionPageView(laterPosition);
+
+    assertThat(result.stateView().subareaBeneficialInterests())
+        .containsExactly(new SubareaBeneficialInterestView(
+            "Block %s - Subarea A".formatted(block.getFeatureName()),
+            List.of(new BeneficialInterestView("Shell plc", new BigDecimal("100")))
         ));
   }
 
@@ -433,7 +513,8 @@ class LicencePositionViewServiceTest {
                 "Current Name Ltd",
                 List.of(),
                 List.of(new NameHistoryEntryView("Interim Ltd", "from 4 April 2015"))
-            ))
+            )),
+            List.of()
         ));
   }
 
@@ -479,7 +560,8 @@ class LicencePositionViewServiceTest {
                 "Shell UK Exploration",
                 List.of(),
                 List.of(new NameHistoryEntryView("Shell plc", "from 3 March 1999"))
-            ))
+            )),
+            List.of()
         ));
   }
 
@@ -788,6 +870,7 @@ class LicencePositionViewServiceTest {
         new AdministratorStateView(""),
         new LicenseeStateView(List.of()),
         "",
+        List.of(),
         List.of(),
         List.of()));
     assertThat(result.licenceType()).isEqualTo(LICENCE.getType());
@@ -1116,6 +1199,7 @@ class LicencePositionViewServiceTest {
         new LicenseeStateView(List.of()),
         "",
         List.of(),
+        List.of(),
         List.of()));
     assertThat(result.canEdit()).isTrue();
     assertThat(result.selectedPositionId()).isEqualTo(addedPositionId);
@@ -1274,6 +1358,7 @@ class LicencePositionViewServiceTest {
         new AdministratorStateView(""),
         new LicenseeStateView(List.of()),
         "",
+        List.of(),
         List.of(),
         List.of()));
   }
@@ -1577,6 +1662,7 @@ class LicencePositionViewServiceTest {
         new LicenseeStateView(List.of()),
         "",
         List.of(),
+        List.of(),
         List.of()));
     assertThat(result.timelineViews())
         .extracting(
@@ -1685,12 +1771,14 @@ class LicencePositionViewServiceTest {
         .withTargetLicencePosition(removed)
         .build();
 
-    when(licenceStatusService.getCurrentStatus(LICENCE)).thenReturn(LicenceStatusType.EXTANT);
+    when(licenceStatusService.getCurrentStatus(LICENCE))
+        .thenReturn(LicenceStatusType.EXTANT);
     when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE))
         .thenReturn(List.of(removed, following));
     when(licencePositionChangeService.findByLicencePositionIn(List.of(removed, following)))
         .thenReturn(List.of(removedAdminChange));
-    when(licencePositionCorrectionService.getPositionCorrections(correction)).thenReturn(List.of(removeCorrection));
+    when(licencePositionCorrectionService.getPositionCorrections(correction))
+        .thenReturn(List.of(removeCorrection));
 
     licencePositionViewService.getCorrectionPositionPageView(correction, removed);
 
@@ -1698,14 +1786,13 @@ class LicencePositionViewServiceTest {
         validationPositionsCaptor.capture(),
         validationStatesCaptor.capture(),
         eq(List.of(removeCorrection)),
-        isCarbonStorageCaptor.capture(),
-        isExtantLicenceCaptor.capture());
+        eq(LICENCE.getType()),
+        eq(LicenceStatusType.EXTANT)
+    );
 
     assertThat(validationPositionsCaptor.getValue())
         .extracting(ChronologicalPosition::id)
         .containsExactly(following.getId());
-
-    assertThat(isCarbonStorageCaptor.getValue()).isFalse();
 
     assertThat(validationStatesCaptor.getValue().currentState(following.getId()).administratorId()).isNull();
   }
@@ -1877,6 +1964,7 @@ class LicencePositionViewServiceTest {
         new AdministratorStateView(""),
         new LicenseeStateView(List.of()),
         "",
+        List.of(),
         List.of(),
         List.of());
 

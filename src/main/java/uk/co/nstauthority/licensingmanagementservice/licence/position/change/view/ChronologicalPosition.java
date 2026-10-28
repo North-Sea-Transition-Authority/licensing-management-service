@@ -20,7 +20,9 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationError;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationRule;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.SubareaEquityPositionRule;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaSetEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.util.DateUtil;
 
@@ -93,7 +95,11 @@ public record ChronologicalPosition(
     positionValidationErrors.addAll(validateAdministratorChange(positionValidationContext));
     positionValidationErrors.addAll(validateBeneficialInterest(positionValidationContext));
     positionValidationErrors.addAll(validateLicenseeChange(positionValidationContext));
-    changes.forEach(change -> positionValidationErrors.addAll(change.validate(positionValidationContext)));
+    positionValidationErrors.addAll(validateSubareaEquityTotals(positionValidationContext));
+
+    for (var change : changes) {
+      positionValidationErrors.addAll(change.validate(positionValidationContext));
+    }
 
     return positionValidationErrors;
   }
@@ -102,6 +108,18 @@ public record ChronologicalPosition(
     return changes.stream()
         .filter(ChronologicalPosition::isBeneficialInterestChange)
         .count();
+  }
+
+  public List<String> subareaEquityChangeKeys() {
+    return changes.stream()
+        .filter(change -> !LicencePositionChangeType.REMOVE_CHANGE.equals(change.changeType()))
+        .flatMap(change -> change.operations().stream()
+            .filter(SubareaSetEquityOperation.class::isInstance)
+            .map(SubareaSetEquityOperation.class::cast)
+            .map(SubareaSetEquityOperation::subareaKey)
+            .distinct()
+        )
+        .toList();
   }
 
   public List<Integer> joiningLicensees() {
@@ -209,6 +227,49 @@ public record ChronologicalPosition(
     return validateEquityTotals(positionValidationContext);
   }
 
+  private List<PositionValidationError> validateSubareaEquityTotals(PositionValidationContext positionValidationContext) {
+    var subareaEquityByBlock = positionValidationContext.resolvedState().blockFeatureIdToSubareaEquity();
+    var previousSubareaEquityByBlock = positionValidationContext.previousState().blockFeatureIdToSubareaEquity();
+
+    var anyOutOfRange = false;
+    var anyInvalidTotal = false;
+    for (var blockEntry : subareaEquityByBlock.entrySet()) {
+      var blockFeatureId = blockEntry.getKey();
+      for (var subareaEntry : blockEntry.getValue().entrySet()) {
+        var subarea = subareaEntry.getKey();
+        var equity = subareaEntry.getValue();
+        var previousEquity = previousSubareaEquityByBlock
+            .getOrDefault(blockFeatureId, Map.of())
+            .getOrDefault(subarea, Map.of());
+        if (hasNewOutOfRangeHolders(equity, previousEquity)) {
+          anyOutOfRange = true;
+        }
+
+        if (hasNewInvalidTotal(equity, previousEquity)) {
+          anyInvalidTotal = true;
+        }
+      }
+    }
+
+    var errors = new ArrayList<PositionValidationError>();
+
+    if (anyOutOfRange) {
+      errors.add(PositionValidationError.forPosition(
+          positionValidationContext,
+          SubareaEquityPositionRule.EQUITY_HOLDER_OUT_OF_RANGE
+      ));
+    }
+
+    if (anyInvalidTotal) {
+      errors.add(PositionValidationError.forPosition(
+          positionValidationContext,
+          SubareaEquityPositionRule.BENEFICIAL_INTERESTS_MUST_TOTAL_ONE_HUNDRED
+      ));
+    }
+
+    return errors;
+  }
+
   private List<PositionValidationError> validateEquityTotals(PositionValidationContext positionValidationContext) {
     var equityByOrganisationId = positionValidationContext.resolvedState().equityByOrganisationId();
     var hasBeneficialInterestChange = beneficialInterestChangeCount() > 0;
@@ -221,22 +282,14 @@ public record ChronologicalPosition(
 
     var errors = new ArrayList<PositionValidationError>();
 
-    var outOfRangeHolderIds = outOfRangeHolderIds(equityByOrganisationId);
-    if (!outOfRangeHolderIds.isEmpty()
-        && !outOfRangeHolderIds.equals(outOfRangeHolderIds(previousEquityByOrganisationId))) {
+    if (hasNewOutOfRangeHolders(equityByOrganisationId, previousEquityByOrganisationId)) {
       errors.add(PositionValidationError.forPosition(
           positionValidationContext,
           EquityPositionRule.EQUITY_HOLDER_OUT_OF_RANGE
       ));
     }
 
-    var totalEquity = totalEquity(equityByOrganisationId);
-    var previousTotalEquity = totalEquity(previousEquityByOrganisationId);
-    var previousPositionWasInvalid = !previousEquityByOrganisationId.isEmpty()
-        && previousTotalEquity.compareTo(ONE_HUNDRED_PERCENT) != 0;
-    var carriesForwardSameInvalidTotal = previousPositionWasInvalid
-        && totalEquity.compareTo(previousTotalEquity) == 0;
-    if (totalEquity.compareTo(ONE_HUNDRED_PERCENT) != 0 && !carriesForwardSameInvalidTotal) {
+    if (hasNewInvalidTotal(equityByOrganisationId, previousEquityByOrganisationId)) {
       errors.add(PositionValidationError.forPosition(
           positionValidationContext,
           EquityPositionRule.BENEFICIAL_INTERESTS_MUST_TOTAL_ONE_HUNDRED
@@ -244,6 +297,22 @@ public record ChronologicalPosition(
     }
 
     return errors;
+  }
+
+  private static boolean hasNewOutOfRangeHolders(Map<Integer, BigDecimal> equity, Map<Integer, BigDecimal> previousEquity) {
+    var outOfRangeHolderIds = outOfRangeHolderIds(equity);
+    return !outOfRangeHolderIds.isEmpty() && !outOfRangeHolderIds.equals(outOfRangeHolderIds(previousEquity));
+  }
+
+  private static boolean hasNewInvalidTotal(Map<Integer, BigDecimal> equity, Map<Integer, BigDecimal> previousEquity) {
+    var totalEquity = totalEquity(equity);
+    var previousTotalEquity = totalEquity(previousEquity);
+    var previousPositionWasInvalid = !previousEquity.isEmpty()
+        && previousTotalEquity.compareTo(ONE_HUNDRED_PERCENT) != 0;
+    var carriesForwardSameInvalidTotal = previousPositionWasInvalid
+        && totalEquity.compareTo(previousTotalEquity) == 0;
+
+    return totalEquity.compareTo(ONE_HUNDRED_PERCENT) != 0 && !carriesForwardSameInvalidTotal;
   }
 
   private static BigDecimal totalEquity(Map<Integer, BigDecimal> equityByOrganisationId) {

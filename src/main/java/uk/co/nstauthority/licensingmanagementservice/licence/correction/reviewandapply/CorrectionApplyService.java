@@ -18,7 +18,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.co.fivium.gisframework.command.CommandJourneyService;
-import uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatusType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
@@ -109,7 +108,7 @@ public class CorrectionApplyService {
     var licenceCorrection =
         entityManager.find(LicenceCorrection.class, correction.getId(), LockModeType.PESSIMISTIC_WRITE);
 
-    var licenceStatus = licenceStatusService.getCurrentStatus(licenceCorrection.getLicence());
+    var licenceStatusType = licenceStatusService.getCurrentStatus(licenceCorrection.getLicence());
 
     if (licenceCorrection.getStatus() != LicenceCorrectionStatus.IN_PROGRESS) {
       throw new IllegalStateException(
@@ -122,8 +121,8 @@ public class CorrectionApplyService {
         correctedTimeline.positionsToApply(),
         correctedTimeline.resolvedStates(),
         correctedTimeline.positionCorrections(),
-        correctedTimeline.isCarbonStorage(),
-        LicenceStatusType.EXTANT.equals(licenceStatus)
+        correctedTimeline.licenceType(),
+        licenceStatusType
     );
 
     if (!blockingErrors.isEmpty()) {

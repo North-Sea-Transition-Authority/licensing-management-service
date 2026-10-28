@@ -51,17 +51,10 @@ class CorrectedTimelineTest {
   }
 
   @Test
-  void isCarbonStorage_whenLicenceTypeIsCarbonStorage_thenTrue() {
-    var correctedTimeline = correctedTimelineForLicenceType(LicenceType.CARBON_STORAGE);
-
-    assertThat(correctedTimeline.isCarbonStorage()).isTrue();
-  }
-
-  @Test
-  void isCarbonStorage_whenLicenceTypeIsNotCarbonStorage_thenFalse() {
+  void licenceType() {
     var correctedTimeline = correctedTimelineForLicenceType(LicenceType.SEAWARD_PRODUCTION);
 
-    assertThat(correctedTimeline.isCarbonStorage()).isFalse();
+    assertThat(correctedTimeline.licenceType()).isEqualTo(LicenceType.SEAWARD_PRODUCTION);
   }
 
   private CorrectedTimeline correctedTimelineForLicenceType(LicenceType licenceType) {

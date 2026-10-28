@@ -45,6 +45,22 @@
       </#list>
     </@fdsSummaryList.summaryListCard>
   </#if>
+  <#if licencePositionState.subareaBeneficialInterests()?has_content>
+    <h2 class="govuk-heading-s">Subarea beneficial interests</h2>
+    <#list licencePositionState.subareaBeneficialInterests() as subareaBeneficialInterest>
+      <@fdsSummaryList.summaryListCard
+        headingText=subareaBeneficialInterest.subareaLabel()
+        headingSize="h3"
+        summaryListId="subarea-beneficial-interests-${subareaBeneficialInterest?index}"
+      >
+        <#list subareaBeneficialInterest.beneficialInterests() as beneficialInterest>
+          <@fdsSummaryList.summaryListRowNoAction keyText=beneficialInterest.organisationName()>
+            ${percentage.format(beneficialInterest.equity())}
+          </@fdsSummaryList.summaryListRowNoAction>
+        </#list>
+      </@fdsSummaryList.summaryListCard>
+    </#list>
+  </#if>
   <#if licencePositionState.organisationNameHistories()?has_content>
     <@fdsDetails.summaryDetails summaryTitle="Organisation name history">
       <#list licencePositionState.organisationNameHistories() as organisationNameHistory>
@@ -71,7 +87,7 @@
   <#list licencePositionChanges?reverse as change>
     <@positionChanges.changeCard
       change=change
-      summaryListId=change.type()
+      summaryListId="${change.type()}-${change?index}"
       isCarbonStorage=isCarbonStorage
     />
   </#list>

@@ -60,6 +60,10 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.vie
     @JsonSubTypes.Type(
         value = StorageOperatorOperation.class,
         name = LicenceOperation.STORAGE_OPERATOR
+    ),
+    @JsonSubTypes.Type(
+        value = SubareaSetEquityOperation.class,
+        name = LicenceOperation.SUBAREA_SET_EQUITY
     )
 })
 public sealed interface LicenceOperation permits HiddenLicenceOperation, VisibleLicenceOperation {
@@ -76,6 +80,7 @@ public sealed interface LicenceOperation permits HiddenLicenceOperation, Visible
   String BLOCK_REDEFINITION = "block-redefinition";
   String BLOCK_END = "block-end";
   String STORAGE_OPERATOR = "storage-operator";
+  String SUBAREA_SET_EQUITY = "subarea-set-equity";
 
   String type();
 
@@ -138,5 +143,9 @@ public sealed interface LicenceOperation permits HiddenLicenceOperation, Visible
 
   static StorageOperatorOperation.Builder newStorageOperatorOperation() {
     return new StorageOperatorOperation.Builder();
+  }
+
+  static SubareaSetEquityOperation.Builder newSubareaSetEquityOperation() {
+    return new SubareaSetEquityOperation.Builder();
   }
 }

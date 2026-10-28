@@ -2,6 +2,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.operation;
 
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 import static uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionChangeUtil.NOT_AVAILABLE;
+import static uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionChangeUtil.UNKNOWN_BLOCK;
 
 import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -313,7 +314,7 @@ public record PartialSurrenderOperation(
     var blockRows = surrenderedFeatureIds()
         .stream()
         .map(featureId -> new PartialSurrenderChangeView.BlockRow(
-            featureNames.getOrDefault(featureId, NOT_AVAILABLE),
+            featureNames.getOrDefault(featureId, UNKNOWN_BLOCK),
             Objects.requireNonNullElse(surrenderTypeDisplayName(featureId), NOT_AVAILABLE)
         ))
         .toList();

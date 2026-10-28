@@ -1,5 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation;
 
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatusType;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPositionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.LicencePositionState;
@@ -11,8 +13,8 @@ public class PositionValidationContextTestUtil {
   private LicencePositionState previousState = LicencePositionState.EMPTY;
   private boolean isFirstPosition = false;
   private boolean isLastPosition = false;
-  private boolean isCarbonStorage = false;
-  private boolean isExtantLicence = false;
+  private LicenceType licenceType = LicenceType.LANDWARD_PRODUCTION;
+  private LicenceStatusType licenceStatusType = LicenceStatusType.EXTANT;
 
   public static PositionValidationContextTestUtil newBuilder() {
     return new PositionValidationContextTestUtil();
@@ -43,18 +45,25 @@ public class PositionValidationContextTestUtil {
     return this;
   }
 
-  public PositionValidationContextTestUtil withIsCarbonStorage(boolean isCarbonStorage) {
-    this.isCarbonStorage = isCarbonStorage;
+  public PositionValidationContextTestUtil withLicenceType(LicenceType licenceType) {
+    this.licenceType = licenceType;
     return this;
   }
 
-  public PositionValidationContextTestUtil withIsExtantLicence(boolean isExtantLicence) {
-    this.isExtantLicence = isExtantLicence;
+  public PositionValidationContextTestUtil withLicenceStatusType(LicenceStatusType licenceStatusType) {
+    this.licenceStatusType = licenceStatusType;
     return this;
   }
-
 
   public PositionValidationContext build() {
-    return new PositionValidationContext(position, resolvedState, previousState,isFirstPosition, isLastPosition, isCarbonStorage, isExtantLicence);
+    return new PositionValidationContext(
+        position,
+        resolvedState,
+        previousState,
+        isFirstPosition,
+        isLastPosition,
+        licenceType,
+        licenceStatusType
+    );
   }
 }

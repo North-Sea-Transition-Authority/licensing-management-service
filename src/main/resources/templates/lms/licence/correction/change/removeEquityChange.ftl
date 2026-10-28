@@ -8,6 +8,11 @@
   <@fdsForm.htmlForm>
     <#if setEquityRows?has_content>
       <@fdsSummaryList.summaryList>
+        <#if subareaLabel?has_content>
+          <@fdsSummaryList.summaryListRowNoAction keyText="Subarea">
+            ${subareaLabel}
+          </@fdsSummaryList.summaryListRowNoAction>
+        </#if>
         <#list setEquityRows as row>
           <@fdsSummaryList.summaryListRowNoAction keyText=row.organisationName()>
             ${percentage.format(row.equity())}

@@ -6,7 +6,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.validation.Errors;
 import org.springframework.validation.ValidationUtils;
 import uk.co.fivium.formlibrary.validator.decimal.DecimalInputValidator;
-import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquityOperation;
 
 @Service
 public class LicencePositionSetEquityFormValidator {
@@ -14,7 +13,7 @@ public class LicencePositionSetEquityFormValidator {
   public boolean hasErrors(
       LicencePositionSetEquityForm form,
       Errors errors,
-      List<SetEquityOperation> existingOperations
+      List<Integer> existingOrganisationIds
   ) {
     ValidationUtils.rejectIfEmptyOrWhitespace(errors, "transferTo", "transferTo.required",
         "Select the organisation equity is being allocated to");
@@ -22,7 +21,7 @@ public class LicencePositionSetEquityFormValidator {
     if (!errors.hasFieldErrors("transferTo")) {
       try {
         var transferTo = Integer.parseInt(form.getTransferTo());
-        if (existingOperations.stream().anyMatch(operation -> operation.transferTo().equals(transferTo))) {
+        if (existingOrganisationIds.contains(transferTo)) {
           errors.rejectValue("transferTo", "transferTo.duplicate",
               "This organisation has already been added");
         }

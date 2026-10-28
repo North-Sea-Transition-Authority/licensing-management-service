@@ -1,5 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change;
 
+import java.util.Set;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.Errors;
 import org.springframework.validation.ValidationUtils;
@@ -18,6 +20,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.Lic
 public class AddPositionChangeFormValidator {
 
   private static final String CHANGE_TYPE_FIELD = "changeType";
+  private static final String SUBAREA_FIELD = "subarea";
 
   private final LicencePositionChangeService licencePositionChangeService;
   private final PartialSurrenderCorrectionService partialSurrenderCorrectionService;
@@ -34,7 +37,8 @@ public class AddPositionChangeFormValidator {
       AddPositionChangeForm form,
       Errors errors,
       LicenceCorrection correction,
-      LicencePositionCorrection positionCorrection
+      LicencePositionCorrection positionCorrection,
+      Set<String> subareaKeys
   ) {
     ValidationUtils.rejectIfEmptyOrWhitespace(errors, CHANGE_TYPE_FIELD, "changeType.required",
         "Select the type of change to add");
@@ -50,6 +54,9 @@ public class AddPositionChangeFormValidator {
     } else if (changeAlreadyExists(selected, positionCorrection)) {
       errors.rejectValue(CHANGE_TYPE_FIELD, "changeType.exists",
           "%s has already been added to this position".formatted(selected.getDisplayName()));
+    } else if (AddPositionChangeType.SUBAREA_SET_EQUITY == selected
+        && (StringUtils.isBlank(form.getSubarea()) || !subareaKeys.contains(form.getSubarea()))) {
+      errors.rejectValue(SUBAREA_FIELD, "subarea.invalid", "Select the subarea to set equity for");
     }
 
     return errors.hasErrors();
@@ -75,7 +82,7 @@ public class AddPositionChangeFormValidator {
       case PARTIAL_SURRENDER ->
           licencePositionChangeService.changeExists(livePositionId, PartialSurrenderOperation.class)
               || partialSurrenderCorrectionService.hasStagedPartialSurrender(positionCorrection);
-      case SUBAREA -> false;
+      case SUBAREA, SUBAREA_SET_EQUITY -> false;
       case STORAGE_OPERATOR -> licencePositionChangeService.changeExists(livePositionId, StorageOperatorOperation.class);
       case LICENSEE -> licencePositionChangeService.changeExists(livePositionId, LicenseeOperation.class);
     };

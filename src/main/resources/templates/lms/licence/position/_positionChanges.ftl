@@ -168,6 +168,28 @@
   </@fdsSummaryList.summaryListCard>
 </#macro>
 
+<#macro subareaEquityRows change>
+  <@fdsSummaryList.summaryListRowNoAction keyText="Subarea">
+    ${change.subareaLabel()}
+  </@fdsSummaryList.summaryListRowNoAction>
+  <@setEquityRows change=change/>
+</#macro>
+
+<#macro subareaEquityChange change summaryListId="subarea-set-equity" correction="">
+  <#assign headingText>
+    <@changeHeading change=change headingText="Subarea set equity" correction=correction/>
+  </#assign>
+
+  <#assign cardActions>
+    <@changeCardActions screenReaderText="subarea set equity change for ${change.subareaLabel()}" urls=change.urls()/>
+  </#assign>
+
+  <@fdsSummaryList.summaryListCard headingText=headingText summaryListId=summaryListId cardActionsContent=cardActions>
+    <@correctionRows correction=correction/>
+    <@subareaEquityRows change=change/>
+  </@fdsSummaryList.summaryListCard>
+</#macro>
+
 <#macro transferEquityRows change>
   <table class="govuk-table govuk-!-margin-top-2 govuk-!-margin-bottom-0">
     <thead class="govuk-table__head">
@@ -302,6 +324,8 @@
     <@partialSurrenderRows change=change/>
   <#elseif change.type() == "subarea">
     <@subareaRows change=change/>
+  <#elseif change.type() == "subarea-set-equity">
+    <@subareaEquityRows change=change/>
   </#if>
 </#macro>
 
@@ -346,5 +370,7 @@
     <@partialSurrenderChange change=change summaryListId=summaryListId correction=correction/>
   <#elseif change.type() == "subarea">
     <@subAreaChange change=change summaryListId=summaryListId correction=correction/>
+  <#elseif change.type() == "subarea-set-equity">
+    <@subareaEquityChange change=change summaryListId=summaryListId correction=correction/>
   </#if>
 </#macro>

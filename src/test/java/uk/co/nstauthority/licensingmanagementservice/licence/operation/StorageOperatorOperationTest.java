@@ -7,6 +7,7 @@ import static uk.co.nstauthority.licensingmanagementservice.licence.position.cha
 import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationContextTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeViewContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.LicencePositionState;
@@ -53,7 +54,7 @@ class StorageOperatorOperationTest {
 
     var context = PositionValidationContextTestUtil.newBuilder()
         .withPreviousState(PositionStateTestUtil.newBuilder().withStorageOperatorId(100).build())
-        .withIsCarbonStorage(true)
+        .withLicenceType(LicenceType.CARBON_STORAGE)
         .build();
 
     var error = operation.validate(context);
@@ -70,7 +71,7 @@ class StorageOperatorOperationTest {
 
     var context = PositionValidationContextTestUtil.newBuilder()
         .withPreviousState(PositionStateTestUtil.newBuilder().withStorageOperatorId(200).build())
-        .withIsCarbonStorage(true)
+        .withLicenceType(LicenceType.CARBON_STORAGE)
         .build();
 
     assertThat(operation.validate(context)).isNull();

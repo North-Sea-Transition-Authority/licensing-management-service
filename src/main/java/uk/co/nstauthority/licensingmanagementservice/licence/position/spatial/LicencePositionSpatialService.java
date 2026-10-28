@@ -91,6 +91,19 @@ public class LicencePositionSpatialService {
     return getStateGoingIntoChange(licenceCorrection, licencePositionId, changeId).subareasOf(blockFeatureId);
   }
 
+  public List<BlockSubareas> getBlockSubareasGoingIntoChange(
+      LicenceCorrection licenceCorrection,
+      UUID licencePositionId,
+      @Nullable String changeId
+  ) {
+    var state = getStateGoingIntoChange(licenceCorrection, licencePositionId, changeId);
+
+    return toBlockFeatures(state.blockFeatureIds())
+        .stream()
+        .map(block -> new BlockSubareas(block, state.subareasOf(block.getId())))
+        .toList();
+  }
+
   public LicencePositionState getStateGoingIntoChange(
       LicencePositionCorrection licencePositionCorrection,
       @Nullable String changeId

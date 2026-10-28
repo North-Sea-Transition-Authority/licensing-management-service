@@ -23,8 +23,6 @@ import uk.co.fivium.gisframework.feature.Feature;
 import uk.co.fivium.gisframework.feature.FeatureService;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
-import uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatusType;
-import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectPositionDateController;
@@ -263,6 +261,7 @@ public class LicencePositionViewService {
             licencePosition.getId(),
             resolvedStates,
             nameContext,
+            featureNames,
             positionDate
         ),
         licencePosition.getId(),
@@ -375,8 +374,8 @@ public class LicencePositionViewService {
         validationPositions,
         resolvedStates,
         positionCorrections,
-        licencePosition.getLicence().getType() == LicenceType.CARBON_STORAGE,
-        LicenceStatusType.EXTANT.equals(licenceStatusType)
+        licencePosition.getLicence().getType(),
+        licenceStatusType
     );
     var errorSummaryItems = PositionValidationError.toErrorSummaryItems(validationErrors);
     var invalidPositionIds = invalidPositionIds(validationErrors);
@@ -398,6 +397,7 @@ public class LicencePositionViewService {
             licencePosition.getId(),
             resolvedStates,
             nameContext,
+            featureNames,
             positionDate
         ),
         licencePosition.getId(),
@@ -451,8 +451,8 @@ public class LicencePositionViewService {
         allChronologicalPositions,
         resolvedStates,
         positionCorrections,
-        licenceCorrection.getLicence().getType() == LicenceType.CARBON_STORAGE,
-        LicenceStatusType.EXTANT.equals(licenceStatusType)
+        licenceCorrection.getLicence().getType(),
+        licenceStatusType
     );
     var errorSummaryItems = PositionValidationError.toErrorSummaryItems(validationErrors);
     var invalidPositionIds = invalidPositionIds(validationErrors);
@@ -470,7 +470,13 @@ public class LicencePositionViewService {
         DateUtil.formatLongDate(payload.effectiveDate()),
         payload.correctionReference(),
         changeViews,
-        LicencePositionStateViewResolver.getStateView(addedPositionId, resolvedStates, nameContext, positionDate),
+        LicencePositionStateViewResolver.getStateView(
+            addedPositionId,
+            resolvedStates,
+            nameContext,
+            featureNames,
+            positionDate
+        ),
         addedPositionId,
         actions,
         licenceCorrection.getLicence().getType(),

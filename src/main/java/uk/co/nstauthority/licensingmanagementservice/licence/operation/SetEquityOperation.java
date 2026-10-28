@@ -28,7 +28,7 @@ import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 public record SetEquityOperation(
     Integer transferTo,
     BigDecimal equity
-) implements VisibleLicenceOperation {
+) implements VisibleLicenceOperation, EquitySetterOperation {
 
   public SetEquityOperation {
     Objects.requireNonNull(transferTo, "transferTo must not be null");

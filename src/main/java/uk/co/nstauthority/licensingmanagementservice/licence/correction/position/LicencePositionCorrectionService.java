@@ -15,6 +15,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -598,23 +599,85 @@ public class LicencePositionCorrectionService {
         .orElse(0) + 1;
   }
 
+  @Transactional
   public LicencePositionCorrection replaceAddChangeFor(
       LicencePositionCorrection licencePositionCorrection,
       Class<? extends LicenceOperation> operationType,
       List<? extends LicenceOperation> operations
   ) {
+    return replaceAddChangeFor(licencePositionCorrection, operationType, operation -> true, operations);
+  }
+
+  @Transactional
+  public <T extends LicenceOperation> LicencePositionCorrection replaceAddChangeFor(
+      LicencePositionCorrection licencePositionCorrection,
+      Class<T> operationType,
+      Predicate<T> operationToReplace,
+      List<? extends LicenceOperation> operations
+  ) {
+    return replaceAddChange(
+        licencePositionCorrection,
+        operationType,
+        operationToReplace,
+        operations,
+        this::nextChangeOrder
+    );
+  }
+
+  /**
+   * As {@link #replaceAddChangeFor(LicencePositionCorrection, Class, Predicate, List)}, but the new change is ordered
+   * after the executed position's live changes as well as its staged changes, so it is applied after any live change
+   * its operations depend on.
+   */
+  @Transactional
+  public <T extends LicenceOperation> LicencePositionCorrection replaceAddChangeForExecutedPosition(
+      LicenceCorrection licenceCorrection,
+      LicencePosition licencePosition,
+      LicencePositionCorrection updateCorrection,
+      Class<T> operationType,
+      Predicate<T> operationToReplace,
+      List<? extends LicenceOperation> operations
+  ) {
+    var liveChanges = getLiveChangesForExecutedPosition(licenceCorrection, licencePosition);
+
+    return replaceAddChange(
+        updateCorrection,
+        operationType,
+        operationToReplace,
+        operations,
+        remainingChanges -> nextChangeOrderAfter(PositionChange.foldChanges(liveChanges, remainingChanges))
+    );
+  }
+
+  private <T extends LicenceOperation> LicencePositionCorrection replaceAddChange(
+      LicencePositionCorrection licencePositionCorrection,
+      Class<T> operationType,
+      Predicate<T> operationToReplace,
+      List<? extends LicenceOperation> operations,
+      Function<List<LicencePositionChangeType>, Integer> nextChangeOrderFor
+  ) {
     var payload = licencePositionCorrection.getPayload();
 
     var changes = payload.changes().stream()
-        .filter(change -> !hasAddOperationOfType(change, operationType))
-        .collect(Collectors.toCollection(ArrayList::new));
+        .filter(change -> getAddOperationsOfType(List.of(change), operationType).stream().noneMatch(operationToReplace))
+        .collect(Collectors.toList());
 
     if (!CollectionUtils.isEmpty(operations)) {
-      changes.add(AddChange.buildOperationsChange(operations, nextChangeOrder(changes)));
+      changes.add(AddChange.buildOperationsChange(operations, nextChangeOrderFor.apply(changes)));
     }
 
     licencePositionCorrection.setPayload(LicencePositionPayload.withChanges(payload, changes));
     return licencePositionCorrectionRepository.save(licencePositionCorrection);
+  }
+
+  private static int nextChangeOrderAfter(List<PositionChange> changes) {
+    return changes.stream()
+        .map(PositionChange::changeOrder)
+        .filter(Objects::nonNull)
+        // a staged change with no live change to take its order from is folded with this placeholder
+        .filter(changeOrder -> changeOrder != Integer.MAX_VALUE)
+        .max(Integer::compareTo)
+        .orElse(0) + 1;
   }
 
   public <T extends LicenceOperation> List<T> getAddOperationsOfType(
@@ -654,15 +717,22 @@ public class LicencePositionCorrectionService {
       LicencePosition licencePosition,
       @Nullable LicencePositionCorrection updateCorrection
   ) {
-    var liveChanges = withoutMovedAwayChanges(
-        licencePositionChangeService.findByLicencePositionId(licencePosition.getId()),
-        licencePosition.getId(),
-        getUpdatedChangePositionIds(licencePositionCorrectionRepository.findByLicenceCorrection(licenceCorrection))
-    );
+    var liveChanges = getLiveChangesForExecutedPosition(licenceCorrection, licencePosition);
     var stagedChanges = updateCorrection == null ? List.<LicencePositionChangeType>of()
         : updateCorrection.getPayload().changes();
 
     return PositionChange.foldChanges(liveChanges, stagedChanges);
+  }
+
+  private List<LicencePositionChange> getLiveChangesForExecutedPosition(
+      LicenceCorrection licenceCorrection,
+      LicencePosition licencePosition
+  ) {
+    return withoutMovedAwayChanges(
+        licencePositionChangeService.findByLicencePositionId(licencePosition.getId()),
+        licencePosition.getId(),
+        getUpdatedChangePositionIds(licencePositionCorrectionRepository.findByLicenceCorrection(licenceCorrection))
+    );
   }
 
   public List<PositionChange> getChangesForAddedPosition(LicencePositionCorrection addedCorrection) {
@@ -749,13 +819,6 @@ public class LicencePositionCorrectionService {
         .map(GeospatialLicenceOperation.class::cast)
         .flatMap(geospatialLicenceOperation -> geospatialLicenceOperation.featureIds().stream())
         .collect(Collectors.toSet());
-  }
-
-  private boolean hasAddOperationOfType(
-      LicencePositionChangeType change,
-      Class<? extends LicenceOperation> operationType
-  ) {
-    return !getAddOperationsOfType(List.of(change), operationType).isEmpty();
   }
 
   private void updateAddedPositionOrder(LicencePositionCorrection addedCorrection, int newOrder) {

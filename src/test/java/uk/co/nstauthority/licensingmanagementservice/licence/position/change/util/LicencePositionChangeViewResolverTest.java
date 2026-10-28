@@ -28,16 +28,18 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.tasklist.PartialSurrenderTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.setequity.LicencePositionSetEquityController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subarea.RemoveSubareaChangeController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subareaequity.LicencePositionSubareaSetEquityController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.transferequity.LicencePositionTransferEquityController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeorder.CorrectChangeOrderController;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.correctchangetypeposition.CorrectPositionChangeTypeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.correctchangetypeposition.CorrectPositionChangeTypeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation.SurrenderDetails;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaDetails;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaSetEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.TransferEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
@@ -55,6 +57,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.vie
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.SetEquityChangeView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.SetEquityRow;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.SubareaChangeView;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.SubareaEquityChangeView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.TransferEquityChangeHoldingView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.TransferEquityChangeView;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
@@ -78,6 +81,9 @@ class LicencePositionChangeViewResolverTest {
   private static final int TRANSFER_TO_ID = 600;
   private static final String TRANSFER_FROM_NAME = "Transfer From Org Ltd";
   private static final String TRANSFER_TO_NAME = "Transfer To Org Ltd";
+  private static final SubareaDetails SUBAREA_A = new SubareaDetails(UUID.randomUUID(), "Subarea A", "A");
+  private static final String SUBAREA_KEY = subareaSetEquityOperation(SET_EQUITY_ORG_ID, BigDecimal.TEN).subareaKey();
+  private static final String SUBAREA_LABEL = "Block 30/1a - Subarea A";
 
   private static final LicenceCorrection CORRECTION = LicenceCorrectionTestUtil.newBuilder().build();
   private static final LicencePosition LICENCE_POSITION = LicencePositionTestUtil.newBuilder().build();
@@ -978,7 +984,7 @@ class LicencePositionChangeViewResolverTest {
 
     var partialSurrenderChangeView = (PartialSurrenderChangeView) byType(result, LicenceOperation.PARTIAL_SURRENDER);
     assertThat(partialSurrenderChangeView.blockRows())
-        .containsExactly(new PartialSurrenderChangeView.BlockRow("Not available", "Full surrender"));
+        .containsExactly(new PartialSurrenderChangeView.BlockRow("Unknown block", "Full surrender"));
   }
 
   @Test
@@ -1290,7 +1296,7 @@ class LicencePositionChangeViewResolverTest {
   }
 
   @Test
-  void getChangeViews_whenSubareaBlockNameNotFound_usesNotAvailable() {
+  void getChangeViews_whenSubareaBlockNameNotFound_usesUnknownBlock() {
     var currentLicencePosition = LicencePositionTestUtil.newBuilder().build();
 
     var currentChronologicalPosition = ChronologicalPositionTestUtil.live(
@@ -1300,7 +1306,161 @@ class LicencePositionChangeViewResolverTest {
     var result = changeViewsFor(currentLicencePosition.getId(), Map.of(), currentChronologicalPosition);
 
     var subareaChangeView = (SubareaChangeView) byType(result, LicenceOperation.SUBAREA);
-    assertThat(subareaChangeView.featureName()).isEqualTo("Not available");
+    assertThat(subareaChangeView.featureName()).isEqualTo("Unknown block");
+  }
+
+  @Test
+  void getChangeViews_whenChangeSetsSubareaEquityForSeveralOrganisations_thenBuildsOneViewWithARowEach() {
+    var currentLicencePosition = LicencePositionTestUtil.newBuilder().build();
+
+    var currentChronologicalPosition = ChronologicalPositionTestUtil.live(
+        currentLicencePosition,
+        subareaSetEquityOperation(SET_EQUITY_ORG_ID, BigDecimal.valueOf(60)),
+        subareaSetEquityOperation(TRANSFER_TO_ID, BigDecimal.valueOf(40)));
+
+    var chronologicalPositions = List.of(currentChronologicalPosition);
+    var result = LicencePositionChangeViewResolver.getChangeViews(
+        currentLicencePosition.getId(),
+        chronologicalPositions,
+        LicencePositionStateResolver.resolve(chronologicalPositions),
+        Map.of(SET_EQUITY_ORG_ID, SET_EQUITY_ORG_NAME, TRANSFER_TO_ID, TRANSFER_TO_NAME),
+        FEATURE_NAMES,
+        null
+    );
+
+    var expected = new SubareaEquityChangeView(
+        SUBAREA_LABEL,
+        List.of(
+            new SetEquityRow(SET_EQUITY_ORG_NAME, BigDecimal.valueOf(60)),
+            new SetEquityRow(TRANSFER_TO_NAME, BigDecimal.valueOf(40))),
+        null,
+        ChangeViewUrls.none()
+    );
+    assertThat(result).containsExactly(expected);
+  }
+
+  @Test
+  void getChangeViews_whenSubareaEquityBlockAndOrganisationNamesNotFound_thenUsesUnknownBlockAndNotAvailable() {
+    var currentLicencePosition = LicencePositionTestUtil.newBuilder().build();
+
+    var currentChronologicalPosition = ChronologicalPositionTestUtil.live(
+        currentLicencePosition,
+        subareaSetEquityOperation(SET_EQUITY_ORG_ID, BigDecimal.valueOf(60)));
+
+    var result = changeViewsFor(currentLicencePosition.getId(), Map.of(), currentChronologicalPosition);
+
+    var expected = new SubareaEquityChangeView(
+        "Unknown block - Subarea A",
+        List.of(new SetEquityRow("Not available", BigDecimal.valueOf(60))),
+        null,
+        ChangeViewUrls.none()
+    );
+    assertThat(result).containsExactly(expected);
+  }
+
+  @Test
+  void getChangeViews_whenExecutedSubareaEquityAddChange_thenCorrectLinksToExecutedSummaryAndUndoIsOffered() {
+    var correction = LicenceCorrectionTestUtil.newBuilder().build();
+    var licencePosition = LicencePositionTestUtil.newBuilder().build();
+    var changeId = UUID.randomUUID().toString();
+    var urlContext = PositionChangeUrlContext.forExecutedPosition(correction, licencePosition, POSITION_CORRECTION);
+
+    var view = subareaEquityChangeView(changeId, LicencePositionChangeType.ADD_CHANGE, urlContext);
+
+    var expected = new SubareaEquityChangeView(
+        SUBAREA_LABEL,
+        List.of(new SetEquityRow(SET_EQUITY_ORG_NAME, BigDecimal.valueOf(75))),
+        LicencePositionChangeType.ADD_CHANGE,
+        new ChangeViewUrls(
+            ReverseRouter.route(on(LicencePositionSubareaSetEquityController.class)
+                .renderSummaryForExecutedPosition(correction, licencePosition, SUBAREA_KEY)),
+            null,
+            ReverseRouter.route(on(RemoveEquityChangeController.class)
+                .renderUndoEquityChange(correction, changeId)),
+            null,
+            null,
+            correctPositionUrl(correction.getId(), SET_EQUITY_POSITION_ID, UUID.fromString(changeId))
+        )
+    );
+    assertThat(view).isEqualTo(expected);
+  }
+
+  @Test
+  void getChangeViews_whenUntouchedExecutedSubareaEquityChange_thenRemoveIsOffered() {
+    var changeId = UUID.randomUUID();
+    var liveChange = LicencePositionChangeTestUtil.newBuilder().withId(changeId).build();
+    var urlContext = PositionChangeUrlContext.forExecutedPosition(CORRECTION, LICENCE_POSITION, null);
+
+    var view = subareaEquityChangeView(changeId.toString(), null, urlContext);
+
+    var expected = new SubareaEquityChangeView(
+        SUBAREA_LABEL,
+        List.of(new SetEquityRow(SET_EQUITY_ORG_NAME, BigDecimal.valueOf(75))),
+        null,
+        new ChangeViewUrls(
+            null,
+            ReverseRouter.route(on(RemoveEquityChangeController.class)
+                .renderRemoveExecutedEquityChange(CORRECTION, LICENCE_POSITION, liveChange)),
+            null,
+            null,
+            null,
+            correctPositionUrl(CORRECTION.getId(), SET_EQUITY_POSITION_ID, changeId)
+        )
+    );
+    assertThat(view).isEqualTo(expected);
+  }
+
+  @Test
+  void getChangeViews_whenAddedPositionSubareaEquityAddChange_thenCorrectLinksToAddedSummaryForThatSubarea() {
+    var correction = LicenceCorrectionTestUtil.newBuilder().build();
+    var licencePositionCorrection = LicencePositionCorrectionTestUtil.newBuilder().build();
+    var urlContext = PositionChangeUrlContext.forAddedPosition(correction, licencePositionCorrection);
+
+    var view = subareaEquityChangeView(UUID.randomUUID().toString(), LicencePositionChangeType.ADD_CHANGE, urlContext);
+
+    assertThat(view.urls().correct()).isEqualTo(ReverseRouter.route(on(LicencePositionSubareaSetEquityController.class)
+        .renderSummaryForAddedPosition(correction, licencePositionCorrection, SUBAREA_KEY)));
+  }
+
+  private SubareaEquityChangeView subareaEquityChangeView(
+      String changeId,
+      String changeType,
+      PositionChangeUrlContext urlContext
+  ) {
+    var currentLicencePosition = LicencePositionTestUtil.newBuilder().withId(SET_EQUITY_POSITION_ID).build();
+
+    var change = new PositionChange(
+        changeId,
+        1,
+        changeType,
+        List.of(subareaSetEquityOperation(SET_EQUITY_ORG_ID, BigDecimal.valueOf(75))));
+    var currentChronologicalPosition = ChronologicalPosition.fromLicencePosition(
+        currentLicencePosition,
+        currentLicencePosition.getLicenceTransaction().getRegulatorReference(),
+        currentLicencePosition.getPositionDate(),
+        currentLicencePosition.getPositionDateOrder(),
+        List.of(change));
+
+    var chronologicalPositions = List.of(currentChronologicalPosition);
+    var result = LicencePositionChangeViewResolver.getChangeViews(
+        currentLicencePosition.getId(),
+        chronologicalPositions,
+        LicencePositionStateResolver.resolve(chronologicalPositions),
+        Map.of(SET_EQUITY_ORG_ID, SET_EQUITY_ORG_NAME),
+        FEATURE_NAMES,
+        urlContext
+    );
+
+    return (SubareaEquityChangeView) byType(result, LicenceOperation.SUBAREA_SET_EQUITY);
+  }
+
+  private static SubareaSetEquityOperation subareaSetEquityOperation(int organisationId, BigDecimal equity) {
+    return LicenceOperation.newSubareaSetEquityOperation()
+        .withBlockFeatureId(FIRST_FEATURE_ID)
+        .withSubarea(SUBAREA_A)
+        .withTransferTo(organisationId)
+        .withEquity(equity)
+        .build();
   }
 
   private static List<LicencePositionChangeView> changeViewsFor(
@@ -1661,14 +1821,25 @@ class LicencePositionChangeViewResolverTest {
   }
 
   @Test
-  void getOrderableChangeLabels_whenSubareaFeatureNameMissing_usesNotAvailable() {
+  void getOrderableChangeLabels_whenSubareaFeatureNameMissing_usesUnknownBlock() {
     var changeId = UUID.randomUUID();
     var change = new PositionChange(
         changeId.toString(), 1, null, List.of(new SubareaOperation(UUID.randomUUID(), List.of(), List.of())));
 
     var result = LicencePositionChangeViewResolver.getOrderableChangeLabels(List.of(change), Map.of());
 
-    assertThat(result).containsExactly(entry(changeId, "Subarea change – Not available"));
+    assertThat(result).containsExactly(entry(changeId, "Subarea change – Unknown block"));
+  }
+
+  @Test
+  void getOrderableChangeLabels_whenSubareaSetEquityChange_thenLabelsByBlockAndSubarea() {
+    var changeId = UUID.randomUUID();
+    var change = new PositionChange(
+        changeId.toString(), 1, null, List.of(subareaSetEquityOperation(SET_EQUITY_ORG_ID, BigDecimal.TEN)));
+
+    var result = LicencePositionChangeViewResolver.getOrderableChangeLabels(List.of(change), FEATURE_NAMES);
+
+    assertThat(result).containsExactly(entry(changeId, "Subarea set equity – " + SUBAREA_LABEL));
   }
 
   @Test

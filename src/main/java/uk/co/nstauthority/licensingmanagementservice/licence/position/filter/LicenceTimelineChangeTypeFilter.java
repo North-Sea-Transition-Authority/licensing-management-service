@@ -25,7 +25,8 @@ public final class LicenceTimelineChangeTypeFilter {
       LicenceOperation.SET_EQUITY,
       LicenceOperation.TRANSFER_EQUITY,
       LicenceOperation.PARTIAL_SURRENDER,
-      LicenceOperation.SUBAREA
+      LicenceOperation.SUBAREA,
+      LicenceOperation.SUBAREA_SET_EQUITY
   );
 
   private static final Comparator<LicenceOperation> CHANGE_TYPE_COMPARATOR =

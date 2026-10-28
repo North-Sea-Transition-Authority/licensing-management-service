@@ -13,7 +13,6 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correct
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanViewCorrection;
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
-import uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatusType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.CorrectionDetailsViewService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
@@ -73,14 +72,13 @@ public class ReviewCorrectionController {
           .addObject("errorSummaryItems", List.of());
     }
     var licenceStatusType = licenceStatusService.getCurrentStatus(licenceCorrection.getLicence());
-
     var correctedTimeline = correctedTimelineService.getCorrectedTimeline(licenceCorrection);
     var blockingErrors = licencePositionValidationService.validate(
         correctedTimeline.positionsToApply(),
         correctedTimeline.resolvedStates(),
         correctedTimeline.positionCorrections(),
-        correctedTimeline.isCarbonStorage(),
-        LicenceStatusType.EXTANT.equals(licenceStatusType)
+        correctedTimeline.licenceType(),
+        licenceStatusType
     );
 
     return reviewCorrectionModelAndView(licenceCorrection, correctedTimeline, blockingErrors);

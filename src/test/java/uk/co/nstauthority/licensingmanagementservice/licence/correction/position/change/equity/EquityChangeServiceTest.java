@@ -15,6 +15,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import uk.co.fivium.gisframework.feature.FeatureService;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
@@ -30,6 +31,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.UpdateLicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquityOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaDetails;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaSetEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.TransferEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
@@ -37,6 +40,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.Lic
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.SetEquityRow;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.TransferEquityHoldingView;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.FeatureTestUtil;
 
 @ExtendWith(MockitoExtension.class)
 class EquityChangeServiceTest {
@@ -53,6 +57,8 @@ class EquityChangeServiceTest {
   private static final int TRANSFER_FROM_ID = 117;
   private static final String TRANSFER_TO_NAME = "Transfer To Org Ltd";
   private static final String TRANSFER_FROM_NAME = "Transfer From Org Ltd";
+  private static final UUID BLOCK_FEATURE_ID = UUID.randomUUID();
+  private static final SubareaDetails SUBAREA = new SubareaDetails(UUID.randomUUID(), "Subarea A", "A");
 
   @Mock
   private LicencePositionCorrectionService licencePositionCorrectionService;
@@ -65,6 +71,9 @@ class EquityChangeServiceTest {
 
   @Mock
   private SetEquityCorrectionService setEquityCorrectionService;
+
+  @Mock
+  private FeatureService featureService;
 
   @InjectMocks
   private EquityChangeService equityChangeService;
@@ -100,6 +109,16 @@ class EquityChangeServiceTest {
   }
 
   @Test
+  void undoEquityChange_whenTheChangeStagesASubareaSetEquityOperation_thenDropsIt() {
+    var changeId = UUID.randomUUID().toString();
+    var correction = givenStagedChange(addChange(changeId, subareaSetEquityOperation()), subareaSetEquityOperation());
+
+    equityChangeService.undoEquityChange(LICENCE_CORRECTION, changeId);
+
+    verify(licencePositionCorrectionService).dropStagedChange(correction, changeId);
+  }
+
+  @Test
   void undoEquityChange_whenTheChangeIsNotAnEquityChange_thenThrowsAndDropsNothing() {
     var changeId = UUID.randomUUID().toString();
     givenStagedChange(administratorAddChange(changeId),
@@ -124,7 +143,7 @@ class EquityChangeServiceTest {
 
     var context = equityChangeService.getEquityChangeContext(LICENCE_CORRECTION, changeId);
 
-    assertThat(context).isEqualTo(new EquityChangeContext(List.of(setEquityRow), List.of()));
+    assertThat(context).isEqualTo(new EquityChangeContext(List.of(setEquityRow), List.of(), null));
   }
 
   @Test
@@ -139,7 +158,39 @@ class EquityChangeServiceTest {
 
     var context = equityChangeService.getEquityChangeContext(LICENCE_CORRECTION, changeId);
 
-    assertThat(context).isEqualTo(new EquityChangeContext(List.of(), List.of(transferEquityRow)));
+    assertThat(context).isEqualTo(new EquityChangeContext(List.of(), List.of(transferEquityRow), null));
+  }
+
+  @Test
+  void getEquityChangeContext_whenSubareaSetEquityChange_returnsSubareaRowsAndLabel() {
+    var changeId = UUID.randomUUID().toString();
+    var subareaEquityRow = new SetEquityRow(TRANSFER_TO_NAME, BigDecimal.TEN);
+    givenStagedChange(addChange(changeId, subareaSetEquityOperation()), subareaSetEquityOperation());
+
+    when(setEquityCorrectionService.getSetEquityViews(List.of(subareaSetEquityOperation())))
+        .thenReturn(List.of(subareaEquityRow));
+    when(featureService.getFeaturesByIds(List.of(BLOCK_FEATURE_ID)))
+        .thenReturn(List.of(FeatureTestUtil.builder().withId(BLOCK_FEATURE_ID).withFeatureName("21/1").build()));
+
+    var context = equityChangeService.getEquityChangeContext(LICENCE_CORRECTION, changeId);
+
+    assertThat(context).isEqualTo(
+        new EquityChangeContext(List.of(subareaEquityRow), List.of(), "Block 21/1 - Subarea A"));
+  }
+
+  @Test
+  void getEquityChangeContext_whenSubareaBlockNotFound_thenLabelIsUnknownBlock() {
+    var changeId = UUID.randomUUID().toString();
+    givenStagedChange(addChange(changeId, subareaSetEquityOperation()), subareaSetEquityOperation());
+
+    var subareaEquityRows = List.of(new SetEquityRow(TRANSFER_TO_NAME, BigDecimal.TEN));
+
+    when(setEquityCorrectionService.getSetEquityViews(List.of(subareaSetEquityOperation()))).thenReturn(subareaEquityRows);
+    when(featureService.getFeaturesByIds(List.of(BLOCK_FEATURE_ID))).thenReturn(List.of());
+
+    var context = equityChangeService.getEquityChangeContext(LICENCE_CORRECTION, changeId);
+
+    assertThat(context).isEqualTo(new EquityChangeContext(subareaEquityRows, List.of(), "Unknown block - Subarea A"));
   }
 
   @Test
@@ -221,6 +272,26 @@ class EquityChangeServiceTest {
         .withTransferFrom(TRANSFER_FROM_ID)
         .withTransferTo(TRANSFER_TO_ID)
         .withEquity(BigDecimal.TEN)
+        .build();
+  }
+
+  private static SubareaSetEquityOperation subareaSetEquityOperation() {
+    return LicenceOperation.newSubareaSetEquityOperation()
+        .withBlockFeatureId(BLOCK_FEATURE_ID)
+        .withSubarea(SUBAREA)
+        .withTransferTo(TRANSFER_TO_ID)
+        .withEquity(BigDecimal.TEN)
+        .build();
+  }
+
+  private LicencePositionChangeType addChange(String changeId, LicenceOperation operation) {
+    return LicencePositionChangeType.addChange()
+        .withChangeId(changeId)
+        .withChangeOrder(1)
+        .withOperations(List.of(LicencePositionChangeOperation.newLicencePositionAddOperation()
+            .withOperationId(operation.id())
+            .withOperation(operation)
+            .build()))
         .build();
   }
 

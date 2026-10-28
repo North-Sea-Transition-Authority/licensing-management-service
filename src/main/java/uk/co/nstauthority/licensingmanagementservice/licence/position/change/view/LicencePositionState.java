@@ -20,16 +20,19 @@ import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaDe
  * @param blockFeatureIdToSubareas the blocks the licence holds and the subareas dividing up each of them. Only block
  *                                 operations change which blocks are held; subarea operations only change the subareas
  *                                 on a held block.
+ * @param blockFeatureIdToSubareaEquity the beneficial interests held in each subarea, by organisation. Ending a block
+ *                                      or subarea drops its beneficial interests.
  */
 public record LicencePositionState(
     @Nullable Integer administratorId,
     @Nullable Integer storageOperatorId,
     Set<Integer> licenseeIds,
     Map<Integer, BigDecimal> equityByOrganisationId,
-    Map<UUID, Set<SubareaDetails>> blockFeatureIdToSubareas
+    Map<UUID, Set<SubareaDetails>> blockFeatureIdToSubareas,
+    Map<UUID, Map<SubareaDetails, Map<Integer, BigDecimal>>> blockFeatureIdToSubareaEquity
 ) {
 
-  public static final LicencePositionState EMPTY = new LicencePositionState(null, null, Set.of(), Map.of(), Map.of());
+  public static final LicencePositionState EMPTY = new LicencePositionState(null, null, Set.of(), Map.of(), Map.of(), Map.of());
 
   public LicencePositionState withAdministratorId(Integer administratorId) {
     return new LicencePositionState(
@@ -37,7 +40,8 @@ public record LicencePositionState(
         storageOperatorId,
         licenseeIds,
         equityByOrganisationId,
-        blockFeatureIdToSubareas
+        blockFeatureIdToSubareas,
+        blockFeatureIdToSubareaEquity
     );
   }
 
@@ -47,7 +51,8 @@ public record LicencePositionState(
         storageOperatorId,
         licenseeIds,
         equityByOrganisationId,
-        blockFeatureIdToSubareas
+        blockFeatureIdToSubareas,
+        blockFeatureIdToSubareaEquity
     );
   }
 
@@ -57,7 +62,8 @@ public record LicencePositionState(
         storageOperatorId,
         licenseeIds,
         equityByOrganisationId,
-        blockFeatureIdToSubareas
+        blockFeatureIdToSubareas,
+        blockFeatureIdToSubareaEquity
     );
   }
 
@@ -70,7 +76,8 @@ public record LicencePositionState(
         storageOperatorId,
         newLicenseeIds,
         equityByOrganisationId,
-        blockFeatureIdToSubareas
+        blockFeatureIdToSubareas,
+        blockFeatureIdToSubareaEquity
     );
   }
 
@@ -108,7 +115,26 @@ public record LicencePositionState(
   public LicencePositionState withoutBlocks(Collection<UUID> blockFeatureIds) {
     var updatedBlockFeatureIdToSubareas = new HashMap<>(blockFeatureIdToSubareas);
     updatedBlockFeatureIdToSubareas.keySet().removeAll(blockFeatureIds);
-    return withBlockFeatureIdToSubareas(updatedBlockFeatureIdToSubareas);
+    var updatedBlockFeatureIdToSubareaEquity = new HashMap<>(blockFeatureIdToSubareaEquity);
+    updatedBlockFeatureIdToSubareaEquity.keySet().removeAll(blockFeatureIds);
+
+    return withBlockFeatureIdToSubareas(updatedBlockFeatureIdToSubareas)
+        .withBlockFeatureIdToSubareaEquity(updatedBlockFeatureIdToSubareaEquity);
+  }
+
+  public LicencePositionState withSubareaEquity(
+      UUID blockFeatureId,
+      SubareaDetails subareaDetails,
+      Integer organisationId,
+      BigDecimal equity
+  ) {
+    var subareaEquityForBlock = new HashMap<>(blockFeatureIdToSubareaEquity.getOrDefault(blockFeatureId, Map.of()));
+    var subareaEquityByOrganisationId = new HashMap<>(subareaEquityForBlock.getOrDefault(subareaDetails, Map.of()));
+
+    subareaEquityForBlock.put(subareaDetails, subareaEquityByOrganisationId);
+    subareaEquityByOrganisationId.put(organisationId, equity);
+
+    return withBlockSubareaEquity(blockFeatureId, subareaEquityForBlock);
   }
 
   /**
@@ -129,7 +155,8 @@ public record LicencePositionState(
   }
 
   /**
-   * Removes the subareas from the block, leaving the state as it was when the block is not held.
+   * Removes the subareas and their beneficial interests from the block, leaving the state as it was when the block is
+   * not held.
    */
   public LicencePositionState withoutSubareas(
       UUID blockFeatureId,
@@ -142,7 +169,10 @@ public record LicencePositionState(
 
     var blockSubareas = new LinkedHashSet<>(currentSubareas);
     blockSubareas.removeAll(subareas);
-    return withBlockSubareas(blockFeatureId, blockSubareas);
+    var subareaEquityForBlock = new HashMap<>(blockFeatureIdToSubareaEquity.getOrDefault(blockFeatureId, Map.of()));
+    subareaEquityForBlock.keySet().removeAll(subareas);
+    return withBlockSubareas(blockFeatureId, blockSubareas)
+        .withBlockSubareaEquity(blockFeatureId, subareaEquityForBlock);
   }
 
   private LicencePositionState withBlockSubareas(
@@ -160,7 +190,34 @@ public record LicencePositionState(
         storageOperatorId,
         licenseeIds,
         equityByOrganisationId,
-        Collections.unmodifiableMap(blockFeatureIdToSubareas)
+        Collections.unmodifiableMap(blockFeatureIdToSubareas),
+        blockFeatureIdToSubareaEquity
+    );
+  }
+
+  private LicencePositionState withBlockSubareaEquity(
+      UUID blockFeatureId,
+      Map<SubareaDetails, Map<Integer, BigDecimal>> subareaEquityForBlock
+  ) {
+    var updatedBlockFeatureIdToSubareaEquity = new HashMap<>(blockFeatureIdToSubareaEquity);
+    if (subareaEquityForBlock.isEmpty()) {
+      updatedBlockFeatureIdToSubareaEquity.remove(blockFeatureId);
+    } else {
+      updatedBlockFeatureIdToSubareaEquity.put(blockFeatureId, subareaEquityForBlock);
+    }
+    return withBlockFeatureIdToSubareaEquity(updatedBlockFeatureIdToSubareaEquity);
+  }
+
+  private LicencePositionState withBlockFeatureIdToSubareaEquity(
+      Map<UUID, Map<SubareaDetails, Map<Integer, BigDecimal>>> blockFeatureIdToSubareaEquity
+  ) {
+    return new LicencePositionState(
+        administratorId,
+        storageOperatorId,
+        licenseeIds,
+        equityByOrganisationId,
+        blockFeatureIdToSubareas,
+        Collections.unmodifiableMap(blockFeatureIdToSubareaEquity)
     );
   }
 }

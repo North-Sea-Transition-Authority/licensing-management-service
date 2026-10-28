@@ -14,6 +14,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationNamePeriods;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationNamePeriods.OrganisationNamePeriod;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaDetails;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.LicencePositionState;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.PositionKey;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ResolvedStates;
@@ -23,6 +24,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.vie
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.LicenseeStateView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.NameHistoryEntryView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.OrganisationNameHistoryView;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.SubareaBeneficialInterestView;
 
 class LicencePositionStateViewResolverTest {
 
@@ -47,6 +49,7 @@ class LicencePositionStateViewResolverTest {
         CURRENT_STORAGE_OPERATOR_ID,
         Set.of(11, 12),
         equityByOrganisationId,
+        Map.of(),
         Map.of()
     );
 
@@ -64,6 +67,7 @@ class LicencePositionStateViewResolverTest {
         currentPositionId,
         resolvedStatesFor(currentPositionId, state),
         OrganisationNameContext.from(nameHistories),
+        Map.of(),
         POSITION_DATE
     );
 
@@ -77,6 +81,7 @@ class LicencePositionStateViewResolverTest {
                 new BeneficialInterestView("Bravo gas", new BigDecimal("25")),
                 new BeneficialInterestView("charlie oil", new BigDecimal("40"))
             ),
+            List.of(),
             List.of()
         ));
   }
@@ -89,12 +94,14 @@ class LicencePositionStateViewResolverTest {
         currentPositionId,
         new ResolvedStates(new TreeMap<>(), Map.of()),
         OrganisationNameContext.from(Map.of(CURRENT_ADMIN_ID, heldSince(CURRENT_ADMIN_NAME))),
+        Map.of(),
         POSITION_DATE
     );
 
     assertThat(result).isEqualTo(new LicencePositionStateView(new AdministratorStateView(""),
         new LicenseeStateView(List.of()),
         "",
+        List.of(),
         List.of(),
         List.of()));
   }
@@ -109,6 +116,7 @@ class LicencePositionStateViewResolverTest {
         currentPositionId,
         resolvedStatesFor(currentPositionId, state),
         OrganisationNameContext.from(Map.of(1, heldSince("organisationOne"))),
+        Map.of(),
         POSITION_DATE
     );
 
@@ -126,6 +134,7 @@ class LicencePositionStateViewResolverTest {
         currentPositionId,
         resolvedStatesFor(currentPositionId, state),
         OrganisationNameContext.from(Map.of()),
+        Map.of(),
         POSITION_DATE
     );
 
@@ -141,6 +150,7 @@ class LicencePositionStateViewResolverTest {
         currentPositionId,
         resolvedStatesFor(currentPositionId, LicencePositionState.EMPTY.withAdministratorId(CURRENT_ADMIN_ID)),
         OrganisationNameContext.from(Map.of()),
+        Map.of(),
         POSITION_DATE
     );
 
@@ -158,6 +168,7 @@ class LicencePositionStateViewResolverTest {
         currentPositionId,
         resolvedStatesFor(currentPositionId, state),
         OrganisationNameContext.from(Map.of()),
+        Map.of(),
         POSITION_DATE
     );
 
@@ -169,7 +180,8 @@ class LicencePositionStateViewResolverTest {
   void getStateView_whenOrganisationsRenamed_returnsNameHistoriesSortedByOrganisationName() {
     var currentPositionId = UUID.randomUUID();
 
-    var state = new LicencePositionState(CURRENT_ADMIN_ID, CURRENT_STORAGE_OPERATOR_ID, Set.of(11), Map.of(1, new BigDecimal("100")), Map.of());
+    var state = new LicencePositionState(
+        CURRENT_ADMIN_ID, CURRENT_STORAGE_OPERATOR_ID, Set.of(11), Map.of(1, new BigDecimal("100")), Map.of(), Map.of());
 
     var nameHistories = Map.of(
         CURRENT_ADMIN_ID, new OrganisationNamePeriods("zeta admin", List.of(
@@ -186,12 +198,13 @@ class LicencePositionStateViewResolverTest {
         11, new OrganisationNamePeriods("beta pharmaceuticals", List.of(
             new OrganisationNamePeriod("beta financials", LONG_BEFORE_THE_POSITION_DATE, LocalDate.of(2020, Month.MAY, 5)),
             new OrganisationNamePeriod("beta pharmaceuticals", LocalDate.of(2020, Month.MAY, 5), null)))
-        );
+    );
 
     var result = LicencePositionStateViewResolver.getStateView(
         currentPositionId,
         resolvedStatesFor(currentPositionId, state),
         OrganisationNameContext.from(nameHistories),
+        Map.of(),
         POSITION_DATE
     );
 
@@ -226,10 +239,113 @@ class LicencePositionStateViewResolverTest {
         currentPositionId,
         resolvedStatesFor(currentPositionId, state),
         OrganisationNameContext.from(Map.of(CURRENT_ADMIN_ID, heldSince(CURRENT_ADMIN_NAME))),
+        Map.of(),
         POSITION_DATE
     );
 
     assertThat(result.organisationNameHistories()).isEmpty();
+  }
+
+  @Test
+  void getStateView_whenSubareaBeneficialInterests_returnsOneEntryPerSubareaSortedByLabel() {
+    var currentPositionId = UUID.randomUUID();
+    var firstBlockId = UUID.randomUUID();
+    var secondBlockId = UUID.randomUUID();
+    var subareaOnSecondBlock = new SubareaDetails(UUID.randomUUID(), "Subarea A", "A");
+    var namedSubareaOnFirstBlock = new SubareaDetails(UUID.randomUUID(), "Subarea B", "B");
+    var legacySubareaOnFirstBlock = new SubareaDetails(null, null, "a");
+
+    var state = LicencePositionState.EMPTY
+        .withSubareaEquity(secondBlockId, subareaOnSecondBlock, 1, new BigDecimal("60"))
+        .withSubareaEquity(secondBlockId, subareaOnSecondBlock, 2, new BigDecimal("40"))
+        .withSubareaEquity(firstBlockId, namedSubareaOnFirstBlock, 3, new BigDecimal("100"))
+        .withSubareaEquity(firstBlockId, legacySubareaOnFirstBlock, 1, new BigDecimal("100"));
+
+    var nameHistories = Map.of(
+        1, heldSince("charlie oil"),
+        2, heldSince("alpha energy"),
+        3, heldSince("Bravo gas")
+    );
+
+    var result = LicencePositionStateViewResolver.getStateView(
+        currentPositionId,
+        resolvedStatesFor(currentPositionId, state),
+        OrganisationNameContext.from(nameHistories),
+        Map.of(firstBlockId, "21/1", secondBlockId, "21/2"),
+        POSITION_DATE
+    );
+
+    assertThat(result)
+        .isEqualTo(new LicencePositionStateView(
+            new AdministratorStateView(""),
+            new LicenseeStateView(List.of()),
+            "",
+            List.of(),
+            List.of(),
+            List.of(
+                new SubareaBeneficialInterestView(
+                    "Block 21/1 - Subarea a",
+                    List.of(new BeneficialInterestView("charlie oil", new BigDecimal("100")))),
+                new SubareaBeneficialInterestView(
+                    "Block 21/1 - Subarea B",
+                    List.of(new BeneficialInterestView("Bravo gas", new BigDecimal("100")))),
+                new SubareaBeneficialInterestView(
+                    "Block 21/2 - Subarea A",
+                    List.of(
+                        new BeneficialInterestView("alpha energy", new BigDecimal("40")),
+                        new BeneficialInterestView("charlie oil", new BigDecimal("60"))))
+            )
+        ));
+  }
+
+  @Test
+  void getStateView_whenBlockNameNotFound_labelsSubareaWithUnknownBlock() {
+    var currentPositionId = UUID.randomUUID();
+    var subarea = new SubareaDetails(UUID.randomUUID(), "Subarea A", "A");
+
+    var state = LicencePositionState.EMPTY.withSubareaEquity(UUID.randomUUID(), subarea, 1, new BigDecimal("100"));
+
+    var result = LicencePositionStateViewResolver.getStateView(
+        currentPositionId,
+        resolvedStatesFor(currentPositionId, state),
+        OrganisationNameContext.from(Map.of(1, heldSince("alpha energy"))),
+        Map.of(),
+        POSITION_DATE
+    );
+
+    assertThat(result.subareaBeneficialInterests())
+        .isEqualTo(List.of(new SubareaBeneficialInterestView(
+            "Unknown block - Subarea A",
+            List.of(new BeneficialInterestView("alpha energy", new BigDecimal("100"))))));
+  }
+
+  @Test
+  void getStateView_whenSubareaBeneficialInterestHolderRenamed_includesThemInNameHistories() {
+    var currentPositionId = UUID.randomUUID();
+    var blockId = UUID.randomUUID();
+    var subarea = new SubareaDetails(UUID.randomUUID(), "Subarea A", "A");
+
+    var state = LicencePositionState.EMPTY.withSubareaEquity(blockId, subarea, 1, new BigDecimal("100"));
+
+    var nameHistories = Map.of(
+        1, new OrganisationNamePeriods("Alpha Renewables", List.of(
+            new OrganisationNamePeriod("alpha energy", LONG_BEFORE_THE_POSITION_DATE, LocalDate.of(2020, Month.APRIL, 4)),
+            new OrganisationNamePeriod("Alpha Renewables", LocalDate.of(2020, Month.APRIL, 4), null)))
+    );
+
+    var result = LicencePositionStateViewResolver.getStateView(
+        currentPositionId,
+        resolvedStatesFor(currentPositionId, state),
+        OrganisationNameContext.from(nameHistories),
+        Map.of(blockId, "21/1"),
+        POSITION_DATE
+    );
+
+    assertThat(result.organisationNameHistories())
+        .isEqualTo(List.of(new OrganisationNameHistoryView(
+            "alpha energy",
+            List.of(),
+            List.of(new NameHistoryEntryView("Alpha Renewables", "from 4 April 2020")))));
   }
 
   private static OrganisationNamePeriods heldSince(String name) {

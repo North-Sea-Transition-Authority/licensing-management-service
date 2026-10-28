@@ -9,6 +9,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 public final class LicencePositionChangeUtil {
 
   public static final String NOT_AVAILABLE = "Not available";
+  public static final String UNKNOWN_BLOCK = "Unknown block";
 
   private LicencePositionChangeUtil() {
     throw new IllegalStateException("Utility class should not be instantiated.");

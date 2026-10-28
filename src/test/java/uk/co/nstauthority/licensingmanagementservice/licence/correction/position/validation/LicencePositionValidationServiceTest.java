@@ -11,6 +11,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.Month;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Stream;
@@ -24,16 +25,20 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatusType;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.PartialSurrenderValidator;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.LicencePositionPayload;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.BlockCreateOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.BlockEndOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaCreateOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaDetails;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaSetEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionStateResolver;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPosition;
@@ -46,6 +51,9 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.vie
 class LicencePositionValidationServiceTest {
 
   private static final LocalDate POSITION_DATE = LocalDate.of(2026, Month.JUNE, 18);
+  private static final UUID BLOCK_FEATURE_ID = UUID.randomUUID();
+  private static final SubareaDetails SUBAREA_A = new SubareaDetails(UUID.randomUUID(), "Subarea A", "A");
+  private static final SubareaDetails SUBAREA_B = new SubareaDetails(UUID.randomUUID(), "Subarea B", "B");
 
   @Mock
   private PartialSurrenderValidator partialSurrenderValidator;
@@ -85,7 +93,7 @@ class LicencePositionValidationServiceTest {
         surrenderChange.changeId()
     )).thenReturn(List.of("Surrender error"));
 
-    var errors = service.validate(positions, LicencePositionStateResolver.resolve(positions), corrections, true, true);
+    var errors = service.validate(positions, LicencePositionStateResolver.resolve(positions), corrections, LicenceType.CARBON_STORAGE, LicenceStatusType.EXTANT);
 
     assertThat(errors).containsExactly(new PositionValidationError(
         position.id(),
@@ -113,7 +121,7 @@ class LicencePositionValidationServiceTest {
     var corrections = List.of(stagingCorrection(
         LicencePositionChangeType.removeChange().withChangeId(removedSurrender.changeId()).build()));
 
-    service.validate(positions, LicencePositionStateResolver.resolve(positions), corrections, true, true);
+    service.validate(positions, LicencePositionStateResolver.resolve(positions), corrections, LicenceType.CARBON_STORAGE, LicenceStatusType.EXTANT);
 
     verifyNoInteractions(partialSurrenderValidator);
   }
@@ -141,9 +149,9 @@ class LicencePositionValidationServiceTest {
     var positions = List.of(first, second);
     var states = LicencePositionStateResolver.resolve(positions);
     var firstContext = new PositionValidationContext(
-        first, states.currentState(first.id()), states.previousState(first.id()), true, false, true, true);
+        first, states.currentState(first.id()), states.previousState(first.id()), true, false, LicenceType.CARBON_STORAGE, LicenceStatusType.EXTANT);
     var secondContext = new PositionValidationContext(
-        second, states.currentState(second.id()), states.previousState(second.id()), false, true, true, true);
+        second, states.currentState(second.id()), states.previousState(second.id()), false, true, LicenceType.CARBON_STORAGE, LicenceStatusType.EXTANT);
     var spatialError = PositionValidationError
         .forOperation(secondContext, LicenceOperation.SUBAREA_CREATE, "Spatial error")
         .withChangeId(addedSubareaCreate.changeId());
@@ -157,7 +165,7 @@ class LicencePositionValidationServiceTest {
 
     var corrections = List.of(stagingCorrection(addChange(addedSubareaCreate.changeId())));
 
-    var errors = service.validate(positions, states, corrections, true, true);
+    var errors = service.validate(positions, states, corrections, LicenceType.CARBON_STORAGE, LicenceStatusType.EXTANT);
 
     assertThat(errors).containsExactly(spatialError);
     verify(spatialStateValidator, never()).validate(
@@ -184,7 +192,7 @@ class LicencePositionValidationServiceTest {
     var positions = List.of(position);
     var corrections = List.of(stagingCorrection(addChange(stagedBlockCreate.changeId())));
 
-    service.validate(positions, LicencePositionStateResolver.resolve(positions), corrections, true, true);
+    service.validate(positions, LicencePositionStateResolver.resolve(positions), corrections, LicenceType.CARBON_STORAGE, LicenceStatusType.EXTANT);
 
     verifyNoInteractions(partialSurrenderValidator);
   }
@@ -203,7 +211,7 @@ class LicencePositionValidationServiceTest {
         .withPayload(LicencePositionPayload.newUpdateLicencePositionPayload().withEffectiveDate(POSITION_DATE).build())
         .build());
 
-    service.validate(positions, LicencePositionStateResolver.resolve(positions), corrections, true, true);
+    service.validate(positions, LicencePositionStateResolver.resolve(positions), corrections, LicenceType.CARBON_STORAGE, LicenceStatusType.EXTANT);
 
     verify(partialSurrenderValidator).validate(
         surrender,
@@ -224,7 +232,7 @@ class LicencePositionValidationServiceTest {
     var states = LicencePositionStateResolver.resolve(positions);
     var corrections = List.of(stagingCorrection(stagedChange.apply(liveBlockCreate.changeId())));
 
-    service.validate(positions, states, corrections, true, true);
+    service.validate(positions, states, corrections, LicenceType.CARBON_STORAGE, LicenceStatusType.EXTANT);
 
     verify(spatialStateValidator).validate(firstPositionContext(position, states), liveBlockCreate, LicencePositionState.EMPTY);
   }
@@ -242,7 +250,7 @@ class LicencePositionValidationServiceTest {
     var states = LicencePositionStateResolver.resolve(positions);
     var corrections = List.of(positionCorrection.withTargetLicencePosition(licencePosition).build());
 
-    service.validate(positions, states, corrections, true, true);
+    service.validate(positions, states, corrections, LicenceType.CARBON_STORAGE, LicenceStatusType.EXTANT);
 
     verify(spatialStateValidator).validate(
         firstPositionContext(position, states),
@@ -280,14 +288,14 @@ class LicencePositionValidationServiceTest {
             .build())
         .build());
 
-    service.validate(positions, LicencePositionStateResolver.resolve(positions), corrections, true, true);
+    service.validate(positions, LicencePositionStateResolver.resolve(positions), corrections, LicenceType.CARBON_STORAGE, LicenceStatusType.EXTANT);
 
     verifyNoInteractions(spatialStateValidator, partialSurrenderValidator);
   }
 
   @Test
   void validate_whenNoPositions_returnsNoErrors() {
-    assertThat(service.validate(List.of(), LicencePositionStateResolver.resolve(List.of()), List.of(), true, true)).isEmpty();
+    assertThat(service.validate(List.of(), LicencePositionStateResolver.resolve(List.of()), List.of(), LicenceType.CARBON_STORAGE, LicenceStatusType.EXTANT)).isEmpty();
   }
 
   @Test
@@ -299,7 +307,7 @@ class LicencePositionValidationServiceTest {
     var chronologicalPositions = List.of(first, second);
     var states = LicencePositionStateResolver.resolve(chronologicalPositions);
 
-    assertThat(service.validate(chronologicalPositions, states, List.of(), false, true))
+    assertThat(service.validate(chronologicalPositions, states, List.of(), LicenceType.LANDWARD_PRODUCTION, LicenceStatusType.EXTANT))
         .extracting(PositionValidationError::positionId, PositionValidationError::message)
         .containsExactly(
             tuple(first.id(), AdministratorPositionRule.FIRST_POSITION_MUST_HAVE_ADMINISTRATOR.getMessage()),
@@ -322,7 +330,7 @@ class LicencePositionValidationServiceTest {
     );
     var states = LicencePositionStateResolver.resolve(chronologicalPositions);
 
-    assertThat(service.validate(chronologicalPositions, states, List.of(), false, true))
+    assertThat(service.validate(chronologicalPositions, states, List.of(), LicenceType.LANDWARD_PRODUCTION, LicenceStatusType.EXTANT))
         .extracting(PositionValidationError::message)
         .containsExactlyInAnyOrder(AdministratorPositionRule.FIRST_POSITION_MUST_HAVE_ADMINISTRATOR.getMessage(),
             AdministratorPositionRule.ONLY_ONE_ADMINISTRATOR_CHANGE.getMessage(),
@@ -337,7 +345,7 @@ class LicencePositionValidationServiceTest {
     var second = position(transactionId, LocalDate.of(2026, Month.JULY, 9), setEquityChange(1, "100"));
 
     var positions = List.of(first, second);
-    var errors = service.validate(positions, LicencePositionStateResolver.resolve(positions), List.of(), true, true);
+    var errors = service.validate(positions, LicencePositionStateResolver.resolve(positions), List.of(), LicenceType.CARBON_STORAGE, LicenceStatusType.EXTANT);
 
     assertThat(errors)
         .extracting(PositionValidationError::positionId, PositionValidationError::message)
@@ -352,7 +360,7 @@ class LicencePositionValidationServiceTest {
     var second = position(UUID.randomUUID(), LocalDate.of(2026, Month.JULY, 9), setEquityChange(1, "100"));
 
     var positions = List.of(first, second);
-    var errors = service.validate(positions, LicencePositionStateResolver.resolve(positions), List.of(), true, true);
+    var errors = service.validate(positions, LicencePositionStateResolver.resolve(positions), List.of(), LicenceType.CARBON_STORAGE, LicenceStatusType.EXTANT);
 
     assertThat(errors).isEmpty();
   }
@@ -363,7 +371,7 @@ class LicencePositionValidationServiceTest {
         setEquityChange(1, "100"), setEquityChange(1, "100"), licenseeChange());
 
     var positions = List.of(position);
-    var errors = service.validate(positions, LicencePositionStateResolver.resolve(positions), List.of(), true, true);
+    var errors = service.validate(positions, LicencePositionStateResolver.resolve(positions), List.of(), LicenceType.CARBON_STORAGE, LicenceStatusType.EXTANT);
 
     assertThat(errors)
         .extracting(PositionValidationError::positionId, PositionValidationError::message)
@@ -378,7 +386,7 @@ class LicencePositionValidationServiceTest {
     var second = position(transactionId, LocalDate.of(2026, Month.JULY, 9), setEquityChange(1, "100"));
 
     var positions = List.of(first, second);
-    var errors = service.validate(positions, LicencePositionStateResolver.resolve(positions), List.of(), false, true);
+    var errors = service.validate(positions, LicencePositionStateResolver.resolve(positions), List.of(), LicenceType.LANDWARD_PRODUCTION, LicenceStatusType.EXTANT);
 
     assertThat(errors)
         .extracting(PositionValidationError::positionId, PositionValidationError::message)
@@ -392,7 +400,7 @@ class LicencePositionValidationServiceTest {
     var position = position(UUID.randomUUID(), LocalDate.of(2026, Month.JUNE, 18), setEquityChange(1, "60"), licenseeChange());
 
     var positions = List.of(position);
-    var errors = service.validate(positions, LicencePositionStateResolver.resolve(positions), List.of(), true, true);
+    var errors = service.validate(positions, LicencePositionStateResolver.resolve(positions), List.of(), LicenceType.CARBON_STORAGE, LicenceStatusType.EXTANT);
 
     assertThat(errors)
         .extracting(PositionValidationError::positionId, PositionValidationError::message)
@@ -407,7 +415,7 @@ class LicencePositionValidationServiceTest {
     var second = position(transactionId, LocalDate.of(2026, Month.JULY, 9), setEquityChange(1, "60"));
 
     var positions = List.of(first, second);
-    var errors = service.validate(positions, LicencePositionStateResolver.resolve(positions), List.of(), true, true);
+    var errors = service.validate(positions, LicencePositionStateResolver.resolve(positions), List.of(), LicenceType.CARBON_STORAGE, LicenceStatusType.EXTANT);
 
     assertThat(errors)
         .extracting(PositionValidationError::positionId, PositionValidationError::message)
@@ -424,12 +432,58 @@ class LicencePositionValidationServiceTest {
     var carriesForwardSecond = position(UUID.randomUUID(), LocalDate.of(2026, Month.JULY, 16));
 
     var positions = List.of(origin, carriesForwardFirst, carriesForwardSecond);
-    var errors = service.validate(positions, LicencePositionStateResolver.resolve(positions), List.of(), true, true);
+    var errors = service.validate(positions, LicencePositionStateResolver.resolve(positions), List.of(), LicenceType.CARBON_STORAGE, LicenceStatusType.EXTANT);
 
     assertThat(errors)
         .extracting(PositionValidationError::positionId, PositionValidationError::message)
         .containsExactly(
             tuple(origin.id(), EquityPositionRule.BENEFICIAL_INTERESTS_MUST_TOTAL_ONE_HUNDRED.getMessage()));
+  }
+
+  @Test
+  void validate_whenPositionsShareTransactionEachWithChangeToSameSubarea_flagsEachPosition() {
+    var transactionId = UUID.randomUUID();
+    var first = position(transactionId, LocalDate.of(2026, Month.JUNE, 18), subareaSetEquityChange(SUBAREA_A));
+    var second = position(transactionId, LocalDate.of(2026, Month.JULY, 9), subareaSetEquityChange(SUBAREA_A));
+
+    var positions = List.of(subareasCreatedPosition(), first, second);
+    var errors = service.validate(positions, LicencePositionStateResolver.resolve(positions), List.of(), LicenceType.SEAWARD_PRODUCTION, LicenceStatusType.EXTANT);
+
+    assertThat(errors).containsExactly(singleSubareaChangeError(first), singleSubareaChangeError(second));
+  }
+
+  @Test
+  void validate_whenSinglePositionHasTwoChangesToSameSubarea_flagsPosition() {
+    var position = position(UUID.randomUUID(), LocalDate.of(2026, Month.JUNE, 18),
+        subareaSetEquityChange(SUBAREA_A), subareaSetEquityChange(SUBAREA_A));
+
+    var positions = List.of(subareasCreatedPosition(), position);
+    var errors = service.validate(positions, LicencePositionStateResolver.resolve(positions), List.of(), LicenceType.SEAWARD_PRODUCTION, LicenceStatusType.EXTANT);
+
+    assertThat(errors).containsExactly(singleSubareaChangeError(position));
+  }
+
+  @Test
+  void validate_whenPositionsShareTransactionWithChangesToDifferentSubareas_returnsNoErrors() {
+    var transactionId = UUID.randomUUID();
+    var first = position(transactionId, LocalDate.of(2026, Month.JUNE, 18), subareaSetEquityChange(SUBAREA_A));
+    var second = position(transactionId, LocalDate.of(2026, Month.JULY, 9), subareaSetEquityChange(SUBAREA_B));
+
+    var positions = List.of(subareasCreatedPosition(), first, second);
+    var errors = service.validate(positions, LicencePositionStateResolver.resolve(positions), List.of(), LicenceType.SEAWARD_PRODUCTION, LicenceStatusType.EXTANT);
+
+    assertThat(errors).isEmpty();
+  }
+
+  @Test
+  void validate_whenChangesToSameSubareaOnDifferentTransactions_returnsNoErrors() {
+    var first = position(UUID.randomUUID(), LocalDate.of(2026, Month.JUNE, 18), subareaSetEquityChange(SUBAREA_A));
+    var second = position(UUID.randomUUID(), LocalDate.of(2026, Month.JULY, 9), subareaSetEquityChange(SUBAREA_A));
+
+    var positions = List.of(subareasCreatedPosition(), first, second);
+    var errors = service.validate(positions, LicencePositionStateResolver.resolve(positions), List.of(), LicenceType.SEAWARD_PRODUCTION, LicenceStatusType.EXTANT);
+
+    assertThat(errors).isEmpty();
   }
 
   private static Stream<Arguments> stagedChangeTypes() {
@@ -465,11 +519,24 @@ class LicencePositionValidationServiceTest {
 
   private static PositionValidationContext firstPositionContext(ChronologicalPosition position, ResolvedStates states) {
     return new PositionValidationContext(
-        position, states.currentState(position.id()), states.previousState(position.id()), true, true, true, true);
+        position, states.currentState(position.id()), states.previousState(position.id()), true, true, LicenceType.CARBON_STORAGE, LicenceStatusType.EXTANT);
   }
 
   private static LicenceOperation blockCreate(UUID blockFeatureId) {
     return LicenceOperation.newBlockCreateOperation().withFeatureIds(List.of(blockFeatureId)).build();
+  }
+
+  private static ChronologicalPosition subareasCreatedPosition() {
+    var createBlock = new PositionChange(
+        UUID.randomUUID().toString(),
+        1,
+        null,
+        List.of(new BlockCreateOperation(
+            List.of(BLOCK_FEATURE_ID),
+            Map.of(BLOCK_FEATURE_ID, List.of(SUBAREA_A, SUBAREA_B))
+        ))
+    );
+    return position(UUID.randomUUID(), LocalDate.of(2026, Month.MAY, 1), administratorChange(), licenseeChange(), createBlock);
   }
 
   private static PositionChange administratorChange() {
@@ -499,6 +566,25 @@ class LicencePositionValidationServiceTest {
             .withTransferTo(organisationId)
             .withEquity(new BigDecimal(equity))
             .build())
+    );
+  }
+
+  private static PositionChange subareaSetEquityChange(SubareaDetails subarea) {
+    return new PositionChange(
+        UUID.randomUUID().toString(),
+        1,
+        null,
+        List.of(new SubareaSetEquityOperation(BLOCK_FEATURE_ID, subarea, 1, new BigDecimal("100")))
+    );
+  }
+
+  private static PositionValidationError singleSubareaChangeError(ChronologicalPosition position) {
+    return new PositionValidationError(
+        position.id(),
+        position.positionName(),
+        null,
+        null,
+        SubareaEquityPositionRule.SINGLE_CHANGE_PER_SUBAREA_PER_TRANSACTION.getMessage()
     );
   }
 }

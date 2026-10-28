@@ -1,6 +1,6 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.position.change.util;
 
-import static uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionChangeUtil.NOT_AVAILABLE;
+import static uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionChangeUtil.UNKNOWN_BLOCK;
 
 import jakarta.annotation.Nullable;
 import java.time.LocalDate;
@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaSetEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeViewContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.LicencePositionState;
@@ -144,13 +145,15 @@ public final class LicencePositionChangeViewResolver {
 
   private static String orderableChangeLabel(PositionChange change, Map<UUID, String> featureNames) {
     var operation = change.operations().getFirst();
-    if (operation instanceof SubareaOperation subarea) {
-      return "%s – %s".formatted(
+    return switch (operation) {
+      case SubareaOperation subarea -> "%s – %s".formatted(
           operation.displayName(),
-          featureNames.getOrDefault(subarea.blockFeatureId(), NOT_AVAILABLE)
+          featureNames.getOrDefault(subarea.blockFeatureId(), UNKNOWN_BLOCK)
       );
-    }
-    return operation.displayName();
+      case SubareaSetEquityOperation subareaSetEquity ->
+          "%s – %s".formatted(operation.displayName(), subareaSetEquity.subareaLabel(featureNames));
+      default -> operation.displayName();
+    };
   }
 
   @Nullable

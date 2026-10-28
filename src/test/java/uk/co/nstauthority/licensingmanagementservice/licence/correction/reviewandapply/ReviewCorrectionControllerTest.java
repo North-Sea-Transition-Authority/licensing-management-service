@@ -357,8 +357,8 @@ class ReviewCorrectionControllerTest extends AbstractControllerTest {
         correctedTimeline.positionsToApply(),
         correctedTimeline.resolvedStates(),
         correctedTimeline.positionCorrections(),
-        correctedTimeline.isCarbonStorage(),
-        true))
-        .thenReturn(blockingErrors);
+        correctedTimeline.licenceType(),
+        LicenceStatusType.EXTANT
+    )).thenReturn(blockingErrors);
   }
 }

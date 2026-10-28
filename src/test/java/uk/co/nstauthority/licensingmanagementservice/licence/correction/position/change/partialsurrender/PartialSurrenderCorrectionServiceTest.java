@@ -1115,7 +1115,7 @@ class PartialSurrenderCorrectionServiceTest {
 
     assertThat(result).containsExactly(
         new PartialSurrenderChangeView.BlockRow("SHAPE 1", BlockSurrenderType.FULL_SURRENDER.getDisplayName()),
-        new PartialSurrenderChangeView.BlockRow("Not available", null));
+        new PartialSurrenderChangeView.BlockRow("Unknown block", null));
   }
 
   @Test

@@ -23,6 +23,6 @@ public class PositionStateTestUtil {
   }
 
   public LicencePositionState build() {
-    return new LicencePositionState(administratorId, storageOperatorId, Set.of(), Map.of(), Map.of());
+    return new LicencePositionState(administratorId, storageOperatorId, Set.of(), Map.of(), Map.of(), Map.of());
   }
 }

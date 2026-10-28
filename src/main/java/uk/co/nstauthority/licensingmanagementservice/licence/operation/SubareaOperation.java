@@ -1,7 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.operation;
 
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
-import static uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionChangeUtil.NOT_AVAILABLE;
+import static uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionChangeUtil.UNKNOWN_BLOCK;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.annotation.Nullable;
@@ -99,7 +99,7 @@ public record SubareaOperation(
       ChangeViewUrls urls
   ) {
     return new SubareaChangeView(
-        context.featureNames().getOrDefault(blockFeatureId, NOT_AVAILABLE),
+        context.featureNames().getOrDefault(blockFeatureId, UNKNOWN_BLOCK),
         change.changeType(),
         urls
     );

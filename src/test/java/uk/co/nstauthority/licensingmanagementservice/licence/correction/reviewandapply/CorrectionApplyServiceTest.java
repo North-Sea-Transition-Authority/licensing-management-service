@@ -328,9 +328,9 @@ class CorrectionApplyServiceTest {
         correctedTimeline.positionsToApply(),
         correctedTimeline.resolvedStates(),
         correctedTimeline.positionCorrections(),
-        correctedTimeline.isCarbonStorage(),
-        true)
-    ).thenReturn(List.of());
+        correctedTimeline.licenceType(),
+        LicenceStatusType.EXTANT
+    )).thenReturn(List.of());
 
     correctionApplyService.applyCorrection(licenceCorrection);
 
@@ -722,9 +722,9 @@ class CorrectionApplyServiceTest {
         correctedTimeline.positionsToApply(),
         correctedTimeline.resolvedStates(),
         correctedTimeline.positionCorrections(),
-        correctedTimeline.isCarbonStorage(),
-        true))
-        .thenReturn(blockingErrors);
+        correctedTimeline.licenceType(),
+        LicenceStatusType.EXTANT
+    )).thenReturn(blockingErrors);
   }
 
   private void stubLockedCorrection(LicenceCorrection correction) {

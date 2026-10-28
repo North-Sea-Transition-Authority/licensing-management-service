@@ -34,7 +34,7 @@ public record TransferEquityOperation(
     Integer transferTo,
     BigDecimal equity,
     Boolean retainBeneficialInterest
-) implements VisibleLicenceOperation {
+) implements VisibleLicenceOperation, EquityOperation {
 
   public TransferEquityOperation {
     Objects.requireNonNull(transferFrom, "transferFrom must not be null");

@@ -13,6 +13,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaDetails;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPosition;
@@ -472,7 +473,7 @@ class LicencePositionStateResolverTest {
         .ignoringFields("blockFeatureIdToSubareas")
         .withComparatorForType(BigDecimal::compareTo, BigDecimal.class)
         .isEqualTo(
-            new LicencePositionState(1, null, Set.of(), Map.of(1, new BigDecimal("60"), 2, new BigDecimal("40")), Map.of())
+            new LicencePositionState(1, null, Set.of(), Map.of(1, new BigDecimal("60"), 2, new BigDecimal("40")), Map.of(), Map.of())
         );
   }
 
@@ -497,6 +498,80 @@ class LicencePositionStateResolverTest {
     assertThat(result.previousState(current.getId()).blockFeatureIds())
         .containsExactlyInAnyOrder(keptBlockId, endedBlockId);
     assertThat(result.currentState(current.getId()).blockFeatureIds()).containsExactly(keptBlockId);
+  }
+
+  @Test
+  void resolveStates_whenSubareaEquitySetAcrossPositions_thenHoldersMergeAndCarryForward() {
+    var blockId = UUID.randomUUID();
+    var subarea = new SubareaDetails(UUID.randomUUID(), "Subarea A", "A");
+
+    var firstChronological = ChronologicalPositionTestUtil.live(
+        FIRST_POSITION,
+        subareaSetEquity(blockId, subarea, 1, "60"),
+        subareaSetEquity(blockId, subarea, 2, "40")
+    );
+    var secondChronological = ChronologicalPositionTestUtil.live(
+        SECOND_POSITION,
+        subareaSetEquity(blockId, subarea, 1, "50"),
+        subareaSetEquity(blockId, subarea, 3, "10")
+    );
+    var thirdChronological = ChronologicalPositionTestUtil.live(
+        THIRD_POSITION,
+        LicenceOperation.newAdministratorChange().withOperator(1).build()
+    );
+
+    var result = LicencePositionStateResolver.resolve(
+        List.of(firstChronological, secondChronological, thirdChronological));
+
+    var firstSubareaEquity = Map.of(blockId, Map.of(subarea, Map.of(1, new BigDecimal("60"), 2, new BigDecimal("40"))));
+    var mergedSubareaEquity = Map.of(blockId, Map.of(subarea, Map.of(
+        1, new BigDecimal("50"),
+        2, new BigDecimal("40"),
+        3, new BigDecimal("10")
+    )));
+    assertThat(result.currentState(FIRST_POSITION.getId()).blockFeatureIdToSubareaEquity())
+        .isEqualTo(firstSubareaEquity);
+    assertThat(result.currentState(SECOND_POSITION.getId()).blockFeatureIdToSubareaEquity())
+        .isEqualTo(mergedSubareaEquity);
+    assertThat(result.currentState(THIRD_POSITION.getId()).blockFeatureIdToSubareaEquity())
+        .isEqualTo(mergedSubareaEquity);
+  }
+
+  @Test
+  void resolveStates_whenSubareaEndedAtALaterPosition_thenItsHoldersAreDropped() {
+    var blockId = UUID.randomUUID();
+    var subarea = new SubareaDetails(UUID.randomUUID(), "Subarea A", "A");
+
+    var firstChronological = ChronologicalPositionTestUtil.live(
+        FIRST_POSITION,
+        LicenceOperation.newBlockCreateOperation()
+            .withFeatureIds(Set.of(blockId))
+            .withCreatedSubareas(Map.of(blockId, List.of(subarea)))
+            .build(),
+        subareaSetEquity(blockId, subarea, 1, "100")
+    );
+    var secondChronological = ChronologicalPositionTestUtil.live(
+        SECOND_POSITION,
+        LicenceOperation.newSubareaEndOperation()
+            .withBlockFeatureId(blockId)
+            .withEndedSubareas(List.of(subarea))
+            .build()
+    );
+
+    var result = LicencePositionStateResolver.resolve(List.of(firstChronological, secondChronological));
+
+    assertThat(result.currentState(FIRST_POSITION.getId()).blockFeatureIdToSubareaEquity())
+        .isEqualTo(Map.of(blockId, Map.of(subarea, Map.of(1, new BigDecimal("100")))));
+    assertThat(result.currentState(SECOND_POSITION.getId()).blockFeatureIdToSubareaEquity()).isEmpty();
+  }
+
+  private static LicenceOperation subareaSetEquity(UUID blockId, SubareaDetails subarea, int organisationId, String equity) {
+    return LicenceOperation.newSubareaSetEquityOperation()
+        .withBlockFeatureId(blockId)
+        .withSubarea(subarea)
+        .withTransferTo(organisationId)
+        .withEquity(new BigDecimal(equity))
+        .build();
   }
 
   private static Stream<LicenceOperation> spatialOperations() {

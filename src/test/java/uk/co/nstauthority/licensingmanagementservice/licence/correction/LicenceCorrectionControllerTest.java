@@ -295,7 +295,9 @@ class LicenceCorrectionControllerTest extends AbstractControllerTest {
             new LicenseeStateView(List.of("Licensee")),
             "",
             List.of(),
-            List.of()),
+            List.of(),
+            List.of()
+        ),
         position.getId(),
         LicencePositionPageView.Actions.none(),
         LICENCE_TYPE,

@@ -1,6 +1,6 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender;
 
-import static uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionChangeUtil.NOT_AVAILABLE;
+import static uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionChangeUtil.UNKNOWN_BLOCK;
 import static uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionChangeUtil.positionDateAndOrderUnchanged;
 import static uk.co.nstauthority.licensingmanagementservice.licence.position.feature.LicenceBlockFeatureUtil.BLOCK_ORDER;
 
@@ -334,7 +334,7 @@ public class PartialSurrenderCorrectionService {
 
     return surrender.surrenderedFeatureIds().stream()
         .map(featureId -> new PartialSurrenderChangeView.BlockRow(
-            blockNamesById.getOrDefault(featureId, NOT_AVAILABLE),
+            blockNamesById.getOrDefault(featureId, UNKNOWN_BLOCK),
             surrender.surrenderTypeDisplayName(featureId)))
         .toList();
   }

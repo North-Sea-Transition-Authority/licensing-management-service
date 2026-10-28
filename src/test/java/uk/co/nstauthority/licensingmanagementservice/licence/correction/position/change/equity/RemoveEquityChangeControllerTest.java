@@ -71,6 +71,7 @@ class RemoveEquityChangeControllerTest extends AbstractControllerTest {
   private static final List<SetEquityRow> SET_EQUITY_ROWS = List.of(new SetEquityRow("Org Ltd", BigDecimal.TEN));
   private static final List<TransferEquityHoldingView> TRANSFER_EQUITY_ROWS =
       List.of(new TransferEquityHoldingView("From Org Ltd", "To Org Ltd", BigDecimal.TEN, null));
+  private static final String SUBAREA_LABEL = "Block 21/1 - Subarea A";
 
   private final String positionUrl = ReverseRouter.route(on(LicenceCorrectionController.class)
       .renderLicencePosition(CORRECTION, POSITION));
@@ -101,7 +102,7 @@ class RemoveEquityChangeControllerTest extends AbstractControllerTest {
     when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(position));
     when(licencePositionChangeService.findById(CHANGE.getId())).thenReturn(Optional.of(CHANGE));
     when(equityChangeService.getExecutedEquityChangeContext(CHANGE_ID))
-        .thenReturn(new EquityChangeContext(SET_EQUITY_ROWS, TRANSFER_EQUITY_ROWS));
+        .thenReturn(new EquityChangeContext(SET_EQUITY_ROWS, TRANSFER_EQUITY_ROWS, SUBAREA_LABEL));
 
     mockMvc.perform(get(ReverseRouter.route(on(RemoveEquityChangeController.class)
             .renderRemoveExecutedEquityChange(correction, position, CHANGE)))
@@ -111,6 +112,7 @@ class RemoveEquityChangeControllerTest extends AbstractControllerTest {
             view().name(VIEW_NAME),
             model().attribute("pageTitle", REMOVE_PAGE_TITLE),
             model().attribute("primaryButton", Button.warningButton("Remove beneficial interest change")),
+            model().attribute("subareaLabel", SUBAREA_LABEL),
             model().attribute("setEquityRows", SET_EQUITY_ROWS),
             model().attribute("transferEquityRows", TRANSFER_EQUITY_ROWS),
             model().attribute("cancelUrl", positionUrl)
@@ -191,7 +193,7 @@ class RemoveEquityChangeControllerTest extends AbstractControllerTest {
     when(licencePositionCorrectionService.getPositionCorrectionContainingChange(correction, CHANGE_ID))
         .thenReturn(positionCorrection);
     when(equityChangeService.getEquityChangeContext(correction, CHANGE_ID))
-        .thenReturn(new EquityChangeContext(SET_EQUITY_ROWS, TRANSFER_EQUITY_ROWS));
+        .thenReturn(new EquityChangeContext(SET_EQUITY_ROWS, TRANSFER_EQUITY_ROWS, SUBAREA_LABEL));
 
     mockMvc.perform(get(ReverseRouter.route(on(RemoveEquityChangeController.class)
             .renderUndoEquityChange(correction, CHANGE_ID)))
@@ -220,7 +222,7 @@ class RemoveEquityChangeControllerTest extends AbstractControllerTest {
         .thenReturn(positionCorrection);
     when(licencePositionCorrectionService.isStagedRemoval(positionCorrection, CHANGE_ID)).thenReturn(true);
     when(equityChangeService.getEquityChangeContext(correction, CHANGE_ID))
-        .thenReturn(new EquityChangeContext(SET_EQUITY_ROWS, TRANSFER_EQUITY_ROWS));
+        .thenReturn(new EquityChangeContext(SET_EQUITY_ROWS, TRANSFER_EQUITY_ROWS, SUBAREA_LABEL));
 
     mockMvc.perform(get(ReverseRouter.route(on(RemoveEquityChangeController.class)
             .renderUndoEquityChange(correction, CHANGE_ID)))
@@ -230,6 +232,7 @@ class RemoveEquityChangeControllerTest extends AbstractControllerTest {
             view().name(VIEW_NAME),
             model().attribute("pageTitle", REINSTATE_PAGE_TITLE),
             model().attribute("primaryButton", Button.primaryButton("Reinstate beneficial interest change")),
+            model().attribute("subareaLabel", SUBAREA_LABEL),
             model().attribute("setEquityRows", SET_EQUITY_ROWS),
             model().attribute("transferEquityRows", TRANSFER_EQUITY_ROWS),
             model().attribute("cancelUrl", positionUrl)

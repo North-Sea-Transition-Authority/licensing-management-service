@@ -5,11 +5,14 @@ import static org.assertj.core.api.Assertions.entry;
 import static org.mockito.Mockito.when;
 
 import java.util.Collections;
+import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -34,6 +37,7 @@ import uk.co.nstauthority.licensingmanagementservice.validation.ValidatorTesting
 class AddPositionChangeFormValidatorTest {
 
   private static final String SELECT_A_CHANGE_TYPE = "Select the type of change to add";
+  private static final String SUBAREA_KEY = "block-id:subarea-id";
 
   @Mock
   private LicencePositionChangeService licencePositionChangeService;
@@ -64,7 +68,7 @@ class AddPositionChangeFormValidatorTest {
   @Test
   void hasErrors_whenChangeTypeEmpty_thenErrorWithMessage() {
     var result = addPositionChangeFormValidator.hasErrors(
-        form, errors, correctionForLicenceType(LicenceType.SEAWARD_PRODUCTION), positionCorrection);
+        form, errors, correctionForLicenceType(LicenceType.SEAWARD_PRODUCTION), positionCorrection, Set.of());
 
     assertThat(result).isTrue();
     assertThat(ValidatorTestingUtil.getErrorsFieldsAndMessages(errors))
@@ -76,7 +80,7 @@ class AddPositionChangeFormValidatorTest {
     form.setChangeType("NOT_A_CHANGE_TYPE");
 
     var result = addPositionChangeFormValidator.hasErrors(
-        form, errors, correctionForLicenceType(LicenceType.SEAWARD_PRODUCTION), positionCorrection);
+        form, errors, correctionForLicenceType(LicenceType.SEAWARD_PRODUCTION), positionCorrection, Set.of());
 
     assertThat(result).isTrue();
     assertThat(ValidatorTestingUtil.getErrorsFieldsAndMessages(errors))
@@ -88,7 +92,7 @@ class AddPositionChangeFormValidatorTest {
     form.setChangeType(AddPositionChangeType.SET_EQUITY.name());
 
     var result = addPositionChangeFormValidator.hasErrors(
-        form, errors, correctionForLicenceType(LicenceType.SEAWARD_PRODUCTION), positionCorrection);
+        form, errors, correctionForLicenceType(LicenceType.SEAWARD_PRODUCTION), positionCorrection, Set.of());
 
     assertThat(result).isTrue();
     assertThat(ValidatorTestingUtil.getErrorsFieldsAndMessages(errors))
@@ -102,7 +106,7 @@ class AddPositionChangeFormValidatorTest {
         .thenReturn(true);
 
     var result = addPositionChangeFormValidator.hasErrors(
-        form, errors, correctionForLicenceType(LicenceType.CARBON_STORAGE), positionCorrection);
+        form, errors, correctionForLicenceType(LicenceType.CARBON_STORAGE), positionCorrection, Set.of());
 
     assertThat(result).isTrue();
     assertThat(ValidatorTestingUtil.getErrorsFieldsAndMessages(errors))
@@ -117,7 +121,7 @@ class AddPositionChangeFormValidatorTest {
         .thenReturn(false);
 
     var result = addPositionChangeFormValidator.hasErrors(
-        form, errors, correctionForLicenceType(LicenceType.CARBON_STORAGE), positionCorrection);
+        form, errors, correctionForLicenceType(LicenceType.CARBON_STORAGE), positionCorrection, Set.of());
 
     assertThat(result).isFalse();
     assertThat(errors.hasErrors()).isFalse();
@@ -130,7 +134,7 @@ class AddPositionChangeFormValidatorTest {
         .thenReturn(false);
 
     var result = addPositionChangeFormValidator.hasErrors(
-        form, errors, correctionForLicenceType(LicenceType.SEAWARD_PRODUCTION), positionCorrection);
+        form, errors, correctionForLicenceType(LicenceType.SEAWARD_PRODUCTION), positionCorrection, Set.of());
 
     assertThat(result).isFalse();
     assertThat(errors.hasErrors()).isFalse();
@@ -141,7 +145,7 @@ class AddPositionChangeFormValidatorTest {
     form.setChangeType(AddPositionChangeType.ADMINISTRATOR.name());
 
     var result = addPositionChangeFormValidator.hasErrors(
-        form, errors, correctionForLicenceType(LicenceType.CARBON_STORAGE), positionCorrection);
+        form, errors, correctionForLicenceType(LicenceType.CARBON_STORAGE), positionCorrection, Set.of());
 
     assertThat(result).isTrue();
     assertThat(ValidatorTestingUtil.getErrorsFieldsAndMessages(errors))
@@ -155,7 +159,7 @@ class AddPositionChangeFormValidatorTest {
         .thenReturn(true);
 
     var result = addPositionChangeFormValidator.hasErrors(
-        form, errors, correctionForLicenceType(LicenceType.SEAWARD_PRODUCTION), positionCorrection);
+        form, errors, correctionForLicenceType(LicenceType.SEAWARD_PRODUCTION), positionCorrection, Set.of());
 
     assertThat(result).isTrue();
     assertThat(ValidatorTestingUtil.getErrorsFieldsAndMessages(errors))
@@ -170,7 +174,7 @@ class AddPositionChangeFormValidatorTest {
         .thenReturn(false);
 
     var result = addPositionChangeFormValidator.hasErrors(
-        form, errors, correctionForLicenceType(LicenceType.SEAWARD_PRODUCTION), positionCorrection);
+        form, errors, correctionForLicenceType(LicenceType.SEAWARD_PRODUCTION), positionCorrection, Set.of());
 
     assertThat(result).isFalse();
     assertThat(errors.hasErrors()).isFalse();
@@ -183,7 +187,7 @@ class AddPositionChangeFormValidatorTest {
         .thenReturn(true);
 
     var result = addPositionChangeFormValidator.hasErrors(
-        form, errors, correctionForLicenceType(LicenceType.SEAWARD_PRODUCTION), positionCorrection);
+        form, errors, correctionForLicenceType(LicenceType.SEAWARD_PRODUCTION), positionCorrection, Set.of());
 
     assertThat(result).isTrue();
     assertThat(ValidatorTestingUtil.getErrorsFieldsAndMessages(errors))
@@ -197,7 +201,12 @@ class AddPositionChangeFormValidatorTest {
     form.setChangeType(AddPositionChangeType.STORAGE_OPERATOR.name());
 
     var result = addPositionChangeFormValidator.hasErrors(
-        form, errors, correctionForLicenceType(licenceType), positionCorrection);
+        form,
+        errors,
+        correctionForLicenceType(licenceType),
+        positionCorrection,
+        Set.of()
+    );
 
     assertThat(result).isTrue();
     assertThat(ValidatorTestingUtil.getErrorsFieldsAndMessages(errors))
@@ -211,7 +220,12 @@ class AddPositionChangeFormValidatorTest {
         .thenReturn(false);
 
     var result = addPositionChangeFormValidator.hasErrors(
-        form, errors, correctionForLicenceType(LicenceType.CARBON_STORAGE), positionCorrection);
+        form,
+        errors,
+        correctionForLicenceType(LicenceType.CARBON_STORAGE),
+        positionCorrection,
+        Set.of()
+    );
 
     assertThat(result).isFalse();
     assertThat(errors.hasErrors()).isFalse();
@@ -224,7 +238,12 @@ class AddPositionChangeFormValidatorTest {
         .thenReturn(true);
 
     var result = addPositionChangeFormValidator.hasErrors(
-        form, errors, correctionForLicenceType(LicenceType.CARBON_STORAGE), positionCorrection);
+        form,
+        errors,
+        correctionForLicenceType(LicenceType.CARBON_STORAGE),
+        positionCorrection,
+        Set.of()
+    );
 
     assertThat(result).isTrue();
     assertThat(ValidatorTestingUtil.getErrorsFieldsAndMessages(errors))
@@ -239,7 +258,7 @@ class AddPositionChangeFormValidatorTest {
     form.setChangeType(AddPositionChangeType.PARTIAL_SURRENDER.name());
 
     var result = addPositionChangeFormValidator.hasErrors(
-        form, errors, correctionForLicenceType(licenceType), positionCorrection);
+        form, errors, correctionForLicenceType(licenceType), positionCorrection, Set.of());
 
     assertThat(result).isTrue();
     assertThat(ValidatorTestingUtil.getErrorsFieldsAndMessages(errors))
@@ -254,7 +273,7 @@ class AddPositionChangeFormValidatorTest {
         .thenReturn(true);
 
     var result = addPositionChangeFormValidator.hasErrors(
-        form, errors, correctionForLicenceType(LicenceType.SEAWARD_PRODUCTION), positionCorrection);
+        form, errors, correctionForLicenceType(LicenceType.SEAWARD_PRODUCTION), positionCorrection, Set.of());
 
     assertThat(result).isTrue();
     assertThat(ValidatorTestingUtil.getErrorsFieldsAndMessages(errors))
@@ -271,7 +290,7 @@ class AddPositionChangeFormValidatorTest {
     when(partialSurrenderCorrectionService.hasStagedPartialSurrender(positionCorrection)).thenReturn(true);
 
     var result = addPositionChangeFormValidator.hasErrors(
-        form, errors, correctionForLicenceType(LicenceType.SEAWARD_PRODUCTION), positionCorrection);
+        form, errors, correctionForLicenceType(LicenceType.SEAWARD_PRODUCTION), positionCorrection, Set.of());
 
     assertThat(result).isTrue();
     assertThat(ValidatorTestingUtil.getErrorsFieldsAndMessages(errors))
@@ -289,7 +308,7 @@ class AddPositionChangeFormValidatorTest {
     when(partialSurrenderCorrectionService.hasStagedPartialSurrender(positionCorrection)).thenReturn(false);
 
     var result = addPositionChangeFormValidator.hasErrors(
-        form, errors, correctionForLicenceType(licenceType), positionCorrection);
+        form, errors, correctionForLicenceType(licenceType), positionCorrection, Set.of());
 
     assertThat(result).isFalse();
     assertThat(errors.hasErrors()).isFalse();
@@ -301,7 +320,7 @@ class AddPositionChangeFormValidatorTest {
     form.setChangeType(AddPositionChangeType.SUBAREA.name());
 
     var result = addPositionChangeFormValidator.hasErrors(
-        form, errors, correctionForLicenceType(licenceType), positionCorrection);
+        form, errors, correctionForLicenceType(licenceType), positionCorrection, Set.of());
 
     assertThat(result).isTrue();
     assertThat(ValidatorTestingUtil.getErrorsFieldsAndMessages(errors))
@@ -314,9 +333,50 @@ class AddPositionChangeFormValidatorTest {
     form.setChangeType(AddPositionChangeType.SUBAREA.name());
 
     var result = addPositionChangeFormValidator.hasErrors(
-        form, errors, correctionForLicenceType(licenceType), positionCorrection);
+        form, errors, correctionForLicenceType(licenceType), positionCorrection, Set.of());
 
     assertThat(result).isFalse();
     assertThat(errors.hasErrors()).isFalse();
+  }
+
+  @ParameterizedTest
+  @EnumSource(value = LicenceType.class, names = {"SEAWARD_PRODUCTION", "LANDWARD_PRODUCTION" }, mode = EnumSource.Mode.EXCLUDE)
+  void hasErrors_whenSubareaSetEquityAndLicenceNotProduction_thenErrorWithMessage(LicenceType licenceType) {
+    form.setChangeType(AddPositionChangeType.SUBAREA_SET_EQUITY.name());
+
+    var result = addPositionChangeFormValidator.hasErrors(
+        form, errors, correctionForLicenceType(licenceType), positionCorrection, Set.of());
+
+    assertThat(result).isTrue();
+    assertThat(ValidatorTestingUtil.getErrorsFieldsAndMessages(errors))
+        .containsOnly(entry("changeType", Collections.singletonList(SELECT_A_CHANGE_TYPE)));
+  }
+
+  @ParameterizedTest
+  @EnumSource(value = LicenceType.class, names = {"SEAWARD_PRODUCTION", "LANDWARD_PRODUCTION" })
+  void hasErrors_whenSubareaSetEquityWithSubareaGoingIntoChange_thenNoErrors(LicenceType licenceType) {
+    form.setChangeType(AddPositionChangeType.SUBAREA_SET_EQUITY.name());
+    form.setSubarea(SUBAREA_KEY);
+
+    var result = addPositionChangeFormValidator.hasErrors(
+        form, errors, correctionForLicenceType(licenceType), positionCorrection, Set.of(SUBAREA_KEY));
+
+    assertThat(result).isFalse();
+    assertThat(errors.hasErrors()).isFalse();
+  }
+
+  @ParameterizedTest
+  @NullAndEmptySource
+  @ValueSource(strings = {" ", "not-a-subarea-going-into-change"})
+  void hasErrors_whenSubareaSetEquityWithoutSubareaGoingIntoChange_thenErrorWithMessage(String subarea) {
+    form.setChangeType(AddPositionChangeType.SUBAREA_SET_EQUITY.name());
+    form.setSubarea(subarea);
+
+    var result = addPositionChangeFormValidator.hasErrors(
+        form, errors, correctionForLicenceType(LicenceType.SEAWARD_PRODUCTION), positionCorrection, Set.of(SUBAREA_KEY));
+
+    assertThat(result).isTrue();
+    assertThat(ValidatorTestingUtil.getErrorsFieldsAndMessages(errors))
+        .containsOnly(entry("subarea", Collections.singletonList("Select the subarea to set equity for")));
   }
 }

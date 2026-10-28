@@ -1,12 +1,15 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatusType;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.PartialSurrenderValidator;
@@ -39,12 +42,12 @@ public class LicencePositionValidationService {
       List<ChronologicalPosition> allChronologicalPositions,
       ResolvedStates resolvedStates,
       List<LicencePositionCorrection> positionCorrections,
-      boolean isCarbonStorage,
-      boolean isExtantLicence
+      LicenceType licenceType,
+      LicenceStatusType licenceStatusType
   ) {
     var positionValidationErrors = new ArrayList<PositionValidationError>();
 
-    var transactionsWithMultipleChanges = isCarbonStorage
+    var transactionsWithMultipleChanges = licenceType == LicenceType.CARBON_STORAGE
         ? transactionIdsWithMultipleBeneficialInterestChanges(allChronologicalPositions)
         : Set.<UUID>of();
 
@@ -54,11 +57,13 @@ public class LicencePositionValidationService {
         positionCorrections,
         correctedChangeIds
     );
+    var subareaEquityChangeKeysByTransactionId = subareaEquityChangeKeysByTransactionId(allChronologicalPositions);
 
     var isFirstPosition = true;
     ChronologicalPosition lastPosition = allChronologicalPositions.isEmpty()
         ? null
         : allChronologicalPositions.getLast();
+
     for (var chronologicalPosition : allChronologicalPositions) {
       var isLastPosition = chronologicalPosition.equals(lastPosition);
       var positionValidationContext = new PositionValidationContext(
@@ -67,8 +72,8 @@ public class LicencePositionValidationService {
           resolvedStates.previousState(chronologicalPosition.id()),
           isFirstPosition,
           isLastPosition,
-          isCarbonStorage,
-          isExtantLicence
+          licenceType,
+          licenceStatusType
       );
 
       positionValidationErrors.addAll(chronologicalPosition.validate(positionValidationContext));
@@ -81,6 +86,18 @@ public class LicencePositionValidationService {
         positionValidationErrors.add(PositionValidationError.forPosition(
             positionValidationContext,
             EquityPositionRule.SINGLE_CHANGE_PER_TRANSACTION
+        ));
+      }
+
+      var transactionKeys = subareaEquityChangeKeysByTransactionId
+          .getOrDefault(chronologicalPosition.transactionId(), List.of());
+      var hasDuplicateSubareaChange = chronologicalPosition.subareaEquityChangeKeys().stream()
+          .anyMatch(key -> Collections.frequency(transactionKeys, key) > 1);
+
+      if (hasDuplicateSubareaChange) {
+        positionValidationErrors.add(PositionValidationError.forPosition(
+            positionValidationContext,
+            SubareaEquityPositionRule.SINGLE_CHANGE_PER_SUBAREA_PER_TRANSACTION
         ));
       }
 
@@ -182,5 +199,15 @@ public class LicencePositionValidationService {
         .filter(entry -> entry.getValue() > 1)
         .map(Map.Entry::getKey)
         .collect(Collectors.toSet());
+  }
+
+  private static Map<UUID, List<String>> subareaEquityChangeKeysByTransactionId(
+      List<ChronologicalPosition> chronologicalPositions
+  ) {
+    return chronologicalPositions.stream()
+        .collect(Collectors.groupingBy(
+            ChronologicalPosition::transactionId,
+            Collectors.flatMapping(position -> position.subareaEquityChangeKeys().stream(), Collectors.toList())
+        ));
   }
 }

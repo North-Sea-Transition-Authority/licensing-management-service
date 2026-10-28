@@ -10,11 +10,13 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.co.fivium.gisframework.command.CommandJourneyService;
+import uk.co.fivium.gisframework.feature.Feature;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderType;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation.SurrenderDetails;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaDetails;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaSurrenderOutcome;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicenceCleardownService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
@@ -34,6 +36,7 @@ class TestHarnessService {
   private static final int PPRS_TRAINING_ORG = 12845;
   private static final int SURRENDER_CHANGE_ORDER = 1;
   private static final int SUBAREA_CHANGE_ORDER = 1;
+  private static final int SUBAREA_EQUITY_CHANGE_ORDER = SUBAREA_CHANGE_ORDER + 1;
   private static final int BLOCKS_TO_SURRENDER = 2;
 
   private static final BigDecimal SHELL_INITIAL_EQUITY = BigDecimal.valueOf(60);
@@ -100,20 +103,23 @@ class TestHarnessService {
     // a surrender needs blocks to surrender, so it is seeded once the features above exist
     if (licence.getType().isProduction()) {
       generatePartialSurrenderPositionChange(licence, seededFeatures);
-      generateSubareaPositionChange(licence, seededFeatures);
+      var splitSubareas = generateSubareaPositionChange(licence, seededFeatures);
+      generateSubareaBeneficialInterestPositionChange(licence, seededFeatures, splitSubareas);
     }
   }
 
   /**
    * The subarea change is made to the first block the surrender leaves alone, so the block still holds the subarea it
    * was created with going into the most recent position.
+   *
+   * @return the subareas the split creates, or none when no block is left alone by the surrender
    */
-  private void generateSubareaPositionChange(
+  private List<SubareaDetails> generateSubareaPositionChange(
       Licence licence,
       SeededFeatures seededFeatures
   ) {
     if (seededFeatures.blocks().size() <= BLOCKS_TO_SURRENDER) {
-      return;
+      return List.of();
     }
 
     var mostRecentPosition = licencePositionService.getExecutedChronologicalLicencePositions(licence).getLast();
@@ -125,10 +131,12 @@ class TestHarnessService {
         mostRecentPosition.getPositionDate()
     );
 
+    var splitSubareas = subareaHalves.stream().map(SeededFeatures::toSubareaDetails).toList();
+
     LicenceOperation subareaOperation = LicenceOperation.newSubAreaOperation()
         .withBlockFeatureId(block.getId())
         .withReplacedSubareas(List.of(seededFeatures.subareaDetailsOf(block)))
-        .withOutputSubareas(subareaHalves.stream().map(SeededFeatures::toSubareaDetails).toList())
+        .withOutputSubareas(splitSubareas)
         .build();
 
     licencePositionChangeService.createLicencePositionChange(
@@ -137,6 +145,60 @@ class TestHarnessService {
         SUBAREA_CHANGE_ORDER,
         LicencePositionChangeStatus.CONSENTED
     );
+
+    return splitSubareas;
+  }
+
+  /**
+   * The beneficial interest is set in the first subarea the subarea change splits out, on the same position and after
+   * the split, as the subarea the block was created with no longer exists once the split is made.
+   */
+  private void generateSubareaBeneficialInterestPositionChange(
+      Licence licence,
+      SeededFeatures seededFeatures,
+      List<SubareaDetails> splitSubareas
+  ) {
+    if (splitSubareas.isEmpty()) {
+      return;
+    }
+
+    var finalPosition = licencePositionService.getExecutedChronologicalLicencePositions(licence).getLast();
+
+    var block = seededFeatures.blocks().get(BLOCKS_TO_SURRENDER);
+
+    createSetSubareaBeneficialInterestChange(finalPosition, block, splitSubareas.getFirst());
+  }
+
+  private void createSetSubareaBeneficialInterestChange(
+      LicencePosition licencePosition,
+      Feature block,
+      SubareaDetails subarea
+  ) {
+    var operations = List.of(
+        subareaSetEquityOperation(block, subarea, SHELL_PLC_ID, SHELL_INITIAL_EQUITY),
+        subareaSetEquityOperation(block, subarea, BP_EXPLORATION_ALPHA_LTD_ID, BP_INITIAL_EQUITY)
+    );
+
+    licencePositionChangeService.createLicencePositionChange(
+        licencePosition,
+        operations,
+        SUBAREA_EQUITY_CHANGE_ORDER,
+        LicencePositionChangeStatus.CONSENTED
+    );
+  }
+
+  private LicenceOperation subareaSetEquityOperation(
+      Feature block,
+      SubareaDetails subarea,
+      int organisationUnitId,
+      BigDecimal equity
+  ) {
+    return LicenceOperation.newSubareaSetEquityOperation()
+        .withBlockFeatureId(block.getId())
+        .withSubarea(subarea)
+        .withTransferTo(organisationUnitId)
+        .withEquity(equity)
+        .build();
   }
 
   /**

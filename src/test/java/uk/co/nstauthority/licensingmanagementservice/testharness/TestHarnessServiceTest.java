@@ -40,6 +40,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquity
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.StorageOperatorOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaDetails;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaSetEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaSurrenderOutcome;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.TransferEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicenceCleardownService;
@@ -347,7 +348,7 @@ class TestHarnessServiceTest {
     );
 
     // no surrender date - the change takes the date of the position it sits on
-    var expectedSurrender = LicenceOperation.newPartialSurrenderOperation()
+    LicenceOperation expectedSurrender = LicenceOperation.newPartialSurrenderOperation()
         .withSurrenderedFeatureIds(List.of(FULLY_SURRENDERED_BLOCK.getId(), PARTIALLY_SURRENDERED_BLOCK.getId()))
         .withSurrenderDetails(Map.of(
             FULLY_SURRENDERED_BLOCK.getId(), expectedFullSurrender,
@@ -355,6 +356,9 @@ class TestHarnessServiceTest {
         ))
         .build();
     assertThat(operationsCaptor.getAllValues().get(5)).containsExactly(expectedSurrender);
+    // penultimate = index size - 2 = 3
+    verify(licencePositionChangeService).createLicencePositionChange(
+        positions.get(3), List.of(expectedSurrender), 1, LicencePositionChangeStatus.CONSENTED);
     verify(commandJourneyService).deleteAllExcludingActiveFeatures(PARTIAL_SURRENDER_COMMAND_JOURNEY_ID);
   }
 
@@ -422,6 +426,60 @@ class TestHarnessServiceTest {
 
     assertThat(operationsCaptor.getAllValues().stream().flatMap(List::stream))
         .noneMatch(SubareaOperation.class::isInstance);
+  }
+
+  @Test
+  void generateLicencePositions_whenPrimaryIsProduction_thenAddsSubareaBeneficialInterestOnASplitSubareaAfterTheSplit() {
+    var licence = production(1);
+    var secondaryLicence = carbonStorage(2);
+    var positions = buildPositions(licence, 5);
+    when(licencePositionService.getExecutedChronologicalLicencePositions(licence)).thenReturn(positions);
+    when(licencePositionService.getExecutedChronologicalLicencePositions(secondaryLicence))
+        .thenReturn(buildPositions(secondaryLicence, 1));
+    givenSeededBlocks(licence);
+    givenPartiallySurrenderedBlockSplit(positions);
+    givenUntouchedSubareaSplit(positions);
+
+    testHarnessService.generateLicencePositions(licence, secondaryLicence);
+
+    var westernSubareaHalf = new SubareaDetails(WESTERN_SUBAREA_HALF.getId(), "A", "A");
+    verify(licencePositionChangeService).createLicencePositionChange(
+        positions.getLast(),
+        List.of(
+            new SubareaSetEquityOperation(
+                UNTOUCHED_BLOCK.getId(), westernSubareaHalf, SHELL_PLC_ID, BigDecimal.valueOf(60)),
+            new SubareaSetEquityOperation(
+                UNTOUCHED_BLOCK.getId(), westernSubareaHalf, BP_EXPLORATION_ALPHA_LTD_ID, BigDecimal.valueOf(40))
+        ),
+        2,
+        LicencePositionChangeStatus.CONSENTED
+    );
+  }
+
+  @Test
+  void generateLicencePositions_whenPrimaryIsProductionWithOnlyTheBlocksToSurrender_thenAddsNoSubareaBeneficialInterest() {
+    var licence = production(1);
+    var secondaryLicence = carbonStorage(2);
+    var positions = buildPositions(licence, 5);
+    when(licencePositionService.getExecutedChronologicalLicencePositions(licence)).thenReturn(positions);
+    when(licencePositionService.getExecutedChronologicalLicencePositions(secondaryLicence))
+        .thenReturn(buildPositions(secondaryLicence, 1));
+    when(licencePositionFeatureTestHarnessService.createAndLinkFeatures(licence)).thenReturn(new SeededFeatures(
+        List.of(FULLY_SURRENDERED_BLOCK, PARTIALLY_SURRENDERED_BLOCK),
+        Map.of(
+            FULLY_SURRENDERED_BLOCK.getId(), List.of(FULLY_SURRENDERED_SUBAREA),
+            PARTIALLY_SURRENDERED_BLOCK.getId(), List.of(PARTIALLY_SURRENDERED_SUBAREA)
+        )
+    ));
+    givenPartiallySurrenderedBlockSplit(positions);
+
+    testHarnessService.generateLicencePositions(licence, secondaryLicence);
+
+    verify(licencePositionChangeService, times(6)).createLicencePositionChange(
+        positionCaptor.capture(), operationsCaptor.capture(), eq(1), eq(LicencePositionChangeStatus.CONSENTED));
+
+    assertThat(operationsCaptor.getAllValues().stream().flatMap(List::stream))
+        .noneMatch(SubareaSetEquityOperation.class::isInstance);
   }
 
   @Test

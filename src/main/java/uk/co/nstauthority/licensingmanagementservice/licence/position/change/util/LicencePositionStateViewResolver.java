@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaDetails;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.LicencePositionState;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ResolvedStates;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.AdministratorStateView;
@@ -18,6 +19,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.vie
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.LicencePositionStateView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.LicenseeStateView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.OrganisationNameHistoryView;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.SubareaBeneficialInterestView;
 
 public final class LicencePositionStateViewResolver {
 
@@ -30,6 +32,7 @@ public final class LicencePositionStateViewResolver {
       UUID currentLicencePositionId,
       ResolvedStates resolvedStates,
       OrganisationNameContext nameContext,
+      Map<UUID, String> featureNames,
       @Nullable LocalDate positionDate
   ) {
     var currentState = resolvedStates.currentState(currentLicencePositionId);
@@ -45,7 +48,8 @@ public final class LicencePositionStateViewResolver {
         new LicenseeStateView(licenseeNames),
         nameContext.getNameForDate(currentState.storageOperatorId(), positionDate, ""),
         buildBeneficialInterests(currentState.equityByOrganisationId(), nameContext, positionDate),
-        buildOrganisationNameHistories(currentState, nameContext, positionDate)
+        buildOrganisationNameHistories(currentState, nameContext, positionDate),
+        buildSubareaBeneficialInterests(currentState.blockFeatureIdToSubareaEquity(), featureNames, nameContext, positionDate)
     );
   }
 
@@ -60,6 +64,25 @@ public final class LicencePositionStateViewResolver {
             entry.getValue()
         ))
         .sorted(Comparator.comparing(BeneficialInterestView::organisationName, String.CASE_INSENSITIVE_ORDER))
+        .toList();
+  }
+
+  private static List<SubareaBeneficialInterestView> buildSubareaBeneficialInterests(
+      Map<UUID, Map<SubareaDetails, Map<Integer, BigDecimal>>> blockFeatureIdToSubareaEquity,
+      Map<UUID, String> featureNamesById,
+      OrganisationNameContext nameContext,
+      @Nullable LocalDate positionDate
+  ) {
+    return blockFeatureIdToSubareaEquity.entrySet().stream()
+        .flatMap(blockEntry -> blockEntry.getValue().entrySet().stream()
+            .map(subareaEntry -> {
+              var blockName = featureNamesById.get(blockEntry.getKey());
+              var subareaLabel = subareaEntry.getKey().labelForBlockName(blockName);
+              var beneficialInterestViews = buildBeneficialInterests(subareaEntry.getValue(), nameContext, positionDate);
+              return new SubareaBeneficialInterestView(subareaLabel, beneficialInterestViews);
+            })
+        )
+        .sorted(Comparator.comparing(SubareaBeneficialInterestView::subareaLabel, String.CASE_INSENSITIVE_ORDER))
         .toList();
   }
 
@@ -78,6 +101,9 @@ public final class LicencePositionStateViewResolver {
     Optional.ofNullable(currentState.storageOperatorId()).ifPresent(distinctOrganisationIds::add);
     distinctOrganisationIds.addAll(currentState.licenseeIds());
     distinctOrganisationIds.addAll(currentState.equityByOrganisationId().keySet());
+    currentState.blockFeatureIdToSubareaEquity().values().stream()
+        .flatMap(subareaEquity -> subareaEquity.values().stream())
+        .forEach(equityByOrganisationId -> distinctOrganisationIds.addAll(equityByOrganisationId.keySet()));
 
     return distinctOrganisationIds.stream()
         .map(organisationId -> nameContext.getNameHistoryForDate(organisationId, positionDate))

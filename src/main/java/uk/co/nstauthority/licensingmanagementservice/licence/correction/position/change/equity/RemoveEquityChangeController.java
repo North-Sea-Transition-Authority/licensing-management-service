@@ -22,6 +22,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquityOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaSetEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.TransferEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
@@ -51,7 +52,11 @@ public class RemoveEquityChangeController {
   @GetMapping("/position/{licencePositionId}/change/{changeId}/remove-equity-change")
   @LicencePositionIsNotRemovedInCorrection
   @LicencePositionChangeBelongsToPosition
-  @LicencePositionChangeIsOfType({SetEquityOperation.class, TransferEquityOperation.class})
+  @LicencePositionChangeIsOfType({
+      SetEquityOperation.class,
+      TransferEquityOperation.class,
+      SubareaSetEquityOperation.class
+  })
   @LicencePositionBelongsToCorrectionLicence
   public ModelAndView renderRemoveExecutedEquityChange(
       LicenceCorrection correction,
@@ -64,7 +69,11 @@ public class RemoveEquityChangeController {
   @PostMapping("/position/{licencePositionId}/change/{changeId}/remove-equity-change")
   @LicencePositionChangeBelongsToPosition
   @LicencePositionIsNotRemovedInCorrection
-  @LicencePositionChangeIsOfType({SetEquityOperation.class, TransferEquityOperation.class})
+  @LicencePositionChangeIsOfType({
+      SetEquityOperation.class,
+      TransferEquityOperation.class,
+      SubareaSetEquityOperation.class
+  })
   @LicencePositionBelongsToCorrectionLicence
   public ModelAndView removeEquityChange(
       LicenceCorrection correction,
@@ -127,6 +136,7 @@ public class RemoveEquityChangeController {
     return new ModelAndView(CONFIRMATION_TEMPLATE)
         .addObject("pageTitle", REMOVE_PAGE_TITLE)
         .addObject("primaryButton", Button.warningButton("Remove beneficial interest change"))
+        .addObject("subareaLabel", equityChangeContext.subareaLabel())
         .addObject("setEquityRows", equityChangeContext.setEquityRows())
         .addObject("transferEquityRows", equityChangeContext.transferEquityRows())
         .addObject("cancelUrl", ReverseRouter.route(on(LicenceCorrectionController.class)
@@ -147,6 +157,7 @@ public class RemoveEquityChangeController {
     return new ModelAndView(CONFIRMATION_TEMPLATE)
         .addObject("pageTitle", reinstating ? REINSTATE_PAGE_TITLE : UNDO_PAGE_TITLE)
         .addObject("primaryButton", primaryButton)
+        .addObject("subareaLabel", equityChangeContext.subareaLabel())
         .addObject("setEquityRows", equityChangeContext.setEquityRows())
         .addObject("transferEquityRows", equityChangeContext.transferEquityRows())
         .addObject("cancelUrl", positionPageRoute(correction, positionCorrection));

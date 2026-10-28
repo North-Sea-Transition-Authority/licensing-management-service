@@ -1,4 +1,4 @@
-package uk.co.nstauthority.licensingmanagementservice.licence.correction.position;
+package uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.setequity;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
@@ -22,7 +22,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.validation.BindingResult;
@@ -34,11 +33,9 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.LicencePositionAddChangeController;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.setequity.LicencePositionSetEquityController;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.setequity.LicencePositionSetEquityForm;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.setequity.LicencePositionSetEquityFormValidator;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.setequity.SetEquityCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
@@ -46,7 +43,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.vie
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @ContextConfiguration(classes = LicencePositionSetEquityController.class)
-@ActiveProfiles("test")
 class LicencePositionSetEquityControllerTest extends AbstractControllerTest {
 
   @MockitoBean
@@ -168,7 +164,7 @@ class LicencePositionSetEquityControllerTest extends AbstractControllerTest {
     form.setTransferTo("123");
     form.getEquity().setInputValue("60");
 
-    when(validator.hasErrors(eq(form), any(BindingResult.class), eq(committedOperations))).thenReturn(true);
+    when(validator.hasErrors(eq(form), any(BindingResult.class), eq(List.of(123)))).thenReturn(true);
 
     mockMvc.perform(post(ReverseRouter.route(on(LicencePositionSetEquityController.class)
             .submitForAddedPosition(CORRECTION, POSITION_CORRECTION, null, null, null)))

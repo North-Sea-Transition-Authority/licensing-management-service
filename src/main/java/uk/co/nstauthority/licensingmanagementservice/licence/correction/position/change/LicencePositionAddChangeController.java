@@ -28,6 +28,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.setequity.LicencePositionSetEquityController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.storageoperator.LicencePositionStorageOperatorChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subarea.LicencePositionSubareaChangeStartController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subareaequity.LicencePositionSubareaSetEquityController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subareaequity.SubareaEquityOptionsService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.transferequity.LicencePositionTransferEquityController;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
@@ -43,15 +45,18 @@ public class LicencePositionAddChangeController {
   private final AddPositionChangeFormValidator addPositionChangeFormValidator;
   private final LicencePositionCorrectionService licencePositionCorrectionService;
   private final PartialSurrenderCorrectionService partialSurrenderCorrectionService;
+  private final SubareaEquityOptionsService subareaEquityOptionsService;
 
   public LicencePositionAddChangeController(
       AddPositionChangeFormValidator addPositionChangeFormValidator,
       LicencePositionCorrectionService licencePositionCorrectionService,
-      PartialSurrenderCorrectionService partialSurrenderCorrectionService
+      PartialSurrenderCorrectionService partialSurrenderCorrectionService,
+      SubareaEquityOptionsService subareaEquityOptionsService
   ) {
     this.addPositionChangeFormValidator = addPositionChangeFormValidator;
     this.licencePositionCorrectionService = licencePositionCorrectionService;
     this.partialSurrenderCorrectionService = partialSurrenderCorrectionService;
+    this.subareaEquityOptionsService = subareaEquityOptionsService;
   }
 
   @GetMapping("/position/{licencePositionId}/add-change")
@@ -61,8 +66,12 @@ public class LicencePositionAddChangeController {
       LicenceCorrection correction,
       LicencePosition licencePosition
   ) {
-    return addChangeModelAndView(correction, new AddPositionChangeForm(),
-        executedBackUrl(correction, licencePosition));
+    return addChangeModelAndView(
+        correction,
+        new AddPositionChangeForm(),
+        subareaEquityOptionsService.getSubareaOptions(correction, licencePosition),
+        executedBackUrl(correction, licencePosition)
+    );
   }
 
   @PostMapping("/position/{licencePositionId}/add-change")
@@ -76,9 +85,21 @@ public class LicencePositionAddChangeController {
   ) {
     var positionCorrection = licencePositionCorrectionService
         .getOrBuildUpdatePositionCorrection(correction, licencePosition);
+    var subareaOptions = subareaEquityOptionsService.getSubareaOptions(correction, licencePosition);
 
-    if (addPositionChangeFormValidator.hasErrors(form, bindingResult, correction, positionCorrection)) {
-      return addChangeModelAndView(correction, form, executedBackUrl(correction, licencePosition));
+    if (addPositionChangeFormValidator.hasErrors(
+        form,
+        bindingResult,
+        correction,
+        positionCorrection,
+        subareaOptions.keySet()
+    )) {
+      return addChangeModelAndView(
+          correction,
+          form,
+          subareaOptions,
+          executedBackUrl(correction, licencePosition)
+      );
     }
 
     return switch (AddPositionChangeType.valueOf(form.getChangeType())) {
@@ -99,6 +120,8 @@ public class LicencePositionAddChangeController {
           .renderForExecutedPosition(correction, licencePosition));
       case STORAGE_OPERATOR -> ReverseRouter.redirect(on(LicencePositionStorageOperatorChangeController.class)
           .renderForExecutedPosition(correction, licencePosition));
+      case SUBAREA_SET_EQUITY -> ReverseRouter.redirect(on(LicencePositionSubareaSetEquityController.class)
+          .renderForExecutedPosition(correction, licencePosition, form.getSubarea()));
     };
   }
 
@@ -108,8 +131,12 @@ public class LicencePositionAddChangeController {
       LicenceCorrection correction,
       LicencePositionCorrection licencePositionCorrection
   ) {
-    return addChangeModelAndView(correction, new AddPositionChangeForm(),
-        addedBackUrl(correction, licencePositionCorrection));
+    return addChangeModelAndView(
+        correction,
+        new AddPositionChangeForm(),
+        subareaEquityOptionsService.getSubareaOptions(licencePositionCorrection),
+        addedBackUrl(correction, licencePositionCorrection)
+    );
   }
 
   @PostMapping("/added-position/{licencePositionCorrectionId}/add-change")
@@ -120,8 +147,21 @@ public class LicencePositionAddChangeController {
       @ModelAttribute("form") AddPositionChangeForm form,
       BindingResult bindingResult
   ) {
-    if (addPositionChangeFormValidator.hasErrors(form, bindingResult, correction, licencePositionCorrection)) {
-      return addChangeModelAndView(correction, form, addedBackUrl(correction, licencePositionCorrection));
+    var subareaOptions = subareaEquityOptionsService.getSubareaOptions(licencePositionCorrection);
+
+    if (addPositionChangeFormValidator.hasErrors(
+        form,
+        bindingResult,
+        correction,
+        licencePositionCorrection,
+        subareaOptions.keySet()
+    )) {
+      return addChangeModelAndView(
+          correction,
+          form,
+          subareaOptions,
+          addedBackUrl(correction, licencePositionCorrection)
+      );
     }
 
     return switch (AddPositionChangeType.valueOf(form.getChangeType())) {
@@ -142,12 +182,15 @@ public class LicencePositionAddChangeController {
           .renderForAddedPosition(correction, licencePositionCorrection));
       case STORAGE_OPERATOR -> ReverseRouter.redirect(on(LicencePositionStorageOperatorChangeController.class)
           .renderForAddedPosition(correction, licencePositionCorrection));
+      case SUBAREA_SET_EQUITY -> ReverseRouter.redirect(on(LicencePositionSubareaSetEquityController.class)
+          .renderForAddedPosition(correction, licencePositionCorrection, form.getSubarea()));
     };
   }
 
   private ModelAndView addChangeModelAndView(
       LicenceCorrection correction,
       AddPositionChangeForm form,
+      Map<String, String> subareaOptions,
       String backLinkUrl
   ) {
     return new ModelAndView("lms/licence/correction/change/addChange")
@@ -155,6 +198,8 @@ public class LicencePositionAddChangeController {
         .addObject("pageCaption", correction.getLicence().getLicenceReference())
         .addObject("form", form)
         .addObject("changeTypeOptions", availableChangeTypeOptions(correction))
+        .addObject("subareaSetEquityChangeType", AddPositionChangeType.SUBAREA_SET_EQUITY.name())
+        .addObject("subareaOptions", subareaOptions)
         .addObject("backLinkUrl", backLinkUrl);
   }
 

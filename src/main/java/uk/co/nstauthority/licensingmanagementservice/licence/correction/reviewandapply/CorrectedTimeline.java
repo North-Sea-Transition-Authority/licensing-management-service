@@ -22,7 +22,7 @@ public record CorrectedTimeline(
         .toList();
   }
 
-  public boolean isCarbonStorage() {
-    return licenceCorrection.getLicence().getType() == LicenceType.CARBON_STORAGE;
+  public LicenceType licenceType() {
+    return licenceCorrection.getLicence().getType();
   }
 }

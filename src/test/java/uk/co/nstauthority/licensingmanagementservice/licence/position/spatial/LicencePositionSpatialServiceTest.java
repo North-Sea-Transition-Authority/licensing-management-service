@@ -1,6 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.position.spatial;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
@@ -1185,25 +1186,25 @@ class LicencePositionSpatialServiceTest {
   }
 
   @Test
-  void getStateGoingIntoChange_whenPositionCorrection_thenStateBeforeNamedChange() {
-    var targetPosition = LicencePositionTestUtil.newBuilder().withId(FIRST_POSITION_ID).withLicence(LICENCE).build();
-    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
-        .withLicenceCorrection(LICENCE_CORRECTION)
-        .withTargetLicencePosition(targetPosition)
-        .withPayload(UpdateLicencePositionPayloadTestUtil.newBuilder().build())
-        .build();
-    givenPositions(positionWithChanges(
+  void getBlockSubareasGoingIntoChange_whenSubareasOnSomeBlocks_thenEveryBlockInOrderWithItsSubareas() {
+    givenPositions(position(
         FIRST_POSITION_ID,
         1,
-        change("first-change", 1, blockCreateOf(BLOCK_30_1.getId()), subareaCreateOn(BLOCK_30_1.getId(), SUBAREA_A)),
-        change("second-change", 2, blockCreateOf(BLOCK_30_2.getId()))
+        blockCreateOf(BLOCK_30_2.getId(), BLOCK_30_1.getId(), BLOCK_30_3.getId()),
+        subareaCreateOn(BLOCK_30_1.getId(), SUBAREA_A),
+        subareaCreateOn(BLOCK_30_2.getId(), SUBAREA_B)
     ));
+    when(featureService.getFeaturesByIds(Set.of(BLOCK_30_1.getId(), BLOCK_30_2.getId(), BLOCK_30_3.getId())))
+        .thenReturn(List.of(BLOCK_30_2, BLOCK_30_3, BLOCK_30_1));
 
-    var result = licencePositionSpatialService.getStateGoingIntoChange(positionCorrection, "second-change");
+    var result = licencePositionSpatialService
+        .getBlockSubareasGoingIntoChange(LICENCE_CORRECTION, FIRST_POSITION_ID, null);
 
-    assertThat(result)
-        .usingRecursiveComparison()
-        .isEqualTo(LicencePositionState.EMPTY.withBlock(BLOCK_30_1.getId(), List.of(SUBAREA_A)));
+    assertThat(result).containsExactly(
+        new BlockSubareas(BLOCK_30_1, List.of(SUBAREA_A)),
+        new BlockSubareas(BLOCK_30_2, List.of(SUBAREA_B)),
+        new BlockSubareas(BLOCK_30_3, List.of()));
+    verify(licencePositionViewService).getCorrectedChronologicalPositions(LICENCE_CORRECTION, FIRST_POSITION_ID);
   }
 
   private void givenPositions(ChronologicalPosition... positions) {

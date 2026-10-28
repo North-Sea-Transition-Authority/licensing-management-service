@@ -537,6 +537,9 @@ every rate:
    - `RECURRANCES` = the number of further anniversaries before the next rate starts;
    - `RECURRANCES` empty (indefinite) when it runs to the final term end. That matches how
      PEARS holds the tail rate today (P2244 and P2522 both end on an indefinite rate of 7500).
+     **Decided (28 October 2026):** an indefinite rate is written with an **empty `RECURRANCES`
+     element**, not with the element left out. PEARS reads both as indefinite (the payments report
+     and `PED012X` test `recurrances IS NULL`), so this only fixes the XML shape.
 3. Merge adjacent LMS rates with the same value that only exist because of a phase/term split.
    One recurring `R` is emitted rather than two, so the write-back does not rely on the payments
    report's `GROUP BY rate` folding them together.

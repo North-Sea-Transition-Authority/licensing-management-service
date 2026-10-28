@@ -80,14 +80,17 @@ class TestHarnessService {
     generateSameTransactionDifferentLicencePositions(licence, secondaryLicence, now);
 
     if (licence.getType().isProduction()) {
-      generateAdministratorPositionChange(licence);
+      generateAdministratorPositionChanges(licence);
     } else if (LicenceType.CARBON_STORAGE.equals(licence.getType())) {
       generateCarbonStorageBeneficialInterestPositionChanges(licence);
+      generateStorageOperatorPositionChanges(licence);
     }
-    generateLicenseePositionChange(licence);
+    generateLicenseePositionChanges(licence);
 
     if (secondaryLicence.getType().isProduction()) {
       generateInitialAdministrator(secondaryLicence);
+    } else if (LicenceType.CARBON_STORAGE.equals(secondaryLicence.getType())) {
+      generateInitialStorageOperator(secondaryLicence);
     }
 
     // the positions were cleared above, so each licence is given a fresh set of blocks and subareas
@@ -273,7 +276,38 @@ class TestHarnessService {
         .build();
   }
 
-  private void generateLicenseePositionChange(Licence licence) {
+  private void generateStorageOperatorPositionChanges(Licence licence) {
+    var executedChronologicalLicencePositions = licencePositionService.getExecutedChronologicalLicencePositions(licence);
+
+    var firstPosition = executedChronologicalLicencePositions.getFirst();
+    var nonFinalPosition = executedChronologicalLicencePositions.get(executedChronologicalLicencePositions.size() - 3);
+
+    createStorageOperatorChange(firstPosition, SHELL_PLC_ID);
+    createStorageOperatorChange(nonFinalPosition, BP_EXPLORATION_ALPHA_LTD_ID);
+  }
+
+  private void generateInitialStorageOperator(Licence licence) {
+    var executedChronologicalLicencePositions = licencePositionService.getExecutedChronologicalLicencePositions(licence);
+
+    var firstPosition = executedChronologicalLicencePositions.getFirst();
+
+    createStorageOperatorChange(firstPosition, SHELL_PLC_ID);
+  }
+
+  private void createStorageOperatorChange(LicencePosition licencePosition, int operatorId) {
+    var storageOperatorChange = LicenceOperation.newStorageOperatorOperation()
+        .withOperator(operatorId)
+        .build();
+
+    licencePositionChangeService.createLicencePositionChange(
+        licencePosition,
+        List.of(storageOperatorChange),
+        1,
+        LicencePositionChangeStatus.CONSENTED
+    );
+  }
+
+  private void generateLicenseePositionChanges(Licence licence) {
     var executedChronologicalLicencePositions = licencePositionService.getExecutedChronologicalLicencePositions(licence);
 
     var firstPosition = executedChronologicalLicencePositions.getFirst();
@@ -299,7 +333,7 @@ class TestHarnessService {
     );
   }
 
-  private void generateAdministratorPositionChange(Licence licence) {
+  private void generateAdministratorPositionChanges(Licence licence) {
     var executedChronologicalLicencePositions = licencePositionService.getExecutedChronologicalLicencePositions(licence);
 
     var firstPosition = executedChronologicalLicencePositions.getFirst();

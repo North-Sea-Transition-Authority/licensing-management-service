@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -38,6 +37,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOp
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenseeOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquityOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.StorageOperatorOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaDetails;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaSurrenderOutcome;
@@ -187,7 +187,9 @@ class TestHarnessServiceTest {
   void generateLicencePositions_createsFeaturesOnBothLicences() {
     var licence = carbonStorage(1);
     var secondaryLicence = carbonStorage(2);
-    when(licencePositionService.getExecutedChronologicalLicencePositions(licence)).thenReturn(buildPositions(5));
+    when(licencePositionService.getExecutedChronologicalLicencePositions(licence)).thenReturn(buildPositions(licence, 5));
+    when(licencePositionService.getExecutedChronologicalLicencePositions(secondaryLicence))
+        .thenReturn(buildPositions(secondaryLicence, 1));
 
     testHarnessService.generateLicencePositions(licence, secondaryLicence);
 
@@ -203,8 +205,10 @@ class TestHarnessServiceTest {
     when(licenceTransactionService.createLicenceTransaction(anyString()))
         .thenReturn(TRANSACTION_1, TRANSACTION_2, TRANSACTION_3, TRANSACTION_4, TRANSACTION_5,
             PAIR_TRANSACTION_1, PAIR_TRANSACTION_2, SAME_TRANSACTION, CROSS_TRANSACTION);
-    var positions = buildPositions(5);
+    var positions = buildPositions(licence, 5);
     when(licencePositionService.getExecutedChronologicalLicencePositions(licence)).thenReturn(positions);
+    when(licencePositionService.getExecutedChronologicalLicencePositions(secondaryLicence))
+        .thenReturn(buildPositions(secondaryLicence, 1));
     givenSeededBlocks(licence);
     givenPartiallySurrenderedBlockSplit(positions);
     givenUntouchedSubareaSplit(positions);
@@ -241,15 +245,17 @@ class TestHarnessServiceTest {
   void generateLicensePositions_whenPrimaryIsProduction_addsLicenseeChangeOnFirstAndNonFinalPosition() {
     var licence = production(1);
     var secondaryLicence = carbonStorage(2);
-    var positions = buildPositions(5);
+    var positions = buildPositions(licence, 5);
     when(licencePositionService.getExecutedChronologicalLicencePositions(licence)).thenReturn(positions);
+    when(licencePositionService.getExecutedChronologicalLicencePositions(secondaryLicence))
+        .thenReturn(buildPositions(secondaryLicence, 1));
     givenSeededBlocks(licence);
     givenPartiallySurrenderedBlockSplit(positions);
     givenUntouchedSubareaSplit(positions);
 
     testHarnessService.generateLicencePositions(licence, secondaryLicence);
 
-    verify(licencePositionChangeService, times(6)).createLicencePositionChange(
+    verify(licencePositionChangeService, times(7)).createLicencePositionChange(
         positionCaptor.capture(),
         operationsCaptor.capture(),
         eq(1),
@@ -274,15 +280,17 @@ class TestHarnessServiceTest {
   void generateLicencePositions_whenPrimaryIsProduction_addsAdministratorChangeOnFirstAndNonFinalPosition() {
     var licence = production(1);
     var secondaryLicence = carbonStorage(2);
-    var positions = buildPositions(5);
+    var positions = buildPositions(licence, 5);
     when(licencePositionService.getExecutedChronologicalLicencePositions(licence)).thenReturn(positions);
+    when(licencePositionService.getExecutedChronologicalLicencePositions(secondaryLicence))
+        .thenReturn(buildPositions(secondaryLicence, 1));
     givenSeededBlocks(licence);
     givenPartiallySurrenderedBlockSplit(positions);
     givenUntouchedSubareaSplit(positions);
 
     testHarnessService.generateLicencePositions(licence, secondaryLicence);
 
-    verify(licencePositionChangeService, times(6)).createLicencePositionChange(
+    verify(licencePositionChangeService, times(7)).createLicencePositionChange(
         positionCaptor.capture(),
         operationsCaptor.capture(),
         eq(1),
@@ -301,15 +309,17 @@ class TestHarnessServiceTest {
   void generateLicencePositions_whenPrimaryIsProduction_addsPartialSurrenderOnPenultimatePosition() {
     var licence = production(1);
     var secondaryLicence = carbonStorage(2);
-    var positions = buildPositions(5);
+    var positions = buildPositions(licence, 5);
     when(licencePositionService.getExecutedChronologicalLicencePositions(licence)).thenReturn(positions);
+    when(licencePositionService.getExecutedChronologicalLicencePositions(secondaryLicence))
+        .thenReturn(buildPositions(secondaryLicence, 1));
     givenSeededBlocks(licence);
     givenPartiallySurrenderedBlockSplit(positions);
     givenUntouchedSubareaSplit(positions);
 
     testHarnessService.generateLicencePositions(licence, secondaryLicence);
 
-    verify(licencePositionChangeService, times(6)).createLicencePositionChange(
+    verify(licencePositionChangeService, times(7)).createLicencePositionChange(
         positionCaptor.capture(),
         operationsCaptor.capture(),
         eq(1),
@@ -317,7 +327,7 @@ class TestHarnessServiceTest {
     );
 
     // penultimate = index size - 2 = 3
-    assertThat(positionCaptor.getAllValues().get(4)).isEqualTo(positions.get(3));
+    assertThat(positionCaptor.getAllValues().get(5)).isEqualTo(positions.get(3));
 
     var croppedSubarea = new SubareaDetails(CROPPED_SUBAREA.getId(), "ALL", "ALL");
     var expectedFullSurrender = new PartialSurrenderOperation.SurrenderDetails(
@@ -344,7 +354,7 @@ class TestHarnessServiceTest {
             PARTIALLY_SURRENDERED_BLOCK.getId(), expectedPartialSurrender
         ))
         .build();
-    assertThat(operationsCaptor.getAllValues().get(4)).containsExactly(expectedSurrender);
+    assertThat(operationsCaptor.getAllValues().get(5)).containsExactly(expectedSurrender);
     verify(commandJourneyService).deleteAllExcludingActiveFeatures(PARTIAL_SURRENDER_COMMAND_JOURNEY_ID);
   }
 
@@ -352,15 +362,17 @@ class TestHarnessServiceTest {
   void generateLicencePositions_whenPrimaryIsProduction_addsSubareaChangeOnMostRecentPosition() {
     var licence = production(1);
     var secondaryLicence = carbonStorage(2);
-    var positions = buildPositions(5);
+    var positions = buildPositions(licence, 5);
     when(licencePositionService.getExecutedChronologicalLicencePositions(licence)).thenReturn(positions);
+    when(licencePositionService.getExecutedChronologicalLicencePositions(secondaryLicence))
+        .thenReturn(buildPositions(secondaryLicence, 1));
     givenSeededBlocks(licence);
     givenPartiallySurrenderedBlockSplit(positions);
     givenUntouchedSubareaSplit(positions);
 
     testHarnessService.generateLicencePositions(licence, secondaryLicence);
 
-    verify(licencePositionChangeService, times(6)).createLicencePositionChange(
+    verify(licencePositionChangeService, times(7)).createLicencePositionChange(
         positionCaptor.capture(),
         operationsCaptor.capture(),
         eq(1),
@@ -386,8 +398,10 @@ class TestHarnessServiceTest {
   void generateLicencePositions_whenPrimaryIsProductionWithNoBlockLeftBySurrender_addsNoSubareaChange() {
     var licence = production(1);
     var secondaryLicence = carbonStorage(2);
-    var positions = buildPositions(5);
+    var positions = buildPositions(licence, 5);
     when(licencePositionService.getExecutedChronologicalLicencePositions(licence)).thenReturn(positions);
+    when(licencePositionService.getExecutedChronologicalLicencePositions(secondaryLicence))
+        .thenReturn(buildPositions(secondaryLicence, 1));
     when(licencePositionFeatureTestHarnessService.createAndLinkFeatures(licence)).thenReturn(new SeededFeatures(
         List.of(FULLY_SURRENDERED_BLOCK, PARTIALLY_SURRENDERED_BLOCK),
         Map.of(
@@ -399,7 +413,7 @@ class TestHarnessServiceTest {
 
     testHarnessService.generateLicencePositions(licence, secondaryLicence);
 
-    verify(licencePositionChangeService, times(5)).createLicencePositionChange(
+    verify(licencePositionChangeService, times(6)).createLicencePositionChange(
         positionCaptor.capture(),
         operationsCaptor.capture(),
         eq(1),
@@ -414,7 +428,9 @@ class TestHarnessServiceTest {
   void generateLicencePositions_whenPrimaryIsProductionWithFewerThanTwoSeededBlocks_addsNoPartialSurrender() {
     var licence = production(1);
     var secondaryLicence = carbonStorage(2);
-    when(licencePositionService.getExecutedChronologicalLicencePositions(licence)).thenReturn(buildPositions(5));
+    when(licencePositionService.getExecutedChronologicalLicencePositions(licence)).thenReturn(buildPositions(licence, 5));
+    when(licencePositionService.getExecutedChronologicalLicencePositions(secondaryLicence))
+        .thenReturn(buildPositions(secondaryLicence, 1));
     when(licencePositionFeatureTestHarnessService.createAndLinkFeatures(licence)).thenReturn(new SeededFeatures(
         List.of(FULLY_SURRENDERED_BLOCK),
         Map.of(FULLY_SURRENDERED_BLOCK.getId(), List.of(FULLY_SURRENDERED_SUBAREA))
@@ -422,7 +438,7 @@ class TestHarnessServiceTest {
 
     testHarnessService.generateLicencePositions(licence, secondaryLicence);
 
-    verify(licencePositionChangeService, times(4)).createLicencePositionChange(
+    verify(licencePositionChangeService, times(5)).createLicencePositionChange(
         positionCaptor.capture(), operationsCaptor.capture(), eq(1), eq(LicencePositionChangeStatus.CONSENTED));
 
     assertThat(operationsCaptor.getAllValues().stream().flatMap(List::stream))
@@ -435,9 +451,9 @@ class TestHarnessServiceTest {
   void generateLicencePositions_whenSecondaryIsProduction_addsInitialAdministratorOnFirstPosition() {
     // primary is gas storage so that only the secondary production licence produces a change
     var licence = gasStorage(1);
-    var positions = buildPositions(5);
+    var positions = buildPositions(licence, 5);
     var secondaryLicence = production(2);
-    var secondaryPositions = buildPositions(1);
+    var secondaryPositions = buildPositions(secondaryLicence, 1);
     when(licencePositionService.getExecutedChronologicalLicencePositions(licence)).thenReturn(positions);
     when(licencePositionService.getExecutedChronologicalLicencePositions(secondaryLicence)).thenReturn(secondaryPositions);
 
@@ -452,22 +468,63 @@ class TestHarnessServiceTest {
   }
 
   @Test
-  void generateLicencePositions_whenPrimaryIsCarbonStorage_addsSetOnFirstAndTransferOnNonFinalPosition() {
-    var licence = carbonStorage(1);
+  void generateLicencePositions_whenSecondaryIsCarbonStorage_addsInitialStorageOperatorOnFirstPosition() {
+    // primary is gas storage so that only the secondary carbon storage licence produces a change
+    var licence = gasStorage(1);
+    var positions = buildPositions(licence, 5);
     var secondaryLicence = carbonStorage(2);
-    var positions = buildPositions(5);
+    var secondaryPositions = buildPositions(secondaryLicence, 1);
     when(licencePositionService.getExecutedChronologicalLicencePositions(licence)).thenReturn(positions);
+    when(licencePositionService.getExecutedChronologicalLicencePositions(secondaryLicence)).thenReturn(secondaryPositions);
 
     testHarnessService.generateLicencePositions(licence, secondaryLicence);
 
-    // the secondary carbon storage licence is not enriched (it only has a single position)
-    verify(licencePositionService, never()).getExecutedChronologicalLicencePositions(secondaryLicence);
+    verify(licencePositionChangeService, times(3)).createLicencePositionChange(
+        positionCaptor.capture(), operationsCaptor.capture(), eq(1), eq(LicencePositionChangeStatus.CONSENTED));
 
-    verify(licencePositionChangeService, times(4)).createLicencePositionChange(
+    assertThat(positionCaptor.getValue()).isEqualTo(secondaryPositions.getFirst());
+    assertThat(((StorageOperatorOperation) operationsCaptor.getValue().getFirst()).operatorId())
+        .isEqualTo(SHELL_PLC_ID);
+  }
+
+  @Test
+  void generateLicencePositions_whenPrimaryIsCarbonStorage_addsStorageOperatorOnFirstAndNonFinalPosition() {
+    var licence = carbonStorage(1);
+    var secondaryLicence = production(2);
+    var secondaryPositions = buildPositions(secondaryLicence, 1);
+    var positions = buildPositions(licence, 5);
+    when(licencePositionService.getExecutedChronologicalLicencePositions(licence)).thenReturn(positions);
+    when(licencePositionService.getExecutedChronologicalLicencePositions(secondaryLicence)).thenReturn(secondaryPositions);
+
+    testHarnessService.generateLicencePositions(licence, secondaryLicence);
+
+    verify(licencePositionChangeService, times(7)).createLicencePositionChange(
+        positionCaptor.capture(), operationsCaptor.capture(), eq(1), eq(LicencePositionChangeStatus.CONSENTED));
+
+    // first = index 0 (Shell); non-final = index size - 3 = 2 (BP)
+    assertThat(positionCaptor.getAllValues().subList(2, 4)).containsExactly(positions.get(0), positions.get(2));
+    assertThat(operationsCaptor.getAllValues().stream().flatMap(List::stream))
+        .filteredOn(StorageOperatorOperation.class::isInstance)
+        .extracting(operation -> ((StorageOperatorOperation) operation).operatorId())
+        .containsExactly(SHELL_PLC_ID, BP_EXPLORATION_ALPHA_LTD_ID);
+  }
+
+  @Test
+  void generateLicencePositions_whenPrimaryIsCarbonStorage_addsSetOnFirstAndTransferOnNonFinalPosition() {
+    var licence = carbonStorage(1);
+    var secondaryLicence = carbonStorage(2);
+    var positions = buildPositions(licence, 5);
+    when(licencePositionService.getExecutedChronologicalLicencePositions(licence)).thenReturn(positions);
+    when(licencePositionService.getExecutedChronologicalLicencePositions(secondaryLicence))
+        .thenReturn(buildPositions(secondaryLicence, 1));
+
+    testHarnessService.generateLicencePositions(licence, secondaryLicence);
+
+    verify(licencePositionChangeService, times(7)).createLicencePositionChange(
         positionCaptor.capture(), operationsCaptor.capture(), eq(1), eq(LicencePositionChangeStatus.CONSENTED));
 
     // set on the first position (index 0), transfer on a non-final position (index size - 3 = 2)
-    assertThat(positionCaptor.getAllValues()).containsExactly(positions.get(0), positions.get(2), positions.get(0), positions.get(1));
+    assertThat(positionCaptor.getAllValues().subList(0, 2)).containsExactly(positions.get(0), positions.get(2));
 
     var setOperations = operationsCaptor.getAllValues().get(0);
     assertThat(setOperations)
@@ -506,9 +563,9 @@ class TestHarnessServiceTest {
     return LicenceTestUtil.builder().withId(id).withLicenceType(LicenceType.GAS_STORAGE).build();
   }
 
-  private static List<LicencePosition> buildPositions(int count) {
+  private static List<LicencePosition> buildPositions(Licence licence, int count) {
     return IntStream.range(0, count)
-        .mapToObj(i -> LicencePositionTestUtil.newBuilder().build())
+        .mapToObj(i -> LicencePositionTestUtil.newBuilder().withLicence(licence).build())
         .toList();
   }
 }

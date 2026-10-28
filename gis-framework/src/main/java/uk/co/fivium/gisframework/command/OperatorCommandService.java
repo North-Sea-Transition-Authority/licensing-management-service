@@ -4,16 +4,28 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import uk.co.fivium.gisframework.feature.Feature;
+import uk.co.fivium.gisframework.feature.FeatureService;
+import uk.co.fivium.gisframework.operator.JsonHistoryAction;
 
 @Service
 public class OperatorCommandService {
 
   private final OperatorCommandRepository operatorCommandRepository;
+  private final FeatureService featureService;
+  private final FeatureJourneyStateService featureJourneyStateService;
 
-  public OperatorCommandService(OperatorCommandRepository operatorCommandRepository) {
+  public OperatorCommandService(
+      OperatorCommandRepository operatorCommandRepository,
+      FeatureService featureService,
+      FeatureJourneyStateService featureJourneyStateService
+  ) {
     this.operatorCommandRepository = operatorCommandRepository;
+    this.featureService = featureService;
+    this.featureJourneyStateService = featureJourneyStateService;
   }
 
   @Transactional
@@ -106,6 +118,54 @@ public class OperatorCommandService {
    */
   public List<OperatorCommand> getUndoneCommands(CommandJourney commandJourney) {
     return operatorCommandRepository.findAllByCommandJourneyAndStatus(commandJourney, CommandStatus.UNDONE);
+  }
+
+  /**
+   * Finds the active commands for a journey, oldest first.
+   *
+   * @param commandJourney the journey to find active commands for.
+   * @return the journey's active commands ordered by when they were issued.
+   */
+  public List<OperatorCommand> getActiveCommands(CommandJourney commandJourney) {
+    return operatorCommandRepository.findAllByCommandJourneyAndStatusOrderByCommandOrderAsc(
+        commandJourney,
+        CommandStatus.ACTIVE
+    );
+  }
+
+  /**
+   * Builds the actions taken in a journey that have not been undone, newest first.
+   *
+   * @param commandJourney the journey to build the history for.
+   * @return the journey's active actions, numbered in the order they were taken.
+   */
+  public List<JsonHistoryAction> getActiveHistory(CommandJourney commandJourney) {
+    var commands = getActiveCommands(commandJourney);
+    if (commands.isEmpty()) {
+      return List.of();
+    }
+
+    var inputFeatureIds = commands.stream()
+        .flatMap(command -> command.getInputFeatureIds().stream())
+        .collect(Collectors.toSet());
+    var inputFeatureNamesById = featureService.getFeaturesByIds(inputFeatureIds).stream()
+        .collect(Collectors.toMap(Feature::getId, Feature::getFeatureName));
+    var outputFeaturesByCommandId = featureJourneyStateService.getFeaturesCreatedByCommands(commands);
+
+    return commands.reversed().stream()
+        .map(command -> new JsonHistoryAction(
+            command.getCommandOrder(),
+            command.getTransformationType(),
+            command.getInputFeatureIds().stream()
+                .map(inputFeatureNamesById::get)
+                .sorted()
+                .toList(),
+            outputFeaturesByCommandId.getOrDefault(command.getId(), List.of()).stream()
+                .map(Feature::getFeatureName)
+                .sorted()
+                .toList()
+        ))
+        .toList();
   }
 
   @Transactional

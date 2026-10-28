@@ -6,6 +6,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import org.springframework.data.domain.Limit;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.ListCrudRepository;
 import org.springframework.data.repository.query.Param;
@@ -22,6 +23,13 @@ interface FeatureJourneyStateRepository extends ListCrudRepository<FeatureJourne
 
   List<FeatureJourneyState> findAllByCreatedByCommand(OperatorCommand createdByCommand);
 
+  @EntityGraph(attributePaths = {
+      "feature",
+      "feature.parentFeature",
+      "commandJourney",
+      "createdByCommand",
+      "createdByCommand.commandJourney"
+  })
   List<FeatureJourneyState> findAllByCreatedByCommandIn(Collection<OperatorCommand> createdByCommands);
 
   List<FeatureJourneyState> findAllByCommandJourneyAndFeature_IdIn(CommandJourney commandJourney, Set<UUID> featureIds);

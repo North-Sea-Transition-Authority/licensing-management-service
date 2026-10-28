@@ -25,6 +25,7 @@ import uk.co.fivium.gisframework.command.CommandJourneyService;
 import uk.co.fivium.gisframework.command.OperatorCommand;
 import uk.co.fivium.gisframework.command.OperatorCommandService;
 import uk.co.fivium.gisframework.command.TransformationType;
+import uk.co.fivium.gisframework.operator.JsonHistoryAction;
 import uk.co.fivium.gisframework.operator.JsonHistoryStatus;
 import uk.co.fivium.gisframework.operator.JsonMergeResponse;
 import uk.co.fivium.gisframework.operator.JsonSplitResponse;
@@ -164,17 +165,20 @@ class OperatorRestControllerTest extends AbstractControllerTest {
   }
 
   @Test
-  void getHistory_whenUndoAndRedoCommandsExist_assertCanUndoAndRedoWithTheirTransformationTypes() throws Exception {
+  void getHistory_whenActionsAndRedoCommandExist_assertUndoFromLatestActionAndRedoFromCommand() throws Exception {
     var commandJourneyId = UUID.randomUUID();
     var commandJourney = new CommandJourney();
-    var undoCommand = operatorCommand(TransformationType.MERGE);
+    var actions = List.of(
+        new JsonHistoryAction(2, TransformationType.MERGE, List.of("A", "B"), List.of("mergeResult_ABCD")),
+        new JsonHistoryAction(1, TransformationType.SPLIT, List.of("C"), List.of("C_1", "C_2"))
+    );
     var redoCommand = operatorCommand(TransformationType.STRATA_SPLIT);
 
     when(commandJourneyService.getCommandJourneyOrThrow(commandJourneyId)).thenReturn(commandJourney);
-    when(operatorCommandService.getCurrentActiveCommand(commandJourney)).thenReturn(Optional.of(undoCommand));
+    when(operatorCommandService.getActiveHistory(commandJourney)).thenReturn(actions);
     when(operatorCommandService.getNextRedoCommand(commandJourney)).thenReturn(Optional.of(redoCommand));
 
-    var expected = new JsonHistoryStatus(TransformationType.MERGE, TransformationType.STRATA_SPLIT);
+    var expected = new JsonHistoryStatus(TransformationType.MERGE, TransformationType.STRATA_SPLIT, actions);
 
     mockMvc.perform(get("/api/gis-framework/history/{commandJourneyId}", commandJourneyId)
             .with(user(regulatorUser)))
@@ -183,15 +187,15 @@ class OperatorRestControllerTest extends AbstractControllerTest {
   }
 
   @Test
-  void getHistory_whenNoUndoOrRedoCommands_assertCannotUndoOrRedoWithNoTransformationTypes() throws Exception {
+  void getHistory_whenNoActionsOrRedoCommand_assertCannotUndoOrRedoWithNoActions() throws Exception {
     var commandJourneyId = UUID.randomUUID();
     var commandJourney = new CommandJourney();
 
     when(commandJourneyService.getCommandJourneyOrThrow(commandJourneyId)).thenReturn(commandJourney);
-    when(operatorCommandService.getCurrentActiveCommand(commandJourney)).thenReturn(Optional.empty());
+    when(operatorCommandService.getActiveHistory(commandJourney)).thenReturn(List.of());
     when(operatorCommandService.getNextRedoCommand(commandJourney)).thenReturn(Optional.empty());
 
-    var expected = new JsonHistoryStatus(null, null);
+    var expected = new JsonHistoryStatus(null, null, List.of());
 
     mockMvc.perform(get("/api/gis-framework/history/{commandJourneyId}", commandJourneyId)
             .with(user(regulatorUser)))

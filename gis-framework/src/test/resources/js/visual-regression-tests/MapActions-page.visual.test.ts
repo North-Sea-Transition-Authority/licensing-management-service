@@ -1,5 +1,5 @@
 import type { JsonBodyType } from "msw";
-import type { JsonHistoryStatus } from "@/api/history.api";
+import type { JsonHistoryAction, JsonHistoryStatus } from "@/api/history.api";
 import type { TransformationType } from "@/transformation-type";
 import { page } from "@vitest/browser/context";
 import { http, HttpResponse } from "msw";
@@ -29,22 +29,29 @@ const textualDescriptionHtml = `<div class="gis-textual-description">
  </ol>
 </div>`;
 
+const previousActions: JsonHistoryAction[] = [
+  { number: 3, transformationType: "MERGE", inputFeatureNames: ["Block A_1", "Block B"], outputFeatureNames: ["mergeResult_4E03"] },
+  { number: 2, transformationType: "STRATA_SPLIT", inputFeatureNames: ["Block A_1"], outputFeatureNames: ["Block A_1_above", "Block A_1_below"] },
+  { number: 1, transformationType: "SPLIT", inputFeatureNames: ["Block A"], outputFeatureNames: ["Block A_1", "Block A_2"] },
+];
+
 /**
  * Registers stateful handlers: `GET features` returns the split, merge or strata split fixture once `POST split`,
- * `POST merge` or `POST strata-split` has been called, and the original fixture again after `POST undo`. History
- * reports the last action as undoable, or redoable once undone. Returns a getter for the number of `GET features`
- * requests, used to wait for the map to reload.
+ * `POST merge` or `POST strata-split` has been called, the original fixture again after `POST undo`, and the result
+ * again after `POST redo`. History lists the actions taken, newest first, and reports the latest as undoable, or the
+ * last undone as redoable. Returns a getter for the number of `GET features` requests, which is used to wait for the map to
+ * reload.
  */
-function mockEndpoints(): { featuresRequests: () => number } {
+function mockEndpoints(initialActions: JsonHistoryAction[] = []): { featuresRequests: () => number } {
   let features: JsonBodyType = depthMapEd50;
   let featuresRequests = 0;
-  let lastTransformationType: TransformationType | null = null;
-  let undone = false;
+  let actions = [...initialActions];
+  let undone: { action: JsonHistoryAction, result: JsonBodyType } | null = null;
 
-  function perform(transformationType: TransformationType, result: JsonBodyType) {
+  function perform(transformationType: TransformationType, result: JsonBodyType, inputFeatureNames: string[], outputFeatureNames: string[]) {
     features = result;
-    lastTransformationType = transformationType;
-    undone = false;
+    actions = [{ number: actions.length + 1, transformationType, inputFeatureNames, outputFeatureNames }, ...actions];
+    undone = null;
   }
 
   worker.use(
@@ -55,24 +62,35 @@ function mockEndpoints(): { featuresRequests: () => number } {
     http.get("/api/outline-nodes/1", () => HttpResponse.json({ featureOutlineNodes: depthMapOutlineNodes })),
     http.get("/api/textual-description/1", () => HttpResponse.json({ textualDescription: textualDescriptionHtml })),
     http.get("/api/history/1", () => HttpResponse.json({
-      undoTransformationType: undone ? null : lastTransformationType,
-      redoTransformationType: undone ? lastTransformationType : null,
+      undoTransformationType: actions[0]?.transformationType ?? null,
+      redoTransformationType: undone?.action.transformationType ?? null,
+      actions,
     } satisfies JsonHistoryStatus)),
     http.post("/api/split", () => {
-      perform("SPLIT", depthMapSplitEd50);
+      perform("SPLIT", depthMapSplitEd50, ["Middle block"], ["Middle block_1", "Middle block_2"]);
       return HttpResponse.json({ outputFeatureIds: ["middle-west", "middle-east"] });
     }),
     http.post("/api/merge", () => {
-      perform("MERGE", depthMapMergeEd50);
+      perform("MERGE", depthMapMergeEd50, ["Middle block", "Shallow block"], ["Merged block"]);
       return HttpResponse.json({ outputFeatureId: "merged" });
     }),
     http.post("/api/strata-split", () => {
-      perform("STRATA_SPLIT", depthMapStrataSplitEd50);
+      perform("STRATA_SPLIT", depthMapStrataSplitEd50, ["Middle block"], ["Middle block_above", "Middle block_below"]);
       return HttpResponse.json({ outputFeatureIds: ["middle-above", "middle-below"] });
     }),
     http.post("/api/undo/1", () => {
+      const [action, ...remaining] = actions;
+      undone = { action, result: features };
+      actions = remaining;
       features = depthMapEd50;
-      undone = true;
+      return new HttpResponse(null, { status: 200 });
+    }),
+    http.post("/api/redo/1", () => {
+      if (undone) {
+        actions = [undone.action, ...actions];
+        features = undone.result;
+        undone = null;
+      }
       return new HttpResponse(null, { status: 200 });
     }),
   );
@@ -142,6 +160,10 @@ async function tickShallowAndMiddleBlocks(screen: ReturnType<typeof renderInFixe
     .toBeVisible();
 }
 
+async function openActionHistory(screen: ReturnType<typeof renderInFixedWidthContainer>, actionCount: number) {
+  await screen.getByText(`Show action history (${actionCount} ${actionCount === 1 ? "action" : "actions"})`).click();
+}
+
 describe("map actions page", () => {
   beforeEach(async () => {
     await page.viewport(1280, 1600);
@@ -159,7 +181,7 @@ describe("map actions page", () => {
 
   it.each([
     { band: "-100m to -200m", screenshot: "map-actions-middle-band" },
-    { band: "-200m to -300m", screenshot: "map-actions-deepest-band" },
+    { band: "-200m to -∞m", screenshot: "map-actions-deepest-band" },
   ])("renders the $band band when it is selected", async ({ band, screenshot }) => {
     mockEndpoints();
     const screen = renderInFixedWidthContainer();
@@ -329,5 +351,68 @@ describe("map actions page", () => {
     await settleForScreenshot();
 
     await expect(screen.locator).toMatchScreenshot("map-actions-add-strata-undone");
+  });
+
+  describe("action history", () => {
+    it("shows that no actions have been taken", async () => {
+      mockEndpoints();
+      const screen = renderInFixedWidthContainer();
+      await waitForPageLoaded();
+
+      await openActionHistory(screen, 0);
+      await expect.element(screen.getByText("No actions taken yet.")).toBeVisible();
+      await settleForScreenshot();
+
+      await expect(screen.locator).toMatchScreenshot("map-actions-history-empty");
+    });
+
+    it("lists the actions already taken, newest first", async () => {
+      mockEndpoints(previousActions);
+      const screen = renderInFixedWidthContainer();
+      await waitForPageLoaded();
+
+      await openActionHistory(screen, 3);
+      await expect.element(screen.getByText("mergeResult_4E03")).toBeVisible();
+      await settleForScreenshot();
+
+      await expect(screen.locator).toMatchScreenshot("map-actions-history-populated");
+    });
+
+    it("adds the action once strata is added", async () => {
+      const { featuresRequests } = mockEndpoints(previousActions);
+      const screen = renderInFixedWidthContainer();
+      await waitForPageLoaded();
+      await chooseAddStrata(screen);
+      const before = featuresRequests();
+
+      await addStrataToMiddleBlockAt(screen, "-150");
+      await expect.poll(() => featuresRequests(), { timeout: 15000, interval: 100 }).toBeGreaterThan(before);
+      await openActionHistory(screen, 4);
+      await expect.element(screen.getByText("Middle block_above, Middle block_below")).toBeVisible();
+      await settleForScreenshot();
+
+      await expect(screen.locator).toMatchScreenshot("map-actions-history-after-add-strata");
+    });
+
+    it("removes the action once undone and restores it once redone", async () => {
+      const { featuresRequests } = mockEndpoints(previousActions);
+      const screen = renderInFixedWidthContainer();
+      await waitForPageLoaded();
+      await openActionHistory(screen, 3);
+
+      await screen.getByRole("button", { name: "Undo merge" }).click();
+      await expect.element(screen.getByText("Show action history (2 actions)")).toBeVisible();
+      await expect.element(screen.getByText("mergeResult_4E03")).not.toBeInTheDocument();
+      await settleForScreenshot();
+      await expect(screen.locator).toMatchScreenshot("map-actions-history-undone");
+
+      const before = featuresRequests();
+      await screen.getByRole("button", { name: "Redo merge" }).click();
+      await expect.poll(() => featuresRequests(), { timeout: 15000, interval: 100 }).toBeGreaterThan(before);
+      await expect.element(screen.getByText("mergeResult_4E03")).toBeVisible();
+      await settleForScreenshot();
+
+      await expect(screen.locator).toMatchScreenshot("map-actions-history-redone");
+    });
   });
 });

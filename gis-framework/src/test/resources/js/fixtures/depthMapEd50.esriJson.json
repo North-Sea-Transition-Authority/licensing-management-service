@@ -81,8 +81,7 @@
         "featureId": "deep",
         "featureName": "Deep block",
         "polygonId": "deep",
-        "startDepth": -200,
-        "endDepth": -300
+        "startDepth": -200
       },
       "geometry": {
         "rings": [

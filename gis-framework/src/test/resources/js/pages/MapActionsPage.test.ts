@@ -1,4 +1,4 @@
-import type { JsonHistoryStatus } from "@/api/history.api";
+import type { JsonHistoryAction, JsonHistoryStatus } from "@/api/history.api";
 import type { TransformationType } from "@/transformation-type";
 import { fireEvent, render, screen, waitFor } from "@testing-library/vue";
 import Feature from "ol/Feature";
@@ -48,6 +48,21 @@ vi.mock("@/api/operator.api", () => ({
 const noHistory: JsonHistoryStatus = {
   undoTransformationType: null,
   redoTransformationType: null,
+  actions: [],
+};
+
+const mergeAction: JsonHistoryAction = {
+  number: 2,
+  transformationType: "MERGE",
+  inputFeatureNames: ["C_2", "D"],
+  outputFeatureNames: ["mergeResult_ABCD"],
+};
+
+const splitAction: JsonHistoryAction = {
+  number: 1,
+  transformationType: "SPLIT",
+  inputFeatureNames: ["C"],
+  outputFeatureNames: ["C_1", "C_2"],
 };
 
 function historyAfter(transformationType: TransformationType): JsonHistoryStatus {
@@ -268,11 +283,36 @@ describe("mapActionsPage", () => {
     expect(await screen.findByText("Unable to load the actions taken.")).toBeInTheDocument();
   });
 
+  it("shows the actions taken in the action history with their count", async () => {
+    getHistoryStatusMock.mockReset().mockResolvedValue({ ...historyAfter("MERGE"), actions: [mergeAction, splitAction] });
+
+    renderPage();
+
+    expect(await screen.findByText("Show action history (2 actions)")).toBeInTheDocument();
+    expect(screen.getByText("mergeResult_ABCD")).toBeInTheDocument();
+    expect(screen.getByText("C_1, C_2")).toBeInTheDocument();
+  });
+
   describe("undo and redo", () => {
+    it("removes the undone action from the action history", async () => {
+      getHistoryStatusMock.mockReset()
+        .mockResolvedValueOnce({ ...historyAfter("MERGE"), actions: [mergeAction, splitAction] })
+        .mockResolvedValue({ ...historyAfter("SPLIT"), canRedo: true, redoTransformationType: "MERGE", actions: [splitAction] });
+      undoMock.mockResolvedValue(undefined);
+      renderPage();
+
+      await fireEvent.click(await screen.findByRole("button", { name: "Undo merge" }));
+
+      expect(await screen.findByText("Show action history (1 action)")).toBeInTheDocument();
+      expect(screen.queryByText("mergeResult_ABCD")).not.toBeInTheDocument();
+      expect(screen.getByText("C_1, C_2")).toBeInTheDocument();
+    });
+
     it("names the undo and redo buttons after the commands they would reverse", async () => {
       getHistoryStatusMock.mockReset().mockResolvedValue({
         undoTransformationType: "STRATA_SPLIT",
         redoTransformationType: "MERGE",
+        actions: [],
       });
 
       renderPage();
@@ -347,6 +387,7 @@ describe("mapActionsPage", () => {
       const history: JsonHistoryStatus = {
         undoTransformationType: "SPLIT",
         redoTransformationType: "MERGE",
+        actions: [],
       };
       const features = [feature("shallow", 0, -100), feature("deep", -100, -200)];
       getHistoryStatusMock.mockReset().mockResolvedValue(history);

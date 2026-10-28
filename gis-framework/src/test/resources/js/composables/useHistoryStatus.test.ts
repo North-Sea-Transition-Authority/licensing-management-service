@@ -15,6 +15,7 @@ vi.mock("@/api/history.api", () => ({
 const loadedHistoryStatus: JsonHistoryStatus = {
   undoTransformationType: "SPLIT",
   redoTransformationType: "STRATA_SPLIT",
+  actions: [],
 };
 
 const flushPromises = () => new Promise(resolve => setTimeout(resolve));

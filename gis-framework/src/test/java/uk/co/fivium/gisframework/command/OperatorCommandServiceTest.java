@@ -3,9 +3,11 @@ package uk.co.fivium.gisframework.command;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -15,12 +17,22 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import uk.co.fivium.gisframework.feature.Feature;
+import uk.co.fivium.gisframework.feature.FeatureService;
+import uk.co.fivium.gisframework.feature.FeatureTestUtil;
+import uk.co.fivium.gisframework.operator.JsonHistoryAction;
 
 @ExtendWith(MockitoExtension.class)
 class OperatorCommandServiceTest {
 
   @Mock
   private OperatorCommandRepository operatorCommandRepository;
+
+  @Mock
+  private FeatureJourneyStateService featureJourneyStateService;
+
+  @Mock
+  private FeatureService featureService;
 
   @InjectMocks
   private OperatorCommandService operatorCommandService;
@@ -177,6 +189,90 @@ class OperatorCommandServiceTest {
     when(operatorCommandRepository.findAllByCommandJourney(journey)).thenReturn(List.of(command));
 
     assertThat(operatorCommandService.getCommands(journey)).containsExactly(command);
+  }
+
+  @Test
+  void getActiveCommands() {
+    var journey = new CommandJourney();
+    var command = OperatorCommandTestUtil.newBuilder().build();
+
+    when(operatorCommandRepository.findAllByCommandJourneyAndStatusOrderByCommandOrderAsc(
+        journey, CommandStatus.ACTIVE)).thenReturn(List.of(command));
+
+    assertThat(operatorCommandService.getActiveCommands(journey)).containsExactly(command);
+  }
+
+  @Test
+  void getActiveHistory_whenNoActiveCommands_thenEmptyWithoutLoadingFeatures() {
+    var commandJourney = CommandJourneyTestUtil.newBuilder().build();
+
+    when(operatorCommandService.getActiveCommands(commandJourney)).thenReturn(List.of());
+
+    var result = operatorCommandService.getActiveHistory(commandJourney);
+
+    assertThat(result).isEmpty();
+    verifyNoInteractions(featureService, featureJourneyStateService);
+  }
+
+  @Test
+  void getActiveHistory_whenActiveCommands_thenNewestFirstWithSortedFeatureNames() {
+    var commandJourney = CommandJourneyTestUtil.newBuilder().build();
+    var originalFeature = feature("C");
+    var firstSplitOutput = feature("C_1");
+    var secondSplitOutput = feature("C_2");
+    var otherFeature = feature("A");
+    var mergeOutput = feature("mergeResult_ABCD");
+    var splitCommand = OperatorCommandTestUtil.newBuilder()
+        .withTransformationType(TransformationType.SPLIT)
+        .withInputFeatureIds(Set.of(originalFeature.getId()))
+        .withCommandOrder(1)
+        .build();
+    var mergeCommand = OperatorCommandTestUtil.newBuilder()
+        .withTransformationType(TransformationType.MERGE)
+        .withInputFeatureIds(Set.of(secondSplitOutput.getId(), otherFeature.getId()))
+        .withCommandOrder(2)
+        .build();
+    var commands = List.of(splitCommand, mergeCommand);
+
+    when(operatorCommandService.getActiveCommands(commandJourney)).thenReturn(commands);
+    when(featureService.getFeaturesByIds(Set.of(originalFeature.getId(), secondSplitOutput.getId(), otherFeature.getId())))
+        .thenReturn(List.of(originalFeature, secondSplitOutput, otherFeature));
+    when(featureJourneyStateService.getFeaturesCreatedByCommands(commands)).thenReturn(Map.of(
+        splitCommand.getId(), List.of(secondSplitOutput, firstSplitOutput),
+        mergeCommand.getId(), List.of(mergeOutput)
+    ));
+
+    var result = operatorCommandService.getActiveHistory(commandJourney);
+
+    assertThat(result).containsExactly(
+        new JsonHistoryAction(2, TransformationType.MERGE, List.of("A", "C_2"), List.of("mergeResult_ABCD")),
+        new JsonHistoryAction(1, TransformationType.SPLIT, List.of("C"), List.of("C_1", "C_2"))
+    );
+  }
+
+  @Test
+  void getActiveHistory_whenCommandHasNoOutputs_thenEmptyOutputFeatureNames() {
+    var commandJourney = CommandJourneyTestUtil.newBuilder().build();
+    var inputFeature = feature("A");
+    var command = OperatorCommandTestUtil.newBuilder()
+        .withTransformationType(TransformationType.STRATA_SPLIT)
+        .withInputFeatureIds(Set.of(inputFeature.getId()))
+        .withCommandOrder(1)
+        .build();
+
+    when(operatorCommandService.getActiveCommands(commandJourney)).thenReturn(List.of(command));
+    when(featureService.getFeaturesByIds(Set.of(inputFeature.getId()))).thenReturn(List.of(inputFeature));
+    when(featureJourneyStateService.getFeaturesCreatedByCommands(List.of(command))).thenReturn(Map.of());
+
+    var result = operatorCommandService.getActiveHistory(commandJourney);
+
+    assertThat(result).containsExactly(
+        new JsonHistoryAction(1, TransformationType.STRATA_SPLIT, List.of("A"), List.of())
+    );
+  }
+
+  private static Feature feature(String featureName) {
+    return FeatureTestUtil.newBuilder().withFeatureName(featureName).build();
   }
 
   @Test

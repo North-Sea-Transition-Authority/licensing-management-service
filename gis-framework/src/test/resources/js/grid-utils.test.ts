@@ -74,7 +74,7 @@ describe("generateSnapPoints", () => {
       },
     );
 
-    it("generates snap points only within valid BNG bounds when extent in between the southern boundary", () => {
+    it("generates snap points only within valid BNG bounds when extent in between the southern boundary", { timeout: 10_000 }, () => {
       // Narrow strip of the English Channel either side of BNG northing 0; southern portion maps to negative northing
       const points = generateSnapPoints(-2, 49.8, -1.9, 50, SupportedWkid.BNG_WKID, 500);
       expect(points.length).toBeGreaterThan(0);

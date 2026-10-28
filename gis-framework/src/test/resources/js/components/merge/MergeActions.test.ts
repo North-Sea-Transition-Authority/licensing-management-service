@@ -35,7 +35,7 @@ function renderComponent(props = {}) {
 
 describe("mergeActions", () => {
   beforeEach(() => {
-    getHistoryStatusMock.mockReset().mockResolvedValue({ undoTransformationType: null, redoTransformationType: null });
+    getHistoryStatusMock.mockReset().mockResolvedValue({ undoTransformationType: null, redoTransformationType: null, actions: [] });
     mergeFeaturesMock.mockReset();
     undoMock.mockReset();
     redoMock.mockReset();

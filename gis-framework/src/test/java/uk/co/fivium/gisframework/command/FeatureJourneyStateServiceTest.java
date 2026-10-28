@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 
 import jakarta.persistence.EntityNotFoundException;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
@@ -161,6 +162,29 @@ class FeatureJourneyStateServiceTest {
             FeatureJourneyState::isActive
         )
         .containsExactly(tuple(outputFeature, commandJourney, command, true));
+  }
+
+  @Test
+  void getFeaturesCreatedByCommands() {
+    var splitCommand = OperatorCommandTestUtil.newBuilder().build();
+    var mergeCommand = OperatorCommandTestUtil.newBuilder().build();
+    var splitOutput1 = FeatureTestUtil.newBuilder().build();
+    var splitOutput2 = FeatureTestUtil.newBuilder().build();
+    var mergeOutput = FeatureTestUtil.newBuilder().build();
+    var commands = List.of(splitCommand, mergeCommand);
+
+    when(featureJourneyStateRepository.findAllByCreatedByCommandIn(commands)).thenReturn(List.of(
+        FeatureJourneyStateTestUtil.newBuilder().withCreatedByCommand(splitCommand).withFeature(splitOutput1).build(),
+        FeatureJourneyStateTestUtil.newBuilder().withCreatedByCommand(mergeCommand).withFeature(mergeOutput).build(),
+        FeatureJourneyStateTestUtil.newBuilder().withCreatedByCommand(splitCommand).withFeature(splitOutput2).build()
+    ));
+
+    var result = featureJourneyStateService.getFeaturesCreatedByCommands(commands);
+
+    assertThat(result).isEqualTo(Map.of(
+        splitCommand.getId(), List.of(splitOutput1, splitOutput2),
+        mergeCommand.getId(), List.of(mergeOutput)
+    ));
   }
 
   @Test

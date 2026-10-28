@@ -16,11 +16,13 @@ vi.mock("@/api/operator.api", () => ({
 const nothingToUndoOrRedo: JsonHistoryStatus = {
   undoTransformationType: null,
   redoTransformationType: null,
+  actions: [],
 };
 
 const undoMergeRedoAddStrata: JsonHistoryStatus = {
   undoTransformationType: "MERGE",
   redoTransformationType: "STRATA_SPLIT",
+  actions: [],
 };
 
 const baseProps = {
@@ -75,6 +77,7 @@ describe("undoRedoActions", () => {
       historyStatus: {
         undoTransformationType: transformationType,
         redoTransformationType: transformationType,
+        actions: [],
       },
     });
 

@@ -1,8 +1,11 @@
 package uk.co.fivium.gisframework.command;
 
 import jakarta.persistence.EntityNotFoundException;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import org.springframework.data.domain.Limit;
 import org.springframework.stereotype.Service;
@@ -83,6 +86,20 @@ public class FeatureJourneyStateService {
         .map(feature -> newState(feature, commandJourney, createdByCommand, true))
         .toList();
     featureJourneyStateRepository.saveAll(states);
+  }
+
+  /**
+   * Finds the features produced by each of the given commands.
+   *
+   * @param createdByCommands The commands whose output features should be returned
+   * @return The output features keyed by the id of the command that created them
+   */
+  public Map<UUID, List<Feature>> getFeaturesCreatedByCommands(Collection<OperatorCommand> createdByCommands) {
+    return featureJourneyStateRepository.findAllByCreatedByCommandIn(createdByCommands).stream()
+        .collect(Collectors.groupingBy(
+            state -> state.getCreatedByCommand().getId(),
+            Collectors.mapping(FeatureJourneyState::getFeature, Collectors.toList())
+        ));
   }
 
   /**

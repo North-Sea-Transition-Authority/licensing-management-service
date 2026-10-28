@@ -3,6 +3,14 @@ import type { TransformationType } from "@/transformation-type";
 export interface JsonHistoryStatus {
   undoTransformationType: TransformationType | null;
   redoTransformationType: TransformationType | null;
+  actions: JsonHistoryAction[];
+}
+
+export interface JsonHistoryAction {
+  number: number;
+  transformationType: TransformationType;
+  inputFeatureNames: string[];
+  outputFeatureNames: string[];
 }
 
 export async function getHistoryStatus(historyUrl: string): Promise<JsonHistoryStatus> {

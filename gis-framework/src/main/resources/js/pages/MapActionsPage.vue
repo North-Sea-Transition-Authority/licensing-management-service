@@ -60,6 +60,7 @@
       @select="onSelect"
       @validation-error="onValidationError($event ? [$event] : [])"
     />
+    <action-history :actions="historyStatus?.actions ?? []"/>
   </div>
   <split-panel
     v-else-if="mode === 'SPLIT'"
@@ -113,6 +114,7 @@ import type { TransformationType } from "@/transformation-type";
 import type { ValidationError } from "@/validation-error";
 import { computed, CSSProperties, nextTick, ref, useTemplateRef } from "vue";
 import { buildCommandJourneyUrl } from "@/command-journey-utils";
+import ActionHistory from "@/components/actionHistory/ActionHistory.vue";
 import ActionRadioGroup from "@/components/actionRadioGroup/ActionRadioGroup.vue";
 import BaseMap from "@/components/baseMap/BaseMap.vue";
 import DepthSlider from "@/components/depthSlider/DepthSlider.vue";

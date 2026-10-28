@@ -8,7 +8,7 @@ import org.springframework.data.repository.ListCrudRepository;
 import org.springframework.stereotype.Repository;
 
 @Repository
-interface OperatorCommandRepository extends ListCrudRepository<OperatorCommand, UUID> {
+public interface OperatorCommandRepository extends ListCrudRepository<OperatorCommand, UUID> {
 
   @Query("SELECT MAX(command.commandOrder) FROM OperatorCommand command WHERE command.commandJourney = :commandJourney")
   Optional<Integer> findMaxCommandOrderByCommandJourney(CommandJourney commandJourney);
@@ -22,4 +22,7 @@ interface OperatorCommandRepository extends ListCrudRepository<OperatorCommand, 
   List<OperatorCommand> findAllByCommandJourneyAndStatus(CommandJourney commandJourney, CommandStatus status);
 
   List<OperatorCommand> findAllByCommandJourney(CommandJourney commandJourney);
+
+  List<OperatorCommand> findAllByCommandJourneyAndStatusOrderByCommandOrderAsc(CommandJourney commandJourney,
+                                                                               CommandStatus status);
 }

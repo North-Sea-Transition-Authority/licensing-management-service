@@ -40,7 +40,7 @@ function renderComponent(props = {}) {
 
 describe("splitActions", () => {
   beforeEach(() => {
-    getHistoryStatusMock.mockReset().mockResolvedValue({ undoTransformationType: null, redoTransformationType: null });
+    getHistoryStatusMock.mockReset().mockResolvedValue({ undoTransformationType: null, redoTransformationType: null, actions: [] });
     splitFeatureMock.mockReset();
     undoMock.mockReset();
     redoMock.mockReset();

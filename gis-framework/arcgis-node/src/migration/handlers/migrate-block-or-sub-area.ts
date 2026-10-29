@@ -7,7 +7,6 @@ import type { LineWithNavigationTypeAndId } from "../types/line-with-navigation-
 import { status } from "@grpc/grpc-js";
 import { LineNavigationType } from "../../../generated/uk/co/fivium/grpc/gis/LineNavigationType";
 import { logger } from "../../config/logger";
-import { densifyLoxodromesAndCalculateArea } from "../../geometric-operators/calculate-area-operator";
 import { asyncHandler } from "../../handlers/async-handler";
 import { GrpcError } from "../../handlers/grpc-error";
 import { getCoordinateSystemWkid } from "../../util/coordinate-system-utils";
@@ -30,10 +29,9 @@ export const migrateBlockOrSubarea: ArcGisServiceHandlers["migrateBlockOrSubarea
 
   if (parentLineEsriJsonStrings.length === 0) {
     const lineWithNavigationTypeAndIds = await migrateBlock(Array.from(idToLineWithNavigationWrapper.values()));
-    const area = await densifyLoxodromesAndCalculateArea(lineWithNavigationTypeAndIds, coordinateSystem);
     const esriJsonLineAndOracleIds = esriJsonLineAndOracleIdsFrom(lineWithNavigationTypeAndIds);
 
-    return { esriJsonLineAndOracleIds, area };
+    return { esriJsonLineAndOracleIds };
   }
 
   for (const child of idToLineWithNavigationWrapper.values()) {
@@ -89,10 +87,9 @@ export const migrateBlockOrSubarea: ArcGisServiceHandlers["migrateBlockOrSubarea
   fixDirectionOfAllLines(idToLineWithNavigationWrapper, geoJsonLineWrappers);
 
   const lineWithNavigationWrappers = Array.from(idToLineWithNavigationWrapper.values());
-  const area = await densifyLoxodromesAndCalculateArea(lineWithNavigationWrappers, coordinateSystem);
   const esriJsonLineAndOracleIds = esriJsonLineAndOracleIdsFrom(lineWithNavigationWrappers);
 
-  return { esriJsonLineAndOracleIds, area };
+  return { esriJsonLineAndOracleIds };
 });
 
 function esriJsonLineAndOracleIdsFrom(lineWithNavigationWrappers: LineWithNavigationTypeAndId[]) {

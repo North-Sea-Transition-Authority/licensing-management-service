@@ -118,6 +118,13 @@ public class MigrationService {
         var featureLines = polygonToLine.values().stream().flatMap(List::stream).toList();
         renumberLinesAndCheckDifference(featureLines);
 
+        if (!polygonToLine.isEmpty()) {
+          newFeature.setFeatureArea(grpcClientService.calculateArea(
+              newFeature.getCoordinateSystem(),
+              polygonToLine.values().stream().toList()
+          ));
+        }
+
         transactionTemplate.executeWithoutResult(transactionStatus -> {
           featureService.saveFeature(newFeature);
           polygonService.savePolygons(polygonToLine.keySet());
@@ -250,8 +257,6 @@ public class MigrationService {
       newLines.add(line);
     }
 
-    BigDecimal area = feature.getFeatureArea().add(BigDecimal.valueOf(migrationResponseDto.area()));
-    feature.setFeatureArea(area);
     return newLines;
   }
 

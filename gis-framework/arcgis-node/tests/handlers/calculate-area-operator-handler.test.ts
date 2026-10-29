@@ -24,7 +24,7 @@ describe("calculateAreaHandler", () => {
     mockCallback = vi.fn() as any;
     mockCall = {
       request: {
-        linesWithNavigationType: [],
+        polygons: [],
         coordinateSystem: CoordinateSystem.ED50,
       },
     };
@@ -43,38 +43,38 @@ describe("calculateAreaHandler", () => {
         [10, 10],
       ],
     ]);
-    mockCall.request.linesWithNavigationType = [
-      { esriJsonPolyline: firstLineEsriJson, lineNavigationType: LineNavigationType.LOXODROME },
-      { esriJsonPolyline: secondLineEsriJson, lineNavigationType: LineNavigationType.GEODESIC },
+    mockCall.request.polygons = [
+      { lines: [{ esriJsonPolyline: firstLineEsriJson, lineNavigationType: LineNavigationType.LOXODROME }] },
+      { lines: [{ esriJsonPolyline: secondLineEsriJson, lineNavigationType: LineNavigationType.GEODESIC }] },
     ];
 
-    vi.mocked(calculateAreaModule.densifyLoxodromesAndCalculateArea).mockResolvedValue(123.45);
+    vi.mocked(calculateAreaModule.densifyLoxodromesUnionAndCalculateArea).mockResolvedValue(123.45);
 
     calculateAreaHandler(mockCall, mockCallback as any);
     await vi.waitFor(() => expect(mockCallback).toHaveBeenCalledWith(null, { area: 123.45 }));
 
-    expect(calculateAreaModule.densifyLoxodromesAndCalculateArea).toHaveBeenCalledWith(
+    expect(calculateAreaModule.densifyLoxodromesUnionAndCalculateArea).toHaveBeenCalledWith(
       [
-        { line: esriJsonToPolyline(firstLineEsriJson), navigationType: LineNavigationType.LOXODROME },
-        { line: esriJsonToPolyline(secondLineEsriJson), navigationType: LineNavigationType.GEODESIC },
+        [{ line: esriJsonToPolyline(firstLineEsriJson), navigationType: LineNavigationType.LOXODROME }],
+        [{ line: esriJsonToPolyline(secondLineEsriJson), navigationType: LineNavigationType.GEODESIC }],
       ],
       CoordinateSystem.ED50,
     );
   });
 
-  it("should call callback with error when densifyLoxodromesAndCalculateArea throws", async () => {
+  it("should call callback with error when densifyLoxodromesUnionAndCalculateArea throws", async () => {
     const lineEsriJson = makePolylineEsriJson([
       [
         [0, 0],
         [0, 10],
       ],
     ]);
-    mockCall.request.linesWithNavigationType = [
-      { esriJsonPolyline: lineEsriJson, lineNavigationType: LineNavigationType.LOXODROME },
+    mockCall.request.polygons = [
+      { lines: [{ esriJsonPolyline: lineEsriJson, lineNavigationType: LineNavigationType.LOXODROME }] },
     ];
     const testError = new Error("Failed to calculate area");
 
-    vi.mocked(calculateAreaModule.densifyLoxodromesAndCalculateArea).mockRejectedValue(testError);
+    vi.mocked(calculateAreaModule.densifyLoxodromesUnionAndCalculateArea).mockRejectedValue(testError);
 
     calculateAreaHandler(mockCall, mockCallback as any);
     await vi.waitFor(() => expect(mockCallback).toHaveBeenCalledWith(testError, null));

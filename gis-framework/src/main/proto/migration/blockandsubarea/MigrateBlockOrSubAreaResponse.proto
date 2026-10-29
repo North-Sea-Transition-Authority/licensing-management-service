@@ -8,6 +8,7 @@ option java_multiple_files = true;
 option java_outer_classname = "MigrateBlockOrSubAreaResponseProto";
 
 message MigrateBlockOrSubAreaResponse {
+  reserved 2;
+  reserved "area";
   repeated EsriJsonPolylineAndOracleId esriJsonLineAndOracleIds = 1;
-  double area = 2;
 }

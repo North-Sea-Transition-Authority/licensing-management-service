@@ -89,6 +89,7 @@ import uk.co.fivium.grpc.gis.ParentLine;
 import uk.co.fivium.grpc.gis.PolygonContainsRequest;
 import uk.co.fivium.grpc.gis.PolygonContainsResponse;
 import uk.co.fivium.grpc.gis.PolygonCropResult;
+import uk.co.fivium.grpc.gis.PolygonLinesWithNavigationType;
 import uk.co.fivium.grpc.gis.PolygonPolylines;
 import uk.co.fivium.grpc.gis.ReferenceBlockValidationRequest;
 import uk.co.fivium.grpc.gis.SplitPolygonRequest;
@@ -292,14 +293,12 @@ class GrpcClientServiceTest {
             .setEsriJsonString("some new json 2")
             .setOracleLineSsid(2)
             .build())
-        .setArea(1000)
         .build();
     when(arcgisClient.migrateBlockOrSubarea(expectedRequest.build())).thenReturn(response);
 
     assertThat(grpcClientService.migrateBlockOrSubarea(linesWithRing, coordinateSystem, parentLines, childShapeId))
         .isEqualTo(new MigrationResponseDto(
-            Map.of(1, "some new json 1", 2, "some new json 2"),
-            1000.0
+            Map.of(1, "some new json 1", 2, "some new json 2")
         ));
 
     verify(arcgisClient).migrateBlockOrSubarea(expectedRequest.build());
@@ -622,13 +621,17 @@ class GrpcClientServiceTest {
 
     var expectedRequest = CalculateAreaRequest.newBuilder()
         .setCoordinateSystem(coordinateSystem)
-        .addLinesWithNavigationType(LineWithNavigationType.newBuilder()
-            .setEsriJsonPolyline(line1.getEsriJson())
-            .setLineNavigationType(line1.getNavigationType())
+        .addPolygons(PolygonLinesWithNavigationType.newBuilder()
+            .addLines(LineWithNavigationType.newBuilder()
+                .setEsriJsonPolyline(line1.getEsriJson())
+                .setLineNavigationType(line1.getNavigationType())
+                .build())
             .build())
-        .addLinesWithNavigationType(LineWithNavigationType.newBuilder()
-            .setEsriJsonPolyline(line2.getEsriJson())
-            .setLineNavigationType(line2.getNavigationType())
+        .addPolygons(PolygonLinesWithNavigationType.newBuilder()
+            .addLines(LineWithNavigationType.newBuilder()
+                .setEsriJsonPolyline(line2.getEsriJson())
+                .setLineNavigationType(line2.getNavigationType())
+                .build())
             .build())
         .build();
     var response = CalculateAreaResponse.newBuilder()
@@ -637,7 +640,7 @@ class GrpcClientServiceTest {
 
     when(arcgisClient.calculateArea(expectedRequest)).thenReturn(response);
 
-    assertThat(grpcClientService.calculateArea(coordinateSystem, List.of(line1, line2)))
+    assertThat(grpcClientService.calculateArea(coordinateSystem, List.of(List.of(line1), List.of(line2))))
         .isEqualByComparingTo(BigDecimal.valueOf(123.54321));
   }
 

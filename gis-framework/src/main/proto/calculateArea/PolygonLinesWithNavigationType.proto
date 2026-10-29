@@ -1,0 +1,11 @@
+syntax = "proto3";
+import "calculateArea/LineWithNavigationType.proto";
+
+package uk.co.fivium.grpc.gis;
+
+option java_multiple_files = true;
+option java_outer_classname = "PolygonLinesWithNavigationTypeProto";
+
+message PolygonLinesWithNavigationType {
+  repeated LineWithNavigationType lines = 1;
+}

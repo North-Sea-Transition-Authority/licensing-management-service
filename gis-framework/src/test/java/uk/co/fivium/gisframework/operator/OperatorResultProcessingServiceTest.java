@@ -787,12 +787,9 @@ class OperatorResultProcessingServiceTest {
     when(grpcClientService.validatePolygonReconstructionFromPolylines(any(), eq("cropped polygon"))).thenReturn(true);
     when(grpcClientService.calculateArea(
         eq(CoordinateSystem.ED50),
-        argThat(lines -> lines.size() == 1 && "kept line".equals(lines.getFirst().getEsriJson()))
-    ))
-        .thenReturn(BigDecimal.ONE);
-    when(grpcClientService.calculateArea(
-        eq(CoordinateSystem.ED50),
-        argThat(lines -> lines.size() == 1 && "cropped line".equals(lines.getFirst().getEsriJson()))
+        argThat(polygons -> polygons.size() == 2
+            && polygons.get(0).size() == 1 && "kept line".equals(polygons.get(0).getFirst().getEsriJson())
+            && polygons.get(1).size() == 1 && "cropped line".equals(polygons.get(1).getFirst().getEsriJson()))
     ))
         .thenReturn(BigDecimal.TEN);
 
@@ -806,7 +803,7 @@ class OperatorResultProcessingServiceTest {
         .withFeatureName("Subarea A")
         .withCoordinateSystem(CoordinateSystem.ED50)
         .withAttributes(FEATURE_ATTRIBUTES)
-        .withFeatureArea(BigDecimal.valueOf(11))
+        .withFeatureArea(BigDecimal.TEN)
         .withParentFeature(parentFeature)
         .withStartDate(null)
         .withEndDate(null)
@@ -869,7 +866,8 @@ class OperatorResultProcessingServiceTest {
         });
     when(grpcClientService.calculateArea(
         eq(CoordinateSystem.ED50),
-        argThat(lines -> lines.size() == 1 && "source line".equals(lines.getFirst().getEsriJson()))
+        argThat(polygons -> polygons.size() == 1
+            && polygons.getFirst().size() == 1 && "source line".equals(polygons.getFirst().getFirst().getEsriJson()))
     ))
         .thenReturn(BigDecimal.TEN);
 

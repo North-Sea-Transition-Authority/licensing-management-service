@@ -58,6 +58,7 @@ import uk.co.fivium.grpc.gis.MultiPartToSinglePartRequest;
 import uk.co.fivium.grpc.gis.ParentLine;
 import uk.co.fivium.grpc.gis.PolygonContainsRequest;
 import uk.co.fivium.grpc.gis.PolygonCropResult;
+import uk.co.fivium.grpc.gis.PolygonLinesWithNavigationType;
 import uk.co.fivium.grpc.gis.PolygonPolylines;
 import uk.co.fivium.grpc.gis.ReferenceBlockValidationRequest;
 import uk.co.fivium.grpc.gis.SplitPolygonRequest;
@@ -261,7 +262,7 @@ public class GrpcClientService {
       oracleSsidToEsriJsonLineString.put(lineOutput.getOracleLineSsid(), lineOutput.getEsriJsonString());
     }
 
-    return new MigrationResponseDto(oracleSsidToEsriJsonLineString, response.getArea());
+    return new MigrationResponseDto(oracleSsidToEsriJsonLineString);
   }
 
   /**
@@ -481,17 +482,21 @@ public class GrpcClientService {
    * @param featureLines The lines that make up a feature.
    * @return The area of the feature.
    */
-  public BigDecimal calculateArea(CoordinateSystem coordinateSystem, List<Line> featureLines) {
-    var linesWithNavigationType = featureLines.stream()
-        .map(line -> LineWithNavigationType.newBuilder()
-            .setEsriJsonPolyline(line.getEsriJson())
-            .setLineNavigationType(line.getNavigationType())
+  public BigDecimal calculateArea(CoordinateSystem coordinateSystem, List<List<Line>> featureLines) {
+    var polygons = featureLines.stream()
+        .map(polygonLines -> PolygonLinesWithNavigationType.newBuilder()
+            .addAllLines(polygonLines.stream()
+                .map(line -> LineWithNavigationType.newBuilder()
+                    .setEsriJsonPolyline(line.getEsriJson())
+                    .setLineNavigationType(line.getNavigationType())
+                    .build())
+                .toList())
             .build())
         .toList();
 
     var request = CalculateAreaRequest.newBuilder()
         .setCoordinateSystem(coordinateSystem)
-        .addAllLinesWithNavigationType(linesWithNavigationType)
+        .addAllPolygons(polygons)
         .build();
 
     var response = arcgisClient.calculateArea(request);

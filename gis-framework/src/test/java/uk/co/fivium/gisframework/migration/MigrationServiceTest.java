@@ -4,6 +4,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -15,8 +18,11 @@ import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import java.math.BigDecimal;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -24,16 +30,20 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.transaction.support.TransactionTemplate;
 import uk.co.fivium.gisframework.feature.Feature;
 import uk.co.fivium.gisframework.feature.FeatureService;
 import uk.co.fivium.gisframework.feature.FeatureTestUtil;
 import uk.co.fivium.gisframework.feature.Layer;
 import uk.co.fivium.gisframework.feature.Line;
+import uk.co.fivium.gisframework.feature.LineService;
 import uk.co.fivium.gisframework.feature.LineTestUtil;
 import uk.co.fivium.gisframework.feature.Polygon;
+import uk.co.fivium.gisframework.feature.PolygonService;
 import uk.co.fivium.gisframework.feature.PolygonTestUtil;
 import uk.co.fivium.gisframework.grpc.GrpcClientService;
 import uk.co.fivium.gisframework.migration.oracle.AttributeLevel;
@@ -41,8 +51,11 @@ import uk.co.fivium.gisframework.migration.oracle.EntityBackedOracleShape;
 import uk.co.fivium.gisframework.migration.oracle.OracleBoundaryLineTestUtil;
 import uk.co.fivium.gisframework.migration.oracle.OracleBoundaryLineWithRing;
 import uk.co.fivium.gisframework.migration.oracle.OracleLayerTestUtil;
+import uk.co.fivium.gisframework.migration.oracle.OraclePolygonBoundary;
 import uk.co.fivium.gisframework.migration.oracle.OraclePolygonBoundaryTestUtil;
 import uk.co.fivium.gisframework.migration.oracle.OracleService;
+import uk.co.fivium.gisframework.migration.oracle.OracleShapePolygon;
+import uk.co.fivium.gisframework.migration.oracle.OracleShapePolygonTestUtil;
 import uk.co.fivium.gisframework.migration.oracle.OracleShapeTestUtil;
 import uk.co.fivium.gisframework.operator.OperatorResultProcessingService;
 import uk.co.fivium.grpc.gis.CoordinateSystem;
@@ -62,6 +75,15 @@ class MigrationServiceTest {
 
   @Mock
   private OperatorResultProcessingService operatorResultProcessingService;
+
+  @Mock
+  private PolygonService polygonService;
+
+  @Mock
+  private LineService lineService;
+
+  @Mock
+  private TransactionTemplate transactionTemplate;
 
   @InjectMocks
   private MigrationService migrationService;
@@ -89,7 +111,6 @@ class MigrationServiceTest {
   void migrateLines() {
     var feature = new Feature();
     feature.setCoordinateSystem(CoordinateSystem.ED50);
-    feature.setFeatureArea(BigDecimal.ZERO);
 
     var polygon = new Polygon();
 
@@ -130,8 +151,7 @@ class MigrationServiceTest {
         Map.of(
             100, "esri json 1",
             200, "esri json 2"
-        ),
-        500.0
+        )
     );
 
     var linesWithRing = List.of(
@@ -177,6 +197,119 @@ class MigrationServiceTest {
     var expected = List.of(expectedLine1, expectedLine2);
 
     assertThat(result).usingRecursiveComparison().isEqualTo(expected);
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  void migrateBlocksAndSubarea_whenShapeHasMultiplePolygons_thenSetsFeatureAreaFromOneUnionOfAllPolygons() {
+    var shape = OracleShapeTestUtil.newBuilder()
+        .withShapeSiId(1)
+        .withShapeSidId(1)
+        .withShapeName("Subarea A")
+        .withShapeSrs("ED 50")
+        .withShareAreaM2(250.0)
+        .build();
+    var polygon1 = OracleShapePolygonTestUtil.newBuilder().withPolygonSidId(1).build();
+    var polygon2 = OracleShapePolygonTestUtil.newBuilder().withPolygonSidId(2).build();
+    var boundary1 = OraclePolygonBoundaryTestUtil.newBuilder().withBoundarySidId(10).build();
+    var boundary2 = OraclePolygonBoundaryTestUtil.newBuilder().withBoundarySidId(20).build();
+
+    var polygonToBoundary = new LinkedHashMap<OracleShapePolygon, List<OraclePolygonBoundary>>();
+    polygonToBoundary.put(polygon1, List.of(boundary1));
+    polygonToBoundary.put(polygon2, List.of(boundary2));
+
+    when(oracleService.getAttributeMapForSiIdAndLevel(shape.getShapeSidId(), AttributeLevel.SHAPE))
+        .thenReturn(new HashMap<>());
+    when(oracleService.getLinkedParentShapeSiIds(shape.getShapeSiId())).thenReturn(List.of());
+    when(oracleService.getIdToAttributeMapForSiIdAndLevel(List.of(1, 2), AttributeLevel.SHAPE_POLYGON))
+        .thenReturn(Map.of());
+    when(oracleService.getIdToAttributeMapForSiIdAndLevel(List.of(boundary1.getBoundarySidId()), AttributeLevel.POLYGON_BOUNDARY))
+        .thenReturn(Map.of());
+    when(oracleService.getIdToAttributeMapForSiIdAndLevel(List.of(boundary2.getBoundarySidId()), AttributeLevel.POLYGON_BOUNDARY))
+        .thenReturn(Map.of());
+
+    var oracleLine1 = OracleBoundaryLineTestUtil.newBuilder()
+        .withLineSidId(100)
+        .withOraclePolygonBoundaryId(boundary1.getBoundarySidId())
+        .withConnectionOrder(1L)
+        .withLineNavigationType(LineNavigationType.LOXODROME)
+        .build();
+    var oracleLine2 = OracleBoundaryLineTestUtil.newBuilder()
+        .withLineSidId(200)
+        .withOraclePolygonBoundaryId(boundary2.getBoundarySidId())
+        .withConnectionOrder(1L)
+        .withLineNavigationType(LineNavigationType.LOXODROME)
+        .build();
+
+    when(oracleService.getIdToAttributeMapForSiIdAndLevel(List.of(oracleLine1.getLineSidId()), AttributeLevel.BOUNDARY_LINE))
+        .thenReturn(Map.of());
+    when(oracleService.getIdToAttributeMapForSiIdAndLevel(List.of(oracleLine2.getLineSidId()), AttributeLevel.BOUNDARY_LINE))
+        .thenReturn(Map.of());
+    when(grpcClientService.migrateBlockOrSubarea(
+        List.of(new OracleBoundaryLineWithRing(oracleLine1, 0)), CoordinateSystem.ED50, List.of(), shape.getShapeSiId()))
+        .thenReturn(new MigrationResponseDto(Map.of(100, "esri json 1")));
+    when(grpcClientService.migrateBlockOrSubarea(
+        List.of(new OracleBoundaryLineWithRing(oracleLine2, 0)), CoordinateSystem.ED50, List.of(), shape.getShapeSiId()))
+        .thenReturn(new MigrationResponseDto(Map.of(200, "esri json 2")));
+    when(grpcClientService.calculateArea(eq(CoordinateSystem.ED50), anyList())).thenReturn(BigDecimal.valueOf(250));
+    doAnswer(invocation -> {
+      invocation.getArgument(0, Consumer.class).accept(null);
+      return null;
+    }).when(transactionTemplate).executeWithoutResult(any());
+
+    var entityBackedShape = new EntityBackedOracleShape(
+        shape,
+        polygonToBoundary,
+        Map.of(boundary1, List.of(oracleLine1), boundary2, List.of(oracleLine2))
+    );
+
+    migrationService.migrateBlocksAndSubarea(List.of(entityBackedShape));
+
+    ArgumentCaptor<List<List<Line>>> areaLinesCaptor = ArgumentCaptor.forClass(List.class);
+    verify(grpcClientService).calculateArea(eq(CoordinateSystem.ED50), areaLinesCaptor.capture());
+    assertThat(areaLinesCaptor.getValue())
+        .hasSize(2)
+        .allSatisfy(polygonLines -> assertThat(polygonLines).hasSize(1));
+    assertThat(areaLinesCaptor.getValue().stream().flatMap(List::stream).map(Line::getEsriJson))
+        .containsExactlyInAnyOrder("esri json 1", "esri json 2");
+
+    ArgumentCaptor<Feature> featureCaptor = ArgumentCaptor.forClass(Feature.class);
+    verify(featureService).saveFeature(featureCaptor.capture());
+    assertThat(featureCaptor.getValue().getFeatureArea()).isEqualByComparingTo(BigDecimal.valueOf(250));
+    verify(polygonService).savePolygons(argThat(polygons -> polygons.size() == 2));
+    verify(lineService).saveLines(argThat(lines -> lines.size() == 2));
+  }
+
+  @Test
+  void migrateBlocksAndSubarea_whenShapeHasNoPolygons_thenDoesNotCalculateAreaAndLeavesAreaZero() {
+    var shape = OracleShapeTestUtil.newBuilder()
+        .withShapeSiId(1)
+        .withShapeSidId(1)
+        .withShapeName("Empty Subarea")
+        .withShapeSrs("ED 50")
+        .withShareAreaM2(0.0)
+        .build();
+    var entityBackedShape = new EntityBackedOracleShape(shape, Map.of(), Map.of());
+
+    when(oracleService.getAttributeMapForSiIdAndLevel(shape.getShapeSidId(), AttributeLevel.SHAPE))
+        .thenReturn(new HashMap<>());
+    when(oracleService.getLinkedParentShapeSiIds(shape.getShapeSiId())).thenReturn(List.of());
+    when(oracleService.getIdToAttributeMapForSiIdAndLevel(List.of(), AttributeLevel.SHAPE_POLYGON))
+        .thenReturn(Map.of());
+    doAnswer(invocation -> {
+      invocation.getArgument(0, Consumer.class).accept(null);
+      return null;
+    }).when(transactionTemplate).executeWithoutResult(any());
+
+    migrationService.migrateBlocksAndSubarea(List.of(entityBackedShape));
+
+    verify(grpcClientService, never()).calculateArea(any(), anyList());
+
+    ArgumentCaptor<Feature> featureCaptor = ArgumentCaptor.forClass(Feature.class);
+    verify(featureService).saveFeature(featureCaptor.capture());
+    assertThat(featureCaptor.getValue().getFeatureArea()).isEqualByComparingTo(BigDecimal.ZERO);
+    verify(polygonService).savePolygons(Set.of());
+    verify(lineService).saveLines(List.of());
   }
 
   @Test

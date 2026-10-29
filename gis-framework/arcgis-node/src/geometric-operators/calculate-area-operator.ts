@@ -7,6 +7,7 @@ import { CoordinateSystem } from "../../generated/uk/co/fivium/grpc/gis/Coordina
 import { LineNavigationType } from "../../generated/uk/co/fivium/grpc/gis/LineNavigationType";
 import { getCoordinateSystemWkid } from "../util/coordinate-system-utils";
 import { linesToSinglePolygon } from "./lines-to-single-polygon-operator";
+import { unionPolygonsOperator } from "./union-polygons-operator";
 
 export interface LineWithNavigationType {
   line: Polyline,
@@ -42,11 +43,11 @@ export async function calculateArea(polygon: Polygon, coordinateSystem: Coordina
 }
 
 /**
- * Densifies loxodrome lines and calculates the total area of the resulting polygon.
+ * Densifies the loxodrome lines in the given set so the geodetic area operator can measure them accurately.
  *
- * Lines that are of type {@link LineNavigationType.LOXODROME} and are not in the
- * {@link CoordinateSystem.BRITISH_NATIONAL_GRID} are densified before being converted
- * to a single polygon for area calculation.
+ * Lines of type {@link LineNavigationType.LOXODROME} that are not in the
+ * {@link CoordinateSystem.BRITISH_NATIONAL_GRID} coordinate system are densified; every other line is returned
+ * unchanged.
  *
  * We do this densification so that the geodetic area operator calculates a more accurate area.
  * By densifying the line, the length between each point is similar when measuring as geodesic or loxodrome.
@@ -55,17 +56,17 @@ export async function calculateArea(polygon: Polygon, coordinateSystem: Coordina
  *
  * //TODO EPGF-85: link to our docs which might have a visual explanation of this.
  *
- * @param lineWithNavigationType - An array of {@link LineWithNavigationType} objects representing the boundaries.
- * @param coordinateSystem - The {@link CoordinateSystem} of the input lines and the target for calculation.
- * @returns A promise that resolves to the calculated area in square meters.
+ * @param linesWithNavigationType - The {@link LineWithNavigationType} lines to densify.
+ * @param coordinateSystem - The {@link CoordinateSystem} of the input lines.
+ * @returns The lines as {@link Polyline}s, with loxodromes densified where applicable.
  */
-export async function densifyLoxodromesAndCalculateArea(
-  lineWithNavigationType: LineWithNavigationType[],
+export function densifyLoxodromeLines(
+  linesWithNavigationType: LineWithNavigationType[],
   coordinateSystem: CoordinateSystem,
-): Promise<number> {
+): Polyline[] {
   const processed = [];
 
-  for (const lineWrapper of lineWithNavigationType) {
+  for (const lineWrapper of linesWithNavigationType) {
     if (
       lineWrapper.navigationType === LineNavigationType.LOXODROME
       && coordinateSystem !== CoordinateSystem.BRITISH_NATIONAL_GRID
@@ -81,5 +82,31 @@ export async function densifyLoxodromesAndCalculateArea(
     }
   }
 
-  return await calculateArea(linesToSinglePolygon(processed, getCoordinateSystemWkid(coordinateSystem)), coordinateSystem);
+  return processed;
+}
+
+/**
+ * Calculates a feature's plan area: the 2D footprint covered by all its polygons, with any overlap counted once.
+ *
+ * Each polygon's lines are densified (see {@link densifyLoxodromeLines}) and built into a footprint polygon, then
+ * every footprint is unioned into one shape before the area is calculated. So polygons stacked at different depths
+ * with the same footprint collapse into one, partly overlapping polygons count the overlap once, and disjoint
+ * polygons remain separate parts of a single multipart polygon. Start and end depths are ignored.
+ *
+ * The area is planar for {@link CoordinateSystem.BRITISH_NATIONAL_GRID} and geodetic otherwise, as in
+ * {@link calculateArea}.
+ *
+ * @param polygonLines - The feature's polygons, each as its own array of {@link LineWithNavigationType} lines.
+ * @param coordinateSystem - The {@link CoordinateSystem} of the input lines and the target for calculation.
+ * @returns A promise that resolves to the calculated plan area in square meters.
+ */
+export async function densifyLoxodromesUnionAndCalculateArea(
+  polygonLines: LineWithNavigationType[][],
+  coordinateSystem: CoordinateSystem,
+): Promise<number> {
+  const wkid = getCoordinateSystemWkid(coordinateSystem);
+  const polygons = polygonLines.map(lines =>
+    linesToSinglePolygon(densifyLoxodromeLines(lines, coordinateSystem), wkid));
+
+  return calculateArea(unionPolygonsOperator(polygons), coordinateSystem);
 }

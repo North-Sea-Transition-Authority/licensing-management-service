@@ -76,7 +76,7 @@ public class OperatorResultProcessingService {
         .collect(Collectors.groupingBy(Line::getPolygon));
 
     List<Polygon> newPolygons = new ArrayList<>();
-    List<Line> allLines = new ArrayList<>();
+    List<List<Line>> newPolygonLines = new ArrayList<>();
     List<String> outputEsriJsons = new ArrayList<>();
     for (var outputPolygonWithSources : outputPolygonsWithSources) {
       List<Line> parentLines = new ArrayList<>();
@@ -92,13 +92,14 @@ public class OperatorResultProcessingService {
       var newPolygon = buildPolygon(outputPolygonWithSources.sources());
       lines.forEach(line -> line.setPolygon(newPolygon));
       newPolygons.add(newPolygon);
-      allLines.addAll(lines);
+      newPolygonLines.add(lines);
       outputEsriJsons.add(outputPolygonWithSources.esriJson());
     }
 
-    var newFeature = buildFeature(inputFeatures, allLines, resultFeatureNameSuffix);
+    var newFeature = buildFeature(inputFeatures, newPolygonLines, resultFeatureNameSuffix);
     newPolygons.forEach(newPolygon -> newPolygon.setFeature(newFeature));
 
+    var allLines = newPolygonLines.stream().flatMap(List::stream).toList();
     numberLines(allLines);
     validateLinesAreValid(allLines, outputEsriJsons);
 
@@ -168,10 +169,7 @@ public class OperatorResultProcessingService {
         validateLinesAreValid(lines, polygonIdToCroppedEsriJson.get(polygonId)));
 
     var target = inputFeature.feature();
-    //TODO - EPGF-84: Take into account 3D shapes when calculating the area
-    var featureArea = newPolygonLines.stream()
-        .map(polygonLines -> grpcClientService.calculateArea(target.getCoordinateSystem(), polygonLines))
-        .reduce(BigDecimal.ZERO, BigDecimal::add);
+    var featureArea = grpcClientService.calculateArea(target.getCoordinateSystem(), newPolygonLines);
     copyFeatureProperties(target, newFeature, target.getFeatureName(), featureArea);
 
     featureService.saveFeature(newFeature);
@@ -204,10 +202,7 @@ public class OperatorResultProcessingService {
     numberLines(newLineEntities);
 
     var target = inputFeature.feature();
-    //TODO - EPGF-84: Take into account 3D shapes when calculating the area
-    var featureArea = newPolygonLines.stream()
-        .map(polygonLines -> grpcClientService.calculateArea(target.getCoordinateSystem(), polygonLines))
-        .reduce(BigDecimal.ZERO, BigDecimal::add);
+    var featureArea = grpcClientService.calculateArea(target.getCoordinateSystem(), newPolygonLines);
     var newFeatureName = "%s_%s".formatted(target.getFeatureName(), resultFeatureNameSuffix);
     copyFeatureProperties(target, newFeature, newFeatureName, featureArea);
 
@@ -369,7 +364,7 @@ public class OperatorResultProcessingService {
   }
 
   private Feature buildFeature(List<Feature> inputFeatures,
-                               List<Line> newLineEntities,
+                               List<List<Line>> newPolygonLines,
                                int featureNameSuffix) {
     var newFeature = new Feature();
     var target = inputFeatures.getFirst();
@@ -382,8 +377,7 @@ public class OperatorResultProcessingService {
       featureName = "mergeResult_%s".formatted(UUID.randomUUID().toString().substring(0, 4).toUpperCase());
     }
 
-    //TODO - EPGF-84: Take into account 3D shapes when calculating the area
-    var featureArea = grpcClientService.calculateArea(target.getCoordinateSystem(), newLineEntities);
+    var featureArea = grpcClientService.calculateArea(target.getCoordinateSystem(), newPolygonLines);
     copyFeatureProperties(target, newFeature, featureName, featureArea);
     return newFeature;
   }

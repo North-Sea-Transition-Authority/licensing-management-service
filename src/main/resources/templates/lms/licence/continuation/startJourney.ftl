@@ -4,6 +4,7 @@
 htmlTitle=pageTitle
 pageHeading=pageTitle
 pageHeadingClass="govuk-heading-l"
+caption=pageCaption
 captionClass="govuk-caption-l"
 pageSize=PageSize.TWO_THIRDS_COLUMN
 backLinkUrl=springUrl(backUrl)

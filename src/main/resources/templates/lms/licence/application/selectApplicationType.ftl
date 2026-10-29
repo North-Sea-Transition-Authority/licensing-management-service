@@ -3,6 +3,8 @@
 <@defaultPage
 htmlTitle=pageTitle
 pageHeading=""
+caption=pageCaption
+captionClass="govuk-caption-l"
 pageSize=PageSize.TWO_THIRDS_COLUMN
 errorSummaryItems=errorSummaryItems>
     <@fdsForm.htmlForm>
@@ -19,7 +21,7 @@ errorSummaryItems=errorSummaryItems>
 
         <br />
 
-        <@fdsAction.submitButtons primaryButtonText="Continue" secondaryLinkText="Cancel" linkSecondaryAction=true linkSecondaryActionUrl=springUrl(cancelUrl)/>
+        <@fdsAction.submitButtons primaryButtonText="Continue" secondaryLinkText="Back" linkSecondaryAction=true linkSecondaryActionUrl=springUrl(backUrl)/>
 
     </@fdsForm.htmlForm>
 </@defaultPage>

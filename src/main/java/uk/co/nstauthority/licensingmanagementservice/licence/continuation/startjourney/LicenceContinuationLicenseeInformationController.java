@@ -111,7 +111,7 @@ public class LicenceContinuationLicenseeInformationController {
         .addObject("responsibleOrgUnitOptions", licenceResponsibleOrganisationService
             .getResponsibleOrgUnitOptionsWithValidRoles(licence, user))
         .addObject("backUrl", ReverseRouter.route(on(SelectContinuationApplicationLicenceController.class)
-            .render())
+            .render(licence.getType().getUrlSlug()))
         );
   }
 }

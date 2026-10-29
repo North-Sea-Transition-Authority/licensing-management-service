@@ -1,8 +1,8 @@
-package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.startjourney;
+package uk.co.nstauthority.licensingmanagementservice.licence.application;
 
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 
-public class SelectScheduleWorkProgrammeApplicationLicenceTypeForm {
+public class SelectApplicationLicenceTypeForm {
 
   private LicenceType selectedLicenceType;
 

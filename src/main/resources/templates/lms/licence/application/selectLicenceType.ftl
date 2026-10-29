@@ -19,7 +19,7 @@ errorSummaryItems=errorSummaryItems>
 
         <br>
 
-        <@fdsAction.submitButtons primaryButtonText="Continue" secondaryLinkText="Back" linkSecondaryAction=true linkSecondaryActionUrl=springUrl(backUrl)/>
+        <@fdsAction.submitButtons primaryButtonText="Continue" secondaryLinkText="Cancel" linkSecondaryAction=true linkSecondaryActionUrl=springUrl(cancelUrl)/>
 
     </@fdsForm.htmlForm>
 </@defaultPage>

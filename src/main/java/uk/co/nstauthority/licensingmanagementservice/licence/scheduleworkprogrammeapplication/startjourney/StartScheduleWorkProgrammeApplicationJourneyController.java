@@ -9,17 +9,18 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.InvokingUserCanStartApplication;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.SelectApplicationTypeController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @Controller
-@RequestMapping("licences/schedule-work-programme-application/{licenceTypeSlug}/start")
+@RequestMapping("licences/start-application/{licenceTypeSlug}/schedule-work-programme-application/start")
 @InvokingUserCanStartApplication
 public class StartScheduleWorkProgrammeApplicationJourneyController {
 
   public static final String PAGE_TITLE = "Start a schedule extension or work programme amendment application";
 
   @GetMapping
-  ModelAndView renderStartScheduleWorkProgrammeApplicationJourney(@PathVariable String licenceTypeSlug) {
+  public ModelAndView renderStartScheduleWorkProgrammeApplicationJourney(@PathVariable String licenceTypeSlug) {
     LicenceType licenceType = LicenceType.getFromSlugOrThrow(licenceTypeSlug);
 
     return new ModelAndView("lms/licence/scheduleWorkProgrammeApplication/startJourney")
@@ -29,7 +30,7 @@ public class StartScheduleWorkProgrammeApplicationJourneyController {
                 .renderSelectLicenceForScheduleWorkProgrammeApplication(licenceType.getUrlSlug()))
         )
         .addObject("backUrl",
-            ReverseRouter.route(on(SelectScheduleWorkProgrammeApplicationLicenceTypeController.class).renderSelectLicenceType()));
+            ReverseRouter.route(on(SelectApplicationTypeController.class).render(licenceType.getUrlSlug())));
   }
 
 }

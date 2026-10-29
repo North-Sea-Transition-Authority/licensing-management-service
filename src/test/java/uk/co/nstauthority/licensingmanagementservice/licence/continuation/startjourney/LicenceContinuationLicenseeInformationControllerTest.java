@@ -26,6 +26,7 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplication;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
@@ -43,7 +44,7 @@ class LicenceContinuationLicenseeInformationControllerTest extends AbstractContr
   private static final String CAPTION = "Licence type - Licence ref";
   private static final Integer LICENCE_ID = 1;
   private static final Licence LICENCE = LicenceTestUtil
-      .builder().withId(LICENCE_ID).build();
+      .builder().withId(LICENCE_ID).withLicenceType(LicenceType.SEAWARD_PRODUCTION).build();
 
   @BeforeEach
   void setUp() {
@@ -67,7 +68,7 @@ class LicenceContinuationLicenseeInformationControllerTest extends AbstractContr
         .andExpect(view().name("lms/licence/continuation/licenseeInformationContinuation"))
         .andExpect(model().attribute("pageTitle", PAGE_TITLE))
         .andExpect(model().attribute("pageCaption", CAPTION))
-        .andExpect(model().attribute("backUrl",  ReverseRouter.route(on(SelectContinuationApplicationLicenceController.class).render())));
+        .andExpect(model().attribute("backUrl",  ReverseRouter.route(on(SelectContinuationApplicationLicenceController.class).render(LicenceType.SEAWARD_PRODUCTION.getUrlSlug()))));
   }
 
   @Test
@@ -123,7 +124,7 @@ class LicenceContinuationLicenseeInformationControllerTest extends AbstractContr
         .andExpect(view().name("lms/licence/continuation/licenseeInformationContinuation"))
         .andExpect(model().attribute("pageTitle", PAGE_TITLE))
         .andExpect(model().attribute("pageCaption", CAPTION))
-        .andExpect(model().attribute("backUrl",  ReverseRouter.route(on(SelectContinuationApplicationLicenceController.class).render())));
+        .andExpect(model().attribute("backUrl",  ReverseRouter.route(on(SelectContinuationApplicationLicenceController.class).render(LicenceType.SEAWARD_PRODUCTION.getUrlSlug()))));
 
     verifyNoInteractions(scheduleWorkProgrammeApplicationService);
   }

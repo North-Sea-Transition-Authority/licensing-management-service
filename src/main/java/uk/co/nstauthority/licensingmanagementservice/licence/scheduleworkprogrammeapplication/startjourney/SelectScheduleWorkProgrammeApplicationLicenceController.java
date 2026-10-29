@@ -2,6 +2,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogra
 
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -9,6 +10,7 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.ModelAndView;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.InvokingUserCanStartApplication;
 import uk.co.nstauthority.licensingmanagementservice.fds.searchselector.SearchSelectorService;
@@ -18,7 +20,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.internalapi.Licence
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @Controller
-@RequestMapping("licences/schedule-work-programme-application/{licenceTypeSlug}/licence")
+@RequestMapping("licences/start-application/{licenceTypeSlug}/schedule-work-programme-application/licence")
 @InvokingUserCanStartApplication
 public class SelectScheduleWorkProgrammeApplicationLicenceController {
 
@@ -51,6 +53,14 @@ public class SelectScheduleWorkProgrammeApplicationLicenceController {
     }
 
     var licence = licenceService.findLicenceByIdOrThrow(Integer.parseInt(form.getLicenceId()));
+    var licenceType = LicenceType.getFromSlugOrThrow(licenceTypeSlug);
+
+    if (licence.getType() != licenceType) {
+      throw new ResponseStatusException(
+          HttpStatus.BAD_REQUEST,
+          "Licence %s is not of licence type %s".formatted(licence.getId(), licenceType)
+      );
+    }
 
     return ReverseRouter.redirect(on(LicenseeInformationController.class)
         .renderConfirmLicenseePermission(licenceTypeSlug, licence.getId(), null, null));

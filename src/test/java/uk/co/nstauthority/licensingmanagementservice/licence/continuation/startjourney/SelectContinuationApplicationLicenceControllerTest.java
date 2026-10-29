@@ -15,26 +15,33 @@ import static org.springframework.web.servlet.mvc.method.annotation.MvcUriCompon
 import static uk.co.nstauthority.licensingmanagementservice.authentication.TestUserProvider.user;
 import static uk.co.nstauthority.licensingmanagementservice.licence.continuation.startjourney.SelectContinuationApplicationLicenceController.PAGE_TITLE;
 
-import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.web.server.ResponseStatusException;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.fds.searchselector.SearchSelectorService;
-import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
-import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTypeUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.SelectApplicationTypeService;
 import uk.co.nstauthority.licensingmanagementservice.licence.internalapi.LicenceInternalApiRestController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @ContextConfiguration(classes = SelectContinuationApplicationLicenceController.class)
 class SelectContinuationApplicationLicenceControllerTest extends AbstractControllerTest {
 
+  private static final LicenceType LICENCE_TYPE = LicenceType.LANDWARD_PRODUCTION;
+
   @MockitoBean
   private SelectContinuationApplicationLicenceFormValidator selectContinuationApplicationLicenceFormValidator;
+
+  @MockitoBean
+  private SelectApplicationTypeService selectApplicationTypeService;
 
   private ServiceUserDetail organisationUser;
   private static final Long ORGANISATION_USER_WUA_ID = 2L;
@@ -49,20 +56,35 @@ class SelectContinuationApplicationLicenceControllerTest extends AbstractControl
   @Test
   void render() throws Exception {
     when(industryRoleService.userHasEditorOrSubmitterRole(organisationUser.wuaId())).thenReturn(true);
-
-    var licenceTypeList = List.of(LicenceType.LANDWARD_PRODUCTION, LicenceType.SEAWARD_PRODUCTION);
+    givenContinuationRelevantToLicenceType();
 
     mockMvc.perform(
-            get(ReverseRouter.route(on(SelectContinuationApplicationLicenceController.class).render()))
+            get(ReverseRouter.route(on(SelectContinuationApplicationLicenceController.class).render(LICENCE_TYPE.getUrlSlug())))
                 .with(user(organisationUser))
         )
         .andExpect(status().isOk())
         .andExpect(view().name("lms/licence/continuation/selectLicence"))
         .andExpect(model().attribute("pageTitle", PAGE_TITLE))
+        .andExpect(model().attribute("pageCaption", LICENCE_TYPE.getDisplayName()))
         .andExpect(model().attribute("searchUrl",
-            SearchSelectorService.route(on(LicenceInternalApiRestController.class).searchActiveLicenceSchedulesByReferenceAndType(LicenceTypeUtil.getUrlSlugList(licenceTypeList), null, null))))
+            SearchSelectorService.route(on(LicenceInternalApiRestController.class)
+                .searchActiveLicenceSchedulesByReferenceAndType(LICENCE_TYPE.getUrlSlug(), null, null))))
         .andExpect(model().attribute("backUrl",
-            ReverseRouter.route(on(StartContinuationApplicationController.class).render())));
+            ReverseRouter.route(on(StartContinuationApplicationController.class).render(LICENCE_TYPE.getUrlSlug()))));
+  }
+
+  @Test
+  void render_whenContinuationNotRelevantToLicenceType_thenNotFound() throws Exception {
+    var licenceTypeSlug = LicenceType.CARBON_STORAGE.getUrlSlug();
+    when(industryRoleService.userHasEditorOrSubmitterRole(organisationUser.wuaId())).thenReturn(true);
+    when(selectApplicationTypeService.getLicenceTypeOrThrow(licenceTypeSlug, ApplicationType.CONTINUATION_APPLICATION))
+        .thenThrow(new ResponseStatusException(HttpStatus.NOT_FOUND));
+
+    mockMvc.perform(
+            get(ReverseRouter.route(on(SelectContinuationApplicationLicenceController.class).render(licenceTypeSlug)))
+                .with(user(organisationUser))
+        )
+        .andExpect(status().isNotFound());
   }
 
   @Test
@@ -73,12 +95,17 @@ class SelectContinuationApplicationLicenceControllerTest extends AbstractControl
     form.setLicenceId(String.valueOf(licenceId));
     when(selectContinuationApplicationLicenceFormValidator.isValid(any())).thenReturn(true);
     when(industryRoleService.userHasEditorOrSubmitterRole(organisationUser.wuaId())).thenReturn(true);
+    givenContinuationRelevantToLicenceType();
 
-    var licence = new Licence(licenceId);
+    var licence = LicenceTestUtil.builder()
+        .withId(licenceId)
+        .withLicenceType(LICENCE_TYPE)
+        .build();
     when(licenceService.findLicenceByIdOrThrow(parseInt(form.getLicenceId()))).thenReturn(licence);
 
     mockMvc.perform(
-            post(ReverseRouter.route(on(SelectContinuationApplicationLicenceController.class).submit(form, null)))
+            post(ReverseRouter.route(on(SelectContinuationApplicationLicenceController.class)
+                .submit(LICENCE_TYPE.getUrlSlug(), form, null)))
                 .with(user(organisationUser))
                 .with(csrf())
                 .flashAttr("form", form)
@@ -89,25 +116,52 @@ class SelectContinuationApplicationLicenceControllerTest extends AbstractControl
   }
 
   @Test
+  void submit_whenLicenceNotOfLicenceType_thenBadRequest() throws Exception {
+    var licenceId = 1;
+
+    var form = new SelectContinuationApplicationLicenceForm();
+    form.setLicenceId(String.valueOf(licenceId));
+    when(selectContinuationApplicationLicenceFormValidator.isValid(any())).thenReturn(true);
+    when(industryRoleService.userHasEditorOrSubmitterRole(organisationUser.wuaId())).thenReturn(true);
+    givenContinuationRelevantToLicenceType();
+
+    var licence = LicenceTestUtil.builder()
+        .withId(licenceId)
+        .withLicenceType(LicenceType.SEAWARD_PRODUCTION)
+        .build();
+    when(licenceService.findLicenceByIdOrThrow(licenceId)).thenReturn(licence);
+
+    mockMvc.perform(
+            post(ReverseRouter.route(on(SelectContinuationApplicationLicenceController.class)
+                .submit(LICENCE_TYPE.getUrlSlug(), form, null)))
+                .with(user(organisationUser))
+                .with(csrf())
+                .flashAttr("form", form)
+        )
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
   void submit_invalidForm() throws Exception {
     when(industryRoleService.userHasEditorOrSubmitterRole(organisationUser.wuaId())).thenReturn(true);
-
-    var licenceTypeList = List.of(LicenceType.LANDWARD_PRODUCTION, LicenceType.SEAWARD_PRODUCTION);
-
+    givenContinuationRelevantToLicenceType();
     when(selectContinuationApplicationLicenceFormValidator.isValid(any())).thenReturn(false);
 
     mockMvc.perform(
-            post(ReverseRouter.route(on(SelectContinuationApplicationLicenceController.class).submit(null, null)))
+            post(ReverseRouter.route(on(SelectContinuationApplicationLicenceController.class)
+                .submit(LICENCE_TYPE.getUrlSlug(), null, null)))
                 .with(user(organisationUser))
                 .with(csrf())
         )
         .andExpect(status().isOk())
         .andExpect(view().name("lms/licence/continuation/selectLicence"))
         .andExpect(model().attribute("pageTitle", PAGE_TITLE))
+        .andExpect(model().attribute("pageCaption", LICENCE_TYPE.getDisplayName()))
         .andExpect(model().attribute("searchUrl",
-            SearchSelectorService.route(on(LicenceInternalApiRestController.class).searchActiveLicenceSchedulesByReferenceAndType(LicenceTypeUtil.getUrlSlugList(licenceTypeList), null, null))))
+            SearchSelectorService.route(on(LicenceInternalApiRestController.class)
+                .searchActiveLicenceSchedulesByReferenceAndType(LICENCE_TYPE.getUrlSlug(), null, null))))
         .andExpect(model().attribute("backUrl",
-            ReverseRouter.route(on(StartContinuationApplicationController.class).render())));
+            ReverseRouter.route(on(StartContinuationApplicationController.class).render(LICENCE_TYPE.getUrlSlug()))));
   }
 
   @Test
@@ -115,7 +169,7 @@ class SelectContinuationApplicationLicenceControllerTest extends AbstractControl
     when(industryRoleService.userHasEditorOrSubmitterRole(organisationUser.wuaId())).thenReturn(false);
 
     mockMvc.perform(
-            get(ReverseRouter.route(on(SelectContinuationApplicationLicenceController.class).render()))
+            get(ReverseRouter.route(on(SelectContinuationApplicationLicenceController.class).render(LICENCE_TYPE.getUrlSlug())))
                 .with(user(organisationUser))
         )
         .andExpect(status().isForbidden());
@@ -126,7 +180,8 @@ class SelectContinuationApplicationLicenceControllerTest extends AbstractControl
     when(industryRoleService.userHasEditorOrSubmitterRole(organisationUser.wuaId())).thenReturn(false);
 
     mockMvc.perform(
-            post(ReverseRouter.route(on(SelectContinuationApplicationLicenceController.class).submit(null, null)))
+            post(ReverseRouter.route(on(SelectContinuationApplicationLicenceController.class)
+                .submit(LICENCE_TYPE.getUrlSlug(), null, null)))
                 .with(user(organisationUser))
                 .with(csrf())
                 .flashAttr("form", new SelectContinuationApplicationLicenceForm())
@@ -134,5 +189,10 @@ class SelectContinuationApplicationLicenceControllerTest extends AbstractControl
         .andExpect(status().isForbidden());
 
     verifyNoInteractions(licenceService);
+  }
+
+  private void givenContinuationRelevantToLicenceType() {
+    when(selectApplicationTypeService.getLicenceTypeOrThrow(LICENCE_TYPE.getUrlSlug(), ApplicationType.CONTINUATION_APPLICATION))
+        .thenReturn(LICENCE_TYPE);
   }
 }

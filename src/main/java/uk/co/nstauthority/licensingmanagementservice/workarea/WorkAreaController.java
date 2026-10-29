@@ -22,7 +22,7 @@ import uk.co.nstauthority.licensingmanagementservice.fds.tab.FdsBackendTab;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
-import uk.co.nstauthority.licensingmanagementservice.licence.application.SelectApplicationTypeController;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.SelectApplicationLicenceTypeController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.phasedrelease.FeatureFlagService;
 import uk.co.nstauthority.licensingmanagementservice.phasedrelease.ReleaseFeature;
@@ -152,7 +152,7 @@ public class WorkAreaController {
             featureFlagService.isEnabled(ReleaseFeature.START_APPLICATION)
                 && industryRoleService.userHasEditorOrSubmitterRole(user.wuaId()))
         .addObject("startApplicationUrl", ReverseRouter
-                .route(on(SelectApplicationTypeController.class).render()))
+                .route(on(SelectApplicationLicenceTypeController.class).renderSelectLicenceType()))
         .addObject("form", form)
         .addObject("licenceTypes", DisplayableEnumOptionUtil.getDisplayableOptions(LicenceType.getDisplayableTypes()))
         .addObject("applicationTypes", DisplayableEnumOptionUtil.getDisplayableOptions(ApplicationType.class))

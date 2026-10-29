@@ -87,6 +87,13 @@ public class LicenceTypeFeatureService implements LicenceTypeRulesResolver {
   }
 
   @Override
+  public List<LicenceType> getLicenceTypesThatCanCreateContinuationApplications() {
+    return Arrays.stream(LicenceType.values())
+        .filter(LicenceTypeFeature.CAN_CREATE_CONTINUATION_APPLICATIONS::isEnabledFor)
+        .toList();
+  }
+
+  @Override
   public boolean canShowLicenceRoundIssuedOn(LicenceType licenceType) {
     return LicenceTypeFeature.SHOW_ROUND_ISSUED_ON.isEnabledFor(licenceType);
   }

@@ -16,6 +16,7 @@ import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.SelectApplicationTypeController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @ContextConfiguration(classes = StartScheduleWorkProgrammeApplicationJourneyController.class)
@@ -44,7 +45,7 @@ class StartScheduleWorkProgrammeApplicationJourneyControllerTest extends Abstrac
         .andExpect(model().attribute("pageTitle", PAGE_TITLE))
         .andExpect(model().attribute("pageCaption", licenceType.getDisplayName()))
         .andExpect(model().attribute("startUrl", ReverseRouter.route(on(SelectScheduleWorkProgrammeApplicationLicenceController.class).renderSelectLicenceForScheduleWorkProgrammeApplication(licenceType.getUrlSlug()))))
-        .andExpect(model().attribute("backUrl", ReverseRouter.route(on(SelectScheduleWorkProgrammeApplicationLicenceTypeController.class).renderSelectLicenceType())));
+        .andExpect(model().attribute("backUrl", ReverseRouter.route(on(SelectApplicationTypeController.class).render(licenceType.getUrlSlug()))));
   }
 
   @Test

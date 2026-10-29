@@ -27,7 +27,7 @@ import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitRestController;
 import uk.co.nstauthority.licensingmanagementservice.fds.searchselector.SearchSelectorService;
 import uk.co.nstauthority.licensingmanagementservice.fds.tab.FdsBackendTab;
-import uk.co.nstauthority.licensingmanagementservice.licence.application.SelectApplicationTypeController;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.SelectApplicationLicenceTypeController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.query.SearchResultItem;
 import uk.co.nstauthority.licensingmanagementservice.teams.RegulatorRoleService;
@@ -118,7 +118,7 @@ class WorkAreaControllerTest extends AbstractControllerTest {
             ReverseRouter.route(on(WorkAreaController.class).clearWorkAreaFilters(null, null))))
         .andExpect(model().attribute("canStartApplication", true))
         .andExpect(model().attribute("startApplicationUrl",
-            ReverseRouter.route(on(SelectApplicationTypeController.class).render())))
+            ReverseRouter.route(on(SelectApplicationLicenceTypeController.class).renderSelectLicenceType())))
         .andReturn()
         .getModelAndView();
 

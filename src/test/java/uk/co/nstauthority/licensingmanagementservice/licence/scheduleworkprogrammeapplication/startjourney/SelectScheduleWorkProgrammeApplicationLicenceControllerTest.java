@@ -22,7 +22,7 @@ import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.fds.searchselector.SearchSelectorService;
-import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.internalapi.LicenceInternalApiRestController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
@@ -73,8 +73,10 @@ class SelectScheduleWorkProgrammeApplicationLicenceControllerTest extends Abstra
     when(selectScheduleWorkProgrammeApplicationLicenceFormValidator.isValid(any())).thenReturn(true);
     when(industryRoleService.userHasEditorOrSubmitterRole(organisationUser.wuaId())).thenReturn(true);
 
-    Licence licence = new Licence();
-    licence.setId(licenceId);
+    var licence = LicenceTestUtil.builder()
+        .withId(licenceId)
+        .withLicenceType(licenceType)
+        .build();
     when(licenceService.findLicenceByIdOrThrow(parseInt(form.getLicenceId()))).thenReturn(licence);
 
     mockMvc.perform(
@@ -86,6 +88,31 @@ class SelectScheduleWorkProgrammeApplicationLicenceControllerTest extends Abstra
         .andExpect(status().is3xxRedirection())
         .andExpect(redirectedUrl(ReverseRouter.route(on(LicenseeInformationController.class)
             .renderConfirmLicenseePermission(licenceType.getUrlSlug(), licenceId, null, null))));
+  }
+
+  @Test
+  void submitSelectLicenceForScheduleWorkProgrammeApplication_whenLicenceNotOfLicenceType_thenBadRequest() throws Exception {
+    var licenceType = LicenceType.SEAWARD_EXPLORATION;
+    var licenceId = 1;
+
+    var form = new SelectScheduleWorkProgrammeApplicationLicenceForm();
+    form.setLicenceId(String.valueOf(licenceId));
+    when(selectScheduleWorkProgrammeApplicationLicenceFormValidator.isValid(any())).thenReturn(true);
+    when(industryRoleService.userHasEditorOrSubmitterRole(organisationUser.wuaId())).thenReturn(true);
+
+    var licence = LicenceTestUtil.builder()
+        .withId(licenceId)
+        .withLicenceType(LicenceType.SEAWARD_PRODUCTION)
+        .build();
+    when(licenceService.findLicenceByIdOrThrow(licenceId)).thenReturn(licence);
+
+    mockMvc.perform(
+            post(ReverseRouter.route(on(SelectScheduleWorkProgrammeApplicationLicenceController.class).submitSelectLicenceForScheduleWorkProgrammeApplication(licenceType.getUrlSlug(), form, null)))
+                .with(user(organisationUser))
+                .with(csrf())
+                .flashAttr("form", form)
+        )
+        .andExpect(status().isBadRequest());
   }
 
   @Test

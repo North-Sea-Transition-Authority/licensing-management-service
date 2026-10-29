@@ -166,6 +166,12 @@ class LicenceTypeFeatureServiceTest {
   }
 
   @Test
+  void getLicenceTypesThatCanCreateContinuationApplications() {
+    var licenceTypes = underTest.getLicenceTypesThatCanCreateContinuationApplications();
+    assertThat(licenceTypes).containsExactly(LicenceType.LANDWARD_PRODUCTION, LicenceType.SEAWARD_PRODUCTION);
+  }
+
+  @Test
   void canShowLicenceRoundIssuedOn_whenEnabled_ReturnsTrue() {
     assertThat(underTest.canShowLicenceRoundIssuedOn(LicenceType.SEAWARD_PRODUCTION)).isTrue();
   }

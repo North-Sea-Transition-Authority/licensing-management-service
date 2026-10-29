@@ -37,5 +37,7 @@ public interface LicenceTypeRulesResolver {
 
   List<LicenceType> getLicenceTypesThatCanCreateScheduleWorkProgrammeApplications();
 
+  List<LicenceType> getLicenceTypesThatCanCreateContinuationApplications();
+
   boolean canShowLicenceRoundIssuedOn(LicenceType licenceType);
 }

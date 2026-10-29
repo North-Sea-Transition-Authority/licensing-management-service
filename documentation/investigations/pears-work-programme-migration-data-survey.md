@@ -109,7 +109,9 @@ for the licensing team).
   the PEARS review process (WP-S13).
 - **Well counts** on 872 `LEGACY` programmes have no matching well activities. How LMS holds them
   is for the licensing team (WP-S8, WP-L6).
-- **Breakpoint** on 233 programmes becomes the D&D wells' due date (WP-S6).
+- **Breakpoint** on 233 programmes: D&D wells are dated from the schedule's `DD` event where there
+  is one (136) and from the breakpoint otherwise (97). The 5 with no D&D well become a schedule
+  comment (WP-S6, WP-S6b).
 
 **History**
 - The 17,416 versions hold only 3,857 real content states, as most saves are review-only (WP-S2,
@@ -118,7 +120,8 @@ for the licensing team).
   version, for the licensing team to confirm (WP-L7).
 
 **Open before the migration can be built**
-- The licensing team questions WP-L1 to WP-L7.
+- The licensing team questions WP-L1 to WP-L11, sent as
+  [pears-work-programme-migration-licensing-review.docx](pears-work-programme-migration-licensing-review.docx).
 - LMS changes:
   - a status for `DROPPED`;
   - the schedule comments area;
@@ -128,16 +131,23 @@ for the licensing team).
 ## For the licensing team
 
 Items that need a confirmation or decision from the licensing team. Each links to its evidence.
+They are put to the team in
+[pears-work-programme-migration-licensing-review.docx](pears-work-programme-migration-licensing-review.docx),
+which numbers them differently (the "Review" column).
 
-| # | Question | Licences | Background | Section |
-|---|---|---|---|---|
-| WP-L1 | **`DRAFT_FINAL` work programmes on raised licences: migrate as they are, or review first?** | 76 `P`, 15 `PEDL` | PEARS sets `DRAFT_FINAL` when an award is issued for raise (and on legacy import). Only a save in `PED009X` maintain moves it on, so these programmes haven't been saved since raise, and their activity statuses may never have been updated. | [WP-S1](#wp-s1-programmes-by-licence-type-programme-type-and-status); plan Open question 9 |
-| WP-L2 | **Two INITIAL programmes on one licence: which is authoritative?** | EXL253, PEDL120, PEDL133, PEDL180, PEDL181, PEDL225 | Each has a hand-made programme (2010–11) and a one-activity `LEGACY` programme from a 12/07/2011 bulk job. Both describe the same commitment, but they disagree on figures (PEDL180) or statuses (PEDL225 `DROPPED` vs `NOT_STARTED`; PEDL180/181 `COMPLETE` vs `IN_PROGRESS`). Options: keep the hand-made one, keep the `LEGACY` one, or enter it fresh in LMS. Proposed until they answer: neither is migrated, and the licences are reported. | [WP-S1c](#wp-s1c-the-duplicate-initial-programmes-side-by-side), [WP-S1d](#wp-s1d-the-activities-on-the-duplicate-programme-licences); plan Open question 10 |
-| WP-L3 | **Is term- or phase-level dating acceptable for migrated activities?** | All 2,876 numbered programmes | PEARS activities have no dates. The 282 phase-organised `P` programmes can sit within their phase. The other 2,594 (90%) can only be placed within the Initial term, which is an assumption (wrong for licences with no Initial term and for FALLOW/EXTENSION). Only D&D wells with a breakpoint get a real date. Most migrated activities would show against the end of the Initial term on the LMS timeline. Accept that, or add specific dates after migration (for which licences)? | [WP-S2b](#wp-s2b-flat-vs-phase-organisation-current-versions); plan M3, Open question 11 |
-| WP-L5 | **Drill-or-drop decision shown twice** | 136 licences with both a breakpoint-dated D&D well and a schedule `DD` event | Keep both (the schedule event as the deadline, the activity as the obligation), keep both with the activity undated, or merge? 17 of the 136 currently disagree, and the schedule date is always later. | [WP-S6b](#wp-s6b-breakpoint-vs-the-schedules-dd-event); plan M3 rule 2, Open question 13 |
-| WP-L4 | **Waiver statuses LMS doesn't have: `PART_WAIVER` and `WAIVER_DECLINED`** | 32 activities on `P`/`PEDL` (16 each). **Only P1483 is extant**; the other 31 are surrendered or expired. | LMS has only `FULL_WAIVER`. The notes show the PEARS status rarely means what it says. Of the 32: 9 are obligations **transferred** to another licence (LMS has `TRANSFERRED`), 8 are unmet obligations left on surrendered licences, 7 are genuine part waivers or part done, 7 are errors or unclear, and 1 (P1483) still stands. Questions: (1) Does LMS need part-waiver / waiver-declined as statuses going forward? (2) For the 31 historical ones, accept a default mapping, with the PEARS status and notes kept as comments? (3) Should transfers migrate as `TRANSFERRED`, with the team supplying the target licence? (4) What is P1483's current position? | [WP-S3](#wp-s3-activities-by-type-status-and-list), [WP-S3b](#wp-s3b-activities-with-a-waiver-status-lms-doesnt-have); plan Open question 12 |
-| WP-L6 | **Well counts on `LEGACY` licences: how should LMS hold them?** | 872 programmes (844 `P`, 28 `PEDL`) | These count wells (obligated, completed, dropped, waived, waiver declined × firm/contingent/D&D) but have no well activities; the wells are only in the `LEGACY` summary text. LMS has no well-count table. Options: (A) one schedule comment per licence summarising the counts (proposed); (B) generate a well activity per obligated well; (C) don't migrate them. WP-S8b gives the full counts if the team wants to see them first. | [WP-S8](#wp-s8-well-count-matrix-vs-activities), [WP-S8b](#wp-s8b-well-counts-on-programmes-with-no-well-activities); plan Open question 14 |
-| WP-L7 | **Work programme history: current only, or matched to past schedule versions?** | 1,761 programmes on licences with a schedule | **Leaning A:** migrate the current work programme onto the latest (`ACTIVE`) schedule version only; earlier LMS schedule versions show no work programme, and PEARS keeps the full history. B would attach the work programme current at each past schedule save, but keeps only 1,161 of 2,096 past content states (55%), each dated to the next schedule save rather than the work programme edit. Status history and notes migrate either way. | [WP-S2c](#wp-s2c-work-programme-changes-vs-schedule-versions-option-b); plan Version alignment, Open question 6 |
+| # | Question | Licences | Background | Section | Review |
+|---|---|---|---|---|---|
+| WP-L1 | **`DRAFT_FINAL` work programmes on raised licences: migrate as they are, or review first?** | 91 licences (76 `P`, 15 `PEDL`): 68 raised, 23 not yet raised (WP-L11) | PEARS sets `DRAFT_FINAL` when an award is issued for raise (and on legacy import). Only a save in `PED009X` maintain moves it on, so these programmes haven't been saved since raise, and their activity statuses may never have been updated. | [WP-S1](#wp-s1-programmes-by-licence-type-programme-type-and-status); plan Open question 9 | 1.1 |
+| WP-L2 | **Two INITIAL programmes on one licence: which is authoritative?** | EXL253, PEDL120, PEDL133, PEDL180, PEDL181, PEDL225 | Each has a hand-made programme (2010–11) and a one-activity `LEGACY` programme from a 12/07/2011 bulk job. Both describe the same commitment, but they disagree on figures (PEDL180) or statuses (PEDL225 `DROPPED` vs `NOT_STARTED`; PEDL180/181 `COMPLETE` vs `IN_PROGRESS`). Options: keep the hand-made one, keep the `LEGACY` one, or enter it fresh in LMS. Proposed until they answer: neither is migrated, and the licences are reported. | [WP-S1c](#wp-s1c-the-duplicate-initial-programmes-side-by-side), [WP-S1d](#wp-s1d-the-activities-on-the-duplicate-programme-licences); plan Open question 10 | 1.2, 2.3 |
+| WP-L3 | **Is term- or phase-level dating acceptable for migrated activities?** | All 2,876 numbered programmes | PEARS activities have no dates. The 282 phase-organised `P` programmes can sit within their phase. The other 2,594 (90%) can only be placed within the Initial term, which is an assumption (wrong for licences with no Initial term and for FALLOW/EXTENSION). Only D&D wells with a breakpoint get a real date. Most migrated activities would show against the end of the Initial term on the LMS timeline. Accept that, or add specific dates after migration (for which licences)? | [WP-S2b](#wp-s2b-flat-vs-phase-organisation-current-versions); plan M3, Open question 11 | 1.3 |
+| WP-L4 | **Waiver statuses LMS doesn't have: `PART_WAIVER` and `WAIVER_DECLINED`** | 32 activities on `P`/`PEDL` (16 each). **Only P1483 is extant**; the other 31 are surrendered or expired. | LMS has only `FULL_WAIVER`. The notes show the PEARS status rarely means what it says. Of the 32: 9 are obligations **transferred** to another licence (LMS has `TRANSFERRED`), 8 are unmet obligations left on surrendered licences, 7 are genuine part waivers or part done, 7 are errors or unclear, and 1 (P1483) still stands. Questions: (1) Does LMS need part-waiver / waiver-declined as statuses going forward? (2) For the 31 historical ones, accept a default mapping, with the PEARS status and notes kept as comments? (3) Should transfers migrate as `TRANSFERRED`, with the team supplying the target licence? (4) What is P1483's current position? | [WP-S3](#wp-s3-activities-by-type-status-and-list), [WP-S3b](#wp-s3b-activities-with-a-waiver-status-lms-doesnt-have); plan Open question 12 | 1.5 |
+| WP-L5 | **Drill-or-drop decision shown twice** | 136 licences with both a breakpoint-dated D&D well and a schedule `DD` event | Keep both (the schedule event as the deadline, the activity as the obligation), keep both with the activity undated, or merge? 17 of the 136 currently disagree, and the schedule date is always later. | [WP-S6b](#wp-s6b-breakpoint-vs-the-schedules-dd-event); plan M3 rule 2, Open question 13 | 1.4 |
+| WP-L6 | **Well counts on `LEGACY` licences: how should LMS hold them?** | 872 programmes (844 `P`, 28 `PEDL`) | These count wells (obligated, completed, dropped, waived, waiver declined × firm/contingent/D&D) but have no well activities; the wells are only in the `LEGACY` summary text. LMS has no well-count table. Options: (A) one schedule comment per licence summarising the counts (proposed); (B) generate a well activity per obligated well; (C) don't migrate them. WP-S8b gives the full counts if the team wants to see them first. | [WP-S8](#wp-s8-well-count-matrix-vs-activities), [WP-S8b](#wp-s8b-well-counts-on-programmes-with-no-well-activities); plan Open question 14 | 1.8 |
+| WP-L7 | **Work programme history: current only, or matched to past schedule versions?** | 1,761 programmes on licences with a schedule | **Leaning A:** migrate the current work programme onto the latest (`ACTIVE`) schedule version only; earlier LMS schedule versions show no work programme. PEARS is decommissioned some time after LMS goes live and its history isn't kept, so past work programme content is lost. B would attach the work programme current at each past schedule save, but keeps only 1,161 of 2,096 past content states (55%), each dated to the next schedule save rather than the work programme edit. Status history and notes migrate either way. | [WP-S2c](#wp-s2c-work-programme-changes-vs-schedule-versions-option-b); plan Version alignment, Open question 6 | 1.10 |
+| WP-L8 | **Should LMS have a `DROPPED` status?** | 466 activities (10%): 411 D&D wells, 55 `LEGACY` | LMS has `OPEN`, `IN_PROGRESS`, `COMPLETE`, `FULL_WAIVER` and `TRANSFERRED`. `DROPPED` is the normal outcome for 411 of the 890 D&D wells, so it is too common to hold only as a comment. Proposed: add it to LMS. | [WP-S3](#wp-s3-activities-by-type-status-and-list); plan M5, Open question 4 | 1.6 |
+| WP-L9 | **What commitment should migrated activities have where PEARS records none?** | 4,541 activities: 890 D&D wells and 3,651 others (76%) | LMS requires `FIRM`, `CONTINGENT` or `CONDITIONAL`. PEARS records a commitment only for wells and new-shoot seismic (246 activities). `CONDITIONAL` fits D&D wells. Options: a default per type, or make commitment optional for migrated activities. | [WP-S3](#wp-s3-activities-by-type-status-and-list); plan M1, Open question 3 | 1.7 |
+| WP-L10 | **Where should the legal text go in LMS?** | 927 programmes (838 `P`, 88 `PEDL`) | One HTML block per programme, built from the activity descriptions and then edited freely; it feeds the licence documents and won't be split per activity. Options: (a) a programme-level legal text area, like the general comments; (b) copy the whole block to every activity. A licence with a FALLOW or EXTENSION programme can have a block on each. | [WP-S13](#wp-s13-legal-text-and-review-audit); plan D14, Open question 5 | 1.9 |
+| WP-L11 | **Work programmes on awards not yet raised** | 23 awards (18 `P`, 5 `PEDL`) | Issued for raise but not raised: a `DRAFT_FINAL` programme and a template schedule, no licence data. They migrate only if the schedule migration creates an LMS licence for them; otherwise the programme is created in LMS at raise. | [WP-S10b](#wp-s10b-licences-with-a-work-programme-but-no-current-status); plan Open questions 7, 9 | 1.11 |
 
 ## Shared building blocks
 
@@ -592,10 +602,9 @@ ORDER BY GROUPING(licence_type), 1;
   - Status changes made through `set_work_programme_status` create **no** version at all.
 
   So version count measures review activity as much as edits.
-- **Version alignment (plan):** with 17k versions saved independently of the schedule, and many
-  of them review-only, interleaving work programme versions into schedule versions (option B) would
-  produce mostly noise. This supports **option A** (current version on the `ACTIVE` schedule
-  detail only). Status history comes from the notes (WP-S9), not from the versions.
+- **Version alignment (plan):** the review-only saves don't by themselves rule out interleaving
+  (option B), because B only picks the version current at each schedule save. WP-S2c measures what
+  B would keep. Status history comes from the notes (WP-S9), not from the versions.
 - The 13 unnumbered awards (66 versions) are out of scope (WP-S1).
 
 ### WP-S2b. Flat vs phase organisation (current versions)
@@ -781,7 +790,8 @@ buffer error, drop the title length from the fingerprint.
   under-counted.
 
 So B keeps just over half of the past work programme states, each dated to a later schedule save.
-The full history stays in PEARS either way.
+PEARS is decommissioned some time after LMS goes live and its history isn't kept, so under A
+the past states are lost; only the status history and notes survive.
 
 ## WP-S3. Activities by type, status and list
 
@@ -2411,10 +2421,6 @@ Totals reconcile with WP-S9.
 - **One person wrote 41% of all notes:** Jen Brzozowska, 2,009 under both names, 2010–2019.
   Recent maintenance (2019–2026) is spread across about ten people.
 
-**Result:** not run.
-
-**Result:** not run.
-
 ## WP-S10. Work programme vs schedule coverage
 
 Which licences have a work programme but no PEARS schedule, and the reverse, by licence status.
@@ -2809,9 +2815,9 @@ the `latest_ack` column.
 **Reading:**
 
 - **Legal text is common on offshore and `PEDL` programmes:** 838 `P` (34%) and 88 `PEDL` (25%),
-  and none on the other types. It feeds the licence documents (D14), so LMS needs a home for it,
-  or the documents need another source, before PEARS is locked down. It can't simply be dropped
-  (Q5).
+  and none on the other types. It feeds the licence documents (D14), so it can't simply be
+  dropped. It is one block per programme and won't be split per activity: it either goes into a
+  programme-level area or is copied to every activity (plan Q5, WP-L10).
 - **Review acknowledgements are in active use:** 1,590 programmes (55%) hold 5,383 entries, and
   the latest was made today. **Decided: the review audit is not migrated** (D16).
 - The one unnumbered award with legal text is out of scope (no licence type).

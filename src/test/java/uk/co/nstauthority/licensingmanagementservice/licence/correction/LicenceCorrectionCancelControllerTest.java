@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
@@ -16,11 +17,15 @@ import static uk.co.nstauthority.licensingmanagementservice.authentication.TestU
 import static uk.co.nstauthority.licensingmanagementservice.util.RedirectedToLoginUrlMatcher.redirectionToLoginUrl;
 
 import java.util.Optional;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.filter.LicenceTimelineFilter;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.filter.LicenceTimelineFilterSession;
 import uk.co.nstauthority.licensingmanagementservice.licence.tab.TabbedLicencePageService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
@@ -66,13 +71,13 @@ class LicenceCorrectionCancelControllerTest extends AbstractControllerTest {
         .andExpect(view().name("lms/licence/correction/cancelCorrection"))
         .andExpect(model().attribute("correctionReference", correction.getCorrectionReference()))
         .andExpect(model().attribute("cancelUrl", ReverseRouter.route(on(LicenceCorrectionController.class)
-            .renderCorrection(correction))));
+            .renderCorrection(correction, null))));
   }
 
   @Test
   void processCancelCorrection_whenNotLoggedIn_redirectToLogin() throws Exception {
     mockMvc.perform(post(ReverseRouter.route(on(LicenceCorrectionCancelController.class)
-            .processCancelCorrection(correction, null)))
+            .processCancelCorrection(correction, null, null)))
         .with(csrf()))
         .andExpect(redirectionToLoginUrl());
   }
@@ -83,7 +88,7 @@ class LicenceCorrectionCancelControllerTest extends AbstractControllerTest {
         .thenReturn(Optional.empty());
 
     mockMvc.perform(post(ReverseRouter.route(on(LicenceCorrectionCancelController.class)
-            .processCancelCorrection(correction, null)))
+            .processCancelCorrection(correction, null, null)))
             .with(user(regulatorUser))
             .with(csrf()))
         .andExpect(status().isForbidden());
@@ -99,12 +104,36 @@ class LicenceCorrectionCancelControllerTest extends AbstractControllerTest {
     when(tabbedLicencePageService.getDefaultTabUrl(correction.getLicence())).thenReturn(DEFAULT_TAB_URL);
 
     mockMvc.perform(post(ReverseRouter.route(on(LicenceCorrectionCancelController.class)
-            .processCancelCorrection(correction, null)))
+            .processCancelCorrection(correction, null, null)))
             .with(user(regulatorUser))
             .with(csrf()))
         .andExpect(status().is3xxRedirection())
         .andExpect(redirectedUrl(DEFAULT_TAB_URL));
 
     verify(licenceCorrectionService).cancelCorrection(correction);
+  }
+
+  @Test
+  void processCancelCorrection_whenCorrectionTimelineFiltered_thenFilterIsRemovedFromSession() throws Exception {
+    var filterSession = new LicenceTimelineFilterSession();
+    filterSession.update(
+        correction.getId().toString(),
+        new LicenceTimelineFilter(Set.of(LicenceOperation.SET_EQUITY), Set.of())
+    );
+
+    when(licenceCorrectionService.findByIdAndAllocatedToWuaId(correction.getId(), regulatorUser))
+        .thenReturn(Optional.of(correction));
+    when(licenceCorrectionService.findById(correction.getId())).thenReturn(Optional.of(correction));
+    when(tabbedLicencePageService.getDefaultTabUrl(correction.getLicence())).thenReturn(DEFAULT_TAB_URL);
+
+    mockMvc.perform(post(ReverseRouter.route(on(LicenceCorrectionCancelController.class)
+            .processCancelCorrection(correction, null, null)))
+            .sessionAttr(LicenceCorrectionController.FILTER_SESSION_ATTRIBUTE, filterSession)
+            .with(user(regulatorUser))
+            .with(csrf()))
+        .andExpectAll(
+            redirectedUrl(DEFAULT_TAB_URL),
+            request().sessionAttributeDoesNotExist(LicenceCorrectionController.FILTER_SESSION_ATTRIBUTE)
+        );
   }
 }

@@ -410,7 +410,7 @@ public class LicencePositionPartialSurrenderController {
         .addObject("startCorrectionUrl", ReverseRouter.route(on(LicencePositionPartialSurrenderController.class)
             .startCorrectingSingleBlockChange(correction, licencePosition, change)))
         .addObject("backLinkUrl", ReverseRouter.route(on(LicenceCorrectionController.class)
-            .renderLicencePosition(correction, licencePosition)));
+            .renderLicencePosition(correction, licencePosition, null)));
   }
 
   private static List<UUID> surrenderedFeatureIdsOf(PartialSurrenderOperation surrender, Feature block) {

@@ -56,7 +56,7 @@ class RemoveExecutedLicencePositionCorrectionControllerTest extends AbstractCont
       .build();
 
   private final String cancelUrl = ReverseRouter.route(on(LicenceCorrectionController.class)
-      .renderCorrection(CORRECTION));
+      .renderCorrection(CORRECTION, null));
 
   @Test
   void renderRemovePosition_whenNotLoggedIn() throws Exception {
@@ -124,7 +124,8 @@ class RemoveExecutedLicencePositionCorrectionControllerTest extends AbstractCont
             .with(csrf()))
         .andExpectAll(
             status().is3xxRedirection(),
-            redirectedUrl(cancelUrl),
+            redirectedUrl(ReverseRouter.route(on(LicenceCorrectionController.class)
+                .renderLicencePosition(CORRECTION, POSITION, null))),
             notificationBanner(NotificationBanner.newSuccessBanner()
                 .withHeadingContent("Licence correction position removed")
                 .build())

@@ -6,6 +6,7 @@ import java.io.Serializable;
 import java.util.Collection;
 import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.AdministratorOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
@@ -25,6 +26,22 @@ public record LicenceTimelineFilter(Set<String> changeTypes, Set<Integer> organi
 
   public static LicenceTimelineFilter empty() {
     return new LicenceTimelineFilter(Set.of(), Set.of());
+  }
+
+  /**
+   * The filter the form selects. Only the change types and organisations the timeline can be filtered by are kept, so
+   * anything else submitted is dropped.
+   */
+  public static LicenceTimelineFilter from(LicenceTimelineFilterForm form, LicenceTimelineFilterOptions filterOptions) {
+    var changeTypes = form.getChangeTypes().stream()
+        .filter(filterOptions.changeTypeOptions()::containsKey)
+        .collect(Collectors.toSet());
+    var organisationIds = form.getOrganisationIds().stream()
+        .filter(Objects::nonNull)
+        .filter(organisationId -> filterOptions.organisationOptions().containsKey(String.valueOf(organisationId)))
+        .collect(Collectors.toSet());
+
+    return new LicenceTimelineFilter(changeTypes, organisationIds);
   }
 
   public boolean isEmpty() {

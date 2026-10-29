@@ -72,7 +72,7 @@ public class LicenceController {
       var licence = licenceFormService.saveNewLicenceFromForm(form);
 
       return licenceCorrectionService.startCorrectionForNewLicence(licence, serviceUserDetail)
-          .map(correction -> ReverseRouter.redirect(on(LicenceCorrectionController.class).renderCorrection(correction)))
+          .map(correction -> ReverseRouter.redirect(on(LicenceCorrectionController.class).renderCorrection(correction, null)))
           .orElseGet(() -> ReverseRouter.redirectToUrl(tabbedLicencePageService.getDefaultTabUrl(licence)));
     }
 

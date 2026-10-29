@@ -95,7 +95,7 @@ public class CorrectionWorkAreaService implements WorkAreaItemProvider {
         .withId(correction.getId().toString())
         .withLinkHeadingText(String.format("%s - licence correction", licence.getLicenceReference()))
         .withLinkHeadingUrl(ReverseRouter.route(on(LicenceCorrectionController.class)
-            .renderCorrection(correction)))
+            .renderCorrection(correction, null)))
         .withCaptionText(String.format("Created %s", DateFormatUtil.convertToDisplayTextWithTime(createdInstant)))
         .withDataItemRow(dataItemRow)
         .withTransactionDatetime(createdInstant);

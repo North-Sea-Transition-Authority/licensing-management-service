@@ -52,7 +52,8 @@ public class RemoveExecutedLicencePositionCorrectionController {
         .withHeadingContent("Licence correction position removed")
         .applyTo(redirectAttributes);
 
-    return ReverseRouter.redirect(on(LicenceCorrectionController.class).renderCorrection(correction));
+    return ReverseRouter.redirect(on(LicenceCorrectionController.class)
+        .renderLicencePosition(correction, licencePosition, null));
   }
 
   private ModelAndView removePositionModelAndView(
@@ -63,6 +64,6 @@ public class RemoveExecutedLicencePositionCorrectionController {
         .addObject("pageTitle", PAGE_TITLE)
         .addObject("positionDate", licencePosition.getFormattedPositionDate())
         .addObject("cancelUrl",
-            ReverseRouter.route(on(LicenceCorrectionController.class).renderCorrection(correction)));
+            ReverseRouter.route(on(LicenceCorrectionController.class).renderCorrection(correction, null)));
   }
 }

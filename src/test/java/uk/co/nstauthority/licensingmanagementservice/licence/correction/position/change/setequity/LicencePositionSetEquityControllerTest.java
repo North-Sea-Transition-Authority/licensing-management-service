@@ -233,7 +233,7 @@ class LicencePositionSetEquityControllerTest extends AbstractControllerTest {
             .with(user(regulatorUser)).with(csrf()))
         .andExpect(status().is3xxRedirection())
         .andExpect(redirectedUrl(ReverseRouter.route(on(LicenceCorrectionController.class)
-            .renderAddedPosition(CORRECTION, POSITION_CORRECTION))));
+            .renderAddedPosition(CORRECTION, POSITION_CORRECTION, null))));
   }
 
   @Test
@@ -396,7 +396,7 @@ class LicencePositionSetEquityControllerTest extends AbstractControllerTest {
             .with(user(regulatorUser)).with(csrf()))
         .andExpect(status().is3xxRedirection())
         .andExpect(redirectedUrl(ReverseRouter.route(on(LicenceCorrectionController.class)
-            .renderLicencePosition(CORRECTION, POSITION))));
+            .renderLicencePosition(CORRECTION, POSITION, null))));
 
     verifyNoInteractions(setEquityCorrectionService);
   }

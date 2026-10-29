@@ -8,6 +8,13 @@ public class LicenceTimelineFilterForm {
 
   private List<Integer> organisationIds = List.of();
 
+  public static LicenceTimelineFilterForm from(LicenceTimelineFilter filter) {
+    var form = new LicenceTimelineFilterForm();
+    form.setChangeTypes(List.copyOf(filter.changeTypes()));
+    form.setOrganisationIds(List.copyOf(filter.organisationIds()));
+    return form;
+  }
+
   public List<String> getChangeTypes() {
     return changeTypes;
   }

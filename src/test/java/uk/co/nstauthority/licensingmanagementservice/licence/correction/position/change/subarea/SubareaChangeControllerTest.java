@@ -119,7 +119,7 @@ class SubareaChangeControllerTest extends AbstractControllerTest {
             model().attribute("pageTitle", "Subarea change"),
             model().attribute("pageCaption", LICENCE.getLicenceReference()),
             model().attribute("backLinkUrl", ReverseRouter.route(on(LicenceCorrectionController.class)
-                .renderAddedPosition(correction, positionCorrection))));
+                .renderAddedPosition(correction, positionCorrection, null))));
   }
 
   @Test
@@ -134,7 +134,7 @@ class SubareaChangeControllerTest extends AbstractControllerTest {
         .andExpectAll(
             status().is3xxRedirection(),
             redirectedUrl(ReverseRouter.route(on(LicenceCorrectionController.class)
-                .renderAddedPosition(correction, positionCorrection))),
+                .renderAddedPosition(correction, positionCorrection, null))),
             notificationBanner(NotificationBanner.newSuccessBanner()
                 .withHeadingContent("Subarea change saved")
                 .build()));
@@ -156,7 +156,7 @@ class SubareaChangeControllerTest extends AbstractControllerTest {
         .andExpectAll(
             status().is3xxRedirection(),
             redirectedUrl(ReverseRouter.route(on(LicenceCorrectionController.class)
-                .renderLicencePosition(correction, licencePosition))),
+                .renderLicencePosition(correction, licencePosition, null))),
             notificationBanner(NotificationBanner.newSuccessBanner()
                 .withHeadingContent("Subarea change saved")
                 .build()));

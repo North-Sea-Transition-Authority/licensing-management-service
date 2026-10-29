@@ -1,7 +1,5 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeorder;
 
-import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
-
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.UUID;
@@ -18,12 +16,11 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correct
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.LicencePositionIsNotRemovedInCorrection;
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionRouteUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.PositionMove;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.PositionMoveDirection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.PositionMoveOptionUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @Controller
@@ -96,11 +93,11 @@ public class CorrectChangeOrderController {
   }
 
   private String positionPageUrl(LicenceCorrection correction, UUID licencePositionId) {
-    return licencePositionCorrectionService.findFirstAddedPositionCorrection(correction, licencePositionId)
-        .map(addedPositionCorrection -> ReverseRouter.route(on(LicenceCorrectionController.class)
-            .renderAddedPosition(correction, addedPositionCorrection)))
-        .orElseGet(() -> ReverseRouter.route(on(LicenceCorrectionController.class)
-            .renderLicencePosition(correction, new LicencePosition(licencePositionId))));
+    return LicencePositionCorrectionRouteUtil.getPositionPageUrl(
+        correction,
+        licencePositionId,
+        licencePositionCorrectionService.findFirstAddedPositionCorrection(correction, licencePositionId).orElse(null)
+    );
   }
 
   private ModelAndView correctChangeOrderModelAndView(

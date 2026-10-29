@@ -1,6 +1,7 @@
 <#include '../../layout/layout.ftl'>
 <#import '../position/_licencePositionTimeLine.ftl' as licencePositionTimeLine>
 <#import '../position/_licencePositionDetails.ftl' as licencePositionDetails>
+<#import '../position/_licencePositionTimelineFilters.ftl' as licencePositionTimelineFilters>
 <#import '_correctionDetailsCard.ftl' as correctionDetailsCard>
 
 <@defaultPage
@@ -21,6 +22,12 @@
     <@fdsAction.link linkText="Cancel correction" linkUrl=springUrl(cancelCorrectionUrl) linkClass="govuk-button govuk-button--secondary"/>
     <@fdsAction.link linkText="Review correction" linkUrl=springUrl(reviewCorrectionUrl) linkClass="govuk-button govuk-button--secondary"/>
   </@fdsAction.buttonGroup>
+
+  <@licencePositionTimelineFilters.filters
+    filterOptions=licencePositionPageView.filterOptions()
+    filterUrl=filterUrl
+    clearFilterUrl=clearFilterUrl
+  />
 
   <#if licencePositionPageView.hasPositions()>
     <h2 class="govuk-heading-m">
@@ -46,6 +53,8 @@
           />
         </@grid.oneQuarterColumn>
       </@grid.gridRow>
+  <#elseif licencePositionPageView.filterApplied()>
+    <@fdsInsetText.insetText>No positions match the selected filters.</@fdsInsetText.insetText>
   <#else>
     <@fdsInsetText.insetText>No licence positions for this licence.</@fdsInsetText.insetText>
   </#if>

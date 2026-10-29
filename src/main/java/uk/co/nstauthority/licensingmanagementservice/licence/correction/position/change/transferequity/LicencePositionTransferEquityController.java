@@ -485,7 +485,7 @@ public class LicencePositionTransferEquityController {
 
   private String executedPositionUrl(LicenceCorrection correction, LicencePosition licencePosition) {
     return ReverseRouter.route(on(LicenceCorrectionController.class)
-        .renderLicencePosition(correction, licencePosition));
+        .renderLicencePosition(correction, licencePosition, null));
   }
 
   private String executedSummaryUrl(LicenceCorrection correction, LicencePosition licencePosition) {
@@ -500,7 +500,7 @@ public class LicencePositionTransferEquityController {
 
   private String addedPositionUrl(LicenceCorrection correction, LicencePositionCorrection licencePositionCorrection) {
     return ReverseRouter.route(on(LicenceCorrectionController.class)
-        .renderAddedPosition(correction, licencePositionCorrection));
+        .renderAddedPosition(correction, licencePositionCorrection, null));
   }
 
   private String addedSummaryUrl(LicenceCorrection correction, LicencePositionCorrection licencePositionCorrection) {

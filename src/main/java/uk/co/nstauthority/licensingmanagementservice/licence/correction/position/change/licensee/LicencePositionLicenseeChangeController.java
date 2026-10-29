@@ -103,7 +103,7 @@ public class LicencePositionLicenseeChangeController {
 
     NotificationBanner.newSuccessBannerWithHeader("Licensee change added", redirectAttributes);
     return ReverseRouter.redirect(on(LicenceCorrectionController.class)
-        .renderLicencePosition(correction, licencePosition));
+        .renderLicencePosition(correction, licencePosition, null));
   }
 
   @GetMapping("/added-position/{licencePositionCorrectionId}/add-licensee-change")
@@ -158,7 +158,7 @@ public class LicencePositionLicenseeChangeController {
 
     NotificationBanner.newSuccessBannerWithHeader("Licensee change added", redirectAttributes);
     return ReverseRouter.redirect(on(LicenceCorrectionController.class)
-        .renderAddedPosition(correction, licencePositionCorrection));
+        .renderAddedPosition(correction, licencePositionCorrection, null));
   }
 
   @GetMapping("/position/{licencePositionId}/change/{changeId}/correct-licensee-change")
@@ -205,7 +205,7 @@ public class LicencePositionLicenseeChangeController {
 
     NotificationBanner.newSuccessBannerWithHeader("Licensee change corrected", redirectAttributes);
     return ReverseRouter.redirect(on(LicenceCorrectionController.class)
-        .renderLicencePosition(correction, licencePosition));
+        .renderLicencePosition(correction, licencePosition, null));
   }
 
   private ModelAndView getLicenseeChangeModelAndView(
@@ -270,12 +270,12 @@ public class LicencePositionLicenseeChangeController {
 
   private String executedCancelUrl(LicenceCorrection correction, LicencePosition licencePosition) {
     return ReverseRouter.route(on(LicenceCorrectionController.class)
-        .renderLicencePosition(correction, licencePosition));
+        .renderLicencePosition(correction, licencePosition, null));
   }
 
   private String addedCancelUrl(LicenceCorrection correction, LicencePositionCorrection licencePositionCorrection) {
     return ReverseRouter.route(on(LicenceCorrectionController.class)
-        .renderAddedPosition(correction, licencePositionCorrection));
+        .renderAddedPosition(correction, licencePositionCorrection, null));
   }
 
   /**

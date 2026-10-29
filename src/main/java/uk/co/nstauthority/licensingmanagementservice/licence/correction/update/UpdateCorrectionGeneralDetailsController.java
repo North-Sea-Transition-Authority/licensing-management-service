@@ -80,7 +80,7 @@ public class UpdateCorrectionGeneralDetailsController {
       return ReverseRouter.redirect(on(WorkAreaController.class).getWorkArea(null, null));
     }
 
-    return ReverseRouter.redirect(on(LicenceCorrectionController.class).renderCorrection(correction));
+    return ReverseRouter.redirect(on(LicenceCorrectionController.class).renderCorrection(correction, null));
   }
 
   private ModelAndView updateGeneralDetailsModelAndView(
@@ -93,6 +93,6 @@ public class UpdateCorrectionGeneralDetailsController {
         .addObject("form", form)
         .addObject("allocatableUsers", allocatableUsers)
         .addObject("backLinkUrl",
-            ReverseRouter.route(on(LicenceCorrectionController.class).renderCorrection(correction)));
+            ReverseRouter.route(on(LicenceCorrectionController.class).renderCorrection(correction, null)));
   }
 }

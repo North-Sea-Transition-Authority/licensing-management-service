@@ -96,7 +96,7 @@ public class LicencePositionStorageOperatorChangeController {
 
     NotificationBanner.newSuccessBannerWithHeader("Storage operator change added", redirectAttributes);
     return ReverseRouter.redirect(on(LicenceCorrectionController.class)
-        .renderLicencePosition(correction, licencePosition));
+        .renderLicencePosition(correction, licencePosition, null));
   }
 
   @GetMapping("/added-position/{licencePositionCorrectionId}/add-storage-operator-change")
@@ -149,7 +149,7 @@ public class LicencePositionStorageOperatorChangeController {
 
     NotificationBanner.newSuccessBannerWithHeader("Storage operator change added", redirectAttributes);
     return ReverseRouter.redirect(on(LicenceCorrectionController.class)
-        .renderAddedPosition(correction, licencePositionCorrection));
+        .renderAddedPosition(correction, licencePositionCorrection, null));
   }
 
   private ModelAndView renderForExistingPosition(LicenceCorrection correction, LicencePosition position) {
@@ -188,12 +188,12 @@ public class LicencePositionStorageOperatorChangeController {
 
   private String executedCancelUrl(LicenceCorrection correction, LicencePosition licencePosition) {
     return ReverseRouter.route(on(LicenceCorrectionController.class)
-        .renderLicencePosition(correction, licencePosition));
+        .renderLicencePosition(correction, licencePosition, null));
   }
 
   private String addedCancelUrl(LicenceCorrection correction, LicencePositionCorrection licencePositionCorrection) {
     return ReverseRouter.route(on(LicenceCorrectionController.class)
-        .renderAddedPosition(correction, licencePositionCorrection));
+        .renderAddedPosition(correction, licencePositionCorrection, null));
   }
 
   private Map<String, String> preselectedStorageOperator(StorageOperatorChangeForm form) {

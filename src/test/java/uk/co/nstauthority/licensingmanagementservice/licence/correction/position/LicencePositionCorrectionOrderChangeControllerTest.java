@@ -35,6 +35,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @ContextConfiguration(classes = LicencePositionCorrectionOrderChangeController.class)
@@ -56,7 +57,7 @@ class LicencePositionCorrectionOrderChangeControllerTest extends AbstractControl
       .withId(CORRECTION_ID).withLicence(LICENCE).build();
 
   private final String backLinkUrl = ReverseRouter.route(on(LicenceCorrectionController.class)
-      .renderCorrection(CORRECTION));
+      .renderCorrection(CORRECTION, null));
 
   @Test
   void renderCorrectPositionOrder_whenNotLoggedIn() throws Exception {
@@ -183,6 +184,8 @@ class LicencePositionCorrectionOrderChangeControllerTest extends AbstractControl
     when(licencePositionCorrectionService.getOrderableSameDatePositions(CORRECTION, POSITION_ID))
         .thenReturn(List.of(orderable(POSITION_ID, 1, "REF-A"), orderable(OTHER_POSITION_ID, 2, "REF-B")));
     when(correctPositionOrderFormValidator.hasErrors(eq(form), any(), any())).thenReturn(false);
+    when(licencePositionCorrectionService.findFirstAddedPositionCorrection(CORRECTION, POSITION_ID))
+        .thenReturn(Optional.empty());
 
     mockMvc.perform(post(ReverseRouter.route(on(LicencePositionCorrectionOrderChangeController.class)
             .correctLicencePositionCorrectionOrder(CORRECTION, POSITION_ID, null, null, null)))
@@ -191,7 +194,8 @@ class LicencePositionCorrectionOrderChangeControllerTest extends AbstractControl
             .flashAttr("form", form))
         .andExpectAll(
             status().is3xxRedirection(),
-            redirectedUrl(backLinkUrl),
+            redirectedUrl(ReverseRouter.route(on(LicenceCorrectionController.class)
+                .renderLicencePosition(CORRECTION, new LicencePosition(POSITION_ID), null))),
             notificationBanner(NotificationBanner.newSuccessBanner()
                 .withHeadingContent("Licence position order updated")
                 .build())

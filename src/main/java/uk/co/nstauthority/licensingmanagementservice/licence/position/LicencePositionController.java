@@ -2,9 +2,6 @@ package uk.co.nstauthority.licensingmanagementservice.licence.position;
 
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
-import java.util.List;
-import java.util.Objects;
-import java.util.stream.Collectors;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -75,17 +72,10 @@ public class LicencePositionController {
       @ModelAttribute("form") LicenceTimelineFilterForm form,
       @ModelAttribute(FILTER_SESSION_ATTRIBUTE) LicenceTimelineFilterSession filterSession
   ) {
-    // Only the change types and organisations on this licence can be filtered by, so anything else is dropped.
-    var filterOptions = licencePositionViewService.getFilterOptions(licence);
-    var changeTypes = form.getChangeTypes().stream()
-        .filter(filterOptions.changeTypeOptions()::containsKey)
-        .collect(Collectors.toSet());
-    var organisationIds = form.getOrganisationIds().stream()
-        .filter(Objects::nonNull)
-        .filter(organisationId -> filterOptions.organisationOptions().containsKey(String.valueOf(organisationId)))
-        .collect(Collectors.toSet());
-
-    filterSession.update(licence.getLicenceReference(), new LicenceTimelineFilter(changeTypes, organisationIds));
+    filterSession.update(
+        licence.getLicenceReference(),
+        LicenceTimelineFilter.from(form, licencePositionViewService.getFilterOptions(licence))
+    );
 
     return ReverseRouter.redirect(on(LicencePositionController.class)
         .renderLicencePositionTimeline(licence, null, null));
@@ -118,13 +108,9 @@ public class LicencePositionController {
       LicenceTimelineFilter filter,
       ServiceUserDetail user
   ) {
-    var form = new LicenceTimelineFilterForm();
-    form.setChangeTypes(List.copyOf(filter.changeTypes()));
-    form.setOrganisationIds(List.copyOf(filter.organisationIds()));
-
     var licencePositionsModelAndView = new ModelAndView("lms/licence/position/licencePositions")
         .addObject("licencePositionPageView", licencePositionPageView)
-        .addObject("form", form)
+        .addObject("form", LicenceTimelineFilterForm.from(filter))
         .addObject("filterUrl", ReverseRouter.route(on(LicencePositionController.class)
             .filterLicencePositionTimeline(licence, null, null)))
         .addObject("clearFilterUrl", ReverseRouter.route(on(LicencePositionController.class)

@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -29,6 +30,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionOrderChangeController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionRouteUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.ReinstateLicencePositionCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.RemoveExecutedLicencePositionCorrectionController;
@@ -283,6 +285,71 @@ public class LicencePositionViewService {
   }
 
   /**
+   * The positions on the correction timeline the filter matches. A position removed in this correction still shows on
+   * the timeline, so it matches on the changes it was executed with. A change this correction removes or moves to
+   * another position no longer applies to the position, so it is never matched on. Removed positions are left out of
+   * the state, so the administrator a removed administrator change replaces comes from the corrected positions before
+   * it.
+   *
+   * @param correctionTimelinePositions every corrected position, including those removed in this correction
+   */
+  private static Set<UUID> getMatchingCorrectionPositionIds(
+      List<ChronologicalPosition> correctionTimelinePositions,
+      Set<UUID> removedPositionIds,
+      LicenceTimelineFilter filter
+  ) {
+    if (filter.isEmpty()) {
+      return correctionTimelinePositions.stream()
+          .map(ChronologicalPosition::id)
+          .collect(Collectors.toSet());
+    }
+
+    var matchablePositions = withoutRemovedChanges(correctionTimelinePositions);
+    var resolvedStates = LicencePositionStateResolver.resolve(matchablePositions, removedPositionIds);
+
+    return matchablePositions.stream()
+        .filter(position -> positionMatches(filter, position, resolvedStates))
+        .map(ChronologicalPosition::id)
+        .collect(Collectors.toSet());
+  }
+
+  /**
+   * The positions shown on the correction timeline: those the filter matches, along with the selected position so its
+   * correction actions stay reachable, and any position with a validation error so every link in the error summary
+   * leads to a position on the page.
+   */
+  private static Set<UUID> getShownCorrectionPositionIds(
+      List<ChronologicalPosition> correctionTimelinePositions,
+      Set<UUID> removedPositionIds,
+      LicenceTimelineFilter filter,
+      UUID selectedPositionId,
+      Set<UUID> invalidPositionIds
+  ) {
+    var shownPositionIds =
+        new HashSet<>(getMatchingCorrectionPositionIds(correctionTimelinePositions, removedPositionIds, filter));
+    shownPositionIds.add(selectedPositionId);
+    shownPositionIds.addAll(invalidPositionIds);
+    return shownPositionIds;
+  }
+
+  /**
+   * Offers only the change types and organisations of changes that still apply once the correction is made, so a
+   * change the correction removes or moves away is never offered.
+   */
+  private static LicenceTimelineFilterOptions getCorrectionFilterOptions(
+      List<ChronologicalPosition> correctionTimelinePositions,
+      OrganisationNameContext nameContext
+  ) {
+    return getFilterOptions(withoutRemovedChanges(correctionTimelinePositions), nameContext);
+  }
+
+  private static List<ChronologicalPosition> withoutRemovedChanges(List<ChronologicalPosition> chronologicalPositions) {
+    return chronologicalPositions.stream()
+        .map(ChronologicalPosition::withoutRemovedChanges)
+        .toList();
+  }
+
+  /**
    * Offers every organisation on the timeline by the name it goes by today, since the filter spans every position
    * rather than the one being shown.
    */
@@ -309,9 +376,15 @@ public class LicencePositionViewService {
     );
   }
 
+  /**
+   * The correction page view for an executed position, with the timeline limited to the positions the filter matches,
+   * the position itself and any position with a validation error. The position's change views are never filtered, so
+   * every change on the position being corrected can be edited. Validation always covers every position.
+   */
   public LicencePositionPageView getCorrectionPositionPageView(
       LicenceCorrection licenceCorrection,
-      LicencePosition licencePosition
+      LicencePosition licencePosition,
+      LicenceTimelineFilter filter
   ) {
     var licence = licencePosition.getLicence();
     var licenceStatusType = licenceStatusService.getCurrentStatus(licence);
@@ -321,20 +394,22 @@ public class LicencePositionViewService {
     var addedPositionCorrections = correctionsOfType(positionCorrections, LicencePositionCorrectionChangeType.ADD_POSITION);
     var updatedCorrections = correctionsOfType(positionCorrections, LicencePositionCorrectionChangeType.UPDATE_POSITION);
     var updatedPositionPayloadsByTargetId = updatedPositionPayloadsByTargetId(updatedCorrections);
-    var allChronologicalPositions = getCorrectedChronologicalPositions(
+    var correctionTimelinePositions = getCorrectedChronologicalPositions(
         executedChronologicalLicencePositions,
         removedPositionIds,
         updatedCorrections,
         addedPositionCorrections,
-        Set.of(licencePosition.getId())
+        removedPositionIds
     );
+    var allChronologicalPositions =
+        withoutRemovedPositions(correctionTimelinePositions, removedPositionIds, Set.of(licencePosition.getId()));
 
     // Removed position is kept in allChronologicalPositions (for rendering) it needs to be excluded from validation
     var currentPositionRemoved = removedPositionIds.contains(licencePosition.getId());
     var excludedFromState = currentPositionRemoved ? Set.of(licencePosition.getId()) : Set.<UUID>of();
     var resolvedStates = LicencePositionStateResolver.resolve(allChronologicalPositions, excludedFromState);
     var featureNames = resolveFeatureNames(allChronologicalPositions);
-    var nameContext = getOrganisationNameContext(allChronologicalPositions);
+    var nameContext = getOrganisationNameContext(correctionTimelinePositions);
     var positionDate = effectivePositionDate(allChronologicalPositions, licencePosition.getId());
 
     var stagedPositionCorrection = updatedCorrections.stream()
@@ -388,7 +463,14 @@ public class LicencePositionViewService {
             updatedPositionPayloadsByTargetId,
             addedPositionCorrections,
             invalidPositionIds,
-            movedAwayPositionIds(allChronologicalPositions)
+            movedAwayPositionIds(allChronologicalPositions),
+            getShownCorrectionPositionIds(
+                correctionTimelinePositions,
+                removedPositionIds,
+                filter,
+                licencePosition.getId(),
+                invalidPositionIds
+            )
         ),
         licencePosition.getFormattedPositionDate(),
         licencePosition.getLicenceTransaction().getRegulatorReference(),
@@ -403,13 +485,22 @@ public class LicencePositionViewService {
         licencePosition.getId(),
         actions,
         licence.getType(),
-        errorSummaryItems
+        errorSummaryItems,
+        getCorrectionFilterOptions(correctionTimelinePositions, nameContext),
+        !filter.isEmpty()
     );
   }
 
+  /**
+   * The correction page view for a position added in the correction, with the timeline limited to the positions the
+   * filter matches, the position itself and any position with a validation error. The position's change views are
+   * never filtered, so every change on the position being corrected can be edited. Validation always covers every
+   * position.
+   */
   public LicencePositionPageView getCorrectionAddedPositionPageView(
       LicenceCorrection licenceCorrection,
-      LicencePositionCorrection positionCorrection
+      LicencePositionCorrection positionCorrection,
+      LicenceTimelineFilter filter
   ) {
     var licenceStatusType = licenceStatusService.getCurrentStatus(licenceCorrection.getLicence());
     var payload = (CreateLicencePositionPayload) positionCorrection.getPayload();
@@ -421,16 +512,17 @@ public class LicencePositionViewService {
     var addedPositionCorrections = correctionsOfType(positionCorrections, LicencePositionCorrectionChangeType.ADD_POSITION);
     var updatedCorrections = correctionsOfType(positionCorrections, LicencePositionCorrectionChangeType.UPDATE_POSITION);
     var updatedPositionPayloadsByTargetId = updatedPositionPayloadsByTargetId(updatedCorrections);
-    var allChronologicalPositions = getCorrectedChronologicalPositions(
+    var correctionTimelinePositions = getCorrectedChronologicalPositions(
         executedChronologicalLicencePositions,
         removedPositionIds,
         updatedCorrections,
         addedPositionCorrections,
-        Set.of(addedPositionId)
+        removedPositionIds
     );
+    var allChronologicalPositions = withoutRemovedPositions(correctionTimelinePositions, removedPositionIds, Set.of());
     var resolvedStates = LicencePositionStateResolver.resolve(allChronologicalPositions);
     var featureNames = resolveFeatureNames(allChronologicalPositions);
-    var nameContext = getOrganisationNameContext(allChronologicalPositions);
+    var nameContext = getOrganisationNameContext(correctionTimelinePositions);
     var positionDate = effectivePositionDate(allChronologicalPositions, addedPositionId);
 
     var changeViews = LicencePositionChangeViewResolver.getChangeViews(
@@ -465,7 +557,14 @@ public class LicencePositionViewService {
             updatedPositionPayloadsByTargetId,
             addedPositionCorrections,
             invalidPositionIds,
-            movedAwayPositionIds(allChronologicalPositions)
+            movedAwayPositionIds(allChronologicalPositions),
+            getShownCorrectionPositionIds(
+                correctionTimelinePositions,
+                removedPositionIds,
+                filter,
+                addedPositionId,
+                invalidPositionIds
+            )
         ),
         DateUtil.formatLongDate(payload.effectiveDate()),
         payload.correctionReference(),
@@ -480,8 +579,62 @@ public class LicencePositionViewService {
         addedPositionId,
         actions,
         licenceCorrection.getLicence().getType(),
-        errorSummaryItems
+        errorSummaryItems,
+        getCorrectionFilterOptions(correctionTimelinePositions, nameContext),
+        !filter.isEmpty()
     );
+  }
+
+  public LicenceTimelineFilterOptions getCorrectionFilterOptions(LicenceCorrection licenceCorrection) {
+    var positionCorrections = licencePositionCorrectionService.getPositionCorrections(licenceCorrection);
+    var correctionTimelinePositions = getCorrectedChronologicalPositions(
+        licenceCorrection,
+        positionCorrections,
+        LicencePositionCorrectionService.getRemovedPositionIds(positionCorrections)
+    );
+
+    return getCorrectionFilterOptions(
+        correctionTimelinePositions,
+        getOrganisationNameContext(correctionTimelinePositions)
+    );
+  }
+
+  /**
+   * Where the correction timeline opens under the filter: the latest position the filter matches, whether executed or
+   * added in the correction, or a view saying none match.
+   */
+  public FilteredCorrectionTimeline getFilteredCorrectionTimeline(
+      LicenceCorrection licenceCorrection,
+      LicenceTimelineFilter filter
+  ) {
+    var positionCorrections = licencePositionCorrectionService.getPositionCorrections(licenceCorrection);
+    var removedPositionIds = LicencePositionCorrectionService.getRemovedPositionIds(positionCorrections);
+    var correctionTimelinePositions =
+        getCorrectedChronologicalPositions(licenceCorrection, positionCorrections, removedPositionIds);
+    var matchingPositionIds =
+        getMatchingCorrectionPositionIds(correctionTimelinePositions, removedPositionIds, filter);
+
+    return correctionTimelinePositions.reversed().stream()
+        .map(ChronologicalPosition::id)
+        .filter(matchingPositionIds::contains)
+        .findFirst()
+        .<FilteredCorrectionTimeline>map(positionId -> new FilteredCorrectionTimeline.LatestMatchingPosition(
+            LicencePositionCorrectionRouteUtil.getPositionPageUrl(
+                licenceCorrection,
+                positionId,
+                licencePositionCorrectionService.findFirstAddedPositionCorrection(licenceCorrection, positionId)
+                    .orElse(null)
+            )
+        ))
+        .orElseGet(() -> new FilteredCorrectionTimeline.NoMatchingPositions(
+            LicencePositionPageView.noMatchingPositions(
+                licenceCorrection.getLicence().getType(),
+                getCorrectionFilterOptions(
+                    correctionTimelinePositions,
+                    getOrganisationNameContext(correctionTimelinePositions)
+                )
+            )
+        ));
   }
 
   public List<ChronologicalPosition> getLiveChronologicalPositions(Licence licence) {
@@ -601,6 +754,17 @@ public class LicencePositionViewService {
 
     chronologicalPositions.sort(CHRONOLOGICAL_POSITION_COMPARATOR);
     return chronologicalPositions;
+  }
+
+  private static List<ChronologicalPosition> withoutRemovedPositions(
+      List<ChronologicalPosition> chronologicalPositions,
+      Set<UUID> removedPositionIds,
+      Set<UUID> retainedRemovedPositionIds
+  ) {
+    return chronologicalPositions.stream()
+        .filter(position -> retainedRemovedPositionIds.contains(position.id())
+            || !removedPositionIds.contains(position.id()))
+        .toList();
   }
 
   private static Set<UUID> movedAwayPositionIds(List<ChronologicalPosition> chronologicalPositions) {
@@ -733,8 +897,10 @@ public class LicencePositionViewService {
       Map<UUID, UpdateLicencePositionPayload> correctedPayloadsByPositionId,
       List<LicencePositionCorrection> addedCorrections,
       Set<UUID> invalidPositionIds,
-      Set<UUID> movedAwayPositionIds
+      Set<UUID> movedAwayPositionIds,
+      Set<UUID> shownPositionIds
   ) {
+    // Counted across every position so filtering never hides the action to correct the order of same-date positions.
     var sameDateCount = sameDateCountByEffectiveDate(
         licencePositions, removedPositionIds, correctedPayloadsByPositionId, addedCorrections);
 
@@ -756,6 +922,7 @@ public class LicencePositionViewService {
     );
 
     return Stream.concat(livePositions.stream(), addedPositions.stream())
+        .filter(entry -> shownPositionIds.contains(entry.view().positionId()))
         .sorted(TIMELINE_ORDER_COMPARATOR)
         .map(TimelineEntry::view)
         .toList();
@@ -844,7 +1011,7 @@ public class LicencePositionViewService {
           var timelineViewBuilder = LicencePositionTimelineView.builder()
               .withPositionId(addedPositionId)
               .withUrl(ReverseRouter.route(on(LicenceCorrectionController.class)
-                  .renderAddedPosition(licenceCorrection, licencePositionCorrection)))
+                  .renderAddedPosition(licenceCorrection, licencePositionCorrection, null)))
               .withRegulatorReference(payload.correctionReference())
               .withFormattedPositionDate(DateUtil.formatLongDateWithOrder(effectiveDate, payload.effectiveDateOrder()))
               .withAddedInThisCorrection(true)
@@ -868,7 +1035,7 @@ public class LicencePositionViewService {
 
   private String getCorrectionPositionUrl(LicenceCorrection correction, LicencePosition position) {
     return ReverseRouter.route(on(LicenceCorrectionController.class)
-        .renderLicencePosition(correction, position));
+        .renderLicencePosition(correction, position, null));
   }
 
   private String getRemovePositionUrl(LicenceCorrection correction, LicencePosition position) {

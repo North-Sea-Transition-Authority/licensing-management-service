@@ -2,7 +2,6 @@ package uk.co.nstauthority.licensingmanagementservice.licence.correction.positio
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
@@ -54,7 +53,7 @@ class AddLicencePositionCorrectionControllerTest extends AbstractControllerTest 
   private static final String VIEW_NAME = "lms/licence/correction/addPosition";
 
   private final String backLinkUrl = ReverseRouter.route(on(LicenceCorrectionController.class)
-      .renderCorrection(CORRECTION));
+      .renderCorrection(CORRECTION, null));
 
   @Test
   void renderAddLicencePositionCorrection_whenNotLoggedIn() throws Exception {
@@ -105,8 +104,17 @@ class AddLicencePositionCorrectionControllerTest extends AbstractControllerTest 
     form.getCorrectionReference().setInputValue(REGULATOR_REFERENCE);
     form.getPositionDate().setDate(POSITION_DATE);
 
+    var addedPositionId = UUID.randomUUID();
+    var addedPositionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withLicenceCorrection(correction)
+        .build();
+
     when(addLicencePositionCorrectionValidator.hasErrors(eq(form), eq(correction), any(BindingResult.class)))
         .thenReturn(false);
+    when(licencePositionCorrectionService.addNewPosition(correction, POSITION_DATE, REGULATOR_REFERENCE))
+        .thenReturn(addedPositionId);
+    when(licencePositionCorrectionService.findFirstAddedPositionCorrection(correction, addedPositionId))
+        .thenReturn(Optional.of(addedPositionCorrection));
 
     mockMvc.perform(post(ReverseRouter.route(on(AddLicencePositionCorrectionController.class)
             .addLicencePositionCorrection(CORRECTION, null, null, null)))
@@ -115,13 +123,12 @@ class AddLicencePositionCorrectionControllerTest extends AbstractControllerTest 
             .flashAttr("form", form))
         .andExpectAll(
             status().is3xxRedirection(),
-            redirectedUrl(backLinkUrl),
+            redirectedUrl(ReverseRouter.route(on(LicenceCorrectionController.class)
+                .renderAddedPosition(correction, addedPositionCorrection, null))),
             notificationBanner(NotificationBanner.newSuccessBanner()
                 .withHeadingContent("Licence correction position added")
                 .build())
         );
-
-    verify(licencePositionCorrectionService).addNewPosition(correction, POSITION_DATE, REGULATOR_REFERENCE);
   }
 
   @Test

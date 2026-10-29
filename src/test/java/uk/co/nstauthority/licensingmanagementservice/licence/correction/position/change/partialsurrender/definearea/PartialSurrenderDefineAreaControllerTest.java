@@ -192,7 +192,7 @@ class PartialSurrenderDefineAreaControllerTest extends AbstractControllerTest {
             status().isOk(),
             view().name(VIEW_NAME),
             model().attribute("backLinkUrl", ReverseRouter.route(on(LicenceCorrectionController.class)
-                .renderAddedPosition(CORRECTION, POSITION_CORRECTION)))
+                .renderAddedPosition(CORRECTION, POSITION_CORRECTION, null)))
         );
   }
 
@@ -211,7 +211,7 @@ class PartialSurrenderDefineAreaControllerTest extends AbstractControllerTest {
             status().isOk(),
             view().name(VIEW_NAME),
             model().attribute("backLinkUrl", ReverseRouter.route(on(LicenceCorrectionController.class)
-                .renderLicencePosition(CORRECTION, POSITION)))
+                .renderLicencePosition(CORRECTION, POSITION, null)))
         );
   }
 
@@ -232,7 +232,7 @@ class PartialSurrenderDefineAreaControllerTest extends AbstractControllerTest {
             status().isOk(),
             view().name(VIEW_NAME),
             model().attribute("backLinkUrl", ReverseRouter.route(on(LicenceCorrectionController.class)
-                .renderLicencePosition(CORRECTION, POSITION)))
+                .renderLicencePosition(CORRECTION, POSITION, null)))
         );
   }
 

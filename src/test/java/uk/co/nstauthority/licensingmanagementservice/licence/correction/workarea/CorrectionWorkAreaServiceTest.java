@@ -95,7 +95,7 @@ class CorrectionWorkAreaServiceTest {
         .withId(matchingId.toString())
         .withLinkHeadingText("P1234 - licence correction")
         .withLinkHeadingUrl(ReverseRouter.route(on(LicenceCorrectionController.class)
-            .renderCorrection(matching)))
+            .renderCorrection(matching, null)))
         .withCaptionText(String.format("Created %s", DateFormatUtil.convertToDisplayTextWithTime(createdInstant)))
         .withDataItemRow(SummaryDataView.newBuilder()
             .addStringValue("Correction reference", "COR-1")

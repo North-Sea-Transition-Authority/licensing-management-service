@@ -45,7 +45,7 @@ public class LicencePositionCorrectionOrderChangeController {
     var moveOptions = PositionMoveOptionUtil.buildMoveOptions(orderedPositions, licencePositionId);
 
     if (moveOptions.isEmpty()) {
-      return ReverseRouter.redirect(on(LicenceCorrectionController.class).renderCorrection(correction));
+      return ReverseRouter.redirect(on(LicenceCorrectionController.class).renderCorrection(correction, null));
     }
 
     return correctPositionCorrectionOrderModelAndView(
@@ -74,7 +74,11 @@ public class LicencePositionCorrectionOrderChangeController {
 
     NotificationBanner.newSuccessBannerWithHeader("Licence position order updated", redirectAttributes);
 
-    return ReverseRouter.redirect(on(LicenceCorrectionController.class).renderCorrection(correction));
+    return ReverseRouter.redirectToUrl(LicencePositionCorrectionRouteUtil.getPositionPageUrl(
+        correction,
+        licencePositionId,
+        licencePositionCorrectionService.findFirstAddedPositionCorrection(correction, licencePositionId).orElse(null)
+    ));
   }
 
   private ModelAndView correctPositionCorrectionOrderModelAndView(
@@ -91,7 +95,7 @@ public class LicencePositionCorrectionOrderChangeController {
         .addObject("positionMoveOptions", moveOptions)
         .addObject("currentPositionOrder", PositionMoveOptionUtil.buildCurrentOrder(orderedPositions, positionBeingMovedId))
         .addObject("singleOutcome", moveOptions.size() == 1)
-        .addObject("backLinkUrl", ReverseRouter.route(on(LicenceCorrectionController.class).renderCorrection(correction)));
+        .addObject("backLinkUrl", ReverseRouter.route(on(LicenceCorrectionController.class).renderCorrection(correction, null)));
   }
 
   private String buildPageTitle(

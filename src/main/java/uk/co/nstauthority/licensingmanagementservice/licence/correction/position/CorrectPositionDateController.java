@@ -71,7 +71,8 @@ public class CorrectPositionDateController {
         .withHeadingContent("Licence position correction date updated")
         .applyTo(redirectAttributes);
 
-    return ReverseRouter.redirect(on(LicenceCorrectionController.class).renderCorrection(correction));
+    return ReverseRouter.redirect(on(LicenceCorrectionController.class)
+        .renderLicencePosition(correction, licencePosition, null));
   }
 
   private ModelAndView correctPositionCorrectionDateModelAndView(
@@ -86,6 +87,6 @@ public class CorrectPositionDateController {
         .addObject("currentPositionDate", licencePosition.getFormattedPositionDate())
         .addObject("form", form)
         .addObject("backLinkUrl",
-            ReverseRouter.route(on(LicenceCorrectionController.class).renderCorrection(correction)));
+            ReverseRouter.route(on(LicenceCorrectionController.class).renderCorrection(correction, null)));
   }
 }

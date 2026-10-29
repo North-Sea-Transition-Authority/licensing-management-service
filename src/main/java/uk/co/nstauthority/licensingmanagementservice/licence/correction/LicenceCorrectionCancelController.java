@@ -2,6 +2,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.correction;
 
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
+import jakarta.servlet.http.HttpSession;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -34,15 +35,17 @@ class LicenceCorrectionCancelController {
     return new ModelAndView("lms/licence/correction/cancelCorrection")
         .addObject("correctionReference", licenceCorrection.getCorrectionReference())
         .addObject("cancelUrl", ReverseRouter.route(on(LicenceCorrectionController.class)
-            .renderCorrection(licenceCorrection)));
+            .renderCorrection(licenceCorrection, null)));
   }
 
   @PostMapping
   ModelAndView processCancelCorrection(
       LicenceCorrection licenceCorrection,
-      RedirectAttributes redirectAttributes
+      RedirectAttributes redirectAttributes,
+      HttpSession session
   ) {
     licenceCorrectionService.cancelCorrection(licenceCorrection);
+    LicenceCorrectionController.clearFilter(session, licenceCorrection);
     NotificationBanner.newSuccessBannerWithHeader(
         "Correction %s cancelled".formatted(licenceCorrection.getCorrectionReference()),
         redirectAttributes

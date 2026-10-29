@@ -116,10 +116,10 @@ class CorrectPositionChangeTypeControllerTest extends AbstractControllerTest {
       .build();
 
   private final String correctionUrl = ReverseRouter.route(on(LicenceCorrectionController.class)
-      .renderCorrection(CORRECTION));
+      .renderCorrection(CORRECTION, null));
 
   private final String executedPositionUrl = ReverseRouter.route(on(LicenceCorrectionController.class)
-      .renderLicencePosition(CORRECTION, new LicencePosition(POSITION_ID)));
+      .renderLicencePosition(CORRECTION, new LicencePosition(POSITION_ID), null));
 
   private final String changeTypePageUrl = ReverseRouter.route(on(CorrectPositionChangeTypeController.class)
       .renderMoveChangeTypePosition(CORRECTION_ID, POSITION_ID, CHANGE_ID, null));

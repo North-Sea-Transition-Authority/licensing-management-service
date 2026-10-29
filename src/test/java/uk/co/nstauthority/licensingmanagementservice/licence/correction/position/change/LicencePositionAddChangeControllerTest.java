@@ -163,7 +163,7 @@ class LicencePositionAddChangeControllerTest extends AbstractControllerTest {
                 "LICENSEE", "Licensee change",
                 "STORAGE_OPERATOR", "Storage operator change")),
             model().attribute("backLinkUrl", ReverseRouter.route(on(LicenceCorrectionController.class)
-                .renderLicencePosition(correction, licencePosition))));
+                .renderLicencePosition(correction, licencePosition, null))));
   }
 
   @Test
@@ -385,7 +385,7 @@ class LicencePositionAddChangeControllerTest extends AbstractControllerTest {
                 "LICENSEE", "Licensee change",
                 "STORAGE_OPERATOR", "Storage operator change")),
             model().attribute("backLinkUrl", ReverseRouter.route(on(LicenceCorrectionController.class)
-                .renderAddedPosition(correction, positionCorrection))));
+                .renderAddedPosition(correction, positionCorrection, null))));
   }
 
   @Test

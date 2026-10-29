@@ -69,7 +69,7 @@ public class RemoveSubareaChangeController {
         .addObject("primaryButton", Button.warningButton("Remove subarea change"))
         .addObject("blockName", subareaChangeService.getBlockName(subareaOperation))
         .addObject("cancelUrl", ReverseRouter.route(on(LicenceCorrectionController.class)
-            .renderLicencePosition(correction, licencePosition)));
+            .renderLicencePosition(correction, licencePosition, null)));
   }
 
   @PostMapping("/position/{licencePositionId}/change/{changeId}/remove-subarea-change")
@@ -92,7 +92,7 @@ public class RemoveSubareaChangeController {
     NotificationBanner.newSuccessBannerWithHeader("Subarea change removed", redirectAttributes);
 
     return ReverseRouter.redirect(on(LicenceCorrectionController.class)
-        .renderLicencePosition(correction, licencePosition));
+        .renderLicencePosition(correction, licencePosition, null));
   }
 
   @GetMapping("/change/{changeId}/undo-subarea-change")

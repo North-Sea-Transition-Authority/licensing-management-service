@@ -73,7 +73,7 @@ public class RemovePartialSurrenderChangeController {
         () -> licencePositionCorrectionService.getEffectivePositionDate(correction, licencePosition));
 
     var cancelUrl = ReverseRouter.route(on(LicenceCorrectionController.class)
-        .renderLicencePosition(correction, licencePosition));
+        .renderLicencePosition(correction, licencePosition, null));
 
     return confirmationModelAndView(
         surrenderDate,
@@ -99,7 +99,7 @@ public class RemovePartialSurrenderChangeController {
     NotificationBanner.newSuccessBannerWithHeader("Partial surrender removed", redirectAttributes);
 
     return ReverseRouter.redirect(on(LicenceCorrectionController.class)
-        .renderLicencePosition(correction, licencePosition));
+        .renderLicencePosition(correction, licencePosition, null));
   }
 
   @GetMapping("/change/{changeId}/undo-partial-surrender")
@@ -167,10 +167,10 @@ public class RemovePartialSurrenderChangeController {
       LicencePositionCorrection positionCorrection
   ) {
     if (positionCorrection.getChangeType() == LicencePositionCorrectionChangeType.ADD_POSITION) {
-      return ReverseRouter.route(on(LicenceCorrectionController.class).renderAddedPosition(correction, positionCorrection));
+      return ReverseRouter.route(on(LicenceCorrectionController.class).renderAddedPosition(correction, positionCorrection, null));
     }
 
     return ReverseRouter.route(on(LicenceCorrectionController.class)
-        .renderLicencePosition(correction, positionCorrection.getTargetLicencePosition()));
+        .renderLicencePosition(correction, positionCorrection.getTargetLicencePosition(), null));
   }
 }

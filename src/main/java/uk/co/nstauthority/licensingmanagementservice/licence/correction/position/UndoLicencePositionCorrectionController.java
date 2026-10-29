@@ -53,7 +53,13 @@ public class UndoLicencePositionCorrectionController {
         .withHeadingContent("Licence correction position undone")
         .applyTo(redirectAttributes);
 
-    return ReverseRouter.redirect(on(LicenceCorrectionController.class).renderCorrection(licenceCorrection));
+    // Undoing an added position deletes it, so there is no position left to return to.
+    if (licencePositionCorrection.getChangeType() == LicencePositionCorrectionChangeType.ADD_POSITION) {
+      return ReverseRouter.redirect(on(LicenceCorrectionController.class).renderCorrection(licenceCorrection, null));
+    }
+
+    return ReverseRouter.redirect(on(LicenceCorrectionController.class)
+        .renderLicencePosition(licenceCorrection, licencePositionCorrection.getTargetLicencePosition(), null));
   }
 
   private ModelAndView undoPositionModelAndView(
@@ -67,6 +73,6 @@ public class UndoLicencePositionCorrectionController {
         .addObject("positionDate", DateUtil.formatLongDate(positionDate))
         .addObject("correctionReference", payload.correctionReference())
         .addObject("cancelUrl",
-            ReverseRouter.route(on(LicenceCorrectionController.class).renderCorrection(correction)));
+            ReverseRouter.route(on(LicenceCorrectionController.class).renderCorrection(correction, null)));
   }
 }

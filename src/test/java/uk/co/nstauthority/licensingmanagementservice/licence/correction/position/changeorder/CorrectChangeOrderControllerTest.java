@@ -70,10 +70,10 @@ class CorrectChangeOrderControllerTest extends AbstractControllerTest {
       .withId(CORRECTION_ID).withLicence(LICENCE).build();
 
   private final String executedPositionUrl = ReverseRouter.route(on(LicenceCorrectionController.class)
-      .renderLicencePosition(CORRECTION, new LicencePosition(POSITION_ID)));
+      .renderLicencePosition(CORRECTION, new LicencePosition(POSITION_ID), null));
 
   private final String addedPositionUrl = ReverseRouter.route(on(LicenceCorrectionController.class)
-      .renderAddedPosition(CORRECTION, ADDED_POSITION_CORRECTION));
+      .renderAddedPosition(CORRECTION, ADDED_POSITION_CORRECTION, null));
 
   @Test
   void renderCorrectChangeOrder_whenNotLoggedIn() throws Exception {

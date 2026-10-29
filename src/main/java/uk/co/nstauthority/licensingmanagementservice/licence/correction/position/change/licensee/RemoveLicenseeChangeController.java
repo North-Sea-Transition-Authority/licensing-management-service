@@ -82,7 +82,7 @@ public class RemoveLicenseeChangeController {
     NotificationBanner.newSuccessBannerWithHeader("Licensee change removed", redirectAttributes);
 
     return ReverseRouter.redirect(on(LicenceCorrectionController.class)
-        .renderLicencePosition(correction, licencePosition));
+        .renderLicencePosition(correction, licencePosition, null));
   }
 
   @GetMapping("/change/{changeId}/undo-licensee-change")
@@ -114,10 +114,10 @@ public class RemoveLicenseeChangeController {
 
     if (positionCorrection.getChangeType() == LicencePositionCorrectionChangeType.ADD_POSITION) {
       return ReverseRouter.redirect(on(LicenceCorrectionController.class)
-          .renderAddedPosition(correction, positionCorrection));
+          .renderAddedPosition(correction, positionCorrection, null));
     }
     return ReverseRouter.redirect(on(LicenceCorrectionController.class)
-        .renderLicencePosition(correction, positionCorrection.getTargetLicencePosition()));
+        .renderLicencePosition(correction, positionCorrection.getTargetLicencePosition(), null));
   }
 
   private ModelAndView removeLicenseeChangeModelAndView(
@@ -140,7 +140,7 @@ public class RemoveLicenseeChangeController {
         .addObject("correctedLicenseeChangeView", correctedLicenseeChangeView)
         .addObject("resultingLicensees", licenseeChangeContext.previousLicenseeNames())
         .addObject("cancelUrl",
-            ReverseRouter.route(on(LicenceCorrectionController.class).renderLicencePosition(correction, licencePosition)));
+            ReverseRouter.route(on(LicenceCorrectionController.class).renderLicencePosition(correction, licencePosition, null)));
   }
 
   private ModelAndView undoLicenseeChangeModelAndView(
@@ -190,9 +190,9 @@ public class RemoveLicenseeChangeController {
   private String positionPageRoute(LicenceCorrection correction, LicencePositionCorrection positionCorrection) {
     if (positionCorrection.getChangeType() == LicencePositionCorrectionChangeType.ADD_POSITION) {
       return ReverseRouter.route(on(LicenceCorrectionController.class)
-          .renderAddedPosition(correction, positionCorrection));
+          .renderAddedPosition(correction, positionCorrection, null));
     }
     return ReverseRouter.route(on(LicenceCorrectionController.class)
-        .renderLicencePosition(correction, positionCorrection.getTargetLicencePosition()));
+        .renderLicencePosition(correction, positionCorrection.getTargetLicencePosition(), null));
   }
 }

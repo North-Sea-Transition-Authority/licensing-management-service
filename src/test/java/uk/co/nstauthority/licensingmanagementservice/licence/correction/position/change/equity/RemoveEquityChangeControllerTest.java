@@ -74,7 +74,7 @@ class RemoveEquityChangeControllerTest extends AbstractControllerTest {
   private static final String SUBAREA_LABEL = "Block 21/1 - Subarea A";
 
   private final String positionUrl = ReverseRouter.route(on(LicenceCorrectionController.class)
-      .renderLicencePosition(CORRECTION, POSITION));
+      .renderLicencePosition(CORRECTION, POSITION, null));
 
   @Test
   void renderRemoveExecutedEquityChange_whenNotLoggedIn() throws Exception {

@@ -115,7 +115,7 @@ class UpdateCorrectionGeneralDetailsControllerTest extends AbstractControllerTes
             model().attribute("pageTitle", PAGE_TITLE),
             model().attribute("allocatableUsers", ALLOCATABLE_USERS),
             model().attribute("backLinkUrl", ReverseRouter.route(on(LicenceCorrectionController.class)
-                .renderCorrection(correction)))
+                .renderCorrection(correction, null)))
         )
         .andReturn();
 
@@ -178,7 +178,7 @@ class UpdateCorrectionGeneralDetailsControllerTest extends AbstractControllerTes
         .andExpectAll(
             status().is3xxRedirection(),
             redirectedUrl(ReverseRouter.route(on(LicenceCorrectionController.class)
-                .renderCorrection(correction))),
+                .renderCorrection(correction, null))),
             notificationBanner(NotificationBanner.newSuccessBanner()
                 .withHeadingContent("Licence correction details updated")
                 .build())

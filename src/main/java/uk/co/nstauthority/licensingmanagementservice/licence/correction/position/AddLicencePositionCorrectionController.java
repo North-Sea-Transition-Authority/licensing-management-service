@@ -52,7 +52,7 @@ public class AddLicencePositionCorrectionController {
       return addLicencePositionCorrectionModelAndView(correction, form);
     }
 
-    licencePositionCorrectionService.addNewPosition(
+    var addedPositionId = licencePositionCorrectionService.addNewPosition(
         correction,
         form.getPositionDate().getAsLocalDate().orElseThrow(),
         form.getCorrectionReference().getInputValue()
@@ -62,8 +62,12 @@ public class AddLicencePositionCorrectionController {
         .withHeadingContent("Licence correction position added")
         .applyTo(redirectAttributes);
 
+    var addedPositionCorrection = licencePositionCorrectionService
+        .findFirstAddedPositionCorrection(correction, addedPositionId)
+        .orElseThrow();
+
     return ReverseRouter.redirect(on(LicenceCorrectionController.class)
-        .renderCorrection(correction));
+        .renderAddedPosition(correction, addedPositionCorrection, null));
   }
 
   private ModelAndView addLicencePositionCorrectionModelAndView(
@@ -75,6 +79,6 @@ public class AddLicencePositionCorrectionController {
         .addObject("form", form)
         .addObject("backLinkUrl",
             ReverseRouter.route(on(LicenceCorrectionController.class)
-                .renderCorrection(correction)));
+                .renderCorrection(correction, null)));
   }
 }

@@ -146,7 +146,7 @@ public class LicencePositionSubareaSetEquityController {
         subareaOption,
         operations,
         ReverseRouter.route(on(this.getClass()).renderForExecutedPosition(correction, licencePosition, subareaKey)),
-        ReverseRouter.route(on(LicenceCorrectionController.class).renderLicencePosition(correction, licencePosition)),
+        ReverseRouter.route(on(LicenceCorrectionController.class).renderLicencePosition(correction, licencePosition, null)),
         ReverseRouter.route(on(this.getClass()).submitSummaryForExecutedPosition(correction, licencePosition)),
         removeUrls
     );
@@ -160,7 +160,7 @@ public class LicencePositionSubareaSetEquityController {
       LicencePosition licencePosition
   ) {
     return ReverseRouter.redirect(on(LicenceCorrectionController.class)
-        .renderLicencePosition(correction, licencePosition));
+        .renderLicencePosition(correction, licencePosition, null));
   }
 
   @PostMapping("/position/{licencePositionId}/subarea-set-equity/remove")
@@ -262,7 +262,8 @@ public class LicencePositionSubareaSetEquityController {
         subareaOption,
         operations,
         ReverseRouter.route(on(this.getClass()).renderForAddedPosition(correction, licencePositionCorrection, subareaKey)),
-        ReverseRouter.route(on(LicenceCorrectionController.class).renderAddedPosition(correction, licencePositionCorrection)),
+        ReverseRouter.route(on(LicenceCorrectionController.class)
+            .renderAddedPosition(correction, licencePositionCorrection, null)),
         ReverseRouter.route(on(this.getClass()).submitSummaryForAddedPosition(correction, licencePositionCorrection)),
         removeUrls
     );
@@ -275,7 +276,7 @@ public class LicencePositionSubareaSetEquityController {
       LicencePositionCorrection licencePositionCorrection
   ) {
     return ReverseRouter.redirect(on(LicenceCorrectionController.class)
-        .renderAddedPosition(correction, licencePositionCorrection));
+        .renderAddedPosition(correction, licencePositionCorrection, null));
   }
 
   @PostMapping("/added-position/{licencePositionCorrectionId}/subarea-set-equity/remove")

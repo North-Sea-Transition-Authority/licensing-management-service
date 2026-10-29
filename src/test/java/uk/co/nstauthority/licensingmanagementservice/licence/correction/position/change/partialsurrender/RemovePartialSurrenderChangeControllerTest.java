@@ -84,7 +84,7 @@ class RemovePartialSurrenderChangeControllerTest extends AbstractControllerTest 
   private PartialSurrenderCorrectionService partialSurrenderCorrectionService;
 
   private final String positionUrl = ReverseRouter.route(on(LicenceCorrectionController.class)
-      .renderLicencePosition(CORRECTION, POSITION));
+      .renderLicencePosition(CORRECTION, POSITION, null));
 
   @Test
   void renderRemoveExecutedPartialSurrender_whenNotLoggedIn() throws Exception {
@@ -319,7 +319,7 @@ class RemovePartialSurrenderChangeControllerTest extends AbstractControllerTest 
         .andExpectAll(
             status().isOk(),
             model().attribute("cancelUrl", ReverseRouter.route(on(LicenceCorrectionController.class)
-                .renderAddedPosition(correction, positionCorrection)))
+                .renderAddedPosition(correction, positionCorrection, null)))
         );
   }
 

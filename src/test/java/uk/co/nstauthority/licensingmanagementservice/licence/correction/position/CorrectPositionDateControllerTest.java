@@ -62,7 +62,7 @@ class CorrectPositionDateControllerTest extends AbstractControllerTest {
 
 
   private final String backLinkUrl = ReverseRouter.route(on(LicenceCorrectionController.class)
-      .renderCorrection(CORRECTION));
+      .renderCorrection(CORRECTION, null));
 
   @Test
   void renderCorrectPositionDate_whenNotLoggedIn() throws Exception {
@@ -127,7 +127,8 @@ class CorrectPositionDateControllerTest extends AbstractControllerTest {
             .flashAttr("form", form))
         .andExpectAll(
             status().is3xxRedirection(),
-            redirectedUrl(backLinkUrl),
+            redirectedUrl(ReverseRouter.route(on(LicenceCorrectionController.class)
+                .renderLicencePosition(CORRECTION, POSITION, null))),
             notificationBanner(NotificationBanner.newSuccessBanner()
                 .withHeadingContent("Licence position correction date updated")
                 .build())

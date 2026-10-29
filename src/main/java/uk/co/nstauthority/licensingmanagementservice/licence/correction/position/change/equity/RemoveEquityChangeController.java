@@ -87,7 +87,7 @@ public class RemoveEquityChangeController {
     NotificationBanner.newSuccessBannerWithHeader("Beneficial interest change removed", redirectAttributes);
 
     return ReverseRouter.redirect(on(LicenceCorrectionController.class)
-        .renderLicencePosition(correction, licencePosition));
+        .renderLicencePosition(correction, licencePosition, null));
   }
 
   @GetMapping("/change/{changeId}/undo-equity-change")
@@ -120,10 +120,10 @@ public class RemoveEquityChangeController {
 
     if (positionCorrection.getChangeType() == LicencePositionCorrectionChangeType.ADD_POSITION) {
       return ReverseRouter.redirect(on(LicenceCorrectionController.class)
-          .renderAddedPosition(correction, positionCorrection));
+          .renderAddedPosition(correction, positionCorrection, null));
     }
     return ReverseRouter.redirect(on(LicenceCorrectionController.class)
-        .renderLicencePosition(correction, positionCorrection.getTargetLicencePosition()));
+        .renderLicencePosition(correction, positionCorrection.getTargetLicencePosition(), null));
   }
 
   private ModelAndView removeEquityChangeModelAndView(
@@ -140,7 +140,7 @@ public class RemoveEquityChangeController {
         .addObject("setEquityRows", equityChangeContext.setEquityRows())
         .addObject("transferEquityRows", equityChangeContext.transferEquityRows())
         .addObject("cancelUrl", ReverseRouter.route(on(LicenceCorrectionController.class)
-            .renderLicencePosition(correction, licencePosition)));
+            .renderLicencePosition(correction, licencePosition, null)));
   }
 
   private ModelAndView undoEquityChangeModelAndView(
@@ -166,9 +166,9 @@ public class RemoveEquityChangeController {
   private String positionPageRoute(LicenceCorrection correction, LicencePositionCorrection positionCorrection) {
     if (positionCorrection.getChangeType() == LicencePositionCorrectionChangeType.ADD_POSITION) {
       return ReverseRouter.route(on(LicenceCorrectionController.class)
-          .renderAddedPosition(correction, positionCorrection));
+          .renderAddedPosition(correction, positionCorrection, null));
     }
     return ReverseRouter.route(on(LicenceCorrectionController.class)
-        .renderLicencePosition(correction, positionCorrection.getTargetLicencePosition()));
+        .renderLicencePosition(correction, positionCorrection.getTargetLicencePosition(), null));
   }
 }

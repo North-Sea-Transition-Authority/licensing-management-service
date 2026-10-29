@@ -125,7 +125,7 @@ public class LicencePositionAdministratorChangeController {
 
     NotificationBanner.newSuccessBannerWithHeader("Licence administrator change added", redirectAttributes);
     return ReverseRouter.redirect(on(LicenceCorrectionController.class)
-        .renderLicencePosition(correction, licencePosition));
+        .renderLicencePosition(correction, licencePosition, null));
   }
 
   @GetMapping("/added-position/{licencePositionCorrectionId}/add-administrator-change")
@@ -181,7 +181,7 @@ public class LicencePositionAdministratorChangeController {
 
     NotificationBanner.newSuccessBannerWithHeader("Licence administrator change added", redirectAttributes);
     return ReverseRouter.redirect(on(LicenceCorrectionController.class)
-        .renderAddedPosition(correction, licencePositionCorrection));
+        .renderAddedPosition(correction, licencePositionCorrection, null));
   }
 
   @GetMapping("/position/{licencePositionId}/change/{changeId}/correct-administrator-change")
@@ -244,7 +244,7 @@ public class LicencePositionAdministratorChangeController {
 
     NotificationBanner.newSuccessBannerWithHeader("Licence administrator change corrected", redirectAttributes);
     return ReverseRouter.redirect(on(LicenceCorrectionController.class)
-        .renderLicencePosition(correction, licencePosition));
+        .renderLicencePosition(correction, licencePosition, null));
   }
 
   private AdministratorChangeContext getAddedPositionAdministratorChangeContext(
@@ -257,12 +257,12 @@ public class LicencePositionAdministratorChangeController {
 
   private String executedCancelUrl(LicenceCorrection correction, LicencePosition licencePosition) {
     return ReverseRouter.route(on(LicenceCorrectionController.class)
-        .renderLicencePosition(correction, licencePosition));
+        .renderLicencePosition(correction, licencePosition, null));
   }
 
   private String addedCancelUrl(LicenceCorrection correction, LicencePositionCorrection licencePositionCorrection) {
     return ReverseRouter.route(on(LicenceCorrectionController.class)
-        .renderAddedPosition(correction, licencePositionCorrection));
+        .renderAddedPosition(correction, licencePositionCorrection, null));
   }
 
   private Map<String, String> preselectedAdministrator(AdministratorChangeForm form) {

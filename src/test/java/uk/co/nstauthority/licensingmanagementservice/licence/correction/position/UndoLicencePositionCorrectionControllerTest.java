@@ -30,6 +30,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceC
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.LicencePositionPayload;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.util.DateUtil;
 
@@ -58,7 +59,7 @@ class UndoLicencePositionCorrectionControllerTest extends AbstractControllerTest
       .build();
 
   private final String cancelUrl = ReverseRouter.route(on(LicenceCorrectionController.class)
-      .renderCorrection(CORRECTION));
+      .renderCorrection(CORRECTION, null));
 
   @Test
   void renderUndoPosition_whenNotLoggedIn() throws Exception {
@@ -104,7 +105,7 @@ class UndoLicencePositionCorrectionControllerTest extends AbstractControllerTest
   }
 
   @Test
-  void undoPosition_whenAllocatedToUser() throws Exception {
+  void undoPosition_whenAddedPositionUndone_thenRedirectsToCorrection() throws Exception {
     givenCorrectionAllocatedToUser();
     when(licencePositionCorrectionService.findById(POSITION_CORRECTION_ID)).thenReturn(Optional.of(POSITION_CORRECTION));
 
@@ -121,6 +122,31 @@ class UndoLicencePositionCorrectionControllerTest extends AbstractControllerTest
         );
 
     verify(licencePositionCorrectionService).undoPositionCorrection(POSITION_CORRECTION);
+  }
+
+  @Test
+  void undoPosition_whenExecutedPositionCorrectionUndone_thenRedirectsToPosition() throws Exception {
+    givenCorrectionAllocatedToUser();
+    var position = LicencePositionTestUtil.newBuilder().withLicence(LICENCE).build();
+    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withId(POSITION_CORRECTION_ID)
+        .withLicenceCorrection(CORRECTION)
+        .withChangeType(LicencePositionCorrectionChangeType.REMOVE_POSITION)
+        .withTargetLicencePosition(position)
+        .build();
+    when(licencePositionCorrectionService.findById(POSITION_CORRECTION_ID)).thenReturn(Optional.of(positionCorrection));
+
+    mockMvc.perform(post(ReverseRouter.route(on(UndoLicencePositionCorrectionController.class)
+            .undoPosition(CORRECTION, positionCorrection, null)))
+            .with(user(regulatorUser))
+            .with(csrf()))
+        .andExpectAll(
+            status().is3xxRedirection(),
+            redirectedUrl(ReverseRouter.route(on(LicenceCorrectionController.class)
+                .renderLicencePosition(CORRECTION, position, null)))
+        );
+
+    verify(licencePositionCorrectionService).undoPositionCorrection(positionCorrection);
   }
 
   @Test

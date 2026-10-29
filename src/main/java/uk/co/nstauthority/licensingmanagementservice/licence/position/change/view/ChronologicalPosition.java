@@ -89,6 +89,22 @@ public record ChronologicalPosition(
     return changes.stream().anyMatch(PositionChange::movedAway);
   }
 
+  /**
+   * This position without the changes a correction removes or moves to another position, which no longer apply to it.
+   */
+  public ChronologicalPosition withoutRemovedChanges() {
+    return new ChronologicalPosition(
+        id,
+        transactionId,
+        reference,
+        date,
+        order,
+        changes.stream()
+            .filter(change -> !LicencePositionChangeType.REMOVE_CHANGE.equals(change.changeType()))
+            .toList()
+    );
+  }
+
   public List<PositionValidationError> validate(PositionValidationContext positionValidationContext) {
     var positionValidationErrors = new ArrayList<PositionValidationError>();
 

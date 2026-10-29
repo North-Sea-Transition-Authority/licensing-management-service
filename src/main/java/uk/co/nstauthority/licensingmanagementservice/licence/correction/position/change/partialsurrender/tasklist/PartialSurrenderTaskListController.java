@@ -141,7 +141,7 @@ public class PartialSurrenderTaskListController {
         licencePosition.getLicenceTransaction().getRegulatorReference(),
         licencePosition.getFormattedPositionDate(),
         ReverseRouter.route(on(LicenceCorrectionController.class)
-            .renderLicencePosition(correction, licencePosition)));
+            .renderLicencePosition(correction, licencePosition, null)));
   }
 
   @GetMapping("/position-correction/{licencePositionCorrectionId}/partial-surrender/review-and-submit")

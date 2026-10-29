@@ -77,7 +77,8 @@ class LicencePositionPageViewTest {
 
     var pageView = LicencePositionPageView.fromExecutedPosition(
         List.of(), "1 Jan 2026", "REF-1", List.of(), null, UUID.randomUUID(),
-        LicencePositionPageView.Actions.none(), LicenceType.SEAWARD_PRODUCTION, errorSummaryItems);
+        LicencePositionPageView.Actions.none(), LicenceType.SEAWARD_PRODUCTION, errorSummaryItems,
+        LicenceTimelineFilterOptions.none(), false);
 
     assertThat(pageView.canEdit()).isTrue();
     assertThat(pageView.isAddedPosition()).isFalse();
@@ -90,7 +91,8 @@ class LicencePositionPageViewTest {
 
     var pageView = LicencePositionPageView.fromAddedPosition(
         List.of(), "1 Jan 2026", "REF-1", List.of(), null, UUID.randomUUID(),
-        LicencePositionPageView.Actions.none(), LicenceType.SEAWARD_PRODUCTION, errorSummaryItems);
+        LicencePositionPageView.Actions.none(), LicenceType.SEAWARD_PRODUCTION, errorSummaryItems,
+        LicenceTimelineFilterOptions.none(), false);
 
     assertThat(pageView.canEdit()).isTrue();
     assertThat(pageView.isAddedPosition()).isTrue();

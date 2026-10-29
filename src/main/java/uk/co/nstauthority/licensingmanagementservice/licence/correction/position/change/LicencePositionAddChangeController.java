@@ -213,12 +213,12 @@ public class LicencePositionAddChangeController {
 
   private String executedBackUrl(LicenceCorrection correction, LicencePosition licencePosition) {
     return ReverseRouter.route(on(LicenceCorrectionController.class)
-        .renderLicencePosition(correction, licencePosition));
+        .renderLicencePosition(correction, licencePosition, null));
   }
 
   private String addedBackUrl(LicenceCorrection correction, LicencePositionCorrection licencePositionCorrection) {
     return ReverseRouter.route(on(LicenceCorrectionController.class)
-        .renderAddedPosition(correction, licencePositionCorrection));
+        .renderAddedPosition(correction, licencePositionCorrection, null));
   }
 
   private Map<String, String> availableChangeTypeOptions(LicenceCorrection correction) {

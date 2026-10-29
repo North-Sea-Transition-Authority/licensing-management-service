@@ -83,7 +83,7 @@ public class RemoveAdministratorChangeController {
     NotificationBanner.newSuccessBannerWithHeader("Licence administrator change removed", redirectAttributes);
 
     return ReverseRouter.redirect(on(LicenceCorrectionController.class)
-        .renderLicencePosition(correction, licencePosition));
+        .renderLicencePosition(correction, licencePosition, null));
   }
 
   @GetMapping("/change/{changeId}/undo-administrator-change")
@@ -116,10 +116,10 @@ public class RemoveAdministratorChangeController {
 
     if (positionCorrection.getChangeType() == LicencePositionCorrectionChangeType.ADD_POSITION) {
       return ReverseRouter.redirect(on(LicenceCorrectionController.class)
-          .renderAddedPosition(correction, positionCorrection));
+          .renderAddedPosition(correction, positionCorrection, null));
     }
     return ReverseRouter.redirect(on(LicenceCorrectionController.class)
-        .renderLicencePosition(correction, positionCorrection.getTargetLicencePosition()));
+        .renderLicencePosition(correction, positionCorrection.getTargetLicencePosition(), null));
   }
 
   private ModelAndView removeAdministratorChangeModelAndView(
@@ -135,7 +135,7 @@ public class RemoveAdministratorChangeController {
         .addObject("withdrawingAdministratorName", administratorChangeContext.previousAdministratorName())
         .addObject("joiningAdministratorName", administratorChangeContext.currentAdministratorName())
         .addObject("cancelUrl",
-            ReverseRouter.route(on(LicenceCorrectionController.class).renderLicencePosition(correction, licencePosition)));
+            ReverseRouter.route(on(LicenceCorrectionController.class).renderLicencePosition(correction, licencePosition, null)));
   }
 
   private ModelAndView undoAdministratorChangeModelAndView(
@@ -162,10 +162,10 @@ public class RemoveAdministratorChangeController {
   private String positionPageRoute(LicenceCorrection correction, LicencePositionCorrection positionCorrection) {
     if (positionCorrection.getChangeType() == LicencePositionCorrectionChangeType.ADD_POSITION) {
       return ReverseRouter.route(on(LicenceCorrectionController.class)
-          .renderAddedPosition(correction, positionCorrection));
+          .renderAddedPosition(correction, positionCorrection, null));
     }
     return ReverseRouter.route(on(LicenceCorrectionController.class)
-        .renderLicencePosition(correction, positionCorrection.getTargetLicencePosition()));
+        .renderLicencePosition(correction, positionCorrection.getTargetLicencePosition(), null));
   }
 
   private UUID getPositionId(LicencePositionCorrection positionCorrection) {

@@ -23,7 +23,7 @@ class LicencePositionCorrectionRouteUtilTest {
     var result = LicencePositionCorrectionRouteUtil.getPositionPageUrl(LICENCE_CORRECTION, positionCorrection);
 
     assertThat(result).isEqualTo(ReverseRouter.route(on(LicenceCorrectionController.class)
-        .renderAddedPosition(LICENCE_CORRECTION, positionCorrection))
+        .renderAddedPosition(LICENCE_CORRECTION, positionCorrection, null))
     );
   }
 
@@ -36,7 +36,7 @@ class LicencePositionCorrectionRouteUtilTest {
     var result = LicencePositionCorrectionRouteUtil.getPositionPageUrl(LICENCE_CORRECTION, positionCorrection);
 
     assertThat(result).isEqualTo(ReverseRouter.route(on(LicenceCorrectionController.class)
-        .renderLicencePosition(LICENCE_CORRECTION, positionCorrection.getTargetLicencePosition()))
+        .renderLicencePosition(LICENCE_CORRECTION, positionCorrection.getTargetLicencePosition(), null))
     );
   }
 

@@ -2,6 +2,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.correction.reviewa
 
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
+import jakarta.servlet.http.HttpSession;
 import java.util.List;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -87,7 +88,8 @@ public class ReviewCorrectionController {
   @PostMapping
   public ModelAndView processApplyCorrection(
       LicenceCorrection licenceCorrection,
-      RedirectAttributes redirectAttributes
+      RedirectAttributes redirectAttributes,
+      HttpSession session
   ) {
     var blockingErrors = correctionApplyService.applyCorrection(licenceCorrection);
 
@@ -98,6 +100,8 @@ public class ReviewCorrectionController {
           blockingErrors
       );
     }
+
+    LicenceCorrectionController.clearFilter(session, licenceCorrection);
 
     NotificationBanner.newSuccessBannerWithHeader(
         "Correction %s applied".formatted(licenceCorrection.getCorrectionReference()),
@@ -126,7 +130,7 @@ public class ReviewCorrectionController {
   ) {
     var backLinkUrl = isCorrectionApplied
         ? tabbedLicencePageService.getDefaultTabUrl(licenceCorrection.getLicence())
-        : ReverseRouter.route(on(LicenceCorrectionController.class).renderCorrection(licenceCorrection));
+        : ReverseRouter.route(on(LicenceCorrectionController.class).renderCorrection(licenceCorrection, null));
 
     return new ModelAndView("lms/licence/correction/reviewandapply/reviewCorrection")
         .addObject("pageCaption", licenceService.getLicencePageCaption(licenceCorrection.getLicence()))

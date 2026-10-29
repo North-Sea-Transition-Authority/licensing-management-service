@@ -139,7 +139,7 @@ class LicenceControllerTest extends AbstractControllerTest {
             .with(csrf())
     )
         .andExpect(status().is3xxRedirection())
-        .andExpect(redirectedUrl(ReverseRouter.route(on(LicenceCorrectionController.class).renderCorrection(correction))));
+        .andExpect(redirectedUrl(ReverseRouter.route(on(LicenceCorrectionController.class).renderCorrection(correction, null))));
   }
 
   @Test

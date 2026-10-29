@@ -66,7 +66,7 @@ class RemoveAdministratorChangeControllerTest extends AbstractControllerTest {
       .build();
 
   private final String positionUrl = ReverseRouter.route(on(LicenceCorrectionController.class)
-      .renderLicencePosition(CORRECTION, POSITION));
+      .renderLicencePosition(CORRECTION, POSITION, null));
 
   @Test
   void renderRemoveExecutedAdminChange_whenNotLoggedIn() throws Exception {

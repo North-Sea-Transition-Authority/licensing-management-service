@@ -79,9 +79,9 @@ class RemoveSubareaChangeControllerTest extends AbstractControllerTest {
   private SubareaChangeService subareaChangeService;
 
   private final String positionUrl = ReverseRouter.route(on(LicenceCorrectionController.class)
-      .renderLicencePosition(CORRECTION, POSITION));
+      .renderLicencePosition(CORRECTION, POSITION, null));
   private final String addedPositionUrl = ReverseRouter.route(on(LicenceCorrectionController.class)
-      .renderAddedPosition(CORRECTION, ADDED_POSITION_CORRECTION));
+      .renderAddedPosition(CORRECTION, ADDED_POSITION_CORRECTION, null));
 
   @Test
   void renderRemoveExecutedSubareaChange_whenNotLoggedIn() throws Exception {

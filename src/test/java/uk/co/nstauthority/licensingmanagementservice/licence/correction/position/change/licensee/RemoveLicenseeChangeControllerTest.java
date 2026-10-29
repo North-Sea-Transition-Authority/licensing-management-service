@@ -67,7 +67,7 @@ class RemoveLicenseeChangeControllerTest extends AbstractControllerTest {
       .withLicence(LICENCE)
       .build();
   private final String updatePositionUrl = ReverseRouter.route(on(LicenceCorrectionController.class)
-      .renderLicencePosition(CORRECTION, POSITION));
+      .renderLicencePosition(CORRECTION, POSITION, null));
 
   @Test
   void renderLicenseeChange_whenNotAllocatedToUser() throws Exception {
@@ -150,7 +150,7 @@ class RemoveLicenseeChangeControllerTest extends AbstractControllerTest {
             model().attribute("correctedLicenseeChangeView", expectedLicenseeChangeView),
             model().attribute("resultingLicensees", licenseeChangeContext.previousLicenseeNames()),
             model().attribute("cancelUrl", ReverseRouter.route(on(LicenceCorrectionController.class)
-                .renderLicencePosition(correction, position)))
+                .renderLicencePosition(correction, position, null)))
         );
   }
 
@@ -169,7 +169,7 @@ class RemoveLicenseeChangeControllerTest extends AbstractControllerTest {
     when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(position));
     when(licencePositionChangeService.findById(positionChange.getId())).thenReturn(Optional.of(positionChange));
 
-    var expectedUrl = ReverseRouter.route(on(LicenceCorrectionController.class).renderLicencePosition(correction, position));
+    var expectedUrl = ReverseRouter.route(on(LicenceCorrectionController.class).renderLicencePosition(correction, position, null));
 
     mockMvc.perform(post(ReverseRouter.route(on(RemoveLicenseeChangeController.class)
             .removeLicenseeChange(correction, position, positionChange, null)))
@@ -271,7 +271,7 @@ class RemoveLicenseeChangeControllerTest extends AbstractControllerTest {
         .thenReturn(null);
 
     var cancelUrl = ReverseRouter.route(on(LicenceCorrectionController.class)
-        .renderAddedPosition(CORRECTION, positionCorrection));
+        .renderAddedPosition(CORRECTION, positionCorrection, null));
 
     var expectedCurrentChangeView = new LicenseeChangeView(
         List.of("currentWithdraw1"),
@@ -334,7 +334,7 @@ class RemoveLicenseeChangeControllerTest extends AbstractControllerTest {
         .thenReturn(expectedCurrentChangeView);
 
     var cancelUrl = ReverseRouter.route(on(LicenceCorrectionController.class)
-        .renderAddedPosition(CORRECTION, positionCorrection));
+        .renderAddedPosition(CORRECTION, positionCorrection, null));
 
     mockMvc.perform(get(ReverseRouter.route(on(RemoveLicenseeChangeController.class)
             .renderUndoLicenseeChange(correction, CHANGE_ID)))
@@ -361,7 +361,7 @@ class RemoveLicenseeChangeControllerTest extends AbstractControllerTest {
         .build();
 
     var expectedUrl = ReverseRouter.route(on(LicenceCorrectionController.class)
-        .renderAddedPosition(correction, positionCorrection));
+        .renderAddedPosition(correction, positionCorrection, null));
 
     when(licencePositionCorrectionService.getPositionCorrectionContainingChange(correction, CHANGE_ID))
         .thenReturn(positionCorrection);
@@ -391,7 +391,7 @@ class RemoveLicenseeChangeControllerTest extends AbstractControllerTest {
         .build();
 
     var expectedUrl = ReverseRouter.route(on(LicenceCorrectionController.class)
-        .renderAddedPosition(correction, positionCorrection));
+        .renderAddedPosition(correction, positionCorrection, null));
 
     when(licencePositionCorrectionService.getPositionCorrectionContainingChange(correction, CHANGE_ID))
         .thenReturn(positionCorrection);
@@ -422,7 +422,7 @@ class RemoveLicenseeChangeControllerTest extends AbstractControllerTest {
         .build();
 
     var expectedUrl = ReverseRouter.route(on(LicenceCorrectionController.class)
-        .renderLicencePosition(correction, positionCorrection.getTargetLicencePosition()));
+        .renderLicencePosition(correction, positionCorrection.getTargetLicencePosition(), null));
 
     when(licencePositionCorrectionService.getPositionCorrectionContainingChange(correction, CHANGE_ID))
         .thenReturn(positionCorrection);

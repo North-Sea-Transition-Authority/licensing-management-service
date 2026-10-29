@@ -85,13 +85,13 @@ class LicencePositionStorageOperatorChangeControllerTest extends AbstractControl
       .build();
 
   private static final String EXECUTED_CANCEL_URL = ReverseRouter.route(on(LicenceCorrectionController.class)
-      .renderLicencePosition(CORRECTION, POSITION));
+      .renderLicencePosition(CORRECTION, POSITION, null));
   private static final String EXECUTED_REDIRECT_URL = ReverseRouter.route(on(LicenceCorrectionController.class)
-      .renderLicencePosition(CORRECTION, POSITION));
+      .renderLicencePosition(CORRECTION, POSITION, null));
   private static final String ADDED_CANCEL_URL = ReverseRouter.route(on(LicenceCorrectionController.class)
-      .renderAddedPosition(CORRECTION, POSITION_CORRECTION));
+      .renderAddedPosition(CORRECTION, POSITION_CORRECTION, null));
   private static final String ADDED_REDIRECT_URL = ReverseRouter.route(on(LicenceCorrectionController.class)
-      .renderAddedPosition(CORRECTION, POSITION_CORRECTION));
+      .renderAddedPosition(CORRECTION, POSITION_CORRECTION, null));
 
   @Test
   void renderForExecutedPosition_whenNotLoggedIn() throws Exception {

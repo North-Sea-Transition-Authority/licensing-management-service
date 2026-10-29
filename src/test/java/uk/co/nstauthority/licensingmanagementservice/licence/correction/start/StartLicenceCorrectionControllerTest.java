@@ -125,7 +125,7 @@ class StartLicenceCorrectionControllerTest extends AbstractControllerTest {
         .andExpectAll(
             status().is3xxRedirection(),
             redirectedUrl(ReverseRouter.route(on(LicenceCorrectionController.class)
-                .renderCorrection(correction))),
+                .renderCorrection(correction, null))),
             notificationBanner(NotificationBanner.newSuccessBanner()
                 .withHeadingContent("Licence correction started")
                 .build())

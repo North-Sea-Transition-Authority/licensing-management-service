@@ -16,9 +16,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.filter.Lic
  * @param isAddedPosition true when the view represents a new position being added as part of a correction (which
  *                        has therefore not been executed), as opposed to an existing executed position or the read-only view
  * @param licenceType the type of the licence the position belongs to; null only for the empty view
- * @param filterOptions the change types and organisations the read-only timeline can be filtered by; none for every
- *                      other view
- * @param filterApplied true when the read-only timeline has been filtered
+ * @param filterOptions the change types and organisations the timeline can be filtered by; none for the empty view
+ * @param filterApplied true when the timeline has been filtered
  */
 public record LicencePositionPageView(
     List<LicencePositionTimelineView> timelineViews,
@@ -97,7 +96,7 @@ public record LicencePositionPageView(
   }
 
   /**
-   * The read-only view when the licence has positions but the filter leaves none of them.
+   * The view when the licence or correction has positions but the filter leaves none of them.
    */
   public static LicencePositionPageView noMatchingPositions(
       LicenceType licenceType,
@@ -129,7 +128,9 @@ public record LicencePositionPageView(
       UUID selectedPositionId,
       Actions actions,
       LicenceType licenceType,
-      List<ErrorSummaryItem> errorSummaryItems
+      List<ErrorSummaryItem> errorSummaryItems,
+      LicenceTimelineFilterOptions filterOptions,
+      boolean filterApplied
   ) {
     return new LicencePositionPageView(
         timelineViews,
@@ -143,8 +144,8 @@ public record LicencePositionPageView(
         actions,
         licenceType,
         errorSummaryItems,
-        LicenceTimelineFilterOptions.none(),
-        false
+        filterOptions,
+        filterApplied
     );
   }
 
@@ -157,7 +158,9 @@ public record LicencePositionPageView(
       UUID selectedPositionId,
       Actions actions,
       LicenceType licenceType,
-      List<ErrorSummaryItem> errorSummaryItems
+      List<ErrorSummaryItem> errorSummaryItems,
+      LicenceTimelineFilterOptions filterOptions,
+      boolean filterApplied
   ) {
     return new LicencePositionPageView(
         timelineViews,
@@ -171,8 +174,8 @@ public record LicencePositionPageView(
         actions,
         licenceType,
         errorSummaryItems,
-        LicenceTimelineFilterOptions.none(),
-        false
+        filterOptions,
+        filterApplied
     );
   }
 

@@ -113,7 +113,7 @@ public class LicencePositionSetEquityController {
         correction,
         operations,
         ReverseRouter.route(on(this.getClass()).renderForExecutedPosition(correction, licencePosition)),
-        ReverseRouter.route(on(LicenceCorrectionController.class).renderLicencePosition(correction, licencePosition)),
+        ReverseRouter.route(on(LicenceCorrectionController.class).renderLicencePosition(correction, licencePosition, null)),
         ReverseRouter.route(on(this.getClass()).submitSummaryForExecutedPosition(correction, licencePosition)),
         removeUrls
     );
@@ -126,7 +126,8 @@ public class LicencePositionSetEquityController {
       LicenceCorrection correction,
       LicencePosition licencePosition
   ) {
-    return ReverseRouter.redirect(on(LicenceCorrectionController.class).renderLicencePosition(correction, licencePosition));
+    return ReverseRouter.redirect(on(LicenceCorrectionController.class)
+        .renderLicencePosition(correction, licencePosition, null));
   }
 
   @LicencePositionIsNotRemovedInCorrection
@@ -203,7 +204,8 @@ public class LicencePositionSetEquityController {
         correction,
         operations,
         ReverseRouter.route(on(this.getClass()).renderForAddedPosition(correction, licencePositionCorrection)),
-        ReverseRouter.route(on(LicenceCorrectionController.class).renderAddedPosition(correction, licencePositionCorrection)),
+        ReverseRouter.route(on(LicenceCorrectionController.class)
+            .renderAddedPosition(correction, licencePositionCorrection, null)),
         ReverseRouter.route(on(this.getClass()).submitSummaryForAddedPosition(correction, licencePositionCorrection)),
         removeUrls
     );
@@ -216,7 +218,7 @@ public class LicencePositionSetEquityController {
       LicencePositionCorrection licencePositionCorrection
   ) {
     return ReverseRouter.redirect(on(LicenceCorrectionController.class)
-        .renderAddedPosition(correction, licencePositionCorrection));
+        .renderAddedPosition(correction, licencePositionCorrection, null));
   }
 
   @PostMapping("/added-position/{licencePositionCorrectionId}/set-equity/remove")

@@ -642,7 +642,7 @@ class LicencePositionPartialSurrenderControllerTest extends AbstractControllerTe
             model().attribute("srsWkid", CoordinateSystemUtils.getWkid(BLOCK_30_1A.getCoordinateSystem())),
             model().attribute("startCorrectionUrl", startCorrectionUrl()),
             model().attribute("backLinkUrl", ReverseRouter.route(on(LicenceCorrectionController.class)
-                .renderLicencePosition(correction, licencePosition))));
+                .renderLicencePosition(correction, licencePosition, null))));
 
     verify(partialSurrenderCorrectionService, never()).correctExistingPartialSurrender(any(), any(), any(), any());
     verify(partialSurrenderCorrectionService, never()).getOrCreatePartialSurrenderDetails(any(), any(), any());

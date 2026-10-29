@@ -222,7 +222,7 @@ class LicencePositionSubareaSetEquityControllerTest extends AbstractControllerTe
             model().attribute("saveAndContinueUrl", ReverseRouter.route(on(LicencePositionSubareaSetEquityController.class)
                 .submitSummaryForExecutedPosition(CORRECTION, POSITION))),
             model().attribute("backLinkUrl", ReverseRouter.route(on(LicenceCorrectionController.class)
-                .renderLicencePosition(CORRECTION, POSITION))));
+                .renderLicencePosition(CORRECTION, POSITION, null))));
   }
 
   @Test
@@ -254,7 +254,7 @@ class LicencePositionSubareaSetEquityControllerTest extends AbstractControllerTe
             .with(user(regulatorUser)).with(csrf()))
         .andExpect(status().is3xxRedirection())
         .andExpect(redirectedUrl(ReverseRouter.route(on(LicenceCorrectionController.class)
-            .renderLicencePosition(CORRECTION, POSITION))));
+            .renderLicencePosition(CORRECTION, POSITION, null))));
 
     verifyNoInteractions(subareaSetEquityCorrectionService);
   }
@@ -358,7 +358,7 @@ class LicencePositionSubareaSetEquityControllerTest extends AbstractControllerTe
             model().attribute("saveAndContinueUrl", ReverseRouter.route(on(LicencePositionSubareaSetEquityController.class)
                 .submitSummaryForAddedPosition(CORRECTION, POSITION_CORRECTION))),
             model().attribute("backLinkUrl", ReverseRouter.route(on(LicenceCorrectionController.class)
-                .renderAddedPosition(CORRECTION, POSITION_CORRECTION))));
+                .renderAddedPosition(CORRECTION, POSITION_CORRECTION, null))));
   }
 
   @Test
@@ -389,7 +389,7 @@ class LicencePositionSubareaSetEquityControllerTest extends AbstractControllerTe
             .with(user(regulatorUser)).with(csrf()))
         .andExpect(status().is3xxRedirection())
         .andExpect(redirectedUrl(ReverseRouter.route(on(LicenceCorrectionController.class)
-            .renderAddedPosition(CORRECTION, POSITION_CORRECTION))));
+            .renderAddedPosition(CORRECTION, POSITION_CORRECTION, null))));
 
     verifyNoInteractions(subareaSetEquityCorrectionService);
   }

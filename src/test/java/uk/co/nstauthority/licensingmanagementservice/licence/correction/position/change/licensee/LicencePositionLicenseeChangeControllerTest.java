@@ -96,16 +96,16 @@ class LicencePositionLicenseeChangeControllerTest extends AbstractControllerTest
   private static final String VIEW_NAME = "lms/licence/correction/change/licenseeChange";
 
   private final String executedCancelUrl = ReverseRouter.route(on(LicenceCorrectionController.class)
-      .renderLicencePosition(CORRECTION, POSITION));
+      .renderLicencePosition(CORRECTION, POSITION, null));
 
   private final String addedCancelUrl = ReverseRouter.route(on(LicenceCorrectionController.class)
-      .renderAddedPosition(CORRECTION, POSITION_CORRECTION));
+      .renderAddedPosition(CORRECTION, POSITION_CORRECTION, null));
 
   private final String executedRedirectUrl = ReverseRouter.route(on(LicenceCorrectionController.class)
-      .renderLicencePosition(CORRECTION, POSITION));
+      .renderLicencePosition(CORRECTION, POSITION, null));
 
   private final String addedRedirectUrl = ReverseRouter.route(on(LicenceCorrectionController.class)
-      .renderAddedPosition(CORRECTION, POSITION_CORRECTION));
+      .renderAddedPosition(CORRECTION, POSITION_CORRECTION, null));
 
   @Test
   void renderForExecutedPosition_whenNotLoggedIn() throws Exception {

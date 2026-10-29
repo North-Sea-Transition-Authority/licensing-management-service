@@ -236,7 +236,7 @@ public class PartialSurrenderDefineAreaController {
 
     if (partialSurrenderCorrectionService.findCorrectedLiveChangeId(positionCorrection).isPresent()) {
       return ReverseRouter.route(on(LicenceCorrectionController.class)
-          .renderLicencePosition(correction, positionCorrection.getTargetLicencePosition()));
+          .renderLicencePosition(correction, positionCorrection.getTargetLicencePosition(), null));
     }
 
     return LicencePositionCorrectionRouteUtil.getPositionPageUrl(correction, positionCorrection);

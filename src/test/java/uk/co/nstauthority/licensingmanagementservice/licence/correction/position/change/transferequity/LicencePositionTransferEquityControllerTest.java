@@ -805,7 +805,7 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
 
   private static String addedPositionUrl() {
     return ReverseRouter.route(on(LicenceCorrectionController.class)
-        .renderAddedPosition(CORRECTION, POSITION_CORRECTION));
+        .renderAddedPosition(CORRECTION, POSITION_CORRECTION, null));
   }
 
   private static String executedFormUrl() {
@@ -830,6 +830,6 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
 
   private static String executedPositionUrl() {
     return ReverseRouter.route(on(LicenceCorrectionController.class)
-        .renderLicencePosition(CORRECTION, POSITION));
+        .renderLicencePosition(CORRECTION, POSITION, null));
   }
 }

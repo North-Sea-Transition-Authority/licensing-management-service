@@ -149,7 +149,7 @@ class PartialSurrenderTaskListControllerTest extends AbstractControllerTest {
             model().attribute("positionDate", DateUtil.formatLongDate(POSITION_DATE)),
             model().attribute("taskListSections", SECTIONS),
             model().attribute("backLinkUrl", ReverseRouter.route(on(LicenceCorrectionController.class)
-                .renderLicencePosition(CORRECTION, POSITION))));
+                .renderLicencePosition(CORRECTION, POSITION, null))));
   }
 
   @Test
@@ -207,7 +207,7 @@ class PartialSurrenderTaskListControllerTest extends AbstractControllerTest {
             model().attribute("positionReference", ADDED_POSITION_CORRECTION_REFERENCE),
             model().attribute("positionDate", DateUtil.formatLongDate(POSITION_DATE)),
             model().attribute("backLinkUrl", ReverseRouter.route(on(LicenceCorrectionController.class)
-                .renderAddedPosition(CORRECTION, POSITION_CORRECTION))));
+                .renderAddedPosition(CORRECTION, POSITION_CORRECTION, null))));
   }
 
   @Test
@@ -295,7 +295,7 @@ class PartialSurrenderTaskListControllerTest extends AbstractControllerTest {
             model().attribute("positionDate", DateUtil.formatLongDate(POSITION_DATE)),
             model().attribute("taskListSections", SECTIONS),
             model().attribute("backLinkUrl", ReverseRouter.route(on(LicenceCorrectionController.class)
-                .renderLicencePosition(CORRECTION, POSITION))));
+                .renderLicencePosition(CORRECTION, POSITION, null))));
   }
 
   @Test

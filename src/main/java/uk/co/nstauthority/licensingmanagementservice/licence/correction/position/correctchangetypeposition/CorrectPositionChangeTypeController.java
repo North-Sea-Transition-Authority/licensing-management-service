@@ -26,6 +26,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceC
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectPositionOrderForm;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectPositionOrderFormValidator;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionRouteUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.OrderablePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.PositionMove;
@@ -34,7 +35,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeorder.CorrectChangeOrderService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeorder.MoveChangeToDateResult;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeorder.OrderableChange;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.util.DateUtil;
 
@@ -299,15 +299,15 @@ public class CorrectPositionChangeTypeController {
 
   private String correctionUrl(LicenceCorrection correction) {
     return ReverseRouter.route(on(LicenceCorrectionController.class)
-        .renderCorrection(correction));
+        .renderCorrection(correction, null));
   }
 
   private String positionPageUrl(LicenceCorrection correction, UUID licencePositionId) {
-    return licencePositionCorrectionService.findFirstAddedPositionCorrection(correction, licencePositionId)
-        .map(addedPositionCorrection -> ReverseRouter.route(on(LicenceCorrectionController.class)
-            .renderAddedPosition(correction, addedPositionCorrection)))
-        .orElseGet(() -> ReverseRouter.route(on(LicenceCorrectionController.class)
-            .renderLicencePosition(correction, new LicencePosition(licencePositionId))));
+    return LicencePositionCorrectionRouteUtil.getPositionPageUrl(
+        correction,
+        licencePositionId,
+        licencePositionCorrectionService.findFirstAddedPositionCorrection(correction, licencePositionId).orElse(null)
+    );
   }
 
   private Optional<OrderableChange> findChange(LicenceCorrection correction, UUID licencePositionId, UUID changeId) {

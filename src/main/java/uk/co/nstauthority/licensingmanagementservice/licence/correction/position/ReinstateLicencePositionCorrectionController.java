@@ -53,7 +53,7 @@ public class ReinstateLicencePositionCorrectionController {
         .applyTo(redirectAttributes);
 
     return ReverseRouter.redirect(on(LicenceCorrectionController.class)
-        .renderCorrection(correction));
+        .renderLicencePosition(correction, licencePosition, null));
   }
 
   private ModelAndView reinstatePositionModelAndView(LicenceCorrection correction, LicencePosition licencePosition) {
@@ -63,6 +63,6 @@ public class ReinstateLicencePositionCorrectionController {
         .addObject("correctionReference", correction.getCorrectionReference())
         .addObject("cancelUrl",
             ReverseRouter.route(on(LicenceCorrectionController.class)
-                .renderCorrection(correction)));
+                .renderCorrection(correction, null)));
   }
 }

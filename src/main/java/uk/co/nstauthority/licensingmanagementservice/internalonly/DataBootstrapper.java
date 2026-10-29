@@ -2,8 +2,8 @@ package uk.co.nstauthority.licensingmanagementservice.internalonly;
 
 import jakarta.persistence.EntityManager;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -97,18 +97,39 @@ public class DataBootstrapper {
     regulationsLicensingUserMap.put(Role.DECISION_EXECUTOR, "decision.executor@lms.co.uk");
     regulatorTeamUsers.put(TeamType.REGULATIONS_LICENSING, regulationsLicensingUserMap);
 
-    bootstrapRegulatorTeams(regulatorTeamUsers);
-
     var industryTeamUsers = new HashMap<Role, String>();
     industryTeamUsers.put(Role.MANAGE_TEAM, "bp.administrator@lms.co.uk");
     industryTeamUsers.put(Role.LICENSEE_CONTACTS_MANAGER, "bp.contacts.manager@lms.co.uk");
     industryTeamUsers.put(Role.APPLICATION_EDITOR, "bp.editor@lms.co.uk");
     industryTeamUsers.put(Role.APPLICATION_SUBMITTER, "bp.submitter@lms.co.uk");
     industryTeamUsers.put(Role.VIEW_ORGANISATION_LICENCES, "bp.viewer@lms.co.uk");
-    bootstrapIndustryTeam(industryTeamUsers);
+
+    var emailAddresses = new HashSet<String>(industryTeamUsers.values());
+    regulatorTeamUsers.values().forEach(roleUserMap -> emailAddresses.addAll(roleUserMap.values()));
+    var usersByEmail = findUsersByEmail(emailAddresses);
+
+    bootstrapRegulatorTeams(regulatorTeamUsers, usersByEmail);
+    bootstrapIndustryTeam(industryTeamUsers, usersByEmail);
   }
 
-  private void bootstrapIndustryTeam(Map<Role, String> industryTeamUsers) {
+  private Map<String, EnergyPortalUserJson> findUsersByEmail(Set<String> emailAddresses) {
+    var usersByEmail = new HashMap<String, EnergyPortalUserJson>();
+
+    for (String emailAddress : emailAddresses) {
+      var users = energyPortalUserService.findUsersByEmail(emailAddress, "Bootstrapping LMS test accounts for test environment");
+
+      if (users.isEmpty()) {
+        LOGGER.warn("No Energy Portal user found for email {} while bootstrapping, skipping", emailAddress);
+        continue;
+      }
+
+      usersByEmail.put(emailAddress, users.getFirst());
+    }
+
+    return usersByEmail;
+  }
+
+  private void bootstrapIndustryTeam(Map<Role, String> industryTeamUsers, Map<String, EnergyPortalUserJson> usersByEmail) {
 
     var industryTeamCount = (Integer) entityManager.createNativeQuery(
             "SELECT COUNT(*) FROM lms.teams t WHERE t.type = :type AND t.name = :name",
@@ -136,68 +157,51 @@ public class DataBootstrapper {
         .setParameter("name", INDUSTRY_TEAM_NAME)
         .getSingleResult();
 
-    var industryTeamUserRoles = entityManager.createNativeQuery(
-            "SELECT tr.role FROM lms.team_roles tr " +
-                "JOIN lms.teams t ON t.id = tr.team_id " +
-                "WHERE t.type = :type " +
-                "AND t.name = :name"
-        )
-        .setParameter("type", TeamType.ORGANISATION.name())
-        .setParameter("name", INDUSTRY_TEAM_NAME)
-        .getResultList();
+    bootstrapTeamRoles(industryTeam, INDUSTRY_TEAM_NAME, industryTeamUsers, usersByEmail);
+  }
 
-    for (Role role : industryTeamUsers.keySet()) {
-      if (industryTeamUserRoles.contains(role.name())) {
-        LOGGER.info("Industry team member with role {} exists", role.getName());
+  private void bootstrapRegulatorTeams(Map<TeamType, Map<Role, String>> regulatorTeamUsers,
+                                       Map<String, EnergyPortalUserJson> usersByEmail) {
+    for (TeamType teamType : regulatorTeamUsers.keySet()) {
+      var regulatorTeam = teamQueryService.getStaticTeam(teamType);
+      bootstrapTeamRoles(regulatorTeam, teamType.getDisplayName(), regulatorTeamUsers.get(teamType), usersByEmail);
+    }
+  }
+
+  private void bootstrapTeamRoles(Team team, String teamName, Map<Role, String> roleUserMap,
+                                  Map<String, EnergyPortalUserJson> usersByEmail) {
+    for (Role role : roleUserMap.keySet()) {
+      var emailAddress = roleUserMap.get(role);
+      var user = usersByEmail.get(emailAddress);
+
+      if (user == null) {
         continue;
       }
 
-      LOGGER.info("Bootstrapping industry {}", role.getName());
-
-      findFirstUserByEmail(role, industryTeamUsers.get(role))
-          .ifPresent(industryUser -> createTeamRole(role, industryTeam, industryUser));
-    }
-  }
-
-  private void bootstrapRegulatorTeams(Map<TeamType, Map<Role, String>> regulatorTeamUsers) {
-    for (TeamType teamType : regulatorTeamUsers.keySet()) {
-      var regulatorRoles = entityManager.createNativeQuery(
-              "SELECT tr.role FROM lms.team_roles tr " +
-                  "JOIN lms.teams t ON t.id = tr.team_id " +
-                  "WHERE t.type = :type ")
-          .setParameter("type", teamType.name())
-          .getResultList();
-
-      var roleUserMap = regulatorTeamUsers.get(teamType);
-      for (Role role: roleUserMap.keySet()) {
-        if (regulatorRoles.contains(role.name())) {
-          LOGGER.info("Regulator team member with role {} in team {} exists", role.getName(), teamType.getDisplayName());
-          continue;
-        }
-
-        LOGGER.info("Bootstrapping {} {}", teamType.getDisplayName(), role.getName());
-
-        var regulatorTeam = teamQueryService.getStaticTeam(teamType);
-
-        findFirstUserByEmail(role, roleUserMap.get(role))
-            .ifPresent(regulatorUser -> createTeamRole(role, regulatorTeam, regulatorUser));
+      if (userHasRoleInTeam(team, role, user.webUserAccountId())) {
+        LOGGER.info("User {} with role {} in team {} exists", emailAddress, role.getName(), teamName);
+        continue;
       }
-    }
 
+      LOGGER.info("Bootstrapping {} {} for user {}", teamName, role.getName(), emailAddress);
+      createTeamRole(role, team, user);
+    }
   }
 
-  private Optional<EnergyPortalUserJson> findFirstUserByEmail(Role role, String emailAddress) {
-    var users = energyPortalUserService.findUsersByEmail(
-        emailAddress,
-        String.format("Bootstrapping LMS %s for test environment", role.getName())
-    );
+  private boolean userHasRoleInTeam(Team team, Role role, Long wuaId) {
+    var count = (Integer) entityManager.createNativeQuery(
+            "SELECT COUNT(*) FROM lms.team_roles tr " +
+                "WHERE tr.team_id = :teamId " +
+                "AND tr.role = :role " +
+                "AND tr.wua_id = :wuaId",
+            Integer.class
+        )
+        .setParameter("teamId", team.getId())
+        .setParameter("role", role.name())
+        .setParameter("wuaId", wuaId)
+        .getSingleResult();
 
-    if (users.isEmpty()) {
-      LOGGER.warn("No Energy Portal user found for email {} while bootstrapping role {}, skipping", emailAddress, role.getName());
-      return Optional.empty();
-    }
-
-    return Optional.of(users.getFirst());
+    return count > 0;
   }
 
   private void createTeamRole(Role role, Team team, EnergyPortalUserJson userJson) {

@@ -123,40 +123,88 @@ class FeatureRelationshipServiceTest {
   }
 
   @Test
-  void get2dOverlappingFeatures_whenNoFeaturesToUnion_thenThrowsException() {
-    List<Feature> features = List.of();
-    var otherFeatures = List.of(FeatureTestUtil.newBuilder().build());
-
-    assertThatThrownBy(() -> featureRelationshipService.get2dOverlappingFeatures(features, otherFeatures))
-        .isInstanceOf(IllegalArgumentException.class)
-        .hasMessage("Must provide at least one feature to check for overlap");
-    verifyNoInteractions(featureService, polygonService, grpcClientService);
-  }
-
-  @Test
-  void get2dOverlappingFeatures_whenFeaturesToUnionAndNoOtherFeatures_thenNoFeatures() {
-    var features = List.of(FeatureTestUtil.newBuilder().build());
-
-    var result = featureRelationshipService.get2dOverlappingFeatures(features, List.of());
+  void build2dPolygons_whenNoFeatures_thenNoPolygons() {
+    var result = featureRelationshipService.build2dPolygons(List.of());
 
     assertThat(result).isEmpty();
     verifyNoInteractions(featureService, polygonService, grpcClientService);
   }
 
   @Test
-  void get2dOverlappingFeatures_whenCoordinateSystemDiffersFromFeaturesToUnion_thenThrowsException() {
-    var features = List.of(
-        FeatureTestUtil.newBuilder().withCoordinateSystem(CoordinateSystem.ED50).build(),
-        FeatureTestUtil.newBuilder().withCoordinateSystem(CoordinateSystem.ED50).build()
+  void build2dPolygons_whenFeatures_thenPolygonsKeyedByFeatureInGivenOrder() {
+    var firstFeature = FeatureTestUtil.newBuilder().build();
+    var featureWithoutPolygons = FeatureTestUtil.newBuilder().build();
+    var secondFeature = FeatureTestUtil.newBuilder().build();
+    var features = List.of(firstFeature, featureWithoutPolygons, secondFeature);
+    var entityBackedFeatures = List.of(
+        new EntityBackedFeature(firstFeature, Map.of()),
+        new EntityBackedFeature(featureWithoutPolygons, Map.of()),
+        new EntityBackedFeature(secondFeature, Map.of())
     );
-    var otherFeatures = List.of(
+    var firstPolygons = Map.of(UUID.randomUUID(), "first polygon");
+    var secondPolygons = Map.of(UUID.randomUUID(), "second polygon");
+
+    when(featureService.getEntityBackedFeatures(features)).thenReturn(entityBackedFeatures);
+    when(polygonService.getFeatureIdToPolygonIdToEsriJson(entityBackedFeatures))
+        .thenReturn(Map.of(secondFeature.getId(), secondPolygons, firstFeature.getId(), firstPolygons));
+
+    var result = featureRelationshipService.build2dPolygons(features);
+
+    assertThat(result).containsExactly(
+        Map.entry(firstFeature, firstPolygons),
+        Map.entry(secondFeature, secondPolygons)
+    );
+  }
+
+  @Test
+  void get2dOverlappingFeatures_whenNoFeaturesToUnion_thenThrowsException() {
+    List<Feature> features = List.of();
+    var otherFeaturePolygons = Map.of(
+        FeatureTestUtil.newBuilder().build(),
+        Map.of(UUID.randomUUID(), "other polygon")
+    );
+
+    assertThatThrownBy(() -> featureRelationshipService.get2dOverlappingFeatures(features, otherFeaturePolygons))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("Must provide at least one feature to check for overlap");
+    verifyNoInteractions(featureService, polygonService, grpcClientService);
+  }
+
+  @Test
+  void get2dOverlappingFeatures_whenFeaturesToUnionInDifferentCoordinateSystems_thenThrowsException() {
+    var features = List.of(
         FeatureTestUtil.newBuilder().withCoordinateSystem(CoordinateSystem.ED50).build(),
         FeatureTestUtil.newBuilder().withCoordinateSystem(CoordinateSystem.BRITISH_NATIONAL_GRID).build()
     );
+    Map<Feature, Map<UUID, String>> otherFeaturePolygons = Map.of();
 
-    assertThatThrownBy(() -> featureRelationshipService.get2dOverlappingFeatures(features, otherFeatures))
+    assertThatThrownBy(() -> featureRelationshipService.get2dOverlappingFeatures(features, otherFeaturePolygons))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessage("All features to check for overlap must use the coordinate system ED50");
+    verifyNoInteractions(featureService, polygonService, grpcClientService);
+  }
+
+  @Test
+  void get2dOverlappingFeatures_whenOtherFeatureNotInCoordinateSystemOfFeaturesToUnion_thenThrowsException() {
+    var features = List.of(FeatureTestUtil.newBuilder().withCoordinateSystem(CoordinateSystem.ED50).build());
+    var otherFeature = FeatureTestUtil.newBuilder()
+        .withCoordinateSystem(CoordinateSystem.BRITISH_NATIONAL_GRID)
+        .build();
+    var otherFeaturePolygons = Map.of(otherFeature, Map.of(UUID.randomUUID(), "other polygon"));
+
+    assertThatThrownBy(() -> featureRelationshipService.get2dOverlappingFeatures(features, otherFeaturePolygons))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("All features to check for overlap must use the coordinate system ED50");
+    verifyNoInteractions(featureService, polygonService, grpcClientService);
+  }
+
+  @Test
+  void get2dOverlappingFeatures_whenNoOtherFeaturesToCheck_thenNoFeatures() {
+    var features = List.of(FeatureTestUtil.newBuilder().build());
+
+    var result = featureRelationshipService.get2dOverlappingFeatures(features, Map.of());
+
+    assertThat(result).isEmpty();
     verifyNoInteractions(featureService, polygonService, grpcClientService);
   }
 
@@ -164,13 +212,16 @@ class FeatureRelationshipServiceTest {
   void get2dOverlappingFeatures_whenFeaturesToUnionHaveNoPolygons_thenThrowsException() {
     var feature = FeatureTestUtil.newBuilder().build();
     var features = List.of(feature);
-    var otherFeatures = List.of(FeatureTestUtil.newBuilder().build());
+    var otherFeaturePolygons = Map.of(
+        FeatureTestUtil.newBuilder().build(),
+        Map.of(UUID.randomUUID(), "other polygon")
+    );
     var entityBackedFeature = new EntityBackedFeature(feature, Map.of());
 
     when(featureService.getEntityBackedFeatures(features)).thenReturn(List.of(entityBackedFeature));
     when(polygonService.getPolygonIdToEsriJson(entityBackedFeature)).thenReturn(Map.of());
 
-    assertThatThrownBy(() -> featureRelationshipService.get2dOverlappingFeatures(features, otherFeatures))
+    assertThatThrownBy(() -> featureRelationshipService.get2dOverlappingFeatures(features, otherFeaturePolygons))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessage("Features to check for overlap have no polygons");
     verifyNoInteractions(grpcClientService);
@@ -186,17 +237,13 @@ class FeatureRelationshipServiceTest {
     var firstOverlappingFeature = FeatureTestUtil.newBuilder().build();
     var separateFeature = FeatureTestUtil.newBuilder().build();
     var secondOverlappingFeature = FeatureTestUtil.newBuilder().build();
-    var otherFeatures = List.of(firstOverlappingFeature, separateFeature, secondOverlappingFeature);
-    var otherEntityBackedFeatures = List.of(
-        new EntityBackedFeature(firstOverlappingFeature, Map.of()),
-        new EntityBackedFeature(separateFeature, Map.of()),
-        new EntityBackedFeature(secondOverlappingFeature, Map.of())
-    );
-    Map<UUID, Map<UUID, String>> featureIdToPolygonIdToEsriJson = Map.of(
-        firstOverlappingFeature.getId(), Map.of(UUID.randomUUID(), "first overlapping polygon"),
-        separateFeature.getId(), Map.of(UUID.randomUUID(), "separate polygon"),
-        secondOverlappingFeature.getId(), Map.of(UUID.randomUUID(), "second overlapping polygon")
-    );
+    var firstOverlappingPolygons = Map.of(UUID.randomUUID(), "first overlapping polygon");
+    var separatePolygons = Map.of(UUID.randomUUID(), "separate polygon");
+    var secondOverlappingPolygons = Map.of(UUID.randomUUID(), "second overlapping polygon");
+    Map<Feature, Map<UUID, String>> otherFeaturePolygons = new LinkedHashMap<>();
+    otherFeaturePolygons.put(firstOverlappingFeature, firstOverlappingPolygons);
+    otherFeaturePolygons.put(separateFeature, separatePolygons);
+    otherFeaturePolygons.put(secondOverlappingFeature, secondOverlappingPolygons);
 
     when(featureService.getEntityBackedFeatures(features))
         .thenReturn(List.of(firstEntityBackedFeature, secondEntityBackedFeature));
@@ -204,16 +251,17 @@ class FeatureRelationshipServiceTest {
         .thenReturn(Map.of(UUID.randomUUID(), "first polygon"));
     when(polygonService.getPolygonIdToEsriJson(secondEntityBackedFeature))
         .thenReturn(Map.of(UUID.randomUUID(), "second polygon"));
-    when(featureService.getEntityBackedFeatures(otherFeatures)).thenReturn(otherEntityBackedFeatures);
-    when(polygonService.getFeatureIdToPolygonIdToEsriJson(otherEntityBackedFeatures))
-        .thenReturn(featureIdToPolygonIdToEsriJson);
     when(grpcClientService.find2dOverlappingFeatures(
         List.of("first polygon", "second polygon"),
-        featureIdToPolygonIdToEsriJson
+        Map.of(
+            firstOverlappingFeature.getId(), firstOverlappingPolygons,
+            separateFeature.getId(), separatePolygons,
+            secondOverlappingFeature.getId(), secondOverlappingPolygons
+        )
     ))
         .thenReturn(Set.of(secondOverlappingFeature.getId(), firstOverlappingFeature.getId()));
 
-    var result = featureRelationshipService.get2dOverlappingFeatures(features, otherFeatures);
+    var result = featureRelationshipService.get2dOverlappingFeatures(features, otherFeaturePolygons);
 
     assertThat(result).containsExactly(firstOverlappingFeature, secondOverlappingFeature);
   }

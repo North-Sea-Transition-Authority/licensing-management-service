@@ -17,6 +17,7 @@ import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.servlet.HandlerMapping;
+import uk.co.fivium.gisframework.grpc.GrpcRequestHandler;
 import uk.co.nstauthority.licensingmanagementservice.authentication.saml.EnergyPortalSamlAttribute;
 import uk.co.nstauthority.licensingmanagementservice.correlationid.CorrelationIdUtil;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.epa.EpaRequestHandler;
@@ -36,10 +37,16 @@ public class RequestLogFilter extends OncePerRequestFilter {
 
   private final HibernateQueryCounter hibernateQueryCounter;
   private final EpaRequestHandler requestHandler;
+  private final GrpcRequestHandler grpcRequestHandler;
 
-  RequestLogFilter(HibernateQueryCounter hibernateQueryCounter, EpaRequestHandler requestHandler) {
+  RequestLogFilter(
+      HibernateQueryCounter hibernateQueryCounter,
+      EpaRequestHandler requestHandler,
+      GrpcRequestHandler grpcRequestHandler
+  ) {
     this.hibernateQueryCounter = hibernateQueryCounter;
     this.requestHandler = requestHandler;
+    this.grpcRequestHandler = grpcRequestHandler;
   }
 
   @Override
@@ -60,6 +67,7 @@ public class RequestLogFilter extends OncePerRequestFilter {
       Map<String, Long> sqlCounter = hibernateQueryCounter.getSqlToCount();
       Long overallQueryCount = hibernateQueryCounter.getOverallQueryCount();
       Map<String, Long> epaCountByRequest = requestHandler.getCountByRequest();
+      Map<String, Long> grpcCountByRequest = grpcRequestHandler.getCountByRequest();
       Object patternAttribute = request.getAttribute(HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE);
       String mvcPattern = StringUtils.firstNonBlank(patternAttribute != null ? patternAttribute.toString() : "",
           UNKNOWN);
@@ -83,17 +91,20 @@ public class RequestLogFilter extends OncePerRequestFilter {
           .addKeyValue("query_count_hibernate", overallQueryCount)
           .addKeyValue("query_count_hibernate_by_request", sqlCounter)
           .addKeyValue("query_count_epa_by_request", epaCountByRequest)
+          .addKeyValue("query_count_grpc_by_request", grpcCountByRequest)
           .log(
               "[{}] {}{} ({}), time: {}ms, status: {}, user id: {}, proxy id: {}, " +
                   "overall hibernate count: {}, " +
                   "hibernate count by query: {}, " +
-                  "epa request count by purpose: {} ",
+                  "epa request count by purpose: {}, " +
+                  "grpc call count by method: {} ",
               requestMethod, requestUri, queryString, mvcPattern, elapsedMs, responseStatus, userId, proxyWuaId,
-              overallQueryCount, sqlCounter, epaCountByRequest);
+              overallQueryCount, sqlCounter, epaCountByRequest, grpcCountByRequest);
 
       CorrelationIdUtil.clearCorrelationIdOnMdc();
       hibernateQueryCounter.clearQueryCount();
       requestHandler.clearRequestCount();
+      grpcRequestHandler.clear();
       MDC.remove(RequestLogFilter.MDC_WUA_ID);
       MDC.remove(RequestLogFilter.MDC_PROXY_WUA_ID);
     }

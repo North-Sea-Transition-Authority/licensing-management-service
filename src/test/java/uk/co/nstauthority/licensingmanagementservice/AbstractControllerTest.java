@@ -19,6 +19,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import uk.co.fivium.digitaldocumentlibrary.document.DocumentTemplateService;
 import uk.co.fivium.energyportal.starter.accounts.EnergyPortalAccountsControllerAdvice;
 import uk.co.fivium.energyportal.starter.configuration.EnergyPortalAccountsConfigurationProperties;
+import uk.co.fivium.gisframework.grpc.GrpcRequestHandler;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceLogoutSuccessHandler;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailArgumentResolver;
@@ -287,6 +288,11 @@ public abstract class AbstractControllerTest {
     @Bean
     public EpaRequestHandler epaRequestHandler() {
       return new EpaRequestHandler();
+    }
+
+    @Bean
+    public GrpcRequestHandler grpcRequestHandler() {
+      return new GrpcRequestHandler();
     }
 
     @Bean("messageSource")

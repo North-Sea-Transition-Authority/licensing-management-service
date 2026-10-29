@@ -16,6 +16,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import uk.co.fivium.gisframework.command.CommandJourneyService;
 import uk.co.fivium.gisframework.feature.CoordinateSystemUtils;
 import uk.co.fivium.gisframework.feature.Feature;
+import uk.co.fivium.gisframework.relationship.FeatureRelationshipService;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.CorrectionLicenceIsType;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanViewCorrection;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.LicencePositionCorrectionBelongsToCorrection;
@@ -55,6 +56,7 @@ public class PartialSurrenderDefineAreaController {
   private final PartialSurrenderDefineAreaValidator partialSurrenderDefineAreaValidator;
   private final PartialSurrenderValidator partialSurrenderValidator;
   private final LicencePositionCorrectionService licencePositionCorrectionService;
+  private final FeatureRelationshipService featureRelationshipService;
 
   public PartialSurrenderDefineAreaController(
       CommandJourneyService commandJourneyService,
@@ -62,7 +64,8 @@ public class PartialSurrenderDefineAreaController {
       PartialSurrenderSelectAreasFormValidator partialSurrenderSelectAreasFormValidator,
       PartialSurrenderDefineAreaValidator partialSurrenderDefineAreaValidator,
       PartialSurrenderValidator partialSurrenderValidator,
-      LicencePositionCorrectionService licencePositionCorrectionService
+      LicencePositionCorrectionService licencePositionCorrectionService,
+      FeatureRelationshipService featureRelationshipService
   ) {
     this.commandJourneyService = commandJourneyService;
     this.partialSurrenderCorrectionService = partialSurrenderCorrectionService;
@@ -70,6 +73,7 @@ public class PartialSurrenderDefineAreaController {
     this.partialSurrenderDefineAreaValidator = partialSurrenderDefineAreaValidator;
     this.partialSurrenderValidator = partialSurrenderValidator;
     this.licencePositionCorrectionService = licencePositionCorrectionService;
+    this.featureRelationshipService = featureRelationshipService;
   }
 
   @GetMapping("/define-area")
@@ -159,19 +163,9 @@ public class PartialSurrenderDefineAreaController {
     var activeFeatures = commandJourneyService.getActiveFeatures(surrenderDetails.commandJourneyIdOrThrow());
 
     var blockFeature = partialSurrenderCorrectionService.getSurrenderedBlockFeatureOrThrow(licencePositionCorrection, featureId);
-    var otherActiveBlocks = partialSurrenderValidator.getOtherActiveBlocks(
-        partialSurrenderCorrectionService.getCommittedPartialSurrenderOrThrow(licencePositionCorrection),
-        licencePositionCorrectionService.resolveEffectiveDate(licencePositionCorrection),
-        partialSurrenderCorrectionService.getCommittedPartialSurrenderChangeId(licencePositionCorrection).orElse(null)
-    );
 
-    if (partialSurrenderSelectAreasFormValidator.hasErrors(
-        form,
-        bindingResult,
-        activeFeatures,
-        blockFeature,
-        otherActiveBlocks
-    )) {
+    if (partialSurrenderSelectAreasFormValidator.hasSelectionErrors(form, bindingResult, activeFeatures, blockFeature)
+        || hasOverlapErrors(licencePositionCorrection, form, bindingResult, activeFeatures)) {
       return getSelectAreasModelAndView(
           licencePositionCorrection,
           featureId,
@@ -205,6 +199,26 @@ public class PartialSurrenderDefineAreaController {
     //TODO - EPGF-183: redirect to ended subareas when implemented
     return ReverseRouter.redirect(on(PartialSurrenderTaskListController.class)
         .renderTaskList(correction, licencePositionCorrection, null)
+    );
+  }
+
+  private boolean hasOverlapErrors(
+      LicencePositionCorrection licencePositionCorrection,
+      PartialSurrenderSelectAreasForm form,
+      BindingResult bindingResult,
+      List<Feature> activeFeatures
+  ) {
+    var otherActiveBlocks = partialSurrenderValidator.getOtherActiveBlocks(
+        partialSurrenderCorrectionService.getCommittedPartialSurrenderOrThrow(licencePositionCorrection),
+        licencePositionCorrectionService.resolveEffectiveDate(licencePositionCorrection),
+        partialSurrenderCorrectionService.getCommittedPartialSurrenderChangeId(licencePositionCorrection).orElse(null)
+    );
+
+    return partialSurrenderSelectAreasFormValidator.hasOverlapErrors(
+        form,
+        bindingResult,
+        activeFeatures,
+        featureRelationshipService.build2dPolygons(otherActiveBlocks)
     );
   }
 

@@ -4,7 +4,9 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasProperty;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -20,6 +22,7 @@ import java.time.LocalDate;
 import java.time.Month;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -32,6 +35,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.validation.BindingResult;
 import uk.co.fivium.gisframework.command.CommandJourneyService;
 import uk.co.fivium.gisframework.feature.Feature;
+import uk.co.fivium.gisframework.relationship.FeatureRelationshipService;
 import uk.co.fivium.grpc.gis.CoordinateSystem;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
@@ -102,6 +106,10 @@ class PartialSurrenderDefineAreaControllerTest extends AbstractControllerTest {
       .withFeatureName("30/1a_2")
       .withCoordinateSystem(CoordinateSystem.ED50)
       .build();
+  private static final Feature OTHER_ACTIVE_BLOCK = FeatureTestUtil.builder().withFeatureName("30/2").build();
+  private static final List<Feature> OTHER_ACTIVE_BLOCKS = List.of(OTHER_ACTIVE_BLOCK);
+  private static final Map<Feature, Map<UUID, String>> OTHER_ACTIVE_BLOCK_POLYGONS =
+      Map.of(OTHER_ACTIVE_BLOCK, Map.of(UUID.randomUUID(), "other active block polygon"));
 
   @MockitoBean
   private PartialSurrenderCorrectionService partialSurrenderCorrectionService;
@@ -117,6 +125,9 @@ class PartialSurrenderDefineAreaControllerTest extends AbstractControllerTest {
 
   @MockitoBean
   private PartialSurrenderValidator partialSurrenderValidator;
+
+  @MockitoBean
+  private FeatureRelationshipService featureRelationshipService;
 
   @Test
   void renderDefineArea_whenNotAllocated_forbidden() throws Exception {
@@ -288,15 +299,10 @@ class PartialSurrenderDefineAreaControllerTest extends AbstractControllerTest {
   @Test
   void selectAreas_whenValidSelection_savesAndRedirectsToTaskList() throws Exception {
     var positionCorrection = givenBlockSurrender(List.of(), List.of(FIRST_AREA, SECOND_AREA));
-    var otherActiveBlocks = givenOtherActiveBlocks(positionCorrection);
+    givenOtherActiveBlocks(positionCorrection);
 
-    when(partialSurrenderSelectAreasFormValidator.hasErrors(
-        any(PartialSurrenderSelectAreasForm.class),
-        any(BindingResult.class),
-        eq(List.of(FIRST_AREA, SECOND_AREA)),
-        eq(FEATURE),
-        eq(otherActiveBlocks)
-    )).thenReturn(false);
+    givenSelectionErrors(false);
+    givenOverlapErrors(false);
 
     mockMvc.perform(post(selectAreasUrl())
             .param("surrenderedFeatureIds", FIRST_AREA.getId().toString())
@@ -311,15 +317,10 @@ class PartialSurrenderDefineAreaControllerTest extends AbstractControllerTest {
   @Test
   void selectAreas_whenSingleBlock_savesAndRedirectsToReviewAndSubmit() throws Exception {
     var positionCorrection = givenBlockSurrender(List.of(), List.of(FIRST_AREA, SECOND_AREA));
-    var otherActiveBlocks = givenOtherActiveBlocks(positionCorrection);
+    givenOtherActiveBlocks(positionCorrection);
 
-    when(partialSurrenderSelectAreasFormValidator.hasErrors(
-        any(PartialSurrenderSelectAreasForm.class),
-        any(BindingResult.class),
-        eq(List.of(FIRST_AREA, SECOND_AREA)),
-        eq(FEATURE),
-        eq(otherActiveBlocks)
-    )).thenReturn(false);
+    givenSelectionErrors(false);
+    givenOverlapErrors(false);
     when(partialSurrenderCorrectionService.findSingleBlockNotOperatedOn(positionCorrection))
         .thenReturn(Optional.of(FEATURE));
 
@@ -339,15 +340,10 @@ class PartialSurrenderDefineAreaControllerTest extends AbstractControllerTest {
     var correction = givenCorrectionAllocatedToUser(LICENCE);
     var positionCorrection = correctingPositionCorrection(correction);
     givenBlockSurrender(positionCorrection, List.of(), List.of(FIRST_AREA, SECOND_AREA));
-    var otherActiveBlocks = givenOtherActiveBlocks(positionCorrection);
+    givenOtherActiveBlocks(positionCorrection);
 
-    when(partialSurrenderSelectAreasFormValidator.hasErrors(
-        any(PartialSurrenderSelectAreasForm.class),
-        any(BindingResult.class),
-        eq(List.of(FIRST_AREA, SECOND_AREA)),
-        eq(FEATURE),
-        eq(otherActiveBlocks)
-    )).thenReturn(false);
+    givenSelectionErrors(false);
+    givenOverlapErrors(false);
     when(partialSurrenderCorrectionService.findSingleBlockNotOperatedOn(positionCorrection))
         .thenReturn(Optional.of(FEATURE));
     when(partialSurrenderCorrectionService.findCorrectedLiveChangeId(positionCorrection))
@@ -362,17 +358,9 @@ class PartialSurrenderDefineAreaControllerTest extends AbstractControllerTest {
   }
 
   @Test
-  void selectAreas_whenInvalid_renderForm() throws Exception {
-    var positionCorrection = givenBlockSurrender(List.of(), List.of(FIRST_AREA, SECOND_AREA));
-    var otherActiveBlocks = givenOtherActiveBlocks(positionCorrection);
-
-    when(partialSurrenderSelectAreasFormValidator.hasErrors(
-        any(PartialSurrenderSelectAreasForm.class),
-        any(BindingResult.class),
-        eq(List.of(FIRST_AREA, SECOND_AREA)),
-        eq(FEATURE),
-        eq(otherActiveBlocks)
-    )).thenReturn(true);
+  void selectAreas_whenSelectionErrors_rendersFormWithoutCheckingOverlap() throws Exception {
+    givenBlockSurrender(List.of(), List.of(FIRST_AREA, SECOND_AREA));
+    givenSelectionErrors(true);
 
     mockMvc.perform(post(selectAreasUrl())
             .with(user(regulatorUser)).with(csrf()))
@@ -380,23 +368,60 @@ class PartialSurrenderDefineAreaControllerTest extends AbstractControllerTest {
             status().isOk(),
             view().name(SELECT_AREAS_VIEW_NAME)
         );
+
+    verifyNoInteractions(partialSurrenderValidator, featureRelationshipService);
   }
 
-  private List<Feature> givenOtherActiveBlocks(LicencePositionCorrection positionCorrection) {
+  @Test
+  void selectAreas_whenAreasKeptOverlap_renderForm() throws Exception {
+    var positionCorrection = givenBlockSurrender(List.of(), List.of(FIRST_AREA, SECOND_AREA));
+    givenOtherActiveBlocks(positionCorrection);
+    givenSelectionErrors(false);
+    givenOverlapErrors(true);
+
+    mockMvc.perform(post(selectAreasUrl())
+            .param("surrenderedFeatureIds", FIRST_AREA.getId().toString())
+            .with(user(regulatorUser)).with(csrf()))
+        .andExpectAll(
+            status().isOk(),
+            view().name(SELECT_AREAS_VIEW_NAME)
+        );
+
+    verify(partialSurrenderCorrectionService, never()).setSurrenderedFeatureIds(any(), any(), any());
+  }
+
+  private void givenSelectionErrors(boolean hasErrors) {
+    when(partialSurrenderSelectAreasFormValidator.hasSelectionErrors(
+        any(PartialSurrenderSelectAreasForm.class),
+        any(BindingResult.class),
+        eq(List.of(FIRST_AREA, SECOND_AREA)),
+        eq(FEATURE)
+    )).thenReturn(hasErrors);
+  }
+
+  private void givenOverlapErrors(boolean hasErrors) {
+    when(partialSurrenderSelectAreasFormValidator.hasOverlapErrors(
+        any(PartialSurrenderSelectAreasForm.class),
+        any(BindingResult.class),
+        eq(List.of(FIRST_AREA, SECOND_AREA)),
+        eq(OTHER_ACTIVE_BLOCK_POLYGONS)
+    )).thenReturn(hasErrors);
+  }
+
+  private void givenOtherActiveBlocks(LicencePositionCorrection positionCorrection) {
     var surrender = LicenceOperation.newPartialSurrenderOperation()
         .withSurrenderedFeatureIds(List.of(FEATURE_ID))
         .build();
     var positionDate = LocalDate.of(2026, Month.JUNE, 1);
     var stagedChangeId = UUID.randomUUID().toString();
-    var otherActiveBlocks = List.of(FeatureTestUtil.builder().withFeatureName("30/2").build());
     when(partialSurrenderCorrectionService.getCommittedPartialSurrenderOrThrow(positionCorrection))
         .thenReturn(surrender);
     when(licencePositionCorrectionService.resolveEffectiveDate(positionCorrection)).thenReturn(positionDate);
     when(partialSurrenderCorrectionService.getCommittedPartialSurrenderChangeId(positionCorrection))
         .thenReturn(Optional.of(stagedChangeId));
     when(partialSurrenderValidator.getOtherActiveBlocks(surrender, positionDate, stagedChangeId))
-        .thenReturn(otherActiveBlocks);
-    return otherActiveBlocks;
+        .thenReturn(OTHER_ACTIVE_BLOCKS);
+    when(featureRelationshipService.build2dPolygons(OTHER_ACTIVE_BLOCKS)).thenReturn(OTHER_ACTIVE_BLOCK_POLYGONS);
   }
 
   private void givenBlockSurrenderWithActiveFeatures() {

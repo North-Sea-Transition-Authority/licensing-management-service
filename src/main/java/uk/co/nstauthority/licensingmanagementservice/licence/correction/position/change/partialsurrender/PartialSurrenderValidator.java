@@ -16,6 +16,7 @@ import uk.co.fivium.gisframework.command.CommandJourneyService;
 import uk.co.fivium.gisframework.feature.Feature;
 import uk.co.fivium.gisframework.feature.FeatureService;
 import uk.co.fivium.gisframework.feature.Layer;
+import uk.co.fivium.gisframework.relationship.FeatureRelationshipService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderTypeForm;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderTypeFormValidator;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.definearea.PartialSurrenderSelectAreasForm;
@@ -36,6 +37,7 @@ public class PartialSurrenderValidator {
   private final PartialSurrenderSelectAreasFormValidator partialSurrenderSelectAreasFormValidator;
   private final CommandJourneyService commandJourneyService;
   private final FeatureService featureService;
+  private final FeatureRelationshipService featureRelationshipService;
   private final LicencePositionChangeService licencePositionChangeService;
 
   PartialSurrenderValidator(
@@ -44,6 +46,7 @@ public class PartialSurrenderValidator {
       PartialSurrenderSelectAreasFormValidator partialSurrenderSelectAreasFormValidator,
       CommandJourneyService commandJourneyService,
       FeatureService featureService,
+      FeatureRelationshipService featureRelationshipService,
       LicencePositionChangeService licencePositionChangeService
   ) {
     this.partialSurrenderDetailsFormValidator = partialSurrenderDetailsFormValidator;
@@ -51,11 +54,14 @@ public class PartialSurrenderValidator {
     this.partialSurrenderSelectAreasFormValidator = partialSurrenderSelectAreasFormValidator;
     this.commandJourneyService = commandJourneyService;
     this.featureService = featureService;
+    this.featureRelationshipService = featureRelationshipService;
     this.licencePositionChangeService = licencePositionChangeService;
   }
 
   /**
-   * Validates a partial surrender using all associated form validators and an additional overlap check.
+   * Validates a partial surrender using all associated form validators and an additional overlap check. Each step is
+   * only validated once the steps before it have no errors, so only the errors of the earliest failing step are
+   * returned.
    *
    * @param surrender            The partial surrender operation being validated.
    * @param stateGoingIntoChange The state before the operation.
@@ -83,14 +89,37 @@ public class PartialSurrenderValidator {
           .toList();
     }
 
-    var otherActiveBlocks = surrender.hasPartialSurrender()
-        ? getOtherActiveBlocks(surrender, positionDate, changeId)
-        : List.<Feature>of();
+    var surrenderTypeErrors = validateSurrenderTypes(surrender, blockFeaturesById);
+    if (!surrenderTypeErrors.isEmpty()) {
+      return surrenderTypeErrors;
+    }
+
+    var activeFeaturesByBlockId = getActiveFeaturesOfPartiallySurrenderedBlocks(surrender);
+    var areaSelectionErrors = validateAreaSelections(surrender, blockFeaturesById, activeFeaturesByBlockId);
+    if (!areaSelectionErrors.isEmpty()) {
+      return areaSelectionErrors;
+    }
+
+    var recordedAreasKeptByBlockId = getRecordedAreasKept(surrender);
+    if (activeFeaturesByBlockId.isEmpty() && recordedAreasKeptByBlockId.isEmpty()) {
+      return List.of();
+    }
+
+    var otherActiveBlockPolygons =
+        featureRelationshipService.build2dPolygons(getOtherActiveBlocks(surrender, positionDate, changeId));
 
     return Stream.of(
-        validateSurrenderTypes(surrender, blockFeaturesById),
-        validateAreaSelections(surrender, blockFeaturesById, otherActiveBlocks),
-        validateRecordedAreasKept(surrender, blockFeaturesById, otherActiveBlocks)
+        validateSelectedAreasKept(
+            surrender,
+            blockFeaturesById,
+            activeFeaturesByBlockId,
+            otherActiveBlockPolygons
+        ),
+        validateRecordedAreasKept(
+            blockFeaturesById,
+            recordedAreasKeptByBlockId,
+            otherActiveBlockPolygons
+        )
     )
         .flatMap(List::stream)
         .toList();
@@ -135,20 +164,19 @@ public class PartialSurrenderValidator {
   private List<String> validateAreaSelections(
       PartialSurrenderOperation surrender,
       Map<UUID, Feature> blockFeaturesById,
-      List<Feature> otherActiveBlocks
+      Map<UUID, List<Feature>> activeFeaturesByBlockId
   ) {
-    return getActiveFeaturesOfPartiallySurrenderedBlocks(surrender).entrySet().stream()
+    return activeFeaturesByBlockId.entrySet().stream()
         .flatMap(entry -> {
           var blockFeature = blockFeaturesById.get(entry.getKey());
           var surrenderDetails = surrender.featureIdToSurrenderDetails().get(entry.getKey());
           var form = PartialSurrenderSelectAreasForm.from(surrenderDetails);
           var bindingResult = new BeanPropertyBindingResult(form, "form");
-          var hasErrors = partialSurrenderSelectAreasFormValidator.hasErrors(
+          var hasErrors = partialSurrenderSelectAreasFormValidator.hasSelectionErrors(
               form,
               bindingResult,
               entry.getValue(),
-              blockFeature,
-              otherActiveBlocks
+              blockFeature
           );
 
           var areaIds = entry.getValue().stream().map(Feature::getId).toList();
@@ -163,20 +191,52 @@ public class PartialSurrenderValidator {
         .toList();
   }
 
-  private List<String> validateRecordedAreasKept(
+  private List<String> validateSelectedAreasKept(
       PartialSurrenderOperation surrender,
       Map<UUID, Feature> blockFeaturesById,
-      List<Feature> otherActiveBlocks
+      Map<UUID, List<Feature>> activeFeaturesByBlockId,
+      Map<Feature, Map<UUID, String>> otherActiveBlockPolygons
   ) {
-    return surrender.featureIdToSurrenderDetails().entrySet().stream()
-        .filter(entry -> entry.getValue().isPartialSurrender())
-        .filter(entry -> !entry.getValue().hasCommandJourney())
+    return activeFeaturesByBlockId.entrySet().stream()
         .flatMap(entry -> {
-          var areasKept = featureService.getFeaturesByIds(entry.getValue().retainedFeatureIds());
-          return partialSurrenderSelectAreasFormValidator.getOverlapErrors(areasKept, otherActiveBlocks).stream()
+          var form = PartialSurrenderSelectAreasForm.from(surrender.featureIdToSurrenderDetails().get(entry.getKey()));
+          var bindingResult = new BeanPropertyBindingResult(form, "form");
+          partialSurrenderSelectAreasFormValidator.hasOverlapErrors(
+              form,
+              bindingResult,
+              entry.getValue(),
+              otherActiveBlockPolygons
+          );
+
+          return bindingResult.getAllErrors().stream()
+              .map(DefaultMessageSourceResolvable::getDefaultMessage)
               .map(message -> blockError(blockFeaturesById.get(entry.getKey()), message));
         })
         .toList();
+  }
+
+  private List<String> validateRecordedAreasKept(
+      Map<UUID, Feature> blockFeaturesById,
+      Map<UUID, List<Feature>> recordedAreasKeptByBlockId,
+      Map<Feature, Map<UUID, String>> otherActiveBlockPolygons
+  ) {
+    return recordedAreasKeptByBlockId.entrySet().stream()
+        .flatMap(entry -> partialSurrenderSelectAreasFormValidator.getOverlapErrors(
+                entry.getValue(),
+                otherActiveBlockPolygons
+            )
+            .stream()
+            .map(message -> blockError(blockFeaturesById.get(entry.getKey()), message)))
+        .toList();
+  }
+
+  private Map<UUID, List<Feature>> getRecordedAreasKept(PartialSurrenderOperation surrender) {
+    return surrender.featureIdToSurrenderDetails().entrySet().stream()
+        .filter(entry -> entry.getValue().isPartialSurrender())
+        .filter(entry -> !entry.getValue().hasCommandJourney())
+        .map(entry -> Map.entry(entry.getKey(), featureService.getFeaturesByIds(entry.getValue().retainedFeatureIds())))
+        .filter(entry -> !entry.getValue().isEmpty())
+        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
   }
 
   private Set<UUID> getFeatureIdsCreatedByLiveSurrender(@Nullable String changeId) {

@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.UUID;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.springframework.stereotype.Service;
@@ -77,7 +79,32 @@ public class FeatureRelationshipService {
       throw new IllegalArgumentException("Feature %s has no polygons".formatted(feature.getId()));
     }
 
-    return getFeaturesOverlappingPolygons(esriJsonPolygons, otherFeatures);
+    return getFeaturesOverlappingPolygons(esriJsonPolygons, build2dPolygons(otherFeatures));
+  }
+
+  /**
+   * Builds the polygons of many features in a single call, so they can be checked for overlap many times with
+   * {@link #get2dOverlappingFeatures(Collection, Map)} without being built again.
+   *
+   * @param features The features whose polygons to build, in any coordinate system.
+   * @return Map of feature to map of polygon id to it's EsriJSON.
+   */
+  public Map<Feature, Map<UUID, String>> build2dPolygons(Collection<Feature> features) {
+    if (features.isEmpty()) {
+      return Map.of();
+    }
+
+    var featureIdToPolygonIdToEsriJson =
+        polygonService.getFeatureIdToPolygonIdToEsriJson(featureService.getEntityBackedFeatures(features));
+
+    return features.stream()
+        .filter(feature -> featureIdToPolygonIdToEsriJson.containsKey(feature.getId()))
+        .collect(Collectors.toMap(
+            Function.identity(),
+            feature -> featureIdToPolygonIdToEsriJson.get(feature.getId()),
+            (polygons, duplicatePolygons) -> polygons,
+            LinkedHashMap::new
+        ));
   }
 
   /**
@@ -85,30 +112,30 @@ public class FeatureRelationshipService {
    * polygons. A feature overlaps the union when it shares any area with at least one of the features; features that
    * only touch along an edge or at a corner do not overlap.
    *
-   * @param features      The features whose union to check against.
-   * @param otherFeatures The features to check.
-   * @return The features from otherFeatures that overlap the union of the features, in the order they were given.
-   * @throws IllegalArgumentException if no features are given, the features and other features are not all in the
-   *                                  same coordinate system, or the features have no polygons.
+   * @param features             The features whose union to check against.
+   * @param otherFeaturePolygons The features to check, with their polygons built by {@link #build2dPolygons(Collection)}.
+   * @return The features from otherFeaturePolygons that overlap the union of the features, in the order they were given.
+   * @throws IllegalArgumentException if no features are given, the features or other features are not all in the same
+   *                                  coordinate system, or the features have no polygons.
    */
   public List<Feature> get2dOverlappingFeatures(
       Collection<Feature> features,
-      Collection<Feature> otherFeatures
+      Map<Feature, Map<UUID, String>> otherFeaturePolygons
   ) {
     if (features.isEmpty()) {
       throw new IllegalArgumentException("Must provide at least one feature to check for overlap");
     }
 
-    if (otherFeatures.isEmpty()) {
-      return List.of();
-    }
-
     var coordinateSystem = features.iterator().next().getCoordinateSystem();
-    if (Stream.concat(features.stream(), otherFeatures.stream())
+    if (Stream.concat(features.stream(), otherFeaturePolygons.keySet().stream())
         .anyMatch(feature -> !coordinateSystem.equals(feature.getCoordinateSystem()))) {
       throw new IllegalArgumentException(
           "All features to check for overlap must use the coordinate system %s".formatted(coordinateSystem)
       );
+    }
+
+    if (otherFeaturePolygons.isEmpty()) {
+      return List.of();
     }
 
     var esriJsonPolygons = featureService.getEntityBackedFeatures(features).stream()
@@ -118,20 +145,25 @@ public class FeatureRelationshipService {
       throw new IllegalArgumentException("Features to check for overlap have no polygons");
     }
 
-    return getFeaturesOverlappingPolygons(esriJsonPolygons, otherFeatures);
+    return getFeaturesOverlappingPolygons(esriJsonPolygons, otherFeaturePolygons);
   }
 
   private List<Feature> getFeaturesOverlappingPolygons(
       List<String> esriJsonPolygons,
-      Collection<Feature> otherFeatures
+      Map<Feature, Map<UUID, String>> otherFeaturePolygons
   ) {
-    var featureIdToPolygonIdToEsriJson =
-        polygonService.getFeatureIdToPolygonIdToEsriJson(featureService.getEntityBackedFeatures(otherFeatures));
+    var featureIdToPolygonIdToEsriJson = otherFeaturePolygons.entrySet()
+        .stream()
+        .collect(Collectors.toMap(
+            entry -> entry.getKey().getId(),
+            Map.Entry::getValue
+        ));
 
     var overlappingFeatureIds =
         grpcClientService.find2dOverlappingFeatures(esriJsonPolygons, featureIdToPolygonIdToEsriJson);
 
-    return otherFeatures.stream()
+    return otherFeaturePolygons.keySet()
+        .stream()
         .filter(otherFeature -> overlappingFeatureIds.contains(otherFeature.getId()))
         .toList();
   }

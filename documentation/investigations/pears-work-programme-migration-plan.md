@@ -1,7 +1,7 @@
 # Investigation: Migrating PEARS Licence Work Programmes into LMS
 
 > **Status: First pass (28 October 2026), survey complete (29 October 2026; see the survey's
-> Summary).** Nothing is
+> Summary), design and delivery steps drafted (30 October 2026).** Nothing is
 > implemented. Decided so far: `DRAFT` programmes are excluded, the review audit is not migrated,
 > migrated comments carry the PEARS author's name in the text with no WUA id, and the work
 > programme is **not written back to PEARS**. This compares
@@ -583,6 +583,255 @@ team). Each item feeds these parts of the plan:
 | WP-S11 | Soft-deleted and multiple-current rows | D19 |
 | WP-S12 | `ACTIVITY_ID` uniqueness and stability across versions | D17 |
 | WP-S13 | Legal text and review audit | D14, D16, Q5 |
+
+## Design
+
+Built on the schedule migration's design (schedule plan, "Design"), which it runs after: the same
+`migration/pears` reading pattern, the same background run, and the same comparison and validation
+approach. The building of activities, statuses and comments follows
+`CarbonStorageLicenceMigrationService` (`buildWorkProgrammeActivity`,
+`buildWorkProgrammeActivityStatuses`, `buildWorkProgrammeActivityComments`). Everything assumes
+Version alignment A (current work programme on the `ACTIVE` detail only); if the licensing team
+chooses B (WP-L7), steps 2 and 3 repeat per migrated schedule version.
+
+**Prerequisite:** the licence's schedule has been migrated by the schedule migration. The work
+programme migration reads the LMS schedule it produced (terms, phases, start date) and never
+creates a schedule itself.
+
+### 1. Read PEARS: `PearsWorkProgrammeService` (`migration/pears/workprogramme`)
+
+- `@Service @ConditionalOnPearsDataSource`, on the existing read-only `pearsDataSource`, like
+  `PearsLicenceService` and the schedule migration's `PearsScheduleService`.
+- SQL in `src/main/resources/pears-migration/`:
+  - `work-programmes.sql`: the current, non-`DRAFT` row of every programme on a numbered licence,
+    with `ped_wp_id`, `ped_lm_id`, licence type and number, and `xml_data`. The filters are the
+    survey's "current" convention: `status_control = 'C' AND record_status = 'ACTIVE'`, and
+    `WORK_PROGRAMME_STATUS != 'DRAFT'`. Optional licence filter, as in `licence-schedules.sql`.
+  - `work-programme-activities.sql`: `XMLTABLE` over `/WORK_PROGRAMME//ACTIVITY` (flat and phase
+    lists) with `ACTIVITY_ID`, `ACTIVITY_TYPE`, `TITLE`, `ACTIVITY_STATUS`, `COMPETED_BLOCKS`,
+    `DESCRIPTION` (as a CLOB; descriptions keep their line breaks), the list kind and the enclosing
+    `PHASE/TYPE`.
+  - `work-programme-notes.sql`: `XMLTABLE` over `NOTES_LIST/NOTE`, excluding `CREATED_BY =
+    'Migration Process'` (decided, M6).
+  - `work-programme-status-dates.sql`: for each activity, the first version in which it had its
+    current status (the M5 fallback date), from all `ACTIVE` versions.
+  - Programme-level values: `WORK_PROGRAMME_TYPE`, `BREAKPOINT` Y/M/D, the well-count matrix (if
+    WP-L6 keeps it) and `LEGAL_TEXT` (as a CLOB, if WP-L10 keeps it).
+  - The current schedule's `DD` event offset (`xview_ped_lic_schedule_events`, `event_mnem = 'DD'`),
+    for M3 rule 2.
+- Return immutable records: `PearsWorkProgramme(licenceReference, pedWpId, pedWpdId, type,
+  breakpoint, wellCounts, legalText, List<PearsActivity>, List<PearsNote>)`.
+- Grant check at start-up, as for the schedule migration: the migration user needs `SELECT` on
+  `ped_work_programme`, `ped_work_programme_details` and the schedule xview.
+
+### 2. Map: `PearsWorkProgrammeMapper`
+
+A pure function from `PearsWorkProgramme` + the licence's migrated LMS schedule (terms and phases by
+type, start date) to a `MigratedWorkProgramme` value: unsaved activities, status rows, event
+comments, schedule comments and legal text, plus `MigrationNotes`. No Spring and no database, so it
+is unit-tested from fixture XML, as `PearsOperationMapper` is. Per activity, in this order:
+
+1. **Skip** "None" activities (M2) and record them.
+2. **Category and commitment** by `ACTIVITY_TYPE` (M1), with the seismic title and description
+   classification (WP-S4b) and the defaults from WP-L9. An unknown `ACTIVITY_TYPE` fails the
+   licence.
+3. **Description** (M2): `DESCRIPTION`, the title prefix rule, the 2D/3D prefix for reprocess, and
+   `COMPETED_BLOCKS` appended; the title, then the category name, when it's empty. Strip the one
+   pasted `javascript:` link and record it.
+4. **Date option** (M3), rules 1 to 5 in order. Rule 2 uses the schedule's `DD` offset where there
+   is one, otherwise the breakpoint, as `RELATIVE_DATE` on the Initial term. LMS calculates the due
+   date as the term start plus `relativeDuration` (`LicenceScheduleCalculationService`), so the
+   offset is converted from licence start to Initial term start (the same date on a normal
+   schedule).
+5. **Identity:** a new `originalEventId` per `ACTIVITY_ID`.
+6. **Status history** (M5): one `WorkProgrammeActivityStatus` per status note, oldest first;
+   otherwise one row for the current status, dated by the fallback. The 758 bulk-job `LEGACY`
+   statuses add the "Status carried over from legacy records …" comment. `DROPPED`,
+   `PART_WAIVER` and `WAIVER_DECLINED` follow WP-L8 and WP-L4.
+7. **Comments** (M6): each status note becomes a `PUBLISHED` `EventComment`, with `timestamp` =
+   `DATETIME`, `authorWuaId` empty, and the author's name in the text (D20). Suggested text:
+   `<DESCRIPTION>` followed by "(PEARS note by `<CREATED_BY>`)".
+
+Per programme:
+
+- General notes become schedule comments (M6), with the same author and date handling.
+- Legal text, well counts and a breakpoint with no D&D well follow WP-L10, WP-L6 and D13.
+
+Per licence, before mapping, the licence is **skipped with a reason** when:
+- it has no migrated LMS schedule (the 1,111 work-programme-only licences, WP-S10);
+- it is one of the 6 duplicate-INITIAL licences, until WP-L2 is answered;
+- it has a `FALLOW` or `EXTENSION` programme not on the reviewed list (M4: these 30 go one by one);
+- its `ACTIVE` LMS detail already has migrated activities (idempotency, below);
+- it has an open `DRAFT` LMS schedule detail. The migration runs straight after the schedule
+  migration, before users are told to edit in LMS (release step 18), so this shouldn't happen; if
+  it does, the licence is reported rather than guessed at.
+
+### 3. Write: `PearsWorkProgrammeMigrationService`
+
+- `migrateLicence(licenceReference)`: one licence per transaction, returning `MIGRATED`, `SKIPPED`
+  with a reason, or `FAILED` with notes, as the schedule migration does.
+- Save through the existing services, in the carbon storage order:
+  `workProgrammeActivityService.saveWorkProgrammeActivities`,
+  `workProgrammeActivityStatusRepository.saveAll`, `eventCommentRepository.saveAll`, then the
+  schedule comments and legal text once their LMS homes exist.
+- Then `licenceScheduleCalculationService.calculateAndSaveLicenceScheduleDates(activeDetail)` to set
+  the `RELATIVE_DATE` due dates, and `crossLicenceEventTrackerService.refreshScheduleCache(activeDetail)`.
+- **Link table** (Flyway), in the same transaction, one row per migrated activity. It drives
+  idempotency, the comparison report and any rollback:
+
+  ```sql
+  CREATE TABLE lms.pears_work_programme_activity_migration_links (
+    schedule_event_id UUID PRIMARY KEY REFERENCES lms.schedule_events (id),
+    pears_wp_id       BIGINT NOT NULL,   -- ped_work_programme.id
+    pears_wpd_id      BIGINT NOT NULL,   -- ped_work_programme_details.id migrated from
+    pears_activity_id BIGINT NOT NULL,   -- ACTIVITY_ID
+    pears_type        TEXT   NOT NULL    -- ACTIVITY_TYPE
+  );
+  ```
+- **Idempotent:** a licence whose `ACTIVE` detail already has link rows is skipped.
+- Throws `MigrationPreconditionException` if PEARS returns no work programmes at all, so an empty run
+  can't look like success.
+
+### 4. Run in the background
+
+Reuse the schedule migration's background job (schedule plan, "Run in the background"): its run and
+queue tables, ShedLock-guarded worker and controller, generalised with a `migration_type` column
+(`SCHEDULE`, `WORK_PROGRAMME`) on the run table. That avoids a second copy of the same machinery.
+The work programme run is far smaller (1,747 licences, about 4,800 activities and 3,700 comments,
+current version only).
+
+Controller (`@Profile("migration")`): `POST /migration/pears-work-programmes` (optional
+`licenceReference`), `GET …/{runId}`, `POST …/{runId}/retry-failed` and `POST …/{runId}/cancel`, as
+for schedules. Starting a run returns 409 if no schedule run has completed, or if a run is already
+`RUNNING`.
+
+### 5. Validate: `PearsWorkProgrammeMigrationValidationTest`
+
+Modelled on the schedule migration's validation test: `@Tag("pears-migration")`, run by the
+`pearsMigrationTest` Gradle task when `PEARS_DATASOURCE_URL` is set, narrowed with
+`PEARS_MIGRATION_LICENCES`. For every in-scope licence it migrates the work programme into the test
+database (on top of the migrated schedule) and checks:
+
+- **Counts:** PEARS activities = LMS activities + skipped "None" activities; PEARS human notes =
+  event comments + schedule comments; status rows = status notes, or 1 where there are none.
+- **Mapping:** each activity's category, commitment and current status against the M1 and M5
+  tables, through the link table.
+- **Dates:** every LMS due date is set. Phase activities fall on their phase's end date, term
+  activities on the term's end date, and D&D wells on the schedule's `DD` date (or the breakpoint
+  date where there's no `DD`).
+- **Text:** each LMS description contains the PEARS description, and legal text (if migrated) is
+  identical.
+
+Differences go into `MigrationValidationReport`; each one is to investigate, not a build failure.
+
+### 6. Compare selected licences: `PearsWorkProgrammeComparisonController`
+
+For the licensing team to check chosen licences side by side, in any environment, as for schedules:
+
+```
+/migration/pears-work-programmes/compare?licences=P1234,P5678        -> HTML table
+/migration/pears-work-programmes/compare?licences=P1234&format=csv   -> CSV download
+```
+
+One table per licence, one row per PEARS activity, paired with its LMS activity through the link
+table:
+
+| PEARS type | PEARS title / description | PEARS status | LMS category / commitment | LMS description | LMS date option and due date | LMS status | Comments | Result |
+|---|---|---|---|---|---|---|---|---|
+
+`Result` is `Match`, `Mapped` (an accepted mapping such as `NOT_STARTED` → `OPEN`), `Skipped` (with
+the reason), `Missing in LMS` or `LMS only`. Below the table: the general notes against the schedule
+comments, and the legal text, well counts and breakpoint against wherever LMS holds them. The
+validation test builds the same comparison model, so the two can't disagree.
+
+## Migration size (live, 29 October 2026)
+
+- **Licences:** 1,747 with a schedule and a work programme, 386 extant (WP-S10), less the 6
+  duplicate-INITIAL licences (WP-L2) and any `FALLOW`/`EXTENSION` licences not yet cleared (M4).
+- **Activities:** 4,787 current across all programmes, 4,779 after the 8 "None" skips (WP-S3,
+  WP-S5). Those on licences without a schedule aren't migrated.
+- **Comments:** 2,883 event comments and 797 schedule comments (WP-S9c), plus the 758 bulk-job
+  status comments (M5).
+- **Status rows:** one per status note, plus one per activity with no note.
+- Current version only, so some tens of thousands of LMS rows: a single short run.
+
+## Delivery and release steps
+
+### Before coding
+
+1. **Data survey: done** (live, 29 October 2026). Re-run WP-S1, WP-S3, WP-S9c and WP-S10 on the
+   day, once the redirects are on (release step 18.2), since PEARS keeps changing until then.
+2. **Licensing team review:** send
+   [pears-work-programme-migration-licensing-review.docx](pears-work-programme-migration-licensing-review.docx)
+   and record the answers to WP-L1 to WP-L11 in this plan. WP-L4, WP-L8 and WP-L9 decide LMS
+   changes below, and WP-L7 decides whether steps 2 and 3 of the design repeat per version.
+
+### LMS changes ahead of the migration (each its own change)
+
+3. **Schedule comments area** (planned, mockup): needed before any general note can migrate (M6).
+4. **`DROPPED` status** in `WorkProgrammeStatus` (WP-L8), with form, timeline and tests, and any
+   waiver statuses WP-L4 adds.
+5. **Legal text home** (WP-L10): a programme-level area or the per-activity field, and how licence
+   documents read it.
+6. **Blank author** for comments with no `authorWuaId` (D20), instead of "Unknown".
+7. **Commitment** default or optional (WP-L9), if LMS validation changes.
+
+### Build
+
+8. `PearsWorkProgrammeService` + SQL resources + grant check.
+9. `PearsWorkProgrammeMapper` + unit tests from fixture XML. Include: a flat and a phase-organised
+   programme; a `LEGACY` activity with a "Legacy Obligations" title; each seismic title pattern and
+   the generic "Seismic Data n" cases; a "Phase A:" flat description; a D&D well with a schedule
+   `DD` event and one with only a breakpoint; a status history from notes and one with no notes; a
+   "None" activity; general and system-authored notes.
+10. `PearsWorkProgrammeMigrationService` + link table (Flyway) + integration test (Testcontainers
+    Postgres, on a migrated schedule fixture).
+11. Background run: `migration_type` on the schedule migration's run table, the work programme
+    worker path and controller, with tests.
+12. `PearsWorkProgrammeComparisonService` + controller (HTML + CSV) + tests. Build it **before** the
+    first UAT run, so the licensing team can check licences from the first run.
+13. `PearsWorkProgrammeMigrationValidationTest`, built on the comparison service.
+
+### Validate in UAT
+
+14. Run the schedule migration, then the work programme migration, against UAT PEARS.
+15. Run the validation test across the estate. Iterate until every difference is known and accepted.
+16. **Licensing team sign-off:** the team checks chosen licences in the comparison report, at least
+    one per pattern: flat, phase, `LEGACY`, D&D with and without a `DD` event, transfers and
+    waivers (WP-L4), and an extant licence with recent notes. They also review the skipped list.
+17. Rehearse both runs on a copy of production data, timing them for the go-live window.
+
+### Release
+
+18. **Order on the day.** This slots into the schedule plan's go-live order ("Write-back transport",
+    "Go-live order"), which the work programme steps are marked against:
+    1. **Redirects on (schedule step 1).** Switch the PEARS schedule screen (`PED012X`) **and** the
+       work programme screen (`PED009X`) to redirect to LMS for migrated licences, in one PEARS
+       release. From here no schedule or work programme edit can be made in PEARS, so the redirect
+       is the freeze ("Decision: no write-back to PEARS").
+    2. **Survey checks.** Re-run the step 1 queries now that PEARS can't change, and compare with
+       the rehearsal.
+    3. **Schedule migration (schedule step 2):** final run `COMPLETE`, with failures reviewed or
+       accepted, the `RD`/`PA` refresh done and the `ped_lms_schedule_sync` rows created.
+    4. **Work programme migration (new, between schedule steps 2 and 3):** run `COMPLETE`, with
+       failures reviewed or accepted. It needs the migrated schedules, and it must finish before
+       users start editing schedules in LMS: a draft created first would be skipped (design step 2).
+       LMS users are asked not to edit schedules until it finishes.
+    5. **Write-back on (schedule step 3):** switch on the LMS → PEARS schedule write-back consumer.
+       The work programme isn't part of the write-back, so this step doesn't depend on step 4's
+       content, only on it having finished.
+    6. **Area messages on (schedule step 4):** `LICENSING_RETENTION_AREAS` publishes for migrated
+       licences, and LMS's subscription is switched on.
+    7. **Open LMS editing:** tell users they can edit schedules and work programmes in LMS.
+19. **After go-live:** spot-check licences in the comparison report, and work through the
+    post-migration checks with the licensing team (review document section 2: the 30
+    `FALLOW`/`EXTENSION` programmes, the 6 duplicate-INITIAL licences, two-operation seismic
+    activities, D&D date disagreements). Migrate cleared `FALLOW`/`EXTENSION` licences with
+    single-licence runs.
+20. **Rollback:** until LMS editing opens (step 18.7), a licence's migrated work programme can be
+    removed through its link rows and re-run. After that, LMS holds live data and fixes are made in
+    LMS, not by re-running. PEARS keeps its rows until it is decommissioned, but nothing reads them
+    once the redirect is on.
 
 ## Open questions
 

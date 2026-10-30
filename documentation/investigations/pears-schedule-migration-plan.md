@@ -932,8 +932,12 @@ does not yet include the first. PEARS should therefore base the next change on t
 
 **Go-live order:**
 1. Switch the PEARS schedule screen (`PED012X`) to redirect to LMS for migrated licences, so no
-   further schedule edits are made in PEARS.
+   further schedule edits are made in PEARS. The work programme screen (`PED009X`) redirects in the
+   same PEARS release.
 2. Run the final migration and `RD`/`PA` refresh, and create the `ped_lms_schedule_sync` rows.
+2a. Run the work programme migration, which needs the migrated schedules, before users edit
+    schedules in LMS
+    ([pears-work-programme-migration-plan.md](pears-work-programme-migration-plan.md), "Release").
 3. Switch on the LMS → PEARS write-back consumer.
 4. Switch `LICENSING_RETENTION_AREAS` to publish for migrated licences, and switch on LMS's
    subscription.

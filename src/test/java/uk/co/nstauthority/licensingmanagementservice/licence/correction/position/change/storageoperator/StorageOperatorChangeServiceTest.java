@@ -24,8 +24,10 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeoperation.LicencePositionAddOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeoperation.LicencePositionChangeOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeoperation.LicencePositionUpdateOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.AddChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.UpdateChangeOperations;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.LicencePositionPayload;
@@ -160,6 +162,56 @@ class StorageOperatorChangeServiceTest {
   }
 
   @Test
+  void correctExistingStorageOperatorChange_whenCorrectionHasNoOperatorChange_appendsUpdateChange() {
+    var licencePosition = LicencePositionTestUtil.newBuilder().build();
+    var originalChangeId = UUID.randomUUID().toString();
+    var correction = LicencePositionCorrectionTestUtil.newBuilder()
+        .withPayload(LicencePositionPayload.newUpdateLicencePositionPayload().withChanges(List.of()).build())
+        .build();
+
+    when(licencePositionCorrectionService.getOrBuildUpdatePositionCorrection(LICENCE_CORRECTION, licencePosition))
+        .thenReturn(correction);
+
+    storageOperatorChangeService
+        .correctExistingStorageOperatorChange(licencePosition, LICENCE_CORRECTION, OPERATOR_ID, originalChangeId);
+
+    verify(licencePositionCorrectionService).save(licencePositionCorrectionCaptor.capture());
+    var payload = (UpdateLicencePositionPayload) licencePositionCorrectionCaptor.getValue().getPayload();
+    assertThat(payload.changes()).hasSize(1);
+
+    var change = payload.changes().getFirst();
+    assertThat(change).isInstanceOf(UpdateChangeOperations.class);
+    assertThat(change.changeId()).isEqualTo(originalChangeId);
+    assertThat(updateOperatorIdOf(change)).isEqualTo(OPERATOR_ID);
+  }
+
+  @Test
+  void correctExistingStorageOperatorChange_whenOperatorChangeAlreadyExists_rewritesExistingUpdateChange() {
+    var licencePosition = LicencePositionTestUtil.newBuilder().build();
+    var originalChangeId = UUID.randomUUID().toString();
+    var correction = LicencePositionCorrectionTestUtil.newBuilder()
+        .withPayload(LicencePositionPayload.newUpdateLicencePositionPayload()
+            .withChanges(List.of(storageOperatorUpdateChange(originalChangeId)))
+            .build())
+        .build();
+
+    when(licencePositionCorrectionService.getOrBuildUpdatePositionCorrection(LICENCE_CORRECTION, licencePosition))
+        .thenReturn(correction);
+
+    storageOperatorChangeService
+        .correctExistingStorageOperatorChange(licencePosition, LICENCE_CORRECTION, UPDATED_OPERATOR_ID, originalChangeId);
+
+    verify(licencePositionCorrectionService).save(licencePositionCorrectionCaptor.capture());
+    var payload = (UpdateLicencePositionPayload) licencePositionCorrectionCaptor.getValue().getPayload();
+    assertThat(payload.changes()).hasSize(1);
+
+    var change = payload.changes().getFirst();
+    assertThat(change).isInstanceOf(UpdateChangeOperations.class);
+    assertThat(change.changeId()).isEqualTo(originalChangeId);
+    assertThat(updateOperatorIdOf(change)).isEqualTo(UPDATED_OPERATOR_ID);
+  }
+
+  @Test
   void populateAddedStorageOperatorForm_storageOperatorChangeExists_returnsPopulatedForm() {
     var context = new StorageOperatorChangeContext(OPERATOR_ID, null, "org1", "org2");
     var operation = LicenceOperation.newStorageOperatorOperation().withOperator(OPERATOR_ID).build();
@@ -212,6 +264,24 @@ class StorageOperatorChangeServiceTest {
         .usingRecursiveComparison().isEqualTo(expectedForm);
   }
 
+  @Test
+  void populateCorrectingStorageOperatorForm_returnsPopulatedForm() {
+    var context = new StorageOperatorChangeContext(OPERATOR_ID, null, "org1", "org2");
+    var expectedForm = new StorageOperatorChangeForm();
+    expectedForm.getOperatorId().setInputValue(OPERATOR_ID.toString());
+    assertThat(storageOperatorChangeService.populateCorrectingStorageOperatorForm(context))
+        .usingRecursiveComparison().isEqualTo(expectedForm);
+  }
+
+  @Test
+  void populateCorrectingStorageOperatorForm_noIdInContext_returnsEmptyForm() {
+    var context = new StorageOperatorChangeContext(null, null, "org1", "org2");
+    var expectedForm = new StorageOperatorChangeForm();
+    expectedForm.getOperatorId().setInputValue(null);
+    assertThat(storageOperatorChangeService.populateCorrectingStorageOperatorForm(context))
+        .usingRecursiveComparison().isEqualTo(expectedForm);
+  }
+
   private LicencePositionChangeType storageOperatorAddChange() {
     var storageOperatorOperation = LicenceOperation.newStorageOperatorOperation().withOperator(OPERATOR_ID).build();
     var operation = LicencePositionChangeOperation.newLicencePositionAddOperation()
@@ -225,8 +295,25 @@ class StorageOperatorChangeServiceTest {
         .build();
   }
 
+  private LicencePositionChangeType storageOperatorUpdateChange(String changeId) {
+    var storageOperatorOperation = LicenceOperation.newStorageOperatorOperation().withOperator(OPERATOR_ID).build();
+    var operation = LicencePositionChangeOperation.newLicencePositionUpdateOperation()
+        .withOperationId(storageOperatorOperation.id())
+        .withOperation(storageOperatorOperation)
+        .build();
+    return LicencePositionChangeType.updateChangeOperations()
+        .withChangeId(changeId)
+        .withOperations(List.of(operation))
+        .build();
+  }
+
   private Integer operatorIdOf(LicencePositionChangeType change) {
     var op = (LicencePositionAddOperation) change.operations().getFirst();
     return ((StorageOperatorOperation ) op.operation()).operatorId();
+  }
+
+  private Integer updateOperatorIdOf(LicencePositionChangeType change) {
+    var op = (LicencePositionUpdateOperation) ((UpdateChangeOperations) change).operations().getFirst();
+    return ((StorageOperatorOperation) op.operation()).operatorId();
   }
 }

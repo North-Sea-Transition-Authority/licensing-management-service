@@ -17,6 +17,8 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correct
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanViewCorrection;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.LicencePositionCorrectionBelongsToCorrection;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.LicencePositionIsNotRemovedInCorrection;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.LicencePositionChangeBelongsToPosition;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.LicencePositionChangeIsOfType;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.administrator.LicencePositionHasNoLiveChangeOfType;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.position.LicencePositionBelongsToCorrectionLicence;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
@@ -31,6 +33,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.StorageOperatorOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionViewService;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.storageoperator.StorageOperatorChangeContext;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
@@ -64,7 +67,22 @@ public class LicencePositionStorageOperatorChangeController {
       LicenceCorrection correction,
       LicencePosition licencePosition
   ) {
-    return renderForExistingPosition(correction, licencePosition);
+    var storageOperatorChangeContext = licencePositionViewService.getStorageOperatorChangeContext(
+        correction,
+        licencePosition.getId()
+    );
+
+    var form = storageOperatorChangeService.populateExistingStorageOperatorForm(
+        storageOperatorChangeContext,
+        correction,
+        licencePosition
+    );
+
+    return getStorageOperatorChangeModelAndView(
+        form,
+        executedCancelUrl(correction, licencePosition),
+        storageOperatorChangeContext.previousOperatorName()
+    );
   }
 
   @PostMapping("/position/{licencePositionId}/add-storage-operator-change")
@@ -152,22 +170,65 @@ public class LicencePositionStorageOperatorChangeController {
         .renderAddedPosition(correction, licencePositionCorrection, null));
   }
 
-  private ModelAndView renderForExistingPosition(LicenceCorrection correction, LicencePosition position) {
+  @GetMapping("/position/{licencePositionId}/change/{changeId}/correct-storage-operator-change")
+  @LicencePositionChangeBelongsToPosition
+  @LicencePositionIsNotRemovedInCorrection
+  @LicencePositionChangeIsOfType(StorageOperatorOperation.class)
+  @LicencePositionBelongsToCorrectionLicence
+  public ModelAndView renderForCorrectingChange(
+      LicenceCorrection correction,
+      LicencePosition licencePosition,
+      LicencePositionChange licencePositionChange
+  ) {
     var storageOperatorChangeContext = licencePositionViewService.getStorageOperatorChangeContext(
         correction,
-        position.getId()
+        licencePosition.getId()
     );
 
-    var form = storageOperatorChangeService.populateExistingStorageOperatorForm(
-        storageOperatorChangeContext,
-        correction,
-        position
+    var form = storageOperatorChangeService.populateCorrectingStorageOperatorForm(
+        storageOperatorChangeContext
     );
+
     return getStorageOperatorChangeModelAndView(
         form,
-        executedCancelUrl(correction, position),
+        executedCancelUrl(correction, licencePosition),
         storageOperatorChangeContext.previousOperatorName()
     );
+  }
+
+  @PostMapping("/position/{licencePositionId}/change/{changeId}/correct-storage-operator-change")
+  @LicencePositionIsNotRemovedInCorrection
+  @LicencePositionChangeBelongsToPosition
+  @LicencePositionChangeIsOfType(StorageOperatorOperation.class)
+  @LicencePositionBelongsToCorrectionLicence
+  public ModelAndView submitForCorrectingChange(
+      LicenceCorrection correction,
+      LicencePosition licencePosition,
+      LicencePositionChange change,
+      @ModelAttribute("form") StorageOperatorChangeForm form,
+      BindingResult bindingResult,
+      RedirectAttributes redirectAttributes
+  ) {
+    var modelAndView = getValidatedModelAndViewOrNull(
+        correction,
+        licencePosition,
+        form,
+        bindingResult
+    );
+    if (modelAndView != null) {
+      return modelAndView;
+    }
+
+    storageOperatorChangeService.correctExistingStorageOperatorChange(
+        licencePosition,
+        correction,
+        Integer.parseInt(form.getOperatorId().getInputValue()),
+        change.getId().toString()
+    );
+
+    NotificationBanner.newSuccessBannerWithHeader("Storage operator change corrected", redirectAttributes);
+    return ReverseRouter.redirect(on(LicenceCorrectionController.class)
+        .renderLicencePosition(correction, licencePosition, null));
   }
 
   private ModelAndView getStorageOperatorChangeModelAndView(

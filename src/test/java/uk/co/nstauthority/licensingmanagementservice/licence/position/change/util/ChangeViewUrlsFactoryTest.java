@@ -23,6 +23,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.RemovePartialSurrenderChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.tasklist.PartialSurrenderTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.setequity.LicencePositionSetEquityController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.storageoperator.LicencePositionStorageOperatorChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subarea.RemoveSubareaChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subarea.SubareaChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.transferequity.LicencePositionTransferEquityController;
@@ -72,6 +73,8 @@ class ChangeViewUrlsFactoryTest {
   private static final VisibleLicenceOperation SUBAREA =
       LicenceOperation.newSubAreaOperation().withBlockFeatureId(SUBAREA_BLOCK_FEATURE_ID).build();
   private static final VisibleLicenceOperation LICENSEE = LicenceOperation.newLicenseeOperation().build();
+  private static final VisibleLicenceOperation STORAGE_OPERATOR =
+      LicenceOperation.newStorageOperatorOperation().withOperator(1).build();
 
   @Test
   void build_whenNoUrlContext_thenHasNoUrls() {
@@ -204,6 +207,13 @@ class ChangeViewUrlsFactoryTest {
     var licenseeUndo = ReverseRouter.route(on(RemoveLicenseeChangeController.class)
         .renderUndoLicenseeChange(CORRECTION, CHANGE_ID.toString()));
 
+    var storageOperatorAdded = ReverseRouter.route(on(LicencePositionStorageOperatorChangeController.class)
+        .renderForAddedPosition(CORRECTION, POSITION_CORRECTION));
+    var storageOperatorExecuted = ReverseRouter.route(on(LicencePositionStorageOperatorChangeController.class)
+        .renderForExecutedPosition(CORRECTION, LICENCE_POSITION));
+    var storageOperatorCorrecting = ReverseRouter.route(on(LicencePositionStorageOperatorChangeController.class)
+        .renderForCorrectingChange(CORRECTION, LICENCE_POSITION, CHANGE_ENTITY));
+
     var subareaCorrect = ReverseRouter.route(on(SubareaChangeController.class)
         .renderSubareaChange(CORRECTION, POSITION_CORRECTION, SUBAREA_BLOCK_FEATURE_ID));
     var subareaRemove = subareaRemoveUrl();
@@ -274,6 +284,19 @@ class ChangeViewUrlsFactoryTest {
             null, null, null, licenseeUndo),
         Arguments.of("licensee, added position", LICENSEE, ADDED_POSITION, added,
             licenseeAdded, null, licenseeUndo, null),
+
+        Arguments.of("storage operator, live", STORAGE_OPERATOR, EXECUTED_POSITION, live,
+            storageOperatorCorrecting, null, null, null),
+        Arguments.of("storage operator, added", STORAGE_OPERATOR, EXECUTED_POSITION, added,
+            storageOperatorExecuted, null, null, null),
+        Arguments.of("storage operator, operations updated", STORAGE_OPERATOR, EXECUTED_POSITION, operationsUpdated,
+            storageOperatorCorrecting, null, null, null),
+        Arguments.of("storage operator, order updated", STORAGE_OPERATOR, EXECUTED_POSITION, orderUpdated,
+            storageOperatorCorrecting, null, null , null),
+        Arguments.of("storage operator, removed", STORAGE_OPERATOR, EXECUTED_POSITION, removed,
+            null, null, null, null),
+        Arguments.of("storage operator, added position", STORAGE_OPERATOR, ADDED_POSITION, added,
+            storageOperatorAdded, null, null, null),
 
         Arguments.of("subarea, live", SUBAREA, EXECUTED_POSITION, live,
             null, subareaRemove, null, null),

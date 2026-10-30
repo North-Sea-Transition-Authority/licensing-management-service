@@ -42,6 +42,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.storageoperator.StorageOperatorChangeContext;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
@@ -68,6 +70,8 @@ class LicencePositionStorageOperatorChangeControllerTest extends AbstractControl
   private static final UUID POSITION_ID = UUID.randomUUID();
   private static final Integer PREVIOUS_STORAGE_OPERATOR_ID = 456;
   private static final Integer CURRENT_STORAGE_OPERATOR_ID = 789;
+  private static final String PREVIOUS_STORAGE_OPERATOR_NAME = "Previous Operator Org";
+  private static final String CURRENT_STORAGE_OPERATOR_NAME = "Current Operator Org";
   private static final LicenceCorrection CORRECTION = LicenceCorrectionTestUtil.newBuilder()
       .withId(CORRECTION_ID)
       .withLicence(LICENCE)
@@ -83,7 +87,9 @@ class LicencePositionStorageOperatorChangeControllerTest extends AbstractControl
           .withLicencePositionId(POSITION_ID.toString())
           .build())
       .build();
-
+  private static final LicencePositionChange POSITION_CHANGE = LicencePositionChangeTestUtil.newBuilder()
+      .withId(UUID.randomUUID())
+      .build();
   private static final String EXECUTED_CANCEL_URL = ReverseRouter.route(on(LicenceCorrectionController.class)
       .renderLicencePosition(CORRECTION, POSITION, null));
   private static final String EXECUTED_REDIRECT_URL = ReverseRouter.route(on(LicenceCorrectionController.class)
@@ -132,7 +138,7 @@ class LicencePositionStorageOperatorChangeControllerTest extends AbstractControl
   @Test
   void submitForExecutedPosition_whenNotLoggedIn() throws Exception {
     mockMvc.perform(post(ReverseRouter.route(on(LicencePositionStorageOperatorChangeController.class)
-            .renderForExecutedPosition(CORRECTION, POSITION)))
+            .submitForExecutedPosition(CORRECTION, POSITION, null, null, null)))
             .with(csrf()))
         .andExpect(redirectionToLoginUrl());
   }
@@ -142,7 +148,7 @@ class LicencePositionStorageOperatorChangeControllerTest extends AbstractControl
     givenCorrectionNotAllocatedToUser();
 
     mockMvc.perform(post(ReverseRouter.route(on(LicencePositionStorageOperatorChangeController.class)
-            .renderForExecutedPosition(CORRECTION, POSITION)))
+            .submitForExecutedPosition(CORRECTION, POSITION, null, null, null)))
             .with(user(regulatorUser))
             .with(csrf()))
         .andExpect(status().isForbidden());
@@ -236,6 +242,79 @@ class LicencePositionStorageOperatorChangeControllerTest extends AbstractControl
 
     mockMvc.perform(post(ReverseRouter.route(on(LicencePositionStorageOperatorChangeController.class)
             .submitForAddedPosition(CORRECTION, POSITION_CORRECTION, null, null, null)))
+            .with(user(regulatorUser))
+            .with(csrf()))
+        .andExpect(status().isForbidden());
+  }
+
+  @Test
+  void renderForCorrectingChange_whenNotLoggedIn() throws Exception {
+    mockMvc.perform(get(ReverseRouter.route(on(LicencePositionStorageOperatorChangeController.class)
+            .renderForCorrectingChange(CORRECTION, POSITION, POSITION_CHANGE))))
+        .andExpect(redirectionToLoginUrl());
+  }
+
+  @Test
+  void renderForCorrectingChange_whenNotAllocatedToUser() throws Exception {
+    givenCorrectionNotAllocatedToUser();
+
+    mockMvc.perform(get(ReverseRouter.route(on(LicencePositionStorageOperatorChangeController.class)
+            .renderForCorrectingChange(CORRECTION, POSITION, POSITION_CHANGE)))
+            .with(user(regulatorUser)))
+        .andExpect(status().isForbidden());
+  }
+
+  @ParameterizedTest
+  @EnumSource(value = LicenceType.class, names = {"CARBON_STORAGE"}, mode = EnumSource.Mode.EXCLUDE)
+  void renderForCorrectingChange_whenNotCarbonStorageLicence_forbidden(LicenceType licenceType) throws Exception {
+    var productionLicence = LicenceTestUtil.builder().withLicenceType(licenceType).build();
+    var correction = LicenceCorrectionTestUtil.newBuilder()
+        .withId(CORRECTION_ID)
+        .withLicence(productionLicence)
+        .build();
+    when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
+        .thenReturn(Optional.of(correction));
+    when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(correction));
+
+    mockMvc.perform(get(ReverseRouter.route(on(LicencePositionStorageOperatorChangeController.class)
+            .renderForCorrectingChange(CORRECTION, POSITION, POSITION_CHANGE)))
+            .with(user(regulatorUser)))
+        .andExpect(status().isForbidden());
+  }
+
+  @Test
+  void submitForCorrectingChange_whenNotLoggedIn() throws Exception {
+    mockMvc.perform(post(ReverseRouter.route(on(LicencePositionStorageOperatorChangeController.class)
+            .submitForCorrectingChange(CORRECTION, POSITION, POSITION_CHANGE, null, null, null)))
+            .with(csrf()))
+        .andExpect(redirectionToLoginUrl());
+  }
+
+  @Test
+  void submitForCorrectingChange_whenNotAllocatedToUser() throws Exception {
+    givenCorrectionNotAllocatedToUser();
+
+    mockMvc.perform(post(ReverseRouter.route(on(LicencePositionStorageOperatorChangeController.class)
+            .submitForCorrectingChange(CORRECTION, POSITION, POSITION_CHANGE, null, null, null)))
+            .with(user(regulatorUser))
+            .with(csrf()))
+        .andExpect(status().isForbidden());
+  }
+
+  @ParameterizedTest
+  @EnumSource(value = LicenceType.class, names = {"CARBON_STORAGE"}, mode = EnumSource.Mode.EXCLUDE)
+  void submitForCorrectingChange_whenNotCarbonStorageLicence_forbidden(LicenceType licenceType) throws Exception {
+    var productionLicence = LicenceTestUtil.builder().withLicenceType(licenceType).build();
+    var correction = LicenceCorrectionTestUtil.newBuilder()
+        .withId(CORRECTION_ID)
+        .withLicence(productionLicence)
+        .build();
+    when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
+        .thenReturn(Optional.of(correction));
+    when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(correction));
+
+    mockMvc.perform(post(ReverseRouter.route(on(LicencePositionStorageOperatorChangeController.class)
+            .submitForCorrectingChange(CORRECTION, POSITION, POSITION_CHANGE, null, null, null)))
             .with(user(regulatorUser))
             .with(csrf()))
         .andExpect(status().isForbidden());
@@ -437,6 +516,109 @@ class LicencePositionStorageOperatorChangeControllerTest extends AbstractControl
             view().name(VIEW_NAME),
             model().attribute("form", form),
             model().attribute("cancelUrl", ADDED_CANCEL_URL)
+        );
+
+    verifyNoInteractions(storageOperatorChangeService);
+  }
+
+  @Test
+  void renderForCorrectingChange_whenAllocatedToUser() throws Exception {
+    var correction = givenCorrectionAllocatedToUser();
+    var changeContext = new StorageOperatorChangeContext(
+        CURRENT_STORAGE_OPERATOR_ID,
+        PREVIOUS_STORAGE_OPERATOR_ID,
+        CURRENT_STORAGE_OPERATOR_NAME,
+        PREVIOUS_STORAGE_OPERATOR_NAME
+    );
+    when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(POSITION));
+    when(licencePositionChangeService.findById(POSITION_CHANGE.getId())).thenReturn(Optional.of(POSITION_CHANGE));
+    when(licencePositionViewService.getStorageOperatorChangeContext(correction, POSITION_ID))
+        .thenReturn(changeContext);
+    when(storageOperatorChangeService.populateCorrectingStorageOperatorForm(changeContext))
+        .thenReturn(new StorageOperatorChangeForm());
+    mockMvc.perform(get(ReverseRouter.route(on(LicencePositionStorageOperatorChangeController.class)
+            .renderForCorrectingChange(correction, POSITION, POSITION_CHANGE)))
+            .with(user(regulatorUser)))
+        .andExpectAll(
+            status().isOk(),
+            view().name(VIEW_NAME),
+            model().attribute("pageTitle", PAGE_TITLE),
+            model().attributeExists("form"),
+            model().attribute("cancelUrl", EXECUTED_CANCEL_URL),
+            model().attribute("previousStorageOperatorName", PREVIOUS_STORAGE_OPERATOR_NAME),
+            model().attribute("organisationUnitsUrl",
+                SearchSelectorService.route(on(OrganisationUnitRestController.class)
+                    .searchOrganisationUnits(null))),
+            model().attributeExists("preselectedStorageOperator")
+        );
+  }
+
+  @Test
+  void submitForCorrectingChange_whenValid() throws Exception {
+    var correction = givenCorrectionAllocatedToUser();
+
+    var form = new StorageOperatorChangeForm();
+    form.getOperatorId().setInputValue(CURRENT_STORAGE_OPERATOR_ID.toString());
+
+    when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(POSITION);
+    when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(POSITION));
+    when(licencePositionChangeService.findById(POSITION_CHANGE.getId())).thenReturn(Optional.of(POSITION_CHANGE));
+    when(storageOperatorChangeFormValidator.hasErrors(
+        eq(form), any(BindingResult.class), eq(PREVIOUS_STORAGE_OPERATOR_ID)))
+        .thenReturn(false);
+    when(licencePositionViewService.getStorageOperatorChangeContext(correction, POSITION_ID))
+        .thenReturn(new StorageOperatorChangeContext(
+            CURRENT_STORAGE_OPERATOR_ID,
+            PREVIOUS_STORAGE_OPERATOR_ID,
+            CURRENT_STORAGE_OPERATOR_NAME,
+            PREVIOUS_STORAGE_OPERATOR_NAME
+        ));
+
+    mockMvc.perform(post(ReverseRouter.route(on(LicencePositionStorageOperatorChangeController.class)
+            .submitForCorrectingChange(correction, POSITION, POSITION_CHANGE, null, null, null)))
+            .with(user(regulatorUser))
+            .with(csrf())
+            .flashAttr("form", form))
+        .andExpectAll(
+            status().is3xxRedirection(),
+            redirectedUrl(EXECUTED_REDIRECT_URL),
+            notificationBanner(NotificationBanner.newSuccessBanner()
+                .withHeadingContent("Storage operator change corrected")
+                .build())
+        );
+
+    verify(storageOperatorChangeService)
+        .correctExistingStorageOperatorChange(POSITION, correction, CURRENT_STORAGE_OPERATOR_ID, POSITION_CHANGE.getId().toString());
+  }
+
+  @Test
+  void submitForCorrectingChange_whenInvalid() throws Exception {
+    var correction = givenCorrectionAllocatedToUser();
+    var form = new StorageOperatorChangeForm();
+
+    when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(POSITION);
+    when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(POSITION));
+    when(licencePositionChangeService.findById(POSITION_CHANGE.getId())).thenReturn(Optional.of(POSITION_CHANGE));
+    when(licencePositionViewService.getStorageOperatorChangeContext(correction, POSITION_ID))
+        .thenReturn(new StorageOperatorChangeContext(
+            CURRENT_STORAGE_OPERATOR_ID,
+            PREVIOUS_STORAGE_OPERATOR_ID,
+            CURRENT_STORAGE_OPERATOR_NAME,
+            PREVIOUS_STORAGE_OPERATOR_NAME
+        ));
+    when(storageOperatorChangeFormValidator.hasErrors(eq(form), any(BindingResult.class), eq(PREVIOUS_STORAGE_OPERATOR_ID)))
+        .thenReturn(true);
+
+    mockMvc.perform(post(ReverseRouter.route(on(LicencePositionStorageOperatorChangeController.class)
+            .submitForCorrectingChange(correction, POSITION, POSITION_CHANGE, null, null, null)))
+            .with(user(regulatorUser))
+            .with(csrf())
+            .flashAttr("form", form))
+        .andExpectAll(
+            status().isOk(),
+            view().name(VIEW_NAME),
+            model().attribute("form", form),
+            model().attribute("cancelUrl", EXECUTED_CANCEL_URL)
         );
 
     verifyNoInteractions(storageOperatorChangeService);

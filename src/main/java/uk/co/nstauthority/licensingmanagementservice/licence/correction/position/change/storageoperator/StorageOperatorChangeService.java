@@ -11,8 +11,10 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.LicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.UpdateLicencePositionPayload;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.StorageOperatorOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.storageoperator.StorageOperatorChangeContext;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionChangeOperationUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionStorageOperatorChangeUtil;
 
 @Service
@@ -73,6 +75,29 @@ public class StorageOperatorChangeService {
     licencePositionCorrectionService.save(positionCorrection);
   }
 
+  @Transactional
+  public void correctExistingStorageOperatorChange(
+      LicencePosition licencePosition,
+      LicenceCorrection licenceCorrection,
+      Integer storageOperatorId,
+      String originalChangeId
+  ) {
+    var positionCorrection = licencePositionCorrectionService
+        .getOrBuildUpdatePositionCorrection(licenceCorrection, licencePosition);
+
+    var payload = positionCorrection.getPayload();
+
+    var changes = LicencePositionChangeOperationUtil.upsertUpdateChange(
+        payload.changes(),
+        StorageOperatorOperation.class,
+        originalChangeId,
+        LicencePositionStorageOperatorChangeUtil.storageOperatorOperation(storageOperatorId)
+    );
+
+    positionCorrection.setPayload(LicencePositionPayload.withChanges(payload, changes));
+    licencePositionCorrectionService.save(positionCorrection);
+  }
+
   public StorageOperatorChangeForm populateAddedStorageOperatorForm(
       StorageOperatorChangeContext changeContext,
       LicencePositionCorrection positionCorrection
@@ -101,7 +126,17 @@ public class StorageOperatorChangeService {
     return form;
   }
 
-  private boolean hasPendingStorageOperatorChange(LicencePosition licencePosition, LicenceCorrection licenceCorrection) {
+  public StorageOperatorChangeForm populateCorrectingStorageOperatorForm(
+      StorageOperatorChangeContext changeContext
+  ) {
+    var form = new StorageOperatorChangeForm();
+    if (changeContext.currentOperatorId() != null) {
+      form.getOperatorId().setInputValue(String.valueOf(changeContext.currentOperatorId()));
+    }
+    return form;
+  }
+
+  public boolean hasPendingStorageOperatorChange(LicencePosition licencePosition, LicenceCorrection licenceCorrection) {
     return licencePositionCorrectionService
         .findUpdatePositionCorrection(licenceCorrection, licencePosition)
         .map(positionCorrection ->

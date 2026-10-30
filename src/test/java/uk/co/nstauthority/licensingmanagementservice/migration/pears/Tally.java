@@ -30,7 +30,8 @@ class Tally {
   }
 
   void example(String key, String example) {
-    examples.putIfAbsent(key, example);
+    // lowest wins, so the example does not depend on which thread got here first
+    examples.merge(key, example, (kept, candidate) -> kept.compareTo(candidate) <= 0 ? kept : candidate);
   }
 
   boolean isEmpty() {
@@ -51,7 +52,8 @@ class Tally {
             .comparingInt((String key) -> licences.get(key).size()).reversed()
             .thenComparing(Comparator.naturalOrder()))
         .forEach(key -> {
-          var affected = licences.get(key);
+          // sorted because the sweep records licences in whatever order its threads finish
+          var affected = licences.get(key).stream().sorted().toList();
           out.append("  %-64s %,9d%n".formatted(key, affected.size()));
 
           if (affected.size() <= WORTH_LISTING) {

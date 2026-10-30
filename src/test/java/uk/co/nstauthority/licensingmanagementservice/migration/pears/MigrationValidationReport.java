@@ -20,6 +20,8 @@ import uk.co.nstauthority.licensingmanagementservice.migration.pears.operation.M
  * Accumulates what a sweep of every licence found, and renders it as the summary the CI step is read for. Each
  * {@link PearsComparisonSource} is reported separately, since a licence agreeing with the operations but not with
  * the data points means something quite different from the reverse.
+ *
+ * <p>The sweep records from several threads at once, so every entry point is synchronized.
  */
 class MigrationValidationReport {
 
@@ -49,14 +51,14 @@ class MigrationValidationReport {
   /**
    * A licence reached the point of being compared, whatever the comparisons then found.
    */
-  void recordLicenceSwept() {
+  synchronized void recordLicenceSwept() {
     licencesSwept++;
   }
 
   /**
    * One licence's comparison against one reading of PEARS, whether or not anything differed.
    */
-  void recordComparison(
+  synchronized void recordComparison(
       PearsComparisonSource comparisonSource,
       String licenceReference,
       PearsLicencePositions pearsPositions,
@@ -72,7 +74,7 @@ class MigrationValidationReport {
    * What one migrator decided while carrying a licence across. Recorded per migrator rather than per comparison
    * source, because the question a reader has is what became of the administrator.
    */
-  void recordMigratorNotes(String migratorName, String licenceReference, MigrationNotes notes) {
+  synchronized void recordMigratorNotes(String migratorName, String licenceReference, MigrationNotes notes) {
     migratorNotes
         .computeIfAbsent(migratorName, MigratorNotes::new)
         .record(licenceReference, notes);
@@ -81,7 +83,7 @@ class MigrationValidationReport {
   /**
    * The operations of one licence that some migrator supports, by OPERATION_TYPE.
    */
-  void recordIncludedOperations(String licenceReference, Map<String, Integer> includedOperationsByType) {
+  synchronized void recordIncludedOperations(String licenceReference, Map<String, Integer> includedOperationsByType) {
     includedOperations.record(licenceReference, includedOperationsByType);
   }
 
@@ -89,28 +91,28 @@ class MigrationValidationReport {
    * The operations of one licence that no migrator supports, by OPERATION_TYPE. Their positions
    * were still built; only what they did was left behind.
    */
-  void recordIgnoredOperations(String licenceReference, Map<String, Integer> ignoredOperationsByType) {
+  synchronized void recordIgnoredOperations(String licenceReference, Map<String, Integer> ignoredOperationsByType) {
     ignoredOperations.record(licenceReference, ignoredOperationsByType);
   }
 
   /**
    * A licence deliberately left out of the sweep, with the reason it was left out.
    */
-  void recordNotCompared(String licenceReference, String reason) {
+  synchronized void recordNotCompared(String licenceReference, String reason) {
     notCompared.add(reason, licenceReference);
   }
 
   /**
    * A licence that threw before it could be compared.
    */
-  void recordFailure(String licenceReference, Exception e) {
+  synchronized void recordFailure(String licenceReference, Exception e) {
     failures.add("%s: %s".formatted(e.getClass().getSimpleName(), firstLine(e.getMessage())), licenceReference);
   }
 
   /**
    * The licences whose timeline did not match the given reading of PEARS.
    */
-  List<String> differingLicenceReferences(PearsComparisonSource comparisonSource) {
+  synchronized List<String> differingLicenceReferences(PearsComparisonSource comparisonSource) {
     return comparisons.get(comparisonSource).differingLicenceReferences();
   }
 
@@ -118,7 +120,7 @@ class MigrationValidationReport {
    * Prints the summary to the step log and writes it alongside the other build reports, where the
    * existing {@code sync-reports} CI step publishes it.
    */
-  void publish() {
+  synchronized void publish() {
     var report = render();
     System.out.println(report);
 
@@ -131,7 +133,7 @@ class MigrationValidationReport {
     }
   }
 
-  String render() {
+  synchronized String render() {
     var out = new StringBuilder();
     out.append(System.lineSeparator())
         .append("=== Licence timeline compared with PEARS ===")

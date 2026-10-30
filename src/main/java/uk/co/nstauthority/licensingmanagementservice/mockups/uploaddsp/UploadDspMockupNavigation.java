@@ -118,7 +118,8 @@ class UploadDspMockupNavigation {
       var licensee = Integer.parseInt(licenseePage.group(1));
       return new Current(Actor.LICENSEE, licensee < UploadDspMockupJourney.LICENSEES.size() ? licensee : 0);
     }
-    if (route.equals("/signatory") || route.equals("/direction-letter/sign")) {
+    if (route.equals("/signatory") || route.equals("/direction-letter/sign")
+        || route.equals("/direction-letter/send-back")) {
       return new Current(Actor.SIGNATORY, 0);
     }
     if (route.equals("/execution") || route.startsWith("/deed-of-variation") || route.startsWith("/direction-letter")) {

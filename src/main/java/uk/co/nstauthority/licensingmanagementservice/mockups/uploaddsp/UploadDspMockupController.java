@@ -334,8 +334,11 @@ public class UploadDspMockupController {
               ReverseRouter.route(on(DeedOfVariationMockupController.class).renderSignedDeed(licensee)), null))
           : List.of();
       case SIGNATORY -> journey().signatureStatus() == UploadDspMockupJourney.SignatureStatus.AWAITING
-          ? List.of(new ActionItemView("Sign direction letter", 10, true,
-              ReverseRouter.route(on(DirectionLetterMockupController.class).renderSign()), null))
+          ? List.of(
+              new ActionItemView("Sign direction letter", 10, true,
+                  ReverseRouter.route(on(DirectionLetterMockupController.class).renderSign()), null),
+              new ActionItemView("Send back to decision executor", 20, false,
+                  ReverseRouter.route(on(DirectionLetterMockupController.class).renderSendBack()), null))
           : List.of();
       case DECISION_ISSUER -> List.of(
           new ActionItemView("Prepare decision letter", 10, true,
@@ -401,6 +404,7 @@ public class UploadDspMockupController {
               ReverseRouter.route(on(DirectionLetterMockupController.class).sendReminder(null)), null),
           new ActionItemView("Change signatory", 20, false, directionLetterUrl, null)
       );
+      case SENT_BACK -> List.of(new ActionItemView("Adjust direction letter", 10, true, directionLetterUrl, null));
       case SIGNED -> List.of(
           new ActionItemView("Issue direction letter", 10, true,
               ReverseRouter.route(on(DirectionLetterMockupController.class).issueLetter(null)), null)

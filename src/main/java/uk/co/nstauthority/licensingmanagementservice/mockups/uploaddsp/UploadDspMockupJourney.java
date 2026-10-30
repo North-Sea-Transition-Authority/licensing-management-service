@@ -47,6 +47,7 @@ class UploadDspMockupJourney implements Serializable {
   enum SignatureStatus {
     NOT_REQUESTED,
     AWAITING,
+    SENT_BACK,
     SIGNED
   }
 
@@ -74,6 +75,7 @@ class UploadDspMockupJourney implements Serializable {
   private final Set<Integer> hardcopiesReceived = new HashSet<>();
   private final Set<Integer> hardcopiesNotRequired = new HashSet<>();
   private String signatoryName;
+  private String signatureFeedback;
   private SignatureStatus signatureStatus = SignatureStatus.NOT_REQUESTED;
   private boolean letterIssued;
   private boolean decisionLetterIssued;
@@ -165,8 +167,19 @@ class UploadDspMockupJourney implements Serializable {
     return letterIssued;
   }
 
+  String signatureFeedback() {
+    return signatureFeedback;
+  }
+
+  void sendBackLetter(String feedback) {
+    signatureFeedback = feedback;
+    signatureStatus = SignatureStatus.SENT_BACK;
+    addEvent("Direction letter sent back", "Feedback", feedback, signatoryName);
+  }
+
   void sendForSignature(String signatoryName) {
     this.signatoryName = signatoryName;
+    signatureFeedback = null;
     signatureStatus = SignatureStatus.AWAITING;
     addEvent("Direction letter sent for signature", "Authorised signatory", signatoryName, DECISION_EXECUTOR);
   }

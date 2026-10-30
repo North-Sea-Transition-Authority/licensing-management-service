@@ -23,6 +23,8 @@
     <@fdsForm.htmlForm>
       <@fdsAction.submitButtons primaryButtonText="Sign direction letter" secondaryLinkText="Cancel" linkSecondaryAction=true linkSecondaryActionUrl=springUrl(backUrl)/>
     </@fdsForm.htmlForm>
+
+    <@fdsAction.link linkText="Send back to the decision executor" linkUrl=springUrl(sendBackUrl)/>
   <#else>
     <@fdsInsetText.insetText>
       There is no direction letter waiting for your signature.

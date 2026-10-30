@@ -18,6 +18,12 @@
         </@fdsInsetText.insetText>
     </#if>
 
+    <#if sentBackBy?has_content>
+        <@fdsInsetText.insetText>
+            ${sentBackBy} sent this letter back: ${signatoryFeedback}
+        </@fdsInsetText.insetText>
+    </#if>
+
     <#if awaitingSignatory?has_content>
         <@fdsInsetText.insetText>
             This letter is waiting for ${awaitingSignatory} to sign. Choosing a different signatory sends it to them instead.

@@ -33,7 +33,17 @@ public class DirectionLetterMockupController {
 
   @GetMapping
   ModelAndView renderDirectionLetter() {
-    return getDirectionLetterModelAndView(new DirectionLetterForm());
+    var form = new DirectionLetterForm();
+    var journey = journeyStore.journey();
+    // A letter sent back goes to the same signatory unless the executor picks someone else
+    if (journey.signatureStatus() == UploadDspMockupJourney.SignatureStatus.SENT_BACK) {
+      DirectionLetterMockupData.SIGNATORY_OPTIONS.forEach((key, option) -> {
+        if (option.startsWith(journey.signatoryName())) {
+          form.setSignatory(key);
+        }
+      });
+    }
+    return getDirectionLetterModelAndView(form);
   }
 
   @PostMapping
@@ -66,6 +76,7 @@ public class DirectionLetterMockupController {
         .addObject("signatoryName", journey.signatoryName())
         .addObject("awaitingSignature",
             journey.signatureStatus() == UploadDspMockupJourney.SignatureStatus.AWAITING)
+        .addObject("sendBackUrl", ReverseRouter.route(on(this.getClass()).renderSendBack()))
         .addObject("backUrl", signatoryViewUrl);
 
     var breadcrumbs = Breadcrumbs.builder("Sign direction letter")
@@ -82,6 +93,35 @@ public class DirectionLetterMockupController {
     journeyStore.update(UploadDspMockupJourney::signLetter);
     NotificationBanner.newSuccessBanner()
         .withHeadingContent("Direction letter signed")
+        .applyTo(redirectAttributes);
+    return ReverseRouter.redirect(on(UploadDspMockupController.class).renderOverviewExecution(null));
+  }
+
+  @GetMapping("/send-back")
+  ModelAndView renderSendBack() {
+    var signatoryViewUrl = ReverseRouter.route(on(UploadDspMockupController.class).renderOverviewSignatory(null));
+    var modelAndView = new ModelAndView("lms/mockups/uploaddsp/directionLetterSendBack")
+        .addObject("pageTitle", "Send the direction letter back")
+        .addObject("caption", UploadDspMockupController.CAPTION)
+        .addObject("form", new DirectionLetterSendBackForm())
+        .addObject("backUrl", signatoryViewUrl);
+
+    var breadcrumbs = Breadcrumbs.builder("Send the direction letter back")
+        .addWorkAreaBreadcrumb()
+        .addBreadcrumb(UploadDspMockupController.APPLICATION_REFERENCE, signatoryViewUrl)
+        .build();
+    BreadcrumbsUtil.addBreadcrumbsToModel(modelAndView, breadcrumbs);
+
+    return modelAndView;
+  }
+
+  // Nothing is validated, so a pretend reason stands in when none is entered
+  @PostMapping("/send-back")
+  ModelAndView sendBack(@ModelAttribute("form") DirectionLetterSendBackForm form, RedirectAttributes redirectAttributes) {
+    var feedback = StringUtils.defaultIfBlank(form.getFeedback(), "The wording in section 3 needs to change.");
+    journeyStore.update(journey -> journey.sendBackLetter(feedback));
+    NotificationBanner.newSuccessBanner()
+        .withHeadingContent("Direction letter sent back to the decision executor")
         .applyTo(redirectAttributes);
     return ReverseRouter.redirect(on(UploadDspMockupController.class).renderOverviewExecution(null));
   }
@@ -122,6 +162,11 @@ public class DirectionLetterMockupController {
             journey.signatureStatus() == UploadDspMockupJourney.SignatureStatus.AWAITING
                 ? journey.signatoryName()
                 : "")
+        .addObject("sentBackBy",
+            journey.signatureStatus() == UploadDspMockupJourney.SignatureStatus.SENT_BACK
+                ? journey.signatoryName()
+                : "")
+        .addObject("signatoryFeedback", StringUtils.defaultString(journey.signatureFeedback()))
         .addObject("cancelUrl", UploadDspMockupController.executionUrl())
         .addObject("documentInstanceSectionsSummaryView", MockLetter.directionLetter())
         .addObject("accordionId", UUID.randomUUID().toString())

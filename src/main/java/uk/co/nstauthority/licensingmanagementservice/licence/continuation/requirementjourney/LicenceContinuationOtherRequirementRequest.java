@@ -7,11 +7,13 @@ import jakarta.persistence.ManyToOne;
 import java.util.UUID;
 import org.hibernate.annotations.UuidGenerator;
 import org.hibernate.envers.Audited;
+import uk.co.nstauthority.licensingmanagementservice.duplication.LinkedToDuplicationParent;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
 
 @Audited
 @Entity(name = "licence_continuation_other_requirement_request")
-public class LicenceContinuationOtherRequirementRequest {
+public class LicenceContinuationOtherRequirementRequest
+    implements LinkedToDuplicationParent<LicenceContinuationApplicationDetail> {
 
   @Id
   @UuidGenerator
@@ -95,5 +97,10 @@ public class LicenceContinuationOtherRequirementRequest {
 
   public void setActionsToRelinquishRequiredLicenceArea(String actionsToRelinquishRequiredLicenceArea) {
     this.actionsToRelinquishRequiredLicenceArea = actionsToRelinquishRequiredLicenceArea;
+  }
+
+  @Override
+  public void setDuplicationParent(LicenceContinuationApplicationDetail parent) {
+    setLicenceContinuationApplicationDetail(parent);
   }
 }

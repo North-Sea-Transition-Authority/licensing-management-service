@@ -7,11 +7,12 @@ import jakarta.persistence.ManyToOne;
 import java.util.UUID;
 import org.hibernate.annotations.UuidGenerator;
 import org.hibernate.envers.Audited;
+import uk.co.nstauthority.licensingmanagementservice.duplication.LinkedToDuplicationParent;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 
 @Audited
 @Entity(name = "licence_schedule_supporting_information")
-public class LicenceScheduleSupportingInformation {
+public class LicenceScheduleSupportingInformation implements LinkedToDuplicationParent<ScheduleWorkProgrammeApplicationDetail> {
 
   @Id
   @UuidGenerator
@@ -76,5 +77,10 @@ public class LicenceScheduleSupportingInformation {
   public void setScheduleWorkProgrammeApplicationDetails(
       ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetails) {
     this.scheduleWorkProgrammeApplicationDetails = scheduleWorkProgrammeApplicationDetails;
+  }
+
+  @Override
+  public void setDuplicationParent(ScheduleWorkProgrammeApplicationDetail parent) {
+    setScheduleWorkProgrammeApplicationDetails(parent);
   }
 }

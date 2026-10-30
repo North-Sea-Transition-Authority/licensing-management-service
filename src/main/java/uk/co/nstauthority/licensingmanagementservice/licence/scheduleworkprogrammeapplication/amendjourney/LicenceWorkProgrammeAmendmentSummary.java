@@ -10,12 +10,13 @@ import jakarta.persistence.Table;
 import java.util.UUID;
 import org.hibernate.annotations.UuidGenerator;
 import org.hibernate.envers.Audited;
+import uk.co.nstauthority.licensingmanagementservice.duplication.LinkedToDuplicationParent;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 
 @Audited
 @Entity
 @Table(name = "licence_work_programme_amendment_summary")
-public class LicenceWorkProgrammeAmendmentSummary {
+public class LicenceWorkProgrammeAmendmentSummary implements LinkedToDuplicationParent<ScheduleWorkProgrammeApplicationDetail> {
 
   @Id
   @UuidGenerator
@@ -52,5 +53,10 @@ public class LicenceWorkProgrammeAmendmentSummary {
   public void setLicenceWorkProgrammeAmendmentSummaryOptions(
       LicenceWorkProgrammeAmendmentSummaryOptions licenceWorkProgrammeAmendmentSummaryOptions) {
     this.licenceWorkProgrammeAmendmentSummaryOptions = licenceWorkProgrammeAmendmentSummaryOptions;
+  }
+
+  @Override
+  public void setDuplicationParent(ScheduleWorkProgrammeApplicationDetail parent) {
+    setScheduleWorkProgrammeApplicationDetails(parent);
   }
 }

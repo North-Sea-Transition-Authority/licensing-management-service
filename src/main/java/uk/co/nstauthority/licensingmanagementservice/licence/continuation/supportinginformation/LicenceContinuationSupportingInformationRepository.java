@@ -5,13 +5,16 @@ import java.util.UUID;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
-import uk.co.nstauthority.licensingmanagementservice.duplication.NotDuplicationSource;
+import uk.co.nstauthority.licensingmanagementservice.duplication.DuplicateThisOnUpdate;
+import uk.co.nstauthority.licensingmanagementservice.duplication.DuplicationSource;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
 
 @Repository
 public interface LicenceContinuationSupportingInformationRepository
-    extends JpaRepository<LicenceContinuationSupportingInformation, UUID>, NotDuplicationSource {
+    extends JpaRepository<LicenceContinuationSupportingInformation, UUID>,
+        DuplicationSource<LicenceContinuationApplicationDetail> {
 
+  @DuplicateThisOnUpdate
   @EntityGraph(attributePaths = "licenceContinuationApplicationDetail")
   Optional<LicenceContinuationSupportingInformation> findByLicenceContinuationApplicationDetail(
       LicenceContinuationApplicationDetail licenceContinuationApplicationDetail

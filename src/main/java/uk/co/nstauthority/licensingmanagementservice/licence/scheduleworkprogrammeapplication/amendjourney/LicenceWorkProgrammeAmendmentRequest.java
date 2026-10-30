@@ -11,12 +11,13 @@ import java.util.UUID;
 import org.hibernate.annotations.UuidGenerator;
 import org.hibernate.envers.Audited;
 import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFieldDuration;
+import uk.co.nstauthority.licensingmanagementservice.duplication.LinkedToDuplicationParent;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivity;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 
 @Audited
 @Entity(name = "licence_work_programme_amendment_request")
-public class LicenceWorkProgrammeAmendmentRequest {
+public class LicenceWorkProgrammeAmendmentRequest implements LinkedToDuplicationParent<ScheduleWorkProgrammeApplicationDetail> {
 
   @Id
   @UuidGenerator
@@ -96,5 +97,10 @@ public class LicenceWorkProgrammeAmendmentRequest {
 
   public void setWorkProgrammeChangeRequested(Boolean additionalInfoRequired) {
     this.workProgrammeChangeRequested = additionalInfoRequired;
+  }
+
+  @Override
+  public void setDuplicationParent(ScheduleWorkProgrammeApplicationDetail parent) {
+    setScheduleWorkProgrammeApplicationDetails(parent);
   }
 }

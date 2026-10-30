@@ -7,6 +7,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static uk.co.nstauthority.licensingmanagementservice.file.ApplicationFileTestUtil.createdUploadedFile;
@@ -279,4 +280,30 @@ class ApplicationFileServiceTest {
   ) implements ApplicationFileUsage {
   }
 
+
+  @Test
+  void duplicateFiles() {
+    var newUsage = new TestApplicationFileUsage(UUID.randomUUID().toString(), USAGE_TYPE, DOCUMENT_TYPE);
+    var secondFile = createdUploadedFile(applicationFileUsage);
+    uploadedFiles.add(secondFile);
+
+    applicationFileService.duplicateFiles(uploadedFiles, newUsage);
+
+    for (var uploadedFile : uploadedFiles) {
+      verify(fileService).copy(eq(uploadedFile), fileUsageFunctionCaptor.capture());
+      assertThat(fileUsageFunctionCaptor.getValue().apply(uk.co.fivium.fileuploadlibrary.core.FileUsage.newBuilder()))
+          .extracting(
+              uk.co.fivium.fileuploadlibrary.core.FileUsage::usageId,
+              uk.co.fivium.fileuploadlibrary.core.FileUsage::usageType,
+              uk.co.fivium.fileuploadlibrary.core.FileUsage::documentType
+          ).containsExactly(newUsage.usageId(), USAGE_TYPE, DOCUMENT_TYPE);
+    }
+  }
+
+  @Test
+  void duplicateFiles_noFiles_copiesNothing() {
+    applicationFileService.duplicateFiles(List.of(), applicationFileUsage);
+
+    verify(fileService, never()).copy(any(), any());
+  }
 }

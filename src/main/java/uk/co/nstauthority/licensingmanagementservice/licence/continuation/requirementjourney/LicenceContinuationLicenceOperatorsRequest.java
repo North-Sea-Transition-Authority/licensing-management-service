@@ -8,12 +8,14 @@ import jakarta.persistence.Table;
 import java.util.UUID;
 import org.hibernate.annotations.UuidGenerator;
 import org.hibernate.envers.Audited;
+import uk.co.nstauthority.licensingmanagementservice.duplication.LinkedToDuplicationParent;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
 
 @Audited
 @Entity
 @Table(name = "licence_continuation_licence_operators_request")
-public class LicenceContinuationLicenceOperatorsRequest {
+public class LicenceContinuationLicenceOperatorsRequest
+    implements LinkedToDuplicationParent<LicenceContinuationApplicationDetail> {
 
   @Id
   @UuidGenerator
@@ -48,5 +50,10 @@ public class LicenceContinuationLicenceOperatorsRequest {
 
   public void setPendingActionsExplanation(String pendingActionsExplanation) {
     this.pendingActionsExplanation = pendingActionsExplanation;
+  }
+
+  @Override
+  public void setDuplicationParent(LicenceContinuationApplicationDetail parent) {
+    setLicenceContinuationApplicationDetail(parent);
   }
 }

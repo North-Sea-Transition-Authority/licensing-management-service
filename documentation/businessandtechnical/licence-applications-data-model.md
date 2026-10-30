@@ -772,6 +772,10 @@ LMS. The mapping is:
 These five are the only usage types LMS writes. Historic rows may still carry a usage type no
 longer in the list.
 
+Files filed under an application **detail** id for supporting documents and continuation
+other requirement documents are copied, not moved, when a new detail version is created (see
+section 11.1).
+
 **Decision letters** are document instances in the shared document management library, keyed
 by `item_reference` = the application id and `item_type` = the application type name. A
 document instance is created at the point the decision is recorded (extension and amendment)
@@ -796,6 +800,20 @@ Both detail tables carry `version_number`, and both root tables can hold many de
 today. Queries that fetch "the latest detail by version number descending" are future-proofing,
 not evidence that multiple versions exist. Equally, do not assume the one-to-many will stay
 degenerate — join to the detail table rather than assuming one row.
+
+The application's code can build a new `DRAFT` detail row from an existing one, but nothing
+currently triggers it. When it does, the new row has `version_number` one higher, the same
+application, a fresh `created_*` timestamp and user, and the same responsible organisation. A
+continuation detail also keeps the same current and next term and phase ids. The
+`submitted_*` and `decision_date` columns start empty. These child rows are copied
+field-for-field with fresh ids: for a schedule application, the request purpose, extension
+requests, amendment requests, amendment summary and supporting information; for a
+continuation application, the licence operators, WPA requirement, other requirement and
+supporting information rows. Record-of-decision rows and the external contributor requests
+are not copied. Uploaded files are copied too (see section 10): the new row gets its own copy
+of each supporting document (schedule application) or each other requirement and additional
+supporting document (continuation), filed under the new detail id, and the old version keeps
+its files. Decision support papers and the issued letter are not copied.
 
 Note the side effect on application references: the running number counts *version 1* details
 submitted in the calendar year, so it is effectively a count of distinct applications.

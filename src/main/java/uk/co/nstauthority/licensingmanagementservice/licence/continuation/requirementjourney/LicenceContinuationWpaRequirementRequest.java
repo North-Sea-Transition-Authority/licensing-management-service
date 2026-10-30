@@ -7,11 +7,12 @@ import jakarta.persistence.ManyToOne;
 import java.util.UUID;
 import org.hibernate.annotations.UuidGenerator;
 import org.hibernate.envers.Audited;
+import uk.co.nstauthority.licensingmanagementservice.duplication.LinkedToDuplicationParent;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
 
 @Audited
 @Entity(name = "licence_continuation_wpa_requirement_request")
-public class LicenceContinuationWpaRequirementRequest {
+public class LicenceContinuationWpaRequirementRequest implements LinkedToDuplicationParent<LicenceContinuationApplicationDetail> {
 
   @Id
   @UuidGenerator
@@ -65,5 +66,10 @@ public class LicenceContinuationWpaRequirementRequest {
 
   public void setLicenceContinuationApplicationDetail(LicenceContinuationApplicationDetail licenceContinuationApplicationDetail) {
     this.licenceContinuationApplicationDetail = licenceContinuationApplicationDetail;
+  }
+
+  @Override
+  public void setDuplicationParent(LicenceContinuationApplicationDetail parent) {
+    setLicenceContinuationApplicationDetail(parent);
   }
 }

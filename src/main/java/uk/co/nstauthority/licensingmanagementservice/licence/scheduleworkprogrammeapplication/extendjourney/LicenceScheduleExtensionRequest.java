@@ -11,13 +11,14 @@ import java.util.UUID;
 import org.hibernate.annotations.UuidGenerator;
 import org.hibernate.envers.Audited;
 import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFieldDuration;
+import uk.co.nstauthority.licensingmanagementservice.duplication.LinkedToDuplicationParent;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 
 @Audited
 @Entity(name = "licence_schedule_extension_request")
-public class LicenceScheduleExtensionRequest {
+public class LicenceScheduleExtensionRequest implements LinkedToDuplicationParent<ScheduleWorkProgrammeApplicationDetail> {
 
   @Id
   @UuidGenerator
@@ -80,5 +81,10 @@ public class LicenceScheduleExtensionRequest {
 
   public void setLicenceScheduleTerm(LicenceScheduleTerm licenceScheduleTerm) {
     this.licenceScheduleTerm = licenceScheduleTerm;
+  }
+
+  @Override
+  public void setDuplicationParent(ScheduleWorkProgrammeApplicationDetail parent) {
+    setScheduleWorkProgrammeApplicationDetails(parent);
   }
 }

@@ -7,11 +7,12 @@ import jakarta.persistence.ManyToOne;
 import java.util.UUID;
 import org.hibernate.annotations.UuidGenerator;
 import org.hibernate.envers.Audited;
+import uk.co.nstauthority.licensingmanagementservice.duplication.LinkedToDuplicationParent;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
 
 @Audited
 @Entity(name = "licence_continuation_supporting_information")
-public class LicenceContinuationSupportingInformation {
+public class LicenceContinuationSupportingInformation implements LinkedToDuplicationParent<LicenceContinuationApplicationDetail> {
 
   @Id
   @UuidGenerator
@@ -46,5 +47,10 @@ public class LicenceContinuationSupportingInformation {
 
   public void setHasAdditionalSupportingInformation(Boolean hasAdditionalSupportingInformation) {
     this.hasAdditionalSupportingInformation = hasAdditionalSupportingInformation;
+  }
+
+  @Override
+  public void setDuplicationParent(LicenceContinuationApplicationDetail parent) {
+    setLicenceContinuationApplicationDetail(parent);
   }
 }

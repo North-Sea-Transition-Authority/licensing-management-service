@@ -10,11 +10,12 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import java.util.UUID;
 import org.hibernate.envers.Audited;
+import uk.co.nstauthority.licensingmanagementservice.duplication.LinkedToDuplicationParent;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 
 @Entity(name = "swp_application_request_purpose")
 @Audited
-public class SwpApplicationRequestPurpose {
+public class SwpApplicationRequestPurpose implements LinkedToDuplicationParent<ScheduleWorkProgrammeApplicationDetail> {
 
   @Id
   @GeneratedValue(strategy = GenerationType.UUID)
@@ -80,5 +81,10 @@ public class SwpApplicationRequestPurpose {
 
   public void setAmendWorkProgramme(boolean amendWorkProgramme) {
     this.amendWorkProgramme = amendWorkProgramme;
+  }
+
+  @Override
+  public void setDuplicationParent(ScheduleWorkProgrammeApplicationDetail parent) {
+    setScheduleWorkProgrammeApplicationDetail(parent);
   }
 }

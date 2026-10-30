@@ -120,4 +120,11 @@ public class ApplicationFileService {
   public boolean fileBelongsToUser(UploadedFile uploadedFile, ServiceUserDetail userDetail) {
     return Objects.equals(uploadedFile.getUploadedBy(), userDetail.wuaId().toString());
   }
+
+  @Transactional
+  public void duplicateFiles(List<UploadedFile> files, ApplicationFileUsage applicationFileUsage) {
+    for (var uploadedFile : files) {
+      fileService.copy(uploadedFile, builder -> buildFileUsage(builder, applicationFileUsage));
+    }
+  }
 }

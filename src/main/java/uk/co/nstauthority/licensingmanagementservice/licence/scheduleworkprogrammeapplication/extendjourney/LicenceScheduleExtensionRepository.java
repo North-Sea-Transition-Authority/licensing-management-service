@@ -6,13 +6,15 @@ import java.util.UUID;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
-import uk.co.nstauthority.licensingmanagementservice.duplication.NotDuplicationSource;
+import uk.co.nstauthority.licensingmanagementservice.duplication.DuplicateThisOnUpdate;
+import uk.co.nstauthority.licensingmanagementservice.duplication.DuplicationSource;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 
 @Repository
 public interface LicenceScheduleExtensionRepository
-    extends JpaRepository<LicenceScheduleExtensionRequest, UUID>, NotDuplicationSource {
+    extends JpaRepository<LicenceScheduleExtensionRequest, UUID>, DuplicationSource<ScheduleWorkProgrammeApplicationDetail> {
 
+  @DuplicateThisOnUpdate
   @EntityGraph(attributePaths = {"licenceSchedulePhase.licenceScheduleTerm", "licenceScheduleTerm"})
   List<LicenceScheduleExtensionRequest> findAllByScheduleWorkProgrammeApplicationDetails(
       ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail);

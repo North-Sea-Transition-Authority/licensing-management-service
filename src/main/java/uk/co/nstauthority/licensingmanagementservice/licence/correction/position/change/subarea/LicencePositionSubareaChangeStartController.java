@@ -12,17 +12,23 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
 import uk.co.fivium.gisframework.feature.Feature;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.CorrectionHasStatus;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.CorrectionLicenceIsType;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanViewCorrection;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.LicencePositionCorrectionBelongsToCorrection;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.LicencePositionIsNotRemovedInCorrection;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.LicencePositionChangeBelongsToPosition;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.LicencePositionChangeIsOfType;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.position.LicencePositionBelongsToCorrectionLicence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.LicencePositionAddChangeController;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.LicenceBlockFeatureUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.spatial.LicencePositionSpatialService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
@@ -109,6 +115,26 @@ public class LicencePositionSubareaChangeStartController {
 
     return ReverseRouter.redirect(on(SubareaChangeController.class)
         .renderSubareaChange(correction, savedPositionCorrection, blockFeatureId));
+  }
+
+  @GetMapping("/position/{licencePositionId}/change/{changeId}/correct-subarea-change")
+  @CorrectionHasStatus(LicenceCorrectionStatus.IN_PROGRESS)
+  @LicencePositionIsNotRemovedInCorrection
+  @LicencePositionChangeBelongsToPosition
+  @LicencePositionChangeIsOfType(SubareaOperation.class)
+  @LicencePositionBelongsToCorrectionLicence
+  public ModelAndView renderForCorrectingChange(
+      LicenceCorrection correction,
+      LicencePosition licencePosition,
+      LicencePositionChange change
+  ) {
+    // TODO LMS2-269: remove this endpoint as it will no longer be needed
+
+    var positionCorrection = subareaChangeService.correctExistingSubareaChange(correction, licencePosition, change);
+    var blockFeatureId = subareaChangeService.getLiveSubareaOperationOrThrow(change).blockFeatureId();
+
+    return ReverseRouter.redirect(on(SubareaChangeController.class)
+        .renderSubareaChange(correction, positionCorrection, blockFeatureId));
   }
 
   @GetMapping("/added-position/{licencePositionCorrectionId}/subarea-change")

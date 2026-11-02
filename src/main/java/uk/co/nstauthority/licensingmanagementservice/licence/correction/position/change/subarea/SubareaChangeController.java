@@ -55,9 +55,8 @@ public class SubareaChangeController {
       LicencePositionCorrection licencePositionCorrection,
       @PathVariable UUID blockFeatureId
   ) {
-    var commandJourneyId = subareaChangeService
-        .getSubareaOperationOrThrow(licencePositionCorrection, blockFeatureId)
-        .commandJourneyIdOrThrow();
+    // TODO LMS2-269: Revert to a simple get - command journey should be created on button click in the review and submit page.
+    var commandJourneyId = subareaChangeService.getOrCreateCommandJourney(licencePositionCorrection, blockFeatureId);
 
     return getSubareaChangeModelAndView(correction, licencePositionCorrection, blockFeatureId, commandJourneyId);
   }

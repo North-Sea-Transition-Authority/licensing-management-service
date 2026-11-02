@@ -106,7 +106,10 @@ class SubareaChangeControllerTest extends AbstractControllerTest {
   @Test
   void renderSubareaChange_rendersMapWithCommandJourneyAndSrsWkid() throws Exception {
     var correction = givenCorrectionAllocatedToUser();
-    var positionCorrection = givenSubareaChange(addedPositionCorrection(correction));
+    var positionCorrection = addedPositionCorrection(correction);
+    when(licencePositionCorrectionService.findById(POSITION_CORRECTION_ID)).thenReturn(Optional.of(positionCorrection));
+    when(subareaChangeService.getOrCreateCommandJourney(positionCorrection, BLOCK_FEATURE_ID))
+        .thenReturn(COMMAND_JOURNEY_ID);
     when(featureService.getFeatureOrThrow(BLOCK_FEATURE_ID)).thenReturn(BLOCK_FEATURE);
 
     mockMvc.perform(get(subareaChangeUrl())

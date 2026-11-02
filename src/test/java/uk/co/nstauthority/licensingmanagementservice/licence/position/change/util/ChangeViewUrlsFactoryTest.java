@@ -24,6 +24,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.tasklist.PartialSurrenderTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.setequity.LicencePositionSetEquityController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.storageoperator.LicencePositionStorageOperatorChangeController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subarea.LicencePositionSubareaChangeStartController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subarea.RemoveSubareaChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subarea.SubareaChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.transferequity.LicencePositionTransferEquityController;
@@ -111,12 +112,14 @@ class ChangeViewUrlsFactoryTest {
 
   @Test
   void build_whenLiveChangeHasNoCorrectRoute_thenHasRemoveAndPositionUrls() {
-    var change = change(SUBAREA, null);
+    var change = change(SET_EQUITY, null);
+    var equityRemoveUrl = ReverseRouter.route(on(RemoveEquityChangeController.class)
+        .renderRemoveExecutedEquityChange(CORRECTION, LICENCE_POSITION, CHANGE_ENTITY));
 
-    var result = ChangeViewUrlsFactory.build(EXECUTED_POSITION, change, POSITION_ID, true, SUBAREA);
+    var result = ChangeViewUrlsFactory.build(EXECUTED_POSITION, change, POSITION_ID, true, SET_EQUITY);
 
     assertThat(result).isEqualTo(
-        new ChangeViewUrls(null, subareaRemoveUrl(), null, null, correctChangeOrderUrl(), correctPositionUrl())
+        new ChangeViewUrls(null, equityRemoveUrl, null, null, correctChangeOrderUrl(), correctPositionUrl())
     );
   }
 
@@ -216,6 +219,8 @@ class ChangeViewUrlsFactoryTest {
 
     var subareaCorrect = ReverseRouter.route(on(SubareaChangeController.class)
         .renderSubareaChange(CORRECTION, POSITION_CORRECTION, SUBAREA_BLOCK_FEATURE_ID));
+    var subareaCorrecting = ReverseRouter.route(on(LicencePositionSubareaChangeStartController.class)
+        .renderForCorrectingChange(CORRECTION, LICENCE_POSITION, CHANGE_ENTITY));
     var subareaRemove = subareaRemoveUrl();
     var subareaUndo = subareaUndoUrl();
 
@@ -299,16 +304,18 @@ class ChangeViewUrlsFactoryTest {
             storageOperatorAdded, null, null, null),
 
         Arguments.of("subarea, live", SUBAREA, EXECUTED_POSITION, live,
-            null, subareaRemove, null, null),
+            subareaCorrecting, subareaRemove, null, null),
         Arguments.of("subarea, added", SUBAREA, EXECUTED_POSITION, added,
             subareaCorrect, null, subareaUndo, null),
         Arguments.of("subarea, operations updated", SUBAREA, EXECUTED_POSITION, operationsUpdated,
-            null, null, subareaUndo, null),
+            subareaCorrect, null, subareaUndo, null),
         Arguments.of("subarea, order updated", SUBAREA, EXECUTED_POSITION, orderUpdated,
-            null, null, subareaUndo, null),
+            subareaCorrecting, null, subareaUndo, null),
         Arguments.of("subarea, removed", SUBAREA, EXECUTED_POSITION, removed,
             null, null, null, subareaUndo),
         Arguments.of("subarea, added position", SUBAREA, ADDED_POSITION, added,
+            subareaCorrect, null, subareaUndo, null),
+        Arguments.of("subarea, moved to added position", SUBAREA, ADDED_POSITION, operationsUpdated,
             subareaCorrect, null, subareaUndo, null)
     );
   }

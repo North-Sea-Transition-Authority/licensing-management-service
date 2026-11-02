@@ -103,6 +103,17 @@ public final class LicencePositionChangeOperationUtil {
         .toList();
   }
 
+  public static List<LicencePositionChangeType> upsertUpdateChangeById(
+      List<LicencePositionChangeType> changes,
+      String liveChangeId,
+      LicenceOperation operation
+  ) {
+    return Stream.concat(
+            LicencePositionChangeType.removeChangesById(changes, liveChangeId).stream(),
+            Stream.of(UpdateChangeOperations.buildUpdateChange(liveChangeId, operation)))
+        .toList();
+  }
+
   public static List<LicencePositionChangeType> removeChangesOf(
       List<LicencePositionChangeType> changes,
       Class<? extends LicenceOperation> operationType

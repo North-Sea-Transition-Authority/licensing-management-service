@@ -27,6 +27,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.tasklist.PartialSurrenderTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.setequity.LicencePositionSetEquityController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subarea.LicencePositionSubareaChangeStartController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subarea.RemoveSubareaChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subareaequity.LicencePositionSubareaSetEquityController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.transferequity.LicencePositionTransferEquityController;
@@ -1546,7 +1547,11 @@ class LicencePositionChangeViewResolverTest {
         .extracting(LicencePositionChangeView::type, LicencePositionChangeView::urls)
         .containsExactly(
             tuple(LicenceOperation.SUBAREA, new ChangeViewUrls(
-                null,
+                ReverseRouter.route(on(LicencePositionSubareaChangeStartController.class).renderForCorrectingChange(
+                    correction,
+                    licencePosition,
+                    new LicencePositionChange(firstChangeId)
+                )),
                 ReverseRouter.route(on(RemoveSubareaChangeController.class).renderRemoveExecutedSubareaChange(
                     correction,
                     licencePosition,
@@ -1559,7 +1564,11 @@ class LicencePositionChangeViewResolverTest {
                 correctPositionUrl(correction.getId(), positionId, firstChangeId)
             )),
             tuple(LicenceOperation.SUBAREA, new ChangeViewUrls(
-                null,
+                ReverseRouter.route(on(LicencePositionSubareaChangeStartController.class).renderForCorrectingChange(
+                    correction,
+                    licencePosition,
+                    new LicencePositionChange(secondChangeId)
+                )),
                 ReverseRouter.route(on(RemoveSubareaChangeController.class).renderRemoveExecutedSubareaChange(
                     correction,
                     licencePosition,

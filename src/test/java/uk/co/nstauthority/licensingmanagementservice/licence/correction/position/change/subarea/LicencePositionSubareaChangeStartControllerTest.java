@@ -22,6 +22,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.validation.BindingResult;
@@ -31,13 +33,16 @@ import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.LicencePositionAddChangeController;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.FeatureTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.spatial.LicencePositionSpatialService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
@@ -290,6 +295,68 @@ class LicencePositionSubareaChangeStartControllerTest extends AbstractController
             .renderSubareaChange(correction, positionCorrection, BLOCK_30_2.getId()))));
 
     verify(subareaChangeService).commitSubareaChange(positionCorrection, BLOCK_30_2.getId());
+  }
+
+  @Test
+  void renderForCorrectingChange_stagesCorrectionAndRedirectsToSubareaChange() throws Exception {
+    var correction = givenCorrectionAllocatedToUser();
+    var licencePosition = executedPosition();
+    var subareaOperation = LicenceOperation.newSubAreaOperation().withBlockFeatureId(BLOCK_30_1.getId()).build();
+    var change = LicencePositionChangeTestUtil.newBuilder()
+        .withId(UUID.randomUUID())
+        .withLicencePosition(licencePosition)
+        .withOperations(List.of(subareaOperation))
+        .build();
+    var positionCorrection = addedPositionCorrection(correction);
+    when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(licencePosition);
+    when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(licencePosition));
+    when(licencePositionChangeService.findById(change.getId())).thenReturn(Optional.of(change));
+    when(subareaChangeService.correctExistingSubareaChange(correction, licencePosition, change))
+        .thenReturn(positionCorrection);
+    when(subareaChangeService.getLiveSubareaOperationOrThrow(change)).thenReturn(subareaOperation);
+
+    mockMvc.perform(get(ReverseRouter.route(on(LicencePositionSubareaChangeStartController.class)
+            .renderForCorrectingChange(correction, licencePosition, change)))
+            .with(user(regulatorUser)))
+        .andExpectAll(
+            status().is3xxRedirection(),
+            redirectedUrl(ReverseRouter.route(on(SubareaChangeController.class)
+                .renderSubareaChange(correction, positionCorrection, BLOCK_30_1.getId())))
+        );
+  }
+
+  @ParameterizedTest
+  @EnumSource(value = LicenceCorrectionStatus.class, mode = EnumSource.Mode.EXCLUDE, names = "IN_PROGRESS")
+  void renderForCorrectingChange_whenCorrectionIsNotInProgress_thenForbidden(LicenceCorrectionStatus status) throws Exception {
+    var correction = givenCorrectionAllocatedToUserWithStatus(status);
+    var licencePosition = executedPosition();
+    var change = LicencePositionChangeTestUtil.newBuilder()
+        .withId(UUID.randomUUID())
+        .withLicencePosition(licencePosition)
+        .withOperations(List.of(LicenceOperation.newSubAreaOperation().withBlockFeatureId(BLOCK_30_1.getId()).build()))
+        .build();
+    when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(licencePosition);
+    when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(licencePosition));
+    when(licencePositionChangeService.findById(change.getId())).thenReturn(Optional.of(change));
+
+    mockMvc.perform(get(ReverseRouter.route(on(LicencePositionSubareaChangeStartController.class)
+            .renderForCorrectingChange(correction, licencePosition, change)))
+            .with(user(regulatorUser)))
+        .andExpect(status().isForbidden());
+
+    verify(subareaChangeService, never()).correctExistingSubareaChange(any(), any(), any());
+  }
+
+  private LicenceCorrection givenCorrectionAllocatedToUserWithStatus(LicenceCorrectionStatus status) {
+    var correction = LicenceCorrectionTestUtil.newBuilder()
+        .withId(CORRECTION_ID)
+        .withLicence(LICENCE)
+        .withStatus(status)
+        .build();
+    when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
+        .thenReturn(Optional.of(correction));
+    when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(correction));
+    return correction;
   }
 
   private LicenceCorrection givenCorrectionAllocatedToUser() {

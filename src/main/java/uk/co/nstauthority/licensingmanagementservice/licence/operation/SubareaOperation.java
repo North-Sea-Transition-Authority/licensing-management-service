@@ -14,6 +14,7 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subarea.LicencePositionSubareaChangeStartController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subarea.RemoveSubareaChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subarea.SubareaChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationContext;
@@ -33,7 +34,8 @@ import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
  * @param blockFeatureId   the block whose subareas changed
  * @param replacedSubareas the subarea versions that ended
  * @param outputSubareas   the subarea versions that took their place
- * @param commandJourneyId the journey the subareas are changed through while the change is staged in a correction
+ * @param commandJourneyId the journey the subareas are changed through while the change is staged in a correction.
+ *                         Live operations do not have a command journey.
  */
 public record SubareaOperation(
     UUID id,
@@ -110,12 +112,15 @@ public record SubareaOperation(
     return new OperationRoutes() {
       @Override
       public String correct(ChangeUrlTarget target) {
-        if (target.state() != ChangeUrlTarget.State.ADDED) {
-          return null;
-        }
-        //TODO LMS2-269 update to redirect to review and submit page
-        return ReverseRouter.route(on(SubareaChangeController.class)
-            .renderSubareaChange(target.correction(), target.positionCorrection(), blockFeatureId));
+        //TODO LMS2-269 update to redirect to review and submit page. Correcting a live change then no longer needs
+        // to stage its journey on a GET, so that can move to a POST.
+        return switch (target.state()) {
+          case ADDED, OPERATIONS_UPDATED -> ReverseRouter.route(on(SubareaChangeController.class)
+              .renderSubareaChange(target.correction(), target.positionCorrection(), blockFeatureId));
+          case LIVE, ORDER_UPDATED -> ReverseRouter.route(on(LicencePositionSubareaChangeStartController.class)
+              .renderForCorrectingChange(target.correction(), target.licencePosition(), target.changeEntity()));
+          case REMOVED -> null;
+        };
       }
 
       @Override

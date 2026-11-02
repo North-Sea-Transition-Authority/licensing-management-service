@@ -13,6 +13,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.AddChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.UpdateChangeOperations;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.UpdateChangeOrder;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.AdministratorOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
@@ -171,6 +172,33 @@ class LicencePositionChangeOperationUtilTest {
         List.of(staged), PartialSurrenderOperation.class, LIVE_CHANGE_ID, corrected);
 
     assertThat(result).containsExactly(UpdateChangeOperations.buildUpdateChange(LIVE_CHANGE_ID, corrected));
+  }
+
+  @Test
+  void upsertUpdateChangeById_whenNothingStagedForChange_thenKeepsOtherChangesOfTheSameTypeAndAddsAnUpdateChange() {
+    var otherChange = AddChange.buildOperationsChange(List.of(partialSurrender(UUID.randomUUID())), 1);
+    var operation = partialSurrender(FEATURE_ID);
+
+    var result = LicencePositionChangeOperationUtil.upsertUpdateChangeById(
+        List.of(otherChange), LIVE_CHANGE_ID, operation);
+
+    assertThat(result).containsExactly(
+        otherChange,
+        UpdateChangeOperations.buildUpdateChange(LIVE_CHANGE_ID, operation));
+  }
+
+  @Test
+  void upsertUpdateChangeById_whenAlreadyStagedForChange_thenReplacesItAndKeepsTheChangeOrder() {
+    var orderChange = new UpdateChangeOrder(LIVE_CHANGE_ID, 3);
+    var staged = UpdateChangeOperations.buildUpdateChange(LIVE_CHANGE_ID, partialSurrender(FEATURE_ID));
+    var corrected = partialSurrender(UUID.randomUUID());
+
+    var result = LicencePositionChangeOperationUtil.upsertUpdateChangeById(
+        List.of(orderChange, staged), LIVE_CHANGE_ID, corrected);
+
+    assertThat(result).containsExactly(
+        orderChange,
+        UpdateChangeOperations.buildUpdateChange(LIVE_CHANGE_ID, corrected));
   }
 
   @Test

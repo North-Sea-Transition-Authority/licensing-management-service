@@ -12,12 +12,15 @@ import java.time.Month;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.transaction.support.TransactionCallback;
+import org.springframework.transaction.support.TransactionOperations;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
@@ -68,11 +71,45 @@ class LicenceWritebackServiceTest {
       .withLicenceReference("P1")
       .build();
 
+  private TransactionOperations transactionOperations = TransactionOperations.withoutTransaction();
+
   private LicenceWritebackService licenceWritebackService;
 
   @BeforeEach
   void setUp() {
     licenceWritebackService = writebackServiceWith(List.of());
+  }
+
+  @Test
+  void overwriteLicencePositionsFromPears_whenPearsHoldsPositions_thenPearsIsReadBeforeTheTransactionOpens() {
+    var transactionOpen = new AtomicBoolean();
+    var readInsideTransaction = new AtomicBoolean();
+    transactionOperations = new TransactionOperations() {
+      @Override
+      public <T> T execute(TransactionCallback<T> action) {
+        transactionOpen.set(true);
+        try {
+          return action.doInTransaction(null);
+        } finally {
+          transactionOpen.set(false);
+        }
+      }
+    };
+    licenceWritebackService = writebackServiceWith(List.of());
+    when(pearsLicenceService.licenceHistory(eq("P"), eq(1), org.mockito.ArgumentMatchers.anySet()))
+        .thenAnswer(invocation -> {
+          readInsideTransaction.set(transactionOpen.get());
+          return PearsHistoryTestUtil.history("P", 1)
+              .position(1, "XPT/1", POSITION_DATE, 6)
+              .operationWithoutPayload(PearsOperationType.LICENCE_CREATE)
+              .build();
+        });
+    givenPositionsAreCreated();
+
+    licenceWritebackService.overwriteLicencePositionsFromPears(licence);
+
+    assertThat(readInsideTransaction).isFalse();
+    verify(licenceCleardownService).clear(licence);
   }
 
   @Test
@@ -263,7 +300,8 @@ class LicenceWritebackServiceTest {
         licenceCleardownService,
         pearsLicenceService,
         licenceResponsibleOrganisationService,
-        migrators
+        migrators,
+        transactionOperations
     );
   }
 

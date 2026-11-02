@@ -76,6 +76,7 @@ import uk.co.nstauthority.licensingmanagementservice.util.IntegrationTest;
 class PearsLicenceWritebackEndpointIntegrationTest {
 
   private static final String WRITEBACK_URL = "/actuator/pears-licence-writeback";
+  private static final String WRITEBACK_ALL_URL = "/actuator/pears-licence-writeback-all";
 
   // set by the development profile, which @IntegrationTest activates
   private static final String ACTUATOR_API_KEY = "dev1";
@@ -406,6 +407,46 @@ class PearsLicenceWritebackEndpointIntegrationTest {
         .containsExactlyInAnyOrder(tuple(22, true), tuple(33, true));
   }
 
+  @Test
+  void overwriteAllLicencePositionsFromPears_whenOneLicenceCannotBeSaved_thenOnlyThatLicenceIsRolledBack() {
+    when(pearsLicenceService.licenceReferences()).thenReturn(List.of(
+        new PearsLicenceReference("P", 1),
+        new PearsLicenceReference("P", 3),
+        new PearsLicenceReference("P", 999999)
+    ));
+    when(pearsLicenceService.licenceHistory(eq("P"), eq(1), anySet())).thenReturn(pearsHistory());
+    when(pearsLicenceService.licenceHistory(eq("P"), eq(3), anySet())).thenReturn(
+        PearsHistoryTestUtil.history("P", 3)
+            .position(4, "XPT/4", LAST_POSITION_DATE, 2)
+            .administratorSet(44)
+            .build());
+    doThrow(new IllegalStateException("Could not create licence transaction"))
+        .when(licenceTransactionService).createLicenceTransaction("XPT/3");
+
+    var response = writebackAll();
+
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+    assertThat(response.getBody()).isEqualTo(new LicenceWritebackAllResult(
+        3,
+        1,
+        List.of(),
+        List.of("P999999"),
+        Map.of("P1", "Could not create licence transaction"),
+        1,
+        1,
+        1,
+        0
+    ));
+
+    assertThat(licencePositionRepository.findByLicence(licence))
+        .extracting(LicencePosition::getId)
+        .containsExactlyInAnyOrder(firstPosition.getId(), secondPosition.getId(), draftPosition.getId());
+
+    assertThat(licencePositionRepository.findByLicence(licenceWithoutPositions))
+        .extracting(position -> position.getLicenceTransaction().getRegulatorReference())
+        .containsExactly("XPT/4");
+  }
+
   private <T> ResponseEntity<T> writeback(String licenceReference, Class<T> responseType) {
     var headers = new HttpHeaders();
     headers.setContentType(MediaType.APPLICATION_JSON);
@@ -416,6 +457,18 @@ class PearsLicenceWritebackEndpointIntegrationTest {
         HttpMethod.POST,
         new HttpEntity<>(Map.of("licenceReference", licenceReference), headers),
         responseType
+    );
+  }
+
+  private ResponseEntity<LicenceWritebackAllResult> writebackAll() {
+    var headers = new HttpHeaders();
+    headers.setBearerAuth(ACTUATOR_API_KEY);
+
+    return testRestTemplate.exchange(
+        WRITEBACK_ALL_URL,
+        HttpMethod.POST,
+        new HttpEntity<>(headers),
+        LicenceWritebackAllResult.class
     );
   }
 

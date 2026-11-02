@@ -1,6 +1,5 @@
 package uk.co.nstauthority.licensingmanagementservice.migration.pears;
 
-import jakarta.transaction.Transactional;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -11,6 +10,7 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionOperations;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenseeOperation;
@@ -39,6 +39,9 @@ import uk.co.nstauthority.licensingmanagementservice.util.ListUtil;
  * position become its current licensees, maintained in this application from then on. Unless some
  * licensee entry could not be carried across: the licensees it ends at would then be a guess, so the
  * licence keeps the ones it has and the result says so.
+ *
+ * <p>PEARS is read before the transaction that writes the licence is opened, so a licence waiting on
+ * PEARS holds no connection to this application's database.
  */
 @Service
 @ConditionalOnPearsDataSource
@@ -51,6 +54,7 @@ class LicenceWritebackService {
   private final PearsLicenceService pearsLicenceService;
   private final LicenceResponsibleOrganisationService licenceResponsibleOrganisationService;
   private final List<PearsOperationMigrator> migrators;
+  private final TransactionOperations transactionOperations;
 
   LicenceWritebackService(
       LicenceTransactionService licenceTransactionService,
@@ -59,7 +63,8 @@ class LicenceWritebackService {
       LicenceCleardownService licenceCleardownService,
       PearsLicenceService pearsLicenceService,
       LicenceResponsibleOrganisationService licenceResponsibleOrganisationService,
-      List<PearsOperationMigrator> migrators
+      List<PearsOperationMigrator> migrators,
+      TransactionOperations transactionOperations
   ) {
     this.licenceTransactionService = licenceTransactionService;
     this.licencePositionService = licencePositionService;
@@ -68,18 +73,33 @@ class LicenceWritebackService {
     this.pearsLicenceService = pearsLicenceService;
     this.licenceResponsibleOrganisationService = licenceResponsibleOrganisationService;
     this.migrators = migrators;
+    this.transactionOperations = transactionOperations;
   }
 
-  @Transactional
+  /**
+   * Reads the licence's history out of PEARS and rebuilds the licence from it.
+   */
   LicenceWriteback overwriteLicencePositionsFromPears(Licence licence) {
+    return overwriteLicencePositionsFromPears(licence, readHistory(licence));
+  }
+
+  /**
+   * The licence's history as PEARS holds it. Runs outside any transaction of this application's.
+   */
+  PearsLicenceHistory readHistory(Licence licence) {
     var operationHistory = pearsLicenceService.licenceHistory(
         licence.getPrefix(),
         Integer.parseInt(licence.getLicenceNumber()),
         wantedOperationTypes()
     );
 
-    var history = PearsLicenceHistory.reconstruct(operationHistory);
+    return PearsLicenceHistory.reconstruct(operationHistory);
+  }
 
+  /**
+   * Rebuilds the licence from a history {@link #readHistory} read, in one transaction of its own.
+   */
+  LicenceWriteback overwriteLicencePositionsFromPears(Licence licence, PearsLicenceHistory history) {
     // A history that arrives empty is as likely to be the query as the licence, so it does not
     // clear the licence.
     if (history.positions().isEmpty()) {
@@ -87,6 +107,10 @@ class LicenceWritebackService {
           "No positions found in PEARS for licence %s".formatted(licence.getLicenceReference()), history);
     }
 
+    return transactionOperations.execute(status -> writeback(licence, history));
+  }
+
+  private LicenceWriteback writeback(Licence licence, PearsLicenceHistory history) {
     var notesByMigrator = new LinkedHashMap<String, MigrationNotes>();
     var changesByPosition = produceChanges(history, notesByMigrator);
     var includedOperationsByType = operationsByType(history, true);

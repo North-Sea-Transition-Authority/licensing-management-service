@@ -24,6 +24,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceC
 import uk.co.nstauthority.licensingmanagementservice.licence.search.LicenceSearchController;
 import uk.co.nstauthority.licensingmanagementservice.licence.tab.TabbedLicencePageService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
+import uk.co.nstauthority.licensingmanagementservice.phasedrelease.FeatureFlagService;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
 import uk.co.nstauthority.licensingmanagementservice.util.enumutil.DisplayableEnumOptionUtil;
@@ -42,19 +43,22 @@ public class LicenceController {
   private final EditLicenceDetailsValidator editLicenceDetailsValidator;
   private final TabbedLicencePageService tabbedLicencePageService;
   private final LicenceCorrectionService licenceCorrectionService;
+  private final FeatureFlagService featureFlagService;
 
   public LicenceController(
       LicenceFormService licenceFormService,
       NewLicenceValidator newLicenceValidator,
       EditLicenceDetailsValidator editLicenceDetailsValidator,
       TabbedLicencePageService tabbedLicencePageService,
-      LicenceCorrectionService licenceCorrectionService
+      LicenceCorrectionService licenceCorrectionService,
+      FeatureFlagService featureFlagService
   ) {
     this.licenceFormService = licenceFormService;
     this.newLicenceValidator = newLicenceValidator;
     this.editLicenceDetailsValidator = editLicenceDetailsValidator;
     this.tabbedLicencePageService = tabbedLicencePageService;
     this.licenceCorrectionService = licenceCorrectionService;
+    this.featureFlagService = featureFlagService;
   }
 
   @GetMapping("/new")
@@ -84,7 +88,8 @@ public class LicenceController {
         .addObject("pageTitle", NEW_LICENCE_PAGE_TITLE)
         .addObject("form", form)
         .addObject("licenceTypeOptions",
-            DisplayableEnumOptionUtil.getDisplayableOptions(LicenceType.getLicenceTypesManagedByLms()))
+            DisplayableEnumOptionUtil.getDisplayableOptions(
+                featureFlagService.filterEnabled(LicenceType.getLicenceTypesManagedByLms())))
         .addObject("licenceStatusOptions",
             DisplayableEnumOptionUtil.getDisplayableOptions(LicenceStatusType.class))
         .addObject("preselectedOrgUnits",

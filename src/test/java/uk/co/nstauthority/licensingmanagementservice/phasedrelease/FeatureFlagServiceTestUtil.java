@@ -14,7 +14,11 @@ public class FeatureFlagServiceTestUtil {
 
   /** Every phase on, as in the test suite and a fully enabled local run. */
   public static FeatureFlagService allPhasesEnabled() {
-    return withProfiles(ReleasePhase.LMS1.getProfileName(), ReleasePhase.LMS2.getProfileName());
+    return withProfiles(
+        ReleasePhase.LMS1.getProfileName(),
+        ReleasePhase.LMS2.getProfileName(),
+        ReleasePhase.FUTURE.getProfileName()
+    );
   }
 
   /** No phase profiles active, so only {@link ReleasePhase#NOT_FLAGGED} features are on, as in the initial release. */

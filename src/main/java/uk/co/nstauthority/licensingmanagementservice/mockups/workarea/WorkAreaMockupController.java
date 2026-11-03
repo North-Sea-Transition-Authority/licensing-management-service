@@ -117,7 +117,7 @@ public class WorkAreaMockupController {
         .addObject("currentTab", currentTab)
         .addObject("workAreaItems", workAreaItems)
         .addObject("form", form)
-        .addObject("licenceTypes", DisplayableEnumOptionUtil.getDisplayableOptions(LicenceType.getDisplayableTypes()))
+        .addObject("licenceTypes", DisplayableEnumOptionUtil.getDisplayableOptions(LicenceType.class))
         .addObject("applicationTypes", DisplayableEnumOptionUtil.getDisplayableOptions(ApplicationType.class))
         .addObject("applicationStatuses",
             DisplayableEnumOptionUtil.getDisplayableOptions(ApplicationStatus.getSearchableStatuses()))

@@ -44,6 +44,20 @@ class FeatureFlagServiceTest {
   }
 
   @Test
+  void isEnabled_phase_whenLms1AndLms2Only_thenFutureOff() {
+    var service = serviceWithProfiles("enable-lms1", "enable-lms2");
+
+    assertThat(service.isEnabled(ReleasePhase.FUTURE)).isFalse();
+  }
+
+  @Test
+  void isEnabled_phase_whenFutureProfile_thenFutureOn() {
+    var service = serviceWithProfiles("enable-future");
+
+    assertThat(service.isEnabled(ReleasePhase.FUTURE)).isTrue();
+  }
+
+  @Test
   void isEnabled_feature_delegatesToPhase() {
     assertThat(serviceWithProfiles().isEnabled(ReleaseFeature.START_APPLICATION)).isFalse();
     assertThat(serviceWithProfiles("enable-lms1").isEnabled(ReleaseFeature.START_APPLICATION)).isTrue();

@@ -95,7 +95,7 @@ class CrossLicenceEventTrackerControllerTest extends AbstractControllerTest {
         .andExpect(model().attributeExists("form"))
         .andExpect(model().attribute("form", instanceOf(EventTrackerForm.class)))
         .andExpect(model().attribute("licenceTypes",
-            DisplayableEnumOptionUtil.getDisplayableOptions(LicenceType.getDisplayableTypes())))
+            DisplayableEnumOptionUtil.getDisplayableOptions(LicenceType.class)))
         .andExpect(model().attribute("licenseeOrgUnitUrl",
             SearchSelectorService.route(on(OrganisationUnitRestController.class).searchOrganisationUnits(null))))
         .andExpect(model().attribute("preSelectedLicenseeOrgUnit", Collections.emptyMap()))

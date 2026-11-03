@@ -319,14 +319,18 @@ constraint. The lists describe what the service writes rather than what the sche
 | `CARBON_STORAGE` | Carbon storage | `CS` | Yes |
 | `GAS_STORAGE` | Gas storage | `GS` | Yes |
 | `LANDWARD_EXPLORATION` | Landward exploration | `LX` | Yes |
-| `LANDWARD_PRODUCTION` | Landward production | `PEDL` | No |
+| `LANDWARD_PRODUCTION` | Landward production | `PEDL`, `PL`, `EXL`, `ML`, `AL`, `CE`, `DL` | No |
 | `METHANE_DRAINAGE` | Methane drainage | `MDL` | Yes |
 | `SEAWARD_EXPLORATION` | Seaward exploration | `E` | Yes |
 | `SEAWARD_PRODUCTION` | Seaward production | `P` | No |
-| `A`, `AL`, `B`, `CE`, `DL`, `NA`, `XL` | *(no display name)* | as per value | No |
 
-The last group are types received from PEARS that LMS does not map or manage, and they have no
-display name. Treat them as "type unknown" rather than as meaningful categories.
+Several PEARS reference prefixes share one type: `PEDL`, `PL`, `EXL`, `ML`, `AL`, `CE` and `DL`
+licences are all `LANDWARD_PRODUCTION`. The original prefix is kept in `licences.prefix`, so
+filter on that column to tell them apart.
+
+`GAS_STORAGE`, `LANDWARD_EXPLORATION`, `METHANE_DRAINAGE` and `SEAWARD_EXPLORATION` are not yet available in the
+service. A licence of these types can only be added while the future release phase is switched on, so expect
+none in live data.
 
 The schedules data model repeats this table, because licence type decides which term, phase and
 activity values are legitimate on a schedule. If you change this list, change it there too.

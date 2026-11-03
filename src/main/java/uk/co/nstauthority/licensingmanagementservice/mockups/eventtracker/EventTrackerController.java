@@ -25,7 +25,7 @@ public class EventTrackerController {
   ModelAndView renderMultiTablePage() {
     return new ModelAndView("lms/mockups/eventtracker/eventTrackerMultiTableDesign")
         .addObject("form", new EventTrackerForm())
-        .addObject("licenceTypes", DisplayableEnumOptionUtil.getDisplayableOptions(LicenceType.getDisplayableTypes()))
+        .addObject("licenceTypes", DisplayableEnumOptionUtil.getDisplayableOptions(LicenceType.class))
         .addObject("licenseeOrgUnitUrl",
             SearchSelectorService.route(on(OrganisationUnitRestController.class).searchOrganisationUnits(null)))
         .addObject("preSelectedLicenseeOrgUnit", Collections.emptyMap())
@@ -36,7 +36,7 @@ public class EventTrackerController {
   ModelAndView renderSingleTableRegulatorPage() {
     return new ModelAndView("lms/mockups/eventtracker/eventTrackerSingleTableRegulatorDesign")
         .addObject("form", new EventTrackerForm())
-        .addObject("licenceTypes", DisplayableEnumOptionUtil.getDisplayableOptions(LicenceType.getDisplayableTypes()))
+        .addObject("licenceTypes", DisplayableEnumOptionUtil.getDisplayableOptions(LicenceType.class))
         .addObject("licenseeOrgUnitUrl",
             SearchSelectorService.route(on(OrganisationUnitRestController.class).searchOrganisationUnits(null)))
         .addObject("preSelectedLicenseeOrgUnit", Collections.emptyMap())
@@ -48,7 +48,7 @@ public class EventTrackerController {
   ModelAndView renderSingleTableIndustryPage() {
     return new ModelAndView("lms/mockups/eventtracker/eventTrackerSingleTableIndustryDesign")
         .addObject("form", new EventTrackerForm())
-        .addObject("licenceTypes", DisplayableEnumOptionUtil.getDisplayableOptions(LicenceType.getDisplayableTypes()))
+        .addObject("licenceTypes", DisplayableEnumOptionUtil.getDisplayableOptions(LicenceType.class))
         .addObject("licenseeOrgUnitUrl",
             SearchSelectorService.route(on(OrganisationUnitRestController.class).searchOrganisationUnits(null)))
         .addObject("preSelectedLicenseeOrgUnit", Collections.emptyMap())
@@ -60,7 +60,7 @@ public class EventTrackerController {
   ModelAndView renderAccordionPage() {
     return new ModelAndView("lms/mockups/eventtracker/eventTrackerAccordionDesign")
         .addObject("form", new EventTrackerForm())
-        .addObject("licenceTypes", DisplayableEnumOptionUtil.getDisplayableOptions(LicenceType.getDisplayableTypes()))
+        .addObject("licenceTypes", DisplayableEnumOptionUtil.getDisplayableOptions(LicenceType.class))
         .addObject("licenseeOrgUnitUrl",
             SearchSelectorService.route(on(OrganisationUnitRestController.class).searchOrganisationUnits(null)))
         .addObject("preSelectedLicenseeOrgUnit", Collections.emptyMap())

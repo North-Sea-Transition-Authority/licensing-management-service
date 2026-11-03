@@ -145,17 +145,19 @@ The application will be running on [http://localhost:8080/lms](http://localhost:
 
 ## Feature flags (phased go-live)
 
-LMS goes live in three phases, gated by profile-backed feature flags in the `phasedrelease` package.
+LMS goes live in three phases, gated by profile-backed feature flags in the `phasedrelease` package. A fourth,
+**Future**, holds back functionality that is not yet planned for any release.
 
 | Phase | Active profiles | Unlocks |
 |-------|-----------------|---------|
 | **Initial** | *(none)* | Work area (without the Start application button), teams, licence contacts |
 | **LMS1** | `enable-lms1` | + schedules management, licence search & management, schedule & continuation applications, document library |
 | **LMS2** | `enable-lms1` + `enable-lms2` | + all other functionality (licence corrections, licence position/timeline) |
+| **Future** | `enable-future` | Gas storage, methane drainage, landward exploration and seaward exploration licence types. Independent of the other phases |
 
 **Absence of a profile means locked**, so no phase profile is set in `application.properties`. For local development,
-add `enable-lms1` and `enable-lms2` to your run configuration to work with the full app. Tests already run with both
-on, via the profile groups in the test-only `src/test/resources/application.properties`. Live environments switch a
+add `enable-lms1` and `enable-lms2` to your run configuration to work with the full app, and `enable-future` if you
+need the future licence types. Tests already run with all three on, via the profile groups in the test-only `src/test/resources/application.properties`. Live environments switch a
 phase on by adding its profile to `SPRING_PROFILES_ACTIVE` — config only, no redeploy.
 
 `FeatureFlagService` is the single source of truth for "is this on?", checked against two enums: `ReleasePhase`

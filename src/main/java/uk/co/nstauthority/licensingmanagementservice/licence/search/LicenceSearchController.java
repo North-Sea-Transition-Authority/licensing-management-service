@@ -19,7 +19,9 @@ import uk.co.nstauthority.licensingmanagementservice.fds.searchselector.SearchSe
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceAccessService;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceController;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatusType;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
+import uk.co.nstauthority.licensingmanagementservice.phasedrelease.FeatureFlagService;
 import uk.co.nstauthority.licensingmanagementservice.query.SearchResultItem;
 import uk.co.nstauthority.licensingmanagementservice.teams.RegulatorRoleService;
 import uk.co.nstauthority.licensingmanagementservice.util.enumutil.DisplayableEnumOptionUtil;
@@ -32,15 +34,18 @@ public class LicenceSearchController {
   private final LicenceSearchService licenceSearchService;
   private final LicenceAccessService licenceAccessService;
   private final RegulatorRoleService regulatorRoleService;
+  private final FeatureFlagService featureFlagService;
 
   public LicenceSearchController(
       LicenceSearchService licenceSearchService,
       LicenceAccessService licenceAccessService,
-      RegulatorRoleService regulatorRoleService
+      RegulatorRoleService regulatorRoleService,
+      FeatureFlagService featureFlagService
   ) {
     this.licenceSearchService = licenceSearchService;
     this.licenceAccessService = licenceAccessService;
     this.regulatorRoleService = regulatorRoleService;
+    this.featureFlagService = featureFlagService;
   }
 
   @GetMapping
@@ -85,7 +90,8 @@ public class LicenceSearchController {
     return new ModelAndView("lms/licence/search/licenceSearch")
         .addObject("form", form)
         .addObject("clearFilterUrl", ReverseRouter.route(on(LicenceSearchController.class).clearSearchFilters(null, null)))
-        .addObject("licenceTypes", LicenceTypeFilterUtil.getOptions())
+        .addObject("licenceTypes",
+            DisplayableEnumOptionUtil.getDisplayableOptions(featureFlagService.filterEnabled(List.of(LicenceType.values()))))
         .addObject("licenceStatuses", DisplayableEnumOptionUtil.getDisplayableOptions(LicenceStatusType.class))
         .addObject("licenseeGroupOrgUnitUrl",
             SearchSelectorService.route(on(OrganisationGroupRestController.class).getOrganisationGroupSearchResults(null)))

@@ -22,21 +22,9 @@ class LicenceTypeFeatureServiceTest {
   }
 
   @Test
-  void hasTerms_WhenLicenceTypeHasNoTerms_ReturnsFalse() {
-    var result = underTest.hasTerms(LicenceType.A);
-    assertThat(result).isFalse();
-  }
-
-  @Test
   void getTerms_WhenLicenceTypeHasTerms_ReturnsNonEmptySet() {
     var terms = underTest.getTerms(LicenceType.SEAWARD_PRODUCTION);
     assertThat(terms).isNotEmpty();
-  }
-
-  @Test
-  void getTerms_WhenLicenceTypeHasNoTerms_ReturnsEmptySet() {
-    var terms = underTest.getTerms(LicenceType.A);
-    assertThat(terms).isEmpty();
   }
 
   @Test
@@ -47,7 +35,7 @@ class LicenceTypeFeatureServiceTest {
 
   @Test
   void hasPhases_WhenLicenceTypeHasNoPhases_ReturnsFalse() {
-    var result = underTest.hasPhases(LicenceType.A);
+    var result = underTest.hasPhases(LicenceType.CARBON_STORAGE);
     assertThat(result).isFalse();
   }
 
@@ -59,7 +47,7 @@ class LicenceTypeFeatureServiceTest {
 
   @Test
   void getPhases_WhenLicenceTypeHasNoPhases_ReturnsEmptySet() {
-    var phases = underTest.getPhases(LicenceType.A, TermType.INITIAL);
+    var phases = underTest.getPhases(LicenceType.CARBON_STORAGE, TermType.INITIAL);
     assertThat(phases).isEmpty();
   }
 
@@ -83,7 +71,7 @@ class LicenceTypeFeatureServiceTest {
 
   @Test
   void hasRentalRate_WhenLicenceTypeHasNoRentalRate_ReturnsFalse() {
-    var result = underTest.hasRentalRate(LicenceType.A);
+    var result = underTest.hasRentalRate(LicenceType.CARBON_STORAGE);
     assertThat(result).isFalse();
   }
 
@@ -119,7 +107,7 @@ class LicenceTypeFeatureServiceTest {
 
   @Test
   void hasWorkProgramme_WhenLicenceTypeHasNoWorkProgramme_ReturnsFalse() {
-    var result = underTest.hasWorkProgramme(LicenceType.A);
+    var result = underTest.hasWorkProgramme(LicenceType.SEAWARD_EXPLORATION);
     assertThat(result).isFalse();
   }
 
@@ -154,12 +142,6 @@ class LicenceTypeFeatureServiceTest {
   }
 
   @Test
-  void getSupportedEvents_WhenLicenceTypeHasNoSupportedEvents_ReturnsEmptySet() {
-    var events = underTest.getSupportedEvents(LicenceType.A);
-    assertThat(events).isEmpty();
-  }
-
-  @Test
   void getLicenceTypesThatCanCreateEventRequests() {
     var events = underTest.getLicenceTypesThatCanCreateScheduleWorkProgrammeApplications();
     assertThat(events).contains(LicenceType.SEAWARD_PRODUCTION, LicenceType.LANDWARD_PRODUCTION, LicenceType.CARBON_STORAGE);
@@ -178,6 +160,6 @@ class LicenceTypeFeatureServiceTest {
 
   @Test
   void canShowLicenceRoundIssuedOn_whenNotEnabled_ReturnsFalse() {
-    assertThat(underTest.canShowLicenceRoundIssuedOn(LicenceType.A)).isFalse();
+    assertThat(underTest.canShowLicenceRoundIssuedOn(LicenceType.CARBON_STORAGE)).isFalse();
   }
 }

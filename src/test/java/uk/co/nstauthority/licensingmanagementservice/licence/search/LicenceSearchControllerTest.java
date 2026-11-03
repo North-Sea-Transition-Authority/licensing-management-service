@@ -25,6 +25,7 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceAccessService;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceController;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatusType;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.teams.RegulatorRoleService;
 import uk.co.nstauthority.licensingmanagementservice.util.enumutil.DisplayableEnumOptionUtil;
@@ -70,7 +71,7 @@ class LicenceSearchControllerTest extends AbstractControllerTest {
         .andExpect(model().attribute("searchItems", List.of()))
         .andExpect(model().attribute("hasSearchBeenInvoked", false))
         .andExpect(model().attribute("clearFilterUrl", CLEARED_SEARCH_FILTERS_ROUTE))
-        .andExpect(model().attribute("licenceTypes", LicenceTypeFilterUtil.getOptions()))
+        .andExpect(model().attribute("licenceTypes", DisplayableEnumOptionUtil.getDisplayableOptions(LicenceType.class)))
         .andExpect(model().attribute("licenceStatuses",
             DisplayableEnumOptionUtil.getDisplayableOptions(LicenceStatusType.class)))
         .andExpect(model().attribute("canCreateLicence", true))
@@ -101,7 +102,7 @@ class LicenceSearchControllerTest extends AbstractControllerTest {
         .andExpect(model().attribute("searchItems", List.of()))
         .andExpect(model().attribute("hasSearchBeenInvoked", true))
         .andExpect(model().attribute("clearFilterUrl", CLEARED_SEARCH_FILTERS_ROUTE))
-        .andExpect(model().attribute("licenceTypes", LicenceTypeFilterUtil.getOptions()))
+        .andExpect(model().attribute("licenceTypes", DisplayableEnumOptionUtil.getDisplayableOptions(LicenceType.class)))
         .andExpect(model().attribute("licenceStatuses",
             DisplayableEnumOptionUtil.getDisplayableOptions(LicenceStatusType.class)))
         .andExpect(model().attribute("canCreateLicence", true))

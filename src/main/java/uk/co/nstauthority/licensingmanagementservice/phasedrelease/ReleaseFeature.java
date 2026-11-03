@@ -15,6 +15,8 @@ public enum ReleaseFeature {
    * teams.
    */
   TEAM_ROLE(ReleasePhase.NOT_FLAGGED),
+  /** A licence type that is available from the initial release — carbon storage and the production licence types. */
+  CURRENT_LICENCE_TYPE(ReleasePhase.NOT_FLAGGED),
 
   // --- LMS1 ---
   /** The "Start application" button on the work area (coarse: shown when any application type is available). */
@@ -37,7 +39,14 @@ public enum ReleaseFeature {
   /** Licence corrections and the corrections work-area category. */
   START_CORRECTION(ReleasePhase.LMS2),
   /** The timeline (licence position) tab on the licence page. */
-  VIEW_LICENCE_TIMELINE(ReleasePhase.LMS2);
+  VIEW_LICENCE_TIMELINE(ReleasePhase.LMS2),
+
+  // --- Future ---
+  /**
+   * The licence types not yet supported by the service — gas storage, methane drainage, landward exploration and
+   * seaward exploration. Hidden from every licence type option list and rejected when adding a new licence.
+   */
+  FUTURE_LICENCE_TYPE(ReleasePhase.FUTURE);
 
   private final ReleasePhase releasePhase;
 

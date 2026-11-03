@@ -4,6 +4,7 @@ import static org.springframework.web.servlet.mvc.method.annotation.MvcUriCompon
 
 import java.time.Clock;
 import java.time.LocalDate;
+import java.util.List;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -22,6 +23,7 @@ import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.Noti
 import uk.co.nstauthority.licensingmanagementservice.fds.searchselector.SearchSelectorService;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
+import uk.co.nstauthority.licensingmanagementservice.phasedrelease.FeatureFlagService;
 import uk.co.nstauthority.licensingmanagementservice.teams.RegulatorRoleService;
 import uk.co.nstauthority.licensingmanagementservice.util.DateUtil;
 import uk.co.nstauthority.licensingmanagementservice.util.enumutil.DisplayableEnumOptionUtil;
@@ -38,6 +40,7 @@ public class CrossLicenceEventTrackerController {
   private final EventTrackerFormValidator eventTrackerFormValidator;
   private final OrganisationUnitQueryService organisationUnitQueryService;
   private final OrganisationGroupQueryService organisationGroupQueryService;
+  private final FeatureFlagService featureFlagService;
   private final Clock clock;
 
   public CrossLicenceEventTrackerController(
@@ -46,6 +49,7 @@ public class CrossLicenceEventTrackerController {
       EventTrackerFormValidator eventTrackerFormValidator,
       OrganisationUnitQueryService organisationUnitQueryService,
       OrganisationGroupQueryService organisationGroupQueryService,
+      FeatureFlagService featureFlagService,
       Clock clock
   ) {
     this.crossLicenceEventTrackerService = crossLicenceEventTrackerService;
@@ -53,6 +57,7 @@ public class CrossLicenceEventTrackerController {
     this.eventTrackerFormValidator = eventTrackerFormValidator;
     this.organisationUnitQueryService = organisationUnitQueryService;
     this.organisationGroupQueryService = organisationGroupQueryService;
+    this.featureFlagService = featureFlagService;
     this.clock = clock;
   }
 
@@ -117,7 +122,8 @@ public class CrossLicenceEventTrackerController {
     return new ModelAndView("lms/licence/crosslicenceeventtracker/eventTracker")
         .addObject("eventTrackerTableJson", crossLicenceEventTrackerService.getEventTrackerTable(form, user).toString())
         .addObject("form", form)
-        .addObject("licenceTypes", DisplayableEnumOptionUtil.getDisplayableOptions(LicenceType.getDisplayableTypes()))
+        .addObject("licenceTypes",
+            DisplayableEnumOptionUtil.getDisplayableOptions(featureFlagService.filterEnabled(List.of(LicenceType.values()))))
         .addObject("licenseeOrgUnitUrl",
             SearchSelectorService.route(on(OrganisationUnitRestController.class).searchOrganisationUnits(null)))
         .addObject("preSelectedLicenseeOrgUnit", organisationUnitQueryService.getOrganisationUnitSelectOption(

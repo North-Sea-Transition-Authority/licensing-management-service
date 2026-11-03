@@ -154,7 +154,8 @@ public class WorkAreaController {
         .addObject("startApplicationUrl", ReverseRouter
                 .route(on(SelectApplicationLicenceTypeController.class).renderSelectLicenceType()))
         .addObject("form", form)
-        .addObject("licenceTypes", DisplayableEnumOptionUtil.getDisplayableOptions(LicenceType.getDisplayableTypes()))
+        .addObject("licenceTypes",
+            DisplayableEnumOptionUtil.getDisplayableOptions(featureFlagService.filterEnabled(List.of(LicenceType.values()))))
         .addObject("applicationTypes", DisplayableEnumOptionUtil.getDisplayableOptions(ApplicationType.class))
         .addObject("applicationStatuses", DisplayableEnumOptionUtil.getDisplayableOptions(
             ApplicationStatus.getSearchableStatuses()))

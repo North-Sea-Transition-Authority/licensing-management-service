@@ -16,9 +16,13 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.validation.FieldError;
 import uk.co.fivium.formlibrary.input.ThreeFieldDateInput;
+import uk.co.nstauthority.licensingmanagementservice.phasedrelease.FeatureFlagService;
+import uk.co.nstauthority.licensingmanagementservice.phasedrelease.FeatureFlagServiceTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.phasedrelease.ReleasePhase;
 import uk.co.nstauthority.licensingmanagementservice.validation.ValidatorTestingUtil;
 
 @ExtendWith(MockitoExtension.class)
@@ -31,6 +35,9 @@ class NewLicenceValidatorTest {
 
   @Mock
   private Clock clock;
+
+  @Spy
+  private FeatureFlagService featureFlagService = FeatureFlagServiceTestUtil.initialReleaseOnly();
 
   @InjectMocks
   private NewLicenceValidator newLicenceValidator;
@@ -71,6 +78,34 @@ class NewLicenceValidatorTest {
 
     assertThat(ValidatorTestingUtil.extractErrors(bindingResult))
         .containsExactly(entry("licenceType", Set.of("licenceType.required")));
+  }
+
+  @Test
+  void isValid_whenFutureLicenceTypeAndFuturePhaseDisabled_thenLicenceTypeNotAvailable() {
+    var form = validForm();
+    form.setLicenceType(LicenceType.GAS_STORAGE);
+
+    var bindingResult = ValidatorTestingUtil.getBindingResult(form);
+
+    assertThat(newLicenceValidator.isValid(form, bindingResult)).isFalse();
+
+    assertThat(ValidatorTestingUtil.extractErrors(bindingResult))
+        .containsExactly(entry("licenceType", Set.of("licenceType.notAvailable")));
+  }
+
+  @Test
+  void isValid_whenFutureLicenceTypeAndFuturePhaseEnabled_thenValid() {
+    var validator = new NewLicenceValidator(
+        licenceService,
+        clock,
+        FeatureFlagServiceTestUtil.withProfiles(ReleasePhase.FUTURE.getProfileName())
+    );
+    var form = validForm();
+    form.setLicenceType(LicenceType.GAS_STORAGE);
+
+    var bindingResult = ValidatorTestingUtil.getBindingResult(form);
+
+    assertThat(validator.isValid(form, bindingResult)).isTrue();
   }
 
   @Test

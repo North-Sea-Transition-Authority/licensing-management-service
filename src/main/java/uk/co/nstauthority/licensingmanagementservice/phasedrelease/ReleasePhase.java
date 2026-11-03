@@ -15,7 +15,10 @@ public enum ReleasePhase {
   LMS1("enable-lms1"),
 
   /** All other functionality (licence corrections, licence position/timeline, etc.). */
-  LMS2("enable-lms2");
+  LMS2("enable-lms2"),
+
+  /** Functionality not yet planned for a release (gas storage, methane drainage and exploration licence types). */
+  FUTURE("enable-future");
 
   private final String profileName;
 

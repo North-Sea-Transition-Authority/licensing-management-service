@@ -8,16 +8,19 @@ import org.springframework.util.CollectionUtils;
 import org.springframework.validation.Errors;
 import org.springframework.validation.ValidationUtils;
 import uk.co.fivium.formlibrary.validator.date.ThreeFieldDateInputValidator;
+import uk.co.nstauthority.licensingmanagementservice.phasedrelease.FeatureFlagService;
 
 @Service
 public class NewLicenceValidator {
 
   private final LicenceService licenceService;
   private final Clock clock;
+  private final FeatureFlagService featureFlagService;
 
-  public NewLicenceValidator(LicenceService licenceService, Clock clock) {
+  public NewLicenceValidator(LicenceService licenceService, Clock clock, FeatureFlagService featureFlagService) {
     this.licenceService = licenceService;
     this.clock = clock;
+    this.featureFlagService = featureFlagService;
   }
 
   boolean isValid(NewLicenceForm form, Errors errors) {
@@ -27,6 +30,10 @@ public class NewLicenceValidator {
         "licenceType.required",
         "Select the licence type"
     );
+
+    if (form.getLicenceType() != null && !featureFlagService.isEnabled(form.getLicenceType().getReleaseFeature())) {
+      errors.rejectValue("licenceType", "licenceType.notAvailable", "Select a valid licence type");
+    }
 
     ValidationUtils.rejectIfEmptyOrWhitespace(
         errors,

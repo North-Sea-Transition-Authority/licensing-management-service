@@ -1,8 +1,6 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -14,7 +12,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
@@ -29,6 +26,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.fivium.gisframework.command.CommandJourneyService;
 import uk.co.fivium.gisframework.feature.Feature;
 import uk.co.fivium.gisframework.feature.FeatureService;
+import uk.co.fivium.gisframework.feature.Line;
+import uk.co.fivium.gisframework.feature.Polygon;
+import uk.co.fivium.gisframework.relationship.BoundingBox;
 import uk.co.fivium.gisframework.relationship.FeatureRelationshipService;
 import uk.co.fivium.grpc.gis.CoordinateSystem;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderType;
@@ -51,6 +51,7 @@ class PartialSurrenderValidatorTest {
   private static final Feature SURRENDERED_AREA = FeatureTestUtil.builder().build();
   private static final Feature RETAINED_AREA = FeatureTestUtil.builder().build();
   private static final LicencePositionState STATE = LicencePositionState.EMPTY.withBlock(BLOCK.getId(), List.of());
+  private static final BoundingBox BOUNDING_BOX = new BoundingBox(0, 0, 1, 1);
 
   @Mock
   private CommandJourneyService commandJourneyService;
@@ -83,53 +84,52 @@ class PartialSurrenderValidatorTest {
   }
 
   @Test
-  void validate_whenSurrenderedBlockNotOnPosition_thenOnlyBlockSelectionError() {
+  void validateForms_whenSurrenderedBlockNotOnPosition_thenOnlyBlockSelectionError() {
     var otherBlock = FeatureTestUtil.builder().build();
     var state = LicencePositionState.EMPTY.withBlock(otherBlock.getId(), List.of());
     when(featureService.getFeaturesByIds(Set.of(otherBlock.getId()))).thenReturn(List.of(otherBlock));
 
-    var errors = partialSurrenderValidator.validate(partialSurrenderOfBlock(), state, POSITION_DATE, null);
+    var errors = partialSurrenderValidator.validateForms(partialSurrenderOfBlock(), state);
 
     assertThat(errors).containsExactly("Select the licence blocks being surrendered");
     verifyNoInteractions(commandJourneyService, featureRelationshipService);
   }
 
   @Test
-  void validate_whenBlockHasNoSurrenderType_thenTypeErrorForBlock() {
+  void validateForms_whenBlockHasNoSurrenderType_thenTypeErrorForBlock() {
     givenBlockOnPosition();
     var surrender = LicenceOperation.newPartialSurrenderOperation()
         .withSurrenderedFeatureIds(List.of(BLOCK.getId()))
         .build();
 
-    var errors = partialSurrenderValidator.validate(surrender, STATE, POSITION_DATE, null);
+    var errors = partialSurrenderValidator.validateForms(surrender, STATE);
 
     assertThat(errors).containsExactly("Block 30/1: Select the type of surrender for this block");
   }
 
   @Test
-  void validate_whenEveryBlockFullySurrendered_thenNoPartialSurrenderError() {
+  void validateForms_whenEveryBlockFullySurrendered_thenNoPartialSurrenderError() {
     givenBlockOnPosition();
     var surrender = surrenderOfBlock(new SurrenderDetails(BlockSurrenderType.FULL_SURRENDER, null, List.of()));
 
-    var errors = partialSurrenderValidator.validate(surrender, STATE, POSITION_DATE, null);
+    var errors = partialSurrenderValidator.validateForms(surrender, STATE);
 
     assertThat(errors).containsExactly("Select partial surrender for at least one block");
   }
 
   @Test
-  void validate_whenSelectedAreasCoverWholeBlock_thenAreaErrorAndNoOverlapCheck() {
+  void validateForms_whenSelectedAreasCoverWholeBlock_thenAreaError() {
     givenBlockOnPosition();
     when(commandJourneyService.getActiveFeatures(COMMAND_JOURNEY_ID)).thenReturn(List.of(SURRENDERED_AREA, RETAINED_AREA));
     when(featureRelationshipService.is2dTopologicallyEqual(List.of(SURRENDERED_AREA), BLOCK)).thenReturn(true);
 
-    var errors = partialSurrenderValidator.validate(partialSurrenderOfBlock(), STATE, POSITION_DATE, null);
+    var errors = partialSurrenderValidator.validateForms(partialSurrenderOfBlock(), STATE);
 
     assertThat(errors).containsExactly("Block 30/1: Select areas that do not cover the whole block");
-    verifyOtherActiveBlocksNotLoaded();
   }
 
   @Test
-  void validate_whenSurrenderTypeAndAreaSelectionErrors_thenOnlySurrenderTypeErrors() {
+  void validateForms_whenSurrenderTypeAndAreaSelectionErrors_thenOnlySurrenderTypeErrors() {
     var blockWithoutSurrenderType = blockActiveBetween("30/4", CoordinateSystem.ED50, POSITION_DATE, null);
     var state = STATE.withBlock(blockWithoutSurrenderType.getId(), List.of());
     when(featureService.getFeaturesByIds(Set.of(BLOCK.getId(), blockWithoutSurrenderType.getId())))
@@ -142,33 +142,47 @@ class PartialSurrenderValidatorTest {
         ))
         .build();
 
-    var errors = partialSurrenderValidator.validate(surrender, state, POSITION_DATE, null);
+    var errors = partialSurrenderValidator.validateForms(surrender, state);
 
     assertThat(errors).containsExactly("Block 30/4: Select the type of surrender for this block");
     verifyNoInteractions(commandJourneyService, featureRelationshipService);
   }
 
   @Test
-  void validate_whenRetainedAreaOverlapsActiveBlock_thenOverlapErrorAndBlocksInOtherCoordinateSystemsNotChecked() {
+  void validateForms_whenFormsValid_thenNoErrors() {
     givenBlockOnPosition();
-    givenValidAreaSelection();
+    givenActiveAreas();
+    when(featureRelationshipService.is2dTopologicallyEqual(List.of(SURRENDERED_AREA), BLOCK)).thenReturn(false);
+
+    var errors = partialSurrenderValidator.validateForms(partialSurrenderOfBlock(), STATE);
+
+    assertThat(errors).isEmpty();
+  }
+
+  @Test
+  void validateSpatially_whenNoAreasKept_thenNoOverlapCheck() {
+    var surrender = surrenderOfBlock(new SurrenderDetails(BlockSurrenderType.FULL_SURRENDER, null, List.of()));
+
+    var errors = partialSurrenderValidator.validateSpatially(surrender, STATE, POSITION_DATE, null, Map.of());
+
+    assertThat(errors).isEmpty();
+    verifyNoInteractions(featureService, featureRelationshipService);
+  }
+
+  @Test
+  void validateSpatially_whenRetainedAreaOverlapsActiveBlock_thenOverlapErrorAndBlocksInOtherCoordinateSystemsNotChecked() {
+    givenBlockOnPosition();
+    givenActiveAreas();
     var overlappedBlock = blockActiveBetween("30/2", CoordinateSystem.ED50, POSITION_DATE.minusYears(1), null);
     var blockInAnotherCoordinateSystem =
         blockActiveBetween("30/3", CoordinateSystem.WGS84, POSITION_DATE.minusYears(1), null);
     var surrenderedBlock = FeatureTestUtil.builder().withId(BLOCK.getId()).build();
     surrenderedBlock.setStartDate(POSITION_DATE.minusYears(1));
-    var otherActiveBlocks = List.of(overlappedBlock, blockInAnotherCoordinateSystem);
-    var otherActiveBlockPolygons = givenOtherActiveBlocks(
-        List.of(overlappedBlock, blockInAnotherCoordinateSystem, surrenderedBlock),
-        otherActiveBlocks
-    );
-    when(featureRelationshipService.get2dOverlappingFeatures(
-        List.of(RETAINED_AREA),
-        Map.of(overlappedBlock, otherActiveBlockPolygons.get(overlappedBlock))
-    ))
+    var blockLines = givenBlocks(List.of(overlappedBlock, blockInAnotherCoordinateSystem, surrenderedBlock));
+    when(featureRelationshipService.get2dCrossedFeatures(List.of(RETAINED_AREA), linesOf(blockLines, overlappedBlock)))
         .thenReturn(List.of(overlappedBlock, overlappedBlock));
 
-    var errors = partialSurrenderValidator.validate(partialSurrenderOfBlock(), STATE, POSITION_DATE, null);
+    var errors = partialSurrenderValidator.validateSpatially(partialSurrenderOfBlock(), STATE, POSITION_DATE, null, blockLines);
 
     assertThat(errors).containsExactly(
         "Block 30/1: Block after surrender must not overlap licence block 30/2"
@@ -176,7 +190,7 @@ class PartialSurrenderValidatorTest {
   }
 
   @Test
-  void validate_whenTheAreaKeptHasBeenSplitSinceItWasSelected_thenAreasMustBeSelectedAgain() {
+  void validateForms_whenTheAreaKeptHasBeenSplitSinceItWasSelected_thenAreasMustBeSelectedAgain() {
     givenBlockOnPosition();
     var firstPartOfRetainedArea = FeatureTestUtil.builder().build();
     var secondPartOfRetainedArea = FeatureTestUtil.builder().build();
@@ -184,16 +198,15 @@ class PartialSurrenderValidatorTest {
         .thenReturn(List.of(SURRENDERED_AREA, firstPartOfRetainedArea, secondPartOfRetainedArea));
     when(featureRelationshipService.is2dTopologicallyEqual(List.of(SURRENDERED_AREA), BLOCK)).thenReturn(false);
 
-    var errors = partialSurrenderValidator.validate(partialSurrenderOfBlock(), STATE, POSITION_DATE, null);
+    var errors = partialSurrenderValidator.validateForms(partialSurrenderOfBlock(), STATE);
 
     assertThat(errors).containsExactly(
         "Block 30/1: Select the areas being surrendered again as the block's retained area has changed"
     );
-    verifyOtherActiveBlocksNotLoaded();
   }
 
   @Test
-  void validate_whenTheAreaKeptByAnAppliedSurrenderOverlapsABlockActiveOnThePositionDate_thenOverlapError() {
+  void validateSpatially_whenTheAreaKeptByAnAppliedSurrenderOverlapsABlockActiveOnThePositionDate_thenOverlapError() {
     givenBlockOnPosition();
     var areaKept = FeatureTestUtil.builder().build();
     var appliedSurrender = surrenderOfBlock(new SurrenderDetails(
@@ -203,20 +216,20 @@ class PartialSurrenderValidatorTest {
         List.of(areaKept.getId())
     ));
     var overlappedBlock = blockActiveBetween("30/2", CoordinateSystem.ED50, POSITION_DATE.minusYears(1), null);
-    var otherActiveBlockPolygons = givenOtherActiveBlocks(List.of(overlappedBlock), List.of(overlappedBlock));
+    var blockLines = givenBlocks(List.of(overlappedBlock));
     when(featureService.getFeaturesByIds(List.of(areaKept.getId()))).thenReturn(List.of(areaKept));
-    when(featureRelationshipService.get2dOverlappingFeatures(List.of(areaKept), otherActiveBlockPolygons))
+    when(featureRelationshipService.get2dCrossedFeatures(List.of(areaKept), blockLines))
         .thenReturn(List.of(overlappedBlock));
 
-    var errors = partialSurrenderValidator.validate(appliedSurrender, STATE, POSITION_DATE, null);
+    var errors = partialSurrenderValidator.validateSpatially(appliedSurrender, STATE, POSITION_DATE, null, blockLines);
 
     assertThat(errors).containsExactly("Block 30/1: Block after surrender must not overlap licence block 30/2");
   }
 
   @Test
-  void validate_whenCorrectingALiveSurrender_thenThePartsItCreatedAreNotCheckedForOverlap() {
+  void validateSpatially_whenCorrectingALiveSurrender_thenThePartsItCreatedAreNotCheckedForOverlap() {
     givenBlockOnPosition();
-    givenValidAreaSelection();
+    givenActiveAreas();
     var liveRetainedArea = blockActiveBetween("30/1", CoordinateSystem.ED50, POSITION_DATE.minusYears(1), null);
     var liveSurrender = surrenderOfBlock(new SurrenderDetails(
         BlockSurrenderType.PARTIAL_SURRENDER,
@@ -226,34 +239,30 @@ class PartialSurrenderValidatorTest {
     ));
     var liveChange = LicencePositionChangeTestUtil.newBuilder().withOperations(List.of(liveSurrender)).build();
     when(licencePositionChangeService.findById(liveChange.getId())).thenReturn(Optional.of(liveChange));
-    givenOtherActiveBlocks(List.of(liveRetainedArea), List.of());
+    var blockLines = givenBlocks(List.of(liveRetainedArea));
 
-    var errors = partialSurrenderValidator.validate(
+    var errors = partialSurrenderValidator.validateSpatially(
         partialSurrenderOfBlock(),
         STATE,
         POSITION_DATE,
-        liveChange.getId().toString()
+        liveChange.getId().toString(),
+        blockLines
     );
 
     assertThat(errors).isEmpty();
-    verify(featureRelationshipService).get2dOverlappingFeatures(List.of(RETAINED_AREA), Map.of());
+    verify(featureRelationshipService).get2dCrossedFeatures(List.of(RETAINED_AREA), Map.of());
   }
 
   @Test
-  void validate_whenRetainedAreasOverlapSeveralActiveBlocks_thenOneOverlapErrorPerOverlappedBlock() {
+  void validateSpatially_whenRetainedAreasOverlapSeveralActiveBlocks_thenOneOverlapErrorPerOverlappedBlock() {
     givenBlockOnPosition();
     var otherRetainedArea = FeatureTestUtil.builder().build();
     when(commandJourneyService.getActiveFeatures(COMMAND_JOURNEY_ID))
         .thenReturn(List.of(SURRENDERED_AREA, RETAINED_AREA, otherRetainedArea));
-    when(featureRelationshipService.is2dTopologicallyEqual(List.of(SURRENDERED_AREA), BLOCK)).thenReturn(false);
     var firstOverlappedBlock = blockActiveBetween("30/2", CoordinateSystem.ED50, POSITION_DATE.minusYears(1), null);
     var secondOverlappedBlock = blockActiveBetween("30/3", CoordinateSystem.ED50, POSITION_DATE.minusYears(1), null);
-    var otherActiveBlocks = List.of(firstOverlappedBlock, secondOverlappedBlock);
-    var otherActiveBlockPolygons = givenOtherActiveBlocks(otherActiveBlocks, otherActiveBlocks);
-    when(featureRelationshipService.get2dOverlappingFeatures(
-        List.of(RETAINED_AREA, otherRetainedArea),
-        otherActiveBlockPolygons
-    ))
+    var blockLines = givenBlocks(List.of(firstOverlappedBlock, secondOverlappedBlock));
+    when(featureRelationshipService.get2dCrossedFeatures(List.of(RETAINED_AREA, otherRetainedArea), blockLines))
         .thenReturn(List.of(firstOverlappedBlock, secondOverlappedBlock));
     var surrender = surrenderOfBlock(new SurrenderDetails(
         BlockSurrenderType.PARTIAL_SURRENDER,
@@ -262,7 +271,7 @@ class PartialSurrenderValidatorTest {
         List.of(RETAINED_AREA.getId(), otherRetainedArea.getId())
     ));
 
-    var errors = partialSurrenderValidator.validate(surrender, STATE, POSITION_DATE, null);
+    var errors = partialSurrenderValidator.validateSpatially(surrender, STATE, POSITION_DATE, null, blockLines);
 
     assertThat(errors).containsExactly(
         "Block 30/1: Block after surrender must not overlap licence block 30/2",
@@ -271,7 +280,7 @@ class PartialSurrenderValidatorTest {
   }
 
   @Test
-  void validate_whenSeveralBlocksPartiallySurrendered_thenEachCheckedForOverlapWithTheSameBlocksNotInSurrender() {
+  void validateSpatially_whenSeveralBlocksPartiallySurrendered_thenEachCheckedForOverlapWithTheSameBlocksNotInSurrender() {
     var secondBlock = blockActiveBetween("30/4", CoordinateSystem.ED50, POSITION_DATE.minusYears(1), null);
     var secondCommandJourneyId = UUID.randomUUID();
     var secondSurrenderedArea = FeatureTestUtil.builder().build();
@@ -279,17 +288,15 @@ class PartialSurrenderValidatorTest {
     var state = STATE.withBlock(secondBlock.getId(), List.of());
     when(featureService.getFeaturesByIds(Set.of(BLOCK.getId(), secondBlock.getId())))
         .thenReturn(List.of(BLOCK, secondBlock));
-    givenValidAreaSelection();
+    givenActiveAreas();
     when(commandJourneyService.getActiveFeatures(secondCommandJourneyId))
         .thenReturn(List.of(secondSurrenderedArea, secondRetainedArea));
-    when(featureRelationshipService.is2dTopologicallyEqual(List.of(secondSurrenderedArea), secondBlock))
-        .thenReturn(false);
     var overlappedBlock = blockActiveBetween("30/2", CoordinateSystem.ED50, POSITION_DATE.minusYears(1), null);
-    var otherActiveBlockPolygons =
-        givenOtherActiveBlocks(List.of(secondBlock, overlappedBlock), List.of(overlappedBlock));
-    when(featureRelationshipService.get2dOverlappingFeatures(List.of(RETAINED_AREA), otherActiveBlockPolygons))
+    var blockLines = givenBlocks(List.of(secondBlock, overlappedBlock));
+    var otherActiveBlockLines = linesOf(blockLines, overlappedBlock);
+    when(featureRelationshipService.get2dCrossedFeatures(List.of(RETAINED_AREA), otherActiveBlockLines))
         .thenReturn(List.of(overlappedBlock));
-    when(featureRelationshipService.get2dOverlappingFeatures(List.of(secondRetainedArea), otherActiveBlockPolygons))
+    when(featureRelationshipService.get2dCrossedFeatures(List.of(secondRetainedArea), otherActiveBlockLines))
         .thenReturn(List.of(overlappedBlock));
     var surrender = LicenceOperation.newPartialSurrenderOperation()
         .withSurrenderedFeatureIds(List.of(BLOCK.getId(), secondBlock.getId()))
@@ -311,43 +318,65 @@ class PartialSurrenderValidatorTest {
         ))
         .build();
 
-    var errors = partialSurrenderValidator.validate(surrender, state, POSITION_DATE, null);
+    var errors = partialSurrenderValidator.validateSpatially(surrender, state, POSITION_DATE, null, blockLines);
 
     assertThat(errors).containsExactlyInAnyOrder(
         "Block 30/1: Block after surrender must not overlap licence block 30/2",
         "Block 30/4: Block after surrender must not overlap licence block 30/2"
     );
-    verify(featureRelationshipService).build2dPolygons(List.of(overlappedBlock));
+    verify(featureService).findAllByAttribute("LAYER", "BLOCKS");
   }
 
   @ParameterizedTest
   @MethodSource("datesActiveOnPositionDate")
-  void validate_whenBlockActiveOnPositionDate_thenCheckedForOverlap(LocalDate startDate, LocalDate endDate) {
+  void validateSpatially_whenBlockActiveOnPositionDate_thenCheckedForOverlap(LocalDate startDate, LocalDate endDate) {
     givenBlockOnPosition();
-    givenValidAreaSelection();
+    givenActiveAreas();
     var otherBlock = blockActiveBetween("30/2", CoordinateSystem.ED50, startDate, endDate);
-    var otherActiveBlockPolygons = givenOtherActiveBlocks(List.of(otherBlock), List.of(otherBlock));
-    when(featureRelationshipService.get2dOverlappingFeatures(List.of(RETAINED_AREA), otherActiveBlockPolygons))
+    var blockLines = givenBlocks(List.of(otherBlock));
+    when(featureRelationshipService.get2dCrossedFeatures(List.of(RETAINED_AREA), blockLines))
         .thenReturn(List.of());
 
-    var errors = partialSurrenderValidator.validate(partialSurrenderOfBlock(), STATE, POSITION_DATE, null);
+    var errors = partialSurrenderValidator.validateSpatially(partialSurrenderOfBlock(), STATE, POSITION_DATE, null, blockLines);
 
     assertThat(errors).isEmpty();
   }
 
   @ParameterizedTest
   @MethodSource("datesNotActiveOnPositionDate")
-  void validate_whenBlockNotActiveOnPositionDate_thenNotCheckedForOverlap(LocalDate startDate, LocalDate endDate) {
+  void validateSpatially_whenBlockNotActiveOnPositionDate_thenNotCheckedForOverlap(LocalDate startDate, LocalDate endDate) {
     givenBlockOnPosition();
-    givenValidAreaSelection();
+    givenActiveAreas();
     var otherBlock = blockActiveBetween("30/2", CoordinateSystem.ED50, startDate, endDate);
-    givenOtherActiveBlocks(List.of(otherBlock), List.of());
-    when(featureRelationshipService.get2dOverlappingFeatures(List.of(RETAINED_AREA), Map.of()))
+    var blockLines = givenBlocks(List.of(otherBlock));
+    when(featureRelationshipService.get2dCrossedFeatures(List.of(RETAINED_AREA), Map.of()))
         .thenReturn(List.of());
 
-    var errors = partialSurrenderValidator.validate(partialSurrenderOfBlock(), STATE, POSITION_DATE, null);
+    var errors = partialSurrenderValidator.validateSpatially(partialSurrenderOfBlock(), STATE, POSITION_DATE, null, blockLines);
 
     assertThat(errors).isEmpty();
+  }
+
+  @Test
+  void getBlockLineBoundingBoxes_whenBlocksActiveOnDifferentDates_thenOnlyLinesOfBlocksActiveOnAPositionDateLoaded() {
+    var laterPositionDate = POSITION_DATE.plusYears(2);
+    var blockActiveOnPositionDate =
+        blockActiveBetween("30/2", CoordinateSystem.ED50, POSITION_DATE.minusYears(1), POSITION_DATE);
+    var blockActiveOnNeitherDate =
+        blockActiveBetween("30/3", CoordinateSystem.ED50, POSITION_DATE.plusDays(1), laterPositionDate.minusDays(1));
+    var blockActiveOnLaterPositionDate = blockActiveBetween("30/4", CoordinateSystem.ED50, laterPositionDate, null);
+    when(featureService.findAllByAttribute("LAYER", "BLOCKS"))
+        .thenReturn(List.of(blockActiveOnPositionDate, blockActiveOnNeitherDate, blockActiveOnLaterPositionDate));
+    var blockLines = Map.of(
+        lineOf(blockActiveOnPositionDate), BOUNDING_BOX,
+        lineOf(blockActiveOnLaterPositionDate), BOUNDING_BOX
+    );
+    when(featureRelationshipService.getLineBoundingBoxes(List.of(blockActiveOnPositionDate, blockActiveOnLaterPositionDate)))
+        .thenReturn(blockLines);
+
+    var result = partialSurrenderValidator.getBlockLineBoundingBoxes(Set.of(POSITION_DATE, laterPositionDate));
+
+    assertThat(result).isEqualTo(blockLines);
   }
 
   private static Stream<Arguments> datesActiveOnPositionDate() {
@@ -370,25 +399,30 @@ class PartialSurrenderValidatorTest {
     when(featureService.getFeaturesByIds(Set.of(BLOCK.getId()))).thenReturn(List.of(BLOCK));
   }
 
-  private Map<Feature, Map<UUID, String>> givenOtherActiveBlocks(
-      List<Feature> blocks,
-      List<Feature> otherActiveBlocks
-  ) {
-    var otherActiveBlockPolygons = otherActiveBlocks.stream()
-        .collect(Collectors.toMap(Function.identity(), block -> Map.of(UUID.randomUUID(), "polygon")));
+  private Map<Line, BoundingBox> givenBlocks(List<Feature> blocks) {
     when(featureService.findAllByAttribute("LAYER", "BLOCKS")).thenReturn(blocks);
-    when(featureRelationshipService.build2dPolygons(otherActiveBlocks)).thenReturn(otherActiveBlockPolygons);
-    return otherActiveBlockPolygons;
+    return blocks.stream().collect(Collectors.toMap(PartialSurrenderValidatorTest::lineOf, block -> BOUNDING_BOX));
   }
 
-  private void verifyOtherActiveBlocksNotLoaded() {
-    verify(featureService, never()).findAllByAttribute("LAYER", "BLOCKS");
-    verify(featureRelationshipService, never()).build2dPolygons(any());
+  private static Map<Line, BoundingBox> linesOf(
+      Map<Line, BoundingBox> blockLines,
+      Feature block
+  ) {
+    return blockLines.entrySet().stream()
+        .filter(entry -> entry.getKey().getPolygon().getFeature().equals(block))
+        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
   }
 
-  private void givenValidAreaSelection() {
+  private static Line lineOf(Feature block) {
+    var polygon = new Polygon();
+    polygon.setFeature(block);
+    var line = new Line();
+    line.setPolygon(polygon);
+    return line;
+  }
+
+  private void givenActiveAreas() {
     when(commandJourneyService.getActiveFeatures(COMMAND_JOURNEY_ID)).thenReturn(List.of(SURRENDERED_AREA, RETAINED_AREA));
-    when(featureRelationshipService.is2dTopologicallyEqual(List.of(SURRENDERED_AREA), BLOCK)).thenReturn(false);
   }
 
   private static PartialSurrenderOperation partialSurrenderOfBlock() {

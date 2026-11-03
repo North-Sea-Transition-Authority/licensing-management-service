@@ -23,6 +23,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.validation.BeanPropertyBindingResult;
 import org.springframework.validation.Errors;
 import uk.co.fivium.gisframework.feature.Feature;
+import uk.co.fivium.gisframework.feature.Line;
+import uk.co.fivium.gisframework.feature.Polygon;
+import uk.co.fivium.gisframework.relationship.BoundingBox;
 import uk.co.fivium.gisframework.relationship.FeatureRelationshipService;
 import uk.co.fivium.grpc.gis.CoordinateSystem;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.FeatureTestUtil;
@@ -41,8 +44,8 @@ class PartialSurrenderSelectAreasFormValidatorTest {
   private static final Feature SECOND_AREA = FeatureTestUtil.builder().build();
   private static final List<Feature> ACTIVE_FEATURES = List.of(FIRST_AREA, SECOND_AREA);
   private static final Feature OTHER_ACTIVE_BLOCK = FeatureTestUtil.builder().build();
-  private static final Map<Feature, Map<UUID, String>> OTHER_ACTIVE_BLOCK_POLYGONS =
-      Map.of(OTHER_ACTIVE_BLOCK, Map.of(UUID.randomUUID(), "other active block polygon"));
+  private static final BoundingBox BOUNDING_BOX = new BoundingBox(0, 0, 1, 1);
+  private static final Map<Line, BoundingBox> OTHER_ACTIVE_BLOCK_LINES = Map.of(lineOf(OTHER_ACTIVE_BLOCK), BOUNDING_BOX);
 
   @Mock
   private FeatureRelationshipService featureRelationshipService;
@@ -120,7 +123,7 @@ class PartialSurrenderSelectAreasFormValidatorTest {
   void hasOverlapErrors_whenSelectionHasSelectionErrors_thenThrowsException(Set<UUID> selected) {
     form.setSurrenderedFeatureIds(selected);
 
-    assertThatThrownBy(() -> validator.hasOverlapErrors(form, errors, ACTIVE_FEATURES, OTHER_ACTIVE_BLOCK_POLYGONS))
+    assertThatThrownBy(() -> validator.hasOverlapErrors(form, errors, ACTIVE_FEATURES, OTHER_ACTIVE_BLOCK_LINES))
         .isInstanceOf(IllegalStateException.class)
         .hasMessage("Areas to surrender must be some but not all of the active areas");
   }
@@ -138,10 +141,10 @@ class PartialSurrenderSelectAreasFormValidatorTest {
     var firstOverlappedBlock = FeatureTestUtil.builder().withFeatureName("30/2").build();
     var secondOverlappedBlock = FeatureTestUtil.builder().withFeatureName("30/3").build();
     form.setSurrenderedFeatureIds(Set.of(FIRST_AREA.getId()));
-    when(featureRelationshipService.get2dOverlappingFeatures(List.of(SECOND_AREA), OTHER_ACTIVE_BLOCK_POLYGONS))
+    when(featureRelationshipService.get2dCrossedFeatures(List.of(SECOND_AREA), OTHER_ACTIVE_BLOCK_LINES))
         .thenReturn(List.of(firstOverlappedBlock, secondOverlappedBlock));
 
-    var result = validator.hasOverlapErrors(form, errors, ACTIVE_FEATURES, OTHER_ACTIVE_BLOCK_POLYGONS);
+    var result = validator.hasOverlapErrors(form, errors, ACTIVE_FEATURES, OTHER_ACTIVE_BLOCK_LINES);
 
     assertThat(result).isTrue();
     assertThat(ValidatorTestingUtil.getErrorsFieldsAndMessages(errors))
@@ -154,10 +157,10 @@ class PartialSurrenderSelectAreasFormValidatorTest {
   @Test
   void hasOverlapErrors_whenAreasKeptDoNotOverlapOtherActiveBlocks_thenNoErrors() {
     form.setSurrenderedFeatureIds(Set.of(FIRST_AREA.getId()));
-    when(featureRelationshipService.get2dOverlappingFeatures(List.of(SECOND_AREA), OTHER_ACTIVE_BLOCK_POLYGONS))
+    when(featureRelationshipService.get2dCrossedFeatures(List.of(SECOND_AREA), OTHER_ACTIVE_BLOCK_LINES))
         .thenReturn(List.of());
 
-    var result = validator.hasOverlapErrors(form, errors, ACTIVE_FEATURES, OTHER_ACTIVE_BLOCK_POLYGONS);
+    var result = validator.hasOverlapErrors(form, errors, ACTIVE_FEATURES, OTHER_ACTIVE_BLOCK_LINES);
 
     assertThat(result).isFalse();
     assertThat(errors.hasErrors()).isFalse();
@@ -176,27 +179,35 @@ class PartialSurrenderSelectAreasFormValidatorTest {
         .withFeatureName("30/3")
         .withCoordinateSystem(CoordinateSystem.WGS84)
         .build();
-    var ed50BlockPolygons = Map.of(UUID.randomUUID(), "ED50 block polygon");
-    var wgs84BlockPolygons = Map.of(UUID.randomUUID(), "WGS84 block polygon");
-    when(featureRelationshipService.get2dOverlappingFeatures(
+    var ed50BlockLine = lineOf(ed50Block);
+    var wgs84BlockLine = lineOf(wgs84Block);
+    when(featureRelationshipService.get2dCrossedFeatures(
         List.of(firstEd50AreaKept, secondEd50AreaKept),
-        Map.of(ed50Block, ed50BlockPolygons)
+        Map.of(ed50BlockLine, BOUNDING_BOX)
     ))
         .thenReturn(List.of(ed50Block));
-    when(featureRelationshipService.get2dOverlappingFeatures(
+    when(featureRelationshipService.get2dCrossedFeatures(
         List.of(wgs84AreaKept),
-        Map.of(wgs84Block, wgs84BlockPolygons)
+        Map.of(wgs84BlockLine, BOUNDING_BOX)
     ))
         .thenReturn(List.of(wgs84Block));
 
     var result = validator.getOverlapErrors(
         List.of(firstEd50AreaKept, wgs84AreaKept, secondEd50AreaKept),
-        Map.of(ed50Block, ed50BlockPolygons, wgs84Block, wgs84BlockPolygons)
+        Map.of(ed50BlockLine, BOUNDING_BOX, wgs84BlockLine, BOUNDING_BOX)
     );
 
     assertThat(result).containsExactlyInAnyOrder(
         "Block after surrender must not overlap licence block 30/2",
         "Block after surrender must not overlap licence block 30/3"
     );
+  }
+
+  private static Line lineOf(Feature block) {
+    var polygon = new Polygon();
+    polygon.setFeature(block);
+    var line = new Line();
+    line.setPolygon(polygon);
+    return line;
   }
 }

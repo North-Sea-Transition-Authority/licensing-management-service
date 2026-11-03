@@ -24,6 +24,7 @@ import uk.co.fivium.gisframework.feature.Feature;
 import uk.co.fivium.gisframework.feature.FeatureService;
 import uk.co.fivium.gisframework.feature.FeatureTestUtil;
 import uk.co.fivium.gisframework.feature.Line;
+import uk.co.fivium.gisframework.feature.LineService;
 import uk.co.fivium.gisframework.feature.LineTestUtil;
 import uk.co.fivium.gisframework.feature.Polygon;
 import uk.co.fivium.gisframework.feature.PolygonService;
@@ -40,6 +41,9 @@ class FeatureRelationshipServiceTest {
 
   @Mock
   private PolygonService polygonService;
+
+  @Mock
+  private LineService lineService;
 
   @Mock
   private GrpcClientService grpcClientService;
@@ -264,6 +268,154 @@ class FeatureRelationshipServiceTest {
     var result = featureRelationshipService.get2dOverlappingFeatures(features, otherFeaturePolygons);
 
     assertThat(result).containsExactly(firstOverlappingFeature, secondOverlappingFeature);
+  }
+
+  @Test
+  void getLineBoundingBoxes_whenNoFeatures_thenNoLines() {
+    var result = featureRelationshipService.getLineBoundingBoxes(List.of());
+
+    assertThat(result).isEmpty();
+    verifyNoInteractions(lineService);
+  }
+
+  @Test
+  void getLineBoundingBoxes_whenFeatures_thenLinesKeyedToTheirBoundingBoxes() {
+    var features = List.of(FeatureTestUtil.newBuilder().build());
+    var firstLine = LineTestUtil.newBuilder().withEsriJson(polylineEsriJson(0, 0, 1, 2)).build();
+    var secondLine = LineTestUtil.newBuilder().withEsriJson(polylineEsriJson(5, 4, 3, 6)).build();
+
+    when(lineService.findAllByFeatureIn(features)).thenReturn(List.of(firstLine, secondLine));
+
+    var result = featureRelationshipService.getLineBoundingBoxes(features);
+
+    assertThat(result).containsExactly(
+        Map.entry(firstLine, new BoundingBox(0, 0, 1, 2)),
+        Map.entry(secondLine, new BoundingBox(3, 4, 5, 6))
+    );
+  }
+
+  @Test
+  void get2dCrossedFeatures_whenNoFeatures_thenThrowsException() {
+    List<Feature> features = List.of();
+    var otherFeatureLines = Map.of(LineTestUtil.newBuilder().build(), new BoundingBox(0, 0, 1, 1));
+
+    assertThatThrownBy(() -> featureRelationshipService.get2dCrossedFeatures(features, otherFeatureLines))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("Must provide at least one feature to check for crossing lines");
+    verifyNoInteractions(featureService, polygonService, grpcClientService);
+  }
+
+  @Test
+  void get2dCrossedFeatures_whenFeaturesInDifferentCoordinateSystems_thenThrowsException() {
+    var features = List.of(
+        FeatureTestUtil.newBuilder().withCoordinateSystem(CoordinateSystem.ED50).build(),
+        FeatureTestUtil.newBuilder().withCoordinateSystem(CoordinateSystem.BRITISH_NATIONAL_GRID).build()
+    );
+    Map<Line, BoundingBox> otherFeatureLines = Map.of();
+
+    assertThatThrownBy(() -> featureRelationshipService.get2dCrossedFeatures(features, otherFeatureLines))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("All features to check for crossing lines must use the coordinate system ED50");
+    verifyNoInteractions(featureService, polygonService, grpcClientService);
+  }
+
+  @Test
+  void get2dCrossedFeatures_whenLineFeatureNotInCoordinateSystemOfFeatures_thenThrowsException() {
+    var features = List.of(FeatureTestUtil.newBuilder().withCoordinateSystem(CoordinateSystem.ED50).build());
+    var otherFeature = FeatureTestUtil.newBuilder()
+        .withCoordinateSystem(CoordinateSystem.BRITISH_NATIONAL_GRID)
+        .build();
+    var otherFeatureLines = Map.of(line(otherFeature, polylineEsriJson(0, 0, 1, 1)), new BoundingBox(0, 0, 1, 1));
+
+    assertThatThrownBy(() -> featureRelationshipService.get2dCrossedFeatures(features, otherFeatureLines))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("All features to check for crossing lines must use the coordinate system ED50");
+    verifyNoInteractions(featureService, polygonService, grpcClientService);
+  }
+
+  @Test
+  void get2dCrossedFeatures_whenNoOtherFeatureLines_thenNoFeatures() {
+    var features = List.of(FeatureTestUtil.newBuilder().build());
+
+    var result = featureRelationshipService.get2dCrossedFeatures(features, Map.of());
+
+    assertThat(result).isEmpty();
+    verifyNoInteractions(featureService, polygonService, grpcClientService);
+  }
+
+  @Test
+  void get2dCrossedFeatures_whenFeaturesHaveNoPolygons_thenThrowsException() {
+    var feature = FeatureTestUtil.newBuilder().build();
+    var features = List.of(feature);
+    var otherFeatureLines = Map.of(
+        line(FeatureTestUtil.newBuilder().build(), polylineEsriJson(0, 0, 1, 1)), new BoundingBox(0, 0, 1, 1)
+    );
+
+    when(featureService.getEntityBackedFeatures(features)).thenReturn(List.of(new EntityBackedFeature(feature, Map.of())));
+
+    assertThatThrownBy(() -> featureRelationshipService.get2dCrossedFeatures(features, otherFeatureLines))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("Features to check for crossing lines have no polygons");
+    verifyNoInteractions(polygonService, grpcClientService);
+  }
+
+  @Test
+  void get2dCrossedFeatures_whenNoLinesInBoundingBoxOfFeatures_thenNoFeatures() {
+    var feature = FeatureTestUtil.newBuilder().build();
+    var features = List.of(feature);
+    var otherFeatureLines = Map.of(
+        line(FeatureTestUtil.newBuilder().build(), polylineEsriJson(20, 20, 30, 30)),
+        new BoundingBox(20, 20, 30, 30)
+    );
+    var entityBackedFeature =
+        new EntityBackedFeature(feature, polygonToLines(polygon(feature, 0L, null), polylineEsriJson(0, 0, 10, 10)));
+
+    when(featureService.getEntityBackedFeatures(features)).thenReturn(List.of(entityBackedFeature));
+
+    var result = featureRelationshipService.get2dCrossedFeatures(features, otherFeatureLines);
+
+    assertThat(result).isEmpty();
+    verifyNoInteractions(polygonService, grpcClientService);
+  }
+
+  @Test
+  void get2dCrossedFeatures_whenLinesInBoundingBoxOfFeatures_thenFeaturesWithCrossingLinesReturned() {
+    var firstFeature = FeatureTestUtil.newBuilder().build();
+    var secondFeature = FeatureTestUtil.newBuilder().build();
+    var features = List.of(firstFeature, secondFeature);
+    var firstPolygon = polygon(firstFeature, 0L, null);
+    var secondPolygon = polygon(secondFeature, 0L, null);
+    var firstEntityBackedFeature =
+        new EntityBackedFeature(firstFeature, polygonToLines(firstPolygon, polylineEsriJson(0, 0, 5, 10)));
+    var secondEntityBackedFeature =
+        new EntityBackedFeature(secondFeature, polygonToLines(secondPolygon, polylineEsriJson(5, 0, 10, 10)));
+    var crossingFeature = FeatureTestUtil.newBuilder().build();
+    var firstCrossingLine = line(crossingFeature, polylineEsriJson(8, 5, 15, 5));
+    var secondCrossingLine = line(crossingFeature, polylineEsriJson(8, 2, 15, 2));
+    var notCrossingLine = line(FeatureTestUtil.newBuilder().build(), polylineEsriJson(10, 0, 10, 10));
+    var outsideLine = line(FeatureTestUtil.newBuilder().build(), polylineEsriJson(20, 20, 30, 30));
+    Map<Line, BoundingBox> otherFeatureLines = new LinkedHashMap<>();
+    otherFeatureLines.put(firstCrossingLine, new BoundingBox(8, 5, 15, 5));
+    otherFeatureLines.put(notCrossingLine, new BoundingBox(10, 0, 10, 10));
+    otherFeatureLines.put(outsideLine, new BoundingBox(20, 20, 30, 30));
+    otherFeatureLines.put(secondCrossingLine, new BoundingBox(8, 2, 15, 2));
+    Map<UUID, Map<UUID, String>> featureIdToPolygonIdToEsriJson = new LinkedHashMap<>();
+    featureIdToPolygonIdToEsriJson.put(firstFeature.getId(), Map.of(firstPolygon.getId(), "first polygon"));
+    featureIdToPolygonIdToEsriJson.put(secondFeature.getId(), Map.of(secondPolygon.getId(), "second polygon"));
+
+    when(featureService.getEntityBackedFeatures(features))
+        .thenReturn(List.of(firstEntityBackedFeature, secondEntityBackedFeature));
+    when(polygonService.getFeatureIdToPolygonIdToEsriJson(List.of(firstEntityBackedFeature, secondEntityBackedFeature)))
+        .thenReturn(featureIdToPolygonIdToEsriJson);
+    when(grpcClientService.findCrossingLines(
+        List.of("first polygon", "second polygon"),
+        List.of(firstCrossingLine, notCrossingLine, secondCrossingLine)
+    ))
+        .thenReturn(Set.of(firstCrossingLine.getId(), secondCrossingLine.getId()));
+
+    var result = featureRelationshipService.get2dCrossedFeatures(features, otherFeatureLines);
+
+    assertThat(result).containsExactly(crossingFeature);
   }
 
   @Test
@@ -617,5 +769,22 @@ class FeatureRelationshipServiceTest {
 
   private Map<Polygon, List<Line>> polygonToLines(Polygon polygon, String lineEsriJson) {
     return Map.of(polygon, List.of(LineTestUtil.newBuilder().withPolygon(polygon).withEsriJson(lineEsriJson).build()));
+  }
+
+  private Line line(
+      Feature feature,
+      String esriJson
+  ) {
+    return LineTestUtil.newBuilder().withPolygon(polygon(feature, 0L, null)).withEsriJson(esriJson).build();
+  }
+
+  private String polylineEsriJson(
+      double startX,
+      double startY,
+      double endX,
+      double endY
+  ) {
+    return "{\"spatialReference\":{\"wkid\":4230},\"paths\":[[[%s,%s],[%s,%s]]]}"
+        .formatted(startX, startY, endX, endY);
   }
 }

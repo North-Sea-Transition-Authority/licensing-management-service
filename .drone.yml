@@ -54,10 +54,13 @@ steps:
     depends_on: [ detect-gis-changes ]
     commands:
       - test -f .gis-framework-changed || exit 0
-      - cd gis-framework
+      # Own copy so build-backend's npm ci in gis-framework can't delete node_modules mid-run
+      - mkdir /drone/src-gis-visual
+      - tar --exclude=node_modules --exclude=./.gradle --exclude=./build --exclude=./arcgis-node -C gis-framework -cf - . | tar -xf - -C /drone/src-gis-visual
+      - cd /drone/src-gis-visual
       - npm ci
       - npx playwright install --with-deps chromium
-      - npm run test:vitest:visual
+      - npm run test:vitest:visual || { cp -a .vitest-attachments /drone/src/gis-framework/ 2>/dev/null; exit 1; }
 
   - name: gis-frontend-visual-tests-publish-report
     image: alpine:3.16.0
@@ -93,7 +96,7 @@ steps:
         - echo $DOCKER_CONFIG_JSON > /drone/dockerconfig/config.json
         # Own copy of the project dir so this doesn't race build-backend on gis-framework/build
         - mkdir /drone/src-gis
-        - cp -a gis-framework devtools-lms /drone/src-gis/
+        - tar --exclude=gis-framework/node_modules -cf - gis-framework devtools-lms | tar -xf - -C /drone/src-gis
         - cd /drone/src-gis/gis-framework
         - chmod +x gradlew
         - ./gradlew extractIncludeProto extractProto generateProto
@@ -441,10 +444,13 @@ steps:
     depends_on: [ detect-gis-changes ]
     commands:
       - test -f .gis-framework-changed || exit 0
-      - cd gis-framework
+      # Own copy so build-backend's npm ci in gis-framework can't delete node_modules mid-run
+      - mkdir /drone/src-gis-visual
+      - tar --exclude=node_modules --exclude=./.gradle --exclude=./build --exclude=./arcgis-node -C gis-framework -cf - . | tar -xf - -C /drone/src-gis-visual
+      - cd /drone/src-gis-visual
       - npm ci
       - npx playwright install --with-deps chromium
-      - npm run test:vitest:visual
+      - npm run test:vitest:visual || { cp -a .vitest-attachments /drone/src/gis-framework/ 2>/dev/null; exit 1; }
 
   - name: gis-frontend-visual-tests-publish-report
     image: alpine:3.16.0
@@ -480,7 +486,7 @@ steps:
         - echo $DOCKER_CONFIG_JSON > /drone/dockerconfig/config.json
         # Own copy of the project dir so this doesn't race build-backend on gis-framework/build
         - mkdir /drone/src-gis
-        - cp -a gis-framework devtools-lms /drone/src-gis/
+        - tar --exclude=gis-framework/node_modules -cf - gis-framework devtools-lms | tar -xf - -C /drone/src-gis
         - cd /drone/src-gis/gis-framework
         - chmod +x gradlew
         - ./gradlew extractIncludeProto extractProto generateProto

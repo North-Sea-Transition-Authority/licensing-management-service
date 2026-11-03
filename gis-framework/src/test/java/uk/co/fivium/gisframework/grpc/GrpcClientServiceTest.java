@@ -59,6 +59,8 @@ import uk.co.fivium.grpc.gis.FeaturePolygons;
 import uk.co.fivium.grpc.gis.FeaturePolylines;
 import uk.co.fivium.grpc.gis.Find2dOverlappingFeaturesRequest;
 import uk.co.fivium.grpc.gis.Find2dOverlappingFeaturesResponse;
+import uk.co.fivium.grpc.gis.FindCrossingLinesRequest;
+import uk.co.fivium.grpc.gis.FindCrossingLinesResponse;
 import uk.co.fivium.grpc.gis.FindNorthwestMostLineRequest;
 import uk.co.fivium.grpc.gis.FindNorthwestMostLineResponse;
 import uk.co.fivium.grpc.gis.FindParentLinesRequest;
@@ -942,6 +944,32 @@ class GrpcClientServiceTest {
     var result = grpcClientService.find2dOverlappingFeatures(List.of(esriJsonPolygon), featureIdToPolygonIdToEsriJson);
 
     assertThat(result).isEqualTo(Set.of(overlappingFeatureId));
+  }
+
+  @Test
+  void findCrossingLines() {
+    var esriJsonPolygon = "dummy esriJson polygon";
+    var crossingLine = LineTestUtil.newBuilder().withEsriJson("dummy esriJson crossing line").build();
+    var separateLine = LineTestUtil.newBuilder().withEsriJson("dummy esriJson separate line").build();
+
+    var expectedRequest = FindCrossingLinesRequest.newBuilder()
+        .addEsriJsonPolygons(esriJsonPolygon)
+        .addLines(LineWithId.newBuilder()
+            .setId(crossingLine.getId().toString())
+            .setPolyLineEsriJson("dummy esriJson crossing line"))
+        .addLines(LineWithId.newBuilder()
+            .setId(separateLine.getId().toString())
+            .setPolyLineEsriJson("dummy esriJson separate line"))
+        .build();
+    var response = FindCrossingLinesResponse.newBuilder()
+        .addCrossingLineIds(crossingLine.getId().toString())
+        .build();
+
+    when(arcgisClient.findCrossingLines(expectedRequest)).thenReturn(response);
+
+    var result = grpcClientService.findCrossingLines(List.of(esriJsonPolygon), List.of(crossingLine, separateLine));
+
+    assertThat(result).isEqualTo(Set.of(crossingLine.getId()));
   }
 
   @Test

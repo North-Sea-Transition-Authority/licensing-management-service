@@ -11,6 +11,8 @@ import org.apache.commons.collections.CollectionUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.Errors;
 import uk.co.fivium.gisframework.feature.Feature;
+import uk.co.fivium.gisframework.feature.Line;
+import uk.co.fivium.gisframework.relationship.BoundingBox;
 import uk.co.fivium.gisframework.relationship.FeatureRelationshipService;
 import uk.co.fivium.grpc.gis.CoordinateSystem;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PartialSurrenderOperationRule;
@@ -71,7 +73,7 @@ public class PartialSurrenderSelectAreasFormValidator {
       PartialSurrenderSelectAreasForm form,
       Errors errors,
       List<Feature> activeFeatures,
-      Map<Feature, Map<UUID, String>> otherActiveBlockPolygons
+      Map<Line, BoundingBox> otherActiveBlockLines
   ) {
     var featureIds = getFeatureIds(activeFeatures);
     var selected = form.getSurrenderedFeatureIds();
@@ -81,7 +83,7 @@ public class PartialSurrenderSelectAreasFormValidator {
     }
 
     var keptAreas = activeFeatures.stream().filter(feature -> !selected.contains(feature.getId())).toList();
-    getOverlapErrors(keptAreas, otherActiveBlockPolygons).forEach(message -> errors.rejectValue(
+    getOverlapErrors(keptAreas, otherActiveBlockLines).forEach(message -> errors.rejectValue(
         SURRENDERED_FEATURE_IDS_FIELD,
         "surrenderedFeatureIds.overlap",
         message
@@ -90,18 +92,23 @@ public class PartialSurrenderSelectAreasFormValidator {
     return errors.hasErrors();
   }
 
+  /**
+   * Checks kept areas for overlap with other blocks by finding the blocks with a line that crosses a kept area. Blocks
+   * should never lie fully inside one another, and a block whose lines only run between points on a kept area's edges
+   * is not treated as overlapping it.
+   */
   public List<String> getOverlapErrors(
       Collection<Feature> keptAreas,
-      Map<Feature, Map<UUID, String>> otherActiveBlockPolygons
+      Map<Line, BoundingBox> otherActiveBlockLines
   ) {
     return keptAreas.stream()
         .collect(Collectors.groupingBy(Feature::getCoordinateSystem))
         .entrySet()
         .stream()
         .flatMap(entry -> featureRelationshipService
-            .get2dOverlappingFeatures(
+            .get2dCrossedFeatures(
                 entry.getValue(),
-                getPolygonsInCoordinateSystem(otherActiveBlockPolygons, entry.getKey())
+                getLinesInCoordinateSystem(otherActiveBlockLines, entry.getKey())
             )
             .stream())
         .distinct()
@@ -110,17 +117,17 @@ public class PartialSurrenderSelectAreasFormValidator {
         .toList();
   }
 
-  private static Map<Feature, Map<UUID, String>> getPolygonsInCoordinateSystem(
-      Map<Feature, Map<UUID, String>> featurePolygons,
+  private static Map<Line, BoundingBox> getLinesInCoordinateSystem(
+      Map<Line, BoundingBox> lineBoundingBoxes,
       CoordinateSystem coordinateSystem
   ) {
-    return featurePolygons.entrySet()
+    return lineBoundingBoxes.entrySet()
         .stream()
-        .filter(entry -> entry.getKey().getCoordinateSystem() == coordinateSystem)
+        .filter(entry -> entry.getKey().getPolygon().getFeature().getCoordinateSystem() == coordinateSystem)
         .collect(Collectors.toMap(
             Map.Entry::getKey,
             Map.Entry::getValue,
-            (polygons, duplicatePolygons) -> polygons,
+            (boundingBox, duplicateBoundingBox) -> boundingBox,
             LinkedHashMap::new
         ));
   }

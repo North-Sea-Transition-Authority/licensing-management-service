@@ -2,6 +2,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.correction.positio
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -12,6 +13,7 @@ import java.time.LocalDate;
 import java.time.Month;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Stream;
@@ -25,6 +27,8 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import uk.co.fivium.gisframework.feature.Line;
+import uk.co.fivium.gisframework.relationship.BoundingBox;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatusType;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
@@ -71,7 +75,7 @@ class LicencePositionValidationServiceTest {
       LicencePositionChangeType.UPDATE_CHANGE_OPERATIONS,
       LicencePositionChangeType.UPDATE_CHANGE_ORDER
   })
-  void validate_whenStagedChangeHasPartialSurrender_thenItsErrorsReturnedForTheChange(String changeType) {
+  void validate_whenStagedPartialSurrenderHasFormErrors_thenFormErrorsReturnedAndBlockLinesNotLoaded(String changeType) {
     var blockFeatureId = UUID.randomUUID();
     var surrender = LicenceOperation.newPartialSurrenderOperation()
         .withSurrenderedFeatureIds(List.of(blockFeatureId))
@@ -86,12 +90,8 @@ class LicencePositionValidationServiceTest {
     );
     var positions = List.of(position);
     var corrections = List.of(stagingCorrection(addChange(surrenderChange.changeId())));
-    when(partialSurrenderValidator.validate(
-        surrender,
-        LicencePositionState.EMPTY.withBlock(blockFeatureId, List.of()),
-        POSITION_DATE,
-        surrenderChange.changeId()
-    )).thenReturn(List.of("Surrender error"));
+    when(partialSurrenderValidator.validateForms(surrender, LicencePositionState.EMPTY.withBlock(blockFeatureId, List.of())))
+        .thenReturn(List.of("Surrender error"));
 
     var errors = service.validate(positions, LicencePositionStateResolver.resolve(positions), corrections, LicenceType.CARBON_STORAGE, LicenceStatusType.EXTANT);
 
@@ -102,6 +102,73 @@ class LicencePositionValidationServiceTest {
         LicenceOperation.PARTIAL_SURRENDER,
         "Surrender error"
     ));
+    verify(partialSurrenderValidator, never()).getBlockLineBoundingBoxes(any());
+  }
+
+  @Test
+  void validate_whenStagedPartialSurrendersHaveValidForms_thenBlockLinesForTheirDatesLoadedOnceAndErrorsReturnedInPositionOrder() {
+    var blockFeatureId = UUID.randomUUID();
+    var firstSurrender = LicenceOperation.newPartialSurrenderOperation()
+        .withSurrenderedFeatureIds(List.of(blockFeatureId))
+        .build();
+    var firstSurrenderChange = change(LicencePositionChangeType.ADD_CHANGE, firstSurrender);
+    var secondSurrender = LicenceOperation.newPartialSurrenderOperation()
+        .withSurrenderedFeatureIds(List.of(blockFeatureId, UUID.randomUUID()))
+        .build();
+    var secondSurrenderChange = change(LicencePositionChangeType.ADD_CHANGE, secondSurrender);
+    var thirdSurrender = LicenceOperation.newPartialSurrenderOperation()
+        .withSurrenderedFeatureIds(List.of(UUID.randomUUID()))
+        .build();
+    var thirdSurrenderChange = change(LicencePositionChangeType.ADD_CHANGE, thirdSurrender);
+    var first = position(
+        UUID.randomUUID(),
+        POSITION_DATE,
+        change(null, blockCreate(blockFeatureId)),
+        firstSurrenderChange,
+        licenseeChange()
+    );
+    var second = position(UUID.randomUUID(), POSITION_DATE.plusDays(1), secondSurrenderChange);
+    var third = position(UUID.randomUUID(), POSITION_DATE.plusDays(2), thirdSurrenderChange);
+    var positions = List.of(first, second, third);
+    var states = LicencePositionStateResolver.resolve(positions);
+    var corrections = List.of(
+        stagingCorrection(addChange(firstSurrenderChange.changeId())),
+        stagingCorrection(addChange(secondSurrenderChange.changeId())),
+        stagingCorrection(addChange(thirdSurrenderChange.changeId()))
+    );
+    var stateGoingIntoFirstSurrender = LicencePositionState.EMPTY.withBlock(blockFeatureId, List.of());
+    when(partialSurrenderValidator.validateForms(firstSurrender, stateGoingIntoFirstSurrender))
+        .thenReturn(List.of());
+    when(partialSurrenderValidator.validateForms(secondSurrender, states.previousState(second.id())))
+        .thenReturn(List.of("Form error"));
+    when(partialSurrenderValidator.validateForms(thirdSurrender, states.previousState(third.id())))
+        .thenReturn(List.of());
+    var surrenderDates = Set.of(POSITION_DATE, POSITION_DATE.plusDays(1), POSITION_DATE.plusDays(2));
+    var blockLines = Map.of(new Line(), new BoundingBox(0, 0, 1, 1));
+    when(partialSurrenderValidator.getBlockLineBoundingBoxes(surrenderDates)).thenReturn(blockLines);
+    when(partialSurrenderValidator.validateSpatially(
+        firstSurrender,
+        stateGoingIntoFirstSurrender,
+        POSITION_DATE,
+        firstSurrenderChange.changeId(),
+        blockLines
+    )).thenReturn(List.of("First overlap error"));
+    when(partialSurrenderValidator.validateSpatially(
+        thirdSurrender,
+        states.previousState(third.id()),
+        POSITION_DATE.plusDays(2),
+        thirdSurrenderChange.changeId(),
+        blockLines
+    )).thenReturn(List.of("Third overlap error"));
+
+    var errors = service.validate(positions, states, corrections, LicenceType.CARBON_STORAGE, LicenceStatusType.EXTANT);
+
+    assertThat(errors).containsExactly(
+        surrenderError(first, firstSurrenderChange, "First overlap error"),
+        surrenderError(second, secondSurrenderChange, "Form error"),
+        surrenderError(third, thirdSurrenderChange, "Third overlap error")
+    );
+    verify(partialSurrenderValidator).getBlockLineBoundingBoxes(surrenderDates);
   }
 
   @Test
@@ -210,14 +277,18 @@ class LicencePositionValidationServiceTest {
         .withTargetLicencePosition(licencePosition)
         .withPayload(LicencePositionPayload.newUpdateLicencePositionPayload().withEffectiveDate(POSITION_DATE).build())
         .build());
+    when(partialSurrenderValidator.validateForms(surrender, LicencePositionState.EMPTY)).thenReturn(List.of());
+    var blockLines = Map.of(new Line(), new BoundingBox(0, 0, 1, 1));
+    when(partialSurrenderValidator.getBlockLineBoundingBoxes(Set.of(position.date()))).thenReturn(blockLines);
 
     service.validate(positions, LicencePositionStateResolver.resolve(positions), corrections, LicenceType.CARBON_STORAGE, LicenceStatusType.EXTANT);
 
-    verify(partialSurrenderValidator).validate(
+    verify(partialSurrenderValidator).validateSpatially(
         surrender,
         LicencePositionState.EMPTY,
         position.date(),
-        position.changes().getFirst().changeId()
+        position.changes().getFirst().changeId(),
+        blockLines
     );
   }
 
@@ -504,6 +575,20 @@ class LicencePositionValidationServiceTest {
 
   private static PositionChange change(String changeType, LicenceOperation operation) {
     return new PositionChange(UUID.randomUUID().toString(), 1, changeType, List.of(operation));
+  }
+
+  private static PositionValidationError surrenderError(
+      ChronologicalPosition position,
+      PositionChange change,
+      String message
+  ) {
+    return new PositionValidationError(
+        position.id(),
+        position.positionName(),
+        change.changeId(),
+        LicenceOperation.PARTIAL_SURRENDER,
+        message
+    );
   }
 
   private static LicencePositionCorrection stagingCorrection(LicencePositionChangeType stagedChange) {

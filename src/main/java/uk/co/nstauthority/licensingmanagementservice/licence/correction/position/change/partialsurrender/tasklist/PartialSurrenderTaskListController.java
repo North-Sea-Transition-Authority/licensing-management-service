@@ -2,8 +2,11 @@ package uk.co.nstauthority.licensingmanagementservice.licence.correction.positio
 
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
+import jakarta.annotation.Nullable;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.IntStream;
 import org.springframework.stereotype.Controller;
@@ -36,6 +39,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.LicencePositionState;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.spatial.LicencePositionSpatialService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummarySection;
@@ -161,12 +165,18 @@ public class PartialSurrenderTaskListController {
     var stagedChangeId = partialSurrenderCorrectionService
         .getCommittedPartialSurrenderChangeId(licencePositionCorrection)
         .orElse(null);
-    var errorMessages = partialSurrenderValidator.validate(
-        partialSurrenderCorrectionService.getCommittedPartialSurrenderOrThrow(licencePositionCorrection),
-        licencePositionSpatialService.getStateGoingIntoChange(licencePositionCorrection, stagedChangeId),
-        licencePositionCorrectionService.resolveEffectiveDate(licencePositionCorrection),
-        stagedChangeId
-    );
+    var surrender = partialSurrenderCorrectionService.getCommittedPartialSurrenderOrThrow(licencePositionCorrection);
+    var stateGoingIntoChange =
+        licencePositionSpatialService.getStateGoingIntoChange(licencePositionCorrection, stagedChangeId);
+    var formErrors = partialSurrenderValidator.validateForms(surrender, stateGoingIntoChange);
+    var errorMessages = formErrors.isEmpty()
+        ? validateSpatially(
+            surrender,
+            stateGoingIntoChange,
+            licencePositionCorrectionService.resolveEffectiveDate(licencePositionCorrection),
+            stagedChangeId
+        )
+        : formErrors;
 
     return reviewAndSubmitModelAndView(
         correction,
@@ -202,12 +212,19 @@ public class PartialSurrenderTaskListController {
         new PartialSurrenderSummaryContext.LiveChange(correction, licencePosition, changeId),
         user
     );
-    var errorMessages = partialSurrenderValidator.validate(
-        partialSurrenderCorrectionService.getSurrenderUnderCorrectionOrThrow(correction, licencePosition, changeId),
-        licencePositionSpatialService.getStateGoingIntoChange(correction, licencePosition.getId(), changeId),
-        licencePositionCorrectionService.getEffectivePositionDate(correction, licencePosition),
-        changeId
-    );
+    var surrender =
+        partialSurrenderCorrectionService.getSurrenderUnderCorrectionOrThrow(correction, licencePosition, changeId);
+    var stateGoingIntoChange =
+        licencePositionSpatialService.getStateGoingIntoChange(correction, licencePosition.getId(), changeId);
+    var formErrors = partialSurrenderValidator.validateForms(surrender, stateGoingIntoChange);
+    var errorMessages = formErrors.isEmpty()
+        ? validateSpatially(
+            surrender,
+            stateGoingIntoChange,
+            licencePositionCorrectionService.getEffectivePositionDate(correction, licencePosition),
+            changeId
+        )
+        : formErrors;
 
     return reviewAndSubmitModelAndView(
         correction,
@@ -216,6 +233,21 @@ public class PartialSurrenderTaskListController {
         errorMessages,
         singleBlockSelectAreasUrl.orElse(taskListUrl),
         singleBlockSelectAreasUrl.isPresent() ? BACK_LINK_TEXT : BACK_TO_TASK_LIST_LINK_TEXT
+    );
+  }
+
+  private List<String> validateSpatially(
+      PartialSurrenderOperation surrender,
+      LicencePositionState stateGoingIntoChange,
+      LocalDate positionDate,
+      @Nullable String changeId
+  ) {
+    return partialSurrenderValidator.validateSpatially(
+        surrender,
+        stateGoingIntoChange,
+        positionDate,
+        changeId,
+        partialSurrenderValidator.getBlockLineBoundingBoxes(Set.of(positionDate))
     );
   }
 

@@ -19,3 +19,4 @@ export type Find2dOverlappingFeaturesHandler = ArcGisServiceHandlers["find2dOver
 export type BuildFeaturePolygonsHandler = ArcGisServiceHandlers["buildFeaturePolygons"];
 export type GroupEqualPolygonsHandler = ArcGisServiceHandlers["groupEqualPolygons"];
 export type UnionPolygonsHandler = ArcGisServiceHandlers["unionPolygons"];
+export type FindCrossingLinesHandler = ArcGisServiceHandlers["findCrossingLines"];

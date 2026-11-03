@@ -16,6 +16,7 @@ import uk.co.fivium.gisframework.feature.EntityBackedFeature;
 import uk.co.fivium.gisframework.feature.Feature;
 import uk.co.fivium.gisframework.feature.FeatureService;
 import uk.co.fivium.gisframework.feature.Line;
+import uk.co.fivium.gisframework.feature.LineService;
 import uk.co.fivium.gisframework.feature.Polygon;
 import uk.co.fivium.gisframework.feature.PolygonService;
 import uk.co.fivium.gisframework.grpc.GrpcClientService;
@@ -25,15 +26,18 @@ public class FeatureRelationshipService {
 
   private final FeatureService featureService;
   private final PolygonService polygonService;
+  private final LineService lineService;
   private final GrpcClientService grpcClientService;
 
   FeatureRelationshipService(
       FeatureService featureService,
       PolygonService polygonService,
+      LineService lineService,
       GrpcClientService grpcClientService
   ) {
     this.featureService = featureService;
     this.polygonService = polygonService;
+    this.lineService = lineService;
     this.grpcClientService = grpcClientService;
   }
 
@@ -165,6 +169,98 @@ public class FeatureRelationshipService {
     return otherFeaturePolygons.keySet()
         .stream()
         .filter(otherFeature -> overlappingFeatureIds.contains(otherFeature.getId()))
+        .toList();
+  }
+
+  /**
+   * Gets the lines of many features along with their bounding boxes, so they can be checked for crossing many times
+   * with {@link #get2dCrossedFeatures(Collection, Map)} without being loaded again.
+   *
+   * @param features The features whose lines to get, in any coordinate system.
+   * @return Map of line to its bounding box.
+   */
+  public Map<Line, BoundingBox> getLineBoundingBoxes(Collection<Feature> features) {
+    if (features.isEmpty()) {
+      return Map.of();
+    }
+
+    return lineService.findAllByFeatureIn(features)
+        .stream()
+        .collect(Collectors.toMap(
+            Function.identity(),
+            line -> BoundingBox.fromEsriJsonPolyline(line.getEsriJson()),
+            (boundingBox, duplicateBoundingBox) -> boundingBox,
+            LinkedHashMap::new
+        ));
+  }
+
+  /**
+   * Finds the features with a line that crosses the polygons of several features in two dimensions, ignoring the depth
+   * of their polygons. A line crosses a polygon when part of it is inside the polygon and part of it is outside. Only
+   * lines whose bounding box intersects the bounding box of the features are checked.
+   *
+   * <p>This is cheaper than checking for overlap but does not find every overlapping feature: a feature lying wholly
+   * inside or wholly containing the polygons, a feature identical to them, and a feature whose lines only run between
+   * points on the polygons' boundaries are not found.</p>
+   *
+   * @param features          The features whose polygons the lines are checked against.
+   * @param otherFeatureLines The lines of the features to check, with their bounding boxes from
+   *                          {@link #getLineBoundingBoxes(Collection)}.
+   * @return The features with a line that crosses the polygons of the features.
+   * @throws IllegalArgumentException if no features are given, the features or the lines' features are not all in the
+   *                                  same coordinate system, or the features have no polygons.
+   */
+  public List<Feature> get2dCrossedFeatures(
+      Collection<Feature> features,
+      Map<Line, BoundingBox> otherFeatureLines
+  ) {
+    if (features.isEmpty()) {
+      throw new IllegalArgumentException("Must provide at least one feature to check for crossing lines");
+    }
+
+    var coordinateSystem = features.iterator().next().getCoordinateSystem();
+    if (Stream.concat(features.stream(), otherFeatureLines.keySet().stream().map(line -> line.getPolygon().getFeature()))
+        .anyMatch(feature -> !coordinateSystem.equals(feature.getCoordinateSystem()))) {
+      throw new IllegalArgumentException(
+          "All features to check for crossing lines must use the coordinate system %s".formatted(coordinateSystem)
+      );
+    }
+
+    if (otherFeatureLines.isEmpty()) {
+      return List.of();
+    }
+
+    var entityBackedFeatures = featureService.getEntityBackedFeatures(features);
+    var lineBoundingBoxes = entityBackedFeatures.stream()
+        .flatMap(entityBackedFeature -> entityBackedFeature.polygonToLines().values().stream())
+        .flatMap(List::stream)
+        .map(line -> BoundingBox.fromEsriJsonPolyline(line.getEsriJson()))
+        .toList();
+    if (lineBoundingBoxes.isEmpty()) {
+      throw new IllegalArgumentException("Features to check for crossing lines have no polygons");
+    }
+
+    var boundingBox = BoundingBox.enclosing(lineBoundingBoxes);
+    var linesInBoundingBox = otherFeatureLines.entrySet()
+        .stream()
+        .filter(entry -> boundingBox.intersects(entry.getValue()))
+        .map(Map.Entry::getKey)
+        .toList();
+    if (linesInBoundingBox.isEmpty()) {
+      return List.of();
+    }
+
+    var esriJsonPolygons = polygonService.getFeatureIdToPolygonIdToEsriJson(entityBackedFeatures)
+        .values()
+        .stream()
+        .flatMap(polygonIdToEsriJson -> polygonIdToEsriJson.values().stream())
+        .toList();
+    var crossingLineIds = grpcClientService.findCrossingLines(esriJsonPolygons, linesInBoundingBox);
+
+    return linesInBoundingBox.stream()
+        .filter(line -> crossingLineIds.contains(line.getId()))
+        .map(line -> line.getPolygon().getFeature())
+        .distinct()
         .toList();
   }
 

@@ -218,7 +218,7 @@ public class PartialSurrenderDefineAreaController {
         form,
         bindingResult,
         activeFeatures,
-        featureRelationshipService.build2dPolygons(otherActiveBlocks)
+        featureRelationshipService.getLineBoundingBoxes(otherActiveBlocks)
     );
   }
 

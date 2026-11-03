@@ -50,6 +50,8 @@ import "groupEqualPolygons/GroupEqualPolygonsRequest.proto";
 import "groupEqualPolygons/GroupEqualPolygonsResponse.proto";
 import "unionPolygons/UnionPolygonsRequest.proto";
 import "unionPolygons/UnionPolygonsResponse.proto";
+import "findCrossingLines/FindCrossingLinesRequest.proto";
+import "findCrossingLines/FindCrossingLinesResponse.proto";
 
 option java_multiple_files = true;
 option java_outer_classname = "ArcGisServiceProto";
@@ -79,4 +81,5 @@ service ArcGisService {
   rpc buildFeaturePolygons (BuildFeaturePolygonsRequest) returns (BuildFeaturePolygonsResponse) {};
   rpc groupEqualPolygons (GroupEqualPolygonsRequest) returns (GroupEqualPolygonsResponse) {};
   rpc unionPolygons (UnionPolygonsRequest) returns (UnionPolygonsResponse) {};
+  rpc findCrossingLines (FindCrossingLinesRequest) returns (FindCrossingLinesResponse) {};
 }

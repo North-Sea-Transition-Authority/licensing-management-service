@@ -2,6 +2,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.correction.positio
 
 import jakarta.annotation.Nullable;
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -16,6 +17,8 @@ import uk.co.fivium.gisframework.command.CommandJourneyService;
 import uk.co.fivium.gisframework.feature.Feature;
 import uk.co.fivium.gisframework.feature.FeatureService;
 import uk.co.fivium.gisframework.feature.Layer;
+import uk.co.fivium.gisframework.feature.Line;
+import uk.co.fivium.gisframework.relationship.BoundingBox;
 import uk.co.fivium.gisframework.relationship.FeatureRelationshipService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderTypeForm;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderTypeFormValidator;
@@ -59,22 +62,16 @@ public class PartialSurrenderValidator {
   }
 
   /**
-   * Validates a partial surrender using all associated form validators and an additional overlap check. Each step is
-   * only validated once the steps before it have no errors, so only the errors of the earliest failing step are
-   * returned.
+   * Validates a partial surrender using all associated form validators. Each step is only validated once the steps
+   * before it have no errors, so only the errors of the earliest failing step are returned.
    *
    * @param surrender            The partial surrender operation being validated.
    * @param stateGoingIntoChange The state before the operation.
-   * @param positionDate         The date of the position.
-   * @param changeId             The id of the change holding the surrender. Blocks created by the live version of
-   *                             that change are not treated as overlaps.
    * @return List of error messages.
    */
-  public List<String> validate(
+  public List<String> validateForms(
       PartialSurrenderOperation surrender,
-      LicencePositionState stateGoingIntoChange,
-      LocalDate positionDate,
-      @Nullable String changeId
+      LicencePositionState stateGoingIntoChange
   ) {
     if (surrender == null) {
       throw new IllegalStateException("Partial surrender must not be null");
@@ -95,34 +92,72 @@ public class PartialSurrenderValidator {
     }
 
     var activeFeaturesByBlockId = getActiveFeaturesOfPartiallySurrenderedBlocks(surrender);
-    var areaSelectionErrors = validateAreaSelections(surrender, blockFeaturesById, activeFeaturesByBlockId);
-    if (!areaSelectionErrors.isEmpty()) {
-      return areaSelectionErrors;
-    }
+    return validateAreaSelections(surrender, blockFeaturesById, activeFeaturesByBlockId);
+  }
 
+  /**
+   * Validates that the areas kept by a partial surrender do not overlap other blocks active on the position date. Only
+   * call this once {@link #validateForms(PartialSurrenderOperation, LicencePositionState)} returns no errors.
+   *
+   * @param surrender            The partial surrender operation being validated.
+   * @param stateGoingIntoChange The state before the operation.
+   * @param positionDate         The date of the position.
+   * @param changeId             The id of the change holding the surrender. Blocks created by the live version of
+   *                             that change are not treated as overlaps.
+   * @param blockLines           The lines of the blocks active on at least the position date, from
+   *                             {@link #getBlockLineBoundingBoxes(Collection)}.
+   * @return List of error messages.
+   */
+  public List<String> validateSpatially(
+      PartialSurrenderOperation surrender,
+      LicencePositionState stateGoingIntoChange,
+      LocalDate positionDate,
+      @Nullable String changeId,
+      Map<Line, BoundingBox> blockLines
+  ) {
+    var activeFeaturesByBlockId = getActiveFeaturesOfPartiallySurrenderedBlocks(surrender);
     var recordedAreasKeptByBlockId = getRecordedAreasKept(surrender);
     if (activeFeaturesByBlockId.isEmpty() && recordedAreasKeptByBlockId.isEmpty()) {
       return List.of();
     }
 
-    var otherActiveBlockPolygons =
-        featureRelationshipService.build2dPolygons(getOtherActiveBlocks(surrender, positionDate, changeId));
+    var blockFeaturesById = getBlockFeaturesById(stateGoingIntoChange);
+    var otherActiveBlockIds = getOtherActiveBlocks(surrender, positionDate, changeId).stream()
+        .map(Feature::getId)
+        .collect(Collectors.toSet());
+    var otherActiveBlockLines = blockLines.entrySet().stream()
+        .filter(entry -> otherActiveBlockIds.contains(entry.getKey().getPolygon().getFeature().getId()))
+        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
     return Stream.of(
         validateSelectedAreasKept(
             surrender,
             blockFeaturesById,
             activeFeaturesByBlockId,
-            otherActiveBlockPolygons
+            otherActiveBlockLines
         ),
         validateRecordedAreasKept(
             blockFeaturesById,
             recordedAreasKeptByBlockId,
-            otherActiveBlockPolygons
+            otherActiveBlockLines
         )
     )
         .flatMap(List::stream)
         .toList();
+  }
+
+  /**
+   * The lines of the licence blocks active on any of the position dates, so every partial surrender on those dates can
+   * be checked for overlap from a single load.
+   */
+  public Map<Line, BoundingBox> getBlockLineBoundingBoxes(Collection<LocalDate> positionDates) {
+    var blocksActiveOnAPositionDate = featureService
+        .findAllByAttribute(FeatureAttribute.LAYER.name(), Layer.BLOCKS.name())
+        .stream()
+        .filter(block -> positionDates.stream().anyMatch(positionDate -> isActiveOn(block, positionDate)))
+        .toList();
+
+    return featureRelationshipService.getLineBoundingBoxes(blocksActiveOnAPositionDate);
   }
 
   /**
@@ -195,7 +230,7 @@ public class PartialSurrenderValidator {
       PartialSurrenderOperation surrender,
       Map<UUID, Feature> blockFeaturesById,
       Map<UUID, List<Feature>> activeFeaturesByBlockId,
-      Map<Feature, Map<UUID, String>> otherActiveBlockPolygons
+      Map<Line, BoundingBox> otherActiveBlockLines
   ) {
     return activeFeaturesByBlockId.entrySet().stream()
         .flatMap(entry -> {
@@ -205,7 +240,7 @@ public class PartialSurrenderValidator {
               form,
               bindingResult,
               entry.getValue(),
-              otherActiveBlockPolygons
+              otherActiveBlockLines
           );
 
           return bindingResult.getAllErrors().stream()
@@ -218,12 +253,12 @@ public class PartialSurrenderValidator {
   private List<String> validateRecordedAreasKept(
       Map<UUID, Feature> blockFeaturesById,
       Map<UUID, List<Feature>> recordedAreasKeptByBlockId,
-      Map<Feature, Map<UUID, String>> otherActiveBlockPolygons
+      Map<Line, BoundingBox> otherActiveBlockLines
   ) {
     return recordedAreasKeptByBlockId.entrySet().stream()
         .flatMap(entry -> partialSurrenderSelectAreasFormValidator.getOverlapErrors(
                 entry.getValue(),
-                otherActiveBlockPolygons
+                otherActiveBlockLines
             )
             .stream()
             .map(message -> blockError(blockFeaturesById.get(entry.getKey()), message)))

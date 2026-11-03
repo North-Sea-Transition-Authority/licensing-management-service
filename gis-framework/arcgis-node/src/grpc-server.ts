@@ -14,6 +14,7 @@ import { coordinatesToPolylineHandler } from "./handlers/coordinates-to-polyline
 import { cropToBoundaryHandler } from "./handlers/crop-to-boundary-handler";
 import { explodePolygonHandler } from "./handlers/explode-polygon-handler";
 import { find2dOverlappingFeaturesHandler } from "./handlers/find-2d-overlapping-features-handler";
+import { findCrossingLinesHandler } from "./handlers/find-crossing-lines-handler";
 import { findNorthwestMostLineHandler } from "./handlers/find-northwest-most-line-handler";
 import { findParentLinesHandler } from "./handlers/find-parent-lines-handler";
 import { generalizePolygonHandler } from "./handlers/generalize-polygon-handler";
@@ -102,6 +103,7 @@ function startGrpcServer(arcGisJsProto: ProtoGrpcType["uk"]["co"]["fivium"]["grp
     mergeAndGeneralizeLines: mergeAndGeneralizeLinesHandler,
     groupEqualPolygons: groupEqualPolygonsHandler,
     unionPolygons: unionPolygonsHandler,
+    findCrossingLines: findCrossingLinesHandler,
   });
 
   server.bindAsync(GRPC_BIND_ADDRESS, grpc.ServerCredentials.createInsecure(), (error) => {

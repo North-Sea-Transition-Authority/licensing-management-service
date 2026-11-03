@@ -1,13 +1,18 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation;
 
+import com.google.common.base.Suppliers;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
+import uk.co.fivium.gisframework.feature.Line;
+import uk.co.fivium.gisframework.relationship.BoundingBox;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatusType;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
@@ -59,6 +64,11 @@ public class LicencePositionValidationService {
     );
     var subareaEquityChangeKeysByTransactionId = subareaEquityChangeKeysByTransactionId(allChronologicalPositions);
 
+    // Memoize supplier allows for block lines to be lazily loaded once per page load only when needed.
+    var blockLines = Suppliers.memoize(() -> partialSurrenderValidator.getBlockLineBoundingBoxes(
+        getCorrectedPartialSurrenderDates(allChronologicalPositions, correctedChangeIds)
+    ));
+
     var isFirstPosition = true;
     ChronologicalPosition lastPosition = allChronologicalPositions.isEmpty()
         ? null
@@ -78,7 +88,9 @@ public class LicencePositionValidationService {
 
       positionValidationErrors.addAll(chronologicalPosition.validate(positionValidationContext));
       if (hasStagedSpatialChange) {
-        positionValidationErrors.addAll(validateSpatialChanges(positionValidationContext, correctedChangeIds));
+        positionValidationErrors.addAll(
+            validateSpatialChanges(positionValidationContext, correctedChangeIds, blockLines)
+        );
       }
 
       if (chronologicalPosition.beneficialInterestChangeCount() > 0
@@ -109,7 +121,8 @@ public class LicencePositionValidationService {
 
   private List<PositionValidationError> validateSpatialChanges(
       PositionValidationContext positionValidationContext,
-      Set<String> correctedChangeIds
+      Set<String> correctedChangeIds,
+      Supplier<Map<Line, BoundingBox>> blockLines
   ) {
     var errors = new ArrayList<PositionValidationError>();
 
@@ -117,7 +130,7 @@ public class LicencePositionValidationService {
     for (var change : positionValidationContext.position().changes()) {
       if (!LicencePositionChangeType.REMOVE_CHANGE.equals(change.changeType())) {
         if (correctedChangeIds.contains(change.changeId())) {
-          errors.addAll(validatePartialSurrenders(positionValidationContext, change, stateGoingIntoChange));
+          errors.addAll(validatePartialSurrenders(positionValidationContext, change, stateGoingIntoChange, blockLines));
         }
         errors.addAll(spatialStateValidator.validate(positionValidationContext, change, stateGoingIntoChange));
       }
@@ -131,15 +144,24 @@ public class LicencePositionValidationService {
   private List<PositionValidationError> validatePartialSurrenders(
       PositionValidationContext positionValidationContext,
       PositionChange change,
-      LicencePositionState stateGoingIntoChange
+      LicencePositionState stateGoingIntoChange,
+      Supplier<Map<Line, BoundingBox>> blockLines
   ) {
     var errors = new ArrayList<PositionValidationError>();
 
     for (var operation : change.operations()) {
       if (operation instanceof PartialSurrenderOperation surrender) {
-        partialSurrenderValidator
-            .validate(surrender, stateGoingIntoChange, positionValidationContext.position().date(), change.changeId())
-            .forEach(message -> errors.add(PositionValidationError
+        var formErrors = partialSurrenderValidator.validateForms(surrender, stateGoingIntoChange);
+        var surrenderErrors = formErrors.isEmpty()
+            ? partialSurrenderValidator.validateSpatially(
+                surrender,
+                stateGoingIntoChange,
+                positionValidationContext.position().date(),
+                change.changeId(),
+                blockLines.get()
+            )
+            : formErrors;
+        surrenderErrors.forEach(message -> errors.add(PositionValidationError
                 .forOperation(positionValidationContext, LicenceOperation.PARTIAL_SURRENDER, message)
                 .withChangeId(change.changeId())));
       }
@@ -169,6 +191,20 @@ public class LicencePositionValidationService {
             .filter(change -> movedPositionIds.contains(chronologicalPosition.id())
                 || stagedChangeIds.contains(change.changeId())))
         .map(PositionChange::changeId)
+        .collect(Collectors.toSet());
+  }
+
+  private static Set<LocalDate> getCorrectedPartialSurrenderDates(
+      List<ChronologicalPosition> chronologicalPositions,
+      Set<String> correctedChangeIds
+  ) {
+    return chronologicalPositions.stream()
+        .filter(chronologicalPosition -> chronologicalPosition.changes().stream()
+            .filter(change -> !LicencePositionChangeType.REMOVE_CHANGE.equals(change.changeType()))
+            .filter(change -> correctedChangeIds.contains(change.changeId()))
+            .flatMap(change -> change.operations().stream())
+            .anyMatch(PartialSurrenderOperation.class::isInstance))
+        .map(ChronologicalPosition::date)
         .collect(Collectors.toSet());
   }
 

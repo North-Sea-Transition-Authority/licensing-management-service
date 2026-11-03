@@ -11,6 +11,7 @@ import {coordinatesToPolylineHandler} from "../src/handlers/coordinates-to-polyl
 import {cropToBoundaryHandler} from "../src/handlers/crop-to-boundary-handler.ts";
 import {explodePolygonHandler} from "../src/handlers/explode-polygon-handler.ts";
 import {find2dOverlappingFeaturesHandler} from "../src/handlers/find-2d-overlapping-features-handler.ts";
+import {findCrossingLinesHandler} from "../src/handlers/find-crossing-lines-handler.ts";
 import {findNorthwestMostLineHandler} from "../src/handlers/find-northwest-most-line-handler.ts";
 import {findParentLinesHandler} from "../src/handlers/find-parent-lines-handler.ts";
 import {generalizePolygonHandler} from "../src/handlers/generalize-polygon-handler.ts";
@@ -147,6 +148,7 @@ describe("main()", () => {
         mergeAndGeneralizeLines: mergeAndGeneralizeLinesHandler,
         groupEqualPolygons: groupEqualPolygonsHandler,
         unionPolygons: unionPolygonsHandler,
+        findCrossingLines: findCrossingLinesHandler,
       });
     });
 

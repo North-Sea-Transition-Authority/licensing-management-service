@@ -39,6 +39,7 @@ import uk.co.fivium.grpc.gis.FeatureCropResult;
 import uk.co.fivium.grpc.gis.FeaturePolygons;
 import uk.co.fivium.grpc.gis.FeaturePolylines;
 import uk.co.fivium.grpc.gis.Find2dOverlappingFeaturesRequest;
+import uk.co.fivium.grpc.gis.FindCrossingLinesRequest;
 import uk.co.fivium.grpc.gis.FindNorthwestMostLineRequest;
 import uk.co.fivium.grpc.gis.FindParentLinesRequest;
 import uk.co.fivium.grpc.gis.GeneralizePolygonRequest;
@@ -623,6 +624,36 @@ public class GrpcClientService {
     var response = arcgisClient.find2dOverlappingFeatures(request);
 
     return response.getOverlappingFeatureIdsList()
+        .stream()
+        .map(UUID::fromString)
+        .collect(Collectors.toSet());
+  }
+
+  /**
+   * Find the lines that cross any of the given polygons, in two dimensions. A line crosses a polygon when part of it is
+   * inside the polygon and part of it is outside.
+   *
+   * @param esriJsonPolygons The EsriJSON of the polygons to check the lines against.
+   * @param lines            The lines to check.
+   * @return The ids of the lines that cross any of the polygons.
+   */
+  public Set<UUID> findCrossingLines(
+      List<String> esriJsonPolygons,
+      Collection<Line> lines
+  ) {
+    var request = FindCrossingLinesRequest.newBuilder()
+        .addAllEsriJsonPolygons(esriJsonPolygons)
+        .addAllLines(lines.stream()
+            .map(line -> LineWithId.newBuilder()
+                .setId(line.getId().toString())
+                .setPolyLineEsriJson(line.getEsriJson())
+                .build())
+            .toList())
+        .build();
+
+    var response = arcgisClient.findCrossingLines(request);
+
+    return response.getCrossingLineIdsList()
         .stream()
         .map(UUID::fromString)
         .collect(Collectors.toSet());

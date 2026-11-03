@@ -35,6 +35,8 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.validation.BindingResult;
 import uk.co.fivium.gisframework.command.CommandJourneyService;
 import uk.co.fivium.gisframework.feature.Feature;
+import uk.co.fivium.gisframework.feature.Line;
+import uk.co.fivium.gisframework.relationship.BoundingBox;
 import uk.co.fivium.gisframework.relationship.FeatureRelationshipService;
 import uk.co.fivium.grpc.gis.CoordinateSystem;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
@@ -108,8 +110,8 @@ class PartialSurrenderDefineAreaControllerTest extends AbstractControllerTest {
       .build();
   private static final Feature OTHER_ACTIVE_BLOCK = FeatureTestUtil.builder().withFeatureName("30/2").build();
   private static final List<Feature> OTHER_ACTIVE_BLOCKS = List.of(OTHER_ACTIVE_BLOCK);
-  private static final Map<Feature, Map<UUID, String>> OTHER_ACTIVE_BLOCK_POLYGONS =
-      Map.of(OTHER_ACTIVE_BLOCK, Map.of(UUID.randomUUID(), "other active block polygon"));
+  private static final Map<Line, BoundingBox> OTHER_ACTIVE_BLOCK_LINES =
+      Map.of(new Line(), new BoundingBox(0, 0, 1, 1));
 
   @MockitoBean
   private PartialSurrenderCorrectionService partialSurrenderCorrectionService;
@@ -404,7 +406,7 @@ class PartialSurrenderDefineAreaControllerTest extends AbstractControllerTest {
         any(PartialSurrenderSelectAreasForm.class),
         any(BindingResult.class),
         eq(List.of(FIRST_AREA, SECOND_AREA)),
-        eq(OTHER_ACTIVE_BLOCK_POLYGONS)
+        eq(OTHER_ACTIVE_BLOCK_LINES)
     )).thenReturn(hasErrors);
   }
 
@@ -421,7 +423,7 @@ class PartialSurrenderDefineAreaControllerTest extends AbstractControllerTest {
         .thenReturn(Optional.of(stagedChangeId));
     when(partialSurrenderValidator.getOtherActiveBlocks(surrender, positionDate, stagedChangeId))
         .thenReturn(OTHER_ACTIVE_BLOCKS);
-    when(featureRelationshipService.build2dPolygons(OTHER_ACTIVE_BLOCKS)).thenReturn(OTHER_ACTIVE_BLOCK_POLYGONS);
+    when(featureRelationshipService.getLineBoundingBoxes(OTHER_ACTIVE_BLOCKS)).thenReturn(OTHER_ACTIVE_BLOCK_LINES);
   }
 
   private void givenBlockSurrenderWithActiveFeatures() {

@@ -8,6 +8,7 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -20,9 +21,10 @@ import uk.co.fivium.gisframework.command.OperatorCommandService;
 import uk.co.fivium.gisframework.operator.JsonHistoryAction;
 import uk.co.fivium.gisframework.operator.JsonHistoryStatus;
 import uk.co.fivium.gisframework.operator.JsonMergeResponse;
-import uk.co.fivium.gisframework.operator.JsonSplitResponse;
+import uk.co.fivium.gisframework.operator.JsonOutputFeaturesResponse;
 import uk.co.fivium.gisframework.operator.MergeFromMapRequest;
 import uk.co.fivium.gisframework.operator.OperatorCommandReceiver;
+import uk.co.fivium.gisframework.operator.RenameFromMapRequest;
 import uk.co.fivium.gisframework.operator.SplitFromMapRequest;
 import uk.co.fivium.gisframework.operator.StrataSplitFromMapRequest;
 
@@ -47,7 +49,7 @@ class OperatorRestController {
   }
 
   @PostMapping("/split")
-  ResponseEntity<JsonSplitResponse> split(@RequestBody SplitFromMapRequest request) {
+  ResponseEntity<JsonOutputFeaturesResponse> split(@RequestBody SplitFromMapRequest request) {
     LOGGER.info("Received split request for '{}'", request);
     var startingInstant = Instant.now();
     var outputFeatures = operatorCommandReceiver.executeSplit(request);
@@ -58,7 +60,7 @@ class OperatorRestController {
         outputFeatureIds.size()
     );
     return ResponseEntity.ok(
-        new JsonSplitResponse(outputFeatureIds)
+        new JsonOutputFeaturesResponse(outputFeatureIds)
     );
   }
 
@@ -81,7 +83,7 @@ class OperatorRestController {
   }
 
   @PostMapping("/strata-split")
-  ResponseEntity<JsonSplitResponse> strataSplit(@RequestBody StrataSplitFromMapRequest request) {
+  ResponseEntity<JsonOutputFeaturesResponse> strataSplit(@RequestBody StrataSplitFromMapRequest request) {
     LOGGER.info("Received strata split request for '{}'", request);
     var startingInstant = Instant.now();
     var outputFeatures = operatorCommandReceiver.executeStrataSplit(request);
@@ -92,7 +94,23 @@ class OperatorRestController {
         outputFeatureIds.size()
     );
     return ResponseEntity.ok(
-        new JsonSplitResponse(outputFeatureIds)
+        new JsonOutputFeaturesResponse(outputFeatureIds)
+    );
+  }
+
+  @PostMapping("/rename")
+  ResponseEntity<JsonOutputFeaturesResponse> rename(@RequestBody RenameFromMapRequest request) {
+    LOGGER.info("Received rename request for '{}'", request);
+    var startingInstant = Instant.now();
+    var outputFeatures = operatorCommandReceiver.executeRename(request);
+    List<String> outputFeatureIds = outputFeatures.stream().map(feature -> feature.getId().toString()).toList();
+    LOGGER.info("Rename request completed successfully for '{} took {}ms created {} output features'",
+        request,
+        between(startingInstant, Instant.now()).toMillis(),
+        outputFeatureIds.size()
+    );
+    return ResponseEntity.ok(
+        new JsonOutputFeaturesResponse(outputFeatureIds)
     );
   }
 
@@ -130,5 +148,11 @@ class OperatorRestController {
     LOGGER.info("Redo request completed successfully for command journey '{}', reactivated {} features",
         commandJourneyId, reactivatedFeatureIds.size());
     return ResponseEntity.ok().build();
+  }
+
+  @ExceptionHandler(IllegalArgumentException.class)
+  ResponseEntity<Void> handleInvalidRequest(IllegalArgumentException exception) {
+    LOGGER.warn("Rejected invalid GIS operator request: {}", exception.getMessage());
+    return ResponseEntity.badRequest().build();
   }
 }

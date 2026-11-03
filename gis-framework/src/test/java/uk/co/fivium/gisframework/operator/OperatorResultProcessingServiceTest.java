@@ -10,6 +10,7 @@ import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.esri.core.geometry.Point;
@@ -224,7 +225,7 @@ class OperatorResultProcessingServiceTest {
     var expectedFeature = FeatureTestUtil.newBuilder()
         .withFeatureName("Test Feature_1")
         .withCoordinateSystem(CoordinateSystem.ED50)
-        .withAttributes(FEATURE_ATTRIBUTES)
+        .withAttributes(Map.of("KEY", "VALUE", "NAME", "Test Feature_1"))
         .withFeatureArea(BigDecimal.TEN)
         .withStartDate(null)
         .withEndDate(null)
@@ -484,16 +485,17 @@ class OperatorResultProcessingServiceTest {
     var savedFeature = captureSavedFeature();
     var expectedFeature = FeatureTestUtil.newBuilder()
         .withCoordinateSystem(CoordinateSystem.ED50)
-        .withAttributes(FEATURE_ATTRIBUTES)
         .withFeatureArea(BigDecimal.TEN)
         .withStartDate(null)
         .withEndDate(null)
         .build();
     assertThat(savedFeature).isSameAs(result);
     assertThat(savedFeature).usingRecursiveComparison()
-        .ignoringFields("id", "legacyId", "featureName")
+        .ignoringFields("id", "legacyId", "featureName", "attributes")
         .isEqualTo(expectedFeature);
     assertThat(savedFeature.getFeatureName()).matches("mergeResult_[0-9A-F]{4}");
+    assertThat(savedFeature.getAttributes())
+        .isEqualTo(Map.of("KEY", "VALUE", "NAME", savedFeature.getFeatureName()));
 
     var savedPolygons = captureSavedPolygons();
     assertThat(savedPolygons).usingRecursiveComparison()
@@ -880,7 +882,7 @@ class OperatorResultProcessingServiceTest {
     var expectedFeature = FeatureTestUtil.newBuilder()
         .withFeatureName("Subarea A_above")
         .withCoordinateSystem(CoordinateSystem.ED50)
-        .withAttributes(FEATURE_ATTRIBUTES)
+        .withAttributes(Map.of("KEY", "VALUE", "NAME", "Subarea A_above"))
         .withFeatureArea(BigDecimal.TEN)
         .withParentFeature(parentFeature)
         .withStartDate(null)
@@ -910,6 +912,77 @@ class OperatorResultProcessingServiceTest {
             tuple(newPolygon, "source line", Map.of("line", "source"), LineNavigationType.LOXODROME, 0, 1)
         );
     assertThat(linesCaptor.getValue().getFirst()).isNotSameAs(sourceLine);
+  }
+
+  @Test
+  void processRenameFeature() {
+    var parentFeature = FeatureTestUtil.newBuilder().build();
+    var inputFeature = FeatureTestUtil.newBuilder()
+        .withFeatureName("SHAPE 1")
+        .withCoordinateSystem(CoordinateSystem.ED50)
+        .withAttributes(Map.of("KEY", "VALUE", "NAME", "Old subarea"))
+        .withFeatureArea(BigDecimal.valueOf(42))
+        .withParentFeature(parentFeature)
+        .withStartDate(START_DATE)
+        .build();
+    var sourcePolygon = PolygonTestUtil.newBuilder()
+        .withFeature(inputFeature)
+        .withAttributes(Map.of("polygon", "source"))
+        .withStartDepth(-100L)
+        .withEndDepth(-500L)
+        .build();
+    var sourceLine = LineTestUtil.newBuilder()
+        .withPolygon(sourcePolygon)
+        .withEsriJson("source line")
+        .withAttributes(Map.of("line", "source"))
+        .withNavigationType(LineNavigationType.LOXODROME)
+        .withRingNumber(3)
+        .withDisplayOrder(7)
+        .build();
+
+    var result = operatorResultProcessingService.processRenameFeature(
+        new EntityBackedFeature(inputFeature, Map.of(sourcePolygon, List.of(sourceLine))),
+        "SHAPE 2",
+        "New subarea"
+    );
+
+    var expectedFeature = FeatureTestUtil.newBuilder()
+        .withFeatureName("SHAPE 2")
+        .withCoordinateSystem(CoordinateSystem.ED50)
+        .withAttributes(Map.of("KEY", "VALUE", "NAME", "New subarea"))
+        .withFeatureArea(BigDecimal.valueOf(42))
+        .withParentFeature(parentFeature)
+        .withStartDate(null)
+        .withEndDate(null)
+        .build();
+    verify(featureService).saveFeature(featureCaptor.capture());
+    assertThat(featureCaptor.getValue()).isSameAs(result);
+    assertThat(result).usingRecursiveComparison()
+        .ignoringFields("id", "legacyId")
+        .isEqualTo(expectedFeature);
+
+    verify(polygonService).savePolygons(polygonsCaptor.capture());
+    assertThat(polygonsCaptor.getValue())
+        .extracting(Polygon::getFeature, Polygon::getAttributes, Polygon::getStartDepth, Polygon::getEndDepth)
+        .containsExactly(tuple(result, Map.of("polygon", "source"), -100L, -500L));
+    var newPolygon = polygonsCaptor.getValue().iterator().next();
+    assertThat(newPolygon).isNotSameAs(sourcePolygon);
+
+    var expectedLine = LineTestUtil.newBuilder()
+        .withPolygon(newPolygon)
+        .withEsriJson("source line")
+        .withAttributes(Map.of("line", "source"))
+        .withNavigationType(LineNavigationType.LOXODROME)
+        .withRingNumber(3)
+        .withDisplayOrder(7)
+        .build();
+
+    verify(lineService).saveLines(linesCaptor.capture());
+    assertThat(linesCaptor.getValue()).usingRecursiveComparison()
+        .ignoringFields("id", "legacyId")
+        .isEqualTo(List.of(expectedLine));
+    assertThat(linesCaptor.getValue().getFirst()).isNotSameAs(sourceLine);
+    verifyNoInteractions(grpcClientService);
   }
 
   @Test

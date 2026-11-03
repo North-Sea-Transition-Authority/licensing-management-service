@@ -25,12 +25,14 @@ import uk.co.fivium.gisframework.command.CommandJourneyService;
 import uk.co.fivium.gisframework.command.OperatorCommand;
 import uk.co.fivium.gisframework.command.OperatorCommandService;
 import uk.co.fivium.gisframework.command.TransformationType;
+import uk.co.fivium.gisframework.operator.JsonFeatureRename;
 import uk.co.fivium.gisframework.operator.JsonHistoryAction;
 import uk.co.fivium.gisframework.operator.JsonHistoryStatus;
 import uk.co.fivium.gisframework.operator.JsonMergeResponse;
-import uk.co.fivium.gisframework.operator.JsonSplitResponse;
+import uk.co.fivium.gisframework.operator.JsonOutputFeaturesResponse;
 import uk.co.fivium.gisframework.operator.MergeFromMapRequest;
 import uk.co.fivium.gisframework.operator.OperatorCommandReceiver;
+import uk.co.fivium.gisframework.operator.RenameFromMapRequest;
 import uk.co.fivium.gisframework.operator.SplitFromMapRequest;
 import uk.co.fivium.gisframework.operator.StrataSplitFromMapRequest;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
@@ -71,7 +73,7 @@ class OperatorRestControllerTest extends AbstractControllerTest {
         -150L
     ))).thenReturn(List.of(outputFeature1));
 
-    var expected = new JsonSplitResponse(List.of(outputFeature1.getId().toString()));
+    var expected = new JsonOutputFeaturesResponse(List.of(outputFeature1.getId().toString()));
 
     mockMvc.perform(post("/api/gis-framework/split")
             .contentType(MediaType.APPLICATION_JSON)
@@ -130,7 +132,7 @@ class OperatorRestControllerTest extends AbstractControllerTest {
         new StrataSplitFromMapRequest(List.of(featureId), commandJourneyId, -2000L)))
         .thenReturn(List.of(aboveFeature, belowFeature));
 
-    var expected = new JsonSplitResponse(List.of(aboveFeature.getId().toString(), belowFeature.getId().toString()));
+    var expected = new JsonOutputFeaturesResponse(List.of(aboveFeature.getId().toString(), belowFeature.getId().toString()));
 
     mockMvc.perform(post("/api/gis-framework/strata-split")
             .contentType(MediaType.APPLICATION_JSON)
@@ -139,6 +141,75 @@ class OperatorRestControllerTest extends AbstractControllerTest {
             .with(user(regulatorUser)))
         .andExpect(status().isOk())
         .andExpect(content().json(objectMapper.writeValueAsString(expected), JsonCompareMode.STRICT));
+  }
+
+  @Test
+  void rename_whenRenameOccurs_assertOutputFeatureIds() throws Exception {
+    var commandJourneyId = UUID.randomUUID();
+    var featureId = UUID.randomUUID();
+    var renamedFeature = FeatureTestUtil.builder().build();
+
+    var requestBody = """
+        {
+          "commandJourneyId": "%s",
+          "featureRenames": [
+            {
+              "featureId": "%s",
+              "featureName": "SHAPE 1",
+              "name": "Subarea 1"
+            }
+          ]
+        }
+        """.formatted(commandJourneyId, featureId);
+
+    when(operatorCommandReceiver.executeRename(new RenameFromMapRequest(
+        commandJourneyId,
+        List.of(new JsonFeatureRename(featureId, "SHAPE 1", "Subarea 1"))
+    )))
+        .thenReturn(List.of(renamedFeature));
+
+    var expected = new JsonOutputFeaturesResponse(List.of(renamedFeature.getId().toString()));
+
+    mockMvc.perform(post("/api/gis-framework/rename")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(requestBody)
+            .with(csrf())
+            .with(user(regulatorUser)))
+        .andExpect(status().isOk())
+        .andExpect(content().json(objectMapper.writeValueAsString(expected), JsonCompareMode.STRICT));
+  }
+
+  @Test
+  void rename_whenRequestInvalid_assertBadRequest() throws Exception {
+    var commandJourneyId = UUID.randomUUID();
+    var featureId = UUID.randomUUID();
+
+    var requestBody = """
+        {
+          "commandJourneyId": "%s",
+          "featureRenames": [
+            {
+              "featureId": "%s",
+              "featureName": "",
+              "name": "Subarea 1"
+            }
+          ]
+        }
+        """.formatted(commandJourneyId, featureId);
+
+    when(operatorCommandReceiver.executeRename(new RenameFromMapRequest(
+        commandJourneyId,
+        List.of(new JsonFeatureRename(featureId, "", "Subarea 1"))
+    )))
+        .thenThrow(new IllegalArgumentException("A name and feature name must be provided for every feature to rename"));
+
+    mockMvc.perform(post("/api/gis-framework/rename")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(requestBody)
+            .with(csrf())
+            .with(user(regulatorUser)))
+        .andExpect(status().isBadRequest())
+        .andExpect(content().string(""));
   }
 
   @Test
@@ -161,7 +232,7 @@ class OperatorRestControllerTest extends AbstractControllerTest {
             .with(csrf())
             .with(user(regulatorUser)))
         .andExpect(status().isOk())
-        .andExpect(content().json(objectMapper.writeValueAsString(new JsonSplitResponse(List.of())), JsonCompareMode.STRICT));
+        .andExpect(content().json(objectMapper.writeValueAsString(new JsonOutputFeaturesResponse(List.of())), JsonCompareMode.STRICT));
   }
 
   @Test

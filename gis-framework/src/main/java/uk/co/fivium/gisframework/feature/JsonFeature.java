@@ -10,6 +10,7 @@ public record JsonFeature(
   public record Attributes(
       String featureId,
       String featureName,
+      String name,
       String polygonId,
       Long startDepth,
       Long endDepth
@@ -18,6 +19,7 @@ public record JsonFeature(
       return new Attributes(
           feature.getId().toString(),
           feature.getFeatureName(),
+          feature.getAttributes().get("NAME"),
           polygon.getId().toString(),
           polygon.getStartDepth(),
           polygon.getEndDepth()

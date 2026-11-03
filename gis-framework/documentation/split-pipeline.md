@@ -64,9 +64,9 @@ it was before the split.
    - The new features, polygons, and lines are persisted to the database.
 
 8. **Journey processing** — The `OperatorCommandReceiver` clears the undo stack, records a `SPLIT` `OperatorCommand` 
-   against only the features that were cut, deactivates those inputs, creates journey states for the outputs, and 
-   returns the output feature ids (`JsonSplitResponse`). A new command discards any undone commands, so redo history 
-   can't be applied to a state it wasn't recorded against. Only features that were actually cut are recorded and 
+   against only the features that were cut, deactivates those inputs, creates journey states for the outputs, and
+   returns the output feature ids (`JsonOutputFeaturesResponse`). A new command discards any undone commands, so redo history
+   can't be applied to a state it wasn't recorded against. Only features that were actually cut are recorded and
    deactivated, so features the line missed stay as they are.
 
 If no polygon is cut, the response is empty: nothing is persisted, the undo stack is not cleared, and the frontend

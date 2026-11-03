@@ -171,7 +171,10 @@ class PolygonServiceTest {
 
   @Test
   void getFeaturesAsWgs84EsriJson_assertEsriJsonFeaturesAndSpatialReference() throws Exception {
-    var feature1 = FeatureTestUtil.newBuilder().withFeatureName("Feature 1").build();
+    var feature1 = FeatureTestUtil.newBuilder()
+        .withFeatureName("Feature 1")
+        .withAttributes(Map.of("NAME", "Subarea 1"))
+        .build();
     var feature2 = FeatureTestUtil.newBuilder().withFeatureName("Feature 2").build();
     var shallowPolygon = PolygonTestUtil.newBuilder()
         .withFeature(feature1)
@@ -233,11 +236,11 @@ class PolygonServiceTest {
 
     assertThat(result.features()).containsExactlyInAnyOrder(
         new JsonFeature(shallowGeometry, new JsonFeature.Attributes(
-            feature1.getId().toString(), "Feature 1", shallowPolygon.getId().toString(), 0L, -100L)),
+            feature1.getId().toString(), "Feature 1", "Subarea 1", shallowPolygon.getId().toString(), 0L, -100L)),
         new JsonFeature(deepGeometry, new JsonFeature.Attributes(
-            feature1.getId().toString(), "Feature 1", deepPolygon.getId().toString(), -100L, -200L)),
+            feature1.getId().toString(), "Feature 1", "Subarea 1", deepPolygon.getId().toString(), -100L, -200L)),
         new JsonFeature(undefinedDepthGeometry, new JsonFeature.Attributes(
-            feature2.getId().toString(), "Feature 2", undefinedDepthPolygon.getId().toString(), null, null))
+            feature2.getId().toString(), "Feature 2", null, undefinedDepthPolygon.getId().toString(), null, null))
     );
     assertThat(result.spatialReference()).isEqualTo(JsonFeatures.SpatialReference.from(CoordinateSystem.WGS84));
   }

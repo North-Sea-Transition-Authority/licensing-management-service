@@ -4,4 +4,5 @@ public enum TransformationType {
   SPLIT,
   MERGE,
   STRATA_SPLIT,
+  RENAME,
 }

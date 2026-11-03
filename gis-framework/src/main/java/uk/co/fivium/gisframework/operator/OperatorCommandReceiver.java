@@ -1,9 +1,11 @@
 package uk.co.fivium.gisframework.operator;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,6 +33,7 @@ public class OperatorCommandReceiver {
   private final CommandJourneyService commandJourneyService;
   private final GrpcClientService grpcClientService;
   private final PolygonService polygonService;
+  private final RenameOperatorService renameOperatorService;
 
   public OperatorCommandReceiver(
       SplitOperatorService splitOperatorService,
@@ -41,8 +44,8 @@ public class OperatorCommandReceiver {
       OperatorCommandService operatorCommandService,
       CommandJourneyService commandJourneyService,
       GrpcClientService grpcClientService,
-      PolygonService polygonService
-  ) {
+      PolygonService polygonService,
+      RenameOperatorService renameOperatorService) {
     this.splitOperatorService = splitOperatorService;
     this.mergeOperatorService = mergeOperatorService;
     this.strataSplitOperatorService = strataSplitOperatorService;
@@ -52,6 +55,7 @@ public class OperatorCommandReceiver {
     this.commandJourneyService = commandJourneyService;
     this.grpcClientService = grpcClientService;
     this.polygonService = polygonService;
+    this.renameOperatorService = renameOperatorService;
   }
 
   /**
@@ -134,6 +138,13 @@ public class OperatorCommandReceiver {
     return Optional.of(mergeResult);
   }
 
+  /**
+   * Stratigraphically splits each of the given active features for a command journey, recording a
+   * {@link TransformationType#STRATA_SPLIT} command against their shared journey.
+   *
+   * @param request Contains the command journey ids of the features to add strata
+   * @return the newly created features, or an empty list if no feature ids were provided.
+   */
   @Transactional
   public List<Feature> executeStrataSplit(StrataSplitFromMapRequest request) {
     if (request.depth() == null) {
@@ -170,6 +181,40 @@ public class OperatorCommandReceiver {
     );
 
     featureJourneyStateService.deactivateFeatures(commandJourney, affectedInputFeatures);
+    featureJourneyStateService.createFeatureJourneyStatesForCommandOutput(commandJourney, command, outputFeatures);
+
+    return outputFeatures;
+  }
+
+  /**
+   * Renames each of the given active features for a command journey, recording a
+   * {@link TransformationType#RENAME} command against their shared journey.
+   *
+   * @param request Contains the command journey ids of the features to rename
+   * @return the newly created features, or an empty list if no feature ids were provided.
+   */
+  @Transactional
+  public List<Feature> executeRename(RenameFromMapRequest request) {
+    var renamesByFeatureId = request.featureRenames().stream()
+        .collect(Collectors.toMap(JsonFeatureRename::featureId, Function.identity()));
+
+    if (renamesByFeatureId.isEmpty()) {
+      return List.of();
+    }
+
+    var commandJourney = commandJourneyService.getCommandJourneyOrThrow(request.commandJourneyId());
+    var inputFeatures = getActiveFeaturesOrThrow(commandJourney, renamesByFeatureId.keySet());
+
+    var outputFeatures = renameOperatorService.renameFeatures(inputFeatures, renamesByFeatureId);
+
+    clearUndoStack(commandJourney);
+    var inputFeatureIds = inputFeatures.stream().map(Feature::getId).collect(Collectors.toSet());
+    var command = operatorCommandService.createOperatorCommand(
+        commandJourney,
+        inputFeatureIds,
+        TransformationType.RENAME
+    );
+    featureJourneyStateService.deactivateFeatures(commandJourney, inputFeatures);
     featureJourneyStateService.createFeatureJourneyStatesForCommandOutput(commandJourney, command, outputFeatures);
 
     return outputFeatures;
@@ -242,7 +287,7 @@ public class OperatorCommandReceiver {
 
   private List<Feature> getActiveFeaturesOrThrow(
       CommandJourney commandJourney,
-      List<UUID> featureIds
+      Collection<UUID> featureIds
   ) {
     var features = commandJourneyService.getActiveFeatures(commandJourney).stream()
         .filter(feature -> featureIds.contains(feature.getId()))

@@ -205,10 +205,38 @@ public class OperatorResultProcessingService {
     var featureArea = grpcClientService.calculateArea(target.getCoordinateSystem(), newPolygonLines);
     var newFeatureName = "%s_%s".formatted(target.getFeatureName(), resultFeatureNameSuffix);
     copyFeatureProperties(target, newFeature, newFeatureName, featureArea);
+    newFeature.getAttributes().put("NAME", newFeatureName);
 
     featureService.saveFeature(newFeature);
     polygonService.savePolygons(newPolygonToSource.keySet());
     lineService.saveLines(newLineEntities);
+
+    return newFeature;
+  }
+
+  @Transactional
+  public Feature processRenameFeature(EntityBackedFeature inputFeature, String featureName, String name) {
+    var target = inputFeature.feature();
+    var newFeature = new Feature();
+    List<Polygon> newPolygons = new ArrayList<>();
+    List<Line> newLines = new ArrayList<>();
+
+    inputFeature.polygonToLines().forEach((sourcePolygon, sourceLines) -> {
+      var newPolygon = buildPolygon(List.of(sourcePolygon));
+      newPolygon.setFeature(newFeature);
+      newPolygons.add(newPolygon);
+
+      var lines = copyLines(sourceLines);
+      lines.forEach(line -> line.setPolygon(newPolygon));
+      newLines.addAll(lines);
+    });
+
+    copyFeatureProperties(target, newFeature, featureName, target.getFeatureArea());
+    newFeature.getAttributes().put("NAME", name);
+
+    featureService.saveFeature(newFeature);
+    polygonService.savePolygons(newPolygons);
+    lineService.saveLines(newLines);
 
     return newFeature;
   }
@@ -220,6 +248,8 @@ public class OperatorResultProcessingService {
           newLineEntity.setEsriJson(line.getEsriJson());
           newLineEntity.setAttributes(new HashMap<>(line.getAttributes()));
           newLineEntity.setNavigationType(line.getNavigationType());
+          newLineEntity.setRingNumber(line.getRingNumber());
+          newLineEntity.setDisplayOrder(line.getDisplayOrder());
           return newLineEntity;
         })
         .collect(Collectors.toCollection(ArrayList::new));
@@ -379,6 +409,7 @@ public class OperatorResultProcessingService {
 
     var featureArea = grpcClientService.calculateArea(target.getCoordinateSystem(), newPolygonLines);
     copyFeatureProperties(target, newFeature, featureName, featureArea);
+    newFeature.getAttributes().put("NAME", featureName);
     return newFeature;
   }
 

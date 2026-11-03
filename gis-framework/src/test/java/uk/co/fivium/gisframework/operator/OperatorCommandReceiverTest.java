@@ -10,6 +10,7 @@ import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -71,6 +72,9 @@ class OperatorCommandReceiverTest {
 
   @Mock
   private StrataSplitOperatorService strataSplitOperatorService;
+
+  @Mock
+  private RenameOperatorService renameOperatorService;
 
   @InjectMocks
   private OperatorCommandReceiver operatorCommandReceiver;
@@ -435,6 +439,126 @@ class OperatorCommandReceiverTest {
         .hasMessage("All features must be active members of command journey %s".formatted(commandJourneyId));
 
     verifyNoInteractions(strataSplitOperatorService, operatorCommandService, featureJourneyStateService);
+  }
+
+  @Test
+  void executeRename_whenFeaturesRenamed_deactivatesInputsAndActivatesOutputs() {
+    var commandJourneyId = UUID.randomUUID();
+    var renamedFeature1 = FeatureTestUtil.newBuilder().build();
+    var renamedFeature2 = FeatureTestUtil.newBuilder().build();
+    var otherActiveFeature = FeatureTestUtil.newBuilder().build();
+    var featureRename1 = new JsonFeatureRename(renamedFeature1.getId(), "SHAPE 1", "Subarea 1");
+    var featureRename2 = new JsonFeatureRename(renamedFeature2.getId(), "SHAPE 2", "Subarea 2");
+    var request = new RenameFromMapRequest(commandJourneyId, List.of(featureRename1, featureRename2));
+
+    var commandJourney = CommandJourneyTestUtil.newBuilder().withId(commandJourneyId).build();
+    var activeFeatures = List.of(renamedFeature1, otherActiveFeature, renamedFeature2);
+    var outputFeature1 = FeatureTestUtil.newBuilder().build();
+    var outputFeature2 = FeatureTestUtil.newBuilder().build();
+    var command = new OperatorCommand();
+
+    when(commandJourneyService.getCommandJourneyOrThrow(commandJourneyId)).thenReturn(commandJourney);
+    when(commandJourneyService.getActiveFeatures(commandJourney)).thenReturn(activeFeatures);
+    when(renameOperatorService.renameFeatures(
+        List.of(renamedFeature1, renamedFeature2),
+        Map.of(renamedFeature1.getId(), featureRename1, renamedFeature2.getId(), featureRename2)
+    ))
+        .thenReturn(List.of(outputFeature1, outputFeature2));
+    when(operatorCommandService.createOperatorCommand(
+        commandJourney, Set.of(renamedFeature1.getId(), renamedFeature2.getId()), TransformationType.RENAME))
+        .thenReturn(command);
+
+    var result = operatorCommandReceiver.executeRename(request);
+
+    assertThat(result).containsExactly(outputFeature1, outputFeature2);
+    verify(featureJourneyStateService)
+        .deactivateFeatures(commandJourney, List.of(renamedFeature1, renamedFeature2));
+    verify(featureJourneyStateService)
+        .createFeatureJourneyStatesForCommandOutput(commandJourney, command, List.of(outputFeature1, outputFeature2));
+  }
+
+  @Test
+  void executeRename_whenUndoneCommandsExist_clearsUndoStackBeforeCreatingNewCommand() {
+    var commandJourneyId = UUID.randomUUID();
+    var inputFeature = FeatureTestUtil.newBuilder().build();
+    var featureRename = new JsonFeatureRename(inputFeature.getId(), "SHAPE 1", "Subarea 1");
+    var request = new RenameFromMapRequest(commandJourneyId, List.of(featureRename));
+
+    var commandJourney = CommandJourneyTestUtil.newBuilder().withId(commandJourneyId).build();
+    var outputFeature = FeatureTestUtil.newBuilder().build();
+    var command = new OperatorCommand();
+    var undoneCommand = OperatorCommandTestUtil.newBuilder().withStatus(CommandStatus.UNDONE).build();
+    var orphanedFeature = FeatureTestUtil.newBuilder().build();
+
+    when(commandJourneyService.getCommandJourneyOrThrow(commandJourneyId)).thenReturn(commandJourney);
+    when(commandJourneyService.getActiveFeatures(commandJourney)).thenReturn(List.of(inputFeature));
+    when(renameOperatorService.renameFeatures(
+        List.of(inputFeature), Map.of(inputFeature.getId(), featureRename)))
+        .thenReturn(List.of(outputFeature));
+    when(operatorCommandService.getUndoneCommands(commandJourney)).thenReturn(List.of(undoneCommand));
+    when(featureJourneyStateService.deleteFeatureJourneyStatesCreatedByCommands(List.of(undoneCommand)))
+        .thenReturn(List.of(orphanedFeature));
+    when(operatorCommandService.createOperatorCommand(
+        commandJourney, Set.of(inputFeature.getId()), TransformationType.RENAME)).thenReturn(command);
+
+    operatorCommandReceiver.executeRename(request);
+
+    verify(featureService).deleteAll(List.of(orphanedFeature));
+    verify(operatorCommandService).deleteCommands(List.of(undoneCommand));
+  }
+
+  @Test
+  void executeRename_whenNoFeatureRenames_returnsEmptyListAndRecordsNothing() {
+    var request = new RenameFromMapRequest(UUID.randomUUID(), List.of());
+
+    var result = operatorCommandReceiver.executeRename(request);
+
+    assertThat(result).isEmpty();
+    verifyNoInteractions(
+        commandJourneyService, renameOperatorService, operatorCommandService, featureJourneyStateService);
+  }
+
+  @Test
+  void executeRename_whenARequestedFeatureIsNotActiveInJourney_throwsAndRecordsNothing() {
+    var commandJourneyId = UUID.randomUUID();
+    var activeFeature = FeatureTestUtil.newBuilder().build();
+    var request = new RenameFromMapRequest(commandJourneyId, List.of(
+        new JsonFeatureRename(activeFeature.getId(), "SHAPE 1", "Subarea 1"),
+        new JsonFeatureRename(UUID.randomUUID(), "SHAPE 2", "Subarea 2")
+    ));
+
+    var commandJourney = CommandJourneyTestUtil.newBuilder().withId(commandJourneyId).build();
+
+    when(commandJourneyService.getCommandJourneyOrThrow(commandJourneyId)).thenReturn(commandJourney);
+    when(commandJourneyService.getActiveFeatures(commandJourney)).thenReturn(List.of(activeFeature));
+
+    assertThatThrownBy(() -> operatorCommandReceiver.executeRename(request))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("All features must be active members of command journey %s".formatted(commandJourneyId));
+
+    verifyNoInteractions(renameOperatorService, operatorCommandService, featureJourneyStateService);
+  }
+
+  @Test
+  void executeRename_whenRenameFails_throwsAndRecordsNothing() {
+    var commandJourneyId = UUID.randomUUID();
+    var inputFeature = FeatureTestUtil.newBuilder().build();
+    var featureRename = new JsonFeatureRename(inputFeature.getId(), "SHAPE 1", "Subarea 1");
+    var request = new RenameFromMapRequest(commandJourneyId, List.of(featureRename));
+
+    var commandJourney = CommandJourneyTestUtil.newBuilder().withId(commandJourneyId).build();
+
+    when(commandJourneyService.getCommandJourneyOrThrow(commandJourneyId)).thenReturn(commandJourney);
+    when(commandJourneyService.getActiveFeatures(commandJourney)).thenReturn(List.of(inputFeature));
+    when(renameOperatorService.renameFeatures(
+        List.of(inputFeature), Map.of(inputFeature.getId(), featureRename)))
+        .thenThrow(new IllegalArgumentException("Each feature to rename must have a new name or feature name"));
+
+    assertThatThrownBy(() -> operatorCommandReceiver.executeRename(request))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("Each feature to rename must have a new name or feature name");
+
+    verifyNoInteractions(operatorCommandService, featureJourneyStateService);
   }
 
   @Test

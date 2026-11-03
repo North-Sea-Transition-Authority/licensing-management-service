@@ -56,7 +56,8 @@ class FeatureRestControllerTest extends AbstractControllerTest {
     var feature = FeatureTestUtil.builder().build();
     var jsonFeatures = new JsonFeatures(
         List.of(new JsonFeature(Map.of("rings", List.of()), new JsonFeature.Attributes(
-            feature.getId().toString(), feature.getFeatureName(), UUID.randomUUID().toString(), null, null))),
+            feature.getId().toString(), feature.getFeatureName(), "Subarea 1", UUID.randomUUID().toString(), null,
+            null))),
         JsonFeatures.SpatialReference.from(CoordinateSystem.WGS84)
     );
 
@@ -76,7 +77,8 @@ class FeatureRestControllerTest extends AbstractControllerTest {
     var feature = FeatureTestUtil.builder().build();
     var jsonFeatures = new JsonFeatures(
         List.of(new JsonFeature(Map.of("rings", List.of()), new JsonFeature.Attributes(
-            feature.getId().toString(), feature.getFeatureName(), UUID.randomUUID().toString(), null, null))),
+            feature.getId().toString(), feature.getFeatureName(), "Subarea 1", UUID.randomUUID().toString(), null,
+            null))),
         JsonFeatures.SpatialReference.from(CoordinateSystem.WGS84)
     );
 

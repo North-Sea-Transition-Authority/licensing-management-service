@@ -720,7 +720,8 @@ class TeamManagementControllerTest extends AbstractControllerTest {
             Map.entry(Role.DOCUMENT_TEMPLATE_MANAGER.name(), Role.DOCUMENT_TEMPLATE_MANAGER.getName()),
             Map.entry(Role.LICENCE_CONTACTS_MANAGER.name(), Role.LICENCE_CONTACTS_MANAGER.getName()),
             Map.entry(Role.PRODUCTION_LICENCE_CORRECTOR.name(), Role.PRODUCTION_LICENCE_CORRECTOR.getName()),
-            Map.entry(Role.CARBON_STORAGE_LICENCE_CORRECTOR.name(), Role.CARBON_STORAGE_LICENCE_CORRECTOR.getName())
+            Map.entry(Role.CARBON_STORAGE_LICENCE_CORRECTOR.name(), Role.CARBON_STORAGE_LICENCE_CORRECTOR.getName()),
+            Map.entry(Role.PEARS_LICENCE_RESYNCER.name(), Role.PEARS_LICENCE_RESYNCER.getName())
         );
 
     var teamMemberViewModel = (TeamMemberView) modelAndView.getModel().get("teamMemberView");
@@ -740,7 +741,8 @@ class TeamManagementControllerTest extends AbstractControllerTest {
             Role.DOCUMENT_TEMPLATE_MANAGER,
             Role.LICENCE_CONTACTS_MANAGER,
             Role.PRODUCTION_LICENCE_CORRECTOR,
-            Role.CARBON_STORAGE_LICENCE_CORRECTOR
+            Role.CARBON_STORAGE_LICENCE_CORRECTOR,
+            Role.PEARS_LICENCE_RESYNCER
         );
   }
 

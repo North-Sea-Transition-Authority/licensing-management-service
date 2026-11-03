@@ -80,7 +80,8 @@ class EnergyPortalDataServiceTest {
         createServiceRoleDto(Role.DOCUMENT_TEMPLATE_MANAGER, false),
         createServiceRoleDto(Role.LICENCE_CONTACTS_MANAGER, false),
         createServiceRoleDto(Role.PRODUCTION_LICENCE_CORRECTOR, false),
-        createServiceRoleDto(Role.CARBON_STORAGE_LICENCE_CORRECTOR, false)
+        createServiceRoleDto(Role.CARBON_STORAGE_LICENCE_CORRECTOR, false),
+        createServiceRoleDto(Role.PEARS_LICENCE_RESYNCER, false)
     );
 
     var organisationServiceRoleDtos = Set.of(

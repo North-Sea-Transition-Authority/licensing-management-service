@@ -19,6 +19,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.fivium.energyportal.serviceproviders.epmq.ScopeType;
 import uk.co.nstauthority.licensingmanagementservice.phasedrelease.FeatureFlagService;
 import uk.co.nstauthority.licensingmanagementservice.phasedrelease.FeatureFlagServiceTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.phasedrelease.ReleasePhase;
 
 @ExtendWith(MockitoExtension.class)
 class TeamQueryServiceTest {
@@ -290,7 +291,23 @@ class TeamQueryServiceTest {
         teamRepository, teamRoleRepository, FeatureFlagServiceTestUtil.initialReleaseOnly(), teamRoleRequestCache);
 
     assertThat(initialRelease.getAvailableRoles(teamType))
-        .isEqualTo(teamType.getAllowedRoles());
+        .isEqualTo(teamType.getAllowedRoles()
+            .stream()
+            .filter(role -> role != Role.PEARS_LICENCE_RESYNCER)
+            .toList());
+  }
+
+  @Test
+  void getAvailableRoles_whenPearsResyncEnabled_thenLicenceManagementOffersPearsLicenceResyncer() {
+    var pearsResyncEnabled = new TeamQueryService(
+        teamRepository,
+        teamRoleRepository,
+        FeatureFlagServiceTestUtil.withProfiles(ReleasePhase.PEARS_LICENCE_RESYNC.getProfileName()),
+        teamRoleRequestCache
+    );
+
+    assertThat(pearsResyncEnabled.getAvailableRoles(TeamType.LICENCE_MANAGEMENT))
+        .contains(Role.PEARS_LICENCE_RESYNCER);
   }
 
   private void setupStaticTeamAndRoles(Long wuaId, TeamType teamType, List<Role> roles) {

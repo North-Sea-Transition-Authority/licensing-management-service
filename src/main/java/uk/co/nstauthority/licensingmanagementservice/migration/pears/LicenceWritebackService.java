@@ -45,7 +45,7 @@ import uk.co.nstauthority.licensingmanagementservice.util.ListUtil;
  */
 @Service
 @ConditionalOnPearsDataSource
-class LicenceWritebackService {
+public class LicenceWritebackService {
 
   private final LicenceTransactionService licenceTransactionService;
   private final LicencePositionService licencePositionService;
@@ -81,6 +81,14 @@ class LicenceWritebackService {
    */
   LicenceWriteback overwriteLicencePositionsFromPears(Licence licence) {
     return overwriteLicencePositionsFromPears(licence, readHistory(licence));
+  }
+
+  /**
+   * Rebuilds the licence out of PEARS and answers with what was done. What the
+   * {@code pears-licence-writeback} actuator endpoint and the licence page's resync both run.
+   */
+  public LicenceWritebackResult resync(Licence licence) {
+    return overwriteLicencePositionsFromPears(licence).toResult();
   }
 
   /**

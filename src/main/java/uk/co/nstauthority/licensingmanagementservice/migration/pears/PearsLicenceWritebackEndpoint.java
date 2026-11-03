@@ -32,7 +32,7 @@ class PearsLicenceWritebackEndpoint {
   @WriteOperation(produces = MediaType.APPLICATION_JSON_VALUE)
   LicenceWritebackResult overwriteLicencePositionsFromPears(String licenceReference) {
     var licence = licenceService.findByLicenceReferenceOrThrow(normalise(licenceReference));
-    return licenceWritebackService.overwriteLicencePositionsFromPears(licence).toResult();
+    return licenceWritebackService.resync(licence);
   }
 
   /**

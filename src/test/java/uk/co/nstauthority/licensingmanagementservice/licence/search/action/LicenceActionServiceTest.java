@@ -11,6 +11,8 @@ import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -32,6 +34,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesch
 import uk.co.nstauthority.licensingmanagementservice.licence.status.LicenceStatusService;
 import uk.co.nstauthority.licensingmanagementservice.licence.tab.LicenceTab;
 import uk.co.nstauthority.licensingmanagementservice.licence.tab.LicenceTabContext;
+import uk.co.nstauthority.licensingmanagementservice.phasedrelease.FeatureFlagService;
 import uk.co.nstauthority.licensingmanagementservice.phasedrelease.ReleaseFeature;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.Team;
@@ -55,6 +58,9 @@ class LicenceActionServiceTest {
 
   @Mock
   private LicenceStatusService licenceStatusService;
+
+  @Mock
+  private FeatureFlagService featureFlagService;
 
   @InjectMocks
   private LicenceActionService licenceActionService;
@@ -440,6 +446,66 @@ class LicenceActionServiceTest {
 
     assertThat(licenceActionService.getAvailableUserActionItems(licence, serviceUserDetail))
         .doesNotContain(LicenceActionItem.START_CORRECTION.toActionItemView(licence));
+  }
+
+  @ParameterizedTest
+  @EnumSource(value = LicenceType.class, names = {"LANDWARD_PRODUCTION", "SEAWARD_PRODUCTION"})
+  void getTopLevelLicenceActionItems_whenPearsResyncerOnProductionLicenceAndFlagOn_thenResyncFromPearsReturned(
+      LicenceType licenceType
+  ) {
+    var licence = LicenceTestUtil.builder()
+        .withId(1)
+        .withLicenceType(licenceType)
+        .build();
+
+    when(licenceStatusService.getCurrentStatus(licence)).thenReturn(LicenceStatusType.EXTANT);
+
+    var teamRole = TeamRoleTestUtil.newBuilder()
+        .withRole(Role.PEARS_LICENCE_RESYNCER)
+        .build();
+
+    when(teamQueryService.getTeamRolesForUser(ORGANISATION_USER_WUA_ID)).thenReturn(Set.of(teamRole));
+    when(featureFlagService.isEnabled(ReleaseFeature.RESYNC_LICENCE_FROM_PEARS)).thenReturn(true);
+
+    assertThat(licenceActionService.getTopLevelLicenceActionItems(licence, serviceUserDetail))
+        .containsExactly(LicenceActionItem.RESYNC_FROM_PEARS.toActionItemView(licence));
+  }
+
+  @Test
+  void getTopLevelLicenceActionItems_whenPearsResyncFlagOff_thenResyncFromPearsNotReturned() {
+    var licence = LicenceTestUtil.builder()
+        .withId(1)
+        .withLicenceType(LicenceType.SEAWARD_PRODUCTION)
+        .build();
+
+    when(licenceStatusService.getCurrentStatus(licence)).thenReturn(LicenceStatusType.EXTANT);
+
+    var teamRole = TeamRoleTestUtil.newBuilder()
+        .withRole(Role.PEARS_LICENCE_RESYNCER)
+        .build();
+
+    when(teamQueryService.getTeamRolesForUser(ORGANISATION_USER_WUA_ID)).thenReturn(Set.of(teamRole));
+    when(featureFlagService.isEnabled(ReleaseFeature.RESYNC_LICENCE_FROM_PEARS)).thenReturn(false);
+
+    assertThat(licenceActionService.getTopLevelLicenceActionItems(licence, serviceUserDetail)).isEmpty();
+  }
+
+  @Test
+  void getTopLevelLicenceActionItems_whenPearsResyncerOnCarbonStorageLicence_thenResyncFromPearsNotReturned() {
+    var licence = LicenceTestUtil.builder()
+        .withId(1)
+        .withLicenceType(LicenceType.CARBON_STORAGE)
+        .build();
+
+    when(licenceStatusService.getCurrentStatus(licence)).thenReturn(LicenceStatusType.EXTANT);
+
+    var teamRole = TeamRoleTestUtil.newBuilder()
+        .withRole(Role.PEARS_LICENCE_RESYNCER)
+        .build();
+
+    when(teamQueryService.getTeamRolesForUser(ORGANISATION_USER_WUA_ID)).thenReturn(Set.of(teamRole));
+
+    assertThat(licenceActionService.getTopLevelLicenceActionItems(licence, serviceUserDetail)).isEmpty();
   }
 
   @Test

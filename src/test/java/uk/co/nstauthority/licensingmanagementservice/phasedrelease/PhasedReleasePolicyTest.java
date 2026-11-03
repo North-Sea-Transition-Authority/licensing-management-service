@@ -10,6 +10,7 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.stereotype.Controller;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
+import uk.co.nstauthority.licensingmanagementservice.licence.pearsresync.PearsLicenceResyncController;
 import uk.co.nstauthority.licensingmanagementservice.licence.search.LicenceSearchController;
 import uk.co.nstauthority.licensingmanagementservice.workarea.WorkAreaController;
 
@@ -33,6 +34,8 @@ class PhasedReleasePolicyTest {
     assertThat(PhasedReleasePolicy.phaseFor(WorkAreaController.class)).contains(ReleasePhase.NOT_FLAGGED);
     assertThat(PhasedReleasePolicy.phaseFor(LicenceSearchController.class)).contains(ReleasePhase.LMS1);
     assertThat(PhasedReleasePolicy.phaseFor(LicenceCorrectionController.class)).contains(ReleasePhase.LMS2);
+    assertThat(PhasedReleasePolicy.phaseFor(PearsLicenceResyncController.class))
+        .contains(ReleasePhase.PEARS_LICENCE_RESYNC);
   }
 
   @Test
@@ -61,6 +64,11 @@ class PhasedReleasePolicyTest {
         .distinct()
         .toList();
 
-    assertThat(mappedPhases).containsAll(List.of(ReleasePhase.NOT_FLAGGED, ReleasePhase.LMS1, ReleasePhase.LMS2));
+    assertThat(mappedPhases).containsAll(List.of(
+        ReleasePhase.NOT_FLAGGED,
+        ReleasePhase.LMS1,
+        ReleasePhase.LMS2,
+        ReleasePhase.PEARS_LICENCE_RESYNC
+    ));
   }
 }

@@ -23,6 +23,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesch
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.status.LicenceStatusService;
 import uk.co.nstauthority.licensingmanagementservice.licence.tab.LicenceTab;
+import uk.co.nstauthority.licensingmanagementservice.phasedrelease.FeatureFlagService;
+import uk.co.nstauthority.licensingmanagementservice.phasedrelease.ReleaseFeature;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamRole;
@@ -36,19 +38,22 @@ public class LicenceActionService {
   private final LicenceCorrectionService licenceCorrectionService;
   private final Environment environment;
   private final LicenceStatusService licenceStatusService;
+  private final FeatureFlagService featureFlagService;
 
   public LicenceActionService(
       TeamQueryService teamQueryService,
       LicenceScheduleDetailService licenceScheduleDetailService,
       LicenceCorrectionService licenceCorrectionService,
       Environment environment,
-      LicenceStatusService licenceStatusService
+      LicenceStatusService licenceStatusService,
+      FeatureFlagService featureFlagService
   ) {
     this.teamQueryService = teamQueryService;
     this.licenceScheduleDetailService = licenceScheduleDetailService;
     this.licenceCorrectionService = licenceCorrectionService;
     this.environment = environment;
     this.licenceStatusService = licenceStatusService;
+    this.featureFlagService = featureFlagService;
 
     this.registeredActions = LicenceActionBuilder.newBuilder()
         .registerAction(LicenceActionItem.CREATE_LICENCE_SCHEDULE)
@@ -77,6 +82,13 @@ public class LicenceActionService {
         .requiresAnyStatus()
           .positionWithinTabs(LicenceTimelinePositionTab.class)
           .requiresAnyTypeFrom(LicenceType.CARBON_STORAGE, LicenceType.LANDWARD_PRODUCTION, LicenceType.SEAWARD_PRODUCTION)
+          .withoutLicenceScheduleRequirement()
+          .isPrimaryButton(false)
+        .registerAction(LicenceActionItem.RESYNC_FROM_PEARS)
+          .requiresAnyRoleFrom(Role.PEARS_LICENCE_RESYNCER)
+          .requiresAnyStatus()
+          .positionAtTopLevel()
+          .requiresAnyTypeFrom(LicenceType.LANDWARD_PRODUCTION, LicenceType.SEAWARD_PRODUCTION)
           .withoutLicenceScheduleRequirement()
           .isPrimaryButton(false)
         .build();
@@ -122,6 +134,8 @@ public class LicenceActionService {
             registeredActions.licenceScheduleRequirementMap().get(action)
         ))
         .filter(action -> !LicenceActionItem.START_CORRECTION.equals(action) || canStartCorrection(licence, userRoles))
+        .filter(action -> !LicenceActionItem.RESYNC_FROM_PEARS.equals(action)
+            || featureFlagService.isEnabled(ReleaseFeature.RESYNC_LICENCE_FROM_PEARS))
         .map(action -> action.toActionItemView(licence, registeredActions.isPrimary(action, licence)))
         .sorted(Comparator.comparing(ActionItemView::displayOrder))
         .toList();

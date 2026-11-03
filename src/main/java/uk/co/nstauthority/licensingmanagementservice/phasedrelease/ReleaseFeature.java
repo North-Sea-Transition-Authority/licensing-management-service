@@ -46,7 +46,11 @@ public enum ReleaseFeature {
    * The licence types not yet supported by the service — gas storage, methane drainage, landward exploration and
    * seaward exploration. Hidden from every licence type option list and rejected when adding a new licence.
    */
-  FUTURE_LICENCE_TYPE(ReleasePhase.FUTURE);
+  FUTURE_LICENCE_TYPE(ReleasePhase.FUTURE),
+
+  // --- PEARS licence resync ---
+  /** The "Resync from PEARS" licence action, and the team role that grants it. */
+  RESYNC_LICENCE_FROM_PEARS(ReleasePhase.PEARS_LICENCE_RESYNC);
 
   private final ReleasePhase releasePhase;
 

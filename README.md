@@ -160,6 +160,11 @@ add `enable-lms1` and `enable-lms2` to your run configuration to work with the f
 need the future licence types. Tests already run with all three on, via the profile groups in the test-only `src/test/resources/application.properties`. Live environments switch a
 phase on by adding its profile to `SPRING_PROFILES_ACTIVE` — config only, no redeploy.
 
+One flag is not a go-live phase: `enable-pears-licence-resync` switches on the *Resync from PEARS* button on production
+licences, and the *PEARS licence resync* role in the licence management team that grants it, independently of the
+phases above. The button rebuilds the licence as the `pears-licence-writeback` actuator endpoint does, so only switch
+it on where the `pears.datasource` properties are set; without them the button leads to a 404.
+
 `FeatureFlagService` is the single source of truth for "is this on?", checked against two enums: `ReleasePhase`
 (the profile-backed phase) and `ReleaseFeature` (the catalogue of toggleable actions and options, each mapped to a
 phase). It gates three layers:

@@ -29,6 +29,7 @@ public final class PhasedReleasePolicy {
       Map.entry(BASE + "licence.contact", ReleasePhase.NOT_FLAGGED),
       Map.entry(BASE + "licence.correction", ReleasePhase.LMS2),
       Map.entry(BASE + "licence.position", ReleasePhase.LMS2),
+      Map.entry(BASE + "licence.pearsresync", ReleasePhase.PEARS_LICENCE_RESYNC),
       // Everything else under licence.* (search, overview, schedule, schedule-work-programme, continuation,
       // application, internal API, the base LicenceController/redirector) is LMS1.
       Map.entry(BASE + "licence", ReleasePhase.LMS1),

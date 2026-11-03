@@ -18,7 +18,13 @@ public enum ReleasePhase {
   LMS2("enable-lms2"),
 
   /** Functionality not yet planned for a release (gas storage, methane drainage and exploration licence types). */
-  FUTURE("enable-future");
+  FUTURE("enable-future"),
+
+  /**
+   * Not a go-live phase: resyncing a production licence from PEARS on demand, switched on only where the PEARS
+   * datasource is configured, and independently of the phases above.
+   */
+  PEARS_LICENCE_RESYNC("enable-pears-licence-resync");
 
   private final String profileName;
 

@@ -1,5 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.phasedrelease;
 
+import java.util.EnumSet;
+import java.util.Objects;
 import org.springframework.mock.env.MockEnvironment;
 
 /**
@@ -8,17 +10,19 @@ import org.springframework.mock.env.MockEnvironment;
  */
 public class FeatureFlagServiceTestUtil {
 
-  public FeatureFlagServiceTestUtil() {
+  private FeatureFlagServiceTestUtil() {
     throw new IllegalStateException("Cannot instantiate static util class");
   }
 
   /** Every phase on, as in the test suite and a fully enabled local run. */
   public static FeatureFlagService allPhasesEnabled() {
-    return withProfiles(
-        ReleasePhase.LMS1.getProfileName(),
-        ReleasePhase.LMS2.getProfileName(),
-        ReleasePhase.FUTURE.getProfileName()
-    );
+    var allProfiles = EnumSet.allOf(ReleasePhase.class)
+        .stream()
+        .map(ReleasePhase::getProfileName)
+        .filter(Objects::nonNull)
+        .toArray(String[]::new);
+
+    return withProfiles(allProfiles);
   }
 
   /** No phase profiles active, so only {@link ReleasePhase#NOT_FLAGGED} features are on, as in the initial release. */

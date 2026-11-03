@@ -7,6 +7,7 @@ import uk.co.nstauthority.licensingmanagementservice.components.actions.ActionIt
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.start.StartLicenceCorrectionController;
+import uk.co.nstauthority.licensingmanagementservice.licence.pearsresync.PearsLicenceResyncController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailDuplicationController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.startjourney.StartLicenceScheduleJourneyController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
@@ -35,6 +36,12 @@ public enum LicenceActionItem implements Displayable {
       "Start licence correction",
       4,
           licence -> ReverseRouter.route(on(StartLicenceCorrectionController.class).renderStartLicenceCorrection(licence))
+  ),
+  // TODO: LMS2-399 remove this role
+  RESYNC_FROM_PEARS(
+      "Resync from PEARS",
+      5,
+          licence -> ReverseRouter.route(on(PearsLicenceResyncController.class).renderResyncConfirmation(licence))
   )
   ;
 

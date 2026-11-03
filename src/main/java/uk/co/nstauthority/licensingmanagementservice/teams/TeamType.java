@@ -29,7 +29,8 @@ public enum TeamType implements Displayable {
           Role.DOCUMENT_TEMPLATE_MANAGER,
           Role.LICENCE_CONTACTS_MANAGER,
           Role.PRODUCTION_LICENCE_CORRECTOR,
-          Role.CARBON_STORAGE_LICENCE_CORRECTOR
+          Role.CARBON_STORAGE_LICENCE_CORRECTOR,
+          Role.PEARS_LICENCE_RESYNCER
       ),
       null,
       true

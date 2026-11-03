@@ -33,6 +33,17 @@ class RoleTest {
 
     assertThat(unflaggedTeamTypes)
         .allSatisfy(teamType -> assertThat(teamType.getAllowedRoles())
+            .filteredOn(role -> role != Role.PEARS_LICENCE_RESYNCER)
             .allSatisfy(role -> assertThat(role.getReleaseFeature()).isEqualTo(ReleaseFeature.TEAM_ROLE)));
+  }
+
+  @Test
+  void getReleaseFeature_pearsLicenceResyncerIsFlaggedByPearsResync() {
+    var flaggedRoles = EnumSet.allOf(Role.class)
+        .stream()
+        .filter(role -> role.getReleaseFeature() == ReleaseFeature.RESYNC_LICENCE_FROM_PEARS)
+        .toList();
+
+    assertThat(flaggedRoles).containsExactly(Role.PEARS_LICENCE_RESYNCER);
   }
 }

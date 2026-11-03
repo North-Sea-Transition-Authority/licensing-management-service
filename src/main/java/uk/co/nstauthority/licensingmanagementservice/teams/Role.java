@@ -160,6 +160,15 @@ public enum Role implements PhaseGated {
       "Decision executor",
       "Prepare deeds and execute decisions on extensions and work programme amendments for all licence types",
       ReleaseFeature.TEAM_ROLE
+  ),
+  // TODO: LMS2-399 remove this role
+  PEARS_LICENCE_RESYNCER(
+      "PEARS licence resync (to be removed in LMS2-399)",
+      """
+      Rebuild a production licence's history from PEARS, replacing its positions and corrections. \
+      Will be removed once LMS2-399 is completed
+      """,
+      ReleaseFeature.RESYNC_LICENCE_FROM_PEARS
   );
 
   private final String name;

@@ -508,7 +508,7 @@ LMS does not store the count. On live, 9 `PL` and 3 `AL` schedules use a count (
   AL10 `25` ×6 from 1995 covers 1995 to 2001). LMS holds one rate at a time, so `25` stops when
   `50` starts, and the write-back emits `25` ×5. The overlap is dropped. **The licensing team
   confirms the double payment was never intended** (open question 14; survey L16; the "AL rate
-  overlap" sheet of [pears-schedule-migration-licensing-items.xlsx](pears-schedule-migration-licensing-items.xlsx)).
+  overlap" sheet of the licensing items spreadsheet).
   These are 1999–2001 dates, so it only matters if the payments report is run for those years.
 
 No count leaves a gap before the next rate, and no schedule ends on a counted rate.
@@ -1505,8 +1505,8 @@ The queries, full results and breakdowns are in the data survey,
      (the cases where cross-version matching is ambiguous).
 2. Take the survey's "For the licensing team" list to the licensing team before coding: the PEARS
    fixes (L2) and the items still to confirm or decide (L12, L14, L16), using
-   [pears-schedule-migration-licensing-review.docx](pears-schedule-migration-licensing-review.docx)
-   and [pears-schedule-migration-licensing-items.xlsx](pears-schedule-migration-licensing-items.xlsx) (which also has the L9 list). Those include Open questions
+   the licensing team review document and licensing items spreadsheet (migration documents,
+   provided separately; the spreadsheet also has the L9 list). Those include Open questions
    7 (how yearly-recurring rates are held in LMS) and 8
    (expiry date convention), which also need the data warehouse owners. The term and phase
    patterns are already decided (L5–L11).

@@ -11,10 +11,9 @@
 > programme activities as out of scope and is the base this builds on. The live data survey is
 > complete: the queries and results are in
 > [pears-work-programme-migration-data-survey.md](pears-work-programme-migration-data-survey.md).
-> The questions for the licensing team are in
-> [pears-work-programme-migration-licensing-review.docx](pears-work-programme-migration-licensing-review.docx)
-> (survey WP-L1 to WP-L13), with the per-licence lists in
-> [pears-work-programme-migration-licensing-items.xlsx](pears-work-programme-migration-licensing-items.xlsx).
+> The questions for the licensing team (survey WP-L1 to WP-L13) are in the licensing team review
+> document, with the per-licence lists in the licensing items spreadsheet. Both are migration
+> documents, provided separately.
 >
 > This covers the **licence** work programme only (`pedmgr.ped_work_programme` /
 > `ped_work_programme_details`, Fox `PED009X`). It does not cover the retention/development area work
@@ -791,9 +790,8 @@ validation test builds the same comparison model, so the two can't disagree.
    are on (release step 18.2), and compare the lists with the answered workbook sheets, since PEARS
    keeps changing until then.
 2. **Licensing team review:** send
-   [pears-work-programme-migration-licensing-review.docx](pears-work-programme-migration-licensing-review.docx)
-   with [pears-work-programme-migration-licensing-items.xlsx](pears-work-programme-migration-licensing-items.xlsx)
-   (per-licence sheets for WP-L1/WP-L11, WP-L2, WP-L4, WP-L5, WP-L12 and WP-L13; re-run WP-S1e just
+   the licensing team review document with the licensing items spreadsheet (migration documents,
+   provided separately; per-licence sheets for WP-L1/WP-L11, WP-L2, WP-L4, WP-L5, WP-L12 and WP-L13; re-run WP-S1e just
    before the team answers WP-L1), and record the answers to WP-L1 to WP-L13 in this plan. WP-L4, WP-L8 and WP-L9 decide LMS
    changes below, and WP-L7 decides whether steps 2 and 3 of the design repeat per version.
 

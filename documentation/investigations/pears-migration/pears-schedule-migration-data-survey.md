@@ -72,9 +72,8 @@ exceptions are mostly systematic, by licensing round, rather than one-off errors
 
 Items that need the licensing team, as either a **fix in PEARS** before the production run or a
 **confirmation or decision** on a migration rule. Each links to its evidence. They are put to the
-team in [pears-schedule-migration-licensing-review.docx](pears-schedule-migration-licensing-review.docx),
-with per-licence sheets for L2, L9, L12 and L16 in
-[pears-schedule-migration-licensing-items.xlsx](pears-schedule-migration-licensing-items.xlsx).
+team in the licensing team review document, with per-licence sheets for L2, L9, L12 and L16 in the
+licensing items spreadsheet. Both are migration documents, provided separately.
 
 ### Fix in PEARS before the production run
 
@@ -1610,7 +1609,7 @@ before the licence end.
 
 The rows behind review document 2.4 ("Was the AL double payment ever intended?"), for the
 licensing team (the "AL rate overlap" sheet of
-[pears-schedule-migration-licensing-items.xlsx](pears-schedule-migration-licensing-items.xlsx)).
+the licensing items spreadsheet).
 S12b only recorded AL10's dates. Every rate, term and expiry event on the current schedule of
 AL6, AL9 and AL10.
 

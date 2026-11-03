@@ -128,10 +128,9 @@ WP-S1g (fallow and extension programmes) and WP-S4d (two-operation seismic) were
   version, for the licensing team to confirm (WP-L7).
 
 **Open before the migration can be built**
-- The licensing team questions WP-L1 to WP-L13, sent as
-  [pears-work-programme-migration-licensing-review.docx](pears-work-programme-migration-licensing-review.docx),
-  with the per-licence lists in
-  [pears-work-programme-migration-licensing-items.xlsx](pears-work-programme-migration-licensing-items.xlsx).
+- The licensing team questions WP-L1 to WP-L13, sent as the licensing team review document,
+  with the per-licence lists in the licensing items spreadsheet. Both are migration documents,
+  provided separately.
 - LMS changes:
   - a status for `DROPPED`;
   - the schedule comments area;
@@ -141,11 +140,10 @@ WP-S1g (fallow and extension programmes) and WP-S4d (two-operation seismic) were
 ## For the licensing team
 
 Items that need a confirmation or decision from the licensing team. Each links to its evidence.
-They are put to the team in
-[pears-work-programme-migration-licensing-review.docx](pears-work-programme-migration-licensing-review.docx),
-which numbers them differently (the "Review" column). The per-licence lists are sheets of
-[pears-work-programme-migration-licensing-items.xlsx](pears-work-programme-migration-licensing-items.xlsx)
-(WP-L1 and WP-L11, WP-L2, WP-L4, WP-L5, WP-L12 and WP-L13).
+They are put to the team in the licensing team review document, which numbers them differently
+(the "Review" column). The per-licence lists are sheets of the licensing items spreadsheet (WP-L1
+and WP-L11, WP-L2, WP-L4, WP-L5, WP-L12 and WP-L13). Both are migration documents, provided
+separately.
 
 | # | Question | Licences | Background | Section | Review |
 |---|---|---|---|---|---|
@@ -555,7 +553,7 @@ ORDER BY 1, 2, 3;
 
 The list behind WP-L1 and WP-L11, for the licensing team to review licence by licence (it becomes a
 sheet in
-[pears-work-programme-migration-licensing-items.xlsx](pears-work-programme-migration-licensing-items.xlsx)).
+the licensing items spreadsheet).
 One row per current `DRAFT_FINAL` programme on a numbered licence, so the 5 unnumbered awards
 (WP-S1) are left out. `raised` is `N` when the licence has no data points, which marks the 23
 awards not yet raised (WP-S10b). The status counts show whether the activities have moved on from
@@ -628,7 +626,7 @@ Expected (from WP-S1, 29 October): 91 rows (76 `P`, 15 `PEDL`), 68 with `raised 
 
 **Result (live, 3 November 2026):** 90 rows (75 `P`, 15 `PEDL`): 67 raised and 23 not raised.
 The full rows are in the "WP-L1 DRAFT_FINAL" sheet of
-[pears-work-programme-migration-licensing-items.xlsx](pears-work-programme-migration-licensing-items.xlsx).
+the licensing items spreadsheet.
 Summarised:
 
 | Group | Licences | Status | Activities | Licences in the group |
@@ -763,7 +761,7 @@ says nothing.
 The list behind plan M4, WP-L12 and review document 2.2, for the licensing team to decide
 programme by programme before migration: migrate it onto the term it relates to, keep its text as a
 schedule comment, or leave it out (the "WP-M4 Fallow and extension" sheet of
-[pears-work-programme-migration-licensing-items.xlsx](pears-work-programme-migration-licensing-items.xlsx)).
+the licensing items spreadsheet).
 `has_initial` says whether the licence also has a current INITIAL programme. `schedule_terms` lists
 the term markers on the licence's current schedule version, so the team can see which terms exist.
 Descriptions are cut to 100 characters each.
@@ -852,7 +850,7 @@ Expected: 30 rows (27 `P` FALLOW, 2 `P` EXTENSION, 1 `PEDL` EXTENSION), at least
 
 **Result (live, 3 November 2026):** 30 rows, as expected: 27 `FALLOW`, 3 `EXTENSION`; 23 with
 `has_initial = N`; 14 extant. The full rows are in the "WP-M4 Fallow and extension" sheet of
-[pears-work-programme-migration-licensing-items.xlsx](pears-work-programme-migration-licensing-items.xlsx).
+the licensing items spreadsheet.
 Every programme has exactly one activity except PEDL182 (two), none has phases, legal text or a
 breakpoint, and all were first saved between October 2010 and October 2011.
 
@@ -1665,7 +1663,7 @@ ORDER BY 1, 2;
 
 The 82 multi-verb activities from WP-S4b (review document 2.4), for the licensing team to say which
 should be split into two activities in LMS (the "WP-S4d Two-operation seismic" sheet of
-[pears-work-programme-migration-licensing-items.xlsx](pears-work-programme-migration-licensing-items.xlsx)).
+the licensing items spreadsheet).
 Same classification as WP-S4b, so flat `SEISMIC` activities only, and `DRAFT` excluded.
 `category` is what the migration would give the activity.
 
@@ -1746,7 +1744,7 @@ some may be on licences with no schedule (`has_schedule = N`), which aren't migr
 title (all `OBTAIN` apart from P2329's Reprocess title) and 24 by description (all `REPROCESS`).
 4 are on extant licences (P1777, P2170, P2252, P2340), 69 surrendered and 9 expired. The full rows
 are in the "WP-S4d Two-operation seismic" sheet of
-[pears-work-programme-migration-licensing-items.xlsx](pears-work-programme-migration-licensing-items.xlsx).
+the licensing items spreadsheet.
 
 | Group | Activities | Examples |
 |---|---:|---|

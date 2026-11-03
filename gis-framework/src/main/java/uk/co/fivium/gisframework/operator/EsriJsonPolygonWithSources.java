@@ -20,7 +20,7 @@ public record EsriJsonPolygonWithSources(String esriJson, List<Polygon> sources,
     }
   }
 
-  EsriJsonPolygonWithSources(String esriJson, List<Polygon> sources) {
+  public EsriJsonPolygonWithSources(String esriJson, List<Polygon> sources) {
     this(esriJson, sources, DepthRange.of(sources));
   }
 

@@ -1,4 +1,4 @@
-package uk.co.fivium.gisframework.operator;
+package uk.co.fivium.gisframework.operator.rename;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -20,6 +20,7 @@ import uk.co.fivium.gisframework.feature.EntityBackedFeature;
 import uk.co.fivium.gisframework.feature.Feature;
 import uk.co.fivium.gisframework.feature.FeatureService;
 import uk.co.fivium.gisframework.feature.FeatureTestUtil;
+import uk.co.fivium.gisframework.operator.OperatorResultProcessingService;
 
 @ExtendWith(MockitoExtension.class)
 class RenameOperatorServiceTest {

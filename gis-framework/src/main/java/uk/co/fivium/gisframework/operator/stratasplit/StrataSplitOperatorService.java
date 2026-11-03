@@ -1,4 +1,4 @@
-package uk.co.fivium.gisframework.operator;
+package uk.co.fivium.gisframework.operator.stratasplit;
 
 import java.util.HashMap;
 import java.util.List;
@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 import uk.co.fivium.gisframework.feature.Feature;
 import uk.co.fivium.gisframework.feature.FeatureService;
 import uk.co.fivium.gisframework.feature.Polygon;
+import uk.co.fivium.gisframework.operator.OperatorResultProcessingService;
 
 @Service
 public class StrataSplitOperatorService {

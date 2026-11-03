@@ -1,4 +1,4 @@
-package uk.co.fivium.gisframework.operator;
+package uk.co.fivium.gisframework.operator.stratasplit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.eq;
@@ -25,6 +25,7 @@ import uk.co.fivium.gisframework.feature.FeatureTestUtil;
 import uk.co.fivium.gisframework.feature.Line;
 import uk.co.fivium.gisframework.feature.Polygon;
 import uk.co.fivium.gisframework.feature.PolygonTestUtil;
+import uk.co.fivium.gisframework.operator.OperatorResultProcessingService;
 
 @ExtendWith(MockitoExtension.class)
 class StrataSplitOperatorServiceTest {

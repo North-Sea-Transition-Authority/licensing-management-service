@@ -20,13 +20,13 @@ import uk.co.fivium.gisframework.command.OperatorCommand;
 import uk.co.fivium.gisframework.command.OperatorCommandService;
 import uk.co.fivium.gisframework.operator.JsonHistoryAction;
 import uk.co.fivium.gisframework.operator.JsonHistoryStatus;
-import uk.co.fivium.gisframework.operator.JsonMergeResponse;
 import uk.co.fivium.gisframework.operator.JsonOutputFeaturesResponse;
-import uk.co.fivium.gisframework.operator.MergeFromMapRequest;
 import uk.co.fivium.gisframework.operator.OperatorCommandReceiver;
-import uk.co.fivium.gisframework.operator.RenameFromMapRequest;
-import uk.co.fivium.gisframework.operator.SplitFromMapRequest;
-import uk.co.fivium.gisframework.operator.StrataSplitFromMapRequest;
+import uk.co.fivium.gisframework.operator.merge.JsonMergeResponse;
+import uk.co.fivium.gisframework.operator.merge.MergeFromMapRequest;
+import uk.co.fivium.gisframework.operator.rename.RenameFromMapRequest;
+import uk.co.fivium.gisframework.operator.split.SplitFromMapRequest;
+import uk.co.fivium.gisframework.operator.stratasplit.StrataSplitFromMapRequest;
 
 @RestController
 @RequestMapping("/api/gis-framework")

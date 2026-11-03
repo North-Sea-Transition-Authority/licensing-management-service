@@ -1,4 +1,4 @@
-package uk.co.fivium.gisframework.operator;
+package uk.co.fivium.gisframework.operator.rename;
 
 import java.util.UUID;
 

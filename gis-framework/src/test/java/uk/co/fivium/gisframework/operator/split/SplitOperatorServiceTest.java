@@ -1,4 +1,4 @@
-package uk.co.fivium.gisframework.operator;
+package uk.co.fivium.gisframework.operator.split;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.never;
@@ -22,6 +22,8 @@ import uk.co.fivium.gisframework.feature.Polygon;
 import uk.co.fivium.gisframework.feature.PolygonService;
 import uk.co.fivium.gisframework.feature.PolygonTestUtil;
 import uk.co.fivium.gisframework.grpc.GrpcClientService;
+import uk.co.fivium.gisframework.operator.EsriJsonPolygonWithSources;
+import uk.co.fivium.gisframework.operator.OperatorResultProcessingService;
 
 @ExtendWith(MockitoExtension.class)
 class SplitOperatorServiceTest {

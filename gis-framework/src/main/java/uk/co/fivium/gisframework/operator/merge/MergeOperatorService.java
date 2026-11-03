@@ -1,4 +1,4 @@
-package uk.co.fivium.gisframework.operator;
+package uk.co.fivium.gisframework.operator.merge;
 
 import com.esri.core.geometry.Geometry;
 import com.esri.core.geometry.MapGeometry;
@@ -21,6 +21,8 @@ import uk.co.fivium.gisframework.feature.Line;
 import uk.co.fivium.gisframework.feature.LineService;
 import uk.co.fivium.gisframework.feature.PolygonService;
 import uk.co.fivium.gisframework.grpc.GrpcClientService;
+import uk.co.fivium.gisframework.operator.EsriJsonPolygonWithSources;
+import uk.co.fivium.gisframework.operator.OperatorResultProcessingService;
 
 @Service
 public class MergeOperatorService {

@@ -1,4 +1,4 @@
-package uk.co.fivium.gisframework.operator;
+package uk.co.fivium.gisframework.operator.split;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -8,6 +8,8 @@ import uk.co.fivium.gisframework.feature.Feature;
 import uk.co.fivium.gisframework.feature.FeatureService;
 import uk.co.fivium.gisframework.feature.PolygonService;
 import uk.co.fivium.gisframework.grpc.GrpcClientService;
+import uk.co.fivium.gisframework.operator.EsriJsonPolygonWithSources;
+import uk.co.fivium.gisframework.operator.OperatorResultProcessingService;
 
 @Service
 public class SplitOperatorService {

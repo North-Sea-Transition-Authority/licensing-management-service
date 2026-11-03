@@ -1,4 +1,4 @@
-package uk.co.fivium.gisframework.operator;
+package uk.co.fivium.gisframework.operator.split;
 
 import java.math.BigDecimal;
 import java.util.List;

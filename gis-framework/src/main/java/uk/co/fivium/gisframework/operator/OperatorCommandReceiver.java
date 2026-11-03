@@ -20,6 +20,15 @@ import uk.co.fivium.gisframework.feature.Feature;
 import uk.co.fivium.gisframework.feature.FeatureService;
 import uk.co.fivium.gisframework.feature.PolygonService;
 import uk.co.fivium.gisframework.grpc.GrpcClientService;
+import uk.co.fivium.gisframework.operator.merge.MergeFromMapRequest;
+import uk.co.fivium.gisframework.operator.merge.MergeOperatorService;
+import uk.co.fivium.gisframework.operator.rename.JsonFeatureRename;
+import uk.co.fivium.gisframework.operator.rename.RenameFromMapRequest;
+import uk.co.fivium.gisframework.operator.rename.RenameOperatorService;
+import uk.co.fivium.gisframework.operator.split.SplitFromMapRequest;
+import uk.co.fivium.gisframework.operator.split.SplitOperatorService;
+import uk.co.fivium.gisframework.operator.stratasplit.StrataSplitFromMapRequest;
+import uk.co.fivium.gisframework.operator.stratasplit.StrataSplitOperatorService;
 
 @Service
 public class OperatorCommandReceiver {

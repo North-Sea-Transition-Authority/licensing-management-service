@@ -1,7 +1,7 @@
 # Investigation: Migrating PEARS Licence Work Programmes into LMS
 
-> **Status: First pass (28 October 2026), survey complete (29 October 2026; see the survey's
-> Summary), design and delivery steps drafted (30 October 2026).** Nothing is
+> **Status: First pass (28 October 2026), survey complete (29 October 2026, follow-ups WP-S1e to WP-S1g and WP-S4d on 3 November
+> 2026; see the survey's Summary), design and delivery steps drafted (30 October 2026).** Nothing is
 > implemented. Decided so far: `DRAFT` programmes are excluded, the review audit is not migrated,
 > migrated comments carry the PEARS author's name in the text with no WUA id, and the work
 > programme is **not written back to PEARS**. This compares
@@ -13,7 +13,8 @@
 > [pears-work-programme-migration-data-survey.md](pears-work-programme-migration-data-survey.md).
 > The questions for the licensing team are in
 > [pears-work-programme-migration-licensing-review.docx](pears-work-programme-migration-licensing-review.docx)
-> (survey WP-L1 to WP-L11).
+> (survey WP-L1 to WP-L13), with the per-licence lists in
+> [pears-work-programme-migration-licensing-items.xlsx](pears-work-programme-migration-licensing-items.xlsx).
 >
 > This covers the **licence** work programme only (`pedmgr.ped_work_programme` /
 > `ped_work_programme_details`, Fox `PED009X`). It does not cover the retention/development area work
@@ -60,11 +61,17 @@ The two models differ structurally, not just in naming:
   (`action-update-wp-status` re-derives `NOT_STARTED` / `IN_PROGRESS` / `COMPLETE` from the
   activities).
 
-  So `DRAFT_FINAL` on a raised licence means **nobody has saved it in maintain since raise**, and
-  its activities still hold their award-time statuses. 91 numbered licences (76 `P`, 15 `PEDL`)
-  have one: 68 are raised, and 23 are awards not yet raised (WP-S10b, Open question 9). The programme status isn't
-  migrated (D11), so technically these can migrate like any other. Whether they *should* is for the
-  licensing team. The 5 `DRAFT_FINAL` programmes with **no
+  But `action-update-wp-status` only sets a status when every activity is `NOT_STARTED`, every
+  one is `COMPLETE`/`FULL_WAIVER`, or something is under way and not all done. Activities that are
+  only `NOT_STARTED`, `DROPPED` and `WAIVER_DECLINED`, with at least one of the last two, leave it
+  at `DRAFT_FINAL` even after a maintain save. WP-S1e (live, 3 November 2026) lists 90 numbered
+  licences (75 `P`, 15 `PEDL`) with one:
+  - 36 raised and **maintained** (a dropped activity with its note), all surrendered or expired;
+  - 31 raised and **never maintained** (all `NOT_STARTED`): 12 extant, 19 ended;
+  - 23 awards not yet raised (WP-S10b, Open question 9).
+
+  The programme status isn't migrated (D11), so technically all of these can migrate like any
+  other. Whether they *should* is for the licensing team. The 5 `DRAFT_FINAL` programmes with **no
   licence type** are issued-for-raise awards whose licence isn't numbered yet: no LMS licence, so not
   migrated, the same as `DRAFT`.
 
@@ -216,10 +223,10 @@ history can be rebuilt from the notes.
 | D8 | Activity statuses | `NOT_STARTED`, `IN_PROGRESS`, `COMPLETE`, `PART_WAIVER`, `FULL_WAIVER`, `WAIVER_DECLINED`, `DROPPED` | `OPEN`, `IN_PROGRESS`, `COMPLETE`, `FULL_WAIVER`, `TRANSFERRED` | `PART_WAIVER`, `WAIVER_DECLINED` and `DROPPED` have no LMS value (see M5). `DROPPED` alone is 466 activities, 10% (WP-S3). |
 | D9 | Status history | `NOTES_LIST` entries carrying `NEW_ACTIVITY_STATUS` + `DATETIME` | `WorkProgrammeActivityStatus` rows with `appliedDatetime` | Good fit: one status row per status note. |
 | D10 | Notes | `NOTE` per activity or `GENERAL` (programme-level). Activity notes often point to a general one ("See General Note below", WP-S3b) | `EventComment` per event, plus the planned **schedule comments** area (mockup) | Activity notes → event comments; general notes → schedule comments (M6). |
-| D11 | Programme status | `DRAFT` … `COMPLETE`, derived on save | None | Not migrated; LMS can derive it from the activities if needed. |
+| D11 | Programme status | `DRAFT` … `COMPLETE`, derived on save | None | Not migrated; LMS can derive it from the activities if needed. Not reliable on phase-organised programmes: a maintain save always sets `COMPLETE`, because the rule only counts flat activities (survey WP-S1f). |
 | D12 | Well-count matrix | 5 × 3 counts (obligated/completed/dropped/waived/waiver declined × firm/contingent/D&D), maintained **by hand**, separate from the activities | None | No home. **WP-S8:** where well activities exist, the matrix agrees with them on all but about 30 programmes, so it adds nothing there. But **872 programmes (844 `P`, 28 `PEDL`) count wells with no well activity at all**, almost certainly because the wells are inside a `LEGACY` summary. For those, the matrix is the only structured record of the well obligations and their outcomes. Open question 14. |
 | D13 | Breakpoint | Y/M/D from licence start; feeds the documents' `DRILL_DROP_PERIOD`. On only 233 programmes, all `P`/`PEDL` INITIAL, and nearly all whole years (WP-S6) | None (a D&D well could have a `RELATIVE_DATE`) | Due date for D&D wells on 228 programmes (M3 rule 2). The 5 with no D&D activity go to a schedule comment. |
-| D14 | Legal text | HTML merged into the licence documents (`LICENCE_CREATE` mail-merge) | None | Documents for migrated licences need a source (see "Downstream consumers"). WP-S13 (live): 927 programmes hold legal text (838 `P`, 88 `PEDL`), so it can't be dropped. LMS plans legal text per activity, but PEARS holds one HTML block per programme: generated from the activity descriptions ("Populate legal text"), then freely edited, with no link back to activities. **Not split by matching text.** Options: (a) one programme-level legal text area, like the general notes, or (b) copy the whole block to every activity (Q5). |
+| D14 | Legal text | HTML merged into the licence documents (`LICENCE_CREATE` mail-merge) | None | Documents for migrated licences need a source (see "Downstream consumers"). WP-S13 (live): 926 programmes on numbered licences hold legal text (838 `P`, 88 `PEDL`), so it can't be dropped. LMS plans legal text per activity, but PEARS holds one HTML block per programme: generated from the activity descriptions ("Populate legal text"), then freely edited, with no link back to activities. **Not split by matching text.** Options: (a) one programme-level legal text area, like the general notes, or (b) copy the whole block to every activity (Q5). |
 | D15 | Phase and term timings | Held in the work programme **and** in the schedule | The schedule only | Don't migrate them as data. **WP-S7:** 450 of 591 work programme phases (76%) end where the schedule's phase does. The other 140 were extended on the schedule only, so the work programme `TIMINGS` are stale award-time values. No work programme phase is missing from its schedule. |
 | D16 | Review audit | `REVIEW_AUDIT_LIST` acknowledgements | None | **Decided: not migrated.** It's a copy of advisor sign-offs from the generic PEARS review process (`REVIEW_LIB`, `bpmmgr.review_advisor_items`): date, user and flag only, nothing specific to the work programme. WP-S13 (live): 5,383 entries on 1,590 programmes, the latest acknowledged 29 October 2026. |
 | D17 | Activity identity | `ACTIVITY_ID`, stable across versions | `originalEventId` | Easier than the schedule migration: match on `ACTIVITY_ID`. WP-S12 (live): always set, unique within a version and across programmes, and its type never changes (43,388 activity rows). |
@@ -248,8 +255,8 @@ history can be rebuilt from the notes.
 | `SHOOT_3D_SEISMIC_FIRM` / `_CONTINGENT` | `NEW_SHOOT_3_D_SEISMIC_DATA` | `FIRM` / `CONTINGENT` | |
 | `OBTAIN_2D_SEISMIC` / `OBTAIN_3D_SEISMIC` | `OBTAIN_EXISTING_2_D` / `_3_D_SEISMIC_DATA` | **default?** | |
 | `REPROCESS_2D_SEISMIC` / `REPROCESS_3D_SEISMIC` | `REPROCESS_SEISMIC_DATA` | **default?** | 2D/3D kept in the description. |
-| `SEISMIC` (flat list) | **By title** when it is a standard `PED009X` title ("Shoot 3D Seismic Data n" etc.): 518 of 663. **By description keywords** for the 145 generic "Seismic Data n" (WP-S4). **Tested (WP-S4b):** 144 of 145 classify. | **default?** | The one left is a seismic inversion → `OTHER_ACTIVITY` "Seismic inversion". 82 (12%) describe two operations (mostly obtain + reprocess). They migrate as one activity under the title's category, or "reprocess" for generic titles, and are reported. One title has a pasted Fox `javascript:ss('action-add-new-3d-seismic',…)` link; strip it and report it. |
-| `LEGACY` | `OTHER_ACTIVITY`, `otherCategoryName` = "Legacy work programme" | **default?** | Probably created in bulk on 12/07/2011, one per pre-existing licence (WP-S1c), so possibly a large group (WP-S3 will size it). Onshore `LEGACY` activities have **no `TITLE`** (WP-S1d); on `P` they do, e.g. "Legacy Obligations: Original blocks 20/3f. Competed 1" (WP-S3b). The description is a **shorthand summary of the whole commitment**: onshore e.g. "DorD 3 yrs 1500m 30km new 2D O 500km 2D R 70km 2D", offshore e.g. "(T) D/D to 3505m to the shallower of Ettrick or Buzzard sst.". It spans several LMS categories and is too loose to split by rule, so it migrates as one activity, description as is. Where a title exists, prefix it to the description (M2). |
+| `SEISMIC` (flat list) | **By title** when it is a standard `PED009X` title ("Shoot 3D Seismic Data n" etc.): 518 of 663. **By description keywords** for the 145 generic "Seismic Data n" (WP-S4). **Tested (WP-S4b):** 144 of 145 classify. | **default?** | The one left is a seismic inversion → `OTHER_ACTIVITY` "Seismic inversion". 82 (12%) describe two operations (WP-S4d, 3 November 2026): 72 obtain and reprocess the same data, 8 only obtain data already reprocessed, and 2 (P1794, P2329) cover different data sets. The licensing team reviews them before migration (WP-L13): which to split, and which category the 72 get (today a standard title gives Obtain and a generic one Reprocess). Until answered: one activity under the title's category, or "reprocess" for generic titles. One title has a pasted Fox `javascript:ss('action-add-new-3d-seismic',…)` link; strip it and report it. |
+| `LEGACY` | `OTHER_ACTIVITY`, `otherCategoryName` = "Legacy work programme" | **default?** | Created in bulk on 12/07/2011, one per pre-existing licence (WP-S1c): 1,782 activities, 37% (WP-S3). Onshore `LEGACY` activities have **no `TITLE`** (WP-S1d); on `P` they do, e.g. "Legacy Obligations: Original blocks 20/3f. Competed 1" (WP-S3b). The description is a **shorthand summary of the whole commitment**: onshore e.g. "DorD 3 yrs 1500m 30km new 2D O 500km 2D R 70km 2D", offshore e.g. "(T) D/D to 3505m to the shallower of Ettrick or Buzzard sst.". It spans several LMS categories and is too loose to split by rule, so it migrates as one activity, description as is. Where a title exists, prefix it to the description (M2). |
 | `OTHER` | `OTHER_ACTIVITY`, `otherCategoryName` = a **fixed name**, e.g. "Other work programme activity" | **default?** | Not `TITLE`: 939 of 945 (99%) keep the default "Other Activity n" (WP-S4). The 6 hand-typed titles ("Geological Studies", "Rock Physics Study", "Seismic Inversion" and 3 others) could be used as the name instead. One ("Other Activity 3 - CONTINGENT COMMITMENT") is the only `OTHER` that states a commitment. |
 | Anything else | — | — | Fail the run, as the schedule migration does for unknown event types. |
 
@@ -345,7 +352,7 @@ migration. Proposal, in order:
    phase-style programmes in the flat list.
 4. **Flat-list activity** → `WITHIN_A_TERM` Initial. Under PEARS the work programme is the
    initial-term commitment, but for FALLOW/EXTENSION programmes the right term is unclear (Q2).
-5. A schedule with no Initial term (schedule-plan patterns A and F, which start at the Second
+5. A schedule with no Initial term (schedule survey patterns A and G, which start at the Second
    term) → the first term present, reported.
 
 ### M4. Programme types
@@ -360,6 +367,17 @@ migration. Proposal, in order:
   **WP-S1 (live, 29 October 2026):** they are rare. There are 27 `P` FALLOW, 2 `P` EXTENSION and
   1 `PEDL` EXTENSION programmes, 30 in all, so they can be handled one by one rather than by rule.
   At least 23 of the `P` licences concerned have no INITIAL programme at all.
+
+  **WP-S1g (live, 3 November 2026):** 23 of the 30 are records of the 2010–11 fallow review (one
+  `LEGACY` or `OTHER` activity whose description is the outcome, e.g. "Not Fallow - Block is
+  Field"), not obligations. Only 7 hold wells or seismic, and 4 of those are dropped D&D wells. 14
+  are on extant licences, some saved in 2026. 14 were created after the schedule's last term had
+  ended, so no LMS term was in force. A third option:
+  3. Keep the text as a schedule comment (M6's comments area) rather than an activity.
+
+  Proposed: option 3 for the review records, option 1 for the 7 well and seismic activities, each
+  confirmed by the licensing team on the "WP-M4 Fallow and extension" sheet. P251 and P252 can't
+  migrate either way: their schedules have no terms.
 
 ### M5. Status
 
@@ -564,15 +582,20 @@ Consequences:
 The queries are in
 [pears-work-programme-migration-data-survey.md](pears-work-programme-migration-data-survey.md). All
 were run on live on 29 October 2026, except WP-S4c (optional) and WP-S8b (left for the licensing
-team). Each item feeds these parts of the plan:
+team). WP-S1e, WP-S1f, WP-S1g and WP-S4d were added and run on 3 November 2026. Each item feeds
+these parts of the plan:
 
 | # | Survey item | Feeds |
 |---|---|---|
 | WP-S1 | Programmes by licence type, programme type and status | D2, M4, Q2 |
+| WP-S1e | The `DRAFT_FINAL` programmes, one row per licence | Scope, Q9 |
+| WP-S1f | Activity statuses on P2614 and P2626 | D11 |
+| WP-S1g | The `FALLOW` and `EXTENSION` programmes, one row per programme | M4 |
 | WP-S2 | Versions per programme; flat vs phase organisation | D1, Version alignment, Q6 |
 | WP-S2c | Work programme changes vs schedule versions (option B) | D21, Version alignment, Q6 |
 | WP-S3 | Activities by type, status and list | D4, D8, M1, M5 |
 | WP-S4 | Titles of `SEISMIC`, `LEGACY` and `OTHER` activities; proposed seismic classification | D5, D6, M1 |
+| WP-S4d | The seismic activities that describe two operations | M1 |
 | WP-S5 | Descriptions: empty, template text, competed blocks | D6, D7, M2 |
 | WP-S6 | Breakpoints and drill-or-drop wells; breakpoint vs the schedule's `DD` event | D13, M3 |
 | WP-S7 | Phase timings vs the current schedule's phases | D15, M3 |
@@ -633,7 +656,8 @@ is unit-tested from fixture XML, as `PearsOperationMapper` is. Per activity, in 
 
 1. **Skip** "None" activities (M2) and record them.
 2. **Category and commitment** by `ACTIVITY_TYPE` (M1), with the seismic title and description
-   classification (WP-S4b) and the defaults from WP-L9. An unknown `ACTIVITY_TYPE` fails the
+   classification (WP-S4b), the WP-L13 answers (split, or the agreed category for "obtain and
+   reprocess") and the defaults from WP-L9. An unknown `ACTIVITY_TYPE` fails the
    licence.
 3. **Description** (M2): `DESCRIPTION`, the title prefix rule, the 2D/3D prefix for reprocess, and
    `COMPETED_BLOCKS` appended; the title, then the category name, when it's empty. Strip the one
@@ -656,11 +680,14 @@ Per programme:
 
 - General notes become schedule comments (M6), with the same author and date handling.
 - Legal text, well counts and a breakpoint with no D&D well follow WP-L10, WP-L6 and D13.
+- A cleared `FALLOW`/`EXTENSION` programme follows its WP-L12 answer: activities on the chosen
+  term (M4 option 1), one schedule comment with the activity text (option 3), or left out and
+  reported.
 
 Per licence, before mapping, the licence is **skipped with a reason** when:
 - it has no migrated LMS schedule (the 1,111 work-programme-only licences, WP-S10);
 - it is one of the 6 duplicate-INITIAL licences, until WP-L2 is answered;
-- it has a `FALLOW` or `EXTENSION` programme not on the reviewed list (M4: these 30 go one by one);
+- it has a `FALLOW` or `EXTENSION` programme not yet cleared by the licensing team (M4, WP-L12);
 - its `ACTIVE` LMS detail already has migrated activities (idempotency, below);
 - it has an open `DRAFT` LMS schedule detail. The migration runs straight after the schedule
   migration, before users are told to edit in LMS (release step 18), so this shouldn't happen; if
@@ -759,11 +786,15 @@ validation test builds the same comparison model, so the two can't disagree.
 
 ### Before coding
 
-1. **Data survey: done** (live, 29 October 2026). Re-run WP-S1, WP-S3, WP-S9c and WP-S10 on the
-   day, once the redirects are on (release step 18.2), since PEARS keeps changing until then.
+1. **Data survey: done** (live, 29 October 2026; WP-S1e to WP-S1g and WP-S4d on 3 November 2026).
+   Re-run WP-S1, WP-S1e, WP-S1g, WP-S3, WP-S4d, WP-S9c and WP-S10 on the day, once the redirects
+   are on (release step 18.2), and compare the lists with the answered workbook sheets, since PEARS
+   keeps changing until then.
 2. **Licensing team review:** send
    [pears-work-programme-migration-licensing-review.docx](pears-work-programme-migration-licensing-review.docx)
-   and record the answers to WP-L1 to WP-L11 in this plan. WP-L4, WP-L8 and WP-L9 decide LMS
+   with [pears-work-programme-migration-licensing-items.xlsx](pears-work-programme-migration-licensing-items.xlsx)
+   (per-licence sheets for WP-L1/WP-L11, WP-L2, WP-L4, WP-L5, WP-L12 and WP-L13; re-run WP-S1e just
+   before the team answers WP-L1), and record the answers to WP-L1 to WP-L13 in this plan. WP-L4, WP-L8 and WP-L9 decide LMS
    changes below, and WP-L7 decides whether steps 2 and 3 of the design repeat per version.
 
 ### LMS changes ahead of the migration (each its own change)
@@ -823,11 +854,11 @@ validation test builds the same comparison model, so the two can't disagree.
     6. **Area messages on (schedule step 4):** `LICENSING_RETENTION_AREAS` publishes for migrated
        licences, and LMS's subscription is switched on.
     7. **Open LMS editing:** tell users they can edit schedules and work programmes in LMS.
-19. **After go-live:** spot-check licences in the comparison report, and work through the
-    post-migration checks with the licensing team (review document section 2: the 30
-    `FALLOW`/`EXTENSION` programmes, the 6 duplicate-INITIAL licences, two-operation seismic
-    activities, D&D date disagreements). Migrate cleared `FALLOW`/`EXTENSION` licences with
-    single-licence runs.
+19. **After go-live:** spot-check licences in the comparison report, and go through the skipped
+    list with the licensing team (licences with no schedule, review document 2.1). The fallow and
+    extension programmes, duplicate-INITIAL licences, two-operation seismic activities and D&D date
+    disagreements are settled before the run, on the workbook sheets (step 2). Any not cleared by
+    go-live are migrated later with single-licence runs.
 20. **Rollback:** until LMS editing opens (step 18.7), a licence's migrated work programme can be
     removed through its link rows and re-run. After that, LMS holds live data and fixes are made in
     LMS, not by re-running. PEARS keeps its rows until it is decommissioned, but nothing reads them
@@ -842,7 +873,7 @@ validation test builds the same comparison model, so the two can't disagree.
    left open.
 2. **Term for flat-list and FALLOW/EXTENSION activities:** default `WITHIN_A_TERM` Initial, or
    something else? Put to the licensing team as Open question 11; the 30 FALLOW/EXTENSION
-   programmes are reviewed one by one (M4).
+   programmes are reviewed one by one before migration (M4, WP-L12).
 3. **For the licensing team (WP-L9): default commitment** for D&D wells (`CONDITIONAL`?) and for
    seismic/other items PEARS holds no commitment for. Or should LMS make commitment optional for
    migrated rows?
@@ -854,7 +885,7 @@ validation test builds the same comparison model, so the two can't disagree.
 5. **Programme-level data:** legal text, breakpoint, well-count matrix and review audit. Which of
    these must LMS hold? Legal text and breakpoint feed licence documents. **General notes:
    resolved:** they go to the planned schedule comments area (M6). **Review audit: decided, not
-   migrated.** WP-S13: legal text is on 927 programmes (34% of `P`, 25% of `PEDL`), so it needs a
+   migrated.** WP-S13: legal text is on 926 programmes on numbered licences (34% of `P`, 25% of `PEDL`), so it needs a
    home in LMS. It won't be split per activity by matching the text. **Legal text (licensing team,
    WP-L10): decide between:**
    - **(a) A programme-level legal text area**, like the general notes area above the schedule. The
@@ -896,13 +927,16 @@ validation test builds the same comparison model, so the two can't disagree.
    107 with no current status has any data points. The 84 without a schedule are out of scope. The
    23 with one are all `DRAFT_FINAL` awards not yet raised (see 9). Separately, 34 extant licences
    (33 `P`, 1 `CE`) have a schedule but no work programme; that's not a migration issue.
-9. **For the licensing team (WP-L1): `DRAFT_FINAL` programmes on raised licences (WP-S1, live 29 October
-   2026).** 76 `P` and 15 `PEDL` licences have a work programme still at `DRAFT_FINAL`, the status
-   PEARS sets when an award is issued for raise (and on legacy import). It means nobody has saved
-   the programme in `PED009X` maintain since the licence was raised, so its activity statuses may
-   never have been updated. Should these be migrated as the licence's work programme, as they are?
+9. **For the licensing team (WP-L1): `DRAFT_FINAL` programmes (WP-S1e, live 3 November
+   2026).** 90 numbered licences (75 `P`, 15 `PEDL`) have a work programme still at `DRAFT_FINAL`, the status
+   PEARS sets when an award is issued for raise (and on legacy import). WP-S1e (3 November 2026, 90
+   licences) shows that 36 of the raised ones have been maintained and only kept the status because
+   PEARS can't derive one from a dropped activity; they are all surrendered or expired. The other
+   31 raised were never maintained and still have every activity `NOT_STARTED`, and **12 of those
+   are extant** (11 awarded in 2023–24, plus PEDL279 from 2015). Should these be migrated as the
+   licence's work programme, as they are (per licence on the "WP-L1 DRAFT_FINAL" sheet)?
    Or are they stale and need reviewing (or leaving out) first? See "Scope: programme statuses".
-   WP-S10b splits the 91 into 68 on raised licences and 23 (18 `P`, 5 `PEDL`) on awards not yet
+   The other 23 (18 `P`, 5 `PEDL`, WP-S10b) are on awards not yet
    raised, which have a template schedule but no licence data. Those 23 migrate only if the
    schedule migration creates an LMS licence for them; otherwise the programme is created in LMS
    at raise (see 7).
@@ -921,7 +955,7 @@ validation test builds the same comparison model, so the two can't disagree.
       that phase's dates, extensions included.
     - **Term level:** the other 2,594 (90%) sit `WITHIN_A_TERM` on the Initial term. That is an
       assumption, not PEARS data, and it is wrong for licences with no Initial term (schedule
-      pattern A), for the 30 FALLOW/EXTENSION programmes, and arguably for `LEGACY` summaries.
+      patterns A and G), for the 30 FALLOW/EXTENSION programmes, and arguably for `LEGACY` summaries.
     - **A real date:** only drill-or-drop wells with a breakpoint get one (`RELATIVE_DATE`).
     - Timing written in descriptions ("DorD 3 yrs", "decision by end of 3rd year") stays as text.
 

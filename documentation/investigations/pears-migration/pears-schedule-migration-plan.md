@@ -499,15 +499,17 @@ write-back can rebuild yearly recurrence without inventing payments.
 
 **5. Fixed-count recurrences.** A yearly `R` with a `RECURRANCES` count needs no extra handling
 when the count runs up to the next rate: LMS's "in force until the next rate" means the same, and
-LMS does not store the count. On live, 9 `PL` and 3 `AL` schedules use a count (data survey S12b):
+LMS does not store the count. On live, 9 `PL` and 3 `AL` schedules use a count (data survey S12b, S12c):
 
 - **`PL` (e.g. PL116): contiguous.** `.5` ×2 from 1969 covers 1969 to 1971 and `1` starts in
   1972. One LMS rate per PEARS rate, and the write-back emits the same counts.
-- **`AL` (AL6, AL9, AL10): the count overlaps the next rate.** `25` ×6 from 1995 covers 1995 to
-  2001 and `50` also starts in 2001, so PEARS may pay both in 2001. LMS holds one rate at a time,
-  so `25` stops when `50` starts, and the write-back emits `25` ×5. The overlap is dropped. **The
-  licensing team confirms the 2001 double payment was never intended** (open question 14). These
-  are 1990s dates, so it only matters if the payments report is run for those years.
+- **`AL` (AL6, AL9, AL10): the count overlaps the next rate.** On each licence PEARS pays `25`
+  seven times, and the seventh falls in the year `50` starts (AL6 1999, AL9 2000, AL10 2001; e.g.
+  AL10 `25` ×6 from 1995 covers 1995 to 2001). LMS holds one rate at a time, so `25` stops when
+  `50` starts, and the write-back emits `25` ×5. The overlap is dropped. **The licensing team
+  confirms the double payment was never intended** (open question 14; survey L16; the "AL rate
+  overlap" sheet of [pears-schedule-migration-licensing-items.xlsx](pears-schedule-migration-licensing-items.xlsx)).
+  These are 1999–2001 dates, so it only matters if the payments report is run for those years.
 
 No count leaves a gap before the next rate, and no schedule ends on a counted rate.
 
@@ -804,7 +806,9 @@ Java copy of it. `RD`/`PA` events keep empty offsets, as today.
   history, and P2522's "Was £150, now £15" rate notes. They remain visible in LMS. They also drop
   out of PEARS's text summary (`scribe_schedule_events`). The PEARS schedule screen redirects to LMS,
   so nobody sees them missing there.
-- **Not written**: LMS work programme activities (no PEARS equivalent). LMS other events whose
+- **Not written**: LMS work programme activities (decided: LMS owns them and they aren't written
+  back; see [pears-work-programme-migration-plan.md](pears-work-programme-migration-plan.md),
+  "Decision: no write-back to PEARS"). LMS other events whose
   category has no PEARS event type (a free-typed "Other activity" name that matches no
   `ped_template_event_types.short_title`). **Pending check (Open question 13):** if nothing in PEARS
   reporting needs them, they are **not written back** and stay in LMS only.
@@ -1500,7 +1504,9 @@ The queries, full results and breakdowns are in the data survey,
    - events with an `EVENT_ID`, and same-type events with identical comments in one version
      (the cases where cross-version matching is ambiguous).
 2. Take the survey's "For the licensing team" list to the licensing team before coding: the PEARS
-   fixes (L2) and the items still to confirm or decide (L12, L14). Those include Open questions
+   fixes (L2) and the items still to confirm or decide (L12, L14, L16), using
+   [pears-schedule-migration-licensing-review.docx](pears-schedule-migration-licensing-review.docx)
+   and [pears-schedule-migration-licensing-items.xlsx](pears-schedule-migration-licensing-items.xlsx) (which also has the L9 list). Those include Open questions
    7 (how yearly-recurring rates are held in LMS) and 8
    (expiry date convention), which also need the data warehouse owners. The term and phase
    patterns are already decided (L5–L11).
@@ -1664,9 +1670,9 @@ The queries, full results and breakdowns are in the data survey,
     terms (pattern E), so they are not migrated (rule 7), but the licensing team can now create them
     in LMS.
     **Still open, rate overlap:** all 3 `AL` have `25` yearly ×6 from their start, reaching the year `50`
-    starts, so PEARS may pay both in that year (AL10: 2001). LMS and the write-back drop the
-    overlap ("Rates and yearly recurrence" step 5). The licensing team confirms the double payment
-    was never intended.
+    starts, so PEARS may pay both in that year (AL6 1999, AL9 2000, AL10 2001; data survey S12c).
+    LMS and the write-back drop the overlap ("Rates and yearly recurrence" step 5). The licensing
+    team confirms on the "AL rate overlap" sheet that the double payment was never intended.
 
 ## Out of scope
 

@@ -39,6 +39,7 @@
 | S10 | `ORIGIN_DATE` missing or different from the licence start date (all versions) | ✅ Live, 27 Oct 2026, all types (with S10b) | [S10](#s10-origin_date-all-versions) |
 | S11 | `RATE` values (whole, 1–2 dp, > 2 dp, does not fit) | ✅ Live, 27 Oct 2026, all types (with S11b, S11c) | [S11](#s11-rate-values) |
 | S12 | Rate recurrence and gaps (current versions) | ✅ Live, 27 Oct 2026, all types (with S12b) | [S12](#s12-rate-recurrence-and-gaps-current-versions) |
+| S12c | The `AL` fixed-count rates, with their terms | ✅ Live, 3 Nov 2026 | [S12c](#s12c-the-al-fixed-count-rates-with-their-terms) |
 | S13 | Mandatory relinquishment percentages (current versions) | ✅ Live, 27 Oct 2026, all types (with S13b) | [S13](#s13-mandatory-relinquishment-percentages-current-versions) |
 | S14 | LMS vs PEARS date arithmetic differences | ✅ Live, 27 Oct 2026, all types (with S14b, 28 Oct 2026) | [S14](#s14-lms-vs-pears-date-arithmetic) |
 | S15 | `RD`/`PA` events (current versions) | ✅ Live, 27 Oct 2026, all types | [S15](#s15-rdpa-events-current-versions) |
@@ -49,7 +50,7 @@
 
 ## Summary (live, 27 October 2026)
 
-The survey is complete (S1–S18, all licence types). Overall the data is consistent enough to migrate by rule. The
+The survey is complete (S1–S18, all licence types; S12c added 3 November 2026). Overall the data is consistent enough to migrate by rule. The
 exceptions are mostly systematic, by licensing round, rather than one-off errors.
 
 | Area | Finding | Section |
@@ -59,7 +60,7 @@ exceptions are mostly systematic, by licensing round, rather than one-off errors
 | Start dates | Every current version has one. 1,125 historical versions have none and use a borrowed date (decided). 7 current versions (5 `P`, 1 `PL`, 1 `ML`) differ from the licence start date, which is legitimate: the schedule start date is migrated (L3). | S10 |
 | Terms | 1,540 of 1,798 current schedules follow the plan's rule exactly, and 166 more have terms but no expiry. 172 don't fit the original rule (134 `P`/`PEDL`, 38 other types). They fall into 7 patterns (A–G), and every pattern now has a decided rule (L5–L10). 40 have no terms and are left to the licensing team (L9). | S7, S8 |
 | Phases | All 309 schedules with phases follow the rule (last phase ends at `T(1)`). Skipped phases are normal and allowed by business rule (in order). | S9 |
-| Rates | All populated `P`, `PEDL`, `EXL`, `DL` and `AL` values are whole numbers; 2 rate-only schedules have an empty rate. `ML` has pence, and `PL`/`ML` have decimals with no leading zero (e.g. `.5`), which parse fine (S11c). On migrated schedules every rate fits. Every schedule ends in one indefinite yearly rate. About 310 deliberate gaps between rates on migrated schedules (298 `P`, 12 `PL`), mostly pre-1999. Fixed-count yearly rates on 9 `PL` and 3 `AL`. | S11, S12 |
+| Rates | All populated `P`, `PEDL`, `EXL`, `DL` and `AL` values are whole numbers; 2 rate-only schedules have an empty rate. `ML` has pence, and `PL`/`ML` have decimals with no leading zero (e.g. `.5`), which parse fine (S11c). On migrated schedules every rate fits. Every schedule ends in one indefinite yearly rate. About 310 deliberate gaps between rates on migrated schedules (298 `P`, 12 `PL`), mostly pre-1999. Fixed-count yearly rates on 9 `PL` and 3 `AL`; on the 3 `AL` the 25 runs one payment into the year the 50 starts, for the licensing team (L16). | S11, S12, S12c |
 | Date arithmetic | PEARS stored dates are reliable (1 exception). Copying offsets would move 96 events (94 `P`, 2 `EXL`; 47 on migrated schedules) by up to 3 days. Decided: LMS lands on the PEARS dates, deriving its offsets from them. | S14 |
 | Untyped events | 201 on current versions: ~180 empty leftovers, ~20 holding data on 16 licences. Never shown on the schedule screen, so ignored by the migration (L1). | S6 |
 | Relinquishment % | Decided: its own LMS field, migrated and written back. 585 feed licence documents (incl. 8 `PL`). 713 hold the figure only in comments. 303 hold `x` (not migrated). | S13 |
@@ -70,7 +71,10 @@ exceptions are mostly systematic, by licensing round, rather than one-off errors
 ## For the licensing team
 
 Items that need the licensing team, as either a **fix in PEARS** before the production run or a
-**confirmation or decision** on a migration rule. Each links to its evidence.
+**confirmation or decision** on a migration rule. Each links to its evidence. They are put to the
+team in [pears-schedule-migration-licensing-review.docx](pears-schedule-migration-licensing-review.docx),
+with per-licence sheets for L2, L9, L12 and L16 in
+[pears-schedule-migration-licensing-items.xlsx](pears-schedule-migration-licensing-items.xlsx).
 
 ### Fix in PEARS before the production run
 
@@ -84,6 +88,7 @@ Items that need the licensing team, as either a **fix in PEARS** before the prod
 |---|---|---|---|---|
 | L12 | **Rate gaps: errors or deliberate no-payment years?** | 298 `P` gaps, mostly pre-1999 (e.g. initial rental, then the next rate 6 years later), plus 12 on `PL` (e.g. `40` then `90` 4 years later) | Confirm from the licence terms (one licence per pattern). If they are **errors**, the previous rate runs on in LMS and the write-back fills the gap. If they are **legitimate**, LMS uses a **£0 rate** for those years, migrated in and written back. | S12b |
 | L14 | **Expiry date convention** | 1,612 current schedules with an expiry (all types) | Decide Open question 8: LMS stores the day before the PEARS expiry, or LMS's check changes. | plan |
+| L16 | **`AL` fixed-count rate overlap: six payments of 25, or seven?** | AL6, AL9, AL10 (AL10 extant) | PEARS pays `25` seven times (first plus 6 recurrences); the seventh falls in the year `50` starts (AL6 1999, AL9 2000, AL10 2001). Proposed: six, as LMS holds; the write-back emits `25` ×5. | S12b, S12c |
 
 ### Decided
 
@@ -1597,9 +1602,70 @@ before the licence end.
   how the payments report bounds the recurrence. The plan's write-back would emit `x5` (5 further
   anniversaries before the next rate) and drop the overlap. These are 1990s dates, so it only
   matters if the payments report is run for those years. The round-trip test should include an
-  `AL` licence.
+  `AL` licence. S12c gives all three: the overlap year is 1999 (AL6), 2000 (AL9) and 2001 (AL10).
 - **12 more deliberate-looking gaps on migrated `PL` schedules**, on round patterns like `P`'s.
   They join the 298 for the licensing team to confirm (L12).
+
+### S12c. The `AL` fixed-count rates, with their terms
+
+The rows behind review document 2.4 ("Was the AL double payment ever intended?"), for the
+licensing team (the "AL rate overlap" sheet of
+[pears-schedule-migration-licensing-items.xlsx](pears-schedule-migration-licensing-items.xlsx)).
+S12b only recorded AL10's dates. Every rate, term and expiry event on the current schedule of
+AL6, AL9 and AL10.
+
+```sql
+SELECT plm.licence_type || plm.licence_no licence_reference
+     , e.event_mnem
+     , e.event_date
+     , e.term_no
+     , e.rate
+     , e.recurring
+     , e.recurrances
+     , SUBSTR(e.event_comment, 1, 200) event_comment
+FROM pedmgr.ped_licence_schedule_details plsd
+JOIN pedmgr.ped_licence_master plm ON plm.id = plsd.ped_lm_id
+   , XMLTABLE('/SCHEDULE/EVENT_LIST/EVENT[EVENT_MNEM = ("R", "T", "E") and not(DUMMY_EVENT = "true")]'
+       PASSING plsd.xml_data
+       COLUMNS event_mnem    VARCHAR2(5)    PATH 'EVENT_MNEM'
+             , event_date    VARCHAR2(20)   PATH 'EVENT_DATE'
+             , term_no       VARCHAR2(5)    PATH 'TERM_NO'
+             , rate          VARCHAR2(50)   PATH 'RATE'
+             , recurring     VARCHAR2(20)   PATH 'RECURRING'
+             , recurrances   VARCHAR2(10)   PATH 'RECURRANCES'
+             , event_comment VARCHAR2(4000) PATH 'substring(COMMENTS, 1, 4000)') e
+WHERE plsd.end_datetime IS NULL
+AND plm.licence_type || plm.licence_no IN ('AL6', 'AL9', 'AL10')
+ORDER BY 1, e.event_date, e.event_mnem;
+```
+
+Expected: for each licence, a rate of `25` yearly with 6 recurrences, then `50` starting on the
+anniversary the 25 reaches (AL10: 26/06/1995 and 26/06/2001). The comment is included in case it
+explains the overlap.
+
+**Result (live, 3 November 2026):** each licence has the same shape, a fixed-count start-up rate
+and then yearly steps:
+
+| Licence | Status | 25 yearly ×6 from | 50 from | `T1` | Then |
+|---|---|---|---|---|---|
+| AL6 | `S` | 01/01/1993 | 01/01/1999 | 01/01/2000 | 100 from 2000, rising by 50–100 a year to 1,200 yearly from 2013 |
+| AL9 | `X` | 07/04/1994 | 07/04/2000 | 07/04/2000 | 100 from 2001, rising to 1,200 yearly from 2014 |
+| AL10 | `E` | 26/06/1995 | 26/06/2001 | 26/06/2001 | 100 from 2002, rising to 1,200 yearly from 2015 |
+
+The comments only record the licences' conversions to PEDL or '95 terms and later extensions
+(AL10: "DoV 8 June 2026 - 2yrs extension"); none mentions the start-up rate.
+
+**Reading:**
+
+- **The 50 always starts exactly six years after the 25**, so the intent looks like six payments
+  of 25, with the count entered as the number of payments. `PED012X` counts the first payment plus
+  6 recurrences, so PEARS has seven, and the seventh (1999, 2000, 2001) falls in the year the 50
+  starts.
+- **LMS holds six** (one rate at a time), and the write-back would emit the 25 with 5 recurrences.
+  Proposed: accept that, as the overlap is almost certainly a data entry error. The years are all
+  before 2002, so nothing is payable now. Put to the licensing team on the "AL rate overlap" sheet.
+- AL6's 50 starts a year before its Initial term ends (the 100 starts with the Second term); on AL9
+  and AL10 the 50 starts with the Second term.
 
 ## S13. Mandatory relinquishment percentages (current versions)
 

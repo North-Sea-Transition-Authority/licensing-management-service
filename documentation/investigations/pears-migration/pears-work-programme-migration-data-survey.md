@@ -41,10 +41,14 @@
 | # | Survey item | Feeds plan | Status | Section |
 |---|---|---|---|---|
 | WP-S1 | Programmes by licence type, programme type and status | D2, M4, Q2 | ✅ Live, 29 Oct 2026 (with WP-S1b, WP-S1c, WP-S1d) | [WP-S1](#wp-s1-programmes-by-licence-type-programme-type-and-status) |
+| WP-S1e | The `DRAFT_FINAL` programmes, one row per licence | WP-L1, WP-L11 | ✅ Live, 3 Nov 2026 | [WP-S1e](#wp-s1e-the-draft_final-programmes-one-row-per-licence) |
+| WP-S1f | Activity statuses on P2614 and P2626 (phase-organised `COMPLETE`?) | D11 | ✅ Live, 3 Nov 2026: status rule confirmed broken for phases | [WP-S1f](#wp-s1f-activity-statuses-on-p2614-and-p2626) |
+| WP-S1g | The `FALLOW` and `EXTENSION` programmes, one row per programme | M4 | ✅ Live, 3 Nov 2026 | [WP-S1g](#wp-s1g-the-fallow-and-extension-programmes-one-row-per-programme) |
 | WP-S2 | Versions per programme, and flat vs phase organisation | D1, Version alignment, Q6 | ✅ Live, 29 Oct 2026 (with WP-S2b) | [WP-S2](#wp-s2-versions-and-organisation) |
 | WP-S2c | Work programme changes vs schedule versions (option B) | D21, Version alignment | ✅ Live, 29 Oct 2026 | [WP-S2c](#wp-s2c-work-programme-changes-vs-schedule-versions-option-b) |
 | WP-S3 | Activities by type, status and list | D4, D8, M1, M5 | ✅ Live, 29 Oct 2026 (with WP-S3b) | [WP-S3](#wp-s3-activities-by-type-status-and-list) |
 | WP-S4 | Titles of `SEISMIC`, `LEGACY` and `OTHER` activities | D5, D6, M1 | ✅ Live, 29 Oct 2026 (with WP-S4b; WP-S4c not run) | [WP-S4](#wp-s4-titles-of-seismic-legacy-and-other-activities) |
+| WP-S4d | The seismic activities that describe two operations, one row each | M1 | ✅ Live, 3 Nov 2026 | [WP-S4d](#wp-s4d-the-seismic-activities-that-describe-two-operations-one-row-each) |
 | WP-S5 | Descriptions: empty, template text, competed blocks, "None", phase prefixes | D6, D7, M2, M3 | ✅ Live, 29 Oct 2026 (with WP-S5b) | [WP-S5](#wp-s5-descriptions) |
 | WP-S6 | Breakpoints and drill-or-drop wells | D13, M3 | ✅ Live, 29 Oct 2026 (with WP-S6b) | [WP-S6](#wp-s6-breakpoints-and-drill-or-drop-wells) |
 | WP-S7 | Phase timings vs the current schedule's phases | D15, M3 | ✅ Live, 29 Oct 2026 | [WP-S7](#wp-s7-phase-timings-vs-the-schedule) |
@@ -59,7 +63,9 @@
 ## Summary
 
 All queries were run on live on 29 October 2026, apart from WP-S4c (optional) and WP-S8b (left
-for the licensing team).
+for the licensing team). WP-S1e (the `DRAFT_FINAL` list), WP-S1f (phase-organised status check),
+WP-S1g (fallow and extension programmes) and WP-S4d (two-operation seismic) were added and run on
+3 November 2026.
 
 **Scope**
 - **1,747 licences migrate:** they have both a work programme and a PEARS schedule. That's `P`
@@ -73,6 +79,8 @@ for the licensing team).
 - **Excluded:** the 8 `DRAFT` programmes, all on unnumbered awards, and the 6 licences with
   duplicate INITIAL programmes until the licensing team chooses (WP-S1c, WP-L2). The `A`, `B`,
   `NA` and `XL` licence types are bare master rows with no data (WP-S10).
+- **Held back until cleared:** the 30 `FALLOW`/`EXTENSION` programmes. 23 are records of the
+  2010–11 fallow review rather than obligations (WP-S1g, WP-L12).
 
 **Data quality: better than the schedule**
 - Every programme has exactly one current row, and there are no soft-deleted rows (WP-S11).
@@ -102,7 +110,7 @@ for the licensing team).
 - Authors are kept as names in the comment text, with no WUA id (decided).
 
 **Programme-level data**
-- **Legal text** is on 927 programmes (34% of `P`, 25% of `PEDL`) and feeds the licence documents,
+- **Legal text** is on 926 programmes on numbered licences (34% of `P`, 25% of `PEDL`) and feeds the licence documents,
   so it can't be dropped. It's one block per programme. Either it goes into a programme-level area
   like the general notes, or it's copied to every activity (WP-S13, plan Q5).
 - **Review audit:** in active use but not migrated (decided). It's a copy of advisor sign-offs from
@@ -120,8 +128,10 @@ for the licensing team).
   version, for the licensing team to confirm (WP-L7).
 
 **Open before the migration can be built**
-- The licensing team questions WP-L1 to WP-L11, sent as
-  [pears-work-programme-migration-licensing-review.docx](pears-work-programme-migration-licensing-review.docx).
+- The licensing team questions WP-L1 to WP-L13, sent as
+  [pears-work-programme-migration-licensing-review.docx](pears-work-programme-migration-licensing-review.docx),
+  with the per-licence lists in
+  [pears-work-programme-migration-licensing-items.xlsx](pears-work-programme-migration-licensing-items.xlsx).
 - LMS changes:
   - a status for `DROPPED`;
   - the schedule comments area;
@@ -133,21 +143,25 @@ for the licensing team).
 Items that need a confirmation or decision from the licensing team. Each links to its evidence.
 They are put to the team in
 [pears-work-programme-migration-licensing-review.docx](pears-work-programme-migration-licensing-review.docx),
-which numbers them differently (the "Review" column).
+which numbers them differently (the "Review" column). The per-licence lists are sheets of
+[pears-work-programme-migration-licensing-items.xlsx](pears-work-programme-migration-licensing-items.xlsx)
+(WP-L1 and WP-L11, WP-L2, WP-L4, WP-L5, WP-L12 and WP-L13).
 
 | # | Question | Licences | Background | Section | Review |
 |---|---|---|---|---|---|
-| WP-L1 | **`DRAFT_FINAL` work programmes on raised licences: migrate as they are, or review first?** | 91 licences (76 `P`, 15 `PEDL`): 68 raised, 23 not yet raised (WP-L11) | PEARS sets `DRAFT_FINAL` when an award is issued for raise (and on legacy import). Only a save in `PED009X` maintain moves it on, so these programmes haven't been saved since raise, and their activity statuses may never have been updated. | [WP-S1](#wp-s1-programmes-by-licence-type-programme-type-and-status); plan Open question 9 | 1.1 |
+| WP-L1 | **`DRAFT_FINAL` work programmes on raised licences: migrate as they are, or review first?** | 90 licences on 3 Nov 2026 (75 `P`, 15 `PEDL`): 67 raised, 23 not yet raised (WP-L11). **12 of the raised are extant.** | PEARS sets `DRAFT_FINAL` when an award is issued for raise (and on legacy import). A maintain save re-derives it, except when the activities are only `NOT_STARTED`, `DROPPED` and `WAIVER_DECLINED`, with at least one of the last two: then it stays `DRAFT_FINAL`. 36 raised programmes have been maintained that way (a dropped activity, with its note); all are on surrendered or expired licences. The other 31 raised, 12 of them extant, still have every activity `NOT_STARTED` and were never maintained. | [WP-S1](#wp-s1-programmes-by-licence-type-programme-type-and-status), [WP-S1e](#wp-s1e-the-draft_final-programmes-one-row-per-licence); plan Open question 9 | 1.1 |
 | WP-L2 | **Two INITIAL programmes on one licence: which is authoritative?** | EXL253, PEDL120, PEDL133, PEDL180, PEDL181, PEDL225 | Each has a hand-made programme (2010–11) and a one-activity `LEGACY` programme from a 12/07/2011 bulk job. Both describe the same commitment, but they disagree on figures (PEDL180) or statuses (PEDL225 `DROPPED` vs `NOT_STARTED`; PEDL180/181 `COMPLETE` vs `IN_PROGRESS`). Options: keep the hand-made one, keep the `LEGACY` one, or enter it fresh in LMS. Proposed until they answer: neither is migrated, and the licences are reported. | [WP-S1c](#wp-s1c-the-duplicate-initial-programmes-side-by-side), [WP-S1d](#wp-s1d-the-activities-on-the-duplicate-programme-licences); plan Open question 10 | 1.2, 2.3 |
 | WP-L3 | **Is term- or phase-level dating acceptable for migrated activities?** | All 2,876 numbered programmes | PEARS activities have no dates. The 282 phase-organised `P` programmes can sit within their phase. The other 2,594 (90%) can only be placed within the Initial term, which is an assumption (wrong for licences with no Initial term and for FALLOW/EXTENSION). Only D&D wells with a breakpoint get a real date. Most migrated activities would show against the end of the Initial term on the LMS timeline. Accept that, or add specific dates after migration (for which licences)? | [WP-S2b](#wp-s2b-flat-vs-phase-organisation-current-versions); plan M3, Open question 11 | 1.3 |
 | WP-L4 | **Waiver statuses LMS doesn't have: `PART_WAIVER` and `WAIVER_DECLINED`** | 32 activities on `P`/`PEDL` (16 each). **Only P1483 is extant**; the other 31 are surrendered or expired. | LMS has only `FULL_WAIVER`. The notes show the PEARS status rarely means what it says. Of the 32: 9 are obligations **transferred** to another licence (LMS has `TRANSFERRED`), 8 are unmet obligations left on surrendered licences, 7 are genuine part waivers or part done, 7 are errors or unclear, and 1 (P1483) still stands. Questions: (1) Does LMS need part-waiver / waiver-declined as statuses going forward? (2) For the 31 historical ones, accept a default mapping, with the PEARS status and notes kept as comments? (3) Should transfers migrate as `TRANSFERRED`, with the team supplying the target licence? (4) What is P1483's current position? | [WP-S3](#wp-s3-activities-by-type-status-and-list), [WP-S3b](#wp-s3b-activities-with-a-waiver-status-lms-doesnt-have); plan Open question 12 | 1.5 |
-| WP-L5 | **Drill-or-drop decision shown twice** | 136 licences with both a breakpoint-dated D&D well and a schedule `DD` event | Keep both (the schedule event as the deadline, the activity as the obligation), keep both with the activity undated, or merge? 17 of the 136 currently disagree, and the schedule date is always later. | [WP-S6b](#wp-s6b-breakpoint-vs-the-schedules-dd-event); plan M3 rule 2, Open question 13 | 1.4 |
+| WP-L5 | **Drill-or-drop decision shown twice** | 136 licences with both a breakpoint-dated D&D well and a schedule `DD` event | Keep both (the schedule event as the deadline, the activity as the obligation), keep both with the activity undated, or merge? 17 of the 136 currently disagree, and the schedule date is always later. | [WP-S6b](#wp-s6b-breakpoint-vs-the-schedules-dd-event); plan M3 rule 2, Open question 13 | 1.4, 2.5 |
 | WP-L6 | **Well counts on `LEGACY` licences: how should LMS hold them?** | 872 programmes (844 `P`, 28 `PEDL`) | These count wells (obligated, completed, dropped, waived, waiver declined × firm/contingent/D&D) but have no well activities; the wells are only in the `LEGACY` summary text. LMS has no well-count table. Options: (A) one schedule comment per licence summarising the counts (proposed); (B) generate a well activity per obligated well; (C) don't migrate them. WP-S8b gives the full counts if the team wants to see them first. | [WP-S8](#wp-s8-well-count-matrix-vs-activities), [WP-S8b](#wp-s8b-well-counts-on-programmes-with-no-well-activities); plan Open question 14 | 1.8 |
 | WP-L7 | **Work programme history: current only, or matched to past schedule versions?** | 1,761 programmes on licences with a schedule | **Leaning A:** migrate the current work programme onto the latest (`ACTIVE`) schedule version only; earlier LMS schedule versions show no work programme. PEARS is decommissioned some time after LMS goes live and its history isn't kept, so past work programme content is lost. B would attach the work programme current at each past schedule save, but keeps only 1,161 of 2,096 past content states (55%), each dated to the next schedule save rather than the work programme edit. Status history and notes migrate either way. | [WP-S2c](#wp-s2c-work-programme-changes-vs-schedule-versions-option-b); plan Version alignment, Open question 6 | 1.10 |
 | WP-L8 | **Should LMS have a `DROPPED` status?** | 466 activities (10%): 411 D&D wells, 55 `LEGACY` | LMS has `OPEN`, `IN_PROGRESS`, `COMPLETE`, `FULL_WAIVER` and `TRANSFERRED`. `DROPPED` is the normal outcome for 411 of the 890 D&D wells, so it is too common to hold only as a comment. Proposed: add it to LMS. | [WP-S3](#wp-s3-activities-by-type-status-and-list); plan M5, Open question 4 | 1.6 |
 | WP-L9 | **What commitment should migrated activities have where PEARS records none?** | 4,541 activities: 890 D&D wells and 3,651 others (76%) | LMS requires `FIRM`, `CONTINGENT` or `CONDITIONAL`. PEARS records a commitment only for wells and new-shoot seismic (246 activities). `CONDITIONAL` fits D&D wells. Options: a default per type, or make commitment optional for migrated activities. | [WP-S3](#wp-s3-activities-by-type-status-and-list); plan M1, Open question 3 | 1.7 |
-| WP-L10 | **Where should the legal text go in LMS?** | 927 programmes (838 `P`, 88 `PEDL`) | One HTML block per programme, built from the activity descriptions and then edited freely; it feeds the licence documents and won't be split per activity. Options: (a) a programme-level legal text area, like the general comments; (b) copy the whole block to every activity. A licence with a FALLOW or EXTENSION programme can have a block on each. | [WP-S13](#wp-s13-legal-text-and-review-audit); plan D14, Open question 5 | 1.9 |
+| WP-L10 | **Where should the legal text go in LMS?** | 926 programmes on numbered licences (838 `P`, 88 `PEDL`) | One HTML block per programme, built from the activity descriptions and then edited freely; it feeds the licence documents and won't be split per activity. Options: (a) a programme-level legal text area, like the general comments; (b) copy the whole block to every activity. A licence with a FALLOW or EXTENSION programme can have a block on each. | [WP-S13](#wp-s13-legal-text-and-review-audit); plan D14, Open question 5 | 1.9 |
 | WP-L11 | **Work programmes on awards not yet raised** | 23 awards (18 `P`, 5 `PEDL`) | Issued for raise but not raised: a `DRAFT_FINAL` programme and a template schedule, no licence data. They migrate only if the schedule migration creates an LMS licence for them; otherwise the programme is created in LMS at raise. | [WP-S10b](#wp-s10b-licences-with-a-work-programme-but-no-current-status); plan Open questions 7, 9 | 1.11 |
+| WP-L12 | **Fallow and extension programmes: migrate as activities, keep as a schedule comment, or leave out?** | 30 programmes (27 `FALLOW`, 3 `EXTENSION`), 14 extant | 23 are records of the 2010–11 fallow review, not obligations; 7 hold wells or seismic (4 of them dropped D&D wells). 14 were created after the schedule's last term ended. P251 and P252 can't migrate (schedules with no terms). Proposed: review records become schedule comments, wells and seismic migrate as activities. Held back until cleared. Sheet "WP-M4 Fallow and extension". | [WP-S1g](#wp-s1g-the-fallow-and-extension-programmes-one-row-per-programme); plan M4 | 2.2 |
+| WP-L13 | **Seismic activities that describe two operations: split or keep as one, and which category?** | 82 activities (4 extant: P1777, P2170, P2252, P2340) | 72 obtain and reprocess the same data, 8 only obtain data already reprocessed, 2 (P1794, P2329) cover different data sets. The same wording gets Obtain or Reprocess depending on the title. Proposed: split only P1794 and P2329; one category for the 72. Sheet "WP-S4d Two-operation seismic". | [WP-S4d](#wp-s4d-the-seismic-activities-that-describe-two-operations-one-row-each); plan M1 | 2.4 |
 
 ## Shared building blocks
 
@@ -296,10 +310,11 @@ Total columns.
   `EXL` has 38 on 37. The plan assumes one programme per type. **WP-S1b** lists these licences.
 - **Programme status** (not migrated, plan D11):
   - `DRAFT` only appears on the unraised awards.
-  - `DRAFT_FINAL` on 76 `P` and 15 `PEDL` raised licences is the final award programme, never saved
-    in `maintain` since raise (PEARS sets `DRAFT_FINAL` on issue for raise and on legacy import;
-    only a maintain save re-derives the status). Its activities probably still hold their
-    award-time statuses, mostly `NOT_STARTED`; WP-S3 will show.
+  - `DRAFT_FINAL` on 76 `P` and 15 `PEDL` numbered licences (75 `P` on 3 November, WP-S1e) is the
+    final award programme (PEARS
+    sets it on issue for raise and on legacy import). ~~Never saved in `maintain` since raise.~~
+    **Corrected by WP-S1e:** a maintain save can leave it at `DRAFT_FINAL`, and 36 of the raised
+    licences' programmes have been maintained.
   - 420 `P` programmes are `IN_PROGRESS`, so activity statuses are actively used on `P`.
   - Onshore types other than `PEDL` are only ever `COMPLETE` or `NOT_STARTED`.
 
@@ -452,7 +467,7 @@ columns are left out.
   status it had before.
 - **Wider question:** if the 12/07/2011 job ran for every licence of that era, there may be many
   single-`LEGACY` programmes. That makes the `LEGACY` mapping in plan M1 matter far more than the 6
-  duplicates do. WP-S3 (types) and WP-S4 (titles) will size it. **WP-S1d** shows what these 12
+  duplicates do. WP-S3 (types) and WP-S4 (titles) will size it. **WP-S1d** shows what these 13
   activities actually say.
 - ~~Proposed rule: migrate both programmes into the one LMS activity list.~~ **Withdrawn after
   WP-S1d:** the two programmes describe the same commitment, so merging them would count it twice.
@@ -460,7 +475,7 @@ columns are left out.
 
 ### WP-S1d. The activities on the duplicate-programme licences
 
-The descriptions of the 12 activities from WP-S1c, to see what a `LEGACY` activity holds compared
+The descriptions of the 13 activities from WP-S1c, to see what a `LEGACY` activity holds compared
 with the hand-made ones.
 
 ```sql
@@ -535,6 +550,336 @@ ORDER BY 1, 2, 3;
 - **Rule:** not decidable from the data. Which record is authoritative is a licensing team question
   (**WP-L2**). Until they answer, migrate neither programme on these 6 licences: report them as
   "two INITIAL programmes in PEARS" and let the licensing team enter the work programme in LMS.
+
+### WP-S1e. The `DRAFT_FINAL` programmes, one row per licence
+
+The list behind WP-L1 and WP-L11, for the licensing team to review licence by licence (it becomes a
+sheet in
+[pears-work-programme-migration-licensing-items.xlsx](pears-work-programme-migration-licensing-items.xlsx)).
+One row per current `DRAFT_FINAL` programme on a numbered licence, so the 5 unnumbered awards
+(WP-S1) are left out. `raised` is `N` when the licence has no data points, which marks the 23
+awards not yet raised (WP-S10b). The status counts show whether the activities have moved on from
+their award-time statuses.
+
+```sql
+WITH latest_dp AS (
+  SELECT licence_type, licence_no, ped_dp_id
+  FROM (
+    SELECT pdp.licence_type, pdp.licence_no, pdp.id ped_dp_id
+         , ROW_NUMBER() OVER (PARTITION BY pdp.licence_type, pdp.licence_no
+                              ORDER BY pdp.position_datetime DESC, pdp.position_sequence DESC) rn
+    FROM pedmgr.ped_data_points pdp
+    WHERE pdp.ped_sim_id = 0
+  )
+  WHERE rn = 1
+)
+, current_status AS (
+  SELECT plm.id ped_lm_id, xplc.licence_status
+  FROM pedmgr.ped_licence_master plm
+  JOIN latest_dp ld ON ld.licence_type = plm.licence_type AND ld.licence_no = plm.licence_no
+  JOIN pedmgr.ped_licences pl ON pl.ped_dp_id = ld.ped_dp_id AND pl.end_datetime IS NULL
+  JOIN pedmgr.xview_ped_ld_current xplc ON xplc.ped_licence_id = pl.id AND xplc.ped_lm_id = plm.id
+)
+SELECT plm.licence_type || plm.licence_no                                    licence_reference
+     , plm.licence_type
+     , CASE WHEN EXISTS (SELECT 1 FROM pedmgr.ped_data_points pdp
+                         WHERE pdp.licence_type = plm.licence_type AND pdp.licence_no = plm.licence_no
+                         AND pdp.ped_sim_id = 0)
+            THEN 'Y' ELSE 'N' END                                            raised
+     , NVL(cs.licence_status, '-')                                           licence_status
+     , CASE WHEN EXISTS (SELECT 1 FROM pedmgr.ped_licence_schedule_details plsd WHERE plsd.ped_lm_id = plm.id)
+            THEN 'Y' ELSE 'N' END                                            has_schedule
+     , wp.id                                                                 wp_id
+     , x.wp_type
+     , (SELECT COUNT(*) FROM pedmgr.ped_work_programme_details h
+        WHERE h.ped_wp_id = wp.id AND h.record_status = 'ACTIVE')            versions
+     , (SELECT TO_CHAR(MIN(h.start_datetime), 'DD/MM/YYYY') FROM pedmgr.ped_work_programme_details h
+        WHERE h.ped_wp_id = wp.id AND h.record_status = 'ACTIVE')            first_saved
+     , TO_CHAR(wpd.start_datetime, 'DD/MM/YYYY')                             last_saved
+     , x.activities
+     , x.not_started
+     , x.in_progress
+     , x.complete
+     , x.other_status
+     , x.notes
+     , x.legal_text_length
+FROM pedmgr.ped_licence_master plm
+JOIN pedmgr.ped_work_programme wp ON wp.ped_lm_id = plm.id
+JOIN pedmgr.ped_work_programme_details wpd
+  ON wpd.ped_wp_id = wp.id AND wpd.status_control = 'C' AND wpd.record_status = 'ACTIVE'
+LEFT JOIN current_status cs ON cs.ped_lm_id = plm.id
+   , XMLTABLE('/WORK_PROGRAMME' PASSING wpd.xml_data
+       COLUMNS wp_type           VARCHAR2(20) PATH 'WORK_PROGRAMME_TYPE'
+             , wp_status         VARCHAR2(20) PATH 'WORK_PROGRAMME_STATUS'
+             , activities        NUMBER       PATH 'count(.//ACTIVITY)'
+             , not_started       NUMBER       PATH 'count(.//ACTIVITY[ACTIVITY_STATUS = "NOT_STARTED"])'
+             , in_progress       NUMBER       PATH 'count(.//ACTIVITY[ACTIVITY_STATUS = "IN_PROGRESS"])'
+             , complete          NUMBER       PATH 'count(.//ACTIVITY[ACTIVITY_STATUS = "COMPLETE"])'
+             , other_status      NUMBER       PATH 'count(.//ACTIVITY[not(ACTIVITY_STATUS = ("NOT_STARTED", "IN_PROGRESS", "COMPLETE"))])'
+             , notes             NUMBER       PATH 'count(NOTES_LIST/NOTE)'
+             , legal_text_length NUMBER       PATH 'string-length(string(LEGAL_TEXT))') x
+WHERE x.wp_status = 'DRAFT_FINAL'
+AND plm.licence_no IS NOT NULL
+ORDER BY raised DESC, plm.licence_type, TO_NUMBER(plm.licence_no DEFAULT NULL ON CONVERSION ERROR);
+```
+
+Expected (from WP-S1, 29 October): 91 rows (76 `P`, 15 `PEDL`), 68 with `raised = Y` and 23 with
+`N`.
+
+**Result (live, 3 November 2026):** 90 rows (75 `P`, 15 `PEDL`): 67 raised and 23 not raised.
+The full rows are in the "WP-L1 DRAFT_FINAL" sheet of
+[pears-work-programme-migration-licensing-items.xlsx](pears-work-programme-migration-licensing-items.xlsx).
+Summarised:
+
+| Group | Licences | Status | Activities | Licences in the group |
+|---|---:|---|---|---|
+| **Maintained, still `DRAFT_FINAL`** | 36 | 31 `S`, 5 `X` | One status other than not started / in progress / complete on each (`DROPPED`), each with its note; the rest `NOT_STARTED`. 30 have a single activity. | P1695, P1785, P1813, P1845, P1862, P1865, P1872, P1873, P1874, P1879, P1883, P1884, P1895, P1897, P1905, P1910, P1911, P1924, P1927, P1939, P2008, P2120, P2180, P2224, P2225, P2239, P2241, PEDL258, PEDL260, PEDL263, PEDL265, PEDL274, PEDL298, PEDL302, PEDL320, PEDL329 |
+| **Never maintained, extant** | 12 | `E` | All `NOT_STARTED` (1 to 10 each), no notes except one on PEDL279 | P2610, P2628, P2631, P2637, P2640, P2641, P2655, P2668, P2674, P2677, P2680 (awarded 2023–24), PEDL279 (2015) |
+| **Never maintained, licence ended** | 19 | 6 `S`, 11 `X`, 2 `R` | All `NOT_STARTED`, no notes | P1747 (`X`), P1842, P1843, P1857, P1858, P1860, P1868 (`S`), P1940, P1941, P1942, P1945, P1947, P1954, P1956, P1959, P1960, P1961 (`X`, all last saved 15/11/2012), P2093, P2094 (`R`) |
+| **Not yet raised** | 23 | none | All `NOT_STARTED` | As WP-S10b: P2488, P2515, P2540, P2546, P2565, P2566, P2568, P2569, P2587, P2627, P2633, P2648, P2657, P2661, P2666, P2667, P2671, P2675, PEDL286, PEDL318, PEDL319, PEDL322, PEDL323 |
+
+Every row has a schedule, and all but P1695 have legal text.
+
+**Reading:**
+
+- **`DRAFT_FINAL` doesn't mean "never maintained".** `PED009X`'s `action-update-wp-status`, run on
+  every maintain save, sets the status in only three cases: every activity `NOT_STARTED`, every
+  activity `COMPLETE` or `FULL_WAIVER`, or something under way (in progress, complete or a waiver)
+  and not all done. Activities that are only `NOT_STARTED`, `DROPPED` and `WAIVER_DECLINED`, with
+  at least one of the last two, match none of them, so the status stays where it was. That is what
+  happened on the 36: typically the drill-or-drop well was dropped, the note recorded it, and the
+  licence was then surrendered or expired. Their activity statuses are maintained and can migrate as
+  they are. (The rule also only counts the flat `ACTIVITY_LIST`, so it can't be relied on for
+  phase-organised programmes either. The programme status isn't migrated, plan D11.)
+- **31 raised programmes were never maintained** (all `NOT_STARTED`; a maintain save would have set
+  `NOT_STARTED`). Their extra versions are review or legal text saves, which don't re-derive the
+  status. 19 are on licences that have ended, so migrating them as they are only affects history.
+- **The 12 extant ones are the real question.** 11 are 2023–24 awards, where `NOT_STARTED` may well
+  be right. PEDL279 has been extant since 2015 with its single activity still `NOT_STARTED`.
+  These should be checked before migration.
+- **The 23 unraised awards** match WP-S10b and depend on WP-L11. PEDL286, PEDL318, PEDL319, PEDL322
+  and PEDL323 were awarded in 2015 and last saved in 2016, so they may never be raised.
+- **One fewer than WP-S1 (29 October):** 90 rows against 91, with one `P` raised licence gone. The
+  first guess was one programme saved in maintain in between, re-deriving its status. To check:
+
+  ```sql
+  SELECT plm.licence_type || plm.licence_no licence_reference, wp.id wp_id
+       , XMLCAST(XMLQUERY('/WORK_PROGRAMME/WORK_PROGRAMME_STATUS/text()' PASSING cur.xml_data RETURNING CONTENT) AS VARCHAR2(20)) status_now
+       , cur.start_datetime saved
+  FROM pedmgr.ped_work_programme wp
+  JOIN pedmgr.ped_licence_master plm ON plm.id = wp.ped_lm_id
+  JOIN pedmgr.ped_work_programme_details cur
+    ON cur.ped_wp_id = wp.id AND cur.status_control = 'C' AND cur.record_status = 'ACTIVE'
+  WHERE cur.start_datetime >= DATE '2026-10-29'
+  AND NVL(XMLCAST(XMLQUERY('/WORK_PROGRAMME/WORK_PROGRAMME_STATUS/text()' PASSING cur.xml_data RETURNING CONTENT) AS VARCHAR2(20)), '-') != 'DRAFT_FINAL'
+  AND EXISTS (SELECT 1 FROM pedmgr.ped_work_programme_details h
+              WHERE h.ped_wp_id = wp.id AND h.record_status = 'ACTIVE' AND h.id != cur.id
+              AND XMLCAST(XMLQUERY('/WORK_PROGRAMME/WORK_PROGRAMME_STATUS/text()' PASSING h.xml_data RETURNING CONTENT) AS VARCHAR2(20)) = 'DRAFT_FINAL');
+  ```
+
+  **Result (live, 3 November 2026): two, not one.**
+
+  | Licence | WP ID | Status now | Saved |
+  |---|---|---|---|
+  | P2614 | 5120 | `COMPLETE` | 02/11/2026 17:35:55 |
+  | P2626 | 5128 | `COMPLETE` | 02/11/2026 14:23:25 |
+
+  - **Two left and the total fell by one, so one licence joined `DRAFT_FINAL`** between the two
+    runs. The unraised count is still 23, so it is most likely one of the 5 unnumbered awards
+    (WP-S1) being numbered and raised. WP-S1 wasn't run per licence, so which one can't be told
+    from the results. It doesn't matter for the migration: WP-S1e is the current list, and it is
+    re-run on the day (plan, release step 18.2).
+  - **The `DRAFT_FINAL` list changes while PEARS is in use.** Both were maintained on 2 November,
+    so the licensing team is updating these 2023 awards now. The WP-L1 sheet should be checked
+    against a fresh run of WP-S1e just before the team answers it.
+  - **Both went straight to `COMPLETE`, which isn't always real (confirmed by WP-S1f).** `action-update-wp-status` only
+    counts the flat `ACTIVITY_LIST`. On a phase-organised programme the count is 0, so both the
+    "all `NOT_STARTED`" and "all `COMPLETE`" tests pass and the status ends up `COMPLETE`, whatever
+    the activities hold. Both are phase-organised, and P2626 still has a `NOT_STARTED` well.
+
+### WP-S1f. Activity statuses on P2614 and P2626
+
+Whether the `COMPLETE` programme status from WP-S1e's follow-up reflects the activities.
+
+```sql
+SELECT plm.licence_type || plm.licence_no licence_reference
+     , wp.id wp_id
+     , x.wp_status
+     , x.flat_acts
+     , x.phase_acts
+     , a.list_kind
+     , a.activity_type
+     , a.activity_status
+     , COUNT(*) activities
+FROM pedmgr.ped_licence_master plm
+JOIN pedmgr.ped_work_programme wp ON wp.ped_lm_id = plm.id
+JOIN pedmgr.ped_work_programme_details wpd
+  ON wpd.ped_wp_id = wp.id AND wpd.status_control = 'C' AND wpd.record_status = 'ACTIVE'
+   , XMLTABLE('/WORK_PROGRAMME' PASSING wpd.xml_data
+       COLUMNS wp_status  VARCHAR2(20) PATH 'WORK_PROGRAMME_STATUS'
+             , flat_acts  NUMBER       PATH 'count(ACTIVITY_LIST/ACTIVITY)'
+             , phase_acts NUMBER       PATH 'count(PHASE_LIST/PHASE/ACTIVITY_LIST/ACTIVITY)') x
+   , XMLTABLE('for $a in /WORK_PROGRAMME//ACTIVITY
+               return <A kind="{if ($a/parent::ACTIVITY_LIST/parent::PHASE) then "PHASE" else "FLAT"}">{$a/ACTIVITY_TYPE}{$a/ACTIVITY_STATUS}</A>'
+       PASSING wpd.xml_data
+       COLUMNS list_kind       VARCHAR2(10) PATH '@kind'
+             , activity_type   VARCHAR2(40) PATH 'ACTIVITY_TYPE'
+             , activity_status VARCHAR2(20) PATH 'ACTIVITY_STATUS') a
+WHERE plm.licence_type || plm.licence_no IN ('P2614', 'P2626')
+GROUP BY plm.licence_type || plm.licence_no, wp.id, x.wp_status, x.flat_acts, x.phase_acts
+       , a.list_kind, a.activity_type, a.activity_status
+ORDER BY 1, 6, 7, 8;
+```
+
+If `flat_acts` is 0 and the activities aren't all `COMPLETE`, the `COMPLETE` status is an artefact
+of the PEARS rule, not a real outcome. That doesn't affect the migration (the programme status
+isn't migrated, D11), but it means a `COMPLETE` programme status on a phase-organised programme
+says nothing.
+
+**Result (live, 3 November 2026):**
+
+| Licence | WP ID | Programme status | Flat | In phases | Activity type | Activity status | Activities |
+|---|---|---|---:|---:|---|---|---:|
+| P2614 | 5120 | `COMPLETE` | 0 | 1 | `FIRM_WELL` | `COMPLETE` | 1 |
+| P2626 | 5128 | `COMPLETE` | 0 | 4 | `DRILL_OR_DROP_WELL` | **`NOT_STARTED`** | 1 |
+| P2626 | 5128 | `COMPLETE` | 0 | 4 | `OTHER` | `COMPLETE` | 3 |
+
+**Reading:**
+
+- **Confirmed: PEARS marks every maintained phase-organised programme `COMPLETE`.** Both are
+  phase-organised, with no flat activities. P2626 is `COMPLETE` although its drill-or-drop well is
+  still `NOT_STARTED`. P2614 happens to be right (its one activity is complete), but it would have
+  been `COMPLETE` whatever the activity said.
+- **So the PEARS programme status can't be trusted** on any phase-organised programme (282 `P`
+  programmes, WP-S2b) once it has been saved in maintain. It isn't migrated (plan D11), so
+  the migration is unaffected. It also must not be used as a check, e.g. in the validation test
+  or the comparison report, or by the licensing team when answering WP-L1.
+- **WP-S1e's groups still hold.** A phase-organised `DRAFT_FINAL` programme becomes `COMPLETE` on
+  its first maintain save, so any phase-organised programme still at `DRAFT_FINAL` was never
+  maintained. The 36 "maintained" ones must therefore be flat.
+
+### WP-S1g. The `FALLOW` and `EXTENSION` programmes, one row per programme
+
+The list behind plan M4, WP-L12 and review document 2.2, for the licensing team to decide
+programme by programme before migration: migrate it onto the term it relates to, keep its text as a
+schedule comment, or leave it out (the "WP-M4 Fallow and extension" sheet of
+[pears-work-programme-migration-licensing-items.xlsx](pears-work-programme-migration-licensing-items.xlsx)).
+`has_initial` says whether the licence also has a current INITIAL programme. `schedule_terms` lists
+the term markers on the licence's current schedule version, so the team can see which terms exist.
+Descriptions are cut to 100 characters each.
+
+```sql
+WITH latest_dp AS (
+  SELECT licence_type, licence_no, ped_dp_id
+  FROM (
+    SELECT pdp.licence_type, pdp.licence_no, pdp.id ped_dp_id
+         , ROW_NUMBER() OVER (PARTITION BY pdp.licence_type, pdp.licence_no
+                              ORDER BY pdp.position_datetime DESC, pdp.position_sequence DESC) rn
+    FROM pedmgr.ped_data_points pdp
+    WHERE pdp.ped_sim_id = 0
+  )
+  WHERE rn = 1
+)
+, current_status AS (
+  SELECT plm.id ped_lm_id, xplc.licence_status
+  FROM pedmgr.ped_licence_master plm
+  JOIN latest_dp ld ON ld.licence_type = plm.licence_type AND ld.licence_no = plm.licence_no
+  JOIN pedmgr.ped_licences pl ON pl.ped_dp_id = ld.ped_dp_id AND pl.end_datetime IS NULL
+  JOIN pedmgr.xview_ped_ld_current xplc ON xplc.ped_licence_id = pl.id AND xplc.ped_lm_id = plm.id
+)
+, cur AS (
+  SELECT wp.id wp_id, wp.ped_lm_id, wpd.xml_data, wpd.start_datetime
+  FROM pedmgr.ped_work_programme wp
+  JOIN pedmgr.ped_work_programme_details wpd
+    ON wpd.ped_wp_id = wp.id AND wpd.status_control = 'C' AND wpd.record_status = 'ACTIVE'
+  WHERE NVL(XMLCAST(XMLQUERY('/WORK_PROGRAMME/WORK_PROGRAMME_STATUS/text()' PASSING wpd.xml_data RETURNING CONTENT) AS VARCHAR2(20)), '-') != 'DRAFT'
+)
+SELECT plm.licence_type || plm.licence_no                                    licence_reference
+     , NVL(cs.licence_status, '-')                                           licence_status
+     , c.wp_id
+     , x.wp_type
+     , x.title
+     , x.wp_status
+     , CASE WHEN EXISTS (SELECT 1 FROM cur i WHERE i.ped_lm_id = c.ped_lm_id AND i.wp_id != c.wp_id
+                         AND XMLCAST(XMLQUERY('/WORK_PROGRAMME/WORK_PROGRAMME_TYPE/text()' PASSING i.xml_data RETURNING CONTENT) AS VARCHAR2(20)) = 'INITIAL')
+            THEN 'Y' ELSE 'N' END                                            has_initial
+     , (SELECT COUNT(*) FROM pedmgr.ped_work_programme_details h
+        WHERE h.ped_wp_id = c.wp_id AND h.record_status = 'ACTIVE')          versions
+     , (SELECT TO_CHAR(MIN(h.start_datetime), 'DD/MM/YYYY') FROM pedmgr.ped_work_programme_details h
+        WHERE h.ped_wp_id = c.wp_id AND h.record_status = 'ACTIVE')          first_saved
+     , TO_CHAR(c.start_datetime, 'DD/MM/YYYY')                               last_saved
+     , x.flat_acts
+     , x.phases
+     , x.phase_acts
+     , x.notes
+     , x.legal_text_length
+     , NVL2(x.bp_years, x.bp_years || 'y ' || x.bp_months || 'm ' || x.bp_days || 'd', NULL) breakpoint
+     , (SELECT XMLCAST(XMLQUERY('string-join(for $e in /SCHEDULE/EVENT_LIST/EVENT[EVENT_MNEM = ("T", "E") and not(DUMMY_EVENT = "true")]
+                                             order by $e/EVENT_DATE
+                                             return concat($e/EVENT_MNEM, $e/TERM_NO, " ", $e/EVENT_DATE), ", ")'
+                                PASSING plsd.xml_data RETURNING CONTENT) AS VARCHAR2(1000))
+        FROM pedmgr.ped_licence_schedule_details plsd
+        WHERE plsd.ped_lm_id = c.ped_lm_id AND plsd.end_datetime IS NULL
+        FETCH FIRST 1 ROW ONLY)                                              schedule_terms
+     , x.activities
+     , x.descriptions
+FROM cur c
+JOIN pedmgr.ped_licence_master plm ON plm.id = c.ped_lm_id
+LEFT JOIN current_status cs ON cs.ped_lm_id = plm.id
+   , XMLTABLE('/WORK_PROGRAMME' PASSING c.xml_data
+       COLUMNS wp_type           VARCHAR2(20)   PATH 'WORK_PROGRAMME_TYPE'
+             , title             VARCHAR2(200)  PATH 'TITLE'
+             , wp_status         VARCHAR2(20)   PATH 'WORK_PROGRAMME_STATUS'
+             , flat_acts         NUMBER         PATH 'count(ACTIVITY_LIST/ACTIVITY)'
+             , phases            NUMBER         PATH 'count(PHASE_LIST/PHASE)'
+             , phase_acts        NUMBER         PATH 'count(PHASE_LIST/PHASE/ACTIVITY_LIST/ACTIVITY)'
+             , notes             NUMBER         PATH 'count(NOTES_LIST/NOTE)'
+             , legal_text_length NUMBER         PATH 'string-length(string(LEGAL_TEXT))'
+             , bp_years          VARCHAR2(10)   PATH 'BREAKPOINT/YEARS'
+             , bp_months         VARCHAR2(10)   PATH 'BREAKPOINT/MONTHS'
+             , bp_days           VARCHAR2(10)   PATH 'BREAKPOINT/DAYS'
+             , activities        VARCHAR2(4000) PATH 'string-join(for $a in .//ACTIVITY
+                                                        return concat($a/ACTIVITY_TYPE, ":", $a/ACTIVITY_STATUS), ", ")'
+             , descriptions      VARCHAR2(4000) PATH 'string-join(for $a in .//ACTIVITY
+                                                        return substring(normalize-space($a/DESCRIPTION), 1, 100), " | ")') x
+WHERE x.wp_type IN ('FALLOW', 'EXTENSION')
+AND plm.licence_no IS NOT NULL
+ORDER BY x.wp_type, plm.licence_type, TO_NUMBER(plm.licence_no DEFAULT NULL ON CONVERSION ERROR);
+```
+
+Expected: 30 rows (27 `P` FALLOW, 2 `P` EXTENSION, 1 `PEDL` EXTENSION), at least 23 with
+`has_initial = N`. The term markers show as `T1 2010-01-01`, `E 2040-01-01` and so on.
+
+**Result (live, 3 November 2026):** 30 rows, as expected: 27 `FALLOW`, 3 `EXTENSION`; 23 with
+`has_initial = N`; 14 extant. The full rows are in the "WP-M4 Fallow and extension" sheet of
+[pears-work-programme-migration-licensing-items.xlsx](pears-work-programme-migration-licensing-items.xlsx).
+Every programme has exactly one activity except PEDL182 (two), none has phases, legal text or a
+breakpoint, and all were first saved between October 2010 and October 2011.
+
+| Kind | Programmes | Licences |
+|---|---:|---|
+| Fallow review record (one `LEGACY` or `OTHER` activity whose description is the review outcome) | 23 | P12, P98, P112, P130, P187, P203, P215, P218, P219, P242, P252, P300, P310, P328, P335, P464, P482, P640, P710, P811, P847, P902; extension P1021 |
+| Drill-or-drop well, already `DROPPED` | 4 | P251, P517, P559, P766 |
+| Real obligation still open or done | 3 | P79 (firm well, `COMPLETE`), PEDL182 (D&D well and 2D seismic, `NOT_STARTED`), P1074 (D&D well, `NOT_STARTED`) |
+
+**Reading:**
+
+- **These are mostly records of the 2010–11 fallow review, not work obligations.** The
+  descriptions say things like "Not Fallow - Block is Field", "Unknown original Work Programme.
+  Block is fallow", "FDP required" and "N/A". Migrating them as activities would put 23 dateless
+  pseudo-obligations on LMS timelines. Proposed: keep their text as a schedule comment (the planned
+  comments area, M6), and migrate only the 7 well or seismic activities as activities.
+- **Still in use.** 14 are on extant licences, and 9 were saved in 2026 (P12, P112 and P335 in
+  September). So the fallow programmes are still being maintained, and the licensing team should
+  say how they are handled in LMS going forward, not only how they migrate.
+- **No term to put them in.** 14 were created after the last term on their schedule ended (most old
+  licences have only a `T1` from the 1970s, and no expiry), so there is no LMS term in force for
+  them. Two (P251, P252) have schedules with no terms (schedule survey pattern E), which aren't
+  migrated, so their programmes can't be either.
+- **23 licences have no INITIAL programme**, so for them this is the only work programme in PEARS.
+- PEDL182's extension ("Extn to end of 2014") predates the schedule's current terms (Initial term to
+  2015), so its activities may be stale. P79's firm well is `COMPLETE` on a licence whose only term
+  ended in 1971.
 
 ## WP-S2. Versions and organisation
 
@@ -1283,7 +1628,8 @@ Totals: `TITLE` 518 (61 + 88 + 67 + 126 + 176; reprocess = WP-S4's 143 3D + 33 2
     description.
   - For titled ones the title decides, which matches what the licensee was originally asked for.
     For description-classified ones, "reprocess" wins because it is checked first.
-  - Report them all; splitting one activity into two isn't safe by rule.
+  - Report them all; splitting one activity into two isn't safe by rule. WP-S4d lists them for
+    the licensing team to decide before migration (WP-L13).
 - **Phase timing written into flat-list descriptions (new finding):** e.g. "Phase A: 3 years
   (TOTAL PHASE A: 3 YEARS) ⏎ Obtain…". These are flat-list activities (`SEISMIC` only exists in
   flat lists), but the text says which phase they belong to. If this is common, the phase can be
@@ -1314,6 +1660,110 @@ ORDER BY 1, 2;
 ```
 
 **Result:** not run.
+
+### WP-S4d. The seismic activities that describe two operations, one row each
+
+The 82 multi-verb activities from WP-S4b (review document 2.4), for the licensing team to say which
+should be split into two activities in LMS (the "WP-S4d Two-operation seismic" sheet of
+[pears-work-programme-migration-licensing-items.xlsx](pears-work-programme-migration-licensing-items.xlsx)).
+Same classification as WP-S4b, so flat `SEISMIC` activities only, and `DRAFT` excluded.
+`category` is what the migration would give the activity.
+
+```sql
+WITH latest_dp AS (
+  SELECT licence_type, licence_no, ped_dp_id
+  FROM (
+    SELECT pdp.licence_type, pdp.licence_no, pdp.id ped_dp_id
+         , ROW_NUMBER() OVER (PARTITION BY pdp.licence_type, pdp.licence_no
+                              ORDER BY pdp.position_datetime DESC, pdp.position_sequence DESC) rn
+    FROM pedmgr.ped_data_points pdp
+    WHERE pdp.ped_sim_id = 0
+  )
+  WHERE rn = 1
+)
+, current_status AS (
+  SELECT plm.id ped_lm_id, xplc.licence_status
+  FROM pedmgr.ped_licence_master plm
+  JOIN latest_dp ld ON ld.licence_type = plm.licence_type AND ld.licence_no = plm.licence_no
+  JOIN pedmgr.ped_licences pl ON pl.ped_dp_id = ld.ped_dp_id AND pl.end_datetime IS NULL
+  JOIN pedmgr.xview_ped_ld_current xplc ON xplc.ped_licence_id = pl.id AND xplc.ped_lm_id = plm.id
+)
+, acts AS (
+  SELECT wp.ped_lm_id, wp.id wp_id, a.activity_id, TRIM(a.title) title, a.activity_status, a.description
+  FROM pedmgr.ped_work_programme wp
+  JOIN pedmgr.ped_work_programme_details wpd
+    ON wpd.ped_wp_id = wp.id AND wpd.status_control = 'C' AND wpd.record_status = 'ACTIVE'
+     , XMLTABLE('/WORK_PROGRAMME/ACTIVITY_LIST/ACTIVITY[ACTIVITY_TYPE = "SEISMIC"]' PASSING wpd.xml_data
+         COLUMNS activity_id     VARCHAR2(40)   PATH 'ACTIVITY_ID'
+               , title           VARCHAR2(4000) PATH 'TITLE'
+               , activity_status VARCHAR2(20)   PATH 'ACTIVITY_STATUS'
+               , description     VARCHAR2(3000) PATH 'substring(DESCRIPTION, 1, 3000)') a
+  WHERE NVL(XMLCAST(XMLQUERY('/WORK_PROGRAMME/WORK_PROGRAMME_STATUS/text()' PASSING wpd.xml_data RETURNING CONTENT) AS VARCHAR2(20)), '-') != 'DRAFT'
+)
+, classified AS (
+  SELECT acts.*
+       , CASE WHEN REGEXP_LIKE(title, '^(Shoot|Obtain|Reprocess) [23]D', 'i') THEN 'TITLE' ELSE 'DESCRIPTION' END basis
+       , CASE
+           WHEN REGEXP_LIKE(title, '^Shoot 2D', 'i')     THEN 'NEW_SHOOT_2_D_SEISMIC_DATA'
+           WHEN REGEXP_LIKE(title, '^Shoot 3D', 'i')     THEN 'NEW_SHOOT_3_D_SEISMIC_DATA'
+           WHEN REGEXP_LIKE(title, '^Obtain 2D', 'i')    THEN 'OBTAIN_EXISTING_2_D_SEISMIC_DATA'
+           WHEN REGEXP_LIKE(title, '^Obtain 3D', 'i')    THEN 'OBTAIN_EXISTING_3_D_SEISMIC_DATA'
+           WHEN REGEXP_LIKE(title, '^Reprocess', 'i')    THEN 'REPROCESS_SEISMIC_DATA'
+           WHEN REGEXP_LIKE(description, 'reprocess', 'i') THEN 'REPROCESS_SEISMIC_DATA'
+           WHEN REGEXP_LIKE(description, 'shoot|acquir', 'i') AND REGEXP_LIKE(description, '2\s*d', 'i') THEN 'NEW_SHOOT_2_D_SEISMIC_DATA'
+           WHEN REGEXP_LIKE(description, 'shoot|acquir', 'i') AND REGEXP_LIKE(description, '3\s*d', 'i') THEN 'NEW_SHOOT_3_D_SEISMIC_DATA'
+           WHEN REGEXP_LIKE(description, 'obtain|purchas|licen[cs]e', 'i') AND REGEXP_LIKE(description, '2\s*d', 'i') THEN 'OBTAIN_EXISTING_2_D_SEISMIC_DATA'
+           WHEN REGEXP_LIKE(description, 'obtain|purchas|licen[cs]e', 'i') AND REGEXP_LIKE(description, '3\s*d', 'i') THEN 'OBTAIN_EXISTING_3_D_SEISMIC_DATA'
+           ELSE 'UNCLASSIFIED'
+         END category
+       , CASE WHEN REGEXP_LIKE(description, 'shoot|acquir', 'i') THEN 1 ELSE 0 END
+       + CASE WHEN REGEXP_LIKE(description, 'obtain|purchas', 'i') THEN 1 ELSE 0 END
+       + CASE WHEN REGEXP_LIKE(description, 'reprocess', 'i') THEN 1 ELSE 0 END verbs
+  FROM acts
+)
+SELECT plm.licence_type || plm.licence_no licence_reference
+     , NVL(cs.licence_status, '-')        licence_status
+     , CASE WHEN EXISTS (SELECT 1 FROM pedmgr.ped_licence_schedule_details plsd WHERE plsd.ped_lm_id = plm.id)
+            THEN 'Y' ELSE 'N' END         has_schedule
+     , c.wp_id
+     , c.activity_id
+     , c.title
+     , c.activity_status
+     , c.basis
+     , c.category
+     , SUBSTR(REGEXP_REPLACE(c.description, '\s+', ' '), 1, 400) description
+FROM classified c
+JOIN pedmgr.ped_licence_master plm ON plm.id = c.ped_lm_id
+LEFT JOIN current_status cs ON cs.ped_lm_id = plm.id
+WHERE c.verbs > 1
+ORDER BY plm.licence_type, TO_NUMBER(plm.licence_no DEFAULT NULL ON CONVERSION ERROR), c.activity_id;
+```
+
+Expected: 82 rows (WP-S4b), mostly obtain-and-reprocess. WP-S4b didn't filter on scope, so
+some may be on licences with no schedule (`has_schedule = N`), which aren't migrated (WP-S10).
+
+**Result (live, 3 November 2026):** 82 rows, as expected, all with a schedule. 58 classified by
+title (all `OBTAIN` apart from P2329's Reprocess title) and 24 by description (all `REPROCESS`).
+4 are on extant licences (P1777, P2170, P2252, P2340), 69 surrendered and 9 expired. The full rows
+are in the "WP-S4d Two-operation seismic" sheet of
+[pears-work-programme-migration-licensing-items.xlsx](pears-work-programme-migration-licensing-items.xlsx).
+
+| Group | Activities | Examples |
+|---|---:|---|
+| Obtain and reprocess the same data | 72 | "Obtain and Reprocess 200 sq kms 3D seismic data" |
+| Obtain data already reprocessed | 8 | P1994, P2027, P2182, P2185 ×2, P2188, P2323, P2324: "Obtain 230 sq kms Reprocessed 3D seismic data" |
+| Different data sets | 2 | P1794 (obtain 130, reprocess 850 and 600), P2329 (obtain 1,400 km, reprocess 560 km) |
+
+**Reading:**
+
+- **Very few are really two commitments.** 72 describe one data set obtained and then reprocessed,
+  and 8 only obtain data that has already been reprocessed (the "verb" count picked up
+  "Reprocessed"). Only P1794 and P2329 describe separate data sets, and are worth splitting.
+  P2316 also adds "Complete various studies", which could be a separate `OTHER` activity.
+- **The same wording gets different categories.** "Obtain and Reprocess N sq kms 3D" is `OBTAIN`
+  when the title is the standard "Obtain 3D…" and `REPROCESS` when the title is the generic
+  "Seismic Data n" (P17xx–P18xx, where the description decides and "reprocess" is checked first).
+  One category for all 72 would be more consistent; the licensing team picks which.
 
 ## WP-S5. Descriptions
 
@@ -2638,7 +3088,8 @@ ORDER BY 1, 2, 3, 4;
 - **The 23 with a schedule are all `DRAFT_FINAL`** (18 `P`, 5 `PEDL`): awards issued for raise
   whose licences haven't been raised yet. Issuing the award creates the template schedule and the
   `DRAFT_FINAL` programme; the licence data only appears at raise. They are part of the WP-L1
-  count (76 `P`, 15 `PEDL`), which therefore splits into **23 not yet raised** and **68 raised**.
+  count (WP-S1e, 3 November 2026: 90 licences, 75 `P` and 15 `PEDL`), which splits into **23 not
+  yet raised** and **67 raised** (68 of 91 on 29 October).
   Whether the 23 migrate depends on whether the schedule migration creates an LMS licence for a
   licence with no data points. If it doesn't, their programmes have nowhere to go and should be
   created in LMS when the licence is raised (plan Q7, Q9).

@@ -140,6 +140,8 @@ One email can cover several deadlines. All the rows written for that email share
 `(licence, recipient organisation, deadline date)` combination: every deadline on that licence
 falling on the same date goes out in one email to that licensee, whatever its `reminder_type`.
 So a single batch can mix, say, a phase end and a work programme activity due on the same day.
+The exception is the licence's expiry date: a `LICENCE_EXPIRY` deadline supersedes every other
+deadline on that date (§4.3), so a batch containing one never contains anything else.
 
 This is the only link between a row and the message it went out in. The email itself is held
 by the notification service in `notification_library_notifications`, whose
@@ -158,7 +160,7 @@ ORDER BY r.queued_at DESC, r.notification_batch_reference;
 
 ## 4. What decides whether a reminder is sent
 
-Three gates, in order. A deadline that fails any of them produces no row at all, so **the
+Four gates, in order. A deadline that fails any of them produces no row at all, so **the
 absence of a row is not evidence that a deadline does not exist.**
 
 Before any of them apply, the job only runs at all in an environment where the LMS1 release
@@ -168,7 +170,10 @@ phase is switched on. Where it is not, the job does nothing and writes no rows.
    on or before today plus the notice period (§5).
 2. **The licence is `EXTANT`.** A licence in any other current status is skipped silently.
    Nothing is written to say it was skipped.
-3. **No matching row already exists.** The job discards any deadline that already has a row
+3. **The deadline does not fall on the licence's expiry date.** Any deadline other than
+   `LICENCE_EXPIRY` that falls on the same date as the licence's expiry is superseded by the
+   expiry reminder (§4.3). Nothing is written to say it was superseded.
+4. **No matching row already exists.** The job discards any deadline that already has a row
    for the same combination (§4.2).
 
 Deadlines are read from the licence's **`ACTIVE`** schedule version only. A deadline that
@@ -213,6 +218,30 @@ event (or, for expiry, the licence and `reminder_type`), the recipient organisat
 deadline date only. So changing a type's notice period does not cause a second reminder for a
 deadline already warned about under the old one, even though the indexes alone would permit
 it.
+
+### 4.3 Licence expiry supersedes other deadlines on the same date
+
+A licence's final term or phase usually ends on its expiry date, and work programme activities
+or other schedule events can fall due on it too. Rather than warn about each of those
+separately, the expiry reminder stands for all of them: a `TERM_OR_PHASE_END`,
+`WORK_PROGRAMME_ACTIVITY` or `OTHER_SCHEDULE_EVENT` deadline whose `deadline_date` equals the
+licence's `licence_schedule_expiry_dates.expiry_date` on the `ACTIVE` schedule version is never
+reminded on.
+
+This is worked out afresh on every run from the schedule, not from earlier reminders. Licence
+expiry has the longest notice period (§4.1), so whenever another deadline on the expiry date is
+inside its window, the expiry is inside its own window too and supersedes it — whether or not
+the expiry reminder has already gone out. Deadlines on that licence falling on any other date
+are reminded on as normal.
+
+What to expect in the data:
+
+| Situation | `LICENCE_EXPIRY` row | Rows for other types on that date |
+|---|---|---|
+| Deadline falls on the current expiry date | Yes, once the expiry is within twelve months | **None** |
+| Deadline falls on any other date | — | Yes, as normal |
+| Expiry date moved away from a date after the expiry reminder went out | Yes, for the old date and later for the new one (§4.2) | Yes, for deadlines on the old date once they come within six months, since they no longer fall on the expiry date |
+| Expiry date moved onto a date already reminded on for another type | Yes, for the new date | The earlier rows stay; nothing further for that date |
 
 ---
 
@@ -316,8 +345,8 @@ A reminder goes to a licensee's `licence_contact.contact_email`, and a licensee 
 contact. When a licensee on a licence has no `licence_contact` row, there is nowhere to send
 its reminder: **no `licence_reminders` row is written for it, and no email goes out.**
 
-Instead, at the end of each reminder run, the job takes the deadlines that passed the window
-and status gates (§4) and finds every licensee on those licences that has no contact. It sends
+Instead, at the end of each reminder run, the job takes the deadlines that passed the window,
+status and expiry gates (§4) and finds every licensee on those licences that has no contact. It sends
 one email listing them — licence reference, licensee, reminder type and deadline date — to
 every user holding the Licence contacts manager role in the regulator's licence management
 team, so a contact can be added before the deadline passes.
@@ -371,6 +400,7 @@ whose deadline date moves is.
 | Licensee has no contact, but **no one holds the licence contacts manager role** | **No** — nothing is written, so the gap is reported on a later run once a manager exists, provided the deadline is still inside the notice window | No |
 | A contact is added after the gap was reported | The row stays | Yes, on the next run, if the deadline is still inside the notice window |
 | Licence is not `EXTANT` | No | No |
+| Deadline superseded by the licence expiry on the same date (§4.3) | No — the gap is reported against the `LICENCE_EXPIRY` deadline instead | No |
 
 A reported gap is never closed off. Whether a contact was later added has to be checked against
 `licence_contact` and `licence_reminders`, not here.
@@ -470,6 +500,10 @@ what `queued_at` and `reported_at` already record. Revision metadata lives in th
 14. **`notice_period` is not a reliable proxy for `reminder_type`.** It records the notice
     period in force when the row was written, so `LICENCE_EXPIRY` rows may carry either
     `SIX_MONTHS` or `TWELVE_MONTHS` (§8.2). Filter on `reminder_type` instead.
+15. **The final term or phase end usually has no reminder row.** Any deadline falling on the
+    licence's expiry date is superseded by the `LICENCE_EXPIRY` reminder and leaves no trace
+    (§4.3). To ask whether a licensee was warned about a deadline on the expiry date, look for
+    the `LICENCE_EXPIRY` row for that licence and date, not a row of the deadline's own type.
 
 ---
 

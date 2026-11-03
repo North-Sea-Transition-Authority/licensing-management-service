@@ -21,6 +21,13 @@ class ReminderTypeTest {
 
   @ParameterizedTest
   @EnumSource(ReminderType.class)
+  void getNoticePeriod_noReminderTypeHasALongerNoticePeriodThanLicenceExpiry(ReminderType reminderType) {
+    assertThat(reminderType.getNoticePeriod().getMonths())
+        .isLessThanOrEqualTo(ReminderType.LICENCE_EXPIRY.getNoticePeriod().getMonths());
+  }
+
+  @ParameterizedTest
+  @EnumSource(ReminderType.class)
   void getDisplayName_everyReminderTypeHasOne(ReminderType reminderType) {
     assertThat(reminderType.getDisplayName()).isNotBlank();
   }

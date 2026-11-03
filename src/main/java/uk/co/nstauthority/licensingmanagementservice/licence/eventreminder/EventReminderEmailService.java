@@ -44,12 +44,18 @@ public class EventReminderEmailService {
         .map(EventReminderDeadline::reminderType)
         .collect(Collectors.toSet());
 
-    var mergedTemplate = emailService.getTemplate(getTemplate(reminderTypes))
+    var template = getTemplate(reminderTypes);
+
+    var templateBuilder = emailService.getTemplate(template)
         .withMailMergeField("LICENCE_REFERENCE", getLicenceReference(deadlines))
         .withMailMergeField("LICENSEE_NAME", recipient.licenseeName())
-        .withMailMergeField("DEADLINE_DATE", DateFormatUtil.convertToDisplayText(deadlineDate))
-        .withMailMergeField("DEADLINE_LIST", getDeadlineList(deadlines, reminderTypes))
-        .merge();
+        .withMailMergeField("DEADLINE_DATE", DateFormatUtil.convertToDisplayText(deadlineDate));
+
+    if (template != GovukNotifyTemplate.LICENCE_EXPIRY_REMINDER_V1) {
+      templateBuilder = templateBuilder.withMailMergeField("DEADLINE_LIST", getDeadlineList(deadlines, reminderTypes));
+    }
+
+    var mergedTemplate = templateBuilder.merge();
 
     emailService.sendEmail(
         mergedTemplate,

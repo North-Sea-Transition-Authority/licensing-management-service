@@ -7,6 +7,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.refEq;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -131,7 +132,7 @@ class EventReminderEmailServiceTest {
     eventReminderEmailService.queueReminder(
         RECIPIENT,
         DEADLINE_DATE,
-        List.of(eventDeadline, activityDeadline, expiryDeadline(), deadline(TermType.INITIAL.getDisplayName())),
+        List.of(eventDeadline, activityDeadline, deadline(TermType.INITIAL.getDisplayName())),
         BATCH_REFERENCE);
 
     verify(mergedTemplateBuilder).withMailMergeField("LICENCE_REFERENCE", "P001");
@@ -140,7 +141,6 @@ class EventReminderEmailServiceTest {
         "DEADLINE_LIST",
         """
             * Term or phase end — Initial Term
-            * Licence expiry
             * Work programme activity — Drill well: Drill one exploration well
             * Other schedule event — Mandatory relinquishment: Relinquish 50% of the licensed area""");
 
@@ -151,7 +151,7 @@ class EventReminderEmailServiceTest {
   }
 
   @Test
-  void queueReminder_whenTheReminderIsForExpiry_thenTheExpiryTemplateIsUsed() {
+  void queueReminder_whenTheReminderIsForExpiry_thenTheExpiryTemplateIsUsedWithoutADeadlineList() {
     when(emailService.getTemplate(GovukNotifyTemplate.LICENCE_EXPIRY_REMINDER_V1))
         .thenReturn(mergedTemplateBuilder);
     when(mergedTemplateBuilder.withMailMergeField(anyString(), anyString())).thenReturn(mergedTemplateBuilder);
@@ -163,7 +163,10 @@ class EventReminderEmailServiceTest {
         List.of(expiryDeadline()),
         BATCH_REFERENCE);
 
-    verify(mergedTemplateBuilder).withMailMergeField("DEADLINE_LIST", "* P001 — Licence expiry");
+    verify(mergedTemplateBuilder).withMailMergeField("LICENCE_REFERENCE", "P001");
+    verify(mergedTemplateBuilder).withMailMergeField("LICENSEE_NAME", "BP Exploration Alpha Ltd");
+    verify(mergedTemplateBuilder).withMailMergeField("DEADLINE_DATE", "31 December 2027");
+    verify(mergedTemplateBuilder, never()).withMailMergeField(eq("DEADLINE_LIST"), anyString());
     verify(emailService).sendEmail(
         eq(mergedTemplate), any(EmailRecipient.class), any(DomainReference.class));
   }

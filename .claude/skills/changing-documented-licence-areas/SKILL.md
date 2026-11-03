@@ -263,7 +263,7 @@ one document.
 | Anything that starts writing back to the schedule from an application | The "a decision does not change the schedule" subsection, and the caveat that repeats it — a rewrite, not a footnote |
 | A reference or identifier format | The format description and the caveats around when it is assigned |
 | File usage types, document templates, team scope ids | The files and letters section, and the external contributors section |
-| A new deadline source, or a change to what makes a reminder due | The reminders document — the per-type deadline table, the three gates, and the notice window |
+| A new deadline source, or a change to what makes a reminder due | The reminders document — the per-type deadline table, the gates, and the notice window |
 | A change to reminder uniqueness, notice period or suppression | The reminders document's uniqueness section, and the claim that a deadline surviving a schedule update is not re-reminded |
 | How reminders are batched or addressed | The reminders document's batch section and the recipient definition in its glossary |
 | What counts as a bounce, who is told, or when a bounce or missing contact is recorded | The reminders document's bounces and missing contacts sections, the missing contacts "what a row does and does not tell you" table, and the caveats that repeat them |

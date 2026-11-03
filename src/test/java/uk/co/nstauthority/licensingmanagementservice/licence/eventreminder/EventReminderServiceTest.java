@@ -123,16 +123,16 @@ class EventReminderServiceTest {
   }
 
   @Test
-  void sendDueReminders_whenATermAndAnExpiryShareARecipientAndDate_thenOneBatchCoversBoth() {
+  void sendDueReminders_whenATermEndsOnTheLicenceExpiryDate_thenTheExpirySupersedesIt() {
     var termDeadline = deadline(TermType.INITIAL.getDisplayName());
     var expiryDeadline = expiryDeadline(DEADLINE_DATE);
     mockRun(List.of(termDeadline), List.of(expiryDeadline), List.of(bpRecipient), List.of());
 
     var summary = eventReminderService.sendDueReminders();
 
-    assertThat(summary).isEqualTo(new EventReminderRunSummary(2, 0, 1, 0));
-    verify(eventReminderBatchService).queueBatch(eq(bpRecipient), eq(DEADLINE_DATE), deadlinesCaptor.capture());
-    assertThat(deadlinesCaptor.getValue()).containsExactly(termDeadline, expiryDeadline);
+    assertThat(summary).isEqualTo(new EventReminderRunSummary(2, 1, 1, 0));
+    verify(eventReminderBatchService).queueBatch(bpRecipient, DEADLINE_DATE, List.of(expiryDeadline));
+    verify(eventReminderMissingContactService).reportMissingContacts(List.of(expiryDeadline));
   }
 
   @Test
@@ -149,18 +149,18 @@ class EventReminderServiceTest {
   }
 
   @Test
-  void sendDueReminders_whenOneOfTwoTypesWasAlreadyReminded_thenOnlyTheOtherIsCovered() {
+  void sendDueReminders_whenTheExpiryWasAlreadyReminded_thenATermEndingOnTheExpiryDateIsStillSuperseded() {
     var termDeadline = deadline(TermType.INITIAL.getDisplayName());
     var expiryDeadline = expiryDeadline(DEADLINE_DATE);
     mockRun(
         List.of(termDeadline),
         List.of(expiryDeadline),
         List.of(bpRecipient),
-        List.of(reminderRow(termDeadline, BP_ID)));
+        List.of(reminderRow(expiryDeadline, BP_ID)));
 
     eventReminderService.sendDueReminders();
 
-    verify(eventReminderBatchService).queueBatch(bpRecipient, DEADLINE_DATE, List.of(expiryDeadline));
+    verify(eventReminderBatchService, never()).queueBatch(any(), any(), anyCollection());
   }
 
   @Test

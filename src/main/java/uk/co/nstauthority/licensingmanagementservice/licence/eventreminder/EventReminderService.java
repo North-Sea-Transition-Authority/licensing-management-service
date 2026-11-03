@@ -93,10 +93,28 @@ public class EventReminderService {
 
   private List<EventReminderDeadline> getUnsuppressedDeadlines(List<EventReminderDeadline> dueDeadlines) {
     var suppressedLicenceIds = eventReminderSuppressionService.getSuppressedLicenceIds(getDistinctLicences(dueDeadlines));
+    var licenceExpiries = getLicenceExpiries(dueDeadlines);
 
     return dueDeadlines.stream()
         .filter(deadline -> !suppressedLicenceIds.contains(deadline.licence().getId()))
+        .filter(deadline -> !isSupersededByLicenceExpiry(deadline, licenceExpiries))
         .toList();
+  }
+
+  /**
+   * Licence expiry has the longest notice period, so whenever another deadline falling on a licence's expiry date is
+   * due, that licence's expiry deadline is due in the same run and supersedes it.
+   */
+  private Set<LicenceExpiryKey> getLicenceExpiries(List<EventReminderDeadline> dueDeadlines) {
+    return dueDeadlines.stream()
+        .filter(deadline -> deadline.reminderType() == ReminderType.LICENCE_EXPIRY)
+        .map(deadline -> new LicenceExpiryKey(deadline.licence().getId(), deadline.deadlineDate()))
+        .collect(Collectors.toSet());
+  }
+
+  private boolean isSupersededByLicenceExpiry(EventReminderDeadline deadline, Set<LicenceExpiryKey> licenceExpiries) {
+    return deadline.reminderType() != ReminderType.LICENCE_EXPIRY
+        && licenceExpiries.contains(new LicenceExpiryKey(deadline.licence().getId(), deadline.deadlineDate()));
   }
 
   private boolean queueBatch(BatchKey batchKey, List<EventReminderDeadline> deadlines) {
@@ -164,6 +182,9 @@ public class EventReminderService {
   }
 
   private record BatchKey(EventReminderRecipient recipient, LocalDate deadlineDate) {
+  }
+
+  private record LicenceExpiryKey(Integer licenceId, LocalDate deadlineDate) {
   }
 
   private record RemindedKey(

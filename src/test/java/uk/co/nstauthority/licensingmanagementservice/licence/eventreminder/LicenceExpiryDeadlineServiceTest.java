@@ -28,8 +28,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesch
 class LicenceExpiryDeadlineServiceTest {
 
   private static final LocalDate EXPIRY_DATE = LocalDate.of(2027, Month.MARCH, 31);
-  private static final LocalDate NOTICE_DATE = LocalDate.of(2026, Month.OCTOBER, 1);
-  private static final LocalDate WINDOW_END = LocalDate.of(2027, Month.APRIL, 1);
+  private static final LocalDate NOTICE_DATE = LocalDate.of(2026, Month.MARCH, 31);
+  private static final LocalDate WINDOW_END = LocalDate.of(2027, Month.MARCH, 31);
 
   @Mock
   private LicenceScheduleExpiryRepository licenceScheduleExpiryRepository;

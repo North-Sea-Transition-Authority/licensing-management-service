@@ -4,16 +4,19 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.LocalDate;
 import java.time.Month;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
 class NoticePeriodTest {
 
-  @Test
-  void getLatestDeadlineDate() {
-    assertThat(NoticePeriod.SIX_MONTHS.getLatestDeadlineDate(LocalDate.of(2026, Month.MARCH, 15)))
-        .isEqualTo(LocalDate.of(2026, Month.SEPTEMBER, 15));
+  @ParameterizedTest
+  @CsvSource({
+      "SIX_MONTHS, 2026-09-15",
+      "TWELVE_MONTHS, 2027-03-15"
+  })
+  void getLatestDeadlineDate(NoticePeriod noticePeriod, LocalDate expectedLatestDeadlineDate) {
+    assertThat(noticePeriod.getLatestDeadlineDate(LocalDate.of(2026, Month.MARCH, 15)))
+        .isEqualTo(expectedLatestDeadlineDate);
   }
 
   @ParameterizedTest
@@ -46,19 +49,22 @@ class NoticePeriodTest {
 
   @ParameterizedTest
   @CsvSource({
-      "2026-02-28, 2026-08-28",
-      "2026-03-01, 2026-09-01",
-      "2028-02-29, 2028-08-29",
-      "2026-08-31, 2027-02-28",
-      "2026-09-01, 2027-03-01"
+      "SIX_MONTHS, 2026-02-28, 2026-08-28",
+      "SIX_MONTHS, 2026-03-01, 2026-09-01",
+      "SIX_MONTHS, 2028-02-29, 2028-08-29",
+      "SIX_MONTHS, 2026-08-31, 2027-02-28",
+      "SIX_MONTHS, 2026-09-01, 2027-03-01",
+      "TWELVE_MONTHS, 2028-02-29, 2029-02-28",
+      "TWELVE_MONTHS, 2028-03-01, 2029-03-01"
   })
   void getLatestDeadlineDate_whenTheMonthsAreDifferentLengths_thenTheWindowNeverShrinksAsTodayAdvances(
+      NoticePeriod noticePeriod,
       LocalDate today,
       LocalDate expectedLatestDeadlineDate
   ) {
-    assertThat(NoticePeriod.SIX_MONTHS.getLatestDeadlineDate(today))
+    assertThat(noticePeriod.getLatestDeadlineDate(today))
         .isEqualTo(expectedLatestDeadlineDate)
-        .isAfterOrEqualTo(NoticePeriod.SIX_MONTHS.getLatestDeadlineDate(today.minusDays(1)));
+        .isAfterOrEqualTo(noticePeriod.getLatestDeadlineDate(today.minusDays(1)));
   }
 
 }

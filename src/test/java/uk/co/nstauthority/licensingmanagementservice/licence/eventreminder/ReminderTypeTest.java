@@ -3,14 +3,20 @@ package uk.co.nstauthority.licensingmanagementservice.licence.eventreminder;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.EnumSource;
 
 class ReminderTypeTest {
 
   @ParameterizedTest
-  @EnumSource(ReminderType.class)
-  void getNoticePeriod_everyReminderTypeHasOne(ReminderType reminderType) {
-    assertThat(reminderType.getNoticePeriod()).isEqualTo(NoticePeriod.SIX_MONTHS);
+  @CsvSource({
+      "TERM_OR_PHASE_END, SIX_MONTHS",
+      "LICENCE_EXPIRY, TWELVE_MONTHS",
+      "WORK_PROGRAMME_ACTIVITY, SIX_MONTHS",
+      "OTHER_SCHEDULE_EVENT, SIX_MONTHS"
+  })
+  void getNoticePeriod(ReminderType reminderType, NoticePeriod expectedNoticePeriod) {
+    assertThat(reminderType.getNoticePeriod()).isEqualTo(expectedNoticePeriod);
   }
 
   @ParameterizedTest

@@ -4,7 +4,7 @@ import uk.co.nstauthority.licensingmanagementservice.util.enumutil.Displayable;
 
 public enum ReminderType implements Displayable {
   TERM_OR_PHASE_END(NoticePeriod.SIX_MONTHS, "Term or phase end", 10),
-  LICENCE_EXPIRY(NoticePeriod.SIX_MONTHS, "Licence expiry", 20),
+  LICENCE_EXPIRY(NoticePeriod.TWELVE_MONTHS, "Licence expiry", 20),
   WORK_PROGRAMME_ACTIVITY(NoticePeriod.SIX_MONTHS, "Work programme activity", 30),
   OTHER_SCHEDULE_EVENT(NoticePeriod.SIX_MONTHS, "Other schedule event", 40);
 

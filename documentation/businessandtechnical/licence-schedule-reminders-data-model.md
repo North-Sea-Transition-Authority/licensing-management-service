@@ -176,12 +176,12 @@ exists solely in a draft is never reminded on.
 
 ### 4.1 Where each reminder type gets its deadline
 
-| `reminder_type` | Deadline read from | `original_event_id` |
-|---|---|---|
-| `TERM_OR_PHASE_END` | `licence_schedule_terms.end_date` / `licence_schedule_phases.end_date` | populated |
-| `WORK_PROGRAMME_ACTIVITY` | the activity's effective due date — which is `due_date` only for relative dates, and otherwise the linked term's or phase's `end_date` | populated |
-| `OTHER_SCHEDULE_EVENT` | the other schedule event's effective date, resolved the same way | populated |
-| `LICENCE_EXPIRY` | `licence_schedule_expiry_dates.expiry_date` | **null** |
+| `reminder_type` | Deadline read from | `original_event_id` | `notice_period` |
+|---|---|---|---|
+| `TERM_OR_PHASE_END` | `licence_schedule_terms.end_date` / `licence_schedule_phases.end_date` | populated | `SIX_MONTHS` |
+| `WORK_PROGRAMME_ACTIVITY` | the activity's effective due date — which is `due_date` only for relative dates, and otherwise the linked term's or phase's `end_date` | populated | `SIX_MONTHS` |
+| `OTHER_SCHEDULE_EVENT` | the other schedule event's effective date, resolved the same way | populated | `SIX_MONTHS` |
+| `LICENCE_EXPIRY` | `licence_schedule_expiry_dates.expiry_date` | **null** | `TWELVE_MONTHS` |
 
 `LICENCE_EXPIRY` is the odd one out. Its `schedule_event_id` is set like the others, but
 `original_event_id` is deliberately left null, because expiry is deduplicated per licence
@@ -207,12 +207,19 @@ The practical consequence for reporting: a licensee who was warned about a date 
 shifted will have two rows for the same logical event, with different `deadline_date` values.
 That is correct behaviour, not duplication.
 
+**The notice period is not part of the "already reminded" check.** Both indexes include
+`notice_period`, but the check the job makes before writing a row does not: it matches on the
+event (or, for expiry, the licence and `reminder_type`), the recipient organisation and the
+deadline date only. So changing a type's notice period does not cause a second reminder for a
+deadline already warned about under the old one, even though the indexes alone would permit
+it.
+
 ---
 
 ## 5. The notice window
 
 The window is derived forwards from the day the job runs: a deadline is due for a reminder if
-it falls between today and today plus the notice period.
+it falls between today and today plus the notice period for its `reminder_type` (§4.1).
 
 It is worth knowing why it is defined in that direction, because it shows up in the data.
 Working backwards from the deadline instead would clamp to month length — six months before
@@ -390,12 +397,14 @@ constraint. The lists describe what the service writes rather than what the sche
 
 | Value | Meaning |
 |---|---|
-| `SIX_MONTHS` | The reminder goes out when the deadline falls within six months of the day the job runs |
+| `SIX_MONTHS` | The reminder goes out when the deadline falls within six months of the day the job runs. Used by `TERM_OR_PHASE_END`, `WORK_PROGRAMME_ACTIVITY` and `OTHER_SCHEDULE_EVENT` |
+| `TWELVE_MONTHS` | The reminder goes out when the deadline falls within twelve months of the day the job runs. Used by `LICENCE_EXPIRY` |
 
-Currently the only value, and every reminder type uses it. The column exists so the notice
-period can vary by type later, so do not assume a single value when querying — and note that
-it is part of both uniqueness keys, so changing a type's notice period would allow a second
-reminder for a deadline already warned about.
+The value is the notice period the reminder type had when the row was written, not the one it
+has now. `LICENCE_EXPIRY` rows written before licence expiry moved to twelve months' notice
+carry `SIX_MONTHS`, so do not filter on `notice_period` to find reminders of a given type —
+use `reminder_type`. Those older rows still stop the same deadline being reminded again
+(§4.2).
 
 ---
 
@@ -458,6 +467,9 @@ what `queued_at` and `reported_at` already record. Revision metadata lives in th
 13. **A missing contact is only recorded if someone was told.** When no user holds the licence
     contacts manager role, the gap is not reported and no row is written. It is picked up on a
     later run, but only while the deadline is still inside the notice window.
+14. **`notice_period` is not a reliable proxy for `reminder_type`.** It records the notice
+    period in force when the row was written, so `LICENCE_EXPIRY` rows may carry either
+    `SIX_MONTHS` or `TWELVE_MONTHS` (§8.2). Filter on `reminder_type` instead.
 
 ---
 

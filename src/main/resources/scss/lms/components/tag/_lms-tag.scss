@@ -1,0 +1,26 @@
+// Lifts the GOV.UK tag's 160px max-width and stops the label wrapping, so a tag that doesn't fit beside a long name
+// moves onto its own line whole
+.lms-tag--single-line {
+  max-width: none;
+  white-space: nowrap;
+}
+
+// Drops the empty actions column GOV.UK adds to rows without actions, so the value and its tag reach the card's edge
+.lms-summary-list__row--value-with-tag {
+  &::after {
+    content: none;
+  }
+
+  > .govuk-summary-list__value {
+    padding-right: 0;
+  }
+}
+
+// Keeps a value on the left and pushes its tag to the right edge of the summary list row
+.lms-value-with-tag {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: govuk-spacing(2);
+}

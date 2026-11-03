@@ -261,6 +261,7 @@ public class LicencePositionViewService {
         changeViews,
         LicencePositionStateViewResolver.getStateView(
             licencePosition.getId(),
+            licence.getType(),
             resolvedStates,
             nameContext,
             featureNames,
@@ -477,6 +478,7 @@ public class LicencePositionViewService {
         changeViews,
         LicencePositionStateViewResolver.getStateView(
             licencePosition.getId(),
+            licence.getType(),
             resolvedStates,
             nameContext,
             featureNames,
@@ -571,6 +573,7 @@ public class LicencePositionViewService {
         changeViews,
         LicencePositionStateViewResolver.getStateView(
             addedPositionId,
+            licenceCorrection.getLicence().getType(),
             resolvedStates,
             nameContext,
             featureNames,

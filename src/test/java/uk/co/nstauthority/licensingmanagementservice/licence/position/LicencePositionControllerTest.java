@@ -42,6 +42,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.overview.LicenceSum
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.AdministratorStateView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.LicencePositionStateView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.LicenseeStateView;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.LicenseeView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.filter.LicenceTimelineFilter;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.filter.LicenceTimelineFilterOptions;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.filter.LicenceTimelineFilterSession;
@@ -246,7 +247,7 @@ class LicencePositionControllerTest extends AbstractControllerTest {
         List.of(),
         new LicencePositionStateView(
             new AdministratorStateView("admin organisation"),
-            new LicenseeStateView(List.of("licenseeNames")),
+            new LicenseeStateView(List.of(new LicenseeView("licenseeNames", null))),
             "",
             List.of(),
             List.of(),

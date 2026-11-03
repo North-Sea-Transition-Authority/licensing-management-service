@@ -51,6 +51,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.vie
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.AdministratorStateView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.LicencePositionStateView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.LicenseeStateView;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.LicenseeView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.filter.LicenceTimelineFilter;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.filter.LicenceTimelineFilterOptions;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.filter.LicenceTimelineFilterSession;
@@ -318,7 +319,7 @@ class LicenceCorrectionControllerTest extends AbstractControllerTest {
                 new ChangeViewUrls("/correct", null, "/undo", null, null, null))),
         new LicencePositionStateView(
             new AdministratorStateView("Operator Ltd"),
-            new LicenseeStateView(List.of("Licensee")),
+            new LicenseeStateView(List.of(new LicenseeView("Licensee", null))),
             "",
             List.of(),
             List.of(),

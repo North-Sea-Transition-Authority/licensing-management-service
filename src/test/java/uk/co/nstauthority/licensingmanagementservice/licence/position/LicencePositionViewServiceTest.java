@@ -35,6 +35,7 @@ import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatusType;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
@@ -81,7 +82,9 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.vie
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.BeneficialInterestView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.LicencePositionStateView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.LicenseeStateView;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.LicenseeView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.NameHistoryEntryView;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.OrganisationMarker;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.OrganisationNameHistoryView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.SubareaBeneficialInterestView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.FeatureTestUtil;
@@ -94,7 +97,7 @@ import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 @ExtendWith(MockitoExtension.class)
 class LicencePositionViewServiceTest {
 
-  private static final Licence LICENCE = LicenceTestUtil.builder().build();
+  private static final Licence LICENCE = LicenceTestUtil.builder().withLicenceType(LicenceType.SEAWARD_PRODUCTION).build();
   private static final UUID POSITION_ID = UUID.randomUUID();
   private static final Feature SURRENDERED_BLOCK = FeatureTestUtil.builder().withFeatureName("30/1a").build();
   private static final AdministratorOperation ADMINISTRATOR_OPERATION = LicenceOperation.newAdministratorChange()
@@ -274,7 +277,7 @@ class LicencePositionViewServiceTest {
 
     var result = licencePositionViewService.getCorrectionPositionPageView(correction, executed, LicenceTimelineFilter.empty());
 
-    assertThat(result.stateView().licenseeStateView().licenseeNames()).isEqualTo(List.of());
+    assertThat(result.stateView().licenseeStateView().licensees()).isEqualTo(List.of());
   }
 
   @Test
@@ -301,7 +304,9 @@ class LicencePositionViewServiceTest {
 
     var result = licencePositionViewService.getCorrectionPositionPageView(correction, executed, LicenceTimelineFilter.empty());
 
-    assertThat(result.stateView().licenseeStateView().licenseeNames()).isEqualTo(List.of("Admin Ltd", "Org Ltd"));
+    assertThat(result.stateView().licenseeStateView().licensees()).isEqualTo(List.of(
+        new LicenseeView("Admin Ltd", OrganisationMarker.NO_BENEFICIAL_INTEREST),
+        new LicenseeView("Org Ltd", OrganisationMarker.NO_BENEFICIAL_INTEREST)));
   }
 
   @Test
@@ -383,8 +388,8 @@ class LicencePositionViewServiceTest {
             new LicenseeStateView(List.of()),
             "",
             List.of(
-                new BeneficialInterestView("BP Exploration", new BigDecimal("40")),
-                new BeneficialInterestView("Shell Expro", new BigDecimal("60"))
+                new BeneficialInterestView("BP Exploration", new BigDecimal("40"), OrganisationMarker.NOT_A_LICENSEE),
+                new BeneficialInterestView("Shell Expro", new BigDecimal("60"), OrganisationMarker.NOT_A_LICENSEE)
             ),
             List.of(
                 new OrganisationNameHistoryView(
@@ -439,7 +444,7 @@ class LicencePositionViewServiceTest {
             )),
             List.of(new SubareaBeneficialInterestView(
                 "Block %s - Subarea A".formatted(block.getFeatureName()),
-                List.of(new BeneficialInterestView("Shell Expro", new BigDecimal("100")))
+                List.of(new BeneficialInterestView("Shell Expro", new BigDecimal("100"), OrganisationMarker.NOT_A_LICENSEE))
             ))
         ));
   }
@@ -477,7 +482,7 @@ class LicencePositionViewServiceTest {
     assertThat(result.stateView().subareaBeneficialInterests())
         .containsExactly(new SubareaBeneficialInterestView(
             "Block %s - Subarea A".formatted(block.getFeatureName()),
-            List.of(new BeneficialInterestView("Shell plc", new BigDecimal("100")))
+            List.of(new BeneficialInterestView("Shell plc", new BigDecimal("100"), OrganisationMarker.NOT_A_LICENSEE))
         ));
   }
 

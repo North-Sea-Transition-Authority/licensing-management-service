@@ -10,7 +10,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaDetails;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.LicencePositionState;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ResolvedStates;
@@ -18,6 +20,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.vie
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.BeneficialInterestView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.LicencePositionStateView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.LicenseeStateView;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.LicenseeView;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.OrganisationMarker;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.OrganisationNameHistoryView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.SubareaBeneficialInterestView;
 
@@ -27,9 +31,9 @@ public final class LicencePositionStateViewResolver {
     throw new IllegalStateException("Utility class should not be instantiated.");
   }
 
-  /** Names every organisation in the position's state as it was known on the position date, or today when null. */
   public static LicencePositionStateView getStateView(
       UUID currentLicencePositionId,
+      LicenceType licenceType,
       ResolvedStates resolvedStates,
       OrganisationNameContext nameContext,
       Map<UUID, String> featureNames,
@@ -37,31 +41,67 @@ public final class LicencePositionStateViewResolver {
   ) {
     var currentState = resolvedStates.currentState(currentLicencePositionId);
 
-    var licenseeNames = currentState.licenseeIds()
-        .stream()
-        .map(id -> nameContext.getNameForDate(id, positionDate, NOT_AVAILABLE))
-        .sorted(String.CASE_INSENSITIVE_ORDER)
-        .toList();
-
     return new LicencePositionStateView(
         new AdministratorStateView(nameContext.getNameForDate(currentState.administratorId(), positionDate, "")),
-        new LicenseeStateView(licenseeNames),
+        new LicenseeStateView(buildLicensees(currentState, licenceType, nameContext, positionDate)),
         nameContext.getNameForDate(currentState.storageOperatorId(), positionDate, ""),
-        buildBeneficialInterests(currentState.equityByOrganisationId(), nameContext, positionDate),
+        buildBeneficialInterests(
+            currentState.equityByOrganisationId(),
+            currentState.licenseeIds(),
+            nameContext,
+            positionDate
+        ),
         buildOrganisationNameHistories(currentState, nameContext, positionDate),
-        buildSubareaBeneficialInterests(currentState.blockFeatureIdToSubareaEquity(), featureNames, nameContext, positionDate)
+        buildSubareaBeneficialInterests(
+            currentState.blockFeatureIdToSubareaEquity(),
+            currentState.licenseeIds(),
+            featureNames,
+            nameContext,
+            positionDate
+        )
     );
+  }
+
+  private static List<LicenseeView> buildLicensees(
+      LicencePositionState currentState,
+      LicenceType licenceType,
+      OrganisationNameContext nameContext,
+      @Nullable LocalDate positionDate
+  ) {
+    var beneficialInterestHolderIds = currentState.beneficialInterestHolderIds();
+    return currentState.licenseeIds()
+        .stream()
+        .map(licenseeId -> new LicenseeView(
+            nameContext.getNameForDate(licenseeId, positionDate, NOT_AVAILABLE),
+            getLicenseeMarker(licenseeId, licenceType, beneficialInterestHolderIds)
+        ))
+        .sorted(Comparator.comparing(LicenseeView::organisationName, String.CASE_INSENSITIVE_ORDER))
+        .toList();
+  }
+
+  @Nullable
+  private static OrganisationMarker getLicenseeMarker(
+      Integer licenseeId,
+      LicenceType licenceType,
+      Set<Integer> beneficialInterestHolderIds
+  ) {
+    if (licenceType.hasBeneficialInterests() && !beneficialInterestHolderIds.contains(licenseeId)) {
+      return OrganisationMarker.NO_BENEFICIAL_INTEREST;
+    }
+    return null;
   }
 
   private static List<BeneficialInterestView> buildBeneficialInterests(
       Map<Integer, BigDecimal> equityByOrganisationId,
+      Set<Integer> licenseeIds,
       OrganisationNameContext nameContext,
       @Nullable LocalDate positionDate
   ) {
     return equityByOrganisationId.entrySet().stream()
         .map(entry -> new BeneficialInterestView(
             nameContext.getNameForDate(entry.getKey(), positionDate, NOT_AVAILABLE),
-            entry.getValue()
+            entry.getValue(),
+            licenseeIds.contains(entry.getKey()) ? null : OrganisationMarker.NOT_A_LICENSEE
         ))
         .sorted(Comparator.comparing(BeneficialInterestView::organisationName, String.CASE_INSENSITIVE_ORDER))
         .toList();
@@ -69,6 +109,7 @@ public final class LicencePositionStateViewResolver {
 
   private static List<SubareaBeneficialInterestView> buildSubareaBeneficialInterests(
       Map<UUID, Map<SubareaDetails, Map<Integer, BigDecimal>>> blockFeatureIdToSubareaEquity,
+      Set<Integer> licenseeIds,
       Map<UUID, String> featureNamesById,
       OrganisationNameContext nameContext,
       @Nullable LocalDate positionDate
@@ -78,7 +119,8 @@ public final class LicencePositionStateViewResolver {
             .map(subareaEntry -> {
               var blockName = featureNamesById.get(blockEntry.getKey());
               var subareaLabel = subareaEntry.getKey().labelForBlockName(blockName);
-              var beneficialInterestViews = buildBeneficialInterests(subareaEntry.getValue(), nameContext, positionDate);
+              var beneficialInterestViews =
+                  buildBeneficialInterests(subareaEntry.getValue(), licenseeIds, nameContext, positionDate);
               return new SubareaBeneficialInterestView(subareaLabel, beneficialInterestViews);
             })
         )
@@ -100,10 +142,7 @@ public final class LicencePositionStateViewResolver {
     Optional.ofNullable(currentState.administratorId()).ifPresent(distinctOrganisationIds::add);
     Optional.ofNullable(currentState.storageOperatorId()).ifPresent(distinctOrganisationIds::add);
     distinctOrganisationIds.addAll(currentState.licenseeIds());
-    distinctOrganisationIds.addAll(currentState.equityByOrganisationId().keySet());
-    currentState.blockFeatureIdToSubareaEquity().values().stream()
-        .flatMap(subareaEquity -> subareaEquity.values().stream())
-        .forEach(equityByOrganisationId -> distinctOrganisationIds.addAll(equityByOrganisationId.keySet()));
+    distinctOrganisationIds.addAll(currentState.beneficialInterestHolderIds());
 
     return distinctOrganisationIds.stream()
         .map(organisationId -> nameContext.getNameHistoryForDate(organisationId, positionDate))

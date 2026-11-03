@@ -3,6 +3,6 @@ package uk.co.nstauthority.licensingmanagementservice.licence.position.change.vi
 import java.util.List;
 
 public record LicenseeStateView(
-    List<String> licenseeNames
+    List<LicenseeView> licensees
 ) {
 }

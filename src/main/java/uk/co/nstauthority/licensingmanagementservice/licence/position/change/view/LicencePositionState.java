@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaDetails;
 
 /**
@@ -98,6 +99,15 @@ public record LicencePositionState(
         .flatMap(blockFeatureId -> blockFeatureIdToSubareas.get(blockFeatureId).stream())
         .collect(Collectors.toSet());
     return subareasOnBlocks.containsAll(subareas);
+  }
+
+  public Set<Integer> beneficialInterestHolderIds() {
+    return Stream.concat(
+        equityByOrganisationId.keySet().stream(),
+        blockFeatureIdToSubareaEquity.values().stream()
+            .flatMap(subareaEquity -> subareaEquity.values().stream())
+            .flatMap(subareaEquityByOrganisationId -> subareaEquityByOrganisationId.keySet().stream())
+    ).collect(Collectors.toSet());
   }
 
   /**

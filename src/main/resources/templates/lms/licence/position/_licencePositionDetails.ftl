@@ -1,6 +1,5 @@
 <#include '../../layout/layout.ftl'>
 <#import '_positionChanges.ftl' as positionChanges>
-<#import '../../macros/_licenseesDisplay.ftl' as licenseesDisplay>
 
 <#macro details licencePositionChanges licencePositionState actions={} canEdit=false isCarbonStorage=false>
     <#if canEdit>
@@ -10,8 +9,13 @@
             </#if>
         </@fdsAction.buttonGroup>
     </#if>
-    <#if licencePositionState.licenseeStateView().licenseeNames()?size != 0>
-      <@licenseesDisplay.displayLicensees names=licencePositionState.licenseeStateView().licenseeNames()/>
+    <#if licencePositionState.licenseeStateView().licensees()?size != 0>
+      <h3 class="govuk-heading-s govuk-!-margin-bottom-0">Licensees</h3>
+      <ul class="govuk-list">
+        <#list licencePositionState.licenseeStateView().licensees() as licensee>
+          <li>${licensee.organisationName()} <@organisationMarkerTag organisation=licensee/></li>
+        </#list>
+      </ul>
     </#if>
     <#if isCarbonStorage>
       <#assign storageOperatorName>
@@ -39,9 +43,7 @@
   <#if licencePositionState.beneficialInterests()?has_content>
     <@fdsSummaryList.summaryListCard headingText="Beneficial interests" summaryListId="beneficial-interests">
       <#list licencePositionState.beneficialInterests() as beneficialInterest>
-        <@fdsSummaryList.summaryListRowNoAction keyText=beneficialInterest.organisationName()>
-          ${percentage.format(beneficialInterest.equity())}
-        </@fdsSummaryList.summaryListRowNoAction>
+        <@beneficialInterestRow beneficialInterest=beneficialInterest/>
       </#list>
     </@fdsSummaryList.summaryListCard>
   </#if>
@@ -54,9 +56,7 @@
         summaryListId="subarea-beneficial-interests-${subareaBeneficialInterest?index}"
       >
         <#list subareaBeneficialInterest.beneficialInterests() as beneficialInterest>
-          <@fdsSummaryList.summaryListRowNoAction keyText=beneficialInterest.organisationName()>
-            ${percentage.format(beneficialInterest.equity())}
-          </@fdsSummaryList.summaryListRowNoAction>
+          <@beneficialInterestRow beneficialInterest=beneficialInterest/>
         </#list>
       </@fdsSummaryList.summaryListCard>
     </#list>
@@ -91,4 +91,22 @@
       isCarbonStorage=isCarbonStorage
     />
   </#list>
+</#macro>
+
+<#macro beneficialInterestRow beneficialInterest>
+  <@fdsSummaryList.summaryListRowNoAction
+    keyText=beneficialInterest.organisationName()
+    rowClass="lms-summary-list__row--value-with-tag"
+  >
+    <div class="lms-value-with-tag">
+      ${percentage.format(beneficialInterest.equity())}
+      <@organisationMarkerTag organisation=beneficialInterest/>
+    </div>
+  </@fdsSummaryList.summaryListRowNoAction>
+</#macro>
+
+<#macro organisationMarkerTag organisation>
+  <#if organisation.marker()??>
+    <@fdsTag.tag tagClass="${organisation.marker().tagClass} lms-tag--single-line">${organisation.marker().label}</@fdsTag.tag>
+  </#if>
 </#macro>

@@ -12,8 +12,11 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationNamePeriods;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationNamePeriods.OrganisationNamePeriod;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaDetails;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.LicencePositionState;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.PositionKey;
@@ -22,7 +25,9 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.vie
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.BeneficialInterestView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.LicencePositionStateView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.LicenseeStateView;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.LicenseeView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.NameHistoryEntryView;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.OrganisationMarker;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.OrganisationNameHistoryView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.SubareaBeneficialInterestView;
 
@@ -65,6 +70,7 @@ class LicencePositionStateViewResolverTest {
 
     var result = LicencePositionStateViewResolver.getStateView(
         currentPositionId,
+        LicenceType.CARBON_STORAGE,
         resolvedStatesFor(currentPositionId, state),
         OrganisationNameContext.from(nameHistories),
         Map.of(),
@@ -74,12 +80,14 @@ class LicencePositionStateViewResolverTest {
     assertThat(result)
         .isEqualTo(new LicencePositionStateView(
             new AdministratorStateView(CURRENT_ADMIN_NAME),
-            new LicenseeStateView(List.of("delta diff", "echo location")),
+            new LicenseeStateView(List.of(
+                new LicenseeView("delta diff", OrganisationMarker.NO_BENEFICIAL_INTEREST),
+                new LicenseeView("echo location", OrganisationMarker.NO_BENEFICIAL_INTEREST))),
             CURRENT_STORAGE_OPERATOR_NAME,
             List.of(
-                new BeneficialInterestView("alpha energy", new BigDecimal("35")),
-                new BeneficialInterestView("Bravo gas", new BigDecimal("25")),
-                new BeneficialInterestView("charlie oil", new BigDecimal("40"))
+                new BeneficialInterestView("alpha energy", new BigDecimal("35"), OrganisationMarker.NOT_A_LICENSEE),
+                new BeneficialInterestView("Bravo gas", new BigDecimal("25"), OrganisationMarker.NOT_A_LICENSEE),
+                new BeneficialInterestView("charlie oil", new BigDecimal("40"), OrganisationMarker.NOT_A_LICENSEE)
             ),
             List.of(),
             List.of()
@@ -92,6 +100,7 @@ class LicencePositionStateViewResolverTest {
 
     var result = LicencePositionStateViewResolver.getStateView(
         currentPositionId,
+        LicenceType.CARBON_STORAGE,
         new ResolvedStates(new TreeMap<>(), Map.of()),
         OrganisationNameContext.from(Map.of(CURRENT_ADMIN_ID, heldSince(CURRENT_ADMIN_NAME))),
         Map.of(),
@@ -114,6 +123,7 @@ class LicencePositionStateViewResolverTest {
 
     var result = LicencePositionStateViewResolver.getStateView(
         currentPositionId,
+        LicenceType.GAS_STORAGE,
         resolvedStatesFor(currentPositionId, state),
         OrganisationNameContext.from(Map.of(1, heldSince("organisationOne"))),
         Map.of(),
@@ -121,7 +131,127 @@ class LicencePositionStateViewResolverTest {
     );
 
     assertThat(result.licenseeStateView())
-        .isEqualTo(new LicenseeStateView(List.of("Not available", "organisationOne")));
+        .isEqualTo(new LicenseeStateView(List.of(
+            new LicenseeView("Not available", null),
+            new LicenseeView("organisationOne", null))));
+  }
+
+  @ParameterizedTest
+  @EnumSource(value = LicenceType.class, names = {"CARBON_STORAGE", "LANDWARD_PRODUCTION", "SEAWARD_PRODUCTION"})
+  void getStateView_whenNoBeneficialInterestsRecorded_thenEveryLicenseeMarkedNoBeneficialInterest(
+      LicenceType licenceType
+  ) {
+    var currentPositionId = UUID.randomUUID();
+
+    var state = LicencePositionState.EMPTY.withLicenseeIds(List.of(1, 2), List.of());
+
+    var result = LicencePositionStateViewResolver.getStateView(
+        currentPositionId,
+        licenceType,
+        resolvedStatesFor(currentPositionId, state),
+        OrganisationNameContext.from(Map.of(1, heldSince("alpha energy"), 2, heldSince("bravo gas"))),
+        Map.of(),
+        POSITION_DATE
+    );
+
+    assertThat(result.licenseeStateView())
+        .isEqualTo(new LicenseeStateView(List.of(
+            new LicenseeView("alpha energy", OrganisationMarker.NO_BENEFICIAL_INTEREST),
+            new LicenseeView("bravo gas", OrganisationMarker.NO_BENEFICIAL_INTEREST))));
+  }
+
+  @ParameterizedTest
+  @EnumSource(
+      value = LicenceType.class,
+      mode = EnumSource.Mode.EXCLUDE,
+      names = {"CARBON_STORAGE", "LANDWARD_PRODUCTION", "SEAWARD_PRODUCTION"}
+  )
+  void getStateView_whenLicenceTypeHasNoBeneficialInterests_thenLicenseesNotMarked(LicenceType licenceType) {
+    var currentPositionId = UUID.randomUUID();
+
+    var state = LicencePositionState.EMPTY.withLicenseeIds(List.of(1), List.of());
+
+    var result = LicencePositionStateViewResolver.getStateView(
+        currentPositionId,
+        licenceType,
+        resolvedStatesFor(currentPositionId, state),
+        OrganisationNameContext.from(Map.of(1, heldSince("alpha energy"))),
+        Map.of(),
+        POSITION_DATE
+    );
+
+    assertThat(result.licenseeStateView())
+        .isEqualTo(new LicenseeStateView(List.of(new LicenseeView("alpha energy", null))));
+  }
+
+  @Test
+  void getStateView_whenCarbonStorage_thenMarksLicenseesWithoutLicenceLevelEquity() {
+    var currentPositionId = UUID.randomUUID();
+
+    var state = LicencePositionState.EMPTY
+        .withLicenseeIds(List.of(1, 2), List.of())
+        .withEquityByOrganisationId(Map.of(1, new BigDecimal("100")));
+
+    var result = LicencePositionStateViewResolver.getStateView(
+        currentPositionId,
+        LicenceType.CARBON_STORAGE,
+        resolvedStatesFor(currentPositionId, state),
+        OrganisationNameContext.from(Map.of(1, heldSince("alpha energy"), 2, heldSince("bravo gas"))),
+        Map.of(),
+        POSITION_DATE
+    );
+
+    assertThat(result.licenseeStateView())
+        .isEqualTo(new LicenseeStateView(List.of(
+            new LicenseeView("alpha energy", null),
+            new LicenseeView("bravo gas", OrganisationMarker.NO_BENEFICIAL_INTEREST))));
+  }
+
+  @Test
+  void getStateView_whenProduction_thenMarksLicenseesWithoutSubareaEquity() {
+    var currentPositionId = UUID.randomUUID();
+    var blockId = UUID.randomUUID();
+    var subarea = new SubareaDetails(UUID.randomUUID(), "Subarea A", "A");
+
+    var state = LicencePositionState.EMPTY
+        .withLicenseeIds(List.of(1, 2), List.of())
+        .withSubareaEquity(blockId, subarea, 1, new BigDecimal("100"));
+
+    var result = LicencePositionStateViewResolver.getStateView(
+        currentPositionId,
+        LicenceType.SEAWARD_PRODUCTION,
+        resolvedStatesFor(currentPositionId, state),
+        OrganisationNameContext.from(Map.of(1, heldSince("alpha energy"), 2, heldSince("bravo gas"))),
+        Map.of(blockId, "21/1"),
+        POSITION_DATE
+    );
+
+    assertThat(result.licenseeStateView())
+        .isEqualTo(new LicenseeStateView(List.of(
+            new LicenseeView("alpha energy", null),
+            new LicenseeView("bravo gas", OrganisationMarker.NO_BENEFICIAL_INTEREST))));
+  }
+
+  @Test
+  void getStateView_whenLicenseeHoldsOnlyZeroEquity_thenNotMarked() {
+    var currentPositionId = UUID.randomUUID();
+
+    var state = LicencePositionState.EMPTY
+        .withLicenseeIds(List.of(1), List.of())
+        .withEquityByOrganisationId(Map.of(1, BigDecimal.ZERO));
+
+    var result = LicencePositionStateViewResolver.getStateView(
+        currentPositionId,
+        LicenceType.CARBON_STORAGE,
+        resolvedStatesFor(currentPositionId, state),
+        OrganisationNameContext.from(Map.of(1, heldSince("alpha energy"))),
+        Map.of(),
+        POSITION_DATE
+    );
+
+    assertThat(result.licenseeStateView())
+        .isEqualTo(new LicenseeStateView(List.of(
+            new LicenseeView("alpha energy", null))));
   }
 
   @Test
@@ -132,6 +262,7 @@ class LicencePositionStateViewResolverTest {
 
     var result = LicencePositionStateViewResolver.getStateView(
         currentPositionId,
+        LicenceType.CARBON_STORAGE,
         resolvedStatesFor(currentPositionId, state),
         OrganisationNameContext.from(Map.of()),
         Map.of(),
@@ -148,6 +279,7 @@ class LicencePositionStateViewResolverTest {
 
     var result = LicencePositionStateViewResolver.getStateView(
         currentPositionId,
+        LicenceType.SEAWARD_PRODUCTION,
         resolvedStatesFor(currentPositionId, LicencePositionState.EMPTY.withAdministratorId(CURRENT_ADMIN_ID)),
         OrganisationNameContext.from(Map.of()),
         Map.of(),
@@ -166,6 +298,7 @@ class LicencePositionStateViewResolverTest {
 
     var result = LicencePositionStateViewResolver.getStateView(
         currentPositionId,
+        LicenceType.CARBON_STORAGE,
         resolvedStatesFor(currentPositionId, state),
         OrganisationNameContext.from(Map.of()),
         Map.of(),
@@ -173,7 +306,71 @@ class LicencePositionStateViewResolverTest {
     );
 
     assertThat(result.beneficialInterests())
-        .isEqualTo(List.of(new BeneficialInterestView("Not available", new BigDecimal("100"))));
+        .isEqualTo(List.of(
+            new BeneficialInterestView("Not available", new BigDecimal("100"), OrganisationMarker.NOT_A_LICENSEE)));
+  }
+
+  @Test
+  void getStateView_whenBeneficialInterestHolderIsNotALicensee_thenMarkedNotALicensee() {
+    var currentPositionId = UUID.randomUUID();
+
+    var state = LicencePositionState.EMPTY
+        .withLicenseeIds(List.of(2), List.of())
+        .withEquityByOrganisationId(Map.of(1, new BigDecimal("100")));
+
+    var result = LicencePositionStateViewResolver.getStateView(
+        currentPositionId,
+        LicenceType.CARBON_STORAGE,
+        resolvedStatesFor(currentPositionId, state),
+        OrganisationNameContext.from(Map.of(1, heldSince("alpha energy"), 2, heldSince("bravo gas"))),
+        Map.of(),
+        POSITION_DATE
+    );
+
+    assertThat(result.beneficialInterests())
+        .isEqualTo(List.of(
+            new BeneficialInterestView("alpha energy", new BigDecimal("100"), OrganisationMarker.NOT_A_LICENSEE)));
+  }
+
+  @Test
+  void getStateView_whenBeneficialInterestHolderIsALicensee_thenNotMarked() {
+    var currentPositionId = UUID.randomUUID();
+
+    var state = LicencePositionState.EMPTY
+        .withLicenseeIds(List.of(1), List.of())
+        .withEquityByOrganisationId(Map.of(1, new BigDecimal("100")));
+
+    var result = LicencePositionStateViewResolver.getStateView(
+        currentPositionId,
+        LicenceType.CARBON_STORAGE,
+        resolvedStatesFor(currentPositionId, state),
+        OrganisationNameContext.from(Map.of(1, heldSince("alpha energy"))),
+        Map.of(),
+        POSITION_DATE
+    );
+
+    assertThat(result.beneficialInterests())
+        .isEqualTo(List.of(new BeneficialInterestView("alpha energy", new BigDecimal("100"), null)));
+  }
+
+  @Test
+  void getStateView_whenNonLicenseeHoldsZeroEquity_thenMarkedNotALicensee() {
+    var currentPositionId = UUID.randomUUID();
+
+    var state = LicencePositionState.EMPTY.withEquityByOrganisationId(Map.of(1, BigDecimal.ZERO));
+
+    var result = LicencePositionStateViewResolver.getStateView(
+        currentPositionId,
+        LicenceType.CARBON_STORAGE,
+        resolvedStatesFor(currentPositionId, state),
+        OrganisationNameContext.from(Map.of(1, heldSince("alpha energy"))),
+        Map.of(),
+        POSITION_DATE
+    );
+
+    assertThat(result.beneficialInterests())
+        .isEqualTo(List.of(
+            new BeneficialInterestView("alpha energy", BigDecimal.ZERO, OrganisationMarker.NOT_A_LICENSEE)));
   }
 
   @Test
@@ -202,6 +399,7 @@ class LicencePositionStateViewResolverTest {
 
     var result = LicencePositionStateViewResolver.getStateView(
         currentPositionId,
+        LicenceType.CARBON_STORAGE,
         resolvedStatesFor(currentPositionId, state),
         OrganisationNameContext.from(nameHistories),
         Map.of(),
@@ -237,6 +435,7 @@ class LicencePositionStateViewResolverTest {
 
     var result = LicencePositionStateViewResolver.getStateView(
         currentPositionId,
+        LicenceType.SEAWARD_PRODUCTION,
         resolvedStatesFor(currentPositionId, state),
         OrganisationNameContext.from(Map.of(CURRENT_ADMIN_ID, heldSince(CURRENT_ADMIN_NAME))),
         Map.of(),
@@ -269,6 +468,7 @@ class LicencePositionStateViewResolverTest {
 
     var result = LicencePositionStateViewResolver.getStateView(
         currentPositionId,
+        LicenceType.SEAWARD_PRODUCTION,
         resolvedStatesFor(currentPositionId, state),
         OrganisationNameContext.from(nameHistories),
         Map.of(firstBlockId, "21/1", secondBlockId, "21/2"),
@@ -285,15 +485,17 @@ class LicencePositionStateViewResolverTest {
             List.of(
                 new SubareaBeneficialInterestView(
                     "Block 21/1 - Subarea a",
-                    List.of(new BeneficialInterestView("charlie oil", new BigDecimal("100")))),
+                    List.of(
+                        new BeneficialInterestView("charlie oil", new BigDecimal("100"), OrganisationMarker.NOT_A_LICENSEE))),
                 new SubareaBeneficialInterestView(
                     "Block 21/1 - Subarea B",
-                    List.of(new BeneficialInterestView("Bravo gas", new BigDecimal("100")))),
+                    List.of(
+                        new BeneficialInterestView("Bravo gas", new BigDecimal("100"), OrganisationMarker.NOT_A_LICENSEE))),
                 new SubareaBeneficialInterestView(
                     "Block 21/2 - Subarea A",
                     List.of(
-                        new BeneficialInterestView("alpha energy", new BigDecimal("40")),
-                        new BeneficialInterestView("charlie oil", new BigDecimal("60"))))
+                        new BeneficialInterestView("alpha energy", new BigDecimal("40"), OrganisationMarker.NOT_A_LICENSEE),
+                        new BeneficialInterestView("charlie oil", new BigDecimal("60"), OrganisationMarker.NOT_A_LICENSEE)))
             )
         ));
   }
@@ -307,6 +509,7 @@ class LicencePositionStateViewResolverTest {
 
     var result = LicencePositionStateViewResolver.getStateView(
         currentPositionId,
+        LicenceType.SEAWARD_PRODUCTION,
         resolvedStatesFor(currentPositionId, state),
         OrganisationNameContext.from(Map.of(1, heldSince("alpha energy"))),
         Map.of(),
@@ -316,7 +519,35 @@ class LicencePositionStateViewResolverTest {
     assertThat(result.subareaBeneficialInterests())
         .isEqualTo(List.of(new SubareaBeneficialInterestView(
             "Unknown block - Subarea A",
-            List.of(new BeneficialInterestView("alpha energy", new BigDecimal("100"))))));
+            List.of(new BeneficialInterestView("alpha energy", new BigDecimal("100"), OrganisationMarker.NOT_A_LICENSEE)))));
+  }
+
+  @Test
+  void getStateView_whenSubareaBeneficialInterestHolderIsNotALicensee_thenMarkedNotALicensee() {
+    var currentPositionId = UUID.randomUUID();
+    var blockId = UUID.randomUUID();
+    var subarea = new SubareaDetails(UUID.randomUUID(), "Subarea A", "A");
+
+    var state = LicencePositionState.EMPTY
+        .withLicenseeIds(List.of(1), List.of())
+        .withSubareaEquity(blockId, subarea, 1, new BigDecimal("60"))
+        .withSubareaEquity(blockId, subarea, 2, new BigDecimal("40"));
+
+    var result = LicencePositionStateViewResolver.getStateView(
+        currentPositionId,
+        LicenceType.SEAWARD_PRODUCTION,
+        resolvedStatesFor(currentPositionId, state),
+        OrganisationNameContext.from(Map.of(1, heldSince("alpha energy"), 2, heldSince("bravo gas"))),
+        Map.of(blockId, "21/1"),
+        POSITION_DATE
+    );
+
+    assertThat(result.subareaBeneficialInterests())
+        .isEqualTo(List.of(new SubareaBeneficialInterestView(
+            "Block 21/1 - Subarea A",
+            List.of(
+                new BeneficialInterestView("alpha energy", new BigDecimal("60"), null),
+                new BeneficialInterestView("bravo gas", new BigDecimal("40"), OrganisationMarker.NOT_A_LICENSEE)))));
   }
 
   @Test
@@ -335,6 +566,7 @@ class LicencePositionStateViewResolverTest {
 
     var result = LicencePositionStateViewResolver.getStateView(
         currentPositionId,
+        LicenceType.SEAWARD_PRODUCTION,
         resolvedStatesFor(currentPositionId, state),
         OrganisationNameContext.from(nameHistories),
         Map.of(blockId, "21/1"),

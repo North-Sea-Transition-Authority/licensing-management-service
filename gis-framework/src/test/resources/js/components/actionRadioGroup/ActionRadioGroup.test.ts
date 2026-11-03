@@ -5,8 +5,8 @@ import ActionRadioGroup from "@/components/actionRadioGroup/ActionRadioGroup.vue
 const validationError = "Select what action you would like to perform";
 const hint = "You can perform multiple actions before finalising.";
 
-function renderSelect(hasActions = false, canMerge = true, canAddStrata = true) {
-  return render(ActionRadioGroup, { props: { hasActions, canMerge, canAddStrata } });
+function renderSelect(hasActions = false, canMerge = true) {
+  return render(ActionRadioGroup, { props: { hasActions, canMerge } });
 }
 
 function radioLabels() {
@@ -32,19 +32,18 @@ describe("depthActionSelect", () => {
   });
 
   it.each([
-    { canMerge: true, canAddStrata: true, expectedLabels: ["Add strata", "Merge", "Rename", "Split"] },
-    { canMerge: false, canAddStrata: true, expectedLabels: ["Add strata", "Rename", "Split"] },
-    { canMerge: true, canAddStrata: false, expectedLabels: ["Merge", "Rename", "Split"] },
-  ])("offers $expectedLabels when canMerge is $canMerge and canAddStrata is $canAddStrata", (
-    { canMerge, canAddStrata, expectedLabels },
+    { canMerge: true, expectedLabels: ["Add strata", "Merge", "Rename", "Split"] },
+    { canMerge: false, expectedLabels: ["Add strata", "Rename", "Split"] },
+  ])("offers $expectedLabels when canMerge is $canMerge", (
+    { canMerge, expectedLabels },
   ) => {
-    renderSelect(false, canMerge, canAddStrata);
+    renderSelect(false, canMerge);
 
     expect(radioLabels()).toEqual(expectedLabels);
   });
 
   it("shows the given error message inline", () => {
-    render(ActionRadioGroup, { props: { hasActions: false, canMerge: true, canAddStrata: true, errorMessage: validationError } });
+    render(ActionRadioGroup, { props: { hasActions: false, canMerge: true, errorMessage: validationError } });
 
     expect(screen.getByRole("group", { name: "What action would you like to perform first?" }))
       .toHaveAccessibleDescription(`${hint} Error:${validationError}`);
@@ -84,7 +83,7 @@ describe("depthActionSelect", () => {
     const { emitted, rerender } = renderSelect(false, true);
     await fireEvent.click(screen.getByRole("radio", { name: "Merge" }));
 
-    await rerender({ hasActions: false, canMerge: false, canAddStrata: true });
+    await rerender({ hasActions: false, canMerge: false });
     await fireEvent.click(screen.getByRole("button", { name: "Continue" }));
 
     expect(emitted()["validation-error"]).toEqual([
@@ -97,7 +96,7 @@ describe("depthActionSelect", () => {
     { processing: false, continueEnabled: true },
     { processing: true, continueEnabled: false },
   ])("sets continue enabled to $continueEnabled when processing is $processing", ({ processing, continueEnabled }) => {
-    render(ActionRadioGroup, { props: { hasActions: false, canMerge: true, canAddStrata: true, processing } });
+    render(ActionRadioGroup, { props: { hasActions: false, canMerge: true, processing } });
 
     expect((screen.getByRole("button", { name: "Continue" }) as HTMLButtonElement).disabled).toBe(!continueEnabled);
   });

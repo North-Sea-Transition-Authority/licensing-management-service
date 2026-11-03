@@ -1,6 +1,6 @@
 import type {LinePoint} from "@/grid-utils";
 
-export interface JsonSplitResponse {
+export interface JsonOutputFeaturesResponse {
   outputFeatureIds: string[];
 }
 
@@ -15,7 +15,7 @@ export async function splitFeature(
   csrfHeaderName: string,
   csrfToken: string,
   depth?: number,
-): Promise<JsonSplitResponse> {
+): Promise<JsonOutputFeaturesResponse> {
   const cutterLineOriginalSrsCoordinates: [number, number][][] = [];
   for (let i = 0; i < points.length - 1; i++) {
     cutterLineOriginalSrsCoordinates.push([points[i].originalSrsCoordinates, points[i + 1].originalSrsCoordinates]);
@@ -31,7 +31,7 @@ export async function splitFeature(
     return Promise.reject(`Response status: ${response.statusText}`);
   }
 
-  return await response.json() as JsonSplitResponse;
+  return await response.json() as JsonOutputFeaturesResponse;
 }
 
 export async function mergeFeatures(
@@ -59,7 +59,7 @@ export async function strataSplitFeatures(
   commandJourneyId: string,
   csrfHeaderName: string,
   csrfToken: string,
-): Promise<JsonSplitResponse> {
+): Promise<JsonOutputFeaturesResponse> {
   const response = await fetch(strataSplitUrl, {
     method: "POST",
     headers: { "Content-Type": "application/json", [csrfHeaderName]: csrfToken },
@@ -68,7 +68,31 @@ export async function strataSplitFeatures(
   if (!response.ok) {
     return Promise.reject(`Response status: ${response.statusText}`);
   }
-  return await response.json() as JsonSplitResponse;
+  return await response.json() as JsonOutputFeaturesResponse;
+}
+
+export interface JsonFeatureRename {
+  featureId: string;
+  featureName: string;
+  name: string;
+}
+
+export async function renameFeatures(
+  renameUrl: string,
+  featureRenames: JsonFeatureRename[],
+  commandJourneyId: string,
+  csrfHeaderName: string,
+  csrfToken: string,
+): Promise<JsonOutputFeaturesResponse> {
+  const response = await fetch(renameUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", [csrfHeaderName]: csrfToken },
+    body: JSON.stringify({ commandJourneyId, featureRenames }),
+  });
+  if (!response.ok) {
+    return Promise.reject(`Response status: ${response.statusText}`);
+  }
+  return await response.json() as JsonOutputFeaturesResponse;
 }
 
 export async function undo(

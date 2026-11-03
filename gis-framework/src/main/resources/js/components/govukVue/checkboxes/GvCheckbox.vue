@@ -45,9 +45,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, inject, ref, toRef, watch } from "vue";
+import { computed, inject, ref, toRef, useSlots, watch } from "vue";
 import { useComputedId } from "../../gdsComponents/composables/useComputedId";
-import hasSlot from "../../gdsComponents/composables/useHasSlot";
 import GvHint from "../hint/GvHint.vue";
 import GvLabel from "../label/GvLabel.vue";
 import {
@@ -181,8 +180,11 @@ watch(
 
 const computedId = useComputedId(toRef(props, "id"), "gv-checkbox");
 
+// Slots are read once in setup: useSlots() throws if a computed re-evaluates outside setup or render
+const slots = useSlots();
+
 const hasHint = computed(() => {
-  return props.hint || hasSlot("hint");
+  return props.hint || !!slots.hint;
 });
 
 const hintId = computed(() => {
@@ -190,7 +192,7 @@ const hintId = computed(() => {
 });
 
 const hasConditional = computed(() => {
-  return hasSlot("conditional");
+  return !!slots.conditional;
 });
 
 const conditionalId = computed(() => {

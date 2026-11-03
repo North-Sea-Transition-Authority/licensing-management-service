@@ -31,7 +31,6 @@ import { createUid } from "../govukVue/util/createUid";
 interface ActionRadioGroupProps {
   hasActions: boolean,
   canMerge: boolean,
-  canAddStrata: boolean,
   processing?: boolean,
   errorMessage?: string,
 }
@@ -45,7 +44,7 @@ const emit = defineEmits<{
   "validation-error": [error: ValidationError | null],
 }>();
 
-const visibleActions = computed(() => getAvailableTransformationTypes(props.canMerge, props.canAddStrata));
+const visibleActions = computed(() => getAvailableTransformationTypes(props.canMerge));
 
 // The page's error summary links to the first radio.
 const firstRadioId = createUid("depth-action");

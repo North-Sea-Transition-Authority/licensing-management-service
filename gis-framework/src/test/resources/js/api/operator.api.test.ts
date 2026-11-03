@@ -1,6 +1,6 @@
 import type { LinePoint } from "@/grid-utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { mergeFeatures, redo, splitFeature, strataSplitFeatures, undo } from "@/api/operator.api";
+import { mergeFeatures, redo, renameFeatures, splitFeature, strataSplitFeatures, undo } from "@/api/operator.api";
 
 function point(originalSrsCoordinates: [number, number]): LinePoint {
   return { coordinates: [0, 0], originalSrsCoordinates };
@@ -167,6 +167,51 @@ describe("operatorApi", () => {
         "X-CSRF-TOKEN",
         "csrf-token-1",
       )).rejects.toBe("Response status: Internal Server Error");
+    });
+  });
+
+  describe("renameFeatures", () => {
+    it("renameFeatures_whenResponseOk_postsRenamesAndReturnsResponse", async () => {
+      const expected = { outputFeatureIds: ["feature-2"] };
+      const fetchMock = vi.fn().mockResolvedValue({
+        ok: true,
+        json: vi.fn().mockResolvedValue(expected),
+      });
+      vi.stubGlobal("fetch", fetchMock);
+
+      const result = await renameFeatures(
+        "/api/gis-framework/rename",
+        [{ featureId: "feature-1", featureName: "SHAPE 2", name: "Subarea 2" }],
+        "journey-1",
+        "X-CSRF-TOKEN",
+        "csrf-token-1",
+      );
+
+      expect(result).toEqual(expected);
+      expect(fetchMock).toHaveBeenCalledWith("/api/gis-framework/rename", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-CSRF-TOKEN": "csrf-token-1" },
+        body: JSON.stringify({
+          commandJourneyId: "journey-1",
+          featureRenames: [{ featureId: "feature-1", featureName: "SHAPE 2", name: "Subarea 2" }],
+        }),
+      });
+    });
+
+    it("renameFeatures_whenResponseNotOk_rejects", async () => {
+      const fetchMock = vi.fn().mockResolvedValue({
+        ok: false,
+        statusText: "Bad Request",
+      });
+      vi.stubGlobal("fetch", fetchMock);
+
+      await expect(renameFeatures(
+        "/api/gis-framework/rename",
+        [{ featureId: "feature-1", featureName: "SHAPE 2", name: "Subarea 2" }],
+        "journey-1",
+        "X-CSRF-TOKEN",
+        "csrf-token-1",
+      )).rejects.toBe("Response status: Bad Request");
     });
   });
 

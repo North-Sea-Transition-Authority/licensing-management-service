@@ -14,6 +14,7 @@ const {
   splitFeatureMock,
   mergeFeaturesMock,
   strataSplitFeaturesMock,
+  renameFeaturesMock,
   undoMock,
   redoMock,
 } = vi.hoisted(() => ({
@@ -23,6 +24,7 @@ const {
   splitFeatureMock: vi.fn(),
   mergeFeaturesMock: vi.fn(),
   strataSplitFeaturesMock: vi.fn(),
+  renameFeaturesMock: vi.fn(),
   undoMock: vi.fn(),
   redoMock: vi.fn(),
 }));
@@ -41,6 +43,7 @@ vi.mock("@/api/operator.api", () => ({
   splitFeature: splitFeatureMock,
   mergeFeatures: mergeFeaturesMock,
   strataSplitFeatures: strataSplitFeaturesMock,
+  renameFeatures: renameFeaturesMock,
   undo: undoMock,
   redo: redoMock,
 }));
@@ -82,6 +85,12 @@ function feature(featureId: string, startDepth: number, endDepth: number): Featu
   created.set("featureName", `${featureId} block`);
   created.set("startDepth", startDepth);
   created.set("endDepth", endDepth);
+  return created;
+}
+
+function namedFeature(featureId: string, name: string): Feature {
+  const created = feature(featureId, -100, -200);
+  created.set("name", name);
   return created;
 }
 
@@ -151,6 +160,7 @@ describe("mapActionsPage", () => {
     splitFeatureMock.mockReset();
     mergeFeaturesMock.mockReset();
     strataSplitFeaturesMock.mockReset();
+    renameFeaturesMock.mockReset();
     undoMock.mockReset();
     redoMock.mockReset();
   });
@@ -178,7 +188,7 @@ describe("mapActionsPage", () => {
     {
       description: "a single feature with no depths",
       features: [featureWithoutDepths("feature-1")],
-      expectedLabels: ["Rename", "Split"],
+      expectedLabels: ["Add strata", "Rename", "Split"],
     },
   ])("offers $expectedLabels for $description", async ({ features, expectedLabels }) => {
     getFeaturesMock.mockReset().mockResolvedValue(features);
@@ -246,8 +256,7 @@ describe("mapActionsPage", () => {
     await fireEvent.click(screen.getByRole("button", { name: "Continue" }));
 
     expect(screen.queryByRole("link", { name: "Select what action you would like to perform" })).not.toBeInTheDocument();
-    expect(screen.getByRole("group", { name: "What action would you like to perform first?" }))
-      .toHaveAccessibleDescription("You can perform multiple actions before finalising.");
+    expect(screen.getByRole("heading", { name: "Rename subareas" })).toBeInTheDocument();
   });
 
   it("shows an error when the features request fails", async () => {
@@ -881,6 +890,110 @@ describe("mapActionsPage", () => {
 
       expect(screen.getByRole("radio", { name: "Add strata" })).toHaveFocus();
       expect(screen.queryByRole("link", { name: "Enter the depth of the new stratigraphic boundary" })).not.toBeInTheDocument();
+      expect(highlightedOnMap()).toBe("Highlighted on map:");
+    });
+  });
+
+  describe("when rename is chosen", () => {
+    async function chooseRename() {
+      await fireEvent.click(await screen.findByRole("radio", { name: "Rename" }));
+      await fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+    }
+
+    async function tick(...featureNames: string[]) {
+      for (const featureName of featureNames) {
+        await fireEvent.click(screen.getByRole("checkbox", { name: featureName }));
+      }
+    }
+
+    function subareaNameInput(featureName: string) {
+      return screen.getByRole("textbox", { name: `Subarea name for ${featureName}` });
+    }
+
+    function highlightedOnMap() {
+      return screen.getByText(/^Highlighted on map:/).textContent?.trim();
+    }
+
+    it("replaces the action select with the rename panel and focuses its heading", async () => {
+      renderPage();
+
+      await chooseRename();
+
+      expect(screen.getByRole("heading", { name: "Rename subareas" })).toHaveFocus();
+      expect(screen.queryByRole("radio", { name: "Rename" })).not.toBeInTheDocument();
+    });
+
+    it("highlights the ticked features on the map", async () => {
+      renderPage();
+      await chooseRename();
+
+      await tick("deep block");
+
+      expect(highlightedOnMap()).toBe("Highlighted on map: deep");
+    });
+
+    it("shows each validation error in the error summary linking to its field", async () => {
+      renderPage();
+      await chooseRename();
+      await tick("deep block");
+
+      await fireEvent.click(screen.getByRole("button", { name: "Rename" }));
+
+      expect(screen.getByRole("link", { name: "Enter a subarea name for deep block" }))
+        .toHaveAttribute("href", `#${subareaNameInput("deep block").id}`);
+      expect(renameFeaturesMock).not.toHaveBeenCalled();
+    });
+
+    it("renames the selected features, then reloads the map and returns to the action select with the first action focused", async () => {
+      getHistoryStatusMock.mockReset()
+        .mockResolvedValueOnce(noHistory)
+        .mockResolvedValue(historyAfter("RENAME"));
+      renameFeaturesMock.mockResolvedValue({ outputFeatureIds: ["deep-renamed"] });
+      renderPage();
+      await chooseRename();
+      await tick("deep block");
+      await fireEvent.update(subareaNameInput("deep block"), "Deep subarea");
+
+      await fireEvent.click(screen.getByRole("button", { name: "Rename" }));
+
+      expect(await screen.findByRole("group", { name: "What action would you like to perform next?" }))
+        .toBeInTheDocument();
+      expect(renameFeaturesMock).toHaveBeenCalledWith(
+        "/api/gis-framework/rename",
+        [{ featureId: "deep", name: "Deep subarea", featureName: "deep block" }],
+        "journey-1",
+        "X-CSRF-TOKEN",
+        "csrf-token",
+      );
+      expect(screen.getByRole("radio", { name: "Add strata" })).toHaveFocus();
+      expect(getFeaturesMock).toHaveBeenCalledTimes(2);
+    });
+
+    it("shows an error and stays on the rename panel when the rename request fails", async () => {
+      renameFeaturesMock.mockRejectedValue(new Error("network error"));
+      renderPage();
+      await chooseRename();
+      await tick("deep block");
+      await fireEvent.update(subareaNameInput("deep block"), "Deep subarea");
+
+      await fireEvent.click(screen.getByRole("button", { name: "Rename" }));
+
+      expect(await screen.findByText("An error occurred while attempting to rename the subareas. Please try again."))
+        .toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: "Rename subareas" })).toBeInTheDocument();
+    });
+
+    it("returns to the action select without reloading the map when no names changed", async () => {
+      getFeaturesMock.mockReset().mockResolvedValue([namedFeature("deep", "Deep subarea")]);
+      renderPage();
+      await chooseRename();
+      await tick("deep block");
+
+      await fireEvent.click(screen.getByRole("button", { name: "Rename" }));
+
+      expect(screen.getByRole("radio", { name: "Add strata" })).toHaveFocus();
+      expect(renameFeaturesMock).not.toHaveBeenCalled();
+      expect(getFeaturesMock).toHaveBeenCalledTimes(1);
       expect(highlightedOnMap()).toBe("Highlighted on map:");
     });
   });

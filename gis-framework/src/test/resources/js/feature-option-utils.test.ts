@@ -22,8 +22,8 @@ describe("toSortedFeatureOptions", () => {
     ]);
 
     expect(options).toEqual([
-      { featureId: "feature-1", featureName: "Block A", depthRanges: allDepths },
-      { featureId: "feature-2", featureName: "Block B", depthRanges: allDepths },
+      { featureId: "feature-1", featureName: "Block A", name: "", depthRanges: allDepths },
+      { featureId: "feature-2", featureName: "Block B", name: "", depthRanges: allDepths },
     ]);
   });
 
@@ -37,6 +37,7 @@ describe("toSortedFeatureOptions", () => {
       {
         featureId: "feature-1",
         featureName: "Block A",
+        name: "",
         depthRanges: [
           { startDepth: 0, endDepth: -1000 },
           { startDepth: -1000, endDepth: -3000 },
@@ -54,10 +55,21 @@ describe("toSortedFeatureOptions", () => {
     ]);
 
     expect(options).toEqual([
-      { featureId: "feature-4", featureName: "alpha", depthRanges: allDepths },
-      { featureId: "feature-3", featureName: "Block_2", depthRanges: allDepths },
-      { featureId: "feature-1", featureName: "Block_10", depthRanges: allDepths },
-      { featureId: "feature-2", featureName: "Charlie", depthRanges: allDepths },
+      { featureId: "feature-4", featureName: "alpha", name: "", depthRanges: allDepths },
+      { featureId: "feature-3", featureName: "Block_2", name: "", depthRanges: allDepths },
+      { featureId: "feature-1", featureName: "Block_10", name: "", depthRanges: allDepths },
+      { featureId: "feature-2", featureName: "Charlie", name: "", depthRanges: allDepths },
+    ]);
+  });
+
+  it("includes each feature's name", () => {
+    const named = feature("feature-1", "Block A");
+    named.set("name", "Subarea A");
+
+    const options = toSortedFeatureOptions([named]);
+
+    expect(options).toEqual([
+      { featureId: "feature-1", featureName: "Block A", name: "Subarea A", depthRanges: allDepths },
     ]);
   });
 

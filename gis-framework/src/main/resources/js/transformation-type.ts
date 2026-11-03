@@ -14,10 +14,10 @@ export function getTransformationTypeLabel(transformationType: TransformationTyp
   return transformationTypes[transformationType];
 }
 
-export function getAvailableTransformationTypes(canMerge: boolean, canAddStrata: boolean): TransformationType[] {
+export function getAvailableTransformationTypes(canMerge: boolean): TransformationType[] {
   const isAvailable: Record<TransformationType, boolean> = {
     SPLIT: true,
-    STRATA_SPLIT: canAddStrata,
+    STRATA_SPLIT: true,
     MERGE: canMerge,
     RENAME: true,
   };

@@ -35,9 +35,18 @@ const previousActions: JsonHistoryAction[] = [
   { number: 1, transformationType: "SPLIT", inputFeatureNames: ["Block A"], outputFeatureNames: ["Block A_1", "Block A_2"] },
 ];
 
+function withRenamedFeature(featureId: string, featureName: string): JsonBodyType {
+  return {
+    ...depthMapEd50,
+    features: depthMapEd50.features.map(feature => feature.attributes.featureId === featureId
+      ? { ...feature, attributes: { ...feature.attributes, featureId: `${featureId}-renamed`, featureName } }
+      : feature),
+  };
+}
+
 /**
- * Registers stateful handlers: `GET features` returns the split, merge or strata split fixture once `POST split`,
- * `POST merge` or `POST strata-split` has been called, the original fixture again after `POST undo`, and the result
+ * Registers stateful handlers: `GET features` returns the split, merge, strata split or rename fixture once `POST split`,
+ * `POST merge`, `POST strata-split` or `POST rename` has been called, the original fixture again after `POST undo`, and the result
  * again after `POST redo`. History lists the actions taken, newest first, and reports the latest as undoable, or the
  * last undone as redoable. Returns a getter for the number of `GET features` requests, which is used to wait for the map to
  * reload.
@@ -77,6 +86,10 @@ function mockEndpoints(initialActions: JsonHistoryAction[] = []): { featuresRequ
     http.post("/api/strata-split", () => {
       perform("STRATA_SPLIT", depthMapStrataSplitEd50, ["Middle block"], ["Middle block_above", "Middle block_below"]);
       return HttpResponse.json({ outputFeatureIds: ["middle-above", "middle-below"] });
+    }),
+    http.post("/api/rename", () => {
+      perform("RENAME", withRenamedFeature("shallow", "Shallow renamed"), ["Shallow block"], ["Shallow renamed"]);
+      return HttpResponse.json({ outputFeatureIds: ["shallow-renamed"] });
     }),
     http.post("/api/undo/1", () => {
       const [action, ...remaining] = actions;
@@ -151,6 +164,27 @@ async function addStrataToMiddleBlockAt(screen: ReturnType<typeof renderInFixedW
   await screen.getByRole("textbox", { name: "What depth is the new stratigraphic boundary at?" }).fill(depth);
   await screen.getByRole("checkbox", { name: "Middle block" }).click();
   await screen.getByRole("button", { name: "Add strata" }).click();
+}
+
+async function chooseRename(screen: ReturnType<typeof renderInFixedWidthContainer>) {
+  await screen.getByRole("radio", { name: "Rename" }).click();
+  await screen.getByRole("button", { name: "Continue" }).click();
+  await expect.element(screen.getByRole("heading", { name: "Rename subareas" })).toBeVisible();
+}
+
+async function tickShallowBlockToRename(screen: ReturnType<typeof renderInFixedWidthContainer>) {
+  await screen.getByRole("checkbox", { name: "Shallow block" }).click();
+  await expect.element(screen.getByRole("textbox", { name: "Map display name for Shallow block" })).toBeVisible();
+}
+
+async function renameShallowBlock(
+  screen: ReturnType<typeof renderInFixedWidthContainer>,
+  names: { name: string, featureName: string },
+) {
+  await tickShallowBlockToRename(screen);
+  await screen.getByRole("textbox", { name: "Subarea name for Shallow block" }).fill(names.name);
+  await screen.getByRole("textbox", { name: "Map display name for Shallow block" }).fill(names.featureName);
+  await screen.getByRole("button", { name: "Rename" }).click();
 }
 
 async function tickShallowAndMiddleBlocks(screen: ReturnType<typeof renderInFixedWidthContainer>) {
@@ -353,6 +387,62 @@ describe("map actions page", () => {
     await expect(screen.locator).toMatchScreenshot("map-actions-add-strata-undone");
   });
 
+  it("shows the rename panel listing every feature when rename is chosen", async () => {
+    mockEndpoints();
+    const screen = renderInFixedWidthContainer();
+    await waitForPageLoaded();
+
+    await chooseRename(screen);
+    await settleForScreenshot();
+
+    await expect(screen.locator).toMatchScreenshot("map-actions-rename-mode");
+  });
+
+  it("highlights the ticked feature and reveals its name inputs", async () => {
+    mockEndpoints();
+    const screen = renderInFixedWidthContainer();
+    await waitForPageLoaded();
+    await chooseRename(screen);
+
+    await tickShallowBlockToRename(screen);
+    await settleForScreenshot();
+
+    await expect(screen.locator).toMatchScreenshot("map-actions-rename-selected");
+  });
+
+  it("shows the errors beside the inputs when the names are invalid", async () => {
+    mockEndpoints();
+    const screen = renderInFixedWidthContainer();
+    await waitForPageLoaded();
+    await chooseRename(screen);
+
+    await renameShallowBlock(screen, { name: "", featureName: "Middle block" });
+    await expect.element(screen.getByRole("link", { name: "Enter a subarea name for Shallow block" })).toBeVisible();
+    await expect.element(screen.getByRole("link", {
+      name: "Map display name for Shallow block must be unique within the block",
+    })).toBeVisible();
+    await settleForScreenshot();
+
+    await expect(screen.locator).toMatchScreenshot("map-actions-rename-validation");
+  });
+
+  it("redraws the renamed feature and returns to the action select once renamed", async () => {
+    const { featuresRequests } = mockEndpoints();
+    const screen = renderInFixedWidthContainer();
+    await waitForPageLoaded();
+    await chooseRename(screen);
+    const before = featuresRequests();
+
+    await renameShallowBlock(screen, { name: "Shallow subarea", featureName: "Shallow renamed" });
+
+    await expect.poll(() => featuresRequests(), { timeout: 15000, interval: 100 }).toBeGreaterThan(before);
+    await expect.element(screen.getByRole("group", { name: "What action would you like to perform next?" }))
+      .toBeVisible();
+    await settleForScreenshot();
+
+    await expect(screen.locator).toMatchScreenshot("map-actions-rename-result");
+  });
+
   describe("action history", () => {
     it("shows that no actions have been taken", async () => {
       mockEndpoints();
@@ -392,6 +482,22 @@ describe("map actions page", () => {
       await settleForScreenshot();
 
       await expect(screen.locator).toMatchScreenshot("map-actions-history-after-add-strata");
+    });
+
+    it("adds the action once a feature is renamed", async () => {
+      const { featuresRequests } = mockEndpoints(previousActions);
+      const screen = renderInFixedWidthContainer();
+      await waitForPageLoaded();
+      await chooseRename(screen);
+      const before = featuresRequests();
+
+      await renameShallowBlock(screen, { name: "Shallow subarea", featureName: "Shallow renamed" });
+      await expect.poll(() => featuresRequests(), { timeout: 15000, interval: 100 }).toBeGreaterThan(before);
+      await openActionHistory(screen, 4);
+      await expect.element(screen.getByText("Shallow renamed")).toBeVisible();
+      await settleForScreenshot();
+
+      await expect(screen.locator).toMatchScreenshot("map-actions-history-after-rename");
     });
 
     it("removes the action once undone and restores it once redone", async () => {

@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/vue";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { ref } from "vue";
 import GvCheckbox from "@/components/govukVue/checkboxes/GvCheckbox.vue";
 
@@ -61,5 +61,27 @@ describe("gvCheckbox", () => {
     await fireEvent.click(screen.getByRole("checkbox", { name: "Other" }));
 
     expect(conditional).not.toHaveClass("govuk-checkboxes__conditional--hidden");
+  });
+
+  it("updates reactive conditional content without errors", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    render({
+      components: { GvCheckbox },
+      setup() {
+        return { message: ref("First message") };
+      },
+      template: `
+        <gv-checkbox label="Other">
+          <template #conditional><p>{{ message }}</p></template>
+        </gv-checkbox>
+        <button @click="message = 'Second message'">Change message</button>`,
+    });
+    await fireEvent.click(screen.getByRole("checkbox", { name: "Other" }));
+
+    await fireEvent.click(screen.getByRole("button", { name: "Change message" }));
+
+    expect(screen.getByText("Second message")).toBeInTheDocument();
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
   });
 });

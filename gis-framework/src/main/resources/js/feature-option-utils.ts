@@ -6,6 +6,7 @@ import { depthRangesOf } from "@/depth-utils";
 export interface FeatureOption {
   featureId: string,
   featureName: string,
+  name: string,
   depthRanges: DepthRange[],
 }
 
@@ -17,6 +18,7 @@ export function toSortedFeatureOptions(features: Feature<Geometry>[]): FeatureOp
     feature.get("featureId"),
     { featureId: feature.get("featureId"),
       featureName: feature.get("featureName"),
+      name: feature.get("name") ?? "",
       depthRanges: depthRangesOf(features, feature.get("featureId")),
     },
   ]));

@@ -26,7 +26,7 @@
         :refresh-counter="refreshCounter"
         :refit-on-features-change="false"
         :map-style-override="mapStyleOverride"
-        :selected-feature-ids="mode === 'MERGE' || mode === 'STRATA_SPLIT' ? selectedFeatureIds : []"
+        :selected-feature-ids="mode === 'MERGE' || mode === 'STRATA_SPLIT' || mode === 'RENAME' ? selectedFeatureIds : []"
         @update:points="points = $event"
       />
     </div>
@@ -54,7 +54,6 @@
       ref="actionRadioGroup"
       :has-actions="!!historyStatus?.undoTransformationType"
       :can-merge="activeFeatureCount >= 2"
-      :can-add-strata="hasDepths"
       :processing="isProcessing || isReloading"
       :error-message="validationErrors[0]?.message"
       @select="onSelect"
@@ -105,6 +104,20 @@
     @back="returnToSelect"
     @validation-error="onValidationError"
   />
+  <rename-panel
+    v-else-if="mode === 'RENAME'"
+    ref="actionPanel"
+    v-model:selected-feature-ids="selectedFeatureIds"
+    :base-url="baseUrl"
+    :command-journey-id="commandJourneyId"
+    :csrf-header-name="csrfHeaderName"
+    :csrf-token="csrfToken"
+    :feature-options="featureOptions"
+    @success="onActionSuccess"
+    @error="error = $event"
+    @back="returnToSelect"
+    @validation-error="onValidationError"
+  />
 </template>
 
 <script setup lang="ts">
@@ -120,6 +133,7 @@ import BaseMap from "@/components/baseMap/BaseMap.vue";
 import DepthSlider from "@/components/depthSlider/DepthSlider.vue";
 import ErrorSummary from "@/components/gdsComponents/error/ErrorSummary.vue";
 import MergePanel from "@/components/mapActions/MergePanel.vue";
+import RenamePanel from "@/components/mapActions/RenamePanel.vue";
 import SplitPanel from "@/components/mapActions/SplitPanel.vue";
 import StrataSplitPanel from "@/components/mapActions/StrataSplitPanel.vue";
 import TextualDescription from "@/components/textualDescription/TextualDescription.vue";
@@ -208,18 +222,7 @@ function onValidationError(errors: ValidationError[]) {
   }
 }
 
-// TODO - LMS2-268: include rename. Can remove once all actions have panels
-const hasPanel: Record<TransformationType, boolean> = {
-  SPLIT: true,
-  MERGE: true,
-  STRATA_SPLIT: true,
-  RENAME: false,
-};
-
 async function onSelect(action: TransformationType) {
-  if (!hasPanel[action]) {
-    return;
-  }
   clearErrors();
   mode.value = action;
   await nextTick();

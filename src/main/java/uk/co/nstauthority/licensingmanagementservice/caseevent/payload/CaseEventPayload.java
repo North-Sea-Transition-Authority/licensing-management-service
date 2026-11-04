@@ -10,7 +10,8 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 @JsonSubTypes({
     @JsonSubTypes.Type(value = CaseNotePayload.class, name = "case-note"),
-    @JsonSubTypes.Type(value = CaseAllocationPayload.class, name = "case-allocation")
+    @JsonSubTypes.Type(value = CaseAllocationPayload.class, name = "case-allocation"),
+    @JsonSubTypes.Type(value = CaseUpdateRequestPayload.class, name = "case-update-request")
 })
-public sealed interface CaseEventPayload permits CaseNotePayload, CaseAllocationPayload {
+public sealed interface CaseEventPayload permits CaseNotePayload, CaseAllocationPayload, CaseUpdateRequestPayload {
 }

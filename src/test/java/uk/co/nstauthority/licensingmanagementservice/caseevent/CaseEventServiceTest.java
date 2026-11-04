@@ -7,6 +7,8 @@ import static org.mockito.Mockito.when;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.Month;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
@@ -24,8 +26,10 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.authentication.UserDetailService;
 import uk.co.nstauthority.licensingmanagementservice.caseevent.payload.CaseAllocationPayload;
 import uk.co.nstauthority.licensingmanagementservice.caseevent.payload.CaseNotePayload;
+import uk.co.nstauthority.licensingmanagementservice.caseevent.payload.CaseUpdateRequestPayload;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserService;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.WebUserAccountId;
+import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplication;
 import uk.co.nstauthority.licensingmanagementservice.util.EnergyPortalUserTestUtil;
@@ -173,6 +177,43 @@ class CaseEventServiceTest {
         new CaseEventView(
             CaseEventType.APPLICATION_SUBMITTED, Map.of(), CaseEventService.SYSTEM_USER_DISPLAY_NAME,
             systemEventInstant)
+    );
+  }
+
+  @Test
+  void getCaseEventViews_whenUpdateRequestedEvent_thenShowsDeadlineAndReason() {
+    var eventInstant = Instant.parse("2026-09-24T12:00:00Z");
+    var updateRequestedEvent = new CaseEvent(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION, APPLICATION_ID,
+        CaseEventType.APPLICATION_UPDATE_REQUESTED, eventInstant, new CaseEventUser(10L, null, false),
+        new CaseUpdateRequestPayload(LocalDate.of(2026, Month.DECEMBER, 1), "Further information is needed"));
+
+    when(caseEventRepository.findByApplicationTypeAndApplicationIdOrderByEventInstantDesc(
+        ApplicationType.SCHEDULE_AMENDMENT_APPLICATION, APPLICATION_ID))
+        .thenReturn(List.of(updateRequestedEvent));
+
+    var caseManager = EnergyPortalUserTestUtil.newBuilder()
+        .withWebUserAccountId(10L)
+        .withForename("Case")
+        .withSurname("Manager")
+        .withEmailAddress("case.manager@example.com")
+        .buildJson();
+    when(energyPortalUserService.getEnergyPortalUserMap(
+        List.of(WebUserAccountId.from(10L)),
+        CaseEventService.CASE_EVENT_USER_PURPOSE))
+        .thenReturn(Map.of(WebUserAccountId.from(10L), caseManager));
+
+    var result = caseEventService.getCaseEventViews(application);
+
+    assertThat(result).containsExactly(
+        new CaseEventView(
+            CaseEventType.APPLICATION_UPDATE_REQUESTED,
+            Map.of(
+                CaseEventService.UPDATE_REASON_KEY, "Further information is needed",
+                CaseEventService.UPDATE_DEADLINE_KEY, DateFormatUtil.convertToDisplayText(LocalDate.of(2026, Month.DECEMBER, 1))
+            ),
+            "Case Manager (case.manager@example.com)",
+            eventInstant
+        )
     );
   }
 

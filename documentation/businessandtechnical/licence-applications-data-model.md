@@ -823,10 +823,17 @@ Requesting an update works the same way for both application types. It leaves th
   request purpose, extension requests, amendment requests, amendment summary and supporting
   information; for a continuation application, the licence operators, WPA requirement, other
   requirement and supporting information rows. Record-of-decision rows and the external
-  contributor requests are not copied. Uploaded files are copied too (see section 10): the new row gets its own copy
-  of each supporting document (schedule application) or each other requirement and additional
-  supporting document (continuation), filed under the new detail id, and the old version keeps
-  its files. Decision support papers and the issued letter are not copied.
+  contributor requests are not copied. Uploaded files are copied too (see section 10): the
+  new row gets its own copy of each supporting document (schedule application) or each other
+  requirement and additional supporting document (continuation), filed under the new detail
+  id, and the old version keeps its files. Decision support papers and the issued letter are
+  not copied.
+- An "Application update requested" case event is recorded against the application when the
+  update is requested, attributed to the requesting user. The event's payload holds the
+  update deadline and the update reason, and the case event card shows them as "Update
+  deadline" and "Update reason". Like the application reference, the event belongs to the
+  application rather than to a version, so it shows against every version. No case note is
+  created.
 
 An update cannot be requested on a version while the application has a later version that is
 not `DELETED`. This is enforced in application code. In practice an application has at most one

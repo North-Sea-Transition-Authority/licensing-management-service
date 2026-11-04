@@ -14,6 +14,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.caseevent.CaseEventService;
+import uk.co.nstauthority.licensingmanagementservice.caseevent.CaseEventType;
+import uk.co.nstauthority.licensingmanagementservice.caseevent.payload.CaseUpdateRequestPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.requestupdate.RequestUpdateForm;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetailDuplicationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetailRepository;
@@ -30,6 +33,9 @@ class RequestUpdateServiceTest {
 
   @Mock
   private ScheduleWorkProgrammeApplicationDetailDuplicationService duplicationService;
+
+  @Mock
+  private CaseEventService caseEventService;
 
   @InjectMocks
   private RequestUpdateService service;
@@ -75,15 +81,15 @@ class RequestUpdateServiceTest {
 
     when(duplicationService.createNewDraftScheduleWorkProgrammeApplicationDetailVersion(oldDetail, user))
         .thenReturn(newDetail);
-    when(detailRepository.save(newDetail)).thenReturn(newDetail);
 
-    var result = service.requestUpdate(oldDetail, form, user);
+    service.requestUpdate(oldDetail, form, user);
 
-    assertThat(result).isSameAs(newDetail);
     assertThat(newDetail.getUpdateDeadlineDate()).isEqualTo(DEADLINE);
     assertThat(newDetail.getUpdateReason()).isEqualTo(REASON);
     assertThat(oldDetail.getUpdateDeadlineDate()).isNull();
     assertThat(oldDetail.getUpdateReason()).isNull();
     verify(detailRepository).save(newDetail);
+    verify(caseEventService).recordCaseEvent(CaseEventType.APPLICATION_UPDATE_REQUESTED, oldDetail.getScheduleWorkProgrammeApplication(),
+        new CaseUpdateRequestPayload(DEADLINE, REASON));
   }
 }

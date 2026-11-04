@@ -14,7 +14,11 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.caseevent.CaseEventService;
+import uk.co.nstauthority.licensingmanagementservice.caseevent.CaseEventType;
+import uk.co.nstauthority.licensingmanagementservice.caseevent.payload.CaseUpdateRequestPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.requestupdate.RequestUpdateForm;
+import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplication;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetailDuplicationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetailRepository;
@@ -30,6 +34,9 @@ class LicenceContinuationRequestUpdateServiceTest {
 
   @Mock
   private LicenceContinuationApplicationDetailDuplicationService duplicationService;
+
+  @Mock
+  private CaseEventService caseEventService;
 
   @InjectMocks
   private LicenceContinuationRequestUpdateService service;
@@ -60,6 +67,8 @@ class LicenceContinuationRequestUpdateServiceTest {
   void requestUpdate() {
     var user = ServiceUserDetailTestUtil.newBuilder().withWuaId(5L).build();
     var oldDetail = new LicenceContinuationApplicationDetail(UUID.randomUUID());
+    var application = new LicenceContinuationApplication();
+    oldDetail.setLicenceContinuationApplication(application);
     var newDetail = new LicenceContinuationApplicationDetail(UUID.randomUUID());
     var form = new RequestUpdateForm();
     form.getUpdateDeadlineDate().setDate(DEADLINE);
@@ -67,15 +76,15 @@ class LicenceContinuationRequestUpdateServiceTest {
 
     when(duplicationService.createNewDraftLicenceContinuationApplicationDetailVersion(oldDetail, user))
         .thenReturn(newDetail);
-    when(detailRepository.save(newDetail)).thenReturn(newDetail);
 
-    var result = service.requestUpdate(oldDetail, form, user);
+    service.requestUpdate(oldDetail, form, user);
 
-    assertThat(result).isSameAs(newDetail);
     assertThat(newDetail.getUpdateDeadlineDate()).isEqualTo(DEADLINE);
     assertThat(newDetail.getUpdateReason()).isEqualTo(REASON);
     assertThat(oldDetail.getUpdateDeadlineDate()).isNull();
     assertThat(oldDetail.getUpdateReason()).isNull();
     verify(detailRepository).save(newDetail);
+    verify(caseEventService).recordCaseEvent(CaseEventType.APPLICATION_UPDATE_REQUESTED, application,
+        new CaseUpdateRequestPayload(DEADLINE, REASON));
   }
 }

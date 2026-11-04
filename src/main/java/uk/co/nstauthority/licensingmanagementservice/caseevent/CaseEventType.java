@@ -4,6 +4,7 @@ import uk.co.nstauthority.licensingmanagementservice.util.enumutil.Displayable;
 
 public enum CaseEventType implements Displayable {
   APPLICATION_SUBMITTED("Application submitted"),
+  APPLICATION_UPDATE_REQUESTED("Application update requested"),
   CASE_NOTE_ADDED("Case note added"),
   STEWARD_ALLOCATED("Steward allocated");
 

@@ -13,9 +13,11 @@ import uk.co.nstauthority.licensingmanagementservice.audit.AuditRevisionUtil;
 import uk.co.nstauthority.licensingmanagementservice.authentication.UserDetailService;
 import uk.co.nstauthority.licensingmanagementservice.caseevent.payload.CaseAllocationPayload;
 import uk.co.nstauthority.licensingmanagementservice.caseevent.payload.CaseEventPayload;
+import uk.co.nstauthority.licensingmanagementservice.caseevent.payload.CaseUpdateRequestPayload;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserJson;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserService;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.WebUserAccountId;
+import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplication;
 
 @Service
@@ -24,6 +26,8 @@ public class CaseEventService {
   static final String CASE_EVENT_USER_PURPOSE = "Fetch user names for application case events";
   static final String SYSTEM_USER_DISPLAY_NAME = "System";
   static final String ALLOCATED_TO_KEY = "Allocated to";
+  static final String UPDATE_REASON_KEY = "Update reason";
+  static final String UPDATE_DEADLINE_KEY = "Update deadline";
 
   private final CaseEventRepository caseEventRepository;
   private final UserDetailService userDetailService;
@@ -139,6 +143,10 @@ public class CaseEventService {
     var details = new LinkedHashMap<String, String>();
     if (payload instanceof CaseAllocationPayload(Long allocatedToWuaId)) {
       details.put(ALLOCATED_TO_KEY, getUserDisplayText(allocatedToWuaId, usersByWuaId));
+    }
+    if (payload instanceof CaseUpdateRequestPayload(var updateDeadlineDate, var updateReason)) {
+      details.put(UPDATE_DEADLINE_KEY, DateFormatUtil.convertToDisplayText(updateDeadlineDate));
+      details.put(UPDATE_REASON_KEY, updateReason);
     }
     return details;
   }

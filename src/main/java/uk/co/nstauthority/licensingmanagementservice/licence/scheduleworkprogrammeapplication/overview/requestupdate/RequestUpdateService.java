@@ -3,6 +3,9 @@ package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogra
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
+import uk.co.nstauthority.licensingmanagementservice.caseevent.CaseEventService;
+import uk.co.nstauthority.licensingmanagementservice.caseevent.CaseEventType;
+import uk.co.nstauthority.licensingmanagementservice.caseevent.payload.CaseUpdateRequestPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.requestupdate.RequestUpdateForm;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetailDuplicationService;
@@ -13,13 +16,16 @@ public class RequestUpdateService {
 
   private final ScheduleWorkProgrammeApplicationDetailRepository detailRepository;
   private final ScheduleWorkProgrammeApplicationDetailDuplicationService duplicationService;
+  private final CaseEventService caseEventService;
 
   public RequestUpdateService(
       ScheduleWorkProgrammeApplicationDetailRepository detailRepository,
-      ScheduleWorkProgrammeApplicationDetailDuplicationService duplicationService
+      ScheduleWorkProgrammeApplicationDetailDuplicationService duplicationService,
+      CaseEventService caseEventService
   ) {
     this.detailRepository = detailRepository;
     this.duplicationService = duplicationService;
+    this.caseEventService = caseEventService;
   }
 
   public RequestUpdateForm getFormForApplication(ScheduleWorkProgrammeApplicationDetail applicationDetail) {
@@ -34,7 +40,7 @@ public class RequestUpdateService {
   }
 
   @Transactional
-  public ScheduleWorkProgrammeApplicationDetail requestUpdate(
+  public void requestUpdate(
       ScheduleWorkProgrammeApplicationDetail applicationDetail,
       RequestUpdateForm form,
       ServiceUserDetail user
@@ -43,6 +49,12 @@ public class RequestUpdateService {
         .createNewDraftScheduleWorkProgrammeApplicationDetailVersion(applicationDetail, user);
     form.getUpdateDeadlineDate().getAsLocalDate().ifPresent(newDetail::setUpdateDeadlineDate);
     newDetail.setUpdateReason(form.getUpdateReason());
-    return detailRepository.save(newDetail);
+    detailRepository.save(newDetail);
+
+    caseEventService.recordCaseEvent(
+        CaseEventType.APPLICATION_UPDATE_REQUESTED,
+        applicationDetail.getScheduleWorkProgrammeApplication(),
+        new CaseUpdateRequestPayload(newDetail.getUpdateDeadlineDate(), newDetail.getUpdateReason())
+    );
   }
 }

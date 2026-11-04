@@ -1,6 +1,5 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overview.action;
 
-import com.google.common.base.Suppliers;
 import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.EnumSet;
@@ -14,6 +13,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.stereotype.Service;
+import org.springframework.util.function.SingletonSupplier;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.components.actions.ActionItemView;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
@@ -99,7 +99,7 @@ public class ScheduleWorkProgrammeApplicationActionService {
         .map(TeamRole::getRole)
         .collect(Collectors.toSet());
 
-    var hasLaterVersion = Suppliers.memoize(() -> hasLaterVersion(applicationDetail));
+    var hasLaterVersion = SingletonSupplier.of(() -> hasLaterVersion(applicationDetail));
 
     return EnumSet.allOf(ScheduleWorkProgrammeApplicationActionItem.class).stream()
         .filter(STATUS_TO_ACTIONS.getOrDefault(applicationDetail.getStatus(), Set.of())::contains)

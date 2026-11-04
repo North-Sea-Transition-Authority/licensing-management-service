@@ -62,13 +62,22 @@ public class LicenceContinuationApplicationDetailDuplicationService {
     applicationFileService.duplicateFiles(files, newUsage);
   }
 
+  // Deleted versions keep their row, so the next number is based on the highest stored version.
+  private int getNextVersionNumber(LicenceContinuationApplicationDetail oldDetail) {
+    return licenceContinuationApplicationDetailRepository
+        .findFirstByLicenceContinuationApplicationOrderByVersionNumberDesc(oldDetail.getLicenceContinuationApplication())
+        .map(LicenceContinuationApplicationDetail::getVersionNumber)
+        .map(highest -> Math.max(highest, oldDetail.getVersionNumber()) + 1)
+        .orElse(oldDetail.getVersionNumber() + 1);
+  }
+
   private LicenceContinuationApplicationDetail createNewDetail(
       LicenceContinuationApplicationDetail oldDetail,
       ServiceUserDetail user
   ) {
     var newDetail = new LicenceContinuationApplicationDetail();
     newDetail.setLicenceContinuationApplication(oldDetail.getLicenceContinuationApplication());
-    newDetail.setVersionNumber(oldDetail.getVersionNumber() + 1);
+    newDetail.setVersionNumber(getNextVersionNumber(oldDetail));
     newDetail.setStatus(ApplicationStatus.DRAFT);
     newDetail.setCreatedDateTime(Instant.now(clock));
     newDetail.setCreatedByWuaId(user.wuaId());

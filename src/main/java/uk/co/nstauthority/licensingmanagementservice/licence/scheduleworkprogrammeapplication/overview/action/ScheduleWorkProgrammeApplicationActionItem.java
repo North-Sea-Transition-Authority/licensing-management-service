@@ -5,6 +5,7 @@ import static org.springframework.web.servlet.mvc.method.annotation.MvcUriCompon
 import java.util.function.Function;
 import uk.co.nstauthority.licensingmanagementservice.components.actions.ActionItemView;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overview.requestupdate.RequestUpdateController;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overview.steward.AllocateStewardController;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overview.uploaddsp.UploadDspController;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.recordofdecision.RecordOfDecisionTaskListController;
@@ -27,6 +28,11 @@ public enum ScheduleWorkProgrammeApplicationActionItem implements Displayable {
       30,
           detail -> ReverseRouter.route(on(RecordOfDecisionTaskListController.class)
               .getTaskList(detail.getId(), null, null))
+  ),
+  REQUEST_UPDATE(
+      "Request an update",
+      40,
+          detail -> ReverseRouter.route(on(RequestUpdateController.class).render(detail.getId(), null))
   );
 
   private final String displayName;

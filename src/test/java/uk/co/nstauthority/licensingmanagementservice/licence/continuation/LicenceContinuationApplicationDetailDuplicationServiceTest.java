@@ -8,6 +8,7 @@ import static org.mockito.Mockito.when;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -89,6 +90,7 @@ class LicenceContinuationApplicationDetailDuplicationServiceTest {
 
     when(clock.instant()).thenReturn(FIXED_INSTANT);
     givenSavedDetailIsAssignedAnId();
+    givenHighestStoredVersionIs(application, oldDetail);
 
     var result = duplicationServiceUnderTest
         .createNewDraftLicenceContinuationApplicationDetailVersion(oldDetail, user);
@@ -104,7 +106,8 @@ class LicenceContinuationApplicationDetailDuplicationServiceTest {
   void createNewDraftLicenceContinuationApplicationDetailVersion_duplicatesSupportingAndOtherRequirementDocuments() {
     var user = new ServiceUserDetail(20L, 30L, "Forename", "Surname", "email@example.com", null, null);
     var oldDetail = new LicenceContinuationApplicationDetail(UUID.randomUUID());
-    oldDetail.setLicenceContinuationApplication(new LicenceContinuationApplication());
+    var application = new LicenceContinuationApplication();
+    oldDetail.setLicenceContinuationApplication(application);
     oldDetail.setVersionNumber(1);
 
     var oldSupportingUsage = LicenceContinuationSupportingInformationFileUsages.fromApplication(oldDetail);
@@ -114,6 +117,7 @@ class LicenceContinuationApplicationDetailDuplicationServiceTest {
 
     when(clock.instant()).thenReturn(FIXED_INSTANT);
     givenSavedDetailIsAssignedAnId();
+    givenHighestStoredVersionIs(application, oldDetail);
     when(applicationFileService.getUploadedFiles(oldSupportingUsage)).thenReturn(supportingFiles);
     when(applicationFileService.getUploadedFiles(oldOtherRequirementUsage)).thenReturn(otherRequirementFiles);
 
@@ -137,5 +141,35 @@ class LicenceContinuationApplicationDetailDuplicationServiceTest {
           detail.setId(NEW_DETAIL_ID);
           return detail;
         });
+  }
+  private void givenHighestStoredVersionIs(
+      LicenceContinuationApplication application,
+      LicenceContinuationApplicationDetail highestVersion
+  ) {
+    when(licenceContinuationApplicationDetailRepository
+        .findFirstByLicenceContinuationApplicationOrderByVersionNumberDesc(application))
+        .thenReturn(Optional.of(highestVersion));
+  }
+
+  @Test
+  void createNewDraftLicenceContinuationApplicationDetailVersion_whenLaterVersionWasDeleted_doesNotReuseVersionNumber() {
+    var user = new ServiceUserDetail(20L, 30L, "Forename", "Surname", "email@example.com", null, null);
+    var application = new LicenceContinuationApplication();
+    var submittedDetail = new LicenceContinuationApplicationDetail(UUID.randomUUID());
+    submittedDetail.setLicenceContinuationApplication(application);
+    submittedDetail.setVersionNumber(1);
+    var deletedDetail = new LicenceContinuationApplicationDetail(UUID.randomUUID());
+    deletedDetail.setLicenceContinuationApplication(application);
+    deletedDetail.setVersionNumber(2);
+    deletedDetail.setStatus(ApplicationStatus.DELETED);
+
+    when(clock.instant()).thenReturn(FIXED_INSTANT);
+    givenSavedDetailIsAssignedAnId();
+    givenHighestStoredVersionIs(application, deletedDetail);
+
+    var result = duplicationServiceUnderTest
+        .createNewDraftLicenceContinuationApplicationDetailVersion(submittedDetail, user);
+
+    assertThat(result.getVersionNumber()).isEqualTo(3);
   }
 }

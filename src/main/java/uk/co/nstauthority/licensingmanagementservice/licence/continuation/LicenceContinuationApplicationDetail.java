@@ -9,6 +9,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.UUID;
 import org.hibernate.annotations.UuidGenerator;
 import org.hibernate.envers.Audited;
@@ -70,6 +71,12 @@ public class LicenceContinuationApplicationDetail implements LicenceApplicationD
   @ManyToOne
   @JoinColumn(name = "next_phase_id")
   private LicenceSchedulePhase nextPhase;
+
+  @Column
+  private LocalDate updateDeadlineDate;
+
+  @Column
+  private String updateReason;
 
   public LicenceContinuationApplicationDetail() {
   }
@@ -187,6 +194,22 @@ public class LicenceContinuationApplicationDetail implements LicenceApplicationD
 
   public void setNextPhase(LicenceSchedulePhase nextPhase) {
     this.nextPhase = nextPhase;
+  }
+
+  public LocalDate getUpdateDeadlineDate() {
+    return updateDeadlineDate;
+  }
+
+  public void setUpdateDeadlineDate(LocalDate updateDeadlineDate) {
+    this.updateDeadlineDate = updateDeadlineDate;
+  }
+
+  public String getUpdateReason() {
+    return updateReason;
+  }
+
+  public void setUpdateReason(String updateReason) {
+    this.updateReason = updateReason;
   }
 
   public Licence getLicence() {

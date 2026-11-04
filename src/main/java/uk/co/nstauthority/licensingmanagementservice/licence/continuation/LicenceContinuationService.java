@@ -23,6 +23,7 @@ import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplication;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationReferenceUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.caseprocessing.OverviewTab;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.letter.ApplicationLetterService;
@@ -47,7 +48,7 @@ public class LicenceContinuationService {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(LicenceContinuationService.class);
 
-  private static final String APPLICATION_REFERENCE_FORMAT = "LMS/CA/%d/%d";
+  private static final String APPLICATION_REFERENCE_FORMAT = "LMS/CA/%d/%d/1";
 
   private final IndustryRoleService industryRoleService;
   public static final String LICENCE_CONTINUATION_APPLICATION_DETAIL = "licence continuation application detail";
@@ -193,10 +194,11 @@ public class LicenceContinuationService {
       LicenceContinuationApplicationDetail licenceContinuationApplicationDetail,
       ServiceUserDetail user
   ) {
-    var appReference = generateApplicationReference();
-
     var licenceContinuationApplication = licenceContinuationApplicationDetail.getLicenceContinuationApplication();
-    licenceContinuationApplication.setApplicationReference(appReference);
+    licenceContinuationApplication.setApplicationReference(getApplicationReference(
+        licenceContinuationApplication,
+        licenceContinuationApplicationDetail
+    ));
 
     var activeDetail = licenceScheduleDetailService.getScheduleDetailByLicenceAndStatusOrThrow(
         licenceContinuationApplicationDetail.getLicence(),
@@ -231,6 +233,20 @@ public class LicenceContinuationService {
     );
     licenceContinuationApplicationDetail.setStatus(ApplicationStatus.ISSUE_DECISION);
     licenceContinuationApplicationDetailRepository.save(licenceContinuationApplicationDetail);
+  }
+
+  // The first submission gets a new reference. Resubmitting an update keeps it and only changes the version suffix.
+  private String getApplicationReference(
+      LicenceContinuationApplication application,
+      LicenceContinuationApplicationDetail applicationDetail
+  ) {
+    if (application.getApplicationReference() == null) {
+      return generateApplicationReference();
+    }
+    return ApplicationReferenceUtil.withVersionNumber(
+        application.getApplicationReference(),
+        applicationDetail.getVersionNumber()
+    );
   }
 
   private String generateApplicationReference() {
@@ -306,10 +322,14 @@ public class LicenceContinuationService {
       LicenceContinuationApplicationDetail licenceContinuationApplicationDetail,
       String withdrawalReason
   ) {
-    licenceContinuationApplicationDetail.setStatus(ApplicationStatus.WITHDRAWN);
-    licenceContinuationApplicationDetailRepository.save(licenceContinuationApplicationDetail);
-
     var application = licenceContinuationApplicationDetail.getLicenceContinuationApplication();
+    licenceContinuationApplicationDetailRepository.findAllByLicenceContinuationApplication(application).stream()
+        .filter(detail -> detail.getStatus() != ApplicationStatus.DELETED)
+        .forEach(detail -> {
+          detail.setStatus(ApplicationStatus.WITHDRAWN);
+          licenceContinuationApplicationDetailRepository.save(detail);
+        });
+
     application.setWithdrawalReason(withdrawalReason);
     licenceContinuationApplicationRepository.save(application);
 

@@ -14,6 +14,7 @@ import uk.co.nstauthority.licensingmanagementservice.caseevent.CaseEventService;
 import uk.co.nstauthority.licensingmanagementservice.caseevent.CaseEventType;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationReferenceUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
 import uk.co.nstauthority.licensingmanagementservice.licence.crosslicenceeventtracker.CrossLicenceEventTrackerService;
@@ -29,7 +30,7 @@ import uk.co.nstauthority.licensingmanagementservice.util.DateUtil;
 
 @Service
 public class ScheduleWorkProgrammeApplicationService {
-  private static final String APPLICATION_REFERENCE_FORMAT = "LMS/EAA/%d/%d";
+  private static final String APPLICATION_REFERENCE_FORMAT = "LMS/EAA/%d/%d/1";
 
   private final ScheduleWorkProgrammeApplicationRepository scheduleWorkProgrammeApplicationRepository;
   private final ScheduleWorkProgrammeApplicationDetailRepository scheduleWorkProgrammeApplicationDetailRepository;
@@ -215,10 +216,11 @@ public class ScheduleWorkProgrammeApplicationService {
   public ScheduleWorkProgrammeApplication submitApplication(
       ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail,
       ServiceUserDetail user) {
-    var appReference = generateApplicationReference();
-
     var scheduleWorkProgrammeApplication = scheduleWorkProgrammeApplicationDetail.getScheduleWorkProgrammeApplication();
-    scheduleWorkProgrammeApplication.setApplicationReference(appReference);
+    scheduleWorkProgrammeApplication.setApplicationReference(getApplicationReference(
+        scheduleWorkProgrammeApplication,
+        scheduleWorkProgrammeApplicationDetail
+    ));
 
     var activeDetail = licenceScheduleDetailService.getScheduleDetailByLicenceAndStatusOrThrow(
         scheduleWorkProgrammeApplicationDetail.getLicence(),
@@ -239,6 +241,20 @@ public class ScheduleWorkProgrammeApplicationService {
     applicationSubmittedNotificationService.sendNewApplicationSubmittedEmails(scheduleWorkProgrammeApplicationDetail);
 
     return scheduleWorkProgrammeApplication;
+  }
+
+  // The first submission gets a new reference. Resubmitting an update keeps it and only changes the version suffix.
+  private String getApplicationReference(
+      ScheduleWorkProgrammeApplication application,
+      ScheduleWorkProgrammeApplicationDetail applicationDetail
+  ) {
+    if (application.getApplicationReference() == null) {
+      return generateApplicationReference();
+    }
+    return ApplicationReferenceUtil.withVersionNumber(
+        application.getApplicationReference(),
+        applicationDetail.getVersionNumber()
+    );
   }
 
   private String generateApplicationReference() {

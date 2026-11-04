@@ -3,8 +3,10 @@ package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogra
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -271,7 +273,7 @@ class ScheduleWorkProgrammeApplicationServiceTest {
     verify(scheduleWorkProgrammeApplicationDetailRepository).save(scheduleWorkProgrammeApplicationDetailCaptor.capture());
     ScheduleWorkProgrammeApplicationDetail savedDetail = scheduleWorkProgrammeApplicationDetailCaptor.getValue();
 
-    assertThat(savedApplication.getApplicationReference()).isEqualTo(String.format("LMS/EAA/%d/%d", currentYear, 3));
+    assertThat(savedApplication.getApplicationReference()).isEqualTo(String.format("LMS/EAA/%d/%d/1", currentYear, 3));
     assertThat(savedApplication.getSubmittedLicenceScheduleDetail()).isEqualTo(licenceScheduleDetail);
     assertThat(result).isEqualTo(savedApplication);
     assertThat(savedDetail.getStatus()).isEqualTo(ApplicationStatus.SUBMITTED);
@@ -281,6 +283,21 @@ class ScheduleWorkProgrammeApplicationServiceTest {
     verify(applicationSubmittedNotificationService).sendNewApplicationSubmittedEmails(scheduleWorkProgrammeApplicationDetail);
     verify(crossLicenceEventTrackerService).refreshApplicationCache(savedApplication);
     verify(caseEventService).recordCaseEvent(CaseEventType.APPLICATION_SUBMITTED, savedApplication, null);
+  }
+
+  @Test
+  void submitApplication_whenApplicationAlreadyHasReference_keepsReferenceAndUpdatesVersionSuffix() {
+    when(clock.instant()).thenReturn(CURRENT_INSTANT);
+    when(licenceScheduleDetailService.getScheduleDetailByLicenceAndStatusOrThrow(licence, LicenceScheduleDetailStatus.ACTIVE))
+        .thenReturn(licenceScheduleDetail);
+    scheduleWorkProgrammeApplicationDetail.getScheduleWorkProgrammeApplication().setApplicationReference("LMS/EAA/2024/5/2");
+    scheduleWorkProgrammeApplicationDetail.setVersionNumber(3);
+
+    var result = scheduleWorkProgrammeApplicationService.submitApplication(scheduleWorkProgrammeApplicationDetail, mockUser());
+
+    assertThat(result.getApplicationReference()).isEqualTo("LMS/EAA/2024/5/3");
+    verify(scheduleWorkProgrammeApplicationDetailRepository, never())
+        .countByVersionNumberAndSubmittedDatetimeBetween(anyInt(), any(Instant.class), any(Instant.class));
   }
 
   @Test

@@ -22,7 +22,7 @@ schedule** — governs how application rows point at schedule rows (§7).
 | **Application** | A request from a licensee to change something about a licence. LMS has exactly two types (§3). |
 | **Extension and amendment application** (EAA) | "I want to extend a term, phase or work programme activity due date, or amend a work programme activity." Stored under `schedule_work_programme_applications`. Referred to in code and column names as *SWP* (schedule work programme). |
 | **Continuation application** (CA) | "I want to continue into the next term or phase of my production licence." Stored under `licence_continuation_applications`. |
-| **Application version** (a.k.a. *application detail*) | The mutable part of an application — status, timestamps, responsible organisation, and all the answers given in the journey. One row per version; today there is always exactly one (§11.1). |
+| **Application version** (a.k.a. *application detail*) | The mutable part of an application — status, timestamps, responsible organisation, and all the answers given in the journey. One row per version; there is one until an update is requested (§11.1). |
 | **Request** | A single thing being asked for within an application — one term extension, one work programme activity amendment, one requirement answer. Each has its own table. |
 | **Record of decision** (ROD) | The regulator's recorded outcome for an extension and amendment application. Lives in the `swp_record_of_decision*` tables (§5.7). |
 | **Steward** | The NSTA user allocated to progress an extension and amendment application. `schedule_work_programme_applications.steward_wua_id`. |
@@ -210,7 +210,7 @@ schedule_work_programme_applications
 schedule_work_programme_application_details
   id                                     UUID PK
   schedule_work_programme_application_id UUID → schedule_work_programme_applications.id
-  version_number                         INTEGER      always 1 (§11.1)
+  version_number                         INTEGER      1 until an update is requested (§11.1)
   status                                 TEXT         §4
   all_licensees_permission_confirmed     BOOLEAN      captured on the first page of the journey
   created_datetime                       TIMESTAMPTZ NOT NULL
@@ -219,6 +219,8 @@ schedule_work_programme_application_details
   submitted_by_wua_id                    INTEGER      null until submission
   responsible_organisation_unit_id       INTEGER      Energy Portal organisation unit
   decision_date                          DATE         set when the final decision is recorded
+  update_deadline_date                   DATE         date an update was requested by (§11.1); null if none requested
+  update_reason                          TEXT         why an update was requested (§11.1); null if none requested
 ```
 
 Starting an application inserts one row in each table plus a scoped external contributors
@@ -443,7 +445,7 @@ licence_continuation_applications
 licence_continuation_application_details
   id                                  UUID PK
   licence_continuation_application_id  UUID → licence_continuation_applications.id
-  version_number                      INTEGER      always 1 (§11.1)
+  version_number                      INTEGER      1 until an update is requested (§11.1)
   status                              TEXT         §4
   created_date_time                   TIMESTAMPTZ  ← note: not created_datetime (§11.3)
   created_by_wua_id                   BIGINT       Energy Portal wua id of the creator (§11.9)
@@ -454,6 +456,8 @@ licence_continuation_application_details
   current_phase_id                    UUID → licence_schedule_phases.id  (FK enforced)
   next_term_id                        UUID → licence_schedule_terms.id   (FK enforced)
   next_phase_id                       UUID → licence_schedule_phases.id  (FK enforced)
+  update_deadline_date                DATE         date an update was requested by (§11.1); null if none requested
+  update_reason                       TEXT         why an update was requested (§11.1); null if none requested
 ```
 
 The four term and phase columns are a **snapshot of the schedule state taken at submission**
@@ -793,27 +797,52 @@ mnemonic:
 
 ## 11. Caveats and known gotchas
 
-### 11.1 `version_number` is always 1
+### 11.1 `version_number` is 1 until an update is requested
 
-Both detail tables carry `version_number`, and both root tables can hold many detail rows, but
-**nothing in LMS ever creates a second version**. Every application has exactly one detail row
-today. Queries that fetch "the latest detail by version number descending" are future-proofing,
-not evidence that multiple versions exist. Equally, do not assume the one-to-many will stay
-degenerate — join to the detail table rather than assuming one row.
+Both detail tables carry `version_number`, and both root tables can hold many detail rows. Every
+application starts with exactly one detail row, `version_number` 1. A second row appears only
+when a regulator requests an update to a `SUBMITTED` application (§11.1.1); nothing else
+creates one. Queries that fetch "the latest detail by version number descending" are therefore
+correct, and any query that assumes one detail row per application is wrong for applications
+that have had an update requested — join to the detail table rather than assuming one row.
 
-The application's code can build a new `DRAFT` detail row from an existing one, but nothing
-currently triggers it. When it does, the new row has `version_number` one higher, the same
-application, a fresh `created_*` timestamp and user, and the same responsible organisation. A
-continuation detail also keeps the same current and next term and phase ids. The
-`submitted_*` and `decision_date` columns start empty. These child rows are copied
-field-for-field with fresh ids: for a schedule application, the request purpose, extension
-requests, amendment requests, amendment summary and supporting information; for a
-continuation application, the licence operators, WPA requirement, other requirement and
-supporting information rows. Record-of-decision rows and the external contributor requests
-are not copied. Uploaded files are copied too (see section 10): the new row gets its own copy
-of each supporting document (schedule application) or each other requirement and additional
-supporting document (continuation), filed under the new detail id, and the old version keeps
-its files. Decision support papers and the issued letter are not copied.
+#### 11.1.1 Requesting an update
+
+Requesting an update works the same way for both application types. It leaves the existing
+`SUBMITTED` row exactly as it was and inserts a new `DRAFT` detail row for the same application:
+
+- `version_number` is one higher than the highest stored version, including `DELETED` ones, so a number is never reused. It also gets a fresh `created_*` timestamp and user.
+- The responsible organisation is carried over. A schedule detail also keeps
+  `all_licensees_permission_confirmed`, and a continuation detail keeps the same current and
+  next term and phase ids.
+- `update_deadline_date` and `update_reason` hold the answers given when the update was
+  requested. They are null on the earlier version, so "has an update been requested" is
+  "does a later version exist".
+- `submitted_*` and `decision_date` start empty.
+- The child rows are copied field-for-field with fresh ids: for a schedule application, the
+  request purpose, extension requests, amendment requests, amendment summary and supporting
+  information; for a continuation application, the licence operators, WPA requirement, other
+  requirement and supporting information rows. Record-of-decision rows and the external
+  contributor requests are not copied. Uploaded files are copied too (see section 10): the new row gets its own copy
+  of each supporting document (schedule application) or each other requirement and additional
+  supporting document (continuation), filed under the new detail id, and the old version keeps
+  its files. Decision support papers and the issued letter are not copied.
+
+An update cannot be requested on a version while the application has a later version that is
+not `DELETED`. This is enforced in application code. In practice an application has at most one
+open update request at a time: a new request becomes possible again only if the draft created
+by the earlier one is deleted. The earlier `SUBMITTED` row keeps its status throughout, so a
+`SUBMITTED` row with a later version is not the application's current version.
+
+A deleted draft keeps its row and its version number, and the next update takes the number
+after the highest stored version. The pair (application, `version_number`) is unique in both
+detail tables, so two versions of one application can never share a number.
+
+While a draft update is open on a continuation application, the regulator cannot confirm the
+continuation from the earlier version. Confirming is possible again if the draft is deleted,
+or on the updated version once it has been submitted. The other actions (for example withdrawing) stay available. Withdrawing a continuation application
+withdraws every version of it, including an open draft update, but not versions that were
+already `DELETED`.
 
 Note the side effect on application references: the running number counts *version 1* details
 submitted in the calendar year, so it is effectively a count of distinct applications.
@@ -821,9 +850,17 @@ submitted in the calendar year, so it is effectively a count of distinct applica
 ### 11.2 The application reference is assigned at submission, not creation
 
 `application_reference` is null for every draft, and unique across each table once set. The
-format is `LMS/EAA/{year}/{n}` and `LMS/CA/{year}/{n}`, where `n` is one more than the number
+format is `LMS/EAA/{year}/{n}/1` and `LMS/CA/{year}/{n}/1`, where the trailing `1` is the
+version number and `n` is one more than the number
 of applications of that type submitted so far in the current calendar year. The counter
 restarts each year, so the reference is only unique *with* its year component.
+
+When an updated version is submitted, the application keeps its existing reference and only the
+version suffix changes, to the submitted version's number: `LMS/EAA/2024/5/1` becomes
+`LMS/EAA/2024/5/2` and then `LMS/EAA/2024/5/3`. Any earlier suffix is replaced rather than
+stacked, and the running number is not advanced. Until the update is submitted, the reference
+is unchanged. The reference lives on the application, so every version of that application,
+including the original submitted one, shows the new reference once it is submitted.
 
 Two consequences: a `DELETED` draft never consumes a number, and references are allocated at
 submission time, so their order matches `submitted_datetime`, not the creation timestamp.
@@ -956,7 +993,8 @@ this draft", none of which have a dedicated column.
 **`schedule_work_programme_application_details`**
 `id`, `schedule_work_programme_application_id`, `version_number`, `status`,
 `all_licensees_permission_confirmed`, `created_datetime`, `created_by_wua_id`,
-`submitted_datetime`, `submitted_by_wua_id`, `responsible_organisation_unit_id`, `decision_date`
+`submitted_datetime`, `submitted_by_wua_id`, `responsible_organisation_unit_id`, `decision_date`,
+`update_deadline_date`, `update_reason`
 
 **`swp_application_request_purpose`**
 `id`, `schedule_work_programme_application_detail_id`, `extend_phase_or_term`, `extend_term`,
@@ -1012,7 +1050,8 @@ this draft", none of which have a dedicated column.
 **`licence_continuation_application_details`**
 `id`, `licence_continuation_application_id`, `version_number`, `status`, `created_date_time`,
 `created_by_wua_id`, `submitted_datetime`, `submitted_by_wua_id`, `responsible_organisation_unit_id`,
-`current_term_id`, `current_phase_id`, `next_term_id`, `next_phase_id`
+`current_term_id`, `current_phase_id`, `next_term_id`, `next_phase_id`, `update_deadline_date`,
+`update_reason`
 
 **`licence_continuation_wpa_requirement_request`**
 `id`, `licence_continuation_application_detail_id`,

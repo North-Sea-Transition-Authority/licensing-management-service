@@ -1,5 +1,6 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overview.action;
 
+import com.google.common.base.Suppliers;
 import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.EnumSet;
@@ -19,6 +20,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.application.Applica
 import uk.co.nstauthority.licensingmanagementservice.licence.application.CaseManagerRoles;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.StewardRoles;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetailRepository;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamRole;
@@ -39,10 +41,18 @@ public class ScheduleWorkProgrammeApplicationActionService {
       BiPredicate<ScheduleWorkProgrammeApplicationDetail, Set<Role>>> ACTIONS_TO_PRIMARY_PREDICATES
       = new EnumMap<>(ScheduleWorkProgrammeApplicationActionItem.class);
 
-  private final TeamQueryService teamQueryService;
+  private static final Set<ScheduleWorkProgrammeApplicationActionItem> ACTIONS_ALLOWED_WHEN_DRAFT_UPDATE_OPEN
+      = EnumSet.noneOf(ScheduleWorkProgrammeApplicationActionItem.class);
 
-  public ScheduleWorkProgrammeApplicationActionService(TeamQueryService teamQueryService) {
+  private final TeamQueryService teamQueryService;
+  private final ScheduleWorkProgrammeApplicationDetailRepository detailRepository;
+
+  public ScheduleWorkProgrammeApplicationActionService(
+      TeamQueryService teamQueryService,
+      ScheduleWorkProgrammeApplicationDetailRepository detailRepository
+  ) {
     this.teamQueryService = teamQueryService;
+    this.detailRepository = detailRepository;
 
     var registeredActions = ScheduleWorkProgrammeApplicationActionBuilder.newBuilder()
         .registerAction(ScheduleWorkProgrammeApplicationActionItem.ALLOCATE_STEWARD)
@@ -52,6 +62,7 @@ public class ScheduleWorkProgrammeApplicationActionService {
               hasRole(caseManagerRole(detail), userRoles)
               && !stewardIsAllocated(detail)
           )
+          .allowWhenDraftUpdateOpen(true)
         .registerAction(ScheduleWorkProgrammeApplicationActionItem.UPLOAD_DSP)
           .requiresAnyStatusFrom(ApplicationStatus.SUBMITTED)
           .requiresAnyRoleFrom(detail -> StreamUtil.toSet(caseManagerRole(detail)))
@@ -60,16 +71,24 @@ public class ScheduleWorkProgrammeApplicationActionService {
               hasRole(stewardRole(detail), userRoles)
               && stewardIsAllocated(detail)
           )
+          .allowWhenDraftUpdateOpen(false)
         .registerAction(ScheduleWorkProgrammeApplicationActionItem.RECORD_DECISION)
           .requiresAnyStatusFrom(ApplicationStatus.DSP_UPLOADED)
           .requiresAnyRoleFrom(detail -> StreamUtil.toSet(caseManagerRole(detail)))
           .isPrimaryButton(true)
+          .allowWhenDraftUpdateOpen(false)
+        .registerAction(ScheduleWorkProgrammeApplicationActionItem.REQUEST_UPDATE)
+          .requiresAnyStatusFrom(ApplicationStatus.SUBMITTED)
+          .requiresAnyRoleFrom(detail -> StreamUtil.toSet(stewardRole(detail), caseManagerRole(detail)))
+          .isPrimaryButton(false)
+          .allowWhenDraftUpdateOpen(false)
         .build();
 
     ACTIONS_TO_ROLES.putAll(registeredActions.roleMap);
     STATUS_TO_ACTIONS.putAll(registeredActions.statusMap);
     ACTIONS_TO_USER_GRANT_PREDICATES.putAll(registeredActions.userGrantPredicateMap);
     ACTIONS_TO_PRIMARY_PREDICATES.putAll(registeredActions.primaryActionPredicateMap);
+    ACTIONS_ALLOWED_WHEN_DRAFT_UPDATE_OPEN.addAll(registeredActions.draftUpdateOpenActions);
   }
 
   public List<ActionItemView> getAvailableUserActionItems(
@@ -79,6 +98,8 @@ public class ScheduleWorkProgrammeApplicationActionService {
     var userRoles = teamQueryService.getTeamRolesForUser(user.wuaId()).stream()
         .map(TeamRole::getRole)
         .collect(Collectors.toSet());
+
+    var hasLaterVersion = Suppliers.memoize(() -> hasLaterVersion(applicationDetail));
 
     return EnumSet.allOf(ScheduleWorkProgrammeApplicationActionItem.class).stream()
         .filter(STATUS_TO_ACTIONS.getOrDefault(applicationDetail.getStatus(), Set.of())::contains)
@@ -92,9 +113,18 @@ public class ScheduleWorkProgrammeApplicationActionService {
           return CollectionUtils.containsAny(requiredRoles, userRoles)
               || Objects.equals(grantedUserId, user.wuaId());
         })
+        .filter(action -> ACTIONS_ALLOWED_WHEN_DRAFT_UPDATE_OPEN.contains(action) || !hasLaterVersion.get())
         .map(actionItem -> actionItem.toActionItemView(applicationDetail, isPrimary(applicationDetail, actionItem, userRoles)))
         .sorted(Comparator.comparing(ActionItemView::displayOrder))
         .toList();
+  }
+
+  private boolean hasLaterVersion(ScheduleWorkProgrammeApplicationDetail applicationDetail) {
+    return detailRepository.existsByScheduleWorkProgrammeApplicationAndVersionNumberGreaterThanAndStatusNot(
+        applicationDetail.getScheduleWorkProgrammeApplication(),
+        applicationDetail.getVersionNumber(),
+        ApplicationStatus.DELETED
+    );
   }
 
   private static boolean isPrimary(

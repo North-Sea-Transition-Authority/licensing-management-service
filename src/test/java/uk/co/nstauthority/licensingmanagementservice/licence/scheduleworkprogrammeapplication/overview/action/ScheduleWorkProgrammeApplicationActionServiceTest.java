@@ -13,8 +13,10 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.components.actions.ActionItemView;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetailRepository;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.Team;
@@ -29,6 +31,9 @@ class ScheduleWorkProgrammeApplicationActionServiceTest {
 
   @Mock
   private TeamQueryService teamQueryService;
+
+  @Mock
+  private ScheduleWorkProgrammeApplicationDetailRepository detailRepository;
 
   @InjectMocks
   private ScheduleWorkProgrammeApplicationActionService scheduleWorkProgrammeApplicationActionService;
@@ -374,5 +379,95 @@ class ScheduleWorkProgrammeApplicationActionServiceTest {
 
     assertThat(availableActions)
         .contains(ScheduleWorkProgrammeApplicationActionItem.ALLOCATE_STEWARD.toActionItemView(applicationDetail, false));
+  }
+
+  @Test
+  void getAvailableUserActionItems_requestUpdate_availableWhenNoLaterVersionExists() {
+    var applicationDetail = ScheduleWorkProgrammeApplicationDetailTestUtil.builder()
+        .withId(UUID.randomUUID())
+        .withStatus(ApplicationStatus.SUBMITTED)
+        .withLicenceType(LicenceType.SEAWARD_PRODUCTION)
+        .build();
+
+    when(teamQueryService.getTeamRolesForUser(USER_WUA_ID)).thenReturn(Set.of(stewardTeamRole()));
+    when(detailRepository.existsByScheduleWorkProgrammeApplicationAndVersionNumberGreaterThanAndStatusNot(
+        applicationDetail.getScheduleWorkProgrammeApplication(),
+        applicationDetail.getVersionNumber(),
+        ApplicationStatus.DELETED
+    )).thenReturn(false);
+
+    assertThat(scheduleWorkProgrammeApplicationActionService.getAvailableUserActionItems(applicationDetail, serviceUserDetail))
+        .contains(ScheduleWorkProgrammeApplicationActionItem.REQUEST_UPDATE.toActionItemView(applicationDetail));
+  }
+
+  @Test
+  void getAvailableUserActionItems_requestUpdate_notAvailableWhenLaterVersionExists() {
+    var applicationDetail = ScheduleWorkProgrammeApplicationDetailTestUtil.builder()
+        .withId(UUID.randomUUID())
+        .withStatus(ApplicationStatus.SUBMITTED)
+        .withLicenceType(LicenceType.SEAWARD_PRODUCTION)
+        .build();
+
+    when(teamQueryService.getTeamRolesForUser(USER_WUA_ID)).thenReturn(Set.of(stewardTeamRole()));
+    when(detailRepository.existsByScheduleWorkProgrammeApplicationAndVersionNumberGreaterThanAndStatusNot(
+        applicationDetail.getScheduleWorkProgrammeApplication(),
+        applicationDetail.getVersionNumber(),
+        ApplicationStatus.DELETED
+    )).thenReturn(true);
+
+    assertThat(scheduleWorkProgrammeApplicationActionService.getAvailableUserActionItems(applicationDetail, serviceUserDetail))
+        .doesNotContain(ScheduleWorkProgrammeApplicationActionItem.REQUEST_UPDATE.toActionItemView(applicationDetail));
+  }
+
+  @Test
+  void getAvailableUserActionItems_allocateSteward_availableWhenLaterVersionExists() {
+    var applicationDetail = ScheduleWorkProgrammeApplicationDetailTestUtil.builder()
+        .withId(UUID.randomUUID())
+        .withStatus(ApplicationStatus.SUBMITTED)
+        .withLicenceType(LicenceType.SEAWARD_PRODUCTION)
+        .build();
+
+    when(teamQueryService.getTeamRolesForUser(USER_WUA_ID)).thenReturn(Set.of(stewardTeamRole()));
+    when(detailRepository.existsByScheduleWorkProgrammeApplicationAndVersionNumberGreaterThanAndStatusNot(
+        applicationDetail.getScheduleWorkProgrammeApplication(),
+        applicationDetail.getVersionNumber(),
+        ApplicationStatus.DELETED
+    )).thenReturn(true);
+
+    assertThat(scheduleWorkProgrammeApplicationActionService.getAvailableUserActionItems(applicationDetail, serviceUserDetail))
+        .contains(ScheduleWorkProgrammeApplicationActionItem.ALLOCATE_STEWARD.toActionItemView(applicationDetail, false));
+  }
+
+  @Test
+  void getAvailableUserActionItems_uploadDsp_notAvailableWhenLaterVersionExists() {
+    var applicationDetail = ScheduleWorkProgrammeApplicationDetailTestUtil.builder()
+        .withId(UUID.randomUUID())
+        .withStatus(ApplicationStatus.SUBMITTED)
+        .withLicenceType(LicenceType.SEAWARD_PRODUCTION)
+        .build();
+    var caseManagerRole = TeamRoleTestUtil.newBuilder()
+        .withRole(Role.CASE_MANAGER_OFFSHORE)
+        .withTeam(new Team())
+        .withWuaId(USER_WUA_ID)
+        .build();
+
+    when(teamQueryService.getTeamRolesForUser(USER_WUA_ID)).thenReturn(Set.of(caseManagerRole));
+    when(detailRepository.existsByScheduleWorkProgrammeApplicationAndVersionNumberGreaterThanAndStatusNot(
+        applicationDetail.getScheduleWorkProgrammeApplication(),
+        applicationDetail.getVersionNumber(),
+        ApplicationStatus.DELETED
+    )).thenReturn(true);
+
+    assertThat(scheduleWorkProgrammeApplicationActionService.getAvailableUserActionItems(applicationDetail, serviceUserDetail))
+        .extracting(ActionItemView::displayName)
+        .doesNotContain(ScheduleWorkProgrammeApplicationActionItem.UPLOAD_DSP.getDisplayName());
+  }
+
+  private TeamRole stewardTeamRole() {
+    return TeamRoleTestUtil.newBuilder()
+        .withRole(Role.STEWARD_OFFSHORE)
+        .withTeam(new Team())
+        .withWuaId(USER_WUA_ID)
+        .build();
   }
 }

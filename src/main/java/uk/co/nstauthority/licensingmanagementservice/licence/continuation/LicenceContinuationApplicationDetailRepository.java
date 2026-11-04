@@ -33,6 +33,16 @@ public interface LicenceContinuationApplicationDetailRepository
       LicenceContinuationApplication scheduleWorkProgrammeApplication
   );
 
+  List<LicenceContinuationApplicationDetail> findAllByLicenceContinuationApplication(
+      LicenceContinuationApplication licenceContinuationApplication
+  );
+
+  boolean existsByLicenceContinuationApplicationAndVersionNumberGreaterThanAndStatusNot(
+      LicenceContinuationApplication licenceContinuationApplication,
+      Integer versionNumber,
+      ApplicationStatus status
+  );
+
   int countByVersionNumberAndSubmittedDatetimeBetween(Integer versionNumber, Instant startOfYear, Instant endOfYear);
 
   // Selects a summary rather than the entities: loading LicenceContinuationApplicationDetail would eagerly load its

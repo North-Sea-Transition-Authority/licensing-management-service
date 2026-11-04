@@ -13,7 +13,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.components.actions.ActionItemView;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
+import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetailRepository;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.Team;
@@ -28,6 +30,9 @@ class LicenceContinuationActionServiceTest {
 
   @Mock
   private TeamQueryService teamQueryService;
+
+  @Mock
+  private LicenceContinuationApplicationDetailRepository detailRepository;
 
   @InjectMocks
   private LicenceContinuationActionService licenceContinuationActionService;
@@ -124,8 +129,72 @@ class LicenceContinuationActionServiceTest {
 
     var availableActions = licenceContinuationActionService.getAvailableUserActionItems(applicationDetail, serviceUserDetail);
 
-    assertThat(availableActions).hasSize(2);
+    assertThat(availableActions).hasSize(3);
     assertThat(availableActions.get(0).primaryAction()).isTrue();
     assertThat(availableActions.get(1).primaryAction()).isFalse();
+    assertThat(availableActions.get(2).primaryAction()).isFalse();
+  }
+
+  @Test
+  void getAvailableUserActionItems_requestUpdate_availableWhenNoLaterVersionExists() {
+    var applicationDetail = LicenceContinuationApplicationTestUtil.builder()
+        .withId(UUID.randomUUID())
+        .withStatus(ApplicationStatus.SUBMITTED)
+        .build();
+
+    when(teamQueryService.getTeamRolesForUser(USER_WUA_ID)).thenReturn(Set.of(reviewerTeamRole()));
+    when(detailRepository.existsByLicenceContinuationApplicationAndVersionNumberGreaterThanAndStatusNot(
+        applicationDetail.getLicenceContinuationApplication(),
+        applicationDetail.getVersionNumber(),
+        ApplicationStatus.DELETED
+    )).thenReturn(false);
+
+    assertThat(licenceContinuationActionService.getAvailableUserActionItems(applicationDetail, serviceUserDetail))
+        .contains(LicenceContinuationActionItem.REQUEST_UPDATE.toActionItemView(applicationDetail));
+  }
+
+  @Test
+  void getAvailableUserActionItems_requestUpdate_notAvailableWhenLaterVersionExists() {
+    var applicationDetail = LicenceContinuationApplicationTestUtil.builder()
+        .withId(UUID.randomUUID())
+        .withStatus(ApplicationStatus.SUBMITTED)
+        .build();
+
+    when(teamQueryService.getTeamRolesForUser(USER_WUA_ID)).thenReturn(Set.of(reviewerTeamRole()));
+    when(detailRepository.existsByLicenceContinuationApplicationAndVersionNumberGreaterThanAndStatusNot(
+        applicationDetail.getLicenceContinuationApplication(),
+        applicationDetail.getVersionNumber(),
+        ApplicationStatus.DELETED
+    )).thenReturn(true);
+
+    assertThat(licenceContinuationActionService.getAvailableUserActionItems(applicationDetail, serviceUserDetail))
+        .doesNotContain(LicenceContinuationActionItem.REQUEST_UPDATE.toActionItemView(applicationDetail));
+  }
+
+  @Test
+  void getAvailableUserActionItems_whenLaterVersionExists_confirmIsHiddenAndWithdrawStillAvailable() {
+    var applicationDetail = LicenceContinuationApplicationTestUtil.builder()
+        .withId(UUID.randomUUID())
+        .withStatus(ApplicationStatus.SUBMITTED)
+        .build();
+
+    when(teamQueryService.getTeamRolesForUser(USER_WUA_ID)).thenReturn(Set.of(reviewerTeamRole()));
+    when(detailRepository.existsByLicenceContinuationApplicationAndVersionNumberGreaterThanAndStatusNot(
+        applicationDetail.getLicenceContinuationApplication(),
+        applicationDetail.getVersionNumber(),
+        ApplicationStatus.DELETED
+    )).thenReturn(true);
+
+    assertThat(licenceContinuationActionService.getAvailableUserActionItems(applicationDetail, serviceUserDetail))
+        .extracting(ActionItemView::displayName)
+        .containsExactly(LicenceContinuationActionItem.WITHDRAW_CONTINUATION.getDisplayName());
+  }
+
+  private TeamRole reviewerTeamRole() {
+    return TeamRoleTestUtil.newBuilder()
+        .withRole(Role.CONTINUATION_REVIEWER_OFFSHORE)
+        .withTeam(new Team())
+        .withWuaId(USER_WUA_ID)
+        .build();
   }
 }

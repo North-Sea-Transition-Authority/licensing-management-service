@@ -21,6 +21,12 @@ public interface ScheduleWorkProgrammeApplicationDetailRepository
   Optional<ScheduleWorkProgrammeApplicationDetail> getFirstByScheduleWorkProgrammeApplicationOrderByVersionNumberDesc(
       ScheduleWorkProgrammeApplication scheduleWorkProgrammeApplication);
 
+  boolean existsByScheduleWorkProgrammeApplicationAndVersionNumberGreaterThanAndStatusNot(
+      ScheduleWorkProgrammeApplication scheduleWorkProgrammeApplication,
+      Integer versionNumber,
+      ApplicationStatus status
+  );
+
   int countByVersionNumberAndSubmittedDatetimeBetween(Integer versionNumber, Instant startOfYear, Instant endOfYear);
 
   @EntityGraph(attributePaths = "scheduleWorkProgrammeApplication")

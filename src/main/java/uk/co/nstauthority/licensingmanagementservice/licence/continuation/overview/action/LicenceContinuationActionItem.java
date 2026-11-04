@@ -7,6 +7,7 @@ import uk.co.nstauthority.licensingmanagementservice.components.actions.ActionIt
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.overview.LicenceContinuationApplicationReviewConfirmationController;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.overview.LicenceContinuationApplicationWithdrawConfirmationController;
+import uk.co.nstauthority.licensingmanagementservice.licence.continuation.overview.requestupdate.LicenceContinuationRequestUpdateController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.util.enumutil.Displayable;
 
@@ -22,6 +23,12 @@ public enum LicenceContinuationActionItem implements Displayable {
       2,
           detail -> ReverseRouter.route(on(LicenceContinuationApplicationWithdrawConfirmationController.class)
                                             .renderWithdrawConfirmation(detail.getId(), null))
+  ),
+  REQUEST_UPDATE(
+      "Request an update",
+      3,
+          detail -> ReverseRouter.route(on(LicenceContinuationRequestUpdateController.class)
+                                            .render(detail.getId(), null))
   );
 
   private final String displayName;

@@ -8,6 +8,7 @@ import static org.mockito.Mockito.when;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -76,6 +77,7 @@ class ScheduleWorkProgrammeApplicationDetailDuplicationServiceTest {
 
     when(clock.instant()).thenReturn(FIXED_INSTANT);
     givenSavedDetailIsAssignedAnId();
+    givenHighestStoredVersionIs(application, oldDetail);
 
     var result = duplicationServiceUnderTest
         .createNewDraftScheduleWorkProgrammeApplicationDetailVersion(oldDetail, user);
@@ -91,13 +93,15 @@ class ScheduleWorkProgrammeApplicationDetailDuplicationServiceTest {
   void createNewDraftScheduleWorkProgrammeApplicationDetailVersion_duplicatesSupportingDocuments() {
     var user = new ServiceUserDetail(20L, 30L, "Forename", "Surname", "email@example.com", null, null);
     var oldDetail = new ScheduleWorkProgrammeApplicationDetail(UUID.randomUUID());
-    oldDetail.setScheduleWorkProgrammeApplication(new ScheduleWorkProgrammeApplication());
+    var application = new ScheduleWorkProgrammeApplication();
+    oldDetail.setScheduleWorkProgrammeApplication(application);
     oldDetail.setVersionNumber(1);
 
     var supportingFiles = List.of(new UploadedFile(), new UploadedFile());
 
     when(clock.instant()).thenReturn(FIXED_INSTANT);
     givenSavedDetailIsAssignedAnId();
+    givenHighestStoredVersionIs(application, oldDetail);
     when(applicationFileService.getUploadedFiles(LicenceScheduleSupportingInformationFileUsages.fromApplication(oldDetail)))
         .thenReturn(supportingFiles);
 
@@ -117,5 +121,35 @@ class ScheduleWorkProgrammeApplicationDetailDuplicationServiceTest {
           detail.setId(NEW_DETAIL_ID);
           return detail;
         });
+  }
+  private void givenHighestStoredVersionIs(
+      ScheduleWorkProgrammeApplication application,
+      ScheduleWorkProgrammeApplicationDetail highestVersion
+  ) {
+    when(scheduleWorkProgrammeApplicationDetailRepository
+        .getFirstByScheduleWorkProgrammeApplicationOrderByVersionNumberDesc(application))
+        .thenReturn(Optional.of(highestVersion));
+  }
+
+  @Test
+  void createNewDraftScheduleWorkProgrammeApplicationDetailVersion_whenLaterVersionWasDeleted_doesNotReuseVersionNumber() {
+    var user = new ServiceUserDetail(20L, 30L, "Forename", "Surname", "email@example.com", null, null);
+    var application = new ScheduleWorkProgrammeApplication();
+    var submittedDetail = new ScheduleWorkProgrammeApplicationDetail(UUID.randomUUID());
+    submittedDetail.setScheduleWorkProgrammeApplication(application);
+    submittedDetail.setVersionNumber(1);
+    var deletedDetail = new ScheduleWorkProgrammeApplicationDetail(UUID.randomUUID());
+    deletedDetail.setScheduleWorkProgrammeApplication(application);
+    deletedDetail.setVersionNumber(2);
+    deletedDetail.setStatus(ApplicationStatus.DELETED);
+
+    when(clock.instant()).thenReturn(FIXED_INSTANT);
+    givenSavedDetailIsAssignedAnId();
+    givenHighestStoredVersionIs(application, deletedDetail);
+
+    var result = duplicationServiceUnderTest
+        .createNewDraftScheduleWorkProgrammeApplicationDetailVersion(submittedDetail, user);
+
+    assertThat(result.getVersionNumber()).isEqualTo(3);
   }
 }

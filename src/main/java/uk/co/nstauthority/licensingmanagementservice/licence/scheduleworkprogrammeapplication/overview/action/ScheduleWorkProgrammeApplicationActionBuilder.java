@@ -3,6 +3,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogra
 import java.util.Arrays;
 import java.util.Deque;
 import java.util.EnumMap;
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Map;
@@ -31,6 +32,8 @@ public class ScheduleWorkProgrammeApplicationActionBuilder {
         Function<ScheduleWorkProgrammeApplicationDetail, Long>> userGrantPredicateMap =
         new EnumMap<>(ScheduleWorkProgrammeApplicationActionItem.class);
     private final Deque<ScheduleWorkProgrammeApplicationActionItem> actionItems = new LinkedList<>();
+    public final Set<ScheduleWorkProgrammeApplicationActionItem> draftUpdateOpenActions =
+        EnumSet.noneOf(ScheduleWorkProgrammeApplicationActionItem.class);
     public final Map<ScheduleWorkProgrammeApplicationActionItem,
         BiPredicate<ScheduleWorkProgrammeApplicationDetail, Set<Role>>> primaryActionPredicateMap
         = new EnumMap<>(ScheduleWorkProgrammeApplicationActionItem.class);
@@ -93,6 +96,14 @@ public class ScheduleWorkProgrammeApplicationActionBuilder {
     }
 
     @Override
+    public RegisterAnAction allowWhenDraftUpdateOpen(boolean allowWhenDraftUpdateOpen) {
+      if (allowWhenDraftUpdateOpen) {
+        draftUpdateOpenActions.add(Objects.requireNonNull(actionItems.peek()));
+      }
+      return this;
+    }
+
+    @Override
     public RegisterAnAction isPrimaryButton(boolean isPrimary) {
       return isPrimaryButton((detail, userRoles) -> isPrimary);
     }
@@ -132,6 +143,8 @@ public class ScheduleWorkProgrammeApplicationActionBuilder {
     RegisterAnAction isPrimaryButton(BiPredicate<ScheduleWorkProgrammeApplicationDetail, Set<Role>> condition);
 
     RegisterAnAction isPrimaryButton(boolean isPrimary);
+
+    RegisterAnAction allowWhenDraftUpdateOpen(boolean allowWhenDraftUpdateOpen);
 
     RegisterAnAction orGrantedToUser(Function<ScheduleWorkProgrammeApplicationDetail, Long> userExtractor);
 

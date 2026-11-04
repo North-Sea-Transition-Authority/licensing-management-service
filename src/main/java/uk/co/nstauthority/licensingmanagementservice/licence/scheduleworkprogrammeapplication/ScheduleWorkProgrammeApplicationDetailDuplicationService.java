@@ -58,13 +58,22 @@ public class ScheduleWorkProgrammeApplicationDetailDuplicationService {
     applicationFileService.duplicateFiles(files, LicenceScheduleSupportingInformationFileUsages.fromApplication(newDetail));
   }
 
+  // Deleted versions keep their row, so the next number is based on the highest stored version.
+  private int getNextVersionNumber(ScheduleWorkProgrammeApplicationDetail oldDetail) {
+    return scheduleWorkProgrammeApplicationDetailRepository
+        .getFirstByScheduleWorkProgrammeApplicationOrderByVersionNumberDesc(oldDetail.getScheduleWorkProgrammeApplication())
+        .map(ScheduleWorkProgrammeApplicationDetail::getVersionNumber)
+        .map(highest -> Math.max(highest, oldDetail.getVersionNumber()) + 1)
+        .orElse(oldDetail.getVersionNumber() + 1);
+  }
+
   private ScheduleWorkProgrammeApplicationDetail createNewDetail(
       ScheduleWorkProgrammeApplicationDetail oldDetail,
       ServiceUserDetail user
   ) {
     var newDetail = new ScheduleWorkProgrammeApplicationDetail();
     newDetail.setScheduleWorkProgrammeApplication(oldDetail.getScheduleWorkProgrammeApplication());
-    newDetail.setVersionNumber(oldDetail.getVersionNumber() + 1);
+    newDetail.setVersionNumber(getNextVersionNumber(oldDetail));
     newDetail.setStatus(ApplicationStatus.DRAFT);
     newDetail.setCreatedDatetime(Instant.now(clock));
     newDetail.setCreatedByWuaId(user.wuaId());

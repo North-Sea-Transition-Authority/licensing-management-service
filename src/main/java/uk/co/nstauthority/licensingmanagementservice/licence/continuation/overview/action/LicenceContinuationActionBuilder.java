@@ -3,6 +3,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.continuation.overv
 import java.util.Arrays;
 import java.util.Deque;
 import java.util.EnumMap;
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Map;
@@ -26,6 +27,8 @@ public class LicenceContinuationActionBuilder {
     public final Map<LicenceContinuationActionItem, Set<Role>> roleMap =
         new EnumMap<>(LicenceContinuationActionItem.class);
     private final Deque<LicenceContinuationActionItem> actionItems = new LinkedList<>();
+    public final Set<LicenceContinuationActionItem> draftUpdateOpenActions =
+        EnumSet.noneOf(LicenceContinuationActionItem.class);
     public final Map<LicenceContinuationActionItem, Predicate<LicenceContinuationApplicationDetail>> primaryActionPredicateMap =
         new EnumMap<>(LicenceContinuationActionItem.class);
 
@@ -80,6 +83,14 @@ public class LicenceContinuationActionBuilder {
     }
 
     @Override
+    public RegisterAnAction allowWhenDraftUpdateOpen(boolean allowWhenDraftUpdateOpen) {
+      if (allowWhenDraftUpdateOpen) {
+        draftUpdateOpenActions.add(Objects.requireNonNull(actionItems.peek()));
+      }
+      return this;
+    }
+
+    @Override
     public RegisterAnAction isPrimaryButton(boolean isPrimary) {
       return isPrimaryButton(detail -> isPrimary);
     }
@@ -119,6 +130,8 @@ public class LicenceContinuationActionBuilder {
     RegisterAnAction isPrimaryButton(Predicate<LicenceContinuationApplicationDetail> condition);
 
     RegisterAnAction isPrimaryButton(boolean isPrimary);
+
+    RegisterAnAction allowWhenDraftUpdateOpen(boolean allowWhenDraftUpdateOpen);
 
     Builder build();
   }

@@ -63,6 +63,12 @@ public class ScheduleWorkProgrammeApplicationDetail implements LicenceApplicatio
   @Column
   private LocalDate decisionDate;
 
+  @Column
+  private LocalDate updateDeadlineDate;
+
+  @Column
+  private String updateReason;
+
   public ScheduleWorkProgrammeApplicationDetail() {
   }
 
@@ -163,6 +169,22 @@ public class ScheduleWorkProgrammeApplicationDetail implements LicenceApplicatio
 
   public void setDecisionDate(LocalDate decisionDate) {
     this.decisionDate = decisionDate;
+  }
+
+  public LocalDate getUpdateDeadlineDate() {
+    return updateDeadlineDate;
+  }
+
+  public void setUpdateDeadlineDate(LocalDate updateDeadlineDate) {
+    this.updateDeadlineDate = updateDeadlineDate;
+  }
+
+  public String getUpdateReason() {
+    return updateReason;
+  }
+
+  public void setUpdateReason(String updateReason) {
+    this.updateReason = updateReason;
   }
 
   public Licence getLicence() {

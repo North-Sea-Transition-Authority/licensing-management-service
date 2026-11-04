@@ -3,9 +3,11 @@ package uk.co.nstauthority.licensingmanagementservice.licence.continuation;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -302,7 +304,7 @@ class LicenceContinuationServiceTest {
     LicenceContinuationApplicationDetail savedDetail = licenceContinuationApplicationDetailCaptor.getValue();
 
     assertThat(savedApp).isEqualTo(result);
-    assertThat(savedApp.getApplicationReference()).isEqualTo(String.format("LMS/CA/%d/%d", currentYear, existingSubmissions + 1));
+    assertThat(savedApp.getApplicationReference()).isEqualTo(String.format("LMS/CA/%d/%d/1", currentYear, existingSubmissions + 1));
     assertThat(savedApp.getSubmittedLicenceScheduleDetail()).isEqualTo(LICENCE_SCHEDULE_DETAIL);
 
     assertThat(savedDetail.getStatus()).isEqualTo(ApplicationStatus.SUBMITTED);
@@ -314,6 +316,23 @@ class LicenceContinuationServiceTest {
     assertThat(savedDetail.getNextPhase()).isEqualTo(nextPhase);
 
     verify(crossLicenceEventTrackerService).refreshApplicationCache(savedApp);
+  }
+
+  @Test
+  void submitApplication_whenApplicationAlreadyHasReference_keepsReferenceAndUpdatesVersionSuffix() {
+    when(clock.instant()).thenReturn(FIXED_INSTANT);
+    when(licenceScheduleDetailService.getScheduleDetailByLicenceAndStatusOrThrow(LICENCE, LicenceScheduleDetailStatus.ACTIVE))
+        .thenReturn(LICENCE_SCHEDULE_DETAIL);
+    when(licenceScheduleStateService.getScheduleState(LICENCE_SCHEDULE_DETAIL))
+        .thenReturn(new ScheduleState(null, null, null, null));
+    licenceContinuationApplicationDetail.getLicenceContinuationApplication().setApplicationReference("LMS/CA/2024/5/2");
+    licenceContinuationApplicationDetail.setVersionNumber(3);
+
+    var result = licenceContinuationService.submitApplication(licenceContinuationApplicationDetail, organisationUser);
+
+    assertThat(result.getApplicationReference()).isEqualTo("LMS/CA/2024/5/3");
+    verify(licenceContinuationApplicationDetailRepository, never())
+        .countByVersionNumberAndSubmittedDatetimeBetween(anyInt(), any(), any());
   }
 
   @Test
@@ -375,12 +394,23 @@ class LicenceContinuationServiceTest {
     List<TeamMemberView> teamMemberViews = List.of();
     when(industryTeamService.getSubmitterDetails(orgGroupId)).thenReturn(teamMemberViews);
 
+    var application = licenceContinuationApplicationDetail.getLicenceContinuationApplication();
+    var updateDraft = new LicenceContinuationApplicationDetail(UUID.randomUUID());
+    updateDraft.setStatus(ApplicationStatus.DRAFT);
+    var deletedDraft = new LicenceContinuationApplicationDetail(UUID.randomUUID());
+    deletedDraft.setStatus(ApplicationStatus.DELETED);
+    when(licenceContinuationApplicationDetailRepository.findAllByLicenceContinuationApplication(application))
+        .thenReturn(List.of(licenceContinuationApplicationDetail, updateDraft, deletedDraft));
+
     licenceContinuationService.withdrawContinuationChangeStatus(licenceContinuationApplicationDetail, reason);
 
     verify(licenceContinuationApplicationDetailRepository).save(licenceContinuationApplicationDetail);
     assertThat(licenceContinuationApplicationDetail.getStatus()).isEqualTo(ApplicationStatus.WITHDRAWN);
+    assertThat(updateDraft.getStatus()).isEqualTo(ApplicationStatus.WITHDRAWN);
+    verify(licenceContinuationApplicationDetailRepository).save(updateDraft);
+    assertThat(deletedDraft.getStatus()).isEqualTo(ApplicationStatus.DELETED);
+    verify(licenceContinuationApplicationDetailRepository, never()).save(deletedDraft);
 
-    var application = licenceContinuationApplicationDetail.getLicenceContinuationApplication();
     verify(licenceContinuationApplicationRepository).save(application);
     assertThat(application.getWithdrawalReason()).isEqualTo(reason);
 

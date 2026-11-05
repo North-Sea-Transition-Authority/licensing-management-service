@@ -1,0 +1,47 @@
+// Stack trace shown on the error page in environments with error.include-stacktrace enabled. Long lines scroll
+// horizontally inside the block rather than wrapping, so each frame stays on one line and the page doesn't overflow
+.lms-stack-trace {
+  margin: 0 0 govuk-spacing(6);
+  padding: govuk-spacing(3);
+  overflow-x: auto;
+  border-left: $govuk-border-width solid $govuk-border-colour;
+  background-color: govuk-colour("light-grey");
+  color: $govuk-text-colour;
+  font-family: ui-monospace, Menlo, Consolas, "Courier New", monospace;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  white-space: pre;
+  tab-size: 4;
+
+  &:focus {
+    outline: $govuk-focus-width solid $govuk-focus-colour;
+  }
+}
+
+// Lines the "Copy to clipboard" link up beside the Stacktrace heading
+.lms-stack-trace__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: govuk-spacing(3);
+  margin-bottom: govuk-spacing(3);
+}
+
+// A <button> styled as a small link, as it copies the stacktrace rather than navigating anywhere. Focus styles come
+// from .govuk-link:focus
+.lms-stack-trace__copy-link {
+  @include govuk-font-size($size: 16);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: $govuk-link-colour;
+  cursor: pointer;
+
+  &:hover {
+    color: $govuk-link-hover-colour;
+  }
+
+  &:active {
+    color: $govuk-link-active-colour;
+  }
+}

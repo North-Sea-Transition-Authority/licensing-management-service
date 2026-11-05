@@ -31,23 +31,17 @@ import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 public class TestHarnessController {
 
   private final LicencePositionTestHarnessFormValidator licencePositionTestHarnessFormValidator;
-  private final LicencePositionFeatureTestHarnessFormValidator licencePositionFeatureTestHarnessFormValidator;
   private final LicenceService licenceService;
   private final TestHarnessService testHarnessService;
-  private final LicencePositionFeatureTestHarnessService licencePositionFeatureTestHarnessService;
 
   public TestHarnessController(
       LicencePositionTestHarnessFormValidator licencePositionTestHarnessFormValidator,
-      LicencePositionFeatureTestHarnessFormValidator licencePositionFeatureTestHarnessFormValidator,
       LicenceService licenceService,
-      TestHarnessService testHarnessService,
-      LicencePositionFeatureTestHarnessService licencePositionFeatureTestHarnessService
+      TestHarnessService testHarnessService
   ) {
     this.licencePositionTestHarnessFormValidator = licencePositionTestHarnessFormValidator;
-    this.licencePositionFeatureTestHarnessFormValidator = licencePositionFeatureTestHarnessFormValidator;
     this.licenceService = licenceService;
     this.testHarnessService = testHarnessService;
-    this.licencePositionFeatureTestHarnessService = licencePositionFeatureTestHarnessService;
   }
 
   @GetMapping
@@ -55,9 +49,6 @@ public class TestHarnessController {
     return new ModelAndView("lms/testHarness/testHarness")
         .addObject("licencePositionTestHarnessUrl",
             ReverseRouter.route(on(TestHarnessController.class).renderGenerateLicencePosition())
-        )
-        .addObject("licencePositionFeatureTestHarnessUrl",
-            ReverseRouter.route(on(TestHarnessController.class).renderLinkLicencePositionFeatures())
         );
   }
 
@@ -89,53 +80,6 @@ public class TestHarnessController {
         .applyTo(redirectAttributes);
 
     return ReverseRouter.redirect(on(TestHarnessController.class).renderTestHarness());
-  }
-
-  @GetMapping("/licence-position-features")
-  public ModelAndView renderLinkLicencePositionFeatures() {
-    return licencePositionFeatureTestHarnessModelAndView(new LicencePositionFeatureTestHarnessForm());
-  }
-
-  @PostMapping("/licence-position-features")
-  public ModelAndView linkLicencePositionFeatures(
-      @ModelAttribute("form") LicencePositionFeatureTestHarnessForm form,
-      BindingResult bindingResult,
-      RedirectAttributes redirectAttributes
-  ) {
-    var licence = findLicence(form.getLicenceId()).orElse(null);
-    var seedState = licence == null ? null : licencePositionFeatureTestHarnessService.getSeedState(licence);
-
-    if (licencePositionFeatureTestHarnessFormValidator.hasErrors(form, bindingResult, seedState)) {
-      return licencePositionFeatureTestHarnessModelAndView(form);
-    }
-
-    var createdFeatureCount = licencePositionFeatureTestHarnessService.createAndLinkFeatures(licence)
-        .count();
-
-    NotificationBanner.newSuccessBanner()
-        .withHeadingContent("%s features created and seeded on licence %s".formatted(
-            createdFeatureCount,
-            licence.getLicenceReference()
-        ))
-        .applyTo(redirectAttributes);
-
-    return ReverseRouter.redirect(on(TestHarnessController.class).renderTestHarness());
-  }
-
-  private ModelAndView licencePositionFeatureTestHarnessModelAndView(LicencePositionFeatureTestHarnessForm form) {
-    var slugList = Stream.of(LicenceType.LANDWARD_PRODUCTION, LicenceType.SEAWARD_PRODUCTION, LicenceType.CARBON_STORAGE)
-        .map(LicenceType::getUrlSlug)
-        .collect(Collectors.joining(","));
-
-    return new ModelAndView("lms/testHarness/licencePositionFeatures")
-        .addObject("form", form)
-        .addObject("searchUrl",
-            SearchSelectorService.route(on(LicenceInternalApiRestController.class).searchLicencesByReferenceAndType(
-                slugList,
-                null
-            )))
-        .addObject("preSelectedLicence", preSelectedLicenceMap(form.getLicenceId()))
-        .addObject("cancelUrl", ReverseRouter.route(on(TestHarnessController.class).renderTestHarness()));
   }
 
   private ModelAndView licencePositionTransactionTestHarnessModelAndView(LicencePositionTestHarnessForm form) {

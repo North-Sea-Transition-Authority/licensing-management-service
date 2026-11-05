@@ -56,9 +56,20 @@ import uk.co.nstauthority.licensingmanagementservice.testharness.LicencePosition
 @ExtendWith(MockitoExtension.class)
 class LicencePositionFeatureTestHarnessServiceTest {
 
-  private static final Licence LICENCE = LicenceTestUtil.builder().withLicenceReference("P1").build();
+  private static final Licence LICENCE = LicenceTestUtil.builder()
+      .withId(1)
+      .withLicenceReference("GS1")
+      .withLicenceType(LicenceType.GAS_STORAGE)
+      .build();
+
+  private static final Licence PRODUCTION_LICENCE = LicenceTestUtil.builder()
+      .withId(2)
+      .withLicenceReference("P1")
+      .withLicenceType(LicenceType.SEAWARD_PRODUCTION)
+      .build();
 
   private static final Licence CARBON_STORAGE_LICENCE = LicenceTestUtil.builder()
+      .withId(3)
       .withLicenceReference("CS1")
       .withLicenceType(LicenceType.CARBON_STORAGE)
       .build();
@@ -66,33 +77,25 @@ class LicencePositionFeatureTestHarnessServiceTest {
   private static final UUID COMMAND_JOURNEY_ID = UUID.randomUUID();
 
   private static final BigDecimal FEATURE_AREA = BigDecimal.valueOf(200000000);
+  private static final BigDecimal HALF_FEATURE_AREA = BigDecimal.valueOf(100000000);
+  private static final BigDecimal QUARTER_FEATURE_AREA = BigDecimal.valueOf(50000000);
 
   private static final String FIRST_ROW_SOUTHERN_LATITUDE = "54";
   private static final String FIRST_ROW_NORTHERN_LATITUDE = "54.1666666666667";
   private static final String SECOND_ROW_SOUTHERN_LATITUDE = "54.25";
   private static final String SECOND_ROW_NORTHERN_LATITUDE = "54.4166666666667";
 
-  private static final List<String> BLOCK_EDGES =
-      rectangleEdges("3.6", "3.8", FIRST_ROW_SOUTHERN_LATITUDE, FIRST_ROW_NORTHERN_LATITUDE);
-
-  private static final List<String> WESTERN_HALF_EDGES =
-      rectangleEdges("3.6", "3.7", FIRST_ROW_SOUTHERN_LATITUDE, FIRST_ROW_NORTHERN_LATITUDE);
-
-  private static final List<String> EASTERN_HALF_EDGES =
-      rectangleEdges("3.7", "3.8", FIRST_ROW_SOUTHERN_LATITUDE, FIRST_ROW_NORTHERN_LATITUDE);
-
-  private static final Map<String, String> BLOCK_ATTRIBUTES =
-      Map.of("LAYER", "BLOCKS", "QUADRANT_NO", "999", "BLOCK_NO", "1");
-
-  private static final Map<String, String> SUBAREA_ATTRIBUTES = Map.of("LAYER", "SUBAREAS", "NAME", "ALL");
+  private static final List<String> BLOCK_EDGES = firstRowEdges("3.6", "3.8");
+  private static final List<String> WESTERN_HALF_EDGES = firstRowEdges("3.6", "3.7");
+  private static final List<String> EASTERN_HALF_EDGES = firstRowEdges("3.7", "3.8");
 
   private static final LocalDate SURRENDER_DATE = LocalDate.of(2026, Month.AUGUST, 1);
 
   private static final LocalDate SUBAREA_CHANGE_DATE = LocalDate.of(2026, Month.SEPTEMBER, 1);
 
   private static final Feature BLOCK = FeatureTestUtil.builder()
-      .withFeatureName("block 30/1")
-      .withAttributes(BLOCK_ATTRIBUTES)
+      .withFeatureName("999/1")
+      .withAttributes(blockAttributes(1))
       .withFeatureArea(FEATURE_AREA)
       .build();
 
@@ -135,81 +138,114 @@ class LicencePositionFeatureTestHarnessServiceTest {
   private ArgumentCaptor<List<LicenceOperation>> operationsCaptor;
 
   @Test
-  void createAndLinkFeatures_assertThreeBlocksAndASubareaPerBlockAreCreatedForTheLicence() {
+  void createAndLinkFeatures_whenNeitherProductionNorCarbonStorageLicence_thenThreeBlocksWithAWholeBlockSubareaAreCreated() {
     givenPositions(LicencePositionTestUtil.newBuilder().build());
-    givenSpatialDataCanBePersisted();
+    givenFeaturesCanBePersisted();
 
-    var seededFeatures = licencePositionFeatureTestHarnessService.createAndLinkFeatures(LICENCE);
-
-    assertThat(seededFeatures.count()).isEqualTo(6);
+    licencePositionFeatureTestHarnessService.createAndLinkFeatures(LICENCE);
 
     verify(featureService, times(6)).saveFeature(featureCaptor.capture());
-
-    var block1 = expectedFeature(
-        "test harness for P1 1",
-        Map.of("LAYER", "BLOCKS", "QUADRANT_NO", "999", "BLOCK_NO", "1")
-    );
-    var subarea1a = expectedFeature(
-        "test harness for P1 2",
-        Map.of("LAYER", "SUBAREAS", "NAME", "ALL")
-    );
-    var block2 = expectedFeature(
-        "test harness for P1 3",
-        Map.of("LAYER", "BLOCKS", "QUADRANT_NO", "999", "BLOCK_NO", "2")
-    );
-    var subarea2a = expectedFeature(
-        "test harness for P1 4",
-        Map.of("LAYER", "SUBAREAS", "NAME", "ALL")
-    );
-    var block3 = expectedFeature(
-        "test harness for P1 5",
-        Map.of("LAYER", "BLOCKS", "QUADRANT_NO", "999", "BLOCK_NO", "3")
-    );
-    var subarea3a = expectedFeature(
-        "test harness for P1 6",
-        Map.of("LAYER", "SUBAREAS", "NAME", "ALL")
-    );
-
     assertThat(featureCaptor.getAllValues())
         .usingRecursiveFieldByFieldElementComparatorIgnoringFields("id")
-        .containsExactly(block1, subarea1a, block2, subarea2a, block3, subarea3a);
+        .containsExactly(
+            expectedFeature("999/1", blockAttributes(1)),
+            expectedFeature("ALL", subareaAttributes("ALL")),
+            expectedFeature("999/2", blockAttributes(2)),
+            expectedFeature("ALL", subareaAttributes("ALL")),
+            expectedFeature("999/3", blockAttributes(3)),
+            expectedFeature("ALL", subareaAttributes("ALL"))
+        );
+  }
+
+  @Test
+  void createAndLinkFeatures_whenProductionLicence_thenFourBlocksAreCreatedWithTheSecondDividedIntoThreeSubareas() {
+    givenPositions(PRODUCTION_LICENCE, LicencePositionTestUtil.newBuilder().build());
+    givenFeaturesCanBePersisted();
+
+    licencePositionFeatureTestHarnessService.createAndLinkFeatures(PRODUCTION_LICENCE);
+
+    verify(featureService, times(10)).saveFeature(featureCaptor.capture());
+    assertThat(featureCaptor.getAllValues())
+        .usingRecursiveFieldByFieldElementComparatorIgnoringFields("id")
+        .containsExactly(
+            expectedFeature("999/1", blockAttributes(1, PRODUCTION_LICENCE)),
+            expectedFeature("ALL", subareaAttributes("ALL", PRODUCTION_LICENCE)),
+            expectedFeature("999/2", blockAttributes(2, PRODUCTION_LICENCE)),
+            expectedFeature("A", subareaAttributes("A", PRODUCTION_LICENCE), QUARTER_FEATURE_AREA, null),
+            expectedFeature("B", subareaAttributes("B", PRODUCTION_LICENCE), HALF_FEATURE_AREA, null),
+            expectedFeature("C", subareaAttributes("C", PRODUCTION_LICENCE), QUARTER_FEATURE_AREA, null),
+            expectedFeature("999/3", blockAttributes(3, PRODUCTION_LICENCE)),
+            expectedFeature("ALL", subareaAttributes("ALL", PRODUCTION_LICENCE)),
+            expectedFeature("999/4", blockAttributes(4, PRODUCTION_LICENCE)),
+            expectedFeature("ALL", subareaAttributes("ALL", PRODUCTION_LICENCE))
+        );
+  }
+
+  @Test
+  void createAndLinkFeatures_whenProductionLicence_assertTheSecondBlocksSubareasDivideItFromWestToEast() {
+    givenPositions(PRODUCTION_LICENCE, LicencePositionTestUtil.newBuilder().build());
+    givenFeaturesCanBePersisted();
+
+    licencePositionFeatureTestHarnessService.createAndLinkFeatures(PRODUCTION_LICENCE);
+
+    verifyShapesSaved(List.of(
+        BLOCK_EDGES,
+        BLOCK_EDGES,
+        firstRowEdges("3.9", "4.1"),
+        firstRowEdges("3.9", "3.95"),
+        firstRowEdges("3.95", "4.05"),
+        firstRowEdges("4.05", "4.1"),
+        firstRowEdges("4.2", "4.4"),
+        firstRowEdges("4.2", "4.4"),
+        firstRowEdges("4.5", "4.7"),
+        firstRowEdges("4.5", "4.7")
+    ));
   }
 
   @Test
   void createAndLinkFeatures_whenCarbonStorageLicence_thenOneBlockWithNoSubareasIsCreated() {
     givenPositions(CARBON_STORAGE_LICENCE, LicencePositionTestUtil.newBuilder().build());
-    givenSpatialDataCanBePersisted();
+    givenFeaturesCanBePersisted();
 
     var seededFeatures = licencePositionFeatureTestHarnessService.createAndLinkFeatures(CARBON_STORAGE_LICENCE);
 
     verify(featureService).saveFeature(featureCaptor.capture());
-    assertThat(featureCaptor.getValue())
+    var block = featureCaptor.getValue();
+    assertThat(block)
         .usingRecursiveComparison()
         .ignoringFields("id")
-        .isEqualTo(expectedFeature("test harness for CS1 1",
-            Map.of("LAYER", "BLOCKS", "QUADRANT_NO", "999", "BLOCK_NO", "1")));
-    assertThat(seededFeatures.subareas()).isEmpty();
+        .isEqualTo(expectedFeature("999/1", blockAttributes(1, CARBON_STORAGE_LICENCE)));
+    assertThat(seededFeatures).isEqualTo(new SeededFeatures(List.of(block), Map.of(block.getId(), List.of())));
   }
 
   @Test
   void createAndLinkFeatures_assertTheEarliestPositionCreatesTheBlocksAndTheirSubareas() {
     var earliestPosition = LicencePositionTestUtil.newBuilder().build();
     givenPositions(earliestPosition, LicencePositionTestUtil.newBuilder().build());
-    givenSpatialDataCanBePersisted();
+    givenFeaturesCanBePersisted();
 
     var seededFeatures = licencePositionFeatureTestHarnessService.createAndLinkFeatures(LICENCE);
 
-    var blocks = seededFeatures.blocks();
-    var subareas = seededFeatures.subareas();
+    verify(featureService, times(6)).saveFeature(featureCaptor.capture());
+    var features = featureCaptor.getAllValues();
+    var blockIds = List.of(features.get(0).getId(), features.get(2).getId(), features.get(4).getId());
+    assertThat(seededFeatures).isEqualTo(new SeededFeatures(
+        List.of(features.get(0), features.get(2), features.get(4)),
+        Map.of(
+            blockIds.get(0), List.of(features.get(1)),
+            blockIds.get(1), List.of(features.get(3)),
+            blockIds.get(2), List.of(features.get(5))
+        )
+    ));
+
     var expectedOperation = LicenceOperation.newBlockCreateOperation()
-        .withFeatureIds(blocks.stream().map(Feature::getId).toList())
+        .withFeatureIds(blockIds)
         .withCreatedSubareas(Map.of(
-            blocks.get(0).getId(), List.of(new SubareaDetails(subareas.get(0).getId(), "ALL", "ALL")),
-            blocks.get(1).getId(), List.of(new SubareaDetails(subareas.get(1).getId(), "ALL", "ALL")),
-            blocks.get(2).getId(), List.of(new SubareaDetails(subareas.get(2).getId(), "ALL", "ALL"))
+            blockIds.get(0), List.of(new SubareaDetails(features.get(1).getId(), "ALL", "ALL")),
+            blockIds.get(1), List.of(new SubareaDetails(features.get(3).getId(), "ALL", "ALL")),
+            blockIds.get(2), List.of(new SubareaDetails(features.get(5).getId(), "ALL", "ALL"))
         ))
         .build();
-
     verify(licencePositionChangeService).createLicencePositionChange(
         eq(earliestPosition),
         operationsCaptor.capture(),
@@ -222,22 +258,10 @@ class LicencePositionFeatureTestHarnessServiceTest {
   }
 
   @Test
-  void subareaDetailsOf() {
-    givenPositions(LicencePositionTestUtil.newBuilder().build());
-    givenSpatialDataCanBePersisted();
-
-    var seededFeatures = licencePositionFeatureTestHarnessService.createAndLinkFeatures(LICENCE);
-
-    var secondSubarea = seededFeatures.subareas().get(1);
-    assertThat(seededFeatures.subareaDetailsOf(seededFeatures.blocks().get(1)))
-        .isEqualTo(new SubareaDetails(secondSubarea.getId(), "ALL", "ALL"));
-  }
-
-  @Test
   void createAndLinkFeatures_whenTheEarliestPositionHasNoChanges_thenTheSeedIsTheFirstChange() {
     var earliestPosition = LicencePositionTestUtil.newBuilder().build();
     givenPositions(earliestPosition);
-    givenSpatialDataCanBePersisted();
+    givenFeaturesCanBePersisted();
 
     licencePositionFeatureTestHarnessService.createAndLinkFeatures(LICENCE);
 
@@ -249,7 +273,7 @@ class LicencePositionFeatureTestHarnessServiceTest {
   void createAndLinkFeatures_whenTheEarliestPositionAlreadyHasChanges_thenTheSeedIsAppendedAfterThem() {
     var earliestPosition = LicencePositionTestUtil.newBuilder().build();
     givenPositions(earliestPosition);
-    givenSpatialDataCanBePersisted();
+    givenFeaturesCanBePersisted();
     when(licencePositionChangeService.findByLicencePositionId(earliestPosition.getId())).thenReturn(List.of(
         LicencePositionChangeTestUtil.newBuilder().withChangeOrder(1).build(),
         LicencePositionChangeTestUtil.newBuilder().withChangeOrder(3).build()));
@@ -263,44 +287,35 @@ class LicencePositionFeatureTestHarnessServiceTest {
   @Test
   void createAndLinkFeatures_assertEachBlockAndItsSubareaAreOneRectangleSpacedApartFromTheOtherBlocks() {
     givenPositions(LicencePositionTestUtil.newBuilder().build());
-    givenSpatialDataCanBePersisted();
+    givenFeaturesCanBePersisted();
 
     licencePositionFeatureTestHarnessService.createAndLinkFeatures(LICENCE);
 
+    var secondBlockEdges = firstRowEdges("3.9", "4.1");
+    var thirdBlockEdges = firstRowEdges("4.2", "4.4");
+    verifyShapesSaved(List.of(
+        BLOCK_EDGES,
+        BLOCK_EDGES,
+        secondBlockEdges,
+        secondBlockEdges,
+        thirdBlockEdges,
+        thirdBlockEdges
+    ));
     verify(featureService, times(6)).saveFeature(featureCaptor.capture());
-    verify(polygonService, times(6)).savePolygon(polygonCaptor.capture());
-    verify(lineService, times(6)).saveLines(linesCaptor.capture());
-
-    var expectedPolygons = featureCaptor.getAllValues().stream()
-        .map(LicencePositionFeatureTestHarnessServiceTest::expectedPolygon)
-        .toList();
-
     assertThat(polygonCaptor.getAllValues())
         .usingRecursiveFieldByFieldElementComparator()
-        .containsExactlyElementsOf(expectedPolygons);
-
-    var secondBlockEdges = rectangleEdges("3.9", "4.1", FIRST_ROW_SOUTHERN_LATITUDE, FIRST_ROW_NORTHERN_LATITUDE);
-    var thirdBlockEdges = rectangleEdges("4.2", "4.4", FIRST_ROW_SOUTHERN_LATITUDE, FIRST_ROW_NORTHERN_LATITUDE);
-    var polygons = polygonCaptor.getAllValues();
-    assertThat(linesCaptor.getAllValues())
-        .usingRecursiveFieldByFieldElementComparator()
-        .containsExactly(
-            expectedLines(polygons.get(0), BLOCK_EDGES),
-            expectedLines(polygons.get(1), BLOCK_EDGES),
-            expectedLines(polygons.get(2), secondBlockEdges),
-            expectedLines(polygons.get(3), secondBlockEdges),
-            expectedLines(polygons.get(4), thirdBlockEdges),
-            expectedLines(polygons.get(5), thirdBlockEdges)
-        );
+        .containsExactlyElementsOf(featureCaptor.getAllValues().stream()
+            .map(feature -> expectedPolygon(feature, null, null))
+            .toList());
   }
 
   @Test
   void createAndLinkFeatures_whenBlocksAreAlreadySeeded_thenNewBlocksTakeThePlacesAfterTheHighestSeededBlock() {
     givenPositions(LicencePositionTestUtil.newBuilder().build());
-    givenSpatialDataCanBePersisted();
+    givenFeaturesCanBePersisted();
     when(featureService.findAllByAttribute("QUADRANT_NO", "999")).thenReturn(List.of(
-        FeatureTestUtil.builder().withAttributes(Map.of("LAYER", "BLOCKS", "QUADRANT_NO", "999", "BLOCK_NO", "9")).build(),
-        FeatureTestUtil.builder().withAttributes(Map.of("LAYER", "BLOCKS", "QUADRANT_NO", "999", "BLOCK_NO", "4")).build(),
+        FeatureTestUtil.builder().withAttributes(blockAttributes(9)).build(),
+        FeatureTestUtil.builder().withAttributes(blockAttributes(4)).build(),
         FeatureTestUtil.builder().withAttributes(Map.of("LAYER", "SUBAREAS", "QUADRANT_NO", "999")).build()
     ));
 
@@ -308,32 +323,15 @@ class LicencePositionFeatureTestHarnessServiceTest {
 
     assertThat(seededFeatures.blocks())
         .extracting(Feature::getAttributes)
-        .containsExactly(
-            Map.of("LAYER", "BLOCKS", "QUADRANT_NO", "999", "BLOCK_NO", "10"),
-            Map.of("LAYER", "BLOCKS", "QUADRANT_NO", "999", "BLOCK_NO", "11"),
-            Map.of("LAYER", "BLOCKS", "QUADRANT_NO", "999", "BLOCK_NO", "12")
-        );
-
-    verify(polygonService, times(6)).savePolygon(polygonCaptor.capture());
-    verify(lineService, times(6)).saveLines(linesCaptor.capture());
-    var polygons = polygonCaptor.getAllValues();
-    var lines = linesCaptor.getAllValues();
-    assertThat(List.of(lines.get(0), lines.get(2), lines.get(4)))
-        .usingRecursiveFieldByFieldElementComparator()
-        .containsExactly(
-            expectedLines(
-                polygons.get(0),
-                rectangleEdges("6.3", "6.5", FIRST_ROW_SOUTHERN_LATITUDE, FIRST_ROW_NORTHERN_LATITUDE)
-            ),
-            expectedLines(
-                polygons.get(2),
-                rectangleEdges("3.6", "3.8", SECOND_ROW_SOUTHERN_LATITUDE, SECOND_ROW_NORTHERN_LATITUDE)
-            ),
-            expectedLines(
-                polygons.get(4),
-                rectangleEdges("3.9", "4.1", SECOND_ROW_SOUTHERN_LATITUDE, SECOND_ROW_NORTHERN_LATITUDE)
-            )
-        );
+        .containsExactly(blockAttributes(10), blockAttributes(11), blockAttributes(12));
+    verifyShapesSaved(List.of(
+        firstRowEdges("6.3", "6.5"),
+        firstRowEdges("6.3", "6.5"),
+        secondRowEdges("3.6", "3.8"),
+        secondRowEdges("3.6", "3.8"),
+        secondRowEdges("3.9", "4.1"),
+        secondRowEdges("3.9", "4.1")
+    ));
   }
 
   @Test
@@ -347,6 +345,16 @@ class LicencePositionFeatureTestHarnessServiceTest {
   }
 
   @Test
+  void clearFeatures() {
+    var seededFeatures = List.of(BLOCK, wholeBlockSubarea());
+    when(featureService.findAllByAttribute("TEST_HARNESS_LICENCE_ID", "1")).thenReturn(seededFeatures);
+
+    licencePositionFeatureTestHarnessService.clearFeatures(LICENCE);
+
+    verify(featureService).deleteAll(seededFeatures);
+  }
+
+  @Test
   void splitBlockInHalf_assertTheBlockBecomesTwoHalvesKeepingItsAttributes() {
     givenFeaturesCanBePersisted();
 
@@ -354,7 +362,10 @@ class LicencePositionFeatureTestHarnessServiceTest {
 
     assertThat(List.of(splitBlock.surrenderedHalf(), splitBlock.retainedHalf()))
         .usingRecursiveFieldByFieldElementComparatorIgnoringFields("id")
-        .containsExactly(expectedHalfBlock("block 30/1_1"), expectedHalfBlock("block 30/1_2"));
+        .containsExactly(
+            expectedFeature("999/1a", blockAttributes(1), HALF_FEATURE_AREA, null),
+            expectedFeature("999/1b", blockAttributes(1), HALF_FEATURE_AREA, null)
+        );
   }
 
   @Test
@@ -363,43 +374,20 @@ class LicencePositionFeatureTestHarnessServiceTest {
 
     licencePositionFeatureTestHarnessService.splitBlockInHalf(COMMAND_JOURNEY, BLOCK);
 
-    verify(polygonService, times(2)).savePolygon(polygonCaptor.capture());
-    verify(lineService, times(2)).saveLines(linesCaptor.capture());
-
-    assertThat(linesCaptor.getAllValues().getFirst())
-        .usingRecursiveFieldByFieldElementComparator()
-        .containsExactlyElementsOf(expectedLines(polygonCaptor.getAllValues().getFirst(), WESTERN_HALF_EDGES));
-
-    assertThat(linesCaptor.getAllValues().getLast())
-        .usingRecursiveFieldByFieldElementComparator()
-        .containsExactlyElementsOf(expectedLines(polygonCaptor.getAllValues().getLast(), EASTERN_HALF_EDGES));
+    verifyShapesSaved(List.of(WESTERN_HALF_EDGES, EASTERN_HALF_EDGES));
   }
 
   @Test
   void splitBlockInHalf_whenALaterSeededBlock_thenTheHalvesAreCutFromThatBlock() {
     givenFeaturesCanBePersisted();
     var block = FeatureTestUtil.builder()
-        .withAttributes(Map.of("LAYER", "BLOCKS", "QUADRANT_NO", "999", "BLOCK_NO", "12"))
+        .withAttributes(blockAttributes(12))
         .withFeatureArea(FEATURE_AREA)
         .build();
 
     licencePositionFeatureTestHarnessService.splitBlockInHalf(COMMAND_JOURNEY, block);
 
-    verify(polygonService, times(2)).savePolygon(polygonCaptor.capture());
-    verify(lineService, times(2)).saveLines(linesCaptor.capture());
-    var polygons = polygonCaptor.getAllValues();
-    assertThat(linesCaptor.getAllValues())
-        .usingRecursiveFieldByFieldElementComparator()
-        .containsExactly(
-            expectedLines(
-                polygons.getFirst(),
-                rectangleEdges("3.9", "4", SECOND_ROW_SOUTHERN_LATITUDE, SECOND_ROW_NORTHERN_LATITUDE)
-            ),
-            expectedLines(
-                polygons.getLast(),
-                rectangleEdges("4", "4.1", SECOND_ROW_SOUTHERN_LATITUDE, SECOND_ROW_NORTHERN_LATITUDE)
-            )
-        );
+    verifyShapesSaved(List.of(secondRowEdges("3.9", "4"), secondRowEdges("4", "4.1")));
   }
 
   @Test
@@ -416,114 +404,90 @@ class LicencePositionFeatureTestHarnessServiceTest {
   }
 
   @Test
-  void cropSubareaToRetainedHalf_assertTheCroppedSubareaIsTheEasternHalfStartingOnTheSurrenderDate() {
+  void cropSubareaAcrossTheMiddle() {
     givenFeaturesCanBePersisted();
-    var subarea = FeatureTestUtil.builder()
-        .withFeatureName("subarea 30/1a")
-        .withAttributes(SUBAREA_ATTRIBUTES)
-        .withFeatureArea(FEATURE_AREA)
-        .build();
+    var subarea = subarea("B", HALF_FEATURE_AREA);
 
-    var croppedSubarea = licencePositionFeatureTestHarnessService.cropSubareaToRetainedHalf(subarea, BLOCK, SURRENDER_DATE);
+    var croppedSubarea = licencePositionFeatureTestHarnessService.cropSubareaAcrossTheMiddle(subarea, BLOCK, SURRENDER_DATE);
 
-    var expectedCroppedSubarea = expectedFeature("subarea 30/1a_2", SUBAREA_ATTRIBUTES);
-    expectedCroppedSubarea.setFeatureArea(FEATURE_AREA.divide(BigDecimal.TWO));
-    expectedCroppedSubarea.setStartDate(SURRENDER_DATE);
     assertThat(croppedSubarea)
         .usingRecursiveComparison()
         .ignoringFields("id")
-        .isEqualTo(expectedCroppedSubarea);
+        .isEqualTo(expectedFeature("B", subareaAttributes("B"), QUARTER_FEATURE_AREA, SURRENDER_DATE));
+    verifyShapesSaved(List.of(firstRowEdges("3.7", "3.75")));
+    verifySubareaEnded(subarea, SURRENDER_DATE);
+  }
 
-    verify(polygonService).savePolygon(polygonCaptor.capture());
-    verify(lineService).saveLines(linesCaptor.capture());
-    assertThat(linesCaptor.getValue())
+  @Test
+  void relinquishSubarea() {
+    var subarea = wholeBlockSubarea();
+
+    licencePositionFeatureTestHarnessService.relinquishSubarea(subarea, SURRENDER_DATE);
+
+    verifySubareaEnded(subarea, SURRENDER_DATE);
+  }
+
+  @Test
+  void mergeSubareasOnRetainedHalf() {
+    givenFeaturesCanBePersisted();
+    var croppedSubarea = subarea("B", QUARTER_FEATURE_AREA);
+    var keptSubarea = subarea("C", QUARTER_FEATURE_AREA);
+
+    var mergedSubarea = licencePositionFeatureTestHarnessService.mergeSubareasOnRetainedHalf(
+        List.of(croppedSubarea, keptSubarea), BLOCK, SUBAREA_CHANGE_DATE);
+
+    assertThat(mergedSubarea)
+        .usingRecursiveComparison()
+        .ignoringFields("id")
+        .isEqualTo(expectedFeature(
+            "BC",
+            subareaAttributes("BC"),
+            HALF_FEATURE_AREA,
+            SUBAREA_CHANGE_DATE
+        ));
+    verifyShapesSaved(List.of(EASTERN_HALF_EDGES));
+    verifySubareaEnded(croppedSubarea, SUBAREA_CHANGE_DATE);
+    verifySubareaEnded(keptSubarea, SUBAREA_CHANGE_DATE);
+  }
+
+  @Test
+  void strataSplitSubarea() {
+    givenFeaturesCanBePersisted();
+    var subarea = wholeBlockSubarea();
+
+    var strata = licencePositionFeatureTestHarnessService.strataSplitSubarea(subarea, BLOCK, -3000, SUBAREA_CHANGE_DATE);
+
+    assertThat(strata)
+        .usingRecursiveFieldByFieldElementComparatorIgnoringFields("id")
+        .containsExactly(
+            expectedFeature("ABOVE", subareaAttributes("ABOVE"), FEATURE_AREA, SUBAREA_CHANGE_DATE),
+            expectedFeature("BELOW", subareaAttributes("BELOW"), FEATURE_AREA, SUBAREA_CHANGE_DATE)
+        );
+    verifyShapesSaved(List.of(BLOCK_EDGES, BLOCK_EDGES));
+    assertThat(polygonCaptor.getAllValues())
         .usingRecursiveFieldByFieldElementComparator()
-        .containsExactlyElementsOf(expectedLines(polygonCaptor.getValue(), EASTERN_HALF_EDGES));
+        .containsExactly(
+            expectedPolygon(strata.getFirst(), null, -3000L),
+            expectedPolygon(strata.getLast(), -3000L, null)
+        );
+    verifySubareaEnded(subarea, SUBAREA_CHANGE_DATE);
   }
 
   @Test
-  void cropSubareaToRetainedHalf_assertTheOriginalSubareaEndsOnTheSurrenderDate() {
+  void splitSubareaInHalf() {
     givenFeaturesCanBePersisted();
-    var subarea = FeatureTestUtil.builder()
-        .withAttributes(SUBAREA_ATTRIBUTES)
-        .withFeatureArea(FEATURE_AREA)
-        .build();
-
-    licencePositionFeatureTestHarnessService.cropSubareaToRetainedHalf(subarea, BLOCK, SURRENDER_DATE);
-
-    assertThat(subarea)
-        .extracting(Feature::getStartDate, Feature::getEndDate)
-        .containsExactly(null, SURRENDER_DATE);
-    verify(featureService).saveFeature(subarea);
-  }
-
-  @Test
-  void splitSubareaInHalf_assertTheSubareaBecomesTwoNamedHalvesStartingOnTheChangeDate() {
-    givenFeaturesCanBePersisted();
-    var subarea = FeatureTestUtil.builder()
-        .withFeatureName("subarea 30/1a")
-        .withAttributes(SUBAREA_ATTRIBUTES)
-        .withFeatureArea(FEATURE_AREA)
-        .build();
+    var subarea = wholeBlockSubarea();
 
     var subareaHalves = licencePositionFeatureTestHarnessService.splitSubareaInHalf(subarea, BLOCK, SUBAREA_CHANGE_DATE);
 
     assertThat(subareaHalves)
         .usingRecursiveFieldByFieldElementComparatorIgnoringFields("id")
         .containsExactly(
-            expectedSubareaHalf("subarea 30/1a_A", "A"),
-            expectedSubareaHalf("subarea 30/1a_B", "B")
+            expectedFeature("A", subareaAttributes("A"), HALF_FEATURE_AREA, SUBAREA_CHANGE_DATE),
+            expectedFeature("B", subareaAttributes("B"), HALF_FEATURE_AREA, SUBAREA_CHANGE_DATE)
         );
-
-    verify(polygonService, times(2)).savePolygon(polygonCaptor.capture());
-    verify(lineService, times(2)).saveLines(linesCaptor.capture());
-
-    assertThat(linesCaptor.getAllValues().getFirst())
-        .usingRecursiveFieldByFieldElementComparator()
-        .containsExactlyElementsOf(expectedLines(polygonCaptor.getAllValues().getFirst(), WESTERN_HALF_EDGES));
-
-    assertThat(linesCaptor.getAllValues().getLast())
-        .usingRecursiveFieldByFieldElementComparator()
-        .containsExactlyElementsOf(expectedLines(polygonCaptor.getAllValues().getLast(), EASTERN_HALF_EDGES));
-  }
-
-  @Test
-  void splitSubareaInHalf_assertTheOriginalSubareaEndsOnTheChangeDate() {
-    givenFeaturesCanBePersisted();
-    var subarea = FeatureTestUtil.builder()
-        .withAttributes(SUBAREA_ATTRIBUTES)
-        .withFeatureArea(FEATURE_AREA)
-        .build();
-
-    licencePositionFeatureTestHarnessService.splitSubareaInHalf(subarea, BLOCK, SUBAREA_CHANGE_DATE);
-
-    assertThat(subarea)
-        .extracting(Feature::getStartDate, Feature::getEndDate)
-        .containsExactly(null, SUBAREA_CHANGE_DATE);
-    verify(featureService).saveFeature(subarea);
-  }
-
-  @Test
-  void getSeedState_whenABlockCreateHasCreatedBlocks_thenFeaturesAreAlreadySeeded() {
-    givenSeedOperationCreating(List.of(UUID.randomUUID()));
-
-    assertThat(licencePositionFeatureTestHarnessService.getSeedState(LICENCE))
-        .isEqualTo(new LicencePositionFeatureSeedState(1, true));
-  }
-
-  @Test
-  void getSeedState_whenTheOnlyBlockCreateHasCreatedNoBlocks_thenFeaturesAreNotSeeded() {
-    givenSeedOperationCreating(List.of());
-
-    assertThat(licencePositionFeatureTestHarnessService.getSeedState(LICENCE))
-        .isEqualTo(new LicencePositionFeatureSeedState(1, false));
-  }
-
-  /**
-   * The real services assign ids on save, which the seeded spatial operation then records.
-   */
-  private void givenSpatialDataCanBePersisted() {
-    givenFeaturesCanBePersisted();
+    verifyShapesSaved(List.of(WESTERN_HALF_EDGES, EASTERN_HALF_EDGES));
+    verifySubareaEnded(subarea, SUBAREA_CHANGE_DATE);
   }
 
   private void givenFeaturesCanBePersisted() {
@@ -542,18 +506,26 @@ class LicencePositionFeatureTestHarnessServiceTest {
         .thenReturn(List.of(licencePositions));
   }
 
-  private void givenSeedOperationCreating(List<UUID> createdBlockFeatureIds) {
-    var licencePosition = LicencePositionTestUtil.newBuilder().build();
-    var operation = LicenceOperation.newBlockCreateOperation()
-        .withFeatureIds(createdBlockFeatureIds)
-        .build();
+  private void verifyShapesSaved(List<List<String>> edgesOfEachShape) {
+    verify(polygonService, times(edgesOfEachShape.size())).savePolygon(polygonCaptor.capture());
+    verify(lineService, times(edgesOfEachShape.size())).saveLines(linesCaptor.capture());
+    var polygons = polygonCaptor.getAllValues();
+    var expectedLinesOfEachShape = IntStream.range(0, edgesOfEachShape.size())
+        .mapToObj(shape -> expectedLines(polygons.get(shape), edgesOfEachShape.get(shape)))
+        .toList();
+    assertThat(linesCaptor.getAllValues())
+        .usingRecursiveComparison()
+        .isEqualTo(expectedLinesOfEachShape);
+  }
 
-    givenPositions(licencePosition);
-    when(licencePositionChangeService.findByLicencePositionIn(List.of(licencePosition)))
-        .thenReturn(List.of(LicencePositionChangeTestUtil.newBuilder()
-            .withLicencePosition(licencePosition)
-            .withOperations(List.<LicenceOperation>of(operation))
-            .build()));
+  private void verifySubareaEnded(
+      Feature subarea,
+      LocalDate endDate
+  ) {
+    assertThat(subarea)
+        .extracting(Feature::getStartDate, Feature::getEndDate)
+        .containsExactly(null, endDate);
+    verify(featureService).saveFeature(subarea);
   }
 
   private static CommandJourney commandJourney() {
@@ -562,39 +534,99 @@ class LicencePositionFeatureTestHarnessServiceTest {
     return commandJourney;
   }
 
-  private static Feature expectedHalfBlock(String featureName) {
-    var halfBlock = expectedFeature(featureName, BLOCK_ATTRIBUTES);
-    halfBlock.setFeatureArea(FEATURE_AREA.divide(BigDecimal.TWO));
-    return halfBlock;
+  private static Map<String, String> blockAttributes(int blockNumber) {
+    return blockAttributes(blockNumber, LICENCE);
   }
 
-  private static Feature expectedSubareaHalf(
-      String featureName,
-      String subareaName
+  private static Map<String, String> blockAttributes(
+      int blockNumber,
+      Licence harnessLicence
   ) {
-    var subareaHalf = expectedFeature(featureName, Map.of("LAYER", "SUBAREAS", "NAME", subareaName));
-    subareaHalf.setFeatureArea(FEATURE_AREA.divide(BigDecimal.TWO));
-    subareaHalf.setStartDate(SUBAREA_CHANGE_DATE);
-    return subareaHalf;
+    return Map.of(
+        "LAYER", "BLOCKS",
+        "QUADRANT_NO", "999",
+        "BLOCK_NO", String.valueOf(blockNumber),
+        "TEST_HARNESS_LICENCE_ID", String.valueOf(harnessLicence.getId())
+    );
+  }
+
+  private static Map<String, String> subareaAttributes(String subareaName) {
+    return subareaAttributes(subareaName, LICENCE);
+  }
+
+  private static Map<String, String> subareaAttributes(
+      String subareaName,
+      Licence harnessLicence
+  ) {
+    return Map.of(
+        "LAYER", "SUBAREAS",
+        "NAME", subareaName,
+        "TEST_HARNESS_LICENCE_ID", String.valueOf(harnessLicence.getId())
+    );
+  }
+
+  private static Feature wholeBlockSubarea() {
+    return subarea("ALL", FEATURE_AREA);
+  }
+
+  private static Feature subarea(
+      String subareaName,
+      BigDecimal featureArea
+  ) {
+    return FeatureTestUtil.builder()
+        .withFeatureName(subareaName)
+        .withAttributes(subareaAttributes(subareaName))
+        .withFeatureArea(featureArea)
+        .build();
   }
 
   private static Feature expectedFeature(
       String featureName,
       Map<String, String> attributes
   ) {
+    return expectedFeature(featureName, attributes, FEATURE_AREA, null);
+  }
+
+  private static Feature expectedFeature(
+      String featureName,
+      Map<String, String> attributes,
+      BigDecimal featureArea,
+      LocalDate startDate
+  ) {
     var feature = new Feature();
     feature.setFeatureName(featureName);
     feature.setCoordinateSystem(CoordinateSystem.ED50);
-    feature.setFeatureArea(FEATURE_AREA);
+    feature.setFeatureArea(featureArea);
     feature.setAttributes(attributes);
+    feature.setStartDate(startDate);
     return feature;
   }
 
-  private static Polygon expectedPolygon(Feature feature) {
+  private static Polygon expectedPolygon(
+      Feature feature,
+      Long startDepth,
+      Long endDepth
+  ) {
     var polygon = new Polygon();
     polygon.setFeature(feature);
     polygon.setAttributes(Map.of());
+    polygon.setStartDepth(startDepth);
+    polygon.setEndDepth(endDepth);
     return polygon;
+  }
+
+  private static List<String> firstRowEdges(
+      String westernLongitude,
+      String easternLongitude
+  ) {
+    return rectangleEdges(westernLongitude, easternLongitude, FIRST_ROW_SOUTHERN_LATITUDE, FIRST_ROW_NORTHERN_LATITUDE);
+  }
+
+  private static List<String> secondRowEdges(
+      String westernLongitude,
+      String easternLongitude
+  ) {
+    return rectangleEdges(westernLongitude, easternLongitude, SECOND_ROW_SOUTHERN_LATITUDE, SECOND_ROW_NORTHERN_LATITUDE);
   }
 
   // clockwise from the southern edge, as the harness builds them

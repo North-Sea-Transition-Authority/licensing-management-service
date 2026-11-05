@@ -25,6 +25,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.Lic
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.transaction.LicenceTransactionService;
 import uk.co.nstauthority.licensingmanagementservice.testharness.LicencePositionFeatureTestHarnessService.SeededFeatures;
+import uk.co.nstauthority.licensingmanagementservice.testharness.LicencePositionFeatureTestHarnessService.SplitBlock;
 
 @Service
 @Profile("test-harness")
@@ -34,10 +35,19 @@ class TestHarnessService {
   private static final int FLAMSTONE_OIL_AND_GAS_LIMITED = 376;
   private static final int SHELL_PLC_ID = 9205;
   private static final int PPRS_TRAINING_ORG = 12845;
-  private static final int SURRENDER_CHANGE_ORDER = 1;
-  private static final int SUBAREA_CHANGE_ORDER = 1;
-  private static final int SUBAREA_EQUITY_CHANGE_ORDER = SUBAREA_CHANGE_ORDER + 1;
-  private static final int BLOCKS_TO_SURRENDER = 2;
+  private static final int FIRST_CHANGE_ORDER = 1;
+  private static final int SUBAREA_EQUITY_CHANGE_ORDER = FIRST_CHANGE_ORDER + 1;
+
+  private static final int FULLY_SURRENDERED_BLOCK = 0;
+  private static final int PARTIALLY_SURRENDERED_BLOCK = 1;
+  private static final int SUBAREA_SPLIT_BLOCK = 2;
+  private static final int STRATA_SPLIT_BLOCK = 3;
+
+  // early in the timeline, so the block holds subareas at different depths for most of it
+  private static final int STRATA_SPLIT_POSITION = 2;
+  // midway through the timeline, so a later position can change a subarea the split created
+  private static final int SUBAREA_SPLIT_POSITION = 5;
+  private static final long STRATA_SPLIT_DEPTH = -3000;
 
   private static final BigDecimal SHELL_INITIAL_EQUITY = BigDecimal.valueOf(60);
   private static final BigDecimal BP_INITIAL_EQUITY = BigDecimal.valueOf(40);
@@ -73,22 +83,24 @@ class TestHarnessService {
 
   @Transactional
   public void generateLicencePositions(Licence licence, Licence secondaryLicence) {
-    // clear everything on both licences
     licenceCleardownService.clear(licence);
     licenceCleardownService.clear(secondaryLicence);
+    licencePositionFeatureTestHarnessService.clearFeatures(licence);
+    licencePositionFeatureTestHarnessService.clearFeatures(secondaryLicence);
 
     var now = LocalDate.now(clock);
     generateSameDateLicencePositions(licence, now);
     generateSameTransactionLicencePositions(licence, now);
     generateSameTransactionDifferentLicencePositions(licence, secondaryLicence, now);
+    var positions = licencePositionService.getExecutedChronologicalLicencePositions(licence);
 
     if (licence.getType().isProduction()) {
-      generateAdministratorPositionChanges(licence);
+      generateAdministratorPositionChanges(positions);
     } else if (LicenceType.CARBON_STORAGE.equals(licence.getType())) {
-      generateCarbonStorageBeneficialInterestPositionChanges(licence);
-      generateStorageOperatorPositionChanges(licence);
+      generateCarbonStorageBeneficialInterestPositionChanges(positions);
+      generateStorageOperatorPositionChanges(positions);
     }
-    generateLicenseePositionChanges(licence);
+    generateLicenseePositionChanges(positions);
 
     if (secondaryLicence.getType().isProduction()) {
       generateInitialAdministrator(secondaryLicence);
@@ -96,95 +108,105 @@ class TestHarnessService {
       generateInitialStorageOperator(secondaryLicence);
     }
 
-    // the positions were cleared above, so each licence is given a fresh set of blocks and subareas
     var seededFeatures = licencePositionFeatureTestHarnessService.createAndLinkFeatures(licence);
     licencePositionFeatureTestHarnessService.createAndLinkFeatures(secondaryLicence);
 
-    // a surrender needs blocks to surrender, so it is seeded once the features above exist
+    // the spatial changes need blocks and subareas to change, so are seeded once the features above exist
     if (licence.getType().isProduction()) {
-      generatePartialSurrenderPositionChange(licence, seededFeatures);
-      var splitSubareas = generateSubareaPositionChange(licence, seededFeatures);
-      generateSubareaBeneficialInterestPositionChange(licence, seededFeatures, splitSubareas);
+      generateStrataSplitPositionChange(positions.get(STRATA_SPLIT_POSITION), seededFeatures);
+      var splitSubarea = generateSubareaSplitPositionChange(positions.get(SUBAREA_SPLIT_POSITION), seededFeatures);
+      var retainedHalf = createPartialSurrenderChange(penultimate(positions), seededFeatures);
+      generateSubareaMergePositionChange(positions.getLast(), seededFeatures, retainedHalf);
+      generateSubareaBeneficialInterestPositionChange(positions.getLast(), seededFeatures, splitSubarea);
     }
   }
 
-  /**
-   * The subarea change is made to the first block the surrender leaves alone, so the block still holds the subarea it
-   * was created with going into the most recent position.
-   *
-   * @return the subareas the split creates, or none when no block is left alone by the surrender
-   */
-  private List<SubareaDetails> generateSubareaPositionChange(
-      Licence licence,
+  private void generateStrataSplitPositionChange(
+      LicencePosition position,
       SeededFeatures seededFeatures
   ) {
-    if (seededFeatures.blocks().size() <= BLOCKS_TO_SURRENDER) {
-      return List.of();
-    }
+    var block = seededFeatures.blocks().get(STRATA_SPLIT_BLOCK);
+    var subarea = seededFeatures.subareaOf(block);
 
-    var mostRecentPosition = licencePositionService.getExecutedChronologicalLicencePositions(licence).getLast();
-    var block = seededFeatures.blocks().get(BLOCKS_TO_SURRENDER);
+    var strata = licencePositionFeatureTestHarnessService.strataSplitSubarea(
+        subarea,
+        block,
+        STRATA_SPLIT_DEPTH,
+        position.getPositionDate()
+    );
+
+    createSubareaChange(position, block, List.of(subarea), strata);
+  }
+
+  private Feature generateSubareaSplitPositionChange(
+      LicencePosition position,
+      SeededFeatures seededFeatures
+  ) {
+    var block = seededFeatures.blocks().get(SUBAREA_SPLIT_BLOCK);
+    var subarea = seededFeatures.subareaOf(block);
 
     var subareaHalves = licencePositionFeatureTestHarnessService.splitSubareaInHalf(
-        seededFeatures.subareaOf(block),
+        subarea,
         block,
-        mostRecentPosition.getPositionDate()
+        position.getPositionDate()
     );
 
-    var splitSubareas = subareaHalves.stream().map(SeededFeatures::toSubareaDetails).toList();
+    createSubareaChange(position, block, List.of(subarea), subareaHalves);
 
-    LicenceOperation subareaOperation = LicenceOperation.newSubAreaOperation()
-        .withBlockFeatureId(block.getId())
-        .withReplacedSubareas(List.of(seededFeatures.subareaDetailsOf(block)))
-        .withOutputSubareas(splitSubareas)
-        .build();
-
-    licencePositionChangeService.createLicencePositionChange(
-        mostRecentPosition,
-        List.of(subareaOperation),
-        SUBAREA_CHANGE_ORDER,
-        LicencePositionChangeStatus.CONSENTED
-    );
-
-    return splitSubareas;
+    return subareaHalves.getFirst();
   }
 
   /**
-   * The beneficial interest is set in the first subarea the subarea change splits out, on the same position and after
-   * the split, as the subarea the block was created with no longer exists once the split is made.
+   * The subareas the partial surrender leaves on the half of the block kept are merged on the final position, so the
+   * merge is a subarea change made to a surrender's output.
    */
-  private void generateSubareaBeneficialInterestPositionChange(
-      Licence licence,
+  private void generateSubareaMergePositionChange(
+      LicencePosition finalPosition,
       SeededFeatures seededFeatures,
-      List<SubareaDetails> splitSubareas
+      RetainedHalf retainedHalf
   ) {
-    if (splitSubareas.isEmpty()) {
-      return;
-    }
+    var mergedSubarea = licencePositionFeatureTestHarnessService.mergeSubareasOnRetainedHalf(
+        retainedHalf.subareas(),
+        seededFeatures.blocks().get(PARTIALLY_SURRENDERED_BLOCK),
+        finalPosition.getPositionDate()
+    );
 
-    var finalPosition = licencePositionService.getExecutedChronologicalLicencePositions(licence).getLast();
-
-    var block = seededFeatures.blocks().get(BLOCKS_TO_SURRENDER);
-
-    createSetSubareaBeneficialInterestChange(finalPosition, block, splitSubareas.getFirst());
+    createSubareaChange(finalPosition, retainedHalf.half(), retainedHalf.subareas(), List.of(mergedSubarea));
   }
 
-  private void createSetSubareaBeneficialInterestChange(
+  private void createSubareaChange(
       LicencePosition licencePosition,
       Feature block,
-      SubareaDetails subarea
+      List<Feature> replacedSubareas,
+      List<Feature> outputSubareas
   ) {
+    LicenceOperation subareaOperation = LicenceOperation.newSubAreaOperation()
+        .withBlockFeatureId(block.getId())
+        .withReplacedSubareas(replacedSubareas.stream().map(SeededFeatures::toSubareaDetails).toList())
+        .withOutputSubareas(outputSubareas.stream().map(SeededFeatures::toSubareaDetails).toList())
+        .build();
+
+    createConsentedChange(licencePosition, List.of(subareaOperation), FIRST_CHANGE_ORDER);
+  }
+
+  /**
+   * The beneficial interest is set in the first subarea the split creates, on the final position so that it is a
+   * later change than the split. It comes after the merge sharing that position.
+   */
+  private void generateSubareaBeneficialInterestPositionChange(
+      LicencePosition finalPosition,
+      SeededFeatures seededFeatures,
+      Feature splitSubarea
+  ) {
+    var block = seededFeatures.blocks().get(SUBAREA_SPLIT_BLOCK);
+    var subarea = SeededFeatures.toSubareaDetails(splitSubarea);
+
     var operations = List.of(
         subareaSetEquityOperation(block, subarea, SHELL_PLC_ID, SHELL_INITIAL_EQUITY),
         subareaSetEquityOperation(block, subarea, BP_EXPLORATION_ALPHA_LTD_ID, BP_INITIAL_EQUITY)
     );
 
-    licencePositionChangeService.createLicencePositionChange(
-        licencePosition,
-        operations,
-        SUBAREA_EQUITY_CHANGE_ORDER,
-        LicencePositionChangeStatus.CONSENTED
-    );
+    createConsentedChange(finalPosition, operations, SUBAREA_EQUITY_CHANGE_ORDER);
   }
 
   private LicenceOperation subareaSetEquityOperation(
@@ -202,55 +224,30 @@ class TestHarnessService {
   }
 
   /**
-   * The block create above is the only spatial operation on the licence, so the blocks it created are the blocks
-   * going into every later position. Two of them are needed, one for each type of surrender.
+   * The split block is seeded with a subarea wholly within the half surrendered, which is relinquished, one across the
+   * cut, which is cropped back to the half kept, and one wholly within the half kept, which is kept as it is.
    */
-  private void generatePartialSurrenderPositionChange(
-      Licence licence,
-      SeededFeatures seededFeatures
-  ) {
-    if (seededFeatures.blocks().size() < BLOCKS_TO_SURRENDER) {
-      return;
-    }
-
-    var executedChronologicalLicencePositions = licencePositionService.getExecutedChronologicalLicencePositions(licence);
-
-    var penultimatePosition =
-        executedChronologicalLicencePositions.get(executedChronologicalLicencePositions.size() - 2);
-
-    createPartialSurrenderChange(penultimatePosition, seededFeatures);
-  }
-
-  /**
-   * One block is given up entirely and the next is cut in half, so the surrender carries a block of each surrender
-   * type. The licence goes on holding the blocks the surrender left alone, and the half of the split block that was not
-   * surrendered. The fully surrendered block's subarea is relinquished, and the split block's subarea is cropped back to
-   * the half kept, becoming that half's subarea.
-   */
-  private void createPartialSurrenderChange(
+  private RetainedHalf createPartialSurrenderChange(
       LicencePosition licencePosition,
       SeededFeatures seededFeatures
   ) {
-    var incomingBlocks = seededFeatures.blocks();
-    var fullySurrenderedBlock = incomingBlocks.getFirst();
-    var partiallySurrenderedBlock = incomingBlocks.get(1);
+    var fullySurrenderedBlock = seededFeatures.blocks().get(FULLY_SURRENDERED_BLOCK);
+    var partiallySurrenderedBlock = seededFeatures.blocks().get(PARTIALLY_SURRENDERED_BLOCK);
+    var surrenderDate = licencePosition.getPositionDate();
 
-    // the journey is only the working area the split is made in: the executed change records the halves outright
-    var partialSurrenderCommandJourney = commandJourneyService.createAndAssignCommandJourney(
-        List.of(partiallySurrenderedBlock));
+    var splitBlock = splitBlockInHalf(partiallySurrenderedBlock);
 
-    var splitBlock = licencePositionFeatureTestHarnessService.splitBlockInHalf(
-        partialSurrenderCommandJourney,
-        partiallySurrenderedBlock
+    var splitBlockSubareas = seededFeatures.subareasOf(partiallySurrenderedBlock);
+    var relinquishedSubarea = splitBlockSubareas.getFirst();
+    var subareaAcrossTheCut = splitBlockSubareas.get(1);
+    var keptSubarea = splitBlockSubareas.getLast();
+
+    licencePositionFeatureTestHarnessService.relinquishSubarea(relinquishedSubarea, surrenderDate);
+    var croppedSubarea = licencePositionFeatureTestHarnessService.cropSubareaAcrossTheMiddle(
+        subareaAcrossTheCut,
+        partiallySurrenderedBlock,
+        surrenderDate
     );
-
-    commandJourneyService.deleteAllExcludingActiveFeatures(partialSurrenderCommandJourney.getId());
-
-    var croppedSubarea = SeededFeatures.toSubareaDetails(licencePositionFeatureTestHarnessService
-        .cropSubareaToRetainedHalf(
-            seededFeatures.subareaOf(partiallySurrenderedBlock),
-            partiallySurrenderedBlock,
-            licencePosition.getPositionDate()));
 
     var fullSurrender = new SurrenderDetails(
         BlockSurrenderType.FULL_SURRENDER,
@@ -261,11 +258,19 @@ class TestHarnessService {
         BlockSurrenderType.PARTIAL_SURRENDER,
         null,
         List.of(splitBlock.surrenderedHalf().getId()),
-        List.of(splitBlock.retainedHalf().getId())
-    ).withSubareas(Map.of(
-        splitBlock.retainedHalf().getId(),
-        List.of(SubareaSurrenderOutcome.cropped(seededFeatures.subareaDetailsOf(partiallySurrenderedBlock), croppedSubarea))
-    ));
+        List.of(splitBlock.retainedHalf().getId()),
+        Map.of(
+            splitBlock.retainedHalf().getId(),
+            List.of(
+                SubareaSurrenderOutcome.relinquished(SeededFeatures.toSubareaDetails(relinquishedSubarea)),
+                SubareaSurrenderOutcome.cropped(
+                    SeededFeatures.toSubareaDetails(subareaAcrossTheCut),
+                    SeededFeatures.toSubareaDetails(croppedSubarea)
+                ),
+                SubareaSurrenderOutcome.kept(SeededFeatures.toSubareaDetails(keptSubarea))
+            )
+        )
+    );
 
     // no surrender date - the change takes the date of the position it sits on
     LicenceOperation partialSurrenderOperation = LicenceOperation.newPartialSurrenderOperation()
@@ -276,22 +281,31 @@ class TestHarnessService {
         ))
         .build();
 
-    licencePositionChangeService.createLicencePositionChange(
-        licencePosition,
-        List.of(partialSurrenderOperation),
-        SURRENDER_CHANGE_ORDER,
-        LicencePositionChangeStatus.CONSENTED
-    );
+    createConsentedChange(licencePosition, List.of(partialSurrenderOperation), FIRST_CHANGE_ORDER);
+
+    return new RetainedHalf(splitBlock.retainedHalf(), List.of(croppedSubarea, keptSubarea));
   }
 
-  private void generateCarbonStorageBeneficialInterestPositionChanges(Licence licence) {
-    var executedChronologicalLicencePositions = licencePositionService.getExecutedChronologicalLicencePositions(licence);
+  private SplitBlock splitBlockInHalf(Feature block) {
+    // the journey is only the working area the split is made in: the executed change records the halves outright
+    var commandJourney = commandJourneyService.createAndAssignCommandJourney(List.of(block));
+    var splitBlock = licencePositionFeatureTestHarnessService.splitBlockInHalf(commandJourney, block);
+    commandJourneyService.deleteAllExcludingActiveFeatures(commandJourney.getId());
+    return splitBlock;
+  }
 
-    var firstPosition = executedChronologicalLicencePositions.getFirst();
-    var nonFinalPosition = executedChronologicalLicencePositions.get(executedChronologicalLicencePositions.size() - 3);
+  /**
+   * The half of a partially surrendered block kept, with the subareas the surrender left on it.
+   */
+  private record RetainedHalf(
+      Feature half,
+      List<Feature> subareas
+  ) {
+  }
 
-    createSetBeneficialInterestChange(firstPosition);
-    createTransferBeneficialInterestChange(nonFinalPosition);
+  private void generateCarbonStorageBeneficialInterestPositionChanges(List<LicencePosition> positions) {
+    createSetBeneficialInterestChange(positions.getFirst());
+    createTransferBeneficialInterestChange(positions.get(positions.size() - 3));
   }
 
   private void createSetBeneficialInterestChange(LicencePosition licencePosition) {
@@ -301,12 +315,7 @@ class TestHarnessService {
         setEquityOperation(PPRS_TRAINING_ORG, ZERO_EQUITY)
     );
 
-    licencePositionChangeService.createLicencePositionChange(
-        licencePosition,
-        operations,
-        1,
-        LicencePositionChangeStatus.CONSENTED
-    );
+    createConsentedChange(licencePosition, operations, FIRST_CHANGE_ORDER);
   }
 
   private void createTransferBeneficialInterestChange(LicencePosition licencePosition) {
@@ -315,12 +324,7 @@ class TestHarnessService {
         transferEquityOperation(SHELL_PLC_ID, PPRS_TRAINING_ORG, SHELL_TO_PPRS_TRANSFER)
     );
 
-    licencePositionChangeService.createLicencePositionChange(
-        licencePosition,
-        operations,
-        1,
-        LicencePositionChangeStatus.CONSENTED
-    );
+    createConsentedChange(licencePosition, operations, FIRST_CHANGE_ORDER);
   }
 
   private LicenceOperation setEquityOperation(int organisationUnitId, BigDecimal equity) {
@@ -338,20 +342,13 @@ class TestHarnessService {
         .build();
   }
 
-  private void generateStorageOperatorPositionChanges(Licence licence) {
-    var executedChronologicalLicencePositions = licencePositionService.getExecutedChronologicalLicencePositions(licence);
-
-    var firstPosition = executedChronologicalLicencePositions.getFirst();
-    var nonFinalPosition = executedChronologicalLicencePositions.get(executedChronologicalLicencePositions.size() - 3);
-
-    createStorageOperatorChange(firstPosition, SHELL_PLC_ID);
-    createStorageOperatorChange(nonFinalPosition, BP_EXPLORATION_ALPHA_LTD_ID);
+  private void generateStorageOperatorPositionChanges(List<LicencePosition> positions) {
+    createStorageOperatorChange(positions.getFirst(), SHELL_PLC_ID);
+    createStorageOperatorChange(positions.get(positions.size() - 3), BP_EXPLORATION_ALPHA_LTD_ID);
   }
 
   private void generateInitialStorageOperator(Licence licence) {
-    var executedChronologicalLicencePositions = licencePositionService.getExecutedChronologicalLicencePositions(licence);
-
-    var firstPosition = executedChronologicalLicencePositions.getFirst();
+    var firstPosition = licencePositionService.getExecutedChronologicalLicencePositions(licence).getFirst();
 
     createStorageOperatorChange(firstPosition, SHELL_PLC_ID);
   }
@@ -361,54 +358,34 @@ class TestHarnessService {
         .withOperator(operatorId)
         .build();
 
-    licencePositionChangeService.createLicencePositionChange(
-        licencePosition,
-        List.of(storageOperatorChange),
-        1,
-        LicencePositionChangeStatus.CONSENTED
-    );
+    createConsentedChange(licencePosition, List.of(storageOperatorChange), FIRST_CHANGE_ORDER);
   }
 
-  private void generateLicenseePositionChanges(Licence licence) {
-    var executedChronologicalLicencePositions = licencePositionService.getExecutedChronologicalLicencePositions(licence);
-
-    var firstPosition = executedChronologicalLicencePositions.getFirst();
-    var nonfinalPosition = executedChronologicalLicencePositions.get(executedChronologicalLicencePositions.size() - 4);
-
-    createLicenseeChange(firstPosition, List.of(BP_EXPLORATION_ALPHA_LTD_ID, FLAMSTONE_OIL_AND_GAS_LIMITED), List.of());
-    createLicenseeChange(nonfinalPosition, List.of(SHELL_PLC_ID), List.of(BP_EXPLORATION_ALPHA_LTD_ID));
+  private void generateLicenseePositionChanges(List<LicencePosition> positions) {
+    createLicenseeChange(positions.getFirst(), List.of(BP_EXPLORATION_ALPHA_LTD_ID, FLAMSTONE_OIL_AND_GAS_LIMITED), List.of());
+    createLicenseeChange(positions.get(positions.size() - 4), List.of(SHELL_PLC_ID), List.of(BP_EXPLORATION_ALPHA_LTD_ID));
   }
 
-  private void createLicenseeChange(LicencePosition licencePosition,
-                                    List<Integer> licenseesToAdd,
-                                    List<Integer> licenseesToRemove) {
+  private void createLicenseeChange(
+      LicencePosition licencePosition,
+      List<Integer> licenseesToAdd,
+      List<Integer> licenseesToRemove
+  ) {
     var licenseeChange = LicenceOperation.newLicenseeOperation()
         .withLicenseesToAdd(licenseesToAdd)
         .withLicenseesToRemove(licenseesToRemove)
         .build();
 
-    licencePositionChangeService.createLicencePositionChange(
-        licencePosition,
-        List.of(licenseeChange),
-        1,
-        LicencePositionChangeStatus.CONSENTED
-    );
+    createConsentedChange(licencePosition, List.of(licenseeChange), FIRST_CHANGE_ORDER);
   }
 
-  private void generateAdministratorPositionChanges(Licence licence) {
-    var executedChronologicalLicencePositions = licencePositionService.getExecutedChronologicalLicencePositions(licence);
-
-    var firstPosition = executedChronologicalLicencePositions.getFirst();
-    var nonFinalPosition = executedChronologicalLicencePositions.get(executedChronologicalLicencePositions.size() - 3);
-
-    createAdministratorChange(firstPosition, SHELL_PLC_ID);
-    createAdministratorChange(nonFinalPosition, BP_EXPLORATION_ALPHA_LTD_ID);
+  private void generateAdministratorPositionChanges(List<LicencePosition> positions) {
+    createAdministratorChange(positions.getFirst(), SHELL_PLC_ID);
+    createAdministratorChange(positions.get(positions.size() - 3), BP_EXPLORATION_ALPHA_LTD_ID);
   }
 
   private void generateInitialAdministrator(Licence licence) {
-    var executedChronologicalLicencePositions = licencePositionService.getExecutedChronologicalLicencePositions(licence);
-
-    var firstPosition = executedChronologicalLicencePositions.getFirst();
+    var firstPosition = licencePositionService.getExecutedChronologicalLicencePositions(licence).getFirst();
 
     createAdministratorChange(firstPosition, SHELL_PLC_ID);
   }
@@ -418,12 +395,24 @@ class TestHarnessService {
         .withOperator(operatorId)
         .build();
 
+    createConsentedChange(licencePosition, List.of(administratorChange), FIRST_CHANGE_ORDER);
+  }
+
+  private void createConsentedChange(
+      LicencePosition licencePosition,
+      List<LicenceOperation> operations,
+      int changeOrder
+  ) {
     licencePositionChangeService.createLicencePositionChange(
         licencePosition,
-        List.of(administratorChange),
-        1,
+        operations,
+        changeOrder,
         LicencePositionChangeStatus.CONSENTED
     );
+  }
+
+  private static LicencePosition penultimate(List<LicencePosition> positions) {
+    return positions.get(positions.size() - 2);
   }
 
   private void generateSameDateLicencePositions(Licence licence, LocalDate now) {

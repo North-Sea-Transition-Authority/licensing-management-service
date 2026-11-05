@@ -12,9 +12,6 @@
       <@fdsResultList.resultListItem
         linkHeadingUrl=springUrl(licencePositionTestHarnessUrl)
         linkHeadingText="Licence positions & transactions"/>
-      <@fdsResultList.resultListItem
-        linkHeadingUrl=springUrl(licencePositionFeatureTestHarnessUrl)
-        linkHeadingText="Licence position features"/>
     </@fdsResultList.resultList>
 
 </@defaultPage>

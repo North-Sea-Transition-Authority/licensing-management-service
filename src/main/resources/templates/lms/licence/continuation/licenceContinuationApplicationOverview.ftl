@@ -3,6 +3,7 @@
 <#import '../../component/actions/actionItems.ftl' as actionItems>
 <#import 'continuationApplicationSummary.ftl' as continuationApplicationSummary>
 <#import 'continuationLetterIssuedSummary.ftl' as continuationLetterIssuedSummary>
+<#import '../../summary/_summaryDetails.ftl' as summaryDetails>
 <#import '../../macros/caseprocessingtabs/caseProccessingTabs.ftl' as caseProccessingTabs>
 
 <@defaultPage
@@ -30,6 +31,16 @@ extendContainerWidth=true
             <#else>
                 <@fdsInsetText.insetText>
                   No continuation letter has been issued for this application.
+                </@fdsInsetText.insetText>
+            </#if>
+        </#if>
+
+        <#if selectedTab.value() == "case-events">
+            <#if caseEventsSummaryItem.summaryCards()?has_content>
+                <@summaryDetails.summaryDetails summaryItem=caseEventsSummaryItem/>
+            <#else>
+                <@fdsInsetText.insetText>
+                  No case events have been recorded for this application.
                 </@fdsInsetText.insetText>
             </#if>
         </#if>

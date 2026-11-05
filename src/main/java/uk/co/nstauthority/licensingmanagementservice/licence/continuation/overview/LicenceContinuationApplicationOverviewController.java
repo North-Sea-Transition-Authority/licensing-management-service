@@ -5,17 +5,21 @@ import static org.springframework.web.servlet.mvc.method.annotation.MvcUriCompon
 import java.util.List;
 import java.util.UUID;
 import org.springframework.core.io.InputStreamResource;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.ModelAndView;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.LogWorkAreaItemView;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.continuationapplication.ContinuationApplicationHasStatus;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.continuationapplication.InvokingUserCanAccessContinuationApplication;
+import uk.co.nstauthority.licensingmanagementservice.caseevent.CaseEventService;
+import uk.co.nstauthority.licensingmanagementservice.caseevent.CaseEventView;
 import uk.co.nstauthority.licensingmanagementservice.file.FileControllerHelperService;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.caseprocessing.OverviewTab;
@@ -27,6 +31,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.continuation.overvi
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.reviewandsubmit.ContinuationSummarySectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleStateService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
+import uk.co.nstauthority.licensingmanagementservice.summary.SummaryItem;
 import uk.co.nstauthority.licensingmanagementservice.teams.RegulatorRoleService;
 import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.WorkAreaDataItemType;
 
@@ -55,6 +60,7 @@ public class LicenceContinuationApplicationOverviewController {
   private final FileControllerHelperService fileControllerHelperService;
   private final ContinuationDecisionSummarySectionService continuationIssuePdfSummarySectionService;
   private final RegulatorRoleService regulatorRoleService;
+  private final CaseEventService caseEventService;
 
   public LicenceContinuationApplicationOverviewController(
       LicenceContinuationService licenceContinuationService,
@@ -64,7 +70,8 @@ public class LicenceContinuationApplicationOverviewController {
       LicenceContinuationActionService licenceContinuationActionService,
       FileControllerHelperService fileControllerHelperService,
       ContinuationDecisionSummarySectionService continuationIssuePdfSummarySectionService,
-      RegulatorRoleService regulatorRoleService
+      RegulatorRoleService regulatorRoleService,
+      CaseEventService caseEventService
   ) {
     this.licenceContinuationService = licenceContinuationService;
     this.overviewService = overviewService;
@@ -74,6 +81,7 @@ public class LicenceContinuationApplicationOverviewController {
     this.fileControllerHelperService = fileControllerHelperService;
     this.continuationIssuePdfSummarySectionService = continuationIssuePdfSummarySectionService;
     this.regulatorRoleService = regulatorRoleService;
+    this.caseEventService = caseEventService;
   }
 
   @GetMapping
@@ -83,6 +91,15 @@ public class LicenceContinuationApplicationOverviewController {
       ServiceUserDetail serviceUserDetail,
       @RequestParam(name = "tab", defaultValue = DEFAULT_TAB) OverviewTab tab
   ) {
+    var availableTabs = regulatorRoleService.isRegulator(serviceUserDetail)
+        ? List.of(OverviewTab.OVERVIEW, OverviewTab.LETTER, OverviewTab.CASE_EVENTS)
+        : List.of(OverviewTab.OVERVIEW, OverviewTab.LETTER);
+
+    if (!availableTabs.contains(tab)) {
+      throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+          "User with wuaId %d cannot view the %s tab".formatted(serviceUserDetail.wuaId(), tab.value()));
+    }
+
     var applicationContext = overviewService.getApplicationContext(applicationDetail, applicationDetail.getLicence());
     var summarySections = continuationSummarySectionService.getSummarySections(applicationDetail, serviceUserDetail);
     var applicationActions = licenceContinuationActionService.getAvailableUserActionItems(applicationDetail, serviceUserDetail);
@@ -97,7 +114,7 @@ public class LicenceContinuationApplicationOverviewController {
         .getSummarySection(applicationDetail)
         .orElse(null);
 
-    return new ModelAndView("lms/licence/continuation/licenceContinuationApplicationOverview")
+    var modelAndView = new ModelAndView("lms/licence/continuation/licenceContinuationApplicationOverview")
         .addObject("applicationContext", applicationContext)
         .addObject("summarySections", summarySections)
         .addObject("letterIssueSummarySection", letterIssueSummarySection)
@@ -105,7 +122,7 @@ public class LicenceContinuationApplicationOverviewController {
         .addObject("accordionId", applicationDetail.getId())
         .addObject("isReviewer", isReviewer)
         .addObject("applicationActions", applicationActions)
-        .addObject("availableTabs", List.of(OverviewTab.OVERVIEW, OverviewTab.LETTER))
+        .addObject("availableTabs", availableTabs)
         .addObject("selectedTab", tab)
         .addObject("controllerUrl",
             ReverseRouter.route(on(LicenceContinuationApplicationOverviewController.class).renderOverview(
@@ -115,6 +132,16 @@ public class LicenceContinuationApplicationOverviewController {
                 null
             ))
         );
+
+    if (tab == OverviewTab.CASE_EVENTS) {
+      var caseEventCards = caseEventService.getCaseEventViews(applicationDetail.getLicenceContinuationApplication())
+          .stream()
+          .map(CaseEventView::toSummaryCard)
+          .toList();
+      modelAndView.addObject("caseEventsSummaryItem", new SummaryItem(OverviewTab.CASE_EVENTS.label(), caseEventCards));
+    }
+
+    return modelAndView;
   }
 
   @GetMapping("/files/{fileId}")

@@ -1,13 +1,16 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.storageoperator;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -38,13 +41,18 @@ import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOp
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.StorageOperatorOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionViewService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.storageoperator.StorageOperatorChangeContext;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPositionTestUtil;
 
 @ExtendWith(MockitoExtension.class)
 class StorageOperatorChangeServiceTest {
 
   @Mock
   private LicencePositionCorrectionService licencePositionCorrectionService;
+
+  @Mock
+  private LicencePositionViewService licencePositionViewService;
 
   @InjectMocks
   private StorageOperatorChangeService storageOperatorChangeService;
@@ -59,6 +67,7 @@ class StorageOperatorChangeServiceTest {
   private static final LicenceCorrection LICENCE_CORRECTION = LicenceCorrectionTestUtil.newBuilder()
       .withLicence(LICENCE)
       .build();
+  private static final String CORRECTION_REFERENCE = "TEST-REF";
   private static final UUID POSITION_ID = UUID.randomUUID();
   private static final LicencePosition LICENCE_POSITION = LicencePositionTestUtil.newBuilder()
       .withLicence(LICENCE)
@@ -254,6 +263,77 @@ class StorageOperatorChangeServiceTest {
   }
 
   @Test
+  void undoStorageOperatorChange_whenTheChangeStagesAnOperatorOperation_thenDropsIt() {
+    var change = storageOperatorAddChange();
+    var correction = givenStagedChange(change,
+        LicenceOperation.newStorageOperatorOperation().withOperator(OPERATOR_ID).build());
+
+    storageOperatorChangeService.undoStorageOperatorChange(LICENCE_CORRECTION, change.changeId());
+
+    verify(licencePositionCorrectionService).dropStagedChange(correction, change.changeId());
+  }
+
+  @Test
+  void undoStorageOperatorChange_whenTheChangeRemovesALiveOperatorChange_thenDropsIt() {
+    var change = removeChange(UUID.randomUUID().toString());
+    var correction = givenStagedChange(change,
+        LicenceOperation.newStorageOperatorOperation().withOperator(OPERATOR_ID).build());
+
+    storageOperatorChangeService.undoStorageOperatorChange(LICENCE_CORRECTION, change.changeId());
+
+    verify(licencePositionCorrectionService).dropStagedChange(correction, change.changeId());
+  }
+
+  @Test
+  void undoStorageOperatorChange_whenTheChangeIsNotAnOperatorChange_thenThrowsAndDropsNothing() {
+    var changeId = UUID.randomUUID().toString();
+    var change = setEquityAddChange(changeId);
+    givenStagedChange(change, LicenceOperation.newSetEquityOperation()
+        .withTransferTo(1).withEquity(BigDecimal.TEN).build());
+
+    assertThatThrownBy(() -> storageOperatorChangeService.undoStorageOperatorChange(LICENCE_CORRECTION, changeId))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining(changeId);
+
+    verify(licencePositionCorrectionService, never()).dropStagedChange(any(), any());
+  }
+
+  @Test
+  void getJoiningOperatorForReinstating() {
+    var correction = LicenceCorrectionTestUtil.newBuilder().withLicence(LICENCE).build();
+    var payloadToUndo = CreateLicencePositionPayloadTestUtil
+        .newBuilder()
+        .withLicencePositionId(POSITION_ID.toString())
+        .build();
+    var otherPayload = CreateLicencePositionPayloadTestUtil
+        .newBuilder()
+        .withLicencePositionId(POSITION_ID.toString())
+        .build();
+    var positionCorrectionToUndo = LicencePositionCorrectionTestUtil.newBuilder()
+        .withId(UUID.randomUUID())
+        .withPayload(payloadToUndo)
+        .build();
+    var otherPositionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withId(UUID.randomUUID())
+        .withPayload(otherPayload)
+        .build();
+
+    var targetPosition1 = ChronologicalPositionTestUtil.newBuilder().build();
+    var targetPosition2 = ChronologicalPositionTestUtil.newBuilder().build();
+    var targetPositions = List.of(targetPosition1, targetPosition2);
+
+    when(licencePositionCorrectionService.getPositionCorrections(correction))
+        .thenReturn(List.of(positionCorrectionToUndo, otherPositionCorrection));
+    when(licencePositionViewService.getCorrectedChronologicalPositions(correction, List.of(otherPositionCorrection), Set.of(POSITION_ID)))
+        .thenReturn(targetPositions);
+    when(licencePositionViewService.getStorageOperatorChangeContext(correction, POSITION_ID, targetPositions))
+        .thenReturn(new StorageOperatorChangeContext(2, 1, "Uncorrected Current Operator Name", "Uncorrected Previous Operator Name"));
+
+    assertThat(storageOperatorChangeService.getJoiningOperatorForReinstating(correction, positionCorrectionToUndo))
+        .isEqualTo("Uncorrected Current Operator Name");
+  }
+
+  @Test
   void populateAddedStorageOperatorForm_storageOperatorChangeExists_returnsPopulatedForm() {
     var context = new StorageOperatorChangeContext(OPERATOR_ID, null, "org1", "org2");
     var operation = LicenceOperation.newStorageOperatorOperation().withOperator(OPERATOR_ID).build();
@@ -337,6 +417,42 @@ class StorageOperatorChangeServiceTest {
         .build();
   }
 
+  private LicencePositionCorrection givenStagedChange(
+      LicencePositionChangeType change,
+      LicenceOperation... resolvedOperations
+  ) {
+    var correction = LicencePositionCorrectionTestUtil.newBuilder()
+        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+        .withTargetLicencePosition(LICENCE_POSITION)
+        .withPayload(new UpdateLicencePositionPayload(null, null, CORRECTION_REFERENCE, List.of(change)))
+        .build();
+
+    when(licencePositionCorrectionService.getPositionCorrectionContainingChange(LICENCE_CORRECTION, change.changeId()))
+        .thenReturn(correction);
+    when(licencePositionCorrectionService.getStagedChangeOrThrow(correction, change.changeId()))
+        .thenReturn(change);
+    when(licencePositionCorrectionService.resolveStagedChangeOperations(change))
+        .thenReturn(List.of(resolvedOperations));
+
+    return correction;
+  }
+
+  private LicencePositionChangeType setEquityAddChange(String changeId) {
+    var setEquityOperation = LicenceOperation.newSetEquityOperation()
+        .withTransferTo(1)
+        .withEquity(BigDecimal.TEN)
+        .build();
+    var operation = LicencePositionChangeOperation.newLicencePositionAddOperation()
+        .withOperationId(setEquityOperation.id())
+        .withOperation(setEquityOperation)
+        .build();
+    return LicencePositionChangeType.addChange()
+        .withChangeId(changeId)
+        .withChangeOrder(1)
+        .withOperations(List.of(operation))
+        .build();
+  }
+
   private LicencePositionChangeType storageOperatorUpdateChange(String changeId) {
     var storageOperatorOperation = LicenceOperation.newStorageOperatorOperation().withOperator(OPERATOR_ID).build();
     var operation = LicencePositionChangeOperation.newLicencePositionUpdateOperation()
@@ -347,6 +463,10 @@ class StorageOperatorChangeServiceTest {
         .withChangeId(changeId)
         .withOperations(List.of(operation))
         .build();
+  }
+
+  private static LicencePositionChangeType removeChange(String changeId) {
+    return LicencePositionChangeType.removeChange().withChangeId(changeId).build();
   }
 
   private Integer operatorIdOf(LicencePositionChangeType change) {

@@ -219,6 +219,8 @@ class ChangeViewUrlsFactoryTest {
         .renderForCorrectingChange(CORRECTION, LICENCE_POSITION, CHANGE_ENTITY));
     var storageOperatorRemove = ReverseRouter.route(on(RemoveStorageOperatorChangeController.class)
         .renderRemoveExecutedStorageOperatorChange(CORRECTION, LICENCE_POSITION, CHANGE_ENTITY));
+    var storageOperatorUndo = ReverseRouter.route(on(RemoveStorageOperatorChangeController.class)
+        .renderUndoStorageOperatorChange(CORRECTION, CHANGE_ID.toString()));
 
     var subareaCorrect = ReverseRouter.route(on(SubareaChangeController.class)
         .renderSubareaChange(CORRECTION, POSITION_CORRECTION, SUBAREA_BLOCK_FEATURE_ID));
@@ -296,15 +298,15 @@ class ChangeViewUrlsFactoryTest {
         Arguments.of("storage operator, live", STORAGE_OPERATOR, EXECUTED_POSITION, live,
             storageOperatorCorrecting, storageOperatorRemove, null, null),
         Arguments.of("storage operator, added", STORAGE_OPERATOR, EXECUTED_POSITION, added,
-            storageOperatorExecuted, null, null, null),
+            storageOperatorExecuted, null, storageOperatorUndo, null),
         Arguments.of("storage operator, operations updated", STORAGE_OPERATOR, EXECUTED_POSITION, operationsUpdated,
-            storageOperatorCorrecting, null, null, null),
+            storageOperatorCorrecting, null, storageOperatorUndo, null),
         Arguments.of("storage operator, order updated", STORAGE_OPERATOR, EXECUTED_POSITION, orderUpdated,
-            storageOperatorCorrecting, null, null , null),
+            storageOperatorCorrecting, null, storageOperatorUndo , null),
         Arguments.of("storage operator, removed", STORAGE_OPERATOR, EXECUTED_POSITION, removed,
-            null, null, null, null),
+            null, null, null, storageOperatorUndo),
         Arguments.of("storage operator, added position", STORAGE_OPERATOR, ADDED_POSITION, added,
-            storageOperatorAdded, null, null, null),
+            storageOperatorAdded, null, storageOperatorUndo, null),
 
         Arguments.of("subarea, live", SUBAREA, EXECUTED_POSITION, live,
             subareaCorrecting, subareaRemove, null, null),

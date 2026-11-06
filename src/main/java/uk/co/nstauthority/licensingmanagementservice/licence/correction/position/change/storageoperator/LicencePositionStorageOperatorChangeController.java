@@ -267,7 +267,8 @@ public class LicencePositionStorageOperatorChangeController {
       LicencePositionCorrection licencePositionCorrection
   ) {
     var payload = (CreateLicencePositionPayload) licencePositionCorrection.getPayload();
-    return licencePositionViewService.getStorageOperatorChangeContext(correction, UUID.fromString(payload.licencePositionId()));
+    return licencePositionViewService
+        .getStorageOperatorChangeContext(correction, UUID.fromString(payload.licencePositionId()));
   }
 
   /**

@@ -123,7 +123,26 @@ public class LicencePositionViewService {
       LicenceCorrection licenceCorrection,
       UUID licencePositionId
   ) {
-    var chronologicalPositions = getCorrectedChronologicalPositions(licenceCorrection, licencePositionId);
+    return getStorageOperatorChangeContext(licenceCorrection, licencePositionId, null);
+  }
+
+  /**
+   *  Build the storageOperatorChangeContext, used to display joining and withdrawing operators.
+   *
+   *  @param licenceCorrection the current correction for the licence
+   *  @param licencePositionId the id of the current position in the licence
+   *  @param chronologicalPositions the positions to resolve, or {@code null} in the general case to
+   *                                resolve all the corrected chronological positions.
+   */
+
+  public StorageOperatorChangeContext getStorageOperatorChangeContext(
+      LicenceCorrection licenceCorrection,
+      UUID licencePositionId,
+      @Nullable List<ChronologicalPosition> chronologicalPositions
+  ) {
+    if (chronologicalPositions == null) {
+      chronologicalPositions = getCorrectedChronologicalPositions(licenceCorrection, licencePositionId);
+    }
     var resolvedStates = LicencePositionStateResolver.resolve(chronologicalPositions);
     var currentState = resolvedStates.currentState(licencePositionId);
     var previousState = resolvedStates.previousState(licencePositionId);

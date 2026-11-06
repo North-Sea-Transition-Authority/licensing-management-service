@@ -29,6 +29,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionChangeType;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
@@ -44,6 +46,8 @@ class RemoveStorageOperatorChangeControllerTest extends AbstractControllerTest {
   private StorageOperatorChangeService storageOperatorChangeService;
 
   private static final String REMOVE_PAGE_TITLE = "Are you sure you want to remove this storage operator change?";
+  private static final String UNDO_PAGE_TITLE = "Are you sure you want to undo this storage operator change?";
+  private static final String REINSTATE_PAGE_TITLE = "Are you sure you want to reinstate this storage operator change?";
   private static final String CONFIRMATION_TEMPLATE = "lms/licence/correction/change/removeStorageOperatorChange";
 
   private static final Licence LICENCE = LicenceTestUtil.builder().withId(1).build();
@@ -61,10 +65,8 @@ class RemoveStorageOperatorChangeControllerTest extends AbstractControllerTest {
       .withId(POSITION_ID)
       .withLicence(LICENCE)
       .build();
-
   private final String positionUrl = ReverseRouter.route(on(LicenceCorrectionController.class)
       .renderLicencePosition(CORRECTION, POSITION, null));
-
   @Test
   void renderRemoveExecutedStorageOperatorChange_whenNotLoggedIn() throws Exception {
     mockMvc.perform(get(ReverseRouter.route(on(RemoveStorageOperatorChangeController.class)
@@ -96,6 +98,44 @@ class RemoveStorageOperatorChangeControllerTest extends AbstractControllerTest {
 
     mockMvc.perform(post(ReverseRouter.route(on(RemoveStorageOperatorChangeController.class)
             .removeStorageOperatorChange(CORRECTION, POSITION, CHANGE, null)))
+            .with(user(regulatorUser))
+            .with(csrf()))
+        .andExpect(status().isForbidden());
+
+    verifyNoInteractions(storageOperatorChangeService);
+  }
+
+  @Test
+  void renderUndoStorageOperatorChange_whenNotLoggedIn() throws Exception {
+    mockMvc.perform(get(ReverseRouter.route(on(RemoveStorageOperatorChangeController.class)
+            .renderUndoStorageOperatorChange(CORRECTION, CHANGE_ID))))
+        .andExpect(redirectionToLoginUrl());
+  }
+
+  @Test
+  void renderUndoAdminChange_whenNotAllocatedToUser() throws Exception {
+    givenCorrectionNotAllocatedToUser();
+
+    mockMvc.perform(get(ReverseRouter.route(on(RemoveStorageOperatorChangeController.class)
+            .renderUndoStorageOperatorChange(CORRECTION, CHANGE_ID)))
+            .with(user(regulatorUser)))
+        .andExpect(status().isForbidden());
+  }
+
+  @Test
+  void undoStorageOperatorChange_whenNotLoggedIn() throws Exception {
+    mockMvc.perform(post(ReverseRouter.route(on(RemoveStorageOperatorChangeController.class)
+            .undoStorageOperatorChange(CORRECTION, CHANGE_ID, null)))
+            .with(csrf()))
+        .andExpect(redirectionToLoginUrl());
+  }
+
+  @Test
+  void undoStorageOperatorChange_whenNotAllocatedToUser() throws Exception {
+    givenCorrectionNotAllocatedToUser();
+
+    mockMvc.perform(post(ReverseRouter.route(on(RemoveStorageOperatorChangeController.class)
+            .undoStorageOperatorChange(CORRECTION, CHANGE_ID, null)))
             .with(user(regulatorUser))
             .with(csrf()))
         .andExpect(status().isForbidden());
@@ -150,6 +190,146 @@ class RemoveStorageOperatorChangeControllerTest extends AbstractControllerTest {
         );
 
     verify(storageOperatorChangeService).removeExistingStorageOperatorChange(position, correction, CHANGE_ID);
+  }
+
+  @Test
+  void renderUndoStorageOperatorChange_whenAllocatedToUser() throws Exception {
+    var correction = givenCorrectionAllocatedToUser();
+    var position = LicencePositionTestUtil.newBuilder().withId(POSITION_ID).withLicence(LICENCE).build();
+    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+        .withTargetLicencePosition(position)
+        .build();
+
+    when(licencePositionCorrectionService.getPositionCorrectionContainingChange(correction, CHANGE_ID))
+        .thenReturn(positionCorrection);
+    when(licencePositionViewService.getStorageOperatorChangeContext(correction, POSITION_ID))
+        .thenReturn(new StorageOperatorChangeContext(789, 456, "Joining Storage Operator Org", "Withdrawing Storage Operator Org"));
+
+    mockMvc.perform(get(ReverseRouter.route(on(RemoveStorageOperatorChangeController.class)
+            .renderUndoStorageOperatorChange(correction, CHANGE_ID)))
+            .with(user(regulatorUser)))
+        .andExpectAll(
+            status().isOk(),
+            view().name(CONFIRMATION_TEMPLATE),
+            model().attribute("pageTitle", UNDO_PAGE_TITLE),
+            model().attribute("primaryButton", Button.warningButton("Undo storage operator change")),
+            model().attribute("withdrawingStorageOperatorName", "Withdrawing Storage Operator Org"),
+            model().attribute("joiningStorageOperatorName", "Joining Storage Operator Org"),
+            model().attribute("cancelUrl", positionUrl)
+        );
+  }
+
+  @Test
+  void renderUndoStorageOperatorChange_whenChangeIsAStagedRemoval_thenAsksToReinstate() throws Exception {
+    var correction = givenCorrectionAllocatedToUser();
+    var position = LicencePositionTestUtil.newBuilder().withId(POSITION_ID).withLicence(LICENCE).build();
+    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+        .withTargetLicencePosition(position)
+        .build();
+
+    when(licencePositionCorrectionService.getPositionCorrectionContainingChange(correction, CHANGE_ID))
+        .thenReturn(positionCorrection);
+    when(licencePositionCorrectionService.isStagedRemoval(positionCorrection, CHANGE_ID)).thenReturn(true);
+    when(storageOperatorChangeService.getJoiningOperatorForReinstating(correction, positionCorrection))
+        .thenReturn("Reinstated Storage Operator Org");
+    when(licencePositionViewService.getStorageOperatorChangeContext(correction, POSITION_ID))
+        .thenReturn(new StorageOperatorChangeContext(789, 456, "Joining Storage Operator Org", "Withdrawing Storage Operator Org"));
+
+    mockMvc.perform(get(ReverseRouter.route(on(RemoveStorageOperatorChangeController.class)
+            .renderUndoStorageOperatorChange(correction, CHANGE_ID)))
+            .with(user(regulatorUser)))
+        .andExpectAll(
+            status().isOk(),
+            view().name(CONFIRMATION_TEMPLATE),
+            model().attribute("pageTitle", REINSTATE_PAGE_TITLE),
+            model().attribute("primaryButton", Button.primaryButton("Reinstate storage operator change")),
+            model().attribute("withdrawingStorageOperatorName", "Withdrawing Storage Operator Org"),
+            model().attribute("joiningStorageOperatorName", "Reinstated Storage Operator Org"),
+            model().attribute("cancelUrl", positionUrl)
+        );
+  }
+
+  @Test
+  void undoStorageOperatorChange_whenChangeIsNotAStagedRemoval_thenBannerSaysUndone() throws Exception {
+    var correction = givenCorrectionAllocatedToUser();
+    var position = LicencePositionTestUtil.newBuilder().withId(POSITION_ID).withLicence(LICENCE).build();
+    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+        .withTargetLicencePosition(position)
+        .build();
+
+    when(licencePositionCorrectionService.getPositionCorrectionContainingChange(correction, CHANGE_ID))
+        .thenReturn(positionCorrection);
+
+    mockMvc.perform(post(ReverseRouter.route(on(RemoveStorageOperatorChangeController.class)
+            .undoStorageOperatorChange(correction, CHANGE_ID, null)))
+            .with(user(regulatorUser))
+            .with(csrf()))
+        .andExpectAll(
+            status().is3xxRedirection(),
+            redirectedUrl(positionUrl),
+            notificationBanner(NotificationBanner.newSuccessBanner()
+                .withHeadingContent("Storage operator change undone")
+                .build())
+        );
+
+    verify(storageOperatorChangeService).undoStorageOperatorChange(correction, CHANGE_ID);
+  }
+
+  @Test
+  void undoStorageOperatorChange_whenChangeIsAStagedRemoval_thenBannerSaysReinstated() throws Exception {
+    var correction = givenCorrectionAllocatedToUser();
+    var position = LicencePositionTestUtil.newBuilder().withId(POSITION_ID).withLicence(LICENCE).build();
+    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+        .withTargetLicencePosition(position)
+        .build();
+
+    when(licencePositionCorrectionService.getPositionCorrectionContainingChange(correction, CHANGE_ID))
+        .thenReturn(positionCorrection);
+    when(licencePositionCorrectionService.isStagedRemoval(positionCorrection, CHANGE_ID)).thenReturn(true);
+
+    mockMvc.perform(post(ReverseRouter.route(on(RemoveStorageOperatorChangeController.class)
+            .undoStorageOperatorChange(correction, CHANGE_ID, null)))
+            .with(user(regulatorUser))
+            .with(csrf()))
+        .andExpectAll(
+            status().is3xxRedirection(),
+            redirectedUrl(positionUrl),
+            notificationBanner(NotificationBanner.newSuccessBanner()
+                .withHeadingContent("Storage operator change reinstated")
+                .build())
+        );
+
+    verify(storageOperatorChangeService).undoStorageOperatorChange(correction, CHANGE_ID);
+  }
+
+  @Test
+  void undoStorageOperatorChange_whenAddedChange_redirectsCorrectly() throws Exception {
+    var correction = givenCorrectionAllocatedToUser();
+    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withChangeType(LicencePositionCorrectionChangeType.ADD_POSITION)
+        .withTargetLicencePosition(POSITION)
+        .build();
+    when(licencePositionCorrectionService.getPositionCorrectionContainingChange(correction, CHANGE_ID))
+        .thenReturn(positionCorrection);
+
+    mockMvc.perform(post(ReverseRouter.route(on(RemoveStorageOperatorChangeController.class)
+            .undoStorageOperatorChange(correction, CHANGE_ID, null)))
+            .with(user(regulatorUser))
+            .with(csrf()))
+        .andExpectAll(
+            status().is3xxRedirection(),
+            redirectedUrl(ReverseRouter.route(on(LicenceCorrectionController.class)
+                .renderAddedPosition(correction, positionCorrection, null))),
+            notificationBanner(NotificationBanner.newSuccessBanner()
+                .withHeadingContent("Storage operator change undone")
+                .build())
+        );
+
+    verify(storageOperatorChangeService).undoStorageOperatorChange(correction, CHANGE_ID);
   }
 
   private LicenceCorrection givenCorrectionAllocatedToUser() {

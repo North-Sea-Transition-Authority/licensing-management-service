@@ -1,6 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.storageoperator;
 
 import java.util.List;
+import java.util.Set;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
@@ -13,6 +14,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.UpdateLicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.StorageOperatorOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionViewService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.storageoperator.StorageOperatorChangeContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionChangeOperationUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionStorageOperatorChangeUtil;
@@ -21,9 +23,14 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.uti
 public class StorageOperatorChangeService {
 
   private final LicencePositionCorrectionService licencePositionCorrectionService;
+  private final LicencePositionViewService licencePositionViewService;
 
-  StorageOperatorChangeService(LicencePositionCorrectionService licencePositionCorrectionService) {
+  StorageOperatorChangeService(
+      LicencePositionCorrectionService licencePositionCorrectionService,
+      LicencePositionViewService licencePositionViewService
+  ) {
     this.licencePositionCorrectionService = licencePositionCorrectionService;
+    this.licencePositionViewService = licencePositionViewService;
   }
 
   @Transactional
@@ -109,6 +116,51 @@ public class StorageOperatorChangeService {
 
     licencePositionCorrectionService
         .stageRemovalOfExecutedChange(licenceCorrection, licencePosition, originalChangeId);
+  }
+
+  @Transactional
+  public void undoStorageOperatorChange(
+      LicenceCorrection licenceCorrection,
+      String changeId
+  ) {
+    var positionCorrection = licencePositionCorrectionService
+        .getPositionCorrectionContainingChange(licenceCorrection, changeId);
+
+    var changeToUndo = licencePositionCorrectionService.getStagedChangeOrThrow(positionCorrection, changeId);
+
+    var isStorageOperatorChange = licencePositionCorrectionService.resolveStagedChangeOperations(changeToUndo).stream()
+        .anyMatch(StorageOperatorOperation.class::isInstance);
+
+    if (!isStorageOperatorChange) {
+      throw new IllegalStateException(
+          "Change with id %s is not an storage operator change"
+              .formatted(changeId));
+    }
+
+    licencePositionCorrectionService.dropStagedChange(positionCorrection, changeId);
+  }
+
+  public String getJoiningOperatorForReinstating(
+      LicenceCorrection licenceCorrection,
+      LicencePositionCorrection positionCorrectionToUndo
+  ) {
+    var licencePositionId = positionCorrectionToUndo.getPositionId();
+
+    var remainingPositionCorrections = licencePositionCorrectionService.getPositionCorrections(licenceCorrection)
+        .stream()
+        .filter(correction -> !correction.getId().equals(positionCorrectionToUndo.getId()))
+        .toList();
+
+    var targetPositions = licencePositionViewService.getCorrectedChronologicalPositions(
+        licenceCorrection,
+        remainingPositionCorrections,
+        Set.of(licencePositionId)
+    );
+
+    var uncorrectedChangeContext = licencePositionViewService
+        .getStorageOperatorChangeContext(licenceCorrection, licencePositionId, targetPositions);
+
+    return uncorrectedChangeContext.currentOperatorName();
   }
 
   private void removeStagedStorageOperatorChange(LicencePositionCorrection positionCorrection) {

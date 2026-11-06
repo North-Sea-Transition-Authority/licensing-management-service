@@ -29,8 +29,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.fivium.gisframework.feature.Feature;
 import uk.co.fivium.gisframework.feature.FeatureService;
-import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationNamePeriods.OrganisationNamePeriod;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationNamePeriods;
+import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationNamePeriods.OrganisationNamePeriod;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatusType;
@@ -71,7 +71,9 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.Lic
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPosition;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPositionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.PositionChange;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.PositionChangeTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ResolvedStates;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.AdministratorChangeView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.ChangeViewUrls;
@@ -701,7 +703,7 @@ class LicencePositionViewServiceTest {
   }
 
   @Test
-  void getStorageOperatorChangeContext_resolvesStorageOperatorNames() {
+  void getStorageOperatorChangeContext_givenNoChronologicalPositions_resolvesStorageOperatorNamesWithAllPositions() {
     var correction = LicenceCorrectionTestUtil.newBuilder().withLicence(LICENCE).build();
     var position = LicencePositionTestUtil.newBuilder()
         .withId(POSITION_ID).withLicence(LICENCE).withStatus(LicencePositionStatus.EXECUTED).build();
@@ -723,6 +725,41 @@ class LicencePositionViewServiceTest {
     assertThat(result.previousOperatorId()).isNull();
     assertThat(result.currentOperatorName()).isEqualTo("Current Operator Org");
     assertThat(result.previousOperatorName()).isEmpty();
+  }
+
+  @Test
+  void getStorageOperatorChangeContext_givenChronologicalPositions_resolvesStorageOperatorNamesWithGivenPositions() {
+    var correction = LicenceCorrectionTestUtil.newBuilder().withLicence(LICENCE).build();
+    var operations = List.of((LicenceOperation) LicenceOperation
+        .newStorageOperatorOperation()
+        .withOperator(1).
+        build());
+    var positionChange = PositionChangeTestUtil
+        .newBuilder()
+        .withOperations(operations)
+        .build();
+
+    var chronologicalPositions = List.of(ChronologicalPositionTestUtil.newBuilder()
+        .withId(POSITION_ID)
+        .withChanges(List.of(positionChange))
+        .build()
+    );
+
+    when(organisationUnitQueryService.getOrganisationUnitNamesByIds(List.of(1)))
+        .thenReturn(Map.of(1, "Current Operator Org"));
+
+    var result = licencePositionViewService.getStorageOperatorChangeContext(correction, POSITION_ID, chronologicalPositions);
+
+    assertThat(result.currentOperatorId()).isEqualTo(1);
+    assertThat(result.previousOperatorId()).isNull();
+    assertThat(result.currentOperatorName()).isEqualTo("Current Operator Org");
+    assertThat(result.previousOperatorName()).isEmpty();
+
+    verifyNoInteractions(
+        licencePositionService,
+        licencePositionChangeService,
+        licencePositionCorrectionService
+    );
   }
 
   @Test

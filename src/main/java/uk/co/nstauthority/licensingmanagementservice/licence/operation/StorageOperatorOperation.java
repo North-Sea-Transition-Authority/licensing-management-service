@@ -120,7 +120,8 @@ public record StorageOperatorOperation(
 
       @Override
       public String undo(ChangeUrlTarget target) {
-        return null;
+        return ReverseRouter.route(on(RemoveStorageOperatorChangeController.class)
+            .renderUndoStorageOperatorChange(target.correction(), target.changeId()));
       }
     };
   }

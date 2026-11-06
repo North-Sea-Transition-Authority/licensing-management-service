@@ -45,7 +45,7 @@ public enum TopNavigationItem implements Displayable {
       true
   ),
   EVENT_TRACKER(
-      "Event Tracker",
+      "Event tracker",
       40,
       ReleasePhase.LMS1,
       ReverseRouter.route(on(CrossLicenceEventTrackerController.class).renderEventTracker(null, null))

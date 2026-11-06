@@ -45,7 +45,10 @@ public class LicenceContinuationApplicationReviewConfirmationController {
   ) {
     licenceContinuationService.confirmContinuationChangeStatus(applicationDetail);
     NotificationBanner.newSuccessBannerWithHeader(
-        "Continuation application has been sent to the continuation issuer",
+        "Continuation application %s for licence %s has been reviewed".formatted(
+            applicationDetail.getLicenceContinuationApplication().getApplicationReference(),
+            applicationDetail.getLicenceContinuationApplication().getLicenceSchedule().getLicence().getLicenceReference()
+        ),
         redirectAttributes
     );
 

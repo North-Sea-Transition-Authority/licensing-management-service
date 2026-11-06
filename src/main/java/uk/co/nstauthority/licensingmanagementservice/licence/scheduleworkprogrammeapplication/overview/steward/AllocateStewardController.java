@@ -12,9 +12,11 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.InvokingUserCanAccessScheduleApplication;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.ScheduleAmendmentApplicationHasStatus;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationActionEndPointInterceptorRule;
+import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overview.ScheduleWorkProgrammeApplicationOverviewController;
@@ -59,7 +61,8 @@ public class AllocateStewardController {
       @PathVariable UUID scheduleWorkProgrammeApplicationDetailId,
       ScheduleWorkProgrammeApplicationDetail applicationDetail,
       @ModelAttribute("form") AllocateStewardForm form,
-      BindingResult bindingResult
+      BindingResult bindingResult,
+      RedirectAttributes redirectAttributes
   ) {
     var stewardOptions = allocateStewardService.getStewardOptions(applicationDetail.getLicence().getType());
     if (!allocateStewardValidator.isValid(form, bindingResult, stewardOptions)) {
@@ -70,6 +73,11 @@ public class AllocateStewardController {
         applicationDetail.getScheduleWorkProgrammeApplication(),
         Long.parseLong(form.getStewardWuaId())
     );
+
+    var applicationReference = applicationDetail.getScheduleWorkProgrammeApplication().getApplicationReference();
+    NotificationBanner.newSuccessBanner()
+        .withHeadingContent(String.format("Steward allocated on %s", applicationReference))
+        .applyTo(redirectAttributes);
 
     return ReverseRouter.redirect(on(ScheduleWorkProgrammeApplicationOverviewController.class)
         .renderOverview(applicationDetail.getId(), null, null, null));

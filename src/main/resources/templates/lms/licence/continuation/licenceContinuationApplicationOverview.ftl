@@ -5,6 +5,7 @@
 <#import 'continuationLetterIssuedSummary.ftl' as continuationLetterIssuedSummary>
 <#import '../../summary/_summaryDetails.ftl' as summaryDetails>
 <#import '../../macros/caseprocessingtabs/caseProccessingTabs.ftl' as caseProccessingTabs>
+<#import '../../summary/_externalViewerDraftApplicationBanner.ftl' as externalViewerBanner>
 
 <@defaultPage
 htmlTitle="Application overview"
@@ -12,6 +13,10 @@ pageHeading=""
 pageSize=PageSize.FULL_COLUMN
 extendContainerWidth=true
 >
+    <#if isDraft>
+        <@externalViewerBanner.externalViewerDraftApplicationBanner hasIncompleteSections=hasIncompleteSections/>
+    </#if>
+
     <@caseProccessingTabs.caseProcessingTabsWithContent
     tabs=availableTabs
     selectedTab={"value": selectedTab.value()} <#--TODO: Passing inline hash to avoid changing the shared macro. Fix change macro to use unified field or method instead of both -->

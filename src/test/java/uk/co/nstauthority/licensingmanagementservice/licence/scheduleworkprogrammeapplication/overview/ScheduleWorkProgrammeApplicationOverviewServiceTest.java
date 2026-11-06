@@ -1,10 +1,12 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overview;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overview.ScheduleWorkProgrammeApplicationOverviewService.SUBMITTED_BY_USER_PURPOSE;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -19,6 +21,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetailTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.summary.SummaryDataView;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryKeyValue;
 import uk.co.nstauthority.licensingmanagementservice.util.EnergyPortalUserTestUtil;
 
@@ -155,6 +158,32 @@ class ScheduleWorkProgrammeApplicationOverviewServiceTest {
     assertThat(getSummaryValueData(keyValues.get(1)))
         .isEqualTo(DateFormatUtil.convertToDisplayTextWithTime(Instant.parse("2024-03-15T10:30:00Z")));
     assertThat(getSummaryValueData(keyValues.get(2))).isEqualTo("Not allocated");
+  }
+
+  @Test
+  void getApplicationContext_whenDraft_returnsLicenceReferenceAndCreatedDate() {
+    var licence = createLicence();
+    var createdDate = Instant.parse("2024-03-15T10:30:00Z");
+    var applicationDetail = ScheduleWorkProgrammeApplicationDetailTestUtil.builder()
+        .withId(UUID.randomUUID())
+        .withStatus(ApplicationStatus.DRAFT)
+        .build();
+    applicationDetail.setCreatedDatetime(createdDate);
+
+    when(licenceService.getLicencePageCaption(licence))
+        .thenReturn("Carbon storage licence - CS1");
+
+    var context = overviewService.getApplicationContext(applicationDetail, licence);
+
+    var expected = new ScheduleWorkProgrammeApplicationContext(
+        licence.getLicenceReference(),
+        "Carbon storage licence - CS1",
+        List.of(SummaryDataView.newBuilder()
+            .addStringValue("Created", DateFormatUtil.convertToDisplayTextWithTime(createdDate))
+            .build())
+    );
+    assertThat(context).usingRecursiveComparison().isEqualTo(expected);
+    verifyNoInteractions(energyPortalUserService);
   }
 
   private static String getSummaryValueData(SummaryKeyValue summaryKeyValue) {

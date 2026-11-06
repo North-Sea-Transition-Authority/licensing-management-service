@@ -1,10 +1,12 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.continuation.overview;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static uk.co.nstauthority.licensingmanagementservice.licence.continuation.overview.LicenceContinuationApplicationOverviewService.SUBMITTED_BY_USER_PURPOSE;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -13,12 +15,14 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserService;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.WebUserAccountId;
+import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.summary.SummaryDataView;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryKeyValue;
 import uk.co.nstauthority.licensingmanagementservice.util.EnergyPortalUserTestUtil;
 
@@ -153,6 +157,32 @@ class LicenceContinuationApplicationOverviewServiceTest {
     var keyValues = context.summaryDataView().get(0).keyValues();
     assertThat(getSummaryValueData(keyValues.get(0))).isEqualTo("John Smith (john.smith@example.com)");
     assertThat(getSummaryValueData(keyValues.get(1))).isNotBlank();
+  }
+
+  @Test
+  void getApplicationContext_whenDraft_returnsLicenceReferenceAndCreatedDate() {
+    var licence = createLicence();
+    var createdDate = Instant.parse("2024-03-15T10:30:00Z");
+    var applicationDetail = LicenceContinuationApplicationTestUtil.builder()
+        .withId(UUID.randomUUID())
+        .withStatus(ApplicationStatus.DRAFT)
+        .build();
+    applicationDetail.setCreatedDateTime(createdDate);
+
+    when(licenceService.getLicencePageCaption(licence))
+        .thenReturn("Production licence - P1");
+
+    var context = overviewService.getApplicationContext(applicationDetail, licence);
+
+    var expected = new LicenceContinuationApplicationContext(
+        licence.getLicenceReference(),
+        "Production licence - P1",
+        List.of(SummaryDataView.newBuilder()
+            .addStringValue("Created", DateFormatUtil.convertToDisplayTextWithTime(createdDate))
+            .build())
+    );
+    assertThat(context).usingRecursiveComparison().isEqualTo(expected);
+    verifyNoInteractions(energyPortalUserService);
   }
 
   private static String getSummaryValueData(SummaryKeyValue summaryKeyValue) {

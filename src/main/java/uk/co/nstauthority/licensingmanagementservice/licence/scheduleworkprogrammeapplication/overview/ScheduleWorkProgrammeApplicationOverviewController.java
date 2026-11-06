@@ -23,6 +23,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.application.casepro
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overview.action.ScheduleWorkProgrammeApplicationActionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.reviewandsubmit.LicenceScheduleSummarySectionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.ScheduleWorkProgrammeApplicationTaskListService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryItem;
 import uk.co.nstauthority.licensingmanagementservice.teams.RegulatorRoleService;
@@ -31,7 +32,10 @@ import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.W
 @Controller
 @RequestMapping("licence/schedule-work-programme-application/{scheduleWorkProgrammeApplicationDetailId}/overview")
 @ScheduleAmendmentApplicationHasStatus(value = {
-    ApplicationStatus.SUBMITTED, ApplicationStatus.DSP_UPLOADED, ApplicationStatus.ISSUE_DECISION
+    ApplicationStatus.DRAFT,
+    ApplicationStatus.SUBMITTED,
+    ApplicationStatus.DSP_UPLOADED,
+    ApplicationStatus.ISSUE_DECISION
 })
 @InvokingUserCanAccessScheduleApplication
 @LogWorkAreaItemView(
@@ -47,19 +51,22 @@ public class ScheduleWorkProgrammeApplicationOverviewController {
   private final ScheduleWorkProgrammeApplicationActionService applicationActionService;
   private final RegulatorRoleService regulatorRoleService;
   private final CaseEventService caseEventService;
+  private final ScheduleWorkProgrammeApplicationTaskListService taskListService;
 
   public ScheduleWorkProgrammeApplicationOverviewController(
       ScheduleWorkProgrammeApplicationOverviewService overviewService,
       LicenceScheduleSummarySectionService licenceScheduleSummarySectionService,
       ScheduleWorkProgrammeApplicationActionService applicationActionService,
       RegulatorRoleService regulatorRoleService,
-      CaseEventService caseEventService
+      CaseEventService caseEventService,
+      ScheduleWorkProgrammeApplicationTaskListService taskListService
   ) {
     this.overviewService = overviewService;
     this.licenceScheduleSummarySectionService = licenceScheduleSummarySectionService;
     this.applicationActionService = applicationActionService;
     this.regulatorRoleService = regulatorRoleService;
     this.caseEventService = caseEventService;
+    this.taskListService = taskListService;
   }
 
   @GetMapping
@@ -82,6 +89,8 @@ public class ScheduleWorkProgrammeApplicationOverviewController {
     var applicationContext = overviewService.getApplicationContext(applicationDetail, licence);
     var summarySections = licenceScheduleSummarySectionService.getSummarySections(applicationDetail, serviceUserDetail);
     var applicationActions = applicationActionService.getAvailableUserActionItems(applicationDetail, serviceUserDetail);
+    var isDraft = applicationDetail.getStatus() == ApplicationStatus.DRAFT;
+    var hasIncompleteSections = isDraft && !taskListService.isSubmittable(applicationDetail, serviceUserDetail);
 
     var modelAndView = new ModelAndView(
         "lms/licence/scheduleWorkProgrammeApplication/scheduleWorkProgrammeApplicationOverview")
@@ -89,6 +98,8 @@ public class ScheduleWorkProgrammeApplicationOverviewController {
         .addObject("summarySections", summarySections)
         .addObject("accordionId", applicationDetail.getId())
         .addObject("applicationActions", applicationActions)
+        .addObject("isDraft", isDraft)
+        .addObject("hasIncompleteSections", hasIncompleteSections)
         .addObject("availableTabs", availableTabs)
         .addObject("selectedTab", tab)
         .addObject("controllerUrl",

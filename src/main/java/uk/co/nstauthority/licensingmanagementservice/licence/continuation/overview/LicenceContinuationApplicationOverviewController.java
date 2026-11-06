@@ -29,6 +29,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.continuation.decisi
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.decision.ContinuationLetterFileUsages;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.overview.action.LicenceContinuationActionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.reviewandsubmit.ContinuationSummarySectionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.continuation.tasklist.LicenceContinuationApplicationTaskListService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleStateService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryItem;
@@ -61,6 +62,7 @@ public class LicenceContinuationApplicationOverviewController {
   private final ContinuationDecisionSummarySectionService continuationIssuePdfSummarySectionService;
   private final RegulatorRoleService regulatorRoleService;
   private final CaseEventService caseEventService;
+  private final LicenceContinuationApplicationTaskListService taskListService;
 
   public LicenceContinuationApplicationOverviewController(
       LicenceContinuationService licenceContinuationService,
@@ -71,7 +73,8 @@ public class LicenceContinuationApplicationOverviewController {
       FileControllerHelperService fileControllerHelperService,
       ContinuationDecisionSummarySectionService continuationIssuePdfSummarySectionService,
       RegulatorRoleService regulatorRoleService,
-      CaseEventService caseEventService
+      CaseEventService caseEventService,
+      LicenceContinuationApplicationTaskListService taskListService
   ) {
     this.licenceContinuationService = licenceContinuationService;
     this.overviewService = overviewService;
@@ -82,6 +85,7 @@ public class LicenceContinuationApplicationOverviewController {
     this.continuationIssuePdfSummarySectionService = continuationIssuePdfSummarySectionService;
     this.regulatorRoleService = regulatorRoleService;
     this.caseEventService = caseEventService;
+    this.taskListService = taskListService;
   }
 
   @GetMapping
@@ -109,6 +113,8 @@ public class LicenceContinuationApplicationOverviewController {
     );
 
     var isReviewer = regulatorRoleService.isContinuationReviewer(serviceUserDetail);
+    var isDraft = applicationDetail.getStatus() == ApplicationStatus.DRAFT;
+    var hasIncompleteSections = isDraft && !taskListService.isSubmittable(applicationDetail, serviceUserDetail);
 
     var letterIssueSummarySection = continuationIssuePdfSummarySectionService
         .getSummarySection(applicationDetail)
@@ -121,6 +127,8 @@ public class LicenceContinuationApplicationOverviewController {
         .addObject("workProgrammeActivities", workProgrammeActivities)
         .addObject("accordionId", applicationDetail.getId())
         .addObject("isReviewer", isReviewer)
+        .addObject("isDraft", isDraft)
+        .addObject("hasIncompleteSections", hasIncompleteSections)
         .addObject("applicationActions", applicationActions)
         .addObject("availableTabs", availableTabs)
         .addObject("selectedTab", tab)

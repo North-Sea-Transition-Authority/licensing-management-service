@@ -9,6 +9,7 @@ import uk.co.nstauthority.licensingmanagementservice.energyportal.user.WebUserAc
 import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplication;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryDataView;
@@ -32,6 +33,10 @@ class ScheduleWorkProgrammeApplicationOverviewService {
       ScheduleWorkProgrammeApplicationDetail applicationDetail,
       Licence licence
   ) {
+    if (applicationDetail.getStatus() == ApplicationStatus.DRAFT) {
+      return getDraftApplicationContext(applicationDetail, licence);
+    }
+
     var submittedByUser = energyPortalUserService.getByWuaId(
         WebUserAccountId.from(applicationDetail.getSubmittedByWuaId()),
         SUBMITTED_BY_USER_PURPOSE
@@ -57,5 +62,20 @@ class ScheduleWorkProgrammeApplicationOverviewService {
         .flatMap(webUserAccountId -> energyPortalUserService.findByWuaId(webUserAccountId, STEWARD_USER_PURPOSE))
         .map(EnergyPortalUserJson::displayName)
         .orElse("Not allocated");
+  }
+
+  private ScheduleWorkProgrammeApplicationContext getDraftApplicationContext(
+      ScheduleWorkProgrammeApplicationDetail applicationDetail,
+      Licence licence
+  ) {
+    var summaryDataView = SummaryDataView.newBuilder()
+        .addStringValue("Created", DateFormatUtil.convertToDisplayTextWithTime(applicationDetail.getCreatedDatetime()))
+        .build();
+
+    return new ScheduleWorkProgrammeApplicationContext(
+        licence.getLicenceReference(),
+        licenceService.getLicencePageCaption(licence),
+        List.of(summaryDataView)
+    );
   }
 }

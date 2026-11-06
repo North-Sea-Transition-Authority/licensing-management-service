@@ -4,6 +4,7 @@
 <#import 'scheduleApplicationSummary.ftl' as scheduleApplicationSummary>
 <#import '../../summary/_summaryDetails.ftl' as summaryDetails>
 <#import '../../macros/caseprocessingtabs/caseProccessingTabs.ftl' as caseProccessingTabs>
+<#import '../../summary/_externalViewerDraftApplicationBanner.ftl' as externalViewerBanner>
 
 <#macro overviewContent>
   <@applicationContextInfo.applicationContextInfo applicationContext=applicationContext/>
@@ -17,6 +18,10 @@ pageHeading=""
 pageSize=PageSize.FULL_COLUMN
 extendContainerWidth=true
 >
+  <#if isDraft>
+    <@externalViewerBanner.externalViewerDraftApplicationBanner hasIncompleteSections=hasIncompleteSections/>
+  </#if>
+
   <#if availableTabs?size gt 1>
     <@caseProccessingTabs.caseProcessingTabsWithContent
     tabs=availableTabs

@@ -1,11 +1,14 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overview;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
@@ -17,6 +20,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
@@ -36,6 +41,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSch
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.reviewandsubmit.LicenceScheduleSummarySectionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.tasklist.ScheduleWorkProgrammeApplicationTaskListService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryDataView;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryItem;
@@ -48,6 +54,11 @@ import uk.co.nstauthority.licensingmanagementservice.teams.RegulatorRoleService;
 class ScheduleWorkProgrammeApplicationOverviewControllerTest extends AbstractControllerTest {
 
   private static final Long ORGANISATION_USER_WUA_ID = 2L;
+
+  private static final String DRAFT_BANNER_TEXT = "This is a draft application.";
+  private static final String INCOMPLETE_SECTIONS_BANNER_TEXT = "some sections are incomplete";
+  private static final String MISSING_INFORMATION_BANNER_TITLE = "Missing information";
+  private static final String SUBMISSION_BLOCKED_TEXT = "You will not be allowed to submit";
 
   private static final ServiceUserDetail USER = ServiceUserDetailTestUtil.newBuilder()
       .withWuaId(ORGANISATION_USER_WUA_ID)
@@ -65,6 +76,9 @@ class ScheduleWorkProgrammeApplicationOverviewControllerTest extends AbstractCon
   @MockitoBean
   private CaseEventService caseEventService;
 
+  @MockitoBean
+  private ScheduleWorkProgrammeApplicationTaskListService taskListService;
+
   @Test
   void renderOverview_classAnnotations_presentAndCorrect() {
     assertThat(ScheduleWorkProgrammeApplicationOverviewController.class)
@@ -72,6 +86,7 @@ class ScheduleWorkProgrammeApplicationOverviewControllerTest extends AbstractCon
     assertThat(ScheduleWorkProgrammeApplicationOverviewController.class
         .getAnnotation(ScheduleAmendmentApplicationHasStatus.class).value())
         .containsExactlyInAnyOrder(
+            ApplicationStatus.DRAFT,
             ApplicationStatus.SUBMITTED,
             ApplicationStatus.DSP_UPLOADED,
             ApplicationStatus.ISSUE_DECISION);
@@ -133,7 +148,34 @@ class ScheduleWorkProgrammeApplicationOverviewControllerTest extends AbstractCon
         .andExpect(model().attribute("accordionId", applicationDetailId))
         .andExpect(model().attribute("applicationActions", List.of()))
         .andExpect(model().attribute("availableTabs", List.of(OverviewTab.OVERVIEW)))
-        .andExpect(model().attribute("selectedTab", OverviewTab.OVERVIEW));
+        .andExpect(model().attribute("selectedTab", OverviewTab.OVERVIEW))
+        .andExpect(model().attribute("isDraft", false))
+        .andExpect(model().attribute("hasIncompleteSections", false));
+
+    verifyNoInteractions(taskListService);
+  }
+
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  void renderOverview_whenDraft_thenIncompleteSectionsFlagReflectsSubmittability(boolean isSubmittable) throws Exception {
+    var applicationDetail = createApplicationDetail(ApplicationStatus.DRAFT);
+    stubOverviewFor(applicationDetail, USER);
+    when(taskListService.isSubmittable(applicationDetail, USER)).thenReturn(isSubmittable);
+
+    mockMvc.perform(
+            get(ReverseRouter.route(on(ScheduleWorkProgrammeApplicationOverviewController.class)
+                .renderOverview(applicationDetail.getId(), null, null, null)))
+                .with(user(USER))
+        )
+        .andExpect(status().isOk())
+        .andExpect(model().attribute("isDraft", true))
+        .andExpect(model().attribute("hasIncompleteSections", !isSubmittable))
+        .andExpect(content().string(containsString(DRAFT_BANNER_TEXT)))
+        .andExpect(content().string(isSubmittable
+            ? not(containsString(INCOMPLETE_SECTIONS_BANNER_TEXT))
+            : containsString(INCOMPLETE_SECTIONS_BANNER_TEXT)))
+        .andExpect(content().string(not(containsString(MISSING_INFORMATION_BANNER_TITLE))))
+        .andExpect(content().string(not(containsString(SUBMISSION_BLOCKED_TEXT))));
   }
 
   @Test
@@ -228,12 +270,16 @@ class ScheduleWorkProgrammeApplicationOverviewControllerTest extends AbstractCon
   }
 
   private ScheduleWorkProgrammeApplicationDetail createSubmittedApplicationDetail() {
+    return createApplicationDetail(ApplicationStatus.SUBMITTED);
+  }
+
+  private ScheduleWorkProgrammeApplicationDetail createApplicationDetail(ApplicationStatus status) {
     var licenceSchedule = LicenceScheduleTestUtil.createLicenceSchedule(createLicence());
     var licenceScheduleDetail = LicenceScheduleTestUtil.createLicenceScheduleDetail(licenceSchedule);
     var swpApp = ScheduleWorkProgrammeApplicationDetailTestUtil.createScheduleWorkProgrammeApplication(licenceScheduleDetail);
     return ScheduleWorkProgrammeApplicationDetailTestUtil.builder()
         .withId(UUID.randomUUID())
-        .withStatus(ApplicationStatus.SUBMITTED)
+        .withStatus(status)
         .withScheduleWorkProgrammeApplication(swpApp)
         .build();
   }

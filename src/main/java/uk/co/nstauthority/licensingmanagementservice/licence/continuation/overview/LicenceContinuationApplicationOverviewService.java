@@ -7,6 +7,7 @@ import uk.co.nstauthority.licensingmanagementservice.energyportal.user.WebUserAc
 import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryDataView;
 
@@ -30,6 +31,10 @@ public class LicenceContinuationApplicationOverviewService {
       LicenceContinuationApplicationDetail applicationDetail,
       Licence licence
   ) {
+    if (applicationDetail.getStatus() == ApplicationStatus.DRAFT) {
+      return getDraftApplicationContext(applicationDetail, licence);
+    }
+
     var submittedByUser = energyPortalUserService.getByWuaId(
         WebUserAccountId.from(applicationDetail.getSubmittedByWuaId()),
         SUBMITTED_BY_USER_PURPOSE
@@ -43,6 +48,21 @@ public class LicenceContinuationApplicationOverviewService {
 
     return new LicenceContinuationApplicationContext(
         applicationDetail.getLicenceContinuationApplication().getApplicationReference(),
+        licenceService.getLicencePageCaption(licence),
+        List.of(summaryDataView)
+    );
+  }
+
+  private LicenceContinuationApplicationContext getDraftApplicationContext(
+      LicenceContinuationApplicationDetail applicationDetail,
+      Licence licence
+  ) {
+    var summaryDataView = SummaryDataView.newBuilder()
+        .addStringValue("Created", DateFormatUtil.convertToDisplayTextWithTime(applicationDetail.getCreatedDateTime()))
+        .build();
+
+    return new LicenceContinuationApplicationContext(
+        licence.getLicenceReference(),
         licenceService.getLicencePageCaption(licence),
         List.of(summaryDataView)
     );

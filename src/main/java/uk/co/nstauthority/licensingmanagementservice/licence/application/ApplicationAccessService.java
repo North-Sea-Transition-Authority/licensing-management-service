@@ -4,6 +4,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.springframework.stereotype.Service;
 import uk.co.fivium.energyportal.serviceproviders.epmq.ScopeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplication;
@@ -25,6 +26,12 @@ public class ApplicationAccessService {
       Role.APPLICATION_SUBMITTER
   );
 
+  private static final Set<Role> ALLOWED_VIEWER_ROLES = Set.of(Role.EXTERNAL_APPLICATION_VIEWER);
+
+  private static final Set<Role> VIEW_ACCESS_ROLES = Stream
+      .concat(ALLOWED_DRAFTER_ROLES.stream(), ALLOWED_VIEWER_ROLES.stream())
+      .collect(Collectors.toUnmodifiableSet());
+
   public ApplicationAccessService(TeamQueryService teamQueryService) {
     this.teamQueryService = teamQueryService;
   }
@@ -33,6 +40,23 @@ public class ApplicationAccessService {
       LicenceApplicationDetail applicationDetail,
       Map<Integer, Integer> orgUnitIdToGroupId,
       Long wuaId
+  ) {
+    return hasAccess(applicationDetail, orgUnitIdToGroupId, wuaId, ALLOWED_DRAFTER_ROLES);
+  }
+
+  public boolean userHasViewAccessToApplication(
+      LicenceApplicationDetail applicationDetail,
+      Map<Integer, Integer> orgUnitIdToGroupId,
+      Long wuaId
+  ) {
+    return hasAccess(applicationDetail, orgUnitIdToGroupId, wuaId, VIEW_ACCESS_ROLES);
+  }
+
+  private boolean hasAccess(
+      LicenceApplicationDetail applicationDetail,
+      Map<Integer, Integer> orgUnitIdToGroupId,
+      Long wuaId,
+      Set<Role> industryRoles
   ) {
     var teamRoles = teamQueryService.getTeamRolesForUser(wuaId);
 
@@ -43,19 +67,36 @@ public class ApplicationAccessService {
       return true;
     }
 
-    return userHasIndustryAccessToApplication(applicationDetail, orgUnitIdToGroupId, teamRoles);
+    return hasIndustryAccess(applicationDetail, orgUnitIdToGroupId, teamRoles, industryRoles);
   }
 
-  public boolean userHasIndustryAccessToApplication(
+  public boolean userHasIndustryEditAccessToApplication(
       LicenceApplicationDetail applicationDetail,
       Map<Integer, Integer> orgUnitIdToGroupId,
       Set<TeamRole> teamRoles
+  ) {
+    return hasIndustryAccess(applicationDetail, orgUnitIdToGroupId, teamRoles, ALLOWED_DRAFTER_ROLES);
+  }
+
+  public boolean userHasIndustryViewAccessToApplication(
+      LicenceApplicationDetail applicationDetail,
+      Map<Integer, Integer> orgUnitIdToGroupId,
+      Set<TeamRole> teamRoles
+  ) {
+    return hasIndustryAccess(applicationDetail, orgUnitIdToGroupId, teamRoles, VIEW_ACCESS_ROLES);
+  }
+
+  private boolean hasIndustryAccess(
+      LicenceApplicationDetail applicationDetail,
+      Map<Integer, Integer> orgUnitIdToGroupId,
+      Set<TeamRole> teamRoles,
+      Set<Role> allowedRoles
   ) {
     var licenceApplication = applicationDetail.getLicenceApplication();
     var licenseeGroupIds = getApplicationLicenseeGroupIds(applicationDetail, orgUnitIdToGroupId);
 
     return teamRoles.stream()
-        .filter(teamRole -> ALLOWED_DRAFTER_ROLES.contains(teamRole.getRole()))
+        .filter(teamRole -> allowedRoles.contains(teamRole.getRole()))
         .map(TeamRole::getTeam)
         .anyMatch(team ->
             isExternalContributor(team, licenceApplication)

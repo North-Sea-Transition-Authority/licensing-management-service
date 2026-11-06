@@ -17,7 +17,6 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.authentication.UserDetailService;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.SecurityRuleResult;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.AbstractInterceptorRuleTest;
-import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
@@ -25,8 +24,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.continuation.Licenc
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 
 class InvokingUserCanAccessContinuationApplicationInterceptorRuleTest extends AbstractInterceptorRuleTest {
 
@@ -38,6 +35,8 @@ class InvokingUserCanAccessContinuationApplicationInterceptorRuleTest extends Ab
   private UserDetailService userDetailService;
   @Mock
   private LicenceResponsibleOrganisationService licenceResponsibleOrganisationService;
+
+  private static final Map<Integer, Integer> ORG_UNIT_TO_GROUP_ID = Map.of(10, 20);
 
   @InjectMocks
   private InvokingUserCanAccessContinuationApplicationInterceptorRule invokingUserCanAccessContinuationApplicationInterceptorRule;
@@ -53,9 +52,9 @@ class InvokingUserCanAccessContinuationApplicationInterceptorRuleTest extends Ab
     var detailId = UUID.randomUUID();
     var wuaId = 123L;
 
-    mockUserAndApplication(detailId, wuaId);
+    var applicationDetail = mockUserAndApplication(detailId, wuaId);
     when(applicationAccessService.userHasAccessToApplication(
-        any(LicenceApplicationDetail.class), any(), eq(wuaId)))
+        applicationDetail, ORG_UNIT_TO_GROUP_ID, wuaId))
         .thenReturn(true);
 
     var annotation = getAnnotation(
@@ -74,9 +73,9 @@ class InvokingUserCanAccessContinuationApplicationInterceptorRuleTest extends Ab
     var detailId = UUID.randomUUID();
     var wuaId = 123L;
 
-    mockUserAndApplication(detailId, wuaId);
+    var applicationDetail = mockUserAndApplication(detailId, wuaId);
     when(applicationAccessService.userHasAccessToApplication(
-        any(LicenceApplicationDetail.class), any(), eq(wuaId)))
+        applicationDetail, ORG_UNIT_TO_GROUP_ID, wuaId))
         .thenReturn(false);
 
     var annotation = getAnnotation(
@@ -95,8 +94,54 @@ class InvokingUserCanAccessContinuationApplicationInterceptorRuleTest extends Ab
     );
   }
 
-  private void mockUserAndApplication(UUID detailId,
-                                      Long wuaId) {
+  @Test
+  void check_whenViewOnlyAndUserHasViewAccess_rulePass() throws NoSuchMethodException {
+    var detailId = UUID.randomUUID();
+    var wuaId = 123L;
+
+    var applicationDetail = mockUserAndApplication(detailId, wuaId);
+    when(applicationAccessService.userHasViewAccessToApplication(
+        applicationDetail, ORG_UNIT_TO_GROUP_ID, wuaId))
+        .thenReturn(true);
+
+    var annotation = getAnnotation(
+        InvokingUserCanAccessContinuationApplicationInterceptorRuleTest.class.getDeclaredMethod("viewOnlyEndpoint"),
+        InvokingUserCanAccessContinuationApplication.class
+    );
+
+    var interceptorResult = invokingUserCanAccessContinuationApplicationInterceptorRule.check(annotation, request, response);
+
+    assertThat(interceptorResult.hasRulePassed()).isTrue();
+  }
+
+  @Test
+  void check_whenViewOnlyAndUserHasNoViewAccess_ruleFail() throws NoSuchMethodException {
+    var detailId = UUID.randomUUID();
+    var wuaId = 123L;
+
+    var applicationDetail = mockUserAndApplication(detailId, wuaId);
+    when(applicationAccessService.userHasViewAccessToApplication(
+        applicationDetail, ORG_UNIT_TO_GROUP_ID, wuaId))
+        .thenReturn(false);
+
+    var annotation = getAnnotation(
+        InvokingUserCanAccessContinuationApplicationInterceptorRuleTest.class.getDeclaredMethod("viewOnlyEndpoint"),
+        InvokingUserCanAccessContinuationApplication.class
+    );
+
+    var interceptorResult = invokingUserCanAccessContinuationApplicationInterceptorRule.check(annotation, request, response);
+
+    assertThat(interceptorResult).extracting(
+        SecurityRuleResult::hasRulePassed,
+        SecurityRuleResult::failureStatus
+    ).containsExactly(
+        false,
+        HttpStatus.FORBIDDEN
+    );
+  }
+
+  private LicenceContinuationApplicationDetail mockUserAndApplication(UUID detailId,
+                                                                      Long wuaId) {
     var userDetail = ServiceUserDetailTestUtil.newBuilder()
         .withWuaId(wuaId)
         .build();
@@ -120,7 +165,16 @@ class InvokingUserCanAccessContinuationApplicationInterceptorRuleTest extends Ab
 
     when(licenceContinuationService.getDetailByIdOrThrow(detailId))
         .thenReturn(licenceContinuationApplicationDetail);
+    when(licenceResponsibleOrganisationService.getOrgUnitToGroupIdMap(licenceContinuationApplicationDetail.getLicence()))
+        .thenReturn(ORG_UNIT_TO_GROUP_ID);
 
+    return licenceContinuationApplicationDetail;
+  }
+
+  @GetMapping("view-only-endpoint")
+  @InvokingUserCanAccessContinuationApplication(viewOnly = true)
+  public ResponseEntity<String> viewOnlyEndpoint() {
+    return ResponseEntity.ok("Access granted");
   }
 
   @GetMapping("access-controlled-endpoint")

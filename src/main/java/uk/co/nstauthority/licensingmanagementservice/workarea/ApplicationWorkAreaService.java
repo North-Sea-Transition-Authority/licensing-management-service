@@ -22,6 +22,11 @@ import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
 @Service
 public class ApplicationWorkAreaService {
 
+  private static final Set<Role> EXTERNAL_CONTRIBUTOR_ROLES = Set.of(
+      Role.EXTERNAL_APPLICATION_EDITOR,
+      Role.EXTERNAL_APPLICATION_VIEWER
+  );
+
   private final RegulatorRoleService regulatorRoleService;
 
   public ApplicationWorkAreaService(RegulatorRoleService regulatorRoleService) {
@@ -61,7 +66,7 @@ public class ApplicationWorkAreaService {
       return true;
     }
 
-    if (isExternalEditorOnApplication(applicationDetail, userTeamRoles)) {
+    if (isExternalEditorOrViewerOnApplication(applicationDetail, userTeamRoles)) {
       return true;
     }
 
@@ -138,11 +143,11 @@ public class ApplicationWorkAreaService {
         && (status == ApplicationStatus.ISSUE_DECISION || status == ApplicationStatus.COMPLETE));
   }
 
-  private boolean isExternalEditorOnApplication(LicenceApplicationDetail applicationDetail, Set<TeamRole> userTeamRoles) {
+  private boolean isExternalEditorOrViewerOnApplication(LicenceApplicationDetail applicationDetail, Set<TeamRole> userTeamRoles) {
     var licenceApplication = applicationDetail.getLicenceApplication();
 
     return userTeamRoles.stream()
-        .filter(teamRole -> teamRole.getRole() == Role.EXTERNAL_APPLICATION_EDITOR)
+        .filter(teamRole -> EXTERNAL_CONTRIBUTOR_ROLES.contains(teamRole.getRole()))
         .anyMatch(teamRole -> isExternalContributor(teamRole.getTeam(), licenceApplication));
   }
 

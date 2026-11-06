@@ -237,13 +237,13 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
       return false;
     }
 
-    var hasIndustryAccess = applicationAccessService.userHasIndustryAccessToApplication(
+    var hasIndustryEditAccess = applicationAccessService.userHasIndustryEditAccessToApplication(
         applicationDetail,
         licenceOrgUnitGroupMap,
         userTeamRoles
     );
 
-    if (hasIndustryAccess) {
+    if (hasIndustryEditAccess) {
       return true;
     }
 

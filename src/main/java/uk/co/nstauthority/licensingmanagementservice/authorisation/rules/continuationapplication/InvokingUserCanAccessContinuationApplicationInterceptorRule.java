@@ -52,11 +52,9 @@ public class InvokingUserCanAccessContinuationApplicationInterceptorRule impleme
     var applicationDetail = getApplicationDetailFromRequest(request);
     var orgUnitToGroupMap = licenceResponsibleOrganisationService.getOrgUnitToGroupIdMap(applicationDetail.getLicence());
 
-    var hasAccess = applicationAccessService.userHasAccessToApplication(
-        applicationDetail,
-        orgUnitToGroupMap,
-        wuaId
-    );
+    var hasAccess = ((InvokingUserCanAccessContinuationApplication) annotation).viewOnly()
+        ? applicationAccessService.userHasViewAccessToApplication(applicationDetail, orgUnitToGroupMap, wuaId)
+        : applicationAccessService.userHasAccessToApplication(applicationDetail, orgUnitToGroupMap, wuaId);
 
     if (hasAccess) {
       return SecurityRuleResult.continueAsNormal();

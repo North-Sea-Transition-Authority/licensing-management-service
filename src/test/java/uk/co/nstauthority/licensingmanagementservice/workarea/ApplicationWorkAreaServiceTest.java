@@ -346,10 +346,20 @@ class ApplicationWorkAreaServiceTest {
   }
 
   @Test
-  void isIndustryMyWork_whenExternalViewerOnly_returnsFalse() {
+  void isIndustryMyWork_whenExternalViewerOnThisApplication_returnsTrue() {
     var teamRoles = Set.of(buildTeamRole(
         Role.EXTERNAL_APPLICATION_VIEWER,
         buildExternalTeam(APP_ID, ApplicationType.CONTINUATION_APPLICATION)
+    ));
+
+    assertThat(applicationWorkAreaService.isIndustryMyWork(mockDetail(null, null, null, null), Map.of(), USER_WUA_ID, teamRoles)).isTrue();
+  }
+
+  @Test
+  void isIndustryMyWork_whenExternalViewerOnDifferentApplication_returnsFalse() {
+    var teamRoles = Set.of(buildTeamRole(
+        Role.EXTERNAL_APPLICATION_VIEWER,
+        buildExternalTeam(UUID.randomUUID(), ApplicationType.CONTINUATION_APPLICATION)
     ));
 
     assertThat(applicationWorkAreaService.isIndustryMyWork(mockDetail(null, null, null, null), Map.of(), USER_WUA_ID, teamRoles)).isFalse();

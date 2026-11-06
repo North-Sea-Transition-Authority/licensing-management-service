@@ -221,10 +221,10 @@ class ApplicationAccessServiceTest {
   }
 
   @Test
-  void userHasIndustryAccessToApplication_whenRegulatorOnlyAndSubmitted_returnsFalse() {
+  void userHasIndustryEditAccessToApplication_whenRegulatorOnlyAndSubmitted_returnsFalse() {
     var role = buildTeamRole(Role.STEWARD_OFFSHORE, buildTeam(TeamType.LICENCE_MANAGEMENT));
 
-    assertThat(applicationAccessService.userHasIndustryAccessToApplication(
+    assertThat(applicationAccessService.userHasIndustryEditAccessToApplication(
         mockApplicationDetail(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION, null, Instant.now()),
         Map.of(ORG_UNIT_ID, ORG_GROUP_ID),
         Set.of(role)
@@ -232,17 +232,87 @@ class ApplicationAccessServiceTest {
   }
 
   @Test
-  void userHasIndustryAccessToApplication_whenSubmitted_andUserIsInLicenseeOrgGroup_returnsTrue() {
+  void userHasIndustryEditAccessToApplication_whenSubmitted_andUserIsInLicenseeOrgGroup_returnsTrue() {
     var orgTeam = buildTeam(TeamType.ORGANISATION);
     orgTeam.setScopeId(String.valueOf(ORG_GROUP_ID));
     orgTeam.setScopeType(ScopeType.ORGANISATION_GROUP.name());
     var role = buildTeamRole(Role.APPLICATION_SUBMITTER, orgTeam);
 
-    assertThat(applicationAccessService.userHasIndustryAccessToApplication(
+    assertThat(applicationAccessService.userHasIndustryEditAccessToApplication(
         mockApplicationDetail(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION, null, Instant.now()),
         Map.of(ORG_UNIT_ID, ORG_GROUP_ID),
         Set.of(role)
     )).isTrue();
+  }
+
+  @Test
+  void userHasIndustryViewAccessToApplication_whenExternalViewerOnThisApplication_returnsTrue() {
+    var role = buildTeamRole(Role.EXTERNAL_APPLICATION_VIEWER, buildExternalTeam(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION));
+
+    assertThat(applicationAccessService.userHasIndustryViewAccessToApplication(
+        mockApplicationDetail(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION), Map.of(), Set.of(role))).isTrue();
+  }
+
+  @Test
+  void userHasIndustryViewAccessToApplication_whenExternalViewerOnDifferentApplication_returnsFalse() {
+    var team = buildExternalTeam(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION);
+    team.setScopeId(UUID.randomUUID().toString());
+    var role = buildTeamRole(Role.EXTERNAL_APPLICATION_VIEWER, team);
+
+    assertThat(applicationAccessService.userHasIndustryViewAccessToApplication(
+        mockApplicationDetail(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION), Map.of(), Set.of(role))).isFalse();
+  }
+
+  @Test
+  void userHasIndustryViewAccessToApplication_whenExternalEditorOnThisApplication_returnsTrue() {
+    var role = buildTeamRole(Role.EXTERNAL_APPLICATION_EDITOR, buildExternalTeam(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION));
+
+    assertThat(applicationAccessService.userHasIndustryViewAccessToApplication(
+        mockApplicationDetail(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION), Map.of(), Set.of(role))).isTrue();
+  }
+
+  @Test
+  void userHasIndustryEditAccessToApplication_whenExternalViewerOnThisApplication_returnsFalse() {
+    var role = buildTeamRole(Role.EXTERNAL_APPLICATION_VIEWER, buildExternalTeam(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION));
+
+    assertThat(applicationAccessService.userHasIndustryEditAccessToApplication(
+        mockApplicationDetail(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION), Map.of(), Set.of(role))).isFalse();
+  }
+
+  @Test
+  void userHasAccessToApplication_whenExternalViewerOnThisApplication_returnsFalse() {
+    var role = buildTeamRole(Role.EXTERNAL_APPLICATION_VIEWER, buildExternalTeam(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION));
+    when(teamQueryService.getTeamRolesForUser(USER_1_WUA_ID)).thenReturn(Set.of(role));
+
+    assertThat(applicationAccessService.userHasAccessToApplication(
+        mockApplicationDetail(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION), Map.of(), USER_1_WUA_ID)).isFalse();
+  }
+
+  @Test
+  void userHasViewAccessToApplication_whenExternalViewerOnThisApplication_returnsTrue() {
+    var role = buildTeamRole(Role.EXTERNAL_APPLICATION_VIEWER, buildExternalTeam(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION));
+    when(teamQueryService.getTeamRolesForUser(USER_1_WUA_ID)).thenReturn(Set.of(role));
+
+    assertThat(applicationAccessService.userHasViewAccessToApplication(
+        mockApplicationDetail(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION), Map.of(), USER_1_WUA_ID)).isTrue();
+  }
+
+  @Test
+  void userHasViewAccessToApplication_whenExternalViewerOnDifferentApplication_returnsFalse() {
+    var team = buildExternalTeam(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION);
+    team.setScopeId(UUID.randomUUID().toString());
+    when(teamQueryService.getTeamRolesForUser(USER_1_WUA_ID))
+        .thenReturn(Set.of(buildTeamRole(Role.EXTERNAL_APPLICATION_VIEWER, team)));
+
+    assertThat(applicationAccessService.userHasViewAccessToApplication(
+        mockApplicationDetail(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION), Map.of(), USER_1_WUA_ID)).isFalse();
+  }
+
+  private Team buildExternalTeam(ApplicationType applicationType) {
+    var team = buildTeam(TeamType.EXTERNAL_CONTRIBUTORS);
+    team.setScopeId(APP_ID.toString());
+    team.setScopeType(applicationType.name());
+    return team;
   }
 
   private LicenceApplicationDetail mockApplicationDetail(ApplicationType applicationType) {

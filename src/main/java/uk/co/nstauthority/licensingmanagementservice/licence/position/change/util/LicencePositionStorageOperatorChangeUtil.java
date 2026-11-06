@@ -37,6 +37,10 @@ public class LicencePositionStorageOperatorChangeUtil {
         changes, StorageOperatorOperation.class, storageOperatorOperation(operatorId));
   }
 
+  public static List<LicencePositionChangeType> removeStorageOperatorChange(List<LicencePositionChangeType> changes) {
+    return LicencePositionChangeOperationUtil.removeChangesOf(changes, StorageOperatorOperation.class);
+  }
+
   public static StorageOperatorOperation storageOperatorOperation(Integer operatorId) {
     return LicenceOperation.newStorageOperatorOperation()
         .withOperator(operatorId)

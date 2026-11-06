@@ -98,6 +98,27 @@ public class StorageOperatorChangeService {
     licencePositionCorrectionService.save(positionCorrection);
   }
 
+  @Transactional
+  public void removeExistingStorageOperatorChange(
+      LicencePosition licencePosition,
+      LicenceCorrection licenceCorrection,
+      String originalChangeId
+  ) {
+    licencePositionCorrectionService.findUpdatePositionCorrection(licenceCorrection, licencePosition)
+        .ifPresent(this::removeStagedStorageOperatorChange);
+
+    licencePositionCorrectionService
+        .stageRemovalOfExecutedChange(licenceCorrection, licencePosition, originalChangeId);
+  }
+
+  private void removeStagedStorageOperatorChange(LicencePositionCorrection positionCorrection) {
+    var payload = positionCorrection.getPayload();
+    var changes = LicencePositionStorageOperatorChangeUtil.removeStorageOperatorChange(payload.changes());
+
+    positionCorrection.setPayload(LicencePositionPayload.withChanges(payload, changes));
+    licencePositionCorrectionService.save(positionCorrection);
+  }
+
   public StorageOperatorChangeForm populateAddedStorageOperatorForm(
       StorageOperatorChangeContext changeContext,
       LicencePositionCorrection positionCorrection

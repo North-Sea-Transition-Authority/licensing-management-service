@@ -30,12 +30,6 @@ class StorageOperatorOperationTest {
   }
 
   @Test
-  void getOperationUrls() {
-    var operation = new StorageOperatorOperation(UUID.randomUUID(), 1);
-    assertThat(operation.getOperationUrls()).usingRecursiveComparison().isEqualTo(OperationRoutes.none());
-  }
-
-  @Test
   void displayName() {
     var operation = new StorageOperatorOperation(UUID.randomUUID(), 1);
     assertThat(operation.displayName()).isEqualTo("Storage operator change");

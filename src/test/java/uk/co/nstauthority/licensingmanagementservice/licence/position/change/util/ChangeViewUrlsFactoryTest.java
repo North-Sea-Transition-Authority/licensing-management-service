@@ -24,6 +24,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.tasklist.PartialSurrenderTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.setequity.LicencePositionSetEquityController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.storageoperator.LicencePositionStorageOperatorChangeController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.storageoperator.RemoveStorageOperatorChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subarea.LicencePositionSubareaChangeStartController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subarea.RemoveSubareaChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subarea.SubareaChangeController;
@@ -216,6 +217,8 @@ class ChangeViewUrlsFactoryTest {
         .renderForExecutedPosition(CORRECTION, LICENCE_POSITION));
     var storageOperatorCorrecting = ReverseRouter.route(on(LicencePositionStorageOperatorChangeController.class)
         .renderForCorrectingChange(CORRECTION, LICENCE_POSITION, CHANGE_ENTITY));
+    var storageOperatorRemove = ReverseRouter.route(on(RemoveStorageOperatorChangeController.class)
+        .renderRemoveExecutedStorageOperatorChange(CORRECTION, LICENCE_POSITION, CHANGE_ENTITY));
 
     var subareaCorrect = ReverseRouter.route(on(SubareaChangeController.class)
         .renderSubareaChange(CORRECTION, POSITION_CORRECTION, SUBAREA_BLOCK_FEATURE_ID));
@@ -291,7 +294,7 @@ class ChangeViewUrlsFactoryTest {
             licenseeAdded, null, licenseeUndo, null),
 
         Arguments.of("storage operator, live", STORAGE_OPERATOR, EXECUTED_POSITION, live,
-            storageOperatorCorrecting, null, null, null),
+            storageOperatorCorrecting, storageOperatorRemove, null, null),
         Arguments.of("storage operator, added", STORAGE_OPERATOR, EXECUTED_POSITION, added,
             storageOperatorExecuted, null, null, null),
         Arguments.of("storage operator, operations updated", STORAGE_OPERATOR, EXECUTED_POSITION, operationsUpdated,

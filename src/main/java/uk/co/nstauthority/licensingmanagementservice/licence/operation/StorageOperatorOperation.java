@@ -9,6 +9,7 @@ import java.util.Set;
 import java.util.UUID;
 import org.jetbrains.annotations.Nullable;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.storageoperator.LicencePositionStorageOperatorChangeController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.storageoperator.RemoveStorageOperatorChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationError;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeViewContext;
@@ -113,7 +114,8 @@ public record StorageOperatorOperation(
 
       @Override
       public String remove(ChangeUrlTarget target) {
-        return null;
+        return ReverseRouter.route(on(RemoveStorageOperatorChangeController.class)
+            .renderRemoveExecutedStorageOperatorChange(target.correction(), target.licencePosition(), target.changeEntity()));
       }
 
       @Override

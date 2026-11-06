@@ -1,6 +1,8 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.storageoperator;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -209,6 +211,46 @@ class StorageOperatorChangeServiceTest {
     assertThat(change).isInstanceOf(UpdateChangeOperations.class);
     assertThat(change.changeId()).isEqualTo(originalChangeId);
     assertThat(updateOperatorIdOf(change)).isEqualTo(UPDATED_OPERATOR_ID);
+  }
+
+  @Test
+  void removeExistingStorageOperatorChange_whenNoExistingUpdateCorrection_thenOnlyStagesTheRemoval() {
+    var licencePosition = LicencePositionTestUtil.newBuilder().build();
+    var originalChangeId = UUID.randomUUID().toString();
+
+    when(licencePositionCorrectionService.findUpdatePositionCorrection(LICENCE_CORRECTION, licencePosition))
+        .thenReturn(Optional.empty());
+
+    storageOperatorChangeService
+        .removeExistingStorageOperatorChange(licencePosition, LICENCE_CORRECTION, originalChangeId);
+
+    verify(licencePositionCorrectionService)
+        .stageRemovalOfExecutedChange(LICENCE_CORRECTION, licencePosition, originalChangeId);
+    verify(licencePositionCorrectionService, never()).save(any());
+  }
+
+  @Test
+  void removeExistingStorageOperatorChange_whenExistingUpdateCorrectionWithOperatorChange_thenDropsChangeAndStagesTheRemoval() {
+    var licencePosition = LicencePositionTestUtil.newBuilder().build();
+    var originalChangeId = UUID.randomUUID().toString();
+    var existing = LicencePositionCorrectionTestUtil.newBuilder()
+        .withPayload(LicencePositionPayload.newUpdateLicencePositionPayload()
+            .withChanges(List.of(storageOperatorUpdateChange(originalChangeId)))
+            .build())
+        .build();
+
+    when(licencePositionCorrectionService.findUpdatePositionCorrection(LICENCE_CORRECTION, licencePosition))
+        .thenReturn(Optional.of(existing));
+
+    storageOperatorChangeService
+        .removeExistingStorageOperatorChange(licencePosition, LICENCE_CORRECTION, originalChangeId);
+
+    verify(licencePositionCorrectionService).save(licencePositionCorrectionCaptor.capture());
+    var payload = (UpdateLicencePositionPayload) licencePositionCorrectionCaptor.getValue().getPayload();
+
+    assertThat(payload.changes()).isEmpty();
+    verify(licencePositionCorrectionService)
+        .stageRemovalOfExecutedChange(LICENCE_CORRECTION, licencePosition, originalChangeId);
   }
 
   @Test

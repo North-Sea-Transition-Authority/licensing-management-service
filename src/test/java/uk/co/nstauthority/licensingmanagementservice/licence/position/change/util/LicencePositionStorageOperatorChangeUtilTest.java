@@ -53,6 +53,14 @@ class LicencePositionStorageOperatorChangeUtilTest {
   }
 
   @Test
+  void removeStorageOperatorChange() {
+    var existing = storageOperatorAddChange();
+
+    var result = LicencePositionStorageOperatorChangeUtil.removeStorageOperatorChange(List.of(existing));
+    assertThat(result).isEmpty();
+  }
+
+  @Test
   void storageOperatorOperation() {
     var result = LicencePositionStorageOperatorChangeUtil.storageOperatorOperation(STORAGE_OPERATOR_ID);
     assertThat(result).isEqualTo(LicenceOperation.newStorageOperatorOperation().withOperator(STORAGE_OPERATOR_ID).build());

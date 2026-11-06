@@ -293,7 +293,7 @@ class OperatorResultProcessingServiceTest {
   }
 
   @Test
-  void processOutputPolygons_whenSourcesAtDifferentDepths_thenSpansDepthsAndClearsAttributesButKeepsNavigationType() {
+  void processOutputPolygons_whenSourcesAtDifferentDepths_thenSpansDepthsAndClearsPolygonAttributesButKeepsLineAttributes() {
     var feature2 = FeatureTestUtil.newBuilder().build();
     var upperPolygon = PolygonTestUtil.newBuilder()
         .withFeature(FEATURE)
@@ -342,8 +342,8 @@ class OperatorResultProcessingServiceTest {
     assertThat(captureSavedLines()).usingRecursiveComparison()
         .ignoringFields("id", "legacyId")
         .isEqualTo(List.of(
-            expectedLine(savedPolygons.getFirst(), "output line 1", Map.of(), LineNavigationType.CARTESIAN),
-            expectedLine(savedPolygons.getFirst(), "output line 2", Map.of(), LineNavigationType.GEODESIC)
+            expectedLine(savedPolygons.getFirst(), "output line 1", Map.of("line", "upper"), LineNavigationType.CARTESIAN),
+            expectedLine(savedPolygons.getFirst(), "output line 2", Map.of("line", "lower"), LineNavigationType.GEODESIC)
         ));
   }
 

@@ -218,6 +218,42 @@ class GrpcClientServiceTest {
   }
 
   @Test
+  void findParentLines_whenParentsShareAnId_thenSendsSharedIdForEachParent() {
+    var sharedId = UUID.randomUUID();
+    var parentEsriJsonToId = new LinkedHashMap<String, UUID>();
+    parentEsriJsonToId.put("dummy parent line esriJson 1", sharedId);
+    parentEsriJsonToId.put("dummy parent line esriJson 2", sharedId);
+    var childLineEsriJson = List.of("dummy child line esriJson");
+
+    var expectedRequest = FindParentLinesRequest.newBuilder()
+        .addParentLines(ParentLine.newBuilder()
+            .setId(sharedId.toString())
+            .setEsriJsonPolyline("dummy parent line esriJson 1")
+            .build())
+        .addParentLines(ParentLine.newBuilder()
+            .setId(sharedId.toString())
+            .setEsriJsonPolyline("dummy parent line esriJson 2")
+            .build())
+        .addAllChildrenEsriJsonPolylines(childLineEsriJson)
+        .build();
+    var expectedResponse = FindParentLinesResponse.newBuilder()
+        .addLinesWithParentMatch(ChildLineMatch.newBuilder()
+            .setParentId(sharedId.toString())
+            .setChildEsriJsonPolyline("dummy child line esriJson")
+            .build())
+        .build();
+
+    when(arcgisClient.findParentLines(expectedRequest)).thenReturn(expectedResponse);
+
+    var result = grpcClientService.findParentLines(parentEsriJsonToId, childLineEsriJson);
+
+    assertThat(result).isEqualTo(new FindParentLineResponse(
+        Map.of("dummy child line esriJson", sharedId),
+        List.of()
+    ));
+  }
+
+  @Test
   void validatePolygonReconstructionFromPolylines_verifyServiceClientCall() {
     var line1 = LineTestUtil.newBuilder()
         .withEsriJson("dummy esriJson line 1")

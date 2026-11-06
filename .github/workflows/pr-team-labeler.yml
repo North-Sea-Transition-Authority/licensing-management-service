@@ -16,7 +16,7 @@ jobs:
           script: |
             const TEAM_LABELS = {
               'dgrinbergs': 'Venn',
-              'mattyboy-19': 'Venn',
+              'mpeters-19': 'Venn',
               'GeorgeOG34': 'Venn',
               'YigitCengiz-7': 'Venn',
               'FernandoRamirez-De-Aguilar': 'Venn',

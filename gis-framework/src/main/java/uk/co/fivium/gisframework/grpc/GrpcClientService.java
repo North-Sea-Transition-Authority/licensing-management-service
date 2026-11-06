@@ -140,14 +140,44 @@ public class GrpcClientService {
    */
   public FindParentLineResponse findParentLines(List<Line> parentLines,
                                                 List<String> childLineEsriJson) {
-    var requestBuilder = FindParentLinesRequest.newBuilder();
-    for (Line parentLine : parentLines) {
-      requestBuilder.addParentLines(ParentLine.newBuilder()
-          .setId(parentLine.getId().toString())
-          .setEsriJsonPolyline(parentLine.getEsriJson())
-          .build());
-    }
-    requestBuilder.addAllChildrenEsriJsonPolylines(childLineEsriJson);
+    return requestParentLines(
+        parentLines.stream()
+            .map(parentLine -> ParentLine.newBuilder()
+                .setId(parentLine.getId().toString())
+                .setEsriJsonPolyline(parentLine.getEsriJson())
+                .build())
+            .toList(),
+        childLineEsriJson
+    );
+  }
+
+  /**
+   * Find the parent line for a list of child lines, where multiple parent lines may share an id.
+   * If multiple child lines share the same parent line id, they are merged into a single polyline if they form a
+   * continuous line.
+   *
+   * @param parentEsriJsonToId The EsriJSON of each potential parent line to the id it is matched under.
+   * @param childLineEsriJson  The list of child lines to match against the parent lines.
+   * @return A record containing the mapping of child lines to their parent ids and orphaned child lines.
+   */
+  public FindParentLineResponse findParentLines(Map<String, UUID> parentEsriJsonToId,
+                                                List<String> childLineEsriJson) {
+    return requestParentLines(
+        parentEsriJsonToId.entrySet().stream()
+            .map(parentEsriJsonAndId -> ParentLine.newBuilder()
+                .setId(parentEsriJsonAndId.getValue().toString())
+                .setEsriJsonPolyline(parentEsriJsonAndId.getKey())
+                .build())
+            .toList(),
+        childLineEsriJson
+    );
+  }
+
+  private FindParentLineResponse requestParentLines(List<ParentLine> parentLines,
+                                                    List<String> childLineEsriJson) {
+    var requestBuilder = FindParentLinesRequest.newBuilder()
+        .addAllParentLines(parentLines)
+        .addAllChildrenEsriJsonPolylines(childLineEsriJson);
 
     var response = arcgisClient.findParentLines(requestBuilder.build());
 

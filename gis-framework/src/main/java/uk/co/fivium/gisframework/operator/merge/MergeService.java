@@ -5,8 +5,12 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
+import uk.co.fivium.gisframework.feature.Line;
+import uk.co.fivium.gisframework.feature.LineService;
+import uk.co.fivium.gisframework.feature.Polygon;
 import uk.co.fivium.gisframework.grpc.GrpcClientService;
 import uk.co.fivium.gisframework.operator.EsriJsonPolygonWithSources;
 import uk.co.fivium.gisframework.operator.EsriJsonPolygonWithSources.DepthRange;
@@ -15,16 +19,24 @@ import uk.co.fivium.gisframework.operator.EsriJsonPolygonWithSources.DepthRange;
 public class MergeService {
 
   private final GrpcClientService grpcClientService;
+  private final LineService lineService;
 
-  MergeService(GrpcClientService grpcClientService) {
+  MergeService(GrpcClientService grpcClientService, LineService lineService) {
     this.grpcClientService = grpcClientService;
+    this.lineService = lineService;
   }
 
   List<EsriJsonPolygonWithSources> mergeWithDepths(List<EsriJsonPolygonWithSources> polygonsWithSources) {
+    var allSources = polygonsWithSources.stream()
+        .flatMap(polygonWithSources -> polygonWithSources.sources().stream())
+        .toList();
+    var sourceToLines = lineService.getLines(allSources).stream()
+        .collect(Collectors.groupingBy(Line::getPolygon));
+
     List<EsriJsonPolygonWithSources> mergedPolygonsWithSources = new ArrayList<>(polygonsWithSources);
     boolean mergedSameDepthPolygons;
     do {
-      mergeTopologicallyEqualPolygons(mergedPolygonsWithSources);
+      mergeTopologicallyEqualPolygons(mergedPolygonsWithSources, sourceToLines);
       mergedSameDepthPolygons = mergeSameDepthPolygons(mergedPolygonsWithSources);
     } while (mergedSameDepthPolygons);
     return mergedPolygonsWithSources;
@@ -50,7 +62,8 @@ public class MergeService {
         .toList();
   }
 
-  private void mergeTopologicallyEqualPolygons(List<EsriJsonPolygonWithSources> polygonsWithSources) {
+  private void mergeTopologicallyEqualPolygons(List<EsriJsonPolygonWithSources> polygonsWithSources,
+                                               Map<Polygon, List<Line>> sourceToLines) {
     // Vertical merge needs meeting depths, so without any, grouping would change nothing
     if (!anyDepthsMeet(polygonsWithSources)) {
       return;
@@ -59,7 +72,7 @@ public class MergeService {
     var topologicallyEqualPolygonGroups = findTopologicallyEqualPolygons(polygonsWithSources);
     polygonsWithSources.clear();
     for (var topologicallyEqualPolygons : topologicallyEqualPolygonGroups) {
-      polygonsWithSources.addAll(verticalMerge(topologicallyEqualPolygons));
+      polygonsWithSources.addAll(verticalMerge(topologicallyEqualPolygons, sourceToLines));
     }
   }
 
@@ -91,7 +104,8 @@ public class MergeService {
   }
 
   private List<EsriJsonPolygonWithSources> verticalMerge(
-      List<EsriJsonPolygonWithSources> topologicallyEqualPolygons
+      List<EsriJsonPolygonWithSources> topologicallyEqualPolygons,
+      Map<Polygon, List<Line>> sourceToLines
   ) {
     List<EsriJsonPolygonWithSources> remaining = new ArrayList<>(topologicallyEqualPolygons);
     List<EsriJsonPolygonWithSources> mergedPolygons = new ArrayList<>();
@@ -103,7 +117,7 @@ public class MergeService {
         var iterator = remaining.iterator();
         while (iterator.hasNext()) {
           var other = iterator.next();
-          if (depthsMeet(current, other)) {
+          if (depthsMeet(current, other) && areLineAttributesEqual(current, other, sourceToLines)) {
             current = EsriJsonPolygonWithSources.combine(current.esriJson(), List.of(current, other));
             iterator.remove();
             mergedAny = true;
@@ -167,5 +181,60 @@ public class MergeService {
 
   private boolean depthsMeet(EsriJsonPolygonWithSources firstPolygon, EsriJsonPolygonWithSources secondPolygon) {
     return firstPolygon.depthRange().meets(secondPolygon.depthRange());
+  }
+
+  private boolean areLineAttributesEqual(
+      EsriJsonPolygonWithSources firstPolygon,
+      EsriJsonPolygonWithSources secondPolygon,
+      Map<Polygon, List<Line>> sourceToLines
+  ) {
+    var firstLines = linesOf(firstPolygon, sourceToLines);
+    var secondLines = linesOf(secondPolygon, sourceToLines);
+    var firstEsriJsonToAttributes = getEsriJsonToAttributes(firstLines);
+    var secondEsriJsonToAttributes = getEsriJsonToAttributes(secondLines);
+
+    return firstEsriJsonToAttributes.equals(secondEsriJsonToAttributes)
+        || areLineAttributesEqualBySegment(firstPolygon, secondPolygon, firstLines, secondLines);
+  }
+
+  private List<Line> linesOf(EsriJsonPolygonWithSources polygon, Map<Polygon, List<Line>> sourceToLines) {
+    return polygon.sources().stream()
+        .flatMap(source -> sourceToLines.get(source).stream())
+        .toList();
+  }
+
+  private Map<String, Map<String, Object>> getEsriJsonToAttributes(List<Line> lines) {
+    return lines.stream()
+        .collect(Collectors.toMap(Line::getEsriJson, Line::getAttributes, (existing, duplicate) -> existing));
+  }
+
+  private boolean areLineAttributesEqualBySegment(
+      EsriJsonPolygonWithSources firstPolygon,
+      EsriJsonPolygonWithSources secondPolygon,
+      List<Line> firstLines,
+      List<Line> secondLines
+  ) {
+    // We need to union the polygons first to get all the line segments, as they could be topologically equal but have different
+    // vertices
+    var segments = grpcClientService.explodePolygon(
+        grpcClientService.unionPolygons(List.of(firstPolygon.esriJson(), secondPolygon.esriJson()))
+    );
+    Map<Map<String, Object>, UUID> attributesToGroupId = new HashMap<>();
+    var firstGroups = grpcClientService.findParentLines(getEsriJsonToGroupId(firstLines, attributesToGroupId), segments);
+    var secondGroups = grpcClientService.findParentLines(getEsriJsonToGroupId(secondLines, attributesToGroupId), segments);
+
+    return firstGroups.orphanLines().isEmpty()
+        && secondGroups.orphanLines().isEmpty()
+        && firstGroups.equals(secondGroups);
+  }
+
+  private Map<String, UUID> getEsriJsonToGroupId(List<Line> lines, Map<Map<String, Object>, UUID> attributesToGroupId) {
+    return lines.stream()
+        .collect(Collectors.toMap(
+            Line::getEsriJson,
+            line -> attributesToGroupId.computeIfAbsent(line.getAttributes(), attributes -> UUID.randomUUID()),
+            (existing, duplicate) -> existing,
+            LinkedHashMap::new
+        ));
   }
 }

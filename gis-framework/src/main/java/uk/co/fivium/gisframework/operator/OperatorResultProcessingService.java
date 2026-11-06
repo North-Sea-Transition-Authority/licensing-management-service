@@ -85,9 +85,6 @@ public class OperatorResultProcessingService {
       }
 
       var lines = buildLinesWithParentAttributes(outputPolygonWithSources.esriJson(), parentLines);
-      if (spansSeveralDepthRanges(outputPolygonWithSources.sources())) {
-        lines.forEach(line -> line.setAttributes(new HashMap<>()));
-      }
 
       var newPolygon = buildPolygon(outputPolygonWithSources.sources());
       lines.forEach(line -> line.setPolygon(newPolygon));
@@ -107,17 +104,6 @@ public class OperatorResultProcessingService {
     polygonService.savePolygons(newPolygons);
     lineService.saveLines(allLines);
     return newFeature;
-  }
-
-  private boolean spansSeveralDepthRanges(List<Polygon> sources) {
-    var firstSource = sources.getFirst();
-    for (var source : sources) {
-      if (source.getEffectiveStartDepth() != firstSource.getEffectiveStartDepth()
-          || source.getEffectiveEndDepth() != firstSource.getEffectiveEndDepth()) {
-        return true;
-      }
-    }
-    return false;
   }
 
   /**

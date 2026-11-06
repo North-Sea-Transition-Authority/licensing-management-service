@@ -121,7 +121,8 @@ public class ScheduleAndWorkProgrammeApplicationWorkAreaService implements WorkA
             applicationDetail.getLicence(),
             context,
             stewardsByWuaId,
-            regulatorRoles.decisionIssuer()
+            regulatorRoles.decisionIssuer(),
+            userTeamRoles
         ))
         .toList();
   }
@@ -143,7 +144,8 @@ public class ScheduleAndWorkProgrammeApplicationWorkAreaService implements WorkA
       Licence licence,
       WorkAreaContext context,
       Map<WebUserAccountId, EnergyPortalUserJson> stewardsByWuaId,
-      boolean isDecisionIssuer
+      boolean isDecisionIssuer,
+      Set<TeamRole> userTeamRoles
   ) {
     var licensees = context.getLicensees(licence)
         .stream()
@@ -167,8 +169,19 @@ public class ScheduleAndWorkProgrammeApplicationWorkAreaService implements WorkA
         .build();
 
     var linkHeadingUrl = switch (applicationDetail.getStatus()) {
-      case DRAFT -> ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class)
-          .getTaskList(applicationDetail.getId(), null, null));
+      case DRAFT -> {
+        var hasIndustryEditAccess = applicationAccessService.userHasIndustryEditAccessToApplication(
+            applicationDetail,
+            context.getOrganisationGroupIdsForLicence(licence),
+            userTeamRoles
+        );
+
+        yield hasIndustryEditAccess
+            ? ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class)
+                .getTaskList(applicationDetail.getId(), null, null))
+            : ReverseRouter.route(on(ScheduleWorkProgrammeApplicationOverviewController.class)
+                .renderOverview(applicationDetail.getId(), null, null, null));
+      }
 
       case ISSUE_DECISION -> ReverseRouter.route(isDecisionIssuer
           ? on(ApplicationLetterController.class).renderEditLetterOverview(
@@ -253,20 +266,20 @@ public class ScheduleAndWorkProgrammeApplicationWorkAreaService implements WorkA
       return false;
     }
 
-    var licenceOrgUnitGroupMap = context.getOrganisationGroupIdsByUnitId(context.getLicenseeOrganisationUnitIds(licence));
+    var licenceOrgUnitGroupMap = context.getOrganisationGroupIdsForLicence(licence);
 
     if (workAreaScope == WorkAreaScope.MY_WORK && !regulatorRoles.regulator()
         && !applicationWorkAreaService.isIndustryMyWork(applicationDetail, licenceOrgUnitGroupMap, wuaId, userTeamRoles)) {
       return false;
     }
 
-    var hasIndustryEditAccess = applicationAccessService.userHasIndustryEditAccessToApplication(
+    var hasIndustryViewAccess = applicationAccessService.userHasIndustryViewAccessToApplication(
         applicationDetail,
         licenceOrgUnitGroupMap,
         userTeamRoles
     );
 
-    if (hasIndustryEditAccess) {
+    if (hasIndustryViewAccess) {
       return true;
     }
 

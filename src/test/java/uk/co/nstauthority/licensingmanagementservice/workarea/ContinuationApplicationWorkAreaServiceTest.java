@@ -117,7 +117,9 @@ class ContinuationApplicationWorkAreaServiceTest {
     when(licenceContinuationService.getAllContinuationApplicationDetailsByStatuses(any()))
         .thenReturn(List.of(licenceContinuationApplicationDetail, licenceContinuationApplicationDetail2));
 
-    when(applicationAccessService.userHasIndustryEditAccessToApplication(any(), any(), any())).thenReturn(true);
+    when(applicationAccessService.userHasIndustryViewAccessToApplication(any(), any(), any())).thenReturn(true);
+    when(applicationAccessService.userHasIndustryEditAccessToApplication(
+        any(LicenceContinuationApplicationDetail.class), anyMap(), anySet())).thenReturn(true);
 
     var org1 = "Org 1";
     var org2 = "Org 2";
@@ -173,11 +175,28 @@ class ContinuationApplicationWorkAreaServiceTest {
   }
 
   @Test
+  void getAllWorkItems_whenDraftAndUserCannotEdit_linksToOverview() {
+    when(licenceContinuationService.getAllContinuationApplicationDetailsByStatuses(any()))
+        .thenReturn(List.of(licenceContinuationApplicationDetail));
+    when(applicationAccessService.userHasIndustryViewAccessToApplication(
+        eq(licenceContinuationApplicationDetail), anyMap(), anySet())).thenReturn(true);
+    when(applicationAccessService.userHasIndustryEditAccessToApplication(
+        eq(licenceContinuationApplicationDetail), anyMap(), anySet())).thenReturn(false);
+
+    var workAreaItems = getAllWorkItems(new WorkAreaFilterForm(), serviceUserDetail);
+
+    assertThat(workAreaItems)
+        .extracting(SearchResultItem::linkHeadingUrl)
+        .containsExactly(ReverseRouter.route(on(LicenceContinuationApplicationOverviewController.class)
+            .renderOverview(licenceContinuationApplicationDetail.getId(), null, null, null)));
+  }
+
+  @Test
   void getAllWorkItems_filteredByLicenceReference() {
     when(licenceContinuationService.getAllContinuationApplicationDetailsByStatuses(any()))
         .thenReturn(List.of(licenceContinuationApplicationDetail, licenceContinuationApplicationDetail2));
 
-    when(applicationAccessService.userHasIndustryEditAccessToApplication(any(), any(), any())).thenReturn(true);
+    when(applicationAccessService.userHasIndustryViewAccessToApplication(any(), any(), any())).thenReturn(true);
 
     var org1 = "Org 1";
 
@@ -219,7 +238,7 @@ class ContinuationApplicationWorkAreaServiceTest {
     when(licenceContinuationService.getAllContinuationApplicationDetailsByStatuses(any()))
         .thenReturn(List.of(licenceContinuationApplicationDetail, licenceContinuationApplicationDetail2));
 
-    when(applicationAccessService.userHasIndustryEditAccessToApplication(any(), any(), any())).thenReturn(true);
+    when(applicationAccessService.userHasIndustryViewAccessToApplication(any(), any(), any())).thenReturn(true);
 
     licence1.setType(LicenceType.CARBON_STORAGE);
 
@@ -240,7 +259,7 @@ class ContinuationApplicationWorkAreaServiceTest {
     when(licenceContinuationService.getAllContinuationApplicationDetailsByStatuses(any()))
         .thenReturn(List.of(licenceContinuationApplicationDetail, licenceContinuationApplicationDetail2));
 
-    when(applicationAccessService.userHasIndustryEditAccessToApplication(any(), any(), any())).thenReturn(true);
+    when(applicationAccessService.userHasIndustryViewAccessToApplication(any(), any(), any())).thenReturn(true);
 
     contextBuilder.withLicenseesByLicence(Map.of(
             licence1, List.of(new OrganisationUnit(1, "Org 1")),
@@ -261,7 +280,7 @@ class ContinuationApplicationWorkAreaServiceTest {
     when(licenceContinuationService.getAllContinuationApplicationDetailsByStatuses(any()))
         .thenReturn(List.of(licenceContinuationApplicationDetail, licenceContinuationApplicationDetail2));
 
-    when(applicationAccessService.userHasIndustryEditAccessToApplication(any(), any(), any())).thenReturn(true);
+    when(applicationAccessService.userHasIndustryViewAccessToApplication(any(), any(), any())).thenReturn(true);
 
     contextBuilder.withLicenseesByLicence(Map.of(
             licence1, List.of(new OrganisationUnit(1, "Org 1")),
@@ -283,7 +302,7 @@ class ContinuationApplicationWorkAreaServiceTest {
     when(licenceContinuationService.getAllContinuationApplicationDetailsByStatuses(any()))
         .thenReturn(List.of(licenceContinuationApplicationDetail, licenceContinuationApplicationDetail2));
 
-    when(applicationAccessService.userHasIndustryEditAccessToApplication(any(), any(), any())).thenReturn(true);
+    when(applicationAccessService.userHasIndustryViewAccessToApplication(any(), any(), any())).thenReturn(true);
 
     var org1 = "Org 1";
     contextBuilder.withLicenseesByLicence(Map.of(licence2, List.of(new OrganisationUnit(1, org1))));
@@ -316,7 +335,7 @@ class ContinuationApplicationWorkAreaServiceTest {
     when(licenceContinuationService.getAllContinuationApplicationDetailsByStatuses(any()))
         .thenReturn(List.of(licenceContinuationApplicationDetail, licenceContinuationApplicationDetail2));
 
-    when(applicationAccessService.userHasIndustryEditAccessToApplication(any(), any(), any())).thenReturn(true);
+    when(applicationAccessService.userHasIndustryViewAccessToApplication(any(), any(), any())).thenReturn(true);
 
     contextBuilder.withLicenseesByLicence(Map.of(
             licence1, List.of(new OrganisationUnit(1, "Org 1")),
@@ -352,7 +371,7 @@ class ContinuationApplicationWorkAreaServiceTest {
     when(licenceContinuationService.getAllContinuationApplicationDetailsByStatuses(any()))
         .thenReturn(List.of(licenceContinuationApplicationDetail, licenceContinuationApplicationDetail2));
 
-    when(applicationAccessService.userHasIndustryEditAccessToApplication(any(), any(), any())).thenReturn(true);
+    when(applicationAccessService.userHasIndustryViewAccessToApplication(any(), any(), any())).thenReturn(true);
 
     var org1 = "Org 1";
     contextBuilder.withLicenseesByLicence(Map.of(licence2, List.of(new OrganisationUnit(1, org1))));
@@ -383,13 +402,17 @@ class ContinuationApplicationWorkAreaServiceTest {
     when(licenceContinuationService.getAllContinuationApplicationDetailsByStatuses(any()))
         .thenReturn(List.of(licenceContinuationApplicationDetail, licenceContinuationApplicationDetail2));
 
-    when(applicationAccessService.userHasIndustryEditAccessToApplication(
+    when(applicationAccessService.userHasIndustryViewAccessToApplication(
         eq(licenceContinuationApplicationDetail),
         anyMap(),
         anySet()
     )).thenReturn(true);
 
     when(applicationAccessService.userHasIndustryEditAccessToApplication(
+        eq(licenceContinuationApplicationDetail), anyMap(), anySet()
+    )).thenReturn(true);
+
+    when(applicationAccessService.userHasIndustryViewAccessToApplication(
         eq(licenceContinuationApplicationDetail2),
         anyMap(),
         anySet()
@@ -484,12 +507,12 @@ class ContinuationApplicationWorkAreaServiceTest {
     when(licenceContinuationService.getAllContinuationApplicationDetailsByStatuses(any()))
         .thenReturn(List.of(licenceContinuationApplicationDetail, licenceContinuationApplicationDetail2));
 
-    when(applicationAccessService.userHasIndustryEditAccessToApplication(
+    when(applicationAccessService.userHasIndustryViewAccessToApplication(
         eq(licenceContinuationApplicationDetail),
         anyMap(),
         anySet()
     )).thenReturn(false);
-    when(applicationAccessService.userHasIndustryEditAccessToApplication(
+    when(applicationAccessService.userHasIndustryViewAccessToApplication(
         eq(licenceContinuationApplicationDetail2),
         anyMap(),
         anySet()
@@ -525,7 +548,7 @@ class ContinuationApplicationWorkAreaServiceTest {
   void getAllWorkItems_whenDraftAndUserIsRegulator_isExcluded() {
     when(licenceContinuationService.getAllContinuationApplicationDetailsByStatuses(any()))
         .thenReturn(List.of(licenceContinuationApplicationDetail));
-    when(applicationAccessService.userHasIndustryEditAccessToApplication(
+    when(applicationAccessService.userHasIndustryViewAccessToApplication(
         eq(licenceContinuationApplicationDetail),
         anyMap(),
         anySet()
@@ -587,7 +610,7 @@ class ContinuationApplicationWorkAreaServiceTest {
   void getAllWorkItems_whenDraftApplicationAlreadyViewed_doesNotShowNewBadge() {
     when(licenceContinuationService.getAllContinuationApplicationDetailsByStatuses(any()))
         .thenReturn(List.of(licenceContinuationApplicationDetail, licenceContinuationApplicationDetail2));
-    when(applicationAccessService.userHasIndustryEditAccessToApplication(
+    when(applicationAccessService.userHasIndustryViewAccessToApplication(
         eq(licenceContinuationApplicationDetail),
         anyMap(),
         anySet()
@@ -610,7 +633,7 @@ class ContinuationApplicationWorkAreaServiceTest {
   void getAllWorkItems_whenDraftApplicationNotYetViewed_showsNewBadge() {
     when(licenceContinuationService.getAllContinuationApplicationDetailsByStatuses(any()))
         .thenReturn(List.of(licenceContinuationApplicationDetail, licenceContinuationApplicationDetail2));
-    when(applicationAccessService.userHasIndustryEditAccessToApplication(
+    when(applicationAccessService.userHasIndustryViewAccessToApplication(
         eq(licenceContinuationApplicationDetail),
         anyMap(),
         anySet()
@@ -667,12 +690,12 @@ class ContinuationApplicationWorkAreaServiceTest {
   }
 
   private void mockRegulatorWithoutIndustryAccess() {
-    when(applicationAccessService.userHasIndustryEditAccessToApplication(
+    when(applicationAccessService.userHasIndustryViewAccessToApplication(
         eq(licenceContinuationApplicationDetail),
         anyMap(),
         anySet()
     )).thenReturn(false);
-    when(applicationAccessService.userHasIndustryEditAccessToApplication(
+    when(applicationAccessService.userHasIndustryViewAccessToApplication(
         eq(licenceContinuationApplicationDetail2),
         anyMap(),
         anySet()
@@ -744,7 +767,7 @@ class ContinuationApplicationWorkAreaServiceTest {
   }
 
   private void mockViewAccess() {
-    when(applicationAccessService.userHasIndustryEditAccessToApplication(any(), anyMap(), anySet())).thenReturn(true);
+    when(applicationAccessService.userHasIndustryViewAccessToApplication(any(), anyMap(), anySet())).thenReturn(true);
   }
 
   private List<SearchResultItem> getMyWorkItems(WorkAreaFilterForm workAreaFilterForm, ServiceUserDetail serviceUserDetail) {

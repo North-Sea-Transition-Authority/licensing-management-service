@@ -107,7 +107,8 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
                 applicationDetail,
                 applicationDetail.getLicence(),
                 context,
-                regulatorRoles.continuationIssuer()
+                regulatorRoles.continuationIssuer(),
+                userTeamRoles
             )
         )
         .toList();
@@ -117,7 +118,8 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
       LicenceContinuationApplicationDetail applicationDetail,
       Licence licence,
       WorkAreaContext context,
-      boolean isContinuationIssuer
+      boolean isContinuationIssuer,
+      Set<TeamRole> userTeamRoles
   ) {
     var licensees = context.getLicensees(licence)
         .stream()
@@ -133,8 +135,19 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
         .build();
 
     var linkHeadingUrl = switch (applicationDetail.getStatus()) {
-      case DRAFT -> ReverseRouter.route(on(LicenceContinuationApplicationTaskListController.class)
-          .getTaskList(applicationDetail.getId(), null, null));
+      case DRAFT -> {
+        var hasIndustryEditAccess = applicationAccessService.userHasIndustryEditAccessToApplication(
+            applicationDetail,
+            context.getOrganisationGroupIdsForLicence(licence),
+            userTeamRoles
+        );
+
+        yield hasIndustryEditAccess
+            ? ReverseRouter.route(on(LicenceContinuationApplicationTaskListController.class)
+                .getTaskList(applicationDetail.getId(), null, null))
+            : ReverseRouter.route(on(LicenceContinuationApplicationOverviewController.class)
+                .renderOverview(applicationDetail.getId(), null, null, null));
+      }
 
       case ApplicationStatus.ISSUE_DECISION -> ReverseRouter.route(isContinuationIssuer
           ? on(ApplicationLetterController.class).renderEditLetterOverview(
@@ -230,20 +243,20 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
       return false;
     }
 
-    var licenceOrgUnitGroupMap = context.getOrganisationGroupIdsByUnitId(context.getLicenseeOrganisationUnitIds(licence));
+    var licenceOrgUnitGroupMap = context.getOrganisationGroupIdsForLicence(licence);
 
     if (workAreaScope == WorkAreaScope.MY_WORK && !regulatorRoles.regulator()
         && !applicationWorkAreaService.isIndustryMyWork(applicationDetail, licenceOrgUnitGroupMap, wuaId, userTeamRoles)) {
       return false;
     }
 
-    var hasIndustryEditAccess = applicationAccessService.userHasIndustryEditAccessToApplication(
+    var hasIndustryViewAccess = applicationAccessService.userHasIndustryViewAccessToApplication(
         applicationDetail,
         licenceOrgUnitGroupMap,
         userTeamRoles
     );
 
-    if (hasIndustryEditAccess) {
+    if (hasIndustryViewAccess) {
       return true;
     }
 

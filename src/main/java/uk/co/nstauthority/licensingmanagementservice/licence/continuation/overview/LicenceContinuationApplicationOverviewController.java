@@ -42,9 +42,10 @@ import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.W
     ApplicationStatus.SUBMITTED,
     ApplicationStatus.DRAFT,
     ApplicationStatus.ISSUE_DECISION,
-    ApplicationStatus.COMPLETE
+    ApplicationStatus.COMPLETE,
+    ApplicationStatus.WITHDRAWN
 })
-@InvokingUserCanAccessContinuationApplication
+@InvokingUserCanAccessContinuationApplication(viewOnly = true)
 @LogWorkAreaItemView(
     itemType = WorkAreaDataItemType.LICENCE_CONTINUATION_APPLICATION,
     pathVariable = "licenceContinuationApplicationDetailId"

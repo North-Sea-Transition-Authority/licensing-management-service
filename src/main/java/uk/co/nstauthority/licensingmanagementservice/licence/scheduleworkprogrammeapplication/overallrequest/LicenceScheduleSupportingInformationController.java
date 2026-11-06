@@ -119,6 +119,7 @@ public class LicenceScheduleSupportingInformationController {
   }
 
   @GetMapping("/files/{fileId}")
+  @InvokingUserCanAccessScheduleApplication(viewOnly = true)
   public ResponseEntity<InputStreamResource> downloadFile(
       @PathVariable UUID fileId,
       @PathVariable UUID scheduleWorkProgrammeApplicationDetailId,

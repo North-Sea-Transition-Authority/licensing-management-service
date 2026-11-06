@@ -45,6 +45,10 @@ public record WorkAreaContext(
         .collect(Collectors.toMap(Function.identity(), organisationGroupIdsByUnitId::get));
   }
 
+  public Map<Integer, Integer> getOrganisationGroupIdsForLicence(Licence licence) {
+    return getOrganisationGroupIdsByUnitId(getLicenseeOrganisationUnitIds(licence));
+  }
+
   public boolean matchesLicenseeFilters(Licence licence, WorkAreaFilterForm filterForm) {
     var licenseeOrganisationUnitIds = getLicenseeOrganisationUnitIds(licence);
     return FilterUtil.matchesIdList(licenseeOrganisationUnitIds, filterForm.getLicenseeOrgUnitId())

@@ -128,6 +128,7 @@ public class LicenceContinuationOtherRequirementController {
   }
 
   @GetMapping("/files/{fileId}")
+  @InvokingUserCanAccessContinuationApplication(viewOnly = true)
   public ResponseEntity<InputStreamResource> downloadFile(
       @PathVariable UUID fileId,
       @PathVariable UUID licenceContinuationApplicationDetailId,

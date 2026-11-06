@@ -5,6 +5,7 @@ import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -228,7 +229,7 @@ class LicenceScheduleSupportingInformationControllerTest extends AbstractControl
   @Test
   void download() throws Exception {
     when(fileControllerHelperService.download(any(UUID.class), any(Supplier.class), any(ServiceUserDetail.class))).thenReturn(ResponseEntity.ok().build());
-    when(applicationAccessService.userHasAccessToApplication(any(), any(), any())).thenReturn(true);
+    when(applicationAccessService.userHasViewAccessToApplication(any(), any(), any())).thenReturn(true);
 
     mockMvc.perform(get(ReverseRouter.route(on(LicenceScheduleSupportingInformationController.class).downloadFile(
         UUID.randomUUID(), scheduleWorkProgrammeApplicationDetail.getId(), null, null)))
@@ -237,6 +238,17 @@ class LicenceScheduleSupportingInformationControllerTest extends AbstractControl
     verify(fileControllerHelperService).download(any(), fileUsageSupplierCaptor.capture(), any());
     assertThat(fileUsageSupplierCaptor.getValue().get()).isEqualTo(
         LicenceScheduleSupportingInformationFileUsages.fromApplication(scheduleWorkProgrammeApplicationDetail));
+  }
+
+  @Test
+  void download_whenUserHasNoViewAccess_isForbidden() throws Exception {
+    when(applicationAccessService.userHasViewAccessToApplication(any(), any(), any())).thenReturn(false);
+
+    mockMvc.perform(get(ReverseRouter.route(on(LicenceScheduleSupportingInformationController.class).downloadFile(
+        UUID.randomUUID(), scheduleWorkProgrammeApplicationDetail.getId(), null, null)))
+            .with(user(organisationUser)).with(csrf())).andExpect(status().isForbidden());
+
+    verifyNoInteractions(fileControllerHelperService);
   }
 
   @Test

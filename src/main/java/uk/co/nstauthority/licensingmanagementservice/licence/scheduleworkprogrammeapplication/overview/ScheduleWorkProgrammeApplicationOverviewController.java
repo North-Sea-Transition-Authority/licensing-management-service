@@ -37,7 +37,7 @@ import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.W
     ApplicationStatus.DSP_UPLOADED,
     ApplicationStatus.ISSUE_DECISION
 })
-@InvokingUserCanAccessScheduleApplication
+@InvokingUserCanAccessScheduleApplication(viewOnly = true)
 @LogWorkAreaItemView(
     itemType = WorkAreaDataItemType.SCHEDULE_WORK_PROGRAMME_APPLICATION,
     pathVariable = "scheduleWorkProgrammeApplicationDetailId"

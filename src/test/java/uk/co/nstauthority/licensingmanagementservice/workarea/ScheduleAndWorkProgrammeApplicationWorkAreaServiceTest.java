@@ -110,7 +110,9 @@ class ScheduleAndWorkProgrammeApplicationWorkAreaServiceTest {
     when(scheduleWorkProgrammeApplicationService.getAllScheduleWorkProgrammeApplicationDetailsByStatuses(anySet()))
         .thenReturn(List.of(scheduleWorkProgrammeApplicationDetail1, scheduleWorkProgrammeApplicationDetail2));
 
-    when(applicationAccessService.userHasIndustryEditAccessToApplication(any(), any(), any())).thenReturn(true);
+    when(applicationAccessService.userHasIndustryViewAccessToApplication(any(), any(), any())).thenReturn(true);
+    when(applicationAccessService.userHasIndustryEditAccessToApplication(
+        any(ScheduleWorkProgrammeApplicationDetail.class), anyMap(), anySet())).thenReturn(true);
 
     var org1 = "Org 1";
     var org2 = "Org 2";
@@ -169,13 +171,32 @@ class ScheduleAndWorkProgrammeApplicationWorkAreaServiceTest {
   }
 
   @Test
+  void getAllWorkItems_whenDraftAndUserCannotEdit_linksToOverview() {
+    when(scheduleWorkProgrammeApplicationService.getAllScheduleWorkProgrammeApplicationDetailsByStatuses(anySet()))
+        .thenReturn(List.of(scheduleWorkProgrammeApplicationDetail1));
+    when(applicationAccessService.userHasIndustryViewAccessToApplication(
+        eq(scheduleWorkProgrammeApplicationDetail1), anyMap(), anySet())).thenReturn(true);
+    when(applicationAccessService.userHasIndustryEditAccessToApplication(
+        eq(scheduleWorkProgrammeApplicationDetail1), anyMap(), anySet())).thenReturn(false);
+
+    var workAreaItems = getAllWorkItems(new WorkAreaFilterForm(), serviceUserDetail);
+
+    assertThat(workAreaItems)
+        .extracting(SearchResultItem::linkHeadingUrl)
+        .containsExactly(ReverseRouter.route(on(ScheduleWorkProgrammeApplicationOverviewController.class)
+            .renderOverview(scheduleWorkProgrammeApplicationDetail1.getId(), null, null, null)));
+  }
+
+  @Test
   void getAllWorkItems_whenSubmitted_linksToOverview() {
     scheduleWorkProgrammeApplicationDetail1.setStatus(ApplicationStatus.SUBMITTED);
     scheduleWorkProgrammeApplicationDetail1.setSubmittedDatetime(testInstant);
 
     when(scheduleWorkProgrammeApplicationService.getAllScheduleWorkProgrammeApplicationDetailsByStatuses(anySet()))
         .thenReturn(List.of(scheduleWorkProgrammeApplicationDetail1, scheduleWorkProgrammeApplicationDetail2));
-    when(applicationAccessService.userHasIndustryEditAccessToApplication(any(), any(), any())).thenReturn(true);
+    when(applicationAccessService.userHasIndustryViewAccessToApplication(any(), any(), any())).thenReturn(true);
+    when(applicationAccessService.userHasIndustryEditAccessToApplication(
+        any(ScheduleWorkProgrammeApplicationDetail.class), anyMap(), anySet())).thenReturn(true);
     contextBuilder.withLicenseesByLicence(Map.of(
             licence1, List.of(new OrganisationUnit(1, "Org 1")),
             licence2, List.of(new OrganisationUnit(2, "Org 2"))
@@ -405,7 +426,7 @@ class ScheduleAndWorkProgrammeApplicationWorkAreaServiceTest {
 
     when(scheduleWorkProgrammeApplicationService.getAllScheduleWorkProgrammeApplicationDetailsByStatuses(anySet()))
         .thenReturn(List.of(scheduleWorkProgrammeApplicationDetail1, scheduleWorkProgrammeApplicationDetail2));
-    when(applicationAccessService.userHasIndustryEditAccessToApplication(any(), any(), any())).thenReturn(true);
+    when(applicationAccessService.userHasIndustryViewAccessToApplication(any(), any(), any())).thenReturn(true);
     contextBuilder.withLicenseesByLicence(Map.of(
             licence1, List.of(new OrganisationUnit(1, "Org 1")),
             licence2, List.of(new OrganisationUnit(2, "Org 2"))
@@ -428,7 +449,9 @@ class ScheduleAndWorkProgrammeApplicationWorkAreaServiceTest {
     when(scheduleWorkProgrammeApplicationService.getAllScheduleWorkProgrammeApplicationDetailsByStatuses(anySet()))
         .thenReturn(List.of(scheduleWorkProgrammeApplicationDetail1, scheduleWorkProgrammeApplicationDetail2));
 
-    when(applicationAccessService.userHasIndustryEditAccessToApplication(any(), any(), any())).thenReturn(true);
+    when(applicationAccessService.userHasIndustryViewAccessToApplication(any(), any(), any())).thenReturn(true);
+    when(applicationAccessService.userHasIndustryEditAccessToApplication(
+        any(ScheduleWorkProgrammeApplicationDetail.class), anyMap(), anySet())).thenReturn(true);
 
     var org1 = "Org 1";
     contextBuilder.withLicenseesByLicence(Map.of(licence2, List.of(new OrganisationUnit(1, org1))));
@@ -471,7 +494,7 @@ class ScheduleAndWorkProgrammeApplicationWorkAreaServiceTest {
     when(scheduleWorkProgrammeApplicationService.getAllScheduleWorkProgrammeApplicationDetailsByStatuses(anySet()))
         .thenReturn(List.of(scheduleWorkProgrammeApplicationDetail1, scheduleWorkProgrammeApplicationDetail2));
 
-    when(applicationAccessService.userHasIndustryEditAccessToApplication(any(), any(), any())).thenReturn(true);
+    when(applicationAccessService.userHasIndustryViewAccessToApplication(any(), any(), any())).thenReturn(true);
 
     var org1 = "Org 1";
     contextBuilder.withLicenseesByLicence(Map.of(licence2, List.of(new OrganisationUnit(1, org1))));
@@ -490,7 +513,7 @@ class ScheduleAndWorkProgrammeApplicationWorkAreaServiceTest {
     when(scheduleWorkProgrammeApplicationService.getAllScheduleWorkProgrammeApplicationDetailsByStatuses(anySet()))
         .thenReturn(List.of(scheduleWorkProgrammeApplicationDetail1, scheduleWorkProgrammeApplicationDetail2));
 
-    when(applicationAccessService.userHasIndustryEditAccessToApplication(any(), any(), any())).thenReturn(true);
+    when(applicationAccessService.userHasIndustryViewAccessToApplication(any(), any(), any())).thenReturn(true);
 
     contextBuilder.withLicenseesByLicence(Map.of(
             licence1, List.of(new OrganisationUnit(1, "Org 1")),
@@ -511,7 +534,7 @@ class ScheduleAndWorkProgrammeApplicationWorkAreaServiceTest {
     when(scheduleWorkProgrammeApplicationService.getAllScheduleWorkProgrammeApplicationDetailsByStatuses(anySet()))
         .thenReturn(List.of(scheduleWorkProgrammeApplicationDetail1, scheduleWorkProgrammeApplicationDetail2));
 
-    when(applicationAccessService.userHasIndustryEditAccessToApplication(any(), any(), any())).thenReturn(true);
+    when(applicationAccessService.userHasIndustryViewAccessToApplication(any(), any(), any())).thenReturn(true);
 
     contextBuilder.withLicenseesByLicence(Map.of(
             licence1, List.of(new OrganisationUnit(1, "Org 1")),
@@ -533,7 +556,7 @@ class ScheduleAndWorkProgrammeApplicationWorkAreaServiceTest {
     when(scheduleWorkProgrammeApplicationService.getAllScheduleWorkProgrammeApplicationDetailsByStatuses(anySet()))
         .thenReturn(List.of(scheduleWorkProgrammeApplicationDetail1, scheduleWorkProgrammeApplicationDetail2));
 
-    when(applicationAccessService.userHasIndustryEditAccessToApplication(any(), any(), any())).thenReturn(true);
+    when(applicationAccessService.userHasIndustryViewAccessToApplication(any(), any(), any())).thenReturn(true);
 
     var org1 = "Org 1";
     contextBuilder.withLicenseesByLicence(Map.of(licence1, List.of(new OrganisationUnit(1, org1))));
@@ -566,7 +589,7 @@ class ScheduleAndWorkProgrammeApplicationWorkAreaServiceTest {
     when(scheduleWorkProgrammeApplicationService.getAllScheduleWorkProgrammeApplicationDetailsByStatuses(anySet()))
         .thenReturn(List.of(scheduleWorkProgrammeApplicationDetail1, scheduleWorkProgrammeApplicationDetail2));
 
-    when(applicationAccessService.userHasIndustryEditAccessToApplication(any(), any(), any())).thenReturn(true);
+    when(applicationAccessService.userHasIndustryViewAccessToApplication(any(), any(), any())).thenReturn(true);
 
     contextBuilder.withLicenseesByLicence(Map.of(
             licence1, List.of(new OrganisationUnit(1, "Org 1")),
@@ -605,7 +628,7 @@ class ScheduleAndWorkProgrammeApplicationWorkAreaServiceTest {
     when(scheduleWorkProgrammeApplicationService.getAllScheduleWorkProgrammeApplicationDetailsByStatuses(anySet()))
         .thenReturn(List.of(scheduleWorkProgrammeApplicationDetail1, scheduleWorkProgrammeApplicationDetail2));
 
-    when(applicationAccessService.userHasIndustryEditAccessToApplication(any(), any(), any())).thenReturn(true);
+    when(applicationAccessService.userHasIndustryViewAccessToApplication(any(), any(), any())).thenReturn(true);
 
     var org1 = "Org 1";
     contextBuilder.withLicenseesByLicence(Map.of(licence2, List.of(new OrganisationUnit(1, org1))));
@@ -638,6 +661,8 @@ class ScheduleAndWorkProgrammeApplicationWorkAreaServiceTest {
 
     mockUserHasAccessToApplication(scheduleWorkProgrammeApplicationDetail1, true);
     mockUserHasAccessToApplication(scheduleWorkProgrammeApplicationDetail2, false);
+    when(applicationAccessService.userHasIndustryEditAccessToApplication(
+        eq(scheduleWorkProgrammeApplicationDetail1), anyMap(), anySet())).thenReturn(true);
 
     var org1 = "Org 1";
     var org2 = "Org 2";
@@ -776,7 +801,7 @@ class ScheduleAndWorkProgrammeApplicationWorkAreaServiceTest {
 
   private void mockUserHasAccessToApplication(ScheduleWorkProgrammeApplicationDetail applicationDetail,
                                               boolean hasAccess) {
-    when(applicationAccessService.userHasIndustryEditAccessToApplication(
+    when(applicationAccessService.userHasIndustryViewAccessToApplication(
         eq(applicationDetail),
         anyMap(),
         anySet()
@@ -849,7 +874,7 @@ class ScheduleAndWorkProgrammeApplicationWorkAreaServiceTest {
   }
 
   private void mockViewAccess() {
-    when(applicationAccessService.userHasIndustryEditAccessToApplication(any(), anyMap(), anySet())).thenReturn(true);
+    when(applicationAccessService.userHasIndustryViewAccessToApplication(any(), anyMap(), anySet())).thenReturn(true);
   }
 
   private List<SearchResultItem> getMyWorkItems(WorkAreaFilterForm workAreaFilterForm, ServiceUserDetail serviceUserDetail) {

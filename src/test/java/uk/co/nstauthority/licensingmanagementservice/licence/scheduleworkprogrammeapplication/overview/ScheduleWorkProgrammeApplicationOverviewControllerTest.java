@@ -92,6 +92,9 @@ class ScheduleWorkProgrammeApplicationOverviewControllerTest extends AbstractCon
             ApplicationStatus.ISSUE_DECISION);
     assertThat(ScheduleWorkProgrammeApplicationOverviewController.class)
         .hasAnnotation(InvokingUserCanAccessScheduleApplication.class);
+    assertThat(ScheduleWorkProgrammeApplicationOverviewController.class
+        .getAnnotation(InvokingUserCanAccessScheduleApplication.class).viewOnly())
+        .isTrue();
   }
 
   @Test
@@ -123,7 +126,7 @@ class ScheduleWorkProgrammeApplicationOverviewControllerTest extends AbstractCon
 
     when(scheduleWorkProgrammeApplicationService.getDetailByIdOrThrow(applicationDetailId))
         .thenReturn(applicationDetail);
-    when(applicationAccessService.userHasAccessToApplication(
+    when(applicationAccessService.userHasViewAccessToApplication(
         eq(applicationDetail),
         anyMap(),
         eq(ORGANISATION_USER_WUA_ID)))
@@ -230,7 +233,7 @@ class ScheduleWorkProgrammeApplicationOverviewControllerTest extends AbstractCon
     var applicationDetail = createSubmittedApplicationDetail();
     when(scheduleWorkProgrammeApplicationService.getDetailByIdOrThrow(applicationDetail.getId()))
         .thenReturn(applicationDetail);
-    when(applicationAccessService.userHasAccessToApplication(
+    when(applicationAccessService.userHasViewAccessToApplication(
         eq(applicationDetail),
         anyMap(),
         eq(ORGANISATION_USER_WUA_ID)))
@@ -252,7 +255,7 @@ class ScheduleWorkProgrammeApplicationOverviewControllerTest extends AbstractCon
     var applicationDetail = createSubmittedApplicationDetail();
     when(scheduleWorkProgrammeApplicationService.getDetailByIdOrThrow(applicationDetail.getId()))
         .thenReturn(applicationDetail);
-    when(applicationAccessService.userHasAccessToApplication(
+    when(applicationAccessService.userHasViewAccessToApplication(
         eq(applicationDetail),
         anyMap(),
         eq(regulatorUser.wuaId())))
@@ -287,7 +290,7 @@ class ScheduleWorkProgrammeApplicationOverviewControllerTest extends AbstractCon
   private void stubOverviewFor(ScheduleWorkProgrammeApplicationDetail applicationDetail, ServiceUserDetail user) {
     when(scheduleWorkProgrammeApplicationService.getDetailByIdOrThrow(applicationDetail.getId()))
         .thenReturn(applicationDetail);
-    when(applicationAccessService.userHasAccessToApplication(
+    when(applicationAccessService.userHasViewAccessToApplication(
         eq(applicationDetail),
         anyMap(),
         eq(user.wuaId())))

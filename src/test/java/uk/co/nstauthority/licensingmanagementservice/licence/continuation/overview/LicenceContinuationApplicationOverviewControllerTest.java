@@ -124,7 +124,7 @@ class LicenceContinuationApplicationOverviewControllerTest extends AbstractContr
 
     when(licenceContinuationService.getDetailByIdOrThrow(applicationDetailId))
         .thenReturn(applicationDetail);
-    when(applicationAccessService.userHasAccessToApplication(any(), any(), any()))
+    when(applicationAccessService.userHasViewAccessToApplication(any(), any(), any()))
         .thenReturn(true);
     when(overviewService.getApplicationContext(applicationDetail, licence))
         .thenReturn(applicationContext);
@@ -160,23 +160,7 @@ class LicenceContinuationApplicationOverviewControllerTest extends AbstractContr
     var applicationDetail = createApplicationDetail(ApplicationStatus.DRAFT);
     var applicationContext = new LicenceContinuationApplicationContext("LMS/CA/2024/1", "Carbon storage licence - CS1", List.of());
 
-    when(licenceContinuationService.getDetailByIdOrThrow(applicationDetail.getId()))
-        .thenReturn(applicationDetail);
-    when(applicationAccessService.userHasAccessToApplication(
-        eq(applicationDetail),
-        anyMap(),
-        eq(ORGANISATION_USER_WUA_ID)))
-        .thenReturn(true);
-    when(overviewService.getApplicationContext(applicationDetail, applicationDetail.getLicence()))
-        .thenReturn(applicationContext);
-    when(continuationSummarySectionService.getSummarySections(applicationDetail, USER))
-        .thenReturn(List.of());
-    when(licenceScheduleStateService.getCurrentWorkProgrammeActivitiesViews(any()))
-        .thenReturn(List.of());
-    when(licenceContinuationActionService.getAvailableUserActionItems(applicationDetail, USER))
-        .thenReturn(List.of());
-    when(continuationDecisionSummarySectionService.getSummarySection(applicationDetail))
-        .thenReturn(Optional.empty());
+    stubOverviewFor(applicationDetail, applicationContext);
     when(taskListService.isSubmittable(applicationDetail, USER)).thenReturn(isSubmittable);
 
     mockMvc.perform(
@@ -250,7 +234,7 @@ class LicenceContinuationApplicationOverviewControllerTest extends AbstractContr
     var applicationDetail = createSubmittedApplicationDetail();
     when(licenceContinuationService.getDetailByIdOrThrow(applicationDetail.getId()))
         .thenReturn(applicationDetail);
-    when(applicationAccessService.userHasAccessToApplication(
+    when(applicationAccessService.userHasViewAccessToApplication(
         eq(applicationDetail),
         anyMap(),
         eq(ORGANISATION_USER_WUA_ID)))
@@ -268,6 +252,24 @@ class LicenceContinuationApplicationOverviewControllerTest extends AbstractContr
   }
 
   @Test
+  void renderOverview_whenWithdrawn_thenIsAccessible() throws Exception {
+    var applicationDetail = createApplicationDetail(ApplicationStatus.WITHDRAWN);
+    var applicationContext = new LicenceContinuationApplicationContext("LMS/CA/2024/1", "Carbon storage licence - CS1", List.of());
+    stubOverviewFor(applicationDetail, applicationContext);
+
+    mockMvc.perform(
+            get(ReverseRouter.route(on(LicenceContinuationApplicationOverviewController.class)
+                .renderOverview(applicationDetail.getId(), null, null, OverviewTab.OVERVIEW)))
+                .with(user(USER))
+        )
+        .andExpect(status().isOk())
+        .andExpect(model().attribute("isDraft", false))
+        .andExpect(model().attribute("hasIncompleteSections", false));
+
+    verifyNoInteractions(taskListService);
+  }
+
+  @Test
   void downloadLetter_success() throws Exception {
     var applicationDetailId = UUID.randomUUID();
     var fileId = UUID.randomUUID();
@@ -278,7 +280,7 @@ class LicenceContinuationApplicationOverviewControllerTest extends AbstractContr
 
     when(licenceContinuationService.getDetailByIdOrThrow(applicationDetailId))
         .thenReturn(applicationDetail);
-    when(applicationAccessService.userHasAccessToApplication(any(), any(), any()))
+    when(applicationAccessService.userHasViewAccessToApplication(any(), any(), any()))
         .thenReturn(true);
 
     when(fileControllerHelperService.download(any(UUID.class), any(Supplier.class), any(ServiceUserDetail.class)))
@@ -297,6 +299,29 @@ class LicenceContinuationApplicationOverviewControllerTest extends AbstractContr
 
     assertThat(fileUsageSupplierCaptor.getValue().get())
         .isEqualTo(ContinuationLetterFileUsages.fromApplication(applicationDetail));
+  }
+
+  private void stubOverviewFor(
+      LicenceContinuationApplicationDetail applicationDetail,
+      LicenceContinuationApplicationContext applicationContext
+  ) {
+    when(licenceContinuationService.getDetailByIdOrThrow(applicationDetail.getId()))
+        .thenReturn(applicationDetail);
+    when(applicationAccessService.userHasViewAccessToApplication(
+        eq(applicationDetail),
+        anyMap(),
+        eq(ORGANISATION_USER_WUA_ID)))
+        .thenReturn(true);
+    when(overviewService.getApplicationContext(applicationDetail, applicationDetail.getLicence()))
+        .thenReturn(applicationContext);
+    when(continuationSummarySectionService.getSummarySections(applicationDetail, USER))
+        .thenReturn(List.of());
+    when(licenceScheduleStateService.getCurrentWorkProgrammeActivitiesViews(any()))
+        .thenReturn(List.of());
+    when(licenceContinuationActionService.getAvailableUserActionItems(applicationDetail, USER))
+        .thenReturn(List.of());
+    when(continuationDecisionSummarySectionService.getSummarySection(applicationDetail))
+        .thenReturn(Optional.empty());
   }
 
   private LicenceContinuationApplicationDetail createSubmittedApplicationDetail() {
@@ -321,7 +346,7 @@ class LicenceContinuationApplicationOverviewControllerTest extends AbstractContr
   private void stubOverviewFor(LicenceContinuationApplicationDetail applicationDetail, ServiceUserDetail user) {
     when(licenceContinuationService.getDetailByIdOrThrow(applicationDetail.getId()))
         .thenReturn(applicationDetail);
-    when(applicationAccessService.userHasAccessToApplication(
+    when(applicationAccessService.userHasViewAccessToApplication(
         eq(applicationDetail),
         anyMap(),
         eq(user.wuaId())))

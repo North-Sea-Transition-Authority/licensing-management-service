@@ -1,6 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.continuation.requirementjourney;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -20,7 +21,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import org.junit.jupiter.api.BeforeEach;
+import java.util.UUID;
+import java.util.function.Supplier;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
@@ -225,5 +229,47 @@ class LicenceContinuationOtherRequirementControllerTest extends AbstractControll
                 .with(csrf())
         )
         .andExpect(status().isForbidden());
+  }
+
+  @Test
+  void downloadFile_whenUserHasViewAccess_thenOk() throws Exception {
+    var fileId = UUID.randomUUID();
+
+    when(licenceContinuationService.getDetailByIdOrThrow(any()))
+        .thenReturn(LICENCE_CONTINUATION_APPLICATION_DETAIL);
+    when(applicationAccessService.userHasViewAccessToApplication(
+        eq(LICENCE_CONTINUATION_APPLICATION_DETAIL), anyMap(), eq(organisationUser.wuaId())))
+        .thenReturn(true);
+    when(fileControllerHelperService.download(eq(fileId), any(Supplier.class), any(ServiceUserDetail.class)))
+        .thenReturn(ResponseEntity.ok().build());
+
+    mockMvc.perform(
+            get(ReverseRouter.route(on(LicenceContinuationOtherRequirementController.class)
+                .downloadFile(fileId, LICENCE_CONTINUATION_APPLICATION_DETAIL.getId(), null, null)))
+                .with(user(organisationUser))
+        )
+        .andExpect(status().isOk());
+
+    verify(fileControllerHelperService).download(eq(fileId), any(Supplier.class), any(ServiceUserDetail.class));
+  }
+
+  @Test
+  void downloadFile_whenUserHasNoViewAccess_isForbidden() throws Exception {
+    var fileId = UUID.randomUUID();
+
+    when(licenceContinuationService.getDetailByIdOrThrow(any()))
+        .thenReturn(LICENCE_CONTINUATION_APPLICATION_DETAIL);
+    when(applicationAccessService.userHasViewAccessToApplication(
+        eq(LICENCE_CONTINUATION_APPLICATION_DETAIL), anyMap(), eq(organisationUser.wuaId())))
+        .thenReturn(false);
+
+    mockMvc.perform(
+            get(ReverseRouter.route(on(LicenceContinuationOtherRequirementController.class)
+                .downloadFile(fileId, LICENCE_CONTINUATION_APPLICATION_DETAIL.getId(), null, null)))
+                .with(user(organisationUser))
+        )
+        .andExpect(status().isForbidden());
+
+    verifyNoInteractions(fileControllerHelperService);
   }
 }

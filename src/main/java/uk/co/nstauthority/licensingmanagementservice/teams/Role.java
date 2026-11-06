@@ -21,8 +21,8 @@ public enum Role implements PhaseGated {
       ReleaseFeature.TEAM_ROLE
   ),
   VIEW_ORGANISATION_LICENCES(
-      "Licence viewer",
-      "Can view licences this organisation is an active licensee on",
+      "Licence and application viewer",
+      "Can view licences and applications this organisation is an active licensee on",
       ReleaseFeature.INDUSTRY_LICENCE_AND_APPLICATION_ROLE
   ),
   APPLICATION_EDITOR(

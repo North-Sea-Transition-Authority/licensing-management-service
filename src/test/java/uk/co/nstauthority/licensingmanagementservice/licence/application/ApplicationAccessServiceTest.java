@@ -9,10 +9,13 @@ import java.time.Instant;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -24,6 +27,7 @@ import uk.co.nstauthority.licensingmanagementservice.teams.Team;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamRole;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamRoleTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.teams.TeamTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
 
 @ExtendWith(MockitoExtension.class)
@@ -306,6 +310,78 @@ class ApplicationAccessServiceTest {
 
     assertThat(applicationAccessService.userHasViewAccessToApplication(
         mockApplicationDetail(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION), Map.of(), USER_1_WUA_ID)).isFalse();
+  }
+
+  @ParameterizedTest
+  @MethodSource("licenceViewerViewAccessScenarios")
+  void userHasViewAccessToApplication_whenLicenceViewer_returnsTrueOnlyForLicenseeOrgGroup(
+      String viewerGroupId,
+      Integer responsibleOrgUnitId,
+      Instant submittedDatetime,
+      boolean expected
+  ) {
+    var role = buildTeamRole(Role.VIEW_ORGANISATION_LICENCES, buildOrgGroupTeam(viewerGroupId));
+    when(teamQueryService.getTeamRolesForUser(USER_1_WUA_ID)).thenReturn(Set.of(role));
+
+    assertThat(applicationAccessService.userHasViewAccessToApplication(
+        mockApplicationDetail(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION, responsibleOrgUnitId, submittedDatetime),
+        Map.of(ORG_UNIT_ID, ORG_GROUP_ID, ORG_UNIT_ID + 1, ORG_GROUP_ID + 1),
+        USER_1_WUA_ID
+    )).isEqualTo(expected);
+  }
+
+  static Stream<Arguments> licenceViewerViewAccessScenarios() {
+    var submittedDatetime = Instant.now();
+
+    return Stream.of(
+        Arguments.of(String.valueOf(ORG_GROUP_ID), ORG_UNIT_ID, null, true),
+        Arguments.of(String.valueOf(ORG_GROUP_ID), null, submittedDatetime, true),
+        Arguments.of(String.valueOf(ORG_GROUP_ID + 1), null, submittedDatetime, true),
+        Arguments.of(String.valueOf(ORG_GROUP_ID + 1), ORG_UNIT_ID, null, false),
+        Arguments.of("888", null, submittedDatetime, false)
+    );
+  }
+
+  @Test
+  void userHasIndustryViewAccessToApplication_whenLicenceViewerInResponsibleOrgGroup_returnsTrue() {
+    var role = buildTeamRole(Role.VIEW_ORGANISATION_LICENCES, buildOrgGroupTeam(String.valueOf(ORG_GROUP_ID)));
+
+    assertThat(applicationAccessService.userHasIndustryViewAccessToApplication(
+        mockApplicationDetail(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION, ORG_UNIT_ID, null),
+        Map.of(ORG_UNIT_ID, ORG_GROUP_ID),
+        Set.of(role)
+    )).isTrue();
+  }
+
+  @Test
+  void userHasAccessToApplication_whenLicenceViewerInResponsibleOrgGroup_returnsFalse() {
+    var role = buildTeamRole(Role.VIEW_ORGANISATION_LICENCES, buildOrgGroupTeam(String.valueOf(ORG_GROUP_ID)));
+    when(teamQueryService.getTeamRolesForUser(USER_1_WUA_ID)).thenReturn(Set.of(role));
+
+    assertThat(applicationAccessService.userHasAccessToApplication(
+        mockApplicationDetail(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION, ORG_UNIT_ID, null),
+        Map.of(ORG_UNIT_ID, ORG_GROUP_ID),
+        USER_1_WUA_ID
+    )).isFalse();
+  }
+
+  @Test
+  void userHasIndustryEditAccessToApplication_whenLicenceViewerInResponsibleOrgGroup_returnsFalse() {
+    var role = buildTeamRole(Role.VIEW_ORGANISATION_LICENCES, buildOrgGroupTeam(String.valueOf(ORG_GROUP_ID)));
+
+    assertThat(applicationAccessService.userHasIndustryEditAccessToApplication(
+        mockApplicationDetail(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION, ORG_UNIT_ID, null),
+        Map.of(ORG_UNIT_ID, ORG_GROUP_ID),
+        Set.of(role)
+    )).isFalse();
+  }
+
+  private Team buildOrgGroupTeam(String scopeId) {
+    return TeamTestUtil.newBuilder()
+        .withTeamType(TeamType.ORGANISATION)
+        .withScopeType(ScopeType.ORGANISATION_GROUP.name())
+        .withScopeId(scopeId)
+        .build();
   }
 
   private Team buildExternalTeam(ApplicationType applicationType) {

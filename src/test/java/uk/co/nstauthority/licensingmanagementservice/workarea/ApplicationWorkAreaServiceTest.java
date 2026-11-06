@@ -288,6 +288,18 @@ class ApplicationWorkAreaServiceTest {
   }
 
   @Test
+  void isIndustryMyWork_whenOnlyLicenceViewerInResponsibleOrgGroupAndSubmitted_returnsFalse() {
+    var teamRoles = Set.of(buildTeamRole(Role.VIEW_ORGANISATION_LICENCES, buildOrgGroupTeam(ORG_GROUP_ID)));
+
+    assertThat(applicationWorkAreaService.isIndustryMyWork(
+        mockDetail(OTHER_WUA_ID, OTHER_WUA_ID, ORG_UNIT_ID, Instant.now()),
+        Map.of(ORG_UNIT_ID, ORG_GROUP_ID),
+        USER_WUA_ID,
+        teamRoles
+    )).isFalse();
+  }
+
+  @Test
   void isIndustryMyWork_whenCreatedByUserButEditorInDifferentOrgGroup_returnsFalse() {
     var teamRoles = Set.of(buildTeamRole(Role.APPLICATION_EDITOR, buildOrgGroupTeam(ORG_GROUP_ID + 1)));
 

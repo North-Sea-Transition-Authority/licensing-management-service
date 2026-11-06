@@ -31,7 +31,7 @@ public enum ReleaseFeature {
   VIEW_LICENCE_SCHEDULE(ReleasePhase.LMS1),
   /**
    * The industry team roles that grant licence and application access — application editor, application submitter and
-   * licence viewer. Only team management and licensee contacts are offered for industry teams before LMS1.
+   * licence and application viewer. Only team management and licensee contacts are offered for industry teams before LMS1.
    */
   INDUSTRY_LICENCE_AND_APPLICATION_ROLE(ReleasePhase.LMS1),
 

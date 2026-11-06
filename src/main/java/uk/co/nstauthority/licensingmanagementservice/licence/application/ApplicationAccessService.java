@@ -26,7 +26,10 @@ public class ApplicationAccessService {
       Role.APPLICATION_SUBMITTER
   );
 
-  private static final Set<Role> ALLOWED_VIEWER_ROLES = Set.of(Role.EXTERNAL_APPLICATION_VIEWER);
+  private static final Set<Role> ALLOWED_VIEWER_ROLES = Set.of(
+      Role.EXTERNAL_APPLICATION_VIEWER,
+      Role.VIEW_ORGANISATION_LICENCES
+  );
 
   private static final Set<Role> VIEW_ACCESS_ROLES = Stream
       .concat(ALLOWED_DRAFTER_ROLES.stream(), ALLOWED_VIEWER_ROLES.stream())

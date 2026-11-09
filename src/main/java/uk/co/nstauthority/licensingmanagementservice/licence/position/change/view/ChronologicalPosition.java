@@ -20,6 +20,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationError;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationRule;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.StorageOperatorPositionRule;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.SubareaEquityPositionRule;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaSetEquityOperation;
@@ -47,6 +48,12 @@ public record ChronologicalPosition(
       LicenceOperation.LICENCE_ADMINISTRATOR,
       AdministratorPositionRule.FIRST_POSITION_MUST_HAVE_ADMINISTRATOR,
       AdministratorPositionRule.ONLY_ONE_ADMINISTRATOR_CHANGE
+  );
+
+  private static final ChangeCountRules STORAGE_OPERATOR_RULES = new ChangeCountRules(
+      LicenceOperation.STORAGE_OPERATOR,
+      null,
+      StorageOperatorPositionRule.ONLY_ONE_STORAGE_OPERATOR_CHANGE
   );
 
   /**
@@ -109,6 +116,7 @@ public record ChronologicalPosition(
     var positionValidationErrors = new ArrayList<PositionValidationError>();
 
     positionValidationErrors.addAll(validateAdministratorChange(positionValidationContext));
+    positionValidationErrors.addAll(validateStorageOperatorChange(positionValidationContext));
     positionValidationErrors.addAll(validateBeneficialInterest(positionValidationContext));
     positionValidationErrors.addAll(validateLicenseeChange(positionValidationContext));
     positionValidationErrors.addAll(validateSubareaEquityTotals(positionValidationContext));
@@ -208,6 +216,14 @@ public record ChronologicalPosition(
     return validateOperationChangeCount(positionValidationContext, ADMINISTRATOR_RULES);
   }
 
+  private List<PositionValidationError> validateStorageOperatorChange(PositionValidationContext positionValidationContext) {
+    if (!positionValidationContext.isCarbonStorage()) {
+      return List.of();
+    }
+
+    return validateOperationChangeCount(positionValidationContext, STORAGE_OPERATOR_RULES);
+  }
+
   private List<PositionValidationError> validateOperationChangeCount(
       PositionValidationContext positionValidationContext,
       ChangeCountRules rules
@@ -218,7 +234,8 @@ public record ChronologicalPosition(
         .filter(licenceOperation -> rules.operationType().equals(licenceOperation.type()))
         .count();
 
-    if (positionValidationContext.isFirstPosition() && changeCount == 0) {
+    if (positionValidationContext.isFirstPosition() && changeCount == 0
+        && rules.firstPositionMustHaveChange() != null) {
       return List.of(PositionValidationError.forPosition(
           positionValidationContext,
           rules.firstPositionMustHaveChange()

@@ -410,6 +410,28 @@ class LicencePositionValidationServiceTest {
   }
 
   @Test
+  void validate_whenCarbonStorageLicence_aggregatesErrorsAcrossPositions() {
+    var first = LicencePositionTestUtil.newBuilder().build();
+    var second = LicencePositionTestUtil.newBuilder().build();
+    var chronologicalPositions = List.of(
+        ChronologicalPositionTestUtil.live(first),
+        ChronologicalPositionTestUtil.live(
+            second,
+            LicenceOperation.newStorageOperatorOperation().withOperator(2).build(),
+            LicenceOperation.newStorageOperatorOperation().withOperator(3).build(),
+            LicenceOperation.newLicenseeOperation().withLicenseesToAdd(List.of(2)).build(),
+            LicenceOperation.newLicenseeOperation().withLicenseesToAdd(List.of(3)).build())
+    );
+    var states = LicencePositionStateResolver.resolve(chronologicalPositions);
+
+    assertThat(service.validate(chronologicalPositions, states, List.of(), LicenceType.CARBON_STORAGE, LicenceStatusType.EXTANT))
+        .extracting(PositionValidationError::message)
+        .containsExactlyInAnyOrder(StorageOperatorPositionRule.ONLY_ONE_STORAGE_OPERATOR_CHANGE.getMessage(),
+            LicenseePositionRule.FIRST_POSITION_MUST_HAVE_LICENSEE.getMessage(),
+            LicenseePositionRule.ONLY_ONE_LICENSEE_CHANGE.getMessage());
+  }
+
+  @Test
   void validate_whenPositionsShareTransactionEachWithBeneficialInterestChange_flagsEachPosition() {
     var transactionId = UUID.randomUUID();
     var first = position(transactionId, LocalDate.of(2026, Month.JUNE, 18), setEquityChange(1, "100"), licenseeChange());

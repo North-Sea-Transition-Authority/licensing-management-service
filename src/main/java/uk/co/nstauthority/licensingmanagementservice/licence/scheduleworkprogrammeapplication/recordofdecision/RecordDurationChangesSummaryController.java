@@ -26,7 +26,7 @@ import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 @ScheduleAmendmentApplicationHasStatus(value = ApplicationStatus.DRAFT_DECISION)
 @InvokingUserCanAccessScheduleApplication
 @ScheduleWorkProgrammeApplicationActionEndPointInterceptorRule.ActionEndPoint(
-    ScheduleWorkProgrammeApplicationActionItem.RECORD_DECISION)
+    ScheduleWorkProgrammeApplicationActionItem.RESUME_DRAFT_DECISION)
 public class RecordDurationChangesSummaryController {
 
   static final String PAGE_TITLE = "Review changes to term and phase durations";

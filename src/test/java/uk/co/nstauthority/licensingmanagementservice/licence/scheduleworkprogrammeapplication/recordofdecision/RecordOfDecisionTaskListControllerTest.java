@@ -67,7 +67,7 @@ class RecordOfDecisionTaskListControllerTest extends AbstractControllerTest {
         .containsOnly(ApplicationStatus.DRAFT_DECISION);
     assertThat(RecordOfDecisionTaskListController.class
         .getAnnotation(ScheduleWorkProgrammeApplicationActionEndPointInterceptorRule.ActionEndPoint.class).value())
-        .containsOnly(ScheduleWorkProgrammeApplicationActionItem.RECORD_DECISION);
+        .containsOnly(ScheduleWorkProgrammeApplicationActionItem.RESUME_DRAFT_DECISION);
   }
 
   @Test
@@ -174,6 +174,6 @@ class RecordOfDecisionTaskListControllerTest extends AbstractControllerTest {
         .thenReturn(true);
     when(scheduleWorkProgrammeApplicationActionService.getAvailableUserActionItems(applicationDetail, USER))
         .thenReturn(List.of(
-            ScheduleWorkProgrammeApplicationActionItem.RECORD_DECISION.toActionItemView(applicationDetail)));
+            ScheduleWorkProgrammeApplicationActionItem.RESUME_DRAFT_DECISION.toActionItemView(applicationDetail)));
   }
 }

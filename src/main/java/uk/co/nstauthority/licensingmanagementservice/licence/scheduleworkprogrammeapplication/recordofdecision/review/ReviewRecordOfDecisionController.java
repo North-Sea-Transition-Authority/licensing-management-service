@@ -20,12 +20,12 @@ import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.Noti
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overview.ScheduleWorkProgrammeApplicationOverviewController;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overview.action.ScheduleWorkProgrammeApplicationActionItem;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.recordofdecision.RecordOfDecisionTaskListContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.recordofdecision.RecordOfDecisionTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.recordofdecision.RecordOfDecisionTaskListService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
-import uk.co.nstauthority.licensingmanagementservice.workarea.WorkAreaController;
 
 @Controller
 @RequestMapping(
@@ -33,7 +33,7 @@ import uk.co.nstauthority.licensingmanagementservice.workarea.WorkAreaController
 @ScheduleAmendmentApplicationHasStatus(value = ApplicationStatus.DRAFT_DECISION)
 @InvokingUserCanAccessScheduleApplication
 @ScheduleWorkProgrammeApplicationActionEndPointInterceptorRule.ActionEndPoint(
-    ScheduleWorkProgrammeApplicationActionItem.RECORD_DECISION)
+    ScheduleWorkProgrammeApplicationActionItem.RESUME_DRAFT_DECISION)
 public class ReviewRecordOfDecisionController {
 
   static final String PAGE_TITLE = "Review record of decision";
@@ -106,6 +106,7 @@ public class ReviewRecordOfDecisionController {
         .withHeadingContent(SUBMITTED_BANNER.formatted(applicationReference))
         .applyTo(redirectAttributes);
 
-    return ReverseRouter.redirect(on(WorkAreaController.class).getWorkArea(null, null));
+    return ReverseRouter.redirect(on(ScheduleWorkProgrammeApplicationOverviewController.class)
+        .renderOverview(scheduleWorkProgrammeApplicationDetailId, null, null, null));
   }
 }

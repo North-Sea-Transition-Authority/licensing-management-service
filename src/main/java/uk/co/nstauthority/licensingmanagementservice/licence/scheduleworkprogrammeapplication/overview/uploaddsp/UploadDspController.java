@@ -26,7 +26,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogram
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overview.ScheduleWorkProgrammeApplicationOverviewController;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overview.action.ScheduleWorkProgrammeApplicationActionItem;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
-import uk.co.nstauthority.licensingmanagementservice.workarea.WorkAreaController;
 
 @Controller
 @RequestMapping(
@@ -81,8 +80,8 @@ public class UploadDspController {
         .withHeadingContent(String.format("DSP uploaded on %s", applicationReference))
         .applyTo(redirectAttributes);
 
-    return ReverseRouter.redirect(on(WorkAreaController.class)
-        .getWorkArea(null, null));
+    return ReverseRouter.redirect(on(ScheduleWorkProgrammeApplicationOverviewController.class)
+        .renderOverview(scheduleWorkProgrammeApplicationDetailId, null, null, null));
   }
 
   @GetMapping("/files/{fileId}")

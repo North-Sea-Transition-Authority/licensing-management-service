@@ -32,7 +32,7 @@ import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.W
 @ScheduleAmendmentApplicationHasStatus(value = ApplicationStatus.DRAFT_DECISION)
 @InvokingUserCanAccessScheduleApplication
 @ScheduleWorkProgrammeApplicationActionEndPointInterceptorRule.ActionEndPoint(
-    ScheduleWorkProgrammeApplicationActionItem.RECORD_DECISION)
+    ScheduleWorkProgrammeApplicationActionItem.RESUME_DRAFT_DECISION)
 @LogWorkAreaItemView(
     itemType = WorkAreaDataItemType.SCHEDULE_WORK_PROGRAMME_APPLICATION,
     pathVariable = "scheduleWorkProgrammeApplicationDetailId")

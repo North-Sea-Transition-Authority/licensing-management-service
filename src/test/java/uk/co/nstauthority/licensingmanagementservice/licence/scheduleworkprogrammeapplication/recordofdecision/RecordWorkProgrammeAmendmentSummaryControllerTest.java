@@ -71,7 +71,7 @@ class RecordWorkProgrammeAmendmentSummaryControllerTest extends AbstractControll
         .containsOnly(ApplicationStatus.DRAFT_DECISION);
     assertThat(RecordWorkProgrammeAmendmentSummaryController.class
         .getAnnotation(ScheduleWorkProgrammeApplicationActionEndPointInterceptorRule.ActionEndPoint.class).value())
-        .containsOnly(ScheduleWorkProgrammeApplicationActionItem.RECORD_DECISION);
+        .containsOnly(ScheduleWorkProgrammeApplicationActionItem.RESUME_DRAFT_DECISION);
   }
 
   @Test
@@ -304,6 +304,6 @@ class RecordWorkProgrammeAmendmentSummaryControllerTest extends AbstractControll
         .thenReturn(true);
     when(scheduleWorkProgrammeApplicationActionService.getAvailableUserActionItems(applicationDetail, USER))
         .thenReturn(List.of(
-            ScheduleWorkProgrammeApplicationActionItem.RECORD_DECISION.toActionItemView(applicationDetail)));
+            ScheduleWorkProgrammeApplicationActionItem.RESUME_DRAFT_DECISION.toActionItemView(applicationDetail)));
   }
 }

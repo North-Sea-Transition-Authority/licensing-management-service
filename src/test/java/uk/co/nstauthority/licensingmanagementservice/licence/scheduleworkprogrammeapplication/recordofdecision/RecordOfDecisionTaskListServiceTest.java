@@ -108,6 +108,7 @@ class RecordOfDecisionTaskListServiceTest {
 
     verify(applicationDecisionDetailService).createDraftDecision(application, user);
     verify(scheduleWorkProgrammeApplicationService).draftDecisionCreated(application);
+    verify(caseEventService).recordCaseEvent(CaseEventType.DRAFT_DECISION_STARTED, application, null);
   }
 
   @Test
@@ -120,7 +121,7 @@ class RecordOfDecisionTaskListServiceTest {
     recordOfDecisionTaskListService.startDecision(applicationDetail, user);
 
     verify(applicationDecisionDetailService, never()).createDraftDecision(application, user);
-    verifyNoInteractions(scheduleWorkProgrammeApplicationService);
+    verifyNoInteractions(scheduleWorkProgrammeApplicationService, caseEventService);
   }
 
   @Test

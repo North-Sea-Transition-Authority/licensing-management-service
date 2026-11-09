@@ -290,6 +290,47 @@ class ScheduleWorkProgrammeApplicationActionServiceTest {
   }
 
   @Test
+  void getAvailableUserActionItems_whenCaseManagerAndDraftDecision_thenResumeDraftDecisionReplacesRecordDecision() {
+    var applicationDetail = ScheduleWorkProgrammeApplicationDetailTestUtil.builder()
+        .withId(UUID.randomUUID())
+        .withStatus(ApplicationStatus.DRAFT_DECISION)
+        .withLicenceType(LicenceType.CARBON_STORAGE)
+        .build();
+
+    var teamRole = TeamRoleTestUtil.newBuilder()
+        .withRole(Role.CASE_MANAGER_CARBON_STORAGE)
+        .withTeam(new Team())
+        .withWuaId(USER_WUA_ID)
+        .build();
+
+    when(teamQueryService.getTeamRolesForUser(USER_WUA_ID)).thenReturn(Set.of(teamRole));
+
+    assertThat(scheduleWorkProgrammeApplicationActionService.getAvailableUserActionItems(applicationDetail, serviceUserDetail))
+        .containsExactly(
+            ScheduleWorkProgrammeApplicationActionItem.RESUME_DRAFT_DECISION.toActionItemView(applicationDetail, true));
+  }
+
+  @Test
+  void getAvailableUserActionItems_whenNotCaseManagerAndDraftDecision_thenResumeDraftDecisionNotAvailable() {
+    var applicationDetail = ScheduleWorkProgrammeApplicationDetailTestUtil.builder()
+        .withId(UUID.randomUUID())
+        .withStatus(ApplicationStatus.DRAFT_DECISION)
+        .withLicenceType(LicenceType.CARBON_STORAGE)
+        .build();
+
+    var teamRole = TeamRoleTestUtil.newBuilder()
+        .withRole(Role.STEWARD_CARBON_STORAGE)
+        .withTeam(new Team())
+        .withWuaId(USER_WUA_ID)
+        .build();
+
+    when(teamQueryService.getTeamRolesForUser(USER_WUA_ID)).thenReturn(Set.of(teamRole));
+
+    assertThat(scheduleWorkProgrammeApplicationActionService.getAvailableUserActionItems(applicationDetail, serviceUserDetail))
+        .isEmpty();
+  }
+
+  @Test
   void getAvailableUserActionItems_caseManagerAndStewardNotAssigned_allocateStewardIsPrimary() {
     var applicationDetail = ScheduleWorkProgrammeApplicationDetailTestUtil.builder()
         .withId(UUID.randomUUID())

@@ -89,6 +89,7 @@ public class RecordOfDecisionTaskListService {
 
     applicationDecisionDetailService.createDraftDecision(application, user);
     scheduleWorkProgrammeApplicationService.draftDecisionCreated(application);
+    caseEventService.recordCaseEvent(CaseEventType.DRAFT_DECISION_STARTED, application, null);
   }
 
   @Transactional

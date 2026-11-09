@@ -17,7 +17,6 @@ import static org.springframework.web.servlet.mvc.method.annotation.MvcUriCompon
 import static uk.co.nstauthority.licensingmanagementservice.authentication.TestUserProvider.user;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.context.ContextConfiguration;
@@ -29,8 +28,6 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.schedul
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.ScheduleAmendmentApplicationHasStatus;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationActionEndPointInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
-import uk.co.nstauthority.licensingmanagementservice.licence.application.decision.ApplicationDecisionDetail;
-import uk.co.nstauthority.licensingmanagementservice.licence.application.decision.ApplicationDecisionDetailService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overview.ScheduleWorkProgrammeApplicationOverviewController;
@@ -47,9 +44,6 @@ class StartRecordOfDecisionControllerTest extends AbstractControllerTest {
   private static final String APPLICATION_REFERENCE = "LMS/EAA/2026/1";
 
   @MockitoBean
-  private ApplicationDecisionDetailService applicationDecisionDetailService;
-
-  @MockitoBean
   private RecordOfDecisionTaskListService recordOfDecisionTaskListService;
 
   @Test
@@ -60,7 +54,7 @@ class StartRecordOfDecisionControllerTest extends AbstractControllerTest {
         .hasAnnotation(ScheduleWorkProgrammeApplicationActionEndPointInterceptorRule.ActionEndPoint.class);
     assertThat(StartRecordOfDecisionController.class
         .getAnnotation(ScheduleAmendmentApplicationHasStatus.class).value())
-        .containsOnly(ApplicationStatus.DSP_UPLOADED, ApplicationStatus.DRAFT_DECISION);
+        .containsOnly(ApplicationStatus.DSP_UPLOADED);
     assertThat(StartRecordOfDecisionController.class
         .getAnnotation(ScheduleWorkProgrammeApplicationActionEndPointInterceptorRule.ActionEndPoint.class).value())
         .containsOnly(ScheduleWorkProgrammeApplicationActionItem.RECORD_DECISION);
@@ -84,11 +78,9 @@ class StartRecordOfDecisionControllerTest extends AbstractControllerTest {
   }
 
   @Test
-  void render_whenNoDraftDecision_thenRendersStartPage() throws Exception {
+  void render_whenAccessGranted_thenRendersStartPage() throws Exception {
     var applicationDetail = buildApplicationDetail();
     setupPassingInterceptors(applicationDetail);
-    when(applicationDecisionDetailService.findDraftDecision(applicationDetail.getScheduleWorkProgrammeApplication()))
-        .thenReturn(Optional.empty());
 
     mockMvc.perform(
             get(ReverseRouter.route(on(StartRecordOfDecisionController.class)
@@ -104,22 +96,6 @@ class StartRecordOfDecisionControllerTest extends AbstractControllerTest {
             .startDecision(applicationDetail.getId(), null, null))))
         .andExpect(model().attribute("backUrl", ReverseRouter.route(on(ScheduleWorkProgrammeApplicationOverviewController.class)
             .renderOverview(applicationDetail.getId(), null, null, null))));
-  }
-
-  @Test
-  void render_whenDraftDecisionExists_thenRedirectsToTaskList() throws Exception {
-    var applicationDetail = buildApplicationDetail();
-    setupPassingInterceptors(applicationDetail);
-    when(applicationDecisionDetailService.findDraftDecision(applicationDetail.getScheduleWorkProgrammeApplication()))
-        .thenReturn(Optional.of(new ApplicationDecisionDetail(UUID.randomUUID())));
-
-    mockMvc.perform(
-            get(ReverseRouter.route(on(StartRecordOfDecisionController.class)
-                .render(applicationDetail.getId(), null)))
-                .with(user(USER)))
-        .andExpect(status().is3xxRedirection())
-        .andExpect(redirectedUrl(ReverseRouter.route(on(RecordOfDecisionTaskListController.class)
-            .getTaskList(applicationDetail.getId(), null, null))));
   }
 
   @Test

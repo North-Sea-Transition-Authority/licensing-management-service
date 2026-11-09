@@ -16,7 +16,6 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.schedul
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.ScheduleAmendmentApplicationHasStatus;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationActionEndPointInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
-import uk.co.nstauthority.licensingmanagementservice.licence.application.decision.ApplicationDecisionDetailService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overview.ScheduleWorkProgrammeApplicationOverviewController;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overview.action.ScheduleWorkProgrammeApplicationActionItem;
@@ -26,7 +25,7 @@ import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.W
 @Controller
 @RequestMapping(
     "licence/schedule-work-programme-application/{scheduleWorkProgrammeApplicationDetailId}/record-of-decision/start")
-@ScheduleAmendmentApplicationHasStatus(value = {ApplicationStatus.DSP_UPLOADED, ApplicationStatus.DRAFT_DECISION})
+@ScheduleAmendmentApplicationHasStatus(value = ApplicationStatus.DSP_UPLOADED)
 @InvokingUserCanAccessScheduleApplication
 @ScheduleWorkProgrammeApplicationActionEndPointInterceptorRule.ActionEndPoint(
     ScheduleWorkProgrammeApplicationActionItem.RECORD_DECISION)
@@ -37,14 +36,9 @@ public class StartRecordOfDecisionController {
 
   public static final String PAGE_TITLE = "Record a decision";
 
-  private final ApplicationDecisionDetailService applicationDecisionDetailService;
   private final RecordOfDecisionTaskListService recordOfDecisionTaskListService;
 
-  public StartRecordOfDecisionController(
-      ApplicationDecisionDetailService applicationDecisionDetailService,
-      RecordOfDecisionTaskListService recordOfDecisionTaskListService
-  ) {
-    this.applicationDecisionDetailService = applicationDecisionDetailService;
+  public StartRecordOfDecisionController(RecordOfDecisionTaskListService recordOfDecisionTaskListService) {
     this.recordOfDecisionTaskListService = recordOfDecisionTaskListService;
   }
 
@@ -54,10 +48,6 @@ public class StartRecordOfDecisionController {
       ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail
   ) {
     var application = scheduleWorkProgrammeApplicationDetail.getScheduleWorkProgrammeApplication();
-
-    if (applicationDecisionDetailService.findDraftDecision(application).isPresent()) {
-      return redirectToTaskList(scheduleWorkProgrammeApplicationDetailId);
-    }
 
     return new ModelAndView("lms/licence/scheduleWorkProgrammeApplication/startRecordOfDecision")
         .addObject("pageTitle", PAGE_TITLE)
@@ -78,10 +68,6 @@ public class StartRecordOfDecisionController {
   ) {
     recordOfDecisionTaskListService.startDecision(scheduleWorkProgrammeApplicationDetail, serviceUserDetail);
 
-    return redirectToTaskList(scheduleWorkProgrammeApplicationDetailId);
-  }
-
-  private ModelAndView redirectToTaskList(UUID scheduleWorkProgrammeApplicationDetailId) {
     return ReverseRouter.redirect(on(RecordOfDecisionTaskListController.class)
         .getTaskList(scheduleWorkProgrammeApplicationDetailId, null, null));
   }

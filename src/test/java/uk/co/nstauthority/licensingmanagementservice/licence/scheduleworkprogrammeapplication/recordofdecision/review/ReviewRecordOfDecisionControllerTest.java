@@ -37,6 +37,7 @@ import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.Noti
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetailTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overview.ScheduleWorkProgrammeApplicationOverviewController;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overview.action.ScheduleWorkProgrammeApplicationActionItem;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.recordofdecision.RecordOfDecisionTaskListContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.recordofdecision.RecordOfDecisionTaskListService;
@@ -45,7 +46,6 @@ import uk.co.nstauthority.licensingmanagementservice.summary.SummaryCard;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryDataView;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryItem;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummarySection;
-import uk.co.nstauthority.licensingmanagementservice.workarea.WorkAreaController;
 
 @ContextConfiguration(classes = ReviewRecordOfDecisionController.class)
 class ReviewRecordOfDecisionControllerTest extends AbstractControllerTest {
@@ -76,7 +76,7 @@ class ReviewRecordOfDecisionControllerTest extends AbstractControllerTest {
         .containsOnly(ApplicationStatus.DRAFT_DECISION);
     assertThat(ReviewRecordOfDecisionController.class
         .getAnnotation(ScheduleWorkProgrammeApplicationActionEndPointInterceptorRule.ActionEndPoint.class).value())
-        .containsOnly(ScheduleWorkProgrammeApplicationActionItem.RECORD_DECISION);
+        .containsOnly(ScheduleWorkProgrammeApplicationActionItem.RESUME_DRAFT_DECISION);
   }
 
   @Test
@@ -182,7 +182,7 @@ class ReviewRecordOfDecisionControllerTest extends AbstractControllerTest {
   }
 
   @Test
-  void submitReview_whenAllTasksAreComplete_redirectsToWorkAreaAndSubmitsDecision() throws Exception {
+  void submitReview_whenAllTasksAreComplete_redirectsToOverviewAndSubmitsDecision() throws Exception {
     var applicationDetailId = UUID.randomUUID();
     var applicationDetail = buildApplicationDetail(applicationDetailId);
 
@@ -195,7 +195,8 @@ class ReviewRecordOfDecisionControllerTest extends AbstractControllerTest {
                 .with(user(USER))
                 .with(csrf()))
         .andExpect(status().is3xxRedirection())
-        .andExpect(redirectedUrl(ReverseRouter.route(on(WorkAreaController.class).getWorkArea(null, null))))
+        .andExpect(redirectedUrl(ReverseRouter.route(on(ScheduleWorkProgrammeApplicationOverviewController.class)
+            .renderOverview(applicationDetailId, null, null, null))))
         .andExpect(notificationBanner(NotificationBanner.newSuccessBanner()
             .withHeadingContent(ReviewRecordOfDecisionController.SUBMITTED_BANNER.formatted(APPLICATION_REFERENCE))
             .build()));
@@ -253,6 +254,6 @@ class ReviewRecordOfDecisionControllerTest extends AbstractControllerTest {
         .thenReturn(true);
     when(scheduleWorkProgrammeApplicationActionService.getAvailableUserActionItems(applicationDetail, USER))
         .thenReturn(List.of(
-            ScheduleWorkProgrammeApplicationActionItem.RECORD_DECISION.toActionItemView(applicationDetail)));
+            ScheduleWorkProgrammeApplicationActionItem.RESUME_DRAFT_DECISION.toActionItemView(applicationDetail)));
   }
 }

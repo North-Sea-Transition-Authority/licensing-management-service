@@ -90,11 +90,13 @@ the design of the table but is not written.
 |---|---|
 | Writes | One `application_decision_details` row with `status = 'DRAFT'`, the next `version_number` (§3.5), `created_datetime` set to the time it was started, and `created_by_wua_id` set to the regulator who started it |
 | Writes | `status = 'DRAFT_DECISION'` on the application's **latest application detail that is not `DELETED`** — the highest `version_number` among its non-`DELETED` detail rows. No other detail row is changed |
+| Writes | A "Draft decision started" case event (`case_events.event_type = 'DRAFT_DECISION_STARTED'`) against the application, attributed to the regulator who started it, with no payload |
 | Does not write | Any `swp_record_of_decision*` row. Those are written only when the regulator answers a question in the decision journey |
 
-Both writes happen in one transaction, so a `DRAFT` decision row and a `DRAFT_DECISION`
-application detail appear together or not at all. Starting a decision when a `DRAFT` row
-already exists (§3.3) writes neither.
+All three writes happen in one transaction, so a `DRAFT` decision row, a `DRAFT_DECISION`
+application detail and the case event appear together or not at all. Starting a decision when
+a `DRAFT` row already exists (§3.3) writes none of them, so revisiting the start page does not
+add a second event.
 
 ### 3.3 At most one draft per application
 

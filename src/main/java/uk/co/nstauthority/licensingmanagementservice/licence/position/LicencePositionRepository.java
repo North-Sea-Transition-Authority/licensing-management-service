@@ -19,6 +19,12 @@ public interface LicencePositionRepository extends JpaRepository<LicencePosition
   @EntityGraph("licencePosition")
   List<LicencePosition> findByLicence(Licence licence);
 
+  @EntityGraph("licencePosition")
+  List<LicencePosition> findByLicenceInAndStatusOrderByPositionDateAscPositionDateOrderAsc(
+      Collection<Licence> licences,
+      LicencePositionStatus status
+  );
+
   List<LicencePosition> findByLicenceTransactionIn(Collection<LicenceTransaction> licenceTransactions);
 
   @Query("""

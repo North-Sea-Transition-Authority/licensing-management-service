@@ -3,7 +3,6 @@ package uk.co.nstauthority.licensingmanagementservice.licence.correction.reviewa
 import java.util.List;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
 
 @Service
 public class CorrectionSummaryService {

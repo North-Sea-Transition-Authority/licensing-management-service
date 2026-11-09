@@ -46,7 +46,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaDe
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaSetEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionRepository;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
@@ -76,10 +76,10 @@ class LicencePositionCorrectionServiceTest {
   private LicencePositionCorrectionRepository licencePositionCorrectionRepository;
 
   @Mock
-  private LicencePositionRepository licencePositionRepository;
+  private LicencePositionChangeService licencePositionChangeService;
 
   @Mock
-  private LicencePositionChangeService licencePositionChangeService;
+  private LicencePositionService licencePositionService;
 
   @InjectMocks
   private LicencePositionCorrectionService licencePositionCorrectionService;
@@ -1109,7 +1109,7 @@ class LicencePositionCorrectionServiceTest {
 
     licencePositionCorrectionService.correctPositionOrder(LICENCE_CORRECTION, aId, bId, PositionMoveDirection.AFTER);
 
-    verify(licencePositionRepository, times(1)).findByLicence(LICENCE);
+    verify(licencePositionService, times(1)).getExecutedChronologicalLicencePositions(LICENCE);
     verify(licencePositionCorrectionRepository, times(1)).findByLicenceCorrection(LICENCE_CORRECTION);
     verify(licencePositionCorrectionRepository, never())
         .findByLicenceCorrectionAndTargetLicencePositionAndChangeType(any(), any(), any());
@@ -1391,7 +1391,7 @@ class LicencePositionCorrectionServiceTest {
   }
 
   private void givenExecutedPositions(LicencePosition... positions) {
-    when(licencePositionRepository.findByLicence(LICENCE)).thenReturn(List.of(positions));
+    when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(positions));
   }
 
   private void givenPositionCorrections(LicencePositionCorrection... corrections) {
@@ -2205,7 +2205,8 @@ class LicencePositionCorrectionServiceTest {
         LICENCE_CORRECTION,
         LicencePositionCorrectionChangeType.ADD_POSITION
     )).thenReturn(List.of());
-    when(licencePositionRepository.findByIdAndLicence(targetPositionId, LICENCE)).thenReturn(Optional.empty());
+    when(licencePositionService.getPositionForLicence(LICENCE, targetPositionId))
+        .thenThrow(new LmsEntityNotFoundException("licencePosition", targetPositionId));
 
     assertThatThrownBy(() -> licencePositionCorrectionService.stageChangesOnPosition(
         LICENCE_CORRECTION,
@@ -2306,8 +2307,8 @@ class LicencePositionCorrectionServiceTest {
         LICENCE_CORRECTION,
         LicencePositionCorrectionChangeType.ADD_POSITION
     )).thenReturn(List.of());
-    when(licencePositionRepository.findByIdAndLicence(LICENCE_POSITION.getId(), LICENCE))
-        .thenReturn(Optional.of(LICENCE_POSITION));
+    when(licencePositionService.getPositionForLicence(LICENCE, LICENCE_POSITION.getId()))
+        .thenReturn(LICENCE_POSITION);
     when(licencePositionCorrectionRepository.findByLicenceCorrectionAndTargetLicencePositionAndChangeType(
         LICENCE_CORRECTION,
         LICENCE_POSITION,

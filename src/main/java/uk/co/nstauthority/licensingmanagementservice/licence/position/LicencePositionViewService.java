@@ -664,8 +664,46 @@ public class LicencePositionViewService {
   }
 
   public List<ChronologicalPosition> getLiveChronologicalPositions(List<LicencePosition> executedChronologicalLicencePositions) {
-    var liveChangesByPositionId = getLiveChangesByPositionId(executedChronologicalLicencePositions);
+    return getLiveChronologicalPositions(
+        executedChronologicalLicencePositions,
+        getLiveChangesByPositionId(executedChronologicalLicencePositions)
+    );
+  }
 
+  /**
+   * The legal entities involved in each of the given licences at its latest executed position, keyed by licence id.
+   * Positions only record what changed, so the state is folded from the licence's full executed history. A licence
+   * with no executed positions is not included.
+   */
+  public Map<Integer, Set<Integer>> getInvolvedLegalEntityIdsByLicenceId(Collection<Licence> licences) {
+    if (licences.isEmpty()) {
+      return Map.of();
+    }
+
+    var executedPositions = licencePositionService.getExecutedChronologicalLicencePositions(licences);
+    var liveChangesByPositionId = getLiveChangesByPositionId(executedPositions);
+
+    // States are resolved per licence, as resolving positions from different licences together would fold their
+    // changes into one another
+    return executedPositions.stream()
+        .collect(Collectors.groupingBy(position -> position.getLicence().getId()))
+        .entrySet()
+        .stream()
+        .collect(Collectors.toMap(
+            Map.Entry::getKey,
+            entry -> {
+              var chronologicalPositions = getLiveChronologicalPositions(entry.getValue(), liveChangesByPositionId);
+              return LicencePositionStateResolver.resolve(chronologicalPositions)
+                  .currentState(chronologicalPositions.getLast().id())
+                  .legalEntityOrganisationUnitIds();
+            }
+        ));
+  }
+
+  private List<ChronologicalPosition> getLiveChronologicalPositions(
+      List<LicencePosition> executedChronologicalLicencePositions,
+      Map<UUID, List<LicencePositionChange>> liveChangesByPositionId
+  ) {
     return executedChronologicalLicencePositions.stream()
         .map(licencePosition -> ChronologicalPosition.fromLicencePosition(
             licencePosition,

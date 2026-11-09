@@ -1,10 +1,12 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.search;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import uk.co.fivium.energyportal.serviceproviders.epmq.ScopeType;
@@ -19,8 +21,11 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatusType;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisation;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisationService;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionViewService;
 import uk.co.nstauthority.licensingmanagementservice.licence.status.LicenceStatusService;
 import uk.co.nstauthority.licensingmanagementservice.licence.tab.TabbedLicencePageService;
+import uk.co.nstauthority.licensingmanagementservice.phasedrelease.FeatureFlagService;
+import uk.co.nstauthority.licensingmanagementservice.phasedrelease.ReleasePhase;
 import uk.co.nstauthority.licensingmanagementservice.query.SearchResultItem;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryDataView;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
@@ -37,14 +42,19 @@ public class LicenceSearchService {
   private final TeamQueryService teamQueryService;
   private final LicenceStatusService licenceStatusService;
   private final TabbedLicencePageService tabbedLicencePageService;
+  private final LicencePositionViewService licencePositionViewService;
+  private final FeatureFlagService featureFlagService;
 
-  public LicenceSearchService(LicenceService licenceService,
-                              LicenceResponsibleOrganisationService licenceResponsibleOrganisationService,
-                              OrganisationUnitQueryService organisationUnitQueryService,
-                              OrganisationGroupQueryService organisationGroupQueryService,
-                              TeamQueryService teamQueryService,
-                              LicenceStatusService licenceStatusService,
-                              TabbedLicencePageService tabbedLicencePageService
+  LicenceSearchService(
+      LicenceService licenceService,
+      LicenceResponsibleOrganisationService licenceResponsibleOrganisationService,
+      OrganisationUnitQueryService organisationUnitQueryService,
+      OrganisationGroupQueryService organisationGroupQueryService,
+      TeamQueryService teamQueryService,
+      LicenceStatusService licenceStatusService,
+      TabbedLicencePageService tabbedLicencePageService,
+      LicencePositionViewService licencePositionViewService,
+      FeatureFlagService featureFlagService
   ) {
     this.licenceService = licenceService;
     this.licenceResponsibleOrganisationService = licenceResponsibleOrganisationService;
@@ -53,12 +63,11 @@ public class LicenceSearchService {
     this.teamQueryService = teamQueryService;
     this.licenceStatusService = licenceStatusService;
     this.tabbedLicencePageService = tabbedLicencePageService;
+    this.licencePositionViewService = licencePositionViewService;
+    this.featureFlagService = featureFlagService;
   }
 
-  public List<SearchResultItem> getSearchResultItems(
-      LicenceSearchFilterForm filterForm,
-      ServiceUserDetail serviceUserDetail
-  ) {
+  public List<SearchResultItem> getSearchResultItems(LicenceSearchFilterForm filterForm, ServiceUserDetail serviceUserDetail) {
     var allLicences = licenceService.getAllLicences();
     var currentStatusesByLicenceId = licenceStatusService.getCurrentStatusesByLicenceId(allLicences);
 
@@ -80,24 +89,76 @@ public class LicenceSearchService {
           var orgUnitIds = responsibleOrganisationIds.getOrDefault(licence, List.of());
           return FilterUtil.matchesIdList(orgUnitIds, filterForm.getLicenseeOrgUnitId())
               && FilterUtil.listMatchesIdList(orgUnitIds, groupOrgUnitIds);
-        });
+        })
+        .toList();
 
-    if (!teamQueryService.userIsInRegulatorTeam(serviceUserDetail.wuaId())) {
-      var userOrgUnitIds = getUserOrgUnitIds(serviceUserDetail.wuaId());
-      batchFilteredLicences = batchFilteredLicences
-          .filter(licence -> {
-            var orgUnitIds = responsibleOrganisationIds.getOrDefault(licence, List.of());
-            return FilterUtil.listMatchesIdList(orgUnitIds, userOrgUnitIds);
-          });
+    var teamUserRoles = teamQueryService.getTeamRolesForUser(serviceUserDetail.wuaId());
+
+    // TODO LMS2-412: consultee teams can also see all licences, once consultees are implemented
+    List<Licence> visibleLicences;
+    if (teamQueryService.userIsInRegulatorTeam(teamUserRoles)) {
+      visibleLicences = batchFilteredLicences;
+    } else if (featureFlagService.isEnabled(ReleasePhase.LMS2)) {
+      visibleLicences = getLicencesInvolvingOrganisationUnits(
+          batchFilteredLicences,
+          getUserOrgUnitIds(serviceUserDetail.wuaId())
+      );
+    } else {
+      // TODO LMS2-411: remove once LMS2 is live, along with licence responsible organisations
+      visibleLicences = getLicencesWithResponsibleOrganisationUnits(
+          batchFilteredLicences,
+          responsibleOrganisationIds,
+          getUserOrgUnitIds(serviceUserDetail.wuaId())
+      );
     }
 
     var responsibleOrganisationNames = getResponsibleOrganisationNamesByLicences(licenceResponsibleOrganisations);
-    return batchFilteredLicences
+
+    return visibleLicences.stream()
         .map(licence -> toSearchResultItem(
             licence,
             responsibleOrganisationNames.getOrDefault(licence, List.of()),
             currentStatusesByLicenceId.get(licence.getId())))
         .sorted(Comparator.comparing(SearchResultItem::linkHeadingText, new LicenceReferenceComparator()))
+        .toList();
+  }
+
+  /**
+   * The licences where any of the organisation units is a responsible organisation synced from the Energy Portal.
+   */
+  private List<Licence> getLicencesWithResponsibleOrganisationUnits(
+      Collection<Licence> licences,
+      Map<Licence, List<Integer>> responsibleOrganisationIds,
+      List<Integer> organisationUnitIds
+  ) {
+    return licences.stream()
+        .filter(licence -> FilterUtil.listMatchesIdList(
+            responsibleOrganisationIds.getOrDefault(licence, List.of()),
+            organisationUnitIds
+        ))
+        .toList();
+  }
+
+  /**
+   * The licences where any of the organisation units is a legal entity involved at the licence's latest executed
+   * position - e.g. as licence administrator, licensee, storage operator or equity holder.
+   */
+  private List<Licence> getLicencesInvolvingOrganisationUnits(
+      Collection<Licence> licences,
+      Collection<Integer> organisationUnitIds
+  ) {
+    if (organisationUnitIds.isEmpty()) {
+      return List.of();
+    }
+
+    var uniqueOrganisationUnitIdSet = Set.copyOf(organisationUnitIds);
+    var legalEntityIdsByLicenceId = licencePositionViewService.getInvolvedLegalEntityIdsByLicenceId(licences);
+
+    return licences.stream()
+        .filter(licence -> !Collections.disjoint(
+            legalEntityIdsByLicenceId.getOrDefault(licence.getId(), Set.of()),
+            uniqueOrganisationUnitIdSet
+        ))
         .toList();
   }
 
@@ -124,7 +185,8 @@ public class LicenceSearchService {
   }
 
   Map<Licence, List<Integer>> getResponsibleOrganisationIds(
-      List<LicenceResponsibleOrganisation> licenceResponsibleOrganisations) {
+      List<LicenceResponsibleOrganisation> licenceResponsibleOrganisations
+  ) {
     return licenceResponsibleOrganisations.stream()
         .collect(Collectors.groupingBy(
             LicenceResponsibleOrganisation::getLicence,

@@ -1348,6 +1348,59 @@ class LicencePositionViewServiceTest {
             List.of())));
   }
 
+  @Test
+  void getInvolvedLegalEntitiesByLicenceId_whenNoLicences_thenEmpty() {
+    var result = licencePositionViewService.getInvolvedLegalEntityIdsByLicenceId(List.of());
+
+    assertThat(result).isEmpty();
+    verifyNoInteractions(licencePositionService, licencePositionChangeService);
+  }
+
+  @Test
+  void getInvolvedLegalEntitiesByLicenceId_whenLicencesHaveMultiplePositions_thenStateFoldedFromFullHistoryPerLicence() {
+    var firstLicence = LicenceTestUtil.builder().withId(1).build();
+    var secondLicence = LicenceTestUtil.builder().withId(2).build();
+    var firstLicenceEarlierPosition = executedPositionOn(firstLicence, LocalDate.of(2026, Month.JANUARY, 1));
+    var secondLicencePosition = executedPositionOn(secondLicence, LocalDate.of(2026, Month.FEBRUARY, 1));
+    var firstLicenceLaterPosition = executedPositionOn(firstLicence, LocalDate.of(2026, Month.MARCH, 1));
+    var executedPositions = List.of(firstLicenceEarlierPosition, secondLicencePosition, firstLicenceLaterPosition);
+
+    when(licencePositionService.getExecutedChronologicalLicencePositions(List.of(firstLicence, secondLicence)))
+        .thenReturn(executedPositions);
+    when(licencePositionChangeService.findByLicencePositionIn(executedPositions)).thenReturn(List.of(
+        changeOn(firstLicenceEarlierPosition, 1, LicenceOperation.newAdministratorChange().withOperator(1).build()),
+        changeOn(secondLicencePosition, 1, LicenceOperation.newAdministratorChange().withOperator(3).build()),
+        changeOn(firstLicenceLaterPosition, 1, LicenceOperation.newLicenseeOperation().withLicenseesToAdd(List.of(2)).build())
+    ));
+
+    var result = licencePositionViewService.getInvolvedLegalEntityIdsByLicenceId(List.of(firstLicence, secondLicence));
+
+    assertThat(result).isEqualTo(Map.of(
+        firstLicence.getId(), Set.of(1, 2),
+        secondLicence.getId(), Set.of(3)
+    ));
+  }
+
+  @Test
+  void getInvolvedLegalEntitiesByLicenceId_whenLicenceHasNoExecutedPositions_thenLicenceNotIncluded() {
+    var licence = LicenceTestUtil.builder().withId(1).build();
+
+    when(licencePositionService.getExecutedChronologicalLicencePositions(List.of(licence))).thenReturn(List.of());
+
+    var result = licencePositionViewService.getInvolvedLegalEntityIdsByLicenceId(List.of(licence));
+
+    assertThat(result).isEmpty();
+  }
+
+  private static LicencePosition executedPositionOn(Licence licence, LocalDate positionDate) {
+    return LicencePositionTestUtil.newBuilder()
+        .withLicence(licence)
+        .withStatus(LicencePositionStatus.EXECUTED)
+        .withPositionDate(positionDate)
+        .withPositionOrder(1)
+        .build();
+  }
+
   private static LicencePosition executedPosition(LocalDate positionDate) {
     return LicencePositionTestUtil.newBuilder()
         .withLicence(LICENCE)

@@ -32,8 +32,11 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisation;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisationService;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionViewService;
 import uk.co.nstauthority.licensingmanagementservice.licence.status.LicenceStatusService;
 import uk.co.nstauthority.licensingmanagementservice.licence.tab.TabbedLicencePageService;
+import uk.co.nstauthority.licensingmanagementservice.phasedrelease.FeatureFlagService;
+import uk.co.nstauthority.licensingmanagementservice.phasedrelease.ReleasePhase;
 import uk.co.nstauthority.licensingmanagementservice.query.SearchResultItem;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryDataView;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
@@ -85,12 +88,23 @@ class LicenceSearchServiceTest {
   @Mock
   private TabbedLicencePageService tabbedLicencePageService;
 
+  @Mock
+  private LicencePositionViewService licencePositionViewService;
+
+  @Mock
+  private FeatureFlagService featureFlagService;
+
   @InjectMocks
   private LicenceSearchService licenceSearchService;
 
   @BeforeEach
   void setUp() {
-    lenient().when(teamQueryService.userIsInRegulatorTeam(USER_WUA_ID)).thenReturn(true);
+    var regulatorTeamRole = TeamRoleTestUtil.newBuilder()
+        .withWuaId(USER_WUA_ID)
+        .withTeam(TeamTestUtil.newBuilder().withTeamType(TeamType.LICENCE_MANAGEMENT).build())
+        .build();
+    lenient().when(teamQueryService.getTeamRolesForUser(USER_WUA_ID)).thenReturn(Set.of(regulatorTeamRole));
+    lenient().when(teamQueryService.userIsInRegulatorTeam(Set.of(regulatorTeamRole))).thenReturn(true);
     lenient().when(tabbedLicencePageService.getDefaultTabUrl(any(Licence.class)))
         .thenAnswer(invocation -> defaultTabUrl(invocation.getArgument(0)));
   }
@@ -257,10 +271,9 @@ class LicenceSearchServiceTest {
   }
 
   @Test
-  void getSearchResultItems_whenNonRegulatorUserWithOrganisationAccess_returnsOnlyLicencesForUsersOrgUnits() {
+  void getSearchResultItems_whenNonRegulatorAndVisibilityByPositionDisabled_thenReturnsLicencesWithUsersResponsibleOrganisations() {
     var licences = List.of(SEAWARD_PRODUCTION_LICENCE, CARBON_STORAGE_LICENCE);
 
-    when(teamQueryService.userIsInRegulatorTeam(USER_WUA_ID)).thenReturn(false);
     when(licenceService.getAllLicences()).thenReturn(licences);
     when(licenceStatusService.getCurrentStatusesByLicenceId(licences)).thenReturn(statusMapFor(licences));
     var lro1 = buildLicenceResponsibleOrganisation(SEAWARD_PRODUCTION_LICENCE, ORG_UNIT_ID_ALPHA);
@@ -281,6 +294,8 @@ class LicenceSearchServiceTest {
         .withRole(Role.VIEW_ORGANISATION_LICENCES)
         .build();
     when(teamQueryService.getTeamRolesForUser(USER_WUA_ID)).thenReturn(Set.of(teamRole));
+    when(teamQueryService.userIsInRegulatorTeam(Set.of(teamRole))).thenReturn(false);
+    when(featureFlagService.isEnabled(ReleasePhase.LMS2)).thenReturn(false);
     when(organisationGroupQueryService.getOrganisationUnitsByOrganisationGroupIds(List.of(ORG_GROUP_ID)))
         .thenReturn(List.of(new OrganisationUnitJson(ORG_UNIT_ID_ALPHA, ORG_UNIT_NAME_ALPHA)));
 
@@ -292,23 +307,124 @@ class LicenceSearchServiceTest {
         .isEqualTo(List.of(
             buildSearchResultItem(SEAWARD_PRODUCTION_LICENCE, List.of(ORG_UNIT_NAME_ALPHA))
         ));
+    verifyNoInteractions(licencePositionViewService);
+  }
+
+  @Test
+  void getSearchResultItems_whenNonRegulatorAndVisibilityByPositionEnabled_thenReturnsLicencesInvolvingUsersOrganisations() {
+    var licences = List.of(SEAWARD_PRODUCTION_LICENCE, CARBON_STORAGE_LICENCE);
+
+    when(licenceService.getAllLicences()).thenReturn(licences);
+    when(licenceStatusService.getCurrentStatusesByLicenceId(licences)).thenReturn(statusMapFor(licences));
+    var lro1 = buildLicenceResponsibleOrganisation(SEAWARD_PRODUCTION_LICENCE, ORG_UNIT_ID_ALPHA);
+    var lro2 = buildLicenceResponsibleOrganisation(CARBON_STORAGE_LICENCE, ORG_UNIT_ID_BETA);
+    when(licenceResponsibleOrganisationService.getAllByLicenceIn(licences))
+        .thenReturn(List.of(lro1, lro2));
+    when(organisationUnitQueryService.getOrganisationUnitNamesByIds(List.of(ORG_UNIT_ID_ALPHA, ORG_UNIT_ID_BETA)))
+        .thenReturn(Map.of(ORG_UNIT_ID_ALPHA, ORG_UNIT_NAME_ALPHA, ORG_UNIT_ID_BETA, ORG_UNIT_NAME_BETA));
+
+    var team = TeamTestUtil.newBuilder()
+        .withTeamType(TeamType.ORGANISATION)
+        .withScopeType(ScopeType.ORGANISATION_GROUP.name())
+        .withScopeId(String.valueOf(ORG_GROUP_ID))
+        .build();
+    var teamRole = TeamRoleTestUtil.newBuilder()
+        .withWuaId(USER_WUA_ID)
+        .withTeam(team)
+        .withRole(Role.VIEW_ORGANISATION_LICENCES)
+        .build();
+    when(teamQueryService.getTeamRolesForUser(USER_WUA_ID)).thenReturn(Set.of(teamRole));
+    when(teamQueryService.userIsInRegulatorTeam(Set.of(teamRole))).thenReturn(false);
+    when(featureFlagService.isEnabled(ReleasePhase.LMS2)).thenReturn(true);
+    when(organisationGroupQueryService.getOrganisationUnitsByOrganisationGroupIds(List.of(ORG_GROUP_ID)))
+        .thenReturn(List.of(new OrganisationUnitJson(ORG_UNIT_ID_ALPHA, ORG_UNIT_NAME_ALPHA)));
+
+    when(licencePositionViewService.getInvolvedLegalEntityIdsByLicenceId(licences))
+        .thenReturn(Map.of(
+            SEAWARD_PRODUCTION_LICENCE.getId(),
+            Set.of(ORG_UNIT_ID_BETA),
+            CARBON_STORAGE_LICENCE.getId(),
+            Set.of(ORG_UNIT_ID_BETA, ORG_UNIT_ID_ALPHA)
+        ));
+
+    var result = licenceSearchService.getSearchResultItems(new LicenceSearchFilterForm(), serviceUserDetail);
+
+    assertThat(result)
+        .usingRecursiveComparison()
+        .ignoringCollectionOrder()
+        .isEqualTo(List.of(
+            buildSearchResultItem(CARBON_STORAGE_LICENCE, List.of(ORG_UNIT_NAME_BETA))
+        ));
   }
 
   @Test
   void getSearchResultItems_whenNonRegulatorUserWithNoOrganisationAccess_returnsNoResults() {
     var licences = List.of(SEAWARD_PRODUCTION_LICENCE, CARBON_STORAGE_LICENCE);
 
-    when(teamQueryService.userIsInRegulatorTeam(USER_WUA_ID)).thenReturn(false);
     when(licenceService.getAllLicences()).thenReturn(licences);
     when(licenceStatusService.getCurrentStatusesByLicenceId(licences)).thenReturn(statusMapFor(licences));
     when(licenceResponsibleOrganisationService.getAllByLicenceIn(licences))
         .thenReturn(List.of());
     when(teamQueryService.getTeamRolesForUser(USER_WUA_ID)).thenReturn(Set.of());
+    when(teamQueryService.userIsInRegulatorTeam(Set.of())).thenReturn(false);
 
     var result = licenceSearchService.getSearchResultItems(new LicenceSearchFilterForm(), serviceUserDetail);
 
     assertThat(result).isEmpty();
     verifyNoInteractions(organisationGroupQueryService);
+  }
+
+  @Test
+  void getSearchResultItems_whenNonRegulatorWithNoOrganisationAccessAndVisibilityByPositionEnabled_thenReturnsNoResults() {
+    var licences = List.of(SEAWARD_PRODUCTION_LICENCE, CARBON_STORAGE_LICENCE);
+
+    when(licenceService.getAllLicences()).thenReturn(licences);
+    when(licenceStatusService.getCurrentStatusesByLicenceId(licences)).thenReturn(statusMapFor(licences));
+    when(licenceResponsibleOrganisationService.getAllByLicenceIn(licences)).thenReturn(List.of());
+    when(teamQueryService.getTeamRolesForUser(USER_WUA_ID)).thenReturn(Set.of());
+    when(teamQueryService.userIsInRegulatorTeam(Set.of())).thenReturn(false);
+    when(featureFlagService.isEnabled(ReleasePhase.LMS2)).thenReturn(true);
+
+    var result = licenceSearchService.getSearchResultItems(new LicenceSearchFilterForm(), serviceUserDetail);
+
+    assertThat(result).isEmpty();
+    verifyNoInteractions(organisationGroupQueryService, licencePositionViewService);
+  }
+
+  @Test
+  void getSearchResultItems_whenVisibilityByPositionEnabledAndLicenceHasNoExecutedPosition_thenLicenceNotReturned() {
+    var licences = List.of(SEAWARD_PRODUCTION_LICENCE, CARBON_STORAGE_LICENCE);
+
+    when(licenceService.getAllLicences()).thenReturn(licences);
+    when(licenceStatusService.getCurrentStatusesByLicenceId(licences)).thenReturn(statusMapFor(licences));
+    when(licenceResponsibleOrganisationService.getAllByLicenceIn(licences)).thenReturn(List.of());
+
+    var team = TeamTestUtil.newBuilder()
+        .withTeamType(TeamType.ORGANISATION)
+        .withScopeType(ScopeType.ORGANISATION_GROUP.name())
+        .withScopeId(String.valueOf(ORG_GROUP_ID))
+        .build();
+    var teamRole = TeamRoleTestUtil.newBuilder()
+        .withWuaId(USER_WUA_ID)
+        .withTeam(team)
+        .withRole(Role.VIEW_ORGANISATION_LICENCES)
+        .build();
+    when(teamQueryService.getTeamRolesForUser(USER_WUA_ID)).thenReturn(Set.of(teamRole));
+    when(teamQueryService.userIsInRegulatorTeam(Set.of(teamRole))).thenReturn(false);
+    when(featureFlagService.isEnabled(ReleasePhase.LMS2)).thenReturn(true);
+    when(organisationGroupQueryService.getOrganisationUnitsByOrganisationGroupIds(List.of(ORG_GROUP_ID)))
+        .thenReturn(List.of(new OrganisationUnitJson(ORG_UNIT_ID_ALPHA, ORG_UNIT_NAME_ALPHA)));
+
+    when(licencePositionViewService.getInvolvedLegalEntityIdsByLicenceId(licences))
+        .thenReturn(Map.of(CARBON_STORAGE_LICENCE.getId(), Set.of(ORG_UNIT_ID_ALPHA)));
+
+    var result = licenceSearchService.getSearchResultItems(new LicenceSearchFilterForm(), serviceUserDetail);
+
+    assertThat(result)
+        .usingRecursiveComparison()
+        .isEqualTo(List.of(
+            buildSearchResultItem(CARBON_STORAGE_LICENCE, List.of())
+        ));
   }
 
   @Test

@@ -101,53 +101,20 @@ class LicencePositionServiceTest {
   }
 
   @Test
-  void getExecutedChronologicalLicencePositions_returnsOnlyExecutedInChronologicalOrder() {
-    var licence = LicenceTestUtil.builder().build();
-
-    var earlierExecuted = LicencePositionTestUtil.newBuilder()
-        .withPositionDate(LocalDate.of(2026, Month.JANUARY, 1))
-        .withStatus(LicencePositionStatus.EXECUTED)
-        .build();
-    var nonExecuted = LicencePositionTestUtil.newBuilder()
-        .withPositionDate(LocalDate.of(2026, Month.MARCH, 1))
-        .withStatus(LicencePositionStatus.SUBMITTED)
-        .build();
-
-    when(licencePositionRepository.findByLicence(licence))
-        .thenReturn(List.of(nonExecuted, earlierExecuted));
-
-    var result = licencePositionService.getExecutedChronologicalLicencePositions(licence);
-
-    assertThat(result).containsExactly(earlierExecuted);
-  }
-
-  @Test
-  void getExecutedChronologicalLicencePositions_sortsByDateThenOrder() {
-    var licence = LicenceTestUtil.builder().build();
-
-    var pos1 = LicencePositionTestUtil.newBuilder()
-        .withId(UUID.randomUUID())
-        .withPositionDate(LocalDate.of(2026, Month.FEBRUARY, 1))
-        .withPositionOrder(1)
-        .withStatus(LicencePositionStatus.EXECUTED)
-        .build();
-    var pos2 = LicencePositionTestUtil.newBuilder()
-        .withId(UUID.randomUUID())
-        .withPositionDate(LocalDate.of(2026, Month.JANUARY, 1))
-        .withPositionOrder(2)
-        .withStatus(LicencePositionStatus.EXECUTED)
-        .build();
-    var pos3 = LicencePositionTestUtil.newBuilder()
-        .withId(UUID.randomUUID())
-        .withPositionDate(LocalDate.of(2026, Month.JANUARY, 1))
-        .withPositionOrder(1)
+  void getExecutedChronologicalLicencePositions() {
+    var executedPosition = LicencePositionTestUtil.newBuilder()
+        .withLicence(LICENCE)
         .withStatus(LicencePositionStatus.EXECUTED)
         .build();
 
-    when(licencePositionRepository.findByLicence(licence)).thenReturn(List.of(pos1, pos2, pos3));
+    when(licencePositionRepository.findByLicenceInAndStatusOrderByPositionDateAscPositionDateOrderAsc(
+        List.of(LICENCE),
+        LicencePositionStatus.EXECUTED
+    ))
+        .thenReturn(List.of(executedPosition));
 
-    var result = licencePositionService.getExecutedChronologicalLicencePositions(licence);
+    var result = licencePositionService.getExecutedChronologicalLicencePositions(LICENCE);
 
-    assertThat(result).containsExactly(pos3, pos2, pos1);
+    assertThat(result).containsExactly(executedPosition);
   }
 }

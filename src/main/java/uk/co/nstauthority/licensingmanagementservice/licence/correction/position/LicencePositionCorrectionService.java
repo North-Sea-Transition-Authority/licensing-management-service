@@ -33,7 +33,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.GeospatialLicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionRepository;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeService;
@@ -45,17 +45,17 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.vie
 public class LicencePositionCorrectionService {
 
   private final LicencePositionCorrectionRepository licencePositionCorrectionRepository;
-  private final LicencePositionRepository licencePositionRepository;
   private final LicencePositionChangeService licencePositionChangeService;
+  private final LicencePositionService licencePositionService;
 
   public LicencePositionCorrectionService(
       LicencePositionCorrectionRepository licencePositionCorrectionRepository,
-      LicencePositionRepository licencePositionRepository,
-      LicencePositionChangeService licencePositionChangeService
+      LicencePositionChangeService licencePositionChangeService,
+      LicencePositionService licencePositionService
   ) {
     this.licencePositionCorrectionRepository = licencePositionCorrectionRepository;
-    this.licencePositionRepository = licencePositionRepository;
     this.licencePositionChangeService = licencePositionChangeService;
+    this.licencePositionService = licencePositionService;
   }
 
   public Optional<LicencePositionCorrection> findById(UUID licencePositionCorrectionId) {
@@ -293,8 +293,7 @@ public class LicencePositionCorrectionService {
     return findFirstAddedPositionCorrection(licenceCorrection, licencePositionId)
         .orElseGet(() -> getOrBuildUpdatePositionCorrection(
             licenceCorrection,
-            licencePositionRepository.findByIdAndLicence(licencePositionId, licenceCorrection.getLicence())
-                .orElseThrow(() -> new LmsEntityNotFoundException("licencePosition", licencePositionId))
+            licencePositionService.getPositionForLicence(licenceCorrection.getLicence(), licencePositionId)
         ));
   }
 
@@ -947,10 +946,7 @@ public class LicencePositionCorrectionService {
         .map(LicencePosition::getId)
         .collect(Collectors.toSet());
 
-    var executedPositions = licencePositionRepository.findByLicence(licenceCorrection.getLicence())
-        .stream()
-        .filter(position -> position.getStatus() == LicencePositionStatus.EXECUTED)
-        .toList();
+    var executedPositions = licencePositionService.getExecutedChronologicalLicencePositions(licenceCorrection.getLicence());
 
     return new CorrectionPositions(
         executedPositions,

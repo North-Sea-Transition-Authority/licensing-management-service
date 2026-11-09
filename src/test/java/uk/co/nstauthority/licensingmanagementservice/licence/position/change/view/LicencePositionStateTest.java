@@ -278,4 +278,29 @@ class LicencePositionStateTest {
     );
     assertThat(result).isEqualTo(expected);
   }
+
+  @Test
+  void legalEntityOrganisationUnitIds_whenStateHasEveryRole_thenAllRoleHoldersReturnedWithoutDuplicates() {
+    var state = new LicencePositionState(
+        1,
+        2,
+        Set.of(1, 3),
+        Map.of(3, new BigDecimal("50"), 4, new BigDecimal("50")),
+        Map.of(FIRST_BLOCK_ID, Set.of(FIRST_SUBAREA)),
+        Map.of(FIRST_BLOCK_ID, Map.of(FIRST_SUBAREA, Map.of(4, new BigDecimal("60"), 5, new BigDecimal("40"))))
+    );
+
+    var result = state.legalEntityOrganisationUnitIds();
+
+    assertThat(result).isEqualTo(Set.of(1, 2, 3, 4, 5));
+  }
+
+  @Test
+  void legalEntityOrganisationUnitIds_whenNoAdministratorOrStorageOperator_thenNullsExcluded() {
+    var state = LicencePositionState.EMPTY.withLicenseeIds(List.of(1), List.of());
+
+    var result = state.legalEntityOrganisationUnitIds();
+
+    assertThat(result).isEqualTo(Set.of(1));
+  }
 }

@@ -3,7 +3,6 @@ package uk.co.nstauthority.licensingmanagementservice.licence.correction.positio
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.entry;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -42,15 +41,15 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.UpdateLicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.UpdateLicencePositionPayloadTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.TransferEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionRepository;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionViewService;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPosition;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.PositionChange;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPositionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.PositionChangeTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.TransferEquityHoldingView;
 
 @ExtendWith(MockitoExtension.class)
@@ -69,16 +68,10 @@ class TransferEquityCorrectionServiceTest {
   private LicencePositionCorrectionRepository licencePositionCorrectionRepository;
 
   @Mock
-  private LicencePositionRepository licencePositionRepository;
-
-  @Mock
   private OrganisationUnitQueryService organisationUnitQueryService;
 
   @Mock
   private LicencePositionViewService licencePositionViewService;
-
-  @Mock
-  private LicencePositionChangeService licencePositionChangeService;
 
   @Captor
   private ArgumentCaptor<LicencePositionCorrection> licencePositionCorrectionCaptor;
@@ -89,8 +82,8 @@ class TransferEquityCorrectionServiceTest {
   void setUp() {
     var licencePositionCorrectionService = new LicencePositionCorrectionService(
         licencePositionCorrectionRepository,
-        licencePositionRepository,
-        licencePositionChangeService
+        null,
+        null
     );
     transferEquityCorrectionService = new TransferEquityCorrectionService(
         licencePositionCorrectionRepository,
@@ -102,49 +95,38 @@ class TransferEquityCorrectionServiceTest {
 
   @Test
   void getEquityHoldingsForCorrection_appliesSetAndTransferOperationsInOrder() {
-    var earlierPosition = mock(ChronologicalPosition.class);
-    when(earlierPosition.id()).thenReturn(UUID.randomUUID());
-    var setChange = mock(PositionChange.class);
-    when(setChange.operations()).thenReturn(List.of(
+    var earlierPosition = chronologicalPosition(
+        UUID.randomUUID(),
         new SetEquityOperation(1, BigDecimal.valueOf(60)),
         new SetEquityOperation(2, BigDecimal.valueOf(40))
-    ));
-    when(earlierPosition.changes()).thenReturn(List.of(setChange));
-
-    var currentPosition = mock(ChronologicalPosition.class);
-    when(currentPosition.id()).thenReturn(POSITION_ID);
-    var transferChange = mock(PositionChange.class);
-    when(transferChange.operations()).thenReturn(List.of(
+    );
+    var currentPosition = chronologicalPosition(
+        POSITION_ID,
         new TransferEquityOperation(1, 2, BigDecimal.valueOf(15), true)
-    ));
-    when(currentPosition.changes()).thenReturn(List.of(transferChange));
+    );
 
     when(licencePositionViewService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, POSITION_ID))
         .thenReturn(List.of(earlierPosition, currentPosition));
 
     assertThat(transferEquityCorrectionService.getEquityHoldingsForCorrection(LICENCE_CORRECTION, POSITION_ID))
-        .hasSize(2)
-        .containsEntry(1, BigDecimal.valueOf(45))
-        .containsEntry(2, BigDecimal.valueOf(55));
+        .isEqualTo(Map.of(1, BigDecimal.valueOf(45), 2, BigDecimal.valueOf(55)));
   }
 
   @Test
   void getEquityHoldingsForCorrection_whenAChangeIsRemoved_thenIgnoresItsOperations() {
-    var currentPosition = mock(ChronologicalPosition.class);
-    when(currentPosition.id()).thenReturn(POSITION_ID);
-    var setChange = new PositionChange(
-        UUID.randomUUID().toString(),
-        1,
-        null,
-        List.of(new SetEquityOperation(1, BigDecimal.valueOf(100)))
-    );
-    var removedChange = new PositionChange(
-        UUID.randomUUID().toString(),
-        2,
-        LicencePositionChangeType.REMOVE_CHANGE,
-        List.of(new TransferEquityOperation(1, 2, BigDecimal.valueOf(30), true))
-    );
-    when(currentPosition.changes()).thenReturn(List.of(setChange, removedChange));
+    var setChange = PositionChangeTestUtil.newBuilder()
+        .withChangeOrder(1)
+        .withSetEquityOperation(1, BigDecimal.valueOf(100))
+        .build();
+    var removedChange = PositionChangeTestUtil.newBuilder()
+        .withChangeOrder(2)
+        .withChangeType(LicencePositionChangeType.REMOVE_CHANGE)
+        .withOperations(List.of(new TransferEquityOperation(1, 2, BigDecimal.valueOf(30), true)))
+        .build();
+    var currentPosition = ChronologicalPositionTestUtil.newBuilder()
+        .withId(POSITION_ID)
+        .withChanges(List.of(setChange, removedChange))
+        .build();
 
     when(licencePositionViewService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, POSITION_ID))
         .thenReturn(List.of(currentPosition));
@@ -156,46 +138,34 @@ class TransferEquityCorrectionServiceTest {
 
   @Test
   void getEquityHoldingsForCorrection_stopsProcessingAfterCurrentPositionIsReached() {
-    var earlierPosition = mock(ChronologicalPosition.class);
-    when(earlierPosition.id()).thenReturn(UUID.randomUUID());
-    var setChange = mock(PositionChange.class);
-    when(setChange.operations()).thenReturn(List.of(new SetEquityOperation(1, BigDecimal.valueOf(100))));
-    when(earlierPosition.changes()).thenReturn(List.of(setChange));
-
-    var currentPosition = mock(ChronologicalPosition.class);
-    when(currentPosition.id()).thenReturn(POSITION_ID);
-    var transferChange = mock(PositionChange.class);
-    when(transferChange.operations()).thenReturn(List.of(new TransferEquityOperation(1, 2, BigDecimal.valueOf(20), true)));
-    when(currentPosition.changes()).thenReturn(List.of(transferChange));
-
-    var laterPosition = mock(ChronologicalPosition.class);
+    var earlierPosition = chronologicalPosition(UUID.randomUUID(), new SetEquityOperation(1, BigDecimal.valueOf(100)));
+    var currentPosition = chronologicalPosition(
+        POSITION_ID,
+        new TransferEquityOperation(1, 2, BigDecimal.valueOf(20), true)
+    );
+    var laterPosition = chronologicalPosition(UUID.randomUUID(), new SetEquityOperation(3, BigDecimal.valueOf(50)));
 
     when(licencePositionViewService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, POSITION_ID))
         .thenReturn(List.of(earlierPosition, currentPosition, laterPosition));
 
     assertThat(transferEquityCorrectionService.getEquityHoldingsForCorrection(LICENCE_CORRECTION, POSITION_ID))
-        .containsEntry(1, BigDecimal.valueOf(80))
-        .containsEntry(2, BigDecimal.valueOf(20));
+        .isEqualTo(Map.of(1, BigDecimal.valueOf(80), 2, BigDecimal.valueOf(20)));
   }
 
   @Test
   void getEquityHoldingsForAddedPosition_resolvesPositionIdFromPayloadThenDelegates() {
-    var payload = mock(CreateLicencePositionPayload.class);
-    when(payload.licencePositionId()).thenReturn(POSITION_ID.toString());
-    var positionCorrection = mock(LicencePositionCorrection.class);
-    when(positionCorrection.getPayload()).thenReturn(payload);
-
-    var currentPosition = mock(ChronologicalPosition.class);
-    when(currentPosition.id()).thenReturn(POSITION_ID);
-    var setChange = mock(PositionChange.class);
-    when(setChange.operations()).thenReturn(List.of(new SetEquityOperation(1, BigDecimal.valueOf(100))));
-    when(currentPosition.changes()).thenReturn(List.of(setChange));
+    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withPayload(CreateLicencePositionPayloadTestUtil.newBuilder()
+            .withLicencePositionId(POSITION_ID.toString())
+            .build())
+        .build();
+    var currentPosition = chronologicalPosition(POSITION_ID, new SetEquityOperation(1, BigDecimal.valueOf(100)));
 
     when(licencePositionViewService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, POSITION_ID))
         .thenReturn(List.of(currentPosition));
 
     assertThat(transferEquityCorrectionService.getEquityHoldingsForAddedPosition(LICENCE_CORRECTION, positionCorrection))
-        .containsEntry(1, BigDecimal.valueOf(100));
+        .isEqualTo(Map.of(1, BigDecimal.valueOf(100)));
   }
 
   @Test
@@ -488,6 +458,13 @@ class TransferEquityCorrectionServiceTest {
     form.setTransferTo(to);
     form.getEquity().setInputValue(equity);
     return form;
+  }
+
+  private static ChronologicalPosition chronologicalPosition(UUID id, LicenceOperation... operations) {
+    return ChronologicalPositionTestUtil.newBuilder()
+        .withId(id)
+        .withChanges(List.of(PositionChangeTestUtil.newBuilder().withOperations(List.of(operations)).build()))
+        .build();
   }
 
   private static TransferEquityOperation transferEquityOp(int from, int to, BigDecimal equity, Boolean retain) {

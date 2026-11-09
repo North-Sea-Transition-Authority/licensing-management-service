@@ -1,7 +1,8 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.position;
 
 import java.time.LocalDate;
-import java.util.Comparator;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -13,10 +14,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.transaction.Licence
 
 @Service
 public class LicencePositionService {
-
-  private static final Comparator<LicencePosition> CHRONOLOGICAL_ORDER = Comparator
-      .comparing(LicencePosition::getPositionDate)
-      .thenComparing(LicencePosition::getPositionDateOrder);
 
   private final LicencePositionRepository licencePositionRepository;
 
@@ -55,10 +52,19 @@ public class LicencePositionService {
   }
 
   public List<LicencePosition> getExecutedChronologicalLicencePositions(Licence licence) {
-    return licencePositionRepository.findByLicence(licence)
-        .stream()
-        .filter(position -> position.getStatus() == LicencePositionStatus.EXECUTED)
-        .sorted(CHRONOLOGICAL_ORDER)
-        .toList();
+    return getExecutedChronologicalLicencePositions(Collections.singletonList(licence));
+  }
+
+  /**
+   * A list of licence positions for all the given licences.
+   *
+   * @param licences the licences to get positions for
+   * @return list of positions, sorted by position date and position date order
+   */
+  public List<LicencePosition> getExecutedChronologicalLicencePositions(Collection<Licence> licences) {
+    return licencePositionRepository.findByLicenceInAndStatusOrderByPositionDateAscPositionDateOrderAsc(
+        licences,
+        LicencePositionStatus.EXECUTED
+    );
   }
 }

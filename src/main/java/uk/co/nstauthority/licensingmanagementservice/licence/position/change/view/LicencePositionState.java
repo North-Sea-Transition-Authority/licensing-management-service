@@ -9,8 +9,10 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaDetails;
@@ -34,6 +36,18 @@ public record LicencePositionState(
 ) {
 
   public static final LicencePositionState EMPTY = new LicencePositionState(null, null, Set.of(), Map.of(), Map.of(), Map.of());
+
+  public Set<Integer> legalEntityOrganisationUnitIds() {
+    return Stream.of(
+        Stream.of(administratorId),
+        Stream.of(storageOperatorId),
+        licenseeIds.stream(),
+        beneficialInterestHolderIds().stream()
+    )
+        .flatMap(Function.identity())
+        .filter(Objects::nonNull)
+        .collect(Collectors.toSet());
+  }
 
   public LicencePositionState withAdministratorId(Integer administratorId) {
     return new LicencePositionState(

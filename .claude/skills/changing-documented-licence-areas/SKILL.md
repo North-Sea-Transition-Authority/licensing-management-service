@@ -84,8 +84,9 @@ single migration being written. Some of what they claim:
 - That a bounce is reported once per batch only after the notification service gives up, and
   that a missing contact is recorded only when a licence contacts manager exists to be told and
   is never cleared when a contact is added.
-- That the tracker cache is rebuilt only when a schedule is applied, holds no rates, other
-  events or expiry dates, and has four columns nothing ever writes.
+- That the tracker cache is rebuilt only when a schedule is applied, has its application
+  columns stamped (or a row forked) only when an application is submitted, holds no rates,
+  other events or expiry dates, and has one column, `quad_block`, that nothing ever writes.
 - That the hourly PEARS refresh overwrites licences field for field but never deletes one,
   writes a status row only when the status has actually changed, and deletes responsible
   organisations only where `managed_by_lms` is false.
@@ -126,7 +127,7 @@ You are, if the change touches any of:
 | What a journey asks | `SwpApplicationRequestPurposeService`, `OtherRequirementsVisibilityResolverService`, `LicenceTypeFeature` and the licence type rules |
 | The licence record and its licensees | `PearsLicenceRefreshService`, `LicenceScheduledJobService`, `PearsResponsibleOrganisationRefreshService`, `LicenceStatusService`, and anything touching `managed_by_lms` |
 | Reminder sending and reporting | the `licence/eventreminder` package — the deadline sources, `EventReminderSuppressionService`, `ReminderType`, `NoticePeriod`, the uniqueness keys that stop a repeat send, recipient resolution from `licence_contact`, `EventReminderBounceService`, `EventReminderMissingContactService`, and the LMS1 gate on both jobs |
-| Event cache refresh | `CrossLicenceEventTrackerService.refreshScheduleCache` and anything that changes which events it writes, or adds a second caller |
+| Event cache refresh | `CrossLicenceEventTrackerService.refreshScheduleCache` (on schedule apply) and `refreshApplicationCache` (on application submission), anything that changes which events or application columns they write, or adds a further caller |
 | Application decisions | `ApplicationDecisionDetailService`, `RecordOfDecisionTaskListService` (`startDecision` and `submit`), `StartRecordOfDecisionController`, anything that writes `application_decision_details`, changes its status or versioning, or changes which application status accompanies it — including starting decisions for a second application type |
 | Cross-cutting bindings | `FileUsageType`, `LicenceScheduleFileUsageType`, `ApplicationLetterService` and document template types, `TeamType.EXTERNAL_CONTRIBUTORS` scoping |
 
@@ -270,8 +271,9 @@ one document.
 | A change to reminder uniqueness, notice period or suppression | The reminders document's uniqueness section, and the claim that a deadline surviving a schedule update is not re-reminded |
 | How reminders are batched or addressed | The reminders document's batch section and the recipient definition in its glossary |
 | What counts as a bounce, who is told, or when a bounce or missing contact is recorded | The reminders document's bounces and missing contacts sections, the missing contacts "what a row does and does not tell you" table, and the caveats that repeat them |
-| Which events the tracker cache writes, or a second caller of the refresh | The event cache document — the refresh trigger, the table of what is written, and the list of event types never cached |
-| Starting to populate a cache column that was previously always null | The event cache document's "never populated" section and its caveat — a straight deletion, not an edit |
+| Which events the tracker cache writes, or a further caller of either refresh | The event cache document — the refresh triggers, the table of what is written, and the list of event types never cached |
+| When the application columns are stamped, or when a row is forked for a competing application | The event cache document's submission-time section (§4.5) and the caveat that those columns are a submission-time snapshot |
+| Starting to populate `quad_block` | The event cache document's "never populated" section and its caveat — a straight deletion, not an edit |
 | What the PEARS refresh writes, deletes or leaves alone | The licences document's refresh section, and the `managed_by_lms` rules that decide what may be deleted |
 | When a licence status row is written, or where its date comes from | The licences document's status section — it is explicit that rows are transitions, not observations, and that the date is when LMS noticed |
 | Adding a column to `licences` for LMS's own use | The caveat that `licences` is an hourly-overwritten copy, and the two columns already removed for that reason |
@@ -283,18 +285,21 @@ No test fails when these stop being true. If your change goes near one, re-read 
 - **"Not stored" claims** — the Maintain / Reduce / Extend choice and the request-purpose
   options are documented as having no column of their own. Adding one makes those sections
   actively wrong.
-- **"Always 1" and "at most one" claims** — `version_number`, and one `ACTIVE` schedule per
-  licence. Exactly the kind of thing a new feature quietly changes.
+- **"Only until" and "at most one" claims** — application `version_number` is documented as 1
+  until an update is requested, and one `ACTIVE` schedule per licence. Exactly the kind of
+  thing a new feature quietly changes.
 - **"Enforced in application code, not by a database constraint"** — if you add the
   constraint, the caveat becomes wrong in the reader's favour and should be deleted.
 - **The documented naming inconsistencies** — `created_datetime` versus `created_date_time`,
   the three spellings of the application-detail foreign key. If a migration normalises one,
   delete the caveat rather than leave it misleading.
-- **"Never populated" claims** — the event cache document states that `quad_block`,
-  `steward_wua_id`, `application_id` and `application_type` are always null. The moment
-  anything writes one, a whole section and a caveat become wrong in the reader's favour.
-- **"Only one caller" claims** — the event cache is documented as refreshed solely when a
-  schedule version is applied. A second caller changes the staleness story entirely.
+- **"Never populated" claims** — the event cache document states that `quad_block` is always
+  null. The moment anything writes it, a whole section and a caveat become wrong in the
+  reader's favour. `steward_wua_id`, `application_id` and `application_type` are written, but
+  only at submission — documented as a snapshot that is not updated when the application moves on.
+- **"Only these triggers" claims** — the event cache is documented as fully rebuilt only when a
+  schedule version is applied, and touched otherwise only when an application is submitted. A
+  further caller changes the staleness story entirely.
 - **"Never cached" and "not sent" claims** — rates, other schedule events and expiry are
   documented as absent from the tracker cache; reminders are documented as suppressed for any
   licence that is not `EXTANT`. Both are easy to change without noticing the document.

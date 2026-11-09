@@ -65,7 +65,7 @@ class SelectWorkProgrammeActivityControllerTest extends AbstractControllerTest {
         .hasAnnotation(ScheduleWorkProgrammeApplicationActionEndPointInterceptorRule.ActionEndPoint.class);
     assertThat(SelectWorkProgrammeActivityController.class
         .getAnnotation(ScheduleAmendmentApplicationHasStatus.class).value())
-        .containsOnly(ApplicationStatus.DSP_UPLOADED);
+        .containsOnly(ApplicationStatus.DRAFT_DECISION);
     assertThat(SelectWorkProgrammeActivityController.class
         .getAnnotation(ScheduleWorkProgrammeApplicationActionEndPointInterceptorRule.ActionEndPoint.class).value())
         .containsOnly(ScheduleWorkProgrammeApplicationActionItem.RECORD_DECISION);
@@ -236,7 +236,7 @@ class SelectWorkProgrammeActivityControllerTest extends AbstractControllerTest {
   private ScheduleWorkProgrammeApplicationDetail buildApplicationDetail(UUID applicationDetailId) {
     return ScheduleWorkProgrammeApplicationDetailTestUtil.builder()
         .withId(applicationDetailId)
-        .withStatus(ApplicationStatus.DSP_UPLOADED)
+        .withStatus(ApplicationStatus.DRAFT_DECISION)
         .build();
   }
 

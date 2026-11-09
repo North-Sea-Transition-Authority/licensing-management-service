@@ -149,6 +149,8 @@ set:
 |---|---|---|
 | `DRAFT` | Being built by the licensee. Not visible to the regulator. | Yes |
 | `SUBMITTED` | Submitted to the NSTA and under assessment. | Yes |
+| `DSP_UPLOADED` | The signed decision support paper has been uploaded; the application is ready for a decision to be recorded. | Yes |
+| `DRAFT_DECISION` | A regulator has started recording the decision but has not yet submitted it. See `application-decisions-data-model.md`. | Yes |
 | `ISSUE_DECISION` | A decision has been recorded and the decision letter is being prepared or issued. | Yes |
 | `COMPLETE` | The decision letter has been issued. | Yes |
 | `WITHDRAWN` | Withdrawn after submission, with a reason. | Yes |
@@ -164,7 +166,15 @@ set:
                   ▼
               SUBMITTED ─────── withdraw ───────► WITHDRAWN
                   │
-                  │ record decision
+                  │ upload DSP  (extension and amendment only)
+                  ▼
+             DSP_UPLOADED
+                  │
+                  │ start recording the decision  (extension and amendment only)
+                  ▼
+            DRAFT_DECISION
+                  │
+                  │ submit the recorded decision
                   ▼
             ISSUE_DECISION
                   │
@@ -179,7 +189,9 @@ set:
 |---|---|---|
 | `DRAFT` | yes | yes |
 | `SUBMITTED` | yes | yes |
-| `ISSUE_DECISION` | yes — set when the final decision is recorded | yes — set when the decision is confirmed |
+| `DSP_UPLOADED` | yes — set when the signed DSP is uploaded | **never set** |
+| `DRAFT_DECISION` | yes — set on the latest non-`DELETED` application version when a regulator starts recording the decision | **never set** |
+| `ISSUE_DECISION` | yes — set when the recorded decision is submitted | yes — set when the decision is confirmed, straight from `SUBMITTED` |
 | `COMPLETE` | **never set** | yes — set when the continuation letter is issued |
 | `WITHDRAWN` | **never set** | yes |
 | `DELETED` | yes | yes |
@@ -649,7 +661,8 @@ signal, not a documentation gap.
 
 ### 8.1 `status` on both application detail tables
 
-`DRAFT`, `SUBMITTED`, `ISSUE_DECISION`, `COMPLETE`, `WITHDRAWN`, `DELETED` — see §4, including
+`DRAFT`, `SUBMITTED`, `DSP_UPLOADED`, `DRAFT_DECISION`, `ISSUE_DECISION`, `COMPLETE`, `WITHDRAWN`,
+`DELETED` — see §4, including
 which values each family actually uses.
 
 ### 8.2 `licence_work_programme_amendment_summary.licence_work_programme_amendment_summary_options`

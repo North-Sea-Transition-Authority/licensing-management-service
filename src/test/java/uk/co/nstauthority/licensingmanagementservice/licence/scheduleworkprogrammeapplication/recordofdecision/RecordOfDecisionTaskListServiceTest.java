@@ -1,7 +1,9 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.recordofdecision;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.time.Instant;
@@ -15,10 +17,14 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.fivium.fileuploadlibrary.core.UploadedFile;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.caseevent.CaseEventService;
+import uk.co.nstauthority.licensingmanagementservice.caseevent.CaseEventType;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserService;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.WebUserAccountId;
 import uk.co.nstauthority.licensingmanagementservice.file.ApplicationFileService;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.decision.ApplicationDecisionDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.decision.ApplicationDecisionDetailService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationService;
@@ -52,6 +58,12 @@ class RecordOfDecisionTaskListServiceTest {
   @Mock
   private ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService;
 
+  @Mock
+  private ApplicationDecisionDetailService applicationDecisionDetailService;
+
+  @Mock
+  private CaseEventService caseEventService;
+
   private RecordOfDecisionTaskListService recordOfDecisionTaskListService;
   private ScheduleWorkProgrammeApplicationDetail applicationDetail;
 
@@ -65,7 +77,9 @@ class RecordOfDecisionTaskListServiceTest {
         applicationFileService,
         licenceService,
         energyPortalUserService,
-        scheduleWorkProgrammeApplicationService);
+        scheduleWorkProgrammeApplicationService,
+        applicationDecisionDetailService,
+        caseEventService);
   }
 
   @Test
@@ -85,10 +99,42 @@ class RecordOfDecisionTaskListServiceTest {
   }
 
   @Test
-  void submit_delegatesToScheduleWorkProgrammeApplicationService() {
+  void startDecision_whenNoDraftDecision_thenCreatesDraftAndSetsDraftDecisionStatus() {
+    var user = ServiceUserDetailTestUtil.newBuilder().build();
+    var application = applicationDetail.getScheduleWorkProgrammeApplication();
+    when(applicationDecisionDetailService.findDraftDecision(application)).thenReturn(Optional.empty());
+
+    recordOfDecisionTaskListService.startDecision(applicationDetail, user);
+
+    verify(applicationDecisionDetailService).createDraftDecision(application, user);
+    verify(scheduleWorkProgrammeApplicationService).draftDecisionCreated(application);
+  }
+
+  @Test
+  void startDecision_whenDraftDecisionExists_thenDoesNothing() {
+    var user = ServiceUserDetailTestUtil.newBuilder().build();
+    var application = applicationDetail.getScheduleWorkProgrammeApplication();
+    when(applicationDecisionDetailService.findDraftDecision(application))
+        .thenReturn(Optional.of(new ApplicationDecisionDetail(UUID.randomUUID())));
+
+    recordOfDecisionTaskListService.startDecision(applicationDetail, user);
+
+    verify(applicationDecisionDetailService, never()).createDraftDecision(application, user);
+    verifyNoInteractions(scheduleWorkProgrammeApplicationService);
+  }
+
+  @Test
+  void submit() {
     recordOfDecisionTaskListService.submit(applicationDetail);
 
     verify(scheduleWorkProgrammeApplicationService).decisionRecorded(applicationDetail);
+    verify(applicationDecisionDetailService)
+        .completeDraftDecision(applicationDetail.getScheduleWorkProgrammeApplication());
+    verify(caseEventService).recordCaseEvent(
+        CaseEventType.DECISION_RECORDED,
+        applicationDetail.getScheduleWorkProgrammeApplication(),
+        null
+    );
   }
 
   @Test

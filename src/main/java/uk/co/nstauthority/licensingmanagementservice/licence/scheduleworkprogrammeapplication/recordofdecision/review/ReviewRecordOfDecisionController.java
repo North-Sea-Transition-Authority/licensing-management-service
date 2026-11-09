@@ -30,7 +30,7 @@ import uk.co.nstauthority.licensingmanagementservice.workarea.WorkAreaController
 @Controller
 @RequestMapping(
     "licence/schedule-work-programme-application/{scheduleWorkProgrammeApplicationDetailId}/record-of-decision/review")
-@ScheduleAmendmentApplicationHasStatus(value = ApplicationStatus.DSP_UPLOADED)
+@ScheduleAmendmentApplicationHasStatus(value = ApplicationStatus.DRAFT_DECISION)
 @InvokingUserCanAccessScheduleApplication
 @ScheduleWorkProgrammeApplicationActionEndPointInterceptorRule.ActionEndPoint(
     ScheduleWorkProgrammeApplicationActionItem.RECORD_DECISION)

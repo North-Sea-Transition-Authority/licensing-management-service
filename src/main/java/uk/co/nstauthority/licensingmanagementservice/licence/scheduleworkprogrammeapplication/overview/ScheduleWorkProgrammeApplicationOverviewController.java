@@ -35,6 +35,7 @@ import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.W
     ApplicationStatus.DRAFT,
     ApplicationStatus.SUBMITTED,
     ApplicationStatus.DSP_UPLOADED,
+    ApplicationStatus.DRAFT_DECISION,
     ApplicationStatus.ISSUE_DECISION
 })
 @InvokingUserCanAccessScheduleApplication(viewOnly = true)

@@ -89,6 +89,7 @@ class ScheduleWorkProgrammeApplicationOverviewControllerTest extends AbstractCon
             ApplicationStatus.DRAFT,
             ApplicationStatus.SUBMITTED,
             ApplicationStatus.DSP_UPLOADED,
+            ApplicationStatus.DRAFT_DECISION,
             ApplicationStatus.ISSUE_DECISION);
     assertThat(ScheduleWorkProgrammeApplicationOverviewController.class)
         .hasAnnotation(InvokingUserCanAccessScheduleApplication.class);

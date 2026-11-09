@@ -15,6 +15,7 @@ public enum EventTrackerApplicationStatus implements Displayable {
   FRAMING("Framing", 30, true, Set.of()),
   CONSULT("Consult", 40, true, Set.of()),
   DSP_READY("DSP Ready", 50, true, Set.of(ApplicationStatus.DSP_UPLOADED)),
+  DRAFT_DECISION("Draft Decision", 55, true, Set.of(ApplicationStatus.DRAFT_DECISION)),
   DECISION_ISSUED("Decision issued", 60, false, Set.of(ApplicationStatus.ISSUE_DECISION, ApplicationStatus.COMPLETE))
   ;
 

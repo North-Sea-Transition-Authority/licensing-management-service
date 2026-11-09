@@ -73,7 +73,7 @@ public class ScheduleWorkProgrammeApplicationActionService {
           )
           .allowWhenDraftUpdateOpen(false)
         .registerAction(ScheduleWorkProgrammeApplicationActionItem.RECORD_DECISION)
-          .requiresAnyStatusFrom(ApplicationStatus.DSP_UPLOADED)
+          .requiresAnyStatusFrom(ApplicationStatus.DSP_UPLOADED, ApplicationStatus.DRAFT_DECISION)
           .requiresAnyRoleFrom(detail -> StreamUtil.toSet(caseManagerRole(detail)))
           .isPrimaryButton(true)
           .allowWhenDraftUpdateOpen(false)

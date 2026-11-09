@@ -8,7 +8,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogram
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overview.requestupdate.RequestUpdateController;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overview.steward.AllocateStewardController;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overview.uploaddsp.UploadDspController;
-import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.recordofdecision.RecordOfDecisionTaskListController;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.recordofdecision.StartRecordOfDecisionController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.util.enumutil.Displayable;
 
@@ -26,8 +26,8 @@ public enum ScheduleWorkProgrammeApplicationActionItem implements Displayable {
   RECORD_DECISION(
       "Record a decision",
       30,
-          detail -> ReverseRouter.route(on(RecordOfDecisionTaskListController.class)
-              .getTaskList(detail.getId(), null, null))
+          detail -> ReverseRouter.route(on(StartRecordOfDecisionController.class)
+              .render(detail.getId(), null))
   ),
   REQUEST_UPDATE(
       "Request an update",

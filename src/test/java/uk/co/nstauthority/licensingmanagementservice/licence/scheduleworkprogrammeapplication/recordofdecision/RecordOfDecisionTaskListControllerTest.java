@@ -64,7 +64,7 @@ class RecordOfDecisionTaskListControllerTest extends AbstractControllerTest {
         .hasAnnotation(ScheduleWorkProgrammeApplicationActionEndPointInterceptorRule.ActionEndPoint.class);
     assertThat(RecordOfDecisionTaskListController.class
         .getAnnotation(ScheduleAmendmentApplicationHasStatus.class).value())
-        .containsOnly(ApplicationStatus.DSP_UPLOADED);
+        .containsOnly(ApplicationStatus.DRAFT_DECISION);
     assertThat(RecordOfDecisionTaskListController.class
         .getAnnotation(ScheduleWorkProgrammeApplicationActionEndPointInterceptorRule.ActionEndPoint.class).value())
         .containsOnly(ScheduleWorkProgrammeApplicationActionItem.RECORD_DECISION);
@@ -161,7 +161,7 @@ class RecordOfDecisionTaskListControllerTest extends AbstractControllerTest {
   private ScheduleWorkProgrammeApplicationDetail buildApplicationDetail(UUID applicationDetailId) {
     return ScheduleWorkProgrammeApplicationDetailTestUtil.builder()
         .withId(applicationDetailId)
-        .withStatus(ApplicationStatus.DSP_UPLOADED)
+        .withStatus(ApplicationStatus.DRAFT_DECISION)
         .withApplicationReference("LMS/EAA/2024/1")
         .build();
   }

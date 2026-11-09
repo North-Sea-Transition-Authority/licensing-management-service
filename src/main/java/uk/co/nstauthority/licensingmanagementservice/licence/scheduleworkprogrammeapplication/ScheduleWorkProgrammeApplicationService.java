@@ -165,6 +165,22 @@ public class ScheduleWorkProgrammeApplicationService {
     scheduleWorkProgrammeApplicationDetailRepository.save(scheduleWorkProgrammeApplicationDetail);
   }
 
+  @Transactional
+  public void draftDecisionCreated(ScheduleWorkProgrammeApplication application) {
+    var latestDetail = scheduleWorkProgrammeApplicationDetailRepository
+        .findFirstByScheduleWorkProgrammeApplicationAndStatusNotOrderByVersionNumberDesc(
+            application,
+            ApplicationStatus.DELETED
+        )
+        .orElseThrow(() -> new LmsEntityNotFoundException(
+            "schedule work programme application detail",
+            application.getId()
+        ));
+
+    latestDetail.setStatus(ApplicationStatus.DRAFT_DECISION);
+    scheduleWorkProgrammeApplicationDetailRepository.save(latestDetail);
+  }
+
   public ScheduleWorkProgrammeApplication getApplicationByIdOrThrow(UUID applicationId) {
     return scheduleWorkProgrammeApplicationRepository.findById(applicationId)
         .orElseThrow(() -> new LmsEntityNotFoundException("schedule work programme application detail", applicationId));

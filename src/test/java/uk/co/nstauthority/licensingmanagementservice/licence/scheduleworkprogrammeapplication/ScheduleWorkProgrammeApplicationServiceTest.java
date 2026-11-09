@@ -321,6 +321,40 @@ class ScheduleWorkProgrammeApplicationServiceTest {
   }
 
   @Test
+  void draftDecisionCreated_whenLatestDetailExists_thenSetsStatusToDraftDecision() {
+    var application = scheduleWorkProgrammeApplicationDetail.getScheduleWorkProgrammeApplication();
+    scheduleWorkProgrammeApplicationDetail.setStatus(ApplicationStatus.DSP_UPLOADED);
+    when(scheduleWorkProgrammeApplicationDetailRepository
+        .findFirstByScheduleWorkProgrammeApplicationAndStatusNotOrderByVersionNumberDesc(
+            application,
+            ApplicationStatus.DELETED
+        ))
+        .thenReturn(Optional.of(scheduleWorkProgrammeApplicationDetail));
+
+    scheduleWorkProgrammeApplicationService.draftDecisionCreated(application);
+
+    verify(scheduleWorkProgrammeApplicationDetailRepository).save(scheduleWorkProgrammeApplicationDetailCaptor.capture());
+    assertThat(scheduleWorkProgrammeApplicationDetailCaptor.getValue().getStatus())
+        .isEqualTo(ApplicationStatus.DRAFT_DECISION);
+  }
+
+  @Test
+  void draftDecisionCreated_whenNoLatestDetail_thenThrows() {
+    var application = scheduleWorkProgrammeApplicationDetail.getScheduleWorkProgrammeApplication();
+    when(scheduleWorkProgrammeApplicationDetailRepository
+        .findFirstByScheduleWorkProgrammeApplicationAndStatusNotOrderByVersionNumberDesc(
+            application,
+            ApplicationStatus.DELETED
+        ))
+        .thenReturn(Optional.empty());
+
+    assertThatThrownBy(() -> scheduleWorkProgrammeApplicationService.draftDecisionCreated(application))
+        .isInstanceOf(LmsEntityNotFoundException.class);
+    verify(scheduleWorkProgrammeApplicationDetailRepository, never())
+        .save(any(ScheduleWorkProgrammeApplicationDetail.class));
+  }
+
+  @Test
   void userCanSubmitApplication() {
     var user = mockUser();
     var organisationUnitId = 100;

@@ -7,13 +7,17 @@ import java.util.List;
 import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
+import uk.co.nstauthority.licensingmanagementservice.caseevent.CaseEventService;
+import uk.co.nstauthority.licensingmanagementservice.caseevent.CaseEventType;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserJson;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserService;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.WebUserAccountId;
 import uk.co.nstauthority.licensingmanagementservice.file.ApplicationFileService;
 import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.decision.ApplicationDecisionDetailService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplication;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationService;
@@ -39,6 +43,8 @@ public class RecordOfDecisionTaskListService {
   private final LicenceService licenceService;
   private final EnergyPortalUserService energyPortalUserService;
   private final ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService;
+  private final ApplicationDecisionDetailService applicationDecisionDetailService;
+  private final CaseEventService caseEventService;
 
   @Autowired
   public RecordOfDecisionTaskListService(
@@ -46,13 +52,17 @@ public class RecordOfDecisionTaskListService {
       ApplicationFileService applicationFileService,
       LicenceService licenceService,
       EnergyPortalUserService energyPortalUserService,
-      ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService
+      ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService,
+      ApplicationDecisionDetailService applicationDecisionDetailService,
+      CaseEventService caseEventService
   ) {
     this.taskListSectionServices = taskListSectionServices;
     this.applicationFileService = applicationFileService;
     this.licenceService = licenceService;
     this.energyPortalUserService = energyPortalUserService;
     this.scheduleWorkProgrammeApplicationService = scheduleWorkProgrammeApplicationService;
+    this.applicationDecisionDetailService = applicationDecisionDetailService;
+    this.caseEventService = caseEventService;
   }
 
   public List<TaskListSection> getTaskListSections(RecordOfDecisionTaskListContext context, ServiceUserDetail user) {
@@ -69,8 +79,24 @@ public class RecordOfDecisionTaskListService {
         .allMatch(TaskListSection::isCompleted);
   }
 
+  @Transactional
+  public void startDecision(ScheduleWorkProgrammeApplicationDetail applicationDetail, ServiceUserDetail user) {
+    var application = applicationDetail.getScheduleWorkProgrammeApplication();
+
+    if (applicationDecisionDetailService.findDraftDecision(application).isPresent()) {
+      return;
+    }
+
+    applicationDecisionDetailService.createDraftDecision(application, user);
+    scheduleWorkProgrammeApplicationService.draftDecisionCreated(application);
+  }
+
+  @Transactional
   public void submit(ScheduleWorkProgrammeApplicationDetail applicationDetail) {
+    var application = applicationDetail.getScheduleWorkProgrammeApplication();
     scheduleWorkProgrammeApplicationService.decisionRecorded(applicationDetail);
+    applicationDecisionDetailService.completeDraftDecision(application);
+    caseEventService.recordCaseEvent(CaseEventType.DECISION_RECORDED, application, null);
   }
 
   // TODO: placeholder for the signed DSP

@@ -4,11 +4,11 @@ description: >
   Required reading before changing anything under the licence packages — licence/schedule,
   licence/scheduleworkprogrammeapplication, licence/continuation, licence/eventreminder,
   licence/crosslicenceeventtracker, licence/status, licence/contact,
-  licence/licenceresponsibleorganisation or the PEARS refresh — a Flyway migration, an @Entity,
+  licence/licenceresponsibleorganisation, licence/application/decision or the PEARS refresh — a Flyway migration, an @Entity,
   a persisted enum, or the application code that decides what gets written: status transitions,
   date and reference calculation, duplication behaviour, which questions a journey asks,
   reminder sending, bounce and missing-contact reporting, event cache refresh, what the licence
-  sync overwrites or deletes, file usage types, document templates and team scoping. Five documents
+  sync overwrites or deletes, file usage types, document templates and team scoping. Six documents
   in documentation/businessandtechnical/ describe both the schema and that behaviour to people
   outside the team, nothing regenerates them, and keeping them true is part of the change.
   Also use when asked whether those documents still match the code.
@@ -18,7 +18,7 @@ description: >
 
 The documents in `documentation/businessandtechnical/` describe this part of the service to
 people who do not read the code — analysts writing reporting queries, testers checking data,
-and developers new to the service. At the time of writing there are five; Step 1 is how you
+and developers new to the service. At the time of writing there are six; Step 1 is how you
 confirm that is still the case:
 
 | Document | Covers |
@@ -28,6 +28,7 @@ confirm that is still the case:
 | `licence-applications-data-model.md` | `schedule_work_programme_applications` and `licence_continuation_applications`, their detail tables, and every request, requirement and record-of-decision table hanging off them |
 | `licence-schedule-reminders-data-model.md` | `licence_reminders`, `licence_reminder_bounces`, `licence_reminder_missing_contacts` — which schedule deadlines have been warned about, what decides whether a reminder is sent, and how undelivered reminders and licensees with no contact are reported |
 | `licence-event-cache-data-model.md` | `licence_event_cache` — the denormalised read model behind the cross licence event tracker, and when it is rebuilt |
+| `application-decisions-data-model.md` | `application_decision_details` — the decision detail row written when a regulator starts recording a decision, shared by both application types and keyed on the application rather than the application detail |
 
 The split is deliberate: reminders, the event tracker cache and the licence record itself are
 all connected to the schedule but are separate areas of functionality, and folding them into
@@ -102,7 +103,7 @@ ls documentation/businessandtechnical/
 
 | What you see | What to do |
 |---|---|
-| Exactly the five documents listed above | Carry on |
+| Exactly the six documents listed above | Carry on |
 | A document not in the table | Read its opening section — the title, the "what this is" paragraph and its table list. Treat it exactly like the others for the rest of this skill: audit it for drift, work out what your change invalidates in it, edit it in the same commit. Then **say that this skill's table is out of date** so it can be corrected. |
 | A document listed above that is missing | Do not assume it was deleted on purpose — check `git log` for a rename before concluding anything |
 
@@ -126,6 +127,7 @@ You are, if the change touches any of:
 | The licence record and its licensees | `PearsLicenceRefreshService`, `LicenceScheduledJobService`, `PearsResponsibleOrganisationRefreshService`, `LicenceStatusService`, and anything touching `managed_by_lms` |
 | Reminder sending and reporting | the `licence/eventreminder` package — the deadline sources, `EventReminderSuppressionService`, `ReminderType`, `NoticePeriod`, the uniqueness keys that stop a repeat send, recipient resolution from `licence_contact`, `EventReminderBounceService`, `EventReminderMissingContactService`, and the LMS1 gate on both jobs |
 | Event cache refresh | `CrossLicenceEventTrackerService.refreshScheduleCache` and anything that changes which events it writes, or adds a second caller |
+| Application decisions | `ApplicationDecisionDetailService`, `RecordOfDecisionTaskListService` (`startDecision` and `submit`), `StartRecordOfDecisionController`, anything that writes `application_decision_details`, changes its status or versioning, or changes which application status accompanies it — including starting decisions for a second application type |
 | Cross-cutting bindings | `FileUsageType`, `LicenceScheduleFileUsageType`, `ApplicationLetterService` and document template types, `TeamType.EXTERNAL_CONTRIBUTORS` scoping |
 
 A refactor counts. If it changes *what is written or when*, it changes the documents — even
@@ -162,6 +164,7 @@ Each document has its own baseline and its own code paths. Substitute accordingl
 | `licence-applications-data-model.md` | `licence/scheduleworkprogrammeapplication`, `licence/continuation` |
 | `licence-schedule-reminders-data-model.md` | `licence/eventreminder` |
 | `licence-event-cache-data-model.md` | `licence/crosslicenceeventtracker` |
+| `application-decisions-data-model.md` | `licence/application/decision`, `licence/scheduleworkprogrammeapplication/recordofdecision` |
 
 The two derived documents have a second dependency that the paths above will not show: both
 are driven by schedule content, so a change under `licence/schedule` can invalidate them
@@ -204,7 +207,7 @@ Two kinds of false positive to expect, so they do not send you documenting the w
   was renamed to `schedule_events`. Check for a later `ALTER TABLE ... RENAME` before treating
   a hit as a gap.
 - **Separate feature areas.** Licence positions, corrections, transactions and teams are their
-  own domains and are out of scope for these five documents. If one of them needs documenting,
+  own domains and are out of scope for these six documents. If one of them needs documenting,
   that is a new document and a conversation with the user, not an addition here.
 
 One weakness to know about: the check only asks whether the table's **name appears anywhere**

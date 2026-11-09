@@ -25,7 +25,7 @@ import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 @RequestMapping(
     "licence/schedule-work-programme-application/{scheduleWorkProgrammeApplicationDetailId}" +
         "/work-programme-amendment-details/summary")
-@ScheduleAmendmentApplicationHasStatus(value = ApplicationStatus.DSP_UPLOADED)
+@ScheduleAmendmentApplicationHasStatus(value = ApplicationStatus.DRAFT_DECISION)
 @InvokingUserCanAccessScheduleApplication
 @ScheduleWorkProgrammeApplicationActionEndPointInterceptorRule.ActionEndPoint(
     ScheduleWorkProgrammeApplicationActionItem.RECORD_DECISION)

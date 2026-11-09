@@ -68,7 +68,7 @@ class RecordWorkProgrammeAmendmentSummaryControllerTest extends AbstractControll
         .hasAnnotation(ScheduleWorkProgrammeApplicationActionEndPointInterceptorRule.ActionEndPoint.class);
     assertThat(RecordWorkProgrammeAmendmentSummaryController.class
         .getAnnotation(ScheduleAmendmentApplicationHasStatus.class).value())
-        .containsOnly(ApplicationStatus.DSP_UPLOADED);
+        .containsOnly(ApplicationStatus.DRAFT_DECISION);
     assertThat(RecordWorkProgrammeAmendmentSummaryController.class
         .getAnnotation(ScheduleWorkProgrammeApplicationActionEndPointInterceptorRule.ActionEndPoint.class).value())
         .containsOnly(ScheduleWorkProgrammeApplicationActionItem.RECORD_DECISION);
@@ -292,7 +292,7 @@ class RecordWorkProgrammeAmendmentSummaryControllerTest extends AbstractControll
   private ScheduleWorkProgrammeApplicationDetail buildApplicationDetail(UUID applicationDetailId) {
     return ScheduleWorkProgrammeApplicationDetailTestUtil.builder()
         .withId(applicationDetailId)
-        .withStatus(ApplicationStatus.DSP_UPLOADED)
+        .withStatus(ApplicationStatus.DRAFT_DECISION)
         .build();
   }
 

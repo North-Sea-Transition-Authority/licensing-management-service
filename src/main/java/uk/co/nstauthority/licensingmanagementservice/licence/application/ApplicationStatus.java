@@ -10,6 +10,7 @@ public enum ApplicationStatus implements Displayable {
   DELETED("Deleted", false),
   SUBMITTED("Submitted", true),
   DSP_UPLOADED("DSP uploaded", true),
+  DRAFT_DECISION("Draft decision", true),
   ISSUE_DECISION("Issue decision", true),
   COMPLETE("Complete", true),
   WITHDRAWN("Withdrawn", true);

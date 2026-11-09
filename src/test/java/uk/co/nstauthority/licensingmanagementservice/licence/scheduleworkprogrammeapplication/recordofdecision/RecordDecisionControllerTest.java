@@ -55,7 +55,7 @@ class RecordDecisionControllerTest extends AbstractControllerTest {
         .hasAnnotation(ScheduleWorkProgrammeApplicationActionEndPointInterceptorRule.ActionEndPoint.class);
     assertThat(RecordDecisionController.class
         .getAnnotation(ScheduleAmendmentApplicationHasStatus.class).value())
-        .containsOnly(ApplicationStatus.DSP_UPLOADED);
+        .containsOnly(ApplicationStatus.DRAFT_DECISION);
     assertThat(RecordDecisionController.class
         .getAnnotation(ScheduleWorkProgrammeApplicationActionEndPointInterceptorRule.ActionEndPoint.class).value())
         .containsOnly(ScheduleWorkProgrammeApplicationActionItem.RECORD_DECISION);
@@ -156,7 +156,7 @@ class RecordDecisionControllerTest extends AbstractControllerTest {
   private ScheduleWorkProgrammeApplicationDetail buildApplicationDetail(UUID applicationDetailId) {
     return ScheduleWorkProgrammeApplicationDetailTestUtil.builder()
         .withId(applicationDetailId)
-        .withStatus(ApplicationStatus.DSP_UPLOADED)
+        .withStatus(ApplicationStatus.DRAFT_DECISION)
         .build();
   }
 

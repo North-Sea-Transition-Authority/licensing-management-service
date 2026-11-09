@@ -21,6 +21,12 @@ public interface ScheduleWorkProgrammeApplicationDetailRepository
   Optional<ScheduleWorkProgrammeApplicationDetail> getFirstByScheduleWorkProgrammeApplicationOrderByVersionNumberDesc(
       ScheduleWorkProgrammeApplication scheduleWorkProgrammeApplication);
 
+  Optional<ScheduleWorkProgrammeApplicationDetail>
+      findFirstByScheduleWorkProgrammeApplicationAndStatusNotOrderByVersionNumberDesc(
+      ScheduleWorkProgrammeApplication scheduleWorkProgrammeApplication,
+      ApplicationStatus status
+  );
+
   boolean existsByScheduleWorkProgrammeApplicationAndVersionNumberGreaterThanAndStatusNot(
       ScheduleWorkProgrammeApplication scheduleWorkProgrammeApplication,
       Integer versionNumber,

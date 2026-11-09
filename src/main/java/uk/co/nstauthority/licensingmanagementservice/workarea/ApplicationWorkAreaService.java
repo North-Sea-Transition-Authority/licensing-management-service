@@ -86,7 +86,7 @@ public class ApplicationWorkAreaService {
     var stewardWuaId = applicationDetail.getScheduleWorkProgrammeApplication().getStewardWuaId();
 
     if (regulatorRoleService.isCaseManagerFor(userTeamRoles, licenceType)
-        && (status == ApplicationStatus.DSP_UPLOADED || (status == ApplicationStatus.SUBMITTED && stewardWuaId == null))) {
+        && (isDspUploadedOrDraftDecision(status) || (status == ApplicationStatus.SUBMITTED && stewardWuaId == null))) {
       return true;
     }
 
@@ -114,12 +114,16 @@ public class ApplicationWorkAreaService {
 
     if (regulatorRoleService.isStewardFor(userTeamRoles, licenceType)) {
       var isAllocatedSteward = Objects.equals(stewardWuaId, userWuaId);
-      if (status == ApplicationStatus.SUBMITTED || (status == ApplicationStatus.DSP_UPLOADED && isAllocatedSteward)) {
+      if (status == ApplicationStatus.SUBMITTED || (isDspUploadedOrDraftDecision(status) && isAllocatedSteward)) {
         return true;
       }
     }
 
     return regulatorRoleService.isDecisionIssuer(userTeamRoles) && status == ApplicationStatus.ISSUE_DECISION;
+  }
+
+  private static boolean isDspUploadedOrDraftDecision(ApplicationStatus status) {
+    return status == ApplicationStatus.DSP_UPLOADED || status == ApplicationStatus.DRAFT_DECISION;
   }
 
   private boolean isContinuationApplicationMyWork(

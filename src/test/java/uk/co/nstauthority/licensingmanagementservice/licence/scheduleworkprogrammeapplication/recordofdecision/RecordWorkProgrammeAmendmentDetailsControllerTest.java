@@ -77,7 +77,7 @@ class RecordWorkProgrammeAmendmentDetailsControllerTest extends AbstractControll
     activityId = UUID.randomUUID();
     applicationDetail = ScheduleWorkProgrammeApplicationDetailTestUtil.builder()
         .withId(applicationDetailId)
-        .withStatus(ApplicationStatus.DSP_UPLOADED)
+        .withStatus(ApplicationStatus.DRAFT_DECISION)
         .build();
     workProgrammeActivity = buildActivity();
   }
@@ -90,7 +90,7 @@ class RecordWorkProgrammeAmendmentDetailsControllerTest extends AbstractControll
         .hasAnnotation(ScheduleWorkProgrammeApplicationActionEndPointInterceptorRule.ActionEndPoint.class);
     assertThat(RecordWorkProgrammeAmendmentDetailsController.class
         .getAnnotation(ScheduleAmendmentApplicationHasStatus.class).value())
-        .containsOnly(ApplicationStatus.DSP_UPLOADED);
+        .containsOnly(ApplicationStatus.DRAFT_DECISION);
     assertThat(RecordWorkProgrammeAmendmentDetailsController.class
         .getAnnotation(ScheduleWorkProgrammeApplicationActionEndPointInterceptorRule.ActionEndPoint.class).value())
         .containsOnly(ScheduleWorkProgrammeApplicationActionItem.RECORD_DECISION);

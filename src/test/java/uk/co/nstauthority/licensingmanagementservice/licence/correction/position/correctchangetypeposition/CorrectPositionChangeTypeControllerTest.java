@@ -137,6 +137,7 @@ class CorrectPositionChangeTypeControllerTest extends AbstractControllerTest {
   void renderMoveChangeTypePosition_whenAllocatedToUser() throws Exception {
     givenCorrectionAllocatedToUser();
     givenPosition();
+    givenExecutedPosition();
     givenChangeOnPosition();
     givenMoveOptions();
 
@@ -151,7 +152,7 @@ class CorrectPositionChangeTypeControllerTest extends AbstractControllerTest {
             model().attribute("positionDate", "1 June 2026 (2)"),
             model().attribute("positionReference", "REF-A"),
             model().attribute("changeTypePositionMoveOptions", MOVE_OPTIONS),
-            model().attribute("backLinkUrl", correctionUrl)
+            model().attribute("backLinkUrl", executedPositionUrl)
         );
   }
 
@@ -487,6 +488,7 @@ class CorrectPositionChangeTypeControllerTest extends AbstractControllerTest {
   void correctChangeTypePosition_whenInvalid() throws Exception {
     givenCorrectionAllocatedToUser();
     givenPosition();
+    givenExecutedPosition();
     givenChangeOnPosition();
     givenMoveOptions();
 
@@ -515,7 +517,7 @@ class CorrectPositionChangeTypeControllerTest extends AbstractControllerTest {
             model().attribute("positionDate", "1 June 2026 (2)"),
             model().attribute("positionReference", "REF-A"),
             model().attribute("changeTypePositionMoveOptions", MOVE_OPTIONS),
-            model().attribute("backLinkUrl", correctionUrl)
+            model().attribute("backLinkUrl", executedPositionUrl)
         );
 
     verify(correctChangeOrderService, never()).moveChangeToPosition(any(), any(), any(), any());

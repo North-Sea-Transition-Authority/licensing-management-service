@@ -81,6 +81,7 @@ public class CorrectPositionChangeTypeController {
         change.get(),
         currentPosition,
         correction,
+        licencePositionId,
         changeTypePositionMoveOptions
     );
   }
@@ -116,6 +117,7 @@ public class CorrectPositionChangeTypeController {
           change.get(),
           currentPosition,
           correction,
+          licencePositionId,
           changeTypePositionMoveOptions
       );
     }
@@ -283,6 +285,7 @@ public class CorrectPositionChangeTypeController {
       OrderableChange change,
       OrderablePosition currentPosition,
       LicenceCorrection correction,
+      UUID licencePositionId,
       LinkedHashMap<String, String> changeTypePositionMoveOptions
   ) {
     return new ModelAndView("lms/licence/correction/change/moveChangeTypePosition")
@@ -294,7 +297,7 @@ public class CorrectPositionChangeTypeController {
         .addObject("positionReference", currentPosition.reference())
         .addObject("changeTypePositionMoveOptions", changeTypePositionMoveOptions)
         .addObject("form", form)
-        .addObject("backLinkUrl", correctionUrl(correction));
+        .addObject("backLinkUrl", positionPageUrl(correction, licencePositionId));
   }
 
   private String correctionUrl(LicenceCorrection correction) {

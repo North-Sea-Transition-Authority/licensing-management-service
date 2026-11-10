@@ -25,7 +25,7 @@ import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
 
 @Controller
-@RequestMapping("document-library/{documentTemplateId}")
+@RequestMapping("document-templates/{documentTemplateId}")
 @HasAnyRoleInTeamTypeInterceptorRule.HasAnyRoleInTeamType(TeamType.LICENCE_MANAGEMENT)
 
 public class DocumentTemplateController {

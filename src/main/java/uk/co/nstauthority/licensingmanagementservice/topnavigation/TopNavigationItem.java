@@ -56,8 +56,8 @@ public enum TopNavigationItem implements Displayable {
       ReleasePhase.NOT_FLAGGED,
       ReverseRouter.route(on(LicenceContactController.class).renderManageContacts(null, null))
   ),
-  DOCUMENT_LIBRARY(
-      "Document library",
+  DOCUMENT_TEMPLATES(
+      "Document templates",
       60,
       ReleasePhase.LMS1,
       ReverseRouter.route(on(DocumentTemplateSearchController.class)

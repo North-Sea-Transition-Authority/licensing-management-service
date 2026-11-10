@@ -94,7 +94,7 @@ every page via a `@ControllerAdvice`.
   | `LICENCES` | Licences | 20 | always |
   | `TEAMS` | Teams | 30 | always |
   | `LICENCE_CONTACTS` | Licence contacts | 40 | always |
-  | `DOCUMENT_LIBRARY` | Document library | 50 | `LICENCE_MANAGEMENT` team roles |
+  | `DOCUMENT_TEMPLATES` | Document templates | 50 | `LICENCE_MANAGEMENT` team roles |
 
 - **`TopNavigationService.getTopNavigationItems()`** (`topnavigation/TopNavigationService.java`)
   — streams `EnumSet.allOf(TopNavigationItem.class)`, filters by team/role, sorts by
@@ -102,7 +102,7 @@ every page via a `@ControllerAdvice`.
 - **`DefaultPageControllerAdvice`** (`mvc/DefaultPageControllerAdvice.java`) — adds
   `navigationItems` to the model on every page.
 
-For the initial release, `LICENCES` and `DOCUMENT_LIBRARY` must be removed from the nav;
+For the initial release, `LICENCES` and `DOCUMENT_TEMPLATES` must be removed from the nav;
 `WORK_AREA`, `TEAMS`, `LICENCE_CONTACTS` remain.
 
 ### Layer 2 — In-page actions / features
@@ -669,7 +669,7 @@ correction / partial-surrender map editing).
   `enable-lms1`; an LMS2 controller (`LicenceCorrectionController`) is blocked under
   `enable-lms1` only and allowed under both; an unclassified controller is blocked; a
   non-`HandlerMethod` handler passes through.
-- **`TopNavigationServiceTest`** — extend to assert `LICENCES` and `DOCUMENT_LIBRARY` absent
+- **`TopNavigationServiceTest`** — extend to assert `LICENCES` and `DOCUMENT_TEMPLATES` absent
   unless `enable-lms1`; core three always present.
 - **In-page actions** — for a representative role-gated feature (e.g. Start application),
   `isEnabled(ReleaseFeature.START_APPLICATION)` false when `enable-lms1` off even for a user

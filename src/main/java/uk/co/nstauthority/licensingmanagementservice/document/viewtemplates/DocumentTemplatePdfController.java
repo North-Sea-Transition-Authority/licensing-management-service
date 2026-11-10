@@ -18,7 +18,7 @@ import uk.co.nstauthority.licensingmanagementservice.document.LmsDocumentTemplat
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
 
 @Controller
-@RequestMapping("document-library/{documentTemplateId}/preview-template")
+@RequestMapping("document-templates/{documentTemplateId}/preview-template")
 @HasAnyRoleInTeamTypeInterceptorRule.HasAnyRoleInTeamType(TeamType.LICENCE_MANAGEMENT)
 public class DocumentTemplatePdfController {
 

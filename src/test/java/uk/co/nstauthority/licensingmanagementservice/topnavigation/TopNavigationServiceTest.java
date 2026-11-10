@@ -64,7 +64,7 @@ class TopNavigationServiceTest {
         TopNavigationItem.CORRECTIONS,
         TopNavigationItem.EVENT_TRACKER,
         TopNavigationItem.LICENCE_CONTACTS,
-        TopNavigationItem.DOCUMENT_LIBRARY
+        TopNavigationItem.DOCUMENT_TEMPLATES
     );
   }
 
@@ -147,7 +147,7 @@ class TopNavigationServiceTest {
         TopNavigationItem.LICENCES,
         TopNavigationItem.EVENT_TRACKER,
         TopNavigationItem.LICENCE_CONTACTS,
-        TopNavigationItem.DOCUMENT_LIBRARY
+        TopNavigationItem.DOCUMENT_TEMPLATES
     );
   }
 

@@ -34,7 +34,7 @@ import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
 
 @Controller
-@RequestMapping("document-library/document-section/{documentSectionId}")
+@RequestMapping("document-templates/document-section/{documentSectionId}")
 @HasRolesInTeamType(value = {
     @RolesAndTeamType(roles = {Role.DOCUMENT_TEMPLATE_MANAGER}, teamType = TeamType.LICENCE_MANAGEMENT)
 })

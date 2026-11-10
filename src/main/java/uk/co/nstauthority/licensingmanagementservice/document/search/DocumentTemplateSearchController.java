@@ -22,7 +22,7 @@ import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
 import uk.co.nstauthority.licensingmanagementservice.util.enumutil.DisplayableEnumOptionUtil;
 
 @Controller
-@RequestMapping("document-library/templates")
+@RequestMapping("document-templates")
 @SessionAttributes("documentTemplateSearchSession")
 @HasAnyRoleInTeamType(TeamType.LICENCE_MANAGEMENT)
 public class DocumentTemplateSearchController {

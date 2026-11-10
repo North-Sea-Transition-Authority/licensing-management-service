@@ -115,9 +115,11 @@ class CropOperatorServiceTest {
             croppedPolygonId, new PolygonCropResultDto(IntersectionStatus.CROPPED, "cropped result"),
             outsidePolygonId, new PolygonCropResultDto(IntersectionStatus.FULLY_OUTSIDE, "")
         ))));
+    when(grpcClientService.multiPartToSinglePart("cropped result"))
+        .thenReturn(List.of("first cropped part", "second cropped part"));
     when(operatorResultProcessingService.processCroppedFeature(
         entityBackedFeature,
-        Map.of(croppedPolygonId, "cropped result"),
+        Map.of(croppedPolygonId, List.of("first cropped part", "second cropped part")),
         Set.of(outsidePolygonId)
     ))
         .thenReturn(croppedFeature);

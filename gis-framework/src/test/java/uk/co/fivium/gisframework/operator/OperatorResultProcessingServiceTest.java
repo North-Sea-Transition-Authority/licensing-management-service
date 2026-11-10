@@ -797,7 +797,7 @@ class OperatorResultProcessingServiceTest {
 
     var result = operatorResultProcessingService.processCroppedFeature(
         new EntityBackedFeature(inputFeature, polygonToLines),
-        Map.of(croppedPolygon.getId(), "cropped polygon"),
+        Map.of(croppedPolygon.getId(), List.of("cropped polygon")),
         Set.of(removedPolygon.getId())
     );
 
@@ -831,6 +831,70 @@ class OperatorResultProcessingServiceTest {
         .containsExactly(
             tuple(savedPolygons.get(0), "kept line", Map.of("line", "kept"), LineNavigationType.GEODESIC),
             tuple(savedPolygons.get(1), "cropped line", Map.of("line", "cropped parent"), LineNavigationType.LOXODROME)
+        );
+  }
+
+  @Test
+  void processCroppedFeature_whenCroppedPolygonHasSeveralParts_savesPolygonPerPartValidatedAgainstItsOwnPart() {
+    var inputFeature = FeatureTestUtil.newBuilder()
+        .withFeatureName("Subarea A")
+        .withCoordinateSystem(CoordinateSystem.ED50)
+        .withAttributes(FEATURE_ATTRIBUTES)
+        .build();
+    var croppedPolygon = PolygonTestUtil.newBuilder()
+        .withFeature(inputFeature)
+        .withAttributes(Map.of("polygon", "cropped"))
+        .withStartDepth(3L)
+        .withEndDepth(4L)
+        .build();
+    var parentLineId = UUID.randomUUID();
+    var parentLine = LineTestUtil.newBuilder()
+        .withId(parentLineId)
+        .withPolygon(croppedPolygon)
+        .withAttributes(Map.of("line", "parent"))
+        .withNavigationType(LineNavigationType.LOXODROME)
+        .build();
+
+    when(grpcClientService.explodePolygon("first part")).thenReturn(List.of("first line"));
+    when(grpcClientService.explodePolygon("second part")).thenReturn(List.of("second line"));
+    when(grpcClientService.findParentLines(List.of(parentLine), List.of("first line")))
+        .thenReturn(new FindParentLineResponse(Map.of("first line", parentLineId), List.of()));
+    when(grpcClientService.findParentLines(List.of(parentLine), List.of("second line")))
+        .thenReturn(new FindParentLineResponse(Map.of(), List.of("second line")));
+    when(grpcClientService.validatePolygonReconstructionFromPolylines(
+        argThat(lines -> lines != null && lines.size() == 1 && "first line".equals(lines.getFirst().getEsriJson())),
+        eq("first part")
+    ))
+        .thenReturn(true);
+    when(grpcClientService.validatePolygonReconstructionFromPolylines(
+        argThat(lines -> lines != null && lines.size() == 1 && "second line".equals(lines.getFirst().getEsriJson())),
+        eq("second part")
+    ))
+        .thenReturn(true);
+    when(grpcClientService.calculateArea(eq(CoordinateSystem.ED50), argThat(polygons -> polygons.size() == 2)))
+        .thenReturn(BigDecimal.TEN);
+
+    var result = operatorResultProcessingService.processCroppedFeature(
+        new EntityBackedFeature(inputFeature, Map.of(croppedPolygon, List.of(parentLine))),
+        Map.of(croppedPolygon.getId(), List.of("first part", "second part")),
+        Set.of()
+    );
+
+    verify(polygonService).savePolygons(polygonsCaptor.capture());
+    assertThat(polygonsCaptor.getValue())
+        .extracting(Polygon::getFeature, Polygon::getAttributes, Polygon::getStartDepth, Polygon::getEndDepth)
+        .containsExactly(
+            tuple(result, Map.of("polygon", "cropped"), 3L, 4L),
+            tuple(result, Map.of("polygon", "cropped"), 3L, 4L)
+        );
+    var savedPolygons = List.copyOf(polygonsCaptor.getValue());
+
+    verify(lineService).saveLines(linesCaptor.capture());
+    assertThat(linesCaptor.getValue())
+        .extracting(Line::getPolygon, Line::getEsriJson, Line::getAttributes, Line::getNavigationType)
+        .containsExactly(
+            tuple(savedPolygons.get(0), "first line", Map.of("line", "parent"), LineNavigationType.LOXODROME),
+            tuple(savedPolygons.get(1), "second line", Map.of(), LineNavigationType.LOXODROME)
         );
   }
 
@@ -986,6 +1050,71 @@ class OperatorResultProcessingServiceTest {
   }
 
   @Test
+  void processCroppedFeature_whenPolygonsCropToIdenticalPart_validatesLinesOfEveryPolygon() {
+    var upperPolygon = PolygonTestUtil.newBuilder()
+        .withFeature(FEATURE)
+        .withStartDepth(0L)
+        .withEndDepth(1000L)
+        .build();
+    var lowerPolygon = PolygonTestUtil.newBuilder()
+        .withFeature(FEATURE)
+        .withStartDepth(2000L)
+        .withEndDepth(3000L)
+        .build();
+    var upperParentLineId = UUID.randomUUID();
+    var upperParentLine = LineTestUtil.newBuilder()
+        .withId(upperParentLineId)
+        .withPolygon(upperPolygon)
+        .withAttributes(Map.of("line", "upper"))
+        .build();
+    var lowerParentLineId = UUID.randomUUID();
+    var lowerParentLine = LineTestUtil.newBuilder()
+        .withId(lowerParentLineId)
+        .withPolygon(lowerPolygon)
+        .withAttributes(Map.of("line", "lower"))
+        .build();
+    var polygonToLines = new LinkedHashMap<Polygon, List<Line>>();
+    polygonToLines.put(upperPolygon, List.of(upperParentLine));
+    polygonToLines.put(lowerPolygon, List.of(lowerParentLine));
+
+    when(grpcClientService.explodePolygon("shared part")).thenReturn(List.of("cropped line"));
+    when(grpcClientService.findParentLines(List.of(upperParentLine), List.of("cropped line")))
+        .thenReturn(new FindParentLineResponse(Map.of("cropped line", upperParentLineId), List.of()));
+    when(grpcClientService.findParentLines(List.of(lowerParentLine), List.of("cropped line")))
+        .thenReturn(new FindParentLineResponse(Map.of("cropped line", lowerParentLineId), List.of()));
+    when(grpcClientService.validatePolygonReconstructionFromPolylines(
+        argThat(lines -> lines != null && Map.of("line", "upper").equals(lines.getFirst().getAttributes())),
+        eq("shared part")
+    ))
+        .thenReturn(true);
+    when(grpcClientService.validatePolygonReconstructionFromPolylines(
+        argThat(lines -> lines != null && Map.of("line", "lower").equals(lines.getFirst().getAttributes())),
+        eq("shared part")
+    ))
+        .thenReturn(true);
+    when(grpcClientService.calculateArea(eq(FEATURE.getCoordinateSystem()), argThat(polygons -> polygons.size() == 2)))
+        .thenReturn(BigDecimal.TEN);
+
+    operatorResultProcessingService.processCroppedFeature(
+        new EntityBackedFeature(FEATURE, polygonToLines),
+        Map.of(
+            upperPolygon.getId(), List.of("shared part"),
+            lowerPolygon.getId(), List.of("shared part")
+        ),
+        Set.of()
+    );
+
+    verify(grpcClientService).validatePolygonReconstructionFromPolylines(
+        argThat(lines -> lines != null && Map.of("line", "upper").equals(lines.getFirst().getAttributes())),
+        eq("shared part")
+    );
+    verify(grpcClientService).validatePolygonReconstructionFromPolylines(
+        argThat(lines -> lines != null && Map.of("line", "lower").equals(lines.getFirst().getAttributes())),
+        eq("shared part")
+    );
+  }
+
+  @Test
   void processCroppedFeature_whenCroppedLinesCannotReconstructCroppedPolygon_throwsException() {
     var croppedPolygon = PolygonTestUtil.newBuilder().withFeature(FEATURE).build();
     var croppedParentLineId = UUID.randomUUID();
@@ -994,7 +1123,7 @@ class OperatorResultProcessingServiceTest {
         .withPolygon(croppedPolygon)
         .build();
     var entityBackedFeature = new EntityBackedFeature(FEATURE, Map.of(croppedPolygon, List.of(croppedParentLine)));
-    var polygonIdToCroppedEsriJson = Map.of(croppedPolygon.getId(), "cropped polygon");
+    var polygonIdToCroppedEsriJson = Map.of(croppedPolygon.getId(), List.of("cropped polygon"));
 
     when(grpcClientService.explodePolygon("cropped polygon")).thenReturn(List.of("cropped line"));
     when(grpcClientService.findParentLines(List.of(croppedParentLine), List.of("cropped line")))

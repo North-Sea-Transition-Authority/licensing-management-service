@@ -112,7 +112,7 @@ public class FeatureJourneyStateService {
   @Transactional
   public List<Feature> deleteFeatureJourneyStatesCreatedByCommands(List<OperatorCommand> createdByCommands) {
     var states = featureJourneyStateRepository.findAllByCreatedByCommandIn(createdByCommands);
-    return deleteStatesReturningOrphanedFeatures(states);
+    return deleteStatesAndReturnOrphanedFeatures(states);
   }
 
   @Transactional
@@ -120,29 +120,35 @@ public class FeatureJourneyStateService {
     var inactiveStates = featureJourneyStateRepository.findAllByCreatedByCommandIn(createdByCommands).stream()
         .filter(state -> !state.isActive())
         .toList();
-    return deleteStatesReturningOrphanedFeatures(inactiveStates);
+    return deleteStatesAndReturnOrphanedFeatures(inactiveStates);
   }
 
-  private List<Feature> deleteStatesReturningOrphanedFeatures(List<FeatureJourneyState> states) {
-    featureJourneyStateRepository.deleteAll(states);
-
-    var featureIds = states.stream()
-        .map(state -> state.getFeature().getId())
-        .collect(Collectors.toSet());
-
-    if (featureIds.isEmpty()) {
+  /**
+   * The given features that no journey holds a state for, so are safe to hard-delete.
+   */
+  public List<Feature> getFeaturesWithoutJourney(Collection<Feature> features) {
+    if (features.isEmpty()) {
       return List.of();
     }
 
-    var featureIdsHeldByAnotherJourney = featureJourneyStateRepository.findAllByFeature_IdIn(featureIds).stream()
+    var featureIds = features.stream()
+        .map(Feature::getId)
+        .collect(Collectors.toSet());
+
+    var featureIdsHeldByAJourney = featureJourneyStateRepository.findAllByFeature_IdIn(featureIds).stream()
         .map(state -> state.getFeature().getId())
         .collect(Collectors.toSet());
 
-    return states.stream()
-        .map(FeatureJourneyState::getFeature)
-        .filter(feature -> !featureIdsHeldByAnotherJourney.contains(feature.getId()))
+    return features.stream()
+        .filter(feature -> !featureIdsHeldByAJourney.contains(feature.getId()))
         .distinct()
         .toList();
+  }
+
+  private List<Feature> deleteStatesAndReturnOrphanedFeatures(List<FeatureJourneyState> states) {
+    featureJourneyStateRepository.deleteAll(states);
+
+    return getFeaturesWithoutJourney(states.stream().map(FeatureJourneyState::getFeature).toList());
   }
 
 

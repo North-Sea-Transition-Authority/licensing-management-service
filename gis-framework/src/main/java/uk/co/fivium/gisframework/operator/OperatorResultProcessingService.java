@@ -111,21 +111,21 @@ public class OperatorResultProcessingService {
    * neither cropped nor removed are copied across unchanged. The input feature is left untouched.
    *
    * @param inputFeature               the feature to create the cropped feature from.
-   * @param polygonIdToCroppedEsriJson the EsriJSON each cropped polygon is replaced with, keyed by polygon id.
+   * @param polygonIdToCroppedEsriJsonParts the EsriJSON parts each cropped polygon is replaced with, keyed by polygon id.
    * @param removedPolygonIds          the ids of the polygons to leave out of the new feature.
    * @return the new cropped feature.
    */
   @Transactional
   public Feature processCroppedFeature(
       EntityBackedFeature inputFeature,
-      Map<UUID, String> polygonIdToCroppedEsriJson,
+      Map<UUID, List<String>> polygonIdToCroppedEsriJsonParts,
       Set<UUID> removedPolygonIds
   ) {
     var newFeature = new Feature();
     List<Polygon> newPolygons = new ArrayList<>();
     List<Line> newLineEntities = new ArrayList<>();
     List<List<Line>> newPolygonLines = new ArrayList<>();
-    Map<UUID, List<Line>> croppedPolygonIdToLines = new HashMap<>();
+    List<CroppedPartWithLines> croppedPartsWithLines = new ArrayList<>();
 
     for (var polygonToLines : inputFeature.polygonToLines().entrySet()) {
       var inputPolygon = polygonToLines.getKey();
@@ -133,26 +133,34 @@ public class OperatorResultProcessingService {
         continue;
       }
 
-      var croppedEsriJson = polygonIdToCroppedEsriJson.get(inputPolygon.getId());
-      var polygonLines = croppedEsriJson == null
-          ? copyLines(polygonToLines.getValue())
-          : buildLinesWithParentAttributes(croppedEsriJson, polygonToLines.getValue());
+      var croppedEsriJsonParts = polygonIdToCroppedEsriJsonParts.get(inputPolygon.getId());
 
-      var newPolygon = buildPolygon(List.of(inputPolygon));
-      newPolygon.setFeature(newFeature);
-      polygonLines.forEach(line -> line.setPolygon(newPolygon));
+      if (croppedEsriJsonParts == null) {
+        var polygonLines = copyLines(polygonToLines.getValue());
+        var newPolygon = buildPolygon(List.of(inputPolygon));
+        newPolygon.setFeature(newFeature);
+        polygonLines.forEach(line -> line.setPolygon(newPolygon));
+        newPolygons.add(newPolygon);
+        newPolygonLines.add(polygonLines);
+        newLineEntities.addAll(polygonLines);
 
-      if (croppedEsriJson != null) {
-        croppedPolygonIdToLines.put(inputPolygon.getId(), polygonLines);
+      } else {
+        for (var croppedEsriJsonPart : croppedEsriJsonParts) {
+          var polygonLines = buildLinesWithParentAttributes(croppedEsriJsonPart, polygonToLines.getValue());
+          var newPolygon = buildPolygon(List.of(inputPolygon));
+          newPolygon.setFeature(newFeature);
+          polygonLines.forEach(line -> line.setPolygon(newPolygon));
+          newPolygons.add(newPolygon);
+          newPolygonLines.add(polygonLines);
+          newLineEntities.addAll(polygonLines);
+          croppedPartsWithLines.add(new CroppedPartWithLines(croppedEsriJsonPart, polygonLines));
+        }
       }
-      newPolygons.add(newPolygon);
-      newPolygonLines.add(polygonLines);
-      newLineEntities.addAll(polygonLines);
     }
 
     numberLines(newLineEntities);
-    croppedPolygonIdToLines.forEach((polygonId, lines) ->
-        validateLinesAreValid(lines, polygonIdToCroppedEsriJson.get(polygonId)));
+    croppedPartsWithLines.forEach(croppedPart ->
+        validateLinesAreValid(croppedPart.lines(), croppedPart.esriJson()));
 
     var target = inputFeature.feature();
     var featureArea = grpcClientService.calculateArea(target.getCoordinateSystem(), newPolygonLines);
@@ -424,5 +432,8 @@ public class OperatorResultProcessingService {
     newPolygon.setStartDepth(PolygonDepthUtil.topSource(sources).getStartDepth());
     newPolygon.setEndDepth(PolygonDepthUtil.bottomSource(sources).getEndDepth());
     return newPolygon;
+  }
+
+  private record CroppedPartWithLines(String esriJson, List<Line> lines) {
   }
 }

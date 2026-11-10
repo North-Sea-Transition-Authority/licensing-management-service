@@ -260,7 +260,8 @@ class BlockOperationMigratorTest {
                 Map.of(SUCCESSOR_FEATURE_ID, List.of(SubareaSurrenderOutcome.cropped(
                     new SubareaDetails(SUBAREA_FEATURE_ID, "Subarea", "SA"),
                     new SubareaDetails(SUCCESSOR_SUBAREA_FEATURE_ID, "Subarea", "SA")
-                )))
+                ))),
+                null
             ))
         ))
     )));
@@ -695,7 +696,8 @@ class BlockOperationMigratorTest {
                 null,
                 List.of(),
                 List.of(SUCCESSOR_FEATURE_ID),
-                Map.of(SUCCESSOR_FEATURE_ID, List.of(expectedOutcome))
+                Map.of(SUCCESSOR_FEATURE_ID, List.of(expectedOutcome)),
+                null
             ))
         ))
     )));

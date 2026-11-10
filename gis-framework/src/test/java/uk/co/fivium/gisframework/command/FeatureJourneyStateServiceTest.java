@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import jakarta.persistence.EntityNotFoundException;
@@ -297,6 +298,30 @@ class FeatureJourneyStateServiceTest {
 
     assertThat(result).isEmpty();
     verify(featureJourneyStateRepository).deleteAll(List.of(supersededState));
+  }
+
+  @Test
+  void withoutFeaturesHeldByAJourney_whenAJourneyHoldsAFeature_thenItIsLeftOut() {
+    var unheldFeature = FeatureTestUtil.newBuilder().build();
+    var heldFeature = FeatureTestUtil.newBuilder().build();
+    var heldState = FeatureJourneyStateTestUtil.newBuilder()
+        .withFeature(heldFeature)
+        .build();
+
+    when(featureJourneyStateRepository.findAllByFeature_IdIn(Set.of(unheldFeature.getId(), heldFeature.getId())))
+        .thenReturn(List.of(heldState));
+
+    var result = featureJourneyStateService.getFeaturesWithoutJourney(List.of(unheldFeature, heldFeature));
+
+    assertThat(result).containsExactly(unheldFeature);
+  }
+
+  @Test
+  void withoutFeaturesHeldByAJourney_whenNoFeaturesGiven_thenNothingIsQueried() {
+    var result = featureJourneyStateService.getFeaturesWithoutJourney(List.of());
+
+    assertThat(result).isEmpty();
+    verifyNoInteractions(featureJourneyStateRepository);
   }
 
   @Test

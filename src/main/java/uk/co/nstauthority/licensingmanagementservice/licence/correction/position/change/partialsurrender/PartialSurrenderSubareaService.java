@@ -47,9 +47,9 @@ class PartialSurrenderSubareaService {
    * wholly on a part is kept on it, one left partly on it is cropped back to it as a new subarea, and one left off it
    * is relinquished from it; the original subareas are left untouched. A fully surrendered block keeps no part, so
    * every subarea is relinquished against the block itself. Subareas carried across from PEARS without a shape can't
-   * be cropped, so are kept as they are on the first part kept.
+   * be cropped, so are kept as they are on the merged retained feature, or the first part kept when none was merged.
    *
-   * @param retainedFeatureIds The features holding the ground the block keeps.
+   * @param outputRetainedFeatureIds The features holding the ground the block keeps.
    * @param previousDetails The block's previous surrender details when its surrender is unchanged. Their outcomes are
    *                        reused if they were worked out from the same subareas now going into the block and the
    *                        same parts kept.
@@ -62,11 +62,11 @@ class PartialSurrenderSubareaService {
       @Nullable String changeId,
       UUID blockFeatureId,
       SurrenderDetails surrenderDetails,
-      Collection<UUID> retainedFeatureIds,
+      Collection<UUID> outputRetainedFeatureIds,
       @Nullable SurrenderDetails previousDetails
   ) {
     if (surrenderDetails.surrenderedFeatureIds().isEmpty()
-        || (surrenderDetails.isPartialSurrender() && retainedFeatureIds.isEmpty())) {
+        || (surrenderDetails.isPartialSurrender() && outputRetainedFeatureIds.isEmpty())) {
       return surrenderDetails.withSubareas(Map.of());
     }
 
@@ -81,7 +81,7 @@ class PartialSurrenderSubareaService {
 
     if (previousDetails != null
         && Set.copyOf(subareas).equals(inputSubareasOf(previousDetails))
-        && Set.copyOf(retainedFeatureIds).equals(Set.copyOf(previousDetails.retainedFeatureIds()))) {
+        && Set.copyOf(outputRetainedFeatureIds).equals(Set.copyOf(previousDetails.outputRetainedFeatureIds()))) {
       return surrenderDetails.withSubareas(previousDetails.retainedFeatureIdToSubareas());
     }
 
@@ -94,7 +94,7 @@ class PartialSurrenderSubareaService {
         : featureService.getFeaturesByIds(subareaIdToSubarea.keySet());
     var retainedFeatures = subareaFeatures.isEmpty()
         ? List.<Feature>of()
-        : featureService.getFeaturesByIds(retainedFeatureIds);
+        : featureService.getFeaturesByIds(outputRetainedFeatureIds);
 
     var retainedFeatureIdToSubareas = new LinkedHashMap<UUID, List<SubareaSurrenderOutcome>>();
     retainedFeatures.forEach(retainedFeature -> retainedFeatureIdToSubareas.put(
@@ -106,7 +106,7 @@ class PartialSurrenderSubareaService {
         .toList();
     if (!shapelessSubareas.isEmpty()) {
       retainedFeatureIdToSubareas.merge(
-          retainedFeatureIds.iterator().next(),
+          outputRetainedFeatureIds.iterator().next(),
           shapelessSubareas,
           (croppedSubareas, keptSubareas) -> Stream.concat(croppedSubareas.stream(), keptSubareas.stream()).toList());
     }

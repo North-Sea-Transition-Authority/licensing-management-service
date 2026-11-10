@@ -49,6 +49,51 @@ describe("multiPartToSinglePart", () => {
     );
   });
 
+  it("should split parts touching at a single point into one single-part polygon per part", () => {
+    const pinchedPolygon = makePolygonEsriJson([
+      [
+        [0, 1],
+        [0, 2],
+        [1, 2],
+        [1, 1],
+        [0, 1],
+      ],
+      [
+        [1, 0],
+        [1, 1],
+        [2, 1],
+        [2, 0],
+        [1, 0],
+      ],
+    ]);
+
+    const result = multiPartToSinglePart(pinchedPolygon).map(json => Polygon.fromJSON(JSON.parse(json)).rings);
+
+    expect(result).toHaveLength(2);
+    expect(result).toEqual(
+      expect.arrayContaining([
+        [
+          [
+            [0, 1],
+            [0, 2],
+            [1, 2],
+            [1, 1],
+            [0, 1],
+          ],
+        ],
+        [
+          [
+            [1, 0],
+            [1, 1],
+            [2, 1],
+            [2, 0],
+            [1, 0],
+          ],
+        ],
+      ]),
+    );
+  });
+
   it("should return a single single-part polygon for a single-part polygon", () => {
     const square = makePolygonEsriJson([
       [

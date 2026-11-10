@@ -2,6 +2,7 @@ package uk.co.fivium.gisframework.command;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityNotFoundException;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -118,6 +119,17 @@ public class CommandJourneyService {
     commandJourneyRepository.delete(commandJourney);
 
     entityManager.flush();
+  }
+
+  /**
+   * Hard-deletes the given features, except any a journey still holds.
+   */
+  @Transactional
+  public void deleteFeaturesNotHeldByAJourney(Collection<Feature> features) {
+    var deletableFeatures = featureJourneyStateService.getFeaturesWithoutJourney(features);
+    if (!deletableFeatures.isEmpty()) {
+      featureService.deleteAll(deletableFeatures);
+    }
   }
 
   /**

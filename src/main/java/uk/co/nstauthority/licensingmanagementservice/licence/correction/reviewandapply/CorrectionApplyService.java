@@ -18,6 +18,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.co.fivium.gisframework.command.CommandJourneyService;
+import uk.co.fivium.gisframework.feature.FeatureService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
@@ -73,6 +74,7 @@ public class CorrectionApplyService {
   private final CommandJourneyService commandJourneyService;
   private final LicenceResponsibleOrganisationService licenceResponsibleOrganisationService;
   private final LicenceStatusService licenceStatusService;
+  private final FeatureService featureService;
 
   public CorrectionApplyService(
       CorrectedTimelineService correctedTimelineService,
@@ -87,7 +89,9 @@ public class CorrectionApplyService {
       PartialSurrenderCorrectionService partialSurrenderCorrectionService,
       CommandJourneyService commandJourneyService,
       LicenceResponsibleOrganisationService licenceResponsibleOrganisationService,
-      LicenceStatusService licenceStatusService) {
+      LicenceStatusService licenceStatusService,
+      FeatureService featureService
+  ) {
     this.correctedTimelineService = correctedTimelineService;
     this.licencePositionValidationService = licencePositionValidationService;
     this.licenceCorrectionService = licenceCorrectionService;
@@ -101,6 +105,7 @@ public class CorrectionApplyService {
     this.commandJourneyService = commandJourneyService;
     this.licenceResponsibleOrganisationService = licenceResponsibleOrganisationService;
     this.licenceStatusService = licenceStatusService;
+    this.featureService = featureService;
   }
 
   @Transactional
@@ -152,6 +157,8 @@ public class CorrectionApplyService {
             positionCorrection.getPositionId(),
             addPosition(licenceCorrection, positionCorrection)));
 
+    var mergedRetainedSourceFeatureIds = mergedRetainedSourceFeatureIdsOf(positionCorrections);
+
     positionCorrections.stream()
         .filter(positionCorrection ->
             positionCorrection.getChangeType() != LicencePositionCorrectionChangeType.REMOVE_POSITION)
@@ -161,6 +168,11 @@ public class CorrectionApplyService {
         .forEach(this::removePosition);
 
     appliedCommandJourneyIds.forEach(commandJourneyService::deleteAllExcludingActiveFeatures);
+
+    if (!mergedRetainedSourceFeatureIds.isEmpty()) {
+      commandJourneyService.deleteFeaturesNotHeldByAJourney(
+          featureService.getFeaturesByIds(mergedRetainedSourceFeatureIds));
+    }
 
     licenceCorrectionService.completeCorrection(licenceCorrection);
 
@@ -316,6 +328,19 @@ public class CorrectionApplyService {
           return operation;
         })
         .toList();
+  }
+
+  private static Set<UUID> mergedRetainedSourceFeatureIdsOf(List<LicencePositionCorrection> positionCorrections) {
+    return positionCorrections.stream()
+        .filter(positionCorrection ->
+            positionCorrection.getChangeType() != LicencePositionCorrectionChangeType.REMOVE_POSITION)
+        .filter(positionCorrection -> positionCorrection.getPayload() != null)
+        .flatMap(positionCorrection -> positionCorrection.getPayload().changes().stream())
+        .flatMap(change -> LicencePositionChangeType.operationsOf(change).stream())
+        .filter(PartialSurrenderOperation.class::isInstance)
+        .map(PartialSurrenderOperation.class::cast)
+        .flatMap(partialSurrenderOperation -> partialSurrenderOperation.mergedRetainedSourceFeatureIds().stream())
+        .collect(Collectors.toSet());
   }
 
   private void revertReplacedPartialSurrenders(List<LicencePositionCorrection> positionCorrections) {

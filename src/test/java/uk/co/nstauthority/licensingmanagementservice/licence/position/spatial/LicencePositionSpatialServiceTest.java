@@ -1080,7 +1080,7 @@ class LicencePositionSpatialServiceTest {
                 SubareaSurrenderOutcome.kept(SUBAREA_B)),
             secondRetainedFeatureId, List.of(
                 SubareaSurrenderOutcome.cropped(SUBAREA_A, croppedSubareaA),
-                SubareaSurrenderOutcome.relinquished(SUBAREA_B))));
+                SubareaSurrenderOutcome.relinquished(SUBAREA_B))), null);
     var surrender = surrenderOf(BLOCK_30_1.getId(), surrenderDetails);
     givenPositions(
         position(FIRST_POSITION_ID, 1,

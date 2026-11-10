@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import jakarta.persistence.EntityManager;
@@ -194,6 +195,30 @@ class CommandJourneyServiceTest {
     verify(featureJourneyStateService).deleteAllStatesForJourney(journey);
     verify(commandJourneyRepository).delete(journey);
     verify(entityManager).flush();
+  }
+
+  @Test
+  void deleteFeaturesNotHeldByAJourney_whenSomeFeaturesAreNotHeld_thenOnlyThoseAreDeleted() {
+    var unheldFeature = FeatureTestUtil.newBuilder().build();
+    var heldFeature = FeatureTestUtil.newBuilder().build();
+
+    when(featureJourneyStateService.getFeaturesWithoutJourney(List.of(unheldFeature, heldFeature)))
+        .thenReturn(List.of(unheldFeature));
+
+    commandJourneyService.deleteFeaturesNotHeldByAJourney(List.of(unheldFeature, heldFeature));
+
+    verify(featureService).deleteAll(List.of(unheldFeature));
+  }
+
+  @Test
+  void deleteFeaturesNotHeldByAJourney_whenEveryFeatureIsHeld_thenNothingIsDeleted() {
+    var heldFeature = FeatureTestUtil.newBuilder().build();
+
+    when(featureJourneyStateService.getFeaturesWithoutJourney(List.of(heldFeature))).thenReturn(List.of());
+
+    commandJourneyService.deleteFeaturesNotHeldByAJourney(List.of(heldFeature));
+
+    verifyNoInteractions(featureService);
   }
 
   @Test

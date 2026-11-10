@@ -29,6 +29,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.fivium.gisframework.command.CommandJourneyService;
+import uk.co.fivium.gisframework.feature.FeatureService;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatusType;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
@@ -62,6 +63,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.uti
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.PositionChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.PositionChangeTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.FeatureTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.transaction.LicenceTransactionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.status.LicenceStatusService;
 import uk.co.nstauthority.licensingmanagementservice.licence.transaction.LicenceTransactionRepository;
@@ -113,6 +115,9 @@ class CorrectionApplyServiceTest {
 
   @Mock
   private LicenceResponsibleOrganisationService licenceResponsibleOrganisationService;
+
+  @Mock
+  private FeatureService featureService;
 
   @InjectMocks
   private CorrectionApplyService correctionApplyService;
@@ -381,6 +386,45 @@ class CorrectionApplyServiceTest {
         changeId, livePosition, List.of(executedSurrender), 3, LicencePositionChangeStatus.CONSENTED);
     inOrder.verify(commandJourneyService).deleteAllExcludingActiveFeatures(commandJourneyId);
     verify(partialSurrenderCorrectionService).setFeatureDates(executedSurrender, EFFECTIVE_DATE);
+  }
+
+  @Test
+  void applyCorrection_whenASurrenderMergedItsRetainedParts_thenThePartsAreDeletedAfterTheJourneysAreFinalised() {
+    var livePosition = LicencePositionTestUtil.newBuilder().build();
+    var changeId = UUID.randomUUID();
+    var commandJourneyId = UUID.randomUUID();
+    var blockId = UUID.randomUUID();
+    var firstRetainedPart = FeatureTestUtil.builder().build();
+    var secondRetainedPart = FeatureTestUtil.builder().build();
+    var stagedSurrender = LicenceOperation.newPartialSurrenderOperation()
+        .withSurrenderedFeatureIds(List.of(blockId))
+        .withSurrenderDetails(Map.of(blockId, new SurrenderDetails(
+            BlockSurrenderType.PARTIAL_SURRENDER,
+            commandJourneyId,
+            List.of(UUID.randomUUID()),
+            List.of(firstRetainedPart.getId(), secondRetainedPart.getId()),
+            Map.of(),
+            UUID.randomUUID()
+        )))
+        .build();
+    var executedSurrender = surrenderWithJourney(null);
+    var addChange = LicencePositionChangeType.addChange()
+        .withChangeId(changeId.toString())
+        .withChangeOrder(3)
+        .withOperations(List.of(addOperation(stagedSurrender)))
+        .build();
+
+    stubTimeline(List.of(updatePositionCorrection(livePosition, null, List.of(addChange))), List.of());
+    when(partialSurrenderCorrectionService.toExecutedSurrender(stagedSurrender)).thenReturn(executedSurrender);
+    when(featureService.getFeaturesByIds(Set.of(firstRetainedPart.getId(), secondRetainedPart.getId())))
+        .thenReturn(List.of(firstRetainedPart, secondRetainedPart));
+
+    correctionApplyService.applyCorrection(licenceCorrection);
+
+    var inOrder = inOrder(commandJourneyService);
+    inOrder.verify(commandJourneyService).deleteAllExcludingActiveFeatures(commandJourneyId);
+    inOrder.verify(commandJourneyService)
+        .deleteFeaturesNotHeldByAJourney(List.of(firstRetainedPart, secondRetainedPart));
   }
 
   @Test

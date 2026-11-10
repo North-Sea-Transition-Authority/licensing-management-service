@@ -89,13 +89,14 @@ public class CropOperatorService {
       return new CropResultDto(entityBackedFeature.feature().getId(), cropResult.intersectionStatus(), null);
     }
 
-    var polygonIdToCroppedEsriJson = cropResult.polygonIdToCropResult()
+    var polygonIdToCroppedEsriJsonParts = cropResult.polygonIdToCropResult()
         .entrySet()
         .stream()
         .filter(polygonIdToCropResult -> polygonIdToCropResult.getValue().status() == IntersectionStatus.CROPPED)
         .collect(Collectors.toMap(
             Map.Entry::getKey,
-            polygonIdToCropResult -> polygonIdToCropResult.getValue().esriJsonCroppedPolygon()
+            polygonIdToCropResult -> grpcClientService.multiPartToSinglePart(
+                polygonIdToCropResult.getValue().esriJsonCroppedPolygon())
         ));
 
     Set<UUID> removedPolygonIds = cropResult.polygonIdToCropResult()
@@ -107,7 +108,7 @@ public class CropOperatorService {
 
     var croppedFeature = operatorResultProcessingService.processCroppedFeature(
         entityBackedFeature,
-        polygonIdToCroppedEsriJson,
+        polygonIdToCroppedEsriJsonParts,
         removedPolygonIds
     );
 

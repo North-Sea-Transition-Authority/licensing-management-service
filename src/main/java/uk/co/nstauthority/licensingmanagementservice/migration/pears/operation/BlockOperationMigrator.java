@@ -570,7 +570,8 @@ class BlockOperationMigrator implements PearsOperationMigrator {
             null,
             List.of(),
             retained,
-            subareaOutcomesBySurrenderedBlock.getOrDefault(featureId, Map.of())
+            subareaOutcomesBySurrenderedBlock.getOrDefault(featureId, Map.of()),
+            null
         )
     ));
     return details;

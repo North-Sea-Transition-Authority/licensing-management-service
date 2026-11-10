@@ -94,13 +94,16 @@ public record PartialSurrenderOperation(
    * @param retainedFeatureIdToSubareas What the surrender did to each of the block's subareas, keyed by the retained
    *                                    feature it is relative to. A full surrender keeps no part, so relinquishes
    *                                    every subarea against the block itself.
+   * @param mergedRetainedFeatureId The single feature the retained parts were merged into when more than one part is
+   *                                kept. Null when one part or none is kept, and on an executed change.
    */
   public record SurrenderDetails(
       BlockSurrenderType type,
       @Nullable UUID commandJourneyId,
       List<UUID> surrenderedFeatureIds,
       List<UUID> retainedFeatureIds,
-      Map<UUID, List<SubareaSurrenderOutcome>> retainedFeatureIdToSubareas
+      Map<UUID, List<SubareaSurrenderOutcome>> retainedFeatureIdToSubareas,
+      @Nullable UUID mergedRetainedFeatureId
   ) {
     public SurrenderDetails {
       surrenderedFeatureIds = surrenderedFeatureIds == null ? List.of() : surrenderedFeatureIds;
@@ -118,7 +121,7 @@ public record PartialSurrenderOperation(
         List<UUID> surrenderedFeatureIds,
         List<UUID> retainedFeatureIds
     ) {
-      this(type, commandJourneyId, surrenderedFeatureIds, retainedFeatureIds, Map.of());
+      this(type, commandJourneyId, surrenderedFeatureIds, retainedFeatureIds, Map.of(), null);
     }
 
     public SurrenderDetails(BlockSurrenderType type, @Nullable UUID commandJourneyId, List<UUID> surrenderedFeatureIds) {
@@ -131,7 +134,8 @@ public record PartialSurrenderOperation(
           commandJourneyId,
           surrenderedFeatureIds,
           retainedFeatureIds,
-          retainedFeatureIdToSubareas
+          retainedFeatureIdToSubareas,
+          mergedRetainedFeatureId
       );
     }
 
@@ -141,8 +145,29 @@ public record PartialSurrenderOperation(
           commandJourneyId,
           surrenderedFeatureIds,
           retainedFeatureIds,
-          retainedFeatureIdToSubareas
+          retainedFeatureIdToSubareas,
+          mergedRetainedFeatureId
       );
+    }
+
+    public SurrenderDetails withMergedRetainedFeatureId(@Nullable UUID mergedRetainedFeatureId) {
+      return new SurrenderDetails(
+          type,
+          commandJourneyId,
+          surrenderedFeatureIds,
+          retainedFeatureIds,
+          retainedFeatureIdToSubareas,
+          mergedRetainedFeatureId
+      );
+    }
+
+    /**
+     * The features the licence keeps of the block: the merged feature when the retained parts were merged, otherwise
+     * the retained parts themselves. Empty when full surrender, or in progress.
+     */
+    @JsonIgnore
+    public List<UUID> outputRetainedFeatureIds() {
+      return mergedRetainedFeatureId != null ? List.of(mergedRetainedFeatureId) : retainedFeatureIds;
     }
 
     @JsonIgnore
@@ -280,7 +305,7 @@ public record PartialSurrenderOperation(
 
     var updatedState = licencePositionState.withoutBlocks(surrenderedFeatureIds);
     for (var surrenderDetails : featureIdToSurrenderDetails.values()) {
-      for (var retainedFeatureId : surrenderDetails.retainedFeatureIds()) {
+      for (var retainedFeatureId : surrenderDetails.outputRetainedFeatureIds()) {
         updatedState = updatedState.withBlock(
             retainedFeatureId,
             outputSubareasOf(surrenderDetails, retainedFeatureId)
@@ -392,6 +417,14 @@ public record PartialSurrenderOperation(
     return endedFeatureIds;
   }
 
+  @JsonIgnore
+  public Set<UUID> mergedRetainedSourceFeatureIds() {
+    return featureIdToSurrenderDetails().values().stream()
+        .filter(details -> details.mergedRetainedFeatureId() != null)
+        .flatMap(details -> details.retainedFeatureIds().stream())
+        .collect(Collectors.toSet());
+  }
+
   private Set<UUID> inputFeatureIds() {
     return Stream.concat(
         surrenderedFeatureIds.stream(),
@@ -412,7 +445,7 @@ public record PartialSurrenderOperation(
   private Set<UUID> keptFeatureIds() {
     return featureIdToSurrenderDetails.values().stream()
         .flatMap(surrenderDetails -> Stream.concat(
-            surrenderDetails.retainedFeatureIds().stream(),
+            surrenderDetails.outputRetainedFeatureIds().stream(),
             surrenderDetails.allSubareaOutcomes()
                 .map(SubareaSurrenderOutcome::outputSubarea)
                 .filter(Objects::nonNull)

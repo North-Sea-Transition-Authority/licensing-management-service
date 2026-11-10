@@ -97,7 +97,6 @@ class PartialSurrenderBlockSummarySectionServiceTest {
         .thenReturn(Optional.of(staged));
     when(partialSurrenderCorrectionService.getSurrenderedBlockFeatures(staged))
         .thenReturn(List.of(SECOND_BLOCK, FIRST_BLOCK));
-    when(partialSurrenderCorrectionService.getRetainedFeatureIds(partialBlockSurrender)).thenReturn(List.of());
 
     var result = partialSurrenderBlockSummarySectionService.getSummarySection(
         new PartialSurrenderSummaryContext.Staged(positionCorrection),
@@ -135,14 +134,14 @@ class PartialSurrenderBlockSummarySectionServiceTest {
   @Test
   void getSummarySection_whenBlockPartiallySurrendered_thenAreaAndMapsOfRetainedParts() {
     var positionCorrection = positionCorrection();
-    var blockSurrender = surrenderDetails(BlockSurrenderType.PARTIAL_SURRENDER, List.of(SURRENDERED_PART.getId()));
-    var staged = operation(Map.of(SECOND_BLOCK.getId(), blockSurrender));
     var retainedFeatureIds = List.of(RETAINED_PART.getId(), OTHER_RETAINED_PART.getId());
+    var blockSurrender = surrenderDetails(BlockSurrenderType.PARTIAL_SURRENDER, List.of(SURRENDERED_PART.getId()))
+        .withRetainedFeatureIds(retainedFeatureIds);
+    var staged = operation(Map.of(SECOND_BLOCK.getId(), blockSurrender));
 
     when(partialSurrenderCorrectionService.getCommittedPartialSurrender(positionCorrection))
         .thenReturn(Optional.of(staged));
     when(partialSurrenderCorrectionService.getSurrenderedBlockFeatures(staged)).thenReturn(List.of(SECOND_BLOCK));
-    when(partialSurrenderCorrectionService.getRetainedFeatureIds(blockSurrender)).thenReturn(retainedFeatureIds);
     when(featureService.getFeaturesByIds(retainedFeatureIds)).thenReturn(List.of(RETAINED_PART, OTHER_RETAINED_PART));
 
     var result = partialSurrenderBlockSummarySectionService.getSummarySection(
@@ -214,7 +213,9 @@ class PartialSurrenderBlockSummarySectionServiceTest {
     var relinquishedSubarea = subarea(relinquishedSubareaFeature, "C");
     var legacySubarea = new SubareaDetails(null, null, "D");
 
+    var retainedFeatureIds = List.of(RETAINED_PART.getId(), OTHER_RETAINED_PART.getId());
     var blockSurrender = surrenderDetails(BlockSurrenderType.PARTIAL_SURRENDER, List.of(SURRENDERED_PART.getId()))
+        .withRetainedFeatureIds(retainedFeatureIds)
         .withSubareas(Map.of(
             RETAINED_PART.getId(), List.of(
                 SubareaSurrenderOutcome.cropped(croppedSubarea, subarea(croppedOntoRetainedPart, "A")),
@@ -229,12 +230,10 @@ class PartialSurrenderBlockSummarySectionServiceTest {
             )
         ));
     var staged = operation(Map.of(SECOND_BLOCK.getId(), blockSurrender));
-    var retainedFeatureIds = List.of(RETAINED_PART.getId(), OTHER_RETAINED_PART.getId());
 
     when(partialSurrenderCorrectionService.getCommittedPartialSurrender(positionCorrection))
         .thenReturn(Optional.of(staged));
     when(partialSurrenderCorrectionService.getSurrenderedBlockFeatures(staged)).thenReturn(List.of(SECOND_BLOCK));
-    when(partialSurrenderCorrectionService.getRetainedFeatureIds(blockSurrender)).thenReturn(retainedFeatureIds);
     when(featureService.getFeaturesByIds(retainedFeatureIds)).thenReturn(List.of(RETAINED_PART, OTHER_RETAINED_PART));
     when(featureService.getFeaturesByIds(Set.of(
         croppedSubareaFeature.getId(),

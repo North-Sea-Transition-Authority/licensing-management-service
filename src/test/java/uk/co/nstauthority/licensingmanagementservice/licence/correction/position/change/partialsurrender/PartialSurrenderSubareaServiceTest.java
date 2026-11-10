@@ -229,6 +229,32 @@ class PartialSurrenderSubareaServiceTest {
   }
 
   @Test
+  void processSubareas_whenPreviousOutcomesWereAgainstTheSameMergedFeature_thenReusedWithoutCropping() {
+    var surrenderDetails = partialSurrenderDetails();
+    givenSubareasGoingIntoTheSurrender(INSIDE_SUBAREA);
+    var previousDetails = new SurrenderDetails(
+        BlockSurrenderType.PARTIAL_SURRENDER,
+        UUID.randomUUID(),
+        List.of(SURRENDERED_PART_ID),
+        List.of(UUID.randomUUID(), UUID.randomUUID()),
+        Map.of(RETAINED_FEATURE.getId(), List.of(SubareaSurrenderOutcome.kept(INSIDE_SUBAREA))),
+        RETAINED_FEATURE.getId()
+    );
+
+    var result = partialSurrenderSubareaService.processSubareas(
+        LICENCE_CORRECTION,
+        POSITION_ID,
+        CHANGE_ID,
+        BLOCK_FEATURE_ID,
+        surrenderDetails,
+        List.of(RETAINED_FEATURE.getId()),
+        previousDetails);
+
+    assertThat(result).isEqualTo(surrenderDetails.withSubareas(previousDetails.retainedFeatureIdToSubareas()));
+    verifyNoInteractions(featureService, cropOperatorService);
+  }
+
+  @Test
   void processSubareas_whenIncomingSubareasDifferFromPrevious_thenSubareasCroppedAfresh() {
     var surrenderDetails = partialSurrenderDetails();
     givenSubareasGoingIntoTheSurrender(INSIDE_SUBAREA);

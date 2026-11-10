@@ -269,7 +269,8 @@ class TestHarnessService {
                 ),
                 SubareaSurrenderOutcome.kept(SeededFeatures.toSubareaDetails(keptSubarea))
             )
-        )
+        ),
+        null
     );
 
     // no surrender date - the change takes the date of the position it sits on

@@ -359,7 +359,8 @@ class TestHarnessServiceTest {
         null,
         List.of(FULLY_SURRENDERED_BLOCK.getId()),
         List.of(),
-        Map.of()
+        Map.of(),
+        null
     );
     var expectedPartialSurrender = new PartialSurrenderOperation.SurrenderDetails(
         BlockSurrenderType.PARTIAL_SURRENDER,
@@ -370,7 +371,7 @@ class TestHarnessServiceTest {
             SubareaSurrenderOutcome.relinquished(subareaDetails(RELINQUISHED_SUBAREA)),
             SubareaSurrenderOutcome.cropped(subareaDetails(SUBAREA_ACROSS_THE_CUT), subareaDetails(CROPPED_SUBAREA)),
             SubareaSurrenderOutcome.kept(subareaDetails(KEPT_SUBAREA))
-        ))
+        )), null
     );
     LicenceOperation expectedSurrender = LicenceOperation.newPartialSurrenderOperation()
         .withSurrenderedFeatureIds(List.of(FULLY_SURRENDERED_BLOCK.getId(), PARTIALLY_SURRENDERED_BLOCK.getId()))

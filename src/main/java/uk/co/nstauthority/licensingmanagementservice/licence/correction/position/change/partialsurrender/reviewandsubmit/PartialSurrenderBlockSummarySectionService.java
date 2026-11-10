@@ -167,7 +167,7 @@ public class PartialSurrenderBlockSummarySectionService
             .addStringValue(AREA_AFTER, formatArea(BigDecimal.ZERO))
             .addMapValue(UNLABELLED_MAP, wholeBlock);
       } else {
-        var retainedFeatureIds = partialSurrenderCorrectionService.getRetainedFeatureIds(blockSurrender);
+        var retainedFeatureIds = blockSurrender.outputRetainedFeatureIds();
 
         if (retainedFeatureIds.isEmpty()) {
           details.addMapValue(BEFORE, wholeBlock);

@@ -220,7 +220,7 @@ class CrossLicenceEventTrackerServiceIntegrationTest {
     applicationDetail.setLicenceContinuationApplication(application);
     applicationDetail.setVersionNumber(1);
     applicationDetail.setStatus(ApplicationStatus.SUBMITTED);
-    applicationDetail.setCreatedDateTime(Instant.now());
+    applicationDetail.setCreatedDatetime(Instant.now());
     entityManager.persist(applicationDetail);
 
     var eventCache = new LicenceEventCache();
@@ -792,7 +792,7 @@ class CrossLicenceEventTrackerServiceIntegrationTest {
     applicationDetail.setLicenceContinuationApplication(application);
     applicationDetail.setVersionNumber(1);
     applicationDetail.setStatus(ApplicationStatus.SUBMITTED);
-    applicationDetail.setCreatedDateTime(Instant.now());
+    applicationDetail.setCreatedDatetime(Instant.now());
     applicationDetail.setCurrentTerm(currentTerm);
     applicationDetail.setCurrentPhase(currentPhase);
     applicationDetail.setNextTerm(nextTerm);

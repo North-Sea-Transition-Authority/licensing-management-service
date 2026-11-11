@@ -89,7 +89,7 @@ class ContinuationApplicationWorkAreaServiceTest {
 
     licenceContinuationApplicationDetail = LicenceContinuationApplicationTestUtil
         .createLicenceContinuationApplicationDetail(scheduleDetail1);
-    licenceContinuationApplicationDetail.setCreatedDateTime(testInstant);
+    licenceContinuationApplicationDetail.setCreatedDatetime(testInstant);
     licenceContinuationApplicationDetail.getLicenceContinuationApplication().setApplicationReference("LMS/CA/001");
 
     licence2 = LicenceTestUtil.builder()
@@ -104,7 +104,7 @@ class ContinuationApplicationWorkAreaServiceTest {
 
     licenceContinuationApplicationDetail2 = LicenceContinuationApplicationTestUtil
         .createLicenceContinuationApplicationDetail(scheduleDetail2);
-    licenceContinuationApplicationDetail2.setCreatedDateTime(testInstant.minus(1, ChronoUnit.HOURS));
+    licenceContinuationApplicationDetail2.setCreatedDatetime(testInstant.minus(1, ChronoUnit.HOURS));
     licenceContinuationApplicationDetail2.setStatus(ApplicationStatus.SUBMITTED);
     licenceContinuationApplicationDetail2.setSubmittedDatetime(testInstant.plus(1, ChronoUnit.HOURS));
     licenceContinuationApplicationDetail2.getLicenceContinuationApplication().setApplicationReference("LMS/CA/002");

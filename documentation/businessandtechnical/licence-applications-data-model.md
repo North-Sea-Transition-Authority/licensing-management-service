@@ -459,7 +459,7 @@ licence_continuation_application_details
   licence_continuation_application_id  UUID → licence_continuation_applications.id
   version_number                      INTEGER      1 until an update is requested (§11.1)
   status                              TEXT         §4
-  created_date_time                   TIMESTAMPTZ  ← note: not created_datetime (§11.3)
+  created_datetime                    TIMESTAMPTZ  nullable, unlike the extension side (§11.3)
   created_by_wua_id                   BIGINT       Energy Portal wua id of the creator (§11.9)
   submitted_datetime                  TIMESTAMPTZ  null until submission
   submitted_by_wua_id                 INTEGER      null until submission
@@ -885,16 +885,13 @@ including the original submitted one, shows the new reference once it is submitt
 Two consequences: a `DELETED` draft never consumes a number, and references are allocated at
 submission time, so their order matches `submitted_datetime`, not the creation timestamp.
 
-### 11.3 Timestamp columns are named inconsistently between the two families
+### 11.3 `created_datetime` is only `NOT NULL` for extension and amendment
 
-| Concept | Extension and amendment | Continuation |
-|---|---|---|
-| Created | `created_datetime` | `created_date_time` |
-| Submitted | `submitted_datetime` | `submitted_datetime` |
-
-A query written against one family will not port to the other unchanged. `created_datetime` is
-`NOT NULL` on the extension and amendment side; `created_date_time` is nullable on the
-continuation side.
+Both detail tables name their timestamps `created_datetime` and `submitted_datetime`, so a
+query ports between the two families unchanged. The constraints differ, though:
+`created_datetime` is `NOT NULL` on the extension and amendment side but nullable on the
+continuation side. The service sets it on every continuation detail it writes, so a null there
+is a data-quality signal rather than an expected state.
 
 ### 11.4 The extension and amendment detail foreign key is spelled two ways
 
@@ -1068,7 +1065,7 @@ this draft", none of which have a dedicated column.
 `withdrawal_reason`
 
 **`licence_continuation_application_details`**
-`id`, `licence_continuation_application_id`, `version_number`, `status`, `created_date_time`,
+`id`, `licence_continuation_application_id`, `version_number`, `status`, `created_datetime`,
 `created_by_wua_id`, `submitted_datetime`, `submitted_by_wua_id`, `responsible_organisation_unit_id`,
 `current_term_id`, `current_phase_id`, `next_term_id`, `next_phase_id`, `update_deadline_date`,
 `update_reason`

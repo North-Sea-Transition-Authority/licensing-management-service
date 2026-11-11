@@ -121,7 +121,7 @@ public class LicenceContinuationService {
     licenceContinuationApplicationDetail.setLicenceContinuationApplication(licenceContinuationApplication);
     licenceContinuationApplicationDetail.setVersionNumber(1);
     licenceContinuationApplicationDetail.setStatus(ApplicationStatus.DRAFT);
-    licenceContinuationApplicationDetail.setCreatedDateTime(Instant.now(clock));
+    licenceContinuationApplicationDetail.setCreatedDatetime(Instant.now(clock));
     licenceContinuationApplicationDetail.setCreatedByWuaId(user.wuaId());
     licenceContinuationApplicationDetail.setResponsibleOrganisationUnitId(responsibleOrganisationUnitId);
 

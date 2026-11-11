@@ -79,7 +79,7 @@ public class LicenceContinuationApplicationDetailDuplicationService {
     newDetail.setLicenceContinuationApplication(oldDetail.getLicenceContinuationApplication());
     newDetail.setVersionNumber(getNextVersionNumber(oldDetail));
     newDetail.setStatus(ApplicationStatus.DRAFT);
-    newDetail.setCreatedDateTime(Instant.now(clock));
+    newDetail.setCreatedDatetime(Instant.now(clock));
     newDetail.setCreatedByWuaId(user.wuaId());
     newDetail.setResponsibleOrganisationUnitId(oldDetail.getResponsibleOrganisationUnitId());
     newDetail.setCurrentTerm(oldDetail.getCurrentTerm());

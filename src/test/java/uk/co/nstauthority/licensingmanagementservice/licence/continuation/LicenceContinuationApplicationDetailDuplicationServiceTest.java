@@ -80,7 +80,7 @@ class LicenceContinuationApplicationDetailDuplicationServiceTest {
     expected.setLicenceContinuationApplication(application);
     expected.setVersionNumber(2);
     expected.setStatus(ApplicationStatus.DRAFT);
-    expected.setCreatedDateTime(FIXED_INSTANT);
+    expected.setCreatedDatetime(FIXED_INSTANT);
     expected.setCreatedByWuaId(user.wuaId());
     expected.setResponsibleOrganisationUnitId(40);
     expected.setCurrentTerm(currentTerm);

@@ -162,7 +162,7 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
     };
 
     var transactionDateTime = applicationDetail.getStatus() == ApplicationStatus.DRAFT
-        ? applicationDetail.getCreatedDateTime()
+        ? applicationDetail.getCreatedDatetime()
         : applicationDetail.getSubmittedDatetime();
 
     var itemReference = applicationDetail.getStatus() == ApplicationStatus.DRAFT
@@ -170,7 +170,7 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
         : applicationDetail.getLicenceContinuationApplication().getApplicationReference();
 
     var captionText = applicationDetail.getStatus() == ApplicationStatus.DRAFT
-        ? String.format("Created %s", DateFormatUtil.convertToDisplayTextWithTime(applicationDetail.getCreatedDateTime()))
+        ? String.format("Created %s", DateFormatUtil.convertToDisplayTextWithTime(applicationDetail.getCreatedDatetime()))
         : String.format("Submitted %s", DateFormatUtil.convertToDisplayTextWithTime(applicationDetail.getSubmittedDatetime()));
 
     var builder = SearchResultItem.newBuilder()

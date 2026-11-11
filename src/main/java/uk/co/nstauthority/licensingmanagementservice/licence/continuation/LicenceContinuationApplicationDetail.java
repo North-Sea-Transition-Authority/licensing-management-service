@@ -43,7 +43,8 @@ public class LicenceContinuationApplicationDetail implements LicenceApplicationD
   @Column
   private ApplicationStatus status;
 
-  private Instant createdDateTime;
+  @Column
+  private Instant createdDatetime;
 
   @Column
   private Long createdByWuaId;
@@ -124,12 +125,12 @@ public class LicenceContinuationApplicationDetail implements LicenceApplicationD
     this.status = status;
   }
 
-  public Instant getCreatedDateTime() {
-    return createdDateTime;
+  public Instant getCreatedDatetime() {
+    return createdDatetime;
   }
 
-  public void setCreatedDateTime(Instant createdInstant) {
-    this.createdDateTime = createdInstant;
+  public void setCreatedDatetime(Instant createdDatetime) {
+    this.createdDatetime = createdDatetime;
   }
 
   public Long getCreatedByWuaId() {

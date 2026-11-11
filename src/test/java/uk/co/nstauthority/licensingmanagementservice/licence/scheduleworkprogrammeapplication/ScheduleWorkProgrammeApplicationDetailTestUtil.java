@@ -22,7 +22,7 @@ public class ScheduleWorkProgrammeApplicationDetailTestUtil {
     private Integer versionNumber;
     private ApplicationStatus status;
     private Boolean allLicenseesPermissionConfirmed;
-    private Instant createdDateTime;
+    private Instant createdDatetime;
     private Instant submittedDatetime;
     private String applicationReference;
     private Long createdByWuaId;
@@ -57,8 +57,8 @@ public class ScheduleWorkProgrammeApplicationDetailTestUtil {
       return this;
     }
 
-    public Builder withCreatedDate(Instant createdDateTime) {
-      this.createdDateTime = createdDateTime;
+    public Builder withCreatedDate(Instant createdDatetime) {
+      this.createdDatetime = createdDatetime;
       return this;
     }
 
@@ -98,7 +98,7 @@ public class ScheduleWorkProgrammeApplicationDetailTestUtil {
       scheduleWorkProgrammeApplicationDetail.setVersionNumber(versionNumber);
       scheduleWorkProgrammeApplicationDetail.setStatus(status);
       scheduleWorkProgrammeApplicationDetail.setAllLicenseesPermissionConfirmed(allLicenseesPermissionConfirmed);
-      scheduleWorkProgrammeApplicationDetail.setCreatedDatetime(createdDateTime);
+      scheduleWorkProgrammeApplicationDetail.setCreatedDatetime(createdDatetime);
       scheduleWorkProgrammeApplicationDetail.setSubmittedDatetime(submittedDatetime);
       scheduleWorkProgrammeApplicationDetail.setCreatedByWuaId(createdByWuaId);
       scheduleWorkProgrammeApplicationDetail.setSubmittedByWuaId(submittedByWuaId);

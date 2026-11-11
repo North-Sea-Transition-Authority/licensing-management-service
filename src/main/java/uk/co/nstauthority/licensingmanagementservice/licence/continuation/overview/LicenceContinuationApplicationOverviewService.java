@@ -58,7 +58,7 @@ public class LicenceContinuationApplicationOverviewService {
       Licence licence
   ) {
     var summaryDataView = SummaryDataView.newBuilder()
-        .addStringValue("Created", DateFormatUtil.convertToDisplayTextWithTime(applicationDetail.getCreatedDateTime()))
+        .addStringValue("Created", DateFormatUtil.convertToDisplayTextWithTime(applicationDetail.getCreatedDatetime()))
         .build();
 
     return new LicenceContinuationApplicationContext(

@@ -167,7 +167,7 @@ class LicenceContinuationApplicationOverviewServiceTest {
         .withId(UUID.randomUUID())
         .withStatus(ApplicationStatus.DRAFT)
         .build();
-    applicationDetail.setCreatedDateTime(createdDate);
+    applicationDetail.setCreatedDatetime(createdDate);
 
     when(licenceService.getLicencePageCaption(licence))
         .thenReturn("Production licence - P1");

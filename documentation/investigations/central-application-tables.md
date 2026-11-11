@@ -41,7 +41,7 @@ dropped.
 ```
 applications (shared columns, application_type)
 └── schedule_work_programme_applications   id → applications.id   steward_wua_id
-    (continuation applications have no type-specific table)
+    (a row only once a steward is assigned; continuation applications have no table)
 
 application_details (shared columns, application_type)
 ├── schedule_work_programme_application_details  id → application_details.id
@@ -57,7 +57,13 @@ strategies, because Hibernate gives every subclass in a joined hierarchy its own
 | Hierarchy | Strategy | Why |
 |---|---|---|
 | `application_details` | `@Inheritance(strategy = InheritanceType.JOINED)` | Both families have type-specific columns. Follows the existing precedent in `ScheduleEvent`. |
-| `applications` | `@Inheritance(strategy = InheritanceType.SINGLE_TABLE)`, with `schedule_work_programme_applications` as a `@SecondaryTable` of the extension subclass | Continuation applications have no table of their own, so they can't be a joined subclass. A secondary table gives the extension subclass its own table without needing one for continuations. |
+| `applications` | `@Inheritance(strategy = InheritanceType.SINGLE_TABLE)` | Neither subclass has columns of its own in the hierarchy. Continuation applications have no table at all. |
+
+`schedule_work_programme_applications` is not part of the applications hierarchy. It holds
+extension-only application data, mapped as its own small entity that shares its id with the
+application. Today that is just the steward: a row is inserted when a steward is first assigned
+and updated on reallocation, so an extension application with no steward has no row. The
+extension application reaches it through a one-to-one association (Phase 3, step 5).
 
 The discriminator values are the `ApplicationType` enum names. Those strings are already stored
 in `teams.scope_type`, `application_decision_details.application_type` and
@@ -65,13 +71,16 @@ in `teams.scope_type`, `application_decision_details.application_type` and
 
 ### Why keep the existing tables as the type-specific tables
 
-- **Only one child foreign key moves.** Of the 15 tables that hang off an application or detail
+- **Only two child foreign keys move.** Of the 15 tables that hang off an application or detail
   (request purpose, extension and amendment requests, record of decision, continuation
-  requirements, supporting information, external contributor requests), 14 keep pointing at the
-  table they point at today. Because those are type-specific tables, the database still
-  guarantees that, for example, a continuation requirement row belongs to a continuation detail.
-  The exception is `licence_continuation_external_contributor_request`, which points at the
-  dropped `licence_continuation_applications` and is re-pointed to `applications` (Phase 2, step 3).
+  requirements, supporting information, external contributor requests), the 13 keyed on a detail
+  keep pointing at the table they point at today. Because those are type-specific tables, the
+  database still guarantees that, for example, a continuation requirement row belongs to a
+  continuation detail. The exceptions are the two external contributor request tables, which are
+  re-pointed to `applications` (Phase 2, step 3): `licence_continuation_external_contributor_request`
+  because its table is dropped, and `swp_external_contributor_request` because an extension
+  application no longer has a `schedule_work_programme_applications` row until a steward is
+  assigned.
 - **No nullable-by-type columns.** Every column in a type-specific table applies to every row in
   it, so nothing needs `CHECK` constraints to keep the other family's columns empty.
 - **Smaller migration.** Shared columns are copied up into the root and dropped from the
@@ -83,7 +92,7 @@ The type-specific tables keep their existing names (decision 6).
 
 | Option | Verdict |
 |---|---|
-| **Root tables plus type-specific tables** (recommended) | Shared columns in one place, type-specific columns in their own tables, and 14 of the 15 child foreign keys still point at type-specific tables. Cost: loading a detail or an extension application joins the root and its type table. |
+| **Root tables plus type-specific tables** (recommended) | Shared columns in one place, type-specific columns in their own tables, and 13 of the 15 child foreign keys still point at type-specific tables. Cost: loading a detail joins the root and its type table. |
 | Everything in the two root tables | Two tables only, but the type-specific columns must be nullable for the other family, every child foreign key moves to a root table, and the database can no longer tell which family a child row belongs to. |
 | One flat entity with a type field | Every `getScheduleWorkProgrammeApplication()`-style call, every per-type resolver and access rule, and every derived query name changes, and the journeys lose type safety. About 170 main classes touched. |
 
@@ -112,13 +121,17 @@ applications
   withdrawal_reason                    TEXT               set when withdrawn, any type
   UNIQUE (id, application_type)                           target for the composite FK below
 
-schedule_work_programme_applications
+schedule_work_programme_applications                      one row per extension application with a steward
   id                                   UUID PK → applications.id
-  steward_wua_id                       BIGINT             was INTEGER
+  steward_wua_id                       BIGINT NOT NULL    was INTEGER, nullable
 
 licence_continuation_external_contributor_request         (child table, FK moves)
   application_id                       UUID → applications.id   was licence_continuation_application_id
                                                                 → licence_continuation_applications.id
+
+swp_external_contributor_request                          (child table, FK moves)
+  application_id                       UUID → applications.id   was schedule_work_programme_application_id
+                                                                → schedule_work_programme_applications.id
 
 application_details
   id                                   UUID PK
@@ -153,11 +166,11 @@ licence_continuation_application_details
 type. Today only continuations can be withdrawn, so after the migration extension and amendment
 rows have it null. That leaves `licence_continuation_applications` with nothing but its `id`, so
 it is dropped. If a continuation-only application column is ever needed, it would bring back a
-continuation table (as a secondary table, like the extension one).
+continuation table, mapped as its own entity sharing the application's id, like the steward one.
 
-With the table gone, the database no longer guarantees that
-`licence_continuation_external_contributor_request` points at a continuation application rather
-than an extension one. Phase 4 covers how to restore that.
+With both external contributor request tables pointing at `applications`, the database no
+longer guarantees that each points at an application of its own family. The same goes for
+`schedule_work_programme_applications.id`. Phase 4 covers how to restore that.
 
 Every child table's foreign key column is renamed to one of two names, whichever table it points
 at: `application_detail_id` for the 13 tables keyed on a detail, and `application_id` for the two
@@ -346,20 +359,35 @@ FROM licence_continuation_application_details;
 -- 3. Link each type-specific table to its root and drop the columns that moved.
 --    Dropping a column also drops the constraints and indexes on it (swpa_licence_schedule_fk,
 --    the *_version_uk constraints, the detail→application FKs, ...).
+
+-- Re-point both external contributor request tables to applications first. The continuation
+-- table is about to be dropped, and extension applications without a steward are about to lose
+-- their schedule_work_programme_applications row.
+ALTER TABLE licence_continuation_external_contributor_request
+  DROP CONSTRAINT licence_continuation_external_contributor_request_fk,
+  ADD CONSTRAINT licence_continuation_external_contributor_request_fk
+    FOREIGN KEY (licence_continuation_application_id) REFERENCES applications (id);
+
+ALTER TABLE swp_external_contributor_request
+  DROP CONSTRAINT swp_external_contributor_request_fk,
+  ADD CONSTRAINT swp_external_contributor_request_fk
+    FOREIGN KEY (schedule_work_programme_application_id) REFERENCES applications (id);
+
+-- schedule_work_programme_applications keeps only the steward: one row per extension
+-- application that has one.
+DELETE FROM schedule_work_programme_applications WHERE steward_wua_id IS NULL;
+
 ALTER TABLE schedule_work_programme_applications
   ADD CONSTRAINT schedule_work_programme_applications_application_fk FOREIGN KEY (id) REFERENCES applications (id),
   DROP COLUMN licence_schedule_id,
   DROP COLUMN submitted_licence_schedule_detail_id,
   DROP COLUMN application_reference,
-  ALTER COLUMN steward_wua_id TYPE BIGINT;
+  ALTER COLUMN steward_wua_id TYPE BIGINT,
+  ALTER COLUMN steward_wua_id SET NOT NULL;
 
--- licence_continuation_applications has nothing left of its own. Re-point the external
--- contributor request table here; the continuation details' reference goes when their
--- licence_continuation_application_id column is dropped below. Then the table is dropped.
-ALTER TABLE licence_continuation_external_contributor_request
-  DROP CONSTRAINT licence_continuation_external_contributor_request_fk,
-  ADD CONSTRAINT licence_continuation_external_contributor_request_fk
-    FOREIGN KEY (licence_continuation_application_id) REFERENCES applications (id);
+-- licence_continuation_applications has nothing left of its own. The continuation details'
+-- reference to it goes when their licence_continuation_application_id column is dropped below,
+-- and then the table is dropped.
 
 ALTER TABLE schedule_work_programme_application_details
   ADD CONSTRAINT schedule_work_programme_application_details_application_detail_fk FOREIGN KEY (id) REFERENCES application_details (id),
@@ -391,9 +419,10 @@ ALTER TABLE licence_continuation_application_details
 DROP TABLE licence_continuation_applications;
 
 -- 4. Audit tables. Envers puts revtype, the discriminator and the shared columns in the root
---    audit table. A joined subclass's audit table, and the extension application's secondary
---    audit table, hold only rev, id and their own columns. (rev, id) cannot collide in the root
---    audit tables because ids are unique across families (Phase 0, check 1).
+--    audit table. A joined subclass's audit table holds only rev, id and its own columns.
+--    ScheduleWorkProgrammeApplicationData is an entity in its own right, so
+--    schedule_work_programme_applications_aud keeps revtype. (rev, id) cannot collide in the root audit tables because ids are unique
+--    across families (Phase 0, check 1).
 CREATE TABLE applications_aud (
   rev                                  INTEGER NOT NULL,
   revtype                              NUMERIC,
@@ -419,11 +448,13 @@ DROP TABLE licence_continuation_applications_aud;
 -- application_details_aud: same pattern, copied from both detail _aud tables.
 
 ALTER TABLE schedule_work_programme_applications_aud
-  DROP COLUMN revtype,
   DROP COLUMN licence_schedule_id,
   DROP COLUMN submitted_licence_schedule_detail_id,
   DROP COLUMN application_reference,
   ALTER COLUMN steward_wua_id TYPE BIGINT;
+-- Audit rows recorded before any steward was assigned stay, with steward_wua_id null. They are
+-- history of the old shape and harmless to Envers; delete them if a cleaner table matters more.
+
 -- ...and drop revtype plus the moved columns from the two detail _aud tables.
 ```
 
@@ -450,7 +481,7 @@ ALTER TABLE swp_application_request_purpose_aud        RENAME COLUMN schedule_wo
 | `licence_continuation_other_requirement_request` | `licence_continuation_application_detail_id` | `application_detail_id` | `licence_continuation_application_details` |
 | `licence_continuation_licence_operators_request` | `licence_continuation_application_detail_id` | `application_detail_id` | `licence_continuation_application_details` |
 | `licence_continuation_supporting_information` | `licence_continuation_application_detail_id` | `application_detail_id` | `licence_continuation_application_details` |
-| `swp_external_contributor_request` | `schedule_work_programme_application_id` | `application_id` | `schedule_work_programme_applications` |
+| `swp_external_contributor_request` | `schedule_work_programme_application_id` | `application_id` | `applications` |
 | `licence_continuation_external_contributor_request` | `licence_continuation_application_id` | `application_id` | `applications` |
 
 The 13 detail-level children keep their foreign keys to the type-specific detail tables, so the
@@ -472,8 +503,7 @@ Its own PR (PR 4), targeting the Phase 2 PR's branch (see Delivery).
    public abstract class AbstractLicenceApplicationDetail implements LicenceApplicationDetail { ... }
    ```
 
-   The application root is single-table, and the extension subclass maps its own table as a
-   secondary table:
+   The application root is single-table, and neither subclass maps a table of its own:
 
    ```java
    @Audited
@@ -483,18 +513,9 @@ Its own PR (PR 4), targeting the Phase 2 PR's branch (see Delivery).
    public abstract class AbstractLicenceApplication implements LicenceApplication { ... }
 
    @Audited
-   @Entity(name = "schedule_work_programme_applications")
+   @Entity
    @DiscriminatorValue("SCHEDULE_AMENDMENT_APPLICATION")
-   @SecondaryTable(name = "schedule_work_programme_applications", pkJoinColumns = @PrimaryKeyJoinColumn(name = "id"))
-   @SecondaryRow(table = "schedule_work_programme_applications", optional = false)
-   @SecondaryAuditTable(secondaryTableName = "schedule_work_programme_applications",
-       secondaryAuditTableName = "schedule_work_programme_applications_aud")
-   public class ScheduleWorkProgrammeApplication extends AbstractLicenceApplication {
-
-     @Column(table = "schedule_work_programme_applications")
-     private Long stewardWuaId;
-     ...
-   }
+   public class ScheduleWorkProgrammeApplication extends AbstractLicenceApplication { ... }
 
    @Audited
    @Entity
@@ -502,18 +523,15 @@ Its own PR (PR 4), targeting the Phase 2 PR's branch (see Delivery).
    public class LicenceContinuationApplication extends AbstractLicenceApplication { ... }
    ```
 
-   `@SecondaryRow(optional = false)` (Hibernate 6.2+, the project is on 6.6) makes Hibernate
-   always insert the extension row, even while `steward_wua_id` is null. Without it, an
-   unallocated extension application gets no row, and `swp_external_contributor_request`'s
-   foreign key to `schedule_work_programme_applications` fails.
-
-2. The detail subclasses and the extension application keep their `@Entity(name = ...)`, which
-   is still the name of their own table (for the extension application, its secondary table),
-   and gain `@DiscriminatorValue` with their `ApplicationType` name. Keep the existing `getApplicationType()` overrides. Because the detail entity names don't
-   change, the JPQL `FROM licence_continuation_application_details d` and
-   `FROM schedule_work_programme_application_details d` queries still resolve.
-   `LicenceContinuationApplication` drops `name = "licence_continuation_applications"`, since that
-   table no longer exists. Nothing in JPQL uses that entity name.
+2. The detail subclasses keep their `@Entity(name = ...)`, which is still the name of their own
+   table, and gain `@DiscriminatorValue` with their `ApplicationType` name. Keep the existing
+   `getApplicationType()` overrides. Because the detail entity names don't change, the JPQL
+   `FROM licence_continuation_application_details d` and
+   `FROM schedule_work_programme_application_details d` queries still resolve. Both application
+   subclasses drop their `name = ...`: `licence_continuation_applications` no longer exists, and
+   `schedule_work_programme_applications` now belongs to `ScheduleWorkProgrammeApplicationData`.
+   Nothing in JPQL uses
+   either entity name.
 3. Move the detail-to-application link to the root as
    `@ManyToOne @JoinColumn(name = "application_id") AbstractLicenceApplication application`.
    In each subclass, keep `getLicenceContinuationApplication()` /
@@ -528,17 +546,53 @@ Its own PR (PR 4), targeting the Phase 2 PR's branch (see Delivery).
      can stay.
    - the two JPQL summary queries (`JOIN d.licenceContinuationApplication application`,
      `WHERE latest.licenceContinuationApplication = application`, and the extension equivalents).
-5. Keep `steward_wua_id`, `all_licensees_permission_confirmed`, `decision_date` and the four
-   term/phase associations in the subclasses (where they already are). Move `withdrawalReason`
-   from `LicenceContinuationApplication` to the root, which leaves the continuation subclass with
-   no fields of its own. `submittedByWuaId` and `stewardWuaId` are already `Long`, matching
-   `BIGINT`.
-6. In the 15 child entities, change only the `@JoinColumn` name to `application_detail_id` or
+5. Map `schedule_work_programme_applications` as its own entity, sharing the application's id.
+   It holds only the steward for now, but it is where any future extension-only application
+   column goes, so name the entity for the table rather than the steward (for example
+   `ScheduleWorkProgrammeApplicationData`):
+
+   ```java
+   @Audited
+   @Entity(name = "schedule_work_programme_applications")
+   public class ScheduleWorkProgrammeApplicationData {
+
+     @Id
+     private UUID id;
+
+     @MapsId
+     @OneToOne
+     @JoinColumn(name = "id")
+     private ScheduleWorkProgrammeApplication scheduleWorkProgrammeApplication;
+
+     private Long stewardWuaId;
+     ...
+   }
+   ```
+
+   `ScheduleWorkProgrammeApplication` gets the inverse side,
+   `@OneToOne(mappedBy = "scheduleWorkProgrammeApplication") ScheduleWorkProgrammeApplicationData applicationData`,
+   and keeps `getStewardWuaId()` as a null-safe read through it. The seven classes that read the
+   steward (`ApplicationWorkAreaService`, `ScheduleAndWorkProgrammeApplicationWorkAreaService`,
+   `ScheduleWorkProgrammeApplicationActionService`, `ScheduleWorkProgrammeApplicationOverviewService`,
+   `RecordOfDecisionTaskListService`, `AllocateStewardService` and `CrossLicenceEventTrackerService`)
+   then don't change.
+
+   Writing changes in one place: `AllocateStewardService` replaces `application.setStewardWuaId(...)`
+   with "find the application's `schedule_work_programme_applications` row, or create one, then
+   set the WUA id and save". Remove
+   `setStewardWuaId` from the application so nothing else can write it the old way.
+
+6. Keep `all_licensees_permission_confirmed`, `decision_date` and the four term/phase
+   associations in the detail subclasses (where they already are). Move `withdrawalReason` from
+   `LicenceContinuationApplication` to the root, which leaves both application subclasses with no
+   fields of their own apart from the inverse steward association. `submittedByWuaId` and
+   `stewardWuaId` are already `Long`, matching `BIGINT`.
+7. In the 15 child entities, change only the `@JoinColumn` name to `application_detail_id` or
    `application_id` (see the Phase 2, step 5 table). The `@ManyToOne` fields keep their names and
    subclass types, so derived queries on the child repositories don't change. Nothing outside the
-   `@JoinColumn`s uses these column names. `LicenceContinuationExternalContributorRequest` still
-   maps to `LicenceContinuationApplication`; only the database foreign key behind it now points at
-   `applications`.
+   `@JoinColumn`s uses these column names. The two external contributor request entities still
+   map to `LicenceContinuationApplication` and `ScheduleWorkProgrammeApplication`; only the
+   database foreign keys behind them now point at `applications`.
 
 ### Phase 4 — Optional follow-ups
 
@@ -547,9 +601,9 @@ Each of these is independent and can be done later.
 - **Real foreign key from `application_decision_details`** to `applications (id,
   application_type)`. The pair already matches the composite key.
 - **Stop a row pointing at a root row of the other family.** After the migration,
-  `licence_continuation_external_contributor_request.application_id` and
-  `schedule_work_programme_applications.id` only have to exist in `applications`, whatever its
-  type. To close that gap, give each table an unmapped column with a fixed value and point a
+  `licence_continuation_external_contributor_request.application_id`,
+  `swp_external_contributor_request.application_id` and `schedule_work_programme_applications.id`
+  only have to exist in `applications`, whatever its type. To close that gap, give each table an unmapped column with a fixed value and point a
   composite foreign key at the root:
   ```sql
   ALTER TABLE licence_continuation_external_contributor_request
@@ -561,7 +615,8 @@ Each of these is independent and can be done later.
       REFERENCES applications (id, application_type);
   ```
   Hibernate never writes the column, so the default fills it in. The same applies to
-  `schedule_work_programme_applications` and the two type-specific detail tables (those point at
+  `swp_external_contributor_request`, `schedule_work_programme_applications` and the two
+  type-specific detail tables (those point at
   `application_details`, which needs its own `UNIQUE (id, application_type)`).
 - **Collapse the type switches.** `ApplicationService.getApplicationByIdOrThrow` can become one
   repository lookup on the root. `DocumentLinkingService` and the two work area services are the
@@ -580,9 +635,11 @@ that makes it true, in the Phase 3 PR (PR 4):
   section, and update the caveat about WUA id types. Delete §11.3 (`created_datetime` becomes one
   `NOT NULL` column on the root) and the §11.4 caveat that the extension detail foreign key is
   spelled two ways, and rename the child foreign key columns throughout (Phase 2, step 5).
-  Document the discriminator values, that each type-specific row shares its id with its root row, that every
-  extension application has a `schedule_work_programme_applications` row even with no steward,
-  and that `licence_continuation_external_contributor_request` now references `applications`.
+  Document the discriminator values, that each type-specific row shares its id with its root row,
+  that `schedule_work_programme_applications` holds extension-only application data, currently
+  just the steward (a row exists only once a steward is assigned), and that both external
+  contributor request tables now
+  reference `applications`.
 - `application-decisions-data-model.md` and `licence-event-cache-data-model.md`: update the
   passages that say there is no single application table to reference.
 - `.claude/skills/changing-documented-licence-areas/SKILL.md`: its table and examples describe
@@ -602,8 +659,8 @@ the child foreign key columns are renamed.
   `licence_event_cache.application_id` and file usage ids stay valid without updates.
 - The names of the three remaining existing tables, and their type-specific columns.
 - All 15 child tables, and every column in them except the foreign key column, which is renamed.
-  14 of the foreign keys still point at the same table; only
-  `licence_continuation_external_contributor_request`'s moves.
+  13 of the foreign keys still point at the same table; only the two external contributor
+  request tables' move.
 - `ApplicationType`: its names become the discriminator values.
 - Application reference formats (`LMS/EAA/...`, `LMS/CA/...`) and how they're numbered, as long
   as the check below passes.
@@ -625,15 +682,21 @@ row. Applications are single-table, so a lookup by id on
 on Hibernate filtering by the discriminator instead. Write an integration test for each resolver
 and for each application-by-id lookup.
 
-**Every extension application must have its secondary row.** Check that creating an extension
-application with no steward writes a `schedule_work_programme_applications` row (the
-`@SecondaryRow(optional = false)` above), and that adding an external contributor request to it
-then succeeds.
+**Steward assignment.** Test that allocating a steward to an extension application with none
+inserts a `schedule_work_programme_applications` row, that reallocating updates that row rather
+than inserting a second, and that `getStewardWuaId()` returns null when there is no row. Also
+test that an external contributor request can be added to an extension application with no
+steward, since that is exactly the case the re-pointed foreign key exists for.
+
+**Loading the steward.** Hibernate can't lazily load the inverse side of an optional
+`@OneToOne` without bytecode enhancement, so every extension application load also selects its
+`schedule_work_programme_applications` row. The work area services read the steward for every listed application, so check them
+for a new N+1 and fetch the steward with a targeted `@EntityGraph` on the list queries.
 
 **Envers audit tables.** Envers expects `revtype`, the discriminator and the shared columns in
 each root audit table. For the joined detail hierarchy, each subclass audit table holds only
-`rev`, `id` and the subclass's columns; the extension application's `@SecondaryAuditTable` follows
-the same shape. Generate the
+`rev`, `id` and the subclass's columns. `ScheduleWorkProgrammeApplicationData` is an ordinary audited entity, so its
+audit table keeps `revtype`. Generate the
 expected schema once (`spring.jpa.hibernate.ddl-auto=validate` on a scratch run of the
 integration tests) to confirm the hand-written `_aud` changes match.
 
@@ -641,9 +704,9 @@ integration tests) to confirm the hand-written `_aud` changes match.
 ever made lazy, the cast fails on a proxy. Cover each typed getter with a test that loads a
 detail from the database.
 
-**Extra joins.** Every detail load and every extension application load now joins the root and
-a second table, and any query against `application_details` outer-joins both type tables.
-Continuation applications are read from `applications` alone. At this data volume that's cheap, but check the work area
+**Extra joins.** Every detail load now joins the root and its type table, and any query against
+`application_details` outer-joins both type tables. Applications are read from `applications`
+alone, apart from the steward select above. At this data volume that's cheap, but check the work area
 and search queries, and the continuation detail's four eager term/phase associations, for new
 N+1s. Fix any with targeted `@EntityGraph`s rather than batch fetching.
 
@@ -656,13 +719,20 @@ audit tables.
 
 1. Table names are `applications` and `application_details`.
 2. Columns used by only one family stay in that family's own table, not in the root tables
-   (joined inheritance for details; single-table plus a secondary table for applications).
+   (joined inheritance for details; single-table for applications, with no secondary tables).
 3. `withdrawal_reason` goes on `applications`, because withdrawal is being implemented for every
    application type.
 4. `licence_continuation_applications` is dropped, since it has no columns of its own once
-   `withdrawal_reason` moves. Its one child foreign key is re-pointed to `applications`.
-5. `steward_wua_id` stays extension-only, in `schedule_work_programme_applications`.
-6. The type-specific tables keep their existing names.
+   `withdrawal_reason` moves. Its child foreign key from
+   `licence_continuation_external_contributor_request` is re-pointed to `applications`.
+5. `steward_wua_id` stays extension-only, in `schedule_work_programme_applications`, mapped as its
+   own entity: a row is added when a steward is first assigned, rather than every extension
+   application having one. No `@SecondaryTable` mapping is used.
+6. The type-specific tables keep their existing names. This includes
+   `schedule_work_programme_applications`, even though it holds only the steward for now, because
+   more extension-only application columns may be added to it later. When that happens, a row
+   will be created the first time any of its values is set, so `steward_wua_id` will need to
+   become nullable again.
 7. The child foreign key columns are renamed in the same migration, to `application_detail_id`
    or `application_id`.
 8. Each phase is its own PR. The PRs cascade off each other and are merged up the stack before

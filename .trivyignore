@@ -74,6 +74,9 @@ CVE-2025-8885
 # org.freemarker:freemarker
 CVE-2026-84939
 
+# org.json:json
+CVE-2026-59171
+
 # org.jsoup:jsoup
 CVE-2026-75140
 CVE-2026-71497

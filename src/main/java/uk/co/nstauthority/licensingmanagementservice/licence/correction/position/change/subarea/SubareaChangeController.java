@@ -78,6 +78,9 @@ public class SubareaChangeController {
           .addObject("mapErrorMessage", NO_CHANGE_ERROR);
     }
 
+    // TODO LMS2-269: move to the submit button on the review and submit page
+    subareaChangeService.completeSubareaChange(licencePositionCorrection, blockFeatureId);
+
     NotificationBanner.newSuccessBannerWithHeader(SAVED_BANNER, redirectAttributes);
     // TODO LMS2-269: redirect to review and submit when implemented
     return ReverseRouter.redirectToUrl(LicencePositionCorrectionRouteUtil.getPositionPageUrl(

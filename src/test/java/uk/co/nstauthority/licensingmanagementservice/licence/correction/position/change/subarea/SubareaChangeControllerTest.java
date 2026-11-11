@@ -1,6 +1,9 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subarea;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -141,6 +144,8 @@ class SubareaChangeControllerTest extends AbstractControllerTest {
             notificationBanner(NotificationBanner.newSuccessBanner()
                 .withHeadingContent("Subarea change saved")
                 .build()));
+
+    verify(subareaChangeService).completeSubareaChange(positionCorrection, BLOCK_FEATURE_ID);
   }
 
   @Test
@@ -185,6 +190,7 @@ class SubareaChangeControllerTest extends AbstractControllerTest {
     assertThat(result.getModelAndView().getModel().get("errorSummaryItems"))
         .usingRecursiveComparison()
         .isEqualTo(List.of(new ErrorSummaryItem(1, "subarea-change", NO_CHANGE_ERROR)));
+    verify(subareaChangeService, never()).completeSubareaChange(any(), any());
   }
 
   private LicencePositionCorrection givenSubareaChange(LicencePositionCorrection positionCorrection) {

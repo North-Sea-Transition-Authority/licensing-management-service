@@ -24,7 +24,10 @@ public class CorrectedTimelineService {
     var positionCorrections = licencePositionCorrectionService.getPositionCorrections(licenceCorrection);
     var removedPositionIds = LicencePositionCorrectionService.getRemovedPositionIds(positionCorrections);
     var displayedPositions = licencePositionViewService.getCorrectedChronologicalPositions(
-        licenceCorrection, positionCorrections, removedPositionIds);
+        licenceCorrection,
+        positionCorrections,
+        removedPositionIds
+    );
 
     return new CorrectedTimeline(
         licenceCorrection,

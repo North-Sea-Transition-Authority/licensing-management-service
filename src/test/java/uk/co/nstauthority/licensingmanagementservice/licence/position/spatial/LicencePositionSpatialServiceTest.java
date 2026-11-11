@@ -36,6 +36,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation.SurrenderDetails;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaDetails;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaSetEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaSurrenderOutcome;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionViewService;
@@ -1205,6 +1207,59 @@ class LicencePositionSpatialServiceTest {
         new BlockSubareas(BLOCK_30_2, List.of(SUBAREA_B)),
         new BlockSubareas(BLOCK_30_3, List.of()));
     verify(licencePositionViewService).getCorrectedChronologicalPositions(LICENCE_CORRECTION, FIRST_POSITION_ID);
+  }
+
+  @Test
+  void getStateAtEndOfPositionWithoutChange_whenSubareaChangeFollowedByEquity_thenAppliesTheRestOfThePositionOnly() {
+    var subareaBc = new SubareaDetails(UUID.randomUUID(), "Subarea BC", "BC");
+    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withLicenceCorrection(LICENCE_CORRECTION)
+        .withTargetLicencePosition(LicencePositionTestUtil.newBuilder().withId(SECOND_POSITION_ID).build())
+        .withPayload(UpdateLicencePositionPayloadTestUtil.newBuilder().build())
+        .build();
+    when(licencePositionViewService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, SECOND_POSITION_ID))
+        .thenReturn(List.of(
+            positionWithChanges(
+                FIRST_POSITION_ID,
+                1,
+                change(
+                    "seed",
+                    1,
+                    blockCreateOf(BLOCK_30_1.getId()),
+                    subareaCreateOn(BLOCK_30_1.getId(), SUBAREA_B),
+                    subareaCreateOn(BLOCK_30_1.getId(), SUBAREA_C)
+                )
+            ),
+            positionWithChanges(
+                SECOND_POSITION_ID,
+                2,
+                change(
+                    "subarea-change",
+                    1,
+                    new SubareaOperation(BLOCK_30_1.getId(), List.of(SUBAREA_B, SUBAREA_C), List.of(subareaBc))
+                ),
+                change("equity", 2, new SubareaSetEquityOperation(BLOCK_30_1.getId(), SUBAREA_B, 1, BigDecimal.TEN))
+            ),
+            positionWithChanges(
+                THIRD_POSITION_ID,
+                3,
+                change(
+                    "later-equity",
+                    1,
+                    new SubareaSetEquityOperation(BLOCK_30_1.getId(), SUBAREA_C, 2, BigDecimal.TEN)
+                )
+            )
+        ));
+
+    var result = licencePositionSpatialService.getStateAtEndOfPositionWithoutChange(
+        positionCorrection,
+        "subarea-change"
+    );
+
+    assertThat(result).isEqualTo(LicencePositionState.EMPTY
+        .withBlock(BLOCK_30_1.getId(), List.of(SUBAREA_B, SUBAREA_C))
+        .withSubareaEquity(BLOCK_30_1.getId(), SUBAREA_B, 1, BigDecimal.TEN)
+    );
   }
 
   private void givenPositions(ChronologicalPosition... positions) {

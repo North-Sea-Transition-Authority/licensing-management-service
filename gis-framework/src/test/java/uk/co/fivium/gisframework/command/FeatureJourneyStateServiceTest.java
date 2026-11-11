@@ -233,6 +233,35 @@ class FeatureJourneyStateServiceTest {
   }
 
   @Test
+  void getInputFeatureIdsByCreatedFeatureId() {
+    var command = OperatorCommandTestUtil.newBuilder().build();
+    var outputFeatureA = FeatureTestUtil.newBuilder().build();
+    var outputFeatureB = FeatureTestUtil.newBuilder().build();
+    var inputFeatureIdA = UUID.randomUUID();
+    var inputFeatureIdB = UUID.randomUUID();
+
+    when(featureJourneyStateRepository.findAllByCreatedByCommandIn(List.of(command))).thenReturn(List.of(
+        FeatureJourneyStateTestUtil.newBuilder()
+            .withFeature(outputFeatureA)
+            .withCreatedByCommand(command)
+            .withInputFeatureIds(Set.of(inputFeatureIdA))
+            .build(),
+        FeatureJourneyStateTestUtil.newBuilder()
+            .withFeature(outputFeatureB)
+            .withCreatedByCommand(command)
+            .withInputFeatureIds(Set.of(inputFeatureIdB))
+            .build()
+    ));
+
+    var result = featureJourneyStateService.getInputFeatureIdsByCreatedFeatureId(List.of(command));
+
+    assertThat(result).isEqualTo(Map.of(
+        outputFeatureA.getId(), Set.of(inputFeatureIdA),
+        outputFeatureB.getId(), Set.of(inputFeatureIdB)
+    ));
+  }
+
+  @Test
   void getFeaturesCreatedByCommands() {
     var splitCommand = OperatorCommandTestUtil.newBuilder().build();
     var mergeCommand = OperatorCommandTestUtil.newBuilder().build();

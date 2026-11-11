@@ -104,6 +104,13 @@ public record LicencePositionState(
     return List.copyOf(blockFeatureIdToSubareas.getOrDefault(blockFeatureId, Set.of()));
   }
 
+  public Map<Integer, BigDecimal> subareaEquityOf(
+      UUID blockFeatureId,
+      SubareaDetails subarea
+  ) {
+    return blockFeatureIdToSubareaEquity.getOrDefault(blockFeatureId, Map.of()).getOrDefault(subarea, Map.of());
+  }
+
   public boolean hasFeatures(Collection<UUID> blockFeatureIds, Collection<SubareaDetails> subareas) {
     if (!blockFeatureIdToSubareas.keySet().containsAll(blockFeatureIds)) {
       return false;
@@ -156,9 +163,14 @@ public record LicencePositionState(
     var subareaEquityByOrganisationId = new HashMap<>(subareaEquityForBlock.getOrDefault(subareaDetails, Map.of()));
 
     subareaEquityForBlock.put(subareaDetails, subareaEquityByOrganisationId);
-    subareaEquityByOrganisationId.put(organisationId, equity);
+    subareaEquityByOrganisationId.put(organisationId, withoutTrailingZeros(equity));
 
     return withBlockSubareaEquity(blockFeatureId, subareaEquityForBlock);
+  }
+
+  private static BigDecimal withoutTrailingZeros(BigDecimal equity) {
+    // via the plain string, as stripTrailingZeros alone turns 100 into 1E+2
+    return new BigDecimal(equity.stripTrailingZeros().toPlainString());
   }
 
   /**

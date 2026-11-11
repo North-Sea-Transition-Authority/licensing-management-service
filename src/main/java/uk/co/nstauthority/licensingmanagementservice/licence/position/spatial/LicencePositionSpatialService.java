@@ -134,6 +134,33 @@ public class LicencePositionSpatialService {
     return state;
   }
 
+  /**
+   * The state at the end of the position as if the given change had never been made, in either its live or staged form.
+   */
+  public LicencePositionState getStateAtEndOfPositionWithoutChange(
+      LicencePositionCorrection licencePositionCorrection,
+      String changeId
+  ) {
+    var licencePositionId = licencePositionCorrection.getPositionId();
+    var state = LicencePositionState.EMPTY;
+
+    var changes = getChangesGoingIntoChange(
+        licencePositionViewService.getCorrectedChronologicalPositions(
+            licencePositionCorrection.getLicenceCorrection(),
+            licencePositionId
+        ),
+        licencePositionId,
+        null
+    );
+    for (var change : changes) {
+      if (!changeId.equals(change.changeId())) {
+        state = LicencePositionStateResolver.applyChange(state, change);
+      }
+    }
+
+    return state;
+  }
+
   private List<Feature> toBlockFeatures(Set<UUID> featureIds) {
     if (featureIds.isEmpty()) {
       return List.of();

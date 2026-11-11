@@ -5,8 +5,11 @@ import jakarta.persistence.EntityNotFoundException;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.co.fivium.gisframework.feature.Feature;
@@ -21,11 +24,13 @@ public class CommandJourneyService {
   private final FeatureService featureService;
   private final EntityManager entityManager;
 
-  CommandJourneyService(CommandJourneyRepository commandJourneyRepository,
-                               FeatureJourneyStateService featureJourneyStateService,
-                               OperatorCommandService operatorCommandService,
-                               FeatureService featureService,
-                               EntityManager entityManager) {
+  CommandJourneyService(
+      CommandJourneyRepository commandJourneyRepository,
+      FeatureJourneyStateService featureJourneyStateService,
+      OperatorCommandService operatorCommandService,
+      FeatureService featureService,
+      EntityManager entityManager
+  ) {
     this.commandJourneyRepository = commandJourneyRepository;
     this.featureJourneyStateService = featureJourneyStateService;
     this.operatorCommandService = operatorCommandService;
@@ -70,6 +75,27 @@ public class CommandJourneyService {
    */
   public List<Feature> getActiveFeatures(UUID commandJourneyId) {
     return getActiveFeatures(getCommandJourneyOrThrow(commandJourneyId));
+  }
+
+  /**
+   * Traces each active feature created by the journey's commands back to the features the journey started with.
+   *
+   * @param commandJourneyId the id of the journey to trace.
+   * @return the ids of the journey's initial features each created active feature was made from, keyed by the id of
+   *     the created feature.
+   */
+  public Map<UUID, Set<UUID>> getInitialFeatureIdsByCreatedFeatureId(UUID commandJourneyId) {
+    var commandJourney = getCommandJourneyOrThrow(commandJourneyId);
+    var inputFeatureIdsByCreatedFeatureId = featureJourneyStateService
+        .getInputFeatureIdsByCreatedFeatureId(operatorCommandService.getActiveCommands(commandJourney));
+
+    return getActiveFeatures(commandJourney).stream()
+        .map(Feature::getId)
+        .filter(inputFeatureIdsByCreatedFeatureId::containsKey)
+        .collect(Collectors.toMap(
+            featureId -> featureId,
+            featureId -> getInitialFeatureIds(featureId, inputFeatureIdsByCreatedFeatureId)
+        ));
   }
 
   /**
@@ -143,5 +169,18 @@ public class CommandJourneyService {
         .filter(journey -> new HashSet<>(getActiveFeatures(journey)).containsAll(features))
         .findFirst()
         .orElseGet(() -> createAndAssignCommandJourney(features));
+  }
+
+  private static Set<UUID> getInitialFeatureIds(
+      UUID featureId,
+      Map<UUID, Set<UUID>> inputFeatureIdsByCreatedFeatureId
+  ) {
+    var inputFeatureIds = inputFeatureIdsByCreatedFeatureId.get(featureId);
+    if (inputFeatureIds == null) {
+      return Set.of(featureId);
+    }
+    return inputFeatureIds.stream()
+        .flatMap(inputFeatureId -> getInitialFeatureIds(inputFeatureId, inputFeatureIdsByCreatedFeatureId).stream())
+        .collect(Collectors.toSet());
   }
 }

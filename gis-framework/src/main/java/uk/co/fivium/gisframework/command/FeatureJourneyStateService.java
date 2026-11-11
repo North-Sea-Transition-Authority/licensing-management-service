@@ -120,6 +120,17 @@ public class FeatureJourneyStateService {
   }
 
   /**
+   * Finds the input features each output feature of the given commands was made from.
+   *
+   * @param createdByCommands The commands whose output features should be traced
+   * @return The input feature ids keyed by the id of the output feature made from them
+   */
+  public Map<UUID, Set<UUID>> getInputFeatureIdsByCreatedFeatureId(Collection<OperatorCommand> createdByCommands) {
+    return featureJourneyStateRepository.findAllByCreatedByCommandIn(createdByCommands).stream()
+        .collect(Collectors.toMap(state -> state.getFeature().getId(), FeatureJourneyState::getInputFeatureIds));
+  }
+
+  /**
    * Finds the features produced by each of the given commands.
    *
    * @param createdByCommands The commands whose output features should be returned

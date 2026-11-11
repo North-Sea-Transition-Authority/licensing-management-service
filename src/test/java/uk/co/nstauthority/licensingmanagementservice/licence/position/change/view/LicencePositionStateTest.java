@@ -8,6 +8,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaDetails;
 
 class LicencePositionStateTest {
@@ -24,6 +26,23 @@ class LicencePositionStateTest {
     var state = LicencePositionState.EMPTY.withBlock(FIRST_BLOCK_ID, List.of(FIRST_SUBAREA));
 
     assertThat(state.subareasOf(NOT_HELD_BLOCK_ID)).isEmpty();
+  }
+
+  @Test
+  void subareaEquityOf_whenSubareaHasEquity_thenItsEquity() {
+    var equity = Map.of(1, new BigDecimal("100"));
+    var state = LicencePositionState.EMPTY
+        .withBlock(FIRST_BLOCK_ID, List.of(FIRST_SUBAREA))
+        .withSubareaEquity(FIRST_BLOCK_ID, FIRST_SUBAREA, 1, new BigDecimal("100"));
+
+    assertThat(state.subareaEquityOf(FIRST_BLOCK_ID, FIRST_SUBAREA)).isEqualTo(equity);
+  }
+
+  @Test
+  void subareaEquityOf_whenNoEquityOnBlock_thenEmpty() {
+    var state = LicencePositionState.EMPTY.withBlock(FIRST_BLOCK_ID, List.of(FIRST_SUBAREA));
+
+    assertThat(state.subareaEquityOf(FIRST_BLOCK_ID, FIRST_SUBAREA)).isEmpty();
   }
 
   @Test
@@ -161,6 +180,19 @@ class LicencePositionStateTest {
 
     assertThat(result.blockFeatureIdToSubareaEquity())
         .isEqualTo(Map.of(FIRST_BLOCK_ID, Map.of(FIRST_SUBAREA, Map.of(1, new BigDecimal("100")))));
+  }
+
+  @ParameterizedTest
+  @CsvSource({
+      "100.00, 100",
+      "12.50, 12.5",
+      "0.0, 0"
+  })
+  void withSubareaEquity_whenEquityHasTrailingZeros_thenStoredWithoutThem(String equity, String expectedEquity) {
+    var result = LicencePositionState.EMPTY.withSubareaEquity(FIRST_BLOCK_ID, FIRST_SUBAREA, 1, new BigDecimal(equity));
+
+    assertThat(result.blockFeatureIdToSubareaEquity())
+        .isEqualTo(Map.of(FIRST_BLOCK_ID, Map.of(FIRST_SUBAREA, Map.of(1, new BigDecimal(expectedEquity)))));
   }
 
   @Test

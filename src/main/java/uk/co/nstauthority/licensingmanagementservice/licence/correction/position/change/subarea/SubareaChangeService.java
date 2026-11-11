@@ -1,9 +1,10 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subarea;
 
 import jakarta.annotation.Nullable;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -13,6 +14,7 @@ import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFound
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subareaequity.SubareaSetEquityCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.AddChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.UpdateChangeOperations;
@@ -32,17 +34,20 @@ public class SubareaChangeService {
   private final LicencePositionSpatialService licencePositionSpatialService;
   private final FeatureService featureService;
   private final CommandJourneyService commandJourneyService;
+  private final SubareaSetEquityCorrectionService subareaSetEquityCorrectionService;
 
   public SubareaChangeService(
       LicencePositionCorrectionService licencePositionCorrectionService,
       LicencePositionSpatialService licencePositionSpatialService,
       FeatureService featureService,
-      CommandJourneyService commandJourneyService
+      CommandJourneyService commandJourneyService,
+      SubareaSetEquityCorrectionService subareaSetEquityCorrectionService
   ) {
     this.licencePositionCorrectionService = licencePositionCorrectionService;
     this.licencePositionSpatialService = licencePositionSpatialService;
     this.featureService = featureService;
     this.commandJourneyService = commandJourneyService;
+    this.subareaSetEquityCorrectionService = subareaSetEquityCorrectionService;
   }
 
   @Transactional
@@ -54,8 +59,14 @@ public class SubareaChangeService {
     var positionCorrection = licencePositionCorrectionService
         .getOrBuildUpdatePositionCorrection(licenceCorrection, licencePosition);
 
-    replaceAddSubareaChangeForBlock(positionCorrection, blockFeatureId);
-    return positionCorrection;
+    return licencePositionCorrectionService.replaceAddChangeForExecutedPosition(
+        licenceCorrection,
+        licencePosition,
+        positionCorrection,
+        SubareaOperation.class,
+        isForBlock(blockFeatureId),
+        List.of(newSubareaOperation(positionCorrection, blockFeatureId))
+    );
   }
 
   @Transactional
@@ -63,7 +74,12 @@ public class SubareaChangeService {
       LicencePositionCorrection licencePositionCorrection,
       UUID blockFeatureId
   ) {
-    replaceAddSubareaChangeForBlock(licencePositionCorrection, blockFeatureId);
+    licencePositionCorrectionService.replaceAddChangeFor(
+        licencePositionCorrection,
+        SubareaOperation.class,
+        isForBlock(blockFeatureId),
+        List.of(newSubareaOperation(licencePositionCorrection, blockFeatureId))
+    );
   }
 
   @Transactional
@@ -94,7 +110,96 @@ public class SubareaChangeService {
       LicencePositionCorrection positionCorrection,
       UUID blockFeatureId
   ) {
-    var change = positionCorrection.getPayload().changes().stream()
+    var change = getSubareaChangeOrThrow(positionCorrection, blockFeatureId);
+    var operation = getSubareaOperationForChangeOrThrow(change);
+
+    if (operation.commandJourneyId() == null && change instanceof UpdateChangeOperations) {
+      return stageUpdateWithNewJourney(positionCorrection, change.changeId(), blockFeatureId);
+    }
+    return operation.commandJourneyIdOrThrow();
+  }
+
+  /**
+   * Records the active features from a command journey onto the operation and checks to see if lineage is lost for each subarea
+   * attribute (e.g. beneficial interests/operators/etc), if it is not lost then the relevant operation is staged for the new
+   * subarea.
+   */
+  @Transactional
+  public void completeSubareaChange(
+      LicencePositionCorrection positionCorrection,
+      UUID blockFeatureId
+  ) {
+    var change = getSubareaChangeOrThrow(positionCorrection, blockFeatureId);
+    var operation = getSubareaOperationForChangeOrThrow(change);
+    var stateGoingIntoChange = licencePositionSpatialService.getStateGoingIntoChange(
+        positionCorrection,
+        change.changeId()
+    );
+    var stateWithoutChange = licencePositionSpatialService.getStateAtEndOfPositionWithoutChange(
+        positionCorrection,
+        change.changeId()
+    );
+    var originalSubareas = stateGoingIntoChange.subareasOf(blockFeatureId);
+
+    var initialFeatureIdsByOutputFeatureId = commandJourneyService
+        .getInitialFeatureIdsByCreatedFeatureId(operation.commandJourneyIdOrThrow());
+    var replacedFeatureIds = initialFeatureIdsByOutputFeatureId.values().stream()
+        .flatMap(Set::stream)
+        .collect(Collectors.toSet());
+    var outputSubareas = featureService.getFeaturesByIds(initialFeatureIdsByOutputFeatureId.keySet()).stream()
+        .map(SubareaDetails::from)
+        .toList();
+
+    var replacedSubareas = originalSubareas.stream()
+        .filter(subarea -> replacedFeatureIds.contains(subarea.featureId()))
+        .toList();
+
+    var completedOperation = LicenceOperation.newSubAreaOperation()
+        .withBlockFeatureId(blockFeatureId)
+        .withReplacedSubareas(replacedSubareas)
+        .withOutputSubareas(outputSubareas)
+        .withCommandJourneyId(operation.commandJourneyId())
+        .build();
+    var payload = positionCorrection.getPayload();
+    var changes = payload.changes().stream()
+        .map(stagedChange -> stagedChange.changeId().equals(change.changeId())
+            ? rebuildKeepingChangeId(stagedChange, completedOperation)
+            : stagedChange)
+        .toList();
+    positionCorrection.setPayload(LicencePositionPayload.withChanges(payload, changes));
+    licencePositionCorrectionService.save(positionCorrection);
+
+    for (var outputSubarea : outputSubareas) {
+      var lineageSubareas = originalSubareas.stream()
+          .filter(subarea -> initialFeatureIdsByOutputFeatureId.get(outputSubarea.featureId()).contains(subarea.featureId()))
+          .toList();
+      subareaSetEquityCorrectionService.cascadeSubareaEquity(
+          positionCorrection,
+          stateWithoutChange,
+          blockFeatureId,
+          lineageSubareas,
+          outputSubarea
+      );
+    }
+  }
+
+  private static LicencePositionChangeType rebuildKeepingChangeId(
+      LicencePositionChangeType change,
+      LicenceOperation operation
+  ) {
+    var rebuiltChange = LicencePositionChangeOperationUtil.rebuildWith(change, operation);
+    return rebuiltChange instanceof AddChange addChange
+        ? new AddChange(change.changeId(), addChange.changeOrder(), addChange.operations())
+        : rebuiltChange;
+  }
+
+  private LicencePositionChangeType getSubareaChangeOrThrow(
+      LicencePositionCorrection positionCorrection,
+      UUID blockFeatureId
+  ) {
+    return positionCorrection.getPayload()
+        .changes()
+        .stream()
         .filter(stagedChange -> LicencePositionChangeOperationUtil
             .findOperations(List.of(stagedChange), SubareaOperation.class).stream()
             .anyMatch(operation -> blockFeatureId.equals(operation.blockFeatureId())))
@@ -102,12 +207,6 @@ public class SubareaChangeService {
         .orElseThrow(() -> new LmsEntityNotFoundException(
             "No subarea change staged for block %s on position correction %s"
                 .formatted(blockFeatureId, positionCorrection.getId())));
-    var operation = getSubareaOperationForChangeOrThrow(change);
-
-    if (operation.commandJourneyId() == null && change instanceof UpdateChangeOperations) {
-      return stageUpdateWithNewJourney(positionCorrection, change.changeId(), blockFeatureId);
-    }
-    return operation.commandJourneyIdOrThrow();
   }
 
   private UUID stageUpdateWithNewJourney(
@@ -193,25 +292,14 @@ public class SubareaChangeService {
             "Change with id %s is not a subarea change".formatted(change.changeId())));
   }
 
-  private void replaceAddSubareaChangeForBlock(
+  private SubareaOperation newSubareaOperation(
       LicencePositionCorrection licencePositionCorrection,
       UUID blockFeatureId
   ) {
-    var operation = LicenceOperation.newSubAreaOperation()
+    return LicenceOperation.newSubAreaOperation()
         .withBlockFeatureId(blockFeatureId)
         .withCommandJourneyId(createCommandJourneyForSubareas(licencePositionCorrection, blockFeatureId, null))
         .build();
-
-    var payload = licencePositionCorrection.getPayload();
-
-    var changes = payload.changes().stream()
-        .filter(change -> !isAddSubareaChangeForBlock(change, blockFeatureId))
-        .collect(Collectors.toCollection(ArrayList::new));
-
-    changes.add(AddChange.buildOperationsChange(List.of(operation), licencePositionCorrectionService.nextChangeOrder(changes)));
-
-    licencePositionCorrection.setPayload(LicencePositionPayload.withChanges(payload, changes));
-    licencePositionCorrectionService.save(licencePositionCorrection);
   }
 
   /**
@@ -237,8 +325,7 @@ public class SubareaChangeService {
     return commandJourneyService.createAndAssignCommandJourney(subareaFeatures).getId();
   }
 
-  private boolean isAddSubareaChangeForBlock(LicencePositionChangeType change, UUID blockFeatureId) {
-    return licencePositionCorrectionService.getAddOperationsOfType(List.of(change), SubareaOperation.class).stream()
-        .anyMatch(op -> blockFeatureId.equals(op.blockFeatureId()));
+  private static Predicate<SubareaOperation> isForBlock(UUID blockFeatureId) {
+    return operation -> blockFeatureId.equals(operation.blockFeatureId());
   }
 }

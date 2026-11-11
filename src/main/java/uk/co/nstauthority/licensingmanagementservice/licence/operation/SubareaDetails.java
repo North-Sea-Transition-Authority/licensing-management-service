@@ -9,6 +9,8 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
+import uk.co.fivium.gisframework.feature.Feature;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.FeatureAttribute;
 
 /**
  * Record of the key information that identify a subarea.
@@ -39,6 +41,14 @@ public record SubareaDetails(
     }
 
     return "Block %s - %s".formatted(blockName, displayName());
+  }
+
+  public static SubareaDetails from(Feature feature) {
+    return new SubareaDetails(
+        feature.getId(),
+        feature.getFeatureName(),
+        feature.getAttributes().get(FeatureAttribute.NAME.name())
+    );
   }
 
   public static Set<UUID> featureIds(Collection<SubareaDetails> subareas) {

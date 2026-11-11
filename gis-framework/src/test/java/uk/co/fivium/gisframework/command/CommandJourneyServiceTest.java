@@ -12,7 +12,9 @@ import static org.mockito.Mockito.when;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityNotFoundException;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -267,5 +269,65 @@ class CommandJourneyServiceTest {
         .isEqualTo(savedJourney);
     verify(featureJourneyStateService)
         .createInitialFeatureJourneyStates(savedJourney, List.of(feature1, feature2));
+  }
+
+  @Test
+  void getInitialFeatureIdsByCreatedFeatureId_whenFeatureSplit_mapsEachOutputToItsSourceOnly() {
+    var journeyId = UUID.randomUUID();
+    var journey = new CommandJourney();
+    var featureA = FeatureTestUtil.newBuilder().build();
+    var untouchedFeature = FeatureTestUtil.newBuilder().build();
+    var featureA1 = FeatureTestUtil.newBuilder().build();
+    var featureA2 = FeatureTestUtil.newBuilder().build();
+    var split = OperatorCommandTestUtil.newBuilder().build();
+    when(commandJourneyRepository.findById(journeyId)).thenReturn(Optional.of(journey));
+    when(operatorCommandService.getActiveCommands(journey)).thenReturn(List.of(split));
+    when(featureJourneyStateService.getInputFeatureIdsByCreatedFeatureId(List.of(split))).thenReturn(Map.of(
+        featureA1.getId(), Set.of(featureA.getId()),
+        featureA2.getId(), Set.of(featureA.getId())
+    ));
+    when(featureJourneyStateService.getActiveFeatures(journey))
+        .thenReturn(List.of(untouchedFeature, featureA1, featureA2));
+
+    var result = commandJourneyService.getInitialFeatureIdsByCreatedFeatureId(journeyId);
+
+    assertThat(result).isEqualTo(Map.of(
+        featureA1.getId(), Set.of(featureA.getId()),
+        featureA2.getId(), Set.of(featureA.getId())
+    ));
+  }
+
+  @Test
+  void getInitialFeatureIdsByCreatedFeatureId_whenSplitOutputsMerged_tracesThroughIntermediateFeatures() {
+    var journeyId = UUID.randomUUID();
+    var journey = new CommandJourney();
+    var featureA = FeatureTestUtil.newBuilder().build();
+    var featureB = FeatureTestUtil.newBuilder().build();
+    var featureC = FeatureTestUtil.newBuilder().build();
+    var featureA1 = FeatureTestUtil.newBuilder().build();
+    var featureA2 = FeatureTestUtil.newBuilder().build();
+    var featureA1B = FeatureTestUtil.newBuilder().build();
+    var featureA2C = FeatureTestUtil.newBuilder().build();
+    var commands = List.of(
+        OperatorCommandTestUtil.newBuilder().build(),
+        OperatorCommandTestUtil.newBuilder().build(),
+        OperatorCommandTestUtil.newBuilder().build()
+    );
+    when(commandJourneyRepository.findById(journeyId)).thenReturn(Optional.of(journey));
+    when(operatorCommandService.getActiveCommands(journey)).thenReturn(commands);
+    when(featureJourneyStateService.getInputFeatureIdsByCreatedFeatureId(commands)).thenReturn(Map.of(
+        featureA1.getId(), Set.of(featureA.getId()),
+        featureA2.getId(), Set.of(featureA.getId()),
+        featureA1B.getId(), Set.of(featureA1.getId(), featureB.getId()),
+        featureA2C.getId(), Set.of(featureA2.getId(), featureC.getId())
+    ));
+    when(featureJourneyStateService.getActiveFeatures(journey)).thenReturn(List.of(featureA1B, featureA2C));
+
+    var result = commandJourneyService.getInitialFeatureIdsByCreatedFeatureId(journeyId);
+
+    assertThat(result).isEqualTo(Map.of(
+        featureA1B.getId(), Set.of(featureA.getId(), featureB.getId()),
+        featureA2C.getId(), Set.of(featureA.getId(), featureC.getId())
+    ));
   }
 }

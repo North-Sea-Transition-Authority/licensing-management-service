@@ -123,7 +123,7 @@ public final class LicencePositionChangeOperationUtil {
         .toList();
   }
 
-  private static LicencePositionChangeType rebuildWith(
+  public static LicencePositionChangeType rebuildWith(
       LicencePositionChangeType change,
       LicenceOperation operation
   ) {

@@ -80,7 +80,7 @@ flowchart TB
     LS["<b>licence_schedules</b><br/>id · licence_id<br/><i>stable anchor, carries no application data</i>"]
     LSD["<b>licence_schedule_details</b><br/>id · licence_schedule_id · status · created_instant<br/><i>one row per schedule version</i>"]
     SWPA["<b>schedule_work_programme_applications</b><br/>id · licence_schedule_id · application_reference · steward_wua_id<br/><i>extension and amendment — thin root</i>"]
-    LCA["<b>licence_continuation_applications</b><br/>id · licence_schedule_id · application_reference · withdrawal_reason<br/><i>continuation — thin root</i>"]
+    LCA["<b>licence_continuation_applications</b><br/>id · licence_schedule_id · application_reference · withdrawal_reason · withdrawn_datetime<br/><i>continuation — thin root</i>"]
     SWPAD["<b>schedule_work_programme_application_details</b><br/>id · version_number · status · decision_date<br/><i>one row per application version</i>"]
     LCAD["<b>licence_continuation_application_details</b><br/>id · version_number · status · current/next term and phase ids<br/><i>one row per application version</i>"]
     ECSWP["<b>swp_external_contributor_request</b><br/><i>keyed on the application, not the detail</i>"]
@@ -451,6 +451,7 @@ licence_continuation_applications
   submitted_licence_schedule_detail_id UUID          → licence_schedule_details.id (null until submission)
   application_reference                TEXT          UNIQUE, null until submission
   withdrawal_reason                    TEXT          set when withdrawn
+  withdrawn_datetime                   TIMESTAMPTZ   set when withdrawn
 ```
 
 ```
@@ -983,8 +984,10 @@ audit_revisions
 ```
 
 This is the **only** place recording *when* an application changed status and *who* did it,
-other than `created_by_wua_id` for the creation step and `submitted_datetime` /
-`submitted_by_wua_id` for the submission step specifically:
+other than `created_by_wua_id` for the creation step, `submitted_datetime` /
+`submitted_by_wua_id` for the submission step, and
+`licence_continuation_applications.withdrawn_datetime` for a continuation withdrawal
+specifically:
 
 ```sql
 SELECT ar.created_date_time, ar.user_wua_id, d.status
@@ -994,8 +997,9 @@ WHERE d.id = :application_detail_id
 ORDER BY d.rev;
 ```
 
-Use it to answer "when was this withdrawn", "when was the decision issued" and "who deleted
-this draft", none of which have a dedicated column.
+Use it to answer "who withdrew this", "when was the decision issued" and "who deleted
+this draft", none of which have a dedicated column. `withdrawn_datetime` is null on
+continuation applications withdrawn before the column existed; use this query for those.
 
 ---
 
@@ -1062,7 +1066,7 @@ this draft", none of which have a dedicated column.
 
 **`licence_continuation_applications`**
 `id`, `licence_schedule_id`, `submitted_licence_schedule_detail_id`, `application_reference`,
-`withdrawal_reason`
+`withdrawal_reason`, `withdrawn_datetime`
 
 **`licence_continuation_application_details`**
 `id`, `licence_continuation_application_id`, `version_number`, `status`, `created_datetime`,

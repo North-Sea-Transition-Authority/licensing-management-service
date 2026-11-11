@@ -387,6 +387,7 @@ class LicenceContinuationServiceTest {
   @Test
   void withdrawContinuationChangeStatus(){
     String reason = "User requested withdrawal";
+    when(clock.instant()).thenReturn(FIXED_INSTANT);
 
     licenceContinuationApplicationDetail.setResponsibleOrganisationUnitId(orgUnitId);
     when(organisationUnitQueryService.findOrganisationGroupIdByUnitId(orgUnitId)).thenReturn(Optional.of(orgGroupId));
@@ -413,6 +414,7 @@ class LicenceContinuationServiceTest {
 
     verify(licenceContinuationApplicationRepository).save(application);
     assertThat(application.getWithdrawalReason()).isEqualTo(reason);
+    assertThat(application.getWithdrawnDatetime()).isEqualTo(FIXED_INSTANT);
 
     verify(applicationWithdrawService).sendApplicationWithdrawnEmails(
         reason,

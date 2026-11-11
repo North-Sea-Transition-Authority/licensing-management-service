@@ -5,6 +5,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import java.time.Instant;
 import java.util.UUID;
 import org.hibernate.annotations.UuidGenerator;
 import org.hibernate.envers.Audited;
@@ -34,6 +35,9 @@ public class LicenceContinuationApplication implements LicenceApplication {
 
   @Column
   private String withdrawalReason;
+
+  @Column
+  private Instant withdrawnDatetime;
 
   public UUID getId() {
     return id;
@@ -73,6 +77,14 @@ public class LicenceContinuationApplication implements LicenceApplication {
 
   public void setWithdrawalReason(String withdrawalReason) {
     this.withdrawalReason = withdrawalReason;
+  }
+
+  public Instant getWithdrawnDatetime() {
+    return withdrawnDatetime;
+  }
+
+  public void setWithdrawnDatetime(Instant withdrawnDatetime) {
+    this.withdrawnDatetime = withdrawnDatetime;
   }
 
   @Override

@@ -331,6 +331,7 @@ public class LicenceContinuationService {
         });
 
     application.setWithdrawalReason(withdrawalReason);
+    application.setWithdrawnDatetime(Instant.now(clock));
     licenceContinuationApplicationRepository.save(application);
 
     var orgGroupId = getOrgGroupIdForContinuationApplication(licenceContinuationApplicationDetail);

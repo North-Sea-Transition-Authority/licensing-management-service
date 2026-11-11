@@ -11,20 +11,16 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFieldDuration;
-import uk.co.nstauthority.licensingmanagementservice.licence.LicenceScheduleTermTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetailTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.recordofdecision.RecordOfDecisionExtension;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.recordofdecision.RecordDurationChangeSummaryView;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.recordofdecision.RecordDurationChangesService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.recordofdecision.RecordOfDecisionExtensionRepository;
-import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.recordofdecision.RecordOfDecisionReduction;
-import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.recordofdecision.RecordOfDecisionReductionRepository;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.recordofdecision.RecordOfDecisionService;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryCard;
-import uk.co.nstauthority.licensingmanagementservice.summary.SummaryCardType;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryDataView;
+import uk.co.nstauthority.licensingmanagementservice.summary.SummaryItem;
+import uk.co.nstauthority.licensingmanagementservice.summary.SummarySection;
 
 @ExtendWith(MockitoExtension.class)
 class DurationChangeDecisionSummarySectionServiceTest {
@@ -36,7 +32,7 @@ class DurationChangeDecisionSummarySectionServiceTest {
   private RecordOfDecisionExtensionRepository recordOfDecisionExtensionRepository;
 
   @Mock
-  private RecordOfDecisionReductionRepository recordOfDecisionReductionRepository;
+  private RecordDurationChangesService recordDurationChangesService;
 
   @InjectMocks
   private DurationChangeDecisionSummarySectionService durationChangeDecisionSummarySectionService;
@@ -53,113 +49,61 @@ class DurationChangeDecisionSummarySectionServiceTest {
   }
 
   @Test
-  void getSummarySection_whenTheExtensionIsNotApproved_returnsEmptyOptional() {
+  void getSummarySection_whenTheExtensionIsNotApproved_thenReturnsEmptyOptional() {
     when(recordOfDecisionService.isExtensionApproved(applicationDetail)).thenReturn(false);
 
-    assertThat(durationChangeDecisionSummarySectionService.getSummarySection(context, null)).isEmpty();
+    var result = durationChangeDecisionSummarySectionService.getSummarySection(context, null);
+
+    assertThat(result).isEmpty();
   }
 
   @Test
-  void getSummarySection_showsAnExtensionsCardAndAReductionsCard() {
-    mockApproved();
-    mockRecordedChanges(
-        List.of(extensionFor(term(TermType.INITIAL), new ThreeFieldDuration(1, 0, 0))),
-        List.of(reductionFor(term(TermType.THIRD), new ThreeFieldDuration(1, 0, 0))));
-
-    var section = durationChangeDecisionSummarySectionService.getSummarySection(context, null).orElseThrow();
-
-    assertThat(section.displayOrder())
-        .isEqualTo(DurationChangeDecisionSummarySectionService.SECTION_DISPLAY_ORDER);
-    assertThat(section.summaryItems().getFirst().displayName())
-        .isEqualTo(DurationChangeDecisionSummarySectionService.SECTION_NAME);
-    assertThat(section.summaryItems().getFirst().summaryCards())
-        .extracting(SummaryCard::displayName)
-        .containsExactly(
-            DurationChangeDecisionSummarySectionService.EXTENSIONS_CARD_NAME,
-            DurationChangeDecisionSummarySectionService.REDUCTIONS_CARD_NAME);
-  }
-
-  @Test
-  void getSummarySection_showsEachRecordedDurationInsideItsOwnCard() {
-    mockApproved();
-    mockRecordedChanges(
-        List.of(extensionFor(term(TermType.INITIAL), new ThreeFieldDuration(1, 0, 0))),
-        List.of(reductionFor(term(TermType.THIRD), new ThreeFieldDuration(0, 6, 0))));
-
-    var section = durationChangeDecisionSummarySectionService.getSummarySection(context, null).orElseThrow();
-    var cards = section.summaryItems().getFirst().summaryCards();
-
-    assertThat(((SummaryDataView) cards.getFirst().summaryData()).keyValues())
-        .extracting(Object::toString)
-        .anyMatch(data -> data.contains(DurationChangeDecisionSummarySectionService.EXTENSION_DURATION
-            .formatted(TermType.INITIAL.getDisplayName())))
-        .anyMatch(data -> data.contains("1 year"));
-
-    assertThat(((SummaryDataView) cards.getLast().summaryData()).keyValues())
-        .extracting(Object::toString)
-        .anyMatch(data -> data.contains(DurationChangeDecisionSummarySectionService.REDUCTION_DURATION
-            .formatted(TermType.THIRD.getDisplayName())))
-        .anyMatch(data -> data.contains("6 months"));
-  }
-
-  @Test
-  void getSummarySection_whenOnlyExtensionsAreRecorded_showsOnlyTheExtensionsCard() {
-    mockApproved();
-    mockRecordedChanges(
-        List.of(extensionFor(term(TermType.INITIAL), new ThreeFieldDuration(1, 0, 0))),
-        List.of());
-
-    var section = durationChangeDecisionSummarySectionService.getSummarySection(context, null).orElseThrow();
-
-    assertThat(section.summaryItems().getFirst().summaryCards())
-        .extracting(SummaryCard::displayName)
-        .containsExactly(DurationChangeDecisionSummarySectionService.EXTENSIONS_CARD_NAME);
-  }
-
-  @Test
-  void getSummarySection_whenNothingIsRecorded_showsAnEmptyCard() {
-    mockApproved();
-    mockRecordedChanges(List.of(), List.of());
-
-    var section = durationChangeDecisionSummarySectionService.getSummarySection(context, null).orElseThrow();
-
-    assertThat(section.summaryItems().getFirst().summaryCards())
-        .extracting(SummaryCard::summaryCardType)
-        .containsExactly(SummaryCardType.EMPTY_SUMMARY);
-  }
-
-  private void mockApproved() {
+  void getSummarySection_whenNoExtensionIsRecorded_thenShowsAnEmptyCard() {
     when(recordOfDecisionService.isExtensionApproved(applicationDetail)).thenReturn(true);
+    when(recordOfDecisionExtensionRepository.existsByScheduleWorkProgrammeApplicationDetail(applicationDetail))
+        .thenReturn(false);
+
+    var result = durationChangeDecisionSummarySectionService.getSummarySection(context, null);
+
+    var expected = new SummarySection(
+        DurationChangeDecisionSummarySectionService.SECTION_DISPLAY_ORDER,
+        List.of(SummaryItem.withCard(
+            DurationChangeDecisionSummarySectionService.SECTION_NAME,
+            SummaryCard.emptySummaryCard())));
+    assertThat(result).contains(expected);
   }
 
-  private void mockRecordedChanges(
-      List<RecordOfDecisionExtension> extensions,
-      List<RecordOfDecisionReduction> reductions
-  ) {
-    when(recordOfDecisionExtensionRepository.findAllByScheduleWorkProgrammeApplicationDetail(applicationDetail))
-        .thenReturn(extensions);
-    when(recordOfDecisionReductionRepository.findAllByScheduleWorkProgrammeApplicationDetail(applicationDetail))
-        .thenReturn(reductions);
+  @Test
+  void getSummarySection_whenAnExtensionIsRecorded_thenShowsACardForEachTermAndPhase() {
+    when(recordOfDecisionService.isExtensionApproved(applicationDetail)).thenReturn(true);
+    when(recordOfDecisionExtensionRepository.existsByScheduleWorkProgrammeApplicationDetail(applicationDetail))
+        .thenReturn(true);
+    var extendedView = new RecordDurationChangeSummaryView(
+        "Initial term", false, "4 years", "1 January 2030", "Extended by 1 year", "5 years", "1 January 2031");
+    var reducedView = new RecordDurationChangeSummaryView(
+        "Phase B", true, "2 years", "1 January 2032", "Reduced by 1 year", "1 year", "1 January 2032");
+    when(recordDurationChangesService.getSummaryViews(applicationDetail))
+        .thenReturn(List.of(extendedView, reducedView));
+
+    var result = durationChangeDecisionSummarySectionService.getSummarySection(context, null);
+
+    var expected = new SummarySection(
+        DurationChangeDecisionSummarySectionService.SECTION_DISPLAY_ORDER,
+        List.of(SummaryItem.withCards(
+            DurationChangeDecisionSummarySectionService.SECTION_NAME,
+            List.of(expectedCard(extendedView), expectedCard(reducedView)))));
+    assertThat(result).get().usingRecursiveComparison().isEqualTo(expected);
   }
 
-  private LicenceScheduleTerm term(TermType termType) {
-    return LicenceScheduleTermTestUtil.builder()
-        .withId(UUID.randomUUID())
-        .withTermType(termType)
-        .build();
-  }
-
-  private RecordOfDecisionExtension extensionFor(LicenceScheduleTerm term, ThreeFieldDuration duration) {
-    var extension = new RecordOfDecisionExtension();
-    extension.setLicenceScheduleTerm(term);
-    extension.setExtensionDuration(duration);
-    return extension;
-  }
-
-  private RecordOfDecisionReduction reductionFor(LicenceScheduleTerm term, ThreeFieldDuration duration) {
-    var reduction = new RecordOfDecisionReduction();
-    reduction.setLicenceScheduleTerm(term);
-    reduction.setReductionDuration(duration);
-    return reduction;
+  private SummaryCard expectedCard(RecordDurationChangeSummaryView view) {
+    return SummaryCard.simpleSummaryCardWithHeading(
+        view.displayName(),
+        SummaryDataView.newBuilder()
+            .addStringValue(DurationChangeDecisionSummarySectionService.CURRENT_DURATION, view.currentDuration())
+            .addStringValue(DurationChangeDecisionSummarySectionService.CURRENT_END_DATE, view.currentEndDate())
+            .addStringValue(DurationChangeDecisionSummarySectionService.CHANGE, view.change())
+            .addStringValue(DurationChangeDecisionSummarySectionService.NEW_DURATION, view.newDuration())
+            .addStringValue(DurationChangeDecisionSummarySectionService.NEW_END_DATE, view.newEndDate())
+            .build());
   }
 }

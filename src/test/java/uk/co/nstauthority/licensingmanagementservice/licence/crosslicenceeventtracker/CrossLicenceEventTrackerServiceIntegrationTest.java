@@ -13,6 +13,7 @@ import java.time.LocalDate;
 import java.time.Month;
 import java.util.List;
 import java.util.UUID;
+import org.apache.commons.lang3.StringUtils;
 import org.hibernate.SessionFactory;
 import org.hibernate.engine.spi.SessionFactoryImplementor;
 import org.junit.jupiter.api.Test;
@@ -39,6 +40,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.continuation.Licenc
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.overview.LicenceContinuationApplicationOverviewController;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisation;
+import uk.co.nstauthority.licensingmanagementservice.licence.overview.LicenceScheduleTabController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSchedule;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
@@ -109,6 +111,14 @@ class CrossLicenceEventTrackerServiceIntegrationTest {
 
     var row = result.tableRows().get(1).rowValues();
     assertThat(row.get(0).value()).isEqualTo("P 999");
+    assertThat(row.get(0).link()).isEqualTo(
+        StringUtils.removeStart(
+            ReverseRouter.route(on(LicenceScheduleTabController.class)
+                .renderLicenceOverview(licence.getId(), null, null, null)),
+            "/"
+        )
+    );
+    assertThat(row.get(0).link()).doesNotStartWith("/");
     assertThat(row.get(0).tags()).isEmpty();
     assertThat(row.get(1).value()).isEqualTo("Initial Term to Second Term");
     assertThat(row.get(3).value()).isEqualTo(DateFormatUtil.convertToDisplayText(LocalDate.of(2030, Month.JANUARY, 1)));
@@ -170,9 +180,13 @@ class CrossLicenceEventTrackerServiceIntegrationTest {
     var row = result.tableRows().get(1).rowValues();
     assertThat(row.get(0).value()).isEqualTo("P 987 (LMS/EAA/2040/1)");
     assertThat(row.get(0).link()).isEqualTo(
-        ReverseRouter.route(on(ScheduleWorkProgrammeApplicationOverviewController.class)
-            .renderOverview(applicationDetail.getId(), null, null, null))
+        StringUtils.removeStart(
+            ReverseRouter.route(on(ScheduleWorkProgrammeApplicationOverviewController.class)
+                .renderOverview(applicationDetail.getId(), null, null, null)),
+            "/"
+        )
     );
+    assertThat(row.get(0).link()).doesNotStartWith("/");
     assertThat(row.get(0).tags()).containsExactly(
         new Tag(
             ApplicationType.SCHEDULE_AMENDMENT_APPLICATION.getTagDisplayName(),
@@ -227,9 +241,13 @@ class CrossLicenceEventTrackerServiceIntegrationTest {
     var row = result.tableRows().get(1).rowValues();
     assertThat(row.get(0).value()).isEqualTo("P 985 (LMS/CA/2040/1)");
     assertThat(row.get(0).link()).isEqualTo(
-        ReverseRouter.route(on(LicenceContinuationApplicationOverviewController.class)
-            .renderOverview(applicationDetail.getId(), null, null, null))
+        StringUtils.removeStart(
+            ReverseRouter.route(on(LicenceContinuationApplicationOverviewController.class)
+                .renderOverview(applicationDetail.getId(), null, null, null)),
+            "/"
+        )
     );
+    assertThat(row.get(0).link()).doesNotStartWith("/");
     assertThat(row.get(0).tags()).containsExactly(
         new Tag(
             ApplicationType.CONTINUATION_APPLICATION.getTagDisplayName(),

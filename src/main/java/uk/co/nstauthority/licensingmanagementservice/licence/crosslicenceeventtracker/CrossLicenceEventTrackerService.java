@@ -406,18 +406,21 @@ public class CrossLicenceEventTrackerService {
   }
 
   private String licenceOverviewLink(Integer licenceId) {
-    return ReverseRouter.route(on(LicenceScheduleTabController.class)
-        .renderLicenceOverview(licenceId, null, null, null));
+    return StringUtils.removeStart(ReverseRouter.route(on(LicenceScheduleTabController.class)
+        .renderLicenceOverview(licenceId, null, null, null)),
+        "/");
   }
 
   private String applicationOverviewLink(UUID scheduleWorkProgrammeApplicationDetailId) {
-    return ReverseRouter.route(on(ScheduleWorkProgrammeApplicationOverviewController.class)
-        .renderOverview(scheduleWorkProgrammeApplicationDetailId, null, null, null));
+    return StringUtils.removeStart(ReverseRouter.route(on(ScheduleWorkProgrammeApplicationOverviewController.class)
+        .renderOverview(scheduleWorkProgrammeApplicationDetailId, null, null, null)),
+        "/");
   }
 
   private String continuationApplicationOverviewLink(UUID licenceContinuationApplicationDetailId) {
-    return ReverseRouter.route(on(LicenceContinuationApplicationOverviewController.class)
-        .renderOverview(licenceContinuationApplicationDetailId, null, null, null));
+    return StringUtils.removeStart(ReverseRouter.route(on(LicenceContinuationApplicationOverviewController.class)
+        .renderOverview(licenceContinuationApplicationDetailId, null, null, null)),
+        "/");
   }
 
   private String getTermPhaseTransition(LicenceEventCache eventCache) {

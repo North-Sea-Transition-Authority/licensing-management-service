@@ -1,7 +1,8 @@
 # Investigation: Central Application and Application Detail Tables
 
 > **Status: Proposed.** Nothing in this document has been implemented. Written against
-> `develop` at `4f14542f6`, which includes the `created_datetime` rename (V130).
+> `develop` at `4f14542f6`, which includes the `created_datetime` rename (V130), plus
+> `licence_continuation_applications.withdrawn_datetime` (V131).
 
 ## Problem
 
@@ -119,6 +120,7 @@ applications
   submitted_licence_schedule_detail_id UUID          → licence_schedule_details.id
   application_reference                TEXT UNIQUE
   withdrawal_reason                    TEXT               set when withdrawn, any type
+  withdrawn_datetime                   TIMESTAMPTZ        set when withdrawn, any type
   UNIQUE (id, application_type)                           target for the composite FK below
 
 schedule_work_programme_applications                      one row per extension application with a steward
@@ -162,9 +164,9 @@ licence_continuation_application_details
   next_phase_id                        UUID → licence_schedule_phases.id  (FK unchanged)
 ```
 
-`withdrawal_reason` lives on the root because withdrawal is being built for every application
-type. Today only continuations can be withdrawn, so after the migration extension and amendment
-rows have it null. That leaves `licence_continuation_applications` with nothing but its `id`, so
+`withdrawal_reason` and `withdrawn_datetime` live on the root because withdrawal is being built
+for every application type. Today only continuations can be withdrawn, so after the migration
+extension and amendment rows have both null. That leaves `licence_continuation_applications` with nothing but its `id`, so
 it is dropped. If a continuation-only application column is ever needed, it would bring back a
 continuation table, mapped as its own entity sharing the application's id, like the steward one.
 
@@ -267,8 +269,8 @@ with mapping annotations, the detail-to-application link and the renamed join co
 
 1. Add `@MappedSuperclass` `AbstractLicenceApplication` with the shared fields: `id`,
    `licenceSchedule`, `submittedLicenceScheduleDetail`, `applicationReference`. Leave
-   `withdrawalReason` in `LicenceContinuationApplication` for now: the extension table has no
-   column for it until Phase 2, and it moves up to the root in Phase 3.
+   `withdrawalReason` and `withdrawnDatetime` in `LicenceContinuationApplication` for now: the
+   extension table has no columns for them until Phase 2, and they move up to the root in Phase 3.
 2. Add `@MappedSuperclass` `AbstractLicenceApplicationDetail` with `id`, `versionNumber`,
    `status`, `createdDatetime`, `createdByWuaId`, `submittedDatetime`, `submittedByWuaId`,
    `responsibleOrganisationUnitId`, `updateDeadlineDate`, `updateReason`.
@@ -301,6 +303,7 @@ CREATE TABLE applications (
   submitted_licence_schedule_detail_id UUID,
   application_reference                TEXT,
   withdrawal_reason                    TEXT,
+  withdrawn_datetime                   TIMESTAMPTZ,
   CONSTRAINT applications_licence_schedule_fk FOREIGN KEY (licence_schedule_id) REFERENCES licence_schedules (id),
   CONSTRAINT applications_submitted_licence_schedule_detail_fk FOREIGN KEY (submitted_licence_schedule_detail_id) REFERENCES licence_schedule_details (id),
   CONSTRAINT applications_application_reference_unique UNIQUE (application_reference),
@@ -335,9 +338,9 @@ SELECT id, 'SCHEDULE_AMENDMENT_APPLICATION', licence_schedule_id, submitted_lice
 FROM schedule_work_programme_applications;
 
 INSERT INTO applications (id, application_type, licence_schedule_id, submitted_licence_schedule_detail_id,
-                          application_reference, withdrawal_reason)
+                          application_reference, withdrawal_reason, withdrawn_datetime)
 SELECT id, 'CONTINUATION_APPLICATION', licence_schedule_id, submitted_licence_schedule_detail_id,
-       application_reference, withdrawal_reason
+       application_reference, withdrawal_reason, withdrawn_datetime
 FROM licence_continuation_applications;
 
 INSERT INTO application_details (id, application_id, application_type, version_number, status,
@@ -432,6 +435,7 @@ CREATE TABLE applications_aud (
   submitted_licence_schedule_detail_id UUID,
   application_reference                TEXT,
   withdrawal_reason                    TEXT,
+  withdrawn_datetime                   TIMESTAMPTZ,
   CONSTRAINT applications_aud_pk PRIMARY KEY (rev, id),
   CONSTRAINT applications_aud_rev_fk FOREIGN KEY (rev) REFERENCES audit_revisions (rev)
 );
@@ -442,7 +446,8 @@ INSERT INTO applications_aud (rev, revtype, id, application_type, licence_schedu
 SELECT rev, revtype, id, 'SCHEDULE_AMENDMENT_APPLICATION', licence_schedule_id,
        submitted_licence_schedule_detail_id, application_reference
 FROM schedule_work_programme_applications_aud;
--- ...and the same from licence_continuation_applications_aud, also copying withdrawal_reason.
+-- ...and the same from licence_continuation_applications_aud, also copying withdrawal_reason
+-- and withdrawn_datetime.
 DROP TABLE licence_continuation_applications_aud;
 
 -- application_details_aud: same pattern, copied from both detail _aud tables.
@@ -583,8 +588,8 @@ Its own PR (PR 4), targeting the Phase 2 PR's branch (see Delivery).
    `setStewardWuaId` from the application so nothing else can write it the old way.
 
 6. Keep `all_licensees_permission_confirmed`, `decision_date` and the four term/phase
-   associations in the detail subclasses (where they already are). Move `withdrawalReason` from
-   `LicenceContinuationApplication` to the root, which leaves both application subclasses with no
+   associations in the detail subclasses (where they already are). Move `withdrawalReason` and
+   `withdrawnDatetime` from `LicenceContinuationApplication` to the root, which leaves both application subclasses with no
    fields of their own apart from the inverse steward association. `submittedByWuaId` and
    `stewardWuaId` are already `Long`, matching `BIGINT`.
 7. In the 15 child entities, change only the `@JoinColumn` name to `application_detail_id` or
@@ -720,10 +725,10 @@ audit tables.
 1. Table names are `applications` and `application_details`.
 2. Columns used by only one family stay in that family's own table, not in the root tables
    (joined inheritance for details; single-table for applications, with no secondary tables).
-3. `withdrawal_reason` goes on `applications`, because withdrawal is being implemented for every
-   application type.
+3. `withdrawal_reason` and `withdrawn_datetime` go on `applications`, because withdrawal is being
+   implemented for every application type.
 4. `licence_continuation_applications` is dropped, since it has no columns of its own once
-   `withdrawal_reason` moves. Its child foreign key from
+   `withdrawal_reason` and `withdrawn_datetime` move. Its child foreign key from
    `licence_continuation_external_contributor_request` is re-pointed to `applications`.
 5. `steward_wua_id` stays extension-only, in `schedule_work_programme_applications`, mapped as its
    own entity: a row is added when a steward is first assigned, rather than every extension

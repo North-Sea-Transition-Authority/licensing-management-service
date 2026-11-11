@@ -119,6 +119,40 @@ class TopNavigationServiceTest {
   }
 
   @Test
+  void getTopNavigationItems_whenUserOnlyHasExternalContributorRoles_thenOnlyIncludesExternalContributorItems() {
+    var editorTeamRole = getTeamRole(TeamType.EXTERNAL_CONTRIBUTORS, Role.EXTERNAL_APPLICATION_EDITOR);
+    var viewerTeamRole = getTeamRole(TeamType.EXTERNAL_CONTRIBUTORS, Role.EXTERNAL_APPLICATION_VIEWER);
+
+    givenLoggedInUserWithRoles(Set.of(editorTeamRole, viewerTeamRole));
+
+    var topNavigationItems = serviceWithPhaseProfiles("enable-lms1", "enable-lms2").getTopNavigationItems();
+
+    assertThat(topNavigationItems).containsExactly(
+        TopNavigationItem.WORK_AREA,
+        TopNavigationItem.LICENCES,
+        TopNavigationItem.EVENT_TRACKER
+    );
+  }
+
+  @Test
+  void getTopNavigationItems_whenUserHasExternalContributorAndOtherRoles_thenIncludesOtherTeamItems() {
+    var externalContributorTeamRole = getTeamRole(TeamType.EXTERNAL_CONTRIBUTORS, Role.EXTERNAL_APPLICATION_EDITOR);
+    var organisationTeamRole = getTeamRole(TeamType.ORGANISATION, Role.MANAGE_TEAM);
+
+    givenLoggedInUserWithRoles(Set.of(externalContributorTeamRole, organisationTeamRole));
+
+    var topNavigationItems = serviceWithPhaseProfiles("enable-lms1", "enable-lms2").getTopNavigationItems();
+
+    assertThat(topNavigationItems).containsExactly(
+        TopNavigationItem.WORK_AREA,
+        TopNavigationItem.TEAMS,
+        TopNavigationItem.LICENCES,
+        TopNavigationItem.EVENT_TRACKER,
+        TopNavigationItem.LICENCE_CONTACTS
+    );
+  }
+
+  @Test
   void getTopNavigationItems_whenInitialPhase_thenLicencesAndDocumentLibraryHidden() {
     var teamRole = getTeamRole(TeamType.LICENCE_MANAGEMENT, Role.MANAGE_TEAM);
 

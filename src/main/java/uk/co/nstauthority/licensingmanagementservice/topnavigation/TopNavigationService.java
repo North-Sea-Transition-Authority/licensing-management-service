@@ -10,9 +10,16 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.UserDetailSe
 import uk.co.nstauthority.licensingmanagementservice.phasedrelease.FeatureFlagService;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamRole;
+import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
 
 @Service
 public class TopNavigationService {
+
+  private static final Set<TopNavigationItem> EXTERNAL_CONTRIBUTOR_ITEMS = EnumSet.of(
+      TopNavigationItem.WORK_AREA,
+      TopNavigationItem.LICENCES,
+      TopNavigationItem.EVENT_TRACKER
+  );
 
   private final UserDetailService userDetailService;
   private final TeamQueryService teamQueryService;
@@ -37,6 +44,8 @@ public class TopNavigationService {
     var usersRoles = teamQueryService.getTeamRolesForUser(user.wuaId());
     var userIsInRegulatorTeam = usersRoles.stream()
         .anyMatch(teamRole -> teamRole.getTeam().getTeamType().isRegulator());
+    var userIsOnlyExternalContributor = !usersRoles.isEmpty() && usersRoles.stream()
+        .allMatch(teamRole -> teamRole.getTeam().getTeamType() == TeamType.EXTERNAL_CONTRIBUTORS);
 
     return EnumSet.allOf(TopNavigationItem.class)
         .stream()
@@ -44,6 +53,8 @@ public class TopNavigationService {
         .filter(item -> featureFlagService.isEnabled(item.getReleasePhase()))
         // Hide regulator-only items from users outside a regulator team
         .filter(item -> !item.isRegulatorOnly() || userIsInRegulatorTeam)
+        // Restrict users whose only roles are external contributor roles to a limited set of items
+        .filter(item -> !userIsOnlyExternalContributor || EXTERNAL_CONTRIBUTOR_ITEMS.contains(item))
         .filter(item ->
             // For nav items that can appear for any team
             item.getRequiredTeamType() == null

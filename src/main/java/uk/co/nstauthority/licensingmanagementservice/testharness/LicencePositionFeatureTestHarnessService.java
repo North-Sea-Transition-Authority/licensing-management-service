@@ -17,6 +17,7 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.co.fivium.gisframework.command.CommandJourney;
+import uk.co.fivium.gisframework.command.CommandJourneyService;
 import uk.co.fivium.gisframework.command.FeatureJourneyStateService;
 import uk.co.fivium.gisframework.command.OperatorCommandService;
 import uk.co.fivium.gisframework.command.TransformationType;
@@ -109,6 +110,7 @@ class LicencePositionFeatureTestHarnessService {
   private final LicencePositionChangeService licencePositionChangeService;
   private final OperatorCommandService operatorCommandService;
   private final FeatureJourneyStateService featureJourneyStateService;
+  private final CommandJourneyService commandJourneyService;
 
   LicencePositionFeatureTestHarnessService(
       FeatureService featureService,
@@ -117,7 +119,8 @@ class LicencePositionFeatureTestHarnessService {
       LicencePositionService licencePositionService,
       LicencePositionChangeService licencePositionChangeService,
       OperatorCommandService operatorCommandService,
-      FeatureJourneyStateService featureJourneyStateService
+      FeatureJourneyStateService featureJourneyStateService,
+      CommandJourneyService commandJourneyService
   ) {
     this.featureService = featureService;
     this.polygonService = polygonService;
@@ -126,6 +129,7 @@ class LicencePositionFeatureTestHarnessService {
     this.licencePositionChangeService = licencePositionChangeService;
     this.operatorCommandService = operatorCommandService;
     this.featureJourneyStateService = featureJourneyStateService;
+    this.commandJourneyService = commandJourneyService;
   }
 
   /**
@@ -159,9 +163,12 @@ class LicencePositionFeatureTestHarnessService {
 
   @Transactional
   public void clearFeatures(Licence licence) {
-    featureService.deleteAll(
-        featureService.findAllByAttribute(HARNESS_LICENCE_ID_ATTRIBUTE, harnessLicenceIdOf(licence))
+    var harnessLicenceId = harnessLicenceIdOf(licence);
+    commandJourneyService.deleteCommandJourneysHoldingFeatures(
+        featureService.findAllByAttribute(HARNESS_LICENCE_ID_ATTRIBUTE, harnessLicenceId)
     );
+    // deleting a journey also deletes the features its commands created, so look the harness features up again
+    featureService.deleteAll(featureService.findAllByAttribute(HARNESS_LICENCE_ID_ATTRIBUTE, harnessLicenceId));
   }
 
   /**
@@ -169,7 +176,7 @@ class LicencePositionFeatureTestHarnessService {
    * than assuming an order is free. Appending is safe spatially: the other seeded operations leave the features
    * untouched, so where the seed sits within the position makes no difference to what is derived from it.
    */
-  private int nextChangeOrder(LicencePosition licencePosition) {
+  int nextChangeOrder(LicencePosition licencePosition) {
     var highestExistingOrder = licencePositionChangeService.findByLicencePositionId(licencePosition.getId())
         .stream()
         .mapToInt(LicencePositionChange::getChangeOrder)
@@ -279,8 +286,8 @@ class LicencePositionFeatureTestHarnessService {
 
   /**
    * Cuts the subarea across the middle of its block back to its part within the half {@link #splitBlockInHalf} keeps,
-   * as a partial surrender of that block would. The original subarea is ended and the cropped one starts on the date of
-   * the surrender.
+   * as a partial surrender of that block would. The original subarea ends the day before the surrender and the cropped
+   * one starts on the date of the surrender.
    */
   @Transactional
   public Feature cropSubareaAcrossTheMiddle(
@@ -312,7 +319,7 @@ class LicencePositionFeatureTestHarnessService {
 
   /**
    * Cuts a subarea down the middle into two new subareas, as a subarea change splitting it would. The original subarea
-   * is ended and both halves, the western one first, start on the date of the change.
+   * ends the day before the change and both halves, the western one first, start on the date of the change.
    */
   @Transactional
   public List<Feature> splitSubareaInHalf(
@@ -331,8 +338,8 @@ class LicencePositionFeatureTestHarnessService {
 
   /**
    * Joins the subareas left on the half of a block that {@link #splitBlockInHalf} keeps into one subarea covering that
-   * half, as a subarea change merging them would. The merged subareas are ended and the new one starts on the date of
-   * the change.
+   * half, as a subarea change merging them would. The merged subareas end the day before the change and the new one
+   * starts on the date of the change.
    */
   @Transactional
   public Feature mergeSubareasOnRetainedHalf(
@@ -356,7 +363,8 @@ class LicencePositionFeatureTestHarnessService {
   /**
    * Splits a subarea at a depth into the strata above and below it, as a subarea change splitting its strata would.
    * Both strata keep the subarea's footprint, and so its area.
-   * The original subarea is ended and both strata, the shallower one first, start on the date of the change.
+   * The original subarea ends the day before the change and both strata, the shallower one first, start on the date of
+   * the change.
    *
    * @param depth the depth of the boundary between the strata, in metres below the surface as a negative number
    */
@@ -417,11 +425,12 @@ class LicencePositionFeatureTestHarnessService {
     featureService.saveFeature(subarea);
   }
 
+  // the subarea's last day is the day before the change replacing it
   private void endSubarea(
       Feature subarea,
-      LocalDate endDate
+      LocalDate changeDate
   ) {
-    subarea.setEndDate(endDate);
+    subarea.setEndDate(changeDate.minusDays(1));
     featureService.saveFeature(subarea);
   }
 

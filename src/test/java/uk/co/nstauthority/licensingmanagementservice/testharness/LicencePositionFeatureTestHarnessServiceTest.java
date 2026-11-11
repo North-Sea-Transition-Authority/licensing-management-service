@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -27,6 +28,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.fivium.gisframework.command.CommandJourney;
+import uk.co.fivium.gisframework.command.CommandJourneyService;
 import uk.co.fivium.gisframework.command.FeatureJourneyStateService;
 import uk.co.fivium.gisframework.command.OperatorCommand;
 import uk.co.fivium.gisframework.command.OperatorCommandService;
@@ -90,8 +92,10 @@ class LicencePositionFeatureTestHarnessServiceTest {
   private static final List<String> EASTERN_HALF_EDGES = firstRowEdges("3.7", "3.8");
 
   private static final LocalDate SURRENDER_DATE = LocalDate.of(2026, Month.AUGUST, 1);
+  private static final LocalDate DAY_BEFORE_SURRENDER = LocalDate.of(2026, Month.JULY, 31);
 
   private static final LocalDate SUBAREA_CHANGE_DATE = LocalDate.of(2026, Month.SEPTEMBER, 1);
+  private static final LocalDate DAY_BEFORE_SUBAREA_CHANGE = LocalDate.of(2026, Month.AUGUST, 31);
 
   private static final Feature BLOCK = FeatureTestUtil.builder()
       .withFeatureName("999/1")
@@ -121,6 +125,9 @@ class LicencePositionFeatureTestHarnessServiceTest {
 
   @Mock
   private FeatureJourneyStateService featureJourneyStateService;
+
+  @Mock
+  private CommandJourneyService commandJourneyService;
 
   @InjectMocks
   private LicencePositionFeatureTestHarnessService licencePositionFeatureTestHarnessService;
@@ -351,7 +358,9 @@ class LicencePositionFeatureTestHarnessServiceTest {
 
     licencePositionFeatureTestHarnessService.clearFeatures(LICENCE);
 
-    verify(featureService).deleteAll(seededFeatures);
+    var inOrder = inOrder(commandJourneyService, featureService);
+    inOrder.verify(commandJourneyService).deleteCommandJourneysHoldingFeatures(seededFeatures);
+    inOrder.verify(featureService).deleteAll(seededFeatures);
   }
 
   @Test
@@ -419,7 +428,7 @@ class LicencePositionFeatureTestHarnessServiceTest {
         .ignoringFields("id")
         .isEqualTo(expectedFeature("B", subareaAttributes("B"), QUARTER_FEATURE_AREA, SURRENDER_DATE));
     verifyShapesSaved(List.of(firstRowEdges("3.7", "3.75")));
-    verifySubareaEnded(subarea, SURRENDER_DATE);
+    verifySubareaEnded(subarea, DAY_BEFORE_SURRENDER);
   }
 
   @Test
@@ -428,7 +437,7 @@ class LicencePositionFeatureTestHarnessServiceTest {
 
     licencePositionFeatureTestHarnessService.relinquishSubarea(subarea, SURRENDER_DATE);
 
-    verifySubareaEnded(subarea, SURRENDER_DATE);
+    verifySubareaEnded(subarea, DAY_BEFORE_SURRENDER);
   }
 
   @Test
@@ -450,8 +459,8 @@ class LicencePositionFeatureTestHarnessServiceTest {
             SUBAREA_CHANGE_DATE
         ));
     verifyShapesSaved(List.of(EASTERN_HALF_EDGES));
-    verifySubareaEnded(croppedSubarea, SUBAREA_CHANGE_DATE);
-    verifySubareaEnded(keptSubarea, SUBAREA_CHANGE_DATE);
+    verifySubareaEnded(croppedSubarea, DAY_BEFORE_SUBAREA_CHANGE);
+    verifySubareaEnded(keptSubarea, DAY_BEFORE_SUBAREA_CHANGE);
   }
 
   @Test
@@ -474,7 +483,7 @@ class LicencePositionFeatureTestHarnessServiceTest {
             expectedPolygon(strata.getFirst(), null, -3000L),
             expectedPolygon(strata.getLast(), -3000L, null)
         );
-    verifySubareaEnded(subarea, SUBAREA_CHANGE_DATE);
+    verifySubareaEnded(subarea, DAY_BEFORE_SUBAREA_CHANGE);
   }
 
   @Test
@@ -491,7 +500,7 @@ class LicencePositionFeatureTestHarnessServiceTest {
             expectedFeature("B", subareaAttributes("B"), HALF_FEATURE_AREA, SUBAREA_CHANGE_DATE)
         );
     verifyShapesSaved(List.of(WESTERN_HALF_EDGES, EASTERN_HALF_EDGES));
-    verifySubareaEnded(subarea, SUBAREA_CHANGE_DATE);
+    verifySubareaEnded(subarea, DAY_BEFORE_SUBAREA_CHANGE);
   }
 
   private void givenFeaturesCanBePersisted() {

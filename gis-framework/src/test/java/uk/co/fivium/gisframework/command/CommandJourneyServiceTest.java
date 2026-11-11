@@ -148,6 +148,26 @@ class CommandJourneyServiceTest {
   }
 
   @Test
+  void deleteCommandJourneysHoldingFeatures_deletesEachJourneyHoldingTheFeatures() {
+    var feature = FeatureTestUtil.newBuilder().build();
+    var firstJourneyId = UUID.randomUUID();
+    var secondJourneyId = UUID.randomUUID();
+    var firstJourney = new CommandJourney();
+    var secondJourney = new CommandJourney();
+    when(featureJourneyStateService.findJourneyIdsHoldingFeatures(List.of(feature)))
+        .thenReturn(Set.of(firstJourneyId, secondJourneyId));
+    when(commandJourneyRepository.findById(firstJourneyId)).thenReturn(Optional.of(firstJourney));
+    when(commandJourneyRepository.findById(secondJourneyId)).thenReturn(Optional.of(secondJourney));
+
+    commandJourneyService.deleteCommandJourneysHoldingFeatures(List.of(feature));
+
+    verify(featureJourneyStateService).deleteAllStatesForJourney(firstJourney);
+    verify(commandJourneyRepository).delete(firstJourney);
+    verify(featureJourneyStateService).deleteAllStatesForJourney(secondJourney);
+    verify(commandJourneyRepository).delete(secondJourney);
+  }
+
+  @Test
   void deleteCommandJourney_whenJourneyNotFound_throws() {
     var journeyId = UUID.randomUUID();
     when(commandJourneyRepository.findById(journeyId)).thenReturn(Optional.empty());

@@ -6,6 +6,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.IntStream;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,7 +17,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderType;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation.SurrenderDetails;
-import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaDetails;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaSurrenderOutcome;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicenceCleardownService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
@@ -36,7 +36,8 @@ class TestHarnessService {
   private static final int SHELL_PLC_ID = 9205;
   private static final int PPRS_TRAINING_ORG = 12845;
   private static final int FIRST_CHANGE_ORDER = 1;
-  private static final int SUBAREA_EQUITY_CHANGE_ORDER = FIRST_CHANGE_ORDER + 1;
+  // each subarea a spatial change creates has its beneficial interest set in its own change, following that change
+  private static final int FIRST_SUBAREA_EQUITY_CHANGE_ORDER = FIRST_CHANGE_ORDER + 1;
 
   private static final int FULLY_SURRENDERED_BLOCK = 0;
   private static final int PARTIALLY_SURRENDERED_BLOCK = 1;
@@ -54,6 +55,14 @@ class TestHarnessService {
   private static final BigDecimal ZERO_EQUITY = BigDecimal.ZERO;
   private static final BigDecimal SHELL_TO_BP_TRANSFER = BigDecimal.valueOf(10);
   private static final BigDecimal SHELL_TO_PPRS_TRANSFER = BigDecimal.valueOf(15);
+  private static final BigDecimal WHOLE_INTEREST = BigDecimal.valueOf(100);
+
+  // the organisations wholly holding a block's seeded subareas, one for each subarea in order
+  private static final List<Integer> SUBAREA_HOLDER_IDS = List.of(
+      SHELL_PLC_ID,
+      BP_EXPLORATION_ALPHA_LTD_ID,
+      FLAMSTONE_OIL_AND_GAS_LIMITED
+  );
 
   private final LicenceTransactionService licenceTransactionService;
   private final LicencePositionService licencePositionService;
@@ -109,16 +118,50 @@ class TestHarnessService {
     }
 
     var seededFeatures = licencePositionFeatureTestHarnessService.createAndLinkFeatures(licence);
-    licencePositionFeatureTestHarnessService.createAndLinkFeatures(secondaryLicence);
+    generateSeededSubareaBeneficialInterests(licence, seededFeatures);
+    var secondarySeededFeatures = licencePositionFeatureTestHarnessService.createAndLinkFeatures(secondaryLicence);
+    generateSeededSubareaBeneficialInterests(secondaryLicence, secondarySeededFeatures);
 
     // the spatial changes need blocks and subareas to change, so are seeded once the features above exist
     if (licence.getType().isProduction()) {
       generateStrataSplitPositionChange(positions.get(STRATA_SPLIT_POSITION), seededFeatures);
-      var splitSubarea = generateSubareaSplitPositionChange(positions.get(SUBAREA_SPLIT_POSITION), seededFeatures);
+      generateSubareaSplitPositionChange(positions.get(SUBAREA_SPLIT_POSITION), seededFeatures);
       var retainedHalf = createPartialSurrenderChange(penultimate(positions), seededFeatures);
-      generateSubareaMergePositionChange(positions.getLast(), seededFeatures, retainedHalf);
-      generateSubareaBeneficialInterestPositionChange(positions.getLast(), seededFeatures, splitSubarea);
+      generateSubareaMergePositionChange(positions.getLast(), retainedHalf);
     }
+  }
+
+  /**
+   * Every seeded subarea is wholly held by one organisation, a different one for each subarea on a block. The change
+   * follows the block create that seeds the subareas.
+   */
+  private void generateSeededSubareaBeneficialInterests(
+      Licence licence,
+      SeededFeatures seededFeatures
+  ) {
+    var operations = seededFeatures.blocks().stream()
+        .flatMap(block -> seededFeatures.subareasOf(block).stream()
+            .map(subarea -> wholeInterestOperation(block, subarea, holderOf(seededFeatures, block, subarea))))
+        .toList();
+
+    if (operations.isEmpty()) {
+      return;
+    }
+
+    var firstPosition = licencePositionService.getExecutedChronologicalLicencePositions(licence).getFirst();
+    createSubareaEquityChanges(
+        firstPosition,
+        operations,
+        licencePositionFeatureTestHarnessService.nextChangeOrder(firstPosition)
+    );
+  }
+
+  private static int holderOf(
+      SeededFeatures seededFeatures,
+      Feature block,
+      Feature seededSubarea
+  ) {
+    return SUBAREA_HOLDER_IDS.get(seededFeatures.subareasOf(block).indexOf(seededSubarea));
   }
 
   private void generateStrataSplitPositionChange(
@@ -135,10 +178,10 @@ class TestHarnessService {
         position.getPositionDate()
     );
 
-    createSubareaChange(position, block, List.of(subarea), strata);
+    createSubareaChange(position, block, List.of(subarea), strata, holderOf(seededFeatures, block, subarea));
   }
 
-  private Feature generateSubareaSplitPositionChange(
+  private void generateSubareaSplitPositionChange(
       LicencePosition position,
       SeededFeatures seededFeatures
   ) {
@@ -151,9 +194,7 @@ class TestHarnessService {
         position.getPositionDate()
     );
 
-    createSubareaChange(position, block, List.of(subarea), subareaHalves);
-
-    return subareaHalves.getFirst();
+    createSubareaChange(position, block, List.of(subarea), subareaHalves, holderOf(seededFeatures, block, subarea));
   }
 
   /**
@@ -162,23 +203,32 @@ class TestHarnessService {
    */
   private void generateSubareaMergePositionChange(
       LicencePosition finalPosition,
-      SeededFeatures seededFeatures,
       RetainedHalf retainedHalf
   ) {
     var mergedSubarea = licencePositionFeatureTestHarnessService.mergeSubareasOnRetainedHalf(
         retainedHalf.subareas(),
-        seededFeatures.blocks().get(PARTIALLY_SURRENDERED_BLOCK),
+        retainedHalf.block(),
         finalPosition.getPositionDate()
     );
 
-    createSubareaChange(finalPosition, retainedHalf.half(), retainedHalf.subareas(), List.of(mergedSubarea));
+    createSubareaChange(
+        finalPosition,
+        retainedHalf.half(),
+        retainedHalf.subareas(),
+        List.of(mergedSubarea),
+        retainedHalf.holderOfFirstSubarea()
+    );
   }
 
+  /**
+   * The subareas the change outputs are wholly held by the organisation that held the subareas they came from.
+   */
   private void createSubareaChange(
       LicencePosition licencePosition,
       Feature block,
       List<Feature> replacedSubareas,
-      List<Feature> outputSubareas
+      List<Feature> outputSubareas,
+      int holderId
   ) {
     LicenceOperation subareaOperation = LicenceOperation.newSubAreaOperation()
         .withBlockFeatureId(block.getId())
@@ -187,39 +237,41 @@ class TestHarnessService {
         .build();
 
     createConsentedChange(licencePosition, List.of(subareaOperation), FIRST_CHANGE_ORDER);
+
+    var equityOperations = outputSubareas.stream()
+        .map(subarea -> wholeInterestOperation(block, subarea, holderId))
+        .toList();
+
+    createSubareaEquityChanges(licencePosition, equityOperations, FIRST_SUBAREA_EQUITY_CHANGE_ORDER);
   }
 
   /**
-   * The beneficial interest is set in the first subarea the split creates, on the final position so that it is a
-   * later change than the split. It comes after the merge sharing that position.
+   * A change holding the beneficial interests of several subareas is shown under the first subarea's label alone, so
+   * each subarea's beneficial interest is set in a change of its own.
    */
-  private void generateSubareaBeneficialInterestPositionChange(
-      LicencePosition finalPosition,
-      SeededFeatures seededFeatures,
-      Feature splitSubarea
+  private void createSubareaEquityChanges(
+      LicencePosition licencePosition,
+      List<LicenceOperation> equityOperations,
+      int firstChangeOrder
   ) {
-    var block = seededFeatures.blocks().get(SUBAREA_SPLIT_BLOCK);
-    var subarea = SeededFeatures.toSubareaDetails(splitSubarea);
-
-    var operations = List.of(
-        subareaSetEquityOperation(block, subarea, SHELL_PLC_ID, SHELL_INITIAL_EQUITY),
-        subareaSetEquityOperation(block, subarea, BP_EXPLORATION_ALPHA_LTD_ID, BP_INITIAL_EQUITY)
-    );
-
-    createConsentedChange(finalPosition, operations, SUBAREA_EQUITY_CHANGE_ORDER);
+    IntStream.range(0, equityOperations.size())
+        .forEach(index -> createConsentedChange(
+            licencePosition,
+            List.of(equityOperations.get(index)),
+            firstChangeOrder + index
+        ));
   }
 
-  private LicenceOperation subareaSetEquityOperation(
+  private LicenceOperation wholeInterestOperation(
       Feature block,
-      SubareaDetails subarea,
-      int organisationUnitId,
-      BigDecimal equity
+      Feature subarea,
+      int organisationUnitId
   ) {
     return LicenceOperation.newSubareaSetEquityOperation()
         .withBlockFeatureId(block.getId())
-        .withSubarea(subarea)
+        .withSubarea(SeededFeatures.toSubareaDetails(subarea))
         .withTransferTo(organisationUnitId)
-        .withEquity(equity)
+        .withEquity(WHOLE_INTEREST)
         .build();
   }
 
@@ -284,7 +336,25 @@ class TestHarnessService {
 
     createConsentedChange(licencePosition, List.of(partialSurrenderOperation), FIRST_CHANGE_ORDER);
 
-    return new RetainedHalf(splitBlock.retainedHalf(), List.of(croppedSubarea, keptSubarea));
+    // the subareas left on the half kept are still wholly held by the organisations that held them before
+    var croppedSubareaHolderId = holderOf(seededFeatures, partiallySurrenderedBlock, subareaAcrossTheCut);
+    var equityOperations = List.of(
+        wholeInterestOperation(splitBlock.retainedHalf(), croppedSubarea, croppedSubareaHolderId),
+        wholeInterestOperation(
+            splitBlock.retainedHalf(),
+            keptSubarea,
+            holderOf(seededFeatures, partiallySurrenderedBlock, keptSubarea)
+        )
+    );
+
+    createSubareaEquityChanges(licencePosition, equityOperations, FIRST_SUBAREA_EQUITY_CHANGE_ORDER);
+
+    return new RetainedHalf(
+        partiallySurrenderedBlock,
+        splitBlock.retainedHalf(),
+        List.of(croppedSubarea, keptSubarea),
+        croppedSubareaHolderId
+    );
   }
 
   private SplitBlock splitBlockInHalf(Feature block) {
@@ -296,11 +366,14 @@ class TestHarnessService {
   }
 
   /**
-   * The half of a partially surrendered block kept, with the subareas the surrender left on it.
+   * The half of a partially surrendered block kept, with the subareas the surrender left on it and the organisation
+   * wholly holding the first of them.
    */
   private record RetainedHalf(
+      Feature block,
       Feature half,
-      List<Feature> subareas
+      List<Feature> subareas,
+      int holderOfFirstSubarea
   ) {
   }
 

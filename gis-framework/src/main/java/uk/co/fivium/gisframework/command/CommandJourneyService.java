@@ -123,6 +123,16 @@ public class CommandJourneyService {
   }
 
   /**
+   * Deletes every command journey holding any of the given features, as {@link #deleteCommandJourney} does.
+   *
+   * @param features the features whose journeys should be deleted.
+   */
+  @Transactional
+  public void deleteCommandJourneysHoldingFeatures(Collection<Feature> features) {
+    featureJourneyStateService.findJourneyIdsHoldingFeatures(features).forEach(this::deleteCommandJourney);
+  }
+
+  /**
    * Deletes a command journey like {@link #deleteCommandJourney}, but keeps its active features.
    */
   @Transactional

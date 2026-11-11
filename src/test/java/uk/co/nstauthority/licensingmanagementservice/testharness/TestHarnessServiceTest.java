@@ -1,8 +1,10 @@
 package uk.co.nstauthority.licensingmanagementservice.testharness;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -99,6 +101,9 @@ class TestHarnessServiceTest {
   private static final UUID PARTIAL_SURRENDER_COMMAND_JOURNEY_ID = UUID.randomUUID();
   private static final int PRODUCTION_POSITION_COUNT = 10;
   private static final int PRODUCTION_FIRST_ORDER_CHANGE_COUNT = 9;
+  private static final int FIRST_SUBAREA_EQUITY_CHANGE_ORDER = 2;
+  private static final int FIRST_SEEDED_SUBAREA_EQUITY_CHANGE_ORDER = 3;
+  private static final BigDecimal WHOLE_INTEREST = BigDecimal.valueOf(100);
 
   @Mock
   private LicenceTransactionService licenceTransactionService;
@@ -159,7 +164,10 @@ class TestHarnessServiceTest {
   ) {
     var positions = givenPositions(licence, PRODUCTION_POSITION_COUNT);
     givenPositions(secondaryLicence, 1);
+    givenNoSeededFeatures(secondaryLicence);
 
+    when(licencePositionFeatureTestHarnessService.nextChangeOrder(positions.getFirst()))
+        .thenReturn(FIRST_SEEDED_SUBAREA_EQUITY_CHANGE_ORDER);
     when(licencePositionFeatureTestHarnessService.createAndLinkFeatures(licence)).thenReturn(new SeededFeatures(
         List.of(FULLY_SURRENDERED_BLOCK, PARTIALLY_SURRENDERED_BLOCK, SPLIT_BLOCK, STRATA_SPLIT_BLOCK),
         Map.of(
@@ -205,6 +213,29 @@ class TestHarnessServiceTest {
     return positions;
   }
 
+  private void givenNoSeededFeatures(Licence licence) {
+    when(licencePositionFeatureTestHarnessService.createAndLinkFeatures(licence))
+        .thenReturn(new SeededFeatures(List.of(), Map.of()));
+  }
+
+  private static SubareaSetEquityOperation wholeInterest(Feature block, Feature subarea, int organisationUnitId) {
+    return new SubareaSetEquityOperation(block.getId(), subareaDetails(subarea), organisationUnitId, WHOLE_INTEREST);
+  }
+
+  private void verifySubareaEquityChanges(
+      LicencePosition position,
+      int firstChangeOrder,
+      List<SubareaSetEquityOperation> operations
+  ) {
+    IntStream.range(0, operations.size())
+        .forEach(index -> verify(licencePositionChangeService).createLicencePositionChange(
+            position,
+            List.of(operations.get(index)),
+            firstChangeOrder + index,
+            LicencePositionChangeStatus.CONSENTED
+        ));
+  }
+
   private List<LicenceOperation> capturedOperationsOn(LicencePosition position) {
     verify(licencePositionChangeService, times(PRODUCTION_FIRST_ORDER_CHANGE_COUNT)).createLicencePositionChange(
         positionCaptor.capture(),
@@ -248,6 +279,8 @@ class TestHarnessServiceTest {
     var secondaryLicence = carbonStorage(2);
     givenPositions(licence, 5);
     givenPositions(secondaryLicence, 1);
+    givenNoSeededFeatures(licence);
+    givenNoSeededFeatures(secondaryLicence);
 
     testHarnessService.generateLicencePositions(licence, secondaryLicence);
 
@@ -452,25 +485,114 @@ class TestHarnessServiceTest {
   }
 
   @Test
-  void generateLicencePositions_whenPrimaryIsProduction_addsSubareaBeneficialInterestOnASplitSubareaOnTheFinalPosition() {
+  void generateLicencePositions_whenPrimaryIsProduction_givesEachSeededSubareaOnABlockToADifferentOrganisation() {
     var licence = production(1);
     var secondaryLicence = carbonStorage(2);
     var positions = givenProductionLicence(licence, secondaryLicence);
 
     testHarnessService.generateLicencePositions(licence, secondaryLicence);
 
-    var westernSubareaHalf = subareaDetails(WESTERN_SUBAREA_HALF);
+    verifySubareaEquityChanges(
+        positions.getFirst(),
+        FIRST_SEEDED_SUBAREA_EQUITY_CHANGE_ORDER,
+        List.of(
+            wholeInterest(FULLY_SURRENDERED_BLOCK, FULLY_SURRENDERED_SUBAREA, SHELL_PLC_ID),
+            wholeInterest(PARTIALLY_SURRENDERED_BLOCK, RELINQUISHED_SUBAREA, SHELL_PLC_ID),
+            wholeInterest(PARTIALLY_SURRENDERED_BLOCK, SUBAREA_ACROSS_THE_CUT, BP_EXPLORATION_ALPHA_LTD_ID),
+            wholeInterest(PARTIALLY_SURRENDERED_BLOCK, KEPT_SUBAREA, FLAMSTONE_OIL_AND_GAS_LIMITED),
+            wholeInterest(SPLIT_BLOCK, SPLIT_SUBAREA, SHELL_PLC_ID),
+            wholeInterest(STRATA_SPLIT_BLOCK, STRATA_SPLIT_SUBAREA, SHELL_PLC_ID)
+        )
+    );
+  }
+
+  @Test
+  void generateLicencePositions_whenPrimaryIsProduction_givesTheStrataTheSplitSubareasOrganisation() {
+    var licence = production(1);
+    var secondaryLicence = carbonStorage(2);
+    var positions = givenProductionLicence(licence, secondaryLicence);
+
+    testHarnessService.generateLicencePositions(licence, secondaryLicence);
+
+    verifySubareaEquityChanges(
+        positions.get(2),
+        FIRST_SUBAREA_EQUITY_CHANGE_ORDER,
+        List.of(
+            wholeInterest(STRATA_SPLIT_BLOCK, SHALLOW_STRATUM, SHELL_PLC_ID),
+            wholeInterest(STRATA_SPLIT_BLOCK, DEEP_STRATUM, SHELL_PLC_ID)
+        )
+    );
+  }
+
+  @Test
+  void generateLicencePositions_whenPrimaryIsProduction_givesTheSubareaHalvesTheSplitSubareasOrganisation() {
+    var licence = production(1);
+    var secondaryLicence = carbonStorage(2);
+    var positions = givenProductionLicence(licence, secondaryLicence);
+
+    testHarnessService.generateLicencePositions(licence, secondaryLicence);
+
+    verifySubareaEquityChanges(
+        positions.get(5),
+        FIRST_SUBAREA_EQUITY_CHANGE_ORDER,
+        List.of(
+            wholeInterest(SPLIT_BLOCK, WESTERN_SUBAREA_HALF, SHELL_PLC_ID),
+            wholeInterest(SPLIT_BLOCK, EASTERN_SUBAREA_HALF, SHELL_PLC_ID)
+        )
+    );
+  }
+
+  @Test
+  void generateLicencePositions_whenPrimaryIsProduction_givesTheSubareasTheSurrenderKeptTheirOrganisationsOnTheRetainedHalf() {
+    var licence = production(1);
+    var secondaryLicence = carbonStorage(2);
+    var positions = givenProductionLicence(licence, secondaryLicence);
+
+    testHarnessService.generateLicencePositions(licence, secondaryLicence);
+
+    verifySubareaEquityChanges(
+        penultimate(positions),
+        FIRST_SUBAREA_EQUITY_CHANGE_ORDER,
+        List.of(
+            wholeInterest(RETAINED_HALF, CROPPED_SUBAREA, BP_EXPLORATION_ALPHA_LTD_ID),
+            wholeInterest(RETAINED_HALF, KEPT_SUBAREA, FLAMSTONE_OIL_AND_GAS_LIMITED)
+        )
+    );
+  }
+
+  @Test
+  void generateLicencePositions_whenPrimaryIsProduction_givesTheMergedSubareaTheFirstMergedSubareasOrganisation() {
+    var licence = production(1);
+    var secondaryLicence = carbonStorage(2);
+    var positions = givenProductionLicence(licence, secondaryLicence);
+
+    testHarnessService.generateLicencePositions(licence, secondaryLicence);
+
     verify(licencePositionChangeService).createLicencePositionChange(
         positions.getLast(),
-        List.of(
-            new SubareaSetEquityOperation(
-                SPLIT_BLOCK.getId(), westernSubareaHalf, SHELL_PLC_ID, BigDecimal.valueOf(60)),
-            new SubareaSetEquityOperation(
-                SPLIT_BLOCK.getId(), westernSubareaHalf, BP_EXPLORATION_ALPHA_LTD_ID, BigDecimal.valueOf(40))
-        ),
-        2,
+        List.of(wholeInterest(RETAINED_HALF, MERGED_SUBAREA, BP_EXPLORATION_ALPHA_LTD_ID)),
+        FIRST_SUBAREA_EQUITY_CHANGE_ORDER,
         LicencePositionChangeStatus.CONSENTED
     );
+  }
+
+  @Test
+  void generateLicencePositions_whenNoBlockHasSubareas_thenNoSubareaBeneficialInterestIsSet() {
+    var licence = carbonStorage(1);
+    var secondaryLicence = carbonStorage(2);
+    givenPositions(licence, 5);
+    givenPositions(secondaryLicence, 1);
+    var block = FeatureTestUtil.blockFeature(UUID.randomUUID(), "30", 7);
+    when(licencePositionFeatureTestHarnessService.createAndLinkFeatures(licence))
+        .thenReturn(new SeededFeatures(List.of(block), Map.of(block.getId(), List.of())));
+    givenNoSeededFeatures(secondaryLicence);
+
+    testHarnessService.generateLicencePositions(licence, secondaryLicence);
+
+    verify(licencePositionChangeService, atLeastOnce()).createLicencePositionChange(
+        positionCaptor.capture(), operationsCaptor.capture(), anyInt(), eq(LicencePositionChangeStatus.CONSENTED));
+    assertThat(operationsCaptor.getAllValues().stream().flatMap(List::stream))
+        .noneMatch(SubareaSetEquityOperation.class::isInstance);
   }
 
   @Test
@@ -479,6 +601,8 @@ class TestHarnessServiceTest {
     givenPositions(licence, 5);
     var secondaryLicence = production(2);
     var secondaryPositions = givenPositions(secondaryLicence, 1);
+    givenNoSeededFeatures(licence);
+    givenNoSeededFeatures(secondaryLicence);
 
     testHarnessService.generateLicencePositions(licence, secondaryLicence);
 
@@ -496,6 +620,8 @@ class TestHarnessServiceTest {
     givenPositions(licence, 5);
     var secondaryLicence = carbonStorage(2);
     var secondaryPositions = givenPositions(secondaryLicence, 1);
+    givenNoSeededFeatures(licence);
+    givenNoSeededFeatures(secondaryLicence);
 
     testHarnessService.generateLicencePositions(licence, secondaryLicence);
 
@@ -513,6 +639,8 @@ class TestHarnessServiceTest {
     var secondaryLicence = production(2);
     givenPositions(secondaryLicence, 1);
     var positions = givenPositions(licence, 5);
+    givenNoSeededFeatures(licence);
+    givenNoSeededFeatures(secondaryLicence);
 
     testHarnessService.generateLicencePositions(licence, secondaryLicence);
 
@@ -539,6 +667,8 @@ class TestHarnessServiceTest {
     var secondaryLicence = carbonStorage(2);
     var positions = givenPositions(licence, 5);
     givenPositions(secondaryLicence, 1);
+    givenNoSeededFeatures(licence);
+    givenNoSeededFeatures(secondaryLicence);
 
     testHarnessService.generateLicencePositions(licence, secondaryLicence);
 

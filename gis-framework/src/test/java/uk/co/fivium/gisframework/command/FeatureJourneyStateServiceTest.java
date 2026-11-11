@@ -38,6 +38,32 @@ class FeatureJourneyStateServiceTest {
   private ArgumentCaptor<List<FeatureJourneyState>> statesCaptor;
 
   @Test
+  void findJourneyIdsHoldingFeatures_whenFeaturesHeld_returnsDistinctJourneyIds() {
+    var firstJourney = CommandJourneyTestUtil.newBuilder().withId(UUID.randomUUID()).build();
+    var secondJourney = CommandJourneyTestUtil.newBuilder().withId(UUID.randomUUID()).build();
+    var initialFeature = FeatureTestUtil.newBuilder().build();
+    var createdFeature = FeatureTestUtil.newBuilder().build();
+    when(featureJourneyStateRepository.findAllByFeature_IdIn(Set.of(initialFeature.getId(), createdFeature.getId())))
+        .thenReturn(List.of(
+            FeatureJourneyStateTestUtil.newBuilder().withFeature(initialFeature).withCommandJourney(firstJourney).build(),
+            FeatureJourneyStateTestUtil.newBuilder().withFeature(createdFeature).withCommandJourney(firstJourney).build(),
+            FeatureJourneyStateTestUtil.newBuilder().withFeature(initialFeature).withCommandJourney(secondJourney).build()
+        ));
+
+    var result = featureJourneyStateService.findJourneyIdsHoldingFeatures(List.of(initialFeature, createdFeature));
+
+    assertThat(result).isEqualTo(Set.of(firstJourney.getId(), secondJourney.getId()));
+  }
+
+  @Test
+  void findJourneyIdsHoldingFeatures_whenNoFeatures_returnsEmptyWithoutQuerying() {
+    var result = featureJourneyStateService.findJourneyIdsHoldingFeatures(List.of());
+
+    assertThat(result).isEmpty();
+    verifyNoInteractions(featureJourneyStateRepository);
+  }
+
+  @Test
   void createInitialFeatureJourneyStates_createsActiveStateWithNoCreatingCommand() {
     var commandJourney = CommandJourneyTestUtil.newBuilder().build();
     var feature1 = FeatureTestUtil.newBuilder().build();

@@ -8,55 +8,174 @@ pageHeading=pageTitle
 pageSize=PageSize.TWO_THIRDS_COLUMN
 >
 
-  <@fdsInsetText.insetText>
-    <p>This form will clear any existing positions on two licences (production or carbon storage), then create
-      transaction and position information on them. The primary licence will have:</p>
-    <ul class="govuk-list govuk-list--bullet">
-      <li>Ten licence positions, all starting before the current date</li>
-      <li>Five will start on one date and two on a later date, so each has a different position order and transaction</li>
-      <li>Two positions will be associated with the same transaction but on different dates</li>
-      <li>One will be created for the secondary licence, but for a transaction also used on the original licence</li>
+  <p class="govuk-body">This form will clear any existing positions on two licences (production or carbon storage), then create the
+    positions below on them, newest first. Each position is numbered by its place in the licence's timeline.</p>
+
+  <@fdsDetails.summaryDetails summaryTitle="If the first licence is a production licence">
+    <ol class="govuk-list govuk-list--number" reversed>
       <li>
-        A licensee change on the first position adding BP and Flamstone, and another on the seventh position adding
-        Shell and removing BP
-      </li>
-    </ul>
-    <p>Both licences will also be given blocks on their first position. A production licence has four blocks, the
-      second divided into three subareas and the others with one subarea each. A carbon storage licence has one block
-      with no subareas.</p>
-    <p>If a production licence is selected:</p>
-    <ul class="govuk-list govuk-list--bullet">
-      <li>
-        An administrator position change will be generated for:
+        2 weeks ago, same transaction as the second licence's position
         <ul class="govuk-list govuk-list--bullet">
-          <li>The first position</li>
-          <li>Another licence position other than the final position</li>
+          <li>Subareas B and C on block 2's eastern half are merged into one subarea</li>
+          <li>BP 100% in the merged subarea</li>
         </ul>
       </li>
-      <li>The third position will split the fourth block's subarea into a shallow and a deep stratum at 3000m</li>
-      <li>The sixth position will split the third block's subarea in half</li>
       <li>
-        The penultimate position will surrender two blocks: the first fully, and the second partially by cutting
-        it in half and surrendering the western half. Of the second block's subareas, the one in the western half is
-        relinquished, the one across the cut is cropped back to the eastern half and the one in the eastern half is
-        kept as it is
+        3 weeks ago, same transaction as position 6
+        <ul class="govuk-list govuk-list--bullet">
+          <li>Block 1 is fully surrendered</li>
+          <li>
+            Block 2 is cut in half and its western half surrendered: subarea A is relinquished, B is cropped back to the
+            eastern half and C is kept
+          </li>
+          <li>On block 2's eastern half: BP 100% in B and Flamstone 100% in C</li>
+        </ul>
       </li>
       <li>
-        The final position will merge the subareas left on the second block's eastern half, and set beneficial
-        interests in the first subarea the split created (Shell 60%, BP 40%)
+        4 weeks ago
+        <ul class="govuk-list govuk-list--bullet">
+          <li>Administrator: BP</li>
+        </ul>
       </li>
-    </ul>
-    <p>If a carbon storage licence is selected, position changes will be generated for:</p>
-    <ul class="govuk-list govuk-list--bullet">
-      <li>The first position, setting the initial equity holdings (Shell 60%, BP 40%, PPRS 0%) and Shell as storage operator</li>
       <li>
-        Another licence position other than the final position, transferring equity from Shell
-        (10% to BP and 15% to PPRS) and making BP the storage operator
+        4 weeks ago
+        <ul class="govuk-list govuk-list--bullet">
+          <li>Licensees: Shell joins, BP leaves</li>
+        </ul>
       </li>
-    </ul>
-    <p>If the second licence is a production licence, an administrator position change will be generated for its first
-      position. If it is a carbon storage licence, a storage operator change will be generated instead.</p>
-  </@fdsInsetText.insetText>
+      <li>
+        5 weeks ago, same transaction as position 9
+        <ul class="govuk-list govuk-list--bullet">
+          <li>Block 3's subarea is split in half, into A (west) and B (east)</li>
+          <li>Shell 100% in both halves</li>
+        </ul>
+      </li>
+      <li>
+        7 weeks ago
+        <ul class="govuk-list govuk-list--bullet">
+          <li>No changes</li>
+        </ul>
+      </li>
+      <li>
+        7 weeks ago
+        <ul class="govuk-list govuk-list--bullet">
+          <li>No changes</li>
+        </ul>
+      </li>
+      <li>
+        7 weeks ago
+        <ul class="govuk-list govuk-list--bullet">
+          <li>Block 4's subarea is split into strata above and below 3000m</li>
+          <li>Shell 100% in both strata</li>
+        </ul>
+      </li>
+      <li>
+        7 weeks ago
+        <ul class="govuk-list govuk-list--bullet">
+          <li>No changes</li>
+        </ul>
+      </li>
+      <li>
+        7 weeks ago
+        <ul class="govuk-list govuk-list--bullet">
+          <li>Administrator: Shell</li>
+          <li>Licensees: BP and Flamstone join</li>
+          <li>
+            Four blocks are created. Blocks 1, 3 and 4 have one subarea covering the whole block, and block 2 is divided
+            into subareas A, B and C from west to east
+          </li>
+          <li>
+            Subarea beneficial interests: Shell 100% in the subareas of blocks 1, 3 and 4, and on block 2 Shell 100% in
+            A, BP 100% in B and Flamstone 100% in C
+          </li>
+        </ul>
+      </li>
+    </ol>
+  </@fdsDetails.summaryDetails>
+
+  <@fdsDetails.summaryDetails summaryTitle="If the first licence is a carbon storage licence">
+    <ol class="govuk-list govuk-list--number" reversed>
+      <li>
+        2 weeks ago, same transaction as the second licence's position
+        <ul class="govuk-list govuk-list--bullet">
+          <li>No changes</li>
+        </ul>
+      </li>
+      <li>
+        3 weeks ago, same transaction as position 6
+        <ul class="govuk-list govuk-list--bullet">
+          <li>No changes</li>
+        </ul>
+      </li>
+      <li>
+        4 weeks ago
+        <ul class="govuk-list govuk-list--bullet">
+          <li>Beneficial interests: Shell transfers 10% to BP and 15% to PPRS</li>
+          <li>Storage operator: BP</li>
+        </ul>
+      </li>
+      <li>
+        4 weeks ago
+        <ul class="govuk-list govuk-list--bullet">
+          <li>Licensees: Shell joins, BP leaves</li>
+        </ul>
+      </li>
+      <li>
+        5 weeks ago, same transaction as position 9
+        <ul class="govuk-list govuk-list--bullet">
+          <li>No changes</li>
+        </ul>
+      </li>
+      <li>
+        7 weeks ago
+        <ul class="govuk-list govuk-list--bullet">
+          <li>No changes</li>
+        </ul>
+      </li>
+      <li>
+        7 weeks ago
+        <ul class="govuk-list govuk-list--bullet">
+          <li>No changes</li>
+        </ul>
+      </li>
+      <li>
+        7 weeks ago
+        <ul class="govuk-list govuk-list--bullet">
+          <li>No changes</li>
+        </ul>
+      </li>
+      <li>
+        7 weeks ago
+        <ul class="govuk-list govuk-list--bullet">
+          <li>No changes</li>
+        </ul>
+      </li>
+      <li>
+        7 weeks ago
+        <ul class="govuk-list govuk-list--bullet">
+          <li>Beneficial interests: Shell 60%, BP 40%, PPRS 0%</li>
+          <li>Storage operator: Shell</li>
+          <li>Licensees: BP and Flamstone join</li>
+          <li>One block is created with no subareas</li>
+        </ul>
+      </li>
+    </ol>
+  </@fdsDetails.summaryDetails>
+
+  <@fdsDetails.summaryDetails summaryTitle="The second licence">
+    <ol class="govuk-list govuk-list--number">
+      <li>
+        1 week ago, same transaction as the first licence's position 10
+        <ul class="govuk-list govuk-list--bullet">
+          <li>
+            If a production licence: administrator Shell, and the same blocks and subarea beneficial interests as a
+            production first licence's position 1
+          </li>
+          <li>If a carbon storage licence: storage operator Shell, and one block with no subareas</li>
+        </ul>
+      </li>
+    </ol>
+  </@fdsDetails.summaryDetails>
 
   <@fdsForm.htmlForm>
     <@fdsSearchSelector.searchSelectorRest

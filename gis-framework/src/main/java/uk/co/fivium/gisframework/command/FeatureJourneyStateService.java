@@ -145,6 +145,23 @@ public class FeatureJourneyStateService {
   }
 
   /**
+   * Finds the journeys any of the given features is held by, whether as an initial feature or a command's output.
+   *
+   * @param features The features to find the journeys of
+   * @return The ids of the journeys holding any of the features
+   */
+  public Set<UUID> findJourneyIdsHoldingFeatures(Collection<Feature> features) {
+    if (features.isEmpty()) {
+      return Set.of();
+    }
+
+    var featureIds = features.stream().map(Feature::getId).collect(Collectors.toSet());
+    return featureJourneyStateRepository.findAllByFeature_IdIn(featureIds).stream()
+        .map(state -> state.getCommandJourney().getId())
+        .collect(Collectors.toSet());
+  }
+
+  /**
    * Hard-deletes the feature journey states created by the given commands, returning the features they were for
    * so their now-orphaned geometry and the features themselves can also be hard-deleted.
    *

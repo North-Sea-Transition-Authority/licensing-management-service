@@ -40,17 +40,15 @@ class OperatorCommandServiceTest {
   @Test
   void createCommand_whenNoExistingCommands_assignsCommandOrderOne() {
     var journey = new CommandJourney();
-    var inputFeatureIds = Set.of(UUID.randomUUID());
 
     when(operatorCommandRepository.findMaxCommandOrderByCommandJourney(journey)).thenReturn(Optional.empty());
     when(operatorCommandRepository.save(any(OperatorCommand.class)))
         .thenAnswer(invocation -> invocation.getArgument(0));
 
-    var command = operatorCommandService.createOperatorCommand(journey, inputFeatureIds, TransformationType.SPLIT);
+    var command = operatorCommandService.createOperatorCommand(journey, TransformationType.SPLIT);
 
     OperatorCommand expected = OperatorCommandTestUtil.newBuilder()
         .withCommandJourney(journey)
-        .withInputFeatureIds(inputFeatureIds)
         .withStatus(CommandStatus.ACTIVE)
         .withTransformationType(TransformationType.SPLIT)
         .withCommandOrder(1)
@@ -61,13 +59,12 @@ class OperatorCommandServiceTest {
   @Test
   void createCommand_whenExistingCommands_assignsNextCommandOrder() {
     var journey = new CommandJourney();
-    var inputFeatureIds = Set.of(UUID.randomUUID());
     var commandCaptor = ArgumentCaptor.forClass(OperatorCommand.class);
 
     when(operatorCommandRepository.findMaxCommandOrderByCommandJourney(journey)).thenReturn(Optional.of(3));
     when(operatorCommandRepository.save(commandCaptor.capture())).thenAnswer(invocation -> invocation.getArgument(0));
 
-    operatorCommandService.createOperatorCommand(journey, inputFeatureIds, TransformationType.SPLIT);
+    operatorCommandService.createOperatorCommand(journey, TransformationType.SPLIT);
 
     assertThat(commandCaptor.getValue().getCommandOrder()).isEqualTo(4);
   }
@@ -224,17 +221,19 @@ class OperatorCommandServiceTest {
     var mergeOutput = feature("mergeResult_ABCD");
     var splitCommand = OperatorCommandTestUtil.newBuilder()
         .withTransformationType(TransformationType.SPLIT)
-        .withInputFeatureIds(Set.of(originalFeature.getId()))
         .withCommandOrder(1)
         .build();
     var mergeCommand = OperatorCommandTestUtil.newBuilder()
         .withTransformationType(TransformationType.MERGE)
-        .withInputFeatureIds(Set.of(secondSplitOutput.getId(), otherFeature.getId()))
         .withCommandOrder(2)
         .build();
     var commands = List.of(splitCommand, mergeCommand);
 
     when(operatorCommandService.getActiveCommands(commandJourney)).thenReturn(commands);
+    when(featureJourneyStateService.getInputFeatureIdsByCommandId(commands)).thenReturn(Map.of(
+        splitCommand.getId(), Set.of(originalFeature.getId()),
+        mergeCommand.getId(), Set.of(secondSplitOutput.getId(), otherFeature.getId())
+    ));
     when(featureService.getFeaturesByIds(Set.of(originalFeature.getId(), secondSplitOutput.getId(), otherFeature.getId())))
         .thenReturn(List.of(originalFeature, secondSplitOutput, otherFeature));
     when(featureJourneyStateService.getFeaturesCreatedByCommands(commands)).thenReturn(Map.of(
@@ -251,23 +250,22 @@ class OperatorCommandServiceTest {
   }
 
   @Test
-  void getActiveHistory_whenCommandHasNoOutputs_thenEmptyOutputFeatureNames() {
+  void getActiveHistory_whenCommandHasNoOutputs_thenEmptyFeatureNames() {
     var commandJourney = CommandJourneyTestUtil.newBuilder().build();
-    var inputFeature = feature("A");
     var command = OperatorCommandTestUtil.newBuilder()
         .withTransformationType(TransformationType.STRATA_SPLIT)
-        .withInputFeatureIds(Set.of(inputFeature.getId()))
         .withCommandOrder(1)
         .build();
 
     when(operatorCommandService.getActiveCommands(commandJourney)).thenReturn(List.of(command));
-    when(featureService.getFeaturesByIds(Set.of(inputFeature.getId()))).thenReturn(List.of(inputFeature));
+    when(featureJourneyStateService.getInputFeatureIdsByCommandId(List.of(command))).thenReturn(Map.of());
+    when(featureService.getFeaturesByIds(Set.of())).thenReturn(List.of());
     when(featureJourneyStateService.getFeaturesCreatedByCommands(List.of(command))).thenReturn(Map.of());
 
     var result = operatorCommandService.getActiveHistory(commandJourney);
 
     assertThat(result).containsExactly(
-        new JsonHistoryAction(1, TransformationType.STRATA_SPLIT, List.of("A"), List.of())
+        new JsonHistoryAction(1, TransformationType.STRATA_SPLIT, List.of(), List.of())
     );
   }
 

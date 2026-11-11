@@ -5,6 +5,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import org.springframework.data.domain.Limit;
@@ -25,7 +26,7 @@ public class FeatureJourneyStateService {
   @Transactional
   public void createInitialFeatureJourneyStates(CommandJourney commandJourney, List<Feature> features) {
     var states = features.stream()
-        .map(feature -> newState(feature, commandJourney, null, true))
+        .map(feature -> newState(feature, commandJourney, null, null, true))
         .toList();
     featureJourneyStateRepository.saveAll(states);
   }
@@ -76,16 +77,46 @@ public class FeatureJourneyStateService {
    *
    * @param commandJourney   The command journey
    * @param createdByCommand The command that created the features
+   * @param inputFeatureIds  The ids of the input features the output features were made from
    * @param outputFeatures   The output features of the createdByCommand
    */
   @Transactional
-  public void createFeatureJourneyStatesForCommandOutput(CommandJourney commandJourney,
-                                                         OperatorCommand createdByCommand,
-                                                         List<Feature> outputFeatures) {
+  public void createFeatureJourneyStatesForCommandOutput(
+      CommandJourney commandJourney,
+      OperatorCommand createdByCommand,
+      Set<UUID> inputFeatureIds,
+      List<Feature> outputFeatures
+  ) {
     var states = outputFeatures.stream()
-        .map(feature -> newState(feature, commandJourney, createdByCommand, true))
+        .map(feature -> newState(feature, commandJourney, createdByCommand, inputFeatureIds, true))
         .toList();
     featureJourneyStateRepository.saveAll(states);
+  }
+
+  /**
+   * Finds the input features consumed by a command, i.e. those its output features were made from.
+   *
+   * @param createdByCommand The command whose input feature ids should be returned
+   * @return The ids of the command's input features
+   */
+  public Set<UUID> getInputFeatureIds(OperatorCommand createdByCommand) {
+    return featureJourneyStateRepository.findAllByCreatedByCommand(createdByCommand).stream()
+        .flatMap(state -> state.getInputFeatureIds().stream())
+        .collect(Collectors.toSet());
+  }
+
+  /**
+   * Finds the input features consumed by each of the given commands.
+   *
+   * @param createdByCommands The commands whose input feature ids should be returned
+   * @return The input feature ids keyed by the id of the command that consumed them
+   */
+  public Map<UUID, Set<UUID>> getInputFeatureIdsByCommandId(Collection<OperatorCommand> createdByCommands) {
+    return featureJourneyStateRepository.findAllByCreatedByCommandIn(createdByCommands).stream()
+        .collect(Collectors.groupingBy(
+            state -> state.getCreatedByCommand().getId(),
+            Collectors.flatMapping(state -> state.getInputFeatureIds().stream(), Collectors.toSet())
+        ));
   }
 
   /**
@@ -180,14 +211,18 @@ public class FeatureJourneyStateService {
         .map(FeatureJourneyState::getCommandJourney);
   }
 
-  private static FeatureJourneyState newState(Feature feature,
-                                              CommandJourney commandJourney,
-                                              OperatorCommand createdByCommand,
-                                              boolean active) {
+  private static FeatureJourneyState newState(
+      Feature feature,
+      CommandJourney commandJourney,
+      OperatorCommand createdByCommand,
+      Set<UUID> inputFeatureIds,
+      boolean active
+  ) {
     var state = new FeatureJourneyState();
     state.setFeature(feature);
     state.setCommandJourney(commandJourney);
     state.setCreatedByCommand(createdByCommand);
+    state.setInputFeatureIds(inputFeatureIds);
     state.setActive(active);
     return state;
   }

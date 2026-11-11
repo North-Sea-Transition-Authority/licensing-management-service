@@ -393,14 +393,18 @@ class LicencePositionFeatureTestHarnessServiceTest {
   @Test
   void splitBlockInHalf_assertTheHalvesReplaceTheBlockAsTheJourneysActiveFeatures() {
     var splitCommand = new OperatorCommand();
-    when(operatorCommandService.createOperatorCommand(
-        COMMAND_JOURNEY, Set.of(BLOCK.getId()), TransformationType.SPLIT)).thenReturn(splitCommand);
+    when(operatorCommandService.createOperatorCommand(COMMAND_JOURNEY, TransformationType.SPLIT))
+        .thenReturn(splitCommand);
 
     var splitBlock = licencePositionFeatureTestHarnessService.splitBlockInHalf(COMMAND_JOURNEY, BLOCK);
 
     verify(featureJourneyStateService).deactivateFeatures(COMMAND_JOURNEY, List.of(BLOCK));
     verify(featureJourneyStateService).createFeatureJourneyStatesForCommandOutput(
-        COMMAND_JOURNEY, splitCommand, List.of(splitBlock.surrenderedHalf(), splitBlock.retainedHalf()));
+        COMMAND_JOURNEY,
+        splitCommand,
+        Set.of(BLOCK.getId()),
+        List.of(splitBlock.surrenderedHalf(), splitBlock.retainedHalf())
+    );
   }
 
   @Test

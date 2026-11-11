@@ -1,5 +1,6 @@
 package uk.co.fivium.gisframework.command;
 
+import java.util.Set;
 import java.util.UUID;
 import uk.co.fivium.gisframework.feature.Feature;
 import uk.co.fivium.gisframework.feature.FeatureTestUtil;
@@ -21,6 +22,7 @@ public class FeatureJourneyStateTestUtil {
     private CommandJourney commandJourney = CommandJourneyTestUtil.newBuilder().build();
     private OperatorCommand createdByCommand = null;
     private boolean active = true;
+    private Set<UUID> inputFeatureIds = null;
 
     public Builder withId(UUID id) {
       this.id = id;
@@ -47,6 +49,11 @@ public class FeatureJourneyStateTestUtil {
       return this;
     }
 
+    public Builder withInputFeatureIds(Set<UUID> inputFeatureIds) {
+      this.inputFeatureIds = inputFeatureIds;
+      return this;
+    }
+
     public FeatureJourneyState build() {
       var featureJourneyState = new FeatureJourneyState();
       featureJourneyState.setId(id);
@@ -54,6 +61,7 @@ public class FeatureJourneyStateTestUtil {
       featureJourneyState.setCommandJourney(commandJourney);
       featureJourneyState.setCreatedByCommand(createdByCommand);
       featureJourneyState.setActive(active);
+      featureJourneyState.setInputFeatureIds(inputFeatureIds);
       return featureJourneyState;
     }
   }

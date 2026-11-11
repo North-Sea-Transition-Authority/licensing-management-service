@@ -1,6 +1,7 @@
 package uk.co.fivium.gisframework.operator.rename;
 
 import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -31,10 +32,10 @@ public class RenameOperatorService {
    *
    * @param inputFeatures      the features to rename
    * @param renamesByFeatureId the new names for each input feature
-   * @return the renamed copies of the input features.
+   * @return the renamed copy of each input feature, keyed by the input feature.
    */
   @Transactional
-  public List<Feature> renameFeatures(
+  public Map<Feature, Feature> renameFeatures(
       List<Feature> inputFeatures,
       Map<UUID, JsonFeatureRename> renamesByFeatureId
   ) {
@@ -47,16 +48,19 @@ public class RenameOperatorService {
       throw new IllegalStateException("Could not load the polygons and lines of every feature to rename");
     }
 
-    return entityBackedFeatures.stream()
-        .map(entityBackedFeature -> {
-          var featureRename = renamesByFeatureId.get(entityBackedFeature.feature().getId());
-          return operatorResultProcessingService.processRenameFeature(
+    var renamedFeatureByInputFeature = new LinkedHashMap<Feature, Feature>();
+    entityBackedFeatures.forEach(entityBackedFeature -> {
+      var featureRename = renamesByFeatureId.get(entityBackedFeature.feature().getId());
+      renamedFeatureByInputFeature.put(
+          entityBackedFeature.feature(),
+          operatorResultProcessingService.processRenameFeature(
               entityBackedFeature,
               featureRename.featureName(),
               featureRename.name()
-          );
-        })
-        .toList();
+          )
+      );
+    });
+    return renamedFeatureByInputFeature;
   }
 
   private void verifyNamesProvided(Collection<JsonFeatureRename> featureRenames) {

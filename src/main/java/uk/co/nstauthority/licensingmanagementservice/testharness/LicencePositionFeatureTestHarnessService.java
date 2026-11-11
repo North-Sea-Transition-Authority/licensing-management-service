@@ -264,16 +264,13 @@ class LicencePositionFeatureTestHarnessService {
     var westernHalf = createHalfBlock(block, blockShape.westernHalf(), WESTERN_HALF_BLOCK_SUFFIX);
     var easternHalf = createHalfBlock(block, blockShape.easternHalf(), EASTERN_HALF_BLOCK_SUFFIX);
 
-    var splitCommand = operatorCommandService.createOperatorCommand(
-        commandJourney,
-        Set.of(block.getId()),
-        TransformationType.SPLIT
-    );
+    var splitCommand = operatorCommandService.createOperatorCommand(commandJourney, TransformationType.SPLIT);
 
     featureJourneyStateService.deactivateFeatures(commandJourney, List.of(block));
     featureJourneyStateService.createFeatureJourneyStatesForCommandOutput(
         commandJourney,
         splitCommand,
+        Set.of(block.getId()),
         List.of(westernHalf, easternHalf)
     );
 

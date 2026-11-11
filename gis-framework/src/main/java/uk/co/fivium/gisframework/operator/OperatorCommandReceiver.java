@@ -1,9 +1,11 @@
 package uk.co.fivium.gisframework.operator;
 
-import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -13,6 +15,7 @@ import org.springframework.util.CollectionUtils;
 import uk.co.fivium.gisframework.command.CommandJourney;
 import uk.co.fivium.gisframework.command.CommandJourneyService;
 import uk.co.fivium.gisframework.command.FeatureJourneyStateService;
+import uk.co.fivium.gisframework.command.OperatorCommand;
 import uk.co.fivium.gisframework.command.OperatorCommandService;
 import uk.co.fivium.gisframework.command.TransformationType;
 import uk.co.fivium.gisframework.feature.CoordinateSystemUtils;
@@ -88,30 +91,22 @@ public class OperatorCommandReceiver {
     int wkid = CoordinateSystemUtils.getWkid(inputFeatures.getFirst().getCoordinateSystem());
     String cutterLineEsriJson = grpcClientService
         .convertPointsToPolyline(request.cutterLineOriginalSrsCoordinates(), wkid);
-    List<Feature> affectedInputFeatures = new ArrayList<>();
-    List<Feature> outputFeatures = new ArrayList<>();
+    Map<Feature, List<Feature>> outputFeaturesByInputFeature = new LinkedHashMap<>();
 
     for (Feature inputFeature : inputFeatures) {
       List<Feature> splitResult = splitOperatorService.splitPolygon(inputFeature, cutterLineEsriJson, request.depth());
       if (!splitResult.isEmpty()) {
-        affectedInputFeatures.add(inputFeature);
-        outputFeatures.addAll(splitResult);
+        outputFeaturesByInputFeature.put(inputFeature, splitResult);
       }
     }
 
-    if (outputFeatures.isEmpty()) {
+    if (outputFeaturesByInputFeature.isEmpty()) {
       return List.of();
     }
     clearUndoStack(commandJourney);
 
-    var affectedInputFeatureIds = affectedInputFeatures.stream().map(Feature::getId).collect(Collectors.toSet());
-    var command = operatorCommandService.createOperatorCommand(commandJourney, affectedInputFeatureIds,
-        TransformationType.SPLIT);
-
-    featureJourneyStateService.deactivateFeatures(commandJourney, affectedInputFeatures);
-    featureJourneyStateService.createFeatureJourneyStatesForCommandOutput(commandJourney, command, outputFeatures);
-
-    return outputFeatures;
+    var command = operatorCommandService.createOperatorCommand(commandJourney, TransformationType.SPLIT);
+    return replaceInputFeaturesWithOutputs(commandJourney, command, outputFeaturesByInputFeature);
   }
 
   /**
@@ -135,14 +130,15 @@ public class OperatorCommandReceiver {
     clearUndoStack(commandJourney);
 
     var affectedInputFeatureIds = features.stream().map(Feature::getId).collect(Collectors.toSet());
-    var command = operatorCommandService.createOperatorCommand(
-        commandJourney,
-        affectedInputFeatureIds,
-        TransformationType.MERGE
-    );
+    var command = operatorCommandService.createOperatorCommand(commandJourney, TransformationType.MERGE);
 
     featureJourneyStateService.deactivateFeatures(commandJourney, features);
-    featureJourneyStateService.createFeatureJourneyStatesForCommandOutput(commandJourney, command, List.of(mergeResult));
+    featureJourneyStateService.createFeatureJourneyStatesForCommandOutput(
+        commandJourney,
+        command,
+        affectedInputFeatureIds,
+        List.of(mergeResult)
+    );
 
     return Optional.of(mergeResult);
   }
@@ -167,32 +163,21 @@ public class OperatorCommandReceiver {
     var commandJourney = commandJourneyService.getCommandJourneyOrThrow(request.commandJourneyId());
     var inputFeatures = getActiveFeaturesOrThrow(commandJourney, request.featureIds());
 
-    List<Feature> affectedInputFeatures = new ArrayList<>();
-    List<Feature> outputFeatures = new ArrayList<>();
+    Map<Feature, List<Feature>> outputFeaturesByInputFeature = new LinkedHashMap<>();
     for (Feature inputFeature : inputFeatures) {
       List<Feature> strataSplitResult = strataSplitOperatorService.strataSplitPolygon(inputFeature, request.depth());
       if (!strataSplitResult.isEmpty()) {
-        affectedInputFeatures.add(inputFeature);
-        outputFeatures.addAll(strataSplitResult);
+        outputFeaturesByInputFeature.put(inputFeature, strataSplitResult);
       }
     }
 
-    if (outputFeatures.isEmpty()) {
+    if (outputFeaturesByInputFeature.isEmpty()) {
       return List.of();
     }
     clearUndoStack(commandJourney);
 
-    var affectedInputFeatureIds = affectedInputFeatures.stream().map(Feature::getId).collect(Collectors.toSet());
-    var command = operatorCommandService.createOperatorCommand(
-        commandJourney,
-        affectedInputFeatureIds,
-        TransformationType.STRATA_SPLIT
-    );
-
-    featureJourneyStateService.deactivateFeatures(commandJourney, affectedInputFeatures);
-    featureJourneyStateService.createFeatureJourneyStatesForCommandOutput(commandJourney, command, outputFeatures);
-
-    return outputFeatures;
+    var command = operatorCommandService.createOperatorCommand(commandJourney, TransformationType.STRATA_SPLIT);
+    return replaceInputFeaturesWithOutputs(commandJourney, command, outputFeaturesByInputFeature);
   }
 
   /**
@@ -214,19 +199,15 @@ public class OperatorCommandReceiver {
     var commandJourney = commandJourneyService.getCommandJourneyOrThrow(request.commandJourneyId());
     var inputFeatures = getActiveFeaturesOrThrow(commandJourney, renamesByFeatureId.keySet());
 
-    var outputFeatures = renameOperatorService.renameFeatures(inputFeatures, renamesByFeatureId);
+    var outputFeatureByInputFeature = renameOperatorService.renameFeatures(inputFeatures, renamesByFeatureId);
 
     clearUndoStack(commandJourney);
-    var inputFeatureIds = inputFeatures.stream().map(Feature::getId).collect(Collectors.toSet());
-    var command = operatorCommandService.createOperatorCommand(
-        commandJourney,
-        inputFeatureIds,
-        TransformationType.RENAME
-    );
-    featureJourneyStateService.deactivateFeatures(commandJourney, inputFeatures);
-    featureJourneyStateService.createFeatureJourneyStatesForCommandOutput(commandJourney, command, outputFeatures);
+    var command = operatorCommandService.createOperatorCommand(commandJourney, TransformationType.RENAME);
+    var outputFeaturesByInputFeature = new LinkedHashMap<Feature, List<Feature>>();
+    outputFeatureByInputFeature.forEach((inputFeature, outputFeature) ->
+        outputFeaturesByInputFeature.put(inputFeature, List.of(outputFeature)));
 
-    return outputFeatures;
+    return replaceInputFeaturesWithOutputs(commandJourney, command, outputFeaturesByInputFeature);
   }
 
   /**
@@ -248,7 +229,9 @@ public class OperatorCommandReceiver {
 
     featureJourneyStateService.deactivateFeaturesCreatedByCommand(currentActiveCommand);
 
-    var inputFeatures = featureService.getFeaturesByIds(currentActiveCommand.getInputFeatureIds());
+    var inputFeatures = featureService.getFeaturesByIds(
+        featureJourneyStateService.getInputFeatureIds(currentActiveCommand)
+    );
     featureJourneyStateService.activateFeatures(commandJourney, inputFeatures);
 
     operatorCommandService.markUndone(currentActiveCommand);
@@ -272,7 +255,9 @@ public class OperatorCommandReceiver {
     }
 
     var nextRedoCommand = nextRedoCommandOpt.get();
-    var inputFeatures = featureService.getFeaturesByIds(nextRedoCommand.getInputFeatureIds());
+    var inputFeatures = featureService.getFeaturesByIds(
+        featureJourneyStateService.getInputFeatureIds(nextRedoCommand)
+    );
     featureJourneyStateService.deactivateFeatures(commandJourney, inputFeatures);
     var outputFeatures = featureJourneyStateService.activateFeaturesCreatedByCommand(nextRedoCommand);
     operatorCommandService.markRedone(nextRedoCommand);
@@ -292,6 +277,28 @@ public class OperatorCommandReceiver {
     var orphanedFeatures = featureJourneyStateService.deleteFeatureJourneyStatesCreatedByCommands(undoneCommands);
     featureService.deleteAll(orphanedFeatures);
     operatorCommandService.deleteCommands(undoneCommands);
+  }
+
+  /**
+   * Deactivates each input feature in favour of the output features made from it, recording that input against the
+   * outputs' journey states.
+   */
+  private List<Feature> replaceInputFeaturesWithOutputs(
+      CommandJourney commandJourney,
+      OperatorCommand command,
+      Map<Feature, List<Feature>> outputFeaturesByInputFeature
+  ) {
+    featureJourneyStateService.deactivateFeatures(commandJourney, List.copyOf(outputFeaturesByInputFeature.keySet()));
+    outputFeaturesByInputFeature.forEach((inputFeature, outputFeatures) ->
+        featureJourneyStateService.createFeatureJourneyStatesForCommandOutput(
+            commandJourney,
+            command,
+            Set.of(inputFeature.getId()),
+            outputFeatures
+        ));
+    return outputFeaturesByInputFeature.values().stream()
+        .flatMap(List::stream)
+        .toList();
   }
 
   private List<Feature> getActiveFeaturesOrThrow(

@@ -1,20 +1,24 @@
 package uk.co.fivium.gisframework.command;
 
 import com.google.common.annotations.VisibleForTesting;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import java.util.Set;
 import java.util.UUID;
+import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.UuidGenerator;
 import org.hibernate.envers.Audited;
+import org.hibernate.type.SqlTypes;
 import uk.co.fivium.gisframework.feature.Feature;
 
 /**
  * Bookkeeping for a {@link Feature}'s place in a {@link CommandJourney}: which journey it currently belongs to,
- * which {@link OperatorCommand} produced it (if any), and whether it is the current representation of that part
- * of the journey or has since been superseded by a later transformation.
+ * which {@link OperatorCommand} produced it (if any) and from which input features, and whether it is the current
+ * representation of that part of the journey or has since been superseded by a later transformation.
  */
 @Entity
 @Table(name = "gis_framework_feature_journey_states")
@@ -38,6 +42,10 @@ public class FeatureJourneyState {
   private OperatorCommand createdByCommand;
 
   private boolean active;
+
+  @JdbcTypeCode(SqlTypes.JSON)
+  @Column(name = "input_feature_ids", columnDefinition = "jsonb")
+  private Set<UUID> inputFeatureIds;
 
   @VisibleForTesting
   public void setId(UUID id) {
@@ -78,5 +86,13 @@ public class FeatureJourneyState {
 
   public void setActive(boolean active) {
     this.active = active;
+  }
+
+  public Set<UUID> getInputFeatureIds() {
+    return inputFeatureIds;
+  }
+
+  public void setInputFeatureIds(Set<UUID> inputFeatureIds) {
+    this.inputFeatureIds = inputFeatureIds;
   }
 }

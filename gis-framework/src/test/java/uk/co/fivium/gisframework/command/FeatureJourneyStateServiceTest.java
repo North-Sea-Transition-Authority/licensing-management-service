@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -144,25 +145,91 @@ class FeatureJourneyStateServiceTest {
   }
 
   @Test
-  void createFeatureJourneyStatesForCommandOutput_createsActiveStateWithCreatingCommand() {
+  void createFeatureJourneyStatesForCommandOutput_createsActiveStateWithCreatingCommandAndInputs() {
     var commandJourney = CommandJourneyTestUtil.newBuilder().build();
     var command = OperatorCommandTestUtil.newBuilder().build();
+    var inputFeatureIds = Set.of(UUID.randomUUID());
     var outputFeature = FeatureTestUtil.newBuilder().build();
 
     when(featureJourneyStateRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
     featureJourneyStateService.createFeatureJourneyStatesForCommandOutput(
-        commandJourney, command, List.of(outputFeature));
+        commandJourney,
+        command,
+        inputFeatureIds,
+        List.of(outputFeature)
+    );
 
     verify(featureJourneyStateRepository).saveAll(statesCaptor.capture());
+    var expectedState = FeatureJourneyStateTestUtil.newBuilder()
+        .withFeature(outputFeature)
+        .withCommandJourney(commandJourney)
+        .withCreatedByCommand(command)
+        .withInputFeatureIds(inputFeatureIds)
+        .withActive(true)
+        .build();
     assertThat(statesCaptor.getValue())
-        .extracting(
-            FeatureJourneyState::getFeature,
-            FeatureJourneyState::getCommandJourney,
-            FeatureJourneyState::getCreatedByCommand,
-            FeatureJourneyState::isActive
-        )
-        .containsExactly(tuple(outputFeature, commandJourney, command, true));
+        .usingRecursiveComparison()
+        .ignoringFields("id")
+        .isEqualTo(List.of(expectedState));
+  }
+
+  @Test
+  void getInputFeatureIds() {
+    var command = OperatorCommandTestUtil.newBuilder().build();
+    var inputFeatureIdA = UUID.randomUUID();
+    var inputFeatureIdB = UUID.randomUUID();
+
+    when(featureJourneyStateRepository.findAllByCreatedByCommand(command)).thenReturn(List.of(
+        FeatureJourneyStateTestUtil.newBuilder()
+            .withCreatedByCommand(command)
+            .withInputFeatureIds(Set.of(inputFeatureIdA))
+            .build(),
+        FeatureJourneyStateTestUtil.newBuilder()
+            .withCreatedByCommand(command)
+            .withInputFeatureIds(Set.of(inputFeatureIdA))
+            .build(),
+        FeatureJourneyStateTestUtil.newBuilder()
+            .withCreatedByCommand(command)
+            .withInputFeatureIds(Set.of(inputFeatureIdB))
+            .build()
+    ));
+
+    var result = featureJourneyStateService.getInputFeatureIds(command);
+
+    assertThat(result).isEqualTo(Set.of(inputFeatureIdA, inputFeatureIdB));
+  }
+
+  @Test
+  void getInputFeatureIdsByCommandId() {
+    var splitCommand = OperatorCommandTestUtil.newBuilder().build();
+    var mergeCommand = OperatorCommandTestUtil.newBuilder().build();
+    var splitInputFeatureIdA = UUID.randomUUID();
+    var splitInputFeatureIdB = UUID.randomUUID();
+    var mergeInputFeatureIds = Set.of(UUID.randomUUID(), UUID.randomUUID());
+    var commands = List.of(splitCommand, mergeCommand);
+
+    when(featureJourneyStateRepository.findAllByCreatedByCommandIn(commands)).thenReturn(List.of(
+        FeatureJourneyStateTestUtil.newBuilder()
+            .withCreatedByCommand(splitCommand)
+            .withInputFeatureIds(Set.of(splitInputFeatureIdA))
+            .build(),
+        FeatureJourneyStateTestUtil.newBuilder()
+            .withCreatedByCommand(mergeCommand)
+            .withInputFeatureIds(mergeInputFeatureIds)
+            .build(),
+        FeatureJourneyStateTestUtil.newBuilder()
+            .withCreatedByCommand(splitCommand)
+            .withInputFeatureIds(Set.of(splitInputFeatureIdB))
+            .build()
+    ));
+
+    var result = featureJourneyStateService.getInputFeatureIdsByCommandId(commands);
+
+    assertThat(result).isEqualTo(Map.of(
+        splitCommand.getId(), Set.of(splitInputFeatureIdA, splitInputFeatureIdB),
+        mergeCommand.getId(), mergeInputFeatureIds
+    ));
   }
 
   @Test

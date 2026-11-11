@@ -1,6 +1,5 @@
 package uk.co.fivium.gisframework.command;
 
-import java.util.Set;
 import java.util.UUID;
 
 public class OperatorCommandTestUtil {
@@ -17,7 +16,6 @@ public class OperatorCommandTestUtil {
 
     private UUID id = UUID.randomUUID();
     private CommandJourney commandJourney = CommandJourneyTestUtil.newBuilder().build();
-    private Set<UUID> inputFeatureIds = Set.of(UUID.randomUUID());
     private CommandStatus status = CommandStatus.ACTIVE;
     private TransformationType transformationType = TransformationType.SPLIT;
     private Integer commandOrder = 1;
@@ -29,11 +27,6 @@ public class OperatorCommandTestUtil {
 
     public Builder withCommandJourney(CommandJourney commandJourney) {
       this.commandJourney = commandJourney;
-      return this;
-    }
-
-    public Builder withInputFeatureIds(Set<UUID> inputFeatureIds) {
-      this.inputFeatureIds = inputFeatureIds;
       return this;
     }
 
@@ -56,7 +49,6 @@ public class OperatorCommandTestUtil {
       var operatorCommand = new OperatorCommand();
       operatorCommand.setId(id);
       operatorCommand.setCommandJourney(commandJourney);
-      operatorCommand.setInputFeatureIds(inputFeatureIds);
       operatorCommand.setStatus(status);
       operatorCommand.setTransformationType(transformationType);
       operatorCommand.setCommandOrder(commandOrder);

@@ -3,7 +3,6 @@ package uk.co.fivium.gisframework.command;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.UUID;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,16 +28,16 @@ public class OperatorCommandService {
   }
 
   @Transactional
-  public OperatorCommand createOperatorCommand(CommandJourney commandJourney,
-                                               Set<UUID> inputFeatureIds,
-                                               TransformationType transformationType) {
+  public OperatorCommand createOperatorCommand(
+      CommandJourney commandJourney,
+      TransformationType transformationType
+  ) {
     int commandOrder = operatorCommandRepository.findMaxCommandOrderByCommandJourney(commandJourney)
         .map(order -> order + 1)
         .orElse(1);
 
     var command = new OperatorCommand();
     command.setCommandJourney(commandJourney);
-    command.setInputFeatureIds(inputFeatureIds);
     command.setStatus(CommandStatus.ACTIVE);
     command.setTransformationType(transformationType);
     command.setCommandOrder(commandOrder);
@@ -145,8 +144,9 @@ public class OperatorCommandService {
       return List.of();
     }
 
-    var inputFeatureIds = commands.stream()
-        .flatMap(command -> command.getInputFeatureIds().stream())
+    var inputFeatureIdsByCommandId = featureJourneyStateService.getInputFeatureIdsByCommandId(commands);
+    var inputFeatureIds = inputFeatureIdsByCommandId.values().stream()
+        .flatMap(Set::stream)
         .collect(Collectors.toSet());
     var inputFeatureNamesById = featureService.getFeaturesByIds(inputFeatureIds).stream()
         .collect(Collectors.toMap(Feature::getId, Feature::getFeatureName));
@@ -156,7 +156,7 @@ public class OperatorCommandService {
         .map(command -> new JsonHistoryAction(
             command.getCommandOrder(),
             command.getTransformationType(),
-            command.getInputFeatureIds().stream()
+            inputFeatureIdsByCommandId.getOrDefault(command.getId(), Set.of()).stream()
                 .map(inputFeatureNamesById::get)
                 .sorted()
                 .toList(),

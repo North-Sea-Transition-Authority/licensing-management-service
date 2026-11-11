@@ -2,6 +2,7 @@ package uk.co.fivium.gisframework.operator.rename;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.entry;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
@@ -59,7 +60,7 @@ class RenameOperatorServiceTest {
 
     var result = renameOperatorService.renameFeatures(List.of(featureA, featureB), renamesByFeatureId);
 
-    assertThat(result).containsExactly(outputFeatureA, outputFeatureB);
+    assertThat(result).containsExactly(entry(featureA, outputFeatureA), entry(featureB, outputFeatureB));
   }
 
   @ParameterizedTest
@@ -119,7 +120,7 @@ class RenameOperatorServiceTest {
 
     var result = renameOperatorService.renameFeatures(List.of(featureA), renamesByFeatureId);
 
-    assertThat(result).containsExactly(outputFeatureA);
+    assertThat(result).containsExactly(entry(featureA, outputFeatureA));
   }
 
   @Test

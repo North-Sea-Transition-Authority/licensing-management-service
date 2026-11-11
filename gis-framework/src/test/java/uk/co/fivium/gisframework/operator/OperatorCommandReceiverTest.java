@@ -9,6 +9,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -27,6 +28,7 @@ import uk.co.fivium.gisframework.command.OperatorCommand;
 import uk.co.fivium.gisframework.command.OperatorCommandService;
 import uk.co.fivium.gisframework.command.OperatorCommandTestUtil;
 import uk.co.fivium.gisframework.command.TransformationType;
+import uk.co.fivium.gisframework.feature.Feature;
 import uk.co.fivium.gisframework.feature.FeatureService;
 import uk.co.fivium.gisframework.feature.FeatureTestUtil;
 import uk.co.fivium.gisframework.feature.PolygonService;
@@ -106,16 +108,61 @@ class OperatorCommandReceiverTest {
         .thenReturn(CUTTER_LINE_ESRI_JSON);
     when(splitOperatorService.splitPolygon(inputFeature, CUTTER_LINE_ESRI_JSON, null))
         .thenReturn(List.of(outputFeature1, outputFeature2));
-    when(operatorCommandService.createOperatorCommand(
-        commandJourney, Set.of(inputFeature.getId()), TransformationType.SPLIT)).thenReturn(command);
+    when(operatorCommandService.createOperatorCommand(commandJourney, TransformationType.SPLIT)).thenReturn(command);
 
     var result = operatorCommandReceiver.executeSplit(request);
 
     assertThat(result).containsExactly(outputFeature1, outputFeature2);
 
     verify(featureJourneyStateService).deactivateFeatures(commandJourney, List.of(inputFeature));
-    verify(featureJourneyStateService)
-        .createFeatureJourneyStatesForCommandOutput(commandJourney, command, List.of(outputFeature1, outputFeature2));
+    verify(featureJourneyStateService).createFeatureJourneyStatesForCommandOutput(
+        commandJourney,
+        command,
+        Set.of(inputFeature.getId()),
+        List.of(outputFeature1, outputFeature2)
+    );
+  }
+
+  @Test
+  void executeSplit_whenCutterLineCrossesTwoFeatures_recordsEachOutputAgainstItsOwnInput() {
+    var commandJourneyId = UUID.randomUUID();
+    var request = new SplitFromMapRequest(CUTTER_LINE_ORIGINAL_SRS_COORDINATES, commandJourneyId, null);
+
+    var commandJourney = CommandJourneyTestUtil.newBuilder().withId(commandJourneyId).build();
+    var inputFeatureA = FeatureTestUtil.newBuilder().withCoordinateSystem(CoordinateSystem.ED50).build();
+    var inputFeatureB = FeatureTestUtil.newBuilder().withCoordinateSystem(CoordinateSystem.ED50).build();
+    var outputFeatureA1 = FeatureTestUtil.newBuilder().build();
+    var outputFeatureA2 = FeatureTestUtil.newBuilder().build();
+    var outputFeatureB1 = FeatureTestUtil.newBuilder().build();
+    var outputFeatureB2 = FeatureTestUtil.newBuilder().build();
+    var command = new OperatorCommand();
+
+    when(commandJourneyService.getCommandJourneyOrThrow(commandJourneyId)).thenReturn(commandJourney);
+    when(commandJourneyService.getActiveFeatures(commandJourney)).thenReturn(List.of(inputFeatureA, inputFeatureB));
+    when(grpcClientService.convertPointsToPolyline(CUTTER_LINE_ORIGINAL_SRS_COORDINATES, 4230))
+        .thenReturn(CUTTER_LINE_ESRI_JSON);
+    when(splitOperatorService.splitPolygon(inputFeatureA, CUTTER_LINE_ESRI_JSON, null))
+        .thenReturn(List.of(outputFeatureA1, outputFeatureA2));
+    when(splitOperatorService.splitPolygon(inputFeatureB, CUTTER_LINE_ESRI_JSON, null))
+        .thenReturn(List.of(outputFeatureB1, outputFeatureB2));
+    when(operatorCommandService.createOperatorCommand(commandJourney, TransformationType.SPLIT)).thenReturn(command);
+
+    var result = operatorCommandReceiver.executeSplit(request);
+
+    assertThat(result).containsExactly(outputFeatureA1, outputFeatureA2, outputFeatureB1, outputFeatureB2);
+    verify(featureJourneyStateService).deactivateFeatures(commandJourney, List.of(inputFeatureA, inputFeatureB));
+    verify(featureJourneyStateService).createFeatureJourneyStatesForCommandOutput(
+        commandJourney,
+        command,
+        Set.of(inputFeatureA.getId()),
+        List.of(outputFeatureA1, outputFeatureA2)
+    );
+    verify(featureJourneyStateService).createFeatureJourneyStatesForCommandOutput(
+        commandJourney,
+        command,
+        Set.of(inputFeatureB.getId()),
+        List.of(outputFeatureB1, outputFeatureB2)
+    );
   }
 
   @Test
@@ -140,8 +187,7 @@ class OperatorCommandReceiverTest {
     when(operatorCommandService.getUndoneCommands(commandJourney)).thenReturn(List.of(undoneCommand));
     when(featureJourneyStateService.deleteFeatureJourneyStatesCreatedByCommands(List.of(undoneCommand)))
         .thenReturn(List.of(orphanedFeature));
-    when(operatorCommandService.createOperatorCommand(
-        commandJourney, Set.of(inputFeature.getId()), TransformationType.SPLIT)).thenReturn(command);
+    when(operatorCommandService.createOperatorCommand(commandJourney, TransformationType.SPLIT)).thenReturn(command);
 
     operatorCommandReceiver.executeSplit(request);
 
@@ -167,8 +213,7 @@ class OperatorCommandReceiverTest {
     when(splitOperatorService.splitPolygon(inputFeature, CUTTER_LINE_ESRI_JSON, null))
         .thenReturn(List.of(outputFeature));
     when(operatorCommandService.getUndoneCommands(commandJourney)).thenReturn(List.of());
-    when(operatorCommandService.createOperatorCommand(
-        commandJourney, Set.of(inputFeature.getId()), TransformationType.SPLIT)).thenReturn(command);
+    when(operatorCommandService.createOperatorCommand(commandJourney, TransformationType.SPLIT)).thenReturn(command);
 
     operatorCommandReceiver.executeSplit(request);
 
@@ -194,9 +239,9 @@ class OperatorCommandReceiverTest {
     var result = operatorCommandReceiver.executeSplit(request);
 
     assertThat(result).isEmpty();
-    verify(operatorCommandService, never()).createOperatorCommand(any(), any(), any());
+    verify(operatorCommandService, never()).createOperatorCommand(any(), any());
     verify(featureJourneyStateService, never()).deactivateFeatures(any(), any());
-    verify(featureJourneyStateService, never()).createFeatureJourneyStatesForCommandOutput(any(), any(), any());
+    verify(featureJourneyStateService, never()).createFeatureJourneyStatesForCommandOutput(any(), any(), any(), any());
   }
 
   @Test
@@ -229,16 +274,19 @@ class OperatorCommandReceiverTest {
     when(grpcClientService.convertPointsToPolyline(CUTTER_LINE_ORIGINAL_SRS_COORDINATES, 4230))
         .thenReturn(CUTTER_LINE_ESRI_JSON);
     when(splitOperatorService.splitPolygon(deepFeature, CUTTER_LINE_ESRI_JSON, depth)).thenReturn(List.of(outputFeature));
-    when(operatorCommandService.createOperatorCommand(
-        commandJourney, Set.of(deepFeature.getId()), TransformationType.SPLIT)).thenReturn(command);
+    when(operatorCommandService.createOperatorCommand(commandJourney, TransformationType.SPLIT)).thenReturn(command);
 
     var result = operatorCommandReceiver.executeSplit(request);
 
     assertThat(result).containsExactly(outputFeature);
     verify(splitOperatorService, never()).splitPolygon(shallowFeature, CUTTER_LINE_ESRI_JSON, depth);
     verify(featureJourneyStateService).deactivateFeatures(commandJourney, List.of(deepFeature));
-    verify(featureJourneyStateService)
-        .createFeatureJourneyStatesForCommandOutput(commandJourney, command, List.of(outputFeature));
+    verify(featureJourneyStateService).createFeatureJourneyStatesForCommandOutput(
+        commandJourney,
+        command,
+        Set.of(deepFeature.getId()),
+        List.of(outputFeature)
+    );
   }
 
   @Test
@@ -281,16 +329,18 @@ class OperatorCommandReceiverTest {
     when(commandJourneyService.getActiveFeatures(commandJourney))
         .thenReturn(List.of(inputFeature1, inputFeature2));
     when(mergeOperatorService.mergePolygons(List.of(inputFeature1, inputFeature2))).thenReturn(mergedFeature);
-    when(operatorCommandService.createOperatorCommand(
-        commandJourney, Set.of(inputFeature1.getId(), inputFeature2.getId()), TransformationType.MERGE))
-        .thenReturn(command);
+    when(operatorCommandService.createOperatorCommand(commandJourney, TransformationType.MERGE)).thenReturn(command);
 
     var result = operatorCommandReceiver.executeMerge(request);
 
     assertThat(result).contains(mergedFeature);
     verify(featureJourneyStateService).deactivateFeatures(commandJourney, List.of(inputFeature1, inputFeature2));
-    verify(featureJourneyStateService)
-        .createFeatureJourneyStatesForCommandOutput(commandJourney, command, List.of(mergedFeature));
+    verify(featureJourneyStateService).createFeatureJourneyStatesForCommandOutput(
+        commandJourney,
+        command,
+        Set.of(inputFeature1.getId(), inputFeature2.getId()),
+        List.of(mergedFeature)
+    );
   }
 
   @Test
@@ -310,9 +360,9 @@ class OperatorCommandReceiverTest {
         .hasMessage("All features must be active members of command journey %s".formatted(commandJourneyId));
 
     verifyNoInteractions(mergeOperatorService);
-    verify(operatorCommandService, never()).createOperatorCommand(any(), any(), any());
+    verify(operatorCommandService, never()).createOperatorCommand(any(), any());
     verify(featureJourneyStateService, never()).deactivateFeatures(any(), any());
-    verify(featureJourneyStateService, never()).createFeatureJourneyStatesForCommandOutput(any(), any(), any());
+    verify(featureJourneyStateService, never()).createFeatureJourneyStatesForCommandOutput(any(), any(), any(), any());
   }
 
   @Test
@@ -324,7 +374,7 @@ class OperatorCommandReceiverTest {
     assertThat(result).isEmpty();
     verifyNoInteractions(commandJourneyService, featureService, mergeOperatorService, operatorCommandService);
     verify(featureJourneyStateService, never()).deactivateFeatures(any(), any());
-    verify(featureJourneyStateService, never()).createFeatureJourneyStatesForCommandOutput(any(), any(), any());
+    verify(featureJourneyStateService, never()).createFeatureJourneyStatesForCommandOutput(any(), any(), any(), any());
   }
 
   @Test
@@ -346,15 +396,19 @@ class OperatorCommandReceiverTest {
     when(strataSplitOperatorService.strataSplitPolygon(splitFeature, depth))
         .thenReturn(List.of(aboveFeature, belowFeature));
     when(strataSplitOperatorService.strataSplitPolygon(unsplitFeature, depth)).thenReturn(List.of());
-    when(operatorCommandService.createOperatorCommand(
-        commandJourney, Set.of(splitFeature.getId()), TransformationType.STRATA_SPLIT)).thenReturn(command);
+    when(operatorCommandService.createOperatorCommand(commandJourney, TransformationType.STRATA_SPLIT))
+        .thenReturn(command);
 
     var result = operatorCommandReceiver.executeStrataSplit(request);
 
     assertThat(result).containsExactly(aboveFeature, belowFeature);
     verify(featureJourneyStateService).deactivateFeatures(commandJourney, List.of(splitFeature));
-    verify(featureJourneyStateService)
-        .createFeatureJourneyStatesForCommandOutput(commandJourney, command, List.of(aboveFeature, belowFeature));
+    verify(featureJourneyStateService).createFeatureJourneyStatesForCommandOutput(
+        commandJourney,
+        command,
+        Set.of(splitFeature.getId()),
+        List.of(aboveFeature, belowFeature)
+    );
   }
 
   @Test
@@ -378,8 +432,8 @@ class OperatorCommandReceiverTest {
     when(operatorCommandService.getUndoneCommands(commandJourney)).thenReturn(List.of(undoneCommand));
     when(featureJourneyStateService.deleteFeatureJourneyStatesCreatedByCommands(List.of(undoneCommand)))
         .thenReturn(List.of(orphanedFeature));
-    when(operatorCommandService.createOperatorCommand(
-        commandJourney, Set.of(inputFeature.getId()), TransformationType.STRATA_SPLIT)).thenReturn(command);
+    when(operatorCommandService.createOperatorCommand(commandJourney, TransformationType.STRATA_SPLIT))
+        .thenReturn(command);
 
     operatorCommandReceiver.executeStrataSplit(request);
 
@@ -405,7 +459,7 @@ class OperatorCommandReceiverTest {
     assertThat(result).isEmpty();
     verifyNoInteractions(operatorCommandService);
     verify(featureJourneyStateService, never()).deactivateFeatures(any(), any());
-    verify(featureJourneyStateService, never()).createFeatureJourneyStatesForCommandOutput(any(), any(), any());
+    verify(featureJourneyStateService, never()).createFeatureJourneyStatesForCommandOutput(any(), any(), any(), any());
   }
 
   @Test
@@ -464,6 +518,9 @@ class OperatorCommandReceiverTest {
     var activeFeatures = List.of(renamedFeature1, otherActiveFeature, renamedFeature2);
     var outputFeature1 = FeatureTestUtil.newBuilder().build();
     var outputFeature2 = FeatureTestUtil.newBuilder().build();
+    var outputFeatureByInputFeature = new LinkedHashMap<Feature, Feature>();
+    outputFeatureByInputFeature.put(renamedFeature1, outputFeature1);
+    outputFeatureByInputFeature.put(renamedFeature2, outputFeature2);
     var command = new OperatorCommand();
 
     when(commandJourneyService.getCommandJourneyOrThrow(commandJourneyId)).thenReturn(commandJourney);
@@ -472,18 +529,26 @@ class OperatorCommandReceiverTest {
         List.of(renamedFeature1, renamedFeature2),
         Map.of(renamedFeature1.getId(), featureRename1, renamedFeature2.getId(), featureRename2)
     ))
-        .thenReturn(List.of(outputFeature1, outputFeature2));
-    when(operatorCommandService.createOperatorCommand(
-        commandJourney, Set.of(renamedFeature1.getId(), renamedFeature2.getId()), TransformationType.RENAME))
-        .thenReturn(command);
+        .thenReturn(outputFeatureByInputFeature);
+    when(operatorCommandService.createOperatorCommand(commandJourney, TransformationType.RENAME)).thenReturn(command);
 
     var result = operatorCommandReceiver.executeRename(request);
 
     assertThat(result).containsExactly(outputFeature1, outputFeature2);
     verify(featureJourneyStateService)
         .deactivateFeatures(commandJourney, List.of(renamedFeature1, renamedFeature2));
-    verify(featureJourneyStateService)
-        .createFeatureJourneyStatesForCommandOutput(commandJourney, command, List.of(outputFeature1, outputFeature2));
+    verify(featureJourneyStateService).createFeatureJourneyStatesForCommandOutput(
+        commandJourney,
+        command,
+        Set.of(renamedFeature1.getId()),
+        List.of(outputFeature1)
+    );
+    verify(featureJourneyStateService).createFeatureJourneyStatesForCommandOutput(
+        commandJourney,
+        command,
+        Set.of(renamedFeature2.getId()),
+        List.of(outputFeature2)
+    );
   }
 
   @Test
@@ -503,12 +568,11 @@ class OperatorCommandReceiverTest {
     when(commandJourneyService.getActiveFeatures(commandJourney)).thenReturn(List.of(inputFeature));
     when(renameOperatorService.renameFeatures(
         List.of(inputFeature), Map.of(inputFeature.getId(), featureRename)))
-        .thenReturn(List.of(outputFeature));
+        .thenReturn(Map.of(inputFeature, outputFeature));
     when(operatorCommandService.getUndoneCommands(commandJourney)).thenReturn(List.of(undoneCommand));
     when(featureJourneyStateService.deleteFeatureJourneyStatesCreatedByCommands(List.of(undoneCommand)))
         .thenReturn(List.of(orphanedFeature));
-    when(operatorCommandService.createOperatorCommand(
-        commandJourney, Set.of(inputFeature.getId()), TransformationType.RENAME)).thenReturn(command);
+    when(operatorCommandService.createOperatorCommand(commandJourney, TransformationType.RENAME)).thenReturn(command);
 
     operatorCommandReceiver.executeRename(request);
 
@@ -574,12 +638,11 @@ class OperatorCommandReceiverTest {
   void undo_whenActiveCommandExists_deactivatesOutputAndActivatesInput() {
     var commandJourney = CommandJourneyTestUtil.newBuilder().build();
     var inputFeature = FeatureTestUtil.newBuilder().build();
-    var activeCommand = OperatorCommandTestUtil.newBuilder()
-        .withInputFeatureIds(Set.of(inputFeature.getId()))
-        .build();
+    var activeCommand = OperatorCommandTestUtil.newBuilder().build();
 
     when(operatorCommandService.getCurrentActiveCommand(commandJourney)).thenReturn(Optional.of(activeCommand));
-    when(featureService.getFeaturesByIds(activeCommand.getInputFeatureIds())).thenReturn(List.of(inputFeature));
+    when(featureJourneyStateService.getInputFeatureIds(activeCommand)).thenReturn(Set.of(inputFeature.getId()));
+    when(featureService.getFeaturesByIds(Set.of(inputFeature.getId()))).thenReturn(List.of(inputFeature));
 
     var result = operatorCommandReceiver.undo(commandJourney);
 
@@ -609,12 +672,11 @@ class OperatorCommandReceiverTest {
     var commandJourney = CommandJourneyTestUtil.newBuilder().build();
     var inputFeature = FeatureTestUtil.newBuilder().build();
     var outputFeature = FeatureTestUtil.newBuilder().build();
-    var undoneCommand = OperatorCommandTestUtil.newBuilder()
-        .withInputFeatureIds(Set.of(inputFeature.getId()))
-        .build();
+    var undoneCommand = OperatorCommandTestUtil.newBuilder().build();
 
     when(operatorCommandService.getNextRedoCommand(commandJourney)).thenReturn(Optional.of(undoneCommand));
-    when(featureService.getFeaturesByIds(undoneCommand.getInputFeatureIds())).thenReturn(List.of(inputFeature));
+    when(featureJourneyStateService.getInputFeatureIds(undoneCommand)).thenReturn(Set.of(inputFeature.getId()));
+    when(featureService.getFeaturesByIds(Set.of(inputFeature.getId()))).thenReturn(List.of(inputFeature));
     when(featureJourneyStateService.activateFeaturesCreatedByCommand(undoneCommand)).thenReturn(List.of(outputFeature));
 
     var result = operatorCommandReceiver.redo(commandJourney);

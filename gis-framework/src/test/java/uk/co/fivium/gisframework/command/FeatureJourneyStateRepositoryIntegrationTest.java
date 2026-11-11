@@ -47,11 +47,9 @@ class FeatureJourneyStateRepositoryIntegrationTest {
     commandJourney = commandJourneyRepository.save(CommandJourneyTestUtil.newBuilder().withId(null).build());
     otherCommandJourney = commandJourneyRepository.save(CommandJourneyTestUtil.newBuilder().withId(null).build());
 
-    var inputFeature = persistFeature();
     operatorCommand = operatorCommandRepository.save(OperatorCommandTestUtil.newBuilder()
         .withId(null)
         .withCommandJourney(commandJourney)
-        .withInputFeatureIds(Set.of(inputFeature.getId()))
         .build());
   }
 
@@ -83,6 +81,24 @@ class FeatureJourneyStateRepositoryIntegrationTest {
     var result = featureJourneyStateRepository.findActiveFeaturesByCommandJourney(commandJourney);
 
     assertThat(result).containsExactly(activeFeature);
+  }
+
+  @Test
+  void save_whenInputFeatureIdsSet_thenTheyAreReadBack() {
+    var inputFeature = persistFeature();
+    var state = featureJourneyStateRepository.save(FeatureJourneyStateTestUtil.newBuilder()
+        .withId(null)
+        .withFeature(persistFeature())
+        .withCommandJourney(commandJourney)
+        .withCreatedByCommand(operatorCommand)
+        .withInputFeatureIds(Set.of(inputFeature.getId()))
+        .build());
+    entityManager.flush();
+    entityManager.clear();
+
+    var result = entityManager.find(FeatureJourneyState.class, state.getId());
+
+    assertThat(result.getInputFeatureIds()).isEqualTo(Set.of(inputFeature.getId()));
   }
 
   @Test

@@ -8,7 +8,7 @@
     </#assign>
   <#elseif dataView.tagText()?has_content>
     <#assign tagContent>
-      <@fdsTag.tag tagClass=dataView.tagClass()>${dataView.tagText()}</@fdsTag.tag>
+      <@fdsTag.tag tagClass=dataView.tagClass()!"">${dataView.tagText()}</@fdsTag.tag>
     </#assign>
   <#else>
     <#assign tagContent=""/>

@@ -12,6 +12,8 @@ import static org.mockito.Mockito.when;
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.Month;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
@@ -46,6 +48,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogram
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.query.SearchResultItem;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryDataView;
+import uk.co.nstauthority.licensingmanagementservice.summary.SummaryKeyValue;
 import uk.co.nstauthority.licensingmanagementservice.teams.RegulatorRoleService;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
 import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.WorkAreaDataItemType;
@@ -438,6 +441,67 @@ class ScheduleAndWorkProgrammeApplicationWorkAreaServiceTest {
         Set.of(WebUserAccountId.from(stewardWuaId)),
         ScheduleAndWorkProgrammeApplicationWorkAreaService.STEWARD_USER_PURPOSE
     );
+  }
+
+  @Test
+  void getAllWorkItems_whenDraftIsRequestedUpdate_showsUpdateRequestedTagAndDeadline() {
+    scheduleWorkProgrammeApplicationDetail1.setUpdateDeadlineDate(LocalDate.of(2026, Month.DECEMBER, 1));
+    when(scheduleWorkProgrammeApplicationService.getAllScheduleWorkProgrammeApplicationDetailsByStatuses(anySet())).thenReturn(List.of(scheduleWorkProgrammeApplicationDetail1));
+    mockUserHasAccessToApplication(scheduleWorkProgrammeApplicationDetail1, true);
+    contextBuilder.withLicenseesByLicence(Map.of(licence1, List.of(new OrganisationUnit(1, "Org 1"))));
+
+    var workAreaItems = getAllWorkItems(new WorkAreaFilterForm(), serviceUserDetail);
+
+    assertThat(workAreaItems).hasSize(1);
+    var item = workAreaItems.get(0);
+    assertThat(item.tagText()).isEqualTo("Update requested");
+    assertThat(item.hasNewLabel()).isFalse();
+    assertThat(item.dataItemRows().get(0).keyValues())
+        .filteredOn(keyValue -> keyValue.key().equals("Update deadline"))
+        .extracting(SummaryKeyValue::summaryValueData)
+        .containsExactly(List.of(DateFormatUtil.convertToDisplayText(LocalDate.of(2026, Month.DECEMBER, 1))));
+  }
+
+  @Test
+  void getAllWorkItems_whenApplicationHasSeveralVersions_onlyShowsLatestVersion() {
+    var earlierVersion = createScheduleWorkProgrammeApplicationDetail(licence1, testInstant, "LMS/EEA/001");
+    earlierVersion.setScheduleWorkProgrammeApplication(scheduleWorkProgrammeApplicationDetail1.getScheduleWorkProgrammeApplication());
+    earlierVersion.setVersionNumber(1);
+    scheduleWorkProgrammeApplicationDetail1.setVersionNumber(2);
+    when(scheduleWorkProgrammeApplicationService.getAllScheduleWorkProgrammeApplicationDetailsByStatuses(anySet()))
+        .thenReturn(List.of(scheduleWorkProgrammeApplicationDetail1, earlierVersion));
+    when(applicationAccessService.userHasIndustryViewAccessToApplication(any(), any(), any())).thenReturn(true);
+    contextBuilder.withLicenseesByLicence(Map.of(licence1, List.of(new OrganisationUnit(1, "Org 1"))));
+
+    var workAreaItems = getAllWorkItems(new WorkAreaFilterForm(), serviceUserDetail);
+
+    assertThat(workAreaItems)
+        .extracting(SearchResultItem::id)
+        .containsExactly(scheduleWorkProgrammeApplicationDetail1.getId().toString());
+  }
+
+  @Test
+  void getAllWorkItems_whenRegulatorCannotSeeUpdateDraft_showsLatestSubmittedVersion() {
+    var earlierVersion = createScheduleWorkProgrammeApplicationDetail(licence1, testInstant, "LMS/EEA/001");
+    earlierVersion.setScheduleWorkProgrammeApplication(scheduleWorkProgrammeApplicationDetail1.getScheduleWorkProgrammeApplication());
+    earlierVersion.setStatus(ApplicationStatus.SUBMITTED);
+    earlierVersion.setSubmittedDatetime(testInstant);
+    earlierVersion.setVersionNumber(1);
+    scheduleWorkProgrammeApplicationDetail1.setStatus(ApplicationStatus.DRAFT);
+    scheduleWorkProgrammeApplicationDetail1.setVersionNumber(2);
+    when(scheduleWorkProgrammeApplicationService.getAllScheduleWorkProgrammeApplicationDetailsByStatuses(anySet()))
+        .thenReturn(List.of(scheduleWorkProgrammeApplicationDetail1, earlierVersion));
+    mockUserHasAccessToApplication(scheduleWorkProgrammeApplicationDetail1, false);
+    mockUserHasAccessToApplication(earlierVersion, false);
+    when(regulatorRoleService.isRegulator(anySet())).thenReturn(true);
+    when(applicationWorkAreaService.isRegulatorAllWork(eq(earlierVersion), any(Long.class), anySet())).thenReturn(true);
+    contextBuilder.withLicenseesByLicence(Map.of(licence1, List.of(new OrganisationUnit(1, "Org 1"))));
+
+    var workAreaItems = getAllWorkItems(new WorkAreaFilterForm(), serviceUserDetail);
+
+    assertThat(workAreaItems)
+        .extracting(SearchResultItem::id)
+        .containsExactly(earlierVersion.getId().toString());
   }
 
   private void mockIsDecisionIssuer() {

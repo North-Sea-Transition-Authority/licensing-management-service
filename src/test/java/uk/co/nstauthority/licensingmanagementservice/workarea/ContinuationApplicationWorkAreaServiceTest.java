@@ -10,6 +10,8 @@ import static org.mockito.Mockito.when;
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.Month;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
@@ -39,6 +41,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSch
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.query.SearchResultItem;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryDataView;
+import uk.co.nstauthority.licensingmanagementservice.summary.SummaryKeyValue;
 import uk.co.nstauthority.licensingmanagementservice.teams.RegulatorRoleService;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
 import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.WorkAreaDataItemType;
@@ -687,6 +690,80 @@ class ContinuationApplicationWorkAreaServiceTest {
     assertThat(workAreaItems)
         .extracting(SearchResultItem::hasNewLabel)
         .containsExactly(false);
+  }
+
+  @Test
+  void getAllWorkItems_whenDraftIsRequestedUpdate_showsUpdateRequestedTagAndDeadline() {
+    licenceContinuationApplicationDetail.setUpdateDeadlineDate(LocalDate.of(2026, Month.DECEMBER, 1));
+    when(licenceContinuationService.getAllContinuationApplicationDetailsByStatuses(any())).thenReturn(List.of(licenceContinuationApplicationDetail));
+    when(applicationAccessService.userHasIndustryViewAccessToApplication(any(), anyMap(), anySet())).thenReturn(true);
+    when(applicationAccessService.userHasIndustryEditAccessToApplication(any(), anyMap(), anySet())).thenReturn(true);
+    contextBuilder.withLicenseesByLicence(Map.of(licence1, List.of(new OrganisationUnit(1, "Org 1"))));
+
+    var workAreaItems = getAllWorkItems(new WorkAreaFilterForm(), serviceUserDetail);
+
+    assertThat(workAreaItems).hasSize(1);
+    var item = workAreaItems.getFirst();
+    assertThat(item.tagText()).isEqualTo("Update requested");
+    assertThat(item.hasNewLabel()).isFalse();
+    var deadlineValues = item.dataItemRows().getFirst().keyValues().stream()
+        .filter(keyValue -> keyValue.key().equals("Update deadline"))
+        .map(SummaryKeyValue::summaryValueData)
+        .toList();
+    assertThat(deadlineValues)
+        .containsExactly(List.of(DateFormatUtil.convertToDisplayText(LocalDate.of(2026, Month.DECEMBER, 1))));
+  }
+
+  @Test
+  void getAllWorkItems_whenApplicationHasSeveralVersions_onlyShowsLatestVersion() {
+    var earlierVersion = LicenceContinuationApplicationTestUtil.createLicenceContinuationApplicationDetail(
+        LicenceScheduleTestUtil.createLicenceScheduleDetail(LicenceScheduleTestUtil.createLicenceSchedule(licence1))
+    );
+    earlierVersion.setLicenceContinuationApplication(licenceContinuationApplicationDetail.getLicenceContinuationApplication());
+    earlierVersion.setStatus(ApplicationStatus.SUBMITTED);
+    earlierVersion.setSubmittedDatetime(testInstant);
+    earlierVersion.setVersionNumber(1);
+    licenceContinuationApplicationDetail.setVersionNumber(2);
+    when(licenceContinuationService.getAllContinuationApplicationDetailsByStatuses(any()))
+        .thenReturn(List.of(earlierVersion, licenceContinuationApplicationDetail));
+    when(applicationAccessService.userHasIndustryViewAccessToApplication(any(), any(), any())).thenReturn(true);
+    contextBuilder.withLicenseesByLicence(Map.of(licence1, List.of(new OrganisationUnit(1, "Org 1"))));
+
+    var workAreaItems = getAllWorkItems(new WorkAreaFilterForm(), serviceUserDetail);
+
+    assertThat(workAreaItems)
+        .extracting(SearchResultItem::id)
+        .containsExactly(licenceContinuationApplicationDetail.getId().toString());
+  }
+
+  @Test
+  void getAllWorkItems_whenRegulatorCannotSeeUpdateDraft_showsLatestSubmittedVersion() {
+    var earlierVersion = LicenceContinuationApplicationTestUtil.createLicenceContinuationApplicationDetail(
+        LicenceScheduleTestUtil.createLicenceScheduleDetail(LicenceScheduleTestUtil.createLicenceSchedule(licence1))
+    );
+    earlierVersion.setLicenceContinuationApplication(licenceContinuationApplicationDetail.getLicenceContinuationApplication());
+    earlierVersion.setStatus(ApplicationStatus.SUBMITTED);
+    earlierVersion.setSubmittedDatetime(testInstant);
+    earlierVersion.setVersionNumber(1);
+    licenceContinuationApplicationDetail.setStatus(ApplicationStatus.DRAFT);
+    licenceContinuationApplicationDetail.setVersionNumber(2);
+    when(licenceContinuationService.getAllContinuationApplicationDetailsByStatuses(any()))
+        .thenReturn(List.of(earlierVersion, licenceContinuationApplicationDetail));
+    when(applicationAccessService.userHasIndustryViewAccessToApplication(eq(earlierVersion), anyMap(), anySet()))
+        .thenReturn(false);
+    when(applicationAccessService.userHasIndustryViewAccessToApplication(
+        eq(licenceContinuationApplicationDetail), anyMap(), anySet()
+    )).thenReturn(false);
+    when(regulatorRoleService.isRegulator(anySet())).thenReturn(true);
+    when(applicationWorkAreaService.isRegulatorAllWork(eq(earlierVersion), eq(serviceUserDetail.wuaId()), anySet()))
+        .thenReturn(true);
+    contextBuilder.withLicenseesByLicence(Map.of(licence1, List.of(new OrganisationUnit(1, "Org 1"))));
+
+    var workAreaItems = getAllWorkItems(new WorkAreaFilterForm(), serviceUserDetail);
+
+    assertThat(workAreaItems)
+        .extracting(SearchResultItem::id)
+        .containsExactly(earlierVersion.getId().toString());
   }
 
   private void mockRegulatorWithoutIndustryAccess() {

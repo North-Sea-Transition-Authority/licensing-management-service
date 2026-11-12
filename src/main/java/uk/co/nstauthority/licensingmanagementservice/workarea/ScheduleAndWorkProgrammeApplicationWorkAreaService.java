@@ -38,6 +38,8 @@ import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.W
 @Service
 public class ScheduleAndWorkProgrammeApplicationWorkAreaService implements WorkAreaItemProvider {
 
+  private static final String UPDATE_REQUESTED_TAG_TEXT = "Update requested";
+
   static final String STEWARD_USER_PURPOSE = "Fetch steward users for schedule work programme work area items";
 
   private final ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService;
@@ -100,7 +102,7 @@ public class ScheduleAndWorkProgrammeApplicationWorkAreaService implements WorkA
     var isRegulator = regulatorRoleService.isRegulator(userTeamRoles);
     var regulatorRoles = new RegulatorRoles(isRegulator, regulatorRoleService.isDecisionIssuer(userTeamRoles));
 
-    var visibleApplicationDetails = allApplicationDetails.stream()
+    var visibleApplicationDetails = ApplicationWorkAreaService.latestVersionsOnly(allApplicationDetails.stream()
         .filter(applicationDetail -> matchesFilterAndHasAccess(
             applicationDetail,
             applicationDetail.getLicence(),
@@ -111,7 +113,7 @@ public class ScheduleAndWorkProgrammeApplicationWorkAreaService implements WorkA
             regulatorRoles,
             workAreaScope
         ))
-        .toList();
+        .toList());
 
     var stewardsByWuaId = getStewardsByWuaId(visibleApplicationDetails);
 
@@ -161,12 +163,19 @@ public class ScheduleAndWorkProgrammeApplicationWorkAreaService implements WorkA
         .map(EnergyPortalUserJson::displayName)
         .orElse("Not allocated");
 
-    var dataItemRow = SummaryDataView.newBuilder()
+    var dataItemRowBuilder = SummaryDataView.newBuilder()
         .addStringValue("Licence", licence.getLicenceReference())
         .addStringValue("Licensees", String.join(", ", licensees))
         .addStringValue("Status", applicationDetail.getStatus().getDisplayName())
-        .addStringValue("Steward", stewardName)
-        .build();
+        .addStringValue("Steward", stewardName);
+
+    var isUpdateRequested = ApplicationWorkAreaService.isUpdateRequested(applicationDetail);
+    if (isUpdateRequested) {
+      dataItemRowBuilder.addStringValue(
+          "Update deadline",
+          DateFormatUtil.convertToDisplayText(applicationDetail.getUpdateDeadlineDate())
+      );
+    }
 
     var linkHeadingUrl = switch (applicationDetail.getStatus()) {
       case DRAFT -> {
@@ -215,10 +224,15 @@ public class ScheduleAndWorkProgrammeApplicationWorkAreaService implements WorkA
         )
         .withLinkHeadingUrl(linkHeadingUrl)
         .withCaptionText(captionText)
-        .withDataItemRow(dataItemRow)
+        .withDataItemRow(dataItemRowBuilder.build())
         .withTransactionDatetime(transactionDateTime);
 
-    if (context.isNewItem(WorkAreaDataItemType.SCHEDULE_WORK_PROGRAMME_APPLICATION, applicationDetail.getId())) {
+    if (isUpdateRequested) {
+      builder.withTagText(UPDATE_REQUESTED_TAG_TEXT);
+    }
+
+    var isNewItem = context.isNewItem(WorkAreaDataItemType.SCHEDULE_WORK_PROGRAMME_APPLICATION, applicationDetail.getId());
+    if (!isUpdateRequested && isNewItem) {
       builder.withNewLabel();
     }
 

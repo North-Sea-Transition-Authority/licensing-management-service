@@ -32,6 +32,8 @@ import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.W
 @Service
 public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvider {
 
+  private static final String UPDATE_REQUESTED_TAG_TEXT = "Update requested";
+
   private final LicenceContinuationService licenceContinuationService;
   private final ApplicationAccessService applicationAccessService;
   private final RegulatorRoleService regulatorRoleService;
@@ -91,7 +93,7 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
         regulatorRoleService.isContinuationIssuer(userTeamRoles)
     );
 
-    return allApplicationDetails.stream()
+    var visibleApplicationDetails = allApplicationDetails.stream()
         .filter(applicationDetail -> matchesFilterAndHasAccess(
             applicationDetail,
             applicationDetail.getLicence(),
@@ -102,6 +104,9 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
             regulatorRoles,
             workAreaScope
         ))
+        .toList();
+
+    return ApplicationWorkAreaService.latestVersionsOnly(visibleApplicationDetails).stream()
         .map(applicationDetail ->
             createWorkAreaItem(
                 applicationDetail,
@@ -128,11 +133,18 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
         .filter(Objects::nonNull)
         .toList();
 
-    var dataItemRow = SummaryDataView.newBuilder()
+    var dataItemRowBuilder = SummaryDataView.newBuilder()
         .addStringValue("Licence", licence.getLicenceReference())
         .addStringValue("Licensees", String.join(", ", licensees))
-        .addStringValue("Status", applicationDetail.getStatus().getDisplayName())
-        .build();
+        .addStringValue("Status", applicationDetail.getStatus().getDisplayName());
+
+    var isUpdateRequested = ApplicationWorkAreaService.isUpdateRequested(applicationDetail);
+    if (isUpdateRequested) {
+      dataItemRowBuilder.addStringValue(
+          "Update deadline",
+          DateFormatUtil.convertToDisplayText(applicationDetail.getUpdateDeadlineDate())
+      );
+    }
 
     var linkHeadingUrl = switch (applicationDetail.getStatus()) {
       case DRAFT -> {
@@ -181,10 +193,14 @@ public class ContinuationApplicationWorkAreaService implements WorkAreaItemProvi
         )
         .withLinkHeadingUrl(linkHeadingUrl)
         .withCaptionText(captionText)
-        .withDataItemRow(dataItemRow)
+        .withDataItemRow(dataItemRowBuilder.build())
         .withTransactionDatetime(transactionDateTime);
 
-    if (isNewItem(applicationDetail, isContinuationIssuer, context)) {
+    if (isUpdateRequested) {
+      builder.withTagText(UPDATE_REQUESTED_TAG_TEXT);
+    }
+
+    if (!isUpdateRequested && isNewItem(applicationDetail, isContinuationIssuer, context)) {
       builder.withNewLabel();
     }
 

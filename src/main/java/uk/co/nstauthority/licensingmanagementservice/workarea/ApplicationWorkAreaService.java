@@ -1,9 +1,14 @@
 package uk.co.nstauthority.licensingmanagementservice.workarea;
 
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.BinaryOperator;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import uk.co.fivium.energyportal.serviceproviders.epmq.ScopeType;
@@ -31,6 +36,30 @@ public class ApplicationWorkAreaService {
 
   public ApplicationWorkAreaService(RegulatorRoleService regulatorRoleService) {
     this.regulatorRoleService = regulatorRoleService;
+  }
+
+  // Earlier versions are superseded by the latest one the user can see, so only the highest visible version of each
+  // application is listed. This is applied after the access check so that a user who cannot see an update draft
+  // (e.g. a regulator) still sees the latest submitted version.
+  public static <T extends LicenceApplicationDetail> List<T> latestVersionsOnly(List<T> applicationDetails) {
+    return applicationDetails.stream()
+        .collect(Collectors.toMap(
+            applicationDetail -> applicationDetail.getLicenceApplication().getId(),
+            Function.identity(),
+            BinaryOperator.maxBy(Comparator.comparing(
+                LicenceApplicationDetail::getVersionNumber,
+                Comparator.nullsFirst(Comparator.<Integer>naturalOrder())
+            )),
+            LinkedHashMap::new
+        ))
+        .values()
+        .stream()
+        .toList();
+  }
+
+  // An update draft is a later version of a submitted application with a deadline set by the regulator.
+  public static boolean isUpdateRequested(LicenceApplicationDetail applicationDetail) {
+    return applicationDetail.getStatus() == ApplicationStatus.DRAFT && applicationDetail.getUpdateDeadlineDate() != null;
   }
 
   public boolean isRegulatorMyWork(LicenceApplicationDetail applicationDetail, Long userWuaId, Set<TeamRole> userTeamRoles) {
@@ -62,7 +91,9 @@ public class ApplicationWorkAreaService {
     var createdByUser = Objects.equals(applicationDetail.getCreatedByWuaId(), userWuaId);
     var isAppEditorOrSubmitter = hasRoleInLicenseeGroups(
         applicationDetail, licenseeIdToGroupId, userTeamRoles, IndustryRoleService.EDITOR_SUBMITTER_ROLES);
-    if (isAppEditorOrSubmitter && createdByUser) {
+    // An update draft is created by the regulator who requested the update, so it is work for every editor or submitter.
+    var isOpenUpdateDraft = applicationDetail.getUpdateDeadlineDate() != null && !applicationDetail.hasBeenSubmitted();
+    if (isAppEditorOrSubmitter && (createdByUser || isOpenUpdateDraft)) {
       return true;
     }
 

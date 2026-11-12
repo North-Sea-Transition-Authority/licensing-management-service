@@ -63,6 +63,11 @@ public enum LicenceTypeFeature {
       LicenceType.LANDWARD_PRODUCTION,
       LicenceType.SEAWARD_PRODUCTION
   )),
+  CAN_CREATE_LICENCE_ASSIGNMENT_APPLICATIONS(EnumSet.of(
+      LicenceType.LANDWARD_PRODUCTION,
+      LicenceType.SEAWARD_PRODUCTION,
+      LicenceType.CARBON_STORAGE
+  )),
   SHOW_ROUND_ISSUED_ON(EnumSet.of(
       LicenceType.LANDWARD_PRODUCTION,
       LicenceType.SEAWARD_PRODUCTION

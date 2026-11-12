@@ -27,6 +27,8 @@ public class ApplicationService {
     return switch (applicationType) {
       case CONTINUATION_APPLICATION -> licenceContinuationService.getApplicationByIdOrThrow(applicationId);
       case SCHEDULE_AMENDMENT_APPLICATION -> scheduleWorkProgrammeApplicationService.getApplicationByIdOrThrow(applicationId);
+      case LICENCE_ASSIGNMENT_APPLICATION ->
+          throw new IllegalStateException("Licence assignment applications cannot be created yet");
     };
   }
 }

@@ -444,6 +444,8 @@ public class TeamManagementController {
                 .getTaskList(applicationDetailId, null, null))
         );
       }
+      case LICENCE_ASSIGNMENT_APPLICATION ->
+          throw new IllegalStateException("Licence assignment applications do not have external contributor teams yet");
     };
   }
 
@@ -453,6 +455,8 @@ public class TeamManagementController {
           on(ScheduleWorkProgrammeApplicationTaskListController.class).getTaskList(null, null, null));
       case CONTINUATION_APPLICATION -> ReverseRouter.route(
           on(LicenceContinuationApplicationTaskListController.class).getTaskList(null, null, null));
+      case LICENCE_ASSIGNMENT_APPLICATION ->
+          throw new IllegalStateException("Licence assignment applications do not have external contributor teams yet");
     };
   }
 

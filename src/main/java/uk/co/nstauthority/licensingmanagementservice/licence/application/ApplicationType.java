@@ -31,6 +31,15 @@ public enum ApplicationType implements Displayable, PathVariableEnum, PhaseGated
       TagColour.PURPLE,
       "Continuation"
   ),
+  LICENCE_ASSIGNMENT_APPLICATION(
+      "Licence assignment application",
+      "licence-assignment-application",
+      30,
+      "I want to change the licensees, equity, beneficial interests or operators on a licence",
+      ReleaseFeature.LICENCE_ASSIGNMENT_APPLICATION,
+      TagColour.YELLOW,
+      "Assignment"
+  ),
   ;
 
   private final String displayName;

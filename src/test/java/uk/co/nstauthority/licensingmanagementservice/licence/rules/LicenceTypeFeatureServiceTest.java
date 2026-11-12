@@ -154,6 +154,17 @@ class LicenceTypeFeatureServiceTest {
   }
 
   @Test
+  void getLicenceTypesThatCanCreateLicenceAssignmentApplications() {
+    var licenceTypes = underTest.getLicenceTypesThatCanCreateLicenceAssignmentApplications();
+
+    assertThat(licenceTypes).containsExactly(
+        LicenceType.CARBON_STORAGE,
+        LicenceType.LANDWARD_PRODUCTION,
+        LicenceType.SEAWARD_PRODUCTION
+    );
+  }
+
+  @Test
   void canShowLicenceRoundIssuedOn_whenEnabled_ReturnsTrue() {
     assertThat(underTest.canShowLicenceRoundIssuedOn(LicenceType.SEAWARD_PRODUCTION)).isTrue();
   }

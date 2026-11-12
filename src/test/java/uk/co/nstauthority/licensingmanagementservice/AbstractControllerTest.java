@@ -63,6 +63,7 @@ import uk.co.nstauthority.licensingmanagementservice.energyportal.organisationgr
 import uk.co.nstauthority.licensingmanagementservice.hibernate.HibernateQueryCounter;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceArgumentResolver;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTypeArgumentResolver;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationAccessService;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationTypeArgumentResolver;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetailArgumentResolver;
@@ -139,6 +140,7 @@ import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.W
     ContinuationApplicationHasStatusInterceptorRule.class,
     DocumentTemplateArgumentResolver.class,
     ApplicationTypeArgumentResolver.class,
+    LicenceTypeArgumentResolver.class,
     HasAnyRoleInTeamTypeInterceptorRule.class,
     ContinuationApplicationHasStatusInterceptorRule.class,
     ScheduleWorkProgrammeApplicationActionEndPointInterceptorRule.class,

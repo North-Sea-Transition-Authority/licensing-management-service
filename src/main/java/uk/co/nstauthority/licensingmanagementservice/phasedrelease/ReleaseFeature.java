@@ -40,6 +40,8 @@ public enum ReleaseFeature {
   START_CORRECTION(ReleasePhase.LMS2),
   /** The timeline (licence position) tab on the licence page. */
   VIEW_LICENCE_TIMELINE(ReleasePhase.LMS2),
+  /** The licence assignment application type / work-area category. */
+  LICENCE_ASSIGNMENT_APPLICATION(ReleasePhase.LMS2),
 
   // --- Future ---
   /**

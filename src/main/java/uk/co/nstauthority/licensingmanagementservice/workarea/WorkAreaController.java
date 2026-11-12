@@ -156,7 +156,8 @@ public class WorkAreaController {
         .addObject("form", form)
         .addObject("licenceTypes",
             DisplayableEnumOptionUtil.getDisplayableOptions(featureFlagService.filterEnabled(List.of(LicenceType.values()))))
-        .addObject("applicationTypes", DisplayableEnumOptionUtil.getDisplayableOptions(ApplicationType.class))
+        .addObject("applicationTypes",
+            DisplayableEnumOptionUtil.getDisplayableOptions(featureFlagService.filterEnabled(List.of(ApplicationType.values()))))
         .addObject("applicationStatuses", DisplayableEnumOptionUtil.getDisplayableOptions(
             ApplicationStatus.getSearchableStatuses()))
         .addObject("isRegulatorUser", regulatorRoleService.isRegulator(user))

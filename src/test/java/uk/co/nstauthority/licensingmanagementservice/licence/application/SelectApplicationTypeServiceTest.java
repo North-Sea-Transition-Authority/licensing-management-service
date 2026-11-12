@@ -1,6 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatNoException;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
@@ -15,6 +16,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
+import uk.co.nstauthority.licensingmanagementservice.licence.assignmentapplication.startjourney.LicenceAssignmentApplicationDetailsController;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.startjourney.StartContinuationApplicationController;
 import uk.co.nstauthority.licensingmanagementservice.licence.rules.LicenceTypeRulesResolver;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.startjourney.StartScheduleWorkProgrammeApplicationJourneyController;
@@ -36,28 +38,34 @@ class SelectApplicationTypeServiceTest {
   private SelectApplicationTypeService selectApplicationTypeService;
 
   @Test
-  void getAvailableApplicationTypes_whenProductionLicenceType_thenScheduleAndContinuationReturned() {
+  void getAvailableApplicationTypes_whenProductionLicenceType_thenScheduleContinuationAndAssignmentReturned() {
     givenAllApplicationTypesEnabled();
     givenScheduleLicenceTypes();
     givenContinuationLicenceTypes();
+    givenLicenceAssignmentLicenceTypes();
 
     var result = selectApplicationTypeService.getAvailableApplicationTypes(LicenceType.SEAWARD_PRODUCTION);
 
     assertThat(result).containsExactly(
         ApplicationType.SCHEDULE_AMENDMENT_APPLICATION,
-        ApplicationType.CONTINUATION_APPLICATION
+        ApplicationType.CONTINUATION_APPLICATION,
+        ApplicationType.LICENCE_ASSIGNMENT_APPLICATION
     );
   }
 
   @Test
-  void getAvailableApplicationTypes_whenCarbonStorageLicenceType_thenOnlyScheduleReturned() {
+  void getAvailableApplicationTypes_whenCarbonStorageLicenceType_thenScheduleAndAssignmentReturned() {
     givenAllApplicationTypesEnabled();
     givenScheduleLicenceTypes();
     givenContinuationLicenceTypes();
+    givenLicenceAssignmentLicenceTypes();
 
     var result = selectApplicationTypeService.getAvailableApplicationTypes(LicenceType.CARBON_STORAGE);
 
-    assertThat(result).containsExactly(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION);
+    assertThat(result).containsExactly(
+        ApplicationType.SCHEDULE_AMENDMENT_APPLICATION,
+        ApplicationType.LICENCE_ASSIGNMENT_APPLICATION
+    );
   }
 
   @Test
@@ -153,6 +161,35 @@ class SelectApplicationTypeServiceTest {
   }
 
   @Test
+  void verifyApplicationTypeCanBeStarted_whenApplicationTypeAvailableForLicenceType_thenNoException() {
+    givenAllApplicationTypesEnabled();
+    givenScheduleLicenceTypes();
+    givenContinuationLicenceTypes();
+    givenLicenceAssignmentLicenceTypes();
+
+    assertThatNoException().isThrownBy(() -> selectApplicationTypeService.verifyApplicationTypeCanBeStarted(
+        LicenceType.CARBON_STORAGE,
+        ApplicationType.LICENCE_ASSIGNMENT_APPLICATION
+    ));
+  }
+
+  @Test
+  void verifyApplicationTypeCanBeStarted_whenApplicationTypeNotAvailableForLicenceType_thenNotFound() {
+    givenAllApplicationTypesEnabled();
+    givenScheduleLicenceTypes();
+    givenContinuationLicenceTypes();
+    givenLicenceAssignmentLicenceTypes();
+
+    assertThatThrownBy(() -> selectApplicationTypeService.verifyApplicationTypeCanBeStarted(
+        LicenceType.GAS_STORAGE,
+        ApplicationType.LICENCE_ASSIGNMENT_APPLICATION
+    ))
+        .isInstanceOf(ResponseStatusException.class)
+        .extracting(exception -> ((ResponseStatusException) exception).getStatusCode())
+        .isEqualTo(HttpStatus.NOT_FOUND);
+  }
+
+  @Test
   void getJourneyStartRedirectRoute_whenScheduleAmendmentApplication_thenRedirectToScheduleStart() {
     var licenceType = LicenceType.CARBON_STORAGE;
 
@@ -178,6 +215,19 @@ class SelectApplicationTypeServiceTest {
         .render(licenceType.getUrlSlug())).toString());
   }
 
+  @Test
+  void getJourneyStartRedirectRoute_whenLicenceAssignmentApplication_thenRedirectToApplicationDetails() {
+    var licenceType = LicenceType.CARBON_STORAGE;
+
+    var result = selectApplicationTypeService.getJourneyStartRedirectRoute(
+        ApplicationType.LICENCE_ASSIGNMENT_APPLICATION,
+        licenceType
+    );
+
+    assertThat(result).hasToString(ReverseRouter.redirect(on(LicenceAssignmentApplicationDetailsController.class)
+        .render(licenceType, null)).toString());
+  }
+
   private void givenAllApplicationTypesEnabled() {
     when(featureFlagService.filterEnabled(ALL_APPLICATION_TYPES)).thenReturn(ALL_APPLICATION_TYPES);
   }
@@ -190,5 +240,10 @@ class SelectApplicationTypeServiceTest {
   private void givenContinuationLicenceTypes() {
     when(licenceTypeRulesResolver.getLicenceTypesThatCanCreateContinuationApplications())
         .thenReturn(List.of(LicenceType.LANDWARD_PRODUCTION, LicenceType.SEAWARD_PRODUCTION));
+  }
+
+  private void givenLicenceAssignmentLicenceTypes() {
+    when(licenceTypeRulesResolver.getLicenceTypesThatCanCreateLicenceAssignmentApplications())
+        .thenReturn(List.of(LicenceType.LANDWARD_PRODUCTION, LicenceType.SEAWARD_PRODUCTION, LicenceType.CARBON_STORAGE));
   }
 }

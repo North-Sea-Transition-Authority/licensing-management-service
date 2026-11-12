@@ -72,6 +72,8 @@ public class DocumentLinkingService {
           .getLicenceSchedule()
           .getLicence()
           .getLicenceReference();
+      case LICENCE_ASSIGNMENT_APPLICATION ->
+          throw new IllegalStateException("Licence assignment applications do not have documents yet");
     };
   }
 
@@ -86,6 +88,8 @@ public class DocumentLinkingService {
               scheduleWorkProgrammeApplicationService
                   .getLatestScheduleWorkProgrammeDetailByApplicationIdOrThrow(applicationId)
           );
+      case LICENCE_ASSIGNMENT_APPLICATION ->
+          throw new IllegalStateException("Licence assignment applications do not have documents yet");
     };
 
     var licence = scheduleDetail.getLicenceSchedule().getLicence();
@@ -131,6 +135,8 @@ public class DocumentLinkingService {
       case SCHEDULE_AMENDMENT_APPLICATION -> scheduleWorkProgrammeApplicationService
           .getLatestScheduleWorkProgrammeDetailByApplicationIdOrThrow(applicationId)
           .getResponsibleOrganisationUnitId();
+      case LICENCE_ASSIGNMENT_APPLICATION ->
+          throw new IllegalStateException("Licence assignment applications do not have documents yet");
     };
   }
 }

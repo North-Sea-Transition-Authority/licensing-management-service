@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.ModelAndView;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
+import uk.co.nstauthority.licensingmanagementservice.licence.assignmentapplication.startjourney.LicenceAssignmentApplicationDetailsController;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.startjourney.StartContinuationApplicationController;
 import uk.co.nstauthority.licensingmanagementservice.licence.rules.LicenceTypeRulesResolver;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.startjourney.StartScheduleWorkProgrammeApplicationJourneyController;
@@ -42,15 +43,17 @@ public class SelectApplicationTypeService {
 
   public LicenceType getLicenceTypeOrThrow(String licenceTypeSlug, ApplicationType applicationType) {
     var licenceType = getLicenceTypeOrThrow(licenceTypeSlug);
+    verifyApplicationTypeCanBeStarted(licenceType, applicationType);
+    return licenceType;
+  }
 
+  public void verifyApplicationTypeCanBeStarted(LicenceType licenceType, ApplicationType applicationType) {
     if (!getAvailableApplicationTypes(licenceType).contains(applicationType)) {
       throw new ResponseStatusException(
           HttpStatus.NOT_FOUND,
           "Application type %s cannot be started for licence type %s".formatted(applicationType, licenceType)
       );
     }
-
-    return licenceType;
   }
 
   public LicenceType getLicenceTypeOrThrow(String licenceTypeSlug) {
@@ -70,6 +73,9 @@ public class SelectApplicationTypeService {
           .renderStartScheduleWorkProgrammeApplicationJourney(licenceType.getUrlSlug()));
       case CONTINUATION_APPLICATION -> ReverseRouter.redirect(on(StartContinuationApplicationController.class)
           .render(licenceType.getUrlSlug()));
+      case LICENCE_ASSIGNMENT_APPLICATION ->
+          ReverseRouter.redirect(on(LicenceAssignmentApplicationDetailsController.class)
+          .render(licenceType, null));
     };
   }
 
@@ -78,6 +84,8 @@ public class SelectApplicationTypeService {
       case SCHEDULE_AMENDMENT_APPLICATION ->
           licenceTypeRulesResolver.getLicenceTypesThatCanCreateScheduleWorkProgrammeApplications();
       case CONTINUATION_APPLICATION -> licenceTypeRulesResolver.getLicenceTypesThatCanCreateContinuationApplications();
+      case LICENCE_ASSIGNMENT_APPLICATION ->
+          licenceTypeRulesResolver.getLicenceTypesThatCanCreateLicenceAssignmentApplications();
     };
   }
 }

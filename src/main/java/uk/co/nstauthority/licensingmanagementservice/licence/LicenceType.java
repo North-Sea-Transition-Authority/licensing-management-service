@@ -3,11 +3,12 @@ package uk.co.nstauthority.licensingmanagementservice.licence;
 import jakarta.validation.constraints.NotNull;
 import java.util.Arrays;
 import java.util.List;
+import uk.co.nstauthority.licensingmanagementservice.endpointvalidation.PathVariableEnum;
 import uk.co.nstauthority.licensingmanagementservice.phasedrelease.PhaseGated;
 import uk.co.nstauthority.licensingmanagementservice.phasedrelease.ReleaseFeature;
 import uk.co.nstauthority.licensingmanagementservice.util.enumutil.Displayable;
 
-public enum LicenceType implements Displayable, PhaseGated {
+public enum LicenceType implements Displayable, PathVariableEnum, PhaseGated {
   CARBON_STORAGE("Carbon storage", 10, "CS", "carbon-storage", true, ReleaseFeature.CURRENT_LICENCE_TYPE),
   GAS_STORAGE("Gas storage", 20, "GS", "gas-storage", true, ReleaseFeature.FUTURE_LICENCE_TYPE),
   LANDWARD_EXPLORATION("Landward exploration", 30, "LX", "landward-exploration", true, ReleaseFeature.FUTURE_LICENCE_TYPE),
@@ -58,8 +59,14 @@ public enum LicenceType implements Displayable, PhaseGated {
     return prefix;
   }
 
+  @Override
   public String getUrlSlug() {
     return urlSlug;
+  }
+
+  @Override
+  public String getPathVariableName() {
+    return LicenceTypeArgumentResolver.LICENCE_TYPE_SLUG;
   }
 
   public Boolean isManagedByLms() {

@@ -14,6 +14,7 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.UserDetailSe
 import uk.co.nstauthority.licensingmanagementservice.caseevent.payload.CaseAllocationPayload;
 import uk.co.nstauthority.licensingmanagementservice.caseevent.payload.CaseEventPayload;
 import uk.co.nstauthority.licensingmanagementservice.caseevent.payload.CaseUpdateRequestPayload;
+import uk.co.nstauthority.licensingmanagementservice.caseevent.payload.CaseUpdateSubmittedPayload;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserJson;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserService;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.WebUserAccountId;
@@ -28,6 +29,7 @@ public class CaseEventService {
   static final String ALLOCATED_TO_KEY = "Allocated to";
   static final String UPDATE_REASON_KEY = "Update reason";
   static final String UPDATE_DEADLINE_KEY = "Update deadline";
+  static final String VERSION_KEY = "Version";
 
   private final CaseEventRepository caseEventRepository;
   private final UserDetailService userDetailService;
@@ -147,6 +149,9 @@ public class CaseEventService {
     if (payload instanceof CaseUpdateRequestPayload(var updateDeadlineDate, var updateReason)) {
       details.put(UPDATE_DEADLINE_KEY, DateFormatUtil.convertToDisplayText(updateDeadlineDate));
       details.put(UPDATE_REASON_KEY, updateReason);
+    }
+    if (payload instanceof CaseUpdateSubmittedPayload(var versionNumber)) {
+      details.put(VERSION_KEY, String.valueOf(versionNumber));
     }
     return details;
   }

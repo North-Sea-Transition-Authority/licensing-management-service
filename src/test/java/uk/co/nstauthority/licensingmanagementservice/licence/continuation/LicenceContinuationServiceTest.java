@@ -36,6 +36,9 @@ import uk.co.fivium.digitalnotificationlibrary.core.notification.MergedTemplate;
 import uk.co.fivium.digitalnotificationlibrary.core.notification.email.EmailRecipient;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.caseevent.CaseEventService;
+import uk.co.nstauthority.licensingmanagementservice.caseevent.CaseEventType;
+import uk.co.nstauthority.licensingmanagementservice.caseevent.payload.CaseUpdateSubmittedPayload;
 import uk.co.nstauthority.licensingmanagementservice.email.EmailService;
 import uk.co.nstauthority.licensingmanagementservice.email.GovukNotifyTemplate;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
@@ -107,6 +110,9 @@ class LicenceContinuationServiceTest {
 
   @Mock
   private ApplicationUpdateSubmittedEmailService applicationUpdateSubmittedEmailService;
+
+  @Mock
+  private CaseEventService caseEventService;
 
   @Mock
   private LicenceContinuationApplicationDetailRequestCache licenceContinuationApplicationDetailRequestCache;
@@ -321,6 +327,7 @@ class LicenceContinuationServiceTest {
     assertThat(savedDetail.getNextPhase()).isEqualTo(nextPhase);
 
     verify(crossLicenceEventTrackerService).refreshApplicationCache(savedApp);
+    verify(caseEventService).recordCaseEvent(CaseEventType.APPLICATION_SUBMITTED, savedApp, null);
   }
 
   @Test
@@ -355,6 +362,12 @@ class LicenceContinuationServiceTest {
     licenceContinuationService.submitApplication(licenceContinuationApplicationDetail, organisationUser);
 
     verify(applicationUpdateSubmittedEmailService).sendUpdateSubmittedEmails(licenceContinuationApplicationDetail);
+    verify(caseEventService).recordCaseEvent(
+        CaseEventType.APPLICATION_UPDATE_SUBMITTED,
+        licenceContinuationApplicationDetail.getLicenceContinuationApplication(),
+        new CaseUpdateSubmittedPayload(2)
+    );
+    verify(caseEventService, never()).recordCaseEvent(eq(CaseEventType.APPLICATION_SUBMITTED), any(), any());
   }
 
   @Test

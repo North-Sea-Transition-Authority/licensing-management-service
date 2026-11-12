@@ -92,7 +92,7 @@ public class ApplicationWorkAreaService {
     var isAppEditorOrSubmitter = hasRoleInLicenseeGroups(
         applicationDetail, licenseeIdToGroupId, userTeamRoles, IndustryRoleService.EDITOR_SUBMITTER_ROLES);
     // An update draft is created by the regulator who requested the update, so it is work for every editor or submitter.
-    var isOpenUpdateDraft = applicationDetail.getUpdateDeadlineDate() != null && !applicationDetail.hasBeenSubmitted();
+    var isOpenUpdateDraft = applicationDetail.isApplicationUpdate() && !applicationDetail.hasBeenSubmitted();
     if (isAppEditorOrSubmitter && (createdByUser || isOpenUpdateDraft)) {
       return true;
     }

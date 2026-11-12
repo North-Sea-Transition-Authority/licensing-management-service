@@ -30,6 +30,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.caseevent.CaseEventService;
 import uk.co.nstauthority.licensingmanagementservice.caseevent.CaseEventType;
+import uk.co.nstauthority.licensingmanagementservice.caseevent.payload.CaseUpdateSubmittedPayload;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
@@ -320,6 +321,12 @@ class ScheduleWorkProgrammeApplicationServiceTest {
 
     verify(applicationUpdateSubmittedEmailService).sendUpdateSubmittedEmails(scheduleWorkProgrammeApplicationDetail);
     verifyNoInteractions(applicationSubmittedNotificationService);
+    verify(caseEventService).recordCaseEvent(
+        CaseEventType.APPLICATION_UPDATE_SUBMITTED,
+        scheduleWorkProgrammeApplicationDetail.getScheduleWorkProgrammeApplication(),
+        new CaseUpdateSubmittedPayload(2)
+    );
+    verify(caseEventService, never()).recordCaseEvent(eq(CaseEventType.APPLICATION_SUBMITTED), any(), any());
   }
 
   @Test

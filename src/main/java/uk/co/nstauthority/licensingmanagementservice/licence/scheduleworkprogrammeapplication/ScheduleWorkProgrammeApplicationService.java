@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.caseevent.CaseEventService;
 import uk.co.nstauthority.licensingmanagementservice.caseevent.CaseEventType;
+import uk.co.nstauthority.licensingmanagementservice.caseevent.payload.CaseUpdateSubmittedPayload;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationReferenceUtil;
@@ -256,11 +257,16 @@ public class ScheduleWorkProgrammeApplicationService {
     scheduleWorkProgrammeApplicationDetailRepository.save(scheduleWorkProgrammeApplicationDetail);
 
     crossLicenceEventTrackerService.refreshApplicationCache(scheduleWorkProgrammeApplication);
-    caseEventService.recordCaseEvent(CaseEventType.APPLICATION_SUBMITTED, scheduleWorkProgrammeApplication, null);
 
     if (scheduleWorkProgrammeApplicationDetail.isApplicationUpdate()) {
+      caseEventService.recordCaseEvent(
+          CaseEventType.APPLICATION_UPDATE_SUBMITTED,
+          scheduleWorkProgrammeApplication,
+          new CaseUpdateSubmittedPayload(scheduleWorkProgrammeApplicationDetail.getVersionNumber())
+      );
       applicationUpdateSubmittedEmailService.sendUpdateSubmittedEmails(scheduleWorkProgrammeApplicationDetail);
     } else {
+      caseEventService.recordCaseEvent(CaseEventType.APPLICATION_SUBMITTED, scheduleWorkProgrammeApplication, null);
       applicationSubmittedNotificationService.sendNewApplicationSubmittedEmails(scheduleWorkProgrammeApplicationDetail);
     }
 

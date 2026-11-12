@@ -855,6 +855,10 @@ Requesting an update works the same way for both application types. It leaves th
   organisation has no group, only the licence contact is notified. If there are no recipients
   at all, nothing is sent and a warning is logged. A failed send to one recipient is logged and
   does not stop the others or roll back the new draft.
+- Submitting the update records an "Application update submitted" case event instead of the
+  "Application submitted" event that the first submission records. Its payload holds the
+  version number of the submitted detail, and the case event card shows it as "Version". Both
+  application families record these events on submission.
 
 An update cannot be requested on a version while the application has a later version that is
 not `DELETED`. This is enforced in application code. In practice an application has at most one

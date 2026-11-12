@@ -446,6 +446,7 @@ class ScheduleAndWorkProgrammeApplicationWorkAreaServiceTest {
   @Test
   void getAllWorkItems_whenDraftIsRequestedUpdate_showsUpdateRequestedTagAndDeadline() {
     scheduleWorkProgrammeApplicationDetail1.setUpdateDeadlineDate(LocalDate.of(2026, Month.DECEMBER, 1));
+    scheduleWorkProgrammeApplicationDetail1.setVersionNumber(2);
     when(scheduleWorkProgrammeApplicationService.getAllScheduleWorkProgrammeApplicationDetailsByStatuses(anySet())).thenReturn(List.of(scheduleWorkProgrammeApplicationDetail1));
     mockUserHasAccessToApplication(scheduleWorkProgrammeApplicationDetail1, true);
     contextBuilder.withLicenseesByLicence(Map.of(licence1, List.of(new OrganisationUnit(1, "Org 1"))));
@@ -468,6 +469,7 @@ class ScheduleAndWorkProgrammeApplicationWorkAreaServiceTest {
     earlierVersion.setScheduleWorkProgrammeApplication(scheduleWorkProgrammeApplicationDetail1.getScheduleWorkProgrammeApplication());
     earlierVersion.setVersionNumber(1);
     scheduleWorkProgrammeApplicationDetail1.setVersionNumber(2);
+    scheduleWorkProgrammeApplicationDetail1.setUpdateDeadlineDate(LocalDate.of(2026, Month.DECEMBER, 1));
     when(scheduleWorkProgrammeApplicationService.getAllScheduleWorkProgrammeApplicationDetailsByStatuses(anySet()))
         .thenReturn(List.of(scheduleWorkProgrammeApplicationDetail1, earlierVersion));
     when(applicationAccessService.userHasIndustryViewAccessToApplication(any(), any(), any())).thenReturn(true);
@@ -489,6 +491,7 @@ class ScheduleAndWorkProgrammeApplicationWorkAreaServiceTest {
     earlierVersion.setVersionNumber(1);
     scheduleWorkProgrammeApplicationDetail1.setStatus(ApplicationStatus.DRAFT);
     scheduleWorkProgrammeApplicationDetail1.setVersionNumber(2);
+    scheduleWorkProgrammeApplicationDetail1.setUpdateDeadlineDate(LocalDate.of(2026, Month.DECEMBER, 1));
     when(scheduleWorkProgrammeApplicationService.getAllScheduleWorkProgrammeApplicationDetailsByStatuses(anySet()))
         .thenReturn(List.of(scheduleWorkProgrammeApplicationDetail1, earlierVersion));
     mockUserHasAccessToApplication(scheduleWorkProgrammeApplicationDetail1, false);

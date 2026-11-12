@@ -695,6 +695,7 @@ class ContinuationApplicationWorkAreaServiceTest {
   @Test
   void getAllWorkItems_whenDraftIsRequestedUpdate_showsUpdateRequestedTagAndDeadline() {
     licenceContinuationApplicationDetail.setUpdateDeadlineDate(LocalDate.of(2026, Month.DECEMBER, 1));
+    licenceContinuationApplicationDetail.setVersionNumber(2);
     when(licenceContinuationService.getAllContinuationApplicationDetailsByStatuses(any())).thenReturn(List.of(licenceContinuationApplicationDetail));
     when(applicationAccessService.userHasIndustryViewAccessToApplication(any(), anyMap(), anySet())).thenReturn(true);
     when(applicationAccessService.userHasIndustryEditAccessToApplication(any(), anyMap(), anySet())).thenReturn(true);
@@ -723,6 +724,7 @@ class ContinuationApplicationWorkAreaServiceTest {
     earlierVersion.setStatus(ApplicationStatus.SUBMITTED);
     earlierVersion.setSubmittedDatetime(testInstant);
     earlierVersion.setVersionNumber(1);
+    licenceContinuationApplicationDetail.setUpdateDeadlineDate(LocalDate.of(2026, Month.DECEMBER, 1));
     licenceContinuationApplicationDetail.setVersionNumber(2);
     when(licenceContinuationService.getAllContinuationApplicationDetailsByStatuses(any()))
         .thenReturn(List.of(earlierVersion, licenceContinuationApplicationDetail));
@@ -747,6 +749,7 @@ class ContinuationApplicationWorkAreaServiceTest {
     earlierVersion.setVersionNumber(1);
     licenceContinuationApplicationDetail.setStatus(ApplicationStatus.DRAFT);
     licenceContinuationApplicationDetail.setVersionNumber(2);
+    licenceContinuationApplicationDetail.setUpdateDeadlineDate(LocalDate.of(2026, Month.DECEMBER, 1));
     when(licenceContinuationService.getAllContinuationApplicationDetailsByStatuses(any()))
         .thenReturn(List.of(earlierVersion, licenceContinuationApplicationDetail));
     when(applicationAccessService.userHasIndustryViewAccessToApplication(eq(earlierVersion), anyMap(), anySet()))

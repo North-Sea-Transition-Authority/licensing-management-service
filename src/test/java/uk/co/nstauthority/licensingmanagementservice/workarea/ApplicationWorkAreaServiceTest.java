@@ -5,8 +5,6 @@ import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 
 import java.time.Instant;
-import java.time.LocalDate;
-import java.time.Month;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -340,7 +338,7 @@ class ApplicationWorkAreaServiceTest {
   void isIndustryMyWork_whenOpenUpdateDraftCreatedBySomeoneElseAndEditorInResponsibleOrgGroup_returnsTrue() {
     var teamRoles = Set.of(buildTeamRole(Role.APPLICATION_EDITOR, buildOrgGroupTeam(ORG_GROUP_ID)));
     var detail = mockDetail(USER_WUA_ID + 1, null, ORG_UNIT_ID, null);
-    lenient().when(detail.getUpdateDeadlineDate()).thenReturn(LocalDate.of(2026, Month.DECEMBER, 1));
+    lenient().when(detail.isApplicationUpdate()).thenReturn(true);
 
     assertThat(applicationWorkAreaService.isIndustryMyWork(
         detail,
@@ -354,7 +352,7 @@ class ApplicationWorkAreaServiceTest {
   void isIndustryMyWork_whenOpenUpdateDraftButOnlyLicenceViewerInResponsibleOrgGroup_returnsFalse() {
     var teamRoles = Set.of(buildTeamRole(Role.VIEW_ORGANISATION_LICENCES, buildOrgGroupTeam(ORG_GROUP_ID)));
     var detail = mockDetail(USER_WUA_ID + 1, null, ORG_UNIT_ID, null);
-    lenient().when(detail.getUpdateDeadlineDate()).thenReturn(LocalDate.of(2026, Month.DECEMBER, 1));
+    lenient().when(detail.isApplicationUpdate()).thenReturn(true);
 
     assertThat(applicationWorkAreaService.isIndustryMyWork(
         detail,

@@ -16,6 +16,9 @@ import uk.co.fivium.digitalnotificationlibrary.core.notification.DomainReference
 import uk.co.fivium.digitalnotificationlibrary.core.notification.MergedTemplate;
 import uk.co.fivium.digitalnotificationlibrary.core.notification.email.EmailRecipient;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
+import uk.co.nstauthority.licensingmanagementservice.caseevent.CaseEventService;
+import uk.co.nstauthority.licensingmanagementservice.caseevent.CaseEventType;
+import uk.co.nstauthority.licensingmanagementservice.caseevent.payload.CaseUpdateSubmittedPayload;
 import uk.co.nstauthority.licensingmanagementservice.document.DocumentItemType;
 import uk.co.nstauthority.licensingmanagementservice.email.EmailService;
 import uk.co.nstauthority.licensingmanagementservice.email.GovukNotifyTemplate;
@@ -68,6 +71,7 @@ public class LicenceContinuationService {
   private final LicenceContinuationApplicationDetailRequestCache licenceContinuationApplicationDetailRequestCache;
   private final LicenceContinuationScheduleDetailRequestCache licenceContinuationScheduleDetailRequestCache;
   private final ApplicationUpdateSubmittedEmailService applicationUpdateSubmittedEmailService;
+  private final CaseEventService caseEventService;
 
   public LicenceContinuationService(
       LicenceContinuationApplicationDetailRepository licenceContinuationApplicationDetailRepository,
@@ -85,7 +89,8 @@ public class LicenceContinuationService {
       CrossLicenceEventTrackerService crossLicenceEventTrackerService,
       LicenceContinuationApplicationDetailRequestCache licenceContinuationApplicationDetailRequestCache,
       LicenceContinuationScheduleDetailRequestCache licenceContinuationScheduleDetailRequestCache,
-      ApplicationUpdateSubmittedEmailService applicationUpdateSubmittedEmailService
+      ApplicationUpdateSubmittedEmailService applicationUpdateSubmittedEmailService,
+      CaseEventService caseEventService
   ) {
     this.licenceContinuationApplicationDetailRepository = licenceContinuationApplicationDetailRepository;
     this.licenceContinuationApplicationRepository = licenceContinuationApplicationRepository;
@@ -103,6 +108,7 @@ public class LicenceContinuationService {
     this.licenceContinuationApplicationDetailRequestCache = licenceContinuationApplicationDetailRequestCache;
     this.licenceContinuationScheduleDetailRequestCache = licenceContinuationScheduleDetailRequestCache;
     this.applicationUpdateSubmittedEmailService = applicationUpdateSubmittedEmailService;
+    this.caseEventService = caseEventService;
   }
 
   @Transactional
@@ -226,7 +232,14 @@ public class LicenceContinuationService {
     crossLicenceEventTrackerService.refreshApplicationCache(licenceContinuationApplication);
 
     if (licenceContinuationApplicationDetail.isApplicationUpdate()) {
+      caseEventService.recordCaseEvent(
+          CaseEventType.APPLICATION_UPDATE_SUBMITTED,
+          licenceContinuationApplication,
+          new CaseUpdateSubmittedPayload(licenceContinuationApplicationDetail.getVersionNumber())
+      );
       applicationUpdateSubmittedEmailService.sendUpdateSubmittedEmails(licenceContinuationApplicationDetail);
+    } else {
+      caseEventService.recordCaseEvent(CaseEventType.APPLICATION_SUBMITTED, licenceContinuationApplication, null);
     }
 
     return licenceContinuationApplication;

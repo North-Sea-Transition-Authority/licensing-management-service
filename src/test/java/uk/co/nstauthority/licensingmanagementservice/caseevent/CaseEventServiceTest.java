@@ -27,6 +27,7 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.UserDetailSe
 import uk.co.nstauthority.licensingmanagementservice.caseevent.payload.CaseAllocationPayload;
 import uk.co.nstauthority.licensingmanagementservice.caseevent.payload.CaseNotePayload;
 import uk.co.nstauthority.licensingmanagementservice.caseevent.payload.CaseUpdateRequestPayload;
+import uk.co.nstauthority.licensingmanagementservice.caseevent.payload.CaseUpdateSubmittedPayload;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserService;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.WebUserAccountId;
 import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
@@ -212,6 +213,40 @@ class CaseEventServiceTest {
                 CaseEventService.UPDATE_DEADLINE_KEY, DateFormatUtil.convertToDisplayText(LocalDate.of(2026, Month.DECEMBER, 1))
             ),
             "Case Manager (case.manager@example.com)",
+            eventInstant
+        )
+    );
+  }
+
+  @Test
+  void getCaseEventViews_whenUpdateSubmittedEvent_thenShowsVersion() {
+    var eventInstant = Instant.parse("2026-09-24T12:00:00Z");
+    var updateSubmittedEvent = new CaseEvent(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION, APPLICATION_ID,
+        CaseEventType.APPLICATION_UPDATE_SUBMITTED, eventInstant, new CaseEventUser(10L, null, false),
+        new CaseUpdateSubmittedPayload(2));
+
+    when(caseEventRepository.findByApplicationTypeAndApplicationIdOrderByEventInstantDesc(
+        ApplicationType.SCHEDULE_AMENDMENT_APPLICATION, APPLICATION_ID))
+        .thenReturn(List.of(updateSubmittedEvent));
+
+    var submitter = EnergyPortalUserTestUtil.newBuilder()
+        .withWebUserAccountId(10L)
+        .withForename("Industry")
+        .withSurname("User")
+        .withEmailAddress("industry.user@example.com")
+        .buildJson();
+    when(energyPortalUserService.getEnergyPortalUserMap(
+        List.of(WebUserAccountId.from(10L)),
+        CaseEventService.CASE_EVENT_USER_PURPOSE))
+        .thenReturn(Map.of(WebUserAccountId.from(10L), submitter));
+
+    var result = caseEventService.getCaseEventViews(application);
+
+    assertThat(result).containsExactly(
+        new CaseEventView(
+            CaseEventType.APPLICATION_UPDATE_SUBMITTED,
+            Map.of(CaseEventService.VERSION_KEY, "2"),
+            "Industry User (industry.user@example.com)",
             eventInstant
         )
     );

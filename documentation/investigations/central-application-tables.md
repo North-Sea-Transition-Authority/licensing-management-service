@@ -257,9 +257,13 @@ FROM licence_continuation_applications a
 WHERE a.submitted_licence_schedule_detail_id IS NULL
   AND EXISTS (
     SELECT 1 FROM licence_continuation_application_details d
-    WHERE d.licence_continuation_application_id = a.id AND d.status <> 'DRAFT'
+    WHERE d.licence_continuation_application_id = a.id AND d.submitted_datetime IS NOT NULL
   );
 ```
+
+Test `submitted_datetime` rather than `status <> 'DRAFT'`: deleting a draft sets its status to
+`DELETED` without submitting it, so a status test reports deleted drafts as missing a submitted
+schedule detail when they correctly have none. An earlier version of this check did that on UAT.
 
 ### Phase 1 — Shared Java superclasses, no schema change
 

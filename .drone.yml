@@ -245,7 +245,7 @@ steps:
     image: quay.io/fivium/drone-trufflehog-plugin:v1.0
     depends_on: [ restore-cache ]
     settings:
-      scan_since_commit_hash: bf702fbf660fa7d7cb77170d8b2615956b1d2883
+      scan_since_commit_hash: e6e0b885379d53a67d96160d9c693b03cf464f06
       sync_to_mirror: true
       mirror_remote_url: git@github.com:North-Sea-Transition-Authority/licensing-management-service.git
       mirror_branch_to_sync: develop

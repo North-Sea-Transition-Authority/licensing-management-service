@@ -17,6 +17,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationReferenceUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationUpdateSubmittedEmailService;
 import uk.co.nstauthority.licensingmanagementservice.licence.crosslicenceeventtracker.CrossLicenceEventTrackerService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailService;
@@ -39,6 +40,7 @@ public class ScheduleWorkProgrammeApplicationService {
   private final IndustryRoleService industryRoleService;
   private final TeamManagementService teamManagementService;
   private final ScheduleWorkProgrammeApplicationSubmittedNotificationService applicationSubmittedNotificationService;
+  private final ApplicationUpdateSubmittedEmailService applicationUpdateSubmittedEmailService;
   private final CrossLicenceEventTrackerService crossLicenceEventTrackerService;
   private final CaseEventService caseEventService;
   private final ScheduleWorkProgrammeApplicationDetailRequestCache scheduleWorkProgrammeApplicationDetailRequestCache;
@@ -51,6 +53,7 @@ public class ScheduleWorkProgrammeApplicationService {
       IndustryRoleService industryRoleService,
       TeamManagementService teamManagementService,
       ScheduleWorkProgrammeApplicationSubmittedNotificationService applicationSubmittedNotificationService,
+      ApplicationUpdateSubmittedEmailService applicationUpdateSubmittedEmailService,
       CrossLicenceEventTrackerService crossLicenceEventTrackerService,
       CaseEventService caseEventService,
       ScheduleWorkProgrammeApplicationDetailRequestCache scheduleWorkProgrammeApplicationDetailRequestCache) {
@@ -61,6 +64,7 @@ public class ScheduleWorkProgrammeApplicationService {
     this.industryRoleService = industryRoleService;
     this.teamManagementService = teamManagementService;
     this.applicationSubmittedNotificationService = applicationSubmittedNotificationService;
+    this.applicationUpdateSubmittedEmailService = applicationUpdateSubmittedEmailService;
     this.crossLicenceEventTrackerService = crossLicenceEventTrackerService;
     this.caseEventService = caseEventService;
     this.scheduleWorkProgrammeApplicationDetailRequestCache = scheduleWorkProgrammeApplicationDetailRequestCache;
@@ -254,7 +258,11 @@ public class ScheduleWorkProgrammeApplicationService {
     crossLicenceEventTrackerService.refreshApplicationCache(scheduleWorkProgrammeApplication);
     caseEventService.recordCaseEvent(CaseEventType.APPLICATION_SUBMITTED, scheduleWorkProgrammeApplication, null);
 
-    applicationSubmittedNotificationService.sendNewApplicationSubmittedEmails(scheduleWorkProgrammeApplicationDetail);
+    if (scheduleWorkProgrammeApplicationDetail.isApplicationUpdate()) {
+      applicationUpdateSubmittedEmailService.sendUpdateSubmittedEmails(scheduleWorkProgrammeApplicationDetail);
+    } else {
+      applicationSubmittedNotificationService.sendNewApplicationSubmittedEmails(scheduleWorkProgrammeApplicationDetail);
+    }
 
     return scheduleWorkProgrammeApplication;
   }

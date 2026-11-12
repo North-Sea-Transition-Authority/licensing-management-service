@@ -3,11 +3,13 @@ package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogra
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
 import java.util.UUID;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.InvokingUserCanAccessScheduleApplication;
@@ -44,6 +46,7 @@ public class ScheduleWorkProgrammeApplicationDeleteController {
       @PathVariable UUID scheduleWorkProgrammeApplicationDetailId,
       ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail
   ) {
+    assertNotUpdateDraft(scheduleWorkProgrammeApplicationDetail);
     return getModelAndView(scheduleWorkProgrammeApplicationDetailId, scheduleWorkProgrammeApplicationDetail);
   }
 
@@ -53,9 +56,16 @@ public class ScheduleWorkProgrammeApplicationDeleteController {
       ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail,
       RedirectAttributes redirectAttributes
   ) {
+    assertNotUpdateDraft(scheduleWorkProgrammeApplicationDetail);
     scheduleWorkProgrammeApplicationService.deleteScheduleWorkProgrammeApplication(scheduleWorkProgrammeApplicationDetail);
     addRedirectNotification(redirectAttributes);
     return ReverseRouter.redirect(on(WorkAreaController.class).getWorkArea(null, null));
+  }
+
+  private void assertNotUpdateDraft(ScheduleWorkProgrammeApplicationDetail detail) {
+    if (detail.isApplicationUpdate()) {
+      throw new ResponseStatusException(HttpStatus.FORBIDDEN, "An application update draft cannot be deleted");
+    }
   }
 
   private ModelAndView getModelAndView(

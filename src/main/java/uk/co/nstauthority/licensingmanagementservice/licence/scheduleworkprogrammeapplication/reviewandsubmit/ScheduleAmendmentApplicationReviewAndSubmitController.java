@@ -4,7 +4,9 @@ import static org.springframework.web.servlet.mvc.method.annotation.MvcUriCompon
 
 import java.util.UUID;
 import org.springframework.stereotype.Controller;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -18,6 +20,8 @@ import uk.co.nstauthority.licensingmanagementservice.breadcrumbs.BreadcrumbsUtil
 import uk.co.nstauthority.licensingmanagementservice.feedback.FeedbackController;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.requestupdate.ConfirmOnlyRequestedChangesForm;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.requestupdate.ConfirmOnlyRequestedChangesFormValidator;
 import uk.co.nstauthority.licensingmanagementservice.licence.contact.LicenceContactService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationService;
@@ -38,25 +42,29 @@ public class ScheduleAmendmentApplicationReviewAndSubmitController {
   private final LicenceScheduleSummarySectionService licenceScheduleSummarySectionService;
   private final ScheduleWorkProgrammeApplicationTaskListService scheduleWorkProgrammeApplicationTaskListService;
   private final LicenceContactService licenceContactService;
+  private final ConfirmOnlyRequestedChangesFormValidator confirmOnlyRequestedChangesFormValidator;
 
   public ScheduleAmendmentApplicationReviewAndSubmitController(
       LicenceService licenceService,
       ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService,
       LicenceScheduleSummarySectionService licenceScheduleSummarySectionService,
       ScheduleWorkProgrammeApplicationTaskListService scheduleWorkProgrammeApplicationTaskListService,
-      LicenceContactService licenceContactService
+      LicenceContactService licenceContactService,
+      ConfirmOnlyRequestedChangesFormValidator confirmOnlyRequestedChangesFormValidator
   ) {
     this.licenceService = licenceService;
     this.scheduleWorkProgrammeApplicationService = scheduleWorkProgrammeApplicationService;
     this.licenceScheduleSummarySectionService = licenceScheduleSummarySectionService;
     this.scheduleWorkProgrammeApplicationTaskListService = scheduleWorkProgrammeApplicationTaskListService;
     this.licenceContactService = licenceContactService;
+    this.confirmOnlyRequestedChangesFormValidator = confirmOnlyRequestedChangesFormValidator;
   }
 
   @GetMapping
   public ModelAndView getReviewAndSubmit(
       @PathVariable UUID scheduleWorkProgrammeApplicationDetailId,
       ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail,
+      @ModelAttribute("form") ConfirmOnlyRequestedChangesForm form,
       ServiceUserDetail user
   ) {
     var submittable = scheduleWorkProgrammeApplicationTaskListService.isSubmittable(
@@ -64,11 +72,12 @@ public class ScheduleAmendmentApplicationReviewAndSubmitController {
         user
     );
 
-    return getReviewAndSubmitModelAndView(scheduleWorkProgrammeApplicationDetail, submittable, user);
+    return getReviewAndSubmitModelAndView(scheduleWorkProgrammeApplicationDetail, form, submittable, user);
   }
 
   private ModelAndView getReviewAndSubmitModelAndView(
       ScheduleWorkProgrammeApplicationDetail applicationDetail,
+      ConfirmOnlyRequestedChangesForm form,
       boolean isSubmittable,
       ServiceUserDetail user
   ) {
@@ -80,6 +89,8 @@ public class ScheduleAmendmentApplicationReviewAndSubmitController {
         .addObject("pageCaption", licenceService.getLicencePageCaption(applicationDetail.getLicence()))
         .addObject("summarySections", licenceScheduleSummarySectionService.getSummarySections(applicationDetail, null))
         .addObject("accordionId", applicationDetail.getId())
+        .addObject("form", form)
+        .addObject("isUpdateDraft", applicationDetail.isApplicationUpdate())
         .addObject("isSubmittable", isSubmittable)
         .addObject("hasLicenceContact", licenceContactService.hasContactForLicensee(applicationDetail))
         .addObject("userCanSubmit", scheduleWorkProgrammeApplicationService.userCanSubmitApplication(applicationDetail, user))
@@ -98,6 +109,8 @@ public class ScheduleAmendmentApplicationReviewAndSubmitController {
   public ModelAndView submitApplication(
       @PathVariable UUID scheduleWorkProgrammeApplicationDetailId,
       ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail,
+      @ModelAttribute("form") ConfirmOnlyRequestedChangesForm form,
+      BindingResult bindingResult,
       ServiceUserDetail user,
       RedirectAttributes redirectAttributes
   ) {
@@ -106,8 +119,13 @@ public class ScheduleAmendmentApplicationReviewAndSubmitController {
         user
     );
 
-    if (!submittable || !licenceContactService.hasContactForLicensee(scheduleWorkProgrammeApplicationDetail)) {
-      return getReviewAndSubmitModelAndView(scheduleWorkProgrammeApplicationDetail, submittable, user);
+    var changesConfirmed = !scheduleWorkProgrammeApplicationDetail.isApplicationUpdate()
+        || confirmOnlyRequestedChangesFormValidator.isValid(form, bindingResult);
+
+    if (!submittable
+        || !changesConfirmed
+        || !licenceContactService.hasContactForLicensee(scheduleWorkProgrammeApplicationDetail)) {
+      return getReviewAndSubmitModelAndView(scheduleWorkProgrammeApplicationDetail, form, submittable, user);
     }
 
     var scheduleWorkProgrammeApplication

@@ -3,11 +3,13 @@ package uk.co.nstauthority.licensingmanagementservice.licence.continuation;
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
 import java.util.UUID;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
@@ -46,6 +48,7 @@ public class LicenceContinuationApplicationDeleteController {
       LicenceContinuationApplicationDetail licenceContinuationApplicationDetail,
       ServiceUserDetail serviceUserDetail
   ) {
+    assertNotUpdateDraft(licenceContinuationApplicationDetail);
     return getModelAndView(licenceContinuationApplicationDetailId, licenceContinuationApplicationDetail, serviceUserDetail);
   }
 
@@ -55,9 +58,16 @@ public class LicenceContinuationApplicationDeleteController {
       LicenceContinuationApplicationDetail licenceContinuationApplicationDetail,
       RedirectAttributes redirectAttributes
   ) {
+    assertNotUpdateDraft(licenceContinuationApplicationDetail);
     licenceContinuationService.deleteLicenceContinuationApplication(licenceContinuationApplicationDetail);
     addRedirectNotification(redirectAttributes);
     return ReverseRouter.redirect(on(WorkAreaController.class).getWorkArea(null, null));
+  }
+
+  private void assertNotUpdateDraft(LicenceContinuationApplicationDetail detail) {
+    if (detail.isApplicationUpdate()) {
+      throw new ResponseStatusException(HttpStatus.FORBIDDEN, "An application update draft cannot be deleted");
+    }
   }
 
   private ModelAndView getModelAndView(

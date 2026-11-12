@@ -830,8 +830,8 @@ Requesting an update works the same way for both application types. It leaves th
   `all_licensees_permission_confirmed`, and a continuation detail keeps the same current and
   next term and phase ids.
 - `update_deadline_date` and `update_reason` hold the answers given when the update was
-  requested. They are null on the earlier version, so "has an update been requested" is
-  "does a later version exist".
+  requested. They are null on the earlier version. Whether a detail is an application update is
+  decided by `version_number` (greater than 1), not by `update_deadline_date` being set.
 - `submitted_*` and `decision_date` start empty.
 - The child rows are copied field-for-field with fresh ids: for a schedule application, the
   request purpose, extension requests, amendment requests, amendment summary and supporting
@@ -858,17 +858,17 @@ Requesting an update works the same way for both application types. It leaves th
 
 An update cannot be requested on a version while the application has a later version that is
 not `DELETED`. This is enforced in application code. In practice an application has at most one
-open update request at a time: a new request becomes possible again only if the draft created
-by the earlier one is deleted. The earlier `SUBMITTED` row keeps its status throughout, so a
+open update request at a time: update drafts cannot be deleted, so a new request only becomes
+possible once the draft created by the earlier one has been submitted and the application
+moves on. The earlier `SUBMITTED` row keeps its status throughout, so a
 `SUBMITTED` row with a later version is not the application's current version.
 
-A deleted draft keeps its row and its version number, and the next update takes the number
-after the highest stored version. The pair (application, `version_number`) is unique in both
+The next update takes the number after the highest stored version, so a number is never reused. The pair (application, `version_number`) is unique in both
 detail tables, so two versions of one application can never share a number.
 
 While a draft update is open on a continuation application, the regulator cannot confirm the
-continuation from the earlier version. Confirming is possible again if the draft is deleted,
-or on the updated version once it has been submitted. The other actions (for example withdrawing) stay available. Withdrawing a continuation application
+continuation from the earlier version. Confirming is possible again on the updated version once
+it has been submitted. The other actions (for example withdrawing) stay available. Withdrawing a continuation application
 withdraws every version of it, including an open draft update, but not versions that were
 already `DELETED`.
 
@@ -941,7 +941,9 @@ when the decision was saved (§7.4), so the two can differ for the same applicat
 Removing one extension or amendment request while editing a draft physically deletes that row.
 Deleting the whole application flips `status` to `DELETED` and leaves every child row in place.
 So a `DELETED` application still has its full set of request rows, and those rows are not
-evidence the application was ever submitted.
+evidence the application was ever submitted. Only a first-version draft (`version_number` 1)
+can be deleted: an update draft (`version_number` greater than 1) cannot, for either
+application type.
 
 ### 11.7 A decision is not a schedule change
 

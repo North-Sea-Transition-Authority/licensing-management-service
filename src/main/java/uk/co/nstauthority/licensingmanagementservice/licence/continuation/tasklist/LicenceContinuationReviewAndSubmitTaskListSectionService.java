@@ -31,6 +31,7 @@ public class LicenceContinuationReviewAndSubmitTaskListSectionService
         ReverseRouter.route(on(ContinuationApplicationReviewAndSubmitController.class).getReviewAndSubmit(
             licenceContinuationApplicationDetail.getId(),
             null,
+            null,
             null
         ))
     )));

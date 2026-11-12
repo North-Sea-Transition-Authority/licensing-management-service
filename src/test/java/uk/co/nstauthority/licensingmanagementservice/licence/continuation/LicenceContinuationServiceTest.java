@@ -17,6 +17,7 @@ import static uk.co.nstauthority.licensingmanagementservice.licence.continuation
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.Month;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
@@ -43,6 +44,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplication;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationUpdateSubmittedEmailService;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.letter.ApplicationLetterService;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.withdraw.ApplicationWithdrawService;
 import uk.co.nstauthority.licensingmanagementservice.licence.crosslicenceeventtracker.CrossLicenceEventTrackerService;
@@ -102,6 +104,9 @@ class LicenceContinuationServiceTest {
 
   @Mock
   private CrossLicenceEventTrackerService crossLicenceEventTrackerService;
+
+  @Mock
+  private ApplicationUpdateSubmittedEmailService applicationUpdateSubmittedEmailService;
 
   @Mock
   private LicenceContinuationApplicationDetailRequestCache licenceContinuationApplicationDetailRequestCache;
@@ -333,6 +338,37 @@ class LicenceContinuationServiceTest {
     assertThat(result.getApplicationReference()).isEqualTo("LMS/CA/2024/5/3");
     verify(licenceContinuationApplicationDetailRepository, never())
         .countByVersionNumberAndSubmittedDatetimeBetween(anyInt(), any(), any());
+  }
+
+  @Test
+  void submitApplication_whenUpdateDraft_sendsUpdateSubmittedEmails() {
+    when(clock.instant()).thenReturn(FIXED_INSTANT);
+    when(licenceScheduleDetailService.getScheduleDetailByLicenceAndStatusOrThrow(LICENCE, LicenceScheduleDetailStatus.ACTIVE))
+        .thenReturn(LICENCE_SCHEDULE_DETAIL);
+    when(licenceScheduleStateService.getScheduleState(LICENCE_SCHEDULE_DETAIL))
+        .thenReturn(new ScheduleState(null, null, null, null));
+    licenceContinuationApplicationDetail.getLicenceContinuationApplication().setApplicationReference("LMS/CA/2024/5/1");
+    licenceContinuationApplicationDetail.setVersionNumber(2);
+    licenceContinuationApplicationDetail.setUpdateDeadlineDate(LocalDate.of(2024, Month.APRIL, 1));
+    licenceContinuationApplicationDetail.setVersionNumber(2);
+
+    licenceContinuationService.submitApplication(licenceContinuationApplicationDetail, organisationUser);
+
+    verify(applicationUpdateSubmittedEmailService).sendUpdateSubmittedEmails(licenceContinuationApplicationDetail);
+  }
+
+  @Test
+  void submitApplication_whenNotUpdateDraft_doesNotSendUpdateSubmittedEmails() {
+    when(clock.instant()).thenReturn(FIXED_INSTANT);
+    when(licenceScheduleDetailService.getScheduleDetailByLicenceAndStatusOrThrow(LICENCE, LicenceScheduleDetailStatus.ACTIVE))
+        .thenReturn(LICENCE_SCHEDULE_DETAIL);
+    when(licenceScheduleStateService.getScheduleState(LICENCE_SCHEDULE_DETAIL))
+        .thenReturn(new ScheduleState(null, null, null, null));
+    licenceContinuationApplicationDetail.getLicenceContinuationApplication().setApplicationReference("LMS/CA/2024/5/1");
+
+    licenceContinuationService.submitApplication(licenceContinuationApplicationDetail, organisationUser);
+
+    verifyNoInteractions(applicationUpdateSubmittedEmailService);
   }
 
   @Test

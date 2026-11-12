@@ -48,7 +48,9 @@ class LicenceScheduleReviewAndSubmitTaskListSectionServiceTest {
                 LicenceScheduleReviewAndSubmitTaskListSectionService.REVIEW_AND_SUBMIT,
                 ReverseRouter.route(on(ScheduleAmendmentApplicationReviewAndSubmitController.class).getReviewAndSubmit(
                     null,
-                    null, user
+                    null,
+                    null,
+                    null
                 ))
             )),
             LicenceScheduleReviewAndSubmitTaskListSectionService.REVIEW_AND_SUBMIT,

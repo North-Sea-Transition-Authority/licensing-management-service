@@ -32,7 +32,8 @@ public class LicenceScheduleReviewAndSubmitTaskListSectionService
         ReverseRouter.route(on(ScheduleAmendmentApplicationReviewAndSubmitController.class).getReviewAndSubmit(
             scheduleWorkProgrammeApplicationDetail.getId(),
             null,
-            user
+            null,
+            null
         ))
     )));
     return Optional.of(new TaskListSection(

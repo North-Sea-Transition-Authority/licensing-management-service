@@ -1,18 +1,23 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.continuation.reviewandsubmit;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 import static uk.co.nstauthority.licensingmanagementservice.authentication.TestUserProvider.user;
 
+import java.time.LocalDate;
+import java.time.Month;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -28,6 +33,7 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.feedback.FeedbackController;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.requestupdate.ConfirmOnlyRequestedChangesFormValidator;
 import uk.co.nstauthority.licensingmanagementservice.licence.contact.LicenceContactService;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplication;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
@@ -56,6 +62,9 @@ class ContinuationApplicationReviewAndSubmitControllerTest extends AbstractContr
   @MockitoBean
   LicenceContactService licenceContactService;
 
+  @MockitoBean
+  ConfirmOnlyRequestedChangesFormValidator confirmOnlyRequestedChangesFormValidator;
+
   private LicenceContinuationApplicationDetail licenceContinuationApplicationDetail;
   private static final UUID LICENCE_CONTINUATION_APPLICATION_DETAIL_ID = UUID.randomUUID();
 
@@ -77,7 +86,7 @@ class ContinuationApplicationReviewAndSubmitControllerTest extends AbstractContr
     when(applicationAccessService.userHasAccessToApplication(any(), any(), any())).thenReturn(true);
 
     var resultActions = mockMvc.perform(
-        get(ReverseRouter.route(on(ContinuationApplicationReviewAndSubmitController.class).getReviewAndSubmit(applicationDetailId, null, null)))
+        get(ReverseRouter.route(on(ContinuationApplicationReviewAndSubmitController.class).getReviewAndSubmit(applicationDetailId, null, null, null)))
             .with(user(USER))
         )
         .andExpect(status().isOk());
@@ -93,7 +102,7 @@ class ContinuationApplicationReviewAndSubmitControllerTest extends AbstractContr
     when(licenceContinuationService.userCanSubmitApplication(licenceContinuationApplicationDetail, USER)).thenReturn(false);
 
     var resultActions = mockMvc.perform(
-            get(ReverseRouter.route(on(ContinuationApplicationReviewAndSubmitController.class).getReviewAndSubmit(applicationDetailId, null, null))).with(user(USER))
+            get(ReverseRouter.route(on(ContinuationApplicationReviewAndSubmitController.class).getReviewAndSubmit(applicationDetailId, null, null, null))).with(user(USER))
         )
         .andExpect(status().isOk());
 
@@ -109,7 +118,7 @@ class ContinuationApplicationReviewAndSubmitControllerTest extends AbstractContr
     when(licenceContinuationApplicationTaskListService.isSubmittable(any(), any())).thenReturn(false);
 
     var resultActions = mockMvc.perform(
-        post(ReverseRouter.route(on(ContinuationApplicationReviewAndSubmitController.class).submitApplication(applicationDetailId, null, null, null)))
+        post(ReverseRouter.route(on(ContinuationApplicationReviewAndSubmitController.class).submitApplication(applicationDetailId, null, null, null, null, null)))
                      .with(user(USER))
                      .with(csrf())
         )
@@ -127,10 +136,11 @@ class ContinuationApplicationReviewAndSubmitControllerTest extends AbstractContr
     when(licenceContactService.hasContactForLicensee(licenceContinuationApplicationDetail)).thenReturn(true);
 
     when(licenceContinuationApplication.getApplicationReference()).thenReturn("APP-REF-123");
+    when(licenceContinuationApplication.getApplicationReference()).thenReturn("APP-REF-123");
     when(licenceContinuationService.submitApplication(any(), any())).thenReturn(licenceContinuationApplication);
 
     mockMvc.perform(
-        post(ReverseRouter.route(on(ContinuationApplicationReviewAndSubmitController.class).submitApplication(applicationDetailId, null, null, null)))
+        post(ReverseRouter.route(on(ContinuationApplicationReviewAndSubmitController.class).submitApplication(applicationDetailId, null, null, null, null, null)))
                      .with(user(USER))
                      .with(csrf())
         )
@@ -151,12 +161,107 @@ class ContinuationApplicationReviewAndSubmitControllerTest extends AbstractContr
 
     mockMvc.perform(
             get(ReverseRouter.route(on(ContinuationApplicationReviewAndSubmitController.class)
-                .getReviewAndSubmit(applicationDetailId, null, null)))
+                .getReviewAndSubmit(applicationDetailId, null, null, null)))
                 .with(user(USER))
         )
         .andExpect(status().isOk())
         .andExpect(model().attribute("isSubmittable", true))
         .andExpect(model().attribute("hasLicenceContact", false));
+  }
+
+  @Test
+  void getReviewAndSubmit_whenUpdateDraft_flagsUpdateDraft() throws Exception {
+    licenceContinuationApplicationDetail.setUpdateDeadlineDate(LocalDate.of(2024, Month.APRIL, 1));
+    licenceContinuationApplicationDetail.setVersionNumber(2);
+    when(licenceService.getLicencePageCaption(any())).thenReturn(CAPTION);
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any())).thenReturn(true);
+
+    mockMvc.perform(get(ReverseRouter.route(on(ContinuationApplicationReviewAndSubmitController.class)
+            .getReviewAndSubmit(LICENCE_CONTINUATION_APPLICATION_DETAIL_ID, null, null, null)))
+            .with(user(USER)))
+        .andExpect(status().isOk())
+        .andExpect(model().attribute("isUpdateDraft", true));
+  }
+
+  @Test
+  void getReviewAndSubmit_whenUpdateDraftIsSubmittable_rendersConfirmationCheckbox() throws Exception {
+    licenceContinuationApplicationDetail.setUpdateDeadlineDate(LocalDate.of(2024, Month.APRIL, 1));
+    licenceContinuationApplicationDetail.setVersionNumber(2);
+    when(licenceService.getLicencePageCaption(any())).thenReturn(CAPTION);
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any())).thenReturn(true);
+    when(licenceContinuationApplicationTaskListService.isSubmittable(any(), any())).thenReturn(true);
+    when(licenceContactService.hasContactForLicensee(licenceContinuationApplicationDetail)).thenReturn(true);
+
+    mockMvc.perform(get(ReverseRouter.route(on(ContinuationApplicationReviewAndSubmitController.class)
+            .getReviewAndSubmit(LICENCE_CONTINUATION_APPLICATION_DETAIL_ID, null, null, null)))
+            .with(user(USER)))
+        .andExpect(status().isOk())
+        .andExpect(content().string(containsString("type=\"checkbox\"")))
+        .andExpect(content().string(containsString("I confirm that I have only made the changes that were requested")));
+  }
+
+  @Test
+  void submitApplication_whenUpdateDraftChangesNotConfirmed_doesNotSubmit() throws Exception {
+    licenceContinuationApplicationDetail.setUpdateDeadlineDate(LocalDate.of(2024, Month.APRIL, 1));
+    licenceContinuationApplicationDetail.setVersionNumber(2);
+    when(licenceService.getLicencePageCaption(any())).thenReturn(CAPTION);
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any())).thenReturn(true);
+    when(licenceContinuationApplicationTaskListService.isSubmittable(any(), any())).thenReturn(true);
+    when(licenceContactService.hasContactForLicensee(licenceContinuationApplicationDetail)).thenReturn(true);
+    when(confirmOnlyRequestedChangesFormValidator.isValid(any(), any())).thenReturn(false);
+
+    var resultActions = mockMvc.perform(
+            post(ReverseRouter.route(on(ContinuationApplicationReviewAndSubmitController.class)
+                .submitApplication(LICENCE_CONTINUATION_APPLICATION_DETAIL_ID, null, null, null, null, null)))
+                .with(user(USER))
+                .with(csrf())
+        )
+        .andExpect(status().isOk());
+
+    assertRenderPageModelsAttributesArePresent(resultActions, LICENCE_CONTINUATION_APPLICATION_DETAIL_ID);
+    verify(licenceContinuationService, never()).submitApplication(any(), any());
+  }
+
+  @Test
+  void submitApplication_whenUpdateDraftChangesConfirmed_submits() throws Exception {
+    licenceContinuationApplicationDetail.setUpdateDeadlineDate(LocalDate.of(2024, Month.APRIL, 1));
+    licenceContinuationApplicationDetail.setVersionNumber(2);
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any())).thenReturn(true);
+    when(licenceContinuationApplicationTaskListService.isSubmittable(any(), any())).thenReturn(true);
+    when(licenceContactService.hasContactForLicensee(licenceContinuationApplicationDetail)).thenReturn(true);
+    when(confirmOnlyRequestedChangesFormValidator.isValid(any(), any())).thenReturn(true);
+    when(licenceContinuationApplication.getApplicationReference()).thenReturn("APP-REF-123");
+    when(licenceContinuationService.submitApplication(any(), any())).thenReturn(licenceContinuationApplication);
+
+    mockMvc.perform(
+            post(ReverseRouter.route(on(ContinuationApplicationReviewAndSubmitController.class)
+                .submitApplication(LICENCE_CONTINUATION_APPLICATION_DETAIL_ID, null, null, null, null, null)))
+                .with(user(USER))
+                .with(csrf())
+        )
+        .andExpect(status().isOk())
+        .andExpect(view().name("lms/licence/application/submissionConfirmation"));
+
+    verify(licenceContinuationService).submitApplication(licenceContinuationApplicationDetail, USER);
+  }
+
+  @Test
+  void submitApplication_whenNotUpdateDraft_doesNotAskForConfirmation() throws Exception {
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any())).thenReturn(true);
+    when(licenceContinuationApplicationTaskListService.isSubmittable(any(), any())).thenReturn(true);
+    when(licenceContactService.hasContactForLicensee(licenceContinuationApplicationDetail)).thenReturn(true);
+    when(licenceContinuationApplication.getApplicationReference()).thenReturn("APP-REF-123");
+    when(licenceContinuationService.submitApplication(any(), any())).thenReturn(licenceContinuationApplication);
+
+    mockMvc.perform(
+            post(ReverseRouter.route(on(ContinuationApplicationReviewAndSubmitController.class)
+                .submitApplication(LICENCE_CONTINUATION_APPLICATION_DETAIL_ID, null, null, null, null, null)))
+                .with(user(USER))
+                .with(csrf())
+        )
+        .andExpect(status().isOk());
+
+    verifyNoInteractions(confirmOnlyRequestedChangesFormValidator);
   }
 
   @Test
@@ -169,7 +274,7 @@ class ContinuationApplicationReviewAndSubmitControllerTest extends AbstractContr
 
     var resultActions = mockMvc.perform(
             post(ReverseRouter.route(on(ContinuationApplicationReviewAndSubmitController.class)
-                .submitApplication(applicationDetailId, null, null, null)))
+                .submitApplication(applicationDetailId, null, null, null, null, null)))
                 .with(user(USER))
                 .with(csrf())
         )
@@ -194,7 +299,7 @@ class ContinuationApplicationReviewAndSubmitControllerTest extends AbstractContr
     when(applicationAccessService.userHasAccessToApplication(any(), any(), any())).thenReturn(true);
 
     mockMvc.perform(
-        get(ReverseRouter.route(on(ContinuationApplicationReviewAndSubmitController.class).getReviewAndSubmit(id, null, null))).with(user(USER))
+        get(ReverseRouter.route(on(ContinuationApplicationReviewAndSubmitController.class).getReviewAndSubmit(id, null, null, null))).with(user(USER))
         )
         .andExpect(status().isForbidden());
   }
@@ -203,7 +308,7 @@ class ContinuationApplicationReviewAndSubmitControllerTest extends AbstractContr
   void renderPage_assertForbiddenUserNoAccess() throws Exception {
     when(applicationAccessService.userHasAccessToApplication(any(), any(), any())).thenReturn(false);
     mockMvc.perform(
-        get(ReverseRouter.route(on(ContinuationApplicationReviewAndSubmitController.class).getReviewAndSubmit(LICENCE_CONTINUATION_APPLICATION_DETAIL_ID, null, null))).with(user(USER))
+        get(ReverseRouter.route(on(ContinuationApplicationReviewAndSubmitController.class).getReviewAndSubmit(LICENCE_CONTINUATION_APPLICATION_DETAIL_ID, null, null, null))).with(user(USER))
         )
         .andExpect(status().isForbidden());
   }
@@ -220,7 +325,7 @@ class ContinuationApplicationReviewAndSubmitControllerTest extends AbstractContr
     when(licenceContinuationService.getDetailByIdOrThrow(id)).thenReturn(submittedDetail);
 
     mockMvc.perform(
-        post(ReverseRouter.route(on(ContinuationApplicationReviewAndSubmitController.class).submitApplication(id, null, null, null)))
+        post(ReverseRouter.route(on(ContinuationApplicationReviewAndSubmitController.class).submitApplication(id, null, null, null, null, null)))
                      .with(user(USER))
                      .with(csrf())
         )
@@ -231,7 +336,7 @@ class ContinuationApplicationReviewAndSubmitControllerTest extends AbstractContr
   void submitPage_assertForbiddenUserNoAccess() throws Exception {
     when(applicationAccessService.userHasAccessToApplication(any(), any(), any())).thenReturn(false);
     mockMvc.perform(
-        post(ReverseRouter.route(on(ContinuationApplicationReviewAndSubmitController.class).submitApplication(LICENCE_CONTINUATION_APPLICATION_DETAIL_ID, null, null, null)))
+        post(ReverseRouter.route(on(ContinuationApplicationReviewAndSubmitController.class).submitApplication(LICENCE_CONTINUATION_APPLICATION_DETAIL_ID, null, null, null, null, null)))
                      .with(user(USER))
                      .with(csrf())
         )

@@ -25,6 +25,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplication;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationReferenceUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationUpdateSubmittedEmailService;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.caseprocessing.OverviewTab;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.letter.ApplicationLetterService;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.withdraw.ApplicationWithdrawService;
@@ -66,6 +67,7 @@ public class LicenceContinuationService {
   private final CrossLicenceEventTrackerService crossLicenceEventTrackerService;
   private final LicenceContinuationApplicationDetailRequestCache licenceContinuationApplicationDetailRequestCache;
   private final LicenceContinuationScheduleDetailRequestCache licenceContinuationScheduleDetailRequestCache;
+  private final ApplicationUpdateSubmittedEmailService applicationUpdateSubmittedEmailService;
 
   public LicenceContinuationService(
       LicenceContinuationApplicationDetailRepository licenceContinuationApplicationDetailRepository,
@@ -82,7 +84,8 @@ public class LicenceContinuationService {
       LicenceScheduleStateService licenceScheduleStateService,
       CrossLicenceEventTrackerService crossLicenceEventTrackerService,
       LicenceContinuationApplicationDetailRequestCache licenceContinuationApplicationDetailRequestCache,
-      LicenceContinuationScheduleDetailRequestCache licenceContinuationScheduleDetailRequestCache
+      LicenceContinuationScheduleDetailRequestCache licenceContinuationScheduleDetailRequestCache,
+      ApplicationUpdateSubmittedEmailService applicationUpdateSubmittedEmailService
   ) {
     this.licenceContinuationApplicationDetailRepository = licenceContinuationApplicationDetailRepository;
     this.licenceContinuationApplicationRepository = licenceContinuationApplicationRepository;
@@ -99,6 +102,7 @@ public class LicenceContinuationService {
     this.crossLicenceEventTrackerService = crossLicenceEventTrackerService;
     this.licenceContinuationApplicationDetailRequestCache = licenceContinuationApplicationDetailRequestCache;
     this.licenceContinuationScheduleDetailRequestCache = licenceContinuationScheduleDetailRequestCache;
+    this.applicationUpdateSubmittedEmailService = applicationUpdateSubmittedEmailService;
   }
 
   @Transactional
@@ -220,6 +224,10 @@ public class LicenceContinuationService {
     licenceContinuationApplicationDetailRepository.save(licenceContinuationApplicationDetail);
 
     crossLicenceEventTrackerService.refreshApplicationCache(licenceContinuationApplication);
+
+    if (licenceContinuationApplicationDetail.isApplicationUpdate()) {
+      applicationUpdateSubmittedEmailService.sendUpdateSubmittedEmails(licenceContinuationApplicationDetail);
+    }
 
     return licenceContinuationApplication;
   }

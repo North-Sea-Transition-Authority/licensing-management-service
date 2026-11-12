@@ -9,11 +9,13 @@ caption=pageCaption
 pageSize=PageSize.TWO_THIRDS_COLUMN
 breadcrumbs=breadcrumbs>
 
-    <@fdsAction.link
-    linkText="Delete draft application"
-    linkUrl=springUrl(deleteLicenceContinuationApplicationUrl)
-    linkClass="govuk-button govuk-button--secondary"
-    role=true/>
+    <#if !isUpdateDraft>
+        <@fdsAction.link
+        linkText="Delete draft application"
+        linkUrl=springUrl(deleteLicenceContinuationApplicationUrl)
+        linkClass="govuk-button govuk-button--secondary"
+        role=true/>
+    </#if>
 
     <@continuationDataItem.continuationDataItem
     currentTermPhaseDisplay=currentTermPhaseDisplay!""

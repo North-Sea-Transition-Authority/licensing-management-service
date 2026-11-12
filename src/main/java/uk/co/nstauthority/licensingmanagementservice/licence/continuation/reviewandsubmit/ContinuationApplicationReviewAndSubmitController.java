@@ -4,7 +4,9 @@ import static org.springframework.web.servlet.mvc.method.annotation.MvcUriCompon
 
 import java.util.UUID;
 import org.springframework.stereotype.Controller;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -18,6 +20,8 @@ import uk.co.nstauthority.licensingmanagementservice.breadcrumbs.BreadcrumbsUtil
 import uk.co.nstauthority.licensingmanagementservice.feedback.FeedbackController;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.requestupdate.ConfirmOnlyRequestedChangesForm;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.requestupdate.ConfirmOnlyRequestedChangesFormValidator;
 import uk.co.nstauthority.licensingmanagementservice.licence.contact.LicenceContactService;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationService;
@@ -40,6 +44,7 @@ public class ContinuationApplicationReviewAndSubmitController {
   private final LicenceContinuationApplicationTaskListService licenceContinuationApplicationTaskListService;
   private final LicenceScheduleStateService licenceScheduleStateService;
   private final LicenceContactService licenceContactService;
+  private final ConfirmOnlyRequestedChangesFormValidator confirmOnlyRequestedChangesFormValidator;
 
   public ContinuationApplicationReviewAndSubmitController(
       LicenceService licenceService,
@@ -47,7 +52,8 @@ public class ContinuationApplicationReviewAndSubmitController {
       ContinuationSummarySectionService continuationSummarySectionService,
       LicenceContinuationApplicationTaskListService licenceContinuationApplicationTaskListService,
       LicenceScheduleStateService licenceScheduleStateService,
-      LicenceContactService licenceContactService
+      LicenceContactService licenceContactService,
+      ConfirmOnlyRequestedChangesFormValidator confirmOnlyRequestedChangesFormValidator
   ) {
     this.licenceService = licenceService;
     this.licenceContinuationService = licenceContinuationService;
@@ -55,12 +61,14 @@ public class ContinuationApplicationReviewAndSubmitController {
     this.licenceContinuationApplicationTaskListService = licenceContinuationApplicationTaskListService;
     this.licenceScheduleStateService = licenceScheduleStateService;
     this.licenceContactService = licenceContactService;
+    this.confirmOnlyRequestedChangesFormValidator = confirmOnlyRequestedChangesFormValidator;
   }
 
   @GetMapping
   public ModelAndView getReviewAndSubmit(
       @PathVariable UUID licenceContinuationApplicationDetailId,
       LicenceContinuationApplicationDetail licenceContinuationApplicationDetail,
+      @ModelAttribute("form") ConfirmOnlyRequestedChangesForm form,
       ServiceUserDetail user
   ) {
     var submittable = licenceContinuationApplicationTaskListService.isSubmittable(
@@ -68,13 +76,15 @@ public class ContinuationApplicationReviewAndSubmitController {
         user
     );
 
-    return getReviewAndSubmitModelAndView(licenceContinuationApplicationDetail, submittable, user);
+    return getReviewAndSubmitModelAndView(licenceContinuationApplicationDetail, form, submittable, user);
   }
 
   @PostMapping
   public ModelAndView submitApplication(
       @PathVariable UUID licenceContinuationApplicationDetailId,
       LicenceContinuationApplicationDetail licenceContinuationApplicationDetail,
+      @ModelAttribute("form") ConfirmOnlyRequestedChangesForm form,
+      BindingResult bindingResult,
       ServiceUserDetail user,
       RedirectAttributes redirectAttributes
   ) {
@@ -83,8 +93,12 @@ public class ContinuationApplicationReviewAndSubmitController {
         user
     );
 
-    if (!submittable || !licenceContactService.hasContactForLicensee(licenceContinuationApplicationDetail)) {
-      return getReviewAndSubmitModelAndView(licenceContinuationApplicationDetail, submittable, user);
+    var changesConfirmed = !licenceContinuationApplicationDetail.isApplicationUpdate()
+        || confirmOnlyRequestedChangesFormValidator.isValid(form, bindingResult);
+
+    if (!submittable || !changesConfirmed
+        || !licenceContactService.hasContactForLicensee(licenceContinuationApplicationDetail)) {
+      return getReviewAndSubmitModelAndView(licenceContinuationApplicationDetail, form, submittable, user);
     }
 
     var licenceContinuationApplication
@@ -98,6 +112,7 @@ public class ContinuationApplicationReviewAndSubmitController {
 
   private ModelAndView getReviewAndSubmitModelAndView(
       LicenceContinuationApplicationDetail licenceContinuationApplicationDetail,
+      ConfirmOnlyRequestedChangesForm form,
       boolean isSubmittable,
       ServiceUserDetail user
   ) {
@@ -115,6 +130,8 @@ public class ContinuationApplicationReviewAndSubmitController {
             licenceContinuationApplicationDetail, null)
         )
         .addObject("accordionId", licenceContinuationApplicationDetail.getId())
+        .addObject("form", form)
+        .addObject("isUpdateDraft", licenceContinuationApplicationDetail.isApplicationUpdate())
         .addObject("isSubmittable", isSubmittable)
         .addObject("hasLicenceContact",
             licenceContactService.hasContactForLicensee(licenceContinuationApplicationDetail))

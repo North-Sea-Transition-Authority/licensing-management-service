@@ -5,6 +5,7 @@ import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -16,6 +17,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 import static uk.co.nstauthority.licensingmanagementservice.authentication.TestUserProvider.user;
 
+import java.time.LocalDate;
+import java.time.Month;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -33,6 +36,7 @@ import uk.co.nstauthority.licensingmanagementservice.feedback.FeedbackController
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.requestupdate.ConfirmOnlyRequestedChangesFormValidator;
 import uk.co.nstauthority.licensingmanagementservice.licence.contact.LicenceContactService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
@@ -59,6 +63,9 @@ class ScheduleAmendmentApplicationReviewAndSubmitControllerTest extends Abstract
 
   @MockitoBean
   LicenceContactService licenceContactService;
+
+  @MockitoBean
+  ConfirmOnlyRequestedChangesFormValidator confirmOnlyRequestedChangesFormValidator;
 
   private ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail;
   private static final UUID SCHEDULE_APPLICATION_DETAIL_ID = UUID.randomUUID();
@@ -88,7 +95,8 @@ class ScheduleAmendmentApplicationReviewAndSubmitControllerTest extends Abstract
         .perform(get(ReverseRouter.route(on(ScheduleAmendmentApplicationReviewAndSubmitController.class).getReviewAndSubmit(
             applicationDetailId,
             null,
-            null
+            null,
+        null
         )))
             .with(user(USER)))
         .andExpect(status().isOk());
@@ -107,7 +115,8 @@ class ScheduleAmendmentApplicationReviewAndSubmitControllerTest extends Abstract
         .perform(get(ReverseRouter.route(on(ScheduleAmendmentApplicationReviewAndSubmitController.class).getReviewAndSubmit(
             applicationDetailId,
             null,
-            null
+            null,
+        null
         )))
             .with(user(USER)))
         .andExpect(status().isOk());
@@ -126,7 +135,7 @@ class ScheduleAmendmentApplicationReviewAndSubmitControllerTest extends Abstract
     when(scheduleWorkProgrammeApplicationTaskListService.isSubmittable(any(), any())).thenReturn(false);
     var resultActions = mockMvc
         .perform(post(ReverseRouter.route(on(ScheduleAmendmentApplicationReviewAndSubmitController.class)
-            .submitApplication(applicationDetailId, null, null, null)))
+            .submitApplication(applicationDetailId, null, null, null, null, null)))
             .with(user(USER))
             .with(csrf()))
         .andExpect(status().isOk());
@@ -148,7 +157,8 @@ class ScheduleAmendmentApplicationReviewAndSubmitControllerTest extends Abstract
         .perform(get(ReverseRouter.route(on(ScheduleAmendmentApplicationReviewAndSubmitController.class).getReviewAndSubmit(
             applicationDetailId,
             null,
-            null
+            null,
+        null
         )))
             .with(user(USER)))
         .andExpect(status().isOk())
@@ -169,7 +179,8 @@ class ScheduleAmendmentApplicationReviewAndSubmitControllerTest extends Abstract
         .perform(get(ReverseRouter.route(on(ScheduleAmendmentApplicationReviewAndSubmitController.class).getReviewAndSubmit(
             applicationDetailId,
             null,
-            null
+            null,
+        null
         )))
             .with(user(USER)))
         .andExpect(status().isOk())
@@ -191,7 +202,8 @@ class ScheduleAmendmentApplicationReviewAndSubmitControllerTest extends Abstract
         .perform(get(ReverseRouter.route(on(ScheduleAmendmentApplicationReviewAndSubmitController.class).getReviewAndSubmit(
             applicationDetailId,
             null,
-            null
+            null,
+        null
         )))
             .with(user(USER)))
         .andExpect(status().isOk())
@@ -209,7 +221,7 @@ class ScheduleAmendmentApplicationReviewAndSubmitControllerTest extends Abstract
 
     var resultActions = mockMvc
         .perform(post(ReverseRouter.route(on(ScheduleAmendmentApplicationReviewAndSubmitController.class)
-            .submitApplication(applicationDetailId, null, null, null)))
+            .submitApplication(applicationDetailId, null, null, null, null, null)))
             .with(user(USER))
             .with(csrf()))
         .andExpect(status().isOk());
@@ -263,7 +275,7 @@ class ScheduleAmendmentApplicationReviewAndSubmitControllerTest extends Abstract
     when(scheduleWorkProgrammeApplicationTaskListService.isSubmittable(any(), any())).thenReturn(true);
 
     mockMvc.perform(post(ReverseRouter.route(on(ScheduleAmendmentApplicationReviewAndSubmitController.class)
-                .submitApplication(applicationDetailId, null, null, null)))
+                .submitApplication(applicationDetailId, null, null, null, null, null)))
             .with(user(USER))
             .with(csrf()))
         .andExpect(status().isOk())
@@ -271,6 +283,105 @@ class ScheduleAmendmentApplicationReviewAndSubmitControllerTest extends Abstract
         .andExpect(model().attribute("feedbackUrl", ReverseRouter.route(on(FeedbackController.class).getFeedback(null))))
         .andExpect(model().attribute("workAreaUrl", ReverseRouter.route(on(WorkAreaController.class).getWorkArea(null, null))))
         .andExpect(model().attribute("applicationReference", application.getApplicationReference()));
+  }
+
+  @Test
+  void getReviewAndSubmit_whenUpdateDraft_flagsUpdateDraft() throws Exception {
+    var application = scheduleWorkProgrammeApplicationDetail.getScheduleWorkProgrammeApplication();
+    application.setApplicationReference("APP-REF-123");
+    mockScheduleWorkProgrammeApplicationDetailScenario(SCHEDULE_APPLICATION_DETAIL_ID);
+    scheduleWorkProgrammeApplicationDetail.setUpdateDeadlineDate(LocalDate.of(2024, Month.APRIL, 1));
+    scheduleWorkProgrammeApplicationDetail.setVersionNumber(2);
+    when(licenceService.getLicencePageCaption(any())).thenReturn(CAPTION);
+
+    mockMvc.perform(get(ReverseRouter.route(on(ScheduleAmendmentApplicationReviewAndSubmitController.class)
+            .getReviewAndSubmit(SCHEDULE_APPLICATION_DETAIL_ID, null, null, null)))
+            .with(user(USER)))
+        .andExpect(status().isOk())
+        .andExpect(model().attribute("isUpdateDraft", true));
+  }
+
+  @Test
+  void getReviewAndSubmit_whenUpdateDraftIsSubmittable_rendersConfirmationCheckbox() throws Exception {
+    scheduleWorkProgrammeApplicationDetail.setUpdateDeadlineDate(LocalDate.of(2024, Month.APRIL, 1));
+    scheduleWorkProgrammeApplicationDetail.setVersionNumber(2);
+    mockScheduleWorkProgrammeApplicationDetailScenario(SCHEDULE_APPLICATION_DETAIL_ID);
+    scheduleWorkProgrammeApplicationDetail.getScheduleWorkProgrammeApplication().setApplicationReference("APP-REF-123");
+    when(scheduleWorkProgrammeApplicationService.userCanSubmitApplication(any(), any())).thenReturn(true);
+    when(licenceService.getLicencePageCaption(any())).thenReturn(CAPTION);
+    when(scheduleWorkProgrammeApplicationTaskListService.isSubmittable(any(), any())).thenReturn(true);
+
+    mockMvc.perform(get(ReverseRouter.route(on(ScheduleAmendmentApplicationReviewAndSubmitController.class)
+            .getReviewAndSubmit(SCHEDULE_APPLICATION_DETAIL_ID, null, null, null)))
+            .with(user(USER)))
+        .andExpect(status().isOk())
+        .andExpect(content().string(containsString("type=\"checkbox\"")))
+        .andExpect(content().string(containsString("I confirm that I have only made the changes that were requested")));
+  }
+
+  @Test
+  void submitApplication_whenUpdateDraftChangesNotConfirmed_doesNotSubmit() throws Exception {
+    var application = scheduleWorkProgrammeApplicationDetail.getScheduleWorkProgrammeApplication();
+    application.setApplicationReference("APP-REF-123");
+    mockScheduleWorkProgrammeApplicationDetailScenario(SCHEDULE_APPLICATION_DETAIL_ID);
+    scheduleWorkProgrammeApplicationDetail.setUpdateDeadlineDate(LocalDate.of(2024, Month.APRIL, 1));
+    scheduleWorkProgrammeApplicationDetail.setVersionNumber(2);
+    when(licenceService.getLicencePageCaption(any())).thenReturn(CAPTION);
+    when(scheduleWorkProgrammeApplicationTaskListService.isSubmittable(any(), any())).thenReturn(true);
+    when(confirmOnlyRequestedChangesFormValidator.isValid(any(), any())).thenReturn(false);
+
+    var resultActions = mockMvc.perform(
+            post(ReverseRouter.route(on(ScheduleAmendmentApplicationReviewAndSubmitController.class)
+                .submitApplication(SCHEDULE_APPLICATION_DETAIL_ID, null, null, null, null, null)))
+                .with(user(USER))
+                .with(csrf())
+        )
+        .andExpect(status().isOk());
+
+    assertRenderPageModelsAttributesArePresent(resultActions, SCHEDULE_APPLICATION_DETAIL_ID);
+    verify(scheduleWorkProgrammeApplicationService, never()).submitApplication(any(), any());
+  }
+
+  @Test
+  void submitApplication_whenUpdateDraftChangesConfirmed_submits() throws Exception {
+    var application = scheduleWorkProgrammeApplicationDetail.getScheduleWorkProgrammeApplication();
+    application.setApplicationReference("APP-REF-123");
+    mockScheduleWorkProgrammeApplicationDetailScenario(SCHEDULE_APPLICATION_DETAIL_ID);
+    scheduleWorkProgrammeApplicationDetail.setUpdateDeadlineDate(LocalDate.of(2024, Month.APRIL, 1));
+    scheduleWorkProgrammeApplicationDetail.setVersionNumber(2);
+    when(scheduleWorkProgrammeApplicationTaskListService.isSubmittable(any(), any())).thenReturn(true);
+    when(confirmOnlyRequestedChangesFormValidator.isValid(any(), any())).thenReturn(true);
+    when(scheduleWorkProgrammeApplicationService.submitApplication(any(), any())).thenReturn(application);
+
+    mockMvc.perform(
+            post(ReverseRouter.route(on(ScheduleAmendmentApplicationReviewAndSubmitController.class)
+                .submitApplication(SCHEDULE_APPLICATION_DETAIL_ID, null, null, null, null, null)))
+                .with(user(USER))
+                .with(csrf())
+        )
+        .andExpect(status().isOk())
+        .andExpect(view().name("lms/licence/application/submissionConfirmation"));
+
+    verify(scheduleWorkProgrammeApplicationService).submitApplication(scheduleWorkProgrammeApplicationDetail, USER);
+  }
+
+  @Test
+  void submitApplication_whenNotUpdateDraft_doesNotAskForConfirmation() throws Exception {
+    var application = scheduleWorkProgrammeApplicationDetail.getScheduleWorkProgrammeApplication();
+    application.setApplicationReference("APP-REF-123");
+    mockScheduleWorkProgrammeApplicationDetailScenario(SCHEDULE_APPLICATION_DETAIL_ID);
+    when(scheduleWorkProgrammeApplicationTaskListService.isSubmittable(any(), any())).thenReturn(true);
+    when(scheduleWorkProgrammeApplicationService.submitApplication(any(), any())).thenReturn(application);
+
+    mockMvc.perform(
+            post(ReverseRouter.route(on(ScheduleAmendmentApplicationReviewAndSubmitController.class)
+                .submitApplication(SCHEDULE_APPLICATION_DETAIL_ID, null, null, null, null, null)))
+                .with(user(USER))
+                .with(csrf())
+        )
+        .andExpect(status().isOk());
+
+    verifyNoInteractions(confirmOnlyRequestedChangesFormValidator);
   }
 
   @ParameterizedTest
@@ -287,7 +398,7 @@ class ScheduleAmendmentApplicationReviewAndSubmitControllerTest extends Abstract
     when(applicationAccessService.userHasAccessToApplication(any(), any(), any())).thenReturn(true);
 
     mockMvc.perform(get(ReverseRouter.route(on(ScheduleAmendmentApplicationReviewAndSubmitController.class).getReviewAndSubmit(
-        id, null, null))).with(user(USER))).andExpect(status().isForbidden());
+        id, null, null, null))).with(user(USER))).andExpect(status().isForbidden());
   }
 
   @ParameterizedTest
@@ -303,7 +414,7 @@ class ScheduleAmendmentApplicationReviewAndSubmitControllerTest extends Abstract
     when(scheduleWorkProgrammeApplicationService.getDetailByIdOrThrow(id)).thenReturn(submittedDetail);
 
     mockMvc.perform(post(ReverseRouter.route(on(ScheduleAmendmentApplicationReviewAndSubmitController.class).submitApplication(
-        id, null, null, null)))
+        id, null, null, null, null, null)))
             .with(user(USER))
             .with(csrf()))
         .andExpect(status().isForbidden());
@@ -313,7 +424,7 @@ class ScheduleAmendmentApplicationReviewAndSubmitControllerTest extends Abstract
   void renderPage_assertForbiddenUserNoAccess() throws Exception {
     when(applicationAccessService.userHasAccessToApplication(any(), any(), any())).thenReturn(false);
     mockMvc.perform(get(ReverseRouter.route(on(ScheduleAmendmentApplicationReviewAndSubmitController.class).getReviewAndSubmit(
-            SCHEDULE_APPLICATION_DETAIL_ID, null, null)))
+            SCHEDULE_APPLICATION_DETAIL_ID, null, null, null)))
                .with(user(USER)))
            .andExpect(status().isForbidden());
   }
@@ -322,7 +433,7 @@ class ScheduleAmendmentApplicationReviewAndSubmitControllerTest extends Abstract
   void submitPage_assertForbiddenUserNoAccess() throws Exception {
     when(applicationAccessService.userHasAccessToApplication(any(), any(), any())).thenReturn(false);
     mockMvc.perform(post(ReverseRouter.route(on(ScheduleAmendmentApplicationReviewAndSubmitController.class).submitApplication(
-            SCHEDULE_APPLICATION_DETAIL_ID, null, null, null)))
+            SCHEDULE_APPLICATION_DETAIL_ID, null, null, null, null, null)))
                .with(user(USER))
                .with(csrf()))
            .andExpect(status().isForbidden());

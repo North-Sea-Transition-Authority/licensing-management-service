@@ -9,6 +9,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 import static uk.co.nstauthority.licensingmanagementservice.authentication.TestUserProvider.user;
 
+import java.time.LocalDate;
+import java.time.Month;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -21,6 +23,8 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
+import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBannerType;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
@@ -104,11 +108,40 @@ class LicenceContinuationApplicationTaskListControllerTest extends AbstractContr
         .andExpect(model().attribute("taskListSections", sections))
         .andExpect(model().attribute("pageTitle", LicenceContinuationApplicationTaskListController.PAGE_TITLE))
         .andExpect(model().attribute("pageCaption", CAPTION))
+        .andExpect(model().attribute("isUpdateDraft", false))
         .andExpect(model().attribute("currentTermPhaseDisplay", expectedCurrentDisplay))
         .andExpect(model().attribute("nextTermPhaseDisplay", expectedNextDisplay))
         .andExpect(model().attribute("breadcrumbs", Map.of(
             ReverseRouter.route(on(WorkAreaController.class).getWorkArea(null, null)),
             "Work area"
+        )));
+  }
+
+  @Test
+  void getTaskList_whenDraftIsAnUpdate_flagsUpdateDraft() throws Exception {
+    var updateDraft = LicenceContinuationApplicationTestUtil.createLicenceContinuationApplicationDetail(LICENCE_SCHEDULE_DETAIL);
+    updateDraft.setUpdateDeadlineDate(LocalDate.of(2024, Month.APRIL, 1));
+    updateDraft.setVersionNumber(2);
+    updateDraft.setUpdateReason("Please correct the dates");
+
+    when(licenceContinuationService.getDetailByIdOrThrow(updateDraft.getId())).thenReturn(updateDraft);
+    when(licenceContinuationApplicationTaskListService.getAllSections(updateDraft, USER)).thenReturn(List.of());
+    when(licenceService.getLicencePageCaption(LICENCE)).thenReturn(CAPTION);
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any())).thenReturn(true);
+    when(licenceContinuationService.getScheduleDetailFromApplicationDetail(updateDraft)).thenReturn(LICENCE_SCHEDULE_DETAIL);
+    when(licenceScheduleStateService.getScheduleState(LICENCE_SCHEDULE_DETAIL))
+        .thenReturn(new ScheduleState(null, null, null, null));
+
+    mockMvc.perform(get(ReverseRouter.route(on(LicenceContinuationApplicationTaskListController.class)
+                                                .getTaskList(updateDraft.getId(), null, null))
+        ).with(user(USER)))
+        .andExpect(status().isOk())
+        .andExpect(model().attribute("isUpdateDraft", true))
+        .andExpect(model().attribute("notificationBanner", new NotificationBanner(
+            "Information",
+            "An update has been requested which is due by 1 April 2024",
+            "Please correct the dates",
+            NotificationBannerType.INFO
         )));
   }
 

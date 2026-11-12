@@ -31,6 +31,14 @@ breadcrumbs=breadcrumbs>
         <@scheduleApplicationSummary.scheduleApplicationSummary accordionId=accordionId summarySections=summarySections/>
 
         <#if isSubmittable && hasLicenceContact && userCanSubmit>
+            <#if isUpdateDraft>
+                <@fdsCheckbox.checkboxGroup
+                path="form.onlyRequestedChangesMade">
+                    <@fdsCheckbox.checkboxItem
+                    path="form.onlyRequestedChangesMade"
+                    labelText="I confirm that I have only made the changes that were requested"/>
+                </@fdsCheckbox.checkboxGroup>
+            </#if>
             <@fdsAction.submitButtons
             primaryButtonText="Submit"
             secondaryLinkText="Back to task list"

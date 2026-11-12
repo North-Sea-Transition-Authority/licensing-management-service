@@ -16,6 +16,7 @@ import uk.co.nstauthority.licensingmanagementservice.breadcrumbs.Breadcrumbs;
 import uk.co.nstauthority.licensingmanagementservice.breadcrumbs.BreadcrumbsUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationUpdateBanner;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDeleteController;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
@@ -65,6 +66,8 @@ public class ScheduleWorkProgrammeApplicationTaskListController {
             ScheduleWorkProgrammeApplicationDeleteController.class).renderForm(
                 scheduleWorkProgrammeApplicationDetailId,
                 null)));
+
+    ApplicationUpdateBanner.applyTo(modelAndView, scheduleWorkProgrammeApplicationDetail);
 
     var breadcrumbs = Breadcrumbs.builder(PAGE_TITLE)
         .addWorkAreaBreadcrumb()

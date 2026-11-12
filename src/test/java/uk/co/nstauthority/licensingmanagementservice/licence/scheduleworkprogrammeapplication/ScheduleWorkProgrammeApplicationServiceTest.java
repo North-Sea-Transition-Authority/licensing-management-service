@@ -8,11 +8,13 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.Month;
 import java.time.ZoneId;
 import java.util.Optional;
 import java.util.Set;
@@ -32,6 +34,7 @@ import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFound
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationUpdateSubmittedEmailService;
 import uk.co.nstauthority.licensingmanagementservice.licence.crosslicenceeventtracker.CrossLicenceEventTrackerService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
@@ -68,6 +71,9 @@ class ScheduleWorkProgrammeApplicationServiceTest {
 
   @Mock
   private ScheduleWorkProgrammeApplicationSubmittedNotificationService applicationSubmittedNotificationService;
+
+  @Mock
+  private ApplicationUpdateSubmittedEmailService applicationUpdateSubmittedEmailService;
 
   @Mock
   private CrossLicenceEventTrackerService crossLicenceEventTrackerService;
@@ -298,6 +304,22 @@ class ScheduleWorkProgrammeApplicationServiceTest {
     assertThat(result.getApplicationReference()).isEqualTo("LMS/EAA/2024/5/3");
     verify(scheduleWorkProgrammeApplicationDetailRepository, never())
         .countByVersionNumberAndSubmittedDatetimeBetween(anyInt(), any(Instant.class), any(Instant.class));
+  }
+
+  @Test
+  void submitApplication_whenUpdateDraft_sendsUpdateSubmittedEmailsInsteadOfNewApplicationEmails() {
+    when(clock.instant()).thenReturn(CURRENT_INSTANT);
+    when(licenceScheduleDetailService.getScheduleDetailByLicenceAndStatusOrThrow(licence, LicenceScheduleDetailStatus.ACTIVE))
+        .thenReturn(licenceScheduleDetail);
+    scheduleWorkProgrammeApplicationDetail.getScheduleWorkProgrammeApplication().setApplicationReference("LMS/EAA/2024/5/1");
+    scheduleWorkProgrammeApplicationDetail.setVersionNumber(2);
+    scheduleWorkProgrammeApplicationDetail.setUpdateDeadlineDate(LocalDate.of(2024, Month.APRIL, 1));
+    scheduleWorkProgrammeApplicationDetail.setVersionNumber(2);
+
+    scheduleWorkProgrammeApplicationService.submitApplication(scheduleWorkProgrammeApplicationDetail, mockUser());
+
+    verify(applicationUpdateSubmittedEmailService).sendUpdateSubmittedEmails(scheduleWorkProgrammeApplicationDetail);
+    verifyNoInteractions(applicationSubmittedNotificationService);
   }
 
   @Test

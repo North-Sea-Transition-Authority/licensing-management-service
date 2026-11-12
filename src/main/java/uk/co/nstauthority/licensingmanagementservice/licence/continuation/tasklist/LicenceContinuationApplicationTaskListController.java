@@ -16,6 +16,7 @@ import uk.co.nstauthority.licensingmanagementservice.breadcrumbs.Breadcrumbs;
 import uk.co.nstauthority.licensingmanagementservice.breadcrumbs.BreadcrumbsUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationUpdateBanner;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDeleteController;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationService;
@@ -90,6 +91,8 @@ public class LicenceContinuationApplicationTaskListController {
                 licenceContinuationApplicationDetailId,
                 null,
                 null)));
+
+    ApplicationUpdateBanner.applyTo(modelAndView, licenceContinuationApplicationDetail);
 
     var breadcrumbs = Breadcrumbs.builder(PAGE_TITLE)
         .addWorkAreaBreadcrumb()

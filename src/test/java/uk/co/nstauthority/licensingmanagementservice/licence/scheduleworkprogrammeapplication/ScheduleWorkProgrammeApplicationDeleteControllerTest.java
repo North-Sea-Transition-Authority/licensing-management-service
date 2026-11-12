@@ -1,6 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication;
 
 import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
@@ -12,6 +13,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 import static uk.co.nstauthority.licensingmanagementservice.authentication.TestUserProvider.user;
 
+import java.time.LocalDate;
+import java.time.Month;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -150,6 +153,33 @@ class ScheduleWorkProgrammeApplicationDeleteControllerTest extends AbstractContr
                         .with(csrf())
            )
            .andExpect(status().isForbidden());
+  }
+
+  @Test
+  void renderForm_assertForbiddenOnUpdateDraft() throws Exception {
+    scheduleWorkProgrammeApplicationDetail.setUpdateDeadlineDate(LocalDate.of(2024, Month.APRIL, 1));
+    scheduleWorkProgrammeApplicationDetail.setVersionNumber(2);
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any())).thenReturn(true);
+
+    mockMvc.perform(get(ReverseRouter.route(on(ScheduleWorkProgrammeApplicationDeleteController.class)
+            .renderForm(SCHEDULE_APPLICATION_DETAIL_ID, null)))
+                        .with(user(organisationUser)))
+           .andExpect(status().isForbidden());
+  }
+
+  @Test
+  void deleteScheduleWorkProgrammeApplication_assertForbiddenOnUpdateDraft() throws Exception {
+    scheduleWorkProgrammeApplicationDetail.setUpdateDeadlineDate(LocalDate.of(2024, Month.APRIL, 1));
+    scheduleWorkProgrammeApplicationDetail.setVersionNumber(2);
+    when(applicationAccessService.userHasAccessToApplication(any(), any(), any())).thenReturn(true);
+
+    mockMvc.perform(post(ReverseRouter.route(on(ScheduleWorkProgrammeApplicationDeleteController.class)
+            .deleteScheduleWorkProgrammeApplication(SCHEDULE_APPLICATION_DETAIL_ID, null, null)))
+                        .with(user(organisationUser))
+                        .with(csrf()))
+           .andExpect(status().isForbidden());
+
+    verify(scheduleWorkProgrammeApplicationService, never()).deleteScheduleWorkProgrammeApplication(any());
   }
 
   @Test

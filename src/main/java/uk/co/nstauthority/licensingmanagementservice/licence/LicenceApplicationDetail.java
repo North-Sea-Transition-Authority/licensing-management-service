@@ -28,6 +28,12 @@ public interface LicenceApplicationDetail {
 
   String getUpdateReason();
 
+  /** True when this detail is a later version of the application, i.e. an update to an earlier submission. */
+  default boolean isApplicationUpdate() {
+    var versionNumber = getVersionNumber();
+    return versionNumber != null && versionNumber > 1;
+  }
+
   /** True once submitted, and stays true if later withdrawn or closed. */
   default boolean hasBeenSubmitted() {
     return getSubmittedDatetime() != null;

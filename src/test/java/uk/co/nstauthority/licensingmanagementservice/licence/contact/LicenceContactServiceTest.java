@@ -88,6 +88,32 @@ class LicenceContactServiceTest {
   private ArgumentCaptor<LicenceContact> contactCaptor;
 
   @Test
+  void getContactEmailForLicensee_whenContactExists_returnsContactEmail() {
+    var contact = new LicenceContact();
+    contact.setContactEmail("contact@example.com");
+    when(licenceContactRepository.findByLicensee_LicenceAndLicensee_ResponsibleOrganisationId(LICENCE, ORG_ID))
+        .thenReturn(Optional.of(contact));
+
+    assertThat(licenceContactService.getContactEmailForLicensee(LICENCE, ORG_ID)).contains("contact@example.com");
+  }
+
+  @Test
+  void getContactEmailForLicensee_whenNoContactExists_returnsEmpty() {
+    when(licenceContactRepository.findByLicensee_LicenceAndLicensee_ResponsibleOrganisationId(LICENCE, ORG_ID))
+        .thenReturn(Optional.empty());
+
+    assertThat(licenceContactService.getContactEmailForLicensee(LICENCE, ORG_ID)).isEmpty();
+  }
+
+  @Test
+  void getContactEmailForLicensee_whenContactHasNoEmail_returnsEmpty() {
+    when(licenceContactRepository.findByLicensee_LicenceAndLicensee_ResponsibleOrganisationId(LICENCE, ORG_ID))
+        .thenReturn(Optional.of(new LicenceContact()));
+
+    assertThat(licenceContactService.getContactEmailForLicensee(LICENCE, ORG_ID)).isEmpty();
+  }
+
+  @Test
   void hasContactForLicensee_whenContactExistsForThatLicence_returnsTrue() {
     var licensee = licensee();
     when(licenceContactRepository.findAllByLicensee_ResponsibleOrganisationIdIn(Set.of(ORG_ID)))

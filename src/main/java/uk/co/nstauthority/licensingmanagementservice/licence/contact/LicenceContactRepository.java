@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import uk.co.nstauthority.licensingmanagementservice.duplication.NotDuplicationSource;
+import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisation;
 
 @Repository
@@ -20,4 +21,9 @@ public interface LicenceContactRepository extends JpaRepository<LicenceContact, 
 
   @EntityGraph(attributePaths = {"licensee", "licensee.licence"})
   List<LicenceContact> findAllByLicenseeIn(Collection<LicenceResponsibleOrganisation> licensees);
+
+  Optional<LicenceContact> findByLicensee_LicenceAndLicensee_ResponsibleOrganisationId(
+      Licence licence,
+      Integer responsibleOrganisationId
+  );
 }

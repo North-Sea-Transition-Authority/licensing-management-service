@@ -848,6 +848,13 @@ Requesting an update works the same way for both application types. It leaves th
   deadline" and "Update reason". Like the application reference, the event belongs to the
   application rather than to a version, so it shows against every version. No case note is
   created.
+- An "Application update requested" email is sent when the update is requested. It goes to the
+  application submitters of the responsible organisation's group and to the licence contact
+  for the responsible organisation on that licence. Addresses are compared case-insensitively,
+  so someone who is both a submitter and the licence contact receives one email. If the
+  organisation has no group, only the licence contact is notified. If there are no recipients
+  at all, nothing is sent and a warning is logged. A failed send to one recipient is logged and
+  does not stop the others or roll back the new draft.
 
 An update cannot be requested on a version while the application has a later version that is
 not `DELETED`. This is enforced in application code. In practice an application has at most one

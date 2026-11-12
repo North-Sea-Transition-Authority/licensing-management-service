@@ -17,6 +17,7 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.caseevent.CaseEventService;
 import uk.co.nstauthority.licensingmanagementservice.caseevent.CaseEventType;
 import uk.co.nstauthority.licensingmanagementservice.caseevent.payload.CaseUpdateRequestPayload;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.requestupdate.RequestUpdateEmailService;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.requestupdate.RequestUpdateForm;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetailDuplicationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetailRepository;
@@ -36,6 +37,9 @@ class RequestUpdateServiceTest {
 
   @Mock
   private CaseEventService caseEventService;
+
+  @Mock
+  private RequestUpdateEmailService updateRequestedEmailService;
 
   @InjectMocks
   private RequestUpdateService service;
@@ -91,5 +95,6 @@ class RequestUpdateServiceTest {
     verify(detailRepository).save(newDetail);
     verify(caseEventService).recordCaseEvent(CaseEventType.APPLICATION_UPDATE_REQUESTED, oldDetail.getScheduleWorkProgrammeApplication(),
         new CaseUpdateRequestPayload(DEADLINE, REASON));
+    verify(updateRequestedEmailService).sendUpdateRequestedEmails(newDetail);
   }
 }

@@ -8,6 +8,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
@@ -23,6 +24,7 @@ import uk.co.nstauthority.licensingmanagementservice.fds.table.SortableTableValu
 import uk.co.nstauthority.licensingmanagementservice.fds.table.SortableTableView;
 import uk.co.nstauthority.licensingmanagementservice.fds.table.Tag;
 import uk.co.nstauthority.licensingmanagementservice.fds.table.TagColour;
+import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatusType;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceOrganisationService;
@@ -102,6 +104,12 @@ public class LicenceContactService {
     return licensees.stream()
         .filter(licensee -> statusByLicenceId.get(licensee.getLicence().getId()) == LicenceStatusType.EXTANT)
         .toList();
+  }
+
+  public Optional<String> getContactEmailForLicensee(Licence licence, Integer organisationUnitId) {
+    return licenceContactRepository
+        .findByLicensee_LicenceAndLicensee_ResponsibleOrganisationId(licence, organisationUnitId)
+        .map(LicenceContact::getContactEmail);
   }
 
   public boolean hasContactForLicensee(LicenceApplicationDetail applicationDetail) {

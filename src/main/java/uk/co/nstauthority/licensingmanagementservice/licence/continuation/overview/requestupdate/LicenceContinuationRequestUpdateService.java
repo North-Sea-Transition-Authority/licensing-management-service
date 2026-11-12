@@ -6,6 +6,7 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.caseevent.CaseEventService;
 import uk.co.nstauthority.licensingmanagementservice.caseevent.CaseEventType;
 import uk.co.nstauthority.licensingmanagementservice.caseevent.payload.CaseUpdateRequestPayload;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.requestupdate.RequestUpdateEmailService;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.requestupdate.RequestUpdateForm;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetailDuplicationService;
@@ -17,15 +18,18 @@ public class LicenceContinuationRequestUpdateService {
   private final LicenceContinuationApplicationDetailRepository detailRepository;
   private final LicenceContinuationApplicationDetailDuplicationService duplicationService;
   private final CaseEventService caseEventService;
+  private final RequestUpdateEmailService updateRequestedEmailService;
 
   public LicenceContinuationRequestUpdateService(
       LicenceContinuationApplicationDetailRepository detailRepository,
       LicenceContinuationApplicationDetailDuplicationService duplicationService,
-      CaseEventService caseEventService
+      CaseEventService caseEventService,
+      RequestUpdateEmailService updateRequestedEmailService
   ) {
     this.detailRepository = detailRepository;
     this.duplicationService = duplicationService;
     this.caseEventService = caseEventService;
+    this.updateRequestedEmailService = updateRequestedEmailService;
   }
 
   public RequestUpdateForm getFormForApplication(LicenceContinuationApplicationDetail applicationDetail) {
@@ -56,5 +60,7 @@ public class LicenceContinuationRequestUpdateService {
         applicationDetail.getLicenceContinuationApplication(),
         new CaseUpdateRequestPayload(newDetail.getUpdateDeadlineDate(), newDetail.getUpdateReason())
     );
+
+    updateRequestedEmailService.sendUpdateRequestedEmails(newDetail);
   }
 }

@@ -1,10 +1,13 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.recordofdecision;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.tuple;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
 import java.time.LocalDate;
 import java.time.Month;
@@ -19,6 +22,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFieldDuration;
+import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
@@ -34,6 +38,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogram
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.amendjourney.WorkProgrammeActivityView;
+import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @ExtendWith(MockitoExtension.class)
 class RecordWorkProgrammeAmendmentDetailsServiceTest {
@@ -52,6 +57,9 @@ class RecordWorkProgrammeAmendmentDetailsServiceTest {
 
   @Mock
   private LicenceService licenceService;
+
+  @Mock
+  private RecordOfDecisionService recordOfDecisionService;
 
   @Mock
   private LicenceScheduleDetail licenceScheduleDetail;
@@ -425,13 +433,17 @@ class RecordWorkProgrammeAmendmentDetailsServiceTest {
             "27 July 2026",
             WorkProgrammeAmendmentDecision.AMEND.getDisplayName(),
             "6 months",
-            "Revised well commitment wording"),
+            "Revised well commitment wording",
+            changeUrl(workProgrammeActivity),
+            removeUrl(workProgrammeActivity)),
         new RecordWorkProgrammeAmendmentSummaryView(
             "Acquire 3D seismic data",
             "27 July 2026",
             WorkProgrammeAmendmentDecision.WAIVE.getDisplayName(),
             null,
-            null));
+            null,
+            changeUrl(waivedActivity),
+            removeUrl(waivedActivity)));
   }
 
   @Test
@@ -453,7 +465,9 @@ class RecordWorkProgrammeAmendmentDetailsServiceTest {
             "27 July 2026",
             WorkProgrammeAmendmentDecision.AMEND.getDisplayName(),
             null,
-            null));
+            null,
+            changeUrl(workProgrammeActivity),
+            removeUrl(workProgrammeActivity)));
   }
 
   @Test
@@ -461,6 +475,77 @@ class RecordWorkProgrammeAmendmentDetailsServiceTest {
     mockRecordedWorkProgrammes();
 
     assertThat(recordWorkProgrammeAmendmentDetailsService.getRecordedAmendmentViews(applicationDetail)).isEmpty();
+  }
+
+  @Test
+  void getRecordedAmendmentView_whenDecisionRecorded_returnsTheView() {
+    var workProgramme = workProgrammeWithActivity(workProgrammeActivity);
+    workProgramme.setDecision(WorkProgrammeAmendmentDecision.WAIVE);
+    mockExistingWorkProgramme(workProgramme);
+    mockActivityView(workProgrammeActivity, "Drill well to 3,000m");
+
+    var view = recordWorkProgrammeAmendmentDetailsService
+        .getRecordedAmendmentView(applicationDetail, workProgrammeActivity);
+
+    assertThat(view).isEqualTo(new RecordWorkProgrammeAmendmentSummaryView(
+        "Drill well to 3,000m",
+        "27 July 2026",
+        WorkProgrammeAmendmentDecision.WAIVE.getDisplayName(),
+        null,
+        null,
+        changeUrl(workProgrammeActivity),
+        removeUrl(workProgrammeActivity)));
+  }
+
+  @Test
+  void getRecordedAmendmentView_whenNoDecisionRecorded_throwsNotFound() {
+    mockNoExistingWorkProgramme();
+
+    assertThatThrownBy(() -> recordWorkProgrammeAmendmentDetailsService
+        .getRecordedAmendmentView(applicationDetail, workProgrammeActivity))
+        .isInstanceOf(LmsEntityNotFoundException.class);
+  }
+
+  @Test
+  void removeAmendmentDetails_whenOtherDecisionsRemain_deletesTheDecisionAndKeepsTheSummaryAnswer() {
+    var workProgramme = workProgrammeWithActivity(workProgrammeActivity);
+    var savedLicence = workProgrammeLicence(workProgramme, buildLicence(21, "P123"));
+    mockExistingWorkProgramme(workProgramme);
+    when(recordOfDecisionWorkProgrammeLicenceRepository.findAllByRecordOfDecisionWorkProgramme(workProgramme))
+        .thenReturn(List.of(savedLicence));
+    when(recordOfDecisionWorkProgrammeRepository.existsByScheduleWorkProgrammeApplicationDetail(applicationDetail))
+        .thenReturn(true);
+
+    recordWorkProgrammeAmendmentDetailsService.removeAmendmentDetails(applicationDetail, workProgrammeActivity);
+
+    var inOrder = inOrder(recordOfDecisionWorkProgrammeLicenceRepository, recordOfDecisionWorkProgrammeRepository);
+    inOrder.verify(recordOfDecisionWorkProgrammeLicenceRepository).deleteAll(List.of(savedLicence));
+    inOrder.verify(recordOfDecisionWorkProgrammeRepository).delete(workProgramme);
+    verify(recordOfDecisionService, never()).clearWorkProgrammeSummaryOption(applicationDetail);
+  }
+
+  @Test
+  void removeAmendmentDetails_whenLastDecisionRemoved_clearsTheSummaryAnswer() {
+    var workProgramme = workProgrammeWithActivity(workProgrammeActivity);
+    mockExistingWorkProgramme(workProgramme);
+    when(recordOfDecisionWorkProgrammeLicenceRepository.findAllByRecordOfDecisionWorkProgramme(workProgramme))
+        .thenReturn(List.of());
+    when(recordOfDecisionWorkProgrammeRepository.existsByScheduleWorkProgrammeApplicationDetail(applicationDetail))
+        .thenReturn(false);
+
+    recordWorkProgrammeAmendmentDetailsService.removeAmendmentDetails(applicationDetail, workProgrammeActivity);
+
+    verify(recordOfDecisionWorkProgrammeRepository).delete(workProgramme);
+    verify(recordOfDecisionService).clearWorkProgrammeSummaryOption(applicationDetail);
+  }
+
+  @Test
+  void removeAmendmentDetails_whenNoDecisionRecorded_throwsNotFound() {
+    mockNoExistingWorkProgramme();
+
+    assertThatThrownBy(() -> recordWorkProgrammeAmendmentDetailsService
+        .removeAmendmentDetails(applicationDetail, workProgrammeActivity))
+        .isInstanceOf(LmsEntityNotFoundException.class);
   }
 
   private void mockScheduleActivityViews(WorkProgrammeActivityView... views) {
@@ -507,6 +592,16 @@ class RecordWorkProgrammeAmendmentDetailsServiceTest {
     workProgrammeLicence.setRecordOfDecisionWorkProgramme(workProgramme);
     workProgrammeLicence.setLicence(licence);
     return workProgrammeLicence;
+  }
+
+  private String changeUrl(WorkProgrammeActivity activity) {
+    return ReverseRouter.route(on(RecordWorkProgrammeAmendmentDetailsController.class)
+        .renderForm(applicationDetail.getId(), activity.getId(), null, null));
+  }
+
+  private String removeUrl(WorkProgrammeActivity activity) {
+    return ReverseRouter.route(on(RecordWorkProgrammeAmendmentRemoveController.class)
+        .renderForm(applicationDetail.getId(), activity.getId(), null, null));
   }
 
   private void mockActivityView(WorkProgrammeActivity activity, String description) {

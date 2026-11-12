@@ -2,6 +2,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogra
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Optional;
@@ -179,6 +180,29 @@ class RecordOfDecisionServiceTest {
 
     assertThat(form.getExtensionDecision()).isNull();
     assertThat(form.getWorkProgrammeDecision()).isNull();
+  }
+
+  @Test
+  void clearWorkProgrammeSummaryOption_whenRecordExists_clearsTheAnswerAndSaves() {
+    var recordOfDecision = new RecordOfDecision();
+    recordOfDecision.setWorkProgrammeSummaryOption(RecordWorkProgrammeAmendmentSummaryOptions.NO_ALL_ADDED);
+    when(recordOfDecisionRepository.findByScheduleWorkProgrammeApplicationDetail(applicationDetail))
+        .thenReturn(Optional.of(recordOfDecision));
+
+    recordOfDecisionService.clearWorkProgrammeSummaryOption(applicationDetail);
+
+    assertThat(recordOfDecision.getWorkProgrammeSummaryOption()).isNull();
+    verify(recordOfDecisionRepository).save(recordOfDecision);
+  }
+
+  @Test
+  void clearWorkProgrammeSummaryOption_whenNoRecord_savesNothing() {
+    when(recordOfDecisionRepository.findByScheduleWorkProgrammeApplicationDetail(applicationDetail))
+        .thenReturn(Optional.empty());
+
+    recordOfDecisionService.clearWorkProgrammeSummaryOption(applicationDetail);
+
+    verifyNoMoreInteractions(recordOfDecisionRepository);
   }
 
   @Test

@@ -59,6 +59,14 @@ public class RecordOfDecisionService {
     recordOfDecisionRepository.save(recordOfDecision);
   }
 
+  @Transactional
+  public void clearWorkProgrammeSummaryOption(ScheduleWorkProgrammeApplicationDetail applicationDetail) {
+    findByApplicationDetail(applicationDetail).ifPresent(recordOfDecision -> {
+      recordOfDecision.setWorkProgrammeSummaryOption(null);
+      recordOfDecisionRepository.save(recordOfDecision);
+    });
+  }
+
   public boolean isWorkProgrammeAmendmentDetailsComplete(ScheduleWorkProgrammeApplicationDetail applicationDetail) {
     return findByApplicationDetail(applicationDetail)
         .map(recordOfDecision -> recordOfDecision.getWorkProgrammeSummaryOption()

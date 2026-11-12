@@ -1,5 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.recordofdecision;
 
+import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
+
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -8,6 +10,7 @@ import org.apache.commons.lang3.BooleanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFieldDurationDisplayUtil;
+import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.internalapi.LicenceJson;
@@ -16,6 +19,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogra
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.amendjourney.WorkProgrammeActivityView;
+import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @Service
 public class RecordWorkProgrammeAmendmentDetailsService {
@@ -25,19 +29,22 @@ public class RecordWorkProgrammeAmendmentDetailsService {
   private final ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService;
   private final WorkProgrammeActivityService workProgrammeActivityService;
   private final LicenceService licenceService;
+  private final RecordOfDecisionService recordOfDecisionService;
 
   public RecordWorkProgrammeAmendmentDetailsService(
       RecordOfDecisionWorkProgrammeRepository recordOfDecisionWorkProgrammeRepository,
       RecordOfDecisionWorkProgrammeLicenceRepository recordOfDecisionWorkProgrammeLicenceRepository,
       ScheduleWorkProgrammeApplicationService scheduleWorkProgrammeApplicationService,
       WorkProgrammeActivityService workProgrammeActivityService,
-      LicenceService licenceService
+      LicenceService licenceService,
+      RecordOfDecisionService recordOfDecisionService
   ) {
     this.recordOfDecisionWorkProgrammeRepository = recordOfDecisionWorkProgrammeRepository;
     this.recordOfDecisionWorkProgrammeLicenceRepository = recordOfDecisionWorkProgrammeLicenceRepository;
     this.scheduleWorkProgrammeApplicationService = scheduleWorkProgrammeApplicationService;
     this.workProgrammeActivityService = workProgrammeActivityService;
     this.licenceService = licenceService;
+    this.recordOfDecisionService = recordOfDecisionService;
   }
 
   public boolean hasAmendmentDetails(ScheduleWorkProgrammeApplicationDetail applicationDetail) {
@@ -88,6 +95,13 @@ public class RecordWorkProgrammeAmendmentDetailsService {
         .toList();
   }
 
+  public RecordWorkProgrammeAmendmentSummaryView getRecordedAmendmentView(
+      ScheduleWorkProgrammeApplicationDetail applicationDetail,
+      WorkProgrammeActivity workProgrammeActivity
+  ) {
+    return toSummaryView(getWorkProgrammeOrThrow(applicationDetail, workProgrammeActivity));
+  }
+
   private RecordWorkProgrammeAmendmentSummaryView toSummaryView(RecordOfDecisionWorkProgramme workProgramme) {
     var activityView = workProgrammeActivityService
         .createWorkProgrammeActivityView(workProgramme.getWorkProgrammeActivity());
@@ -105,7 +119,25 @@ public class RecordWorkProgrammeAmendmentDetailsService {
         activityView.dueDate(),
         workProgramme.getDecision().getDisplayName(),
         amendedDuration,
-        amendedText);
+        amendedText,
+        buildChangeUrl(workProgramme),
+        buildRemoveUrl(workProgramme));
+  }
+
+  private String buildChangeUrl(RecordOfDecisionWorkProgramme workProgramme) {
+    return ReverseRouter.route(on(RecordWorkProgrammeAmendmentDetailsController.class).renderForm(
+        workProgramme.getScheduleWorkProgrammeApplicationDetail().getId(),
+        workProgramme.getWorkProgrammeActivity().getId(),
+        null,
+        null));
+  }
+
+  private String buildRemoveUrl(RecordOfDecisionWorkProgramme workProgramme) {
+    return ReverseRouter.route(on(RecordWorkProgrammeAmendmentRemoveController.class).renderForm(
+        workProgramme.getScheduleWorkProgrammeApplicationDetail().getId(),
+        workProgramme.getWorkProgrammeActivity().getId(),
+        null,
+        null));
   }
 
   public RecordWorkProgrammeAmendmentDetailsForm getFilledForm(
@@ -159,6 +191,22 @@ public class RecordWorkProgrammeAmendmentDetailsService {
     recordOfDecisionWorkProgrammeRepository.save(workProgramme);
 
     saveTargetLicences(workProgramme, form);
+  }
+
+  @Transactional
+  public void removeAmendmentDetails(
+      ScheduleWorkProgrammeApplicationDetail applicationDetail,
+      WorkProgrammeActivity workProgrammeActivity
+  ) {
+    var workProgramme = getWorkProgrammeOrThrow(applicationDetail, workProgrammeActivity);
+
+    recordOfDecisionWorkProgrammeLicenceRepository.deleteAll(
+        recordOfDecisionWorkProgrammeLicenceRepository.findAllByRecordOfDecisionWorkProgramme(workProgramme));
+    recordOfDecisionWorkProgrammeRepository.delete(workProgramme);
+
+    if (!hasAmendmentDetails(applicationDetail)) {
+      recordOfDecisionService.clearWorkProgrammeSummaryOption(applicationDetail);
+    }
   }
 
   private void setAmendmentAnswers(
@@ -228,6 +276,15 @@ public class RecordWorkProgrammeAmendmentDetailsService {
         .toList();
 
     return licenceService.getLicencesByIds(licenceIds);
+  }
+
+  private RecordOfDecisionWorkProgramme getWorkProgrammeOrThrow(
+      ScheduleWorkProgrammeApplicationDetail applicationDetail,
+      WorkProgrammeActivity workProgrammeActivity
+  ) {
+    return findWorkProgramme(applicationDetail, workProgrammeActivity)
+        .orElseThrow(() -> new LmsEntityNotFoundException(
+            "Work programme amendment decision for activity %s not found".formatted(workProgrammeActivity.getId())));
   }
 
   private Optional<RecordOfDecisionWorkProgramme> findWorkProgramme(

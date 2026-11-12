@@ -114,6 +114,12 @@ class RecordWorkProgrammeAmendmentSummaryControllerTest extends AbstractControll
   void renderForm_whenDecisionsRecorded_showsCardsForEachDecision() throws Exception {
     var applicationDetailId = UUID.randomUUID();
     var applicationDetail = buildApplicationDetail(applicationDetailId);
+    var amendedActivityId = UUID.randomUUID();
+    var waivedActivityId = UUID.randomUUID();
+    var amendedChangeUrl = changeUrl(applicationDetailId, amendedActivityId);
+    var waivedChangeUrl = changeUrl(applicationDetailId, waivedActivityId);
+    var amendedRemoveUrl = removeUrl(applicationDetailId, amendedActivityId);
+    var waivedRemoveUrl = removeUrl(applicationDetailId, waivedActivityId);
 
     setupPassingInterceptors(applicationDetail);
     when(recordWorkProgrammeAmendmentDetailsService.hasAmendmentDetails(applicationDetail)).thenReturn(true);
@@ -122,10 +128,12 @@ class RecordWorkProgrammeAmendmentSummaryControllerTest extends AbstractControll
             new RecordWorkProgrammeAmendmentSummaryView(
                 "Drill well to 3,000m", "27 July 2026",
                 WorkProgrammeAmendmentDecision.AMEND.getDisplayName(),
-                "6 months", "Revised well commitment wording"),
+                "6 months", "Revised well commitment wording", amendedChangeUrl,
+                amendedRemoveUrl),
             new RecordWorkProgrammeAmendmentSummaryView(
                 "Acquire 3D seismic data", "31 March 2027",
-                WorkProgrammeAmendmentDecision.WAIVE.getDisplayName(), null, null)));
+                WorkProgrammeAmendmentDecision.WAIVE.getDisplayName(), null, null, waivedChangeUrl,
+                waivedRemoveUrl)));
     when(recordOfDecisionService.getFilledWorkProgrammeSummaryForm(applicationDetail))
         .thenReturn(new RecordWorkProgrammeAmendmentSummaryForm());
 
@@ -144,6 +152,10 @@ class RecordWorkProgrammeAmendmentSummaryControllerTest extends AbstractControll
         .andExpect(content().string(containsString("27 July 2026")))
         .andExpect(content().string(containsString("6 months")))
         .andExpect(content().string(containsString("Revised well commitment wording")))
+        .andExpect(content().string(containsString("href=\"%s\"".formatted(amendedChangeUrl))))
+        .andExpect(content().string(containsString("href=\"%s\"".formatted(waivedChangeUrl))))
+        .andExpect(content().string(containsString("href=\"%s\"".formatted(amendedRemoveUrl))))
+        .andExpect(content().string(containsString("href=\"%s\"".formatted(waivedRemoveUrl))))
         .andExpect(content().string(containsString(
             "Do you want to add another work programme activity to the scope of this decision?")));
   }
@@ -228,6 +240,7 @@ class RecordWorkProgrammeAmendmentSummaryControllerTest extends AbstractControll
   @Test
   void submitForm_invalidForm_returnsFormAndSavesNothing() throws Exception {
     var applicationDetailId = UUID.randomUUID();
+    var activityId = UUID.randomUUID();
     var applicationDetail = buildApplicationDetail(applicationDetailId);
 
     setupPassingInterceptors(applicationDetail);
@@ -235,7 +248,8 @@ class RecordWorkProgrammeAmendmentSummaryControllerTest extends AbstractControll
     when(recordWorkProgrammeAmendmentDetailsService.getRecordedAmendmentViews(applicationDetail))
         .thenReturn(List.of(new RecordWorkProgrammeAmendmentSummaryView(
             "Drill well to 3,000m", "27 July 2026",
-            WorkProgrammeAmendmentDecision.AMEND.getDisplayName(), null, null)));
+            WorkProgrammeAmendmentDecision.AMEND.getDisplayName(), null, null,
+            changeUrl(applicationDetailId, activityId), removeUrl(applicationDetailId, activityId))));
     doAnswer(invocation -> {
       Errors errors = invocation.getArgument(0);
       errors.rejectValue(
@@ -287,6 +301,16 @@ class RecordWorkProgrammeAmendmentSummaryControllerTest extends AbstractControll
       form.setRecordWorkProgrammeAmendmentSummaryOptions(option);
       return true;
     }).when(recordWorkProgrammeAmendmentSummaryFormValidator).isValid(any(BindingResult.class));
+  }
+
+  private String changeUrl(UUID applicationDetailId, UUID workProgrammeActivityId) {
+    return ReverseRouter.route(on(RecordWorkProgrammeAmendmentDetailsController.class)
+        .renderForm(applicationDetailId, workProgrammeActivityId, null, null));
+  }
+
+  private String removeUrl(UUID applicationDetailId, UUID workProgrammeActivityId) {
+    return ReverseRouter.route(on(RecordWorkProgrammeAmendmentRemoveController.class)
+        .renderForm(applicationDetailId, workProgrammeActivityId, null, null));
   }
 
   private ScheduleWorkProgrammeApplicationDetail buildApplicationDetail(UUID applicationDetailId) {

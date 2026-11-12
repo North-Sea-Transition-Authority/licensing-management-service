@@ -425,6 +425,13 @@ licence_id                           INTEGER NOT NULL → licences.id
 Unique on the pair. Populated only for `decision = 'COMPLETE_ON_ANOTHER_LICENCE'`; a
 commitment can move to more than one licence, hence a child table rather than a column.
 
+While the application is in `DRAFT_DECISION`, a work programme decision can be changed or
+removed. Changing it updates the existing `swp_record_of_decision_work_programme` row in place.
+Removing it physically deletes that row and its `swp_record_of_decision_work_programme_licence`
+rows. When the last row for an application detail is removed,
+`swp_record_of_decision.work_programme_summary_option` is set back to null (§8.4); removing one
+of several leaves it as it was.
+
 ### 5.8 What the decision does *not* do
 
 **Recording a decision does not change the licence schedule.** Nothing in the decision tables
@@ -693,6 +700,10 @@ which values each family actually uses.
 Note this shares the value `YES_NOW` with §8.2 but is a different enum with different
 remaining values — do not join or group the two columns together.
 
+A null means the question has not been answered, or that every work programme decision was
+removed after it was answered (§5.7). So a null here alongside no
+`swp_record_of_decision_work_programme` rows is expected, not a gap in the data.
+
 ### 8.5 `swp_record_of_decision_work_programme.decision`
 
 | Value | Display | Effect on the row |
@@ -948,6 +959,10 @@ So a `DELETED` application still has its full set of request rows, and those row
 evidence the application was ever submitted. Only a first-version draft (`version_number` 1)
 can be deleted: an update draft (`version_number` greater than 1) cannot, for either
 application type.
+
+The same applies to work programme decisions while the application is in `DRAFT_DECISION`:
+removing one physically deletes its `swp_record_of_decision_work_programme` row and its
+licence rows, and removing the last one resets `work_programme_summary_option` to null (§5.7).
 
 ### 11.7 A decision is not a schedule change
 

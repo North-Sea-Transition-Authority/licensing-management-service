@@ -1,4 +1,5 @@
 <#include '../../layout/layout.ftl'>
+<#import 'summarylistcard/recordWorkProgrammeAmendmentSummaryCard.ftl' as recordWorkProgrammeAmendmentSummaryCard>
 
 <@defaultPage
 htmlTitle=pageTitle
@@ -9,32 +10,9 @@ breadcrumbs=breadcrumbs>
     <@fdsForm.htmlForm>
 
         <#list workProgrammeAmendments as workProgrammeAmendment>
-            <@fdsSummaryList.summaryListCard
-                headingText=workProgrammeAmendment.workProgrammeDescription()
-                headingSize="h2"
-                summaryListId="work-programme-amendment-${workProgrammeAmendment?index}">
-
-                <@fdsSummaryList.summaryListRowNoAction keyText="Due date">
-                    ${workProgrammeAmendment.dueDate()}
-                </@fdsSummaryList.summaryListRowNoAction>
-
-                <@fdsSummaryList.summaryListRowNoAction keyText="Decision">
-                    ${workProgrammeAmendment.decision()}
-                </@fdsSummaryList.summaryListRowNoAction>
-
-                <#if workProgrammeAmendment.amendedDuration()?has_content>
-                    <@fdsSummaryList.summaryListRowNoAction keyText="Amended duration">
-                        ${workProgrammeAmendment.amendedDuration()}
-                    </@fdsSummaryList.summaryListRowNoAction>
-                </#if>
-
-                <#if workProgrammeAmendment.amendedText()?has_content>
-                    <@fdsSummaryList.summaryListRowNoAction keyText="Amended text">
-                        ${workProgrammeAmendment.amendedText()}
-                    </@fdsSummaryList.summaryListRowNoAction>
-                </#if>
-
-            </@fdsSummaryList.summaryListCard>
+            <@recordWorkProgrammeAmendmentSummaryCard.recordWorkProgrammeAmendmentCard
+                workProgrammeAmendment=workProgrammeAmendment
+                summaryListId="work-programme-amendment-${workProgrammeAmendment?index}"/>
         </#list>
 
         <@fdsRadio.radioGroup

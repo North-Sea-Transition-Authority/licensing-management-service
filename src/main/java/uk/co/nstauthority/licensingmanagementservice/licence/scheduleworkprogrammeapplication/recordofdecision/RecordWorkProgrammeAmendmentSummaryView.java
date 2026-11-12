@@ -5,6 +5,8 @@ public record RecordWorkProgrammeAmendmentSummaryView(
     String dueDate,
     String decision,
     String amendedDuration,
-    String amendedText
+    String amendedText,
+    String changeUrl,
+    String removeUrl
 ) {
 }

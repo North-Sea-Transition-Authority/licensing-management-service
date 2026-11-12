@@ -27,7 +27,6 @@ steps:
         # Split per dind step so concurrent Gradle daemons don't lock each other out
         - ./gradle_cache-gis
         - ./gradle_cache-backend
-        - ./gradle_cache-pears
         - ./sonar_cache
         - ./trivy_cache
 
@@ -135,54 +134,9 @@ steps:
         - ./gradlew checkstyleMain test bootJar --continue --parallel --max-workers=3 --build-cache
       build_image: repo1.dev.fivium.local:5000/docker-compose-java21
 
-  # Compares the licence timeline this application builds with the one PEARS holds. A difference is
-  # a discrepancy to investigate rather than a broken build, so the step's failure is ignored -- the
-  # report published by sync-reports below is what the step is read for. Runs even when an earlier
-  # step failed, so an unrelated test failure does not cost a sweep.
-  # Runs on its own dind daemon and Gradle home, so it doesn't queue behind build-backend
-  - name: pears-migration-validation
-    image: quay.io/testcontainers/dind-drone-plugin
-    privileged: true
-    failure: ignore
-    depends_on: [ restore-cache ]
-    environment:
-      TZ: Europe/London
-      CI_WORKSPACE: /drone/src
-      GRADLE_USER_HOME: /drone/src/gradle_cache-pears
-      DOCKER_CONFIG_JSON:
-        from_secret: docker_config
-      DOCKER_CONFIG: /drone/dockerconfig
-      PEARS_DATASOURCE_URL: jdbc:oracle:thin:@//db-ogadev1.sb2.dev:1521/ogadev1
-      PEARS_DATASOURCE_USERNAME: xviewmgr
-      PEARS_DATASOURCE_PASSWORD:
-        from_secret: pears_datasource_password
-    volumes:
-      - name: docker-cache-overlay2-pears
-        path: /drone/docker/overlay2
-      - name: docker-cache-image-pears
-        path: /drone/docker/image
-    settings:
-      storage_driver: overlay2 --insecure-registry repo1.dev.fivium.local:5000 --dns=192.168.20.1
-      cmd:
-        - mkdir /drone/dockerconfig
-        - echo $DOCKER_CONFIG_JSON > /drone/dockerconfig/config.json
-        # Own copy of the project dir so Gradle doesn't lock-contend with build-backend's build
-        - mkdir /drone/src-pears
-        - tar --exclude=./node_modules --exclude='./gradle_cache-*' --exclude=./sonar_cache --exclude=./trivy_cache --exclude=./.git -C /drone/src -cf - . | tar -xf - -C /drone/src-pears
-        - cd /drone/src-pears
-        - chmod +x gradlew
-        # failure: ignore already covers this step -- sync-reports wants the report copied even on discrepancies
-        - ./gradlew pearsMigrationTest || true
-        - mkdir -p /drone/src/build/reports
-        - cp -a build/reports/. /drone/src/build/reports/
-      build_image: repo1.dev.fivium.local:5000/docker-compose-java21
-    when:
-      status: [ success, failure ]
-
   - name: sync-reports
     image: alpine:3.16.0
-    # pears-migration-validation's own report only lands in build/reports once that step completes
-    depends_on: [ build-backend, pears-migration-validation ]
+    depends_on: [ build-backend ]
     commands:
       - mkdir -p /var/webfiles/${DRONE_BUILD_NUMBER}
       - cp -r build/reports /var/webfiles/${DRONE_BUILD_NUMBER}
@@ -319,7 +273,6 @@ steps:
         - ./fivium-design-system-core/node_modules
         - ./gradle_cache-gis
         - ./gradle_cache-backend
-        - ./gradle_cache-pears
         - ./sonar_cache
         - ./trivy_cache
 
@@ -366,14 +319,6 @@ volumes:
   - name: docker-cache-image-backend
     host:
       path: /home/fivium/docker-drone-cache-v2/image-backend
-
-  - name: docker-cache-overlay2-pears
-    host:
-      path: /home/fivium/docker-drone-cache-v2/overlay2-pears
-
-  - name: docker-cache-image-pears
-    host:
-      path: /home/fivium/docker-drone-cache-v2/image-pears
 
 ---
 kind: pipeline
@@ -593,6 +538,142 @@ volumes:
   - name: docker-cache-image-backend
     host:
       path: /home/fivium/docker-drone-cache-v2/image-backend
+
+---
+# Compares the licence timeline this application builds with the one PEARS holds, against a copy of the dev database
+kind: pipeline
+type: docker
+name: pears-migration-validation
+
+steps:
+  - name: restore-cache
+    image: drillster/drone-volume-cache
+    volumes:
+      - name: drone-cache
+        path: /cache
+    settings:
+      restore: true
+      mount:
+        - ./gradle_cache-pears
+
+  # Dumps dev while pears-migration-validation builds. pg_dump must be at least dev's Postgres version.
+  - name: dump-dev-database
+    image: postgres:16-alpine
+    dns: [ 192.168.20.1 ]
+    environment:
+      LMS_DEV_DATABASE_HOST:
+        from_secret: lms_dev_database_host
+      LMS_DEV_DATABASE_NAME: lms
+      LMS_DEV_DATABASE_USERNAME: lms_app
+      LMS_DEV_DATABASE_PASSWORD:
+        from_secret: lms_dev_database_password
+    commands:
+      - PGPASSWORD="$LMS_DEV_DATABASE_PASSWORD" pg_dump -h "$LMS_DEV_DATABASE_HOST" -U "$LMS_DEV_DATABASE_USERNAME" -d "$LMS_DEV_DATABASE_NAME" -Fc --no-owner --no-privileges --exclude-table-data="*.spring_session*" -f lms-dev.dump.tmp
+      # Renamed once complete, as its existence is what tells pears-migration-validation it is ready
+      - mv lms-dev.dump.tmp lms-dev.dump
+
+  # A difference is a discrepancy to investigate rather than a broken build, so failure is ignored and the
+  # report is what to read. A failed build also shows as this step failing, so check the log.
+  - name: pears-migration-validation
+    image: quay.io/testcontainers/dind-drone-plugin
+    privileged: true
+    depends_on: [ restore-cache ]
+    failure: ignore
+    environment:
+      TZ: Europe/London
+      CI_WORKSPACE: /drone/src
+      GRADLE_USER_HOME: /drone/src/gradle_cache-pears
+      DOCKER_CONFIG_JSON:
+        from_secret: docker_config
+      DOCKER_CONFIG: /drone/dockerconfig
+      # jOOQ's codegen database is the only Testcontainers container, and stopJooqCodegenDatabase removes it
+      TESTCONTAINERS_RYUK_DISABLED: "true"
+      PEARS_DATASOURCE_URL: jdbc:oracle:thin:@//db-ogadev1.sb2.dev:1521/ogadev1
+      PEARS_DATASOURCE_USERNAME: xviewmgr
+      PEARS_DATASOURCE_PASSWORD:
+        from_secret: pears_datasource_password
+      # Replaces the integration-test Testcontainers database with the restored dev copy
+      SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/lms
+      SPRING_DATASOURCE_USERNAME: lms_app
+      SPRING_DATASOURCE_PASSWORD: dev1
+      SPRING_DATASOURCE_DRIVER_CLASS_NAME: org.postgresql.Driver
+    volumes:
+      - name: docker-cache-overlay2-pears
+        path: /drone/docker/overlay2
+      - name: docker-cache-image-pears
+        path: /drone/docker/image
+    settings:
+      storage_driver: overlay2 --insecure-registry repo1.dev.fivium.local:5000 --dns=192.168.20.1
+      cmd:
+        # Joined with && inside sh -c '...' by the plugin: no commas or single quotes
+        - mkdir /drone/dockerconfig
+        - echo $DOCKER_CONFIG_JSON > /drone/dockerconfig/config.json
+        - chmod +x gradlew
+        # Shares this container's network namespace, so it is on localhost:5432
+        - docker run -d --name lms-dev-db --network container:$(hostname) -e POSTGRES_DB=lms -e POSTGRES_USER=lms_app -e POSTGRES_PASSWORD=dev1 postgres:16-alpine
+        - ./gradlew :testClasses -x :gis-framework:buildFrontend --parallel --build-cache
+        # Gives up after ten minutes, in case dump-dev-database failed
+        - "{ waited=0; until [ -f lms-dev.dump ]; do [ $waited -lt 600 ] || exit 1; sleep 2; waited=$((waited + 2)); done; }"
+        # Over TCP, so this only passes once the image's init has finished
+        - until docker exec lms-dev-db pg_isready -q -h localhost -U lms_app -d lms; do sleep 1; done
+        # Roles are per cluster, so the dump doesn't carry them
+        - docker exec lms-dev-db psql -q -v ON_ERROR_STOP=1 -U lms_app -d lms -c "CREATE ROLE datawarehouseuser; CREATE ROLE lms_gis_migration"
+        - docker cp lms-dev.dump lms-dev-db:/tmp/lms-dev.dump
+        - docker exec lms-dev-db pg_restore -U lms_app -d lms --no-owner --no-privileges -j 4 /tmp/lms-dev.dump
+        - ./gradlew pearsMigrationTest -x :gis-framework:buildFrontend --build-cache
+      build_image: repo1.dev.fivium.local:5000/docker-compose-java21
+
+  # Lands alongside the default pipeline's reports
+  - name: sync-reports
+    image: alpine:3.16.0
+    depends_on: [ pears-migration-validation ]
+    commands:
+      - mkdir -p /var/webfiles/${DRONE_BUILD_NUMBER}
+      - cp -r build/reports /var/webfiles/${DRONE_BUILD_NUMBER}
+    volumes:
+      - name: webfiles
+        path: /var/webfiles
+    when:
+      status: [ success, failure ]
+
+  - name: rebuild-cache
+    image: drillster/drone-volume-cache
+    depends_on: [ sync-reports ]
+    commands:
+      # The plugin does not lock, so concurrent rebuilds corrupt each other's rsync into /cache
+      - flock -x /cache/.lock -c /usr/local/cacher.sh
+    volumes:
+      - name: drone-cache
+        path: /cache
+    settings:
+      rebuild: true
+      mount:
+        - ./gradle_cache-pears
+    when:
+      status: [ success, failure ]
+
+trigger:
+  event:
+    include:
+      - push
+
+volumes:
+  - name: webfiles
+    host:
+      path: /home/fivium/www/licensing-management-service
+
+  - name: drone-cache
+    host:
+      path: /home/fivium/drone-cache
+
+  - name: docker-cache-overlay2-pears
+    host:
+      path: /home/fivium/docker-drone-cache-v2/overlay2-pears
+
+  - name: docker-cache-image-pears
+    host:
+      path: /home/fivium/docker-drone-cache-v2/image-pears
+
 ---
 
 kind: secret
@@ -628,3 +709,15 @@ data: T1ks6mb9uwXv8bHQcuTGjpgA7qYMRrqqKSaJxpH/vzLqxUaJKGgcNF9CdPb4N0Rl+Neuzb8NeH
 kind: secret
 name: pears_datasource_password
 data: aO/6kPASQYNRSEXRCFFZm3omxUplQTAvN0ueIf0yNv0=
+
+---
+
+kind: secret
+name: lms_dev_database_host
+data: N7ci6v7VRn1JBOeBBMWSehzk8qCTz0U7iOdmDr3toJylqYmDcwn5CuV3nYQ1CuklDcnkjd5n/DW3MWe1cfP++rK7gnnj80499rZntA==
+
+---
+
+kind: secret
+name: lms_dev_database_password
+data: 0fsAYt8Z7nNhvbGY2eIQFz2qztLoys8AuND1shqcbaFAYR3PmMvuRVzJslBjMWP9YXNb0MN3cdQ=

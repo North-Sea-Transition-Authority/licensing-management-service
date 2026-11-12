@@ -3,7 +3,7 @@ buildscript {
 		mavenCentral()
 	}
 	dependencies {
-		// used only by the startJooqCodegenDatabase task, to stand up an ephemeral, migrated Postgres for
+		// used only by the generateJooq task, to stand up an ephemeral, migrated Postgres for
 		// jOOQ codegen to introspect - kept in step with the versions the app itself resolves to
 		classpath 'org.testcontainers:postgresql:1.21.4'
 		classpath 'org.flywaydb:flyway-database-postgresql:11.7.2'
@@ -111,41 +111,10 @@ sourceSets {
 	}
 }
 
-// generateJooq introspects a Postgres schema to produce typed table/record classes. startJooqCodegenDatabase
-// spins up a throwaway Testcontainers Postgres, applies the project's own Flyway migrations to it, and
-// generateJooq points at that container - reproducible locally and in CI, with no manual DB setup. compileJava
-// depends on it directly, so it re-runs (Docker required) as part of every build; the generated sources live
-// under build/ and are gitignored rather than committed.
+// generateJooq migrates a throwaway Testcontainers Postgres with the project's Flyway migrations and generates
+// typed table/record classes from it. While the migrations are unchanged it is up to date or comes from the build
+// cache, so Docker is only needed when they change. The generated sources live under build/ and are gitignored.
 def jooqCodegenContainer = null
-
-tasks.register('startJooqCodegenDatabase') {
-	doLast {
-		def container = new org.testcontainers.containers.PostgreSQLContainer(
-			org.testcontainers.utility.DockerImageName.parse('postgres:16-alpine')
-		)
-		container.start()
-
-		// stopJooqCodegenDatabase only runs once generateJooq has run, so a failed migration has to stop the
-		// container here, or it is left running for the life of the Gradle daemon
-		try {
-			org.flywaydb.core.Flyway.configure()
-				.dataSource(container.getJdbcUrl(), container.getUsername(), container.getPassword())
-				.schemas('lms')
-				.locations('filesystem:src/main/resources/db/migration')
-				.placeholders([
-					'application-schema'         : 'lms',
-					'datawarehouse-user-password': 'codegen',
-				])
-				.load()
-				.migrate()
-		} catch (Exception e) {
-			container.stop()
-			throw e
-		}
-
-		jooqCodegenContainer = container
-	}
-}
 
 tasks.register('stopJooqCodegenDatabase') {
 	doLast {
@@ -195,13 +164,37 @@ jooq {
 }
 
 tasks.named('generateJooq') {
-	dependsOn 'startJooqCodegenDatabase'
+	// The migrations are the only input the plugin doesn't already track. Declaring them lets the task be cached.
+	inputs.dir('src/main/resources/db/migration')
+		.withPropertyName('migrations')
+		.withPathSensitivity(PathSensitivity.RELATIVE)
+	allInputsDeclared = true
 	finalizedBy 'stopJooqCodegenDatabase'
+
+	// Started here rather than in its own task, so it only runs when generation does
 	doFirst {
+		def container = new org.testcontainers.containers.PostgreSQLContainer(
+			org.testcontainers.utility.DockerImageName.parse('postgres:16-alpine')
+		)
+		container.start()
+		jooqCodegenContainer = container
+
+		// Set after the inputs are fingerprinted, so they don't change the cache key
 		def jdbc = jooq.configurations.getByName('main').jooqConfiguration.jdbc
-		jdbc.url = jooqCodegenContainer.getJdbcUrl()
-		jdbc.user = jooqCodegenContainer.getUsername()
-		jdbc.password = jooqCodegenContainer.getPassword()
+		jdbc.url = container.getJdbcUrl()
+		jdbc.user = container.getUsername()
+		jdbc.password = container.getPassword()
+
+		org.flywaydb.core.Flyway.configure()
+			.dataSource(container.getJdbcUrl(), container.getUsername(), container.getPassword())
+			.schemas('lms')
+			.locations('filesystem:src/main/resources/db/migration')
+			.placeholders([
+				'application-schema'         : 'lms',
+				'datawarehouse-user-password': 'codegen',
+			])
+			.load()
+			.migrate()
 	}
 }
 
@@ -238,11 +231,14 @@ tasks.register('pearsMigrationTest', Test) {
 	}
 	testClassesDirs = sourceSets.test.output.classesDirs
 	classpath = sourceSets.test.runtimeClasspath
-	// 3 threads in one JVM, matching the app's PEARS connection pool
+	// One Oracle pool, one database container, one report.
+	maxParallelForks = 1
+	// Licences are swept on several threads within that fork. Each holds a connection from both Hikari
+	// pools, which default to 10, so raise those if going above that.
 	systemProperty 'junit.jupiter.execution.parallel.enabled', 'true'
-	systemProperty 'junit.jupiter.execution.parallel.mode.default', 'concurrent'
 	systemProperty 'junit.jupiter.execution.parallel.config.strategy', 'fixed'
-	systemProperty 'junit.jupiter.execution.parallel.config.fixed.parallelism', '3'
+	systemProperty 'junit.jupiter.execution.parallel.config.fixed.parallelism',
+		providers.gradleProperty('pearsMigrationParallelism').getOrElse('4')
 	shouldRunAfter tasks.named('test')
 	testLogging {
 		showStandardStreams = true

@@ -12,7 +12,8 @@ enum PearsComparisonSource {
   OPERATIONS("the operation-derived positions (checks the replay)"),
 
   /**
-   * The positions PEARS holds in its own right, which is what the migration is validated against.
+   * The positions PEARS holds in its own right, which is what the migration is validated against. Also what each
+   * position is checked to hold, from the copy of the licence PEARS keeps at every data point.
    */
   DATA_POINTS("the PEARS data points (checks the reading)");
 

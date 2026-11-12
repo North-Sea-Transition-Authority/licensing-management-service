@@ -1,7 +1,9 @@
 package uk.co.nstauthority.licensingmanagementservice.migration.pears;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.regex.Pattern;
 
 /**
  * Shortens the lists that go into difference messages and summaries. A licence can be short of eighty positions for
@@ -14,7 +16,28 @@ final class ReportText {
    */
   static final int SAMPLE_SIZE = 12;
 
+  private static final Pattern LICENCE_REFERENCE = Pattern.compile("([A-Z]+)(\\d+)");
+
+  /**
+   * Licence references in the order the sweep reads them from PEARS, by licence type and then number, so a summary
+   * reads the same however the licences' comparisons happened to finish.
+   */
+  static final Comparator<String> SWEEP_ORDER = Comparator
+      .comparing(ReportText::licenceType)
+      .thenComparingLong(ReportText::licenceNumber)
+      .thenComparing(Comparator.naturalOrder());
+
   private ReportText() {
+  }
+
+  private static String licenceType(String licenceReference) {
+    var matcher = LICENCE_REFERENCE.matcher(licenceReference);
+    return matcher.matches() ? matcher.group(1) : licenceReference;
+  }
+
+  private static long licenceNumber(String licenceReference) {
+    var matcher = LICENCE_REFERENCE.matcher(licenceReference);
+    return matcher.matches() ? Long.parseLong(matcher.group(2)) : 0;
   }
 
   /**

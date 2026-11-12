@@ -55,6 +55,32 @@ class LivePositionComparison {
   }
 
   /**
+   * The positions both sides hold, each of PEARS' paired with the built position standing for it, in PEARS' order.
+   * Paired as {@link #compare} pairs them, so what is said about a pair never contradicts what is said about the
+   * timeline.
+   */
+  static List<MatchedPosition> matched(PearsLicencePositions pearsLicencePositions, List<LicencePosition> licencePositions) {
+    var sortedLicencePositions = sorted(licencePositions);
+    var lmsLicencePositions = sortedLicencePositions.stream().map(LmsLicencePosition::from).toList();
+    var matching = PositionMatching.of(pearsLicencePositions.positions(), lmsLicencePositions);
+
+    var matched = new ArrayList<MatchedPosition>();
+    for (var pearsIndex = 0; pearsIndex < pearsLicencePositions.positions().size(); pearsIndex++) {
+      var lmsIndex = matching.lmsIndexByPearsIndex().get(pearsIndex);
+      if (lmsIndex != null) {
+        matched.add(new MatchedPosition(pearsLicencePositions.positions().get(pearsIndex), sortedLicencePositions.get(lmsIndex)));
+      }
+    }
+    return matched;
+  }
+
+  /**
+   * One position both sides hold.
+   */
+  record MatchedPosition(PearsLicencePositions.Position pearsPosition, LicencePosition licencePosition) {
+  }
+
+  /**
    * @param missing    positions PEARS holds that this application did not build
    * @param additional positions this application built that PEARS does not hold
    */
@@ -62,9 +88,14 @@ class LivePositionComparison {
   }
 
   private static List<LmsLicencePosition> chronological(List<LicencePosition> licencePositions) {
+    return sorted(licencePositions).stream()
+        .map(LmsLicencePosition::from)
+        .toList();
+  }
+
+  private static List<LicencePosition> sorted(List<LicencePosition> licencePositions) {
     return licencePositions.stream()
         .sorted(Comparator.comparing(LicencePosition::getPositionDate).thenComparingInt(LicencePosition::getPositionDateOrder))
-        .map(LmsLicencePosition::from)
         .toList();
   }
 
@@ -109,7 +140,7 @@ class LivePositionComparison {
           PositionDifference.Kind.POSITIONS,
           "%,d position(s) PEARS holds and this build does not: %s".formatted(
               missing.size(),
-              ReportText.sample(missing.stream().map(LivePositionComparison::describe).toList())
+              ReportText.sample(missing.stream().map(PearsLicencePositions.Position::describe).toList())
           )
       ));
     }
@@ -179,10 +210,6 @@ class LivePositionComparison {
     }
 
     return differences;
-  }
-
-  private static String describe(PearsLicencePositions.Position position) {
-    return "%s (%s #%d)".formatted(position.regulatorReference(), position.positionDate(), position.positionDateOrder());
   }
 
   /**

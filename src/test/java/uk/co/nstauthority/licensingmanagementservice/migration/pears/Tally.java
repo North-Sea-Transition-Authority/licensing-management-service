@@ -8,7 +8,9 @@ import org.apache.commons.collections4.multimap.ArrayListValuedHashMap;
 
 /**
  * One section of the migration validation summary: a count per key, the licences behind each key, and one worked
- * example. Licences are named only where there are few enough of them to be worth naming.
+ * example. Licences are named only where there are few enough of them to be worth naming. Licences are listed, and
+ * the example chosen, by {@link ReportText#SWEEP_ORDER} rather than the order they were added in, which a parallel
+ * sweep does not fix.
  */
 class Tally {
 
@@ -19,7 +21,7 @@ class Tally {
 
   private final String heading;
   private final ListValuedMap<String, String> licences = new ArrayListValuedHashMap<>();
-  private final Map<String, String> examples = new HashMap<>();
+  private final Map<String, Example> examples = new HashMap<>();
 
   Tally(String heading) {
     this.heading = heading;
@@ -29,9 +31,14 @@ class Tally {
     licences.put(key, licenceReference);
   }
 
-  void example(String key, String example) {
-    // lowest wins, so the example does not depend on which thread got here first
-    examples.merge(key, example, (kept, candidate) -> kept.compareTo(candidate) <= 0 ? kept : candidate);
+  /**
+   * Offers an example for the key, kept if no licence earlier in the sweep has already given one. A licence offering
+   * several keeps its first.
+   */
+  void example(String key, String licenceReference, String detail) {
+    examples.merge(key, new Example(licenceReference, detail), (kept, offered) ->
+        ReportText.SWEEP_ORDER.compare(offered.licenceReference(), kept.licenceReference()) < 0 ? offered : kept
+    );
   }
 
   boolean isEmpty() {
@@ -52,8 +59,7 @@ class Tally {
             .comparingInt((String key) -> licences.get(key).size()).reversed()
             .thenComparing(Comparator.naturalOrder()))
         .forEach(key -> {
-          // sorted because the sweep records licences in whatever order its threads finish
-          var affected = licences.get(key).stream().sorted().toList();
+          var affected = licences.get(key).stream().sorted(ReportText.SWEEP_ORDER).toList();
           out.append("  %-64s %,9d%n".formatted(key, affected.size()));
 
           if (affected.size() <= WORTH_LISTING) {
@@ -62,8 +68,11 @@ class Tally {
 
           var example = examples.get(key);
           if (example != null) {
-            out.append("      e.g. %s%n".formatted(example));
+            out.append("      e.g. %s -- %s%n".formatted(example.licenceReference(), example.detail()));
           }
         });
+  }
+
+  private record Example(String licenceReference, String detail) {
   }
 }

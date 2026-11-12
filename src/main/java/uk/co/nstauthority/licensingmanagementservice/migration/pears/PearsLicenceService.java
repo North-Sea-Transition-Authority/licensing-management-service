@@ -4,11 +4,13 @@ import java.io.IOException;
 import java.io.Reader;
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 import javax.sql.DataSource;
@@ -32,6 +34,7 @@ class PearsLicenceService {
   private static final String LICENCE_HISTORY_SQL = sql("licence-history.sql");
   private static final String LICENCE_REFERENCES_SQL = sql("licence-references.sql");
   private static final String DATA_POINT_POSITIONS_SQL = sql("data-point-positions.sql");
+  private static final String DATA_POINT_STATES_SQL = sql("data-point-states.sql");
 
   /**
    * What an operation type must look like before it is interpolated into the history query. Oracle
@@ -101,6 +104,51 @@ class PearsLicenceService {
     }
 
     return PearsLicencePositions.reconstruct(rows);
+  }
+
+  /**
+   * What one licence holds at each of its positions, from the copy of the licence PEARS keeps at every data point.
+   * Keyed as {@link #dataPointPositions} keys its positions, so the two line up; a position holding nothing has no
+   * entry.
+   *
+   * @param licenceType   the licence's prefix, for example {@code P}
+   * @param licenceNumber the licence's number, for example {@code 1}
+   */
+  public Map<PearsLicencePositions.PositionKey, PearsPositionState> dataPointStates(String licenceType, int licenceNumber) {
+    var start = System.nanoTime();
+    var rows = new ArrayList<PearsPositionState.Row>();
+
+    try (var connection = dataSource.getConnection();
+         var statement = connection.prepareStatement(DATA_POINT_STATES_SQL)) {
+      statement.setFetchSize(5_000);
+      // Every bind is a (licence type, licence number) pair, as in the history query.
+      var binds = DATA_POINT_STATES_SQL.chars().filter(character -> character == '?').count();
+      for (var bind = 1; bind < binds; bind += 2) {
+        statement.setString(bind, licenceType);
+        statement.setInt(bind + 1, licenceNumber);
+      }
+
+      try (var resultSet = statement.executeQuery()) {
+        while (resultSet.next()) {
+          rows.add(new PearsPositionState.Row(
+              LocalDate.parse(resultSet.getString(1)), // position_date
+              resultSet.getInt(2), // position_sequence
+              resultSet.getString(3), // held_kind
+              nullableInt(resultSet, 4), // ou_id
+              nullableInt(resultSet, 5), // block_si_id
+              nullableInt(resultSet, 6), // subarea_si_id
+              resultSet.getString(7) // subarea_short_name
+          ));
+        }
+      }
+    } catch (SQLException e) {
+      throw new IllegalStateException(
+          "Could not read data point states for %s%d".formatted(licenceType, licenceNumber), e);
+    }
+
+    LOGGER.info("Processed {} data point state rows from PEARS in {}ms",
+        rows.size(), Duration.ofNanos(System.nanoTime() - start).toMillis());
+    return PearsPositionState.byPosition(rows);
   }
 
   /**
@@ -182,6 +230,11 @@ class PearsLicenceService {
         })
         .reduce((left, right) -> left + "," + right)
         .orElseThrow();
+  }
+
+  private static Integer nullableInt(ResultSet resultSet, int column) throws SQLException {
+    var value = resultSet.getInt(column);
+    return resultSet.wasNull() ? null : value;
   }
 
   private static Reader emptyHistory(String licenceType, int licenceNumber) {

@@ -258,6 +258,26 @@ class LivePositionComparisonTest {
     assertThat(unmatched).isEqualTo(new LivePositionComparison.UnmatchedPositions(0, 0));
   }
 
+  @Test
+  void matched() {
+    var first = livePosition(FIRST_DATE, 6, 1, "REF-A");
+    var notBuilt = livePosition(SECOND_DATE, 3, 1, "REF-B");
+    var third = livePosition(THIRD_DATE, 2, 1, "REF-C");
+    var builtFirst = builtPosition(FIRST_DATE, 1, "REF-A");
+    var builtThird = builtPosition(THIRD_DATE, 1, "REF-C");
+    var notHeldByPears = builtPosition(SECOND_DATE, 1, "REF-D");
+
+    var matched = LivePositionComparison.matched(
+        livePositions(first, notBuilt, third),
+        List.of(builtThird, notHeldByPears, builtFirst)
+    );
+
+    assertThat(matched).containsExactly(
+        new LivePositionComparison.MatchedPosition(first, builtFirst),
+        new LivePositionComparison.MatchedPosition(third, builtThird)
+    );
+  }
+
   private static PearsLicencePositions livePositions(PearsLicencePositions.Position... positions) {
     return livePositions(List.of(positions));
   }

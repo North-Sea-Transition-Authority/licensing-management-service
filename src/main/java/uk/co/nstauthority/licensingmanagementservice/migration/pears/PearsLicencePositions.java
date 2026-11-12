@@ -47,6 +47,14 @@ public record PearsLicencePositions(
       String regulatorReference,
       long transactionId
   ) {
+
+    public PositionKey key() {
+      return new PositionKey(positionDate, positionSequence);
+    }
+
+    public String describe() {
+      return "%s (%s #%d)".formatted(regulatorReference, positionDate, positionDateOrder);
+    }
   }
 
   /**
@@ -99,7 +107,7 @@ public record PearsLicencePositions(
   /**
    * What makes a position one position, within a licence.
    */
-  private record PositionKey(LocalDate positionDate, int positionSequence) {
+  public record PositionKey(LocalDate positionDate, int positionSequence) {
   }
 
   /**

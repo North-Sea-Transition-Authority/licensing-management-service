@@ -183,6 +183,43 @@ class MigrationValidationReportTest {
         .contains("0 operations ignored on 0 licences");
   }
 
+  @Test
+  void render_whenEveryPositionHoldsWhatPearsHolds_thenSaysSo() {
+    sweep();
+    report.recordStateComparison("P1", new PositionStateComparison.Result(3, 0, 0, List.of()));
+
+    var rendered = report.render();
+
+    assertThat(rendered)
+        .contains("--- What each position holds, against the PEARS data points ---")
+        .contains("3 positions compared on administrator, licensees, blocks and subareas")
+        .contains("Every position compared holds the administrator, licensees, blocks and subareas PEARS holds.");
+    assertThat(report.licenceReferencesHoldingDifferently()).isEmpty();
+  }
+
+  @Test
+  void render_whenAPositionHoldsSomethingDifferent_thenTheLicenceIsGroupedByWhatDiffers() {
+    sweep();
+    sweep();
+    report.recordStateComparison("P1", new PositionStateComparison.Result(2, 1, 0, List.of(
+        new PositionDifference(PositionDifference.Kind.ADMINISTRATORS, "REF-A is administered by 1 here and by 2 in PEARS"),
+        new PositionDifference(PositionDifference.Kind.LICENSEES, "REF-A: only PEARS holds 3")
+    )));
+    report.recordStateComparison("P2", new PositionStateComparison.Result(1, 0, 4, List.of()));
+
+    var rendered = report.render();
+
+    assertThat(rendered)
+        .contains("1 positions not compared, as PEARS holds nothing there")
+        .contains("4 blocks not compared, as they have no migrated GIS feature")
+        .containsPattern("differs: administrators +1")
+        .contains("e.g. P1 -- REF-A is administered by 1 here and by 2 in PEARS")
+        .contains("e.g. P1 -- REF-A: only PEARS holds 3")
+        .containsPattern("positions where PEARS holds nothing, as it does once a licence ends +1")
+        .containsPattern("blocks PEARS holds with no migrated GIS feature +1");
+    assertThat(report.licenceReferencesHoldingDifferently()).containsExactly("P1");
+  }
+
   private void sweep() {
     report.recordLicenceSwept();
   }

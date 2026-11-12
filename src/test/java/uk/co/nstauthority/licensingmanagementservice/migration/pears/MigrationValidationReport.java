@@ -30,6 +30,8 @@ class MigrationValidationReport {
   private long licencesSwept;
   private final Map<PearsComparisonSource, SourceComparison> comparisons = new EnumMap<>(PearsComparisonSource.class);
 
+  private final StateComparison stateComparison = new StateComparison();
+
   private final Map<String, MigratorNotes> migratorNotes = new LinkedHashMap<>();
 
   private final OperationCounts includedOperations = new OperationCounts(
@@ -68,6 +70,21 @@ class MigrationValidationReport {
   ) {
     comparisons.get(comparisonSource)
         .record(licenceReference, pearsPositions, builtPositionCount, unmatched, differences);
+  }
+
+  /**
+   * One licence's comparison of what it holds at each position against the PEARS data points, whether or not anything
+   * differed.
+   */
+  synchronized void recordStateComparison(String licenceReference, PositionStateComparison.Result result) {
+    stateComparison.record(licenceReference, result);
+  }
+
+  /**
+   * The licences that hold something different from PEARS at some position.
+   */
+  synchronized List<String> licenceReferencesHoldingDifferently() {
+    return stateComparison.differingLicenceReferences();
   }
 
   /**
@@ -141,6 +158,7 @@ class MigrationValidationReport {
     out.append("  %,d licences swept%n".formatted(licencesSwept));
 
     comparisons.values().forEach(comparison -> comparison.appendTo(out));
+    stateComparison.appendTo(out);
     migratorNotes.values().forEach(notes -> notes.appendTo(out));
 
     includedOperations.appendTo(out);
@@ -255,8 +273,7 @@ class MigrationValidationReport {
             differences.stream()
                 .filter(difference -> difference.kind() == kind)
                 .findFirst()
-                .ifPresent(difference -> differenceKinds.example(
-                    kind.label(), "%s -- %s".formatted(licenceReference, difference.detail())));
+                .ifPresent(difference -> differenceKinds.example(kind.label(), licenceReference, difference.detail()));
           });
     }
 
@@ -298,6 +315,73 @@ class MigrationValidationReport {
   }
 
   /**
+   * What the sweep found comparing what each position holds with what PEARS holds there.
+   */
+  private static final class StateComparison {
+
+    private long licencesCompared;
+    private long positionsCompared;
+    private long positionsHoldingNothing;
+    private long blocksWithoutFeature;
+    private final List<String> differingLicences = new ArrayList<>();
+
+    private final Tally agreement = new Tally("  Licences by how what their positions hold compares:");
+    private final Tally differenceKinds = new Tally(
+        "  Licences by what differs (a licence can differ in more than one way):");
+    private final Tally notCompared = new Tally("  Licences with holdings not compared:");
+
+    private void record(String licenceReference, PositionStateComparison.Result result) {
+      licencesCompared++;
+      positionsCompared += result.positionsCompared();
+      positionsHoldingNothing += result.positionsHoldingNothing();
+      blocksWithoutFeature += result.blocksWithoutFeature();
+
+      if (result.positionsHoldingNothing() > 0) {
+        notCompared.add("positions where PEARS holds nothing, as it does once a licence ends", licenceReference);
+      }
+      if (result.blocksWithoutFeature() > 0) {
+        notCompared.add("blocks PEARS holds with no migrated GIS feature", licenceReference);
+      }
+
+      var differences = result.differences();
+      if (differences.isEmpty()) {
+        agreement.add("every position holds what PEARS holds", licenceReference);
+        return;
+      }
+
+      differingLicences.add(licenceReference);
+      agreement.add("differs: " + differences.getFirst().kind().label(), licenceReference);
+      differences.forEach(difference -> {
+        differenceKinds.add(difference.kind().label(), licenceReference);
+        differenceKinds.example(difference.kind().label(), licenceReference, difference.detail());
+      });
+    }
+
+    private List<String> differingLicenceReferences() {
+      return differingLicences.stream().sorted().toList();
+    }
+
+    private void appendTo(StringBuilder out) {
+      out.append(System.lineSeparator())
+          .append("--- What each position holds, against the PEARS data points ---%n".formatted());
+      out.append("  %,d licences compared%n".formatted(licencesCompared));
+      out.append("  %,d positions compared on administrator, licensees, blocks and subareas%n".formatted(positionsCompared));
+      out.append("  %,d positions not compared, as PEARS holds nothing there%n".formatted(positionsHoldingNothing));
+      out.append("  %,d blocks not compared, as they have no migrated GIS feature%n".formatted(blocksWithoutFeature));
+      out.append("  %,d licences differ%n".formatted(differingLicences.size()));
+
+      agreement.appendTo(out);
+      differenceKinds.appendTo(out);
+      notCompared.appendTo(out);
+
+      if (licencesCompared > 0 && differingLicences.isEmpty()) {
+        out.append("  Every position compared holds the administrator, licensees, blocks and subareas PEARS holds.%n"
+            .formatted());
+      }
+    }
+  }
+
+  /**
    * What the migration decided while carrying one kind of operation across. A note is the migration deciding not to
    * carry something across, which is the migration working as intended; an unmapped reason is something PEARS holds
    * that it could not carry at all.
@@ -326,7 +410,7 @@ class MigrationValidationReport {
         unmapped.add(reason, licenceReference);
         var example = notes.unmappedExamplesByReason().get(reason);
         if (example != null) {
-          unmapped.example(reason, "%s -- %s".formatted(licenceReference, example));
+          unmapped.example(reason, licenceReference, example);
         }
       });
     }

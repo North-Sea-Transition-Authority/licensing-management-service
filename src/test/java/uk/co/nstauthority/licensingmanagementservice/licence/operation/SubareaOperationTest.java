@@ -3,12 +3,12 @@ package uk.co.nstauthority.licensingmanagementservice.licence.operation;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
+import tools.jackson.databind.json.JsonMapper;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationContextTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.LicencePositionState;
 
@@ -194,7 +194,7 @@ class SubareaOperationTest {
           "outputSubareas": []
         }""".formatted(operationId, BLOCK_FEATURE_ID);
 
-    var operation = new ObjectMapper().findAndRegisterModules().readValue(json, LicenceOperation.class);
+    var operation = JsonMapper.builder().findAndAddModules().build().readValue(json, LicenceOperation.class);
 
     var expected = new SubareaOperation(operationId, BLOCK_FEATURE_ID, List.of(), List.of(), null);
     assertThat(operation).isEqualTo(expected);
@@ -209,7 +209,7 @@ class SubareaOperationTest {
         List.of(OUTPUT_SUBAREA),
         UUID.randomUUID()
     );
-    var objectMapper = new ObjectMapper().findAndRegisterModules();
+    var objectMapper = JsonMapper.builder().findAndAddModules().build();
 
     var result = objectMapper.readValue(objectMapper.writeValueAsString(operation), LicenceOperation.class);
 

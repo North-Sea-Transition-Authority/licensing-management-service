@@ -1,7 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.hibernate;
 
 import org.hibernate.cfg.JdbcSettings;
-import org.springframework.boot.autoconfigure.orm.jpa.HibernatePropertiesCustomizer;
+import org.springframework.boot.hibernate.autoconfigure.HibernatePropertiesCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 

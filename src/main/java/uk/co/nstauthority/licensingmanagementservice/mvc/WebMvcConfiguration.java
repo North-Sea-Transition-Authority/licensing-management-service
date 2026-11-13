@@ -5,8 +5,8 @@ import java.util.concurrent.TimeUnit;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.CacheControl;
-import org.springframework.http.converter.HttpMessageConverter;
-import org.springframework.http.converter.xml.MappingJackson2XmlHttpMessageConverter;
+import org.springframework.http.converter.HttpMessageConverters;
+import org.springframework.http.converter.xml.JacksonXmlHttpMessageConverter;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
@@ -111,8 +111,8 @@ public class WebMvcConfiguration implements WebMvcConfigurer {
    * would start answering {@code Accept: application/xml} from every existing controller.
    */
   @Override
-  public void extendMessageConverters(List<HttpMessageConverter<?>> converters) {
-    converters.removeIf(MappingJackson2XmlHttpMessageConverter.class::isInstance);
+  public void configureMessageConverters(HttpMessageConverters.ServerBuilder builder) {
+    builder.configureMessageConvertersList(converters -> converters.removeIf(JacksonXmlHttpMessageConverter.class::isInstance));
   }
 
   @Bean

@@ -19,6 +19,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
+import tools.jackson.core.JacksonException;
 import uk.co.nstauthority.licensingmanagementservice.migration.pears.history.LicenceHistoryReader;
 import uk.co.nstauthority.licensingmanagementservice.migration.pears.history.LicenceOperationHistory;
 
@@ -83,7 +84,7 @@ class PearsLicenceService {
             licenceType, licenceNumber, Duration.ofNanos(System.nanoTime() - start).toMillis());
         return history;
       }
-    } catch (SQLException | IOException e) {
+    } catch (SQLException | JacksonException e) {
       throw new IllegalStateException(
           "Could not read the operation history for %s%d".formatted(licenceType, licenceNumber), e);
     }

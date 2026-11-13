@@ -3,7 +3,6 @@ package uk.co.nstauthority.licensingmanagementservice.licence.operation;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Named.named;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
@@ -15,6 +14,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
+import tools.jackson.databind.json.JsonMapper;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationContextTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationError;
@@ -123,7 +123,7 @@ class SubareaSetEquityOperationTest {
 
   @Test
   void serialise_whenReadBack_thenEqualsOriginal() throws Exception {
-    var objectMapper = new ObjectMapper();
+    var objectMapper = JsonMapper.builder().build();
     var operation = new SubareaSetEquityOperation(
         BLOCK_FEATURE_ID,
         SUBAREA,
@@ -148,7 +148,7 @@ class SubareaSetEquityOperationTest {
           "equity": 40.5
         }""".formatted(BLOCK_FEATURE_ID);
 
-    var operation = new ObjectMapper().findAndRegisterModules().readValue(json, LicenceOperation.class);
+    var operation = JsonMapper.builder().findAndAddModules().build().readValue(json, LicenceOperation.class);
 
     var expected = new SubareaSetEquityOperation(
         BLOCK_FEATURE_ID,

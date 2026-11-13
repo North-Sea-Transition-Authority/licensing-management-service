@@ -21,8 +21,7 @@ import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mock;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -32,15 +31,16 @@ import uk.co.fivium.digitaldocumentlibrary.document.DocumentInstanceDto;
 import uk.co.fivium.digitaldocumentlibrary.document.DocumentInstanceNotFoundException;
 import uk.co.fivium.digitaldocumentlibrary.document.DocumentInstanceSectionsSummaryView;
 import uk.co.fivium.digitaldocumentlibrary.document.DocumentInstanceService;
-import uk.co.fivium.digitaldocumentlibrary.document.DocumentTemplateDto;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
+import uk.co.nstauthority.licensingmanagementservice.document.DocumentInstanceDtoTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.document.DocumentLinkingService;
+import uk.co.nstauthority.licensingmanagementservice.document.DocumentTemplateDtoTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.document.instance.LmsDocumentInstanceService;
 import uk.co.nstauthority.licensingmanagementservice.document.viewtemplates.LmsPdfRenderResult;
-import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplication;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
+import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplication;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
@@ -65,17 +65,10 @@ class ApplicationDocumentActionsControllerTest extends AbstractControllerTest {
   @MockitoBean
   private IssueLettersService issueLettersService;
 
-  @Mock
-  private DocumentInstanceDto documentInstanceMock;
-
-  @Mock
-  private DocumentTemplateDto documentTemplateMock;
-
-  @Mock
-  private LicenceApplication licenceApplication;
-
-  @Mock
-  private LmsPdfRenderResult lmsPdfRenderResult;
+  private final DocumentInstanceDto documentInstance = DocumentInstanceDtoTestUtil.newBuilder()
+      .withTitle("Test Letter Template")
+      .withDocumentTemplate(DocumentTemplateDtoTestUtil.newBuilder().withTitle("Test Letter Template").build())
+      .build();
 
   private LicenceContinuationApplicationDetail continuationApplicationDetail;
 
@@ -85,10 +78,6 @@ class ApplicationDocumentActionsControllerTest extends AbstractControllerTest {
 
   @BeforeEach
   void setUp() {
-    when(documentInstanceMock.documentTemplateDto()).thenReturn(documentTemplateMock);
-    when(documentTemplateMock.title()).thenReturn("Test Letter Template");
-    when(documentInstanceMock.title()).thenReturn("Test Letter Template");
-
     continuationApplicationDetail = new LicenceContinuationApplicationDetail();
     continuationApplicationDetail.setId(applicationId);
     continuationApplicationDetail.setStatus(ApplicationStatus.ISSUE_DECISION);
@@ -147,20 +136,22 @@ class ApplicationDocumentActionsControllerTest extends AbstractControllerTest {
 
   @Test
   void renderGeneratedPdf_assertOk() throws Exception {
+    var licenceApplication = new LicenceContinuationApplication();
+    licenceApplication.setId(applicationId);
     when(applicationService.getApplication(applicationType, applicationId)).thenReturn(licenceApplication);
-    when(documentInstanceService.getDocumentInstanceDtoOrThrow(documentInstanceId)).thenReturn(documentInstanceMock);
+    when(documentInstanceService.getDocumentInstanceDtoOrThrow(documentInstanceId)).thenReturn(documentInstance);
 
     var summaryViews = new DocumentInstanceSectionsSummaryView(List.of(), List.of(), Map.of());
-    when(lmsDocumentInstanceService.getDocumentInstanceSectionsSummaryView(documentInstanceMock, false, licenceApplication))
+    when(lmsDocumentInstanceService.getDocumentInstanceSectionsSummaryView(documentInstance, false, licenceApplication))
         .thenReturn(summaryViews);
 
     var pdfBytes = new byte[]{1, 2, 3};
-    when(lmsPdfRenderResult.pdfContent()).thenReturn(new ByteArrayResource(pdfBytes));
+    var lmsPdfRenderResult = new LmsPdfRenderResult(new ByteArrayResource(pdfBytes), "<html></html>", Map.of());
 
     when(lmsDocumentInstanceService.renderAndSignPdf(
         licenceApplication,
         true,
-        documentInstanceMock,
+        documentInstance,
         summaryViews.topLevelDocumentInstanceSectionSummaryViews(),
         regulatorUser
     )).thenReturn(lmsPdfRenderResult);
@@ -191,10 +182,10 @@ class ApplicationDocumentActionsControllerTest extends AbstractControllerTest {
 
   @Test
   void renderReloadDocumentPage_assertOk() throws Exception {
-    when(documentInstanceService.getDocumentInstanceDtoOrThrow(documentInstanceId)).thenReturn(documentInstanceMock);
+    when(documentInstanceService.getDocumentInstanceDtoOrThrow(documentInstanceId)).thenReturn(documentInstance);
 
     var companyName = "Test Company Ltd";
-    when(documentLinkingService.getApplicationCompanyNameFromDto(documentInstanceMock)).thenReturn(companyName);
+    when(documentLinkingService.getApplicationCompanyNameFromDto(documentInstance)).thenReturn(companyName);
 
     mockMvc.perform(
             get(ReverseRouter.route(on(ApplicationDocumentActionsController.class).renderReloadDocumentPage(applicationType, applicationId, documentInstanceId))).with(user(regulatorUser))
@@ -221,7 +212,7 @@ class ApplicationDocumentActionsControllerTest extends AbstractControllerTest {
 
   @Test
   void reloadDocument_assertRedirected() throws Exception {
-    when(documentInstanceService.getDocumentInstanceDtoOrThrow(documentInstanceId)).thenReturn(documentInstanceMock);
+    when(documentInstanceService.getDocumentInstanceDtoOrThrow(documentInstanceId)).thenReturn(documentInstance);
 
     mockMvc.perform(
         post(ReverseRouter.route(on(ApplicationDocumentActionsController.class).reloadDocument(applicationType, applicationId, documentInstanceId, null)))
@@ -231,6 +222,6 @@ class ApplicationDocumentActionsControllerTest extends AbstractControllerTest {
         .andExpect(status().is3xxRedirection())
         .andExpect(redirectedUrl(ReverseRouter.route(on(ApplicationLetterController.class).renderEditLetterOverview(applicationType, applicationId))));
 
-    verify(documentInstanceService).reloadDocumentInstance(documentInstanceMock);
+    verify(documentInstanceService).reloadDocumentInstance(documentInstance);
   }
 }

@@ -12,7 +12,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.saml2.core.Saml2X509Credential;
-import org.springframework.security.saml2.provider.service.authentication.OpenSaml4AuthenticationProvider;
+import org.springframework.security.saml2.provider.service.authentication.OpenSaml5AuthenticationProvider;
 import org.springframework.security.saml2.provider.service.registration.InMemoryRelyingPartyRegistrationRepository;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistration;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistrationRepository;
@@ -51,8 +51,8 @@ public class WebSecurityConfiguration {
   }
 
   @Bean
-  protected SecurityFilterChain filterChain(HttpSecurity httpSecurity) throws Exception {
-    var authenticationProvider = new OpenSaml4AuthenticationProvider();
+  protected SecurityFilterChain filterChain(HttpSecurity httpSecurity) {
+    var authenticationProvider = new OpenSaml5AuthenticationProvider();
     authenticationProvider.setResponseAuthenticationConverter(r -> samlResponseParser.parseSamlResponse(r.getResponse()));
 
     return httpSecurity

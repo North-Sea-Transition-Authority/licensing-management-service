@@ -1,13 +1,12 @@
 package uk.co.nstauthority.licensingmanagementservice.migration.pears.history;
 
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.databind.DeserializationContext;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
-import com.fasterxml.jackson.databind.module.SimpleModule;
-import com.fasterxml.jackson.dataformat.xml.XmlMapper;
-import java.io.IOException;
 import java.io.Reader;
+import tools.jackson.core.JsonParser;
+import tools.jackson.databind.DeserializationContext;
+import tools.jackson.databind.DeserializationFeature;
+import tools.jackson.databind.deser.std.StdDeserializer;
+import tools.jackson.databind.module.SimpleModule;
+import tools.jackson.dataformat.xml.XmlMapper;
 
 /**
  * Reads a LICENCE_OPERATION_HISTORY document.
@@ -30,7 +29,7 @@ public final class LicenceHistoryReader {
       .addModule(new SimpleModule().addDeserializer(String.class, new TrimToNullDeserializer()))
       .build();
 
-  public static LicenceOperationHistory read(Reader in) throws IOException {
+  public static LicenceOperationHistory read(Reader in) {
     var history = MAPPER.readValue(in, LicenceHistoryXml.History.class);
     return new LicenceOperationHistory(
         history.licenceType(),
@@ -49,7 +48,7 @@ public final class LicenceHistoryReader {
     }
 
     @Override
-    public String deserialize(JsonParser parser, DeserializationContext context) throws IOException {
+    public String deserialize(JsonParser parser, DeserializationContext context) {
       var value = parser.getValueAsString();
       if (value == null) {
         return null;

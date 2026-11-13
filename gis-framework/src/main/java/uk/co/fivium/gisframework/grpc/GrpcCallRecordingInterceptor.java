@@ -5,12 +5,14 @@ import io.grpc.Channel;
 import io.grpc.ClientCall;
 import io.grpc.ClientInterceptor;
 import io.grpc.MethodDescriptor;
-import net.devh.boot.grpc.client.interceptor.GrpcGlobalClientInterceptor;
+import org.springframework.grpc.client.GlobalClientInterceptor;
+import org.springframework.stereotype.Component;
 
 /**
  * Records every gRPC call with {@link GrpcRequestHandler} as it is made, against the thread making it.
  */
-@GrpcGlobalClientInterceptor
+@Component
+@GlobalClientInterceptor
 class GrpcCallRecordingInterceptor implements ClientInterceptor {
 
   private final GrpcRequestHandler grpcRequestHandler;

@@ -64,7 +64,7 @@ class CorrectPositionDateFormValidatorTest {
     assertThat(bindingResult.getFieldErrors())
         .extracting(FieldError::getField, FieldError::getDefaultMessage)
         .containsExactly(
-            tuple("correctPositionDate.dayInput.inputValue", "A position date must be the same as or before 15 Jun 2024"),
+            tuple("correctPositionDate.dayInput.inputValue", "A position date must be the same as or before 15 June 2024"),
             tuple("correctPositionDate.monthInput.inputValue", ""),
             tuple("correctPositionDate.yearInput.inputValue", "")
         );

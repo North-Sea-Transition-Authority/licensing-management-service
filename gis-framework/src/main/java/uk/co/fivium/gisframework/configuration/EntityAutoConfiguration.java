@@ -8,13 +8,13 @@ import org.springframework.beans.factory.support.BeanDefinitionRegistry;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigurationPackages;
 import org.springframework.boot.autoconfigure.AutoConfigureBefore;
-import org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration;
+import org.springframework.boot.data.jpa.autoconfigure.DataJpaRepositoriesAutoConfiguration;
 import org.springframework.context.annotation.ClassPathScanningCandidateComponentProvider;
 import org.springframework.context.annotation.ImportBeanDefinitionRegistrar;
 import org.springframework.core.type.AnnotationMetadata;
 
 @AutoConfiguration
-@AutoConfigureBefore(JpaRepositoriesAutoConfiguration.class)
+@AutoConfigureBefore(DataJpaRepositoriesAutoConfiguration.class)
 public class EntityAutoConfiguration implements ImportBeanDefinitionRegistrar {
 
   private static final String BASE_PACKAGE = "uk.co.fivium.gisframework";

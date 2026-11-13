@@ -3,13 +3,13 @@ package uk.co.nstauthority.licensingmanagementservice.licence.operation;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
+import tools.jackson.databind.json.JsonMapper;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationContextTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.LicencePositionState;
 
@@ -237,7 +237,7 @@ class BlockRedefinitionOperationTest {
 
   @Test
   void serialise_whenOutputSubareasGiven_thenReadsBackTheSame() throws Exception {
-    var objectMapper = new ObjectMapper().findAndRegisterModules();
+    var objectMapper = JsonMapper.builder().findAndAddModules().build();
     var operation = new BlockRedefinitionOperation(
         List.of(FIRST_FEATURE_ID),
         List.of(SECOND_FEATURE_ID),

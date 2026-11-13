@@ -370,7 +370,7 @@ class DocumentLinkingServiceTest {
 
     var result = documentLinkingService.getNextTermPhaseStartDateFromDto(documentInstanceDto);
 
-    assertThat(result).isEqualTo("1 Jun 2026");
+    assertThat(result).isEqualTo("1 June 2026");
   }
 
   @Test

@@ -1,6 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.continuation.letter;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
@@ -13,7 +14,6 @@ import static uk.co.nstauthority.licensingmanagementservice.authentication.TestU
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mock;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.co.fivium.digitaldocumentlibrary.document.DocumentInstanceDto;
@@ -51,14 +51,11 @@ public class ContinuationApplicationDocumentActionsControllerTest extends Abstra
   @MockitoBean
   private IssueLettersService issueLettersService;
 
-  @Mock
-  private LicenceApplication licenceApplication;
+  private final LicenceApplication licenceApplication = mock(LicenceApplication.class);
 
-  @Mock
-  private DocumentInstanceDto documentInstanceMock;
+  private final DocumentInstanceDto documentInstanceMock = mock(DocumentInstanceDto.class);
 
-  @Mock
-  private LicenceContinuationApplicationDetail continuationApplicationDetail;
+  private final LicenceContinuationApplicationDetail continuationApplicationDetail = mock(LicenceContinuationApplicationDetail.class);
 
   @BeforeEach
   void setUp() {

@@ -3,12 +3,12 @@ package uk.co.nstauthority.licensingmanagementservice.licence.operation;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
+import tools.jackson.databind.json.JsonMapper;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationContextTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.LicencePositionState;
 
@@ -139,7 +139,7 @@ class SubareaCreateOperationTest {
           ]
         }""".formatted(BLOCK_FEATURE_ID, FIRST_SUBAREA_FEATURE_ID);
 
-    var operation = new ObjectMapper().findAndRegisterModules().readValue(json, LicenceOperation.class);
+    var operation = JsonMapper.builder().findAndAddModules().build().readValue(json, LicenceOperation.class);
 
     var expected = new SubareaCreateOperation(
         UUID.fromString("00000000-0000-0000-0000-000000000001"),

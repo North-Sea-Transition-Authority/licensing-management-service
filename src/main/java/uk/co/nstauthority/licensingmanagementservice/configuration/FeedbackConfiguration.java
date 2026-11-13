@@ -1,9 +1,9 @@
 package uk.co.nstauthority.licensingmanagementservice.configuration;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import tools.jackson.databind.ObjectMapper;
 import uk.co.fivium.feedbackmanagementservice.client.FeedbackClientService;
 
 @Configuration

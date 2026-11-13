@@ -3,7 +3,6 @@ package uk.co.nstauthority.licensingmanagementservice.migration.pears.history;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import java.io.StringReader;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -12,13 +11,14 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import tools.jackson.databind.exc.MismatchedInputException;
 
 class LicenceHistoryReaderTest {
 
   private static final LocalDate POSITION_DATE = LocalDate.of(1964, Month.SEPTEMBER, 18);
 
   @Test
-  void read_whenAdministratorIsSet_thenTheConsortiumListIsRead() throws Exception {
+  void read_whenAdministratorIsSet_thenTheConsortiumListIsRead() {
     var xml = PearsHistoryTestUtil.history("P", 8)
         .position(15188, "XPT/1", POSITION_DATE, 6)
         .administratorSet(12)
@@ -43,7 +43,7 @@ class LicenceHistoryReaderTest {
   }
 
   @Test
-  void read_whenAnAdministratorIsTransferred_thenTheJoiningOrganisationIsTheSecondary() throws Exception {
+  void read_whenAnAdministratorIsTransferred_thenTheJoiningOrganisationIsTheSecondary() {
     var xml = PearsHistoryTestUtil.history("P", 8)
         .position(15188, "XPT/1", POSITION_DATE, 6)
         .administratorTransfer(12, 34)
@@ -68,7 +68,7 @@ class LicenceHistoryReaderTest {
   }
 
   @Test
-  void read_whenAnEntryHasNoOrganisation_thenTheEmptyElementIsReadAsAbsent() throws Exception {
+  void read_whenAnEntryHasNoOrganisation_thenTheEmptyElementIsReadAsAbsent() {
     var xml = PearsHistoryTestUtil.history("P", 8)
         .position(15188, "XPT/1", POSITION_DATE, 6)
         .administratorSetWithNoOrganisation()
@@ -84,7 +84,7 @@ class LicenceHistoryReaderTest {
   }
 
   @Test
-  void read_whenAnOperationHasNoPayload_thenItIsReadAsOmitted() throws Exception {
+  void read_whenAnOperationHasNoPayload_thenItIsReadAsOmitted() {
     var xml = PearsHistoryTestUtil.history("P", 8)
         .position(15188, "XPT/1", POSITION_DATE, 6)
         .operationWithoutPayload("PED_RETENTION_AREA_CHANGE")
@@ -103,7 +103,7 @@ class LicenceHistoryReaderTest {
   }
 
   @Test
-  void read_whenTheLicenceEnds_thenTheEndOperationIsRead() throws Exception {
+  void read_whenTheLicenceEnds_thenTheEndOperationIsRead() {
     var xml = PearsHistoryTestUtil.history("P", 8)
         .position(15188, "XPT/1", POSITION_DATE, 6)
         .licenceEnd()
@@ -119,7 +119,7 @@ class LicenceHistoryReaderTest {
   }
 
   @Test
-  void read_whenTheDocumentHoldsGeometry_thenItIsSkippedRatherThanFailingTheRead() throws Exception {
+  void read_whenTheDocumentHoldsGeometry_thenItIsSkippedRatherThanFailingTheRead() {
     var xml = """
         <LICENCE_OPERATION_HISTORY licence_type="P" licence_no="8">
           <OPERATION_ENTRY tran_id="15188" regulator_reference="XPT/1" position_date="1964-09-18"
@@ -150,7 +150,7 @@ class LicenceHistoryReaderTest {
   }
 
   @Test
-  void read_whenABlockOperationHoldsBlockEntries_thenBothSidesAreRead() throws Exception {
+  void read_whenABlockOperationHoldsBlockEntries_thenBothSidesAreRead() {
     var xml = """
         <LICENCE_OPERATION_HISTORY licence_type="P" licence_no="8" operation_count="1">
           <OPERATION_ENTRY tran_id="15188" regulator_reference="XPT/1" position_date="1964-09-18"
@@ -193,7 +193,7 @@ class LicenceHistoryReaderTest {
   }
 
   @Test
-  void read_whenASubareaOperationHoldsSubareaEntries_thenEveryEntryTypeIsRead() throws Exception {
+  void read_whenASubareaOperationHoldsSubareaEntries_thenEveryEntryTypeIsRead() {
     var xml = """
         <LICENCE_OPERATION_HISTORY licence_type="P" licence_no="8" operation_count="1">
           <OPERATION_ENTRY tran_id="15188" regulator_reference="XPT/1" position_date="1964-09-18"
@@ -258,7 +258,7 @@ class LicenceHistoryReaderTest {
   }
 
   @Test
-  void read_whenTheDocumentIsEmpty_thenTheLicenceIsReadWithNoOperations() throws Exception {
+  void read_whenTheDocumentIsEmpty_thenTheLicenceIsReadWithNoOperations() {
     var xml = "<LICENCE_OPERATION_HISTORY licence_type=\"P\" licence_no=\"8\"/>";
 
     var history = LicenceHistoryReader.read(new StringReader(xml));
@@ -275,8 +275,9 @@ class LicenceHistoryReaderTest {
                            position_sequence="1" op_id="1" op_seq="1" op_status="WITHDRAWN"
                            op_type="LICENCE_END"/>
         </LICENCE_OPERATION_HISTORY>""";
+    var reader = new StringReader(xml);
 
-    assertThatThrownBy(() -> LicenceHistoryReader.read(new StringReader(xml)))
+    assertThatThrownBy(() -> LicenceHistoryReader.read(reader))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("WITHDRAWN");
   }
@@ -291,8 +292,9 @@ class LicenceHistoryReaderTest {
                            op_type="LICENCE_END"/>
         </LICENCE_OPERATION_HISTORY>"""
         .replaceFirst(attribute + "=\"[^\"]+\"", "");
+    var reader = new StringReader(xml);
 
-    assertThatThrownBy(() -> LicenceHistoryReader.read(new StringReader(xml)))
+    assertThatThrownBy(() -> LicenceHistoryReader.read(reader))
         .isInstanceOf(MismatchedInputException.class)
         .hasMessageContaining(attribute);
   }

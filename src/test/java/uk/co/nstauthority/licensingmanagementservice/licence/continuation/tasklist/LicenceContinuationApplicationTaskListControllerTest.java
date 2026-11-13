@@ -1,6 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.continuation.tasklist;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
@@ -17,7 +18,6 @@ import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
-import org.mockito.Mock;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
@@ -54,17 +54,13 @@ class LicenceContinuationApplicationTaskListControllerTest extends AbstractContr
       = LicenceContinuationApplicationTestUtil.createLicenceContinuationApplicationDetail(LICENCE_SCHEDULE_DETAIL);
   private static final ServiceUserDetail USER = ServiceUserDetailTestUtil.newBuilder().build();
 
-  @Mock
-  private LicenceScheduleTerm currentTerm;
+  private final LicenceScheduleTerm currentTerm = mock(LicenceScheduleTerm.class);
 
-  @Mock
-  private LicenceSchedulePhase currentPhase;
+  private final LicenceSchedulePhase currentPhase = mock(LicenceSchedulePhase.class);
 
-  @Mock
-  private LicenceScheduleTerm nextTerm;
+  private final LicenceScheduleTerm nextTerm = mock(LicenceScheduleTerm.class);
 
-  @Mock
-  private LicenceSchedulePhase nextPhase;
+  private final LicenceSchedulePhase nextPhase = mock(LicenceSchedulePhase.class);
 
   @MockitoBean
   private LicenceContinuationApplicationTaskListService licenceContinuationApplicationTaskListService;

@@ -2,15 +2,14 @@ package uk.co.nstauthority.licensingmanagementservice.licence.correction.positio
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
+import tools.jackson.databind.json.JsonMapper;
 
 class RemoveChangeTest {
 
   @Test
-  void json_doesNotCarryTheInheritedEmptyOperations() throws JsonProcessingException {
-    var objectMapper = new ObjectMapper();
+  void json_doesNotCarryTheInheritedEmptyOperations() {
+    var objectMapper = JsonMapper.builder().build();
     var removeChange = LicencePositionChangeType.removeChange()
         .withChangeId("123")
         .build();

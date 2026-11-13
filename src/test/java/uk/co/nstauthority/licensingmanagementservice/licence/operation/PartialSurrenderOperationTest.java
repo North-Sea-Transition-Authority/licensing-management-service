@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.entry;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.LocalDate;
 import java.time.Month;
 import java.util.List;
@@ -17,6 +16,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
+import tools.jackson.databind.json.JsonMapper;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderType;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation.SurrenderDetails;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.LicencePositionState;
@@ -283,7 +283,7 @@ class PartialSurrenderOperationTest {
           "featureIds": ["%s"]
         }""".formatted(FIRST_FEATURE_ID);
 
-    var operation = new ObjectMapper().findAndRegisterModules().readValue(json, LicenceOperation.class);
+    var operation = JsonMapper.builder().findAndAddModules().build().readValue(json, LicenceOperation.class);
 
     var expected = new PartialSurrenderOperation(SURRENDER_DATE, List.of(FIRST_FEATURE_ID), Map.of());
     assertThat(operation).isEqualTo(expected);
@@ -306,7 +306,7 @@ class PartialSurrenderOperationTest {
           }
         }""".formatted(FIRST_FEATURE_ID, FIRST_FEATURE_ID, FIRST_FEATURE_ID);
 
-    var operation = new ObjectMapper().findAndRegisterModules().readValue(json, LicenceOperation.class);
+    var operation = JsonMapper.builder().findAndAddModules().build().readValue(json, LicenceOperation.class);
 
     var expected = new PartialSurrenderOperation(
         SURRENDER_DATE,
@@ -459,7 +459,7 @@ class PartialSurrenderOperationTest {
         .withSurrenderedFeatureIds(List.of(FIRST_FEATURE_ID))
         .withSurrenderDetails(Map.of(FIRST_FEATURE_ID, details))
         .build();
-    var objectMapper = new ObjectMapper().findAndRegisterModules();
+    var objectMapper = JsonMapper.builder().findAndAddModules().build();
 
     var result = objectMapper.readValue(objectMapper.writeValueAsString(operation), LicenceOperation.class);
 

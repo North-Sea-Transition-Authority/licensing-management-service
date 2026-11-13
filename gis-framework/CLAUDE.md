@@ -67,9 +67,9 @@ declares the `ArcGisService`: one RPC per operation (`splitPolygon`, `buildPolyg
 `validatePolygonReconstructionFromPolylines`, `calculateArea`, plus the migration RPCs). Each request and
 response message lives in its own file under a per-operation directory.
 
-`GrpcClientService` (`grpc/`) is the only Java-side entry point — a `@GrpcClient("node-server")` blocking
-stub whose address is set in `application.properties`
-(`grpc.client.node-server.address: static://localhost:8082`). Each of its methods maps to one handler
+`GrpcClientService` (`grpc/`) is the only Java-side entry point — it takes the blocking stub that
+`GrpcClientConfiguration` builds for the `node-server` channel, whose target is set in `application.properties`
+(`spring.grpc.client.channel.node-server.target: static://localhost:8082`). Each of its methods maps to one handler
 registered in `arcgis-node/src/grpc-server.ts`, implemented under `src/handlers` (or
 `src/migration/handlers`), with the geometry logic in `src/geometric-operators`.
 

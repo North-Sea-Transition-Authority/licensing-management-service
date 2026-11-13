@@ -1,10 +1,11 @@
 package uk.co.fivium.gisframework.relationship;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Collection;
 import java.util.DoubleSummaryStatistics;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 public record BoundingBox(
     double minX,
@@ -13,13 +14,13 @@ public record BoundingBox(
     double maxY
 ) {
 
-  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+  private static final ObjectMapper OBJECT_MAPPER = JsonMapper.builder().build();
 
   static BoundingBox fromEsriJsonPolyline(String esriJsonPolyline) {
     JsonNode paths;
     try {
       paths = OBJECT_MAPPER.readTree(esriJsonPolyline).path("paths");
-    } catch (JsonProcessingException e) {
+    } catch (JacksonException e) {
       throw new IllegalArgumentException("Unable to parse EsriJSON polyline %s".formatted(esriJsonPolyline), e);
     }
 

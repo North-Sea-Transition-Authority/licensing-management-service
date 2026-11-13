@@ -1,8 +1,6 @@
 package uk.co.nstauthority.licensingmanagementservice.migration.pears.history;
 
-import java.io.IOException;
 import java.io.StringReader;
-import java.io.UncheckedIOException;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -53,11 +51,7 @@ public final class PearsHistoryTestUtil {
     }
 
     public LicenceOperationHistory build() {
-      try {
-        return LicenceHistoryReader.read(new StringReader(toXml()));
-      } catch (IOException e) {
-        throw new UncheckedIOException("Could not read the history this test built", e);
-      }
+      return LicenceHistoryReader.read(new StringReader(toXml()));
     }
 
     public String toXml() {

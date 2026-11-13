@@ -3,13 +3,13 @@ package uk.co.nstauthority.licensingmanagementservice.licence.operation;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
+import tools.jackson.databind.json.JsonMapper;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationContextTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.LicencePositionState;
 
@@ -160,7 +160,7 @@ class BlockCreateOperationTest {
 
   @Test
   void serialise_whenCreatedSubareasGiven_thenReadsBackTheSame() throws Exception {
-    var objectMapper = new ObjectMapper().findAndRegisterModules();
+    var objectMapper = JsonMapper.builder().findAndAddModules().build();
     var operation = new BlockCreateOperation(
         List.of(FIRST_FEATURE_ID),
         Map.of(FIRST_FEATURE_ID, List.of(FIRST_SUBAREA, UNSCRIBED_SUBAREA))
@@ -173,7 +173,7 @@ class BlockCreateOperationTest {
 
   @Test
   void serialise_thenCreatedBlockFeatureIdsWrittenAsFeatureIds() throws Exception {
-    var objectMapper = new ObjectMapper().findAndRegisterModules();
+    var objectMapper = JsonMapper.builder().findAndAddModules().build();
     var operation = new BlockCreateOperation(List.of(FIRST_FEATURE_ID), Map.of());
 
     var json = objectMapper.readTree(objectMapper.writeValueAsString(operation));
@@ -191,7 +191,7 @@ class BlockCreateOperationTest {
           "featureIds": ["%s"]
         }""".formatted(FIRST_FEATURE_ID);
 
-    var operation = new ObjectMapper().findAndRegisterModules().readValue(json, LicenceOperation.class);
+    var operation = JsonMapper.builder().findAndAddModules().build().readValue(json, LicenceOperation.class);
 
     var expected = new BlockCreateOperation(
         UUID.fromString("00000000-0000-0000-0000-000000000001"),

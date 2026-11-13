@@ -9,7 +9,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static uk.co.nstauthority.licensingmanagementservice.authentication.TestUserProvider.user;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
@@ -20,6 +19,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.json.JsonCompareMode;
+import tools.jackson.databind.ObjectMapper;
 import uk.co.fivium.gisframework.command.CommandJourney;
 import uk.co.fivium.gisframework.command.CommandJourneyService;
 import uk.co.fivium.gisframework.command.OperatorCommand;

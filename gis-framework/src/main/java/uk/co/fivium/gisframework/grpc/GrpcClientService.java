@@ -9,7 +9,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import net.devh.boot.grpc.client.inject.GrpcClient;
 import org.springframework.stereotype.Service;
 import uk.co.fivium.gisframework.feature.CoordinateSystemUtils;
 import uk.co.fivium.gisframework.feature.EntityBackedFeature;
@@ -72,8 +71,11 @@ import uk.co.fivium.grpc.gis.ValidationResponse;
 @Service
 public class GrpcClientService {
 
-  @GrpcClient("node-server")
-  private ArcGisServiceGrpc.ArcGisServiceBlockingStub arcgisClient;
+  private final ArcGisServiceGrpc.ArcGisServiceBlockingStub arcgisClient;
+
+  public GrpcClientService(ArcGisServiceGrpc.ArcGisServiceBlockingStub arcgisClient) {
+    this.arcgisClient = arcgisClient;
+  }
 
   /**
    * Split a polygon using a cutter line.

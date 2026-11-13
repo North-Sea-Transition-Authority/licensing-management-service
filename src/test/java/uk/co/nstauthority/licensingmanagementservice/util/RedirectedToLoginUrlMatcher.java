@@ -6,7 +6,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class RedirectedToLoginUrlMatcher {
 
-  private static final String SAML_LOGIN_REDIRECT_URL = "http://localhost/saml2/authenticate?registrationId=saml";
+  // Spring Security 7 redirects relatively rather than absolutising to http://localhost/...
+  private static final String SAML_LOGIN_REDIRECT_URL = "/saml2/authenticate?registrationId=saml";
 
   private RedirectedToLoginUrlMatcher() {}
 

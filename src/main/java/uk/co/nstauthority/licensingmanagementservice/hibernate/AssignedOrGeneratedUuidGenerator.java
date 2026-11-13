@@ -8,7 +8,7 @@ import org.hibernate.engine.spi.SharedSessionContractImplementor;
 import org.hibernate.generator.BeforeExecutionGenerator;
 import org.hibernate.generator.EventType;
 import org.hibernate.generator.EventTypeSets;
-import org.hibernate.id.factory.spi.CustomIdGeneratorCreationContext;
+import org.hibernate.generator.GeneratorCreationContext;
 
 public class AssignedOrGeneratedUuidGenerator implements BeforeExecutionGenerator {
 
@@ -18,7 +18,7 @@ public class AssignedOrGeneratedUuidGenerator implements BeforeExecutionGenerato
   public AssignedOrGeneratedUuidGenerator(
       AssignedOrGeneratedUuid config,
       Member idMember,
-      CustomIdGeneratorCreationContext creationContext
+      GeneratorCreationContext creationContext
   ) {
     // the annotation carries no configuration, so nothing to read off it
   }

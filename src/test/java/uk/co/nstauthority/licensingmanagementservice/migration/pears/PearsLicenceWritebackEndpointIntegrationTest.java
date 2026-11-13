@@ -17,7 +17,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.boot.resttestclient.TestRestTemplate;
+import org.springframework.boot.resttestclient.autoconfigure.AutoConfigureTestRestTemplate;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -67,6 +68,7 @@ import uk.co.nstauthority.licensingmanagementservice.util.IntegrationTest;
  * {@link ConditionalOnPearsDataSource}.
  */
 @IntegrationTest
+@AutoConfigureTestRestTemplate
 @TestPropertySource(properties = {
     "pears.datasource.url=jdbc:postgresql://pears.invalid:5432/pears",
     "pears.datasource.username=never-connected-to",

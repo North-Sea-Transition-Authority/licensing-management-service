@@ -17,7 +17,7 @@ class SummaryUtilTest {
   private static final Boolean BOOLEAN_VALUE = false;
   private static final String BOOLEAN_VALUE_AS_STRING = "No";
   private static final LocalDate LOCAL_DATE_VALUE = LocalDate.of(2025, Month.APRIL, 15);
-  private static final String LOCAL_DATE_VALUE_AS_STRING = "15 Apr 2025";
+  private static final String LOCAL_DATE_VALUE_AS_STRING = "15 April 2025";
   private static final BigDecimal BIG_DECIMAL_VALUE = new BigDecimal("1234567890.123450000");
   private static final String BIG_DECIMAL_VALUE_AS_STRING = "1234567890.12345";
   private static final DisplayableTestClass DISPLAYABLE_VALUE = new DisplayableTestClass();

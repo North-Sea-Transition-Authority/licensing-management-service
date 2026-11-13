@@ -1,12 +1,9 @@
 package uk.co.nstauthority.licensingmanagementservice.mockups.contact;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import tools.jackson.databind.json.JsonMapper;
 
 public record SortableTableView(
     TableHeadingStyle tableHeadingStyle,
@@ -15,20 +12,13 @@ public record SortableTableView(
     String actionHeading,
     List<SortableTableRow> tableRows
 ) {
-  private static final Logger LOGGER = LoggerFactory.getLogger(SortableTableView.class);
-
   public static SortableTableViewBuilder sortableTableBuilder() {
     return new SortableTableViewBuilder();
   }
 
   @Override
   public String toString() {
-    try {
-      return new ObjectMapper().writeValueAsString(this);
-    } catch (JsonProcessingException e) {
-      LOGGER.error("Failed to serialize SortableTableView", e);
-      return "";
-    }
+    return JsonMapper.builder().build().writeValueAsString(this);
   }
 
   public static class SortableTableViewBuilder {

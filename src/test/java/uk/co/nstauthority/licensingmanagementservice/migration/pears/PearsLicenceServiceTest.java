@@ -35,6 +35,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.core.io.ClassPathResource;
+import tools.jackson.core.JacksonException;
 import uk.co.nstauthority.licensingmanagementservice.migration.pears.history.LicenceOperationHistory;
 import uk.co.nstauthority.licensingmanagementservice.migration.pears.history.PearsCompanyListType;
 import uk.co.nstauthority.licensingmanagementservice.migration.pears.history.PearsHistoryTestUtil;
@@ -142,7 +143,7 @@ class PearsLicenceServiceTest {
     assertThatThrownBy(() -> pearsLicenceService.licenceHistory(LICENCE_TYPE, LICENCE_NUMBER, Set.of()))
         .isInstanceOf(IllegalStateException.class)
         .hasMessage("Could not read the operation history for P8")
-        .hasCauseInstanceOf(IOException.class);
+        .hasCauseInstanceOf(JacksonException.class);
   }
 
   @Test

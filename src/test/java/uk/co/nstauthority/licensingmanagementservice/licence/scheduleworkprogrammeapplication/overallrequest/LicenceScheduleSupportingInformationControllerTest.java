@@ -26,7 +26,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -67,8 +66,7 @@ class LicenceScheduleSupportingInformationControllerTest extends AbstractControl
   @MockitoBean
   private FileControllerHelperService fileControllerHelperService;
 
-  @Captor
-  private ArgumentCaptor<Supplier<ApplicationFileUsage>> fileUsageSupplierCaptor;
+  private final ArgumentCaptor<Supplier<ApplicationFileUsage>> fileUsageSupplierCaptor = ArgumentCaptor.captor();
 
   @MockitoBean
   private LicenceScheduleSupportingInformationHelperService licenceScheduleSupportingInformationHelperService;

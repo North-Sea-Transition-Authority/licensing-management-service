@@ -1,8 +1,5 @@
 package uk.co.fivium.gisframework.feature;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -11,6 +8,9 @@ import java.util.Map;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import tools.jackson.core.JacksonException;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
 import uk.co.fivium.gisframework.grpc.GrpcClientService;
 import uk.co.fivium.grpc.gis.CoordinateSystem;
 
@@ -91,7 +91,7 @@ public class PolygonService {
     try {
       return objectMapper.readValue(esriJsonPolygon, new TypeReference<>() {
       });
-    } catch (JsonProcessingException e) {
+    } catch (JacksonException e) {
       throw new IllegalStateException("Failed to parse generated EsriJSON polygon '%s'".formatted(esriJsonPolygon), e);
     }
   }

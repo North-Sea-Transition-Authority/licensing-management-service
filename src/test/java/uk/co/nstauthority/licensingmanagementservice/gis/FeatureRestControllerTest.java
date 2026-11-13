@@ -6,7 +6,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static uk.co.nstauthority.licensingmanagementservice.authentication.TestUserProvider.user;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -15,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.json.JsonCompareMode;
+import tools.jackson.databind.ObjectMapper;
 import uk.co.fivium.gisframework.command.CommandJourneyService;
 import uk.co.fivium.gisframework.feature.FeatureService;
 import uk.co.fivium.gisframework.feature.JsonFeature;

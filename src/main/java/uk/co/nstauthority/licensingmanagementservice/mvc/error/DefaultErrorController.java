@@ -8,7 +8,7 @@ import static jakarta.servlet.http.HttpServletResponse.SC_UNAUTHORIZED;
 import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.Optional;
-import org.springframework.boot.web.servlet.error.ErrorController;
+import org.springframework.boot.webmvc.error.ErrorController;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.servlet.DispatcherServlet;

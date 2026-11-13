@@ -1,8 +1,9 @@
 <#import "/spring.ftl" as spring>
 
-<#macro mapWithTextualDescription featureIds srsWkid layout="horizontal" includeNstaQuadrants=true includeNstaBlocks=true>
+<#macro mapWithTextualDescription featureIds srsWkid layout="horizontal" includeNstaQuadrants=true includeNstaBlocks=true selectionInputName="">
   <div
       data-gis-component="gis-map-with-textual-description"
+      <#if selectionInputName?has_content>data-gis-selection-input-name="${selectionInputName}"</#if>
       data-gis-layout="${layout}"
       data-gis-include-nsta-quadrants="${includeNstaQuadrants?c}"
       data-gis-include-nsta-blocks="${includeNstaBlocks?c}"

@@ -1,5 +1,5 @@
 import { http, HttpResponse } from "msw";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, onTestFinished } from "vitest";
 import { render } from "vitest-browser-vue";
 import OpenLayersMap from "vue3-openlayers";
 import MapWithTextualDescription
@@ -17,9 +17,9 @@ const textualDescriptionHtml = `<div class="gis-textual-description">
  </ol>
 </div>`;
 
-function mockEndpoints() {
+function mockEndpoints(features: object = singleBlockEd50) {
   worker.use(
-    http.get("/api/features", () => HttpResponse.json(singleBlockEd50)),
+    http.get("/api/features", () => HttpResponse.json(features)),
     http.get("/api/outline-nodes", () => HttpResponse.json({ featureOutlineNodes: [] })),
     http.get("/api/textual-description", () => HttpResponse.json({ textualDescription: textualDescriptionHtml })),
   );
@@ -46,13 +46,13 @@ const baseProps = {
 //
 // The container is torn down by cleanup() in setup.ts. screen.locator resolves to this container, so
 // the screenshot captures the bounded layout.
-function renderInFixedWidthContainer(layout: "horizontal" | "vertical") {
+function renderInFixedWidthContainer(layout: "horizontal" | "vertical", selectionInputName?: string) {
   const container = document.createElement("div");
   container.style.width = layout === "horizontal" ? "700px" : "350px";
   document.body.appendChild(container);
 
   return render(MapWithTextualDescription, {
-    props: { ...baseProps, layout },
+    props: { ...baseProps, layout, selectionInputName },
     global: { plugins: [OpenLayersMap] },
     container,
   });
@@ -77,5 +77,28 @@ describe("map with textual description", () => {
     await waitForMapFullyLoaded();
 
     await expect(screen.locator).toMatchScreenshot("map-with-textual-description-vertical");
+  });
+
+  it("highlights the feature ticked in the host page checkboxes", async () => {
+    mockEndpoints({
+      ...singleBlockEd50,
+      features: singleBlockEd50.features.map(feature => ({
+        ...feature,
+        attributes: { ...feature.attributes, featureId: "block" },
+      })),
+    });
+    const hostCheckbox = document.createElement("input");
+    hostCheckbox.type = "checkbox";
+    hostCheckbox.name = "surrenderedFeatureIds";
+    hostCheckbox.value = "block";
+    hostCheckbox.checked = true;
+    document.body.appendChild(hostCheckbox);
+    onTestFinished(() => hostCheckbox.remove());
+
+    const screen = renderInFixedWidthContainer("horizontal", "surrenderedFeatureIds");
+
+    await waitForMapFullyLoaded();
+
+    await expect(screen.locator).toMatchScreenshot("map-with-textual-description-highlighted");
   });
 });

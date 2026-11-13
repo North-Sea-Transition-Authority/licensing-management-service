@@ -10,6 +10,7 @@
         :include-snap-points="false"
         :include-draw-line="false"
         :map-style-override="mapStyleOverride"
+        :selected-feature-ids="selectedFeatureIds"
       />
     </div>
     <div class="gis-map-with-textual-description__panel gis-map-with-textual-description__panel--description">
@@ -20,7 +21,7 @@
 
 <script setup lang="ts">
 import type { SupportedWkid } from "@/coordinate-system-utils";
-import { CSSProperties } from "vue";
+import { CSSProperties, onMounted, onUnmounted, ref } from "vue";
 import { useCommandJourneyFeatures } from "@/composables/useCommandJourneyFeatures";
 import BaseMap from "../baseMap/BaseMap.vue";
 import TextualDescription from "./TextualDescription.vue";
@@ -34,6 +35,8 @@ interface MapWithTextualDescriptionProps {
   textualDescriptionUrl: string,
   includeNstaQuadrants?: boolean,
   includeNstaBlocks?: boolean,
+  // Name of host-page checkboxes whose checked values are feature ids to highlight on the map.
+  selectionInputName?: string,
 }
 
 const props = withDefaults(defineProps<MapWithTextualDescriptionProps>(), {
@@ -50,6 +53,30 @@ const mapStyleOverride: CSSProperties = {
 };
 
 const { features, outlineNodes } = useCommandJourneyFeatures(props.featuresUrl, props.outlineNodesUrl);
+
+const selectedFeatureIds = ref<string[]>([]);
+
+function readSelectedFeatureIds(inputName: string) {
+  selectedFeatureIds.value = [...document.querySelectorAll<HTMLInputElement>(
+    `input[name="${CSS.escape(inputName)}"]:checked`,
+  )].map(input => input.value);
+}
+
+function onChange(event: Event) {
+  const inputName = (event.target as HTMLInputElement | null)?.name;
+  if (inputName && inputName === props.selectionInputName) {
+    readSelectedFeatureIds(inputName);
+  }
+}
+
+onMounted(() => {
+  if (props.selectionInputName) {
+    readSelectedFeatureIds(props.selectionInputName);
+    document.addEventListener("change", onChange);
+  }
+});
+
+onUnmounted(() => document.removeEventListener("change", onChange));
 </script>
 
 <style scoped>

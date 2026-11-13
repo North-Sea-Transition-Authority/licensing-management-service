@@ -8,7 +8,12 @@
   pageSize=PageSize.FULL_COLUMN
 >
     <@fdsForm.htmlForm>
-      <@mapWithTextualDescription.mapWithTextualDescription featureIds=activeFeatureIds srsWkid=srsWkid />
+      <#-- selectionInputName must match the checkboxes path (form.<name>) so map selection syncs with them -->
+      <@mapWithTextualDescription.mapWithTextualDescription
+        featureIds=activeFeatureIds
+        srsWkid=srsWkid 
+        selectionInputName="surrenderedFeatureIds"
+      />
 
       <@fdsCheckbox.checkboxes
         path="form.surrenderedFeatureIds"

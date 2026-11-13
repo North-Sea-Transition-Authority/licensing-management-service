@@ -1,5 +1,6 @@
-import { render, screen, waitFor } from "@testing-library/vue";
-import { describe, expect, it, vi } from "vitest";
+import userEvent from "@testing-library/user-event";
+import { render, screen, waitFor, within } from "@testing-library/vue";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import MapWithTextualDescription
   from "@/components/textualDescription/MapWithTextualDescription.vue";
@@ -56,5 +57,68 @@ describe("mapWithTextualDescription", () => {
     ).toBeInTheDocument();
     expect(getFeaturesMock).toHaveBeenCalledWith(baseProps.featuresUrl);
     expect(getOutlineNodesMock).toHaveBeenCalledWith(baseProps.outlineNodesUrl);
+  });
+
+  describe("highlighting selected features", () => {
+    const baseMapStub = {
+      props: ["selectedFeatureIds"],
+      template: "<ul aria-label=\"Highlighted features\"><li v-for=\"id in selectedFeatureIds\" :key=\"id\">{{ id }}</li></ul>",
+    };
+
+    let hostCheckboxes: HTMLElement;
+
+    function renderHostCheckboxes(checkedFeatureIds: string[]) {
+      hostCheckboxes = document.createElement("div");
+      hostCheckboxes.innerHTML = ["feature-1", "feature-2"].map(featureId => `
+        <input type="checkbox" id="${featureId}" name="surrenderedFeatureIds" value="${featureId}"
+          ${checkedFeatureIds.includes(featureId) ? "checked" : ""}>
+        <label for="${featureId}">Select ${featureId}</label>`).join("");
+      document.body.appendChild(hostCheckboxes);
+    }
+
+    function renderComponent(selectionInputName?: string) {
+      getTextualDescriptionMock.mockResolvedValue("");
+      getFeaturesMock.mockResolvedValue([]);
+      getOutlineNodesMock.mockResolvedValue([]);
+      render(MapWithTextualDescription, {
+        props: { ...baseProps, selectionInputName },
+        global: { plugins: [openLayersStub], stubs: { BaseMap: baseMapStub } },
+      });
+    }
+
+    function highlightedFeatureIds() {
+      return within(screen.getByRole("list", { name: "Highlighted features" }))
+        .queryAllByRole("listitem")
+        .map(item => item.textContent);
+    }
+
+    afterEach(() => hostCheckboxes.remove());
+
+    it("highlights features already checked when mounted", async () => {
+      renderHostCheckboxes(["feature-2"]);
+
+      renderComponent("surrenderedFeatureIds");
+
+      await waitFor(() => expect(highlightedFeatureIds()).toEqual(["feature-2"]));
+    });
+
+    it("updates highlighted features as checkboxes are checked and unchecked", async () => {
+      renderHostCheckboxes(["feature-2"]);
+      renderComponent("surrenderedFeatureIds");
+
+      await userEvent.click(screen.getByLabelText("Select feature-1"));
+      await userEvent.click(screen.getByLabelText("Select feature-2"));
+
+      expect(highlightedFeatureIds()).toEqual(["feature-1"]);
+    });
+
+    it("highlights nothing when no selection input name is given", async () => {
+      renderHostCheckboxes(["feature-2"]);
+      renderComponent();
+
+      await userEvent.click(screen.getByLabelText("Select feature-1"));
+
+      expect(highlightedFeatureIds()).toEqual([]);
+    });
   });
 });

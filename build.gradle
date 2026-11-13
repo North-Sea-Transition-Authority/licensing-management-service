@@ -217,6 +217,7 @@ tasks {
 		finalizedBy jacocoTestReport
 		systemProperty 'spring.profiles.active', 'test'
 		maxParallelForks 4
+    maxHeapSize = '2g'
 	}
 	bootJar {
 		archiveFileName.set("${rootProject.name}.jar")

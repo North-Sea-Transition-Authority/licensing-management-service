@@ -11,8 +11,10 @@ import java.util.UUID;
 import java.util.stream.IntStream;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.CorrectionLicenceIsType;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanViewCorrection;
@@ -22,6 +24,7 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correct
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.LicencePositionChangeIsOfType;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.position.LicencePositionBelongsToCorrectionLicence;
 import uk.co.nstauthority.licensingmanagementservice.fds.error.ErrorSummaryItem;
+import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
@@ -57,6 +60,7 @@ public class PartialSurrenderTaskListController {
 
   private static final String BACK_LINK_TEXT = "Back";
   private static final String BACK_TO_TASK_LIST_LINK_TEXT = "Back to task list";
+  static final String SUBMITTED_BANNER = "Partial surrender saved";
 
   private final LicencePositionCorrectionService licencePositionCorrectionService;
   private final PartialSurrenderCorrectionService partialSurrenderCorrectionService;
@@ -155,36 +159,64 @@ public class PartialSurrenderTaskListController {
       LicencePositionCorrection licencePositionCorrection,
       ServiceUserDetail user
   ) {
-    var taskListUrl = ReverseRouter.route(on(PartialSurrenderTaskListController.class)
-        .renderTaskList(correction, licencePositionCorrection, null));
-    var singleBlockSelectAreasUrl = singleBlockSelectAreasUrl(correction, licencePositionCorrection);
-    var sections = partialSurrenderSummarySectionService.getSummarySections(
-        new PartialSurrenderSummaryContext.Staged(licencePositionCorrection),
-        user
-    );
     var stagedChangeId = partialSurrenderCorrectionService
         .getCommittedPartialSurrenderChangeId(licencePositionCorrection)
         .orElse(null);
     var surrender = partialSurrenderCorrectionService.getCommittedPartialSurrenderOrThrow(licencePositionCorrection);
     var stateGoingIntoChange =
         licencePositionSpatialService.getStateGoingIntoChange(licencePositionCorrection, stagedChangeId);
-    var formErrors = partialSurrenderValidator.validateForms(surrender, stateGoingIntoChange);
-    var errorMessages = formErrors.isEmpty()
-        ? validateSpatially(
-            surrender,
-            stateGoingIntoChange,
-            licencePositionCorrectionService.resolveEffectiveDate(licencePositionCorrection),
-            stagedChangeId
-        )
-        : formErrors;
+    var errorMessages = validate(
+        surrender,
+        stateGoingIntoChange,
+        licencePositionCorrectionService.resolveEffectiveDate(licencePositionCorrection),
+        stagedChangeId
+    );
 
-    return reviewAndSubmitModelAndView(
+    return getReviewAndSubmitModelAndView(
         correction,
-        licencePositionCorrection.getId(),
-        sections,
+        licencePositionCorrection,
+        surrender,
+        stateGoingIntoChange,
         errorMessages,
-        singleBlockSelectAreasUrl.orElse(taskListUrl),
-        singleBlockSelectAreasUrl.isPresent() ? BACK_LINK_TEXT : BACK_TO_TASK_LIST_LINK_TEXT);
+        user
+    );
+  }
+
+  @PostMapping("/position-correction/{licencePositionCorrectionId}/partial-surrender/review-and-submit")
+  @LicencePositionCorrectionBelongsToCorrection
+  public ModelAndView submitReviewAndSubmit(
+      LicenceCorrection correction,
+      LicencePositionCorrection licencePositionCorrection,
+      ServiceUserDetail user,
+      RedirectAttributes redirectAttributes
+  ) {
+    var stagedChangeId = partialSurrenderCorrectionService
+        .getCommittedPartialSurrenderChangeId(licencePositionCorrection)
+        .orElse(null);
+    var surrender = partialSurrenderCorrectionService.getCommittedPartialSurrenderOrThrow(licencePositionCorrection);
+    var stateGoingIntoChange =
+        licencePositionSpatialService.getStateGoingIntoChange(licencePositionCorrection, stagedChangeId);
+    var errorMessages = validate(
+        surrender,
+        stateGoingIntoChange,
+        licencePositionCorrectionService.resolveEffectiveDate(licencePositionCorrection),
+        stagedChangeId
+    );
+
+    if (!errorMessages.isEmpty()) {
+      return getReviewAndSubmitModelAndView(
+          correction,
+          licencePositionCorrection,
+          surrender,
+          stateGoingIntoChange,
+          errorMessages,
+          user
+      );
+    }
+
+    NotificationBanner.newSuccessBannerWithHeader(SUBMITTED_BANNER, redirectAttributes);
+    return ReverseRouter.redirectToUrl(
+        LicencePositionCorrectionRouteUtil.getPositionPageUrl(correction, licencePositionCorrection));
   }
 
   @GetMapping("/position/{licencePositionId}/change/{changeId}/partial-surrender/review-and-submit")
@@ -199,41 +231,79 @@ public class PartialSurrenderTaskListController {
       ServiceUserDetail user
   ) {
     var changeId = change.getId().toString();
-    var taskListUrl = ReverseRouter.route(on(PartialSurrenderTaskListController.class)
-        .renderForCorrectingChange(correction, licencePosition, change, null));
-    var singleBlockSelectAreasUrl = licencePositionCorrectionService
-        .findUpdatePositionCorrection(correction, licencePosition)
-        .filter(positionCorrection -> partialSurrenderCorrectionService.findCorrectedLiveChangeId(positionCorrection)
-            .filter(changeId::equals)
-            .isPresent())
-        .flatMap(positionCorrection -> singleBlockSelectAreasUrl(correction, positionCorrection));
-
-    var sections = partialSurrenderSummarySectionService.getSummarySections(
-        new PartialSurrenderSummaryContext.LiveChange(correction, licencePosition, changeId),
-        user
-    );
     var surrender =
         partialSurrenderCorrectionService.getSurrenderUnderCorrectionOrThrow(correction, licencePosition, changeId);
     var stateGoingIntoChange =
         licencePositionSpatialService.getStateGoingIntoChange(correction, licencePosition.getId(), changeId);
-    var formErrors = partialSurrenderValidator.validateForms(surrender, stateGoingIntoChange);
-    var errorMessages = formErrors.isEmpty()
-        ? validateSpatially(
-            surrender,
-            stateGoingIntoChange,
-            licencePositionCorrectionService.getEffectivePositionDate(correction, licencePosition),
-            changeId
-        )
-        : formErrors;
-
-    return reviewAndSubmitModelAndView(
-        correction,
-        changeId,
-        sections,
-        errorMessages,
-        singleBlockSelectAreasUrl.orElse(taskListUrl),
-        singleBlockSelectAreasUrl.isPresent() ? BACK_LINK_TEXT : BACK_TO_TASK_LIST_LINK_TEXT
+    var errorMessages = validate(
+        surrender,
+        stateGoingIntoChange,
+        licencePositionCorrectionService.getEffectivePositionDate(correction, licencePosition),
+        changeId
     );
+
+    return getReviewAndSubmitForCorrectingChangeModelAndView(
+        correction,
+        licencePosition,
+        change,
+        surrender,
+        stateGoingIntoChange,
+        errorMessages,
+        user
+    );
+  }
+
+  @PostMapping("/position/{licencePositionId}/change/{changeId}/partial-surrender/review-and-submit")
+  @LicencePositionIsNotRemovedInCorrection
+  @LicencePositionChangeBelongsToPosition
+  @LicencePositionChangeIsOfType(PartialSurrenderOperation.class)
+  @LicencePositionBelongsToCorrectionLicence
+  public ModelAndView submitReviewAndSubmitForCorrectingChange(
+      LicenceCorrection correction,
+      LicencePosition licencePosition,
+      LicencePositionChange change,
+      ServiceUserDetail user,
+      RedirectAttributes redirectAttributes
+  ) {
+    var changeId = change.getId().toString();
+    var surrender =
+        partialSurrenderCorrectionService.getSurrenderUnderCorrectionOrThrow(correction, licencePosition, changeId);
+    var stateGoingIntoChange =
+        licencePositionSpatialService.getStateGoingIntoChange(correction, licencePosition.getId(), changeId);
+    var errorMessages = validate(
+        surrender,
+        stateGoingIntoChange,
+        licencePositionCorrectionService.getEffectivePositionDate(correction, licencePosition),
+        changeId
+    );
+
+    if (!errorMessages.isEmpty()) {
+      return getReviewAndSubmitForCorrectingChangeModelAndView(
+          correction,
+          licencePosition,
+          change,
+          surrender,
+          stateGoingIntoChange,
+          errorMessages,
+          user
+      );
+    }
+
+    NotificationBanner.newSuccessBannerWithHeader(SUBMITTED_BANNER, redirectAttributes);
+    return ReverseRouter.redirect(on(LicenceCorrectionController.class)
+        .renderLicencePosition(correction, licencePosition, null));
+  }
+
+  private List<String> validate(
+      PartialSurrenderOperation surrender,
+      LicencePositionState stateGoingIntoChange,
+      LocalDate positionDate,
+      @Nullable String changeId
+  ) {
+    var formErrors = partialSurrenderValidator.validateForms(surrender, stateGoingIntoChange);
+    return formErrors.isEmpty()
+        ? validateSpatially(surrender, stateGoingIntoChange, positionDate, changeId)
+        : formErrors;
   }
 
   private List<String> validateSpatially(
@@ -248,6 +318,70 @@ public class PartialSurrenderTaskListController {
         positionDate,
         changeId,
         partialSurrenderValidator.getBlockLineBoundingBoxes(Set.of(positionDate))
+    );
+  }
+
+  private ModelAndView getReviewAndSubmitModelAndView(
+      LicenceCorrection correction,
+      LicencePositionCorrection licencePositionCorrection,
+      PartialSurrenderOperation surrender,
+      LicencePositionState stateGoingIntoChange,
+      List<String> errorMessages,
+      ServiceUserDetail user
+  ) {
+    var taskListUrl = ReverseRouter.route(on(PartialSurrenderTaskListController.class)
+        .renderTaskList(correction, licencePositionCorrection, null));
+    var singleBlockSelectAreasUrl = singleBlockSelectAreasUrl(correction, licencePositionCorrection);
+    var sections = partialSurrenderSummarySectionService.getSummarySections(
+        new PartialSurrenderSummaryContext.Staged(licencePositionCorrection, surrender, stateGoingIntoChange),
+        user
+    );
+
+    return reviewAndSubmitModelAndView(
+        correction,
+        licencePositionCorrection.getId(),
+        sections,
+        errorMessages,
+        singleBlockSelectAreasUrl.orElse(taskListUrl),
+        singleBlockSelectAreasUrl.isPresent() ? BACK_LINK_TEXT : BACK_TO_TASK_LIST_LINK_TEXT);
+  }
+
+  private ModelAndView getReviewAndSubmitForCorrectingChangeModelAndView(
+      LicenceCorrection correction,
+      LicencePosition licencePosition,
+      LicencePositionChange change,
+      PartialSurrenderOperation surrender,
+      LicencePositionState stateGoingIntoChange,
+      List<String> errorMessages,
+      ServiceUserDetail user
+  ) {
+    var changeId = change.getId().toString();
+    var taskListUrl = ReverseRouter.route(on(PartialSurrenderTaskListController.class)
+        .renderForCorrectingChange(correction, licencePosition, change, null));
+    var singleBlockSelectAreasUrl = licencePositionCorrectionService
+        .findUpdatePositionCorrection(correction, licencePosition)
+        .filter(positionCorrection -> partialSurrenderCorrectionService.findCorrectedLiveChangeId(positionCorrection)
+            .filter(changeId::equals)
+            .isPresent())
+        .flatMap(positionCorrection -> singleBlockSelectAreasUrl(correction, positionCorrection));
+    var sections = partialSurrenderSummarySectionService.getSummarySections(
+        new PartialSurrenderSummaryContext.LiveChange(
+            correction,
+            licencePosition,
+            changeId,
+            surrender,
+            stateGoingIntoChange
+        ),
+        user
+    );
+
+    return reviewAndSubmitModelAndView(
+        correction,
+        changeId,
+        sections,
+        errorMessages,
+        singleBlockSelectAreasUrl.orElse(taskListUrl),
+        singleBlockSelectAreasUrl.isPresent() ? BACK_LINK_TEXT : BACK_TO_TASK_LIST_LINK_TEXT
     );
   }
 

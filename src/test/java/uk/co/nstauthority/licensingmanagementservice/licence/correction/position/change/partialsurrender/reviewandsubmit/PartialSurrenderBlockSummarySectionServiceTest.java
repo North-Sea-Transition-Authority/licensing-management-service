@@ -2,13 +2,14 @@ package uk.co.nstauthority.licensingmanagementservice.licence.correction.positio
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.when;
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
+import jakarta.annotation.Nullable;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -19,6 +20,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.fivium.gisframework.feature.CoordinateSystemUtils;
 import uk.co.fivium.gisframework.feature.Feature;
 import uk.co.fivium.gisframework.feature.FeatureService;
+import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
+import uk.co.nstauthority.licensingmanagementservice.fds.tag.Tag;
+import uk.co.nstauthority.licensingmanagementservice.fds.tag.TagColour;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
@@ -35,14 +39,16 @@ import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaSu
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.LicencePositionState;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.FeatureTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.spatial.LicencePositionSpatialService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryCard;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryCardAction;
+import uk.co.nstauthority.licensingmanagementservice.summary.SummaryColumn;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryDataView;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryItem;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryMapView;
+import uk.co.nstauthority.licensingmanagementservice.summary.SummaryRow;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummarySection;
 
 @ExtendWith(MockitoExtension.class)
@@ -58,11 +64,17 @@ class PartialSurrenderBlockSummarySectionServiceTest {
   private static final int SRS_WKID = CoordinateSystemUtils.getWkid(SECOND_BLOCK.getCoordinateSystem());
   private static final UUID COMMAND_JOURNEY_ID = UUID.randomUUID();
 
+  private static final Tag FULL_SURRENDER_TAG = new Tag("Full surrender", TagColour.RED);
+  private static final Tag PARTIAL_SURRENDER_TAG = new Tag("Partial surrender", TagColour.BLUE);
+  private static final Tag RELINQUISHED_TAG = new Tag("Relinquished", TagColour.RED);
+  private static final Tag CROPPED_TAG = new Tag("Cropped", TagColour.BLUE);
+  private static final Tag UNCHANGED_TAG = new Tag("Unchanged", TagColour.GREY);
+
   @Mock
   private PartialSurrenderCorrectionService partialSurrenderCorrectionService;
 
   @Mock
-  private LicencePositionSpatialService licencePositionSpatialService;
+  private OrganisationUnitQueryService organisationUnitQueryService;
 
   @Mock
   private FeatureService featureService;
@@ -71,60 +83,35 @@ class PartialSurrenderBlockSummarySectionServiceTest {
   private PartialSurrenderBlockSummarySectionService partialSurrenderBlockSummarySectionService;
 
   @Test
-  void getSummarySection_whenNoCommittedSurrender_thenEmpty() {
+  void getSummarySection_whenBlockSurrenderTypeNotYetSelected_thenItemPerBlockWithOnlyBeforeColumn() {
     var positionCorrection = positionCorrection();
-    when(partialSurrenderCorrectionService.getCommittedPartialSurrender(positionCorrection))
-        .thenReturn(Optional.empty());
+    var staged = LicenceOperation.newPartialSurrenderOperation()
+        .withSurrenderedFeatureIds(List.of(FIRST_BLOCK.getId(), SECOND_BLOCK.getId()))
+        .build();
 
-    var result = partialSurrenderBlockSummarySectionService.getSummarySection(
-        new PartialSurrenderSummaryContext.Staged(positionCorrection),
-        null
-    );
-
-    assertThat(result).isEmpty();
-  }
-
-  @Test
-  void getSummarySection_whenBlocksSurrendered_thenItemPerBlockOrderedByBlock() {
-    var positionCorrection = positionCorrection();
-    var partialBlockSurrender = surrenderDetails(BlockSurrenderType.PARTIAL_SURRENDER, List.of());
-    var staged = operation(Map.of(
-        FIRST_BLOCK.getId(), surrenderDetails(BlockSurrenderType.FULL_SURRENDER, List.of()),
-        SECOND_BLOCK.getId(), partialBlockSurrender
-    ));
-
-    when(partialSurrenderCorrectionService.getCommittedPartialSurrender(positionCorrection))
-        .thenReturn(Optional.of(staged));
     when(partialSurrenderCorrectionService.getSurrenderedBlockFeatures(staged))
         .thenReturn(List.of(SECOND_BLOCK, FIRST_BLOCK));
 
     var result = partialSurrenderBlockSummarySectionService.getSummarySection(
-        new PartialSurrenderSummaryContext.Staged(positionCorrection),
+        stagedContext(positionCorrection, staged, LicencePositionState.EMPTY),
         null
     );
 
     var expected = new SummarySection(
         PartialSurrenderBlockSummarySectionService.SECTION_ORDER,
         List.of(
-            new SummaryItem("Block SHAPE 1", List.of(blockCard(
-                "Block SHAPE 1",
-                SummaryDataView.newBuilder()
-                    .addStringValue(PartialSurrenderBlockSummarySectionService.TYPE_OF_CHANGE, "Full surrender")
-                    .addStringValue(PartialSurrenderBlockSummarySectionService.AREA_BEFORE, "184.12 km²")
-                    .addStringValue(PartialSurrenderBlockSummarySectionService.AREA_AFTER, "0.00 km²")
-                    .addMapValue(PartialSurrenderBlockSummarySectionService.UNLABELLED_MAP, map(FIRST_BLOCK.getId()))
-                    .build(),
-                surrenderTypeUrl(positionCorrection, FIRST_BLOCK)
-            ))),
-            new SummaryItem("Block SHAPE 2", List.of(blockCard(
-                "Block SHAPE 2",
-                SummaryDataView.newBuilder()
-                    .addStringValue(PartialSurrenderBlockSummarySectionService.TYPE_OF_CHANGE, "Partial surrender")
-                    .addStringValue(PartialSurrenderBlockSummarySectionService.AREA_BEFORE, "200.00 km²")
-                    .addMapValue(PartialSurrenderBlockSummarySectionService.BEFORE, map(SECOND_BLOCK.getId()))
-                    .build(),
-                defineAreaUrl(positionCorrection, SECOND_BLOCK)
-            )))
+            SummaryItem.withRows("Block SHAPE 1", List.of(new SummaryRow(List.of(new SummaryColumn(
+                PartialSurrenderBlockSummarySectionService.BEFORE,
+                map(FIRST_BLOCK.getId()),
+                List.of(blockBeforeCard("Block SHAPE 1", "184.12 km²")
+                    .withAction(changeAction(surrenderTypeUrl(positionCorrection, FIRST_BLOCK))))
+            ))))),
+            SummaryItem.withRows("Block SHAPE 2", List.of(new SummaryRow(List.of(new SummaryColumn(
+                PartialSurrenderBlockSummarySectionService.BEFORE,
+                map(SECOND_BLOCK.getId()),
+                List.of(blockBeforeCard("Block SHAPE 2", "200.00 km²")
+                    .withAction(changeAction(surrenderTypeUrl(positionCorrection, SECOND_BLOCK))))
+            )))))
         )
     );
 
@@ -132,83 +119,89 @@ class PartialSurrenderBlockSummarySectionServiceTest {
   }
 
   @Test
-  void getSummarySection_whenBlockPartiallySurrendered_thenAreaAndMapsOfRetainedParts() {
+  void getSummarySection_whenBlockFullySurrendered_thenSubareasGoingIntoTheChangeRelinquished() {
     var positionCorrection = positionCorrection();
-    var retainedFeatureIds = List.of(RETAINED_PART.getId(), OTHER_RETAINED_PART.getId());
-    var blockSurrender = surrenderDetails(BlockSurrenderType.PARTIAL_SURRENDER, List.of(SURRENDERED_PART.getId()))
-        .withRetainedFeatureIds(retainedFeatureIds);
-    var staged = operation(Map.of(SECOND_BLOCK.getId(), blockSurrender));
+    var staged = operation(Map.of(
+        FIRST_BLOCK.getId(), surrenderDetails(BlockSurrenderType.FULL_SURRENDER, List.of())
+    ));
 
-    when(partialSurrenderCorrectionService.getCommittedPartialSurrender(positionCorrection))
-        .thenReturn(Optional.of(staged));
-    when(partialSurrenderCorrectionService.getSurrenderedBlockFeatures(staged)).thenReturn(List.of(SECOND_BLOCK));
-    when(featureService.getFeaturesByIds(retainedFeatureIds)).thenReturn(List.of(RETAINED_PART, OTHER_RETAINED_PART));
-
-    var result = partialSurrenderBlockSummarySectionService.getSummarySection(
-        new PartialSurrenderSummaryContext.Staged(positionCorrection),
-        null
+    var subareaFeature = feature("Bravo", "20000000");
+    var subarea = subarea(subareaFeature, "B");
+    var legacySubarea = new SubareaDetails(null, "Alpha", "A");
+    var stateBefore = state(
+        FIRST_BLOCK,
+        Set.of(subarea, legacySubarea),
+        Map.of(subarea, Map.of(1, new BigDecimal("60"), 2, new BigDecimal("40")))
     );
 
-    var expected = new SummarySection(
-        PartialSurrenderBlockSummarySectionService.SECTION_ORDER,
-        List.of(new SummaryItem("Block SHAPE 2", List.of(blockCard(
-            "Block SHAPE 2",
-            SummaryDataView.newBuilder()
-                .addStringValue(PartialSurrenderBlockSummarySectionService.TYPE_OF_CHANGE, "Partial surrender")
-                .addStringValue(PartialSurrenderBlockSummarySectionService.AREA_BEFORE, "200.00 km²")
-                .addStringValue(PartialSurrenderBlockSummarySectionService.AREA_AFTER, "142.07 km²")
-                .addMapValue(PartialSurrenderBlockSummarySectionService.BEFORE, map(SECOND_BLOCK.getId()))
-                .addMapValue(PartialSurrenderBlockSummarySectionService.AFTER, map(retainedFeatureIds))
-                .build(),
-            defineAreaUrl(positionCorrection, SECOND_BLOCK)
-        ))))
-    );
-
-    assertThat(result).get().usingRecursiveComparison().isEqualTo(expected);
-  }
-
-  @Test
-  void getSummarySection_whenBlockSurrenderTypeNotYetSelected_thenOnlySurrenderTypeWithNoValue() {
-    var positionCorrection = positionCorrection();
-    var staged = LicenceOperation.newPartialSurrenderOperation()
-        .withSurrenderedFeatureIds(List.of(FIRST_BLOCK.getId()))
-        .withSurrenderDetails(Map.of())
-        .build();
-
-    when(partialSurrenderCorrectionService.getCommittedPartialSurrender(positionCorrection))
-        .thenReturn(Optional.of(staged));
     when(partialSurrenderCorrectionService.getSurrenderedBlockFeatures(staged)).thenReturn(List.of(FIRST_BLOCK));
+    when(organisationUnitQueryService.getOrganisationUnitNamesByIds(argThat(ids -> Set.copyOf(ids).equals(Set.of(1, 2)))))
+        .thenReturn(Map.of(1, "zeta ltd"));
+    when(featureService.getFeaturesByIds(Set.of(subareaFeature.getId()))).thenReturn(List.of(subareaFeature));
 
     var result = partialSurrenderBlockSummarySectionService.getSummarySection(
-        new PartialSurrenderSummaryContext.Staged(positionCorrection),
+        stagedContext(positionCorrection, staged, stateBefore),
         null
     );
 
     var expected = new SummarySection(
         PartialSurrenderBlockSummarySectionService.SECTION_ORDER,
-        List.of(new SummaryItem("Block SHAPE 1", List.of(blockCard(
-            "Block SHAPE 1",
-            SummaryDataView.newBuilder()
-                .addStringValue(PartialSurrenderBlockSummarySectionService.TYPE_OF_CHANGE, null)
-                .build(),
-            surrenderTypeUrl(positionCorrection, FIRST_BLOCK)
-        ))))
+        List.of(SummaryItem.withRows("Block SHAPE 1", List.of(
+            new SummaryRow(List.of(
+                new SummaryColumn(
+                    PartialSurrenderBlockSummarySectionService.BEFORE,
+                    map(FIRST_BLOCK.getId()),
+                    List.of(blockBeforeCard("Block SHAPE 1", "184.12 km²"))
+                ),
+                new SummaryColumn(
+                    PartialSurrenderBlockSummarySectionService.AFTER,
+                    null,
+                    List.of(blockAfterCard(
+                        "Block SHAPE 1",
+                        SummaryDataView.newStringKeyValue(PartialSurrenderBlockSummarySectionService.AREA, "0.00 km²"),
+                        surrenderTypeUrl(positionCorrection, FIRST_BLOCK)
+                    ))
+                )
+            )),
+            subareaRowWithExplanation(
+                "Subarea Alpha",
+                RELINQUISHED_TAG,
+                null,
+                SummaryDataView.newBuilder().build(),
+                PartialSurrenderBlockSummarySectionService.RELINQUISHED_WITH_BLOCK
+            ),
+            subareaRowWithExplanation(
+                "Subarea Bravo",
+                RELINQUISHED_TAG,
+                map(subareaFeature.getId()),
+                SummaryDataView.newBuilder()
+                    .addStringValue(PartialSurrenderBlockSummarySectionService.AREA, "20.00 km²")
+                    .addStringValue(
+                        PartialSurrenderBlockSummarySectionService.LICENSEES,
+                        List.of("Not available (40%)", "zeta ltd (60%)")
+                    )
+                    .build(),
+                PartialSurrenderBlockSummarySectionService.RELINQUISHED_WITH_BLOCK
+            )
+        )).withTag(FULL_SURRENDER_TAG))
     );
 
     assertThat(result).get().usingRecursiveComparison().isEqualTo(expected);
   }
 
   @Test
-  void getSummarySection_whenBlockPartiallySurrendered_thenSubareaCardsByOutcome() {
+  void getSummarySection_whenBlockPartiallySurrendered_thenRowPerSubareaWithLicenseesOnlyBefore() {
     var positionCorrection = positionCorrection();
 
-    var croppedSubareaFeature = feature("SUBAREA A", "40000000");
-    var croppedOntoRetainedPart = feature("SUBAREA A_1", "15000000");
-    var croppedOntoOtherRetainedPart = feature("SUBAREA A_2", "10000000");
-    var unchangedSubareaFeature = feature("SUBAREA B", "30000000");
-    var relinquishedSubareaFeature = feature("SUBAREA C", "20000000");
+    var croppedSubareaFeature = feature("Alpha", "40000000");
+    var croppedOntoRetainedPart = feature("Alpha 2", "15000000");
+    var croppedOntoOtherRetainedPart = feature("Alpha 1", "10000000");
+    var unchangedSubareaFeature = feature("Bravo", "30000000");
+    var relinquishedSubareaFeature = feature("Charlie", "20000000");
 
     var croppedSubarea = subarea(croppedSubareaFeature, "A");
+    var firstCroppedPart = subarea(croppedOntoOtherRetainedPart, "A1");
+    var secondCroppedPart = subarea(croppedOntoRetainedPart, "A2");
     var unchangedSubarea = subarea(unchangedSubareaFeature, "B");
     var relinquishedSubarea = subarea(relinquishedSubareaFeature, "C");
     var legacySubarea = new SubareaDetails(null, null, "D");
@@ -218,22 +211,26 @@ class PartialSurrenderBlockSummarySectionServiceTest {
         .withRetainedFeatureIds(retainedFeatureIds)
         .withSubareas(Map.of(
             RETAINED_PART.getId(), List.of(
-                SubareaSurrenderOutcome.cropped(croppedSubarea, subarea(croppedOntoRetainedPart, "A")),
+                SubareaSurrenderOutcome.cropped(croppedSubarea, secondCroppedPart),
                 SubareaSurrenderOutcome.relinquished(unchangedSubarea),
                 SubareaSurrenderOutcome.relinquished(relinquishedSubarea),
                 SubareaSurrenderOutcome.kept(legacySubarea)
             ),
             OTHER_RETAINED_PART.getId(), List.of(
-                SubareaSurrenderOutcome.cropped(croppedSubarea, subarea(croppedOntoOtherRetainedPart, "A")),
+                SubareaSurrenderOutcome.cropped(croppedSubarea, firstCroppedPart),
                 SubareaSurrenderOutcome.kept(unchangedSubarea),
                 SubareaSurrenderOutcome.relinquished(relinquishedSubarea)
             )
         ));
     var staged = operation(Map.of(SECOND_BLOCK.getId(), blockSurrender));
+    var stateBefore = state(
+        SECOND_BLOCK,
+        Set.of(croppedSubarea, unchangedSubarea, relinquishedSubarea, legacySubarea),
+        Map.of(croppedSubarea, Map.of(1, new BigDecimal("100")))
+    );
 
-    when(partialSurrenderCorrectionService.getCommittedPartialSurrender(positionCorrection))
-        .thenReturn(Optional.of(staged));
     when(partialSurrenderCorrectionService.getSurrenderedBlockFeatures(staged)).thenReturn(List.of(SECOND_BLOCK));
+    when(organisationUnitQueryService.getOrganisationUnitNamesByIds(List.of(1))).thenReturn(Map.of(1, "Org"));
     when(featureService.getFeaturesByIds(retainedFeatureIds)).thenReturn(List.of(RETAINED_PART, OTHER_RETAINED_PART));
     when(featureService.getFeaturesByIds(Set.of(
         croppedSubareaFeature.getId(),
@@ -250,204 +247,152 @@ class PartialSurrenderBlockSummarySectionServiceTest {
     ));
 
     var result = partialSurrenderBlockSummarySectionService.getSummarySection(
-        new PartialSurrenderSummaryContext.Staged(positionCorrection),
+        stagedContext(positionCorrection, staged, stateBefore),
         null
     );
 
     var expected = new SummarySection(
         PartialSurrenderBlockSummarySectionService.SECTION_ORDER,
-        List.of(new SummaryItem("Block SHAPE 2", List.of(
-            blockCard(
-                "Block SHAPE 2",
-                SummaryDataView.newBuilder()
-                    .addStringValue(PartialSurrenderBlockSummarySectionService.TYPE_OF_CHANGE, "Partial surrender")
-                    .addStringValue(PartialSurrenderBlockSummarySectionService.AREA_BEFORE, "200.00 km²")
-                    .addStringValue(PartialSurrenderBlockSummarySectionService.AREA_AFTER, "142.07 km²")
-                    .addMapValue(PartialSurrenderBlockSummarySectionService.BEFORE, map(SECOND_BLOCK.getId()))
-                    .addMapValue(PartialSurrenderBlockSummarySectionService.AFTER, map(retainedFeatureIds))
-                    .build(),
-                defineAreaUrl(positionCorrection, SECOND_BLOCK)
+        List.of(SummaryItem.withRows("Block SHAPE 2", List.of(
+            new SummaryRow(List.of(
+                new SummaryColumn(
+                    PartialSurrenderBlockSummarySectionService.BEFORE,
+                    map(SECOND_BLOCK.getId()),
+                    List.of(blockBeforeCard("Block SHAPE 2", "200.00 km²"))
+                ),
+                new SummaryColumn(
+                    PartialSurrenderBlockSummarySectionService.AFTER,
+                    map(retainedFeatureIds),
+                    List.of(blockAfterCard(
+                        "Block SHAPE 2",
+                        SummaryDataView.newStringKeyValue(PartialSurrenderBlockSummarySectionService.AREA, "142.07 km²"),
+                        defineAreaUrl(positionCorrection, SECOND_BLOCK)
+                    ))
+                )
+            )),
+            subareaRowWithExplanation(
+                "Subarea Charlie",
+                RELINQUISHED_TAG,
+                map(relinquishedSubareaFeature.getId()),
+                area("20.00 km²"),
+                PartialSurrenderBlockSummarySectionService.RELINQUISHED_OUTSIDE_AREA_KEPT
             ),
-            SummaryCard.simpleSummaryCardWithHeading("SUBAREA C", SummaryDataView.newBuilder()
-                .addStringValue(PartialSurrenderBlockSummarySectionService.OUTCOME, "Relinquished")
-                .addStringValue(PartialSurrenderBlockSummarySectionService.AREA_BEFORE, "20.00 km²")
-                .addStringValue(PartialSurrenderBlockSummarySectionService.AREA_AFTER, "0.00 km²")
-                .addMapValue(
-                    PartialSurrenderBlockSummarySectionService.UNLABELLED_MAP,
-                    map(relinquishedSubareaFeature.getId())
+            new SummaryRow("Subarea Alpha", CROPPED_TAG, List.of(
+                new SummaryColumn(
+                    PartialSurrenderBlockSummarySectionService.BEFORE,
+                    map(croppedSubareaFeature.getId()),
+                    List.of(subareaCard("Subarea Alpha", SummaryDataView.newBuilder()
+                        .addStringValue(PartialSurrenderBlockSummarySectionService.AREA, "40.00 km²")
+                        .addStringValue(PartialSurrenderBlockSummarySectionService.LICENSEES, List.of("Org (100%)"))
+                        .build()))
+                ),
+                new SummaryColumn(
+                    PartialSurrenderBlockSummarySectionService.AFTER,
+                    map(List.of(croppedOntoOtherRetainedPart.getId(), croppedOntoRetainedPart.getId())),
+                    List.of(
+                        subareaCard("Subarea Alpha 1", area("10.00 km²")),
+                        subareaCard("Subarea Alpha 2", area("15.00 km²"))
+                    )
                 )
-                .build()),
-            SummaryCard.simpleSummaryCardWithHeading("SUBAREA A", SummaryDataView.newBuilder()
-                .addStringValue(PartialSurrenderBlockSummarySectionService.OUTCOME, "Cropped")
-                .addStringValue(PartialSurrenderBlockSummarySectionService.AREA_BEFORE, "40.00 km²")
-                .addStringValue(PartialSurrenderBlockSummarySectionService.AREA_AFTER, "25.00 km²")
-                .addMapValue(PartialSurrenderBlockSummarySectionService.BEFORE, map(croppedSubareaFeature.getId()))
-                .addMapValue(PartialSurrenderBlockSummarySectionService.AFTER, map(List.of(
-                    croppedOntoRetainedPart.getId(),
-                    croppedOntoOtherRetainedPart.getId()
-                )))
-                .build()),
-            SummaryCard.simpleSummaryCardWithHeading("SUBAREA B", SummaryDataView.newBuilder()
-                .addStringValue(PartialSurrenderBlockSummarySectionService.OUTCOME, "Unchanged")
-                .addStringValue(PartialSurrenderBlockSummarySectionService.AREA_BEFORE, "30.00 km²")
-                .addStringValue(PartialSurrenderBlockSummarySectionService.AREA_AFTER, "30.00 km²")
-                .addMapValue(
-                    PartialSurrenderBlockSummarySectionService.UNLABELLED_MAP,
-                    map(unchangedSubareaFeature.getId())
-                )
-                .build()),
-            SummaryCard.simpleSummaryCardWithHeading("Subarea D", SummaryDataView.newBuilder()
-                .addStringValue(PartialSurrenderBlockSummarySectionService.OUTCOME, "Unchanged")
-                .build())
-        )))
+            )),
+            subareaRowWithExplanation(
+                "Subarea Bravo",
+                UNCHANGED_TAG,
+                map(unchangedSubareaFeature.getId()),
+                area("30.00 km²"),
+                PartialSurrenderBlockSummarySectionService.KEPT_UNCHANGED
+            ),
+            subareaRowWithExplanation(
+                "Subarea D",
+                UNCHANGED_TAG,
+                null,
+                SummaryDataView.newBuilder().build(),
+                PartialSurrenderBlockSummarySectionService.KEPT_UNCHANGED
+            )
+        )).withTag(PARTIAL_SURRENDER_TAG))
     );
 
     assertThat(result).get().usingRecursiveComparison().isEqualTo(expected);
   }
 
   @Test
-  void getSummarySection_whenCorrectingALiveChange_thenChangeLinksToCorrectingSurrenderTypeAndSubareasRelinquished() {
+  void getSummarySection_whenAreasToSurrenderNotYetSelected_thenAfterBlockCardEmpty() {
+    var positionCorrection = positionCorrection();
+    var staged = operation(Map.of(
+        SECOND_BLOCK.getId(), surrenderDetails(BlockSurrenderType.PARTIAL_SURRENDER, List.of())
+    ));
+
+    when(partialSurrenderCorrectionService.getSurrenderedBlockFeatures(staged)).thenReturn(List.of(SECOND_BLOCK));
+
+    var result = partialSurrenderBlockSummarySectionService.getSummarySection(
+        stagedContext(positionCorrection, staged, LicencePositionState.EMPTY),
+        null
+    );
+
+    var expected = new SummarySection(
+        PartialSurrenderBlockSummarySectionService.SECTION_ORDER,
+        List.of(SummaryItem.withRows("Block SHAPE 2", List.of(new SummaryRow(List.of(
+            new SummaryColumn(
+                PartialSurrenderBlockSummarySectionService.BEFORE,
+                map(SECOND_BLOCK.getId()),
+                List.of(blockBeforeCard("Block SHAPE 2", "200.00 km²"))
+            ),
+            new SummaryColumn(
+                PartialSurrenderBlockSummarySectionService.AFTER,
+                null,
+                List.of(blockAfterCard(
+                    "Block SHAPE 2",
+                    SummaryDataView.newBuilder().build(),
+                    defineAreaUrl(positionCorrection, SECOND_BLOCK)
+                ))
+            )
+        )))).withTag(PARTIAL_SURRENDER_TAG))
+    );
+
+    assertThat(result).get().usingRecursiveComparison().isEqualTo(expected);
+  }
+
+  @Test
+  void getSummarySection_whenCorrectingALiveChange_thenChangeLinksToCorrectingSurrenderType() {
     var correction = LicenceCorrectionTestUtil.newBuilder().build();
     var licencePosition = LicencePositionTestUtil.newBuilder().build();
     var changeId = UUID.randomUUID().toString();
-
-    var subareaFeature = feature("SUBAREA A", "20000000");
-    var subarea = subarea(subareaFeature, "A");
     var surrenderUnderCorrection = operation(Map.of(
         FIRST_BLOCK.getId(), surrenderDetails(BlockSurrenderType.FULL_SURRENDER, List.of())
     ));
 
-    when(partialSurrenderCorrectionService.getSurrenderUnderCorrectionOrThrow(correction, licencePosition, changeId))
-        .thenReturn(surrenderUnderCorrection);
     when(partialSurrenderCorrectionService.getSurrenderedBlockFeatures(surrenderUnderCorrection))
         .thenReturn(List.of(FIRST_BLOCK));
-    when(licencePositionSpatialService.getSubareasGoingIntoChange(
-        correction,
-        licencePosition.getId(),
-        FIRST_BLOCK.getId(),
-        changeId
-    )).thenReturn(List.of(subarea));
-    when(featureService.getFeaturesByIds(Set.of(subareaFeature.getId()))).thenReturn(List.of(subareaFeature));
 
     var result = partialSurrenderBlockSummarySectionService.getSummarySection(
-        new PartialSurrenderSummaryContext.LiveChange(correction, licencePosition, changeId),
+        new PartialSurrenderSummaryContext.LiveChange(
+            correction,
+            licencePosition,
+            changeId,
+            surrenderUnderCorrection,
+            LicencePositionState.EMPTY
+        ),
         null
     );
 
     var expected = new SummarySection(
         PartialSurrenderBlockSummarySectionService.SECTION_ORDER,
-        List.of(new SummaryItem("Block SHAPE 1", List.of(
-            blockCard(
-                "Block SHAPE 1",
-                SummaryDataView.newBuilder()
-                    .addStringValue(PartialSurrenderBlockSummarySectionService.TYPE_OF_CHANGE, "Full surrender")
-                    .addStringValue(PartialSurrenderBlockSummarySectionService.AREA_BEFORE, "184.12 km²")
-                    .addStringValue(PartialSurrenderBlockSummarySectionService.AREA_AFTER, "0.00 km²")
-                    .addMapValue(PartialSurrenderBlockSummarySectionService.UNLABELLED_MAP, map(FIRST_BLOCK.getId()))
-                    .build(),
-                correctingSurrenderTypeUrl(correction, licencePosition, changeId, FIRST_BLOCK)
+        List.of(SummaryItem.withRows("Block SHAPE 1", List.of(new SummaryRow(List.of(
+            new SummaryColumn(
+                PartialSurrenderBlockSummarySectionService.BEFORE,
+                map(FIRST_BLOCK.getId()),
+                List.of(blockBeforeCard("Block SHAPE 1", "184.12 km²"))
             ),
-            SummaryCard.simpleSummaryCardWithHeading("SUBAREA A", SummaryDataView.newBuilder()
-                .addStringValue(PartialSurrenderBlockSummarySectionService.OUTCOME, "Relinquished")
-                .addStringValue(PartialSurrenderBlockSummarySectionService.AREA_BEFORE, "20.00 km²")
-                .addStringValue(PartialSurrenderBlockSummarySectionService.AREA_AFTER, "0.00 km²")
-                .addMapValue(PartialSurrenderBlockSummarySectionService.UNLABELLED_MAP, map(subareaFeature.getId()))
-                .build())
-        )))
-    );
-
-    assertThat(result).get().usingRecursiveComparison().isEqualTo(expected);
-  }
-
-  @Test
-  void getSummarySection_whenStagedBlockFullySurrendered_thenSubareasGoingIntoTheChangeRelinquished() {
-    var positionCorrection = positionCorrection();
-    var changeId = UUID.randomUUID().toString();
-    var staged = operation(Map.of(
-        FIRST_BLOCK.getId(), surrenderDetails(BlockSurrenderType.FULL_SURRENDER, List.of())
-    ));
-
-    var legacySubarea = new SubareaDetails(null, "Legacy subarea", "A");
-
-    when(partialSurrenderCorrectionService.getCommittedPartialSurrender(positionCorrection))
-        .thenReturn(Optional.of(staged));
-    when(partialSurrenderCorrectionService.getSurrenderedBlockFeatures(staged)).thenReturn(List.of(FIRST_BLOCK));
-    when(partialSurrenderCorrectionService.getCommittedPartialSurrenderChangeId(positionCorrection))
-        .thenReturn(Optional.of(changeId));
-    when(licencePositionSpatialService.getSubareasGoingIntoChange(positionCorrection, FIRST_BLOCK.getId(), changeId))
-        .thenReturn(List.of(legacySubarea));
-
-    var result = partialSurrenderBlockSummarySectionService.getSummarySection(
-        new PartialSurrenderSummaryContext.Staged(positionCorrection),
-        null
-    );
-
-    var expected = new SummarySection(
-        PartialSurrenderBlockSummarySectionService.SECTION_ORDER,
-        List.of(new SummaryItem("Block SHAPE 1", List.of(
-            blockCard(
-                "Block SHAPE 1",
-                SummaryDataView.newBuilder()
-                    .addStringValue(PartialSurrenderBlockSummarySectionService.TYPE_OF_CHANGE, "Full surrender")
-                    .addStringValue(PartialSurrenderBlockSummarySectionService.AREA_BEFORE, "184.12 km²")
-                    .addStringValue(PartialSurrenderBlockSummarySectionService.AREA_AFTER, "0.00 km²")
-                    .addMapValue(PartialSurrenderBlockSummarySectionService.UNLABELLED_MAP, map(FIRST_BLOCK.getId()))
-                    .build(),
-                surrenderTypeUrl(positionCorrection, FIRST_BLOCK)
-            ),
-            SummaryCard.simpleSummaryCardWithHeading("Legacy subarea", SummaryDataView.newBuilder()
-                .addStringValue(PartialSurrenderBlockSummarySectionService.OUTCOME, "Relinquished")
-                .build())
-        )))
-    );
-
-    assertThat(result).get().usingRecursiveComparison().isEqualTo(expected);
-  }
-
-  @Test
-  void getSummarySection_whenSubareasShareAnOutcome_thenOrderedByShortName() {
-    var positionCorrection = positionCorrection();
-    var changeId = UUID.randomUUID().toString();
-    var staged = operation(Map.of(
-        FIRST_BLOCK.getId(), surrenderDetails(BlockSurrenderType.FULL_SURRENDER, List.of())
-    ));
-
-    var secondSubarea = new SubareaDetails(null, "Second subarea", "B");
-    var firstSubarea = new SubareaDetails(null, "First subarea", "A");
-
-    when(partialSurrenderCorrectionService.getCommittedPartialSurrender(positionCorrection))
-        .thenReturn(Optional.of(staged));
-    when(partialSurrenderCorrectionService.getSurrenderedBlockFeatures(staged)).thenReturn(List.of(FIRST_BLOCK));
-    when(partialSurrenderCorrectionService.getCommittedPartialSurrenderChangeId(positionCorrection))
-        .thenReturn(Optional.of(changeId));
-    when(licencePositionSpatialService.getSubareasGoingIntoChange(positionCorrection, FIRST_BLOCK.getId(), changeId))
-        .thenReturn(List.of(secondSubarea, firstSubarea));
-
-    var result = partialSurrenderBlockSummarySectionService.getSummarySection(
-        new PartialSurrenderSummaryContext.Staged(positionCorrection),
-        null
-    );
-
-    var expected = new SummarySection(
-        PartialSurrenderBlockSummarySectionService.SECTION_ORDER,
-        List.of(new SummaryItem("Block SHAPE 1", List.of(
-            blockCard(
-                "Block SHAPE 1",
-                SummaryDataView.newBuilder()
-                    .addStringValue(PartialSurrenderBlockSummarySectionService.TYPE_OF_CHANGE, "Full surrender")
-                    .addStringValue(PartialSurrenderBlockSummarySectionService.AREA_BEFORE, "184.12 km²")
-                    .addStringValue(PartialSurrenderBlockSummarySectionService.AREA_AFTER, "0.00 km²")
-                    .addMapValue(PartialSurrenderBlockSummarySectionService.UNLABELLED_MAP, map(FIRST_BLOCK.getId()))
-                    .build(),
-                surrenderTypeUrl(positionCorrection, FIRST_BLOCK)
-            ),
-            SummaryCard.simpleSummaryCardWithHeading("First subarea", SummaryDataView.newBuilder()
-                .addStringValue(PartialSurrenderBlockSummarySectionService.OUTCOME, "Relinquished")
-                .build()),
-            SummaryCard.simpleSummaryCardWithHeading("Second subarea", SummaryDataView.newBuilder()
-                .addStringValue(PartialSurrenderBlockSummarySectionService.OUTCOME, "Relinquished")
-                .build())
-        )))
+            new SummaryColumn(
+                PartialSurrenderBlockSummarySectionService.AFTER,
+                null,
+                List.of(blockAfterCard(
+                    "Block SHAPE 1",
+                    SummaryDataView.newStringKeyValue(PartialSurrenderBlockSummarySectionService.AREA, "0.00 km²"),
+                    correctingSurrenderTypeUrl(correction, licencePosition, changeId, FIRST_BLOCK)
+                ))
+            )
+        )))).withTag(FULL_SURRENDER_TAG))
     );
 
     assertThat(result).get().usingRecursiveComparison().isEqualTo(expected);
@@ -459,15 +404,11 @@ class PartialSurrenderBlockSummarySectionServiceTest {
     var staged = operation(Map.of(
         FIRST_BLOCK.getId(), surrenderDetails(BlockSurrenderType.FULL_SURRENDER, List.of())
     ));
+    var context = stagedContext(positionCorrection, staged, LicencePositionState.EMPTY);
 
-    when(partialSurrenderCorrectionService.getCommittedPartialSurrender(positionCorrection))
-        .thenReturn(Optional.of(staged));
     when(partialSurrenderCorrectionService.getSurrenderedBlockFeatures(staged)).thenReturn(List.of());
 
-    assertThatThrownBy(() -> partialSurrenderBlockSummarySectionService.getSummarySection(
-        new PartialSurrenderSummaryContext.Staged(positionCorrection),
-        null
-    ))
+    assertThatThrownBy(() -> partialSurrenderBlockSummarySectionService.getSummarySection(context, null))
         .isInstanceOf(IllegalStateException.class)
         .hasMessage("Surrendered feature %s not found for correction %s"
             .formatted(FIRST_BLOCK.getId(), positionCorrection.getId()));
@@ -490,6 +431,21 @@ class PartialSurrenderBlockSummarySectionServiceTest {
     return new SubareaDetails(subareaFeature.getId(), subareaFeature.getFeatureName(), shortName);
   }
 
+  private LicencePositionState state(
+      Feature block,
+      Set<SubareaDetails> subareas,
+      Map<SubareaDetails, Map<Integer, BigDecimal>> subareaEquity
+  ) {
+    return new LicencePositionState(
+        null,
+        null,
+        Set.of(),
+        Map.of(),
+        Map.of(block.getId(), subareas),
+        Map.of(block.getId(), subareaEquity)
+    );
+  }
+
   private SurrenderDetails surrenderDetails(BlockSurrenderType type, List<UUID> surrenderedFeatureIds) {
     return new SurrenderDetails(type, COMMAND_JOURNEY_ID, surrenderedFeatureIds);
   }
@@ -505,13 +461,45 @@ class PartialSurrenderBlockSummarySectionServiceTest {
     return LicencePositionCorrectionTestUtil.newBuilder().build();
   }
 
-  private SummaryCard blockCard(
-      String heading,
-      SummaryDataView details,
-      String changeUrl
+  private PartialSurrenderSummaryContext stagedContext(
+      LicencePositionCorrection positionCorrection,
+      PartialSurrenderOperation surrender,
+      LicencePositionState stateBefore
   ) {
-    return SummaryCard.simpleSummaryCardWithHeading(heading, details)
-        .withAction(new SummaryCardAction(PartialSurrenderBlockSummarySectionService.CHANGE, changeUrl));
+    return new PartialSurrenderSummaryContext.Staged(positionCorrection, surrender, stateBefore);
+  }
+
+  private SummaryCard blockBeforeCard(String heading, String area) {
+    return SummaryCard.simpleSummaryCardWithHeading(heading, area(area));
+  }
+
+  private SummaryCard blockAfterCard(String heading, SummaryDataView details, String changeUrl) {
+    return SummaryCard.simpleSummaryCardWithHeading(heading, details).withAction(changeAction(changeUrl));
+  }
+
+  private SummaryCard subareaCard(String heading, SummaryDataView details) {
+    return SummaryCard.simpleSummaryCardWithHeading(heading, details);
+  }
+
+  private SummaryRow subareaRowWithExplanation(
+      String heading,
+      Tag tag,
+      @Nullable SummaryMapView map,
+      SummaryDataView details,
+      String explanation
+  ) {
+    return new SummaryRow(heading, tag, List.of(
+        new SummaryColumn(PartialSurrenderBlockSummarySectionService.BEFORE, map, List.of(subareaCard(heading, details))),
+        new SummaryColumn(PartialSurrenderBlockSummarySectionService.AFTER, null, List.of(), explanation)
+    ));
+  }
+
+  private SummaryDataView area(String area) {
+    return SummaryDataView.newStringKeyValue(PartialSurrenderBlockSummarySectionService.AREA, area);
+  }
+
+  private SummaryCardAction changeAction(String changeUrl) {
+    return new SummaryCardAction(PartialSurrenderBlockSummarySectionService.CHANGE, changeUrl);
   }
 
   private SummaryMapView map(UUID featureId) {

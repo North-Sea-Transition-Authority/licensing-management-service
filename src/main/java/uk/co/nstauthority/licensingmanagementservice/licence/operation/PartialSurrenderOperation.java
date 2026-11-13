@@ -303,6 +303,7 @@ public record PartialSurrenderOperation(
       return licencePositionState;
     }
 
+    // TODO LMS2-414: cascade subarea beneficial interests
     var updatedState = licencePositionState.withoutBlocks(surrenderedFeatureIds);
     for (var surrenderDetails : featureIdToSurrenderDetails.values()) {
       for (var retainedFeatureId : surrenderDetails.outputRetainedFeatureIds()) {

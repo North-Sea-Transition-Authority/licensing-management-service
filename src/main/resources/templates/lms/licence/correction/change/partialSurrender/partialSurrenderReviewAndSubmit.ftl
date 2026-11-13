@@ -10,11 +10,24 @@
   backLinkUrl=springUrl(backLinkUrl)
 >
   <@fdsForm.htmlForm>
+    <#list summarySections?filter(summarySection -> summarySection.display() == "INLINE") as summarySection>
+      <#list summarySection.summaryItems() as summaryItem>
+        <h2 class="govuk-heading-l">${summaryItem.displayName()}</h2>
+        <@summaryDetails.summaryDetails summaryItem=summaryItem/>
+      </#list>
+    </#list>
+
     <@fdsAccordion.accordion accordionId="summaryaccordion-${accordionId}">
-      <#list summarySections as summarySection>
+      <#list summarySections?filter(summarySection -> summarySection.display() == "ACCORDION") as summarySection>
         <#list summarySection.summaryItems() as summaryItem>
+          <#assign summaryText>
+            <#if summaryItem.tag()??>
+              <@fdsTag.tag tagClass=summaryItem.tag().tagClass()>${summaryItem.tag().tagText()}</@fdsTag.tag>
+            </#if>
+          </#assign>
           <@fdsAccordion.accordionSection
             sectionHeading=summaryItem.displayName()
+            summaryText=summaryText
             openSection=(summarySection?index == 0 && summaryItem?index == 0)
           >
             <@summaryDetails.summaryDetails summaryItem=summaryItem/>
@@ -25,8 +38,6 @@
 
     <@fdsAction.submitButtons
       primaryButtonText="Submit"
-      <#--TODO: enable when the review and submit page is reworked-->
-      primaryDisabledButton=true
       secondaryLinkText=backLinkText
       linkSecondaryAction=true
       linkSecondaryActionUrl=springUrl(backLinkUrl)

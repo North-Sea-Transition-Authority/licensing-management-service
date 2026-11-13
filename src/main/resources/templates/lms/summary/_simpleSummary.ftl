@@ -6,7 +6,7 @@
 
 <#-- @ftlvariable name="summaryDataView" type="uk.co.nstauthority.licensingmanagementservice.summary.SummaryDataView" -->
 
-<#macro simpleSummary summaryDataView summaryHeading actions=[]>
+<#macro simpleSummary summaryDataView summaryHeading actions=[] headingSize="h3">
   <#local cardActions>
     <#if actions?has_content>
       <@fdsSummaryList.summaryListCardActionList>
@@ -22,7 +22,7 @@
   </#local>
   <@fdsSummaryList.summaryListCard
     headingText=summaryHeading
-    headingSize="h3"
+    headingSize=headingSize
     summaryListId="summary-data-card-list"
     cardActionsContent=cardActions
   >

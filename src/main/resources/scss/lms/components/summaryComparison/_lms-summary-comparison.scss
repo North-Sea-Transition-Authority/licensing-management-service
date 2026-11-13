@@ -1,0 +1,12 @@
+// Side by side comparison of a summary row's columns. Each column's heading, map and cards stay together in the
+// markup, so when the columns stack (narrow screens or zoom) they read in order. From tablet up, the grid places
+// each part in a shared row so the parts line up across columns even when a column is missing one.
+.lms-summary-comparison {
+  @include govuk-media-query($from: tablet) {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: repeat(3, auto);
+    grid-auto-flow: column;
+    column-gap: govuk-spacing(6);
+  }
+}

@@ -6,11 +6,11 @@ import java.util.Optional;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.PartialSurrenderCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryCard;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryDataView;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryItem;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummarySection;
+import uk.co.nstauthority.licensingmanagementservice.summary.SummarySectionDisplay;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummarySectionService;
 import uk.co.nstauthority.licensingmanagementservice.util.DateUtil;
 
@@ -20,26 +20,21 @@ public class PartialSurrenderDetailsSummarySectionService implements SummarySect
   static final String SURRENDER_DETAILS = "Surrender details";
   static final int SECTION_ORDER = 10;
 
-  private final PartialSurrenderCorrectionService partialSurrenderCorrectionService;
   private final LicencePositionCorrectionService licencePositionCorrectionService;
 
-  public PartialSurrenderDetailsSummarySectionService(
-      PartialSurrenderCorrectionService partialSurrenderCorrectionService,
-      LicencePositionCorrectionService licencePositionCorrectionService
-  ) {
-    this.partialSurrenderCorrectionService = partialSurrenderCorrectionService;
+  public PartialSurrenderDetailsSummarySectionService(LicencePositionCorrectionService licencePositionCorrectionService) {
     this.licencePositionCorrectionService = licencePositionCorrectionService;
   }
 
   @Override
   public Optional<SummarySection> getSummarySection(PartialSurrenderSummaryContext context, ServiceUserDetail user) {
     return switch (context) {
-      case PartialSurrenderSummaryContext.Staged(var licencePositionCorrection) ->
-          partialSurrenderCorrectionService.getCommittedPartialSurrender(licencePositionCorrection)
-              .map(surrender -> getSummarySection(
-                  licencePositionCorrection.getLicenceCorrection().getLicence().getLicenceReference(),
-                  licencePositionCorrectionService.resolveEffectiveDate(licencePositionCorrection)));
-      case PartialSurrenderSummaryContext.LiveChange(var correction, var licencePosition, var ignored) ->
+      case PartialSurrenderSummaryContext.Staged(var licencePositionCorrection, var ignored, var ignoredState) ->
+          Optional.of(getSummarySection(
+              licencePositionCorrection.getLicenceCorrection().getLicence().getLicenceReference(),
+              licencePositionCorrectionService.resolveEffectiveDate(licencePositionCorrection)));
+      case PartialSurrenderSummaryContext.LiveChange(
+          var correction, var licencePosition, var ignored, var ignoredSurrender, var ignoredState) ->
           Optional.of(getSummarySection(
               correction.getLicence().getLicenceReference(),
               licencePositionCorrectionService.getEffectivePositionDate(correction, licencePosition)));
@@ -54,6 +49,10 @@ public class PartialSurrenderDetailsSummarySectionService implements SummarySect
             .build()
     );
 
-    return new SummarySection(SECTION_ORDER, List.of(SummaryItem.withCard(SURRENDER_DETAILS, summaryCard)));
+    return new SummarySection(
+        SECTION_ORDER,
+        List.of(SummaryItem.withCard(SURRENDER_DETAILS, summaryCard)),
+        SummarySectionDisplay.INLINE
+    );
   }
 }

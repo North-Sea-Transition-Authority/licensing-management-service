@@ -7,6 +7,7 @@ import java.time.LocalDate;
 import java.time.Month;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -15,6 +16,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.LicencePositionState;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryCard;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryDataView;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryItem;
@@ -26,8 +29,11 @@ import uk.co.nstauthority.licensingmanagementservice.util.DateUtil;
 class PartialSurrenderSummarySectionServiceTest {
 
   private static final ServiceUserDetail USER = ServiceUserDetailTestUtil.newBuilder().build();
-  private static final PartialSurrenderSummaryContext CONTEXT =
-      new PartialSurrenderSummaryContext.Staged(LicencePositionCorrectionTestUtil.newBuilder().build());
+  private static final PartialSurrenderSummaryContext CONTEXT = new PartialSurrenderSummaryContext.Staged(
+      LicencePositionCorrectionTestUtil.newBuilder().build(),
+      LicenceOperation.newPartialSurrenderOperation().withSurrenderedFeatureIds(List.of(UUID.randomUUID())).build(),
+      LicencePositionState.EMPTY
+  );
   private static final SummarySection SURRENDER_DETAILS_SECTION = new SummarySection(10,
       List.of(SummaryItem.withCard("Surrender details", SummaryCard.simpleSummaryCard(
           SummaryDataView.newBuilder()

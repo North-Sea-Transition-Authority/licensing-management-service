@@ -5,7 +5,7 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.Map;
 import uk.co.nstauthority.licensingmanagementservice.endpointvalidation.PathVariableEnum;
-import uk.co.nstauthority.licensingmanagementservice.fds.table.TagColour;
+import uk.co.nstauthority.licensingmanagementservice.fds.tag.TagColour;
 import uk.co.nstauthority.licensingmanagementservice.phasedrelease.PhaseGated;
 import uk.co.nstauthority.licensingmanagementservice.phasedrelease.ReleaseFeature;
 import uk.co.nstauthority.licensingmanagementservice.util.StreamUtil;

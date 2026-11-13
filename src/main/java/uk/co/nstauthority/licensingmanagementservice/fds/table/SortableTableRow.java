@@ -3,6 +3,7 @@ package uk.co.nstauthority.licensingmanagementservice.fds.table;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import uk.co.nstauthority.licensingmanagementservice.fds.tag.Tag;
 
 public record SortableTableRow(List<SortableTableValue> rowValues, List<SortableTableAction> rowActions) {
 

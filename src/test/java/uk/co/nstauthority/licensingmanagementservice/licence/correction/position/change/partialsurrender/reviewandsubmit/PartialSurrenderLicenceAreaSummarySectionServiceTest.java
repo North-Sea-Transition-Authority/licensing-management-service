@@ -164,7 +164,7 @@ class PartialSurrenderLicenceAreaSummarySectionServiceTest {
         .build();
     var context = new PartialSurrenderSummaryContext.LiveChange(
         correction,
-        LicencePositionTestUtil.newBuilder().build(),
+        LicencePositionTestUtil.newBuilder().withLicence(correction.getLicence()).build(),
         UUID.randomUUID().toString(),
         surrender,
         STATE_BEFORE

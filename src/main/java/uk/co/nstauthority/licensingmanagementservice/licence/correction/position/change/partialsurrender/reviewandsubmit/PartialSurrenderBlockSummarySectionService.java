@@ -129,13 +129,14 @@ public class PartialSurrenderBlockSummarySectionService
   ) {
     var blockSurrender = context.surrender().featureIdToSurrenderDetails().get(block.getId());
     var srsWkid = CoordinateSystemUtils.getWkid(block.getCoordinateSystem());
-    var changeAction = new SummaryCardAction(CHANGE, getChangeUrl(context, block.getId(), blockSurrender));
+    var changeUrl = getChangeUrl(context, block.getId(), blockSurrender);
+    var changeAction = changeUrl == null ? null : new SummaryCardAction(CHANGE, changeUrl);
     var blockCard = getSummaryCardForBlock(block, label);
     var blockMap = new SummaryMapView(List.of(block.getId()), srsWkid);
 
     if (blockSurrender == null) {
       return SummaryItem.withRows(label, List.of(
-          new SummaryRow(List.of(new SummaryColumn(BEFORE, blockMap, List.of(blockCard.withAction(changeAction)))))
+          new SummaryRow(List.of(new SummaryColumn(BEFORE, blockMap, List.of(withChangeAction(blockCard, changeAction)))))
       ));
     }
 
@@ -158,11 +159,16 @@ public class PartialSurrenderBlockSummarySectionService
     );
   }
 
+  /**
+   * The "After" column for a surrendered block.
+   *
+   * @param changeAction   The card's change link, or null when the summary is read-only.
+   */
   private SummaryColumn getAfterColumnForBlock(
       SurrenderDetails blockSurrender,
       String label,
       int srsWkid,
-      SummaryCardAction changeAction
+      @Nullable SummaryCardAction changeAction
   ) {
     var details = SummaryDataView.newBuilder();
     SummaryMapView map = null;
@@ -183,10 +189,21 @@ public class PartialSurrenderBlockSummarySectionService
       }
     }
 
-    var card = SummaryCard.simpleSummaryCardWithHeading(label, details.build()).withAction(changeAction);
+    var card = withChangeAction(SummaryCard.simpleSummaryCardWithHeading(label, details.build()), changeAction);
     return new SummaryColumn(AFTER, map, List.of(card));
   }
 
+  private static SummaryCard withChangeAction(SummaryCard card, @Nullable SummaryCardAction changeAction) {
+    return changeAction == null ? card : card.withAction(changeAction);
+  }
+
+  /**
+   * The URL to change a block's surrender.
+   *
+   * @param blockSurrender The surrender details for the block, or null if it has none yet.
+   * @return The change URL, or null when the live change is not being corrected and the summary is read-only.
+   */
+  @Nullable
   private String getChangeUrl(
       PartialSurrenderSummaryContext context,
       UUID featureId,
@@ -211,8 +228,9 @@ public class PartialSurrenderBlockSummarySectionService
       }
 
       case PartialSurrenderSummaryContext.LiveChange(
-          var correction, var licencePosition, var changeId, var ignored, var ignoredState) ->
-          ReverseRouter.route(on(BlockSurrenderTypeController.class).renderSurrenderTypeFormForCorrectingChange(
+          var correction, var licencePosition, var changeId, var ignored, var ignoredState) -> correction == null
+          ? null
+          : ReverseRouter.route(on(BlockSurrenderTypeController.class).renderSurrenderTypeFormForCorrectingChange(
               correction,
               licencePosition,
               new LicencePositionChange(UUID.fromString(changeId)),

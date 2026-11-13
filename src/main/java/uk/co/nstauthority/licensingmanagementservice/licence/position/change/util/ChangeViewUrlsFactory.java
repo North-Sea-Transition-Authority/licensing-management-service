@@ -39,13 +39,18 @@ final class ChangeViewUrlsFactory {
     var target = new ChangeUrlTarget(urlContext, change);
     var routes = operation.getOperationUrls();
 
+    if (!target.inCorrection()) {
+      return new ChangeViewUrls(null, null, null, null, null, null, routes.view(target));
+    }
+
     return new ChangeViewUrls(
         routes.correct(target),
         canRemove(target) ? routes.remove(target) : null,
         canUndo(target) ? routes.undo(target) : null,
         canReinstate(target) ? routes.undo(target) : null,
         canReorder && change.canBeReordered() ? correctChangeOrderUrl(target, positionId) : null,
-        change.canBeReordered() ? correctPositionUrl(target, positionId) : null
+        change.canBeReordered() ? correctPositionUrl(target, positionId) : null,
+        routes.view(target)
     );
   }
 

@@ -8,11 +8,12 @@ public record ChangeViewUrls(
     @Nullable String undo,
     @Nullable String reinstate,
     @Nullable String correctChangeOrder,
-    @Nullable String correctPosition
+    @Nullable String correctPosition,
+    @Nullable String view
 ) {
 
   public static ChangeViewUrls none() {
-    return new ChangeViewUrls(null, null, null, null, null, null);
+    return new ChangeViewUrls(null, null, null, null, null, null, null);
   }
 
   public ChangeViewUrls merge(ChangeViewUrls other) {
@@ -22,7 +23,8 @@ public record ChangeViewUrls(
         undo != null ? undo : other.undo(),
         reinstate != null ? reinstate : other.reinstate(),
         correctChangeOrder != null ? correctChangeOrder : other.correctChangeOrder(),
-        correctPosition != null ? correctPosition : other.correctPosition()
+        correctPosition != null ? correctPosition : other.correctPosition(),
+        view != null ? view : other.view()
     );
   }
 }

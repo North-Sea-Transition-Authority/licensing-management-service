@@ -399,6 +399,47 @@ class PartialSurrenderBlockSummarySectionServiceTest {
   }
 
   @Test
+  void getSummarySection_whenViewingALiveChangeOutsideACorrection_thenNoChangeLinks() {
+    var surrender = operation(Map.of(
+        FIRST_BLOCK.getId(), surrenderDetails(BlockSurrenderType.FULL_SURRENDER, List.of())
+    ));
+
+    when(partialSurrenderCorrectionService.getSurrenderedBlockFeatures(surrender)).thenReturn(List.of(FIRST_BLOCK));
+
+    var result = partialSurrenderBlockSummarySectionService.getSummarySection(
+        new PartialSurrenderSummaryContext.LiveChange(
+            null,
+            LicencePositionTestUtil.newBuilder().build(),
+            UUID.randomUUID().toString(),
+            surrender,
+            LicencePositionState.EMPTY
+        ),
+        null
+    );
+
+    var expected = new SummarySection(
+        PartialSurrenderBlockSummarySectionService.SECTION_ORDER,
+        List.of(SummaryItem.withRows("Block SHAPE 1", List.of(new SummaryRow(List.of(
+            new SummaryColumn(
+                PartialSurrenderBlockSummarySectionService.BEFORE,
+                map(FIRST_BLOCK.getId()),
+                List.of(blockBeforeCard("Block SHAPE 1", "184.12\u00A0km²"))
+            ),
+            new SummaryColumn(
+                PartialSurrenderBlockSummarySectionService.AFTER,
+                null,
+                List.of(SummaryCard.simpleSummaryCardWithHeading(
+                    "Block SHAPE 1",
+                    SummaryDataView.newStringKeyValue(PartialSurrenderBlockSummarySectionService.AREA, "0.00\u00A0km²")
+                ))
+            )
+        )))).withTag(FULL_SURRENDER_TAG))
+    );
+
+    assertThat(result).get().usingRecursiveComparison().isEqualTo(expected);
+  }
+
+  @Test
   void getSummarySection_whenASurrenderedBlockIsNotFound_thenThrows() {
     var positionCorrection = positionCorrection();
     var staged = operation(Map.of(

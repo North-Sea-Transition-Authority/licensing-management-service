@@ -109,6 +109,30 @@ class LicencePositionSpatialServiceTest {
   }
 
   @Test
+  void getExecutedStateGoingIntoChange_thenFoldsTheLiveTimelineUpToTheNamedChange() {
+    var targetPosition = LicencePositionTestUtil.newBuilder().withId(SECOND_POSITION_ID).withLicence(LICENCE).build();
+
+    when(licencePositionViewService.getLiveChronologicalPositions(LICENCE)).thenReturn(List.of(
+        position(FIRST_POSITION_ID, 1, blockCreateOf(BLOCK_30_1.getId(), BLOCK_30_2.getId())),
+        positionWithChanges(
+            SECOND_POSITION_ID,
+            2,
+            change("earlier-change", 1, blockCreateOf(BLOCK_30_3.getId())),
+            change("later-change", 2, fullSurrenderOf(BLOCK_30_1.getId()))
+        ),
+        position(THIRD_POSITION_ID, 3, blockCreateOf(BLOCK_30_4.getId()))
+    ));
+
+    var result = licencePositionSpatialService.getExecutedStateGoingIntoChange(targetPosition, "later-change");
+
+    var expected = LicencePositionState.EMPTY
+        .withBlock(BLOCK_30_1.getId(), List.of())
+        .withBlock(BLOCK_30_2.getId(), List.of())
+        .withBlock(BLOCK_30_3.getId(), List.of());
+    assertThat(result).usingRecursiveComparison().isEqualTo(expected);
+  }
+
+  @Test
   void getBlockFeaturesGoingIntoChange_whenAnAddedPositionCorrection_thenResolvesUpToTheNamedChange() {
     var addedPositionId = UUID.randomUUID();
     var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()

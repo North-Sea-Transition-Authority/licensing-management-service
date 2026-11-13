@@ -622,7 +622,8 @@ class LicencePositionChangeViewResolverTest {
                 .renderUndoEquityChange(correction, changeId)),
             null,
             null,
-            correctPositionUrl(correction.getId(), SET_EQUITY_POSITION_ID, UUID.fromString(changeId))
+            correctPositionUrl(correction.getId(), SET_EQUITY_POSITION_ID, UUID.fromString(changeId)),
+            null
         )
     ));
   }
@@ -760,7 +761,8 @@ class LicencePositionChangeViewResolverTest {
             BigDecimal.valueOf(30), null)),
         null,
         new ChangeViewUrls(null, null, null, null, null,
-            correctPositionUrl(CORRECTION.getId(), currentPosition.getId(), changeId))
+            correctPositionUrl(CORRECTION.getId(), currentPosition.getId(), changeId),
+            null)
     );
 
     assertThat(view).isEqualTo(expected);
@@ -1185,7 +1187,9 @@ class LicencePositionChangeViewResolverTest {
         null,
         null,
         null,
-        correctPositionUrl(correction.getId(), positionId, UUID.fromString(changeId))));
+        correctPositionUrl(correction.getId(), positionId, UUID.fromString(changeId)),
+        ReverseRouter.route(on(PartialSurrenderTaskListController.class)
+            .renderReviewAndSubmitForCorrectingChange(correction, licencePosition, change, null))));
   }
 
   @ParameterizedTest
@@ -1215,6 +1219,10 @@ class LicencePositionChangeViewResolverTest {
         : null;
     var undoUrl = ReverseRouter.route(on(RemovePartialSurrenderChangeController.class)
         .renderUndoPartialSurrender(correction, changeId));
+    var viewUrl = correctable
+        ? ReverseRouter.route(on(PartialSurrenderTaskListController.class)
+            .renderReviewAndSubmit(correction, positionCorrection, null))
+        : null;
 
     assertThat(result.urls()).isEqualTo(new ChangeViewUrls(
         correctUrl,
@@ -1222,7 +1230,8 @@ class LicencePositionChangeViewResolverTest {
         correctable ? undoUrl : null,
         correctable ? null : undoUrl,
         null,
-        correctable ? correctPositionUrl(correction.getId(), positionId, UUID.fromString(changeId)) : null));
+        correctable ? correctPositionUrl(correction.getId(), positionId, UUID.fromString(changeId)) : null,
+        viewUrl));
   }
 
   @Test
@@ -1245,7 +1254,9 @@ class LicencePositionChangeViewResolverTest {
             .renderUndoPartialSurrender(correction, changeId)),
         null,
         null,
-        correctPositionUrl(correction.getId(), positionId, UUID.fromString(changeId))));
+        correctPositionUrl(correction.getId(), positionId, UUID.fromString(changeId)),
+        ReverseRouter.route(on(PartialSurrenderTaskListController.class)
+            .renderReviewAndSubmit(correction, positionCorrection, null))));
   }
 
   @Test
@@ -1382,7 +1393,8 @@ class LicencePositionChangeViewResolverTest {
                 .renderUndoEquityChange(correction, changeId)),
             null,
             null,
-            correctPositionUrl(correction.getId(), SET_EQUITY_POSITION_ID, UUID.fromString(changeId))
+            correctPositionUrl(correction.getId(), SET_EQUITY_POSITION_ID, UUID.fromString(changeId)),
+            null
         )
     );
     assertThat(view).isEqualTo(expected);
@@ -1407,7 +1419,8 @@ class LicencePositionChangeViewResolverTest {
             null,
             null,
             null,
-            correctPositionUrl(CORRECTION.getId(), SET_EQUITY_POSITION_ID, changeId)
+            correctPositionUrl(CORRECTION.getId(), SET_EQUITY_POSITION_ID, changeId),
+            null
         )
     );
     assertThat(view).isEqualTo(expected);
@@ -1514,7 +1527,8 @@ class LicencePositionChangeViewResolverTest {
                 null,
                 ReverseRouter.route(on(CorrectChangeOrderController.class)
                     .renderCorrectChangeOrder(correction, positionId, setEquityChangeId)),
-                correctPositionUrl(correction.getId(), positionId, setEquityChangeId)),
+                correctPositionUrl(correction.getId(), positionId, setEquityChangeId),
+                null),
             new ChangeViewUrls(
                 ReverseRouter.route(on(PartialSurrenderTaskListController.class).renderForCorrectingChange(
                     correction, licencePosition, partialSurrenderLiveChange, null)),
@@ -1525,7 +1539,9 @@ class LicencePositionChangeViewResolverTest {
                 null,
                 ReverseRouter.route(on(CorrectChangeOrderController.class)
                     .renderCorrectChangeOrder(correction, positionId, partialSurrenderChangeId)),
-                correctPositionUrl(correction.getId(), positionId, partialSurrenderChangeId)));
+                correctPositionUrl(correction.getId(), positionId, partialSurrenderChangeId),
+                ReverseRouter.route(on(PartialSurrenderTaskListController.class).renderReviewAndSubmitForCorrectingChange(
+                    correction, licencePosition, partialSurrenderLiveChange, null))));
   }
 
   @Test
@@ -1563,7 +1579,8 @@ class LicencePositionChangeViewResolverTest {
                 null,
                 ReverseRouter.route(on(CorrectChangeOrderController.class)
                     .renderCorrectChangeOrder(correction, positionId, firstChangeId)),
-                correctPositionUrl(correction.getId(), positionId, firstChangeId)
+                correctPositionUrl(correction.getId(), positionId, firstChangeId),
+                null
             )),
             tuple(LicenceOperation.SUBAREA, new ChangeViewUrls(
                 ReverseRouter.route(on(LicencePositionSubareaChangeStartController.class).renderForCorrectingChange(
@@ -1580,7 +1597,8 @@ class LicencePositionChangeViewResolverTest {
                 null,
                 ReverseRouter.route(on(CorrectChangeOrderController.class)
                     .renderCorrectChangeOrder(correction, positionId, secondChangeId)),
-                correctPositionUrl(correction.getId(), positionId, secondChangeId)
+                correctPositionUrl(correction.getId(), positionId, secondChangeId),
+                null
             ))
         );
   }
@@ -1609,7 +1627,8 @@ class LicencePositionChangeViewResolverTest {
             null,
             null,
             null,
-            correctPositionUrl(correction.getId(), positionId, changeId)));
+            correctPositionUrl(correction.getId(), positionId, changeId),
+            null));
   }
 
   @ParameterizedTest
@@ -1641,7 +1660,8 @@ class LicencePositionChangeViewResolverTest {
             null,
             null,
             null,
-            correctPositionUrl(correction.getId(), positionId, changeId)));
+            correctPositionUrl(correction.getId(), positionId, changeId),
+            null));
   }
 
   @Test
@@ -1669,6 +1689,7 @@ class LicencePositionChangeViewResolverTest {
             null,
             ReverseRouter.route(on(RemoveAdministratorChangeController.class)
                 .renderUndoAdminChange(correction, administratorChangeId.toString())),
+            null,
             null,
             null));
   }

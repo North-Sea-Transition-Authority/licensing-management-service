@@ -120,17 +120,26 @@ public class LicencePositionSpatialService {
       UUID licencePositionId,
       @Nullable String changeId
   ) {
-    var state = LicencePositionState.EMPTY;
-
-    var changes = getChangesGoingIntoChange(
+    return applyChanges(getChangesGoingIntoChange(
         licencePositionViewService.getCorrectedChronologicalPositions(licenceCorrection, licencePositionId),
         licencePositionId,
         changeId
-    );
+    ));
+  }
+
+  public LicencePositionState getExecutedStateGoingIntoChange(LicencePosition licencePosition, String changeId) {
+    return applyChanges(getChangesGoingIntoChange(
+        licencePositionViewService.getLiveChronologicalPositions(licencePosition.getLicence()),
+        licencePosition.getId(),
+        changeId
+    ));
+  }
+
+  private static LicencePositionState applyChanges(List<PositionChange> changes) {
+    var state = LicencePositionState.EMPTY;
     for (var change : changes) {
       state = LicencePositionStateResolver.applyChange(state, change);
     }
-
     return state;
   }
 

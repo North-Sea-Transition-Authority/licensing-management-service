@@ -43,8 +43,13 @@ public record ChangeUrlTarget(PositionChangeUrlContext context, PositionChange c
     return context.addedPosition();
   }
 
+  @Nullable
   public LicenceCorrection correction() {
     return context.correction();
+  }
+
+  public boolean inCorrection() {
+    return context.inCorrection();
   }
 
   @Nullable

@@ -284,6 +284,8 @@
 </#macro>
 
 <#macro partialSurrenderRows change>
+  <#local viewUrl = change.urls().view()!''>
+
   <#if change.surrenderDate()??>
     <@fdsSummaryList.summaryListRowNoAction keyText="Date of surrender">
       ${change.surrenderDate()}
@@ -299,6 +301,11 @@
     </@fdsSummaryList.summaryListRowNoAction>
     <@fdsSummaryList.summaryListRowNoAction keyText="Licence area after">
       ${change.licenceAreaRows().after()}
+    </@fdsSummaryList.summaryListRowNoAction>
+  </#if>
+  <#if viewUrl?has_content>
+    <@fdsSummaryList.summaryListRowNoAction keyText="">
+      <a class="govuk-link" href="${springUrl(viewUrl)}">View full partial surrender details</a>
     </@fdsSummaryList.summaryListRowNoAction>
   </#if>
 </#macro>

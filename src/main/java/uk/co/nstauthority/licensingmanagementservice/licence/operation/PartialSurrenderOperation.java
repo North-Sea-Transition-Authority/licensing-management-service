@@ -36,6 +36,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.vie
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.PartialSurrenderChangeView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.FeatureSummary;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.LicenceBlockFeatureUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.partialsurrender.PartialSurrenderSummaryController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.util.DateUtil;
 
@@ -441,6 +442,30 @@ public record PartialSurrenderOperation(
       public String undo(ChangeUrlTarget target) {
         return ReverseRouter.route(on(RemovePartialSurrenderChangeController.class)
             .renderUndoPartialSurrender(target.correction(), target.changeId()));
+      }
+
+      @Override
+      public String view(ChangeUrlTarget target) {
+        if (!target.inCorrection()) {
+          var licencePosition = target.licencePosition();
+          return ReverseRouter.route(on(PartialSurrenderSummaryController.class).renderPartialSurrenderSummary(
+              licencePosition.getLicence(), licencePosition, target.changeEntity(), null));
+        }
+        if (target.addedPosition()) {
+          return stagedReviewAndSubmit(target);
+        }
+        return switch (target.state()) {
+          case ADDED, OPERATIONS_UPDATED -> stagedReviewAndSubmit(target);
+          case LIVE, ORDER_UPDATED -> ReverseRouter.route(on(PartialSurrenderTaskListController.class)
+              .renderReviewAndSubmitForCorrectingChange(
+                  target.correction(), target.licencePosition(), target.changeEntity(), null));
+          case REMOVED -> null;
+        };
+      }
+
+      private static String stagedReviewAndSubmit(ChangeUrlTarget target) {
+        return ReverseRouter.route(on(PartialSurrenderTaskListController.class)
+            .renderReviewAndSubmit(target.correction(), target.positionCorrection(), null));
       }
     };
   }

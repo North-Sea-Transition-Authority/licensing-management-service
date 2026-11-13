@@ -266,7 +266,7 @@ public class LicencePositionViewService {
             resolvedStates,
             nameContext.getNamesForDate(positionDate),
             featuresById,
-            null
+            PositionChangeUrlContext.forTimelinePosition(licencePosition)
         )
         .stream()
         .filter(changeView -> changeTypes.isEmpty() || changeTypes.contains(changeView.type()))

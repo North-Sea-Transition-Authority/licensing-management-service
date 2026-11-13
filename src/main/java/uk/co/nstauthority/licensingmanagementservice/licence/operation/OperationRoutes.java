@@ -15,6 +15,10 @@ public interface OperationRoutes {
 
   String undo(ChangeUrlTarget target);
 
+  default String view(ChangeUrlTarget target) {
+    return null;
+  }
+
   static OperationRoutes none() {
     return new OperationRoutes() {
       @Override

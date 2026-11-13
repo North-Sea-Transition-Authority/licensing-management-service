@@ -92,6 +92,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.vie
 import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.FeatureTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.filter.LicenceTimelineFilter;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.filter.LicenceTimelineFilterOptions;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.partialsurrender.PartialSurrenderSummaryController;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.transaction.LicenceTransactionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.status.LicenceStatusService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
@@ -338,7 +339,7 @@ class LicencePositionViewServiceTest {
             "Shell Expro",
             changeId.toString(),
             null,
-            new ChangeViewUrls(null, null, null, null, null, null)
+            new ChangeViewUrls(null, null, null, null, null, null, null)
         ));
     assertThat(result.stateView())
         .isEqualTo(new LicencePositionStateView(
@@ -514,7 +515,7 @@ class LicencePositionViewServiceTest {
             "Current Name Ltd",
             changeId.toString(),
             null,
-            new ChangeViewUrls(null, null, null, null, null, null)
+            new ChangeViewUrls(null, null, null, null, null, null, null)
         ));
     assertThat(result.stateView())
         .isEqualTo(new LicencePositionStateView(
@@ -628,6 +629,7 @@ class LicencePositionViewServiceTest {
             null,
             ReverseRouter.route(on(RemovePartialSurrenderChangeController.class)
                 .renderUndoPartialSurrender(correction, changeId.toString())),
+            null,
             null,
             null));
     assertThat(changeViewOfType(result, LicenceOperation.PARTIAL_SURRENDER)).isEqualTo(expected);
@@ -1846,7 +1848,7 @@ class LicencePositionViewServiceTest {
     var result = licencePositionViewService.getCorrectionPositionPageView(correction, removed, LicenceTimelineFilter.empty());
 
     var adminChange = (AdministratorChangeView) changeViewOfType(result, LicenceOperation.LICENCE_ADMINISTRATOR);
-    assertThat(adminChange.urls()).isEqualTo(new ChangeViewUrls(null, null, null, null, null, null));
+    assertThat(adminChange.urls()).isEqualTo(new ChangeViewUrls(null, null, null, null, null, null, null));
     assertThat(result.actions()).isEqualTo(LicencePositionPageView.Actions.none());
   }
 
@@ -2212,7 +2214,9 @@ class LicencePositionViewServiceTest {
             new PartialSurrenderChangeView.BlockRow("Block SHAPE 2 (0.00\u00A0km²)", List.of("Partial surrender"))),
         null,
         null,
-        ChangeViewUrls.none());
+        new ChangeViewUrls(null, null, null, null, null, null,
+            ReverseRouter.route(on(PartialSurrenderSummaryController.class)
+                .renderPartialSurrenderSummary(LICENCE, position, change, null))));
     assertThat(result.orderedChangeViews())
         .containsExactly(expected);
   }
@@ -2256,7 +2260,9 @@ class LicencePositionViewServiceTest {
             List.of("Block 21/5a retained (164.20\u00A0km²)", "54.90\u00A0km² surrendered"))),
         null,
         null,
-        ChangeViewUrls.none());
+        new ChangeViewUrls(null, null, null, null, null, null,
+            ReverseRouter.route(on(PartialSurrenderSummaryController.class)
+                .renderPartialSurrenderSummary(LICENCE, position, change, null))));
     assertThat(result.orderedChangeViews()).containsExactly(expected);
   }
 

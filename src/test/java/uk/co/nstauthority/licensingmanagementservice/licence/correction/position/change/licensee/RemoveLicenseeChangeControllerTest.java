@@ -222,7 +222,7 @@ class RemoveLicenseeChangeControllerTest extends AbstractControllerTest {
         List.of("currentWithdraw1"),
         List.of("currentJoin1"),
         "",
-        new ChangeViewUrls(null, null, null, null, null, null)
+        new ChangeViewUrls(null, null, null, null, null, null, null)
     );
 
     mockMvc.perform(get(ReverseRouter.route(on(RemoveLicenseeChangeController.class)
@@ -277,7 +277,7 @@ class RemoveLicenseeChangeControllerTest extends AbstractControllerTest {
         List.of("currentWithdraw1"),
         List.of("currentJoin1"),
         "",
-        new ChangeViewUrls(null, null, null, null, null, null)
+        new ChangeViewUrls(null, null, null, null, null, null, null)
     );
 
     mockMvc.perform(get(ReverseRouter.route(on(RemoveLicenseeChangeController.class)
@@ -319,7 +319,7 @@ class RemoveLicenseeChangeControllerTest extends AbstractControllerTest {
         List.of("currentWithdraw1"),
         List.of("currentJoin1"),
         "",
-        new ChangeViewUrls(null, null, null, null, null, null)
+        new ChangeViewUrls(null, null, null, null, null, null, null)
     );
 
     when(licencePositionCorrectionService.isStagedRemoval(positionCorrection, CHANGE_ID)).thenReturn(true);

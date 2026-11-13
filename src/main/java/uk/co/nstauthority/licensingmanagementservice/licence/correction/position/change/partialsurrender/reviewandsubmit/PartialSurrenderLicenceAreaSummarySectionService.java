@@ -59,11 +59,12 @@ public class PartialSurrenderLicenceAreaSummarySectionService implements Summary
   }
 
   private String getLicenceReference(PartialSurrenderSummaryContext context) {
-    var correction = switch (context) {
-      case PartialSurrenderSummaryContext.Staged staged -> staged.licencePositionCorrection().getLicenceCorrection();
-      case PartialSurrenderSummaryContext.LiveChange liveChange -> liveChange.correction();
+    var licence = switch (context) {
+      case PartialSurrenderSummaryContext.Staged staged ->
+          staged.licencePositionCorrection().getLicenceCorrection().getLicence();
+      case PartialSurrenderSummaryContext.LiveChange liveChange -> liveChange.licencePosition().getLicence();
     };
-    return correction.getLicence().getLicenceReference();
+    return licence.getLicenceReference();
   }
 
   private SummaryColumn getColumn(String heading, String cardHeading, List<Feature> blocks, int srsWkid) {

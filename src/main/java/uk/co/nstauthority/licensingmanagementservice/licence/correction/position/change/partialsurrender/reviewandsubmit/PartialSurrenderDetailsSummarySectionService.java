@@ -2,6 +2,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.correction.positio
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
@@ -34,10 +35,12 @@ public class PartialSurrenderDetailsSummarySectionService implements SummarySect
               licencePositionCorrection.getLicenceCorrection().getLicence().getLicenceReference(),
               licencePositionCorrectionService.resolveEffectiveDate(licencePositionCorrection)));
       case PartialSurrenderSummaryContext.LiveChange(
-          var correction, var licencePosition, var ignored, var ignoredSurrender, var ignoredState) ->
+          var correction, var licencePosition, var ignored, var surrender, var ignoredState) ->
           Optional.of(getSummarySection(
-              correction.getLicence().getLicenceReference(),
-              licencePositionCorrectionService.getEffectivePositionDate(correction, licencePosition)));
+              licencePosition.getLicence().getLicenceReference(),
+              correction == null
+                  ? Objects.requireNonNullElseGet(surrender.surrenderDate(), licencePosition::getPositionDate)
+                  : licencePositionCorrectionService.getEffectivePositionDate(correction, licencePosition)));
     };
   }
 

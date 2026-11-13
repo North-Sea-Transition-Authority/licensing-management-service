@@ -1,5 +1,6 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.reviewandsubmit;
 
+import jakarta.annotation.Nullable;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
@@ -17,6 +18,13 @@ public sealed interface PartialSurrenderSummaryContext {
 
   LicencePositionState stateBefore();
 
+  /**
+   * A partial surrender staged on a position correction.
+   *
+   * @param licencePositionCorrection The position correction the surrender is staged on.
+   * @param surrender                 The partial surrender being summarised.
+   * @param stateBefore               The state of the position going into the surrender.
+   */
   record Staged(
       LicencePositionCorrection licencePositionCorrection,
       PartialSurrenderOperation surrender,
@@ -24,8 +32,18 @@ public sealed interface PartialSurrenderSummaryContext {
   ) implements PartialSurrenderSummaryContext {
   }
 
+  /**
+   * A partial surrender on a live position change.
+   *
+   * @param correction      The correction the change is being corrected in, or null when the summary is read-only
+   *                        (i.e. viewed outside a correction).
+   * @param licencePosition The position holding the change.
+   * @param changeId        The id of the change.
+   * @param surrender       The partial surrender being summarised.
+   * @param stateBefore     The state of the position going into the change.
+   */
   record LiveChange(
-      LicenceCorrection correction,
+      @Nullable LicenceCorrection correction,
       LicencePosition licencePosition,
       String changeId,
       PartialSurrenderOperation surrender,

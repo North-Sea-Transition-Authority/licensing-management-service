@@ -1,6 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.reviewandsubmit;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDate;
@@ -63,7 +64,7 @@ class PartialSurrenderDetailsSummarySectionServiceTest {
   void getSummarySection_whenCorrectingALiveChange_thenSectionShowsLicenceAndPositionDate() {
     var licence = LicenceTestUtil.builder().withLicenceReference("P/1").build();
     var correction = LicenceCorrectionTestUtil.newBuilder().withLicence(licence).build();
-    var licencePosition = LicencePositionTestUtil.newBuilder().build();
+    var licencePosition = LicencePositionTestUtil.newBuilder().withLicence(licence).build();
     var changeId = UUID.randomUUID().toString();
 
     when(licencePositionCorrectionService.getEffectivePositionDate(correction, licencePosition))
@@ -81,6 +82,56 @@ class PartialSurrenderDetailsSummarySectionServiceTest {
     );
 
     assertThat(result).get().usingRecursiveComparison().isEqualTo(expectedSection("P/1"));
+  }
+
+  @Test
+  void getSummarySection_whenViewingALiveChangeOutsideACorrection_thenSectionShowsLicenceAndPositionDate() {
+    var licence = LicenceTestUtil.builder().withLicenceReference("P/1").build();
+    var licencePosition = LicencePositionTestUtil.newBuilder()
+        .withLicence(licence)
+        .withPositionDate(SURRENDER_DATE)
+        .build();
+
+    var result = partialSurrenderDetailsSummarySectionService.getSummarySection(
+        new PartialSurrenderSummaryContext.LiveChange(
+            null,
+            licencePosition,
+            UUID.randomUUID().toString(),
+            SURRENDER,
+            LicencePositionState.EMPTY
+        ),
+        null
+    );
+
+    assertThat(result).get().usingRecursiveComparison().isEqualTo(expectedSection("P/1"));
+    verifyNoInteractions(licencePositionCorrectionService);
+  }
+
+  @Test
+  void getSummarySection_whenViewingALiveChangeWithItsOwnSurrenderDateOutsideACorrection_thenShowsTheSurrenderDate() {
+    var licence = LicenceTestUtil.builder().withLicenceReference("P/1").build();
+    var licencePosition = LicencePositionTestUtil.newBuilder()
+        .withLicence(licence)
+        .withPositionDate(LocalDate.of(2026, Month.JANUARY, 1))
+        .build();
+    var surrenderWithDate = LicenceOperation.newPartialSurrenderOperation()
+        .withSurrenderDate(SURRENDER_DATE)
+        .withSurrenderedFeatureIds(List.of(UUID.randomUUID()))
+        .build();
+
+    var result = partialSurrenderDetailsSummarySectionService.getSummarySection(
+        new PartialSurrenderSummaryContext.LiveChange(
+            null,
+            licencePosition,
+            UUID.randomUUID().toString(),
+            surrenderWithDate,
+            LicencePositionState.EMPTY
+        ),
+        null
+    );
+
+    assertThat(result).get().usingRecursiveComparison().isEqualTo(expectedSection("P/1"));
+    verifyNoInteractions(licencePositionCorrectionService);
   }
 
   private SummarySection expectedSection(String licenceReference) {

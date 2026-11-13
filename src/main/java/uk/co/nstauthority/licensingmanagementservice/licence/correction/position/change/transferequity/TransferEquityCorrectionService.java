@@ -97,6 +97,9 @@ public class TransferEquityCorrectionService {
         var transferFrom, var transferTo, var equity, var retainBeneficialInterest)) {
       holdings.merge(transferFrom, equity.negate(), BigDecimal::add);
       holdings.merge(transferTo, equity, BigDecimal::add);
+      if (holdings.get(transferFrom).signum() <= 0 && !Boolean.TRUE.equals(retainBeneficialInterest)) {
+        holdings.remove(transferFrom);
+      }
     }
   }
 
@@ -158,10 +161,14 @@ public class TransferEquityCorrectionService {
         .toList();
   }
 
-  public Map<String, String> getTransferFromOptions(Map<Integer, BigDecimal> equityHoldings) {
-    var holdings = equityHoldings.entrySet().stream()
+  public Map<String, String> getLicenseeOptions(Map<Integer, BigDecimal> equityHoldings) {
+    return getTransferToOptions(equityHoldings.entrySet().stream()
         .filter(holding -> holding.getValue().compareTo(BigDecimal.ZERO) > 0)
-        .toList();
+        .collect(StreamUtil.toLinkedHashMap(Map.Entry::getKey, Map.Entry::getValue)));
+  }
+
+  public Map<String, String> getTransferToOptions(Map<Integer, BigDecimal> equityHoldings) {
+    var holdings = equityHoldings.entrySet();
 
     if (holdings.isEmpty()) {
       return Map.of();

@@ -20,10 +20,7 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correct
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.LicencePositionCorrectionBelongsToCorrection;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.LicencePositionIsNotRemovedInCorrection;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.position.LicencePositionBelongsToCorrectionLicence;
-import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
-import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitRestController;
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
-import uk.co.nstauthority.licensingmanagementservice.fds.searchselector.SearchSelectorService;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
@@ -44,18 +41,15 @@ public class LicencePositionTransferEquityController {
 
   private final LicencePositionTransferEquityFormValidator licencePositionTransferEquityFormValidator;
   private final TransferEquityWithdrawFormValidator transferEquityWithdrawFormValidator;
-  private final OrganisationUnitQueryService organisationUnitQueryService;
   private final TransferEquityCorrectionService transferEquityCorrectionService;
 
   public LicencePositionTransferEquityController(
       LicencePositionTransferEquityFormValidator licencePositionTransferEquityFormValidator,
       TransferEquityWithdrawFormValidator transferEquityWithdrawFormValidator,
-      OrganisationUnitQueryService organisationUnitQueryService,
       TransferEquityCorrectionService transferEquityCorrectionService
   ) {
     this.licencePositionTransferEquityFormValidator = licencePositionTransferEquityFormValidator;
     this.transferEquityWithdrawFormValidator = transferEquityWithdrawFormValidator;
-    this.organisationUnitQueryService = organisationUnitQueryService;
     this.transferEquityCorrectionService = transferEquityCorrectionService;
   }
 
@@ -407,11 +401,8 @@ public class LicencePositionTransferEquityController {
         .addObject("pageTitle", PAGE_TITLE)
         .addObject("pageCaption", correction.getLicence().getLicenceReference())
         .addObject("form", form)
-        .addObject("licenseeOrgUnitUrl",
-            SearchSelectorService.route(on(OrganisationUnitRestController.class).searchOrganisationUnits(null)))
-        .addObject("transferFromOptions", transferEquityCorrectionService.getTransferFromOptions(equityHoldings))
-        .addObject("preselectedTransferTo",
-            organisationUnitQueryService.getOrganisationUnitSelectOption(form.getTransferTo()))
+        .addObject("licenseeOptions", transferEquityCorrectionService.getLicenseeOptions(equityHoldings))
+        .addObject("transferToOptions", transferEquityCorrectionService.getTransferToOptions(equityHoldings))
         .addObject("backLinkUrl", backLinkUrl);
   }
 

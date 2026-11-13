@@ -113,6 +113,36 @@ class TransferEquityCorrectionServiceTest {
   }
 
   @Test
+  void getEquityHoldingsForCorrection_whenTransferorGivesAwayAllEquityAndRetainsInterest_thenKeepsZeroPercentHolding() {
+    var earlierPosition = chronologicalPosition(UUID.randomUUID(), new SetEquityOperation(1, BigDecimal.valueOf(100)));
+    var currentPosition = chronologicalPosition(
+        POSITION_ID,
+        new TransferEquityOperation(1, 2, BigDecimal.valueOf(100), true)
+    );
+
+    when(licencePositionViewService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, POSITION_ID))
+        .thenReturn(List.of(earlierPosition, currentPosition));
+
+    assertThat(transferEquityCorrectionService.getEquityHoldingsForCorrection(LICENCE_CORRECTION, POSITION_ID))
+        .isEqualTo(Map.of(1, BigDecimal.ZERO, 2, BigDecimal.valueOf(100)));
+  }
+
+  @Test
+  void getEquityHoldingsForCorrection_whenTransferorGivesAwayAllEquityAndWithdraws_thenDropsHolding() {
+    var earlierPosition = chronologicalPosition(UUID.randomUUID(), new SetEquityOperation(1, BigDecimal.valueOf(100)));
+    var currentPosition = chronologicalPosition(
+        POSITION_ID,
+        new TransferEquityOperation(1, 2, BigDecimal.valueOf(100), false)
+    );
+
+    when(licencePositionViewService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, POSITION_ID))
+        .thenReturn(List.of(earlierPosition, currentPosition));
+
+    assertThat(transferEquityCorrectionService.getEquityHoldingsForCorrection(LICENCE_CORRECTION, POSITION_ID))
+        .isEqualTo(Map.of(2, BigDecimal.valueOf(100)));
+  }
+
+  @Test
   void getEquityHoldingsForCorrection_whenAChangeIsRemoved_thenIgnoresItsOperations() {
     var setChange = PositionChangeTestUtil.newBuilder()
         .withChangeOrder(1)
@@ -282,7 +312,7 @@ class TransferEquityCorrectionServiceTest {
   }
 
   @Test
-  void getTransferFromOptions_whenSomeOrganisationsHoldNoEquity_thenListsOnlyHoldersOrderedByName() {
+  void getLicenseeOptions_whenSomeOrganisationsHoldNoEquity_thenListsOnlyHoldersOrderedByName() {
     var equityHoldings = new TreeMap<>(Map.of(
         1, BigDecimal.valueOf(60),
         2, BigDecimal.valueOf(25),
@@ -292,7 +322,7 @@ class TransferEquityCorrectionServiceTest {
     when(organisationUnitQueryService.getOrganisationUnitNamesByIds(List.of(1, 2, 4)))
         .thenReturn(Map.of(1, "Charlie Org", 2, "alpha Org", 4, "Bravo Org"));
 
-    var options = transferEquityCorrectionService.getTransferFromOptions(equityHoldings);
+    var options = transferEquityCorrectionService.getLicenseeOptions(equityHoldings);
 
     assertThat(options).containsExactly(
         entry("2", "alpha Org (25%)"),
@@ -308,33 +338,52 @@ class TransferEquityCorrectionServiceTest {
       "33.3333333333, Org One (33.3333333333%)",
       "0.0000000001, Org One (0.0000000001%)"
   })
-  void getTransferFromOptions_whenOrganisationHoldsEquity_thenLabelShowsPlainPercentage(
+  void getLicenseeOptions_whenOrganisationHoldsEquity_thenLabelShowsPlainPercentage(
       String equity,
       String expectedLabel
   ) {
     when(organisationUnitQueryService.getOrganisationUnitNamesByIds(List.of(1)))
         .thenReturn(Map.of(1, "Org One"));
 
-    var options = transferEquityCorrectionService.getTransferFromOptions(Map.of(1, new BigDecimal(equity)));
+    var options = transferEquityCorrectionService.getLicenseeOptions(Map.of(1, new BigDecimal(equity)));
 
     assertThat(options).isEqualTo(Map.of("1", expectedLabel));
   }
 
   @Test
-  void getTransferFromOptions_whenNoOrganisationHoldsEquity_thenReturnsEmptyWithoutLookingUpNames() {
-    var options = transferEquityCorrectionService.getTransferFromOptions(Map.of(1, BigDecimal.ZERO));
+  void getLicenseeOptions_whenNoOrganisationHoldsEquity_thenReturnsEmptyWithoutLookingUpNames() {
+    var options = transferEquityCorrectionService.getLicenseeOptions(Map.of(1, BigDecimal.ZERO));
 
     assertThat(options).isEmpty();
     verifyNoInteractions(organisationUnitQueryService);
   }
 
   @Test
-  void getTransferFromOptions_whenOrganisationNameUnknown_thenUsesNotAvailable() {
+  void getLicenseeOptions_whenOrganisationNameUnknown_thenUsesNotAvailable() {
     when(organisationUnitQueryService.getOrganisationUnitNamesByIds(List.of(1))).thenReturn(Map.of());
 
-    var options = transferEquityCorrectionService.getTransferFromOptions(Map.of(1, BigDecimal.valueOf(60)));
+    var options = transferEquityCorrectionService.getLicenseeOptions(Map.of(1, BigDecimal.valueOf(60)));
 
     assertThat(options).isEqualTo(Map.of("1", "Not available (60%)"));
+  }
+
+  @Test
+  void getTransferToOptions_whenSomeOrganisationsHoldZeroPercent_thenListsAllBeneficialInterestsOrderedByName() {
+    var equityHoldings = new TreeMap<>(Map.of(
+        1, BigDecimal.valueOf(60),
+        2, BigDecimal.ZERO,
+        3, BigDecimal.valueOf(40)
+    ));
+    when(organisationUnitQueryService.getOrganisationUnitNamesByIds(List.of(1, 2, 3)))
+        .thenReturn(Map.of(1, "Charlie Org", 2, "alpha Org", 3, "Bravo Org"));
+
+    var options = transferEquityCorrectionService.getTransferToOptions(equityHoldings);
+
+    assertThat(options).containsExactly(
+        entry("2", "alpha Org (0%)"),
+        entry("3", "Bravo Org (40%)"),
+        entry("1", "Charlie Org (60%)")
+    );
   }
 
   @Test

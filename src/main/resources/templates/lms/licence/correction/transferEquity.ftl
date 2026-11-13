@@ -10,14 +10,13 @@
 
         <@fdsSearchSelector.searchSelectorEnhanced
         path="form.transferFrom"
-        options=transferFromOptions
+        options=licenseeOptions
         labelText="Organisation equity is being transferred from"
         />
 
-        <@fdsSearchSelector.searchSelectorRest
+        <@fdsSearchSelector.searchSelectorEnhanced
         path="form.transferTo"
-        restUrl=springUrl(licenseeOrgUnitUrl)
-        preselectedItems=preselectedTransferTo
+        options=transferToOptions
         labelText="Organisation equity is being transferred to"
         />
 

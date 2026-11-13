@@ -33,9 +33,6 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.validation.BindingResult;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
-import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
-import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitRestController;
-import uk.co.nstauthority.licensingmanagementservice.fds.searchselector.SearchSelectorService;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
@@ -60,9 +57,6 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
 
   @MockitoBean
   private TransferEquityWithdrawFormValidator withdrawValidator;
-
-  @MockitoBean
-  private OrganisationUnitQueryService  organisationUnitQueryService;
 
   @MockitoBean
   private TransferEquityCorrectionService transferEquityCorrectionService;
@@ -106,8 +100,10 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
     var equityHoldings = Map.of(1, BigDecimal.valueOf(60));
     when(transferEquityCorrectionService.getEquityHoldingsForAddedPosition(correction, positionCorrection))
         .thenReturn(equityHoldings);
-    var transferFromOptions = Map.of("1", "Org One (60%)");
-    when(transferEquityCorrectionService.getTransferFromOptions(equityHoldings)).thenReturn(transferFromOptions);
+    var licenseeOptions = Map.of("1", "Org One (60%)");
+    when(transferEquityCorrectionService.getLicenseeOptions(equityHoldings)).thenReturn(licenseeOptions);
+    var transferToOptions = Map.of("1", "Org One (60%)", "2", "Org Two (0%)");
+    when(transferEquityCorrectionService.getTransferToOptions(equityHoldings)).thenReturn(transferToOptions);
 
     mockMvc.perform(get(addedFormUrl()).with(user(regulatorUser)))
         .andExpectAll(
@@ -116,9 +112,8 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
             model().attribute("pageTitle", "Add equity transfer"),
             model().attribute("pageCaption", LICENCE_REFERENCE),
             model().attribute("form", instanceOf(LicencePositionTransferEquityForm.class)),
-            model().attribute("licenseeOrgUnitUrl", licenseeOrgUnitUrl()),
-            model().attribute("transferFromOptions", transferFromOptions),
-            model().attribute("preselectedTransferTo", Map.of()),
+            model().attribute("licenseeOptions", licenseeOptions),
+            model().attribute("transferToOptions", transferToOptions),
             model().attribute("backLinkUrl", addedChangeChooserUrl()));
   }
 
@@ -138,9 +133,8 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
             model().attribute("pageTitle", "Add equity transfer"),
             model().attribute("pageCaption", LICENCE_REFERENCE),
             model().attribute("form", instanceOf(LicencePositionTransferEquityForm.class)),
-            model().attribute("licenseeOrgUnitUrl", licenseeOrgUnitUrl()),
-            model().attribute("transferFromOptions", Map.of()),
-            model().attribute("preselectedTransferTo", Map.of()),
+            model().attribute("licenseeOptions", Map.of()),
+            model().attribute("transferToOptions", Map.of()),
             model().attribute("backLinkUrl", addedSummaryUrl()));
   }
 
@@ -202,9 +196,10 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
     form.setTransferFrom("1");
     form.setTransferTo("2");
     when(validator.hasErrors(eq(form), any(BindingResult.class), eq(equityHoldings))).thenReturn(true);
-    var transferFromOptions = Map.of("1", "Org One (60%)");
-    when(transferEquityCorrectionService.getTransferFromOptions(equityHoldings)).thenReturn(transferFromOptions);
-    when(organisationUnitQueryService.getOrganisationUnitSelectOption("2")).thenReturn(Map.of("2", "Org Two"));
+    var licenseeOptions = Map.of("1", "Org One (60%)");
+    when(transferEquityCorrectionService.getLicenseeOptions(equityHoldings)).thenReturn(licenseeOptions);
+    var transferToOptions = Map.of("1", "Org One (60%)", "2", "Org Two (0%)");
+    when(transferEquityCorrectionService.getTransferToOptions(equityHoldings)).thenReturn(transferToOptions);
 
     mockMvc.perform(post(addedFormUrl()).with(user(regulatorUser)).with(csrf()).flashAttr("form", form))
         .andExpectAll(
@@ -213,9 +208,8 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
             model().attribute("pageTitle", "Add equity transfer"),
             model().attribute("pageCaption", LICENCE_REFERENCE),
             model().attribute("form", form),
-            model().attribute("licenseeOrgUnitUrl", licenseeOrgUnitUrl()),
-            model().attribute("transferFromOptions", transferFromOptions),
-            model().attribute("preselectedTransferTo", Map.of("2", "Org Two")),
+            model().attribute("licenseeOptions", licenseeOptions),
+            model().attribute("transferToOptions", transferToOptions),
             model().attribute("backLinkUrl", addedChangeChooserUrl()));
 
     verify(transferEquityCorrectionService, never()).addTransferEquity(any(), eq(form));
@@ -421,8 +415,10 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
     var equityHoldings = Map.of(1, BigDecimal.valueOf(60));
     when(transferEquityCorrectionService.getEquityHoldingsForCorrection(correction, POSITION_ID))
         .thenReturn(equityHoldings);
-    var transferFromOptions = Map.of("1", "Org One (60%)");
-    when(transferEquityCorrectionService.getTransferFromOptions(equityHoldings)).thenReturn(transferFromOptions);
+    var licenseeOptions = Map.of("1", "Org One (60%)");
+    when(transferEquityCorrectionService.getLicenseeOptions(equityHoldings)).thenReturn(licenseeOptions);
+    var transferToOptions = Map.of("1", "Org One (60%)", "2", "Org Two (0%)");
+    when(transferEquityCorrectionService.getTransferToOptions(equityHoldings)).thenReturn(transferToOptions);
 
     mockMvc.perform(get(executedFormUrl()).with(user(regulatorUser)))
         .andExpectAll(
@@ -431,9 +427,8 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
             model().attribute("pageTitle", "Add equity transfer"),
             model().attribute("pageCaption", LICENCE_REFERENCE),
             model().attribute("form", instanceOf(LicencePositionTransferEquityForm.class)),
-            model().attribute("licenseeOrgUnitUrl", licenseeOrgUnitUrl()),
-            model().attribute("transferFromOptions", transferFromOptions),
-            model().attribute("preselectedTransferTo", Map.of()),
+            model().attribute("licenseeOptions", licenseeOptions),
+            model().attribute("transferToOptions", transferToOptions),
             model().attribute("backLinkUrl", executedPositionUrl()));
   }
 
@@ -453,9 +448,8 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
             model().attribute("pageTitle", "Add equity transfer"),
             model().attribute("pageCaption", LICENCE_REFERENCE),
             model().attribute("form", instanceOf(LicencePositionTransferEquityForm.class)),
-            model().attribute("licenseeOrgUnitUrl", licenseeOrgUnitUrl()),
-            model().attribute("transferFromOptions", Map.of()),
-            model().attribute("preselectedTransferTo", Map.of()),
+            model().attribute("licenseeOptions", Map.of()),
+            model().attribute("transferToOptions", Map.of()),
             model().attribute("backLinkUrl", executedSummaryUrl()));
   }
 
@@ -566,9 +560,10 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
     form.setTransferFrom("1");
     form.setTransferTo("2");
     when(validator.hasErrors(eq(form), any(BindingResult.class), eq(equityHoldings))).thenReturn(true);
-    var transferFromOptions = Map.of("1", "Org One (60%)");
-    when(transferEquityCorrectionService.getTransferFromOptions(equityHoldings)).thenReturn(transferFromOptions);
-    when(organisationUnitQueryService.getOrganisationUnitSelectOption("2")).thenReturn(Map.of("2", "Org Two"));
+    var licenseeOptions = Map.of("1", "Org One (60%)");
+    when(transferEquityCorrectionService.getLicenseeOptions(equityHoldings)).thenReturn(licenseeOptions);
+    var transferToOptions = Map.of("1", "Org One (60%)", "2", "Org Two (0%)");
+    when(transferEquityCorrectionService.getTransferToOptions(equityHoldings)).thenReturn(transferToOptions);
 
     mockMvc.perform(post(executedFormUrl()).with(user(regulatorUser)).with(csrf()).flashAttr("form", form))
         .andExpectAll(
@@ -577,32 +572,12 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
             model().attribute("pageTitle", "Add equity transfer"),
             model().attribute("pageCaption", LICENCE_REFERENCE),
             model().attribute("form", form),
-            model().attribute("licenseeOrgUnitUrl", licenseeOrgUnitUrl()),
-            model().attribute("transferFromOptions", transferFromOptions),
-            model().attribute("preselectedTransferTo", Map.of("2", "Org Two")),
+            model().attribute("licenseeOptions", licenseeOptions),
+            model().attribute("transferToOptions", transferToOptions),
             model().attribute("backLinkUrl", executedPositionUrl()));
 
     verify(transferEquityCorrectionService, never())
         .addTransferEquityForExecutedPosition(any(), any(), any());
-  }
-
-  @Test
-  void submitForExecutedPosition_whenInvalidAndTransferToIsBlankOrInvalidNumber_rendersFormWithEmptyPreselectedMap() throws Exception {
-    var correction = givenCorrectionAllocatedToUser();
-    var licencePosition = executedPosition();
-    when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(licencePosition);
-    when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(licencePosition));
-    var equityHoldings = Map.of(1, BigDecimal.valueOf(60));
-    when(transferEquityCorrectionService.getEquityHoldingsForCorrection(correction, POSITION_ID))
-        .thenReturn(equityHoldings);
-
-    var form = new LicencePositionTransferEquityForm();
-    form.setTransferTo("NOT_A_NUMBER");
-    when(validator.hasErrors(eq(form), any(BindingResult.class), eq(equityHoldings))).thenReturn(true);
-
-    mockMvc.perform(post(executedFormUrl()).with(user(regulatorUser)).with(csrf()).flashAttr("form", form))
-        .andExpect(status().isOk())
-        .andExpect(model().attribute("preselectedTransferTo", Map.of()));
   }
 
   @Test
@@ -772,10 +747,6 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
         .withId(POSITION_CORRECTION_ID)
         .withLicenceCorrection(correction)
         .build();
-  }
-
-  private static String licenseeOrgUnitUrl() {
-    return SearchSelectorService.route(on(OrganisationUnitRestController.class).searchOrganisationUnits(null));
   }
 
   private static String addedFormUrl() {

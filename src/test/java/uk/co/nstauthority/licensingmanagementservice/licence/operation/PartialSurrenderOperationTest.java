@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.entry;
 
+import jakarta.annotation.Nullable;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.Month;
 import java.util.List;
@@ -19,7 +21,12 @@ import org.junit.jupiter.params.provider.NullAndEmptySource;
 import tools.jackson.databind.json.JsonMapper;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderType;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation.SurrenderDetails;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeViewContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.LicencePositionState;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.PositionChange;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.ChangeViewUrls;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.PartialSurrenderChangeView;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.FeatureSummary;
 
 class PartialSurrenderOperationTest {
 
@@ -35,6 +42,13 @@ class PartialSurrenderOperationTest {
   private static final UUID SURRENDERED_PART_ID = UUID.randomUUID();
   private static final UUID FIRST_RETAINED_PART_ID = UUID.randomUUID();
   private static final UUID SECOND_RETAINED_PART_ID = UUID.randomUUID();
+  private static final UUID MERGED_RETAINED_FEATURE_ID = UUID.randomUUID();
+  private static final Map<UUID, FeatureSummary> BLOCK_ROW_FEATURES_BY_ID = Map.of(
+      FIRST_FEATURE_ID, new FeatureSummary("21/5", new BigDecimal("219100000")),
+      FIRST_RETAINED_PART_ID, new FeatureSummary("21/5a", new BigDecimal("100000000")),
+      SECOND_RETAINED_PART_ID, new FeatureSummary("21/5b", new BigDecimal("64200000")),
+      MERGED_RETAINED_FEATURE_ID, new FeatureSummary("21/5c", new BigDecimal("164200000"))
+  );
 
   private static SurrenderDetails surrenderDetails(BlockSurrenderType type) {
     return new SurrenderDetails(type, UUID.randomUUID(), List.of());
@@ -637,6 +651,210 @@ class PartialSurrenderOperationTest {
         SECOND_SUBAREA.featureId(),
         THIRD_SUBAREA.featureId()
     );
+  }
+
+  @Test
+  void outputRetainedFeatureIds_whenBlocksMergedUnmergedAndFullySurrendered_thenTheFeaturesKeptOfEachBlock() {
+    var mergedFeatureId = UUID.randomUUID();
+    var unmergedRetainedPartId = UUID.randomUUID();
+    var fullySurrenderedBlockId = UUID.randomUUID();
+    var operation = new PartialSurrenderOperation(
+        SURRENDER_DATE,
+        List.of(FIRST_FEATURE_ID, SECOND_FEATURE_ID, fullySurrenderedBlockId),
+        Map.of(
+            FIRST_FEATURE_ID, mergedSurrenderDetails(mergedFeatureId, Map.of()),
+            SECOND_FEATURE_ID, new SurrenderDetails(
+                BlockSurrenderType.PARTIAL_SURRENDER, null, List.of(), List.of(unmergedRetainedPartId)),
+            fullySurrenderedBlockId, new SurrenderDetails(
+                BlockSurrenderType.FULL_SURRENDER, null, List.of(fullySurrenderedBlockId))
+        )
+    );
+
+    var result = operation.outputRetainedFeatureIds();
+
+    assertThat(result).containsExactlyInAnyOrder(mergedFeatureId, unmergedRetainedPartId);
+  }
+
+  @ParameterizedTest
+  @MethodSource("blockSurrendersAndTheirOutcomes")
+  void getBlockRows_whenBlockSurrenderIsInAState_thenOutcomesDescribeIt(
+      @Nullable SurrenderDetails surrenderDetails,
+      List<String> expectedOutcomes
+  ) {
+    var operation = new PartialSurrenderOperation(
+        SURRENDER_DATE,
+        List.of(FIRST_FEATURE_ID),
+        surrenderDetails == null ? Map.of() : Map.of(FIRST_FEATURE_ID, surrenderDetails)
+    );
+
+    var result = operation.getBlockRows(BLOCK_ROW_FEATURES_BY_ID);
+
+    assertThat(result).containsExactly(
+        new PartialSurrenderChangeView.BlockRow("Block 21/5 (219.10\u00A0km²)", expectedOutcomes));
+  }
+
+  private static Stream<Arguments> blockSurrendersAndTheirOutcomes() {
+    return Stream.of(
+        Arguments.of(null, List.of("Not available")),
+        Arguments.of(
+            new SurrenderDetails(BlockSurrenderType.FULL_SURRENDER, null, List.of(FIRST_FEATURE_ID)),
+            List.of("Full surrender")
+        ),
+        // A partial surrender in progress
+        Arguments.of(
+            surrenderDetails(BlockSurrenderType.PARTIAL_SURRENDER),
+            List.of("Partial surrender")
+        ),
+        // A completed partial surrender
+        Arguments.of(
+            mergedSurrenderDetails(MERGED_RETAINED_FEATURE_ID, Map.of()),
+            List.of("Block 21/5c retained (164.20\u00A0km²)", "54.90\u00A0km² surrendered")
+        )
+    );
+  }
+
+  @Test
+  void getBlockRows_whenARetainedFeatureIsNotResolved_thenUnknownBlockAndNoAreaSurrendered() {
+    var operation = new PartialSurrenderOperation(
+        SURRENDER_DATE,
+        List.of(FIRST_FEATURE_ID),
+        Map.of(FIRST_FEATURE_ID, new SurrenderDetails(
+            BlockSurrenderType.PARTIAL_SURRENDER, null, List.of(), List.of(UUID.randomUUID())))
+    );
+
+    var result = operation.getBlockRows(BLOCK_ROW_FEATURES_BY_ID);
+
+    assertThat(result).containsExactly(new PartialSurrenderChangeView.BlockRow(
+        "Block 21/5 (219.10\u00A0km²)",
+        List.of("Unknown block retained")
+    ));
+  }
+
+  @Test
+  void getBlockRows_whenARetainedFeatureHasNoArea_thenLabelledWithoutAreaAndNoAreaSurrendered() {
+    var operation = new PartialSurrenderOperation(
+        SURRENDER_DATE,
+        List.of(FIRST_FEATURE_ID),
+        Map.of(FIRST_FEATURE_ID, new SurrenderDetails(
+            BlockSurrenderType.PARTIAL_SURRENDER, null, List.of(), List.of(FIRST_RETAINED_PART_ID)))
+    );
+    var featuresById = Map.of(
+        FIRST_FEATURE_ID, new FeatureSummary("21/5", new BigDecimal("219100000")),
+        FIRST_RETAINED_PART_ID, new FeatureSummary("21/5a", null)
+    );
+
+    var result = operation.getBlockRows(featuresById);
+
+    assertThat(result).containsExactly(new PartialSurrenderChangeView.BlockRow(
+        "Block 21/5 (219.10\u00A0km²)",
+        List.of("Block 21/5a retained")
+    ));
+  }
+
+  @Test
+  void getChangeView_whenSurrenderTakesEffect_thenLicenceAreaBeforeSurrenderedAndAfter() {
+    var operation = new PartialSurrenderOperation(
+        SURRENDER_DATE,
+        List.of(FIRST_FEATURE_ID, SECOND_FEATURE_ID),
+        Map.of(
+            FIRST_FEATURE_ID, new SurrenderDetails(
+                BlockSurrenderType.PARTIAL_SURRENDER, null, List.of(), List.of(FIRST_RETAINED_PART_ID)),
+            SECOND_FEATURE_ID, new SurrenderDetails(
+                BlockSurrenderType.FULL_SURRENDER, null, List.of(SECOND_FEATURE_ID))
+        )
+    );
+    var featuresById = Map.of(
+        FIRST_FEATURE_ID, new FeatureSummary("21/5", new BigDecimal("219100000")),
+        SECOND_FEATURE_ID, new FeatureSummary("21/6", new BigDecimal("219100000")),
+        FIRST_RETAINED_PART_ID, new FeatureSummary("21/5a", new BigDecimal("164200000"))
+    );
+    var previousState = LicencePositionState.EMPTY
+        .withBlock(FIRST_FEATURE_ID, List.of())
+        .withBlock(SECOND_FEATURE_ID, List.of());
+
+    var result = operation.getChangeView(
+        positionChange(operation),
+        previousState,
+        null,
+        new LicencePositionChangeViewContext(Map.of(), featuresById),
+        ChangeViewUrls.none()
+    );
+
+    var expected = new PartialSurrenderChangeView(
+        "1 August 2026",
+        List.of(
+            new PartialSurrenderChangeView.BlockRow(
+                "Block 21/5 (219.10\u00A0km²)",
+                List.of("Block 21/5a retained (164.20\u00A0km²)", "54.90\u00A0km² surrendered")),
+            new PartialSurrenderChangeView.BlockRow("Block 21/6 (219.10\u00A0km²)", List.of("Full surrender"))
+        ),
+        new PartialSurrenderChangeView.LicenceAreaRows("438.20\u00A0km²", "274.00\u00A0km² (63%)", "164.20\u00A0km²"),
+        null,
+        ChangeViewUrls.none()
+    );
+    assertThat(result).isEqualTo(expected);
+  }
+
+  @Test
+  void getChangeView_whenSurrenderHasNotTakenEffect_thenNoLicenceAreaRows() {
+    var operation = new PartialSurrenderOperation(
+        SURRENDER_DATE,
+        List.of(FIRST_FEATURE_ID),
+        Map.of(FIRST_FEATURE_ID, surrenderDetails(BlockSurrenderType.PARTIAL_SURRENDER))
+    );
+
+    var result = operation.getChangeView(
+        positionChange(operation),
+        LicencePositionState.EMPTY.withBlock(FIRST_FEATURE_ID, List.of()),
+        null,
+        new LicencePositionChangeViewContext(Map.of(), BLOCK_ROW_FEATURES_BY_ID),
+        ChangeViewUrls.none()
+    );
+
+    var expected = new PartialSurrenderChangeView(
+        "1 August 2026",
+        List.of(new PartialSurrenderChangeView.BlockRow("Block 21/5 (219.10\u00A0km²)", List.of("Partial surrender"))),
+        null,
+        null,
+        ChangeViewUrls.none()
+    );
+    assertThat(result).isEqualTo(expected);
+  }
+
+  @Test
+  void getChangeView_whenABlockAreaIsUnknown_thenNoLicenceAreaRows() {
+    var operation = new PartialSurrenderOperation(
+        SURRENDER_DATE,
+        List.of(FIRST_FEATURE_ID),
+        Map.of(
+            FIRST_FEATURE_ID,
+            new SurrenderDetails(BlockSurrenderType.FULL_SURRENDER, null, List.of(FIRST_FEATURE_ID))
+        )
+    );
+    var previousState = LicencePositionState.EMPTY
+        .withBlock(FIRST_FEATURE_ID, List.of())
+        .withBlock(SECOND_FEATURE_ID, List.of());
+
+    var result = operation.getChangeView(
+        positionChange(operation),
+        previousState,
+        null,
+        new LicencePositionChangeViewContext(Map.of(), BLOCK_ROW_FEATURES_BY_ID),
+        ChangeViewUrls.none()
+    );
+
+    var expected = new PartialSurrenderChangeView(
+        "1 August 2026",
+        List.of(new PartialSurrenderChangeView.BlockRow("Block 21/5 (219.10\u00A0km²)", List.of("Full surrender"))),
+        null,
+        null,
+        ChangeViewUrls.none()
+    );
+    assertThat(result).isEqualTo(expected);
+  }
+
+  private static PositionChange positionChange(PartialSurrenderOperation operation) {
+    return new PositionChange(UUID.randomUUID().toString(), 1, null, List.of(operation));
   }
 
   private static SurrenderDetails mergedSurrenderDetails(

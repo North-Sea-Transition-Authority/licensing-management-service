@@ -639,7 +639,7 @@ class PartialSurrenderTaskListControllerTest extends AbstractControllerTest {
         )), SummarySectionDisplay.INLINE),
         new SummarySection(20, List.of(SummaryItem.withCard(
             "Block 30/1",
-            SummaryCard.simpleSummaryCard(SummaryDataView.newStringKeyValue("Area", "200.00 km²"))
+            SummaryCard.simpleSummaryCard(SummaryDataView.newStringKeyValue("Area", "200.00\u00A0km²"))
         ).withTag(new Tag("Partial surrender", TagColour.BLUE))))
     );
     givenSummarySections(positionCorrection, summarySections);
@@ -807,7 +807,7 @@ class PartialSurrenderTaskListControllerTest extends AbstractControllerTest {
   }
 
   private SummaryCard headedCard(String heading) {
-    return SummaryCard.simpleSummaryCardWithHeading(heading, SummaryDataView.newStringKeyValue("Area", "1.00 km²"));
+    return SummaryCard.simpleSummaryCardWithHeading(heading, SummaryDataView.newStringKeyValue("Area", "1.00\u00A0km²"));
   }
 
   private LicencePositionState givenStagedSurrender(LicencePositionCorrection positionCorrection) {

@@ -106,12 +106,12 @@ class PartialSurrenderLicenceAreaSummarySectionServiceTest {
         new SummaryColumn(
             PartialSurrenderBlockSummarySectionService.BEFORE,
             map(FIRST_BLOCK, SECOND_BLOCK),
-            List.of(areaCard("Licence P1", "300.00 km²"))
+            List.of(areaCard("Licence P1", "300.00\u00A0km²"))
         ),
         new SummaryColumn(
             PartialSurrenderBlockSummarySectionService.AFTER,
             map(FIRST_BLOCK, RETAINED_PART),
-            List.of(areaCard("Licence P1", "150.00 km²"))
+            List.of(areaCard("Licence P1", "150.00\u00A0km²"))
         )
     ));
 
@@ -144,12 +144,12 @@ class PartialSurrenderLicenceAreaSummarySectionServiceTest {
         new SummaryColumn(
             PartialSurrenderBlockSummarySectionService.BEFORE,
             map(FIRST_BLOCK, SECOND_BLOCK),
-            List.of(areaCard("Licence P3", "300.00 km²"))
+            List.of(areaCard("Licence P3", "300.00\u00A0km²"))
         ),
         new SummaryColumn(
             PartialSurrenderBlockSummarySectionService.AFTER,
             null,
-            List.of(areaCard("Licence P3", "0.00 km²"))
+            List.of(areaCard("Licence P3", "0.00\u00A0km²"))
         )
     ));
 
@@ -178,7 +178,7 @@ class PartialSurrenderLicenceAreaSummarySectionServiceTest {
     var expected = expectedSection(List.of(new SummaryColumn(
         PartialSurrenderBlockSummarySectionService.BEFORE,
         map(FIRST_BLOCK, SECOND_BLOCK),
-        List.of(areaCard("Licence P2", "300.00 km²"))
+        List.of(areaCard("Licence P2", "300.00\u00A0km²"))
     )));
 
     assertThat(result).get().usingRecursiveComparison().isEqualTo(expected);

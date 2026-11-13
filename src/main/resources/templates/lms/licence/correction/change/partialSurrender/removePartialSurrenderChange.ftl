@@ -1,4 +1,5 @@
 <#include '../../../../layout/layout.ftl'>
+<#import '../../../../licence/position/_positionChanges.ftl' as positionChanges>
 
 <@defaultPage
   htmlTitle=pageTitle
@@ -12,13 +13,7 @@
           ${surrenderDate}
         </@fdsSummaryList.summaryListRowNoAction>
       </#if>
-      <@fdsSummaryList.summaryListRowNoAction keyText="Blocks to surrender">
-        <dl>
-          <#list blockRows as blockRow>
-            <dt style="white-space: nowrap;">${blockRow.blockLabel()}<#if blockRow.surrenderType()??> - ${blockRow.surrenderType()}</#if></dt>
-          </#list>
-        </dl>
-      </@fdsSummaryList.summaryListRowNoAction>
+      <@positionChanges.partialSurrenderBlockRows blockRows=blockRows/>
     </@fdsSummaryList.summaryList>
 
     <@fdsAction.submitButtons

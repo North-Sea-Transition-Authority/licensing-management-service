@@ -619,7 +619,8 @@ class LicencePositionViewServiceTest {
 
     var expected = new PartialSurrenderChangeView(
         "1 January 2026",
-        List.of(new PartialSurrenderChangeView.BlockRow(SURRENDERED_BLOCK.getFeatureName(), "Full surrender")),
+        List.of(new PartialSurrenderChangeView.BlockRow("Block 30/1a (0.00\u00A0km²)", List.of("Full surrender"))),
+        null,
         LicencePositionChangeType.REMOVE_CHANGE,
         new ChangeViewUrls(
             null,
@@ -2207,12 +2208,56 @@ class LicencePositionViewServiceTest {
     var expected = new PartialSurrenderChangeView(
         "1 January 2026",
         List.of(
-            new PartialSurrenderChangeView.BlockRow(firstBlock.getFeatureName(), "Full surrender"),
-            new PartialSurrenderChangeView.BlockRow(secondBlock.getFeatureName(), "Partial surrender")),
+            new PartialSurrenderChangeView.BlockRow("Block SHAPE 1 (0.00\u00A0km²)", List.of("Full surrender")),
+            new PartialSurrenderChangeView.BlockRow("Block SHAPE 2 (0.00\u00A0km²)", List.of("Partial surrender"))),
+        null,
         null,
         ChangeViewUrls.none());
     assertThat(result.orderedChangeViews())
         .containsExactly(expected);
+  }
+
+  @Test
+  void getPositionPageView_whenPartialSurrenderKeepsPartOfABlock_thenResolvesTheRetainedFeature() {
+    var position = LicencePositionTestUtil.newBuilder()
+        .withLicence(LICENCE)
+        .withLicenceTransaction(LicenceTransactionTestUtil.newBuilder().withRegulatorReference("REF").build())
+        .withPositionDate(LocalDate.of(2026, Month.JANUARY, 1)).withPositionOrder(1)
+        .withStatus(LicencePositionStatus.EXECUTED).build();
+    var block = FeatureTestUtil.builder()
+        .withFeatureName("21/5")
+        .withFeatureArea(new BigDecimal("219100000"))
+        .build();
+    var retainedPart = FeatureTestUtil.builder()
+        .withFeatureName("21/5a")
+        .withFeatureArea(new BigDecimal("164200000"))
+        .build();
+    var partialSurrenderOp = new PartialSurrenderOperation(
+        null,
+        List.of(block.getId()),
+        Map.of(block.getId(), new PartialSurrenderOperation.SurrenderDetails(
+            BlockSurrenderType.PARTIAL_SURRENDER, null, List.of(), List.of(retainedPart.getId()))));
+    var change = LicencePositionChangeTestUtil.newBuilder()
+        .withLicencePosition(position)
+        .withOperations(List.of(partialSurrenderOp))
+        .build();
+
+    when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(position));
+    when(licencePositionChangeService.findByLicencePositionIn(List.of(position))).thenReturn(List.of(change));
+    when(featureService.getFeaturesByIds(Set.of(block.getId(), retainedPart.getId())))
+        .thenReturn(List.of(block, retainedPart));
+
+    var result = licencePositionViewService.getPositionPageView(position);
+
+    var expected = new PartialSurrenderChangeView(
+        "1 January 2026",
+        List.of(new PartialSurrenderChangeView.BlockRow(
+            "Block 21/5 (219.10\u00A0km²)",
+            List.of("Block 21/5a retained (164.20\u00A0km²)", "54.90\u00A0km² surrendered"))),
+        null,
+        null,
+        ChangeViewUrls.none());
+    assertThat(result.orderedChangeViews()).containsExactly(expected);
   }
 
   @Test

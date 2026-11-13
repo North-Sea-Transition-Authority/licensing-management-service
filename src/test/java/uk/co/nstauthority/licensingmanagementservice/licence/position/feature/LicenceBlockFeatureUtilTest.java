@@ -82,11 +82,11 @@ class LicenceBlockFeatureUtilTest {
 
   @ParameterizedTest
   @CsvSource(delimiter = '|', value = {
-      "0             | 0.00 km²",
-      "219100000     | 219.10 km²",
-      "4999          | 0.00 km²",
-      "5000          | 0.01 km²",
-      "1234567890000 | 1,234,567.89 km²"
+      "0             | 0.00\u00A0km²",
+      "219100000     | 219.10\u00A0km²",
+      "4999          | 0.00\u00A0km²",
+      "5000          | 0.01\u00A0km²",
+      "1234567890000 | 1,234,567.89\u00A0km²"
   })
   void formatArea(BigDecimal squareMetres, String expected) {
     var result = LicenceBlockFeatureUtil.formatArea(squareMetres);

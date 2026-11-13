@@ -42,6 +42,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationError;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.GeospatialLicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.licensee.LicenseeChangeContext;
@@ -880,7 +881,7 @@ public class LicencePositionViewService {
         .flatMap(change -> change.operations().stream())
         .filter(GeospatialLicenceOperation.class::isInstance)
         .map(GeospatialLicenceOperation.class::cast)
-        .flatMap(geospatialLicenceOperation -> geospatialLicenceOperation.featureIds().stream())
+        .flatMap(LicencePositionViewService::featureIdsToResolve)
         .filter(Objects::nonNull)
         .collect(Collectors.toSet());
 
@@ -891,6 +892,13 @@ public class LicencePositionViewService {
     return featureService.getFeaturesByIds(featureIds)
         .stream()
         .collect(Collectors.toMap(Feature::getId, FeatureSummary::from));
+  }
+
+  private static Stream<UUID> featureIdsToResolve(GeospatialLicenceOperation operation) {
+    if (operation instanceof PartialSurrenderOperation partialSurrender) {
+      return Stream.concat(partialSurrender.featureIds().stream(), partialSurrender.outputRetainedFeatureIds().stream());
+    }
+    return operation.featureIds().stream();
   }
 
   private static <I> List<I> resolveIds(

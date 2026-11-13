@@ -73,8 +73,8 @@ class LicencePositionChangeViewResolverTest {
   private static final UUID FIRST_FEATURE_ID = UUID.randomUUID();
   private static final UUID SECOND_FEATURE_ID = UUID.randomUUID();
   private static final Map<UUID, FeatureSummary> FEATURES_BY_ID = Map.of(
-      FIRST_FEATURE_ID, new FeatureSummary("30/1a", BigDecimal.ONE),
-      SECOND_FEATURE_ID, new FeatureSummary("30/2", BigDecimal.ONE));
+      FIRST_FEATURE_ID, new FeatureSummary("30/1a", new BigDecimal("100000000")),
+      SECOND_FEATURE_ID, new FeatureSummary("30/2", new BigDecimal("200000000")));
 
   private static final UUID SET_EQUITY_POSITION_ID = UUID.randomUUID();
   private static final int SET_EQUITY_ORG_ID = 300;
@@ -964,12 +964,12 @@ class LicencePositionChangeViewResolverTest {
 
     var partialSurrenderChangeView = (PartialSurrenderChangeView) byType(result, LicenceOperation.PARTIAL_SURRENDER);
     assertThat(partialSurrenderChangeView.blockRows()).containsExactly(
-        new PartialSurrenderChangeView.BlockRow("30/1a", "Full surrender"),
-        new PartialSurrenderChangeView.BlockRow("30/2", "Partial surrender"));
+        new PartialSurrenderChangeView.BlockRow("Block 30/1a (100.00\u00A0km²)", List.of("Full surrender")),
+        new PartialSurrenderChangeView.BlockRow("Block 30/2 (200.00\u00A0km²)", List.of("Partial surrender")));
   }
 
   @Test
-  void getChangeViews_whenBlockNameNotFound_usesNotAvailable() {
+  void getChangeViews_whenBlockNameNotFound_usesUnknownBlock() {
     var currentLicencePosition = LicencePositionTestUtil.newBuilder()
         .withPositionDate(LocalDate.of(2026, Month.AUGUST, 1))
         .build();
@@ -986,7 +986,7 @@ class LicencePositionChangeViewResolverTest {
 
     var partialSurrenderChangeView = (PartialSurrenderChangeView) byType(result, LicenceOperation.PARTIAL_SURRENDER);
     assertThat(partialSurrenderChangeView.blockRows())
-        .containsExactly(new PartialSurrenderChangeView.BlockRow("Unknown block", "Full surrender"));
+        .containsExactly(new PartialSurrenderChangeView.BlockRow("Unknown block", List.of("Full surrender")));
   }
 
   @Test
@@ -1039,7 +1039,7 @@ class LicencePositionChangeViewResolverTest {
   }
 
   @Test
-  void getChangeViews_whenABlockHasNoSurrenderTypeYet_thenTheBlockRowHasNoSurrenderType() {
+  void getChangeViews_whenABlockHasNoSurrenderTypeYet_thenTheBlockRowIsNotAvailable() {
     var currentLicencePosition = LicencePositionTestUtil.newBuilder()
         .withPositionDate(LocalDate.of(2026, Month.AUGUST, 1))
         .build();
@@ -1056,8 +1056,9 @@ class LicencePositionChangeViewResolverTest {
     assertThat((PartialSurrenderChangeView) byType(result, LicenceOperation.PARTIAL_SURRENDER))
         .extracting(PartialSurrenderChangeView::blockRows)
         .isEqualTo(List.of(
-            new PartialSurrenderChangeView.BlockRow(FEATURES_BY_ID.get(FIRST_FEATURE_ID).name(), "Full surrender"),
-            new PartialSurrenderChangeView.BlockRow(FEATURES_BY_ID.get(SECOND_FEATURE_ID).name(), "Not available")));
+            new PartialSurrenderChangeView.BlockRow("Block 30/1a (100.00\u00A0km²)", List.of("Full surrender")),
+            new PartialSurrenderChangeView.BlockRow("Block 30/2 (200.00\u00A0km²)", List.of("Not available")))
+        );
   }
 
   @Test

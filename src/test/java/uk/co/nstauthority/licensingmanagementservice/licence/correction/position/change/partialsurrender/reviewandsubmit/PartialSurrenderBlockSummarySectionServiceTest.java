@@ -103,13 +103,13 @@ class PartialSurrenderBlockSummarySectionServiceTest {
             SummaryItem.withRows("Block SHAPE 1", List.of(new SummaryRow(List.of(new SummaryColumn(
                 PartialSurrenderBlockSummarySectionService.BEFORE,
                 map(FIRST_BLOCK.getId()),
-                List.of(blockBeforeCard("Block SHAPE 1", "184.12 km²")
+                List.of(blockBeforeCard("Block SHAPE 1", "184.12\u00A0km²")
                     .withAction(changeAction(surrenderTypeUrl(positionCorrection, FIRST_BLOCK))))
             ))))),
             SummaryItem.withRows("Block SHAPE 2", List.of(new SummaryRow(List.of(new SummaryColumn(
                 PartialSurrenderBlockSummarySectionService.BEFORE,
                 map(SECOND_BLOCK.getId()),
-                List.of(blockBeforeCard("Block SHAPE 2", "200.00 km²")
+                List.of(blockBeforeCard("Block SHAPE 2", "200.00\u00A0km²")
                     .withAction(changeAction(surrenderTypeUrl(positionCorrection, SECOND_BLOCK))))
             )))))
         )
@@ -151,14 +151,14 @@ class PartialSurrenderBlockSummarySectionServiceTest {
                 new SummaryColumn(
                     PartialSurrenderBlockSummarySectionService.BEFORE,
                     map(FIRST_BLOCK.getId()),
-                    List.of(blockBeforeCard("Block SHAPE 1", "184.12 km²"))
+                    List.of(blockBeforeCard("Block SHAPE 1", "184.12\u00A0km²"))
                 ),
                 new SummaryColumn(
                     PartialSurrenderBlockSummarySectionService.AFTER,
                     null,
                     List.of(blockAfterCard(
                         "Block SHAPE 1",
-                        SummaryDataView.newStringKeyValue(PartialSurrenderBlockSummarySectionService.AREA, "0.00 km²"),
+                        SummaryDataView.newStringKeyValue(PartialSurrenderBlockSummarySectionService.AREA, "0.00\u00A0km²"),
                         surrenderTypeUrl(positionCorrection, FIRST_BLOCK)
                     ))
                 )
@@ -175,7 +175,7 @@ class PartialSurrenderBlockSummarySectionServiceTest {
                 RELINQUISHED_TAG,
                 map(subareaFeature.getId()),
                 SummaryDataView.newBuilder()
-                    .addStringValue(PartialSurrenderBlockSummarySectionService.AREA, "20.00 km²")
+                    .addStringValue(PartialSurrenderBlockSummarySectionService.AREA, "20.00\u00A0km²")
                     .addStringValue(
                         PartialSurrenderBlockSummarySectionService.LICENSEES,
                         List.of("Not available (40%)", "zeta ltd (60%)")
@@ -258,14 +258,14 @@ class PartialSurrenderBlockSummarySectionServiceTest {
                 new SummaryColumn(
                     PartialSurrenderBlockSummarySectionService.BEFORE,
                     map(SECOND_BLOCK.getId()),
-                    List.of(blockBeforeCard("Block SHAPE 2", "200.00 km²"))
+                    List.of(blockBeforeCard("Block SHAPE 2", "200.00\u00A0km²"))
                 ),
                 new SummaryColumn(
                     PartialSurrenderBlockSummarySectionService.AFTER,
                     map(retainedFeatureIds),
                     List.of(blockAfterCard(
                         "Block SHAPE 2",
-                        SummaryDataView.newStringKeyValue(PartialSurrenderBlockSummarySectionService.AREA, "142.07 km²"),
+                        SummaryDataView.newStringKeyValue(PartialSurrenderBlockSummarySectionService.AREA, "142.07\u00A0km²"),
                         defineAreaUrl(positionCorrection, SECOND_BLOCK)
                     ))
                 )
@@ -274,7 +274,7 @@ class PartialSurrenderBlockSummarySectionServiceTest {
                 "Subarea Charlie",
                 RELINQUISHED_TAG,
                 map(relinquishedSubareaFeature.getId()),
-                area("20.00 km²"),
+                area("20.00\u00A0km²"),
                 PartialSurrenderBlockSummarySectionService.RELINQUISHED_OUTSIDE_AREA_KEPT
             ),
             new SummaryRow("Subarea Alpha", CROPPED_TAG, List.of(
@@ -282,7 +282,7 @@ class PartialSurrenderBlockSummarySectionServiceTest {
                     PartialSurrenderBlockSummarySectionService.BEFORE,
                     map(croppedSubareaFeature.getId()),
                     List.of(subareaCard("Subarea Alpha", SummaryDataView.newBuilder()
-                        .addStringValue(PartialSurrenderBlockSummarySectionService.AREA, "40.00 km²")
+                        .addStringValue(PartialSurrenderBlockSummarySectionService.AREA, "40.00\u00A0km²")
                         .addStringValue(PartialSurrenderBlockSummarySectionService.LICENSEES, List.of("Org (100%)"))
                         .build()))
                 ),
@@ -290,8 +290,8 @@ class PartialSurrenderBlockSummarySectionServiceTest {
                     PartialSurrenderBlockSummarySectionService.AFTER,
                     map(List.of(croppedOntoOtherRetainedPart.getId(), croppedOntoRetainedPart.getId())),
                     List.of(
-                        subareaCard("Subarea Alpha 1", area("10.00 km²")),
-                        subareaCard("Subarea Alpha 2", area("15.00 km²"))
+                        subareaCard("Subarea Alpha 1", area("10.00\u00A0km²")),
+                        subareaCard("Subarea Alpha 2", area("15.00\u00A0km²"))
                     )
                 )
             )),
@@ -299,7 +299,7 @@ class PartialSurrenderBlockSummarySectionServiceTest {
                 "Subarea Bravo",
                 UNCHANGED_TAG,
                 map(unchangedSubareaFeature.getId()),
-                area("30.00 km²"),
+                area("30.00\u00A0km²"),
                 PartialSurrenderBlockSummarySectionService.KEPT_UNCHANGED
             ),
             subareaRowWithExplanation(
@@ -335,7 +335,7 @@ class PartialSurrenderBlockSummarySectionServiceTest {
             new SummaryColumn(
                 PartialSurrenderBlockSummarySectionService.BEFORE,
                 map(SECOND_BLOCK.getId()),
-                List.of(blockBeforeCard("Block SHAPE 2", "200.00 km²"))
+                List.of(blockBeforeCard("Block SHAPE 2", "200.00\u00A0km²"))
             ),
             new SummaryColumn(
                 PartialSurrenderBlockSummarySectionService.AFTER,
@@ -381,14 +381,14 @@ class PartialSurrenderBlockSummarySectionServiceTest {
             new SummaryColumn(
                 PartialSurrenderBlockSummarySectionService.BEFORE,
                 map(FIRST_BLOCK.getId()),
-                List.of(blockBeforeCard("Block SHAPE 1", "184.12 km²"))
+                List.of(blockBeforeCard("Block SHAPE 1", "184.12\u00A0km²"))
             ),
             new SummaryColumn(
                 PartialSurrenderBlockSummarySectionService.AFTER,
                 null,
                 List.of(blockAfterCard(
                     "Block SHAPE 1",
-                    SummaryDataView.newStringKeyValue(PartialSurrenderBlockSummarySectionService.AREA, "0.00 km²"),
+                    SummaryDataView.newStringKeyValue(PartialSurrenderBlockSummarySectionService.AREA, "0.00\u00A0km²"),
                     correctingSurrenderTypeUrl(correction, licencePosition, changeId, FIRST_BLOCK)
                 ))
             )

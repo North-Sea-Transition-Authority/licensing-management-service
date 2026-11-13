@@ -56,10 +56,10 @@ public final class LicenceBlockFeatureUtil {
         .reduce(BigDecimal.ZERO, BigDecimal::add);
   }
 
-  // feature areas are stored in square metres
+  // feature areas are stored in square metres; non-breaking space keeps the number and unit on one line
   public static String formatArea(BigDecimal squareMetres) {
     var squareKilometres = squareMetres.movePointLeft(6).setScale(2, RoundingMode.HALF_UP);
-    return String.format(Locale.UK, "%,.2f km²", squareKilometres);
+    return String.format(Locale.UK, "%,.2f\u00A0km²", squareKilometres);
   }
 
   private static Integer numericValue(String value) {

@@ -1,6 +1,5 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender;
 
-import static uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionChangeUtil.UNKNOWN_BLOCK;
 import static uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionChangeUtil.positionDateAndOrderUnchanged;
 import static uk.co.nstauthority.licensingmanagementservice.licence.position.feature.LicenceBlockFeatureUtil.BLOCK_ORDER;
 
@@ -44,6 +43,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePos
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionChangeOperationUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.PartialSurrenderChangeView;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.FeatureSummary;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.spatial.LicencePositionSpatialService;
 
 @Service
@@ -332,15 +332,13 @@ public class PartialSurrenderCorrectionService {
   }
 
   public List<PartialSurrenderChangeView.BlockRow> getBlockRows(PartialSurrenderOperation surrender) {
-    var blockNamesById = getSurrenderedBlockFeatures(surrender)
-        .stream()
-        .collect(Collectors.toMap(Feature::getId, Feature::getFeatureName));
+    var featureIds = new HashSet<>(surrender.surrenderedFeatureIds());
+    featureIds.addAll(surrender.outputRetainedFeatureIds());
 
-    return surrender.surrenderedFeatureIds().stream()
-        .map(featureId -> new PartialSurrenderChangeView.BlockRow(
-            blockNamesById.getOrDefault(featureId, UNKNOWN_BLOCK),
-            surrender.surrenderTypeDisplayName(featureId)))
-        .toList();
+    var featuresById = featureService.getFeaturesByIds(featureIds).stream()
+        .collect(Collectors.toMap(Feature::getId, FeatureSummary::from));
+
+    return surrender.getBlockRows(featuresById);
   }
 
   public PartialSurrenderOperation getStagedPartialSurrenderOrThrow(

@@ -68,7 +68,7 @@ class RemovePartialSurrenderChangeControllerTest extends AbstractControllerTest 
   private static final String REINSTATE_PAGE_TITLE = "Are you sure you want to reinstate this partial surrender?";
   private static final String VIEW_NAME = "lms/licence/correction/change/partialSurrender/removePartialSurrenderChange";
   private static final List<PartialSurrenderChangeView.BlockRow> BLOCK_ROWS =
-      List.of(new PartialSurrenderChangeView.BlockRow("30/1", "Full surrender"));
+      List.of(new PartialSurrenderChangeView.BlockRow("Block 30/1", List.of("Full surrender")));
   private static final LocalDate SURRENDER_DATE = LocalDate.of(2026, Month.JUNE, 5);
   private static final LocalDate POSITION_DATE = LocalDate.of(2026, Month.JANUARY, 1);
   private static final LicenceCorrection CORRECTION = LicenceCorrectionTestUtil.newBuilder()

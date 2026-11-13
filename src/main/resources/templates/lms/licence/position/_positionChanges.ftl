@@ -273,19 +273,34 @@
   <h3 class="govuk-heading-s govuk-!-margin-top-4 govuk-!-margin-bottom-0"><#nested></h3>
 </#macro>
 
+<#macro partialSurrenderBlockRows blockRows>
+  <#list blockRows as blockRow>
+    <@fdsSummaryList.summaryListRowNoAction keyText=blockRow.blockLabel()>
+      <#list blockRow.outcomes() as outcome>
+        <div>${outcome}</div>
+      </#list>
+    </@fdsSummaryList.summaryListRowNoAction>
+  </#list>
+</#macro>
+
 <#macro partialSurrenderRows change>
   <#if change.surrenderDate()??>
     <@fdsSummaryList.summaryListRowNoAction keyText="Date of surrender">
       ${change.surrenderDate()}
     </@fdsSummaryList.summaryListRowNoAction>
   </#if>
-  <@fdsSummaryList.summaryListRowNoAction keyText="Blocks to surrender">
-    <dl>
-      <#list change.blockRows() as blockRow>
-        <dt style="white-space: nowrap;">${blockRow.blockLabel()}<#if blockRow.surrenderType()??> - ${blockRow.surrenderType()}</#if></dt>
-      </#list>
-    </dl>
-  </@fdsSummaryList.summaryListRowNoAction>
+  <@partialSurrenderBlockRows blockRows=change.blockRows()/>
+  <#if change.licenceAreaRows()??>
+    <@fdsSummaryList.summaryListRowNoAction keyText="Licence area before">
+      ${change.licenceAreaRows().before()}
+    </@fdsSummaryList.summaryListRowNoAction>
+    <@fdsSummaryList.summaryListRowNoAction keyText="Area surrendered">
+      ${change.licenceAreaRows().surrendered()}
+    </@fdsSummaryList.summaryListRowNoAction>
+    <@fdsSummaryList.summaryListRowNoAction keyText="Licence area after">
+      ${change.licenceAreaRows().after()}
+    </@fdsSummaryList.summaryListRowNoAction>
+  </#if>
 </#macro>
 
 <#macro partialSurrenderChange change summaryListId="partial-surrender" correction="">

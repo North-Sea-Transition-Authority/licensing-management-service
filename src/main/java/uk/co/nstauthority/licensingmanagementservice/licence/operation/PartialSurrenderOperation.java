@@ -7,7 +7,10 @@ import static uk.co.nstauthority.licensingmanagementservice.licence.position.cha
 import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.annotation.Nullable;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -32,6 +35,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.vie
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.LicencePositionChangeView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.PartialSurrenderChangeView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.FeatureSummary;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.LicenceBlockFeatureUtil;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.util.DateUtil;
 
@@ -269,16 +273,6 @@ public record PartialSurrenderOperation(
   public record SurrenderState(BlockSurrenderType type, Set<UUID> surrenderedFeatureIds) {
   }
 
-  /**
-   * A surrender type is chosen per block after the surrender itself is staged, so a block that has not reached that
-   * step yet has no type to show.
-   */
-  @Nullable
-  public String surrenderTypeDisplayName(UUID featureId) {
-    var surrenderDetails = featureIdToSurrenderDetails.get(featureId);
-    return surrenderDetails == null ? null : surrenderDetails.type().getDisplayName();
-  }
-
   @Override
   public String type() {
     return PARTIAL_SURRENDER;
@@ -339,20 +333,86 @@ public record PartialSurrenderOperation(
     var surrenderDate = this.surrenderDate() != null ? this.surrenderDate() : currentPositionDate;
 
     var featuresById = context.featuresById();
-    var blockRows = surrenderedFeatureIds()
-        .stream()
-        .map(featureId -> new PartialSurrenderChangeView.BlockRow(
-            Optional.ofNullable(featuresById.get(featureId)).map(FeatureSummary::name).orElse(UNKNOWN_BLOCK),
-            Objects.requireNonNullElse(surrenderTypeDisplayName(featureId), NOT_AVAILABLE)
-        ))
-        .toList();
-
     return new PartialSurrenderChangeView(
         surrenderDate == null ? null : DateUtil.formatLongDate(surrenderDate),
-        blockRows,
+        getBlockRows(featuresById),
+        takesEffect() ? getLicenceAreaRows(previousState, featuresById) : null,
         change.changeType(),
         urls
     );
+  }
+
+  public List<PartialSurrenderChangeView.BlockRow> getBlockRows(Map<UUID, FeatureSummary> featuresById) {
+    return surrenderedFeatureIds.stream()
+        .map(blockFeatureId -> getBlockRow(blockFeatureId, featuresById))
+        .toList();
+  }
+
+  private PartialSurrenderChangeView.BlockRow getBlockRow(UUID blockFeatureId, Map<UUID, FeatureSummary> featuresById) {
+    var blockLabel = getFeatureLabel(blockFeatureId, featuresById, "");
+    var surrenderDetails = featureIdToSurrenderDetails.get(blockFeatureId);
+
+    if (surrenderDetails == null) {
+      return new PartialSurrenderChangeView.BlockRow(blockLabel, List.of(NOT_AVAILABLE));
+    }
+
+    var retainedFeatureIds = surrenderDetails.outputRetainedFeatureIds();
+    if (!surrenderDetails.isPartialSurrender() || retainedFeatureIds.isEmpty()) {
+      return new PartialSurrenderChangeView.BlockRow(blockLabel, List.of(surrenderDetails.type().getDisplayName()));
+    }
+
+    var outcomes = new ArrayList<String>();
+    retainedFeatureIds.forEach(retainedFeatureId ->
+        outcomes.add(getFeatureLabel(retainedFeatureId, featuresById, " retained"))
+    );
+
+    var blockArea = Optional.ofNullable(featuresById.get(blockFeatureId)).map(FeatureSummary::area).orElse(null);
+    var retainedArea = getTotalArea(retainedFeatureIds, featuresById);
+    if (blockArea != null && retainedArea != null) {
+      outcomes.add("%s surrendered".formatted(LicenceBlockFeatureUtil.formatArea(blockArea.subtract(retainedArea))));
+    }
+
+    return new PartialSurrenderChangeView.BlockRow(blockLabel, outcomes);
+  }
+
+  private PartialSurrenderChangeView.LicenceAreaRows getLicenceAreaRows(
+      LicencePositionState previousState,
+      Map<UUID, FeatureSummary> featuresById
+  ) {
+    var areaBefore = getTotalArea(previousState.blockFeatureIds(), featuresById);
+    var areaAfter = getTotalArea(applyState(previousState).blockFeatureIds(), featuresById);
+
+    if (areaBefore == null || areaAfter == null || areaBefore.signum() == 0) {
+      return null;
+    }
+
+    var areaSurrendered = areaBefore.subtract(areaAfter);
+    var percentageSurrendered = areaSurrendered.multiply(BigDecimal.valueOf(100))
+        .divide(areaBefore, 0, RoundingMode.HALF_UP);
+
+    return new PartialSurrenderChangeView.LicenceAreaRows(
+        LicenceBlockFeatureUtil.formatArea(areaBefore),
+        "%s (%s%%)".formatted(LicenceBlockFeatureUtil.formatArea(areaSurrendered), percentageSurrendered),
+        LicenceBlockFeatureUtil.formatArea(areaAfter)
+    );
+  }
+
+  private static String getFeatureLabel(UUID featureId, Map<UUID, FeatureSummary> featuresById, String nameSuffix) {
+    var feature = featuresById.get(featureId);
+    if (feature == null) {
+      return UNKNOWN_BLOCK + nameSuffix;
+    }
+    var label = "Block %s%s".formatted(feature.name(), nameSuffix);
+    return feature.area() == null
+        ? label
+        : "%s (%s)".formatted(label, LicenceBlockFeatureUtil.formatArea(feature.area()));
+  }
+
+  private static BigDecimal getTotalArea(Collection<UUID> featureIds, Map<UUID, FeatureSummary> featuresById) {
+    var areas = featureIds.stream()
+        .map(featureId -> Optional.ofNullable(featuresById.get(featureId)).map(FeatureSummary::area).orElse(null))
+        .toList();
+    return areas.contains(null) ? null : areas.stream().reduce(BigDecimal.ZERO, BigDecimal::add);
   }
 
   @Override
@@ -425,6 +485,13 @@ public record PartialSurrenderOperation(
     return featureIdToSurrenderDetails().values().stream()
         .filter(details -> details.mergedRetainedFeatureId() != null)
         .flatMap(details -> details.retainedFeatureIds().stream())
+        .collect(Collectors.toSet());
+  }
+
+  @JsonIgnore
+  public Set<UUID> outputRetainedFeatureIds() {
+    return featureIdToSurrenderDetails.values().stream()
+        .flatMap(surrenderDetails -> surrenderDetails.outputRetainedFeatureIds().stream())
         .collect(Collectors.toSet());
   }
 

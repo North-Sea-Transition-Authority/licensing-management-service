@@ -12,6 +12,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.Month;
 import java.util.List;
@@ -1093,37 +1094,31 @@ class PartialSurrenderCorrectionServiceTest {
 
   @Test
   void getBlockRows() {
+    var retainedFeatureId = UUID.randomUUID();
     var surrender = LicenceOperation.newPartialSurrenderOperation()
-        .withSurrenderedFeatureIds(List.of(FIRST_FEATURE_ID, SECOND_FEATURE_ID))
-        .withSurrenderDetails(Map.of(FIRST_FEATURE_ID,
-            surrenderDetails(BlockSurrenderType.FULL_SURRENDER, FIRST_COMMAND_JOURNEY_ID)))
+        .withSurrenderedFeatureIds(List.of(FIRST_FEATURE_ID))
+        .withSurrenderDetails(Map.of(FIRST_FEATURE_ID, new PartialSurrenderOperation.SurrenderDetails(
+            BlockSurrenderType.PARTIAL_SURRENDER, null, List.of(), List.of(retainedFeatureId))))
         .build();
-    when(featureService.getFeaturesByIds(List.of(FIRST_FEATURE_ID, SECOND_FEATURE_ID))).thenReturn(List.of(
-        FeatureTestUtil.blockFeature(FIRST_FEATURE_ID, "30", 1),
-        FeatureTestUtil.blockFeature(SECOND_FEATURE_ID, "30", 2)));
+    var block = FeatureTestUtil.builder()
+        .withId(FIRST_FEATURE_ID)
+        .withFeatureName("21/5")
+        .withFeatureArea(new BigDecimal("219100000"))
+        .build();
+    var retainedPart = FeatureTestUtil.builder()
+        .withId(retainedFeatureId)
+        .withFeatureName("21/5a")
+        .withFeatureArea(new BigDecimal("164200000"))
+        .build();
+    when(featureService.getFeaturesByIds(Set.of(FIRST_FEATURE_ID, retainedFeatureId)))
+        .thenReturn(List.of(block, retainedPart));
 
     var result = partialSurrenderCorrectionService.getBlockRows(surrender);
 
-    assertThat(result).containsExactly(
-        new PartialSurrenderChangeView.BlockRow("SHAPE 1", BlockSurrenderType.FULL_SURRENDER.getDisplayName()),
-        new PartialSurrenderChangeView.BlockRow("SHAPE 2", null));
-  }
-
-  @Test
-  void getBlockRows_whenAFeatureCannotBeResolved_thenTheBlockLabelIsNotAvailable() {
-    var surrender = LicenceOperation.newPartialSurrenderOperation()
-        .withSurrenderedFeatureIds(List.of(FIRST_FEATURE_ID, SECOND_FEATURE_ID))
-        .withSurrenderDetails(Map.of(FIRST_FEATURE_ID,
-            surrenderDetails(BlockSurrenderType.FULL_SURRENDER, FIRST_COMMAND_JOURNEY_ID)))
-        .build();
-    when(featureService.getFeaturesByIds(List.of(FIRST_FEATURE_ID, SECOND_FEATURE_ID)))
-        .thenReturn(List.of(FeatureTestUtil.blockFeature(FIRST_FEATURE_ID, "30", 1)));
-
-    var result = partialSurrenderCorrectionService.getBlockRows(surrender);
-
-    assertThat(result).containsExactly(
-        new PartialSurrenderChangeView.BlockRow("SHAPE 1", BlockSurrenderType.FULL_SURRENDER.getDisplayName()),
-        new PartialSurrenderChangeView.BlockRow("Unknown block", null));
+    assertThat(result).containsExactly(new PartialSurrenderChangeView.BlockRow(
+        "Block 21/5 (219.10\u00A0km²)",
+        List.of("Block 21/5a retained (164.20\u00A0km²)", "54.90\u00A0km² surrendered")
+    ));
   }
 
   @Test

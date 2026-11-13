@@ -1,5 +1,6 @@
 <#include '../../../../layout/layoutWithGisAssets.ftl'>
 <#import "../../../../../gis/components/mapWithTextualDescription/mapWithTextualDescription.ftl" as mapWithTextualDescription>
+<#import '../../../../licence/position/_positionChanges.ftl' as positionChanges>
 
 <@defaultPage
   htmlTitle=pageTitle
@@ -10,11 +11,7 @@
 >
   <@fdsForm.htmlForm actionUrl=springUrl(startCorrectionUrl)>
     <@fdsSummaryList.summaryList>
-      <@fdsSummaryList.summaryListRowNoAction keyText="Block to surrender">
-        <#list blockRows as blockRow>
-          ${blockRow.blockLabel()}<#if blockRow.surrenderType()??> - ${blockRow.surrenderType()}</#if>
-        </#list>
-      </@fdsSummaryList.summaryListRowNoAction>
+      <@positionChanges.partialSurrenderBlockRows blockRows=blockRows/>
     </@fdsSummaryList.summaryList>
 
     <h2 class="govuk-heading-m">Area surrendered</h2>

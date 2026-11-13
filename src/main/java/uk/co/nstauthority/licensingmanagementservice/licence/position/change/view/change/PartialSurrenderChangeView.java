@@ -7,6 +7,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOp
 public record PartialSurrenderChangeView(
     @Nullable String surrenderDate,
     List<BlockRow> blockRows,
+    @Nullable LicenceAreaRows licenceAreaRows,
     @Nullable String changeType,
     ChangeViewUrls urls
 ) implements LicencePositionChangeView {
@@ -16,8 +17,9 @@ public record PartialSurrenderChangeView(
     return LicenceOperation.PARTIAL_SURRENDER;
   }
 
-  public record BlockRow(
-      String blockLabel,
-      @Nullable String surrenderType
-  ){}
+  public record BlockRow(String blockLabel, List<String> outcomes) {
+  }
+
+  public record LicenceAreaRows(String before, String surrendered, String after) {
+  }
 }

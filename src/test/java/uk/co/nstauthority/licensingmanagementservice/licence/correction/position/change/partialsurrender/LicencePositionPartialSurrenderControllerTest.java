@@ -617,7 +617,7 @@ class LicencePositionPartialSurrenderControllerTest extends AbstractControllerTe
         .withSurrenderDetails(Map.of(BLOCK_30_1A.getId(),
             new SurrenderDetails(BlockSurrenderType.PARTIAL_SURRENDER, null, List.of(surrenderedHalfId))))
         .build();
-    var blockRows = List.of(new PartialSurrenderChangeView.BlockRow("30/1a", "Partial surrender"));
+    var blockRows = List.of(new PartialSurrenderChangeView.BlockRow("Block 30/1a", List.of("Partial surrender")));
 
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(licencePosition);
     when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(licencePosition));

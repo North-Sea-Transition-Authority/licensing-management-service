@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Optional;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.reviewandsubmit.PartialSurrenderReviewAndSubmitController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListItem;
 import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListSection;
@@ -28,12 +29,12 @@ public class PartialSurrenderReviewAndSubmitTaskListSectionService
   private String reviewAndSubmitUrl(PartialSurrenderTaskListContext context) {
     return switch (context) {
       case PartialSurrenderTaskListContext.Staged(var positionCorrection) ->
-          ReverseRouter.route(on(PartialSurrenderTaskListController.class).renderReviewAndSubmit(
+          ReverseRouter.route(on(PartialSurrenderReviewAndSubmitController.class).renderReviewAndSubmit(
               positionCorrection.getLicenceCorrection(),
               positionCorrection,
               null));
       case PartialSurrenderTaskListContext.LiveChange(var correction, var licencePosition, var change) ->
-          ReverseRouter.route(on(PartialSurrenderTaskListController.class)
+          ReverseRouter.route(on(PartialSurrenderReviewAndSubmitController.class)
               .renderReviewAndSubmitForCorrectingChange(correction, licencePosition, change, null));
     };
   }

@@ -31,6 +31,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.PartialSurrenderCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.PartialSurrenderValidator;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderTypeController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.reviewandsubmit.PartialSurrenderReviewAndSubmitController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.tasklist.PartialSurrenderTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.LicenceBlockFeatureUtil;
@@ -186,13 +187,13 @@ public class PartialSurrenderDefineAreaController {
     //TODO - EPGF-183: redirect to ended subareas when implemented
     if (partialSurrenderCorrectionService.findSingleBlockNotOperatedOn(licencePositionCorrection).isPresent()) {
       return partialSurrenderCorrectionService.findCorrectedLiveChangeId(licencePositionCorrection)
-          .map(changeId -> ReverseRouter.redirect(on(PartialSurrenderTaskListController.class)
+          .map(changeId -> ReverseRouter.redirect(on(PartialSurrenderReviewAndSubmitController.class)
               .renderReviewAndSubmitForCorrectingChange(
                   correction,
                   licencePositionCorrection.getTargetLicencePosition(),
                   new LicencePositionChange(UUID.fromString(changeId)),
                   null)))
-          .orElseGet(() -> ReverseRouter.redirect(on(PartialSurrenderTaskListController.class)
+          .orElseGet(() -> ReverseRouter.redirect(on(PartialSurrenderReviewAndSubmitController.class)
               .renderReviewAndSubmit(correction, licencePositionCorrection, null)));
     }
 

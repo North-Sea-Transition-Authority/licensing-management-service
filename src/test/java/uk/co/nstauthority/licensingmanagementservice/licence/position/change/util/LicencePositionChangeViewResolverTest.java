@@ -25,6 +25,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.equity.RemoveEquityChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.RemovePartialSurrenderChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderType;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.reviewandsubmit.PartialSurrenderReviewAndSubmitController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.tasklist.PartialSurrenderTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.setequity.LicencePositionSetEquityController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subarea.LicencePositionSubareaChangeStartController;
@@ -1188,7 +1189,7 @@ class LicencePositionChangeViewResolverTest {
         null,
         null,
         correctPositionUrl(correction.getId(), positionId, UUID.fromString(changeId)),
-        ReverseRouter.route(on(PartialSurrenderTaskListController.class)
+        ReverseRouter.route(on(PartialSurrenderReviewAndSubmitController.class)
             .renderReviewAndSubmitForCorrectingChange(correction, licencePosition, change, null))));
   }
 
@@ -1220,7 +1221,7 @@ class LicencePositionChangeViewResolverTest {
     var undoUrl = ReverseRouter.route(on(RemovePartialSurrenderChangeController.class)
         .renderUndoPartialSurrender(correction, changeId));
     var viewUrl = correctable
-        ? ReverseRouter.route(on(PartialSurrenderTaskListController.class)
+        ? ReverseRouter.route(on(PartialSurrenderReviewAndSubmitController.class)
             .renderReviewAndSubmit(correction, positionCorrection, null))
         : null;
 
@@ -1255,7 +1256,7 @@ class LicencePositionChangeViewResolverTest {
         null,
         null,
         correctPositionUrl(correction.getId(), positionId, UUID.fromString(changeId)),
-        ReverseRouter.route(on(PartialSurrenderTaskListController.class)
+        ReverseRouter.route(on(PartialSurrenderReviewAndSubmitController.class)
             .renderReviewAndSubmit(correction, positionCorrection, null))));
   }
 
@@ -1540,7 +1541,7 @@ class LicencePositionChangeViewResolverTest {
                 ReverseRouter.route(on(CorrectChangeOrderController.class)
                     .renderCorrectChangeOrder(correction, positionId, partialSurrenderChangeId)),
                 correctPositionUrl(correction.getId(), positionId, partialSurrenderChangeId),
-                ReverseRouter.route(on(PartialSurrenderTaskListController.class).renderReviewAndSubmitForCorrectingChange(
+                ReverseRouter.route(on(PartialSurrenderReviewAndSubmitController.class).renderReviewAndSubmitForCorrectingChange(
                     correction, licencePosition, partialSurrenderLiveChange, null))));
   }
 

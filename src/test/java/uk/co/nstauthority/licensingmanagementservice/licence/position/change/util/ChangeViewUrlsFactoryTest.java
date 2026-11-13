@@ -21,6 +21,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.licensee.LicencePositionLicenseeChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.licensee.RemoveLicenseeChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.RemovePartialSurrenderChangeController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.reviewandsubmit.PartialSurrenderReviewAndSubmitController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.tasklist.PartialSurrenderTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.setequity.LicencePositionSetEquityController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.storageoperator.LicencePositionStorageOperatorChangeController;
@@ -230,9 +231,9 @@ class ChangeViewUrlsFactoryTest {
         .renderRemoveExecutedPartialSurrender(CORRECTION, LICENCE_POSITION, CHANGE_ENTITY));
     var partialSurrenderUndo = ReverseRouter.route(on(RemovePartialSurrenderChangeController.class)
         .renderUndoPartialSurrender(CORRECTION, CHANGE_ID.toString()));
-    var partialSurrenderReviewStaged = ReverseRouter.route(on(PartialSurrenderTaskListController.class)
+    var partialSurrenderReviewStaged = ReverseRouter.route(on(PartialSurrenderReviewAndSubmitController.class)
         .renderReviewAndSubmit(CORRECTION, POSITION_CORRECTION, null));
-    var partialSurrenderReviewCorrecting = ReverseRouter.route(on(PartialSurrenderTaskListController.class)
+    var partialSurrenderReviewCorrecting = ReverseRouter.route(on(PartialSurrenderReviewAndSubmitController.class)
         .renderReviewAndSubmitForCorrectingChange(CORRECTION, LICENCE_POSITION, CHANGE_ENTITY, null));
 
     var licenseeAdded = ReverseRouter.route(on(LicencePositionLicenseeChangeController.class)

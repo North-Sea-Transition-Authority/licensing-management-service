@@ -24,6 +24,7 @@ import java.util.stream.Stream;
 import org.apache.commons.collections.CollectionUtils;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.RemovePartialSurrenderChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderType;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.reviewandsubmit.PartialSurrenderReviewAndSubmitController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.tasklist.PartialSurrenderTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationError;
@@ -456,7 +457,7 @@ public record PartialSurrenderOperation(
         }
         return switch (target.state()) {
           case ADDED, OPERATIONS_UPDATED -> stagedReviewAndSubmit(target);
-          case LIVE, ORDER_UPDATED -> ReverseRouter.route(on(PartialSurrenderTaskListController.class)
+          case LIVE, ORDER_UPDATED -> ReverseRouter.route(on(PartialSurrenderReviewAndSubmitController.class)
               .renderReviewAndSubmitForCorrectingChange(
                   target.correction(), target.licencePosition(), target.changeEntity(), null));
           case REMOVED -> null;
@@ -464,7 +465,7 @@ public record PartialSurrenderOperation(
       }
 
       private static String stagedReviewAndSubmit(ChangeUrlTarget target) {
-        return ReverseRouter.route(on(PartialSurrenderTaskListController.class)
+        return ReverseRouter.route(on(PartialSurrenderReviewAndSubmitController.class)
             .renderReviewAndSubmit(target.correction(), target.positionCorrection(), null));
       }
     };

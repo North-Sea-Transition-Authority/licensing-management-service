@@ -10,6 +10,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.reviewandsubmit.PartialSurrenderReviewAndSubmitController;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
@@ -38,7 +39,7 @@ class PartialSurrenderReviewAndSubmitTaskListSectionServiceTest {
         context, ServiceUserDetailTestUtil.newBuilder().build());
 
     assertThat(section).contains(expectedSection(
-        ReverseRouter.route(on(PartialSurrenderTaskListController.class)
+        ReverseRouter.route(on(PartialSurrenderReviewAndSubmitController.class)
             .renderReviewAndSubmitForCorrectingChange(correction, position, liveChange, null))));
   }
 
@@ -54,7 +55,7 @@ class PartialSurrenderReviewAndSubmitTaskListSectionServiceTest {
         context, ServiceUserDetailTestUtil.newBuilder().build());
 
     assertThat(section).contains(expectedSection(
-        ReverseRouter.route(on(PartialSurrenderTaskListController.class)
+        ReverseRouter.route(on(PartialSurrenderReviewAndSubmitController.class)
             .renderReviewAndSubmit(positionCorrection.getLicenceCorrection(), positionCorrection, null))));
   }
 

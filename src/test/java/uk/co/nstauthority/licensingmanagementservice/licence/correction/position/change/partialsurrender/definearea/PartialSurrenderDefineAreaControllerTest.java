@@ -53,6 +53,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.PartialSurrenderValidator;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderTypeController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.reviewandsubmit.PartialSurrenderReviewAndSubmitController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.tasklist.PartialSurrenderTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.UpdateLicencePositionPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
@@ -330,7 +331,7 @@ class PartialSurrenderDefineAreaControllerTest extends AbstractControllerTest {
             .param("surrenderedFeatureIds", FIRST_AREA.getId().toString())
             .with(user(regulatorUser)).with(csrf()))
         .andExpect(status().is3xxRedirection())
-        .andExpect(redirectedUrl(ReverseRouter.route(on(PartialSurrenderTaskListController.class)
+        .andExpect(redirectedUrl(ReverseRouter.route(on(PartialSurrenderReviewAndSubmitController.class)
             .renderReviewAndSubmit(CORRECTION, POSITION_CORRECTION, null))));
 
     verify(partialSurrenderCorrectionService)
@@ -355,7 +356,7 @@ class PartialSurrenderDefineAreaControllerTest extends AbstractControllerTest {
             .param("surrenderedFeatureIds", FIRST_AREA.getId().toString())
             .with(user(regulatorUser)).with(csrf()))
         .andExpect(status().is3xxRedirection())
-        .andExpect(redirectedUrl(ReverseRouter.route(on(PartialSurrenderTaskListController.class)
+        .andExpect(redirectedUrl(ReverseRouter.route(on(PartialSurrenderReviewAndSubmitController.class)
             .renderReviewAndSubmitForCorrectingChange(CORRECTION, POSITION, LIVE_CHANGE, null))));
   }
 

@@ -9,6 +9,7 @@ import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
@@ -26,6 +27,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.vie
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.ChangeViewUrls;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.LicencePositionChangeView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.SubareaChangeView;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.FeatureSummary;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 /**
@@ -101,7 +103,7 @@ public record SubareaOperation(
       ChangeViewUrls urls
   ) {
     return new SubareaChangeView(
-        context.featureNames().getOrDefault(blockFeatureId, UNKNOWN_BLOCK),
+        Optional.ofNullable(context.featuresById().get(blockFeatureId)).map(FeatureSummary::name).orElse(UNKNOWN_BLOCK),
         change.changeType(),
         urls
     );

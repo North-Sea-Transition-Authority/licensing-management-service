@@ -10,6 +10,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaSetEquityOperation;
@@ -19,6 +20,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.vie
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.PositionChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ResolvedStates;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.LicencePositionChangeView;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.FeatureSummary;
 
 public final class LicencePositionChangeViewResolver {
 
@@ -31,14 +33,14 @@ public final class LicencePositionChangeViewResolver {
       List<ChronologicalPosition> chronologicalPositions,
       ResolvedStates resolvedStates,
       Map<Integer, String> organisationNames,
-      Map<UUID, String> featureNames,
+      Map<UUID, FeatureSummary> featuresById,
       @Nullable PositionChangeUrlContext urlContext
   ) {
     return viewsForPosition(
         currentPositionId,
         chronologicalPositions,
         resolvedStates,
-        new LicencePositionChangeViewContext(organisationNames, featureNames),
+        new LicencePositionChangeViewContext(organisationNames, featuresById),
         urlContext
     )
         .stream()
@@ -53,7 +55,7 @@ public final class LicencePositionChangeViewResolver {
       List<ChronologicalPosition> chronologicalPositions,
       ResolvedStates resolvedStates,
       Map<Integer, String> organisationNames,
-      Map<UUID, String> featureNames,
+      Map<UUID, FeatureSummary> featuresById,
       @Nullable PositionChangeUrlContext urlContext
   ) {
     var viewsByChangeId = new LinkedHashMap<String, List<LicencePositionChangeView>>();
@@ -62,7 +64,7 @@ public final class LicencePositionChangeViewResolver {
         currentPositionId,
         chronologicalPositions,
         resolvedStates,
-        new LicencePositionChangeViewContext(organisationNames, featureNames),
+        new LicencePositionChangeViewContext(organisationNames, featuresById),
         urlContext
     )
         .forEach(changeViews ->
@@ -131,27 +133,27 @@ public final class LicencePositionChangeViewResolver {
 
   public static Map<UUID, String> getOrderableChangeLabels(
       List<PositionChange> changes,
-      Map<UUID, String> featureNames
+      Map<UUID, FeatureSummary> featuresById
   ) {
     var labels = new LinkedHashMap<UUID, String>();
     changes.stream()
         .filter(PositionChange::canBeReordered)
         .forEach(positionChange -> labels.put(
             UUID.fromString(positionChange.changeId()),
-            orderableChangeLabel(positionChange, featureNames))
+            orderableChangeLabel(positionChange, featuresById))
         );
     return labels;
   }
 
-  private static String orderableChangeLabel(PositionChange change, Map<UUID, String> featureNames) {
+  private static String orderableChangeLabel(PositionChange change, Map<UUID, FeatureSummary> featuresById) {
     var operation = change.operations().getFirst();
     return switch (operation) {
       case SubareaOperation subarea -> "%s – %s".formatted(
           operation.displayName(),
-          featureNames.getOrDefault(subarea.blockFeatureId(), UNKNOWN_BLOCK)
+          Optional.ofNullable(featuresById.get(subarea.blockFeatureId())).map(FeatureSummary::name).orElse(UNKNOWN_BLOCK)
       );
       case SubareaSetEquityOperation subareaSetEquity ->
-          "%s – %s".formatted(operation.displayName(), subareaSetEquity.subareaLabel(featureNames));
+          "%s – %s".formatted(operation.displayName(), subareaSetEquity.subareaLabel(featuresById));
       default -> operation.displayName();
     };
   }

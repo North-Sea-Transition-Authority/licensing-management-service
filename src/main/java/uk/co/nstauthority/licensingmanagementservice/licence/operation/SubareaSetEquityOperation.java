@@ -10,6 +10,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.AddPositionChangeType;
@@ -25,6 +26,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.vie
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.LicencePositionChangeView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.SetEquityRow;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.SubareaEquityChangeView;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.FeatureSummary;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 /**
@@ -108,7 +110,7 @@ public record SubareaSetEquityOperation(
       ChangeViewUrls urls
   ) {
     return new SubareaEquityChangeView(
-        subareaLabel(context.featureNames()),
+        subareaLabel(context.featuresById()),
         List.of(new SetEquityRow(context.organisationNames().getOrDefault(transferTo, NOT_AVAILABLE), equity)),
         change.changeType(),
         urls
@@ -147,8 +149,9 @@ public record SubareaSetEquityOperation(
     return subarea.keyForBlockFeatureId(blockFeatureId);
   }
 
-  public String subareaLabel(Map<UUID, String> featureNamesById) {
-    return subarea.labelForBlockName(featureNamesById.get(blockFeatureId));
+  public String subareaLabel(Map<UUID, FeatureSummary> featuresById) {
+    return subarea.labelForBlockName(
+        Optional.ofNullable(featuresById.get(blockFeatureId)).map(FeatureSummary::name).orElse(null));
   }
 
   public static class Builder {

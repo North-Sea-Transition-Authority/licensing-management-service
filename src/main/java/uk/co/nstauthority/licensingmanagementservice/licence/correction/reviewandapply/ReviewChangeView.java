@@ -48,7 +48,7 @@ public record ReviewChangeView(
         correctedContext.positions(),
         correctedContext.resolvedStates(),
         correctedContext.organisationNames(),
-        correctedContext.featureNames(),
+        correctedContext.featuresById(),
         null
     ).forEach((changeId, changeViews) -> changeViews.forEach(changeView -> changes.add(
         changeEdits.reviewChange(changeView, changeId, changeOrdersByChangeId.get(changeId)))));

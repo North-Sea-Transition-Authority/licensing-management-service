@@ -1,7 +1,11 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.position.feature;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import uk.co.fivium.gisframework.feature.Feature;
@@ -44,6 +48,18 @@ public final class LicenceBlockFeatureUtil {
     return Layer.BLOCKS.name().equals(
         Optional.ofNullable(feature.getAttributes()).orElse(Map.of()).get(FeatureAttribute.LAYER.name())
     );
+  }
+
+  public static BigDecimal getTotalArea(Collection<Feature> features) {
+    return features.stream()
+        .map(Feature::getFeatureArea)
+        .reduce(BigDecimal.ZERO, BigDecimal::add);
+  }
+
+  // feature areas are stored in square metres
+  public static String formatArea(BigDecimal squareMetres) {
+    var squareKilometres = squareMetres.movePointLeft(6).setScale(2, RoundingMode.HALF_UP);
+    return String.format(Locale.UK, "%,.2f km²", squareKilometres);
   }
 
   private static Integer numericValue(String value) {

@@ -24,6 +24,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.vie
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.OrganisationMarker;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.OrganisationNameHistoryView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.SubareaBeneficialInterestView;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.FeatureSummary;
 
 public final class LicencePositionStateViewResolver {
 
@@ -36,7 +37,7 @@ public final class LicencePositionStateViewResolver {
       LicenceType licenceType,
       ResolvedStates resolvedStates,
       OrganisationNameContext nameContext,
-      Map<UUID, String> featureNames,
+      Map<UUID, FeatureSummary> featuresById,
       @Nullable LocalDate positionDate
   ) {
     var currentState = resolvedStates.currentState(currentLicencePositionId);
@@ -55,7 +56,7 @@ public final class LicencePositionStateViewResolver {
         buildSubareaBeneficialInterests(
             currentState.blockFeatureIdToSubareaEquity(),
             currentState.licenseeIds(),
-            featureNames,
+            featuresById,
             nameContext,
             positionDate
         )
@@ -110,14 +111,16 @@ public final class LicencePositionStateViewResolver {
   private static List<SubareaBeneficialInterestView> buildSubareaBeneficialInterests(
       Map<UUID, Map<SubareaDetails, Map<Integer, BigDecimal>>> blockFeatureIdToSubareaEquity,
       Set<Integer> licenseeIds,
-      Map<UUID, String> featureNamesById,
+      Map<UUID, FeatureSummary> featuresById,
       OrganisationNameContext nameContext,
       @Nullable LocalDate positionDate
   ) {
     return blockFeatureIdToSubareaEquity.entrySet().stream()
         .flatMap(blockEntry -> blockEntry.getValue().entrySet().stream()
             .map(subareaEntry -> {
-              var blockName = featureNamesById.get(blockEntry.getKey());
+              var blockName = Optional.ofNullable(featuresById.get(blockEntry.getKey()))
+                  .map(FeatureSummary::name)
+                  .orElse(null);
               var subareaLabel = subareaEntry.getKey().labelForBlockName(blockName);
               var beneficialInterestViews =
                   buildBeneficialInterests(subareaEntry.getValue(), licenseeIds, nameContext, positionDate);

@@ -3,8 +3,6 @@ package uk.co.nstauthority.licensingmanagementservice.licence.correction.positio
 import static uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.reviewandsubmit.PartialSurrenderBlockSummarySectionService.AFTER;
 import static uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.reviewandsubmit.PartialSurrenderBlockSummarySectionService.AREA;
 import static uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.reviewandsubmit.PartialSurrenderBlockSummarySectionService.BEFORE;
-import static uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.reviewandsubmit.PartialSurrenderBlockSummarySectionService.formatArea;
-import static uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.reviewandsubmit.PartialSurrenderBlockSummarySectionService.getTotalArea;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -75,7 +73,10 @@ public class PartialSurrenderLicenceAreaSummarySectionService implements Summary
     );
     var card = SummaryCard.simpleSummaryCardWithHeading(
         cardHeading,
-        SummaryDataView.newStringKeyValue(AREA, formatArea(getTotalArea(blocks)))
+        SummaryDataView.newStringKeyValue(
+            AREA,
+            LicenceBlockFeatureUtil.formatArea(LicenceBlockFeatureUtil.getTotalArea(blocks))
+        )
     );
 
     return new SummaryColumn(heading, map, List.of(card));

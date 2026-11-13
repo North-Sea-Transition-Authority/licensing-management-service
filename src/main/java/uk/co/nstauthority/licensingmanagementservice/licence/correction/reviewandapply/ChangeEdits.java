@@ -169,7 +169,7 @@ record ChangeEdits(
             executedContext.positions(),
             executedContext.resolvedStates(),
             executedContext.organisationNames(),
-            executedContext.featureNames(),
+            executedContext.featuresById(),
             null
         ).forEach((changeId, views) -> viewsByChangeId.put(changeId, byOperationType(views))));
 

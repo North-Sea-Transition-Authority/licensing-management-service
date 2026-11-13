@@ -61,6 +61,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.vie
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.SubareaEquityChangeView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.TransferEquityChangeHoldingView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.TransferEquityChangeView;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.FeatureSummary;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 class LicencePositionChangeViewResolverTest {
@@ -71,9 +72,9 @@ class LicencePositionChangeViewResolverTest {
   private static final String WITHDRAWING_NAME = "Withdrawing Org Ltd";
   private static final UUID FIRST_FEATURE_ID = UUID.randomUUID();
   private static final UUID SECOND_FEATURE_ID = UUID.randomUUID();
-  private static final Map<UUID, String> FEATURE_NAMES = Map.of(
-      FIRST_FEATURE_ID, "30/1a",
-      SECOND_FEATURE_ID, "30/2");
+  private static final Map<UUID, FeatureSummary> FEATURES_BY_ID = Map.of(
+      FIRST_FEATURE_ID, new FeatureSummary("30/1a", BigDecimal.ONE),
+      SECOND_FEATURE_ID, new FeatureSummary("30/2", BigDecimal.ONE));
 
   private static final UUID SET_EQUITY_POSITION_ID = UUID.randomUUID();
   private static final int SET_EQUITY_ORG_ID = 300;
@@ -955,7 +956,7 @@ class LicencePositionChangeViewResolverTest {
             .build()
     );
 
-    var result = changeViewsFor(currentLicencePosition.getId(), FEATURE_NAMES, currentChronologicalPosition);
+    var result = changeViewsFor(currentLicencePosition.getId(), FEATURES_BY_ID, currentChronologicalPosition);
 
     assertThat(result)
         .singleElement()
@@ -1002,7 +1003,7 @@ class LicencePositionChangeViewResolverTest {
             .build()
     );
 
-    var result = changeViewsFor(currentLicencePosition.getId(), FEATURE_NAMES, currentChronologicalPosition);
+    var result = changeViewsFor(currentLicencePosition.getId(), FEATURES_BY_ID, currentChronologicalPosition);
 
     var partialSurrenderChangeView = (PartialSurrenderChangeView) byType(result, LicenceOperation.PARTIAL_SURRENDER);
     assertThat(partialSurrenderChangeView.surrenderDate()).isEqualTo("1 August 2026");
@@ -1023,7 +1024,7 @@ class LicencePositionChangeViewResolverTest {
             .build()
     );
 
-    var result = changeViewsFor(currentLicencePosition.getId(), FEATURE_NAMES, currentChronologicalPosition);
+    var result = changeViewsFor(currentLicencePosition.getId(), FEATURES_BY_ID, currentChronologicalPosition);
 
     var partialSurrenderChangeView = (PartialSurrenderChangeView) byType(result, LicenceOperation.PARTIAL_SURRENDER);
     assertThat(partialSurrenderChangeView.surrenderDate()).isEqualTo("30 September 2026");
@@ -1050,13 +1051,13 @@ class LicencePositionChangeViewResolverTest {
             .build()
     );
 
-    var result = changeViewsFor(currentLicencePosition.getId(), FEATURE_NAMES, currentChronologicalPosition);
+    var result = changeViewsFor(currentLicencePosition.getId(), FEATURES_BY_ID, currentChronologicalPosition);
 
     assertThat((PartialSurrenderChangeView) byType(result, LicenceOperation.PARTIAL_SURRENDER))
         .extracting(PartialSurrenderChangeView::blockRows)
         .isEqualTo(List.of(
-            new PartialSurrenderChangeView.BlockRow(FEATURE_NAMES.get(FIRST_FEATURE_ID), "Full surrender"),
-            new PartialSurrenderChangeView.BlockRow(FEATURE_NAMES.get(SECOND_FEATURE_ID), "Not available")));
+            new PartialSurrenderChangeView.BlockRow(FEATURES_BY_ID.get(FIRST_FEATURE_ID).name(), "Full surrender"),
+            new PartialSurrenderChangeView.BlockRow(FEATURES_BY_ID.get(SECOND_FEATURE_ID).name(), "Not available")));
   }
 
   @Test
@@ -1071,7 +1072,7 @@ class LicencePositionChangeViewResolverTest {
             .withSurrenderDetails(blockSurrenders(Map.of(FIRST_FEATURE_ID, BlockSurrenderType.FULL_SURRENDER)))
             .build());
 
-    var result = changeViewsFor(currentLicencePosition.getId(), FEATURE_NAMES, currentChronologicalPosition);
+    var result = changeViewsFor(currentLicencePosition.getId(), FEATURES_BY_ID, currentChronologicalPosition);
 
     assertThat((PartialSurrenderChangeView) byType(result, LicenceOperation.PARTIAL_SURRENDER))
         .extracting(view -> view.urls().correct())
@@ -1276,7 +1277,7 @@ class LicencePositionChangeViewResolverTest {
         positions,
         LicencePositionStateResolver.resolve(positions),
         Map.of(),
-        FEATURE_NAMES,
+        FEATURES_BY_ID,
         urlContext);
 
     return (PartialSurrenderChangeView) byType(result, LicenceOperation.PARTIAL_SURRENDER);
@@ -1290,9 +1291,9 @@ class LicencePositionChangeViewResolverTest {
         currentLicencePosition,
         new SubareaOperation(FIRST_FEATURE_ID, List.of(), List.of()));
 
-    var result = changeViewsFor(currentLicencePosition.getId(), FEATURE_NAMES, currentChronologicalPosition);
+    var result = changeViewsFor(currentLicencePosition.getId(), FEATURES_BY_ID, currentChronologicalPosition);
 
-    var expected = new SubareaChangeView(FEATURE_NAMES.get(FIRST_FEATURE_ID), null, ChangeViewUrls.none());
+    var expected = new SubareaChangeView(FEATURES_BY_ID.get(FIRST_FEATURE_ID).name(), null, ChangeViewUrls.none());
     assertThat(result).containsExactly(expected);
   }
 
@@ -1325,7 +1326,7 @@ class LicencePositionChangeViewResolverTest {
         chronologicalPositions,
         LicencePositionStateResolver.resolve(chronologicalPositions),
         Map.of(SET_EQUITY_ORG_ID, SET_EQUITY_ORG_NAME, TRANSFER_TO_ID, TRANSFER_TO_NAME),
-        FEATURE_NAMES,
+        FEATURES_BY_ID,
         null
     );
 
@@ -1448,7 +1449,7 @@ class LicencePositionChangeViewResolverTest {
         chronologicalPositions,
         LicencePositionStateResolver.resolve(chronologicalPositions),
         Map.of(SET_EQUITY_ORG_ID, SET_EQUITY_ORG_NAME),
-        FEATURE_NAMES,
+        FEATURES_BY_ID,
         urlContext
     );
 
@@ -1466,7 +1467,7 @@ class LicencePositionChangeViewResolverTest {
 
   private static List<LicencePositionChangeView> changeViewsFor(
       UUID currentPositionId,
-      Map<UUID, String> featureNames,
+      Map<UUID, FeatureSummary> featuresById,
       ChronologicalPosition... chronologicalPositions
   ) {
     var positions = List.of(chronologicalPositions);
@@ -1476,7 +1477,7 @@ class LicencePositionChangeViewResolverTest {
         positions,
         LicencePositionStateResolver.resolve(positions),
         Map.of(),
-        featureNames,
+        featuresById,
         null
     );
   }
@@ -1702,7 +1703,7 @@ class LicencePositionChangeViewResolverTest {
         positions,
         LicencePositionStateResolver.resolve(positions),
         Map.of(JOINING_ID, JOINING_NAME, SET_EQUITY_ORG_ID, SET_EQUITY_ORG_NAME),
-        FEATURE_NAMES,
+        FEATURES_BY_ID,
         urlContext);
   }
 
@@ -1793,7 +1794,7 @@ class LicencePositionChangeViewResolverTest {
         positions,
         LicencePositionStateResolver.resolve(positions),
         Map.of(JOINING_ID, JOINING_NAME, SET_EQUITY_ORG_ID, SET_EQUITY_ORG_NAME),
-        FEATURE_NAMES,
+        FEATURES_BY_ID,
         null);
 
     assertThat(result).containsExactly(
@@ -1822,7 +1823,7 @@ class LicencePositionChangeViewResolverTest {
         administratorChangeId.toString(), 2, null, List.of(administratorOperation));
 
     var result = LicencePositionChangeViewResolver.getOrderableChangeLabels(
-        List.of(subareaChange, administratorChange), FEATURE_NAMES);
+        List.of(subareaChange, administratorChange), FEATURES_BY_ID);
 
     assertThat(result).containsExactly(
         entry(subareaChangeId, "Subarea change – 30/1a"),
@@ -1846,7 +1847,7 @@ class LicencePositionChangeViewResolverTest {
     var change = new PositionChange(
         changeId.toString(), 1, null, List.of(subareaSetEquityOperation(SET_EQUITY_ORG_ID, BigDecimal.TEN)));
 
-    var result = LicencePositionChangeViewResolver.getOrderableChangeLabels(List.of(change), FEATURE_NAMES);
+    var result = LicencePositionChangeViewResolver.getOrderableChangeLabels(List.of(change), FEATURES_BY_ID);
 
     assertThat(result).containsExactly(entry(changeId, "Subarea set equity – " + SUBAREA_LABEL));
   }
@@ -1864,7 +1865,7 @@ class LicencePositionChangeViewResolverTest {
     var emptyChange = new PositionChange(UUID.randomUUID().toString(), 3, null, List.of());
 
     var result = LicencePositionChangeViewResolver.getOrderableChangeLabels(
-        List.of(orderableChange, removedChange, emptyChange), FEATURE_NAMES);
+        List.of(orderableChange, removedChange, emptyChange), FEATURES_BY_ID);
 
     assertThat(result).containsExactly(entry(orderableChangeId, "Subarea change – 30/1a"));
   }
@@ -1879,7 +1880,7 @@ class LicencePositionChangeViewResolverTest {
     var hiddenChange = new PositionChange(UUID.randomUUID().toString(), 2, null, List.of(hiddenOperation));
 
     var result = LicencePositionChangeViewResolver.getOrderableChangeLabels(
-        List.of(orderableChange, hiddenChange), FEATURE_NAMES);
+        List.of(orderableChange, hiddenChange), FEATURES_BY_ID);
 
     assertThat(result).containsExactly(entry(orderableChangeId, "Subarea change – 30/1a"));
   }

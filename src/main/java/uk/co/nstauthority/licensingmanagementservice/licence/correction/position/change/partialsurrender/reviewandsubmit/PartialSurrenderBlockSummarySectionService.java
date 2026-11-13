@@ -5,13 +5,11 @@ import static uk.co.nstauthority.licensingmanagementservice.licence.position.cha
 
 import jakarta.annotation.Nullable;
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -156,7 +154,7 @@ public class PartialSurrenderBlockSummarySectionService
   private SummaryCard getSummaryCardForBlock(Feature block, String label) {
     return SummaryCard.simpleSummaryCardWithHeading(
         label,
-        SummaryDataView.newStringKeyValue(AREA, formatArea(block.getFeatureArea()))
+        SummaryDataView.newStringKeyValue(AREA, LicenceBlockFeatureUtil.formatArea(block.getFeatureArea()))
     );
   }
 
@@ -170,12 +168,17 @@ public class PartialSurrenderBlockSummarySectionService
     SummaryMapView map = null;
 
     if (blockSurrender.type() == BlockSurrenderType.FULL_SURRENDER) {
-      details.addStringValue(AREA, formatArea(BigDecimal.ZERO));
+      details.addStringValue(AREA, LicenceBlockFeatureUtil.formatArea(BigDecimal.ZERO));
     } else {
       var retainedFeatureIds = blockSurrender.outputRetainedFeatureIds();
 
       if (!retainedFeatureIds.isEmpty()) {
-        details.addStringValue(AREA, formatArea(getTotalArea(featureService.getFeaturesByIds(retainedFeatureIds))));
+        details.addStringValue(
+            AREA,
+            LicenceBlockFeatureUtil.formatArea(
+                LicenceBlockFeatureUtil.getTotalArea(featureService.getFeaturesByIds(retainedFeatureIds))
+            )
+        );
         map = new SummaryMapView(retainedFeatureIds, srsWkid);
       }
     }
@@ -377,7 +380,7 @@ public class PartialSurrenderBlockSummarySectionService
     // legacy subareas may have no shape to show
     if (subarea.featureId() != null) {
       var subareaFeature = getSubareaFeatureOrThrow(featuresById, subarea.featureId());
-      details.addStringValue(AREA, formatArea(subareaFeature.getFeatureArea()));
+      details.addStringValue(AREA, LicenceBlockFeatureUtil.formatArea(subareaFeature.getFeatureArea()));
     }
 
     if (!equityByOrganisationId.isEmpty()) {
@@ -423,18 +426,6 @@ public class PartialSurrenderBlockSummarySectionService
       throw new IllegalStateException("Subarea feature %s not found".formatted(featureId));
     }
     return feature;
-  }
-
-  static BigDecimal getTotalArea(Collection<Feature> features) {
-    return features.stream()
-        .map(Feature::getFeatureArea)
-        .reduce(BigDecimal.ZERO, BigDecimal::add);
-  }
-
-  // feature areas are stored in square metres
-  static String formatArea(BigDecimal squareMetres) {
-    var squareKilometres = squareMetres.movePointLeft(6).setScale(2, RoundingMode.HALF_UP);
-    return String.format(Locale.UK, "%,.2f km²", squareKilometres);
   }
 
   private record SubareaSummary(

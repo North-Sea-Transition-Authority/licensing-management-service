@@ -20,6 +20,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.operation.TransferE
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeService;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.FeatureSummary;
 
 @Service
 public class EquityChangeService {
@@ -121,7 +122,7 @@ public class EquityChangeService {
 
     var featuresById = featureService.getFeaturesByIds(List.of(subareaSetEquityOperation.blockFeatureId()))
         .stream()
-        .collect(Collectors.toMap(Feature::getId, Feature::getFeatureName));
+        .collect(Collectors.toMap(Feature::getId, FeatureSummary::from));
 
     return subareaSetEquityOperation.subareaLabel(featuresById);
   }

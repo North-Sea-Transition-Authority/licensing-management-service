@@ -30,6 +30,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.vie
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.OrganisationMarker;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.OrganisationNameHistoryView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.SubareaBeneficialInterestView;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.FeatureSummary;
 
 class LicencePositionStateViewResolverTest {
 
@@ -222,7 +223,7 @@ class LicencePositionStateViewResolverTest {
         LicenceType.SEAWARD_PRODUCTION,
         resolvedStatesFor(currentPositionId, state),
         OrganisationNameContext.from(Map.of(1, heldSince("alpha energy"), 2, heldSince("bravo gas"))),
-        Map.of(blockId, "21/1"),
+        Map.of(blockId, new FeatureSummary("21/1", BigDecimal.ONE)),
         POSITION_DATE
     );
 
@@ -471,7 +472,9 @@ class LicencePositionStateViewResolverTest {
         LicenceType.SEAWARD_PRODUCTION,
         resolvedStatesFor(currentPositionId, state),
         OrganisationNameContext.from(nameHistories),
-        Map.of(firstBlockId, "21/1", secondBlockId, "21/2"),
+        Map.of(
+            firstBlockId, new FeatureSummary("21/1", BigDecimal.ONE),
+            secondBlockId, new FeatureSummary("21/2", BigDecimal.ONE)),
         POSITION_DATE
     );
 
@@ -538,7 +541,7 @@ class LicencePositionStateViewResolverTest {
         LicenceType.SEAWARD_PRODUCTION,
         resolvedStatesFor(currentPositionId, state),
         OrganisationNameContext.from(Map.of(1, heldSince("alpha energy"), 2, heldSince("bravo gas"))),
-        Map.of(blockId, "21/1"),
+        Map.of(blockId, new FeatureSummary("21/1", BigDecimal.ONE)),
         POSITION_DATE
     );
 
@@ -569,7 +572,7 @@ class LicencePositionStateViewResolverTest {
         LicenceType.SEAWARD_PRODUCTION,
         resolvedStatesFor(currentPositionId, state),
         OrganisationNameContext.from(nameHistories),
-        Map.of(blockId, "21/1"),
+        Map.of(blockId, new FeatureSummary("21/1", BigDecimal.ONE)),
         POSITION_DATE
     );
 

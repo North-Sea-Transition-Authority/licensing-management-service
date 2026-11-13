@@ -54,6 +54,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.uti
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.PositionChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ResolvedStates;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.FeatureSummary;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.filter.LicenceTimelineChangeTypeFilter;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.filter.LicenceTimelineFilter;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.filter.LicenceTimelineFilterOptions;
@@ -246,7 +247,7 @@ public class LicencePositionViewService {
       LicenceTimelineFilter filter
   ) {
     var licence = licencePosition.getLicence();
-    var featureNames = resolveFeatureNames(liveChronologicalPositions);
+    var featuresById = resolveFeatures(liveChronologicalPositions);
     var nameContext = getOrganisationNameContext(liveChronologicalPositions);
     var positionDate = effectivePositionDate(liveChronologicalPositions, licencePosition.getId());
 
@@ -263,7 +264,7 @@ public class LicencePositionViewService {
             liveChronologicalPositions,
             resolvedStates,
             nameContext.getNamesForDate(positionDate),
-            featureNames,
+            featuresById,
             null
         )
         .stream()
@@ -283,7 +284,7 @@ public class LicencePositionViewService {
             licence.getType(),
             resolvedStates,
             nameContext,
-            featureNames,
+            featuresById,
             positionDate
         ),
         licencePosition.getId(),
@@ -428,7 +429,7 @@ public class LicencePositionViewService {
     var currentPositionRemoved = removedPositionIds.contains(licencePosition.getId());
     var excludedFromState = currentPositionRemoved ? Set.of(licencePosition.getId()) : Set.<UUID>of();
     var resolvedStates = LicencePositionStateResolver.resolve(allChronologicalPositions, excludedFromState);
-    var featureNames = resolveFeatureNames(allChronologicalPositions);
+    var featuresById = resolveFeatures(allChronologicalPositions);
     var nameContext = getOrganisationNameContext(correctionTimelinePositions);
     var positionDate = effectivePositionDate(allChronologicalPositions, licencePosition.getId());
 
@@ -450,7 +451,7 @@ public class LicencePositionViewService {
         allChronologicalPositions,
         resolvedStates,
         nameContext.getNamesForDate(positionDate),
-        featureNames,
+        featuresById,
         urlContext
     );
 
@@ -500,7 +501,7 @@ public class LicencePositionViewService {
             licence.getType(),
             resolvedStates,
             nameContext,
-            featureNames,
+            featuresById,
             positionDate
         ),
         licencePosition.getId(),
@@ -542,7 +543,7 @@ public class LicencePositionViewService {
     );
     var allChronologicalPositions = withoutRemovedPositions(correctionTimelinePositions, removedPositionIds, Set.of());
     var resolvedStates = LicencePositionStateResolver.resolve(allChronologicalPositions);
-    var featureNames = resolveFeatureNames(allChronologicalPositions);
+    var featuresById = resolveFeatures(allChronologicalPositions);
     var nameContext = getOrganisationNameContext(correctionTimelinePositions);
     var positionDate = effectivePositionDate(allChronologicalPositions, addedPositionId);
 
@@ -551,7 +552,7 @@ public class LicencePositionViewService {
         allChronologicalPositions,
         resolvedStates,
         nameContext.getNamesForDate(positionDate),
-        featureNames,
+        featuresById,
         PositionChangeUrlContext.forAddedPosition(licenceCorrection, positionCorrection)
     );
 
@@ -595,7 +596,7 @@ public class LicencePositionViewService {
             licenceCorrection.getLicence().getType(),
             resolvedStates,
             nameContext,
-            featureNames,
+            featuresById,
             positionDate
         ),
         addedPositionId,
@@ -754,7 +755,7 @@ public class LicencePositionViewService {
 
     return LicencePositionChangeViewResolver.getOrderableChangeLabels(
         changesOn(chronologicalPositions, licencePositionId),
-        resolveFeatureNames(chronologicalPositions)
+        resolveFeatures(chronologicalPositions)
     );
   }
 
@@ -873,7 +874,7 @@ public class LicencePositionViewService {
     return organisationUnitQueryService.getOrganisationUnitNamesByIds(organisationIds);
   }
 
-  public Map<UUID, String> resolveFeatureNames(List<ChronologicalPosition> chronologicalPositions) {
+  public Map<UUID, FeatureSummary> resolveFeatures(List<ChronologicalPosition> chronologicalPositions) {
     var featureIds = chronologicalPositions.stream()
         .flatMap(chronologicalPosition -> chronologicalPosition.changes().stream())
         .flatMap(change -> change.operations().stream())
@@ -889,7 +890,7 @@ public class LicencePositionViewService {
 
     return featureService.getFeaturesByIds(featureIds)
         .stream()
-        .collect(Collectors.toMap(Feature::getId, Feature::getFeatureName));
+        .collect(Collectors.toMap(Feature::getId, FeatureSummary::from));
   }
 
   private static <I> List<I> resolveIds(

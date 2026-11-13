@@ -13,6 +13,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -30,6 +31,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.vie
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.ChangeViewUrls;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.LicencePositionChangeView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.PartialSurrenderChangeView;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.FeatureSummary;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.util.DateUtil;
 
@@ -336,11 +338,11 @@ public record PartialSurrenderOperation(
   ) {
     var surrenderDate = this.surrenderDate() != null ? this.surrenderDate() : currentPositionDate;
 
-    var featureNames = context.featureNames();
+    var featuresById = context.featuresById();
     var blockRows = surrenderedFeatureIds()
         .stream()
         .map(featureId -> new PartialSurrenderChangeView.BlockRow(
-            featureNames.getOrDefault(featureId, UNKNOWN_BLOCK),
+            Optional.ofNullable(featuresById.get(featureId)).map(FeatureSummary::name).orElse(UNKNOWN_BLOCK),
             Objects.requireNonNullElse(surrenderTypeDisplayName(featureId), NOT_AVAILABLE)
         ))
         .toList();

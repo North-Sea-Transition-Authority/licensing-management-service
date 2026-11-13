@@ -446,7 +446,7 @@ class CorrectionReviewServiceTest {
         Stream.concat(executedPositions.stream(), removedPositions).toList()))
         .thenReturn(appliedPositions);
     when(licencePositionViewService.resolveOrganisationNames(appliedPositions)).thenReturn(ORGANISATION_NAMES);
-    when(licencePositionViewService.resolveFeatureNames(appliedPositions)).thenReturn(Map.of());
+    when(licencePositionViewService.resolveFeatures(appliedPositions)).thenReturn(Map.of());
   }
 
   private CorrectedTimeline stubTimelines(
@@ -460,7 +460,7 @@ class CorrectionReviewServiceTest {
     when(licencePositionViewService.getLiveChronologicalPositions(correction.getLicence()))
         .thenReturn(executedPositions);
     when(licencePositionViewService.resolveOrganisationNames(bothTimelines)).thenReturn(ORGANISATION_NAMES);
-    when(licencePositionViewService.resolveFeatureNames(bothTimelines)).thenReturn(Map.of());
+    when(licencePositionViewService.resolveFeatures(bothTimelines)).thenReturn(Map.of());
 
     return new CorrectedTimeline(
         correction,

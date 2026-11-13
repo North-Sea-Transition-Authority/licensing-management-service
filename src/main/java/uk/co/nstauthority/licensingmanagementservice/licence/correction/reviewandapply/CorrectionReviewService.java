@@ -54,19 +54,19 @@ public class CorrectionReviewService {
 
     var bothTimelines = Stream.concat(correctedPositions.stream(), executedPositions.stream()).toList();
     var organisationNames = licencePositionViewService.resolveOrganisationNames(bothTimelines);
-    var featureNames = licencePositionViewService.resolveFeatureNames(bothTimelines);
+    var featuresById = licencePositionViewService.resolveFeatures(bothTimelines);
 
     var correctedContext = new ReviewPositionContext(
         correctedPositions,
         correctedTimeline.resolvedStates(),
         organisationNames,
-        featureNames
+        featuresById
     );
     var executedContext = new ReviewPositionContext(
         executedPositions,
         LicencePositionStateResolver.resolve(executedPositions),
         organisationNames,
-        featureNames
+        featuresById
     );
     var changeEdits = ChangeEdits.from(positionCorrections, correctedContext, executedContext);
     var movedFromPositionIds = changeEdits.movedFromPositionIds();
@@ -97,7 +97,7 @@ public class CorrectionReviewService {
         appliedPositions,
         LicencePositionStateResolver.resolve(appliedPositions, removedPositionIds),
         licencePositionViewService.resolveOrganisationNames(appliedPositions),
-        licencePositionViewService.resolveFeatureNames(appliedPositions)
+        licencePositionViewService.resolveFeatures(appliedPositions)
     );
 
     var changeEdits = new ChangeEdits(Set.of(), Map.of(), Map.of());

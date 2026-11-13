@@ -5,11 +5,12 @@ import java.util.Map;
 import java.util.UUID;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ResolvedStates;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.FeatureSummary;
 
 record ReviewPositionContext(
     List<ChronologicalPosition> positions,
     ResolvedStates resolvedStates,
     Map<Integer, String> organisationNames,
-    Map<UUID, String> featureNames
+    Map<UUID, FeatureSummary> featuresById
 ) {
 }

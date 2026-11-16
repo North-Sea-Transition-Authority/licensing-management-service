@@ -1,5 +1,6 @@
 <#include '../../layout/layout.ftl'>
 <#import '_positionChanges.ftl' as positionChanges>
+<#import '../../summary/summaryValue/_mapSummaryValue.ftl' as mapSummaryValue>
 
 <#macro details licencePositionChanges licencePositionState actions={} canEdit=false isCarbonStorage=false>
     <#if canEdit>
@@ -47,20 +48,6 @@
       </#list>
     </@fdsSummaryList.summaryListCard>
   </#if>
-  <#if licencePositionState.subareaBeneficialInterests()?has_content>
-    <h2 class="govuk-heading-s">Subarea beneficial interests</h2>
-    <#list licencePositionState.subareaBeneficialInterests() as subareaBeneficialInterest>
-      <@fdsSummaryList.summaryListCard
-        headingText=subareaBeneficialInterest.subareaLabel()
-        headingSize="h3"
-        summaryListId="subarea-beneficial-interests-${subareaBeneficialInterest?index}"
-      >
-        <#list subareaBeneficialInterest.beneficialInterests() as beneficialInterest>
-          <@beneficialInterestRow beneficialInterest=beneficialInterest/>
-        </#list>
-      </@fdsSummaryList.summaryListCard>
-    </#list>
-  </#if>
   <#if licencePositionState.organisationNameHistories()?has_content>
     <@fdsDetails.summaryDetails summaryTitle="Organisation name history">
       <#list licencePositionState.organisationNameHistories() as organisationNameHistory>
@@ -83,6 +70,38 @@
         </#if>
       </#list>
     </@fdsDetails.summaryDetails>
+  </#if>
+  <#if licencePositionState.blockStateViews()?has_content>
+    <@fdsAccordion.accordion accordionId="licence-blocks" rememberExpanded=false>
+      <#list licencePositionState.blockStateViews() as block>
+        <@fdsAccordion.accordionSection sectionHeading=block.blockName() summaryText=block.area()>
+          <div class="govuk-!-margin-bottom-4">
+            <@mapSummaryValue.mapValueDisplay mapValues=[block.blocksMap()]/>
+          </div>
+          <#list block.subareaStateViews() as subarea>
+            <@fdsSummaryList.summaryListCard
+              headingText=subarea.subareaName()
+              headingSize="h3"
+              summaryListId="block-${block?index}-subarea-${subarea?index}"
+            >
+              <#if subarea.area()??>
+                <@fdsSummaryList.summaryListRowNoAction keyText="Area">
+                  ${subarea.area()}
+                </@fdsSummaryList.summaryListRowNoAction>
+              </#if>
+              <#list subarea.beneficialInterestViews() as beneficialInterest>
+                <@beneficialInterestRow beneficialInterest=beneficialInterest/>
+              </#list>
+              <#if subarea.subareasMap()??>
+                <@fdsSummaryList.summaryListRowNoAction keyText="Map">
+                  <@mapSummaryValue.mapValueDisplay mapValues=[subarea.subareasMap()] layout="vertical"/>
+                </@fdsSummaryList.summaryListRowNoAction>
+              </#if>
+            </@fdsSummaryList.summaryListCard>
+          </#list>
+        </@fdsAccordion.accordionSection>
+      </#list>
+    </@fdsAccordion.accordion>
   </#if>
   <#list licencePositionChanges?reverse as change>
     <@positionChanges.changeCard

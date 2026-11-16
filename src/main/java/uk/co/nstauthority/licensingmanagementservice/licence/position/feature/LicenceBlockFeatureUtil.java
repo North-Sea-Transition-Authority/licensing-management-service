@@ -14,7 +14,7 @@ import uk.co.nstauthority.licensingmanagementservice.util.StreamUtil;
 
 public final class LicenceBlockFeatureUtil {
 
-  private static final Comparator<String> PART_ORDER = Comparator
+  static final Comparator<String> PART_ORDER = Comparator
       .comparing(LicenceBlockFeatureUtil::numericValue, Comparator.nullsLast(Comparator.naturalOrder()))
       .thenComparing(Comparator.nullsLast(Comparator.naturalOrder()));
 

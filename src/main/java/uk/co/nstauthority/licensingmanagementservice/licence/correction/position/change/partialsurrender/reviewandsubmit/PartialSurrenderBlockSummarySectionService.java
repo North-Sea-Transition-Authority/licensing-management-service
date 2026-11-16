@@ -17,7 +17,6 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import uk.co.fivium.gisframework.feature.CoordinateSystemUtils;
 import uk.co.fivium.gisframework.feature.Feature;
@@ -350,13 +349,13 @@ public class PartialSurrenderBlockSummarySectionService
         BEFORE,
         subarea.featureId() != null ? toSubareaMapView(List.of(subarea), srsWkid) : null,
         List.of(SummaryCard.simpleSummaryCardWithHeading(
-            getSubareaHeading(subarea),
+            subarea.displayName(),
             getSubareaDetails(subarea, equityByOrganisationId, featuresById, organisationNamesById)))
     );
 
     if (outcome != PartialSurrenderSubareaOutcome.CROPPED) {
       var after = new SummaryColumn(AFTER, null, List.of(), getOutcomeExplanation(outcome, surrenderType));
-      return new SummaryRow(getSubareaHeading(subarea), tag, List.of(before, after));
+      return new SummaryRow(subarea.displayName(), tag, List.of(before, after));
     }
 
     var croppedSubareas = subareaSummary.croppedSubareas().stream()
@@ -369,18 +368,14 @@ public class PartialSurrenderBlockSummarySectionService
         toSubareaMapView(croppedSubareas, srsWkid),
         croppedSubareas.stream()
             .map(croppedSubarea -> SummaryCard.simpleSummaryCardWithHeading(
-                getSubareaHeading(croppedSubarea),
+                croppedSubarea.displayName(),
                 // TODO LMS2-414: cascade subarea beneficial interests
                 getSubareaDetails(croppedSubarea, Map.of(), featuresById, organisationNamesById)
             ))
             .toList()
     );
 
-    return new SummaryRow(getSubareaHeading(subarea), tag, List.of(before, after));
-  }
-
-  private String getSubareaHeading(SubareaDetails subarea) {
-    return "Subarea %s".formatted(StringUtils.isBlank(subarea.name()) ? subarea.shortName() : subarea.name());
+    return new SummaryRow(subarea.displayName(), tag, List.of(before, after));
   }
 
   private SummaryMapView toSubareaMapView(List<SubareaDetails> subareas, int srsWkid) {

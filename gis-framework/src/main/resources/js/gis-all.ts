@@ -26,6 +26,7 @@ for (const element of document.querySelectorAll<HTMLElement>("[data-gis-componen
     includeNstaQuadrants: element.dataset.gisIncludeNstaQuadrants === "true",
     includeNstaBlocks: element.dataset.gisIncludeNstaBlocks === "true",
     selectionInputName: element.dataset.gisSelectionInputName,
+    describedFeatureId: element.dataset.gisDescribedFeatureId,
   })
     .use(OpenLayersMap)
     .mount(element);

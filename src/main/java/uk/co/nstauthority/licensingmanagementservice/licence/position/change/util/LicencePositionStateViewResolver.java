@@ -9,6 +9,7 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -18,13 +19,16 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.vie
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ResolvedStates;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.AdministratorStateView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.BeneficialInterestView;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.BlockStateView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.LicencePositionStateView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.LicenseeStateView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.LicenseeView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.OrganisationMarker;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.OrganisationNameHistoryView;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.SubareaBeneficialInterestView;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.SubareaStateView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.FeatureSummary;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.LicenceBlockFeatureUtil;
+import uk.co.nstauthority.licensingmanagementservice.summary.SummaryMapView;
 
 public final class LicencePositionStateViewResolver {
 
@@ -53,9 +57,8 @@ public final class LicencePositionStateViewResolver {
             positionDate
         ),
         buildOrganisationNameHistories(currentState, nameContext, positionDate),
-        buildSubareaBeneficialInterests(
-            currentState.blockFeatureIdToSubareaEquity(),
-            currentState.licenseeIds(),
+        buildBlocks(
+            currentState,
             featuresById,
             nameContext,
             positionDate
@@ -108,26 +111,59 @@ public final class LicencePositionStateViewResolver {
         .toList();
   }
 
-  private static List<SubareaBeneficialInterestView> buildSubareaBeneficialInterests(
-      Map<UUID, Map<SubareaDetails, Map<Integer, BigDecimal>>> blockFeatureIdToSubareaEquity,
-      Set<Integer> licenseeIds,
+  private static List<BlockStateView> buildBlocks(
+      LicencePositionState currentState,
       Map<UUID, FeatureSummary> featuresById,
       OrganisationNameContext nameContext,
       @Nullable LocalDate positionDate
   ) {
-    return blockFeatureIdToSubareaEquity.entrySet().stream()
-        .flatMap(blockEntry -> blockEntry.getValue().entrySet().stream()
-            .map(subareaEntry -> {
-              var blockName = Optional.ofNullable(featuresById.get(blockEntry.getKey()))
-                  .map(FeatureSummary::name)
-                  .orElse(null);
-              var subareaLabel = subareaEntry.getKey().labelForBlockName(blockName);
-              var beneficialInterestViews =
-                  buildBeneficialInterests(subareaEntry.getValue(), licenseeIds, nameContext, positionDate);
-              return new SubareaBeneficialInterestView(subareaLabel, beneficialInterestViews);
-            })
-        )
-        .sorted(Comparator.comparing(SubareaBeneficialInterestView::subareaLabel, String.CASE_INSENSITIVE_ORDER))
+    var blockFeatureIds = currentState.blockFeatureIds().stream()
+        .filter(featuresById::containsKey)
+        .sorted(Comparator.comparing(featuresById::get, FeatureSummary.BLOCK_ORDER))
+        .toList();
+
+    return blockFeatureIds.stream()
+        .map(blockId -> {
+          var block = featuresById.get(blockId);
+          return new BlockStateView(
+              "Block %s".formatted(block.name()),
+              LicenceBlockFeatureUtil.formatArea(block.area()),
+              new SummaryMapView(blockFeatureIds, block.srsWkid(), blockId),
+              buildSubareas(currentState, blockId, featuresById, nameContext, positionDate)
+          );
+        })
+        .toList();
+  }
+
+  private static List<SubareaStateView> buildSubareas(
+      LicencePositionState currentState,
+      UUID blockId,
+      Map<UUID, FeatureSummary> featuresById,
+      OrganisationNameContext nameContext,
+      @Nullable LocalDate positionDate
+  ) {
+    var subareas = currentState.subareasOf(blockId);
+    var subareaFeatureIds = subareas.stream()
+        .map(SubareaDetails::featureId)
+        .filter(Objects::nonNull)
+        .toList();
+
+    return subareas.stream()
+        .sorted(Comparator.comparing(SubareaDetails::shortName))
+        .map(subarea -> {
+          var feature = Optional.ofNullable(subarea.featureId()).map(featuresById::get);
+          return new SubareaStateView(
+              subarea.displayName(),
+              feature.map(summary -> LicenceBlockFeatureUtil.formatArea(summary.area())).orElse(null),
+              feature.map(summary -> new SummaryMapView(subareaFeatureIds, summary.srsWkid(), subarea.featureId())).orElse(null),
+              buildBeneficialInterests(
+                  currentState.subareaEquityOf(blockId, subarea),
+                  currentState.licenseeIds(),
+                  nameContext,
+                  positionDate
+              )
+          );
+        })
         .toList();
   }
 

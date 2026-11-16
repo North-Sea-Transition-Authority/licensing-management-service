@@ -1,4 +1,4 @@
-<#include '../../layout/layout.ftl'>
+<#include '../../layout/layoutWithGisAssets.ftl'>
 <#import '../tabbedLicencePage.ftl' as tabbedLicencePage>
 <#import '_licencePositionTimeLine.ftl' as licencePositionTimeLine>
 <#import '_licencePositionDetails.ftl' as licencePositionDetails>

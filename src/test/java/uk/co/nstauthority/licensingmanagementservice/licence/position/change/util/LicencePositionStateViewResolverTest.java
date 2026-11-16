@@ -1,6 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.position.change.util;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static uk.co.nstauthority.licensingmanagementservice.licence.position.feature.FeatureSummaryTestUtil.ED50_WKID;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -23,14 +24,16 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.vie
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ResolvedStates;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.AdministratorStateView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.BeneficialInterestView;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.BlockStateView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.LicencePositionStateView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.LicenseeStateView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.LicenseeView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.NameHistoryEntryView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.OrganisationMarker;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.OrganisationNameHistoryView;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.SubareaBeneficialInterestView;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.FeatureSummary;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.SubareaStateView;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.FeatureSummaryTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.summary.SummaryMapView;
 
 class LicencePositionStateViewResolverTest {
 
@@ -223,7 +226,7 @@ class LicencePositionStateViewResolverTest {
         LicenceType.SEAWARD_PRODUCTION,
         resolvedStatesFor(currentPositionId, state),
         OrganisationNameContext.from(Map.of(1, heldSince("alpha energy"), 2, heldSince("bravo gas"))),
-        Map.of(blockId, new FeatureSummary("21/1", BigDecimal.ONE)),
+        Map.of(blockId, FeatureSummaryTestUtil.featureSummary("21/1", BigDecimal.ONE)),
         POSITION_DATE
     );
 
@@ -447,19 +450,21 @@ class LicencePositionStateViewResolverTest {
   }
 
   @Test
-  void getStateView_whenSubareaBeneficialInterests_returnsOneEntryPerSubareaSortedByLabel() {
+  void getStateView_whenBlocksHeld_returnsBlocksInBlockOrderWithSubareasSortedByShortName() {
     var currentPositionId = UUID.randomUUID();
     var firstBlockId = UUID.randomUUID();
     var secondBlockId = UUID.randomUUID();
-    var subareaOnSecondBlock = new SubareaDetails(UUID.randomUUID(), "Subarea A", "A");
-    var namedSubareaOnFirstBlock = new SubareaDetails(UUID.randomUUID(), "Subarea B", "B");
+    var subareaOnSecondBlock = new SubareaDetails(UUID.randomUUID(), "A", "A");
+    var namedSubareaOnFirstBlock = new SubareaDetails(UUID.randomUUID(), "B", "B");
     var legacySubareaOnFirstBlock = new SubareaDetails(null, null, "a");
 
     var state = LicencePositionState.EMPTY
         .withSubareaEquity(secondBlockId, subareaOnSecondBlock, 1, new BigDecimal("60"))
         .withSubareaEquity(secondBlockId, subareaOnSecondBlock, 2, new BigDecimal("40"))
         .withSubareaEquity(firstBlockId, namedSubareaOnFirstBlock, 3, new BigDecimal("100"))
-        .withSubareaEquity(firstBlockId, legacySubareaOnFirstBlock, 1, new BigDecimal("100"));
+        .withSubareaEquity(firstBlockId, legacySubareaOnFirstBlock, 1, new BigDecimal("100"))
+        .withBlock(firstBlockId, List.of(namedSubareaOnFirstBlock, legacySubareaOnFirstBlock))
+        .withBlock(secondBlockId, List.of(subareaOnSecondBlock));
 
     var nameHistories = Map.of(
         1, heldSince("charlie oil"),
@@ -467,90 +472,107 @@ class LicencePositionStateViewResolverTest {
         3, heldSince("Bravo gas")
     );
 
+    var featuresById = Map.of(
+        firstBlockId, FeatureSummaryTestUtil.blockFeatureSummary("30", "10", new BigDecimal("100000000")),
+        secondBlockId, FeatureSummaryTestUtil.blockFeatureSummary("30", "2", new BigDecimal("200000000")),
+        namedSubareaOnFirstBlock.featureId(), FeatureSummaryTestUtil.featureSummary("B", new BigDecimal("60000000")),
+        subareaOnSecondBlock.featureId(), FeatureSummaryTestUtil.featureSummary("A", new BigDecimal("200000000"))
+    );
+
     var result = LicencePositionStateViewResolver.getStateView(
         currentPositionId,
         LicenceType.SEAWARD_PRODUCTION,
         resolvedStatesFor(currentPositionId, state),
         OrganisationNameContext.from(nameHistories),
-        Map.of(
-            firstBlockId, new FeatureSummary("21/1", BigDecimal.ONE),
-            secondBlockId, new FeatureSummary("21/2", BigDecimal.ONE)),
+        featuresById,
         POSITION_DATE
     );
 
-    assertThat(result)
-        .isEqualTo(new LicencePositionStateView(
-            new AdministratorStateView(""),
-            new LicenseeStateView(List.of()),
-            "",
-            List.of(),
-            List.of(),
-            List.of(
-                new SubareaBeneficialInterestView(
-                    "Block 21/1 - Subarea a",
-                    List.of(
-                        new BeneficialInterestView("charlie oil", new BigDecimal("100"), OrganisationMarker.NOT_A_LICENSEE))),
-                new SubareaBeneficialInterestView(
-                    "Block 21/1 - Subarea B",
-                    List.of(
-                        new BeneficialInterestView("Bravo gas", new BigDecimal("100"), OrganisationMarker.NOT_A_LICENSEE))),
-                new SubareaBeneficialInterestView(
-                    "Block 21/2 - Subarea A",
+    var blockIds = List.of(secondBlockId, firstBlockId);
+    var subareaIdsOnFirstBlock = List.of(namedSubareaOnFirstBlock.featureId());
+    assertThat(result.blockStateViews())
+        .isEqualTo(List.of(
+            new BlockStateView(
+                "Block 30/2",
+                "200.00\u00A0km²",
+                new SummaryMapView(blockIds, ED50_WKID, secondBlockId),
+                List.of(new SubareaStateView(
+                    "Subarea A",
+                    "200.00\u00A0km²",
+                    new SummaryMapView(
+                        List.of(subareaOnSecondBlock.featureId()), ED50_WKID, subareaOnSecondBlock.featureId()),
                     List.of(
                         new BeneficialInterestView("alpha energy", new BigDecimal("40"), OrganisationMarker.NOT_A_LICENSEE),
-                        new BeneficialInterestView("charlie oil", new BigDecimal("60"), OrganisationMarker.NOT_A_LICENSEE)))
-            )
+                        new BeneficialInterestView("charlie oil", new BigDecimal("60"), OrganisationMarker.NOT_A_LICENSEE))))),
+            new BlockStateView(
+                "Block 30/10",
+                "100.00\u00A0km²",
+                new SummaryMapView(blockIds, ED50_WKID, firstBlockId),
+                List.of(
+                    new SubareaStateView(
+                        "Subarea B",
+                        "60.00\u00A0km²",
+                        new SummaryMapView(subareaIdsOnFirstBlock, ED50_WKID, namedSubareaOnFirstBlock.featureId()),
+                        List.of(
+                            new BeneficialInterestView("Bravo gas", new BigDecimal("100"), OrganisationMarker.NOT_A_LICENSEE))),
+                    new SubareaStateView(
+                        "Subarea a",
+                        null,
+                        null,
+                        List.of(
+                            new BeneficialInterestView("charlie oil", new BigDecimal("100"), OrganisationMarker.NOT_A_LICENSEE)))))
         ));
   }
 
   @Test
-  void getStateView_whenBlockNameNotFound_labelsSubareaWithUnknownBlock() {
+  void getStateView_whenBlockFeatureNotFound_thenBlockExcluded() {
     var currentPositionId = UUID.randomUUID();
-    var subarea = new SubareaDetails(UUID.randomUUID(), "Subarea A", "A");
+    var blockId = UUID.randomUUID();
 
-    var state = LicencePositionState.EMPTY.withSubareaEquity(UUID.randomUUID(), subarea, 1, new BigDecimal("100"));
+    var state = LicencePositionState.EMPTY
+        .withBlock(blockId, List.of())
+        .withBlock(UUID.randomUUID(), List.of());
 
     var result = LicencePositionStateViewResolver.getStateView(
         currentPositionId,
         LicenceType.SEAWARD_PRODUCTION,
         resolvedStatesFor(currentPositionId, state),
-        OrganisationNameContext.from(Map.of(1, heldSince("alpha energy"))),
-        Map.of(),
+        OrganisationNameContext.from(Map.of()),
+        Map.of(blockId, FeatureSummaryTestUtil.blockFeatureSummary("21", "1", new BigDecimal("100000000"))),
         POSITION_DATE
     );
 
-    assertThat(result.subareaBeneficialInterests())
-        .isEqualTo(List.of(new SubareaBeneficialInterestView(
-            "Unknown block - Subarea A",
-            List.of(new BeneficialInterestView("alpha energy", new BigDecimal("100"), OrganisationMarker.NOT_A_LICENSEE)))));
+    assertThat(result.blockStateViews())
+        .isEqualTo(List.of(new BlockStateView(
+            "Block 21/1",
+            "100.00\u00A0km²",
+            new SummaryMapView(List.of(blockId), ED50_WKID, blockId),
+            List.of())));
   }
 
   @Test
-  void getStateView_whenSubareaBeneficialInterestHolderIsNotALicensee_thenMarkedNotALicensee() {
+  void getStateView_whenSubareaFeatureNotFound_thenSubareaHasNoAreaOrMap() {
     var currentPositionId = UUID.randomUUID();
     var blockId = UUID.randomUUID();
-    var subarea = new SubareaDetails(UUID.randomUUID(), "Subarea A", "A");
+    var subarea = new SubareaDetails(UUID.randomUUID(), null, "A");
 
-    var state = LicencePositionState.EMPTY
-        .withLicenseeIds(List.of(1), List.of())
-        .withSubareaEquity(blockId, subarea, 1, new BigDecimal("60"))
-        .withSubareaEquity(blockId, subarea, 2, new BigDecimal("40"));
+    var state = LicencePositionState.EMPTY.withBlock(blockId, List.of(subarea));
 
     var result = LicencePositionStateViewResolver.getStateView(
         currentPositionId,
         LicenceType.SEAWARD_PRODUCTION,
         resolvedStatesFor(currentPositionId, state),
-        OrganisationNameContext.from(Map.of(1, heldSince("alpha energy"), 2, heldSince("bravo gas"))),
-        Map.of(blockId, new FeatureSummary("21/1", BigDecimal.ONE)),
+        OrganisationNameContext.from(Map.of()),
+        Map.of(blockId, FeatureSummaryTestUtil.blockFeatureSummary("21", "1", new BigDecimal("100000000"))),
         POSITION_DATE
     );
 
-    assertThat(result.subareaBeneficialInterests())
-        .isEqualTo(List.of(new SubareaBeneficialInterestView(
-            "Block 21/1 - Subarea A",
-            List.of(
-                new BeneficialInterestView("alpha energy", new BigDecimal("60"), null),
-                new BeneficialInterestView("bravo gas", new BigDecimal("40"), OrganisationMarker.NOT_A_LICENSEE)))));
+    assertThat(result.blockStateViews())
+        .isEqualTo(List.of(new BlockStateView(
+            "Block 21/1",
+            "100.00\u00A0km²",
+            new SummaryMapView(List.of(blockId), ED50_WKID, blockId),
+            List.of(new SubareaStateView("Subarea A", null, null, List.of())))));
   }
 
   @Test
@@ -572,7 +594,7 @@ class LicencePositionStateViewResolverTest {
         LicenceType.SEAWARD_PRODUCTION,
         resolvedStatesFor(currentPositionId, state),
         OrganisationNameContext.from(nameHistories),
-        Map.of(blockId, new FeatureSummary("21/1", BigDecimal.ONE)),
+        Map.of(blockId, FeatureSummaryTestUtil.featureSummary("21/1", BigDecimal.ONE)),
         POSITION_DATE
     );
 

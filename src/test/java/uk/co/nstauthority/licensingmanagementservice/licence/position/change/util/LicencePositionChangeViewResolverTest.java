@@ -63,6 +63,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.vie
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.TransferEquityChangeHoldingView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.TransferEquityChangeView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.FeatureSummary;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.FeatureSummaryTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 class LicencePositionChangeViewResolverTest {
@@ -74,8 +75,8 @@ class LicencePositionChangeViewResolverTest {
   private static final UUID FIRST_FEATURE_ID = UUID.randomUUID();
   private static final UUID SECOND_FEATURE_ID = UUID.randomUUID();
   private static final Map<UUID, FeatureSummary> FEATURES_BY_ID = Map.of(
-      FIRST_FEATURE_ID, new FeatureSummary("30/1a", new BigDecimal("100000000")),
-      SECOND_FEATURE_ID, new FeatureSummary("30/2", new BigDecimal("200000000")));
+      FIRST_FEATURE_ID, FeatureSummaryTestUtil.featureSummary("30/1a", new BigDecimal("100000000")),
+      SECOND_FEATURE_ID, FeatureSummaryTestUtil.featureSummary("30/2", new BigDecimal("200000000")));
 
   private static final UUID SET_EQUITY_POSITION_ID = UUID.randomUUID();
   private static final int SET_EQUITY_ORG_ID = 300;

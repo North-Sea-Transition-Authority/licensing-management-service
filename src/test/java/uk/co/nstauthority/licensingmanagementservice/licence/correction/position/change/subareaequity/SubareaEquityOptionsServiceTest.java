@@ -41,9 +41,9 @@ class SubareaEquityOptionsServiceTest {
 
   @Test
   void getSubareaOptions_whenSubareasOnSeveralBlocks_thenOptionPerSubareaInBlockOrder() {
-    var subareaA = new SubareaDetails(UUID.randomUUID(), "Name A", "Short name A");
-    var subareaB = new SubareaDetails(UUID.randomUUID(), "Name B", "Short name B");
-    var subareaC = new SubareaDetails(UUID.randomUUID(), "Name C", "Short name C");
+    var subareaA = new SubareaDetails(UUID.randomUUID(), "A", "Short name A");
+    var subareaB = new SubareaDetails(UUID.randomUUID(), "B", "Short name B");
+    var subareaC = new SubareaDetails(UUID.randomUUID(), "C", "Short name C");
     var subareaZ = new SubareaDetails(UUID.randomUUID(), null, "Short name Z");
     when(licencePositionSpatialService.getBlockSubareasGoingIntoChange(CORRECTION, POSITION.getId(), null))
         .thenReturn(List.of(
@@ -54,9 +54,9 @@ class SubareaEquityOptionsServiceTest {
     var result = subareaEquityOptionsService.getSubareaOptions(CORRECTION, POSITION);
 
     assertThat(result).containsExactly(
-        entry("%s:%s".formatted(BLOCK_30_1.getId(), subareaA.featureId()), "Block 30/1 - Name A"),
-        entry("%s:%s".formatted(BLOCK_30_1.getId(), subareaB.featureId()), "Block 30/1 - Name B"),
-        entry("%s:%s".formatted(BLOCK_30_2.getId(), subareaC.featureId()), "Block 30/2 - Name C"),
+        entry("%s:%s".formatted(BLOCK_30_1.getId(), subareaA.featureId()), "Block 30/1 - Subarea A"),
+        entry("%s:%s".formatted(BLOCK_30_1.getId(), subareaB.featureId()), "Block 30/1 - Subarea B"),
+        entry("%s:%s".formatted(BLOCK_30_2.getId(), subareaC.featureId()), "Block 30/2 - Subarea C"),
         entry("%s:%s".formatted(BLOCK_30_2.getId(), subareaZ.featureId()), "Block 30/2 - Subarea Short name Z")
     );
   }

@@ -59,6 +59,27 @@ describe("mapWithTextualDescription", () => {
     expect(getOutlineNodesMock).toHaveBeenCalledWith(baseProps.outlineNodesUrl);
   });
 
+  it("passes the described feature to the map", async () => {
+    getTextualDescriptionMock.mockResolvedValue("");
+    getFeaturesMock.mockResolvedValue([]);
+    getOutlineNodesMock.mockResolvedValue([]);
+
+    render(MapWithTextualDescription, {
+      props: { ...baseProps, describedFeatureId: "feature-1" },
+      global: {
+        plugins: [openLayersStub],
+        stubs: {
+          BaseMap: {
+            props: ["describedFeatureId"],
+            template: "<p>Described feature: {{ describedFeatureId }}</p>",
+          },
+        },
+      },
+    });
+
+    expect(await screen.findByText("Described feature: feature-1")).toBeInTheDocument();
+  });
+
   describe("highlighting selected features", () => {
     const baseMapStub = {
       props: ["selectedFeatureIds"],

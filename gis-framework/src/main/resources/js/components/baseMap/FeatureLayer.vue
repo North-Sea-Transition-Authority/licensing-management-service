@@ -27,6 +27,7 @@ interface Props {
   selectedFillColor?: [number, number, number],
   selectedStrokeColor?: [number, number, number, number],
   selectedFeatureIds?: string[],
+  describedFeatureId?: string,
   refitOnFeaturesChange?: boolean,
 }
 
@@ -66,18 +67,31 @@ watch(() => props.selectedFeatureIds, () => {
   vectorSourceRef.value?.source?.changed();
 }, { deep: true });
 
+function featureLabel(feature: Feature<Geometry>) {
+  return new Text({
+    text: feature.get("featureName") || "",
+    font: featureLabelFont,
+    fill: new Fill({ color: "#000" }),
+    stroke: new Stroke({ color: "#fff", width: 3 }),
+    overflow: true,
+  });
+}
+
 function featureStyle(feature: Feature<Geometry>) {
-  const selected = props.selectedFeatureIds?.includes(feature.get("featureId"));
+  const featureId = feature.get("featureId");
+  if (props.describedFeatureId && featureId !== props.describedFeatureId) {
+    return new Style({
+      zIndex: 0,
+      stroke: new Stroke({ color: props.strokeColor, width: 2, lineDash: [6, 6] }),
+      text: featureLabel(feature),
+    });
+  }
+  const selected = props.selectedFeatureIds?.includes(featureId);
   return new Style({
+    zIndex: 1,
     stroke: new Stroke({ color: selected ? props.selectedStrokeColor : props.strokeColor, width: selected ? 4 : 2 }),
     fill: new Fill({ color: selected ? [...props.selectedFillColor, 0.50] : [...props.fillColor, 0.50] }),
-    text: new Text({
-      text: feature.get("featureName") || "",
-      font: featureLabelFont,
-      fill: new Fill({ color: "#000" }),
-      stroke: new Stroke({ color: "#fff", width: 3 }),
-      overflow: true,
-    }),
+    text: featureLabel(feature),
   });
 }
 

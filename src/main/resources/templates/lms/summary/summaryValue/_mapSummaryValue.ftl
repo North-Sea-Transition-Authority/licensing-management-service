@@ -3,11 +3,12 @@
 
 <#-- @ftlvariable name="mapValues" type="java.util.Collection<uk.co.nstauthority.licensingmanagementservice.summary.SummaryMapView>" -->
 
-<#macro mapValueDisplay mapValues>
+<#macro mapValueDisplay mapValues layout="horizontal">
   <#list mapValues as mapValue>
     <@gisMap.mapWithTextualDescription
       featureIds=mapValue.featureIds()
       srsWkid=mapValue.srsWkid()
-      layout="horizontal"/>
+      describedFeatureId=mapValue.describedFeatureId()!""
+      layout=layout/>
   </#list>
 </#macro>

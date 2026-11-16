@@ -27,7 +27,10 @@ public record SubareaDetails(
 ) {
 
   public String displayName() {
-    return !StringUtils.isBlank(name) ? name : "Subarea %s".formatted(shortName);
+    if (StringUtils.isBlank(name)) {
+      return "Subarea %s".formatted(shortName);
+    }
+    return name.toUpperCase().startsWith("SUBAREA ") ? name : "Subarea %s".formatted(name);
   }
 
   public String keyForBlockFeatureId(UUID blockFeatureId) {

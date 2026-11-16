@@ -1,4 +1,4 @@
-<#include '../../layout/layout.ftl'>
+<#include '../../layout/layoutWithGisAssets.ftl'>
 <#import '../position/_licencePositionTimeLine.ftl' as licencePositionTimeLine>
 <#import '../position/_licencePositionDetails.ftl' as licencePositionDetails>
 <#import '../position/_licencePositionTimelineFilters.ftl' as licencePositionTimelineFilters>

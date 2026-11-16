@@ -59,10 +59,12 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.LicencePositionValidationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationError;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.AdministratorOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.BlockCreateOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenseeOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquityOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaCreateOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaDetails;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaSetEquityOperation;
@@ -82,13 +84,14 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.vie
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.SubareaChangeView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.AdministratorStateView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.BeneficialInterestView;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.BlockStateView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.LicencePositionStateView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.LicenseeStateView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.LicenseeView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.NameHistoryEntryView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.OrganisationMarker;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.OrganisationNameHistoryView;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.SubareaBeneficialInterestView;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.SubareaStateView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.FeatureTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.filter.LicenceTimelineFilter;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.filter.LicenceTimelineFilterOptions;
@@ -96,6 +99,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.partialsur
 import uk.co.nstauthority.licensingmanagementservice.licence.position.transaction.LicenceTransactionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.status.LicenceStatusService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
+import uk.co.nstauthority.licensingmanagementservice.summary.SummaryMapView;
 
 @ExtendWith(MockitoExtension.class)
 class LicencePositionViewServiceTest {
@@ -409,23 +413,27 @@ class LicencePositionViewServiceTest {
   }
 
   @Test
-  void getPositionPageView_whenSubareaBeneficialInterestSet_labelsTheSubareaWithItsBlockName() {
+  void getPositionPageView_whenBlockWithSubareaHeld_returnsBlockWithSubareaAndItsBeneficialInterests() {
     var position = LicencePositionTestUtil.newBuilder()
         .withLicence(LICENCE)
         .withLicenceTransaction(LicenceTransactionTestUtil.newBuilder().withRegulatorReference("REF-1").build())
         .withPositionDate(LocalDate.of(2010, Month.JUNE, 1)).withPositionOrder(1).withStatus(LicencePositionStatus.EXECUTED).build();
 
     var block = FeatureTestUtil.blockFeature(UUID.randomUUID(), "21", 1);
-    var subarea = new SubareaDetails(UUID.randomUUID(), "Subarea A", "A");
+    var subareaFeature = FeatureTestUtil.subareaFeature(UUID.randomUUID(), "A");
+    var subarea = new SubareaDetails(subareaFeature.getId(), "Alpha", "A");
 
     var change = LicencePositionChangeTestUtil.newBuilder()
         .withLicencePosition(position)
-        .withOperations(List.of(new SubareaSetEquityOperation(block.getId(), subarea, 1, new BigDecimal("100"))))
+        .withOperations(List.of(
+            new BlockCreateOperation(List.of(block.getId()), Map.of(block.getId(), List.of(subarea))),
+            new SubareaSetEquityOperation(block.getId(), subarea, 1, new BigDecimal("100"))))
         .build();
 
     when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(position));
     when(licencePositionChangeService.findByLicencePositionIn(List.of(position))).thenReturn(List.of(change));
-    when(featureService.getFeaturesByIds(Set.of(block.getId()))).thenReturn(List.of(block));
+    when(featureService.getFeaturesByIds(Set.of(block.getId(), subareaFeature.getId())))
+        .thenReturn(List.of(block, subareaFeature));
     when(organisationUnitQueryService.getOrganisationNameHistoriesByIds(List.of(1))).thenReturn(Map.of(
         1, namePeriods("Shell plc",
             namePeriod("Shell Expro", LocalDate.of(1999, Month.MARCH, 3), LocalDate.of(2022, Month.JANUARY, 22)),
@@ -445,15 +453,23 @@ class LicencePositionViewServiceTest {
                 List.of(),
                 List.of(new NameHistoryEntryView("Shell plc", "from 22 January 2022"))
             )),
-            List.of(new SubareaBeneficialInterestView(
-                "Block %s - Subarea A".formatted(block.getFeatureName()),
-                List.of(new BeneficialInterestView("Shell Expro", new BigDecimal("100"), OrganisationMarker.NOT_A_LICENSEE))
+            List.of(new BlockStateView(
+                "Block %s".formatted(block.getFeatureName()),
+                "0.00\u00A0km²",
+                new SummaryMapView(List.of(block.getId()), 4230, block.getId()),
+                List.of(new SubareaStateView(
+                    "Subarea Alpha",
+                    "0.00\u00A0km²",
+                    new SummaryMapView(List.of(subareaFeature.getId()), 4230, subareaFeature.getId()),
+                    List.of(new BeneficialInterestView(
+                        "Shell Expro", new BigDecimal("100"), OrganisationMarker.NOT_A_LICENSEE))
+                ))
             ))
         ));
   }
 
   @Test
-  void getPositionPageView_whenSubareaBeneficialInterestSetAtAnEarlierPosition_showsItWithItsBlockName() {
+  void getPositionPageView_whenBlockWithSubareaHeldFromAnEarlierPosition_returnsItAtTheLaterPosition() {
     var earlierPosition = LicencePositionTestUtil.newBuilder()
         .withLicence(LICENCE)
         .withLicenceTransaction(LicenceTransactionTestUtil.newBuilder().withRegulatorReference("REF-1").build())
@@ -464,28 +480,39 @@ class LicencePositionViewServiceTest {
         .withPositionDate(LocalDate.of(2015, Month.JUNE, 1)).withPositionOrder(2).withStatus(LicencePositionStatus.EXECUTED).build();
 
     var block = FeatureTestUtil.blockFeature(UUID.randomUUID(), "21", 1);
-    var subarea = new SubareaDetails(UUID.randomUUID(), "Subarea A", "A");
+    var subareaFeature = FeatureTestUtil.subareaFeature(UUID.randomUUID(), "A");
+    var subarea = new SubareaDetails(subareaFeature.getId(), "Alpha", "A");
 
     var change = LicencePositionChangeTestUtil.newBuilder()
         .withLicencePosition(earlierPosition)
-        .withOperations(List.of(new SubareaSetEquityOperation(block.getId(), subarea, 1, new BigDecimal("100"))))
+        .withOperations(List.of(
+            new BlockCreateOperation(List.of(block.getId()), Map.of(block.getId(), List.of(subarea))),
+            new SubareaSetEquityOperation(block.getId(), subarea, 1, new BigDecimal("100"))))
         .build();
 
     when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE))
         .thenReturn(List.of(earlierPosition, laterPosition));
     when(licencePositionChangeService.findByLicencePositionIn(List.of(earlierPosition, laterPosition)))
         .thenReturn(List.of(change));
-    when(featureService.getFeaturesByIds(Set.of(block.getId()))).thenReturn(List.of(block));
+    when(featureService.getFeaturesByIds(Set.of(block.getId(), subareaFeature.getId())))
+        .thenReturn(List.of(block, subareaFeature));
     when(organisationUnitQueryService.getOrganisationNameHistoriesByIds(List.of(1))).thenReturn(Map.of(
         1, namePeriods("Shell plc", namePeriod("Shell plc", LocalDate.of(2000, Month.JANUARY, 1), null))
     ));
 
     var result = licencePositionViewService.getPositionPageView(laterPosition);
 
-    assertThat(result.stateView().subareaBeneficialInterests())
-        .containsExactly(new SubareaBeneficialInterestView(
-            "Block %s - Subarea A".formatted(block.getFeatureName()),
-            List.of(new BeneficialInterestView("Shell plc", new BigDecimal("100"), OrganisationMarker.NOT_A_LICENSEE))
+    assertThat(result.stateView().blockStateViews())
+        .containsExactly(new BlockStateView(
+            "Block %s".formatted(block.getFeatureName()),
+            "0.00\u00A0km²",
+            new SummaryMapView(List.of(block.getId()), 4230, block.getId()),
+            List.of(new SubareaStateView(
+                "Subarea Alpha",
+                "0.00\u00A0km²",
+                new SummaryMapView(List.of(subareaFeature.getId()), 4230, subareaFeature.getId()),
+                List.of(new BeneficialInterestView("Shell plc", new BigDecimal("100"), OrganisationMarker.NOT_A_LICENSEE))
+            ))
         ));
   }
 
@@ -1465,6 +1492,70 @@ class LicencePositionViewServiceTest {
         List.of(),
         List.of(),
         List.of()));
+  }
+
+  @Test
+  void getCorrectionPositionPageView_whenSubareaStagedOnAnEarlierPosition_thenLaterPositionShowsItOnTheBlock() {
+    var correction = LicenceCorrectionTestUtil.newBuilder().withId(UUID.randomUUID()).withLicence(LICENCE).build();
+    var earlierPosition = LicencePositionTestUtil.newBuilder()
+        .withId(UUID.randomUUID()).withLicence(LICENCE).withStatus(LicencePositionStatus.EXECUTED)
+        .withPositionDate(LocalDate.of(2026, Month.JANUARY, 1)).withPositionOrder(1).build();
+    var laterPosition = LicencePositionTestUtil.newBuilder()
+        .withId(POSITION_ID).withLicence(LICENCE).withStatus(LicencePositionStatus.EXECUTED)
+        .withPositionDate(LocalDate.of(2026, Month.FEBRUARY, 1)).withPositionOrder(2).build();
+
+    var block = FeatureTestUtil.blockFeature(UUID.randomUUID(), "21", 1);
+    var liveSubareaFeature = FeatureTestUtil.subareaFeature(UUID.randomUUID(), "A");
+    var stagedSubareaFeature = FeatureTestUtil.subareaFeature(UUID.randomUUID(), "B");
+    var liveSubarea = new SubareaDetails(liveSubareaFeature.getId(), "Alpha", "A");
+    var stagedSubarea = new SubareaDetails(stagedSubareaFeature.getId(), "Bravo", "B");
+
+    var liveChange = LicencePositionChangeTestUtil.newBuilder()
+        .withLicencePosition(earlierPosition)
+        .withOperations(List.of(
+            new BlockCreateOperation(List.of(block.getId()), Map.of(block.getId(), List.of(liveSubarea)))))
+        .build();
+    var stagedCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withLicenceCorrection(correction)
+        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+        .withTargetLicencePosition(earlierPosition)
+        .withPayload(UpdateLicencePositionPayloadTestUtil.newBuilder()
+            .withEffectiveDate(earlierPosition.getPositionDate())
+            .withEffectiveDateOrder(earlierPosition.getPositionDateOrder())
+            .withChanges(List.of(AddChange.buildOperationsChange(
+                List.of(new SubareaCreateOperation(block.getId(), List.of(stagedSubarea))), 2)))
+            .build())
+        .build();
+
+    when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE))
+        .thenReturn(List.of(earlierPosition, laterPosition));
+    when(licencePositionChangeService.findByLicencePositionIn(List.of(earlierPosition, laterPosition)))
+        .thenReturn(List.of(liveChange));
+    when(licencePositionCorrectionService.getPositionCorrections(correction)).thenReturn(List.of(stagedCorrection));
+    when(featureService.getFeaturesByIds(Set.of(block.getId(), liveSubareaFeature.getId(), stagedSubareaFeature.getId())))
+        .thenReturn(List.of(block, liveSubareaFeature, stagedSubareaFeature));
+
+    var result = licencePositionViewService.getCorrectionPositionPageView(
+        correction, laterPosition, LicenceTimelineFilter.empty());
+
+    var subareaFeatureIds = List.of(liveSubareaFeature.getId(), stagedSubareaFeature.getId());
+    assertThat(result.stateView().blockStateViews())
+        .containsExactly(new BlockStateView(
+            "Block %s".formatted(block.getFeatureName()),
+            "0.00\u00A0km²",
+            new SummaryMapView(List.of(block.getId()), 4230, block.getId()),
+            List.of(
+                new SubareaStateView(
+                    "Subarea Alpha",
+                    "0.00\u00A0km²",
+                    new SummaryMapView(subareaFeatureIds, 4230, liveSubareaFeature.getId()),
+                    List.of()),
+                new SubareaStateView(
+                    "Subarea Bravo",
+                    "0.00\u00A0km²",
+                    new SummaryMapView(subareaFeatureIds, 4230, stagedSubareaFeature.getId()),
+                    List.of()))
+        ));
   }
 
   @Test

@@ -27,6 +27,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.vie
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.ChangeViewUrls;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.PartialSurrenderChangeView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.FeatureSummary;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.FeatureSummaryTestUtil;
 
 class PartialSurrenderOperationTest {
 
@@ -44,10 +45,10 @@ class PartialSurrenderOperationTest {
   private static final UUID SECOND_RETAINED_PART_ID = UUID.randomUUID();
   private static final UUID MERGED_RETAINED_FEATURE_ID = UUID.randomUUID();
   private static final Map<UUID, FeatureSummary> BLOCK_ROW_FEATURES_BY_ID = Map.of(
-      FIRST_FEATURE_ID, new FeatureSummary("21/5", new BigDecimal("219100000")),
-      FIRST_RETAINED_PART_ID, new FeatureSummary("21/5a", new BigDecimal("100000000")),
-      SECOND_RETAINED_PART_ID, new FeatureSummary("21/5b", new BigDecimal("64200000")),
-      MERGED_RETAINED_FEATURE_ID, new FeatureSummary("21/5c", new BigDecimal("164200000"))
+      FIRST_FEATURE_ID, FeatureSummaryTestUtil.featureSummary("21/5", new BigDecimal("219100000")),
+      FIRST_RETAINED_PART_ID, FeatureSummaryTestUtil.featureSummary("21/5a", new BigDecimal("100000000")),
+      SECOND_RETAINED_PART_ID, FeatureSummaryTestUtil.featureSummary("21/5b", new BigDecimal("64200000")),
+      MERGED_RETAINED_FEATURE_ID, FeatureSummaryTestUtil.featureSummary("21/5c", new BigDecimal("164200000"))
   );
 
   private static SurrenderDetails surrenderDetails(BlockSurrenderType type) {
@@ -739,8 +740,8 @@ class PartialSurrenderOperationTest {
             BlockSurrenderType.PARTIAL_SURRENDER, null, List.of(), List.of(FIRST_RETAINED_PART_ID)))
     );
     var featuresById = Map.of(
-        FIRST_FEATURE_ID, new FeatureSummary("21/5", new BigDecimal("219100000")),
-        FIRST_RETAINED_PART_ID, new FeatureSummary("21/5a", null)
+        FIRST_FEATURE_ID, FeatureSummaryTestUtil.featureSummary("21/5", new BigDecimal("219100000")),
+        FIRST_RETAINED_PART_ID, FeatureSummaryTestUtil.featureSummary("21/5a", null)
     );
 
     var result = operation.getBlockRows(featuresById);
@@ -764,9 +765,9 @@ class PartialSurrenderOperationTest {
         )
     );
     var featuresById = Map.of(
-        FIRST_FEATURE_ID, new FeatureSummary("21/5", new BigDecimal("219100000")),
-        SECOND_FEATURE_ID, new FeatureSummary("21/6", new BigDecimal("219100000")),
-        FIRST_RETAINED_PART_ID, new FeatureSummary("21/5a", new BigDecimal("164200000"))
+        FIRST_FEATURE_ID, FeatureSummaryTestUtil.featureSummary("21/5", new BigDecimal("219100000")),
+        SECOND_FEATURE_ID, FeatureSummaryTestUtil.featureSummary("21/6", new BigDecimal("219100000")),
+        FIRST_RETAINED_PART_ID, FeatureSummaryTestUtil.featureSummary("21/5a", new BigDecimal("164200000"))
     );
     var previousState = LicencePositionState.EMPTY
         .withBlock(FIRST_FEATURE_ID, List.of())

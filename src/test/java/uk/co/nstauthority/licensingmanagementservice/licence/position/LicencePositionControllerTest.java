@@ -21,6 +21,7 @@ import static uk.co.nstauthority.licensingmanagementservice.authentication.TestU
 import static uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionController.FILTER_SESSION_ATTRIBUTE;
 import static uk.co.nstauthority.licensingmanagementservice.util.RedirectedToLoginUrlMatcher.redirectionToLoginUrl;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -40,14 +41,18 @@ import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOp
 import uk.co.nstauthority.licensingmanagementservice.licence.overview.LicenceOverviewService;
 import uk.co.nstauthority.licensingmanagementservice.licence.overview.LicenceSummaryCardView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.AdministratorStateView;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.BeneficialInterestView;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.BlockStateView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.LicencePositionStateView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.LicenseeStateView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.LicenseeView;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.state.SubareaStateView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.filter.LicenceTimelineFilter;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.filter.LicenceTimelineFilterOptions;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.filter.LicenceTimelineFilterSession;
 import uk.co.nstauthority.licensingmanagementservice.licence.tab.TabbedLicencePageService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
+import uk.co.nstauthority.licensingmanagementservice.summary.SummaryMapView;
 
 @ContextConfiguration(classes = {
     LicencePositionController.class,
@@ -276,6 +281,121 @@ class LicencePositionControllerTest extends AbstractControllerTest {
             // the timeline tab shows the same header as every other licence tab
             model().attribute("licenceOverviewView", licenceOverviewService.getLicenceOverviewView(LICENCE)),
             model().attribute("licencePositionPageView", pageView)
+        );
+  }
+
+  @Test
+  void renderLicencePosition_whenBlocksHeld_thenBlockAccordionRendered() throws Exception {
+    var position = LicencePositionTestUtil.newBuilder().withId(POSITION_ID).withLicence(LICENCE).build();
+    var blockId = UUID.randomUUID();
+    var subareaId = UUID.randomUUID();
+    var stateView = new LicencePositionStateView(
+        new AdministratorStateView("admin organisation"),
+        new LicenseeStateView(List.of()),
+        "",
+        List.of(),
+        List.of(),
+        List.of(new BlockStateView(
+            "Block 21/1",
+            "100.00\u00A0km²",
+            new SummaryMapView(List.of(blockId), 4230, blockId),
+            List.of(new SubareaStateView(
+                "Subarea Alpha",
+                "40.00\u00A0km²",
+                new SummaryMapView(List.of(subareaId), 4230, subareaId),
+                List.of(new BeneficialInterestView("Shell plc", new BigDecimal("100"), null))
+            ))
+        ))
+    );
+    var pageView = new LicencePositionPageView(
+        List.of(new LicencePositionTimelineView(
+            POSITION_ID, "url1", "REF-2", "5 June 2026", false, null, false, null, null, false, null, null, false)),
+        position.getFormattedPositionDate(),
+        position.getLicence().getLicenceReference(),
+        List.of(),
+        stateView,
+        false,
+        POSITION_ID,
+        false,
+        LicencePositionPageView.Actions.none(),
+        LICENCE.getType(),
+        List.of(),
+        FILTER_OPTIONS,
+        true
+    );
+
+    when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(position));
+    when(licencePositionViewService.getPositionPageView(position, LicenceTimelineFilter.empty())).thenReturn(pageView);
+
+    mockMvc.perform(get(ReverseRouter.route(on(LicencePositionController.class)
+            .renderLicencePosition(LICENCE, position, null, null)))
+            .with(user(regulatorUser)))
+        .andExpectAll(
+            status().isOk(),
+            view().name("lms/licence/position/licencePositions"),
+            model().attribute("licencePositionPageView", pageView),
+            content().string(allOf(
+                containsString("id=\"licence-blocks\""),
+                containsString("Block 21/1"),
+                containsString("Subarea Alpha"),
+                containsString("Shell plc"),
+                containsString("data-gis-described-feature-id=\"%s\"".formatted(blockId)),
+                containsString("data-gis-described-feature-id=\"%s\"".formatted(subareaId))
+            ))
+        );
+  }
+
+  @Test
+  void renderLicencePosition_whenSubareaHasNoFeature_thenSubareaCardRenderedWithoutAreaOrMap() throws Exception {
+    var position = LicencePositionTestUtil.newBuilder().withId(POSITION_ID).withLicence(LICENCE).build();
+    var blockId = UUID.randomUUID();
+    var stateView = new LicencePositionStateView(
+        new AdministratorStateView("admin organisation"),
+        new LicenseeStateView(List.of()),
+        "",
+        List.of(),
+        List.of(),
+        List.of(new BlockStateView(
+            "Block 21/1",
+            "100.00 km²",
+            new SummaryMapView(List.of(blockId), 4230, blockId),
+            List.of(new SubareaStateView(
+                "Subarea a",
+                null,
+                null,
+                List.of(new BeneficialInterestView("Shell plc", new BigDecimal("100"), null))
+            ))
+        ))
+    );
+    var pageView = new LicencePositionPageView(
+        List.of(new LicencePositionTimelineView(
+            POSITION_ID, "url1", "REF-2", "5 June 2026", false, null, false, null, null, false, null, null, false)),
+        position.getFormattedPositionDate(),
+        position.getLicence().getLicenceReference(),
+        List.of(),
+        stateView,
+        false,
+        POSITION_ID,
+        false,
+        LicencePositionPageView.Actions.none(),
+        LICENCE.getType(),
+        List.of(),
+        FILTER_OPTIONS,
+        true
+    );
+
+    when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(position));
+    when(licencePositionViewService.getPositionPageView(position, LicenceTimelineFilter.empty())).thenReturn(pageView);
+
+    mockMvc.perform(get(ReverseRouter.route(on(LicencePositionController.class)
+            .renderLicencePosition(LICENCE, position, null, null)))
+            .with(user(regulatorUser)))
+        .andExpectAll(
+            status().isOk(),
+            content().string(allOf(
+                containsString("Subarea a"),
+                containsString("Shell plc")
+            ))
         );
   }
 

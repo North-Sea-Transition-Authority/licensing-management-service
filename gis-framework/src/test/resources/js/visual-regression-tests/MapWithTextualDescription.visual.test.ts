@@ -6,6 +6,7 @@ import MapWithTextualDescription
   from "@/components/textualDescription/MapWithTextualDescription.vue";
 import { SupportedWkid } from "@/coordinate-system-utils";
 import singleBlockEd50 from "../fixtures/singleBlockEd50.esriJson.json";
+import splitResultEd50 from "../fixtures/splitResultEd50.esriJson.json";
 import { worker } from "./setup";
 import { waitForMapFullyLoaded } from "./visual-test-util";
 
@@ -46,13 +47,17 @@ const baseProps = {
 //
 // The container is torn down by cleanup() in setup.ts. screen.locator resolves to this container, so
 // the screenshot captures the bounded layout.
-function renderInFixedWidthContainer(layout: "horizontal" | "vertical", selectionInputName?: string) {
+function renderInFixedWidthContainer(
+  layout: "horizontal" | "vertical",
+  selectionInputName?: string,
+  describedFeatureId?: string,
+) {
   const container = document.createElement("div");
   container.style.width = layout === "horizontal" ? "700px" : "350px";
   document.body.appendChild(container);
 
   return render(MapWithTextualDescription, {
-    props: { ...baseProps, layout, selectionInputName },
+    props: { ...baseProps, layout, selectionInputName, describedFeatureId },
     global: { plugins: [OpenLayersMap] },
     container,
   });
@@ -100,5 +105,21 @@ describe("map with textual description", () => {
     await waitForMapFullyLoaded();
 
     await expect(screen.locator).toMatchScreenshot("map-with-textual-description-highlighted");
+  });
+
+  it("outlines the features other than the described one", async () => {
+    mockEndpoints({
+      ...splitResultEd50,
+      features: splitResultEd50.features.map((feature, index) => ({
+        ...feature,
+        attributes: { ...feature.attributes, featureId: `part-${index + 1}` },
+      })),
+    });
+
+    const screen = renderInFixedWidthContainer("horizontal", undefined, "part-1");
+
+    await waitForMapFullyLoaded();
+
+    await expect(screen.locator).toMatchScreenshot("map-with-textual-description-described-feature");
   });
 });

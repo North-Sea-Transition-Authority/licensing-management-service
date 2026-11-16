@@ -89,6 +89,7 @@ function renderFeatureLayer(
   extent: Extent,
   selectedFeatureIds: string[] = [],
   refitOnFeaturesChange = true,
+  describedFeatureId?: string,
 ) {
   return render(FeatureLayer, {
     props: {
@@ -98,6 +99,7 @@ function renderFeatureLayer(
       strokeColor: [40, 50, 60, 0.75],
       selectedFeatureIds,
       refitOnFeaturesChange,
+      describedFeatureId,
     },
     global: {
       stubs: {
@@ -163,6 +165,39 @@ describe("featureLayer", () => {
     expect(style?.getStroke()?.getColor()).toEqual([212, 53, 28, 1]);
     expect(style?.getStroke()?.getWidth()).toBe(4);
     expect(style?.getFill()?.getColor()).toEqual([212, 53, 28, 0.5]);
+  });
+
+  it("styles features other than the described one as an unfilled dashed outline with their name", async () => {
+    const { olMap } = createOlMapStub([1280, 1024]);
+
+    renderFeatureLayer(olMap, sourceExtent, [], true, "feature-1");
+
+    const style = vectorLayerProps.style?.({
+      get: property => ({ featureId: "feature-2", featureName: "Block B" } as Record<string, string>)[property],
+    });
+
+    expect(style?.getStroke()?.getColor()).toEqual([40, 50, 60, 0.75]);
+    expect(style?.getStroke()?.getWidth()).toBe(2);
+    expect(style?.getStroke()?.getLineDash()).toEqual([6, 6]);
+    expect(style?.getFill()).toBeNull();
+    expect(style?.getText()?.getText()).toBe("Block B");
+    expect(style?.getZIndex()).toBe(0);
+  });
+
+  it("styles the described feature with the default colours above the outlines", async () => {
+    const { olMap } = createOlMapStub([1280, 1024]);
+
+    renderFeatureLayer(olMap, sourceExtent, [], true, "feature-1");
+
+    const style = vectorLayerProps.style?.({
+      get: property => ({ featureId: "feature-1", featureName: "Block A" } as Record<string, string>)[property],
+    });
+
+    expect(style?.getStroke()?.getColor()).toEqual([40, 50, 60, 0.75]);
+    expect(style?.getStroke()?.getLineDash()).toBeNull();
+    expect(style?.getFill()?.getColor()).toEqual([10, 20, 30, 0.5]);
+    expect(style?.getText()?.getText()).toBe("Block A");
+    expect(style?.getZIndex()).toBe(1);
   });
 
   it("redraws the source when the selected feature ids change", async () => {

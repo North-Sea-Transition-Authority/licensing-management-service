@@ -32,6 +32,7 @@
       :features="features"
       :ol-map="mapRef"
       :selected-feature-ids="selectedFeatureIds"
+      :described-feature-id="describedFeatureId"
       :refit-on-features-change="refitOnFeaturesChange"
     />
     <node-numbering-layer :outline-nodes="outlineNodes"/>
@@ -69,6 +70,7 @@ interface BaseMapProps {
   // wrappers can pass e.g. a full-height style to make the map fill a fixed-aspect container.
   mapStyleOverride?: CSSProperties,
   selectedFeatureIds?: string[],
+  describedFeatureId?: string,
   refitOnFeaturesChange?: boolean,
 }
 

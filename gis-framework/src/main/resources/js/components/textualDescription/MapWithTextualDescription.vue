@@ -11,6 +11,7 @@
         :include-draw-line="false"
         :map-style-override="mapStyleOverride"
         :selected-feature-ids="selectedFeatureIds"
+        :described-feature-id="describedFeatureId"
       />
     </div>
     <div class="gis-map-with-textual-description__panel gis-map-with-textual-description__panel--description">
@@ -37,6 +38,7 @@ interface MapWithTextualDescriptionProps {
   includeNstaBlocks?: boolean,
   // Name of host-page checkboxes whose checked values are feature ids to highlight on the map.
   selectionInputName?: string,
+  describedFeatureId?: string,
 }
 
 const props = withDefaults(defineProps<MapWithTextualDescriptionProps>(), {

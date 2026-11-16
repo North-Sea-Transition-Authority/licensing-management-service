@@ -1,5 +1,6 @@
 package uk.co.nstauthority.licensingmanagementservice.summary;
 
+import jakarta.annotation.Nullable;
 import java.util.List;
 import java.util.UUID;
 
@@ -13,6 +14,10 @@ import java.util.UUID;
  */
 public record SummaryMapView(
     List<UUID> featureIds,
-    int srsWkid
+    int srsWkid,
+    @Nullable UUID describedFeatureId
 ) {
+  public SummaryMapView(List<UUID> featureIds, int srsWkid) {
+    this(featureIds, srsWkid, null);
+  }
 }

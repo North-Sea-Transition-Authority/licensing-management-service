@@ -147,7 +147,7 @@ steps:
       status: [ success, failure ]
 
   - name: code-analysis
-    image: repo1.dev.fivium.local:5000/sonarcloud-scan-java21:latest
+    image: repo1.dev.fivium.local:5000/sonarcloud-scan-java21-node24:latest
     depends_on: [ build-backend ]
     environment:
       SONAR_TOKEN:
@@ -474,7 +474,7 @@ steps:
 
   # This is in the PR pipeline as only PR events get the necessary information for proper github integration
   - name: code-analysis
-    image: repo1.dev.fivium.local:5000/sonarcloud-scan-java21:latest
+    image: repo1.dev.fivium.local:5000/sonarcloud-scan-java21-node24:latest
     depends_on: [ build-backend ]
     environment:
       SONAR_TOKEN:

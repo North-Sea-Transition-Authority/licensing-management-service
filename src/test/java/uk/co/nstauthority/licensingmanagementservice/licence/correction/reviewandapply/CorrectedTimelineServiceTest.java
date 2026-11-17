@@ -15,8 +15,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceC
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.ChronologicalPositionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionViewService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionStateResolver;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPositionTestUtil;
 
@@ -27,7 +27,7 @@ class CorrectedTimelineServiceTest {
   private LicencePositionCorrectionService licencePositionCorrectionService;
 
   @Mock
-  private LicencePositionViewService licencePositionViewService;
+  private ChronologicalPositionService chronologicalPositionService;
 
   @InjectMocks
   private CorrectedTimelineService correctedTimelineService;
@@ -56,7 +56,7 @@ class CorrectedTimelineServiceTest {
         ChronologicalPositionTestUtil.newBuilder().withId(updatedPosition.getId()).build());
 
     when(licencePositionCorrectionService.getPositionCorrections(correction)).thenReturn(positionCorrections);
-    when(licencePositionViewService.getCorrectedChronologicalPositions(
+    when(chronologicalPositionService.getCorrectedChronologicalPositions(
         correction, positionCorrections, removedPositionIds))
         .thenReturn(positions);
 

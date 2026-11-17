@@ -44,9 +44,9 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.TransferEquityOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.ChronologicalPositionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionViewService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPositionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.PositionChangeTestUtil;
@@ -71,7 +71,7 @@ class TransferEquityCorrectionServiceTest {
   private OrganisationUnitQueryService organisationUnitQueryService;
 
   @Mock
-  private LicencePositionViewService licencePositionViewService;
+  private ChronologicalPositionService chronologicalPositionService;
 
   @Captor
   private ArgumentCaptor<LicencePositionCorrection> licencePositionCorrectionCaptor;
@@ -89,7 +89,7 @@ class TransferEquityCorrectionServiceTest {
         licencePositionCorrectionRepository,
         licencePositionCorrectionService,
         organisationUnitQueryService,
-        licencePositionViewService
+        chronologicalPositionService
     );
   }
 
@@ -105,7 +105,7 @@ class TransferEquityCorrectionServiceTest {
         new TransferEquityOperation(1, 2, BigDecimal.valueOf(15), true)
     );
 
-    when(licencePositionViewService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, POSITION_ID))
+    when(chronologicalPositionService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, POSITION_ID))
         .thenReturn(List.of(earlierPosition, currentPosition));
 
     assertThat(transferEquityCorrectionService.getEquityHoldingsForCorrection(LICENCE_CORRECTION, POSITION_ID))
@@ -120,7 +120,7 @@ class TransferEquityCorrectionServiceTest {
         new TransferEquityOperation(1, 2, BigDecimal.valueOf(100), true)
     );
 
-    when(licencePositionViewService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, POSITION_ID))
+    when(chronologicalPositionService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, POSITION_ID))
         .thenReturn(List.of(earlierPosition, currentPosition));
 
     assertThat(transferEquityCorrectionService.getEquityHoldingsForCorrection(LICENCE_CORRECTION, POSITION_ID))
@@ -135,7 +135,7 @@ class TransferEquityCorrectionServiceTest {
         new TransferEquityOperation(1, 2, BigDecimal.valueOf(100), false)
     );
 
-    when(licencePositionViewService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, POSITION_ID))
+    when(chronologicalPositionService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, POSITION_ID))
         .thenReturn(List.of(earlierPosition, currentPosition));
 
     assertThat(transferEquityCorrectionService.getEquityHoldingsForCorrection(LICENCE_CORRECTION, POSITION_ID))
@@ -158,7 +158,7 @@ class TransferEquityCorrectionServiceTest {
         .withChanges(List.of(setChange, removedChange))
         .build();
 
-    when(licencePositionViewService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, POSITION_ID))
+    when(chronologicalPositionService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, POSITION_ID))
         .thenReturn(List.of(currentPosition));
 
     var result = transferEquityCorrectionService.getEquityHoldingsForCorrection(LICENCE_CORRECTION, POSITION_ID);
@@ -175,7 +175,7 @@ class TransferEquityCorrectionServiceTest {
     );
     var laterPosition = chronologicalPosition(UUID.randomUUID(), new SetEquityOperation(3, BigDecimal.valueOf(50)));
 
-    when(licencePositionViewService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, POSITION_ID))
+    when(chronologicalPositionService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, POSITION_ID))
         .thenReturn(List.of(earlierPosition, currentPosition, laterPosition));
 
     assertThat(transferEquityCorrectionService.getEquityHoldingsForCorrection(LICENCE_CORRECTION, POSITION_ID))
@@ -191,7 +191,7 @@ class TransferEquityCorrectionServiceTest {
         .build();
     var currentPosition = chronologicalPosition(POSITION_ID, new SetEquityOperation(1, BigDecimal.valueOf(100)));
 
-    when(licencePositionViewService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, POSITION_ID))
+    when(chronologicalPositionService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, POSITION_ID))
         .thenReturn(List.of(currentPosition));
 
     assertThat(transferEquityCorrectionService.getEquityHoldingsForAddedPosition(LICENCE_CORRECTION, positionCorrection))

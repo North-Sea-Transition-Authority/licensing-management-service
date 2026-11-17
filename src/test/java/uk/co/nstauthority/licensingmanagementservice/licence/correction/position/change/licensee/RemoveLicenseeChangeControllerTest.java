@@ -130,7 +130,7 @@ class RemoveLicenseeChangeControllerTest extends AbstractControllerTest {
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(position);
     when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(position));
     when(licencePositionChangeService.findById(positionChange.getId())).thenReturn(Optional.of(positionChange));
-    when(licencePositionViewService.getLicenseeChangeContext(correction, POSITION_ID)).thenReturn(licenseeChangeContext);
+    when(licenseeChangeService.getLicenseeChangeContext(correction, POSITION_ID)).thenReturn(licenseeChangeContext);
 
     var expectedLicenseeChangeView = new LicenseeChangeView(
         licenseeChangeContext.currentWithdrawingLicenseeNames(),

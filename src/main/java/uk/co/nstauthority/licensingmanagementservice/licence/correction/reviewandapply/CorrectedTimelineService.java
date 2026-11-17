@@ -3,27 +3,27 @@ package uk.co.nstauthority.licensingmanagementservice.licence.correction.reviewa
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionViewService;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.ChronologicalPositionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionStateResolver;
 
 @Service
 public class CorrectedTimelineService {
 
   private final LicencePositionCorrectionService licencePositionCorrectionService;
-  private final LicencePositionViewService licencePositionViewService;
+  private final ChronologicalPositionService chronologicalPositionService;
 
   public CorrectedTimelineService(
       LicencePositionCorrectionService licencePositionCorrectionService,
-      LicencePositionViewService licencePositionViewService
+      ChronologicalPositionService chronologicalPositionService
   ) {
     this.licencePositionCorrectionService = licencePositionCorrectionService;
-    this.licencePositionViewService = licencePositionViewService;
+    this.chronologicalPositionService = chronologicalPositionService;
   }
 
   public CorrectedTimeline getCorrectedTimeline(LicenceCorrection licenceCorrection) {
     var positionCorrections = licencePositionCorrectionService.getPositionCorrections(licenceCorrection);
     var removedPositionIds = LicencePositionCorrectionService.getRemovedPositionIds(positionCorrections);
-    var displayedPositions = licencePositionViewService.getCorrectedChronologicalPositions(
+    var displayedPositions = chronologicalPositionService.getCorrectedChronologicalPositions(
         licenceCorrection,
         positionCorrections,
         removedPositionIds

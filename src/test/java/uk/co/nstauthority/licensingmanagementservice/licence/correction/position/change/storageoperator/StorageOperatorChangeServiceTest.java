@@ -9,16 +9,20 @@ import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import uk.co.fivium.gisframework.feature.FeatureService;
+import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationNamePeriods;
+import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
@@ -39,11 +43,14 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.UpdateLicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.StorageOperatorOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.ChronologicalPositionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionNameService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionViewService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.storageoperator.StorageOperatorChangeContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPositionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.PositionChange;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.PositionChangeTestUtil;
 
 @ExtendWith(MockitoExtension.class)
 class StorageOperatorChangeServiceTest {
@@ -52,9 +59,14 @@ class StorageOperatorChangeServiceTest {
   private LicencePositionCorrectionService licencePositionCorrectionService;
 
   @Mock
-  private LicencePositionViewService licencePositionViewService;
+  private ChronologicalPositionService chronologicalPositionService;
 
-  @InjectMocks
+  @Mock
+  private OrganisationUnitQueryService organisationUnitQueryService;
+
+  @Mock
+  private FeatureService featureService;
+
   private StorageOperatorChangeService storageOperatorChangeService;
 
   @Captor
@@ -73,6 +85,15 @@ class StorageOperatorChangeServiceTest {
       .withLicence(LICENCE)
       .withId(POSITION_ID)
       .build();
+
+  @BeforeEach
+  void setUp() {
+    storageOperatorChangeService = new StorageOperatorChangeService(
+        licencePositionCorrectionService,
+        chronologicalPositionService,
+        new LicencePositionNameService(organisationUnitQueryService, featureService)
+    );
+  }
 
   @Test
   void addStorageOperatorChangeForAddedLicencePosition_whenNoOperatorChangeYet_appendsOperatorChange() {
@@ -318,19 +339,58 @@ class StorageOperatorChangeServiceTest {
         .withPayload(otherPayload)
         .build();
 
-    var targetPosition1 = ChronologicalPositionTestUtil.newBuilder().build();
-    var targetPosition2 = ChronologicalPositionTestUtil.newBuilder().build();
+    var targetPosition1 = ChronologicalPositionTestUtil.newBuilder()
+        .withOrder(1)
+        .withChanges(List.of(storageOperatorChange(1)))
+        .build();
+    var targetPosition2 = ChronologicalPositionTestUtil.newBuilder()
+        .withId(POSITION_ID)
+        .withOrder(2)
+        .withChanges(List.of(storageOperatorChange(2)))
+        .build();
     var targetPositions = List.of(targetPosition1, targetPosition2);
 
     when(licencePositionCorrectionService.getPositionCorrections(correction))
         .thenReturn(List.of(positionCorrectionToUndo, otherPositionCorrection));
-    when(licencePositionViewService.getCorrectedChronologicalPositions(correction, List.of(otherPositionCorrection), Set.of(POSITION_ID)))
+    when(chronologicalPositionService.getCorrectedChronologicalPositions(correction, List.of(otherPositionCorrection), Set.of(POSITION_ID)))
         .thenReturn(targetPositions);
-    when(licencePositionViewService.getStorageOperatorChangeContext(correction, POSITION_ID, targetPositions))
-        .thenReturn(new StorageOperatorChangeContext(2, 1, "Uncorrected Current Operator Name", "Uncorrected Previous Operator Name"));
+    when(organisationUnitQueryService.getOrganisationNameHistoriesByIds(List.of(1, 2)))
+        .thenReturn(Map.of(
+            1, new OrganisationNamePeriods("Uncorrected Previous Operator Name", List.of()),
+            2, new OrganisationNamePeriods("Uncorrected Current Operator Name", List.of())
+        ));
 
     assertThat(storageOperatorChangeService.getJoiningOperatorForReinstating(correction, positionCorrectionToUndo))
         .isEqualTo("Uncorrected Current Operator Name");
+  }
+
+  @Test
+  void getStorageOperatorChangeContext_emptyContext() {
+    var position = ChronologicalPositionTestUtil.newBuilder().withId(POSITION_ID).build();
+
+    when(chronologicalPositionService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, POSITION_ID))
+        .thenReturn(List.of(position));
+
+    var result = storageOperatorChangeService.getStorageOperatorChangeContext(LICENCE_CORRECTION, POSITION_ID);
+
+    assertThat(result).isEqualTo(new StorageOperatorChangeContext(null, null, "", ""));
+  }
+
+  @Test
+  void getStorageOperatorChangeContext_resolvesStorageOperatorNames() {
+    var position = ChronologicalPositionTestUtil.newBuilder()
+        .withId(POSITION_ID)
+        .withChanges(List.of(storageOperatorChange(1)))
+        .build();
+
+    when(chronologicalPositionService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, POSITION_ID))
+        .thenReturn(List.of(position));
+    when(organisationUnitQueryService.getOrganisationNameHistoriesByIds(List.of(1)))
+        .thenReturn(Map.of(1, new OrganisationNamePeriods("Current Operator Org", List.of())));
+
+    var result = storageOperatorChangeService.getStorageOperatorChangeContext(LICENCE_CORRECTION, POSITION_ID);
+
+    assertThat(result).isEqualTo(new StorageOperatorChangeContext(1, null, "Current Operator Org", ""));
   }
 
   @Test
@@ -469,13 +529,19 @@ class StorageOperatorChangeServiceTest {
     return LicencePositionChangeType.removeChange().withChangeId(changeId).build();
   }
 
+  private static PositionChange storageOperatorChange(int operatorId) {
+    return PositionChangeTestUtil.newBuilder()
+        .withOperations(List.of(LicenceOperation.newStorageOperatorOperation().withOperator(operatorId).build()))
+        .build();
+  }
+
   private Integer operatorIdOf(LicencePositionChangeType change) {
     var op = (LicencePositionAddOperation) change.operations().getFirst();
     return ((StorageOperatorOperation ) op.operation()).operatorId();
   }
 
   private Integer updateOperatorIdOf(LicencePositionChangeType change) {
-    var op = (LicencePositionUpdateOperation) ((UpdateChangeOperations) change).operations().getFirst();
+    var op = (LicencePositionUpdateOperation) change.operations().getFirst();
     return ((StorageOperatorOperation) op.operation()).operatorId();
   }
 }

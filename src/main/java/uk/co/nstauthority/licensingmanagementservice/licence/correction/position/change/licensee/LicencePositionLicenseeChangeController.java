@@ -32,7 +32,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenseeOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionViewService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.licensee.LicenseeChangeContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionLicenseeChangeUtil;
@@ -47,18 +46,15 @@ public class LicencePositionLicenseeChangeController {
 
   private final LicenceFormService licenceFormService;
   private final LicenseeChangeFormValidator licenseeChangeFormValidator;
-  private final LicencePositionViewService licencePositionViewService;
   private final LicenseeChangeService licenseeChangeService;
 
   LicencePositionLicenseeChangeController(
       LicenceFormService licenceFormService,
       LicenseeChangeFormValidator licenseeChangeFormValidator,
-      LicencePositionViewService licencePositionViewService,
       LicenseeChangeService licenseeChangeService
   ) {
     this.licenceFormService = licenceFormService;
     this.licenseeChangeFormValidator = licenseeChangeFormValidator;
-    this.licencePositionViewService = licencePositionViewService;
     this.licenseeChangeService = licenseeChangeService;
   }
 
@@ -229,7 +225,7 @@ public class LicencePositionLicenseeChangeController {
   }
 
   private ModelAndView renderForExistingPosition(LicenceCorrection correction, LicencePosition position) {
-    var licenseeChangeContext = licencePositionViewService.getLicenseeChangeContext(
+    var licenseeChangeContext = licenseeChangeService.getLicenseeChangeContext(
         correction,
         position.getId()
     );
@@ -247,7 +243,7 @@ public class LicencePositionLicenseeChangeController {
       LicencePositionCorrection licencePositionCorrection
   ) {
     var payload = (CreateLicencePositionPayload) licencePositionCorrection.getPayload();
-    return licencePositionViewService.getLicenseeChangeContext(correction, UUID.fromString(payload.licencePositionId()));
+    return licenseeChangeService.getLicenseeChangeContext(correction, UUID.fromString(payload.licencePositionId()));
   }
 
   private String joiningSearchSelectorEndpoint(List<String> previousLicenseeNames) {
@@ -290,7 +286,7 @@ public class LicencePositionLicenseeChangeController {
       LicenseeChangeForm form,
       BindingResult bindingResult
   ) {
-    var licenseeChangeContext = licencePositionViewService.getLicenseeChangeContext(
+    var licenseeChangeContext = licenseeChangeService.getLicenseeChangeContext(
         correction,
         position.getId()
     );

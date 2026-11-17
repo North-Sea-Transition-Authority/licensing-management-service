@@ -151,7 +151,7 @@ class RemoveStorageOperatorChangeControllerTest extends AbstractControllerTest {
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(position);
     when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(position));
     when(licencePositionChangeService.findById(CHANGE.getId())).thenReturn(Optional.of(CHANGE));
-    when(licencePositionViewService.getStorageOperatorChangeContext(correction, POSITION_ID))
+    when(storageOperatorChangeService.getStorageOperatorChangeContext(correction, POSITION_ID))
         .thenReturn(new StorageOperatorChangeContext(789, 456, "Joining Storage Operator Org", "Withdrawing Storage Operator Org"));
 
     mockMvc.perform(get(ReverseRouter.route(on(RemoveStorageOperatorChangeController.class)
@@ -203,7 +203,7 @@ class RemoveStorageOperatorChangeControllerTest extends AbstractControllerTest {
 
     when(licencePositionCorrectionService.getPositionCorrectionContainingChange(correction, CHANGE_ID))
         .thenReturn(positionCorrection);
-    when(licencePositionViewService.getStorageOperatorChangeContext(correction, POSITION_ID))
+    when(storageOperatorChangeService.getStorageOperatorChangeContext(correction, POSITION_ID))
         .thenReturn(new StorageOperatorChangeContext(789, 456, "Joining Storage Operator Org", "Withdrawing Storage Operator Org"));
 
     mockMvc.perform(get(ReverseRouter.route(on(RemoveStorageOperatorChangeController.class)
@@ -234,7 +234,7 @@ class RemoveStorageOperatorChangeControllerTest extends AbstractControllerTest {
     when(licencePositionCorrectionService.isStagedRemoval(positionCorrection, CHANGE_ID)).thenReturn(true);
     when(storageOperatorChangeService.getJoiningOperatorForReinstating(correction, positionCorrection))
         .thenReturn("Reinstated Storage Operator Org");
-    when(licencePositionViewService.getStorageOperatorChangeContext(correction, POSITION_ID))
+    when(storageOperatorChangeService.getStorageOperatorChangeContext(correction, POSITION_ID))
         .thenReturn(new StorageOperatorChangeContext(789, 456, "Joining Storage Operator Org", "Withdrawing Storage Operator Org"));
 
     mockMvc.perform(get(ReverseRouter.route(on(RemoveStorageOperatorChangeController.class)

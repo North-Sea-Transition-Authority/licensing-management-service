@@ -15,6 +15,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationNamePeriods;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.CorrectionMarker;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
@@ -28,12 +29,14 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.UpdateLicencePositionPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationError;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.ChronologicalPositionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionNameService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionViewService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionStateResolver;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.OrganisationNameContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPositionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.PositionChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.PositionChangeTestUtil;
@@ -50,17 +53,22 @@ class CorrectionReviewServiceTest {
   private static final String JOINING_NAME = "Joining Org Ltd";
   private static final int CORRECTED_JOINING_ID = 200;
   private static final String CORRECTED_JOINING_NAME = "Corrected Org Ltd";
-  private static final Map<Integer, String> ORGANISATION_NAMES =
-      Map.of(JOINING_ID, JOINING_NAME, CORRECTED_JOINING_ID, CORRECTED_JOINING_NAME);
+  private static final OrganisationNameContext NAME_CONTEXT = OrganisationNameContext.from(Map.of(
+      JOINING_ID, new OrganisationNamePeriods(JOINING_NAME, List.of()),
+      CORRECTED_JOINING_ID, new OrganisationNamePeriods(CORRECTED_JOINING_NAME, List.of())
+  ));
 
   @Mock
-  private LicencePositionViewService licencePositionViewService;
+  private ChronologicalPositionService chronologicalPositionService;
 
   @Mock
   private LicencePositionCorrectionService licencePositionCorrectionService;
 
   @Mock
   private LicencePositionService licencePositionService;
+
+  @Mock
+  private LicencePositionNameService licencePositionNameService;
 
   @InjectMocks
   private CorrectionReviewService correctionReviewService;
@@ -442,11 +450,11 @@ class CorrectionReviewServiceTest {
     when(licencePositionCorrectionService.getPositionCorrections(correction)).thenReturn(positionCorrections);
     when(licencePositionService.getExecutedChronologicalLicencePositions(correction.getLicence()))
         .thenReturn(executedPositions);
-    when(licencePositionViewService.getLiveChronologicalPositions(
+    when(chronologicalPositionService.getLiveChronologicalPositions(
         Stream.concat(executedPositions.stream(), removedPositions).toList()))
         .thenReturn(appliedPositions);
-    when(licencePositionViewService.resolveOrganisationNames(appliedPositions)).thenReturn(ORGANISATION_NAMES);
-    when(licencePositionViewService.resolveFeatures(appliedPositions)).thenReturn(Map.of());
+    when(licencePositionNameService.getOrganisationNameContext(appliedPositions)).thenReturn(NAME_CONTEXT);
+    when(licencePositionNameService.resolveFeatures(appliedPositions)).thenReturn(Map.of());
   }
 
   private CorrectedTimeline stubTimelines(
@@ -457,10 +465,10 @@ class CorrectionReviewServiceTest {
   ) {
     var bothTimelines = Stream.concat(correctedPositions.stream(), executedPositions.stream()).toList();
 
-    when(licencePositionViewService.getLiveChronologicalPositions(correction.getLicence()))
+    when(chronologicalPositionService.getLiveChronologicalPositions(correction.getLicence()))
         .thenReturn(executedPositions);
-    when(licencePositionViewService.resolveOrganisationNames(bothTimelines)).thenReturn(ORGANISATION_NAMES);
-    when(licencePositionViewService.resolveFeatures(bothTimelines)).thenReturn(Map.of());
+    when(licencePositionNameService.getOrganisationNameContext(bothTimelines)).thenReturn(NAME_CONTEXT);
+    when(licencePositionNameService.resolveFeatures(bothTimelines)).thenReturn(Map.of());
 
     return new CorrectedTimeline(
         correction,

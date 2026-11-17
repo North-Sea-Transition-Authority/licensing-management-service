@@ -25,7 +25,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.StorageOperatorOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionViewService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
@@ -39,16 +38,13 @@ public class RemoveStorageOperatorChangeController {
   private static final String REINSTATE_PAGE_TITLE = "Are you sure you want to reinstate this storage operator change?";
   private static final String CONFIRMATION_TEMPLATE = "lms/licence/correction/change/removeStorageOperatorChange";
 
-  private final LicencePositionViewService licencePositionViewService;
   private final StorageOperatorChangeService storageOperatorChangeService;
   private final LicencePositionCorrectionService licencePositionCorrectionService;
 
   RemoveStorageOperatorChangeController(
-      LicencePositionViewService licencePositionViewService,
       StorageOperatorChangeService storageOperatorChangeService,
       LicencePositionCorrectionService licencePositionCorrectionService
   ) {
-    this.licencePositionViewService = licencePositionViewService;
     this.storageOperatorChangeService = storageOperatorChangeService;
     this.licencePositionCorrectionService = licencePositionCorrectionService;
   }
@@ -126,7 +122,7 @@ public class RemoveStorageOperatorChangeController {
       LicenceCorrection correction,
       LicencePosition licencePosition
   ) {
-    var storageOperatorChangeContext = licencePositionViewService
+    var storageOperatorChangeContext = storageOperatorChangeService
         .getStorageOperatorChangeContext(correction, licencePosition.getId());
 
     return new ModelAndView(CONFIRMATION_TEMPLATE)
@@ -144,7 +140,7 @@ public class RemoveStorageOperatorChangeController {
       LicencePositionCorrection positionCorrection
   ) {
     var storageOperatorChangeContext =
-        licencePositionViewService.getStorageOperatorChangeContext(correction, getPositionId(positionCorrection));
+        storageOperatorChangeService.getStorageOperatorChangeContext(correction, getPositionId(positionCorrection));
     var reinstating = licencePositionCorrectionService.isStagedRemoval(positionCorrection, changeId);
 
     var primaryButton = reinstating

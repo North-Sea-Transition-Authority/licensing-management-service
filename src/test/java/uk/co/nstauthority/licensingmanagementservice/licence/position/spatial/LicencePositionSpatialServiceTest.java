@@ -40,8 +40,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaOp
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaSetEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaSurrenderOutcome;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaTransfer;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.ChronologicalPositionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionViewService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPositionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.LicencePositionState;
@@ -74,7 +74,7 @@ class LicencePositionSpatialServiceTest {
   private static final UUID FOURTH_POSITION_ID = UUID.randomUUID();
 
   @Mock
-  private LicencePositionViewService licencePositionViewService;
+  private ChronologicalPositionService chronologicalPositionService;
 
   @Mock
   private FeatureService featureService;
@@ -86,7 +86,7 @@ class LicencePositionSpatialServiceTest {
   void getBlockFeaturesGoingIntoChange_whenAnUpdatePositionCorrection_thenResolvesUpToTheNamedChange() {
     var targetPosition = LicencePositionTestUtil.newBuilder().withLicence(LICENCE).build();
 
-    when(licencePositionViewService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, targetPosition.getId()))
+    when(chronologicalPositionService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, targetPosition.getId()))
         .thenReturn(List.of(
             ChronologicalPositionTestUtil.newBuilder()
                 .withId(targetPosition.getId())
@@ -113,7 +113,7 @@ class LicencePositionSpatialServiceTest {
   void getExecutedStateGoingIntoChange_thenFoldsTheLiveTimelineUpToTheNamedChange() {
     var targetPosition = LicencePositionTestUtil.newBuilder().withId(SECOND_POSITION_ID).withLicence(LICENCE).build();
 
-    when(licencePositionViewService.getLiveChronologicalPositions(LICENCE)).thenReturn(List.of(
+    when(chronologicalPositionService.getLiveChronologicalPositions(LICENCE)).thenReturn(List.of(
         position(FIRST_POSITION_ID, 1, blockCreateOf(BLOCK_30_1.getId(), BLOCK_30_2.getId())),
         positionWithChanges(
             SECOND_POSITION_ID,
@@ -144,7 +144,7 @@ class LicencePositionSpatialServiceTest {
             .build())
         .build();
 
-    when(licencePositionViewService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, addedPositionId))
+    when(chronologicalPositionService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, addedPositionId))
         .thenReturn(List.of(
             ChronologicalPositionTestUtil.newBuilder()
                 .withId(addedPositionId)
@@ -171,7 +171,7 @@ class LicencePositionSpatialServiceTest {
     var targetPosition = LicencePositionTestUtil.newBuilder().withLicence(LICENCE).build();
     var heldFeatureIds = Set.of(SUBAREA.getId(), BLOCK_30_2.getId(), BLOCK_30_1.getId());
 
-    when(licencePositionViewService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, targetPosition.getId()))
+    when(chronologicalPositionService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, targetPosition.getId()))
         .thenReturn(List.of(
             ChronologicalPositionTestUtil.newBuilder()
                 .withId(targetPosition.getId())
@@ -195,7 +195,7 @@ class LicencePositionSpatialServiceTest {
         .build();
     var heldFeatureIds = Set.of(SUBAREA.getId(), BLOCK_30_2.getId(), BLOCK_30_1.getId());
 
-    when(licencePositionViewService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, targetPosition.getId()))
+    when(chronologicalPositionService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, targetPosition.getId()))
         .thenReturn(List.of(
             ChronologicalPositionTestUtil.newBuilder()
                 .withId(targetPosition.getId())
@@ -218,7 +218,7 @@ class LicencePositionSpatialServiceTest {
         position(FOURTH_POSITION_ID, 4)
     );
 
-    when(licencePositionViewService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, FOURTH_POSITION_ID))
+    when(chronologicalPositionService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, FOURTH_POSITION_ID))
         .thenReturn(positions);
     when(featureService.getFeaturesByIds(Set.of(BLOCK_30_3.getId()))).thenReturn(List.of(BLOCK_30_3));
 
@@ -235,7 +235,7 @@ class LicencePositionSpatialServiceTest {
         position(THIRD_POSITION_ID, 3)
     );
 
-    when(licencePositionViewService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, THIRD_POSITION_ID))
+    when(chronologicalPositionService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, THIRD_POSITION_ID))
         .thenReturn(positions);
     when(featureService.getFeaturesByIds(Set.of(BLOCK_30_1.getId(), BLOCK_30_2.getId())))
         .thenReturn(List.of(BLOCK_30_1, BLOCK_30_2));
@@ -261,7 +261,7 @@ class LicencePositionSpatialServiceTest {
         position(THIRD_POSITION_ID, 3)
     );
 
-    when(licencePositionViewService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, THIRD_POSITION_ID))
+    when(chronologicalPositionService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, THIRD_POSITION_ID))
         .thenReturn(positions);
     when(featureService.getFeaturesByIds(Set.of(BLOCK_30_1.getId(), BLOCK_30_2.getId())))
         .thenReturn(List.of(BLOCK_30_1, BLOCK_30_2));
@@ -275,7 +275,7 @@ class LicencePositionSpatialServiceTest {
   void getBlockFeaturesGoingIntoChange_whenNoPositionCarriesASpatialOperation_thenEmpty() {
     var positions = List.of(position(FIRST_POSITION_ID, 1), position(SECOND_POSITION_ID, 2));
 
-    when(licencePositionViewService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, SECOND_POSITION_ID))
+    when(chronologicalPositionService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, SECOND_POSITION_ID))
         .thenReturn(positions);
 
     assertThat(licencePositionSpatialService
@@ -291,7 +291,7 @@ class LicencePositionSpatialServiceTest {
         position(SECOND_POSITION_ID, 2, fullSurrenderOf(BLOCK_30_2.getId()))
     );
 
-    when(licencePositionViewService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, absentPositionId))
+    when(chronologicalPositionService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, absentPositionId))
         .thenReturn(positions);
     when(featureService.getFeaturesByIds(Set.of(BLOCK_30_1.getId()))).thenReturn(List.of(BLOCK_30_1));
 
@@ -309,7 +309,7 @@ class LicencePositionSpatialServiceTest {
         position(FOURTH_POSITION_ID, 4)
     );
 
-    when(licencePositionViewService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, FOURTH_POSITION_ID))
+    when(chronologicalPositionService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, FOURTH_POSITION_ID))
         .thenReturn(positions);
     when(featureService.getFeaturesByIds(Set.of(BLOCK_30_3.getId()))).thenReturn(List.of(BLOCK_30_3));
 
@@ -329,7 +329,7 @@ class LicencePositionSpatialServiceTest {
         position(THIRD_POSITION_ID, 3)
     );
 
-    when(licencePositionViewService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, THIRD_POSITION_ID))
+    when(chronologicalPositionService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, THIRD_POSITION_ID))
         .thenReturn(positions);
     when(featureService.getFeaturesByIds(Set.of(BLOCK_30_1.getId(), BLOCK_30_2.getId())))
         .thenReturn(List.of(BLOCK_30_1, BLOCK_30_2));
@@ -354,7 +354,7 @@ class LicencePositionSpatialServiceTest {
                 .build()))
         .build());
 
-    when(licencePositionViewService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, FIRST_POSITION_ID))
+    when(chronologicalPositionService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, FIRST_POSITION_ID))
         .thenReturn(positions);
     when(featureService.getFeaturesByIds(Set.of(BLOCK_30_1.getId()))).thenReturn(List.of(BLOCK_30_1));
 
@@ -373,7 +373,7 @@ class LicencePositionSpatialServiceTest {
             .build()))
         .build());
 
-    when(licencePositionViewService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, FIRST_POSITION_ID))
+    when(chronologicalPositionService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, FIRST_POSITION_ID))
         .thenReturn(positions);
     when(featureService.getFeaturesByIds(Set.of(BLOCK_30_1.getId()))).thenReturn(List.of(BLOCK_30_1));
 
@@ -400,7 +400,7 @@ class LicencePositionSpatialServiceTest {
                 .build()))
         .build());
 
-    when(licencePositionViewService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, FIRST_POSITION_ID))
+    when(chronologicalPositionService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, FIRST_POSITION_ID))
         .thenReturn(positions);
 
     assertThat(licencePositionSpatialService
@@ -418,7 +418,7 @@ class LicencePositionSpatialServiceTest {
         change("subarea-change", 3, subareaChangeFor(BLOCK_30_1.getId()))
     ));
 
-    when(licencePositionViewService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, FIRST_POSITION_ID))
+    when(chronologicalPositionService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, FIRST_POSITION_ID))
         .thenReturn(positions);
     when(featureService.getFeaturesByIds(Set.of(BLOCK_30_1.getId()))).thenReturn(List.of(BLOCK_30_1));
 
@@ -434,7 +434,7 @@ class LicencePositionSpatialServiceTest {
         position(SECOND_POSITION_ID, 2)
     );
 
-    when(licencePositionViewService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, SECOND_POSITION_ID))
+    when(chronologicalPositionService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, SECOND_POSITION_ID))
         .thenReturn(positions);
     when(featureService.getFeaturesByIds(Set.of(BLOCK_30_1.getId(), BLOCK_30_2.getId())))
         .thenReturn(List.of(BLOCK_30_1, BLOCK_30_2));
@@ -452,7 +452,7 @@ class LicencePositionSpatialServiceTest {
         position(THIRD_POSITION_ID, 3)
     );
 
-    when(licencePositionViewService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, THIRD_POSITION_ID))
+    when(chronologicalPositionService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, THIRD_POSITION_ID))
         .thenReturn(positions);
     when(featureService.getFeaturesByIds(Set.of(BLOCK_30_1.getId(), BLOCK_30_2.getId(), BLOCK_30_3.getId())))
         .thenReturn(List.of(BLOCK_30_1, BLOCK_30_2, BLOCK_30_3));
@@ -470,7 +470,7 @@ class LicencePositionSpatialServiceTest {
         position(THIRD_POSITION_ID, 3)
     );
 
-    when(licencePositionViewService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, THIRD_POSITION_ID))
+    when(chronologicalPositionService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, THIRD_POSITION_ID))
         .thenReturn(positions);
     when(featureService.getFeaturesByIds(Set.of(BLOCK_30_1.getId(), BLOCK_30_2.getId())))
         .thenReturn(List.of(BLOCK_30_1, BLOCK_30_2));
@@ -488,7 +488,7 @@ class LicencePositionSpatialServiceTest {
         position(THIRD_POSITION_ID, 3)
     );
 
-    when(licencePositionViewService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, THIRD_POSITION_ID))
+    when(chronologicalPositionService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, THIRD_POSITION_ID))
         .thenReturn(positions);
     when(featureService.getFeaturesByIds(Set.of(BLOCK_30_1.getId()))).thenReturn(List.of(BLOCK_30_1));
 
@@ -505,7 +505,7 @@ class LicencePositionSpatialServiceTest {
         position(THIRD_POSITION_ID, 3)
     );
 
-    when(licencePositionViewService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, THIRD_POSITION_ID))
+    when(chronologicalPositionService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, THIRD_POSITION_ID))
         .thenReturn(positions);
     when(featureService.getFeaturesByIds(Set.of(BLOCK_30_1.getId(), BLOCK_30_3.getId(), BLOCK_30_4.getId())))
         .thenReturn(List.of(BLOCK_30_1, BLOCK_30_3, BLOCK_30_4));
@@ -523,7 +523,7 @@ class LicencePositionSpatialServiceTest {
         position(THIRD_POSITION_ID, 3)
     );
 
-    when(licencePositionViewService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, THIRD_POSITION_ID))
+    when(chronologicalPositionService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, THIRD_POSITION_ID))
         .thenReturn(positions);
     when(featureService.getFeaturesByIds(Set.of(BLOCK_30_1.getId(), BLOCK_30_4.getId())))
         .thenReturn(List.of(BLOCK_30_1, BLOCK_30_4));
@@ -541,7 +541,7 @@ class LicencePositionSpatialServiceTest {
         position(THIRD_POSITION_ID, 3)
     );
 
-    when(licencePositionViewService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, THIRD_POSITION_ID))
+    when(chronologicalPositionService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, THIRD_POSITION_ID))
         .thenReturn(positions);
     when(featureService.getFeaturesByIds(Set.of(BLOCK_30_1.getId(), BLOCK_30_4.getId())))
         .thenReturn(List.of(BLOCK_30_1, BLOCK_30_4));
@@ -559,7 +559,7 @@ class LicencePositionSpatialServiceTest {
         position(THIRD_POSITION_ID, 3)
     );
 
-    when(licencePositionViewService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, THIRD_POSITION_ID))
+    when(chronologicalPositionService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, THIRD_POSITION_ID))
         .thenReturn(positions);
     when(featureService.getFeaturesByIds(Set.of(BLOCK_30_2.getId()))).thenReturn(List.of(BLOCK_30_2));
 
@@ -577,7 +577,7 @@ class LicencePositionSpatialServiceTest {
         position(THIRD_POSITION_ID, 3)
     );
 
-    when(licencePositionViewService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, THIRD_POSITION_ID))
+    when(chronologicalPositionService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, THIRD_POSITION_ID))
         .thenReturn(positions);
     when(featureService.getFeaturesByIds(Set.of(BLOCK_30_1.getId()))).thenReturn(List.of(BLOCK_30_1));
 
@@ -594,7 +594,7 @@ class LicencePositionSpatialServiceTest {
         position(THIRD_POSITION_ID, 3)
     );
 
-    when(licencePositionViewService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, THIRD_POSITION_ID))
+    when(chronologicalPositionService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, THIRD_POSITION_ID))
         .thenReturn(positions);
     when(featureService.getFeaturesByIds(Set.of(BLOCK_30_1.getId(), BLOCK_30_3.getId())))
         .thenReturn(List.of(BLOCK_30_1, BLOCK_30_3));
@@ -612,7 +612,7 @@ class LicencePositionSpatialServiceTest {
         position(THIRD_POSITION_ID, 3)
     );
 
-    when(licencePositionViewService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, THIRD_POSITION_ID))
+    when(chronologicalPositionService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, THIRD_POSITION_ID))
         .thenReturn(positions);
     when(featureService.getFeaturesByIds(Set.of(BLOCK_30_1.getId()))).thenReturn(List.of(BLOCK_30_1));
 
@@ -629,7 +629,7 @@ class LicencePositionSpatialServiceTest {
         position(THIRD_POSITION_ID, 3)
     );
 
-    when(licencePositionViewService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, THIRD_POSITION_ID))
+    when(chronologicalPositionService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, THIRD_POSITION_ID))
         .thenReturn(positions);
 
     assertThat(licencePositionSpatialService
@@ -646,7 +646,7 @@ class LicencePositionSpatialServiceTest {
         position(THIRD_POSITION_ID, 3)
     );
 
-    when(licencePositionViewService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, THIRD_POSITION_ID))
+    when(chronologicalPositionService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, THIRD_POSITION_ID))
         .thenReturn(positions);
     when(featureService.getFeaturesByIds(Set.of(BLOCK_30_1.getId()))).thenReturn(List.of(BLOCK_30_1));
 
@@ -666,7 +666,7 @@ class LicencePositionSpatialServiceTest {
         position(THIRD_POSITION_ID, 3)
     );
 
-    when(licencePositionViewService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, THIRD_POSITION_ID))
+    when(chronologicalPositionService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, THIRD_POSITION_ID))
         .thenReturn(positions);
     when(featureService.getFeaturesByIds(Set.of(BLOCK_30_1.getId(), BLOCK_30_2.getId())))
         .thenReturn(List.of(BLOCK_30_1, BLOCK_30_2));
@@ -685,7 +685,7 @@ class LicencePositionSpatialServiceTest {
         position(FOURTH_POSITION_ID, 4)
     );
 
-    when(licencePositionViewService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, FOURTH_POSITION_ID))
+    when(chronologicalPositionService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, FOURTH_POSITION_ID))
         .thenReturn(positions);
     when(featureService.getFeaturesByIds(Set.of(BLOCK_30_3.getId(), BLOCK_30_4.getId())))
         .thenReturn(List.of(BLOCK_30_4, BLOCK_30_3));
@@ -706,7 +706,7 @@ class LicencePositionSpatialServiceTest {
         position(SECOND_POSITION_ID, 2)
     );
 
-    when(licencePositionViewService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, SECOND_POSITION_ID))
+    when(chronologicalPositionService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, SECOND_POSITION_ID))
         .thenReturn(positions);
     when(featureService.getFeaturesByIds(Set.of(BLOCK_30_3.getId(), BLOCK_30_4.getId())))
         .thenReturn(List.of(BLOCK_30_4, BLOCK_30_3));
@@ -726,7 +726,7 @@ class LicencePositionSpatialServiceTest {
         position(SECOND_POSITION_ID, 2)
     );
 
-    when(licencePositionViewService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, SECOND_POSITION_ID))
+    when(chronologicalPositionService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, SECOND_POSITION_ID))
         .thenReturn(positions);
 
     assertThat(licencePositionSpatialService
@@ -744,7 +744,7 @@ class LicencePositionSpatialServiceTest {
         position(SECOND_POSITION_ID, 2)
     );
 
-    when(licencePositionViewService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, SECOND_POSITION_ID))
+    when(chronologicalPositionService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, SECOND_POSITION_ID))
         .thenReturn(positions);
     when(featureService.getFeaturesByIds(Set.of(BLOCK_30_1.getId()))).thenReturn(List.of(BLOCK_30_1));
 
@@ -763,7 +763,7 @@ class LicencePositionSpatialServiceTest {
         position(SECOND_POSITION_ID, 2)
     );
 
-    when(licencePositionViewService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, SECOND_POSITION_ID))
+    when(chronologicalPositionService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, SECOND_POSITION_ID))
         .thenReturn(positions);
     when(featureService.getFeaturesByIds(Set.of(BLOCK_30_2.getId()))).thenReturn(List.of(BLOCK_30_2));
 
@@ -781,7 +781,7 @@ class LicencePositionSpatialServiceTest {
         )
     );
 
-    when(licencePositionViewService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, FIRST_POSITION_ID))
+    when(chronologicalPositionService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, FIRST_POSITION_ID))
         .thenReturn(positions);
     when(featureService.getFeaturesByIds(Set.of(BLOCK_30_1.getId(), BLOCK_30_2.getId())))
         .thenReturn(List.of(BLOCK_30_1, BLOCK_30_2));
@@ -802,7 +802,7 @@ class LicencePositionSpatialServiceTest {
         position(SECOND_POSITION_ID, 2)
     );
 
-    when(licencePositionViewService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, SECOND_POSITION_ID))
+    when(chronologicalPositionService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, SECOND_POSITION_ID))
         .thenReturn(positions);
     when(featureService.getFeaturesByIds(Set.of(BLOCK_30_1.getId()))).thenReturn(List.of(BLOCK_30_1));
 
@@ -819,7 +819,7 @@ class LicencePositionSpatialServiceTest {
         position(THIRD_POSITION_ID, 3)
     );
 
-    when(licencePositionViewService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, THIRD_POSITION_ID))
+    when(chronologicalPositionService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, THIRD_POSITION_ID))
         .thenReturn(positions);
     when(featureService.getFeaturesByIds(Set.of(BLOCK_30_1.getId()))).thenReturn(List.of(BLOCK_30_1));
 
@@ -836,7 +836,7 @@ class LicencePositionSpatialServiceTest {
         position(THIRD_POSITION_ID, 3)
     );
 
-    when(licencePositionViewService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, THIRD_POSITION_ID))
+    when(chronologicalPositionService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, THIRD_POSITION_ID))
         .thenReturn(positions);
     when(featureService.getFeaturesByIds(Set.of(BLOCK_30_1.getId(), BLOCK_30_2.getId())))
         .thenReturn(List.of(BLOCK_30_1, BLOCK_30_2));
@@ -860,7 +860,7 @@ class LicencePositionSpatialServiceTest {
         position(THIRD_POSITION_ID, 3)
     );
 
-    when(licencePositionViewService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, THIRD_POSITION_ID))
+    when(chronologicalPositionService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, THIRD_POSITION_ID))
         .thenReturn(positions);
     when(featureService.getFeaturesByIds(Set.of(BLOCK_30_2.getId(), BLOCK_30_3.getId())))
         .thenReturn(List.of(BLOCK_30_2, BLOCK_30_3));
@@ -877,7 +877,7 @@ class LicencePositionSpatialServiceTest {
         position(SECOND_POSITION_ID, 2)
     );
 
-    when(licencePositionViewService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, SECOND_POSITION_ID))
+    when(chronologicalPositionService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, SECOND_POSITION_ID))
         .thenReturn(positions);
     when(featureService.getFeaturesByIds(Set.of(BLOCK_30_2.getId(), BLOCK_29_10.getId())))
         .thenReturn(List.of(BLOCK_30_2, BLOCK_29_10));
@@ -894,7 +894,7 @@ class LicencePositionSpatialServiceTest {
         position(SECOND_POSITION_ID, 2)
     );
 
-    when(licencePositionViewService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, SECOND_POSITION_ID))
+    when(chronologicalPositionService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, SECOND_POSITION_ID))
         .thenReturn(positions);
     when(featureService.getFeaturesByIds(Set.of(BLOCK_30_1.getId(), SUBAREA.getId())))
         .thenReturn(List.of(BLOCK_30_1, SUBAREA));
@@ -915,7 +915,7 @@ class LicencePositionSpatialServiceTest {
             .build())
         .build();
 
-    when(licencePositionViewService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, addedPositionId))
+    when(chronologicalPositionService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, addedPositionId))
         .thenReturn(List.of(
             position(FIRST_POSITION_ID, 1, blockCreateOf(BLOCK_30_1.getId(), BLOCK_30_2.getId())),
             position(SECOND_POSITION_ID, 2, blockEndOf(BLOCK_30_1.getId())),
@@ -1230,7 +1230,7 @@ class LicencePositionSpatialServiceTest {
         new BlockSubareas(BLOCK_30_1, List.of(SUBAREA_A)),
         new BlockSubareas(BLOCK_30_2, List.of(SUBAREA_B)),
         new BlockSubareas(BLOCK_30_3, List.of()));
-    verify(licencePositionViewService).getCorrectedChronologicalPositions(LICENCE_CORRECTION, FIRST_POSITION_ID);
+    verify(chronologicalPositionService).getCorrectedChronologicalPositions(LICENCE_CORRECTION, FIRST_POSITION_ID);
   }
 
   @Test
@@ -1241,7 +1241,7 @@ class LicencePositionSpatialServiceTest {
         .withTargetLicencePosition(LicencePositionTestUtil.newBuilder().withId(SECOND_POSITION_ID).build())
         .withPayload(UpdateLicencePositionPayloadTestUtil.newBuilder().build())
         .build();
-    when(licencePositionViewService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, SECOND_POSITION_ID))
+    when(chronologicalPositionService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, SECOND_POSITION_ID))
         .thenReturn(List.of(
             positionWithChanges(
                 FIRST_POSITION_ID,
@@ -1288,7 +1288,7 @@ class LicencePositionSpatialServiceTest {
 
   private void givenPositions(ChronologicalPosition... positions) {
     var positionList = List.of(positions);
-    when(licencePositionViewService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, positionList.getLast().id()))
+    when(chronologicalPositionService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, positionList.getLast().id()))
         .thenReturn(positionList);
   }
 

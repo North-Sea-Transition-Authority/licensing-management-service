@@ -32,7 +32,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisation;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisationService;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionViewService;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.ChronologicalPositionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.status.LicenceStatusService;
 import uk.co.nstauthority.licensingmanagementservice.licence.tab.TabbedLicencePageService;
 import uk.co.nstauthority.licensingmanagementservice.phasedrelease.FeatureFlagService;
@@ -89,7 +89,7 @@ class LicenceSearchServiceTest {
   private TabbedLicencePageService tabbedLicencePageService;
 
   @Mock
-  private LicencePositionViewService licencePositionViewService;
+  private ChronologicalPositionService chronologicalPositionService;
 
   @Mock
   private FeatureFlagService featureFlagService;
@@ -307,7 +307,7 @@ class LicenceSearchServiceTest {
         .isEqualTo(List.of(
             buildSearchResultItem(SEAWARD_PRODUCTION_LICENCE, List.of(ORG_UNIT_NAME_ALPHA))
         ));
-    verifyNoInteractions(licencePositionViewService);
+    verifyNoInteractions(chronologicalPositionService);
   }
 
   @Test
@@ -339,7 +339,7 @@ class LicenceSearchServiceTest {
     when(organisationGroupQueryService.getOrganisationUnitsByOrganisationGroupIds(List.of(ORG_GROUP_ID)))
         .thenReturn(List.of(new OrganisationUnitJson(ORG_UNIT_ID_ALPHA, ORG_UNIT_NAME_ALPHA)));
 
-    when(licencePositionViewService.getInvolvedLegalEntityIdsByLicenceId(licences))
+    when(chronologicalPositionService.getInvolvedLegalEntityIdsByLicenceId(licences))
         .thenReturn(Map.of(
             SEAWARD_PRODUCTION_LICENCE.getId(),
             Set.of(ORG_UNIT_ID_BETA),
@@ -388,7 +388,7 @@ class LicenceSearchServiceTest {
     var result = licenceSearchService.getSearchResultItems(new LicenceSearchFilterForm(), serviceUserDetail);
 
     assertThat(result).isEmpty();
-    verifyNoInteractions(organisationGroupQueryService, licencePositionViewService);
+    verifyNoInteractions(organisationGroupQueryService, chronologicalPositionService);
   }
 
   @Test
@@ -415,7 +415,7 @@ class LicenceSearchServiceTest {
     when(organisationGroupQueryService.getOrganisationUnitsByOrganisationGroupIds(List.of(ORG_GROUP_ID)))
         .thenReturn(List.of(new OrganisationUnitJson(ORG_UNIT_ID_ALPHA, ORG_UNIT_NAME_ALPHA)));
 
-    when(licencePositionViewService.getInvolvedLegalEntityIdsByLicenceId(licences))
+    when(chronologicalPositionService.getInvolvedLegalEntityIdsByLicenceId(licences))
         .thenReturn(Map.of(CARBON_STORAGE_LICENCE.getId(), Set.of(ORG_UNIT_ID_ALPHA)));
 
     var result = licenceSearchService.getSearchResultItems(new LicenceSearchFilterForm(), serviceUserDetail);

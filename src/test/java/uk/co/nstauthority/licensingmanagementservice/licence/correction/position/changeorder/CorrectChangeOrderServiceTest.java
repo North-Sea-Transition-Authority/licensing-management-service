@@ -9,21 +9,25 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.Month;
-import java.util.LinkedHashMap;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import uk.co.fivium.gisframework.feature.FeatureService;
+import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
@@ -46,14 +50,19 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.ChronologicalPositionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionNameService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionViewService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPosition;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPositionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.PositionChange;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.PositionChangeTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.FeatureTestUtil;
 
 @ExtendWith(MockitoExtension.class)
 class CorrectChangeOrderServiceTest {
@@ -77,7 +86,13 @@ class CorrectChangeOrderServiceTest {
       .withLicence(LICENCE).build();
 
   @Mock
-  private LicencePositionViewService licencePositionViewService;
+  private ChronologicalPositionService chronologicalPositionService;
+
+  @Mock
+  private FeatureService featureService;
+
+  @Mock
+  private OrganisationUnitQueryService organisationUnitQueryService;
 
   @Mock
   private LicencePositionCorrectionService licencePositionCorrectionService;
@@ -88,28 +103,91 @@ class CorrectChangeOrderServiceTest {
   @Mock
   private LicencePositionChangeService licencePositionChangeService;
 
-  @InjectMocks
   private CorrectChangeOrderService correctChangeOrderService;
+
+  @BeforeEach
+  void setUp() {
+    correctChangeOrderService = new CorrectChangeOrderService(
+        chronologicalPositionService,
+        new LicencePositionNameService(organisationUnitQueryService, featureService),
+        licencePositionCorrectionService,
+        licencePositionService,
+        licencePositionChangeService
+    );
+  }
 
   @Test
   void getOrderableChanges_mapsLabelsToOrderableChangesPreservingOrder() {
-    var labels = new LinkedHashMap<UUID, String>();
-    labels.put(CHANGE_A, "Licence administrator change");
-    labels.put(CHANGE_B, "Set equity change");
-    when(licencePositionViewService.getOrderableChangeLabels(CORRECTION, POSITION_ID)).thenReturn(labels);
+    var administratorOperation = LicenceOperation.newAdministratorChange().withOperator(1).build();
+    var setEquityOperation = LicenceOperation.newSetEquityOperation().withTransferTo(2).withEquity(BigDecimal.TEN).build();
+    givenCorrectedPosition(ChronologicalPositionTestUtil.newBuilder()
+        .withId(POSITION_ID)
+        .withChanges(List.of(
+            PositionChangeTestUtil.newBuilder()
+                .withChangeId(CHANGE_A.toString())
+                .withOperations(List.of(administratorOperation))
+                .build(),
+            PositionChangeTestUtil.newBuilder()
+                .withChangeId(CHANGE_B.toString())
+                .withOperations(List.of(setEquityOperation))
+                .build()))
+        .build());
 
     var orderableChanges = correctChangeOrderService.getOrderableChanges(CORRECTION, POSITION_ID);
 
     assertThat(orderableChanges)
         .containsExactly(
-            new OrderableChange(CHANGE_A, "Licence administrator change"),
-            new OrderableChange(CHANGE_B, "Set equity change"));
+            new OrderableChange(CHANGE_A, administratorOperation.displayName()),
+            new OrderableChange(CHANGE_B, setEquityOperation.displayName()));
+  }
+
+  @Test
+  void getOrderableChanges_whenTwoSubareaChangesOnDifferentBlocks_labelsEachByChangeIdWithFeatureName() {
+    var firstBlock = FeatureTestUtil.blockFeature(UUID.randomUUID(), "30", 1);
+    var secondBlock = FeatureTestUtil.blockFeature(UUID.randomUUID(), "30", 2);
+    givenCorrectedPosition(ChronologicalPositionTestUtil.newBuilder()
+        .withId(POSITION_ID)
+        .withChanges(List.of(
+            PositionChangeTestUtil.newBuilder()
+                .withChangeId(CHANGE_A.toString())
+                .withOperations(List.of(new SubareaOperation(firstBlock.getId(), List.of(), List.of())))
+                .build(),
+            PositionChangeTestUtil.newBuilder()
+                .withChangeId(CHANGE_B.toString())
+                .withChangeOrder(2)
+                .withOperations(List.of(new SubareaOperation(secondBlock.getId(), List.of(), List.of())))
+                .build()))
+        .build());
+    when(featureService.getFeaturesByIds(Set.of(firstBlock.getId(), secondBlock.getId())))
+        .thenReturn(List.of(firstBlock, secondBlock));
+
+    var orderableChanges = correctChangeOrderService.getOrderableChanges(CORRECTION, POSITION_ID);
+
+    assertThat(orderableChanges).containsExactly(
+        new OrderableChange(CHANGE_A, "Subarea change – %s".formatted(firstBlock.getFeatureName())),
+        new OrderableChange(CHANGE_B, "Subarea change – %s".formatted(secondBlock.getFeatureName())));
+  }
+
+  @Test
+  void getOrderableChanges_whenNonSubareaChange_labelsByDisplayNameWithoutFeature() {
+    var administratorOperation = LicenceOperation.newAdministratorChange().withOperator(1).build();
+    givenCorrectedPosition(ChronologicalPositionTestUtil.newBuilder()
+        .withId(POSITION_ID)
+        .withChanges(List.of(PositionChangeTestUtil.newBuilder()
+            .withChangeId(CHANGE_A.toString())
+            .withOperations(List.of(administratorOperation))
+            .build()))
+        .build());
+
+    var orderableChanges = correctChangeOrderService.getOrderableChanges(CORRECTION, POSITION_ID);
+
+    assertThat(orderableChanges).containsExactly(new OrderableChange(CHANGE_A, administratorOperation.displayName()));
+    verifyNoInteractions(featureService);
   }
 
   @Test
   void correctChangeOrder_whenMovedChangeNotOnPosition_throws() {
-    when(licencePositionViewService.getOrderableChangeLabels(CORRECTION, POSITION_ID))
-        .thenReturn(orderableLabels(CHANGE_B));
+    givenOrderableChangesOn(CHANGE_B);
 
     assertThatThrownBy(() -> correctChangeOrderService.correctChangeOrder(
         CORRECTION, POSITION_ID, CHANGE_A, CHANGE_B, PositionMoveDirection.BEFORE))
@@ -119,8 +197,7 @@ class CorrectChangeOrderServiceTest {
 
   @Test
   void correctChangeOrder_whenTargetChangeNotOnPosition_throws() {
-    when(licencePositionViewService.getOrderableChangeLabels(CORRECTION, POSITION_ID))
-        .thenReturn(orderableLabels(CHANGE_A));
+    givenOrderableChangesOn(CHANGE_A);
 
     assertThatThrownBy(() -> correctChangeOrderService.correctChangeOrder(
         CORRECTION, POSITION_ID, CHANGE_A, CHANGE_B, PositionMoveDirection.BEFORE))
@@ -132,8 +209,7 @@ class CorrectChangeOrderServiceTest {
 
   @Test
   void correctChangeOrder_onExecutedPosition_writesUpdateChangeOrdersOnlyForMovedChanges() {
-    when(licencePositionViewService.getOrderableChangeLabels(CORRECTION, POSITION_ID))
-        .thenReturn(orderableLabels(CHANGE_A, CHANGE_B, CHANGE_C));
+    givenOrderableChangesOn(CHANGE_A, CHANGE_B, CHANGE_C);
 
     var position = LicencePositionTestUtil.newBuilder().withId(POSITION_ID).withLicence(LICENCE).build();
     when(licencePositionCorrectionService.findFirstAddedPositionCorrection(CORRECTION, POSITION_ID))
@@ -158,8 +234,7 @@ class CorrectChangeOrderServiceTest {
 
   @Test
   void correctChangeOrder_whenMovedBackToItsExecutedOrder_thenLeavesNoChangesToSave() {
-    when(licencePositionViewService.getOrderableChangeLabels(CORRECTION, POSITION_ID))
-        .thenReturn(orderableLabels(CHANGE_B, CHANGE_A));
+    givenOrderableChangesOn(CHANGE_B, CHANGE_A);
 
     var position = LicencePositionTestUtil.newBuilder().withId(POSITION_ID).withLicence(LICENCE).build();
     when(licencePositionCorrectionService.findFirstAddedPositionCorrection(CORRECTION, POSITION_ID))
@@ -183,8 +258,7 @@ class CorrectChangeOrderServiceTest {
 
   @Test
   void correctChangeOrder_onAddedPosition_rewritesAddChangeOrders() {
-    when(licencePositionViewService.getOrderableChangeLabels(CORRECTION, POSITION_ID))
-        .thenReturn(orderableLabels(CHANGE_A, CHANGE_B));
+    givenOrderableChangesOn(CHANGE_A, CHANGE_B);
 
     var addedCorrection = addedPositionCorrection(List.of(
         new AddChange(CHANGE_A.toString(), 1, List.of()),
@@ -206,8 +280,7 @@ class CorrectChangeOrderServiceTest {
 
   @Test
   void correctChangeOrder_whenTwoSubareaChangesOnDifferentBlocks_reordersThemIndependently() {
-    when(licencePositionViewService.getOrderableChangeLabels(CORRECTION, POSITION_ID))
-        .thenReturn(orderableLabels(CHANGE_A, CHANGE_B));
+    givenOrderableChangesOn(CHANGE_A, CHANGE_B);
 
     var subareaChangeA = new AddChange(CHANGE_A.toString(), 1, List.of(subareaAddOperation(UUID.randomUUID())));
     var subareaChangeB = new AddChange(CHANGE_B.toString(), 2, List.of(subareaAddOperation(UUID.randomUUID())));
@@ -229,8 +302,7 @@ class CorrectChangeOrderServiceTest {
 
   @Test
   void correctChangeOrder_onAddedPosition_rewritesTheStagedOrderOfAMovedLiveChange() {
-    when(licencePositionViewService.getOrderableChangeLabels(CORRECTION, POSITION_ID))
-        .thenReturn(orderableLabels(CHANGE_A, CHANGE_B));
+    givenOrderableChangesOn(CHANGE_A, CHANGE_B);
 
     var movedLiveChange = updateChange(CHANGE_B, new SubareaOperation(UUID.randomUUID(), List.of(), List.of()));
     var addedCorrection = addedPositionCorrection(List.of(
@@ -276,8 +348,7 @@ class CorrectChangeOrderServiceTest {
 
   @Test
   void moveChangeToPosition_whenTheChangeIsNotOnTheSourcePosition_thenThrows() {
-    when(licencePositionViewService.getOrderableChangeLabels(CORRECTION, POSITION_ID))
-        .thenReturn(orderableLabels(CHANGE_B));
+    givenOrderableChangesOn(CHANGE_B);
 
     assertThatThrownBy(() -> correctChangeOrderService.moveChangeToPosition(
         CORRECTION,
@@ -293,8 +364,7 @@ class CorrectChangeOrderServiceTest {
 
   @Test
   void moveChangeToPosition_whenTheChangeWasAddedInTheCorrection_thenMovesItAfterTheHighestTargetOrderKeepingItsId() {
-    when(licencePositionViewService.getOrderableChangeLabels(CORRECTION, POSITION_ID))
-        .thenReturn(orderableLabels(CHANGE_A));
+    givenOrderableChangesOn(CHANGE_A);
 
     var movedChange = new AddChange(CHANGE_A.toString(), 1, List.of(subareaAddOperation(UUID.randomUUID())));
     var sourceCorrection = addedPositionCorrection(List.of(movedChange));
@@ -322,8 +392,7 @@ class CorrectChangeOrderServiceTest {
 
   @Test
   void moveChangeToPosition_whenALiveChangeHasBeenMovedOffTheTarget_thenDoesNotReuseItsLiveOrder() {
-    when(licencePositionViewService.getOrderableChangeLabels(CORRECTION, POSITION_ID))
-        .thenReturn(orderableLabels(CHANGE_A));
+    givenOrderableChangesOn(CHANGE_A);
 
     var movedChange = new AddChange(CHANGE_A.toString(), 1, List.of(subareaAddOperation(UUID.randomUUID())));
     var sourceCorrection = addedPositionCorrection(List.of(movedChange));
@@ -346,8 +415,7 @@ class CorrectChangeOrderServiceTest {
 
   @Test
   void moveChangeToPosition_whenALiveChangeHasNoStagedEdits_thenStagesItsLiveOperationsAndANewOrderOnTheTarget() {
-    when(licencePositionViewService.getOrderableChangeLabels(CORRECTION, POSITION_ID))
-        .thenReturn(orderableLabels(CHANGE_A));
+    givenOrderableChangesOn(CHANGE_A);
 
     var liveOperation = new SubareaOperation(UUID.randomUUID(), List.of(), List.of());
     var sourceCorrection = updatePositionCorrection(List.of());
@@ -373,8 +441,7 @@ class CorrectChangeOrderServiceTest {
 
   @Test
   void moveChangeToPosition_whenALiveChangeHasStagedEdits_thenCarriesTheEditsAndClearsTheSource() {
-    when(licencePositionViewService.getOrderableChangeLabels(CORRECTION, POSITION_ID))
-        .thenReturn(orderableLabels(CHANGE_A));
+    givenOrderableChangesOn(CHANGE_A);
 
     var stagedEdit = updateChange(CHANGE_A, new SubareaOperation(UUID.randomUUID(), List.of(), List.of()));
     var sourceCorrection = updatePositionCorrection(List.of(stagedEdit, new UpdateChangeOrder(CHANGE_A.toString(), 3)));
@@ -402,8 +469,7 @@ class CorrectChangeOrderServiceTest {
 
   @Test
   void moveChangeToPosition_whenMovedBackToItsLivePositionWithEdits_thenRestoresTheEditsAfterTheHighestOrder() {
-    when(licencePositionViewService.getOrderableChangeLabels(CORRECTION, POSITION_ID))
-        .thenReturn(orderableLabels(CHANGE_A));
+    givenOrderableChangesOn(CHANGE_A);
 
     var stagedEdit = updateChange(CHANGE_A, new SubareaOperation(UUID.randomUUID(), List.of(), List.of()));
     var sourceCorrection = addedPositionCorrection(List.of(stagedEdit, new UpdateChangeOrder(CHANGE_A.toString(), 2)));
@@ -437,8 +503,7 @@ class CorrectChangeOrderServiceTest {
 
   @Test
   void moveChangeToPosition_whenMovedBackUneditedBehindChangesReorderedOntoItsLiveOrder_thenStagesOnlyANewOrder() {
-    when(licencePositionViewService.getOrderableChangeLabels(CORRECTION, POSITION_ID))
-        .thenReturn(orderableLabels(CHANGE_A));
+    givenOrderableChangesOn(CHANGE_A);
 
     var liveOperation = new SubareaOperation(UUID.randomUUID(), List.of(), List.of());
     var stagedMove = updateChange(CHANGE_A, liveOperation);
@@ -469,8 +534,7 @@ class CorrectChangeOrderServiceTest {
 
   @Test
   void moveChangeToPosition_whenMovedBackUneditedAndStillLastAtItsLiveOrder_thenOnlyClearsTheMove() {
-    when(licencePositionViewService.getOrderableChangeLabels(CORRECTION, POSITION_ID))
-        .thenReturn(orderableLabels(CHANGE_A));
+    givenOrderableChangesOn(CHANGE_A);
 
     var liveOperation = new SubareaOperation(UUID.randomUUID(), List.of(), List.of());
     var stagedMove = updateChange(CHANGE_A, liveOperation);
@@ -592,8 +656,7 @@ class CorrectChangeOrderServiceTest {
     givenNoSameTransactionPositionOnTheDate();
     when(licencePositionCorrectionService.getOrderablePositionsOnDate(CORRECTION, NEW_POSITION_DATE))
         .thenReturn(List.of());
-    when(licencePositionViewService.getOrderableChangeLabels(CORRECTION, POSITION_ID))
-        .thenReturn(orderableLabels(CHANGE_A));
+    givenOrderableChangesOn(CHANGE_A);
     givenNewPositionAddedWithTheSourceReferenceAndTransaction();
 
     var liveOperation = new SubareaOperation(UUID.randomUUID(), List.of(), List.of());
@@ -693,8 +756,7 @@ class CorrectChangeOrderServiceTest {
   }
 
   private AddChange givenAnAddedChangeOnTheSource() {
-    when(licencePositionViewService.getOrderableChangeLabels(CORRECTION, POSITION_ID))
-        .thenReturn(orderableLabels(CHANGE_A));
+    givenOrderableChangesOn(CHANGE_A);
 
     var movedChange = new AddChange(CHANGE_A.toString(), 2, List.of(subareaAddOperation(UUID.randomUUID())));
     var sourceCorrection = addedPositionCorrection(List.of(movedChange));
@@ -745,12 +807,17 @@ class CorrectChangeOrderServiceTest {
         .build();
   }
 
-  private static LinkedHashMap<UUID, String> orderableLabels(UUID... changeIds) {
-    var labels = new LinkedHashMap<UUID, String>();
-    for (var changeId : changeIds) {
-      labels.put(changeId, "Change " + changeId);
-    }
-    return labels;
+  private void givenOrderableChangesOn(UUID... changeIds) {
+    var changes = Arrays.stream(changeIds)
+        .map(changeId -> PositionChangeTestUtil.newBuilder().withChangeId(changeId.toString()).build())
+        .toList();
+
+    givenCorrectedPosition(ChronologicalPositionTestUtil.newBuilder().withId(POSITION_ID).withChanges(changes).build());
+  }
+
+  private void givenCorrectedPosition(ChronologicalPosition chronologicalPosition) {
+    when(chronologicalPositionService.getCorrectedChronologicalPositions(CORRECTION, POSITION_ID))
+        .thenReturn(List.of(chronologicalPosition));
   }
 
   private static LicencePositionChangeOperation subareaAddOperation(UUID featureId) {

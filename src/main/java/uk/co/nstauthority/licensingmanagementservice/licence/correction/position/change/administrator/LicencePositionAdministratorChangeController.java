@@ -32,7 +32,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.AdministratorOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.AdministratorChangeContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionViewService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionAdministratorChangeUtil;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
@@ -47,18 +46,15 @@ public class LicencePositionAdministratorChangeController {
 
   private final AdministratorChangeFormValidator administratorChangeFormValidator;
   private final AdministratorChangeService administratorChangeService;
-  private final LicencePositionViewService licencePositionViewService;
   private final OrganisationUnitQueryService organisationUnitQueryService;
 
   public LicencePositionAdministratorChangeController(
       AdministratorChangeFormValidator administratorChangeFormValidator,
       AdministratorChangeService administratorChangeService,
-      LicencePositionViewService licencePositionViewService,
       OrganisationUnitQueryService organisationUnitQueryService
   ) {
     this.administratorChangeFormValidator = administratorChangeFormValidator;
     this.administratorChangeService = administratorChangeService;
-    this.licencePositionViewService = licencePositionViewService;
     this.organisationUnitQueryService = organisationUnitQueryService;
   }
 
@@ -70,7 +66,7 @@ public class LicencePositionAdministratorChangeController {
       LicenceCorrection correction,
       LicencePosition licencePosition
   ) {
-    var administratorChangeContext = licencePositionViewService.getAdministratorChangeContext(
+    var administratorChangeContext = administratorChangeService.getAdministratorChangeContext(
         correction,
         licencePosition.getId()
     );
@@ -100,7 +96,7 @@ public class LicencePositionAdministratorChangeController {
       BindingResult bindingResult,
       RedirectAttributes redirectAttributes
   ) {
-    var administratorChangeContext = licencePositionViewService.getAdministratorChangeContext(
+    var administratorChangeContext = administratorChangeService.getAdministratorChangeContext(
         correction,
         licencePosition.getId()
     );
@@ -195,7 +191,7 @@ public class LicencePositionAdministratorChangeController {
       LicencePositionChange licencePositionChange
   ) {
     var administratorChangeContext =
-        licencePositionViewService.getAdministratorChangeContext(correction, licencePosition.getId());
+        administratorChangeService.getAdministratorChangeContext(correction, licencePosition.getId());
     var form = new AdministratorChangeForm();
     if (administratorChangeContext.currentAdministratorId() != null) {
       form.getAdminId().setInputValue(String.valueOf(administratorChangeContext.currentAdministratorId()));
@@ -221,7 +217,7 @@ public class LicencePositionAdministratorChangeController {
       RedirectAttributes redirectAttributes
   ) {
     var administratorChangeContext =
-        licencePositionViewService.getAdministratorChangeContext(correction, licencePosition.getId());
+        administratorChangeService.getAdministratorChangeContext(correction, licencePosition.getId());
 
     if (administratorChangeFormValidator.hasErrors(
         form,
@@ -252,7 +248,7 @@ public class LicencePositionAdministratorChangeController {
       LicencePositionCorrection licencePositionCorrection
   ) {
     var payload = (CreateLicencePositionPayload) licencePositionCorrection.getPayload();
-    return licencePositionViewService.getAdministratorChangeContext(correction, UUID.fromString(payload.licencePositionId()));
+    return administratorChangeService.getAdministratorChangeContext(correction, UUID.fromString(payload.licencePositionId()));
   }
 
   private String executedCancelUrl(LicenceCorrection correction, LicencePosition licencePosition) {

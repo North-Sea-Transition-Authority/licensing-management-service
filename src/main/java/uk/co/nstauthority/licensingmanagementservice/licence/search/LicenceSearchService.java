@@ -21,7 +21,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatusType;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisation;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisationService;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionViewService;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.ChronologicalPositionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.status.LicenceStatusService;
 import uk.co.nstauthority.licensingmanagementservice.licence.tab.TabbedLicencePageService;
 import uk.co.nstauthority.licensingmanagementservice.phasedrelease.FeatureFlagService;
@@ -42,7 +42,7 @@ public class LicenceSearchService {
   private final TeamQueryService teamQueryService;
   private final LicenceStatusService licenceStatusService;
   private final TabbedLicencePageService tabbedLicencePageService;
-  private final LicencePositionViewService licencePositionViewService;
+  private final ChronologicalPositionService chronologicalPositionService;
   private final FeatureFlagService featureFlagService;
 
   LicenceSearchService(
@@ -53,7 +53,7 @@ public class LicenceSearchService {
       TeamQueryService teamQueryService,
       LicenceStatusService licenceStatusService,
       TabbedLicencePageService tabbedLicencePageService,
-      LicencePositionViewService licencePositionViewService,
+      ChronologicalPositionService chronologicalPositionService,
       FeatureFlagService featureFlagService
   ) {
     this.licenceService = licenceService;
@@ -63,7 +63,7 @@ public class LicenceSearchService {
     this.teamQueryService = teamQueryService;
     this.licenceStatusService = licenceStatusService;
     this.tabbedLicencePageService = tabbedLicencePageService;
-    this.licencePositionViewService = licencePositionViewService;
+    this.chronologicalPositionService = chronologicalPositionService;
     this.featureFlagService = featureFlagService;
   }
 
@@ -152,7 +152,7 @@ public class LicenceSearchService {
     }
 
     var uniqueOrganisationUnitIdSet = Set.copyOf(organisationUnitIds);
-    var legalEntityIdsByLicenceId = licencePositionViewService.getInvolvedLegalEntityIdsByLicenceId(licences);
+    var legalEntityIdsByLicenceId = chronologicalPositionService.getInvolvedLegalEntityIdsByLicenceId(licences);
 
     return licences.stream()
         .filter(licence -> !Collections.disjoint(

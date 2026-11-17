@@ -186,7 +186,7 @@ class LicencePositionLicenseeChangeControllerTest extends AbstractControllerTest
     var previousLicenseeNames = LICENSEE_CHANGE_CONTEXT.previousLicenseeNames();
 
     when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(position));
-    when(licencePositionViewService.getLicenseeChangeContext(correction, POSITION_ID)).thenReturn(LICENSEE_CHANGE_CONTEXT);
+    when(licenseeChangeService.getLicenseeChangeContext(correction, POSITION_ID)).thenReturn(LICENSEE_CHANGE_CONTEXT);
 
 
     mockMvc.perform(get(ReverseRouter.route(on(LicencePositionLicenseeChangeController.class)
@@ -223,7 +223,7 @@ class LicencePositionLicenseeChangeControllerTest extends AbstractControllerTest
     );
 
     when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(position));
-    when(licencePositionViewService.getLicenseeChangeContext(correction, POSITION_ID)).thenReturn(licenseeChangeContext);
+    when(licenseeChangeService.getLicenseeChangeContext(correction, POSITION_ID)).thenReturn(licenseeChangeContext);
 
     mockMvc.perform(get(ReverseRouter.route(on(LicencePositionLicenseeChangeController.class)
             .renderForExecutedPosition(CORRECTION, POSITION)))
@@ -244,7 +244,7 @@ class LicencePositionLicenseeChangeControllerTest extends AbstractControllerTest
         .setWithdrawingOrganisationIds(List.of("2", "3"));
 
     when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(position));
-    when(licencePositionViewService.getLicenseeChangeContext(correction, POSITION_ID)).thenReturn(LICENSEE_CHANGE_CONTEXT);
+    when(licenseeChangeService.getLicenseeChangeContext(correction, POSITION_ID)).thenReturn(LICENSEE_CHANGE_CONTEXT);
 
     var model = mockMvc.perform(get(ReverseRouter.route(on(LicencePositionLicenseeChangeController.class)
             .renderForExecutedPosition(CORRECTION, POSITION)))
@@ -264,7 +264,7 @@ class LicencePositionLicenseeChangeControllerTest extends AbstractControllerTest
     var form = new LicenseeChangeForm();
 
     when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(position));
-    when(licencePositionViewService.getLicenseeChangeContext(correction, POSITION_ID)).thenReturn(LICENSEE_CHANGE_CONTEXT);
+    when(licenseeChangeService.getLicenseeChangeContext(correction, POSITION_ID)).thenReturn(LICENSEE_CHANGE_CONTEXT);
     when(licenseeChangeFormValidator.hasErrors(eq(form), any(BindingResult.class), eq(LICENSEE_CHANGE_CONTEXT.previousLicenseeIds())))
         .thenReturn(true);
 
@@ -290,7 +290,7 @@ class LicencePositionLicenseeChangeControllerTest extends AbstractControllerTest
         .setWithdrawingOrganisationIds(List.of("2", "3"));
 
     when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(position));
-    when(licencePositionViewService.getLicenseeChangeContext(correction, POSITION_ID)).thenReturn(
+    when(licenseeChangeService.getLicenseeChangeContext(correction, POSITION_ID)).thenReturn(
         LICENSEE_CHANGE_CONTEXT);
     when(licenseeChangeFormValidator.hasErrors(eq(form), any(BindingResult.class),
         eq(LICENSEE_CHANGE_CONTEXT.previousLicenseeIds())))
@@ -348,7 +348,7 @@ class LicencePositionLicenseeChangeControllerTest extends AbstractControllerTest
 
     when(licencePositionCorrectionService.findById(POSITION_CORRECTION_ID))
         .thenReturn(Optional.of(existing));
-    when(licencePositionViewService.getLicenseeChangeContext(eq(correction), any())).thenReturn(LICENSEE_CHANGE_CONTEXT);
+    when(licenseeChangeService.getLicenseeChangeContext(eq(correction), any())).thenReturn(LICENSEE_CHANGE_CONTEXT);
 
     var model = mockMvc.perform(get(ReverseRouter.route(on(LicencePositionLicenseeChangeController.class)
             .renderForAddedPosition(CORRECTION, POSITION_CORRECTION)))
@@ -389,7 +389,7 @@ class LicencePositionLicenseeChangeControllerTest extends AbstractControllerTest
 
     when(licencePositionCorrectionService.findById(POSITION_CORRECTION_ID))
         .thenReturn(Optional.of(licencePositionCorrection));
-    when(licencePositionViewService.getLicenseeChangeContext(correction, POSITION_ID)).thenReturn(LICENSEE_CHANGE_CONTEXT);
+    when(licenseeChangeService.getLicenseeChangeContext(correction, POSITION_ID)).thenReturn(LICENSEE_CHANGE_CONTEXT);
     when(licenseeChangeFormValidator.hasErrors(eq(form), any(BindingResult.class), eq(LICENSEE_CHANGE_CONTEXT.previousLicenseeIds())))
         .thenReturn(true);
 
@@ -422,7 +422,7 @@ class LicencePositionLicenseeChangeControllerTest extends AbstractControllerTest
 
     when(licencePositionCorrectionService.findById(POSITION_CORRECTION_ID))
         .thenReturn(Optional.of(licencePositionCorrection));
-    when(licencePositionViewService.getLicenseeChangeContext(correction, POSITION_ID)).thenReturn(LICENSEE_CHANGE_CONTEXT);
+    when(licenseeChangeService.getLicenseeChangeContext(correction, POSITION_ID)).thenReturn(LICENSEE_CHANGE_CONTEXT);
     when(licenseeChangeFormValidator.hasErrors(eq(form), any(BindingResult.class),eq(LICENSEE_CHANGE_CONTEXT.previousLicenseeIds())))
         .thenReturn(false);
 
@@ -466,7 +466,7 @@ class LicencePositionLicenseeChangeControllerTest extends AbstractControllerTest
 
     when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(POSITION));
     when(licencePositionChangeService.findById(change.getId())).thenReturn(Optional.of(change));
-    when(licencePositionViewService.getLicenseeChangeContext(correction, POSITION_ID)).thenReturn(LICENSEE_CHANGE_CONTEXT);
+    when(licenseeChangeService.getLicenseeChangeContext(correction, POSITION_ID)).thenReturn(LICENSEE_CHANGE_CONTEXT);
 
     var model = mockMvc.perform(get(ReverseRouter.route(on(LicencePositionLicenseeChangeController.class)
             .renderForCorrectingChange(correction, POSITION, change)))
@@ -512,7 +512,7 @@ class LicencePositionLicenseeChangeControllerTest extends AbstractControllerTest
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(position);
     when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(position));
     when(licencePositionChangeService.findById(change.getId())).thenReturn(Optional.of(change));
-    when(licencePositionViewService.getLicenseeChangeContext(correction, POSITION_ID)).thenReturn(LICENSEE_CHANGE_CONTEXT);
+    when(licenseeChangeService.getLicenseeChangeContext(correction, POSITION_ID)).thenReturn(LICENSEE_CHANGE_CONTEXT);
     when(licenseeChangeFormValidator.hasErrors(eq(form), any(BindingResult.class), eq(LICENSEE_CHANGE_CONTEXT.previousLicenseeIds())))
         .thenReturn(true);
 
@@ -550,7 +550,7 @@ class LicencePositionLicenseeChangeControllerTest extends AbstractControllerTest
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(position);
     when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(position));
     when(licencePositionChangeService.findById(change.getId())).thenReturn(Optional.of(change));
-    when(licencePositionViewService.getLicenseeChangeContext(correction, POSITION_ID)).thenReturn(
+    when(licenseeChangeService.getLicenseeChangeContext(correction, POSITION_ID)).thenReturn(
         LICENSEE_CHANGE_CONTEXT);
     when(licenseeChangeFormValidator.hasErrors(eq(form), any(BindingResult.class),
         eq(LICENSEE_CHANGE_CONTEXT.previousLicenseeIds())))

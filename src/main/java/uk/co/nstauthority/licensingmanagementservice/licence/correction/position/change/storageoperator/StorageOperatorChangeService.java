@@ -2,6 +2,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.correction.positio
 
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
@@ -13,24 +14,30 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.LicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.UpdateLicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.StorageOperatorOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.ChronologicalPositionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionViewService;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionNameService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.storageoperator.StorageOperatorChangeContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionChangeOperationUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionStateResolver;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionStorageOperatorChangeUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPosition;
 
 @Service
 public class StorageOperatorChangeService {
 
   private final LicencePositionCorrectionService licencePositionCorrectionService;
-  private final LicencePositionViewService licencePositionViewService;
+  private final ChronologicalPositionService chronologicalPositionService;
+  private final LicencePositionNameService licencePositionNameService;
 
   StorageOperatorChangeService(
       LicencePositionCorrectionService licencePositionCorrectionService,
-      LicencePositionViewService licencePositionViewService
+      ChronologicalPositionService chronologicalPositionService,
+      LicencePositionNameService licencePositionNameService
   ) {
     this.licencePositionCorrectionService = licencePositionCorrectionService;
-    this.licencePositionViewService = licencePositionViewService;
+    this.chronologicalPositionService = chronologicalPositionService;
+    this.licencePositionNameService = licencePositionNameService;
   }
 
   @Transactional
@@ -151,16 +158,41 @@ public class StorageOperatorChangeService {
         .filter(correction -> !correction.getId().equals(positionCorrectionToUndo.getId()))
         .toList();
 
-    var targetPositions = licencePositionViewService.getCorrectedChronologicalPositions(
+    var targetPositions = chronologicalPositionService.getCorrectedChronologicalPositions(
         licenceCorrection,
         remainingPositionCorrections,
         Set.of(licencePositionId)
     );
 
-    var uncorrectedChangeContext = licencePositionViewService
-        .getStorageOperatorChangeContext(licenceCorrection, licencePositionId, targetPositions);
+    var uncorrectedChangeContext = buildStorageOperatorChangeContext(targetPositions, licencePositionId);
 
     return uncorrectedChangeContext.currentOperatorName();
+  }
+
+  public StorageOperatorChangeContext getStorageOperatorChangeContext(
+      LicenceCorrection licenceCorrection,
+      UUID licencePositionId
+  ) {
+    var chronologicalPositions =
+        chronologicalPositionService.getCorrectedChronologicalPositions(licenceCorrection, licencePositionId);
+    return buildStorageOperatorChangeContext(chronologicalPositions, licencePositionId);
+  }
+
+  private StorageOperatorChangeContext buildStorageOperatorChangeContext(
+      List<ChronologicalPosition> chronologicalPositions,
+      UUID licencePositionId
+  ) {
+    var resolvedStates = LicencePositionStateResolver.resolve(chronologicalPositions);
+    var currentState = resolvedStates.currentState(licencePositionId);
+    var previousState = resolvedStates.previousState(licencePositionId);
+    var nameContext = licencePositionNameService.getOrganisationNameContext(chronologicalPositions);
+
+    return new StorageOperatorChangeContext(
+        currentState.storageOperatorId(),
+        previousState.storageOperatorId(),
+        nameContext.getNameForDate(currentState.storageOperatorId(), null, ""),
+        nameContext.getNameForDate(previousState.storageOperatorId(), null, "")
+    );
   }
 
   private void removeStagedStorageOperatorChange(LicencePositionCorrection positionCorrection) {

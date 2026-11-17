@@ -27,8 +27,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.TransferEquityOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.ChronologicalPositionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionViewService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.TransferEquityHoldingView;
 import uk.co.nstauthority.licensingmanagementservice.util.StreamUtil;
@@ -39,25 +39,25 @@ public class TransferEquityCorrectionService {
   private final LicencePositionCorrectionRepository licencePositionCorrectionRepository;
   private final LicencePositionCorrectionService licencePositionCorrectionService;
   private final OrganisationUnitQueryService organisationUnitQueryService;
-  private final LicencePositionViewService licencePositionViewService;
+  private final ChronologicalPositionService chronologicalPositionService;
 
   public TransferEquityCorrectionService(
       LicencePositionCorrectionRepository licencePositionCorrectionRepository,
       LicencePositionCorrectionService licencePositionCorrectionService,
       OrganisationUnitQueryService organisationUnitQueryService,
-      LicencePositionViewService licencePositionViewService
+      ChronologicalPositionService chronologicalPositionService
   ) {
     this.licencePositionCorrectionRepository = licencePositionCorrectionRepository;
     this.licencePositionCorrectionService = licencePositionCorrectionService;
     this.organisationUnitQueryService = organisationUnitQueryService;
-    this.licencePositionViewService = licencePositionViewService;
+    this.chronologicalPositionService = chronologicalPositionService;
   }
 
   public Map<Integer, BigDecimal> getEquityHoldingsForCorrection(
       LicenceCorrection licenceCorrection,
       UUID licencePositionId
   ) {
-    var chronologicalPositions = licencePositionViewService
+    var chronologicalPositions = chronologicalPositionService
         .getCorrectedChronologicalPositions(licenceCorrection, licencePositionId);
     return resolveEquityHoldings(licencePositionId, chronologicalPositions);
   }

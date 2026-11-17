@@ -9,15 +9,19 @@ import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import uk.co.fivium.gisframework.feature.FeatureService;
+import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationNamePeriods;
+import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
@@ -37,10 +41,15 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.UpdateLicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.AdministratorOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.AdministratorChangeContext;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.ChronologicalPositionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionNameService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeService;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPositionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.PositionChangeTestUtil;
 
 @ExtendWith(MockitoExtension.class)
 class AdministratorChangeServiceTest {
@@ -55,6 +64,7 @@ class AdministratorChangeServiceTest {
       .build();
   private static final Integer ADMINISTRATOR_ID = 116;
   private static final Integer UPDATED_ADMINISTRATOR_ID = 999;
+  private static final UUID POSITION_ID = UUID.randomUUID();
 
   @Mock
   private LicencePositionCorrectionService licencePositionCorrectionService;
@@ -62,8 +72,26 @@ class AdministratorChangeServiceTest {
   @Mock
   private LicencePositionChangeService licencePositionChangeService;
 
-  @InjectMocks
+  @Mock
+  private ChronologicalPositionService chronologicalPositionService;
+
+  @Mock
+  private OrganisationUnitQueryService organisationUnitQueryService;
+
+  @Mock
+  private FeatureService featureService;
+
   private AdministratorChangeService administratorChangeService;
+
+  @BeforeEach
+  void setUp() {
+    administratorChangeService = new AdministratorChangeService(
+        licencePositionCorrectionService,
+        licencePositionChangeService,
+        chronologicalPositionService,
+        new LicencePositionNameService(organisationUnitQueryService, featureService)
+    );
+  }
 
   @Captor
   private ArgumentCaptor<LicencePositionCorrection> licencePositionCorrectionCaptor;
@@ -348,6 +376,35 @@ class AdministratorChangeServiceTest {
     assertThat(administratorChangeService.hasPendingAdministratorChange(licencePosition, LICENCE_CORRECTION)).isFalse();
   }
 
+  @Test
+  void getAdministratorChangeContext() {
+    var position = ChronologicalPositionTestUtil.newBuilder().withId(POSITION_ID).build();
+
+    when(chronologicalPositionService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, POSITION_ID))
+        .thenReturn(List.of(position));
+
+    var result = administratorChangeService.getAdministratorChangeContext(LICENCE_CORRECTION, POSITION_ID);
+
+    assertThat(result).isEqualTo(new AdministratorChangeContext(null, null, "", ""));
+  }
+
+  @Test
+  void getAdministratorChangeContext_resolvesAdministratorNames() {
+    var position = ChronologicalPositionTestUtil.newBuilder()
+        .withId(POSITION_ID)
+        .withChanges(List.of(PositionChangeTestUtil.newBuilder().withAdministratorOperation(1).build()))
+        .build();
+
+    when(chronologicalPositionService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, POSITION_ID))
+        .thenReturn(List.of(position));
+    when(organisationUnitQueryService.getOrganisationNameHistoriesByIds(List.of(1)))
+        .thenReturn(Map.of(1, new OrganisationNamePeriods("Current Admin Org", List.of())));
+
+    var result = administratorChangeService.getAdministratorChangeContext(LICENCE_CORRECTION, POSITION_ID);
+
+    assertThat(result).isEqualTo(new AdministratorChangeContext(1, null, "Current Admin Org", ""));
+  }
+
   private LicencePositionCorrection givenStagedChange(
       LicencePositionChangeType change,
       LicenceOperation... resolvedOperations
@@ -431,12 +488,12 @@ class AdministratorChangeServiceTest {
   }
 
   private Integer operatorIdOf(LicencePositionChangeType change) {
-    var op = (LicencePositionAddOperation) ((AddChange) change).operations().getFirst();
+    var op = (LicencePositionAddOperation) change.operations().getFirst();
     return ((AdministratorOperation) op.operation()).operatorId();
   }
 
   private Integer updateOperatorIdOf(LicencePositionChangeType change) {
-    var op = (LicencePositionUpdateOperation) ((UpdateChangeOperations) change).operations().getFirst();
+    var op = (LicencePositionUpdateOperation) change.operations().getFirst();
     return ((AdministratorOperation) op.operation()).operatorId();
   }
 }

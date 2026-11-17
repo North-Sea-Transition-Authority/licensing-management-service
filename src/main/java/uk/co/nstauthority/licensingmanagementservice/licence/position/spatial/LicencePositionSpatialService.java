@@ -14,8 +14,8 @@ import uk.co.fivium.gisframework.feature.FeatureService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaDetails;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.ChronologicalPositionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionViewService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionStateResolver;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.LicencePositionState;
@@ -25,14 +25,14 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.Li
 @Service
 public class LicencePositionSpatialService {
 
-  private final LicencePositionViewService licencePositionViewService;
+  private final ChronologicalPositionService chronologicalPositionService;
   private final FeatureService featureService;
 
   public LicencePositionSpatialService(
-      LicencePositionViewService licencePositionViewService,
+      ChronologicalPositionService chronologicalPositionService,
       FeatureService featureService
   ) {
-    this.licencePositionViewService = licencePositionViewService;
+    this.chronologicalPositionService = chronologicalPositionService;
     this.featureService = featureService;
   }
 
@@ -121,7 +121,7 @@ public class LicencePositionSpatialService {
       @Nullable String changeId
   ) {
     return applyChanges(getChangesGoingIntoChange(
-        licencePositionViewService.getCorrectedChronologicalPositions(licenceCorrection, licencePositionId),
+        chronologicalPositionService.getCorrectedChronologicalPositions(licenceCorrection, licencePositionId),
         licencePositionId,
         changeId
     ));
@@ -129,7 +129,7 @@ public class LicencePositionSpatialService {
 
   public LicencePositionState getExecutedStateGoingIntoChange(LicencePosition licencePosition, String changeId) {
     return applyChanges(getChangesGoingIntoChange(
-        licencePositionViewService.getLiveChronologicalPositions(licencePosition.getLicence()),
+        chronologicalPositionService.getLiveChronologicalPositions(licencePosition.getLicence()),
         licencePosition.getId(),
         changeId
     ));
@@ -154,7 +154,7 @@ public class LicencePositionSpatialService {
     var state = LicencePositionState.EMPTY;
 
     var changes = getChangesGoingIntoChange(
-        licencePositionViewService.getCorrectedChronologicalPositions(
+        chronologicalPositionService.getCorrectedChronologicalPositions(
             licencePositionCorrection.getLicenceCorrection(),
             licencePositionId
         ),

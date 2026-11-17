@@ -11,6 +11,7 @@ import java.util.stream.Stream;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.AdministratorOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPosition;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ResolvedStates;
 
 /**
  * The filters applied to a licence timeline. An empty set of change types or organisation ids applies no filter of
@@ -63,6 +64,13 @@ public record LicenceTimelineFilter(Set<String> changeTypes, Set<Integer> organi
     return chronologicalPosition.changes().stream()
         .flatMap(change -> change.operations().stream())
         .anyMatch(operation -> matchesChangeType(operation) && matchesOrganisation(operation, outgoingAdministratorId));
+  }
+
+  public boolean matches(ChronologicalPosition chronologicalPosition, ResolvedStates resolvedStates) {
+    return matches(
+        chronologicalPosition,
+        resolvedStates.previousState(chronologicalPosition.id()).administratorId()
+    );
   }
 
   private boolean matchesChangeType(LicenceOperation operation) {

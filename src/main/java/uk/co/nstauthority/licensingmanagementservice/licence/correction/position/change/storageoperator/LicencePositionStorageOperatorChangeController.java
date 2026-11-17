@@ -32,7 +32,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.StorageOperatorOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionViewService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.storageoperator.StorageOperatorChangeContext;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
@@ -43,17 +42,14 @@ import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 @CorrectionLicenceIsType({LicenceType.CARBON_STORAGE})
 public class LicencePositionStorageOperatorChangeController {
 
-  private final LicencePositionViewService licencePositionViewService;
   private final StorageOperatorChangeFormValidator storageOperatorChangeFormValidator;
   private final StorageOperatorChangeService storageOperatorChangeService;
   private final OrganisationUnitQueryService organisationUnitQueryService;
 
-  public LicencePositionStorageOperatorChangeController(LicencePositionViewService licencePositionViewService,
-                                                        StorageOperatorChangeFormValidator storageOperatorChangeFormValidator,
+  public LicencePositionStorageOperatorChangeController(StorageOperatorChangeFormValidator storageOperatorChangeFormValidator,
                                                         StorageOperatorChangeService storageOperatorChangeService,
                                                         OrganisationUnitQueryService organisationUnitQueryService
   ) {
-    this.licencePositionViewService = licencePositionViewService;
     this.storageOperatorChangeFormValidator = storageOperatorChangeFormValidator;
     this.storageOperatorChangeService = storageOperatorChangeService;
     this.organisationUnitQueryService = organisationUnitQueryService;
@@ -67,7 +63,7 @@ public class LicencePositionStorageOperatorChangeController {
       LicenceCorrection correction,
       LicencePosition licencePosition
   ) {
-    var storageOperatorChangeContext = licencePositionViewService.getStorageOperatorChangeContext(
+    var storageOperatorChangeContext = storageOperatorChangeService.getStorageOperatorChangeContext(
         correction,
         licencePosition.getId()
     );
@@ -180,7 +176,7 @@ public class LicencePositionStorageOperatorChangeController {
       LicencePosition licencePosition,
       LicencePositionChange licencePositionChange
   ) {
-    var storageOperatorChangeContext = licencePositionViewService.getStorageOperatorChangeContext(
+    var storageOperatorChangeContext = storageOperatorChangeService.getStorageOperatorChangeContext(
         correction,
         licencePosition.getId()
     );
@@ -267,7 +263,7 @@ public class LicencePositionStorageOperatorChangeController {
       LicencePositionCorrection licencePositionCorrection
   ) {
     var payload = (CreateLicencePositionPayload) licencePositionCorrection.getPayload();
-    return licencePositionViewService
+    return storageOperatorChangeService
         .getStorageOperatorChangeContext(correction, UUID.fromString(payload.licencePositionId()));
   }
 
@@ -283,7 +279,7 @@ public class LicencePositionStorageOperatorChangeController {
       StorageOperatorChangeForm form,
       BindingResult bindingResult
   ) {
-    var storageOperatorChangeContext = licencePositionViewService.getStorageOperatorChangeContext(
+    var storageOperatorChangeContext = storageOperatorChangeService.getStorageOperatorChangeContext(
         correction,
         position.getId()
     );

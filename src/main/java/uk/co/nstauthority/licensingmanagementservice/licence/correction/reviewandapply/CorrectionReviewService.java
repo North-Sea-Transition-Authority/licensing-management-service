@@ -15,25 +15,29 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.UpdateLicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationError;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.ChronologicalPositionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionNameService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionService;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionViewService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionStateResolver;
 
 @Service
 public class CorrectionReviewService {
 
-  private final LicencePositionViewService licencePositionViewService;
+  private final ChronologicalPositionService chronologicalPositionService;
   private final LicencePositionCorrectionService licencePositionCorrectionService;
   private final LicencePositionService licencePositionService;
+  private final LicencePositionNameService licencePositionNameService;
 
   public CorrectionReviewService(
-      LicencePositionViewService licencePositionViewService,
+      ChronologicalPositionService chronologicalPositionService,
       LicencePositionCorrectionService licencePositionCorrectionService,
-      LicencePositionService licencePositionService
+      LicencePositionService licencePositionService,
+      LicencePositionNameService licencePositionNameService
   ) {
-    this.licencePositionViewService = licencePositionViewService;
+    this.chronologicalPositionService = chronologicalPositionService;
     this.licencePositionCorrectionService = licencePositionCorrectionService;
     this.licencePositionService = licencePositionService;
+    this.licencePositionNameService = licencePositionNameService;
   }
 
   public List<ReviewPositionView> getReviewPositions(
@@ -48,13 +52,13 @@ public class CorrectionReviewService {
     var detailsByPositionId = positionDetailsByPositionId(positionCorrections);
 
     var correctedPositions = correctedTimeline.displayedPositions();
-    var executedPositions = licencePositionViewService.getLiveChronologicalPositions(
+    var executedPositions = chronologicalPositionService.getLiveChronologicalPositions(
         correctedTimeline.licenceCorrection().getLicence()
     );
 
     var bothTimelines = Stream.concat(correctedPositions.stream(), executedPositions.stream()).toList();
-    var organisationNames = licencePositionViewService.resolveOrganisationNames(bothTimelines);
-    var featuresById = licencePositionViewService.resolveFeatures(bothTimelines);
+    var organisationNames = licencePositionNameService.getOrganisationNameContext(bothTimelines).getNamesForDate(null);
+    var featuresById = licencePositionNameService.resolveFeatures(bothTimelines);
 
     var correctedContext = new ReviewPositionContext(
         correctedPositions,
@@ -92,12 +96,12 @@ public class CorrectionReviewService {
             .map(LicencePositionCorrection::getTargetLicencePosition)
     ).toList();
 
-    var appliedPositions = licencePositionViewService.getLiveChronologicalPositions(positions);
+    var appliedPositions = chronologicalPositionService.getLiveChronologicalPositions(positions);
     var context = new ReviewPositionContext(
         appliedPositions,
         LicencePositionStateResolver.resolve(appliedPositions, removedPositionIds),
-        licencePositionViewService.resolveOrganisationNames(appliedPositions),
-        licencePositionViewService.resolveFeatures(appliedPositions)
+        licencePositionNameService.getOrganisationNameContext(appliedPositions).getNamesForDate(null),
+        licencePositionNameService.resolveFeatures(appliedPositions)
     );
 
     var changeEdits = new ChangeEdits(Set.of(), Map.of(), Map.of());

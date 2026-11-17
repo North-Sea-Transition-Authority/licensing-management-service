@@ -11,11 +11,15 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.LicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenseeOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.ChronologicalPositionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionViewService;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionNameService;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.licensee.LicenseeChangeContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.licensee.UndoLicenseeChangeContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionChangeOperationUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionLicenseeChangeUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionStateResolver;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.ChangeViewUrls;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.LicenseeChangeView;
 
@@ -23,12 +27,15 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.vie
 public class LicenseeChangeService {
 
   private final LicencePositionCorrectionService licencePositionCorrectionService;
-  private final LicencePositionViewService licencePositionViewService;
+  private final ChronologicalPositionService chronologicalPositionService;
+  private final LicencePositionNameService licencePositionNameService;
 
   LicenseeChangeService(LicencePositionCorrectionService licencePositionCorrectionService,
-                        LicencePositionViewService licencePositionViewService) {
+                        ChronologicalPositionService chronologicalPositionService,
+                        LicencePositionNameService licencePositionNameService) {
     this.licencePositionCorrectionService = licencePositionCorrectionService;
-    this.licencePositionViewService = licencePositionViewService;
+    this.chronologicalPositionService = chronologicalPositionService;
+    this.licencePositionNameService = licencePositionNameService;
   }
 
   @Transactional
@@ -139,14 +146,14 @@ public class LicenseeChangeService {
       LicencePositionCorrection positionCorrectionToUndo,
       UUID licencePositionId
   ) {
-    var correctedChangeContext = licencePositionViewService.getLicenseeChangeContext(licenceCorrection, licencePositionId);
+    var correctedChangeContext = getLicenseeChangeContext(licenceCorrection, licencePositionId);
 
     var remainingPositionCorrections = licencePositionCorrectionService.getPositionCorrections(licenceCorrection)
         .stream()
         .filter(correction -> !correction.getId().equals(positionCorrectionToUndo.getId()))
         .toList();
 
-    var targetPositions = licencePositionViewService.getCorrectedChronologicalPositions(
+    var targetPositions = chronologicalPositionService.getCorrectedChronologicalPositions(
         licenceCorrection,
         remainingPositionCorrections,
         Set.of(licencePositionId)
@@ -165,7 +172,7 @@ public class LicenseeChangeService {
       );
     }
 
-    var uncorrectedChangeContext = licencePositionViewService.buildLicenseeChangeContext(targetPositions, licencePositionId);
+    var uncorrectedChangeContext = buildLicenseeChangeContext(targetPositions, licencePositionId);
 
     return new UndoLicenseeChangeContext(
         correctedChangeContext.currentWithdrawingLicenseeNames(),
@@ -174,6 +181,15 @@ public class LicenseeChangeService {
         uncorrectedChangeContext.currentJoiningLicenseeNames(),
         uncorrectedChangeContext.currentLicenseeNames()
     );
+  }
+
+  public LicenseeChangeContext getLicenseeChangeContext(
+      LicenceCorrection licenceCorrection,
+      UUID licencePositionId
+  ) {
+    var chronologicalPositions =
+        chronologicalPositionService.getCorrectedChronologicalPositions(licenceCorrection, licencePositionId);
+    return buildLicenseeChangeContext(chronologicalPositions, licencePositionId);
   }
 
   private void stageLicenseeChange(
@@ -191,5 +207,31 @@ public class LicenseeChangeService {
 
     positionCorrection.setPayload(LicencePositionPayload.withChanges(payload, changes));
     licencePositionCorrectionService.save(positionCorrection);
+  }
+
+  private LicenseeChangeContext buildLicenseeChangeContext(
+      List<ChronologicalPosition> chronologicalPositions,
+      UUID licencePositionId
+  ) {
+    var resolvedStates = LicencePositionStateResolver.resolve(chronologicalPositions);
+    var currentState = resolvedStates.currentState(licencePositionId);
+    var previousState = resolvedStates.previousState(licencePositionId);
+    var organisationNames = licencePositionNameService.getOrganisationNameContext(chronologicalPositions).getNamesForDate(null);
+
+    ChronologicalPosition currentPosition = chronologicalPositions.stream()
+        .filter(chronologicalPosition -> chronologicalPosition.id().equals(licencePositionId))
+        .toList()
+        .getFirst();
+
+    var joiningLicenseeIds = currentPosition.joiningLicensees();
+    var withdrawingLicenseeIds = currentPosition.withdrawingLicensees();
+
+    return new LicenseeChangeContext(
+        joiningLicenseeIds,
+        withdrawingLicenseeIds,
+        previousState.licenseeIds().stream().toList(),
+        currentState.licenseeIds().stream().toList(),
+        organisationNames
+    );
   }
 }

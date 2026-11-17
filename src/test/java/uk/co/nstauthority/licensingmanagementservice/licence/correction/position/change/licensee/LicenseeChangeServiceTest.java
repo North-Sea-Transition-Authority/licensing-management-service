@@ -3,7 +3,6 @@ package uk.co.nstauthority.licensingmanagementservice.licence.correction.positio
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -14,6 +13,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Stream;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -21,9 +21,11 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import uk.co.fivium.gisframework.feature.FeatureService;
+import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationNamePeriods;
+import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
@@ -38,10 +40,13 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.UpdateLicencePositionPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenseeOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.ChronologicalPositionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionNameService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionViewService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.licensee.LicenseeChangeContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPosition;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPositionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.PositionChangeTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.ChangeViewUrls;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.LicenseeChangeView;
 
@@ -55,13 +60,27 @@ class LicenseeChangeServiceTest {
   private LicencePositionCorrectionService licencePositionCorrectionService;
 
   @Mock
-  private LicencePositionViewService licencePositionViewService;
+  private ChronologicalPositionService chronologicalPositionService;
 
-  @InjectMocks
+  @Mock
+  private OrganisationUnitQueryService organisationUnitQueryService;
+
+  @Mock
+  private FeatureService featureService;
+
   private LicenseeChangeService licenseeChangeService;
 
   private static final Licence LICENCE = LicenceTestUtil.builder().build();
   private static final UUID POSITION_ID = UUID.randomUUID();
+
+  @BeforeEach
+  void setUp() {
+    licenseeChangeService = new LicenseeChangeService(
+        licencePositionCorrectionService,
+        chronologicalPositionService,
+        new LicencePositionNameService(organisationUnitQueryService, featureService)
+    );
+  }
 
   @Test
   void addLicenseeChangeForAddedLicencePosition() {
@@ -230,33 +249,20 @@ class LicenseeChangeServiceTest {
         .withId(UUID.randomUUID())
         .build();
 
-    var correctedChangeContext = new LicenseeChangeContext(
-        List.of(),
-        List.of(1),
-        List.of(1, 2),
-        List.of(2),
-        Map.of(1, "BP", 2, "FLAMSTONE")
-    );
+    var previousPosition = licenseePosition(UUID.randomUUID(), 1, List.of(1, 2), List.of());
+    var correctedPositions = List.of(previousPosition, licenseePosition(POSITION_ID, 2, List.of(), List.of(1)));
+    var targetPositions = List.of(previousPosition, licenseePosition(POSITION_ID, 2, List.of(3), List.of(1)));
 
-    var uncorrectedChangeContext = new LicenseeChangeContext(
-        List.of(3),
-        List.of(1),
-        List.of(1, 2),
-        List.of(2, 3),
-        Map.of(1, "BP", 2, "FLAMSTONE", 3, "SHELL")
-    );
-
-    var targetPosition = mock(ChronologicalPosition.class);
-    when(targetPosition.id()).thenReturn(POSITION_ID);
-    var targetPositions = List.of(targetPosition);
-
-    when(licencePositionViewService.getLicenseeChangeContext(correction, POSITION_ID)).thenReturn(correctedChangeContext);
+    when(chronologicalPositionService.getCorrectedChronologicalPositions(correction, POSITION_ID))
+        .thenReturn(correctedPositions);
+    when(organisationUnitQueryService.getOrganisationNameHistoriesByIds(List.of(1, 2)))
+        .thenReturn(Map.of(1, namePeriods("BP"), 2, namePeriods("FLAMSTONE")));
     when(licencePositionCorrectionService.getPositionCorrections(correction))
         .thenReturn(List.of(correctionToUndo, otherCorrection));
-    when(licencePositionViewService.getCorrectedChronologicalPositions(correction, List.of(otherCorrection), Set.of(POSITION_ID)))
+    when(chronologicalPositionService.getCorrectedChronologicalPositions(correction, List.of(otherCorrection), Set.of(POSITION_ID)))
         .thenReturn(targetPositions);
-    when(licencePositionViewService.buildLicenseeChangeContext(targetPositions, POSITION_ID))
-        .thenReturn(uncorrectedChangeContext);
+    when(organisationUnitQueryService.getOrganisationNameHistoriesByIds(List.of(1, 2, 3)))
+        .thenReturn(Map.of(1, namePeriods("BP"), 2, namePeriods("FLAMSTONE"), 3, namePeriods("SHELL")));
 
     var result = licenseeChangeService.getUndoLicenseeChangeContext(
         correction, correctionToUndo, POSITION_ID);
@@ -279,19 +285,18 @@ class LicenseeChangeServiceTest {
         .withId(UUID.randomUUID())
         .build();
 
-    var correctedChangeContext = new LicenseeChangeContext(
-        List.of(3),
-        List.of(1),
-        List.of(1, 2),
-        List.of(2, 3),
-        Map.of(1, "BP", 2, "FLAMSTONE", 3, "SHELL")
-
+    var correctedPositions = List.of(
+        licenseePosition(UUID.randomUUID(), 1, List.of(1, 2), List.of()),
+        licenseePosition(POSITION_ID, 2, List.of(3), List.of(1))
     );
 
-    when(licencePositionViewService.getLicenseeChangeContext(correction, POSITION_ID)).thenReturn(correctedChangeContext);
+    when(chronologicalPositionService.getCorrectedChronologicalPositions(correction, POSITION_ID))
+        .thenReturn(correctedPositions);
+    when(organisationUnitQueryService.getOrganisationNameHistoriesByIds(List.of(1, 2, 3)))
+        .thenReturn(Map.of(1, namePeriods("BP"), 2, namePeriods("FLAMSTONE"), 3, namePeriods("SHELL")));
     when(licencePositionCorrectionService.getPositionCorrections(correction))
         .thenReturn(List.of(correctionToUndo, otherCorrection));
-    when(licencePositionViewService.getCorrectedChronologicalPositions(correction, List.of(otherCorrection), Set.of(POSITION_ID)))
+    when(chronologicalPositionService.getCorrectedChronologicalPositions(correction, List.of(otherCorrection), Set.of(POSITION_ID)))
         .thenReturn(List.of());
 
     var result = licenseeChangeService.getUndoLicenseeChangeContext(
@@ -302,6 +307,53 @@ class LicenseeChangeServiceTest {
     assertThat(result.restoredWithdrawingLicenseeNames()).isEmpty();
     assertThat(result.restoredJoiningLicenseeNames()).isEmpty();
     assertThat(result.resultingLicenseeNames()).containsExactlyInAnyOrder("BP", "FLAMSTONE");
+  }
+
+  @Test
+  void getLicenseeChangeContext_emptyContext() {
+    var correction = LicenceCorrectionTestUtil.newBuilder().withLicence(LICENCE).build();
+    var position = ChronologicalPositionTestUtil.newBuilder().withId(POSITION_ID).build();
+
+    when(chronologicalPositionService.getCorrectedChronologicalPositions(correction, POSITION_ID))
+        .thenReturn(List.of(position));
+
+    var result = licenseeChangeService.getLicenseeChangeContext(correction, POSITION_ID);
+
+    assertThat(result).isEqualTo(new LicenseeChangeContext(List.of(), List.of(), List.of(), List.of(), Map.of()));
+  }
+
+  @Test
+  void getLicenseeChangeContext_resolvesLicenseeNames() {
+    var correction = LicenceCorrectionTestUtil.newBuilder().withLicence(LICENCE).build();
+    var previousPosition = licenseePosition(UUID.randomUUID(), 1, List.of(1), List.of());
+    var currentPosition = ChronologicalPositionTestUtil.newBuilder().withId(POSITION_ID).withOrder(2).build();
+
+    when(chronologicalPositionService.getCorrectedChronologicalPositions(correction, POSITION_ID))
+        .thenReturn(List.of(previousPosition, currentPosition));
+    when(organisationUnitQueryService.getOrganisationNameHistoriesByIds(List.of(1)))
+        .thenReturn(Map.of(1, namePeriods("Current Licensee")));
+
+    var result = licenseeChangeService.getLicenseeChangeContext(correction, POSITION_ID);
+
+    assertThat(result).isEqualTo(
+        new LicenseeChangeContext(List.of(), List.of(), List.of(1), List.of(1), Map.of(1, "Current Licensee")));
+  }
+
+  @Test
+  void getLicenseeChangeContext_resolvesCurrentIds() {
+    var correction = LicenceCorrectionTestUtil.newBuilder().withLicence(LICENCE).build();
+    var previousPosition = licenseePosition(UUID.randomUUID(), 1, List.of(1, 2), List.of());
+    var currentPosition = licenseePosition(POSITION_ID, 2, List.of(3, 4), List.of(1, 2));
+
+    when(chronologicalPositionService.getCorrectedChronologicalPositions(correction, POSITION_ID))
+        .thenReturn(List.of(previousPosition, currentPosition));
+    when(organisationUnitQueryService.getOrganisationNameHistoriesByIds(List.of(1, 2, 3, 4)))
+        .thenReturn(Map.of());
+
+    var result = licenseeChangeService.getLicenseeChangeContext(correction, POSITION_ID);
+
+    assertThat(result).isEqualTo(
+        new LicenseeChangeContext(List.of(3, 4), List.of(1, 2), List.of(1, 2), List.of(3, 4), Map.of()));
   }
 
   @ParameterizedTest(name = "{argumentSetName}")
@@ -369,5 +421,24 @@ class LicenseeChangeServiceTest {
         .withChangeId(changeId)
         .withOperations(List.of(operation))
         .build();
+  }
+
+  private static ChronologicalPosition licenseePosition(
+      UUID positionId,
+      int order,
+      List<Integer> licenseesToAdd,
+      List<Integer> licenseesToRemove
+  ) {
+    return ChronologicalPositionTestUtil.newBuilder()
+        .withId(positionId)
+        .withOrder(order)
+        .withChanges(List.of(PositionChangeTestUtil.newBuilder()
+            .withLicenseeOperation(licenseesToAdd, licenseesToRemove)
+            .build()))
+        .build();
+  }
+
+  private static OrganisationNamePeriods namePeriods(String currentName) {
+    return new OrganisationNamePeriods(currentName, List.of());
   }
 }

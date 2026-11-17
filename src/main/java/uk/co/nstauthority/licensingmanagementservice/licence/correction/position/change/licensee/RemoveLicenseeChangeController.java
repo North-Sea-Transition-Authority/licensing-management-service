@@ -23,7 +23,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenseeOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionViewService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.ChangeViewUrls;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.LicenseeChangeView;
@@ -41,14 +40,11 @@ public class RemoveLicenseeChangeController {
 
 
   private final LicencePositionCorrectionService licencePositionCorrectionService;
-  private final LicencePositionViewService licencePositionViewService;
   private final LicenseeChangeService licenseeChangeService;
 
   public RemoveLicenseeChangeController(LicencePositionCorrectionService licencePositionCorrectionService,
-                                        LicencePositionViewService licencePositionViewService,
                                         LicenseeChangeService licenseeChangeService) {
     this.licencePositionCorrectionService = licencePositionCorrectionService;
-    this.licencePositionViewService = licencePositionViewService;
     this.licenseeChangeService = licenseeChangeService;
   }
 
@@ -125,7 +121,7 @@ public class RemoveLicenseeChangeController {
       LicencePosition licencePosition
   ) {
     var licenseeChangeContext =
-        licencePositionViewService.getLicenseeChangeContext(correction, licencePosition.getId());
+        licenseeChangeService.getLicenseeChangeContext(correction, licencePosition.getId());
 
     var correctedLicenseeChangeView = new LicenseeChangeView(
         licenseeChangeContext.currentWithdrawingLicenseeNames(),

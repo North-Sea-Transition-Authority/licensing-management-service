@@ -1,4 +1,6 @@
-package uk.co.nstauthority.licensingmanagementservice.licence.position;
+package uk.co.nstauthority.licensingmanagementservice.licence.correction.position;
+
+import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionPageView;
 
 /**
  * Where a filtered correction timeline opens: the latest position the filter matches, or a view saying that none do.

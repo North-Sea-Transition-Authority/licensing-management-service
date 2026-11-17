@@ -93,7 +93,7 @@ class RemoveAdministratorChangeControllerTest extends AbstractControllerTest {
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(position);
     when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(position));
     when(licencePositionChangeService.findById(CHANGE.getId())).thenReturn(Optional.of(CHANGE));
-    when(licencePositionViewService.getAdministratorChangeContext(correction, POSITION_ID))
+    when(administratorChangeService.getAdministratorChangeContext(correction, POSITION_ID))
         .thenReturn(new AdministratorChangeContext(789, 456, "Joining Admin Org", "Withdrawing Admin Org"));
 
     mockMvc.perform(get(ReverseRouter.route(on(RemoveAdministratorChangeController.class)
@@ -176,7 +176,7 @@ class RemoveAdministratorChangeControllerTest extends AbstractControllerTest {
 
     when(licencePositionCorrectionService.getPositionCorrectionContainingChange(correction, CHANGE_ID))
         .thenReturn(positionCorrection);
-    when(licencePositionViewService.getAdministratorChangeContext(correction, POSITION_ID))
+    when(administratorChangeService.getAdministratorChangeContext(correction, POSITION_ID))
         .thenReturn(new AdministratorChangeContext(789, 456, "Joining Admin Org", "Withdrawing Admin Org"));
 
     mockMvc.perform(get(ReverseRouter.route(on(RemoveAdministratorChangeController.class)
@@ -205,7 +205,7 @@ class RemoveAdministratorChangeControllerTest extends AbstractControllerTest {
     when(licencePositionCorrectionService.getPositionCorrectionContainingChange(correction, CHANGE_ID))
         .thenReturn(positionCorrection);
     when(licencePositionCorrectionService.isStagedRemoval(positionCorrection, CHANGE_ID)).thenReturn(true);
-    when(licencePositionViewService.getAdministratorChangeContext(correction, POSITION_ID))
+    when(administratorChangeService.getAdministratorChangeContext(correction, POSITION_ID))
         .thenReturn(new AdministratorChangeContext(789, 456, "Joining Admin Org", "Withdrawing Admin Org"));
 
     mockMvc.perform(get(ReverseRouter.route(on(RemoveAdministratorChangeController.class)

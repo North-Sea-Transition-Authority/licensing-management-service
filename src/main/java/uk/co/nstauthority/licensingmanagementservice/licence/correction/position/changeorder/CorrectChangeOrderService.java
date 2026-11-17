@@ -26,34 +26,46 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.UpdateChangeOrder;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.LicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.ChronologicalPositionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionNameService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionService;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionViewService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeService;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionChangeViewResolver;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.PositionChange;
 
 @Service
 public class CorrectChangeOrderService {
 
-  private final LicencePositionViewService licencePositionViewService;
+  private final ChronologicalPositionService chronologicalPositionService;
+  private final LicencePositionNameService licencePositionNameService;
   private final LicencePositionCorrectionService licencePositionCorrectionService;
   private final LicencePositionService licencePositionService;
   private final LicencePositionChangeService licencePositionChangeService;
 
   public CorrectChangeOrderService(
-      LicencePositionViewService licencePositionViewService,
+      ChronologicalPositionService chronologicalPositionService,
+      LicencePositionNameService licencePositionNameService,
       LicencePositionCorrectionService licencePositionCorrectionService,
       LicencePositionService licencePositionService,
       LicencePositionChangeService licencePositionChangeService
   ) {
-    this.licencePositionViewService = licencePositionViewService;
+    this.chronologicalPositionService = chronologicalPositionService;
+    this.licencePositionNameService = licencePositionNameService;
     this.licencePositionCorrectionService = licencePositionCorrectionService;
     this.licencePositionService = licencePositionService;
     this.licencePositionChangeService = licencePositionChangeService;
   }
 
   public List<OrderableChange> getOrderableChanges(LicenceCorrection licenceCorrection, UUID positionId) {
-    return licencePositionViewService.getOrderableChangeLabels(licenceCorrection, positionId)
+    var chronologicalPositions =
+        chronologicalPositionService.getCorrectedChronologicalPositions(licenceCorrection, positionId);
+
+    return LicencePositionChangeViewResolver.getOrderableChangeLabels(
+            changesOn(chronologicalPositions, positionId),
+            licencePositionNameService.resolveFeatures(chronologicalPositions)
+        )
         .entrySet().stream()
         .map(entry -> new OrderableChange(entry.getKey(), entry.getValue()))
         .toList();
@@ -262,6 +274,13 @@ public class CorrectChangeOrderService {
             positionCorrection.getTargetLicencePosition(),
             positionCorrection
         );
+  }
+
+  private static List<PositionChange> changesOn(List<ChronologicalPosition> chronologicalPositions, UUID positionId) {
+    return chronologicalPositions.stream()
+        .filter(chronologicalPosition -> chronologicalPosition.id().equals(positionId))
+        .flatMap(chronologicalPosition -> chronologicalPosition.changes().stream())
+        .toList();
   }
 
   private static boolean holdsPartialSurrender(Stream<PositionChange> changes) {

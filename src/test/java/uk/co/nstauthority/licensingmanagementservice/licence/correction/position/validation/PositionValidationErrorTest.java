@@ -119,6 +119,18 @@ class PositionValidationErrorTest {
   }
 
   @Test
+  void toPositionIds_whenPositionHasMultipleErrors_returnsEachPositionIdOnce() {
+    var otherPositionId = UUID.randomUUID();
+    var firstError = new PositionValidationError(POSITION_ID, "name", null, null, "message one");
+    var secondError = new PositionValidationError(POSITION_ID, "name", null, null, "message two");
+    var otherError = new PositionValidationError(otherPositionId, "other", null, null, "message three");
+
+    var positionIds = PositionValidationError.toPositionIds(List.of(firstError, secondError, otherError));
+
+    assertThat(positionIds).containsExactlyInAnyOrder(POSITION_ID, otherPositionId);
+  }
+
+  @Test
   void toErrorSummaryItems_whenPositionsHaveDistinctDates_reversesOrderAndUsesDateOnly() {
     var earlier = PositionValidationError.forPosition(
         PositionValidationContextTestUtil.newBuilder()

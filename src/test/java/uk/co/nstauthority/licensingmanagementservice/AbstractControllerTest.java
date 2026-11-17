@@ -72,6 +72,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceC
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionArgumentResolver;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionViewService;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.overview.LicenceSummaryCardService;
 import uk.co.nstauthority.licensingmanagementservice.licence.overview.action.LicenceActionService;
@@ -251,6 +252,9 @@ public abstract class AbstractControllerTest {
 
   @MockitoBean
   protected LicencePositionCorrectionService licencePositionCorrectionService;
+
+  @MockitoBean
+  protected LicencePositionCorrectionViewService licencePositionCorrectionViewService;
 
   @MockitoBean
   protected LicencePositionService licencePositionService;

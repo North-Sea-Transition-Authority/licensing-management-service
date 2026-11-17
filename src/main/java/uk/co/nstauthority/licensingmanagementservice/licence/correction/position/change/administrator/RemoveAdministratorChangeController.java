@@ -25,7 +25,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.AdministratorOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionViewService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
@@ -41,16 +40,13 @@ public class RemoveAdministratorChangeController {
 
   private final LicencePositionCorrectionService licencePositionCorrectionService;
   private final AdministratorChangeService administratorChangeService;
-  private final LicencePositionViewService licencePositionViewService;
 
   RemoveAdministratorChangeController(
       LicencePositionCorrectionService licencePositionCorrectionService,
-      AdministratorChangeService administratorChangeService,
-      LicencePositionViewService licencePositionViewService
+      AdministratorChangeService administratorChangeService
   ) {
     this.licencePositionCorrectionService = licencePositionCorrectionService;
     this.administratorChangeService = administratorChangeService;
-    this.licencePositionViewService = licencePositionViewService;
   }
 
   @GetMapping("/position/{licencePositionId}/change/{changeId}/remove-administrator-change")
@@ -127,7 +123,7 @@ public class RemoveAdministratorChangeController {
       LicencePosition licencePosition
   ) {
     var administratorChangeContext =
-        licencePositionViewService.getAdministratorChangeContext(correction, licencePosition.getId());
+        administratorChangeService.getAdministratorChangeContext(correction, licencePosition.getId());
 
     return new ModelAndView(CONFIRMATION_TEMPLATE)
         .addObject("pageTitle", REMOVE_PAGE_TITLE)
@@ -144,7 +140,7 @@ public class RemoveAdministratorChangeController {
       LicencePositionCorrection positionCorrection
   ) {
     var administratorChangeContext =
-        licencePositionViewService.getAdministratorChangeContext(correction, getPositionId(positionCorrection));
+        administratorChangeService.getAdministratorChangeContext(correction, getPositionId(positionCorrection));
     var reinstating = licencePositionCorrectionService.isStagedRemoval(positionCorrection, changeId);
 
     var primaryButton = reinstating

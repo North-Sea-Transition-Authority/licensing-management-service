@@ -17,22 +17,32 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.UpdateLicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.AdministratorOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.AdministratorChangeContext;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.ChronologicalPositionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionNameService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionAdministratorChangeUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionStateResolver;
 
 @Service
 public class AdministratorChangeService {
 
   private final LicencePositionCorrectionService licencePositionCorrectionService;
   private final LicencePositionChangeService licencePositionChangeService;
+  private final ChronologicalPositionService chronologicalPositionService;
+  private final LicencePositionNameService licencePositionNameService;
 
   public AdministratorChangeService(
       LicencePositionCorrectionService licencePositionCorrectionService,
-      LicencePositionChangeService licencePositionChangeService
+      LicencePositionChangeService licencePositionChangeService,
+      ChronologicalPositionService chronologicalPositionService,
+      LicencePositionNameService licencePositionNameService
   ) {
     this.licencePositionCorrectionService = licencePositionCorrectionService;
     this.licencePositionChangeService = licencePositionChangeService;
+    this.chronologicalPositionService = chronologicalPositionService;
+    this.licencePositionNameService = licencePositionNameService;
   }
 
   @Transactional
@@ -185,6 +195,30 @@ public class AdministratorChangeService {
         .map(positionCorrection ->
             LicencePositionAdministratorChangeUtil.adminChangeExists(positionCorrection.getPayload().changes()))
         .orElse(false);
+  }
+
+  /**
+   * Resolves the current and previous administrator ids for a position, along with their display names. Names are
+   * resolved here so consumers do not need to look them up; an empty string is used when the id is null or the name
+   * cannot be resolved.
+   */
+  public AdministratorChangeContext getAdministratorChangeContext(
+      LicenceCorrection licenceCorrection,
+      UUID licencePositionId
+  ) {
+    var chronologicalPositions =
+        chronologicalPositionService.getCorrectedChronologicalPositions(licenceCorrection, licencePositionId);
+    var resolvedStates = LicencePositionStateResolver.resolve(chronologicalPositions);
+    var currentState = resolvedStates.currentState(licencePositionId);
+    var previousState = resolvedStates.previousState(licencePositionId);
+    var nameContext = licencePositionNameService.getOrganisationNameContext(chronologicalPositions);
+
+    return new AdministratorChangeContext(
+        currentState.administratorId(),
+        previousState.administratorId(),
+        nameContext.getNameForDate(currentState.administratorId(), null, ""),
+        nameContext.getNameForDate(previousState.administratorId(), null, "")
+    );
   }
 
   private boolean isAdministratorChange(LicencePositionChangeType change) {

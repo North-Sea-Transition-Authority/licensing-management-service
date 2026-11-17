@@ -1,5 +1,6 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.position.change.view;
 
+import jakarta.annotation.Nullable;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -86,6 +87,33 @@ public record ChronologicalPosition(
         payload.effectiveDateOrder(),
         PositionChange.fromPayload(payload)
     );
+  }
+
+  public static List<Integer> organisationUnitIds(List<ChronologicalPosition> chronologicalPositions) {
+    return chronologicalPositions.stream()
+        .flatMap(chronologicalPosition -> chronologicalPosition.changes().stream())
+        .flatMap(change -> change.operations().stream())
+        .map(LicenceOperation::organisationUnitIds)
+        .flatMap(Collection::stream)
+        .filter(Objects::nonNull)
+        .distinct()
+        .toList();
+  }
+
+  /**
+   * The date the selected position actually sits at: the corrected date where a correction has moved the position,
+   * and the payload date for a position added in a correction.
+   */
+  @Nullable
+  public static LocalDate effectivePositionDate(
+      List<ChronologicalPosition> chronologicalPositions,
+      UUID selectedPositionId
+  ) {
+    return chronologicalPositions.stream()
+        .filter(chronologicalPosition -> chronologicalPosition.id().equals(selectedPositionId))
+        .map(ChronologicalPosition::date)
+        .findFirst()
+        .orElse(null);
   }
 
   public String positionName() {

@@ -208,6 +208,25 @@ public class LicencePositionCorrectionService {
         .collect(Collectors.toSet());
   }
 
+  public static List<LicencePositionCorrection> correctionsOfType(
+      List<LicencePositionCorrection> positionCorrections,
+      LicencePositionCorrectionChangeType changeType
+  ) {
+    return positionCorrections.stream()
+        .filter(correction -> correction.getChangeType() == changeType)
+        .toList();
+  }
+
+  public static Map<UUID, UpdateLicencePositionPayload> updatedPositionPayloadsByTargetId(
+      List<LicencePositionCorrection> updatedCorrections
+  ) {
+    return updatedCorrections.stream()
+        .collect(Collectors.toMap(
+            positionCorrection -> positionCorrection.getTargetLicencePosition().getId(),
+            positionCorrection -> (UpdateLicencePositionPayload) positionCorrection.getPayload()
+        ));
+  }
+
   public List<LicencePositionCorrection> getAddedLicencePositionCorrections(LicenceCorrection licenceCorrection) {
     return licencePositionCorrectionRepository
         .findByLicenceCorrectionAndChangeType(licenceCorrection, LicencePositionCorrectionChangeType.ADD_POSITION);

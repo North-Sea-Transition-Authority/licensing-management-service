@@ -3,7 +3,9 @@ package uk.co.nstauthority.licensingmanagementservice.licence.correction.positio
 import jakarta.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import uk.co.nstauthority.licensingmanagementservice.fds.error.ErrorSummaryItem;
 
 public record PositionValidationError(
@@ -47,5 +49,11 @@ public record PositionValidationError(
       ));
     }
     return items;
+  }
+
+  public static Set<UUID> toPositionIds(List<PositionValidationError> validationErrors) {
+    return validationErrors.stream()
+        .map(PositionValidationError::positionId)
+        .collect(Collectors.toSet());
   }
 }

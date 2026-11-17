@@ -31,9 +31,9 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaDetails;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.ChronologicalPositionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionService;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionViewService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionStateResolver;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ResolvedStates;
 import uk.co.nstauthority.licensingmanagementservice.util.IntegrationTest;
@@ -85,7 +85,7 @@ class PearsPositionMigrationValidationTest {
   private LicenceService licenceService;
 
   @Autowired
-  private LicencePositionViewService licencePositionViewService;
+  private ChronologicalPositionService chronologicalPositionService;
 
   @Autowired
   private FeatureService featureService;
@@ -177,7 +177,7 @@ class PearsPositionMigrationValidationTest {
       Map<PearsLicencePositions.PositionKey, PearsPositionState> dataPointStates,
       List<LicencePosition> builtPositions
   ) {
-    var lmsStates = LicencePositionStateResolver.resolve(licencePositionViewService.getLiveChronologicalPositions(builtPositions));
+    var lmsStates = LicencePositionStateResolver.resolve(chronologicalPositionService.getLiveChronologicalPositions(builtPositions));
 
     var result = PositionStateComparison.compare(
         LivePositionComparison.matched(dataPointPositions, builtPositions),

@@ -17,15 +17,16 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correct
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.position.LicencePositionBelongsToCorrectionLicence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.AddLicencePositionCorrectionController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.FilteredCorrectionTimeline;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionFilterService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionViewService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.reviewandapply.ReviewCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.update.UpdateCorrectionGeneralDetailsController;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.FilteredCorrectionTimeline;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionPageView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionService;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionViewService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.filter.LicenceTimelineFilter;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.filter.LicenceTimelineFilterForm;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.filter.LicenceTimelineFilterSession;
@@ -46,20 +47,23 @@ public class LicenceCorrectionController {
   static final String FILTER_SESSION_ATTRIBUTE = "licenceCorrectionTimelineFilterSession";
 
   private final LicencePositionService licencePositionService;
-  private final LicencePositionViewService licencePositionViewService;
+  private final LicencePositionCorrectionViewService licencePositionCorrectionViewService;
+  private final LicencePositionCorrectionFilterService licencePositionCorrectionFilterService;
   private final LicencePositionCorrectionService licencePositionCorrectionService;
   private final LicenceService licenceService;
   private final CorrectionDetailsViewService correctionDetailsViewService;
 
   public LicenceCorrectionController(
       LicencePositionService licencePositionService,
-      LicencePositionViewService licencePositionViewService,
+      LicencePositionCorrectionViewService licencePositionCorrectionViewService,
+      LicencePositionCorrectionFilterService licencePositionCorrectionFilterService,
       LicencePositionCorrectionService licencePositionCorrectionService,
       LicenceService licenceService,
       CorrectionDetailsViewService correctionDetailsViewService
   ) {
     this.licencePositionService = licencePositionService;
-    this.licencePositionViewService = licencePositionViewService;
+    this.licencePositionCorrectionViewService = licencePositionCorrectionViewService;
+    this.licencePositionCorrectionFilterService = licencePositionCorrectionFilterService;
     this.licencePositionCorrectionService = licencePositionCorrectionService;
     this.licenceService = licenceService;
     this.correctionDetailsViewService = correctionDetailsViewService;
@@ -77,7 +81,7 @@ public class LicenceCorrectionController {
     var filter = getFilter(licenceCorrection, filterSession);
 
     if (!filter.isEmpty()) {
-      return switch (licencePositionViewService.getFilteredCorrectionTimeline(licenceCorrection, filter)) {
+      return switch (licencePositionCorrectionFilterService.getFilteredCorrectionTimeline(licenceCorrection, filter)) {
         case FilteredCorrectionTimeline.LatestMatchingPosition(String url) ->
             ReverseRouter.redirectToUrl(url);
         case FilteredCorrectionTimeline.NoMatchingPositions(LicencePositionPageView pageView) ->
@@ -115,7 +119,7 @@ public class LicenceCorrectionController {
 
     var filter = getFilter(licenceCorrection, filterSession);
     var licencePositionPageView =
-        licencePositionViewService.getCorrectionPositionPageView(licenceCorrection, licencePosition, filter);
+        licencePositionCorrectionViewService.getCorrectionPositionPageView(licenceCorrection, licencePosition, filter);
 
     return licencePositionsModelAndView(licenceCorrection, licencePositionPageView, filter);
   }
@@ -132,7 +136,7 @@ public class LicenceCorrectionController {
     }
 
     var filter = getFilter(licenceCorrection, filterSession);
-    var licencePositionPageView = licencePositionViewService.getCorrectionAddedPositionPageView(
+    var licencePositionPageView = licencePositionCorrectionViewService.getCorrectionAddedPositionPageView(
         licenceCorrection,
         licencePositionCorrection,
         filter
@@ -153,7 +157,7 @@ public class LicenceCorrectionController {
 
     filterSession.update(
         filterKey(licenceCorrection),
-        LicenceTimelineFilter.from(form, licencePositionViewService.getCorrectionFilterOptions(licenceCorrection))
+        LicenceTimelineFilter.from(form, licencePositionCorrectionFilterService.getCorrectionFilterOptions(licenceCorrection))
     );
 
     return ReverseRouter.redirect(on(LicenceCorrectionController.class).renderCorrection(licenceCorrection, null));

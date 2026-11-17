@@ -2,8 +2,8 @@ package uk.co.nstauthority.licensingmanagementservice.licence.correction.positio
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -333,7 +333,7 @@ class LicencePositionStorageOperatorChangeControllerTest extends AbstractControl
 
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(position);
     when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(position));
-    when(licencePositionViewService.getStorageOperatorChangeContext(correction, position.getId()))
+    when(storageOperatorChangeService.getStorageOperatorChangeContext(correction, position.getId()))
         .thenReturn(changeContext);
     when(storageOperatorChangeService.populateExistingStorageOperatorForm(changeContext, correction, position))
         .thenReturn(new StorageOperatorChangeForm());
@@ -368,7 +368,7 @@ class LicencePositionStorageOperatorChangeControllerTest extends AbstractControl
         .thenReturn(false);
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(position);
     when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(position));
-    when(licencePositionViewService.getStorageOperatorChangeContext(correction, POSITION_ID))
+    when(storageOperatorChangeService.getStorageOperatorChangeContext(correction, POSITION_ID))
         .thenReturn(new StorageOperatorChangeContext(
             CURRENT_STORAGE_OPERATOR_ID,
             PREVIOUS_STORAGE_OPERATOR_ID,
@@ -405,7 +405,7 @@ class LicencePositionStorageOperatorChangeControllerTest extends AbstractControl
 
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(position);
     when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(position));
-    when(licencePositionViewService.getStorageOperatorChangeContext(correction, POSITION_ID))
+    when(storageOperatorChangeService.getStorageOperatorChangeContext(correction, POSITION_ID))
         .thenReturn(new StorageOperatorChangeContext(
             CURRENT_STORAGE_OPERATOR_ID,
             PREVIOUS_STORAGE_OPERATOR_ID,
@@ -427,7 +427,7 @@ class LicencePositionStorageOperatorChangeControllerTest extends AbstractControl
             model().attribute("cancelUrl", EXECUTED_CANCEL_URL)
         );
 
-    verifyNoInteractions(storageOperatorChangeService);
+    verify(storageOperatorChangeService, never()).addStorageOperatorChangeForExistingLicencePosition(any(), any(), any());
   }
 
   @Test
@@ -443,7 +443,7 @@ class LicencePositionStorageOperatorChangeControllerTest extends AbstractControl
 
     when(licencePositionCorrectionService.findById(POSITION_CORRECTION_ID))
         .thenReturn(Optional.of(POSITION_CORRECTION));
-    when(licencePositionViewService.getStorageOperatorChangeContext(correction, POSITION_ID))
+    when(storageOperatorChangeService.getStorageOperatorChangeContext(correction, POSITION_ID))
         .thenReturn(changeContext);
     when(storageOperatorChangeService.populateAddedStorageOperatorForm(changeContext, POSITION_CORRECTION))
         .thenReturn(new StorageOperatorChangeForm());
@@ -474,7 +474,7 @@ class LicencePositionStorageOperatorChangeControllerTest extends AbstractControl
         .thenReturn(false);
     when(licencePositionCorrectionService.findById(POSITION_CORRECTION_ID))
         .thenReturn(Optional.of(POSITION_CORRECTION));
-    when(licencePositionViewService.getStorageOperatorChangeContext(correction, POSITION_ID))
+    when(storageOperatorChangeService.getStorageOperatorChangeContext(correction, POSITION_ID))
         .thenReturn(new StorageOperatorChangeContext(CURRENT_STORAGE_OPERATOR_ID, PREVIOUS_STORAGE_OPERATOR_ID, "", ""));
 
     mockMvc.perform(post(ReverseRouter.route(on(LicencePositionStorageOperatorChangeController.class)
@@ -500,7 +500,7 @@ class LicencePositionStorageOperatorChangeControllerTest extends AbstractControl
 
     when(licencePositionCorrectionService.findById(POSITION_CORRECTION_ID))
         .thenReturn(Optional.of(POSITION_CORRECTION));
-    when(licencePositionViewService.getStorageOperatorChangeContext(correction, POSITION_ID))
+    when(storageOperatorChangeService.getStorageOperatorChangeContext(correction, POSITION_ID))
         .thenReturn(new StorageOperatorChangeContext(CURRENT_STORAGE_OPERATOR_ID, PREVIOUS_STORAGE_OPERATOR_ID, "", ""));
     when(storageOperatorChangeFormValidator.hasErrors(
         eq(form), any(BindingResult.class), eq(PREVIOUS_STORAGE_OPERATOR_ID)))
@@ -518,7 +518,7 @@ class LicencePositionStorageOperatorChangeControllerTest extends AbstractControl
             model().attribute("cancelUrl", ADDED_CANCEL_URL)
         );
 
-    verifyNoInteractions(storageOperatorChangeService);
+    verify(storageOperatorChangeService, never()).addStorageOperatorChangeForAddedLicencePosition(any(), any());
   }
 
   @Test
@@ -532,7 +532,7 @@ class LicencePositionStorageOperatorChangeControllerTest extends AbstractControl
     );
     when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(POSITION));
     when(licencePositionChangeService.findById(POSITION_CHANGE.getId())).thenReturn(Optional.of(POSITION_CHANGE));
-    when(licencePositionViewService.getStorageOperatorChangeContext(correction, POSITION_ID))
+    when(storageOperatorChangeService.getStorageOperatorChangeContext(correction, POSITION_ID))
         .thenReturn(changeContext);
     when(storageOperatorChangeService.populateCorrectingStorageOperatorForm(changeContext))
         .thenReturn(new StorageOperatorChangeForm());
@@ -566,7 +566,7 @@ class LicencePositionStorageOperatorChangeControllerTest extends AbstractControl
     when(storageOperatorChangeFormValidator.hasErrors(
         eq(form), any(BindingResult.class), eq(PREVIOUS_STORAGE_OPERATOR_ID)))
         .thenReturn(false);
-    when(licencePositionViewService.getStorageOperatorChangeContext(correction, POSITION_ID))
+    when(storageOperatorChangeService.getStorageOperatorChangeContext(correction, POSITION_ID))
         .thenReturn(new StorageOperatorChangeContext(
             CURRENT_STORAGE_OPERATOR_ID,
             PREVIOUS_STORAGE_OPERATOR_ID,
@@ -599,7 +599,7 @@ class LicencePositionStorageOperatorChangeControllerTest extends AbstractControl
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(POSITION);
     when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(POSITION));
     when(licencePositionChangeService.findById(POSITION_CHANGE.getId())).thenReturn(Optional.of(POSITION_CHANGE));
-    when(licencePositionViewService.getStorageOperatorChangeContext(correction, POSITION_ID))
+    when(storageOperatorChangeService.getStorageOperatorChangeContext(correction, POSITION_ID))
         .thenReturn(new StorageOperatorChangeContext(
             CURRENT_STORAGE_OPERATOR_ID,
             PREVIOUS_STORAGE_OPERATOR_ID,
@@ -621,7 +621,7 @@ class LicencePositionStorageOperatorChangeControllerTest extends AbstractControl
             model().attribute("cancelUrl", EXECUTED_CANCEL_URL)
         );
 
-    verifyNoInteractions(storageOperatorChangeService);
+    verify(storageOperatorChangeService, never()).correctExistingStorageOperatorChange(any(), any(), any(), any());
   }
 
   private LicenceCorrection givenCorrectionAllocatedToUser() {

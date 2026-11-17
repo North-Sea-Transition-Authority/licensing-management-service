@@ -34,6 +34,7 @@
       :selected-feature-ids="selectedFeatureIds"
       :described-feature-id="describedFeatureId"
       :refit-on-features-change="refitOnFeaturesChange"
+      :refit-on-resize="refitOnResize"
     />
     <node-numbering-layer :outline-nodes="outlineNodes"/>
   </ol-map>
@@ -72,6 +73,8 @@ interface BaseMapProps {
   selectedFeatureIds?: string[],
   describedFeatureId?: string,
   refitOnFeaturesChange?: boolean,
+  // Fit the map to the features again whenever the map is resized
+  refitOnResize?: boolean,
 }
 
 const props = withDefaults(defineProps<BaseMapProps>(), {

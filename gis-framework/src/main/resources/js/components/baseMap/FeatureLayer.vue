@@ -8,14 +8,12 @@
 
 <script setup lang="ts">
 import type { EventsKey } from "ol/events";
-import type { Extent } from "ol/extent";
 import type Feature from "ol/Feature";
 import type { Geometry } from "ol/geom";
 import type Map from "ol/Map";
 import type OlMap from "vue3-openlayers/map/OlMap";
 import type OlSourceVector from "vue3-openlayers/sources/OlSourceVector";
 import { unByKey } from "ol/Observable";
-import VectorSource from "ol/source/Vector";
 import { Fill, Stroke, Style, Text } from "ol/style";
 import { onUnmounted, ref, watch } from "vue";
 
@@ -29,6 +27,7 @@ interface Props {
   selectedFeatureIds?: string[],
   describedFeatureId?: string,
   refitOnFeaturesChange?: boolean,
+  refitOnResize?: boolean,
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -42,10 +41,9 @@ const props = withDefaults(defineProps<Props>(), {
 const featureLabelFont = "18px \"GDS Transport\"";
 const vectorSourceRef = ref<InstanceType<typeof OlSourceVector> | null>(null);
 
-// Set when the features load before the map has a size, so the fit can be retried once it gets one.
-let pendingExtent: Extent | null = null;
 let sizeListenerKey: EventsKey | null = null;
-let hasFitted = false;
+// Owed on first load, and after every features change when refitOnFeaturesChange
+let fitOwed = true;
 
 watch(
   [() => props.features, vectorSourceRef],
@@ -56,9 +54,8 @@ watch(
     }
     source.clear();
     source.addFeatures(props.features);
-    if (props.refitOnFeaturesChange || !hasFitted) {
-      fitToExtent(source);
-    }
+    fitOwed ||= props.refitOnFeaturesChange;
+    fitToFeatures(false);
   },
   { immediate: true },
 );
@@ -96,38 +93,26 @@ function featureStyle(feature: Feature<Geometry>) {
 }
 
 /**
- * Center the map on the extent of the features loaded from the vector source.
+ * Center the map on the extent of the features in the vector source, once the map has a size to fit into.
  */
-function fitToExtent(source: VectorSource<Feature<Geometry>>) {
+function fitToFeatures(resized: boolean) {
   const map = props.olMap?.map;
-  if (!map) {
+  const extent = vectorSourceRef.value?.source?.getExtent();
+  if (!map || !extent || !Number.isFinite(extent[0])) {
     return;
   }
 
-  const extent = source.getExtent();
-
-  if (!extent || !Number.isFinite(extent[0])) {
-    return;
+  const sized = hasSize(map);
+  if (props.refitOnResize || !sized) {
+    sizeListenerKey ??= map.on("change:size", () => fitToFeatures(true));
   }
 
-  if (hasSize(map)) {
-    fit(map, extent);
-    return;
+  if (sized && (fitOwed || (resized && props.refitOnResize))) {
+    map.getView().fit(extent, {
+      padding: [50, 50, 50, 50],
+    });
+    fitOwed = false;
   }
-
-  pendingExtent = extent;
-  if (!sizeListenerKey) {
-    sizeListenerKey = map.on("change:size", () => fitPendingExtent(map));
-  }
-}
-
-function fitPendingExtent(map: Map) {
-  if (!pendingExtent || !hasSize(map)) {
-    return;
-  }
-
-  fit(map, pendingExtent);
-  pendingExtent = null;
 }
 
 function hasSize(map: Map) {
@@ -135,17 +120,9 @@ function hasSize(map: Map) {
   return !!size && size[0] > 0 && size[1] > 0;
 }
 
-function fit(map: Map, extent: Extent) {
-  map.getView().fit(extent, {
-    padding: [50, 50, 50, 50],
-  });
-  hasFitted = true;
-}
-
 onUnmounted(() => {
   if (sizeListenerKey) {
     unByKey(sizeListenerKey);
-    sizeListenerKey = null;
   }
 });
 </script>

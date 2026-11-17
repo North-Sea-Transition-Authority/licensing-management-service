@@ -89,6 +89,7 @@ function renderFeatureLayer(
   extent: Extent,
   selectedFeatureIds: string[] = [],
   refitOnFeaturesChange = true,
+  refitOnResize = false,
   describedFeatureId?: string,
 ) {
   return render(FeatureLayer, {
@@ -99,6 +100,7 @@ function renderFeatureLayer(
       strokeColor: [40, 50, 60, 0.75],
       selectedFeatureIds,
       refitOnFeaturesChange,
+      refitOnResize,
       describedFeatureId,
     },
     global: {
@@ -170,7 +172,7 @@ describe("featureLayer", () => {
   it("styles features other than the described one as an unfilled dashed outline with their name", async () => {
     const { olMap } = createOlMapStub([1280, 1024]);
 
-    renderFeatureLayer(olMap, sourceExtent, [], true, "feature-1");
+    renderFeatureLayer(olMap, sourceExtent, [], true, false, "feature-1");
 
     const style = vectorLayerProps.style?.({
       get: property => ({ featureId: "feature-2", featureName: "Block B" } as Record<string, string>)[property],
@@ -187,7 +189,7 @@ describe("featureLayer", () => {
   it("styles the described feature with the default colours above the outlines", async () => {
     const { olMap } = createOlMapStub([1280, 1024]);
 
-    renderFeatureLayer(olMap, sourceExtent, [], true, "feature-1");
+    renderFeatureLayer(olMap, sourceExtent, [], true, false, "feature-1");
 
     const style = vectorLayerProps.style?.({
       get: property => ({ featureId: "feature-1", featureName: "Block A" } as Record<string, string>)[property],
@@ -236,13 +238,16 @@ describe("featureLayer", () => {
     expect(fit).toHaveBeenCalledExactlyOnceWith(sourceExtent, expectedFitOptions);
   });
 
-  it("defers the fit until the map has a size", async () => {
+  it.each([
+    { refitOnResize: false, expectedFitCount: 1 },
+    { refitOnResize: true, expectedFitCount: 2 },
+  ])("defers the fit until the map has a size and fits $expectedFitCount times across two size changes when refitOnResize is $refitOnResize", async ({ refitOnResize, expectedFitCount }) => {
     const { olMap, fit, on, setSize, triggerSizeChange } = createOlMapStub(undefined);
 
-    const { rerender } = renderFeatureLayer(olMap, sourceExtent);
+    const { rerender } = renderFeatureLayer(olMap, sourceExtent, [], true, refitOnResize);
     await rerender({ features: [feature("feature-1", "Block A")] });
 
-    expect(on).toHaveBeenCalledWith("change:size", expect.any(Function));
+    expect(on).toHaveBeenCalledExactlyOnceWith("change:size", expect.any(Function));
     expect(fit).not.toHaveBeenCalled();
 
     setSize([1280, 1024]);
@@ -250,9 +255,25 @@ describe("featureLayer", () => {
 
     expect(fit).toHaveBeenCalledExactlyOnceWith(sourceExtent, expectedFitOptions);
 
+    setSize([640, 640]);
     triggerSizeChange();
 
-    expect(fit).toHaveBeenCalledOnce();
+    expect(fit).toHaveBeenCalledTimes(expectedFitCount);
+  });
+
+  it.each([
+    { newSize: [640, 640], expectedFitCount: 1 },
+    { newSize: [0, 0], expectedFitCount: 0 },
+  ])("fits the map $expectedFitCount times when resized to $newSize after the first fit and refitOnResize is true", async ({ newSize, expectedFitCount }) => {
+    const { olMap, fit, setSize, triggerSizeChange } = createOlMapStub([1280, 1024]);
+    const { rerender } = renderFeatureLayer(olMap, sourceExtent, [], true, true);
+    await rerender({ features: [feature("feature-1", "Block A")] });
+    fit.mockClear();
+
+    setSize(newSize);
+    triggerSizeChange();
+
+    expect(fit).toHaveBeenCalledTimes(expectedFitCount);
   });
 
   it("does not fit while the map size is still zero", async () => {

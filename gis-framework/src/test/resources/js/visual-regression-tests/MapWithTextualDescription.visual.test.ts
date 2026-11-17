@@ -8,7 +8,7 @@ import { SupportedWkid } from "@/coordinate-system-utils";
 import singleBlockEd50 from "../fixtures/singleBlockEd50.esriJson.json";
 import splitResultEd50 from "../fixtures/splitResultEd50.esriJson.json";
 import { worker } from "./setup";
-import { waitForMapFullyLoaded } from "./visual-test-util";
+import { settleForScreenshot, waitForMapFullyLoaded } from "./visual-test-util";
 
 const textualDescriptionHtml = `<div class="gis-textual-description">
  <p class="govuk-body">The area is bounded by the following coordinates:</p>
@@ -49,15 +49,14 @@ const baseProps = {
 // the screenshot captures the bounded layout.
 function renderInFixedWidthContainer(
   layout: "horizontal" | "vertical",
-  selectionInputName?: string,
-  describedFeatureId?: string,
+  options: { selectionInputName?: string, toggle?: boolean, describedFeatureId?: string } = {},
 ) {
   const container = document.createElement("div");
   container.style.width = layout === "horizontal" ? "700px" : "350px";
   document.body.appendChild(container);
 
   return render(MapWithTextualDescription, {
-    props: { ...baseProps, layout, selectionInputName, describedFeatureId },
+    props: { ...baseProps, layout, ...options },
     global: { plugins: [OpenLayersMap] },
     container,
   });
@@ -100,7 +99,7 @@ describe("map with textual description", () => {
     document.body.appendChild(hostCheckbox);
     onTestFinished(() => hostCheckbox.remove());
 
-    const screen = renderInFixedWidthContainer("horizontal", "surrenderedFeatureIds");
+    const screen = renderInFixedWidthContainer("horizontal", { selectionInputName: "surrenderedFeatureIds" });
 
     await waitForMapFullyLoaded();
 
@@ -116,10 +115,38 @@ describe("map with textual description", () => {
       })),
     });
 
-    const screen = renderInFixedWidthContainer("horizontal", undefined, "part-1");
+    const screen = renderInFixedWidthContainer("horizontal", { describedFeatureId: "part-1" });
 
     await waitForMapFullyLoaded();
 
     await expect(screen.locator).toMatchScreenshot("map-with-textual-description-described-feature");
+  });
+
+  describe("with the view toggle", () => {
+    it("starts on the map", async () => {
+      mockEndpoints();
+
+      const screen = renderInFixedWidthContainer("horizontal", { toggle: true });
+
+      await waitForMapFullyLoaded();
+
+      await expect(screen.locator).toMatchScreenshot("map-with-textual-description-toggle-map");
+    });
+
+    it.each([
+      { option: "Description", screenshot: "map-with-textual-description-toggle-description" },
+      { option: "Map and description", screenshot: "map-with-textual-description-toggle-map-and-description" },
+    ])("shows $option when selected", async ({ option, screenshot }) => {
+      mockEndpoints();
+
+      const screen = renderInFixedWidthContainer("horizontal", { toggle: true });
+
+      await waitForMapFullyLoaded();
+      await screen.getByRole("radio", { name: option, exact: true }).click();
+      await expect.element(screen.getByText("The area is bounded by the following coordinates:")).toBeVisible();
+      await settleForScreenshot();
+
+      await expect(screen.locator).toMatchScreenshot(screenshot);
+    });
   });
 });

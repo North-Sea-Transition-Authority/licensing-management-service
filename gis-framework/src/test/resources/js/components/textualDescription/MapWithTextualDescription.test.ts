@@ -1,6 +1,6 @@
 import userEvent from "@testing-library/user-event";
 import { render, screen, waitFor, within } from "@testing-library/vue";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import MapWithTextualDescription
   from "@/components/textualDescription/MapWithTextualDescription.vue";
@@ -26,6 +26,11 @@ const openLayersStub = {
   },
 };
 
+function expectShown(element: HTMLElement | null, shown: boolean) {
+  const assertion = expect(element);
+  (shown ? assertion : assertion.not).toBeInTheDocument();
+}
+
 const baseProps = {
   srsWkid: 4230,
   featuresUrl: "/api/gis-framework/features?featureIds=feature-1",
@@ -33,28 +38,25 @@ const baseProps = {
   textualDescriptionUrl: "/api/gis-framework/textual-description?featureId=feature-1",
 } as const;
 
+const MAP_LABEL = "A map displaying TODO: EPGF-78 insert displayed shape names here";
+const DESCRIPTION = "Subarea 30/1a is bounded by the following coordinates:";
+
 describe("mapWithTextualDescription", () => {
-  it("renders the textual description text and the map", async () => {
-    getTextualDescriptionMock.mockResolvedValue(
-      "<div class=\"gis-textual-description\"><p>Subarea 30/1a is bounded by the following coordinates:</p></div>",
-    );
+  beforeEach(() => {
+    getTextualDescriptionMock.mockResolvedValue(`<p>${DESCRIPTION}</p>`);
     getFeaturesMock.mockResolvedValue([]);
     getOutlineNodesMock.mockResolvedValue([]);
+  });
 
+  it("when the toggle is off, then the textual description and the map are shown without view options", async () => {
     render(MapWithTextualDescription, {
       props: { ...baseProps },
       global: { plugins: [openLayersStub] },
     });
 
-    await waitFor(() => {
-      expect(
-        screen.getByText("Subarea 30/1a is bounded by the following coordinates:"),
-      ).toBeInTheDocument();
-    });
-
-    expect(
-      screen.getByLabelText("A map displaying TODO: EPGF-78 insert displayed shape names here"),
-    ).toBeInTheDocument();
+    expect(await screen.findByText(DESCRIPTION)).toBeInTheDocument();
+    expect(screen.getByLabelText(MAP_LABEL)).toBeInTheDocument();
+    expect(screen.queryByRole("radio")).not.toBeInTheDocument();
     expect(getFeaturesMock).toHaveBeenCalledWith(baseProps.featuresUrl);
     expect(getOutlineNodesMock).toHaveBeenCalledWith(baseProps.outlineNodesUrl);
   });
@@ -80,6 +82,31 @@ describe("mapWithTextualDescription", () => {
     expect(await screen.findByText("Described feature: feature-1")).toBeInTheDocument();
   });
 
+  it.each([
+    { clicks: [], checked: "Map", mapShown: true, descriptionShown: false },
+    { clicks: ["Description"], checked: "Description", mapShown: false, descriptionShown: true },
+    { clicks: ["Map and description"], checked: "Map and description", mapShown: true, descriptionShown: true },
+    { clicks: ["Map and description", "Map"], checked: "Map", mapShown: true, descriptionShown: false },
+  ])("when the toggle is on and $clicks is selected, then $checked is shown", async ({
+    clicks,
+    checked,
+    mapShown,
+    descriptionShown,
+  }) => {
+    render(MapWithTextualDescription, {
+      props: { ...baseProps, toggle: true },
+      global: { plugins: [openLayersStub] },
+    });
+
+    for (const name of clicks) {
+      await userEvent.click(screen.getByRole("radio", { name }));
+    }
+
+    expect(screen.getByRole("radio", { name: checked })).toBeChecked();
+    expectShown(screen.queryByLabelText(MAP_LABEL), mapShown);
+    await waitFor(() => expectShown(screen.queryByText(DESCRIPTION), descriptionShown));
+  });
+
   describe("highlighting selected features", () => {
     const baseMapStub = {
       props: ["selectedFeatureIds"],
@@ -98,9 +125,6 @@ describe("mapWithTextualDescription", () => {
     }
 
     function renderComponent(selectionInputName?: string) {
-      getTextualDescriptionMock.mockResolvedValue("");
-      getFeaturesMock.mockResolvedValue([]);
-      getOutlineNodesMock.mockResolvedValue([]);
       render(MapWithTextualDescription, {
         props: { ...baseProps, selectionInputName },
         global: { plugins: [openLayersStub], stubs: { BaseMap: baseMapStub } },

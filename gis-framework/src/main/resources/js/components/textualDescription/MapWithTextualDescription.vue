@@ -1,22 +1,41 @@
 <template>
-  <div class="gis-map-with-textual-description" :class="`gis-map-with-textual-description--${layout}`">
-    <div class="gis-map-with-textual-description__panel">
-      <base-map
-        :srs-wkid="srsWkid"
-        :features="features"
-        :outline-nodes="outlineNodes"
-        :include-nsta-quadrants="includeNstaQuadrants"
-        :include-nsta-blocks="includeNstaBlocks"
-        :include-snap-points="false"
-        :include-draw-line="false"
-        :map-style-override="mapStyleOverride"
-        :selected-feature-ids="selectedFeatureIds"
-        :described-feature-id="describedFeatureId"
-      />
+  <div>
+    <div class="gis-map-with-textual-description" :class="`gis-map-with-textual-description--${layout}`">
+      <div v-if="view !== 'textual-description'" class="gis-map-with-textual-description__panel">
+        <base-map
+          :srs-wkid="srsWkid"
+          :features="features"
+          :outline-nodes="outlineNodes"
+          :include-nsta-quadrants="includeNstaQuadrants"
+          :include-nsta-blocks="includeNstaBlocks"
+          :include-snap-points="false"
+          :include-draw-line="false"
+          :map-style-override="mapStyleOverride"
+          :selected-feature-ids="selectedFeatureIds"
+          :described-feature-id="describedFeatureId"
+          :refit-on-resize="toggle"
+        />
+      </div>
+      <div
+        v-if="view !== 'map'"
+        class="gis-map-with-textual-description__panel gis-map-with-textual-description__panel--description"
+      >
+        <textual-description :textual-description-url="textualDescriptionUrl"/>
+      </div>
     </div>
-    <div class="gis-map-with-textual-description__panel gis-map-with-textual-description__panel--description">
-      <textual-description :textual-description-url="textualDescriptionUrl"/>
-    </div>
+    <gv-radios
+      v-if="toggle"
+      v-model="view"
+      direction="inline"
+      size="small"
+      legend="Show"
+      legend-class="govuk-visually-hidden"
+      form-group-class="govuk-!-margin-top-4 govuk-!-margin-bottom-0"
+    >
+      <gv-radio value="map" label="Map"/>
+      <gv-radio value="textual-description" label="Description"/>
+      <gv-radio value="map-and-textual-description" label="Map and description"/>
+    </gv-radios>
   </div>
 </template>
 
@@ -25,11 +44,15 @@ import type { SupportedWkid } from "@/coordinate-system-utils";
 import { CSSProperties, onMounted, onUnmounted, ref } from "vue";
 import { useCommandJourneyFeatures } from "@/composables/useCommandJourneyFeatures";
 import BaseMap from "../baseMap/BaseMap.vue";
+import GvRadio from "../govukVue/radios/GvRadio.vue";
+import GvRadios from "../govukVue/radios/GvRadios.vue";
 import TextualDescription from "./TextualDescription.vue";
 
 interface MapWithTextualDescriptionProps {
   // "horizontal" places the description to the right of the map; "vertical" places it underneath.
   layout?: "horizontal" | "vertical",
+  // Shows Map / Description / Map and description radios, starting on the map only.
+  toggle?: boolean,
   srsWkid: SupportedWkid,
   featuresUrl: string,
   outlineNodesUrl: string,
@@ -46,6 +69,10 @@ const props = withDefaults(defineProps<MapWithTextualDescriptionProps>(), {
   includeNstaQuadrants: true,
   includeNstaBlocks: true,
 });
+
+type View = "map" | "textual-description" | "map-and-textual-description";
+
+const view = ref<View>(props.toggle ? "map" : "map-and-textual-description");
 
 // Make the map fill its square panel rather than use BaseMap's default clamped height.
 const mapStyleOverride: CSSProperties = {
@@ -83,6 +110,7 @@ onUnmounted(() => document.removeEventListener("change", onChange));
 
 <style scoped>
 .gis-map-with-textual-description {
+  container-type: inline-size;
   display: flex;
   gap: 1rem;
   width: 100%;
@@ -114,5 +142,16 @@ onUnmounted(() => document.removeEventListener("change", onChange));
 /* Long descriptions scroll within the square instead of stretching it. */
 .gis-map-with-textual-description__panel--description {
   overflow: auto;
+}
+
+/* On its own, the description shrinks to fit its text, up to the size the map would take. */
+.gis-map-with-textual-description__panel--description:only-child {
+  aspect-ratio: auto;
+  max-height: 100cqw;
+}
+
+/* govuk-frontend sizes labels for normal radios, which wraps small inline labels */
+:deep(.govuk-radios--small .govuk-radios__label) {
+  max-width: calc(100% - 50px);
 }
 </style>

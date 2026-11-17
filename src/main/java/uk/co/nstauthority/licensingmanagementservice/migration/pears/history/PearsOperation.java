@@ -315,19 +315,22 @@ public sealed interface PearsOperation {
    * One subarea an operation acted on, on one block: the version it ended, the version it left
    * behind, or both.
    *
-   * @param type          nullable, for an entry type PEARS has added since
-   * @param blockEntrySeq the block entry this subarea came in on, and so which of the operation's
-   *                      block changes it belongs to. Null on a subarea operation, which has no
-   *                      block entries.
-   * @param shortName     the name PEARS knows the subarea by, which is what identifies it across
-   *                      versions; nullable only where the entry resolved nothing
-   * @param input         nullable
-   * @param output        nullable
+   * @param type            nullable, for an entry type PEARS has added since
+   * @param blockEntrySeq   the block entry this subarea came in on, and so which of the operation's
+   *                        block changes it belongs to. Null on a subarea operation, which has no
+   *                        block entries.
+   * @param outputShortName the name PEARS knows the version left behind by, which is what
+   *                        identifies it across versions; nullable only where the entry resolved
+   *                        nothing
+   * @param inputShortName  the name of the version ended, which a transfer can rename from
+   * @param input           nullable
+   * @param output          nullable
    */
   record SubareaEntry(
       EntryType type,
       Integer blockEntrySeq,
-      String shortName,
+      String outputShortName,
+      String inputShortName,
       Subarea input,
       Subarea output
   ) {

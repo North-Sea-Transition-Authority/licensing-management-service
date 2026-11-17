@@ -166,6 +166,7 @@ class PearsOperationTest {
         type,
         null,
         "SA",
+        "SA",
         hasInput ? new PearsOperation.Subarea(739101, "Subarea", REPLACED_SI_ID, null) : null,
         hasOutput ? new PearsOperation.Subarea(739102, "Subarea", SECOND_REPLACED_SI_ID, null) : null
     );

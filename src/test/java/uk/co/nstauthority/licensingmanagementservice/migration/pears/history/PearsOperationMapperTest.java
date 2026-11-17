@@ -248,6 +248,7 @@ class PearsOperationMapperTest {
             739277,
             "47/10a",
             739120,
+            "SOUTH",
             "DISCOVERY AREA",
             739026,
             "47/10",
@@ -265,6 +266,7 @@ class PearsOperationMapperTest {
                 PearsOperation.EntryType.TRANSFER,
                 2,
                 "NORTH",
+                "SOUTH",
                 new PearsOperation.Subarea(739026, "DISCOVERY AREA", 739051, "47/10"),
                 new PearsOperation.Subarea(739277, "DISCOVERY AREA", 739120, "47/10a")
             ))
@@ -285,6 +287,7 @@ class PearsOperationMapperTest {
             739277,
             "47/10a",
             739120,
+            "A",
             "ALL",
             null,
             "47/10",
@@ -301,6 +304,7 @@ class PearsOperationMapperTest {
             List.of(new PearsOperation.SubareaEntry(
                 PearsOperation.EntryType.SET,
                 null,
+                "A",
                 "A",
                 null,
                 new PearsOperation.Subarea(739277, "ALL", 739120, "47/10a")

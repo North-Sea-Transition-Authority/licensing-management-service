@@ -290,7 +290,7 @@ class BlockOperationMigrator implements PearsOperationMigrator {
     var endedSubareas = new LinkedHashSet<SubareaDetails>();
     for (var entry : end.subareaEntries()) {
       var subarea = subareaDetails(
-          entry,
+          entry.inputShortName(),
           entry.input(),
           featureIdsBySiId,
           notes,
@@ -418,7 +418,7 @@ class BlockOperationMigrator implements PearsOperationMigrator {
     accumulator.redefinitionKeys().add(at);
     for (var subarea : entry.subareas()) {
       var replaced = subareaDetails(
-          subarea,
+          subarea.inputShortName(),
           subarea.input(),
           featureIdsBySiId,
           notes,
@@ -473,7 +473,7 @@ class BlockOperationMigrator implements PearsOperationMigrator {
   ) {
     for (var entry : subareaEntries) {
       var replaced = subareaDetails(
-          entry,
+          entry.inputShortName(),
           entry.input(),
           featureIdsBySiId,
           notes,
@@ -481,7 +481,7 @@ class BlockOperationMigrator implements PearsOperationMigrator {
           "subarea version a block change carried across could not be resolved"
       );
       var output = subareaDetails(
-          entry,
+          entry.outputShortName(),
           entry.output(),
           featureIdsBySiId,
           notes,
@@ -510,7 +510,7 @@ class BlockOperationMigrator implements PearsOperationMigrator {
       PearsOperationKey at,
       String reason
   ) {
-    var details = subareaDetails(entry, entry.output(), featureIdsBySiId, notes, at, reason);
+    var details = subareaDetails(entry.outputShortName(), entry.output(), featureIdsBySiId, notes, at, reason);
     if (details != null) {
       subareasByBlock.computeIfAbsent(blockFeatureId, ignored -> new LinkedHashSet<>()).add(details);
     }
@@ -520,7 +520,7 @@ class BlockOperationMigrator implements PearsOperationMigrator {
    * One side of a subarea, as the operation will hold it.
    */
   private static SubareaDetails subareaDetails(
-      PearsOperation.SubareaEntry entry,
+      String shortName,
       PearsOperation.Subarea subarea,
       Map<Integer, UUID> featureIdsBySiId,
       MigrationNotes notes,
@@ -534,7 +534,7 @@ class BlockOperationMigrator implements PearsOperationMigrator {
     if (featureId == null) {
       notes.unmapped(reason, at.operationId());
     }
-    return new SubareaDetails(featureId, subarea.name(), entry.shortName());
+    return new SubareaDetails(featureId, subarea.name(), shortName);
   }
 
   /**

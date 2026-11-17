@@ -41,6 +41,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.operation.StorageOp
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaDetails;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaSetEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaSurrenderOutcome;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaTransfer;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.TransferEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicenceCleardownService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
@@ -440,8 +441,10 @@ class TestHarnessServiceTest {
 
     var expectedStrataSplit = LicenceOperation.newSubAreaOperation()
         .withBlockFeatureId(STRATA_SPLIT_BLOCK.getId())
-        .withReplacedSubareas(List.of(subareaDetails(STRATA_SPLIT_SUBAREA)))
-        .withOutputSubareas(List.of(subareaDetails(SHALLOW_STRATUM), subareaDetails(DEEP_STRATUM)))
+        .withTransfers(List.of(new SubareaTransfer(
+            List.of(subareaDetails(STRATA_SPLIT_SUBAREA)),
+            List.of(subareaDetails(SHALLOW_STRATUM), subareaDetails(DEEP_STRATUM))
+        )))
         .build();
     assertThat(capturedOperationsOn(positions.get(2)))
         .usingRecursiveFieldByFieldElementComparatorIgnoringFields("id")
@@ -458,8 +461,10 @@ class TestHarnessServiceTest {
 
     var expectedSplit = LicenceOperation.newSubAreaOperation()
         .withBlockFeatureId(SPLIT_BLOCK.getId())
-        .withReplacedSubareas(List.of(subareaDetails(SPLIT_SUBAREA)))
-        .withOutputSubareas(List.of(subareaDetails(WESTERN_SUBAREA_HALF), subareaDetails(EASTERN_SUBAREA_HALF)))
+        .withTransfers(List.of(new SubareaTransfer(
+            List.of(subareaDetails(SPLIT_SUBAREA)),
+            List.of(subareaDetails(WESTERN_SUBAREA_HALF), subareaDetails(EASTERN_SUBAREA_HALF))
+        )))
         .build();
     assertThat(capturedOperationsOn(positions.get(5)))
         .usingRecursiveFieldByFieldElementComparatorIgnoringFields("id")
@@ -476,8 +481,10 @@ class TestHarnessServiceTest {
 
     var expectedMerge = LicenceOperation.newSubAreaOperation()
         .withBlockFeatureId(RETAINED_HALF.getId())
-        .withReplacedSubareas(List.of(subareaDetails(CROPPED_SUBAREA), subareaDetails(KEPT_SUBAREA)))
-        .withOutputSubareas(List.of(subareaDetails(MERGED_SUBAREA)))
+        .withTransfers(List.of(new SubareaTransfer(
+            List.of(subareaDetails(CROPPED_SUBAREA), subareaDetails(KEPT_SUBAREA)),
+            List.of(subareaDetails(MERGED_SUBAREA))
+        )))
         .build();
     assertThat(capturedOperationsOn(positions.getLast()))
         .usingRecursiveFieldByFieldElementComparatorIgnoringFields("id")

@@ -200,15 +200,17 @@ class LicenceHistoryReaderTest {
                            position_sequence="6" op_id="1000" op_seq="1" op_status="LIVE"
                            op_type="PED_SUBAREA_CHANGE">
             <SUBAREA_ENTRY_LIST>
-              <SUBAREA_ENTRY entry_type="SET" subarea_short_name="SOUTH"
+              <SUBAREA_ENTRY entry_type="SET" output_subarea_short_name="SOUTH"
                              output_subarea_name="APPRAISAL AREA" output_subarea_si_id="739301"
                              output_block_ref="47/10a" output_block_si_id="739120"/>
-              <SUBAREA_ENTRY entry_type="TRANSFER" block_entry_seq="2" subarea_short_name="NORTH"
+              <SUBAREA_ENTRY entry_type="TRANSFER" block_entry_seq="2" output_subarea_short_name="NORTH"
                              output_subarea_name="DISCOVERY AREA" output_subarea_si_id="739277"
                              output_block_ref="47/10a" output_block_si_id="739120"
+                             input_subarea_short_name="CENTRAL"
                              input_subarea_name="DISCOVERY AREA" input_subarea_si_id="739026"
                              input_block_ref="47/10" input_block_si_id="739051"/>
-              <SUBAREA_ENTRY entry_type="REMOVE" block_entry_seq="3" subarea_short_name="EAST"
+              <SUBAREA_ENTRY entry_type="REMOVE" block_entry_seq="3" output_subarea_short_name="EAST"
+                             input_subarea_short_name="EAST"
                              input_subarea_name="RELINQUISHED AREA" input_subarea_si_id="739030"
                              input_block_ref="47/10" input_block_si_id="739051"/>
             </SUBAREA_ENTRY_LIST>
@@ -235,18 +237,21 @@ class LicenceHistoryReaderTest {
                 null,
                 "SOUTH",
                 null,
+                null,
                 new PearsOperation.Subarea(739301, "APPRAISAL AREA", 739120, "47/10a")
             ),
             new PearsOperation.SubareaEntry(
                 PearsOperation.EntryType.TRANSFER,
                 2,
                 "NORTH",
+                "CENTRAL",
                 new PearsOperation.Subarea(739026, "DISCOVERY AREA", 739051, "47/10"),
                 new PearsOperation.Subarea(739277, "DISCOVERY AREA", 739120, "47/10a")
             ),
             new PearsOperation.SubareaEntry(
                 PearsOperation.EntryType.REMOVE,
                 3,
+                "EAST",
                 "EAST",
                 new PearsOperation.Subarea(739030, "RELINQUISHED AREA", 739051, "47/10"),
                 null

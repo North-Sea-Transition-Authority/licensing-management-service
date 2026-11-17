@@ -1,6 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subarea;
 
 import jakarta.annotation.Nullable;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -22,6 +23,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaDetails;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaTransfer;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionChangeOperationUtil;
@@ -139,25 +141,11 @@ public class SubareaChangeService {
         positionCorrection,
         change.changeId()
     );
-    var originalSubareas = stateGoingIntoChange.subareasOf(blockFeatureId);
-
-    var initialFeatureIdsByOutputFeatureId = commandJourneyService
-        .getInitialFeatureIdsByCreatedFeatureId(operation.commandJourneyIdOrThrow());
-    var replacedFeatureIds = initialFeatureIdsByOutputFeatureId.values().stream()
-        .flatMap(Set::stream)
-        .collect(Collectors.toSet());
-    var outputSubareas = featureService.getFeaturesByIds(initialFeatureIdsByOutputFeatureId.keySet()).stream()
-        .map(SubareaDetails::from)
-        .toList();
-
-    var replacedSubareas = originalSubareas.stream()
-        .filter(subarea -> replacedFeatureIds.contains(subarea.featureId()))
-        .toList();
+    var transfers = getTransfers(operation.commandJourneyIdOrThrow(), stateGoingIntoChange.subareasOf(blockFeatureId));
 
     var completedOperation = LicenceOperation.newSubAreaOperation()
         .withBlockFeatureId(blockFeatureId)
-        .withReplacedSubareas(replacedSubareas)
-        .withOutputSubareas(outputSubareas)
+        .withTransfers(transfers)
         .withCommandJourneyId(operation.commandJourneyId())
         .build();
     var payload = positionCorrection.getPayload();
@@ -169,18 +157,40 @@ public class SubareaChangeService {
     positionCorrection.setPayload(LicencePositionPayload.withChanges(payload, changes));
     licencePositionCorrectionService.save(positionCorrection);
 
-    for (var outputSubarea : outputSubareas) {
-      var lineageSubareas = originalSubareas.stream()
-          .filter(subarea -> initialFeatureIdsByOutputFeatureId.get(outputSubarea.featureId()).contains(subarea.featureId()))
-          .toList();
-      subareaSetEquityCorrectionService.cascadeSubareaEquity(
-          positionCorrection,
-          stateWithoutChange,
-          blockFeatureId,
-          lineageSubareas,
-          outputSubarea
-      );
-    }
+    subareaSetEquityCorrectionService.cascadeSubareaEquity(
+        positionCorrection,
+        stateWithoutChange,
+        blockFeatureId,
+        transfers
+    );
+  }
+
+  private List<SubareaTransfer> getTransfers(
+      UUID commandJourneyId,
+      List<SubareaDetails> originalSubareas
+  ) {
+    var outputFeatureIdToInitialFeatureIds = commandJourneyService.getInitialFeatureIdsByCreatedFeatureId(commandJourneyId);
+    var initialFeatureIdsToOutputSubareas = featureService.getFeaturesByIds(outputFeatureIdToInitialFeatureIds.keySet())
+        .stream()
+        .map(SubareaDetails::from)
+        .collect(Collectors.groupingBy(
+            outputSubarea -> outputFeatureIdToInitialFeatureIds.get(outputSubarea.featureId()),
+            LinkedHashMap::new,
+            Collectors.toList()
+        ));
+
+    return initialFeatureIdsToOutputSubareas.entrySet().stream()
+        .map(entry -> new SubareaTransfer(subareasWithFeatureIds(originalSubareas, entry.getKey()), entry.getValue()))
+        .toList();
+  }
+
+  private static List<SubareaDetails> subareasWithFeatureIds(
+      List<SubareaDetails> subareas,
+      Set<UUID> featureIds
+  ) {
+    return subareas.stream()
+        .filter(subarea -> featureIds.contains(subarea.featureId()))
+        .toList();
   }
 
   private static LicencePositionChangeType rebuildKeepingChangeId(

@@ -125,6 +125,7 @@ subarea_entries AS (
          , CAST(NULL AS NUMBER) AS block_entry_seq
          , se.entry_type
          , COALESCE(se.sec_short_name, se.prim_short_name) AS short_name
+         , se.prim_short_name AS input_short_name
          , CASE se.entry_type
              WHEN 'REMOVE' THEN (
                SELECT MAX(ps.id)
@@ -224,6 +225,7 @@ subarea_entries AS (
                 WHEN output_ps_id IS NULL THEN 'REMOVE'
                 ELSE 'TRANSFER' END AS entry_type
          , short_name
+         , short_name AS input_short_name
          , input_ps_id
          , output_ps_id
     FROM (
@@ -328,11 +330,12 @@ FROM pedmgr.ped_simulation_transactions pst
                   XMLATTRIBUTES(
                       entry_type AS "entry_type"
                     , block_entry_seq AS "block_entry_seq"
-                    , short_name AS "subarea_short_name"
+                    , short_name AS "output_subarea_short_name"
                     , output_subarea_name AS "output_subarea_name"
                     , output_subarea_si_id AS "output_subarea_si_id"
                     , output_block_ref AS "output_block_ref"
                     , output_block_si_id AS "output_block_si_id"
+                    , input_short_name AS "input_subarea_short_name"
                     , input_subarea_name AS "input_subarea_name"
                     , input_subarea_si_id AS "input_subarea_si_id"
                     , input_block_ref AS "input_block_ref"

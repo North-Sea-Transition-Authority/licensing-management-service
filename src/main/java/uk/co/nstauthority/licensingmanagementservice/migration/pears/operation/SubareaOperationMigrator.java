@@ -8,10 +8,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaDetails;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaTransfer;
 import uk.co.nstauthority.licensingmanagementservice.migration.pears.PearsLicenceHistory;
 import uk.co.nstauthority.licensingmanagementservice.migration.pears.PearsPosition;
 import uk.co.nstauthority.licensingmanagementservice.migration.pears.history.PearsOperation;
@@ -227,17 +229,16 @@ class SubareaOperationMigrator implements PearsOperationMigrator {
       MigrationNotes notes,
       PearsOperationKey at
   ) {
-    var output = new LinkedHashSet<SubareaDetails>();
-    var replaced = new LinkedHashSet<SubareaDetails>();
+    var replacedToOutputs = new LinkedHashMap<SubareaDetails, Set<SubareaDetails>>();
+    var created = new LinkedHashSet<SubareaDetails>();
     var leavesSomethingBehind = false;
-    var endsSomething = false;
 
     for (var entry : entries) {
+      SubareaDetails output = null;
       if (entry.hasOutputSide()) {
         leavesSomethingBehind = true;
-        addSubarea(
-            output,
-            entry,
+        output = toSubarea(
+            entry.outputShortName(),
             entry.output(),
             featureIdsBySiId,
             notes,
@@ -246,39 +247,62 @@ class SubareaOperationMigrator implements PearsOperationMigrator {
         );
       }
       if (entry.hasInputSide()) {
-        endsSomething = true;
-        addSubarea(
-            replaced,
-            entry,
+        var replaced = toSubarea(
+            entry.inputShortName(),
             entry.input(),
             featureIdsBySiId,
             notes,
             at,
             "subarea version an operation ended could not be resolved"
         );
+        var outputs = replacedToOutputs.computeIfAbsent(replaced, subarea -> new LinkedHashSet<>());
+        if (output != null) {
+          outputs.add(output);
+        }
+      } else if (output != null) {
+        created.add(output);
       }
     }
 
-    if (output.isEmpty() && replaced.isEmpty()) {
+    if (replacedToOutputs.isEmpty() && created.isEmpty()) {
       return null;
     }
-    if (!endsSomething) {
+    if (replacedToOutputs.isEmpty()) {
       return LicenceOperation.newSubareaCreateOperation()
           .withBlockFeatureId(blockFeatureId)
-          .withCreatedSubareas(output)
+          .withCreatedSubareas(created)
           .build();
     }
     if (!leavesSomethingBehind) {
       return LicenceOperation.newSubareaEndOperation()
           .withBlockFeatureId(blockFeatureId)
-          .withEndedSubareas(replaced)
+          .withEndedSubareas(replacedToOutputs.keySet())
           .build();
     }
     return LicenceOperation.newSubAreaOperation()
         .withBlockFeatureId(blockFeatureId)
-        .withReplacedSubareas(replaced)
-        .withOutputSubareas(output)
+        .withTransfers(transfers(replacedToOutputs, created))
         .build();
+  }
+
+  /**
+   * One transfer per subarea version ended, and one for the subareas created from none.
+   */
+  private static List<SubareaTransfer> transfers(
+      Map<SubareaDetails, Set<SubareaDetails>> replacedToOutputs,
+      Set<SubareaDetails> created
+  ) {
+    var transfers = replacedToOutputs.entrySet()
+        .stream()
+        .map(replacedToOutput ->
+            new SubareaTransfer(List.of(replacedToOutput.getKey()), List.copyOf(replacedToOutput.getValue()))
+        )
+        .collect(Collectors.toCollection(ArrayList::new));
+
+    if (!created.isEmpty()) {
+      transfers.add(new SubareaTransfer(List.of(), List.copyOf(created)));
+    }
+    return transfers;
   }
 
   /**
@@ -333,9 +357,8 @@ class SubareaOperationMigrator implements PearsOperationMigrator {
    * <p>The short name comes from the entry rather than the side: it is read off the operation's own
    * payload, so it is there even where the data point held no row to take a title from.
    */
-  private static void addSubarea(
-      Set<SubareaDetails> subareas,
-      PearsOperation.SubareaEntry entry,
+  private static SubareaDetails toSubarea(
+      String shortName,
       PearsOperation.Subarea subarea,
       Map<Integer, UUID> featureIdsBySiId,
       MigrationNotes notes,
@@ -348,11 +371,11 @@ class SubareaOperationMigrator implements PearsOperationMigrator {
     if (featureId == null) {
       notes.unmapped(reason, at.operationId());
     }
-    subareas.add(new SubareaDetails(
+    return new SubareaDetails(
         featureId,
         subarea == null ? null : subarea.name(),
-        entry.shortName()
-    ));
+        shortName
+    );
   }
 
   /**

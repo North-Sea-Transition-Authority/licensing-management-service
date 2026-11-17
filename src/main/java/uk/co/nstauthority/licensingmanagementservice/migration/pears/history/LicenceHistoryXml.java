@@ -74,11 +74,12 @@ interface LicenceHistoryXml {
   record SubareaEntry(
       @JacksonXmlProperty(isAttribute = true, localName = "entry_type") String entryType,
       @JacksonXmlProperty(isAttribute = true, localName = "block_entry_seq") Integer blockEntrySeq,
-      @JacksonXmlProperty(isAttribute = true, localName = "subarea_short_name") String subareaShortName,
+      @JacksonXmlProperty(isAttribute = true, localName = "output_subarea_short_name") String outputSubareaShortName,
       @JacksonXmlProperty(isAttribute = true, localName = "output_subarea_name") String outputSubareaName,
       @JacksonXmlProperty(isAttribute = true, localName = "output_subarea_si_id") Integer outputSubareaSiId,
       @JacksonXmlProperty(isAttribute = true, localName = "output_block_ref") String outputBlockRef,
       @JacksonXmlProperty(isAttribute = true, localName = "output_block_si_id") Integer outputBlockSiId,
+      @JacksonXmlProperty(isAttribute = true, localName = "input_subarea_short_name") String inputSubareaShortName,
       @JacksonXmlProperty(isAttribute = true, localName = "input_subarea_name") String inputSubareaName,
       @JacksonXmlProperty(isAttribute = true, localName = "input_subarea_si_id") Integer inputSubareaSiId,
       @JacksonXmlProperty(isAttribute = true, localName = "input_block_ref") String inputBlockRef,

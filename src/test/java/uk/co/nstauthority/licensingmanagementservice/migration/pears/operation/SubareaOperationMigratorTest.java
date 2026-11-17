@@ -27,6 +27,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaCr
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaDetails;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaEndOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaTransfer;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.FeatureTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.migration.pears.PearsLicenceHistory;
 import uk.co.nstauthority.licensingmanagementservice.migration.pears.PearsPosition;
@@ -134,8 +135,17 @@ class SubareaOperationMigratorTest {
     assertChangesMatch(changes, List.of(createChangeFrom(new SubareaOperation(
         UUID.randomUUID(),
         SUCCESSOR_BLOCK_FEATURE_ID,
-        List.of(new SubareaDetails(ENDED_SUBAREA_FEATURE_ID, "DISCOVERY AREA", "NORTH")),
-        List.of(new SubareaDetails(CREATED_SUBAREA_FEATURE_ID, "ALL", "A"))
+        List.of(
+            new SubareaTransfer(
+                List.of(new SubareaDetails(ENDED_SUBAREA_FEATURE_ID, "DISCOVERY AREA", "NORTH")),
+                List.of()
+            ),
+            new SubareaTransfer(
+                List.of(),
+                List.of(new SubareaDetails(CREATED_SUBAREA_FEATURE_ID, "ALL", "A"))
+            )
+        ),
+        null
     ))));
   }
 
@@ -158,8 +168,17 @@ class SubareaOperationMigratorTest {
     assertChangesMatch(changes, List.of(createChangeFrom(new SubareaOperation(
         UUID.randomUUID(),
         SUCCESSOR_BLOCK_FEATURE_ID,
-        List.of(new SubareaDetails(ENDED_SUBAREA_FEATURE_ID, "DISCOVERY AREA", "NORTH")),
-        List.of(new SubareaDetails(CREATED_SUBAREA_FEATURE_ID, "ALL", "A"))
+        List.of(
+            new SubareaTransfer(
+                List.of(new SubareaDetails(ENDED_SUBAREA_FEATURE_ID, "DISCOVERY AREA", "NORTH")),
+                List.of()
+            ),
+            new SubareaTransfer(
+                List.of(),
+                List.of(new SubareaDetails(CREATED_SUBAREA_FEATURE_ID, "ALL", "A"))
+            )
+        ),
+        null
     ))));
   }
 
@@ -202,6 +221,138 @@ class SubareaOperationMigratorTest {
             List.of(new SubareaDetails(CARRIED_SUBAREA_FEATURE_ID, "ALL", "A"))
         ))
     ));
+  }
+
+  @Test
+  void migrate_whenASubareaChangeRenamesASubarea_thenEachSideKeepsItsOwnShortName() {
+    var history = createHistoryFrom(new PearsOperation.SubareaChange(createHeader(), List.of(
+        new PearsOperation.SubareaEntry(
+            PearsOperation.EntryType.TRANSFER,
+            null,
+            "F",
+            "A",
+            createSubareaFrom(ENDED_SUBAREA_SI_ID, "RAVENSPURN FIELD AREA", SUCCESSOR_BLOCK_SI_ID),
+            createSubareaFrom(CREATED_SUBAREA_SI_ID, "ALL", SUCCESSOR_BLOCK_SI_ID)
+        )
+    )));
+    whenFeaturesAreResolved(Set.of(ENDED_SUBAREA_SI_ID, SUCCESSOR_BLOCK_SI_ID, CREATED_SUBAREA_SI_ID));
+
+    var changes = subareaOperationMigrator.migrate(history, notes);
+
+    assertChangesMatch(changes, List.of(createChangeFrom(new SubareaOperation(
+        UUID.randomUUID(),
+        SUCCESSOR_BLOCK_FEATURE_ID,
+        List.of(new SubareaDetails(ENDED_SUBAREA_FEATURE_ID, "RAVENSPURN FIELD AREA", "A")),
+        List.of(new SubareaDetails(CREATED_SUBAREA_FEATURE_ID, "ALL", "F"))
+    ))));
+  }
+
+  @Test
+  void migrate_whenASubareaChangeSplitsASubarea_thenItIsOneTransferToEveryPart() {
+    var all = createSubareaFrom(ENDED_SUBAREA_SI_ID, "ALL", SUCCESSOR_BLOCK_SI_ID);
+    var hyde = createSubareaFrom(CREATED_SUBAREA_SI_ID, "HYDE FIELD", SUCCESSOR_BLOCK_SI_ID);
+    var rest = createSubareaFrom(CARRIED_SUBAREA_SI_ID, "REST OF BLOCK", SUCCESSOR_BLOCK_SI_ID);
+    var history = createHistoryFrom(new PearsOperation.SubareaChange(createHeader(), List.of(
+        createTransferEntry("ALL", all, "HYDE", hyde),
+        createTransferEntry("ALL", all, "REST", rest)
+    )));
+    whenFeaturesAreResolved(Set.of(
+        ENDED_SUBAREA_SI_ID,
+        SUCCESSOR_BLOCK_SI_ID,
+        CREATED_SUBAREA_SI_ID,
+        CARRIED_SUBAREA_SI_ID
+    ));
+
+    var changes = subareaOperationMigrator.migrate(history, notes);
+
+    assertChangesMatch(changes, List.of(createChangeFrom(new SubareaOperation(
+        UUID.randomUUID(),
+        SUCCESSOR_BLOCK_FEATURE_ID,
+        List.of(new SubareaTransfer(
+            List.of(new SubareaDetails(ENDED_SUBAREA_FEATURE_ID, "ALL", "ALL")),
+            List.of(
+                new SubareaDetails(CREATED_SUBAREA_FEATURE_ID, "HYDE FIELD", "HYDE"),
+                new SubareaDetails(CARRIED_SUBAREA_FEATURE_ID, "REST OF BLOCK", "REST")
+            )
+        )),
+        null
+    ))));
+  }
+
+  @Test
+  void migrate_whenASubareaChangeMergesSubareas_thenEachIsATransferToTheMergedSubarea() {
+    var discovery = createSubareaFrom(ENDED_SUBAREA_SI_ID, "DISCOVERY AREA", SUCCESSOR_BLOCK_SI_ID);
+    var ravenspurn = createSubareaFrom(CARRIED_SUBAREA_SI_ID, "RAVENSPURN FIELD AREA", SUCCESSOR_BLOCK_SI_ID);
+    var all = createSubareaFrom(CREATED_SUBAREA_SI_ID, "ALL", SUCCESSOR_BLOCK_SI_ID);
+    var history = createHistoryFrom(new PearsOperation.SubareaChange(createHeader(), List.of(
+        createTransferEntry("A", discovery, "F", all),
+        createTransferEntry("C", ravenspurn, "F", all)
+    )));
+    whenFeaturesAreResolved(Set.of(
+        ENDED_SUBAREA_SI_ID,
+        SUCCESSOR_BLOCK_SI_ID,
+        CREATED_SUBAREA_SI_ID,
+        CARRIED_SUBAREA_SI_ID
+    ));
+
+    var changes = subareaOperationMigrator.migrate(history, notes);
+
+    var merged = new SubareaDetails(CREATED_SUBAREA_FEATURE_ID, "ALL", "F");
+    assertChangesMatch(changes, List.of(createChangeFrom(new SubareaOperation(
+        UUID.randomUUID(),
+        SUCCESSOR_BLOCK_FEATURE_ID,
+        List.of(
+            new SubareaTransfer(
+                List.of(new SubareaDetails(ENDED_SUBAREA_FEATURE_ID, "DISCOVERY AREA", "A")),
+                List.of(merged)
+            ),
+            new SubareaTransfer(
+                List.of(new SubareaDetails(CARRIED_SUBAREA_FEATURE_ID, "RAVENSPURN FIELD AREA", "C")),
+                List.of(merged)
+            )
+        ),
+        null
+    ))));
+  }
+
+  @Test
+  void migrate_whenASubareaChangeTransfersOneSubareaAndRemovesAnother_thenTheRemovedOneTransfersToNothing() {
+    var discovery = createSubareaFrom(ENDED_SUBAREA_SI_ID, "DISCOVERY AREA", SUCCESSOR_BLOCK_SI_ID);
+    var all = createSubareaFrom(CREATED_SUBAREA_SI_ID, "ALL", SUCCESSOR_BLOCK_SI_ID);
+    var history = createHistoryFrom(new PearsOperation.SubareaChange(createHeader(), List.of(
+        createTransferEntry("A", discovery, "B", all),
+        createEntryFrom(
+            PearsOperation.EntryType.REMOVE,
+            null,
+            "C",
+            createSubareaFrom(CARRIED_SUBAREA_SI_ID, "RAVENSPURN FIELD AREA", SUCCESSOR_BLOCK_SI_ID),
+            null
+        )
+    )));
+    whenFeaturesAreResolved(Set.of(
+        ENDED_SUBAREA_SI_ID,
+        SUCCESSOR_BLOCK_SI_ID,
+        CREATED_SUBAREA_SI_ID,
+        CARRIED_SUBAREA_SI_ID
+    ));
+
+    var changes = subareaOperationMigrator.migrate(history, notes);
+
+    assertChangesMatch(changes, List.of(createChangeFrom(new SubareaOperation(
+        UUID.randomUUID(),
+        SUCCESSOR_BLOCK_FEATURE_ID,
+        List.of(
+            new SubareaTransfer(
+                List.of(new SubareaDetails(ENDED_SUBAREA_FEATURE_ID, "DISCOVERY AREA", "A")),
+                List.of(new SubareaDetails(CREATED_SUBAREA_FEATURE_ID, "ALL", "B"))
+            ),
+            new SubareaTransfer(
+                List.of(new SubareaDetails(CARRIED_SUBAREA_FEATURE_ID, "RAVENSPURN FIELD AREA", "C")),
+                List.of()
+            )
+        ),
+        null
+    ))));
   }
 
   static Stream<Arguments> operations() {
@@ -372,6 +523,22 @@ class SubareaOperationMigratorTest {
     );
   }
 
+  private static PearsOperation.SubareaEntry createTransferEntry(
+      String inputShortName,
+      PearsOperation.Subarea input,
+      String shortName,
+      PearsOperation.Subarea output
+  ) {
+    return new PearsOperation.SubareaEntry(
+        PearsOperation.EntryType.TRANSFER,
+        null,
+        shortName,
+        inputShortName,
+        input,
+        output
+    );
+  }
+
   private static PearsOperation.SubareaEntry createEntryFrom(
       PearsOperation.EntryType type,
       Integer blockEntrySeq,
@@ -379,7 +546,7 @@ class SubareaOperationMigratorTest {
       PearsOperation.Subarea input,
       PearsOperation.Subarea output
   ) {
-    return new PearsOperation.SubareaEntry(type, blockEntrySeq, shortName, input, output);
+    return new PearsOperation.SubareaEntry(type, blockEntrySeq, shortName, shortName, input, output);
   }
 
   private static PearsOperation.Subarea createSubareaFrom(

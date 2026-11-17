@@ -46,6 +46,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaDetails;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaTransfer;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeTestUtil;
@@ -452,7 +453,7 @@ class SubareaChangeServiceTest {
   void correctExistingSubareaChange_whenStagedCorrectionHasLiveChangeJourney_thenReplacesItWithNewJourney() {
     var licencePosition = LicencePositionTestUtil.newBuilder().build();
     var liveJourneyId = UUID.randomUUID();
-    var liveOperation = new SubareaOperation(UUID.randomUUID(), BLOCK_FEATURE_ID, List.of(), List.of(), liveJourneyId);
+    var liveOperation = new SubareaOperation(UUID.randomUUID(), BLOCK_FEATURE_ID, List.of(), liveJourneyId);
     var liveChange = LicencePositionChangeTestUtil.newBuilder()
         .withId(UUID.randomUUID())
         .withOperations(List.<LicenceOperation>of(liveOperation))
@@ -538,7 +539,7 @@ class SubareaChangeServiceTest {
                 change.changeId(),
                 1,
                 AddChange.buildOperationsChange(
-                    List.of(completedOperation(List.of(subareaA), List.of(subareaA1, subareaA2))),
+                    List.of(completedOperation(transfer(List.of(subareaA), List.of(subareaA1, subareaA2)))),
                     1
                 ).operations()
             ),
@@ -548,15 +549,7 @@ class SubareaChangeServiceTest {
         positionCorrection,
         stateWithoutChange,
         BLOCK_FEATURE_ID,
-        List.of(SubareaDetails.from(subareaA)),
-        SubareaDetails.from(subareaA1)
-    );
-    verify(subareaSetEquityCorrectionService).cascadeSubareaEquity(
-        positionCorrection,
-        stateWithoutChange,
-        BLOCK_FEATURE_ID,
-        List.of(SubareaDetails.from(subareaA)),
-        SubareaDetails.from(subareaA2)
+        List.of(transfer(List.of(subareaA), List.of(subareaA1, subareaA2)))
     );
   }
 
@@ -592,21 +585,19 @@ class SubareaChangeServiceTest {
         .ignoringFieldsMatchingRegexes(".*operationId", ".*operation\\.id")
         .isEqualTo(List.of(UpdateChangeOperations.buildUpdateChange(
             liveChangeId,
-            completedOperation(List.of(subareaA, subareaB, subareaC), List.of(subareaA1B, subareaA2C))
+            completedOperation(
+                transfer(List.of(subareaA, subareaB), List.of(subareaA1B)),
+                transfer(List.of(subareaA, subareaC), List.of(subareaA2C))
+            )
         )));
     verify(subareaSetEquityCorrectionService).cascadeSubareaEquity(
         positionCorrection,
         stateWithoutChange,
         BLOCK_FEATURE_ID,
-        List.of(SubareaDetails.from(subareaA), SubareaDetails.from(subareaB)),
-        SubareaDetails.from(subareaA1B)
-    );
-    verify(subareaSetEquityCorrectionService).cascadeSubareaEquity(
-        positionCorrection,
-        stateWithoutChange,
-        BLOCK_FEATURE_ID,
-        List.of(SubareaDetails.from(subareaA), SubareaDetails.from(subareaC)),
-        SubareaDetails.from(subareaA2C)
+        List.of(
+            transfer(List.of(subareaA, subareaB), List.of(subareaA1B)),
+            transfer(List.of(subareaA, subareaC), List.of(subareaA2C))
+        )
     );
   }
 
@@ -647,16 +638,17 @@ class SubareaChangeServiceTest {
     return FeatureTestUtil.subareaFeature(UUID.randomUUID(), name);
   }
 
-  private static SubareaOperation completedOperation(
+  private static SubareaOperation completedOperation(SubareaTransfer... transfers) {
+    return new SubareaOperation(UUID.randomUUID(), BLOCK_FEATURE_ID, List.of(transfers), COMMAND_JOURNEY_ID);
+  }
+
+  private static SubareaTransfer transfer(
       List<Feature> replacedSubareas,
       List<Feature> outputSubareas
   ) {
-    return new SubareaOperation(
-        UUID.randomUUID(),
-        BLOCK_FEATURE_ID,
+    return new SubareaTransfer(
         replacedSubareas.stream().map(SubareaDetails::from).toList(),
-        outputSubareas.stream().map(SubareaDetails::from).toList(),
-        COMMAND_JOURNEY_ID
+        outputSubareas.stream().map(SubareaDetails::from).toList()
     );
   }
 
@@ -687,7 +679,7 @@ class SubareaChangeServiceTest {
   }
 
   private static SubareaOperation expectedOperation() {
-    return new SubareaOperation(UUID.randomUUID(), BLOCK_FEATURE_ID, List.of(), List.of(), COMMAND_JOURNEY_ID);
+    return new SubareaOperation(UUID.randomUUID(), BLOCK_FEATURE_ID, List.of(), COMMAND_JOURNEY_ID);
   }
 
   private LicencePositionCorrection positionCorrectionWithChanges(List<LicencePositionChangeType> changes) {

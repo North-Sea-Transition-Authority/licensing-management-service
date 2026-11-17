@@ -39,6 +39,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaDe
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaSetEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaSurrenderOutcome;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaTransfer;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionViewService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPosition;
@@ -995,8 +996,7 @@ class LicencePositionSpatialServiceTest {
   void getSubareasGoingIntoChange_whenSubareaChange_thenOutputsReplaceTheReplacedSubareas() {
     var subareaChange = LicenceOperation.newSubAreaOperation()
         .withBlockFeatureId(BLOCK_30_1.getId())
-        .withReplacedSubareas(List.of(SUBAREA_A))
-        .withOutputSubareas(List.of(SUBAREA_C))
+        .withTransfers(List.of(new SubareaTransfer(List.of(SUBAREA_A), List.of(SUBAREA_C))))
         .build();
     givenPositions(
         position(
@@ -1385,7 +1385,7 @@ class LicencePositionSpatialServiceTest {
     return Stream.of(
         LicenceOperation.newSubAreaOperation()
             .withBlockFeatureId(BLOCK_30_1.getId())
-            .withOutputSubareas(List.of(subarea))
+            .withTransfers(List.of(new SubareaTransfer(List.of(), List.of(subarea))))
             .build(),
         LicenceOperation.newSubareaCreateOperation()
             .withBlockFeatureId(BLOCK_30_1.getId())

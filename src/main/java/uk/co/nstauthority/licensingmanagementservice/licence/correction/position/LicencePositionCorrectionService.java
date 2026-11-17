@@ -6,6 +6,7 @@ import jakarta.annotation.Nullable;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -648,6 +649,43 @@ public class LicencePositionCorrectionService {
     );
   }
 
+  /**
+   * Stages an add change for each list of operations, each ordered after the last, saving the correction once.
+   */
+  @Transactional
+  public LicencePositionCorrection addChanges(
+      LicencePositionCorrection licencePositionCorrection,
+      List<? extends List<? extends LicenceOperation>> operationsPerChange
+  ) {
+    return appendAddChanges(
+        licencePositionCorrection,
+        licencePositionCorrection.getPayload().changes(),
+        operationsPerChange,
+        this::nextChangeOrder
+    );
+  }
+
+  /**
+   * Stages an add change for each list of operations, each ordered after the last, but the new changes are ordered after the
+   * executed position's live changes as well as its staged changes.
+   */
+  @Transactional
+  public void addChangesForExecutedPosition(
+      LicenceCorrection licenceCorrection,
+      LicencePosition licencePosition,
+      LicencePositionCorrection updateCorrection,
+      List<? extends List<? extends LicenceOperation>> operationsPerChange
+  ) {
+    var liveChanges = getLiveChangesForExecutedPosition(licenceCorrection, licencePosition);
+
+    appendAddChanges(
+        updateCorrection,
+        updateCorrection.getPayload().changes(),
+        operationsPerChange,
+        changes -> nextChangeOrderAfter(PositionChange.foldChanges(liveChanges, changes))
+    );
+  }
+
   private <T extends LicenceOperation> LicencePositionCorrection replaceAddChange(
       LicencePositionCorrection licencePositionCorrection,
       Class<T> operationType,
@@ -655,16 +693,33 @@ public class LicencePositionCorrectionService {
       List<? extends LicenceOperation> operations,
       Function<List<LicencePositionChangeType>, Integer> nextChangeOrderFor
   ) {
-    var payload = licencePositionCorrection.getPayload();
-
-    var changes = payload.changes().stream()
+    var remainingChanges = licencePositionCorrection.getPayload().changes().stream()
         .filter(change -> getAddOperationsOfType(List.of(change), operationType).stream().noneMatch(operationToReplace))
-        .collect(Collectors.toList());
+        .toList();
 
-    if (!CollectionUtils.isEmpty(operations)) {
-      changes.add(AddChange.buildOperationsChange(operations, nextChangeOrderFor.apply(changes)));
+    return appendAddChanges(
+        licencePositionCorrection,
+        remainingChanges,
+        Collections.singletonList(operations),
+        nextChangeOrderFor
+    );
+  }
+
+  private LicencePositionCorrection appendAddChanges(
+      LicencePositionCorrection licencePositionCorrection,
+      List<LicencePositionChangeType> existingChanges,
+      List<? extends List<? extends LicenceOperation>> operationsPerChange,
+      Function<List<LicencePositionChangeType>, Integer> nextChangeOrderFor
+  ) {
+    var changes = new ArrayList<>(existingChanges);
+
+    for (var operations : operationsPerChange) {
+      if (!CollectionUtils.isEmpty(operations)) {
+        changes.add(AddChange.buildOperationsChange(operations, nextChangeOrderFor.apply(changes)));
+      }
     }
 
+    var payload = licencePositionCorrection.getPayload();
     licencePositionCorrection.setPayload(LicencePositionPayload.withChanges(payload, changes));
     return licencePositionCorrectionRepository.save(licencePositionCorrection);
   }

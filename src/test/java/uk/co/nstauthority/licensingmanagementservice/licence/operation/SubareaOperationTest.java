@@ -51,6 +51,21 @@ class SubareaOperationTest {
   }
 
   @Test
+  void constructor_whenSubareasGiven_thenOneTransfer() {
+    var operation = new SubareaOperation(BLOCK_FEATURE_ID, List.of(REPLACED_SUBAREA), List.of(OUTPUT_SUBAREA));
+
+    assertThat(operation.transfers())
+        .containsExactly(new SubareaTransfer(List.of(REPLACED_SUBAREA), List.of(OUTPUT_SUBAREA)));
+  }
+
+  @Test
+  void constructor_whenNoSubareasGiven_thenNoTransfers() {
+    var operation = new SubareaOperation(BLOCK_FEATURE_ID, List.of(), List.of());
+
+    assertThat(operation.transfers()).isEmpty();
+  }
+
+  @Test
   void constructor_whenUsingConvenienceConstructor_thenGeneratesRandomId() {
     var first = new SubareaOperation(BLOCK_FEATURE_ID, List.of(), List.of());
     var second = new SubareaOperation(BLOCK_FEATURE_ID, List.of(), List.of());
@@ -112,24 +127,35 @@ class SubareaOperationTest {
   }
 
   @Test
-  void build_whenSubareasRepeated_thenDeduplicated() {
+  void replacedSubareas_whenSubareaSplitAcrossTransfers_thenListedOnce() {
+    var otherOutputSubarea = new SubareaDetails(UUID.randomUUID(), "Other", "X");
     var operation = LicenceOperation.newSubAreaOperation()
         .withBlockFeatureId(BLOCK_FEATURE_ID)
-        .withReplacedSubareas(List.of(REPLACED_SUBAREA, REPLACED_SUBAREA))
-        .withOutputSubareas(List.of(OUTPUT_SUBAREA, OUTPUT_SUBAREA))
+        .withTransfers(List.of(
+            new SubareaTransfer(List.of(REPLACED_SUBAREA), List.of(OUTPUT_SUBAREA)),
+            new SubareaTransfer(List.of(REPLACED_SUBAREA), List.of(otherOutputSubarea))
+        ))
         .build();
 
-    var expected = new SubareaOperation(
-        operation.id(),
-        BLOCK_FEATURE_ID,
-        List.of(REPLACED_SUBAREA),
-        List.of(OUTPUT_SUBAREA)
-    );
-    assertThat(operation).isEqualTo(expected);
+    assertThat(operation.replacedSubareas()).containsExactly(REPLACED_SUBAREA);
   }
 
   @Test
-  void build_whenSubareasNotGiven_thenEmpty() {
+  void outputSubareas_whenSubareasMergedAcrossTransfers_thenListedOnce() {
+    var otherReplacedSubarea = new SubareaDetails(UUID.randomUUID(), "Other", "X");
+    var operation = LicenceOperation.newSubAreaOperation()
+        .withBlockFeatureId(BLOCK_FEATURE_ID)
+        .withTransfers(List.of(
+            new SubareaTransfer(List.of(REPLACED_SUBAREA), List.of(OUTPUT_SUBAREA)),
+            new SubareaTransfer(List.of(otherReplacedSubarea), List.of(OUTPUT_SUBAREA))
+        ))
+        .build();
+
+    assertThat(operation.outputSubareas()).containsExactly(OUTPUT_SUBAREA);
+  }
+
+  @Test
+  void build_whenTransfersNotGiven_thenEmpty() {
     var operation = LicenceOperation.newSubAreaOperation()
         .withBlockFeatureId(BLOCK_FEATURE_ID)
         .build();
@@ -159,14 +185,14 @@ class SubareaOperationTest {
         .withCommandJourneyId(commandJourneyId)
         .build();
 
-    var expected = new SubareaOperation(operation.id(), BLOCK_FEATURE_ID, List.of(), List.of(), commandJourneyId);
+    var expected = new SubareaOperation(operation.id(), BLOCK_FEATURE_ID, List.of(), commandJourneyId);
     assertThat(operation).isEqualTo(expected);
   }
 
   @Test
   void commandJourneyIdOrThrow_whenCommandJourneyPresent_thenReturnsId() {
     var commandJourneyId = UUID.randomUUID();
-    var operation = new SubareaOperation(UUID.randomUUID(), BLOCK_FEATURE_ID, List.of(), List.of(), commandJourneyId);
+    var operation = new SubareaOperation(UUID.randomUUID(), BLOCK_FEATURE_ID, List.of(), commandJourneyId);
 
     var result = operation.commandJourneyIdOrThrow();
 
@@ -183,20 +209,19 @@ class SubareaOperationTest {
   }
 
   @Test
-  void deserialise_whenPersistedBeforeCommandJourneyIdExisted_thenCommandJourneyIdNull() throws Exception {
+  void deserialise_whenPersistedWithoutCommandJourneyId_thenCommandJourneyIdNull() throws Exception {
     var operationId = UUID.randomUUID();
     var json = """
         {
           "type": "subarea",
           "id": "%s",
           "blockFeatureId": "%s",
-          "replacedSubareas": [],
-          "outputSubareas": []
+          "transfers": []
         }""".formatted(operationId, BLOCK_FEATURE_ID);
 
     var operation = JsonMapper.builder().findAndAddModules().build().readValue(json, LicenceOperation.class);
 
-    var expected = new SubareaOperation(operationId, BLOCK_FEATURE_ID, List.of(), List.of(), null);
+    var expected = new SubareaOperation(operationId, BLOCK_FEATURE_ID, List.of(), List.of());
     assertThat(operation).isEqualTo(expected);
   }
 
@@ -205,8 +230,7 @@ class SubareaOperationTest {
     var operation = new SubareaOperation(
         UUID.randomUUID(),
         BLOCK_FEATURE_ID,
-        List.of(REPLACED_SUBAREA),
-        List.of(OUTPUT_SUBAREA),
+        List.of(new SubareaTransfer(List.of(REPLACED_SUBAREA), List.of(OUTPUT_SUBAREA))),
         UUID.randomUUID()
     );
     var objectMapper = JsonMapper.builder().findAndAddModules().build();

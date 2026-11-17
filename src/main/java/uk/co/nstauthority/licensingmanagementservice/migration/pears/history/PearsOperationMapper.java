@@ -95,7 +95,8 @@ class PearsOperationMapper {
     return new PearsOperation.SubareaEntry(
         entryType(subareaEntry.entryType()),
         subareaEntry.blockEntrySeq(),
-        subareaEntry.subareaShortName(),
+        subareaEntry.outputSubareaShortName(),
+        subareaEntry.inputSubareaShortName(),
         subarea(
             subareaEntry.inputSubareaSiId(),
             subareaEntry.inputSubareaName(),

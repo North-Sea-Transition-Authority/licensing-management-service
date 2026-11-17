@@ -197,7 +197,7 @@ class SubareaChangeControllerTest extends AbstractControllerTest {
     when(licencePositionCorrectionService.findById(POSITION_CORRECTION_ID))
         .thenReturn(Optional.of(positionCorrection));
     when(subareaChangeService.getSubareaOperationOrThrow(positionCorrection, BLOCK_FEATURE_ID))
-        .thenReturn(new SubareaOperation(UUID.randomUUID(), BLOCK_FEATURE_ID, List.of(), List.of(), COMMAND_JOURNEY_ID));
+        .thenReturn(new SubareaOperation(UUID.randomUUID(), BLOCK_FEATURE_ID, List.of(), COMMAND_JOURNEY_ID));
     return positionCorrection;
   }
 

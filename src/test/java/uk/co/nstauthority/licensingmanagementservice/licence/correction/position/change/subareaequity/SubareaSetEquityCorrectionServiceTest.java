@@ -5,7 +5,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
@@ -38,6 +37,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaDetails;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaSetEquityOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaTransfer;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.LicencePositionState;
@@ -57,6 +57,7 @@ class SubareaSetEquityCorrectionServiceTest {
   private static final SubareaDetails SUBAREA_A = new SubareaDetails(UUID.randomUUID(), "Subarea A", "A");
   private static final SubareaDetails SUBAREA_B = new SubareaDetails(UUID.randomUUID(), "Subarea B", "B");
   private static final SubareaDetails NEW_SUBAREA = new SubareaDetails(UUID.randomUUID(), "Subarea A1", "A1");
+  private static final SubareaDetails OTHER_NEW_SUBAREA = new SubareaDetails(UUID.randomUUID(), "Subarea A2", "A2");
   private static final Map<Integer, BigDecimal> EQUITY = Map.of(1, BigDecimal.valueOf(100));
   private static final Map<Integer, BigDecimal> OTHER_EQUITY = Map.of(2, BigDecimal.valueOf(100));
   private static final Map<Integer, BigDecimal> SHARED_EQUITY = Map.of(
@@ -78,7 +79,7 @@ class SubareaSetEquityCorrectionServiceTest {
   private ArgumentCaptor<Predicate<SubareaSetEquityOperation>> operationToReplaceCaptor;
 
   @Captor
-  private ArgumentCaptor<List<? extends LicenceOperation>> operationsCaptor;
+  private ArgumentCaptor<List<? extends List<? extends LicenceOperation>>> operationsPerChangeCaptor;
 
   @Test
   void getCommittedSubareaSetEquityOperations_whenSeveralSubareas_thenOnlyThoseForTheSubarea() {
@@ -183,7 +184,7 @@ class SubareaSetEquityCorrectionServiceTest {
   }
 
   @Test
-  void cascadeSubareaEquity_whenAddedPosition_replacesTheNewSubareasEquityWithTheOriginals() {
+  void cascadeSubareaEquity_whenAddedPosition_stagesEachOutputSubareasEquityFromTheOriginalsInOneCall() {
     var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder().withTargetLicencePosition(null).build();
     var state = stateWithSubareaEquity(Map.of(SUBAREA_A, SHARED_EQUITY, SUBAREA_B, SHARED_EQUITY));
 
@@ -191,26 +192,20 @@ class SubareaSetEquityCorrectionServiceTest {
         positionCorrection,
         state,
         BLOCK_FEATURE_ID,
-        List.of(SUBAREA_A, SUBAREA_B),
-        NEW_SUBAREA
+        List.of(new SubareaTransfer(List.of(SUBAREA_A, SUBAREA_B), List.of(NEW_SUBAREA, OTHER_NEW_SUBAREA)))
     );
 
-    verify(licencePositionCorrectionService).replaceAddChangeFor(
-        eq(positionCorrection),
-        eq(SubareaSetEquityOperation.class),
-        operationToReplaceCaptor.capture(),
-        operationsCaptor.capture()
-    );
-    assertThat(operationsCaptor.getValue())
+    verify(licencePositionCorrectionService).addChanges(eq(positionCorrection), operationsPerChangeCaptor.capture());
+    assertThat(operationsPerChangeCaptor.getValue())
         .usingRecursiveComparison()
         .ignoringCollectionOrder()
         .isEqualTo(List.of(
-            subareaSetEquityOperation(NEW_SUBAREA, 1, 60),
-            subareaSetEquityOperation(NEW_SUBAREA, 2, 40)
+            List.of(subareaSetEquityOperation(NEW_SUBAREA, 1, 60), subareaSetEquityOperation(NEW_SUBAREA, 2, 40)),
+            List.of(
+                subareaSetEquityOperation(OTHER_NEW_SUBAREA, 1, 60),
+                subareaSetEquityOperation(OTHER_NEW_SUBAREA, 2, 40)
+            )
         ));
-    assertThat(operationToReplaceCaptor.getValue())
-        .accepts(subareaSetEquityOperation(NEW_SUBAREA, 2, 50))
-        .rejects(subareaSetEquityOperation(SUBAREA_A, 1, 100));
   }
 
   @Test
@@ -225,41 +220,40 @@ class SubareaSetEquityCorrectionServiceTest {
         positionCorrection,
         state,
         BLOCK_FEATURE_ID,
-        List.of(SUBAREA_A),
-        NEW_SUBAREA
+        List.of(new SubareaTransfer(List.of(SUBAREA_A), List.of(NEW_SUBAREA)))
     );
 
-    verify(licencePositionCorrectionService).replaceAddChangeForExecutedPosition(
-        eq(LICENCE_CORRECTION),
-        eq(LICENCE_POSITION),
-        eq(positionCorrection),
-        eq(SubareaSetEquityOperation.class),
-        operationToReplaceCaptor.capture(),
-        eq(List.of(subareaSetEquityOperation(NEW_SUBAREA, 1, 100)))
+    verify(licencePositionCorrectionService).addChangesForExecutedPosition(
+        LICENCE_CORRECTION,
+        LICENCE_POSITION,
+        positionCorrection,
+        List.of(List.of(subareaSetEquityOperation(NEW_SUBAREA, 1, 100)))
     );
-    assertThat(operationToReplaceCaptor.getValue())
-        .accepts(subareaSetEquityOperation(NEW_SUBAREA, 2, 50))
-        .rejects(subareaSetEquityOperation(SUBAREA_A, 1, 100));
   }
 
   @Test
-  void cascadeSubareaEquity_whenLineageLost_stagesNothing() {
-    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder().build();
+  void cascadeSubareaEquity_whenLineageLostForOneTransfer_thenOnlyCascadesTheOther() {
+    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder().withTargetLicencePosition(null).build();
     var state = stateWithSubareaEquity(Map.of(SUBAREA_A, EQUITY, SUBAREA_B, OTHER_EQUITY));
 
     subareaSetEquityCorrectionService.cascadeSubareaEquity(
         positionCorrection,
         state,
         BLOCK_FEATURE_ID,
-        List.of(SUBAREA_A, SUBAREA_B),
-        NEW_SUBAREA
+        List.of(
+            new SubareaTransfer(List.of(SUBAREA_A, SUBAREA_B), List.of(NEW_SUBAREA)),
+            new SubareaTransfer(List.of(SUBAREA_A), List.of(OTHER_NEW_SUBAREA))
+        )
     );
 
-    verifyNoInteractions(licencePositionCorrectionService);
+    verify(licencePositionCorrectionService).addChanges(
+        positionCorrection,
+        List.of(List.of(subareaSetEquityOperation(OTHER_NEW_SUBAREA, 1, 100)))
+    );
   }
 
   @Test
-  void cascadeSubareaEquity_whenEquityAlreadyStagedForNewSubarea_stagesNothing() {
+  void cascadeSubareaEquity_whenEquityAlreadyStagedForOneOutput_thenOnlyCascadesTheOther() {
     var stagedOperation = subareaSetEquityOperation(NEW_SUBAREA, 2, 100);
     var positionCorrection = positionCorrectionWith(stagedOperation);
     var state = stateWithSubareaEquity(Map.of(SUBAREA_A, EQUITY));
@@ -272,13 +266,31 @@ class SubareaSetEquityCorrectionServiceTest {
         positionCorrection,
         state,
         BLOCK_FEATURE_ID,
-        List.of(SUBAREA_A),
-        NEW_SUBAREA
+        List.of(new SubareaTransfer(List.of(SUBAREA_A), List.of(NEW_SUBAREA, OTHER_NEW_SUBAREA)))
     );
 
-    verify(licencePositionCorrectionService, never()).replaceAddChangeFor(any(), any(), any(), any());
-    verify(licencePositionCorrectionService, never())
-        .replaceAddChangeForExecutedPosition(any(), any(), any(), any(), any(), any());
+    verify(licencePositionCorrectionService).addChangesForExecutedPosition(
+        positionCorrection.getLicenceCorrection(),
+        positionCorrection.getTargetLicencePosition(),
+        positionCorrection,
+        List.of(List.of(subareaSetEquityOperation(OTHER_NEW_SUBAREA, 1, 100)))
+    );
+  }
+
+  @Test
+  void cascadeSubareaEquity_whenNoOutputToCascadeTo_stagesNothing() {
+    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder().build();
+    var state = stateWithSubareaEquity(Map.of(SUBAREA_A, EQUITY, SUBAREA_B, OTHER_EQUITY));
+
+    subareaSetEquityCorrectionService.cascadeSubareaEquity(
+        positionCorrection,
+        state,
+        BLOCK_FEATURE_ID,
+        List.of(new SubareaTransfer(List.of(SUBAREA_A, SUBAREA_B), List.of(NEW_SUBAREA)))
+    );
+
+    verify(licencePositionCorrectionService, never()).addChanges(any(), any());
+    verify(licencePositionCorrectionService, never()).addChangesForExecutedPosition(any(), any(), any(), any());
   }
 
   @Test

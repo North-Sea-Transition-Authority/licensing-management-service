@@ -18,6 +18,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation.SurrenderDetails;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaSurrenderOutcome;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaTransfer;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicenceCleardownService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionService;
@@ -232,8 +233,10 @@ class TestHarnessService {
   ) {
     LicenceOperation subareaOperation = LicenceOperation.newSubAreaOperation()
         .withBlockFeatureId(block.getId())
-        .withReplacedSubareas(replacedSubareas.stream().map(SeededFeatures::toSubareaDetails).toList())
-        .withOutputSubareas(outputSubareas.stream().map(SeededFeatures::toSubareaDetails).toList())
+        .withTransfers(List.of(new SubareaTransfer(
+            replacedSubareas.stream().map(SeededFeatures::toSubareaDetails).toList(),
+            outputSubareas.stream().map(SeededFeatures::toSubareaDetails).toList()
+        )))
         .build();
 
     createConsentedChange(licencePosition, List.of(subareaOperation), FIRST_CHANGE_ORDER);

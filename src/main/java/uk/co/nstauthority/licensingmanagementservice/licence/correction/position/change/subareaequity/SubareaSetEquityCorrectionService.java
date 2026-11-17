@@ -13,6 +13,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaDetails;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaSetEquityOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaTransfer;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.LicencePositionState;
 
@@ -87,26 +88,57 @@ public class SubareaSetEquityCorrectionService {
   }
 
   /**
-   * Stages the beneficial interests of the original subareas on the new subarea, unless its lineage is lost or
-   * beneficial interests are already staged on it.
+   * Stages the beneficial interests of each transfer's replaced subareas on each of its output subareas, unless the
+   * output's lineage is lost or beneficial interests are already staged on it.
    */
   @Transactional
   public void cascadeSubareaEquity(
       LicencePositionCorrection positionCorrection,
       LicencePositionState state,
       UUID blockFeatureId,
-      Collection<SubareaDetails> originalSubareas,
-      SubareaDetails newSubarea
+      List<SubareaTransfer> transfers
   ) {
-    var isForNewSubarea = isForSubarea(newSubarea.keyForBlockFeatureId(blockFeatureId));
+    var stagedOperations = licencePositionCorrectionService
+        .getAddOperationsOfType(positionCorrection.getPayload().changes(), SubareaSetEquityOperation.class);
 
-    if (isLineageLost(state, blockFeatureId, originalSubareas)
-        || hasStagedSubareaSetEquity(positionCorrection, isForNewSubarea)) {
+    List<List<SubareaSetEquityOperation>> subareaEquityOperationsPerSubarea = transfers
+        .stream()
+        .filter(transfer -> !isLineageLost(state, blockFeatureId, transfer.replacedSubareas()))
+        .flatMap(transfer -> transfer.outputSubareas().stream()
+            .filter(outputSubarea -> stagedOperations.stream()
+                .noneMatch(isForSubarea(outputSubarea.keyForBlockFeatureId(blockFeatureId)))
+            )
+            .map(
+                outputSubarea -> toNewSubareaEquityOperations(state, blockFeatureId, transfer.replacedSubareas(), outputSubarea))
+        )
+        .toList();
+
+    if (subareaEquityOperationsPerSubarea.isEmpty()) {
       return;
     }
 
-    var operations = state
-        .subareaEquityOf(blockFeatureId, originalSubareas.iterator().next())
+    var targetLicencePosition = positionCorrection.getTargetLicencePosition();
+
+    if (targetLicencePosition == null) {
+      licencePositionCorrectionService.addChanges(positionCorrection, subareaEquityOperationsPerSubarea);
+    } else {
+      licencePositionCorrectionService.addChangesForExecutedPosition(
+          positionCorrection.getLicenceCorrection(),
+          targetLicencePosition,
+          positionCorrection,
+          subareaEquityOperationsPerSubarea
+      );
+    }
+  }
+
+  private static List<SubareaSetEquityOperation> toNewSubareaEquityOperations(
+      LicencePositionState state,
+      UUID blockFeatureId,
+      List<SubareaDetails> originalSubareas,
+      SubareaDetails newSubarea
+  ) {
+    return state
+        .subareaEquityOf(blockFeatureId, originalSubareas.getFirst())
         .entrySet().stream()
         .map(equity -> LicenceOperation.newSubareaSetEquityOperation()
             .withBlockFeatureId(blockFeatureId)
@@ -115,25 +147,6 @@ public class SubareaSetEquityCorrectionService {
             .withEquity(equity.getValue())
             .build())
         .toList();
-    var targetLicencePosition = positionCorrection.getTargetLicencePosition();
-
-    if (targetLicencePosition == null) {
-      licencePositionCorrectionService.replaceAddChangeFor(
-          positionCorrection,
-          SubareaSetEquityOperation.class,
-          isForNewSubarea,
-          operations
-      );
-    } else {
-      licencePositionCorrectionService.replaceAddChangeForExecutedPosition(
-          positionCorrection.getLicenceCorrection(),
-          targetLicencePosition,
-          positionCorrection,
-          SubareaSetEquityOperation.class,
-          isForNewSubarea,
-          operations
-      );
-    }
   }
 
   /**
@@ -149,16 +162,6 @@ public class SubareaSetEquityCorrectionService {
         .map(subarea -> state.subareaEquityOf(blockFeatureId, subarea))
         .distinct()
         .count() != 1;
-  }
-
-  private boolean hasStagedSubareaSetEquity(
-      LicencePositionCorrection positionCorrection,
-      Predicate<SubareaSetEquityOperation> isForSubarea
-  ) {
-    return licencePositionCorrectionService
-        .getAddOperationsOfType(positionCorrection.getPayload().changes(), SubareaSetEquityOperation.class)
-        .stream()
-        .anyMatch(isForSubarea);
   }
 
   private static Predicate<SubareaSetEquityOperation> isForSubarea(String subareaKey) {

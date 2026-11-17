@@ -817,7 +817,7 @@ class BlockOperationMigratorTest {
       PearsOperation.Subarea input,
       PearsOperation.Subarea output
   ) {
-    return new PearsOperation.SubareaEntry(type, blockEntrySeq, "SA", input, output);
+    return new PearsOperation.SubareaEntry(type, blockEntrySeq, "SA", "SA", input, output);
   }
 
   private static PearsOperation.Subarea createSubareaFrom(

@@ -6,7 +6,6 @@ import static uk.co.nstauthority.licensingmanagementservice.licence.position.cha
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.annotation.Nullable;
 import java.time.LocalDate;
-import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -34,24 +33,21 @@ import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
  * Subarea operation contains information identifying what subareas were changed.
  *
  * @param blockFeatureId   the block whose subareas changed
- * @param replacedSubareas the subarea versions that ended
- * @param outputSubareas   the subarea versions that took their place
+ * @param transfers        which subarea versions ended and which took their place
  * @param commandJourneyId the journey the subareas are changed through while the change is staged in a correction.
  *                         Live operations do not have a command journey.
  */
 public record SubareaOperation(
     UUID id,
     UUID blockFeatureId,
-    List<SubareaDetails> replacedSubareas,
-    List<SubareaDetails> outputSubareas,
+    List<SubareaTransfer> transfers,
     @Nullable UUID commandJourneyId
 ) implements VisibleLicenceOperation, GeospatialLicenceOperation {
 
   public SubareaOperation {
     Objects.requireNonNull(id, "id must not be null");
     Objects.requireNonNull(blockFeatureId, "blockFeatureId must not be null");
-    replacedSubareas = replacedSubareas == null ? List.of() : List.copyOf(replacedSubareas);
-    outputSubareas = outputSubareas == null ? List.of() : List.copyOf(outputSubareas);
+    transfers = transfers == null ? List.of() : List.copyOf(transfers);
   }
 
   public SubareaOperation(
@@ -60,7 +56,7 @@ public record SubareaOperation(
       List<SubareaDetails> replacedSubareas,
       List<SubareaDetails> outputSubareas
   ) {
-    this(id, blockFeatureId, replacedSubareas, outputSubareas, null);
+    this(id, blockFeatureId, singleTransfer(new SubareaTransfer(replacedSubareas, outputSubareas)), null);
   }
 
   public SubareaOperation(
@@ -69,6 +65,22 @@ public record SubareaOperation(
       List<SubareaDetails> outputSubareas
   ) {
     this(UUID.randomUUID(), blockFeatureId, replacedSubareas, outputSubareas);
+  }
+
+  @JsonIgnore
+  public List<SubareaDetails> replacedSubareas() {
+    return transfers.stream()
+        .flatMap(transfer -> transfer.replacedSubareas().stream())
+        .distinct()
+        .toList();
+  }
+
+  @JsonIgnore
+  public List<SubareaDetails> outputSubareas() {
+    return transfers.stream()
+        .flatMap(transfer -> transfer.outputSubareas().stream())
+        .distinct()
+        .toList();
   }
 
   @Override
@@ -90,8 +102,8 @@ public record SubareaOperation(
   @Override
   public LicencePositionState applyState(LicencePositionState licencePositionState) {
     return licencePositionState
-        .withoutSubareas(blockFeatureId, replacedSubareas)
-        .withSubareas(blockFeatureId, outputSubareas);
+        .withoutSubareas(blockFeatureId, replacedSubareas())
+        .withSubareas(blockFeatureId, outputSubareas());
   }
 
   @Override
@@ -143,8 +155,8 @@ public record SubareaOperation(
   public Set<UUID> featureIds() {
     return Stream.of(
             Stream.of(blockFeatureId),
-            SubareaDetails.featureIds(replacedSubareas).stream(),
-            SubareaDetails.featureIds(outputSubareas).stream()
+            SubareaDetails.featureIds(replacedSubareas()).stream(),
+            SubareaDetails.featureIds(outputSubareas()).stream()
         )
         .flatMap(Function.identity())
         .collect(Collectors.toSet());
@@ -160,14 +172,19 @@ public record SubareaOperation(
 
   @Override
   public boolean doInputsMatchPreviousStateOutputs(LicencePositionState licencePositionState) {
-    return licencePositionState.hasFeatures(List.of(blockFeatureId), replacedSubareas);
+    return licencePositionState.hasFeatures(List.of(blockFeatureId), replacedSubareas());
+  }
+
+  private static List<SubareaTransfer> singleTransfer(SubareaTransfer transfer) {
+    return transfer.replacedSubareas().isEmpty() && transfer.outputSubareas().isEmpty()
+        ? List.of()
+        : List.of(transfer);
   }
 
   public static class Builder {
 
     private UUID blockFeatureId;
-    private Collection<SubareaDetails> replacedSubareas;
-    private Collection<SubareaDetails> outputSubareas;
+    private List<SubareaTransfer> transfers;
     private UUID commandJourneyId;
 
     public Builder withBlockFeatureId(UUID blockFeatureId) {
@@ -175,13 +192,8 @@ public record SubareaOperation(
       return this;
     }
 
-    public Builder withReplacedSubareas(Collection<SubareaDetails> replacedSubareas) {
-      this.replacedSubareas = replacedSubareas;
-      return this;
-    }
-
-    public Builder withOutputSubareas(Collection<SubareaDetails> outputSubareas) {
-      this.outputSubareas = outputSubareas;
+    public Builder withTransfers(List<SubareaTransfer> transfers) {
+      this.transfers = transfers;
       return this;
     }
 
@@ -191,13 +203,7 @@ public record SubareaOperation(
     }
 
     public SubareaOperation build() {
-      return new SubareaOperation(
-          UUID.randomUUID(),
-          blockFeatureId,
-          replacedSubareas == null ? List.of() : replacedSubareas.stream().distinct().toList(),
-          outputSubareas == null ? List.of() : outputSubareas.stream().distinct().toList(),
-          commandJourneyId
-      );
+      return new SubareaOperation(UUID.randomUUID(), blockFeatureId, transfers, commandJourneyId);
     }
   }
 }

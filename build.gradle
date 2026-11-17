@@ -1,3 +1,8 @@
+import com.github.victools.jsonschema.generator.Option
+import com.github.victools.jsonschema.generator.OptionPreset
+import com.github.victools.jsonschema.generator.SchemaVersion
+import com.github.victools.jsonschema.module.jackson.JacksonOption
+
 buildscript {
 	repositories {
 		mavenCentral()
@@ -19,6 +24,7 @@ plugins {
 	id 'checkstyle'
 	id 'jacoco'
 	id 'nu.studer.jooq' version '9.0'
+  id 'dev.hsbrysk.jsonschema-generator' version '1.1.3'
 }
 
 group = 'uk.co.nstauthority'
@@ -305,5 +311,37 @@ checkstyle {
 jacocoTestReport {
 	reports {
 		xml.required = true
+	}
+}
+
+jsonschemaGenerator {
+	schemaVersion = SchemaVersion.DRAFT_2020_12
+	optionPreset = OptionPreset.PLAIN_JSON
+
+	modules {
+		jacksonEnabled = true
+		jacksonOptions = [JacksonOption.INLINE_TRANSFORMED_SUBTYPES]
+	}
+
+	options {
+		with = [
+				Option.DEFINITIONS_FOR_ALL_OBJECTS,
+				Option.MAP_VALUES_AS_ADDITIONAL_PROPERTIES // expands objects in Map<> types
+		]
+	}
+
+	// Map PK/FK objects to UUIDs rather than their full object representation
+	typeMappings = [
+			'uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition': 'java.util.UUID',
+			'uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection': 'java.util.UUID'
+	]
+
+	schemas {
+		LicencePositionChange {
+			target = 'uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange'
+		}
+		LicencePositionCorrection {
+			target = 'uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection'
+		}
 	}
 }

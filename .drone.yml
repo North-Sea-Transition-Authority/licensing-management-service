@@ -131,7 +131,7 @@ steps:
         - mkdir /drone/dockerconfig
         - echo $DOCKER_CONFIG_JSON > /drone/dockerconfig/config.json
         - chmod +x gradlew
-        - ./gradlew checkstyleMain test bootJar --continue --parallel --max-workers=3 --build-cache
+        - ./gradlew checkstyleMain test bootJar generateJsonSchema --continue --parallel --max-workers=3 --build-cache
       build_image: repo1.dev.fivium.local:5000/docker-compose-java21
 
   - name: sync-reports
@@ -257,6 +257,36 @@ steps:
       branch:
         - develop
 
+  # Generate schema diagram and other DWH documentation, and publish as a GitHub release in the public mirror repo
+  - name: generate-and-publish-dwh-docs
+    image: quay.io/testcontainers/dind-drone-plugin
+    privileged: true
+    depends_on: [ build-backend, publish-ecr, scan-and-sync-public-repo ]
+    environment:
+      CI_WORKSPACE: /drone/src
+      DOCKER_CONFIG_JSON:
+        from_secret: docker_config
+      DOCKER_CONFIG: /drone/dockerconfig
+      GH_TOKEN:
+        from_secret: dwh_docs_publish_github_token
+      TARGET_REPO: North-Sea-Transition-Authority/licensing-management-service
+    volumes:
+      - name: docker-cache-overlay2-dwh-docs
+        path: /drone/docker/overlay2
+      - name: docker-cache-image-dwh-docs
+        path: /drone/docker/image
+    settings:
+      storage_driver: overlay2 --insecure-registry repo1.dev.fivium.local:5000 --dns=192.168.20.1
+      cmd:
+        - mkdir /drone/dockerconfig
+        - echo $DOCKER_CONFIG_JSON > /drone/dockerconfig/config.json
+        - sh documentation/dwh/generate-dwh-docs.sh
+        - sh documentation/dwh/publish-dwh-docs.sh
+      build_image: docker:25-cli
+    when:
+      branch:
+        - release/**
+
   - name: rebuild-cache
     image: drillster/drone-volume-cache
     depends_on: [ sync-reports, code-analysis, publish-ecr, publish-gis-node-app, trivy-scan, scan-and-sync-public-repo ]
@@ -319,6 +349,14 @@ volumes:
   - name: docker-cache-image-backend
     host:
       path: /home/fivium/docker-drone-cache-v2/image-backend
+
+  - name: docker-cache-overlay2-dwh-docs
+    host:
+      path: /home/fivium/docker-drone-cache-v2/overlay2-dwh-docs
+
+  - name: docker-cache-image-dwh-docs
+    host:
+      path: /home/fivium/docker-drone-cache-v2/image-dwh-docs
 
 ---
 kind: pipeline
@@ -721,3 +759,10 @@ data: N7ci6v7VRn1JBOeBBMWSehzk8qCTz0U7iOdmDr3toJylqYmDcwn5CuV3nYQ1CuklDcnkjd5n/D
 kind: secret
 name: lms_dev_database_password
 data: 0fsAYt8Z7nNhvbGY2eIQFz2qztLoys8AuND1shqcbaFAYR3PmMvuRVzJslBjMWP9YXNb0MN3cdQ=
+
+
+---
+
+kind: secret
+name: dwh_docs_publish_github_token
+data: tzhOtpr/rK0jiNCliE+hIWSyHifrTccb5UynxmajXEWCM+tzcUKlZblqAxC6NlaSzuK9QOEHIBIo5vOf2aroSlQ/DBf1LpQa/UzYhu90QGXO3FgR6PgFDuoY93Yyhu5TzwUq6YZv3F0XocP2FqHe6vn1sktmZWTTLw==

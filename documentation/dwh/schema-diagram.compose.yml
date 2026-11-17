@@ -1,0 +1,41 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: lms
+      POSTGRES_USER: schemaspy
+      POSTGRES_PASSWORD: schemaspy
+    healthcheck:
+      test: [ "CMD", "pg_isready", "-U", "schemaspy", "-d", "lms" ]
+      interval: 2s
+      retries: 30
+
+  migrate:
+    image: flyway/flyway:11.7.2
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ../../src/main/resources/db/migration:/flyway/sql:ro
+    environment:
+      FLYWAY_URL: jdbc:postgresql://db:5432/lms # trufflehog:ignore
+      FLYWAY_USER: schemaspy
+      FLYWAY_PASSWORD: schemaspy
+    command: >-
+      -schemas=lms -locations=filesystem:/flyway/sql
+      -placeholders.application-schema=lms -placeholders.datawarehouse-user-password=schemaspy
+      migrate
+
+  schemaspy:
+    image: schemaspy/schemaspy:7.0.2
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    volumes:
+      - ../../build/reports/schemaspy:/output
+    command: >-
+      -t pgsql11
+      -host db -port 5432 -db lms -s lms
+      -u schemaspy -p schemaspy
+      -imageformat svg -norows -noimplied
+      -I '.*_aud|audit_revisions|flyway_schema_history|spring_session.*|shedlock'

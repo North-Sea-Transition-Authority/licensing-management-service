@@ -182,8 +182,8 @@ class SubareaChangeReviewControllerTest extends AbstractControllerTest {
             model().attribute("pageCaption", "P/1"),
             model().attribute("summarySections", REVIEW),
             model().attribute("submitUrl", stagedReviewUrl()),
-            model().attribute("backLinkUrl", ReverseRouter.route(on(LicenceCorrectionController.class)
-                .renderAddedPosition(CORRECTION, POSITION_CORRECTION, null))));
+            model().attribute("backLinkUrl", ReverseRouter.route(on(SubareaChangeController.class)
+                .renderSubareaChange(CORRECTION, POSITION_CORRECTION, BLOCK_FEATURE_ID))));
   }
 
   @Test

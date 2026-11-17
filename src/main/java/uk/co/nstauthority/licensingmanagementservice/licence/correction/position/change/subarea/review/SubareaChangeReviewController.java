@@ -210,7 +210,8 @@ public class SubareaChangeReviewController {
           )
           .addObject(
               "backLinkUrl",
-              LicencePositionCorrectionRouteUtil.getPositionPageUrl(correction, licencePositionCorrection)
+              ReverseRouter.route(on(SubareaChangeController.class)
+                  .renderSubareaChange(correction, licencePositionCorrection, blockFeatureId))
           );
     }
     return modelAndView;

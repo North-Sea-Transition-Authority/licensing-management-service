@@ -7,19 +7,19 @@ import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOp
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.StorageOperatorOperation;
 
 public class StorageOperatorChangeForm implements OrganisationChangeForm {
-  private final StringInput operatorId = new StringInput("id", "a storage operator");
+  private final StringInput id = new StringInput("id", "a storage operator");
 
   public StorageOperatorChangeForm() {
   }
 
   @VisibleForTesting
-  public StorageOperatorChangeForm(String operatorId) {
-    this.operatorId.setInputValue(operatorId);
+  public StorageOperatorChangeForm(String id) {
+    this.id.setInputValue(id);
   }
 
   @Override
   public StringInput getId() {
-    return operatorId;
+    return id;
   }
 
   @Override

@@ -1,5 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.operation;
 
+import static uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionChangeUtil.NOT_AVAILABLE;
+
 import java.time.LocalDate;
 import java.util.Objects;
 import java.util.Set;
@@ -12,6 +14,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.uti
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.LicencePositionState;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.PositionChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.ChangeViewUrls;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.ExplorationOperatorChangeView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.LicencePositionChangeView;
 
 public record ExplorationOperatorOperation(
@@ -73,7 +76,17 @@ public record ExplorationOperatorOperation(
       LicencePositionChangeViewContext context,
       ChangeViewUrls urls
   ) {
-    return null;
+    var organisationNames = context.organisationNames();
+    var withdrawingId = previousState.explorationOperatorId();
+    var withdrawingName = (withdrawingId == null) ? null : organisationNames.getOrDefault(withdrawingId, NOT_AVAILABLE);
+
+    return new ExplorationOperatorChangeView(
+        withdrawingName,
+        organisationNames.getOrDefault(operatorId, NOT_AVAILABLE),
+        change.changeId(),
+        change.changeType(),
+        urls
+    );
   }
 
   @Override

@@ -73,7 +73,7 @@ public class LicencePositionLicenseeChangeController {
   @LicencePositionHasNoLiveChangeOfType(value = LicenseeOperation.class)
   @LicencePositionIsNotRemovedInCorrection
   @LicencePositionBelongsToCorrectionLicence
-  public ModelAndView submitForExecutedPosition(
+  ModelAndView submitForExecutedPosition(
       LicenceCorrection correction,
       LicencePosition licencePosition,
       @ModelAttribute("form") LicenseeChangeForm form,

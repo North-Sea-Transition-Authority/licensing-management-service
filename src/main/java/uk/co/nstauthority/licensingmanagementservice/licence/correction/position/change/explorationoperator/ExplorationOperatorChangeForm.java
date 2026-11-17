@@ -7,19 +7,19 @@ import uk.co.nstauthority.licensingmanagementservice.licence.operation.Explorati
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 
 public class ExplorationOperatorChangeForm implements OrganisationChangeForm {
-  private final StringInput operatorId = new StringInput("operatorId", "an exploration operator");
+  private final StringInput id = new StringInput("id", "an exploration operator");
 
   public ExplorationOperatorChangeForm() {
   }
 
   @VisibleForTesting
-  public ExplorationOperatorChangeForm(String operatorId) {
-    this.operatorId.setInputValue(operatorId);
+  public ExplorationOperatorChangeForm(String id) {
+    this.id.setInputValue(id);
   }
 
   @Override
   public StringInput getId() {
-    return operatorId;
+    return id;
   }
 
   @Override

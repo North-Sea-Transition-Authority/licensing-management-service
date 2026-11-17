@@ -20,6 +20,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceC
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.administrator.LicencePositionAdministratorChangeController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.explorationoperator.LicencePositionExplorationOperatorChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.licensee.LicencePositionLicenseeChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.LicencePositionPartialSurrenderController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.PartialSurrenderCorrectionService;
@@ -120,7 +121,8 @@ public class LicencePositionAddChangeController {
           .renderForExecutedPosition(correction, licencePosition));
       case STORAGE_OPERATOR -> ReverseRouter.redirect(on(LicencePositionStorageOperatorChangeController.class)
           .renderForExecutedPosition(correction, licencePosition));
-      case EXPLORATION_OPERATOR -> null; //TODO LMS2-103-2: redirect to controller
+      case EXPLORATION_OPERATOR -> ReverseRouter.redirect(on(LicencePositionExplorationOperatorChangeController.class)
+          .renderForExecutedPosition(correction, licencePosition));
       case SUBAREA_SET_EQUITY -> ReverseRouter.redirect(on(LicencePositionSubareaSetEquityController.class)
           .renderForExecutedPosition(correction, licencePosition, form.getSubarea()));
     };
@@ -183,7 +185,8 @@ public class LicencePositionAddChangeController {
           .renderForAddedPosition(correction, licencePositionCorrection));
       case STORAGE_OPERATOR -> ReverseRouter.redirect(on(LicencePositionStorageOperatorChangeController.class)
           .renderForAddedPosition(correction, licencePositionCorrection));
-      case EXPLORATION_OPERATOR -> null; //TODO LMS2-103-2: redirect to controller
+      case EXPLORATION_OPERATOR -> ReverseRouter.redirect(on(LicencePositionExplorationOperatorChangeController.class)
+          .renderForAddedPosition(correction, licencePositionCorrection));
       case SUBAREA_SET_EQUITY -> ReverseRouter.redirect(on(LicencePositionSubareaSetEquityController.class)
           .renderForAddedPosition(correction, licencePositionCorrection, form.getSubarea()));
     };

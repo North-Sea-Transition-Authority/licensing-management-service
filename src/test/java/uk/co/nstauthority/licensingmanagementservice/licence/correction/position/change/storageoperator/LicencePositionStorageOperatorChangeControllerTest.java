@@ -39,6 +39,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceC
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.OrganisationChangeFormValidator;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.OrganisationChangeService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
@@ -58,7 +59,7 @@ class LicencePositionStorageOperatorChangeControllerTest extends AbstractControl
   private OrganisationUnitQueryService organisationUnitQueryService;
 
   @MockitoBean
-  private StorageOperatorChangeFormValidator storageOperatorChangeFormValidator;
+  private OrganisationChangeFormValidator organisationChangeFormValidator;
 
   @MockitoBean
   private StorageOperatorChangeService storageOperatorChangeService;
@@ -66,7 +67,8 @@ class LicencePositionStorageOperatorChangeControllerTest extends AbstractControl
   @MockitoBean
   private OrganisationChangeService organisationChangeService;
 
-  private static final String VIEW_NAME = "lms/licence/correction/change/storageOperatorChange";
+  private static final String VIEW_NAME = "lms/licence/correction/change/addOrganisationChange";
+  private static final String OPERATOR_TYPE = "storage operator";
   private static final String PAGE_TITLE = "Change storage operator";
   private static final Licence LICENCE = LicenceTestUtil.builder()
       .withId(1)
@@ -352,13 +354,13 @@ class LicencePositionStorageOperatorChangeControllerTest extends AbstractControl
             status().isOk(),
             view().name(VIEW_NAME),
             model().attribute("pageTitle", PAGE_TITLE),
-            model().attribute("previousStorageOperatorName", "Previous Storage Operator Org"),
+            model().attribute("previousOperatorName", "Previous Storage Operator Org"),
             model().attribute("form", form),
             model().attribute("cancelUrl", EXECUTED_CANCEL_URL),
             model().attribute("organisationUnitsUrl",
                 SearchSelectorService.route(on(OrganisationUnitRestController.class)
                     .searchOrganisationUnits(null))),
-            model().attributeExists("preselectedStorageOperator")
+            model().attributeExists("preselectedOperator")
         );
   }
 
@@ -370,8 +372,8 @@ class LicencePositionStorageOperatorChangeControllerTest extends AbstractControl
     var form = new StorageOperatorChangeForm();
     form.getId().setInputValue(CURRENT_STORAGE_OPERATOR_ID.toString());
 
-    when(storageOperatorChangeFormValidator.hasErrors(
-        eq(form), any(BindingResult.class), eq(PREVIOUS_STORAGE_OPERATOR_ID)))
+    when(organisationChangeFormValidator.hasErrors(
+        eq(form), any(BindingResult.class), eq(PREVIOUS_STORAGE_OPERATOR_ID), eq(OPERATOR_TYPE)))
         .thenReturn(false);
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(position);
     when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(position));
@@ -423,8 +425,8 @@ class LicencePositionStorageOperatorChangeControllerTest extends AbstractControl
             "",
             ""
         ));
-    when(storageOperatorChangeFormValidator.hasErrors(
-        eq(form), any(BindingResult.class), eq(PREVIOUS_STORAGE_OPERATOR_ID)))
+    when(organisationChangeFormValidator.hasErrors(
+        eq(form), any(BindingResult.class), eq(PREVIOUS_STORAGE_OPERATOR_ID), eq(OPERATOR_TYPE)))
         .thenReturn(true);
 
     mockMvc.perform(post(ReverseRouter.route(on(LicencePositionStorageOperatorChangeController.class)
@@ -467,11 +469,11 @@ class LicencePositionStorageOperatorChangeControllerTest extends AbstractControl
             status().isOk(),
             view().name(VIEW_NAME),
             model().attribute("pageTitle", PAGE_TITLE),
-            model().attribute("previousStorageOperatorName", "Previous Storage Operator Org"),
+            model().attribute("previousOperatorName", "Previous Storage Operator Org"),
             model().attribute("form", form),
             model().attribute("cancelUrl", ADDED_CANCEL_URL),
             model().attributeExists("organisationUnitsUrl"),
-            model().attributeExists("preselectedStorageOperator")
+            model().attributeExists("preselectedOperator")
         );
   }
 
@@ -482,8 +484,8 @@ class LicencePositionStorageOperatorChangeControllerTest extends AbstractControl
     var form = new StorageOperatorChangeForm();
     form.getId().setInputValue(CURRENT_STORAGE_OPERATOR_ID.toString());
 
-    when(storageOperatorChangeFormValidator.hasErrors(
-        eq(form), any(BindingResult.class), eq(PREVIOUS_STORAGE_OPERATOR_ID)))
+    when(organisationChangeFormValidator.hasErrors(
+        eq(form), any(BindingResult.class), eq(PREVIOUS_STORAGE_OPERATOR_ID), eq(OPERATOR_TYPE)))
         .thenReturn(false);
     when(licencePositionCorrectionService.findById(POSITION_CORRECTION_ID))
         .thenReturn(Optional.of(POSITION_CORRECTION));
@@ -522,8 +524,8 @@ class LicencePositionStorageOperatorChangeControllerTest extends AbstractControl
         .thenReturn(Optional.of(POSITION_CORRECTION));
     when(organisationChangeService.getOrganisationChangeContext(correction, POSITION_ID, StorageOperatorOperation.class))
         .thenReturn(new StorageOperatorChangeContext(CURRENT_STORAGE_OPERATOR_ID, PREVIOUS_STORAGE_OPERATOR_ID, "", ""));
-    when(storageOperatorChangeFormValidator.hasErrors(
-        eq(form), any(BindingResult.class), eq(PREVIOUS_STORAGE_OPERATOR_ID)))
+    when(organisationChangeFormValidator.hasErrors(
+        eq(form), any(BindingResult.class), eq(PREVIOUS_STORAGE_OPERATOR_ID), eq(OPERATOR_TYPE)))
         .thenReturn(true);
 
     mockMvc.perform(post(ReverseRouter.route(on(LicencePositionStorageOperatorChangeController.class)
@@ -565,11 +567,11 @@ class LicencePositionStorageOperatorChangeControllerTest extends AbstractControl
             model().attribute("pageTitle", PAGE_TITLE),
             model().attributeExists("form"),
             model().attribute("cancelUrl", EXECUTED_CANCEL_URL),
-            model().attribute("previousStorageOperatorName", PREVIOUS_STORAGE_OPERATOR_NAME),
+            model().attribute("previousOperatorName", PREVIOUS_STORAGE_OPERATOR_NAME),
             model().attribute("organisationUnitsUrl",
                 SearchSelectorService.route(on(OrganisationUnitRestController.class)
                     .searchOrganisationUnits(null))),
-            model().attributeExists("preselectedStorageOperator")
+            model().attributeExists("preselectedOperator")
         );
   }
 
@@ -583,8 +585,8 @@ class LicencePositionStorageOperatorChangeControllerTest extends AbstractControl
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(POSITION);
     when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(POSITION));
     when(licencePositionChangeService.findById(POSITION_CHANGE.getId())).thenReturn(Optional.of(POSITION_CHANGE));
-    when(storageOperatorChangeFormValidator.hasErrors(
-        eq(form), any(BindingResult.class), eq(PREVIOUS_STORAGE_OPERATOR_ID)))
+    when(organisationChangeFormValidator.hasErrors(
+        eq(form), any(BindingResult.class), eq(PREVIOUS_STORAGE_OPERATOR_ID), eq(OPERATOR_TYPE)))
         .thenReturn(false);
     when(organisationChangeService.getOrganisationChangeContext(correction, POSITION_ID, StorageOperatorOperation.class))
         .thenReturn(new StorageOperatorChangeContext(
@@ -626,7 +628,7 @@ class LicencePositionStorageOperatorChangeControllerTest extends AbstractControl
             CURRENT_STORAGE_OPERATOR_NAME,
             PREVIOUS_STORAGE_OPERATOR_NAME
         ));
-    when(storageOperatorChangeFormValidator.hasErrors(eq(form), any(BindingResult.class), eq(PREVIOUS_STORAGE_OPERATOR_ID)))
+    when(organisationChangeFormValidator.hasErrors(eq(form), any(BindingResult.class), eq(PREVIOUS_STORAGE_OPERATOR_ID), eq(OPERATOR_TYPE)))
         .thenReturn(true);
 
     mockMvc.perform(post(ReverseRouter.route(on(LicencePositionStorageOperatorChangeController.class)

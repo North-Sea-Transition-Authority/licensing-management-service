@@ -7,19 +7,19 @@ import uk.co.nstauthority.licensingmanagementservice.licence.operation.Administr
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 
 public class AdministratorChangeForm implements OrganisationChangeForm {
-  private final StringInput adminId = new StringInput("id", "a licence administrator");
+  private final StringInput id = new StringInput("id", "a licence administrator");
 
   public AdministratorChangeForm() {
   }
 
   @VisibleForTesting
-  public AdministratorChangeForm(String adminId) {
-    this.adminId.setInputValue(adminId);
+  public AdministratorChangeForm(String id) {
+    this.id.setInputValue(id);
   }
 
   @Override
   public StringInput getId() {
-    return adminId;
+    return id;
   }
 
   @Override

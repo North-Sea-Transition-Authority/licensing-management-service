@@ -2,6 +2,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.operation;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionChangeUtil.NOT_AVAILABLE;
 
 import java.util.Map;
 import java.util.UUID;
@@ -13,6 +14,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.vie
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.PositionChangeTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.PositionStateTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.ChangeViewUrls;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.ExplorationOperatorChangeView;
 
 class ExplorationOperatorOperationTest {
   @Test
@@ -89,12 +91,27 @@ class ExplorationOperatorOperationTest {
   }
 
   @Test
+  void applyState() {
+    var state = LicencePositionState.EMPTY;
+    var expectedState = LicencePositionState.EMPTY.withExplorationOperatorId(2);
+    var explorationOperatorOperation = LicenceOperation.newExplorationOperatorOperation().withOperator(2).build();
+    assertThat(explorationOperatorOperation.applyState(state)).isEqualTo(expectedState);
+  }
+
+  @Test
   void getChangeView() {
-    var positionChange = PositionChangeTestUtil.newBuilder().withChangeType("Exploration operator").build();
+    var positionChange = PositionChangeTestUtil.newBuilder().withChangeType("exploration operator").build();
     var previousState = LicencePositionState.EMPTY.withExplorationOperatorId(1);
     var context = new LicencePositionChangeViewContext(Map.of(1, "Zeta", 2, "Beta"), Map.of());
     var urls = ChangeViewUrls.none();
     var explorationOperatorOperation = LicenceOperation.newExplorationOperatorOperation().withOperator(2).build();
+    var expectedChangeView = new ExplorationOperatorChangeView(
+        "Zeta",
+        "Beta",
+        positionChange.changeId(),
+        positionChange.changeType(),
+        urls
+    );
 
     assertThat(explorationOperatorOperation.getChangeView(
         positionChange,
@@ -102,14 +119,54 @@ class ExplorationOperatorOperationTest {
         null,
         context,
         urls
-    )).isNull();
+    )).isEqualTo(expectedChangeView);
   }
 
   @Test
-  void applyState() {
-    var state = LicencePositionState.EMPTY;
-    var expectedState = LicencePositionState.EMPTY.withExplorationOperatorId(2);
+  void getChangeView_nameNotAvailable() {
+    var positionChange = PositionChangeTestUtil.newBuilder().withChangeType("exploration operator").build();
+    var previousState = LicencePositionState.EMPTY.withExplorationOperatorId(1);
+    var context = new LicencePositionChangeViewContext(Map.of(), Map.of());
+    var urls = ChangeViewUrls.none();
     var explorationOperatorOperation = LicenceOperation.newExplorationOperatorOperation().withOperator(2).build();
-    assertThat(explorationOperatorOperation.applyState(state)).isEqualTo(expectedState);
+    var expectedChangeView = new ExplorationOperatorChangeView(
+        NOT_AVAILABLE,
+        NOT_AVAILABLE,
+        positionChange.changeId(),
+        positionChange.changeType(),
+        urls
+    );
+
+    assertThat(explorationOperatorOperation.getChangeView(
+        positionChange,
+        previousState,
+        null,
+        context,
+        urls
+    )).isEqualTo(expectedChangeView);
   }
+  @Test
+  void getChangeView_noWithdrawingId_withdrawingNameIsNull() {
+    var positionChange = PositionChangeTestUtil.newBuilder().withChangeType("exploration operator").build();
+    var previousState = LicencePositionState.EMPTY.withExplorationOperatorId(null);
+    var context = new LicencePositionChangeViewContext(Map.of(), Map.of());
+    var urls = ChangeViewUrls.none();
+    var explorationOperatorOperation = LicenceOperation.newExplorationOperatorOperation().withOperator(2).build();
+    var expectedChangeView = new ExplorationOperatorChangeView(
+        null,
+        NOT_AVAILABLE,
+        positionChange.changeId(),
+        positionChange.changeType(),
+        urls
+    );
+
+    assertThat(explorationOperatorOperation.getChangeView(
+        positionChange,
+        previousState,
+        null,
+        context,
+        urls
+    )).isEqualTo(expectedChangeView);
+  }
+
 }

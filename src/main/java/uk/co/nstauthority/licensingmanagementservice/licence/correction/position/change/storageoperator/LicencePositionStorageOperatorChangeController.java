@@ -29,6 +29,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.OrganisationChangeForm;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.OrganisationChangeFormValidator;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.OrganisationChangeService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
@@ -44,21 +46,23 @@ import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 @CorrectionLicenceIsType({LicenceType.CARBON_STORAGE})
 public class LicencePositionStorageOperatorChangeController {
 
-  private final StorageOperatorChangeFormValidator storageOperatorChangeFormValidator;
+  private static final String OPERATOR_TYPE = "storage operator";
+
   private final StorageOperatorChangeService storageOperatorChangeService;
   private final OrganisationUnitQueryService organisationUnitQueryService;
   private final OrganisationChangeService organisationChangeService;
+  private final OrganisationChangeFormValidator organisationChangeFormValidator;
 
   public LicencePositionStorageOperatorChangeController(
-      StorageOperatorChangeFormValidator storageOperatorChangeFormValidator,
       StorageOperatorChangeService storageOperatorChangeService,
       OrganisationUnitQueryService organisationUnitQueryService,
-      OrganisationChangeService organisationChangeService
+      OrganisationChangeService organisationChangeService,
+      OrganisationChangeFormValidator organisationChangeFormValidator
   ) {
-    this.storageOperatorChangeFormValidator = storageOperatorChangeFormValidator;
     this.storageOperatorChangeService = storageOperatorChangeService;
     this.organisationUnitQueryService = organisationUnitQueryService;
     this.organisationChangeService = organisationChangeService;
+    this.organisationChangeFormValidator = organisationChangeFormValidator;
   }
 
   @GetMapping("/position/{licencePositionId}/add-storage-operator-change")
@@ -93,7 +97,7 @@ public class LicencePositionStorageOperatorChangeController {
   @LicencePositionHasNoLiveChangeOfType(value = StorageOperatorOperation.class)
   @LicencePositionIsNotRemovedInCorrection
   @LicencePositionBelongsToCorrectionLicence
-  public ModelAndView submitForExecutedPosition(
+  ModelAndView submitForExecutedPosition(
       LicenceCorrection correction,
       LicencePosition licencePosition,
       @ModelAttribute("form") StorageOperatorChangeForm form,
@@ -128,7 +132,8 @@ public class LicencePositionStorageOperatorChangeController {
       LicenceCorrection correction,
       LicencePositionCorrection licencePositionCorrection
   ) {
-    var storageOperatorChangeContext = getAddedPositionStorageOperatorChangeContext(correction, licencePositionCorrection);
+    var storageOperatorChangeContext = getAddedPositionStorageOperatorChangeContext(correction,
+        licencePositionCorrection);
 
     var form = organisationChangeService.populateAddedOrganisationForm(
         storageOperatorChangeContext.currentId(),
@@ -152,12 +157,14 @@ public class LicencePositionStorageOperatorChangeController {
       BindingResult bindingResult,
       RedirectAttributes redirectAttributes
   ) {
-    var storageOperatorChangeContext = getAddedPositionStorageOperatorChangeContext(correction, licencePositionCorrection);
+    var storageOperatorChangeContext = getAddedPositionStorageOperatorChangeContext(correction,
+        licencePositionCorrection);
 
-    if (storageOperatorChangeFormValidator.hasErrors(
+    if (organisationChangeFormValidator.hasErrors(
         form,
         bindingResult,
-        storageOperatorChangeContext.previousId()
+        storageOperatorChangeContext.previousId(),
+        OPERATOR_TYPE
     )) {
       return getStorageOperatorChangeModelAndView(
           form,
@@ -244,15 +251,16 @@ public class LicencePositionStorageOperatorChangeController {
       String cancelUrl,
       String previousOperatorName
   ) {
-    return new ModelAndView("lms/licence/correction/change/storageOperatorChange")
-        .addObject("pageTitle", "Change storage operator")
-        .addObject("previousStorageOperatorName", previousOperatorName)
+    return new ModelAndView("lms/licence/correction/change/addOrganisationChange")
+        .addObject("pageTitle", "Change %s".formatted(OPERATOR_TYPE))
+        .addObject("operatorType", OPERATOR_TYPE)
+        .addObject("previousOperatorName", previousOperatorName)
         .addObject("form", form)
         .addObject("cancelUrl", cancelUrl)
         .addObject("organisationUnitsUrl",
             SearchSelectorService.route(on(OrganisationUnitRestController.class)
                 .searchOrganisationUnits(null)))
-        .addObject("preselectedStorageOperator", preselectedStorageOperator(form));
+        .addObject("preselectedOperator", preselectedOperator(form));
   }
 
   private String executedCancelUrl(LicenceCorrection correction, LicencePosition licencePosition) {
@@ -265,7 +273,7 @@ public class LicencePositionStorageOperatorChangeController {
         .renderAddedPosition(correction, licencePositionCorrection, null));
   }
 
-  private Map<String, String> preselectedStorageOperator(StorageOperatorChangeForm form) {
+  private Map<String, String> preselectedOperator(OrganisationChangeForm form) {
     var inputValue = form.getId().getInputValue();
     return organisationUnitQueryService.getOrganisationUnitSelectOption(inputValue);
   }
@@ -276,13 +284,13 @@ public class LicencePositionStorageOperatorChangeController {
   ) {
     var payload = (CreateLicencePositionPayload) licencePositionCorrection.getPayload();
     return organisationChangeService
-        .getOrganisationChangeContext(correction, UUID.fromString(payload.licencePositionId()), StorageOperatorOperation.class);
+        .getOrganisationChangeContext(correction, UUID.fromString(payload.licencePositionId()),
+            StorageOperatorOperation.class);
   }
 
   /**
-   * Returns the licensee change form's {@link ModelAndView} with validation errors if {@code form} is invalid, or
-   * {@code null} if it is valid and the caller should continue. Defaults a {@code null} withdrawing organisation list
-   * on {@code form} to empty before validating.
+   * Returns the storage operator change form's {@link ModelAndView} with validation errors if {@code form} is invalid, or
+   * {@code null} if it is valid and the caller should continue.
    */
   @Nullable
   private ModelAndView getValidatedModelAndViewOrNull(
@@ -297,10 +305,11 @@ public class LicencePositionStorageOperatorChangeController {
         StorageOperatorOperation.class
     );
 
-    if (storageOperatorChangeFormValidator.hasErrors(
+    if (organisationChangeFormValidator.hasErrors(
         form,
         bindingResult,
-        storageOperatorChangeContext.previousId())
+        storageOperatorChangeContext.previousId(),
+        OPERATOR_TYPE)
     ) {
       return getStorageOperatorChangeModelAndView(
           form,

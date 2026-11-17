@@ -28,6 +28,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.OrganisationChangeFormValidator;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.OrganisationChangeService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.AdministratorOperation;
@@ -44,22 +45,23 @@ import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 public class LicencePositionAdministratorChangeController {
 
   private static final String PAGE_TITLE = "Change licence administrator";
+  private static final String OPERATOR_TYPE = "licence administrator";
 
-  private final AdministratorChangeFormValidator administratorChangeFormValidator;
   private final AdministratorChangeService administratorChangeService;
   private final OrganisationUnitQueryService organisationUnitQueryService;
   private final OrganisationChangeService organisationChangeService;
+  private final OrganisationChangeFormValidator organisationChangeFormValidator;
 
   public LicencePositionAdministratorChangeController(
-      AdministratorChangeFormValidator administratorChangeFormValidator,
       AdministratorChangeService administratorChangeService,
       OrganisationUnitQueryService organisationUnitQueryService,
-      OrganisationChangeService organisationChangeService
+      OrganisationChangeService organisationChangeService,
+      OrganisationChangeFormValidator organisationChangeFormValidator
   ) {
-    this.administratorChangeFormValidator = administratorChangeFormValidator;
     this.administratorChangeService = administratorChangeService;
     this.organisationUnitQueryService = organisationUnitQueryService;
     this.organisationChangeService = organisationChangeService;
+    this.organisationChangeFormValidator = organisationChangeFormValidator;
   }
 
   @GetMapping("/position/{licencePositionId}/add-administrator-change")
@@ -107,10 +109,11 @@ public class LicencePositionAdministratorChangeController {
         AdministratorOperation.class
     );
 
-    if (administratorChangeFormValidator.hasErrors(
+    if (organisationChangeFormValidator.hasErrors(
         form,
         bindingResult,
-        administratorChangeContext.previousId()
+        administratorChangeContext.previousId(),
+        OPERATOR_TYPE
     )) {
       return getAdministratorChangeModelAndView(
           form,
@@ -163,10 +166,11 @@ public class LicencePositionAdministratorChangeController {
   ) {
     var administratorChangeContext = getAddedPositionAdministratorChangeContext(correction, licencePositionCorrection);
 
-    if (administratorChangeFormValidator.hasErrors(
+    if (organisationChangeFormValidator.hasErrors(
         form,
         bindingResult,
-        administratorChangeContext.previousId()
+        administratorChangeContext.previousId(),
+        OPERATOR_TYPE
     )) {
       return getAdministratorChangeModelAndView(
           form,
@@ -225,10 +229,11 @@ public class LicencePositionAdministratorChangeController {
     var administratorChangeContext = organisationChangeService
         .getOrganisationChangeContext(correction, licencePosition.getId(), AdministratorOperation.class);
 
-    if (administratorChangeFormValidator.hasErrors(
+    if (organisationChangeFormValidator.hasErrors(
         form,
         bindingResult,
-        administratorChangeContext.previousId()
+        administratorChangeContext.previousId(),
+        OPERATOR_TYPE
     )) {
       return getAdministratorChangeModelAndView(
           form,
@@ -278,12 +283,13 @@ public class LicencePositionAdministratorChangeController {
       String cancelUrl,
       String previousAdministratorName
   ) {
-    return new ModelAndView("lms/licence/correction/change/administratorChange")
+    return new ModelAndView("lms/licence/correction/change/addOrganisationChange")
         .addObject("pageTitle", PAGE_TITLE)
+        .addObject("operatorType", OPERATOR_TYPE)
         .addObject("form", form)
         .addObject("cancelUrl", cancelUrl)
-        .addObject("previousLicenceAdministratorName", previousAdministratorName)
-        .addObject("preselectedAdministrator", preselectedAdministrator(form))
+        .addObject("previousOperatorName", previousAdministratorName)
+        .addObject("preselectedOperator", preselectedAdministrator(form))
         .addObject("organisationUnitsUrl",
             SearchSelectorService.route(on(OrganisationUnitRestController.class).searchOrganisationUnits(null)));
   }

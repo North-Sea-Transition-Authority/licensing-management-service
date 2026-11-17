@@ -31,6 +31,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceC
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.OrganisationChangeService;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.StorageOperatorOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
@@ -44,6 +46,9 @@ class RemoveStorageOperatorChangeControllerTest extends AbstractControllerTest {
 
   @MockitoBean
   private StorageOperatorChangeService storageOperatorChangeService;
+
+  @MockitoBean
+  private OrganisationChangeService organisationChangeService;
 
   private static final String REMOVE_PAGE_TITLE = "Are you sure you want to remove this storage operator change?";
   private static final String UNDO_PAGE_TITLE = "Are you sure you want to undo this storage operator change?";
@@ -151,7 +156,7 @@ class RemoveStorageOperatorChangeControllerTest extends AbstractControllerTest {
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(position);
     when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(position));
     when(licencePositionChangeService.findById(CHANGE.getId())).thenReturn(Optional.of(CHANGE));
-    when(storageOperatorChangeService.getStorageOperatorChangeContext(correction, POSITION_ID))
+    when(organisationChangeService.getOrganisationChangeContext(correction, POSITION_ID, StorageOperatorOperation.class))
         .thenReturn(new StorageOperatorChangeContext(789, 456, "Joining Storage Operator Org", "Withdrawing Storage Operator Org"));
 
     mockMvc.perform(get(ReverseRouter.route(on(RemoveStorageOperatorChangeController.class)
@@ -203,7 +208,7 @@ class RemoveStorageOperatorChangeControllerTest extends AbstractControllerTest {
 
     when(licencePositionCorrectionService.getPositionCorrectionContainingChange(correction, CHANGE_ID))
         .thenReturn(positionCorrection);
-    when(storageOperatorChangeService.getStorageOperatorChangeContext(correction, POSITION_ID))
+    when(organisationChangeService.getOrganisationChangeContext(correction, POSITION_ID, StorageOperatorOperation.class))
         .thenReturn(new StorageOperatorChangeContext(789, 456, "Joining Storage Operator Org", "Withdrawing Storage Operator Org"));
 
     mockMvc.perform(get(ReverseRouter.route(on(RemoveStorageOperatorChangeController.class)
@@ -234,7 +239,7 @@ class RemoveStorageOperatorChangeControllerTest extends AbstractControllerTest {
     when(licencePositionCorrectionService.isStagedRemoval(positionCorrection, CHANGE_ID)).thenReturn(true);
     when(storageOperatorChangeService.getJoiningOperatorForReinstating(correction, positionCorrection))
         .thenReturn("Reinstated Storage Operator Org");
-    when(storageOperatorChangeService.getStorageOperatorChangeContext(correction, POSITION_ID))
+    when(organisationChangeService.getOrganisationChangeContext(correction, POSITION_ID, StorageOperatorOperation.class))
         .thenReturn(new StorageOperatorChangeContext(789, 456, "Joining Storage Operator Org", "Withdrawing Storage Operator Org"));
 
     mockMvc.perform(get(ReverseRouter.route(on(RemoveStorageOperatorChangeController.class)

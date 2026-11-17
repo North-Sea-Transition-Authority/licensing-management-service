@@ -40,6 +40,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.administrator.AdministratorChangeService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.administrator.LicencePositionAdministratorChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayloadTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.AdministratorOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.AdministratorChangeContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
@@ -58,6 +60,9 @@ class LicencePositionAdministratorChangeControllerTest extends AbstractControlle
 
   @MockitoBean
   private AdministratorChangeService administratorChangeService;
+
+  @MockitoBean
+  private OrganisationChangeService organisationChangeService;
 
   private static final Licence LICENCE = LicenceTestUtil.builder()
       .withId(1)
@@ -133,12 +138,15 @@ class LicencePositionAdministratorChangeControllerTest extends AbstractControlle
   void renderForExecutedPosition_whenAllocatedToUser() throws Exception {
     var correction = givenCorrectionAllocatedToUser();
     var position = LicencePositionTestUtil.newBuilder().withId(POSITION_ID).withLicence(LICENCE).build();
+    var form = new AdministratorChangeForm(CURRENT_ADMINISTRATOR_ID.toString());
 
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(position);
     when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(position));
-    when(administratorChangeService.getAdministratorChangeContext(correction, position.getId()))
+    when(organisationChangeService.getOrganisationChangeContext(correction, position.getId(), AdministratorOperation.class))
         .thenReturn(new AdministratorChangeContext(
             CURRENT_ADMINISTRATOR_ID, PREVIOUS_ADMINISTRATOR_ID, "Current Admin Org", "Previous Admin Org"));
+    when(organisationChangeService.populateExistingOrganisationForm(eq(CURRENT_ADMINISTRATOR_ID), eq(correction), eq(position), any()))
+        .thenReturn(form);
 
     mockMvc.perform(get(ReverseRouter.route(on(LicencePositionAdministratorChangeController.class)
             .renderForExecutedPosition(correction, position)))
@@ -147,7 +155,7 @@ class LicencePositionAdministratorChangeControllerTest extends AbstractControlle
             status().isOk(),
             view().name(VIEW_NAME),
             model().attribute("pageTitle", PAGE_TITLE),
-            model().attributeExists("form"),
+            model().attribute("form", form),
             model().attribute("cancelUrl", executedCancelUrl),
             model().attribute("previousLicenceAdministratorName", "Previous Admin Org"),
             model().attributeExists("organisationUnitsUrl")
@@ -160,14 +168,14 @@ class LicencePositionAdministratorChangeControllerTest extends AbstractControlle
     var position = LicencePositionTestUtil.newBuilder().withId(POSITION_ID).withLicence(LICENCE).build();
 
     var form = new AdministratorChangeForm();
-    form.getAdminId().setInputValue(ADMINISTRATOR_ID.toString());
+    form.getId().setInputValue(ADMINISTRATOR_ID.toString());
 
     when(administratorChangeFormValidator.hasErrors(
         eq(form), any(BindingResult.class), eq(PREVIOUS_ADMINISTRATOR_ID)))
         .thenReturn(false);
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(position);
     when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(position));
-    when(administratorChangeService.getAdministratorChangeContext(correction, POSITION_ID))
+    when(organisationChangeService.getOrganisationChangeContext(correction, POSITION_ID, AdministratorOperation.class))
         .thenReturn(new AdministratorChangeContext(
             CURRENT_ADMINISTRATOR_ID, PREVIOUS_ADMINISTRATOR_ID, "Current Admin Org", "Previous Admin Org"));
 
@@ -184,7 +192,15 @@ class LicencePositionAdministratorChangeControllerTest extends AbstractControlle
                 .build())
         );
 
-    verify(administratorChangeService).addAdministratorChangeForExistingLicencePosition(position, correction, ADMINISTRATOR_ID);
+    var administratorOperation = LicenceOperation.newAdministratorChange()
+        .withOperator(ADMINISTRATOR_ID)
+        .build();
+    verify(organisationChangeService).addOrganisationChangeForExistingLicencePosition(
+        position,
+        correction,
+        AdministratorOperation.class,
+        administratorOperation
+    );
   }
 
   @Test
@@ -196,7 +212,7 @@ class LicencePositionAdministratorChangeControllerTest extends AbstractControlle
 
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(position);
     when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(position));
-    when(administratorChangeService.getAdministratorChangeContext(correction, POSITION_ID))
+    when(organisationChangeService.getOrganisationChangeContext(correction, POSITION_ID, AdministratorOperation.class))
         .thenReturn(new AdministratorChangeContext(CURRENT_ADMINISTRATOR_ID, PREVIOUS_ADMINISTRATOR_ID, "", ""));
     when(administratorChangeFormValidator.hasErrors(
         eq(form), any(BindingResult.class), eq(PREVIOUS_ADMINISTRATOR_ID)))
@@ -214,7 +230,7 @@ class LicencePositionAdministratorChangeControllerTest extends AbstractControlle
             model().attribute("cancelUrl", executedCancelUrl)
         );
 
-    verify(administratorChangeService, never()).addAdministratorChangeForExistingLicencePosition(any(), any(), any());
+    verify(organisationChangeService, never()).addOrganisationChangeForExistingLicencePosition(any(), any(), any(), any());
   }
 
   @Test
@@ -241,13 +257,15 @@ class LicencePositionAdministratorChangeControllerTest extends AbstractControlle
     var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
         .withId(POSITION_CORRECTION_ID)
         .withLicenceCorrection(correction)
-        .withPayload(CreateLicencePositionPayloadTestUtil.newBuilder().build())
+        .withPayload(CreateLicencePositionPayloadTestUtil.newBuilder().withLicencePositionId(POSITION_ID.toString()).build())
         .build();
-
+    var form = new AdministratorChangeForm(CURRENT_ADMINISTRATOR_ID.toString());
     when(licencePositionCorrectionService.findById(POSITION_CORRECTION_ID))
         .thenReturn(Optional.of(positionCorrection));
-    when(administratorChangeService.getAdministratorChangeContext(eq(correction), any()))
-        .thenReturn(new AdministratorChangeContext(null, null, "", ""));
+    when(organisationChangeService.getOrganisationChangeContext(correction, POSITION_ID, AdministratorOperation.class))
+        .thenReturn(new AdministratorChangeContext(CURRENT_ADMINISTRATOR_ID, null, "", ""));
+    when(organisationChangeService.populateAddedOrganisationForm(eq(CURRENT_ADMINISTRATOR_ID), eq(positionCorrection),  any()))
+        .thenReturn(form);
 
     mockMvc.perform(get(ReverseRouter.route(on(LicencePositionAdministratorChangeController.class)
             .renderForAddedPosition(correction, positionCorrection)))
@@ -256,7 +274,7 @@ class LicencePositionAdministratorChangeControllerTest extends AbstractControlle
             status().isOk(),
             view().name(VIEW_NAME),
             model().attribute("pageTitle", PAGE_TITLE),
-            model().attributeExists("form"),
+            model().attribute("form", form),
             model().attribute("cancelUrl", addedCancelUrl),
             model().attribute("previousLicenceAdministratorName", ""),
             model().attributeExists("organisationUnitsUrl")
@@ -275,14 +293,14 @@ class LicencePositionAdministratorChangeControllerTest extends AbstractControlle
         .build();
 
     var form = new AdministratorChangeForm();
-    form.getAdminId().setInputValue(ADMINISTRATOR_ID.toString());
+    form.getId().setInputValue(ADMINISTRATOR_ID.toString());
 
     when(administratorChangeFormValidator.hasErrors(
         eq(form), any(BindingResult.class), eq(PREVIOUS_ADMINISTRATOR_ID)))
         .thenReturn(false);
     when(licencePositionCorrectionService.findById(POSITION_CORRECTION_ID))
         .thenReturn(Optional.of(positionCorrection));
-    when(administratorChangeService.getAdministratorChangeContext(eq(correction), any()))
+    when(organisationChangeService.getOrganisationChangeContext(correction, POSITION_ID, AdministratorOperation.class))
         .thenReturn(new AdministratorChangeContext(CURRENT_ADMINISTRATOR_ID, PREVIOUS_ADMINISTRATOR_ID, "", ""));
 
     mockMvc.perform(post(ReverseRouter.route(on(LicencePositionAdministratorChangeController.class)
@@ -298,7 +316,14 @@ class LicencePositionAdministratorChangeControllerTest extends AbstractControlle
                 .build())
         );
 
-    verify(administratorChangeService).addAdministratorChangeForAddedLicencePosition(positionCorrection, ADMINISTRATOR_ID);
+    var administratorOperation = LicenceOperation.newAdministratorChange()
+        .withOperator(ADMINISTRATOR_ID)
+        .build();
+    verify(organisationChangeService).addOrganisationChangeForAddedLicencePosition(
+        positionCorrection,
+        AdministratorOperation.class,
+        administratorOperation
+    );
   }
 
   @Test
@@ -316,7 +341,7 @@ class LicencePositionAdministratorChangeControllerTest extends AbstractControlle
 
     when(licencePositionCorrectionService.findById(POSITION_CORRECTION_ID))
         .thenReturn(Optional.of(positionCorrection));
-    when(administratorChangeService.getAdministratorChangeContext(eq(correction), any()))
+    when(organisationChangeService.getOrganisationChangeContext(correction, POSITION_ID, AdministratorOperation.class))
         .thenReturn(new AdministratorChangeContext(CURRENT_ADMINISTRATOR_ID, PREVIOUS_ADMINISTRATOR_ID, "", ""));
     when(administratorChangeFormValidator.hasErrors(
         eq(form), any(BindingResult.class), eq(PREVIOUS_ADMINISTRATOR_ID)))
@@ -334,7 +359,7 @@ class LicencePositionAdministratorChangeControllerTest extends AbstractControlle
             model().attribute("cancelUrl", addedCancelUrl)
         );
 
-    verify(administratorChangeService, never()).addAdministratorChangeForAddedLicencePosition(any(), any());
+    verify(organisationChangeService, never()).addOrganisationChangeForAddedLicencePosition(any(), any(), any());
   }
 
   @Test
@@ -345,7 +370,7 @@ class LicencePositionAdministratorChangeControllerTest extends AbstractControlle
 
     when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(position));
     when(licencePositionChangeService.findById(change.getId())).thenReturn(Optional.of(change));
-    when(administratorChangeService.getAdministratorChangeContext(correction, POSITION_ID))
+    when(organisationChangeService.getOrganisationChangeContext(correction, POSITION_ID, AdministratorOperation.class))
         .thenReturn(new AdministratorChangeContext(
             CURRENT_ADMINISTRATOR_ID, PREVIOUS_ADMINISTRATOR_ID, "", "Previous Admin Org"));
 
@@ -370,7 +395,7 @@ class LicencePositionAdministratorChangeControllerTest extends AbstractControlle
     var position = LicencePositionTestUtil.newBuilder().withId(POSITION_ID).withLicence(LICENCE).build();
 
     var form = new AdministratorChangeForm();
-    form.getAdminId().setInputValue(ADMINISTRATOR_ID.toString());
+    form.getId().setInputValue(ADMINISTRATOR_ID.toString());
 
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(position);
     when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(position));
@@ -378,7 +403,7 @@ class LicencePositionAdministratorChangeControllerTest extends AbstractControlle
     when(administratorChangeFormValidator.hasErrors(
         eq(form), any(BindingResult.class), eq(PREVIOUS_ADMINISTRATOR_ID)))
         .thenReturn(false);
-    when(administratorChangeService.getAdministratorChangeContext(correction, POSITION_ID))
+    when(organisationChangeService.getOrganisationChangeContext(correction, POSITION_ID, AdministratorOperation.class))
         .thenReturn(new AdministratorChangeContext(CURRENT_ADMINISTRATOR_ID, PREVIOUS_ADMINISTRATOR_ID, "", ""));
 
     mockMvc.perform(post(ReverseRouter.route(on(LicencePositionAdministratorChangeController.class)
@@ -409,7 +434,7 @@ class LicencePositionAdministratorChangeControllerTest extends AbstractControlle
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(position);
     when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(position));
     when(licencePositionChangeService.findById(change.getId())).thenReturn(Optional.of(change));
-    when(administratorChangeService.getAdministratorChangeContext(correction, POSITION_ID))
+    when(organisationChangeService.getOrganisationChangeContext(correction, POSITION_ID, AdministratorOperation.class))
         .thenReturn(new AdministratorChangeContext(ADMINISTRATOR_ID, PREVIOUS_ADMINISTRATOR_ID, "", ""));
     when(administratorChangeFormValidator.hasErrors(eq(form), any(BindingResult.class), eq(PREVIOUS_ADMINISTRATOR_ID))).thenReturn(true);
 

@@ -9,7 +9,7 @@ import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.
 @Component
 public class AdministratorChangeFormValidator {
 
-  private static final String ADMIN_ID_FIELD = "adminId.inputValue";
+  private static final String ADMIN_ID_FIELD = "id.inputValue";
 
   private final OrganisationUnitQueryService organisationUnitQueryService;
 
@@ -24,7 +24,7 @@ public class AdministratorChangeFormValidator {
   ) {
     StringInputValidator.builder()
         .emptyInputErrorMessage("Select a licence administrator")
-        .validate(form.getAdminId(), errors);
+        .validate(form.getId(), errors);
 
     if (errors.hasErrors()) {
       return true;
@@ -32,7 +32,7 @@ public class AdministratorChangeFormValidator {
 
     int newAdministratorId;
     try {
-      newAdministratorId = Integer.parseInt(form.getAdminId().getInputValue());
+      newAdministratorId = Integer.parseInt(form.getId().getInputValue());
     } catch (NumberFormatException e) {
       errors.rejectValue(
           ADMIN_ID_FIELD,

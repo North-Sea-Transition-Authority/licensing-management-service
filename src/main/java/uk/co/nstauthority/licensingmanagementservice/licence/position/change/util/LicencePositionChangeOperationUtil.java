@@ -1,5 +1,6 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.position.change.util;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -121,6 +122,26 @@ public final class LicencePositionChangeOperationUtil {
     return changes.stream()
         .filter(change -> !containsOperation(change, operationType))
         .toList();
+  }
+
+  public static List<LicencePositionChangeType> upsertAddOrganisationChange(
+      List<LicencePositionChangeType> changes,
+      Class<? extends LicenceOperation> operationType,
+      LicenceOperation operation
+  ) {
+    if (LicencePositionChangeOperationUtil.changeExists(changes, operationType)) {
+      return LicencePositionChangeOperationUtil.replaceOperation(
+          changes,
+          operationType,
+          operation
+      );
+    }
+    var updatedChanges = new ArrayList<>(changes);
+    updatedChanges.add(AddChange.buildOperationsChange(
+        List.of(operation),
+        updatedChanges.size() + 1
+    ));
+    return updatedChanges;
   }
 
   public static LicencePositionChangeType rebuildWith(

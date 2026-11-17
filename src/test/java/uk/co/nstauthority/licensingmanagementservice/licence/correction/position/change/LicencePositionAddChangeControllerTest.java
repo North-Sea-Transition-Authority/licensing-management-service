@@ -142,7 +142,7 @@ class LicencePositionAddChangeControllerTest extends AbstractControllerTest {
   }
 
   @Test
-  void renderForExecutedPosition_whenCarbonStorage_offersSetEquityTransferEquityPartialSurrenderAndStorageOperator()
+  void renderForExecutedPosition_whenCarbonStorage_offersCorrectOptions()
       throws Exception {
     var correction = givenCorrectionAllocatedToUser(CARBON_STORAGE_LICENCE);
     var licencePosition = givenExecutedPosition(CARBON_STORAGE_LICENCE);
@@ -161,7 +161,8 @@ class LicencePositionAddChangeControllerTest extends AbstractControllerTest {
                 "TRANSFER_EQUITY", "Transfer equity",
                 "PARTIAL_SURRENDER", "Partial surrender",
                 "LICENSEE", "Licensee change",
-                "STORAGE_OPERATOR", "Storage operator change")),
+                "STORAGE_OPERATOR", "Storage operator change",
+                "EXPLORATION_OPERATOR", "Exploration operator change")),
             model().attribute("backLinkUrl", ReverseRouter.route(on(LicenceCorrectionController.class)
                 .renderLicencePosition(correction, licencePosition, null))));
   }
@@ -364,7 +365,7 @@ class LicencePositionAddChangeControllerTest extends AbstractControllerTest {
   }
 
   @Test
-  void renderForAddedPosition_whenCarbonStorage_offersSetEquityTransferEquityPartialSurrenderAndStorageOperator()
+  void renderForAddedPosition_whenCarbonStorage_offersCorrectOptions()
       throws Exception {
     var correction = givenCorrectionAllocatedToUser(CARBON_STORAGE_LICENCE);
     var positionCorrection = givenAddedPositionCorrection(correction);
@@ -383,7 +384,8 @@ class LicencePositionAddChangeControllerTest extends AbstractControllerTest {
                 "TRANSFER_EQUITY", "Transfer equity",
                 "PARTIAL_SURRENDER", "Partial surrender",
                 "LICENSEE", "Licensee change",
-                "STORAGE_OPERATOR", "Storage operator change")),
+                "STORAGE_OPERATOR", "Storage operator change",
+                "EXPLORATION_OPERATOR", "Exploration operator change")),
             model().attribute("backLinkUrl", ReverseRouter.route(on(LicenceCorrectionController.class)
                 .renderAddedPosition(correction, positionCorrection, null))));
   }

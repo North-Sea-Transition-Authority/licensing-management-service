@@ -9,9 +9,9 @@ import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.
 @Component
 public class StorageOperatorChangeFormValidator {
 
-  private static final String OPERATOR_ID_FIELD = "operatorId.inputValue";
+  private static final String OPERATOR_ID_FIELD = "id.inputValue";
   private static final String VALID_OPERATOR_MESSAGE = "Select a valid storage operator";
-  private static final String VALID_OPERATOR_CODE = "operatorId.invalid";
+  private static final String VALID_OPERATOR_CODE = "id.invalid";
   private final OrganisationUnitQueryService organisationUnitQueryService;
 
   StorageOperatorChangeFormValidator(OrganisationUnitQueryService organisationUnitQueryService) {
@@ -25,7 +25,7 @@ public class StorageOperatorChangeFormValidator {
   ) {
     StringInputValidator.builder()
         .emptyInputErrorMessage("Select a storage operator")
-        .validate(form.getOperatorId(), errors);
+        .validate(form.getId(), errors);
 
     if (errors.hasErrors()) {
       return true;
@@ -33,7 +33,7 @@ public class StorageOperatorChangeFormValidator {
 
     int newOperatorId;
     try {
-      newOperatorId = Integer.parseInt(form.getOperatorId().getInputValue());
+      newOperatorId = Integer.parseInt(form.getId().getInputValue());
     } catch (NumberFormatException e) {
       errors.rejectValue(
           OPERATOR_ID_FIELD,

@@ -9,10 +9,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceC
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.AddChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.UpdateChangeOperations;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.LicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.UpdateLicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.AdministratorOperation;
@@ -23,6 +21,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePos
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionNameService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionAdministratorChangeUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionChangeOperationUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionStateResolver;
 
 @Service
@@ -46,56 +45,6 @@ public class AdministratorChangeService {
   }
 
   @Transactional
-  public void addAdministratorChangeForAddedLicencePosition(
-      LicencePositionCorrection licencePositionCorrection,
-      Integer administratorId
-  ) {
-    var payload = (CreateLicencePositionPayload) licencePositionCorrection.getPayload();
-
-    var changes = LicencePositionAdministratorChangeUtil.upsertAddAdminChange(payload.changes(), administratorId);
-
-    licencePositionCorrection.setPayload(LicencePositionPayload.withChanges(payload, changes));
-    licencePositionCorrectionService.save(licencePositionCorrection);
-  }
-
-  @Transactional
-  public void addAdministratorChangeForExistingLicencePosition(
-      LicencePosition licencePosition,
-      LicenceCorrection licenceCorrection,
-      Integer administratorId
-  ) {
-    var existingPositionCorrection = licencePositionCorrectionService
-        .findUpdatePositionCorrection(licenceCorrection, licencePosition);
-
-    LicencePositionCorrection positionCorrection;
-
-    if (existingPositionCorrection.isPresent()) {
-      positionCorrection = existingPositionCorrection.get();
-      var payload = (UpdateLicencePositionPayload) positionCorrection.getPayload();
-
-      var changes = LicencePositionAdministratorChangeUtil.upsertAddAdminChange(payload.changes(), administratorId);
-
-      positionCorrection.setPayload(LicencePositionPayload.withChanges(payload, changes));
-
-    } else {
-      positionCorrection = new LicencePositionCorrection();
-      var payload = LicencePositionPayload.newUpdateLicencePositionPayload()
-          .withCorrectionReference(licenceCorrection.getCorrectionReference())
-          .withChanges(List.of(
-              AddChange.buildOperationsChange(List.of(administratorOperation(administratorId)), 1)))
-          .build();
-
-      positionCorrection.setLicenceCorrection(licenceCorrection);
-      positionCorrection.setChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION);
-      positionCorrection.setTargetLicencePosition(licencePosition);
-      positionCorrection.setPayload(payload);
-
-    }
-
-    licencePositionCorrectionService.save(positionCorrection);
-  }
-
-  @Transactional
   public void correctExistingAdministratorChange(
       LicencePosition licencePosition,
       LicenceCorrection licenceCorrection,
@@ -113,7 +62,11 @@ public class AdministratorChangeService {
 
       List<LicencePositionChangeType> changes;
       if (LicencePositionAdministratorChangeUtil.adminChangeExists(payload.changes())) {
-        changes = LicencePositionAdministratorChangeUtil.replaceAdminChange(payload.changes(), administratorId);
+        changes = LicencePositionChangeOperationUtil.replaceOperation(
+            payload.changes(),
+            AdministratorOperation.class,
+            administratorOperation(administratorId)
+        );
       } else {
         var updatedChanges = new ArrayList<>(payload.changes());
         updatedChanges.add(
@@ -164,7 +117,7 @@ public class AdministratorChangeService {
 
   private void removeStagedAdministratorChange(LicencePositionCorrection positionCorrection) {
     var payload = positionCorrection.getPayload();
-    var changes = LicencePositionAdministratorChangeUtil.removeAdminChange(payload.changes());
+    var changes = LicencePositionChangeOperationUtil.removeChangesOf(payload.changes(), AdministratorOperation.class);
 
     positionCorrection.setPayload(LicencePositionPayload.withChanges(payload, changes));
     licencePositionCorrectionService.save(positionCorrection);
@@ -187,38 +140,6 @@ public class AdministratorChangeService {
     }
 
     licencePositionCorrectionService.dropStagedChange(positionCorrection, changeId);
-  }
-
-  public boolean hasPendingAdministratorChange(LicencePosition licencePosition, LicenceCorrection licenceCorrection) {
-    return licencePositionCorrectionService
-        .findUpdatePositionCorrection(licenceCorrection, licencePosition)
-        .map(positionCorrection ->
-            LicencePositionAdministratorChangeUtil.adminChangeExists(positionCorrection.getPayload().changes()))
-        .orElse(false);
-  }
-
-  /**
-   * Resolves the current and previous administrator ids for a position, along with their display names. Names are
-   * resolved here so consumers do not need to look them up; an empty string is used when the id is null or the name
-   * cannot be resolved.
-   */
-  public AdministratorChangeContext getAdministratorChangeContext(
-      LicenceCorrection licenceCorrection,
-      UUID licencePositionId
-  ) {
-    var chronologicalPositions =
-        chronologicalPositionService.getCorrectedChronologicalPositions(licenceCorrection, licencePositionId);
-    var resolvedStates = LicencePositionStateResolver.resolve(chronologicalPositions);
-    var currentState = resolvedStates.currentState(licencePositionId);
-    var previousState = resolvedStates.previousState(licencePositionId);
-    var nameContext = licencePositionNameService.getOrganisationNameContext(chronologicalPositions);
-
-    return new AdministratorChangeContext(
-        currentState.administratorId(),
-        previousState.administratorId(),
-        nameContext.getNameForDate(currentState.administratorId(), null, ""),
-        nameContext.getNameForDate(previousState.administratorId(), null, "")
-    );
   }
 
   private boolean isAdministratorChange(LicencePositionChangeType change) {

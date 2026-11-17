@@ -9,7 +9,6 @@ import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -20,7 +19,6 @@ import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.fivium.gisframework.feature.FeatureService;
-import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationNamePeriods;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
@@ -30,26 +28,20 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeoperation.LicencePositionAddOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeoperation.LicencePositionChangeOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeoperation.LicencePositionUpdateOperation;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.AddChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.UpdateChangeOperations;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.LicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.UpdateLicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.AdministratorOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.AdministratorChangeContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.ChronologicalPositionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionNameService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeService;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPositionTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.PositionChangeTestUtil;
 
 @ExtendWith(MockitoExtension.class)
 class AdministratorChangeServiceTest {
@@ -95,98 +87,6 @@ class AdministratorChangeServiceTest {
 
   @Captor
   private ArgumentCaptor<LicencePositionCorrection> licencePositionCorrectionCaptor;
-
-  @Test
-  void addAdministratorChangeForAddedLicencePosition_whenNoAdminChangeYet_appendsAdminChange() {
-    var licencePositionId = UUID.randomUUID();
-    var correction = addPositionCorrectionFor(licencePositionId, List.of());
-
-    administratorChangeService.addAdministratorChangeForAddedLicencePosition(correction, ADMINISTRATOR_ID);
-
-    verify(licencePositionCorrectionService).save(licencePositionCorrectionCaptor.capture());
-    var payload = (CreateLicencePositionPayload) licencePositionCorrectionCaptor.getValue().getPayload();
-
-    assertThat(payload.licencePositionId()).isEqualTo(licencePositionId.toString());
-    assertThat(payload.changes()).hasSize(1);
-    assertThat(operatorIdOf(payload.changes().getFirst())).isEqualTo(ADMINISTRATOR_ID);
-  }
-
-  @Test
-  void addAdministratorChangeForAddedLicencePosition_whenAdminChangeAlreadyExists_rewritesAddChange() {
-    var licencePositionId = UUID.randomUUID();
-    var correction = addPositionCorrectionFor(licencePositionId, List.of(adminAddChange()));
-
-    administratorChangeService.addAdministratorChangeForAddedLicencePosition(correction, UPDATED_ADMINISTRATOR_ID);
-
-    verify(licencePositionCorrectionService).save(licencePositionCorrectionCaptor.capture());
-    var payload = (CreateLicencePositionPayload) licencePositionCorrectionCaptor.getValue().getPayload();
-    assertThat(payload.changes()).hasSize(1);
-    var change = payload.changes().getFirst();
-    assertThat(change).isInstanceOf(AddChange.class);
-    assertThat(operatorIdOf(change)).isEqualTo(UPDATED_ADMINISTRATOR_ID);
-  }
-
-  @Test
-  void addAdministratorChangeForExistingLicencePosition_whenNoExistingUpdateCorrection_createsNewCorrection() {
-    var licencePosition = LicencePositionTestUtil.newBuilder().build();
-
-    when(licencePositionCorrectionService.findUpdatePositionCorrection(LICENCE_CORRECTION, licencePosition))
-        .thenReturn(Optional.empty());
-
-    administratorChangeService
-        .addAdministratorChangeForExistingLicencePosition(licencePosition, LICENCE_CORRECTION, ADMINISTRATOR_ID);
-
-    verify(licencePositionCorrectionService).save(licencePositionCorrectionCaptor.capture());
-    var saved = licencePositionCorrectionCaptor.getValue();
-
-    assertThat(saved.getLicenceCorrection()).isEqualTo(LICENCE_CORRECTION);
-    assertThat(saved.getChangeType()).isEqualTo(LicencePositionCorrectionChangeType.UPDATE_POSITION);
-    assertThat(saved.getTargetLicencePosition()).isEqualTo(licencePosition);
-
-    var payload = (UpdateLicencePositionPayload) saved.getPayload();
-    assertThat(payload.changes()).hasSize(1);
-    assertThat(operatorIdOf(payload.changes().getFirst())).isEqualTo(ADMINISTRATOR_ID);
-  }
-
-  @Test
-  void addAdministratorChangeForExistingLicencePosition_whenExistingUpdateCorrection_appendsAdminChange() {
-    var licencePosition = LicencePositionTestUtil.newBuilder().build();
-    var existing = LicencePositionCorrectionTestUtil.newBuilder()
-        .withPayload(LicencePositionPayload.newUpdateLicencePositionPayload().withChanges(List.of()).build())
-        .build();
-
-    when(licencePositionCorrectionService.findUpdatePositionCorrection(LICENCE_CORRECTION, licencePosition))
-        .thenReturn(Optional.of(existing));
-
-    administratorChangeService
-        .addAdministratorChangeForExistingLicencePosition(licencePosition, LICENCE_CORRECTION, ADMINISTRATOR_ID);
-
-    verify(licencePositionCorrectionService).save(licencePositionCorrectionCaptor.capture());
-    var payload = (UpdateLicencePositionPayload) licencePositionCorrectionCaptor.getValue().getPayload();
-    assertThat(payload.changes()).hasSize(1);
-    assertThat(operatorIdOf(payload.changes().getFirst())).isEqualTo(ADMINISTRATOR_ID);
-  }
-
-  @Test
-  void addAdministratorChangeForExistingLicencePosition_whenAdminChangeAlreadyExists_rewritesAddChange() {
-    var licencePosition = LicencePositionTestUtil.newBuilder().build();
-    var existing = LicencePositionCorrectionTestUtil.newBuilder()
-        .withPayload(LicencePositionPayload.newUpdateLicencePositionPayload().withChanges(List.of(adminAddChange())).build())
-        .build();
-
-    when(licencePositionCorrectionService.findUpdatePositionCorrection(LICENCE_CORRECTION, licencePosition))
-        .thenReturn(Optional.of(existing));
-
-    administratorChangeService
-        .addAdministratorChangeForExistingLicencePosition(licencePosition, LICENCE_CORRECTION, UPDATED_ADMINISTRATOR_ID);
-
-    verify(licencePositionCorrectionService).save(licencePositionCorrectionCaptor.capture());
-    var payload = (UpdateLicencePositionPayload) licencePositionCorrectionCaptor.getValue().getPayload();
-    assertThat(payload.changes()).hasSize(1);
-    var change = payload.changes().getFirst();
-    assertThat(change).isInstanceOf(AddChange.class);
-    assertThat(operatorIdOf(change)).isEqualTo(UPDATED_ADMINISTRATOR_ID);
-  }
 
   @Test
   void correctExistingAdministratorChange_whenNoExistingUpdateCorrection_createsNewCorrectionWithUpdateChange() {
@@ -353,58 +253,6 @@ class AdministratorChangeServiceTest {
     verify(licencePositionCorrectionService, never()).dropStagedChange(any(), any());
   }
 
-  @Test
-  void hasPendingAdministratorChange_whenUpdateCorrectionContainsAdminChange_returnsTrue() {
-    var licencePosition = LicencePositionTestUtil.newBuilder().build();
-    var existing = LicencePositionCorrectionTestUtil.newBuilder()
-        .withPayload(LicencePositionPayload.newUpdateLicencePositionPayload().withChanges(List.of(adminAddChange())).build())
-        .build();
-
-    when(licencePositionCorrectionService.findUpdatePositionCorrection(LICENCE_CORRECTION, licencePosition))
-        .thenReturn(Optional.of(existing));
-
-    assertThat(administratorChangeService.hasPendingAdministratorChange(licencePosition, LICENCE_CORRECTION)).isTrue();
-  }
-
-  @Test
-  void hasPendingAdministratorChange_whenNoUpdateCorrection_returnsFalse() {
-    var licencePosition = LicencePositionTestUtil.newBuilder().build();
-
-    when(licencePositionCorrectionService.findUpdatePositionCorrection(LICENCE_CORRECTION, licencePosition))
-        .thenReturn(Optional.empty());
-
-    assertThat(administratorChangeService.hasPendingAdministratorChange(licencePosition, LICENCE_CORRECTION)).isFalse();
-  }
-
-  @Test
-  void getAdministratorChangeContext() {
-    var position = ChronologicalPositionTestUtil.newBuilder().withId(POSITION_ID).build();
-
-    when(chronologicalPositionService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, POSITION_ID))
-        .thenReturn(List.of(position));
-
-    var result = administratorChangeService.getAdministratorChangeContext(LICENCE_CORRECTION, POSITION_ID);
-
-    assertThat(result).isEqualTo(new AdministratorChangeContext(null, null, "", ""));
-  }
-
-  @Test
-  void getAdministratorChangeContext_resolvesAdministratorNames() {
-    var position = ChronologicalPositionTestUtil.newBuilder()
-        .withId(POSITION_ID)
-        .withChanges(List.of(PositionChangeTestUtil.newBuilder().withAdministratorOperation(1).build()))
-        .build();
-
-    when(chronologicalPositionService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, POSITION_ID))
-        .thenReturn(List.of(position));
-    when(organisationUnitQueryService.getOrganisationNameHistoriesByIds(List.of(1)))
-        .thenReturn(Map.of(1, new OrganisationNamePeriods("Current Admin Org", List.of())));
-
-    var result = administratorChangeService.getAdministratorChangeContext(LICENCE_CORRECTION, POSITION_ID);
-
-    assertThat(result).isEqualTo(new AdministratorChangeContext(1, null, "Current Admin Org", ""));
-  }
-
   private LicencePositionCorrection givenStagedChange(
       LicencePositionChangeType change,
       LicenceOperation... resolvedOperations
@@ -472,24 +320,8 @@ class AdministratorChangeServiceTest {
         .build();
   }
 
-  private LicencePositionCorrection addPositionCorrectionFor(UUID positionId, List<LicencePositionChangeType> changes) {
-    var payload = LicencePositionPayload.newCreateLicencePositionPayload()
-        .withLicencePositionId(positionId.toString())
-        .withChanges(changes)
-        .build();
-    return LicencePositionCorrectionTestUtil.newBuilder()
-        .withTargetLicencePosition(null)
-        .withPayload(payload)
-        .build();
-  }
-
   private static LicencePositionChangeType removeChange(String changeId) {
     return LicencePositionChangeType.removeChange().withChangeId(changeId).build();
-  }
-
-  private Integer operatorIdOf(LicencePositionChangeType change) {
-    var op = (LicencePositionAddOperation) change.operations().getFirst();
-    return ((AdministratorOperation) op.operation()).operatorId();
   }
 
   private Integer updateOperatorIdOf(LicencePositionChangeType change) {

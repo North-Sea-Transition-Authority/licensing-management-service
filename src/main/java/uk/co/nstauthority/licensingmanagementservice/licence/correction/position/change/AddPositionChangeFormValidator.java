@@ -9,6 +9,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceC
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.PartialSurrenderCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.AdministratorOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.ExplorationOperatorOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenseeOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquityOperation;
@@ -84,6 +85,7 @@ public class AddPositionChangeFormValidator {
               || partialSurrenderCorrectionService.hasStagedPartialSurrender(positionCorrection);
       case SUBAREA, SUBAREA_SET_EQUITY -> false;
       case STORAGE_OPERATOR -> licencePositionChangeService.changeExists(livePositionId, StorageOperatorOperation.class);
+      case EXPLORATION_OPERATOR -> licencePositionChangeService.changeExists(livePositionId, ExplorationOperatorOperation.class);
       case LICENSEE -> licencePositionChangeService.changeExists(livePositionId, LicenseeOperation.class);
     };
   }

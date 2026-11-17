@@ -28,12 +28,13 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.OrganisationChangeService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.AdministratorOperation;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.AdministratorChangeContext;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionAdministratorChangeUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.OrganisationChangeContext;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @Controller
@@ -47,15 +48,18 @@ public class LicencePositionAdministratorChangeController {
   private final AdministratorChangeFormValidator administratorChangeFormValidator;
   private final AdministratorChangeService administratorChangeService;
   private final OrganisationUnitQueryService organisationUnitQueryService;
+  private final OrganisationChangeService organisationChangeService;
 
   public LicencePositionAdministratorChangeController(
       AdministratorChangeFormValidator administratorChangeFormValidator,
       AdministratorChangeService administratorChangeService,
-      OrganisationUnitQueryService organisationUnitQueryService
+      OrganisationUnitQueryService organisationUnitQueryService,
+      OrganisationChangeService organisationChangeService
   ) {
     this.administratorChangeFormValidator = administratorChangeFormValidator;
     this.administratorChangeService = administratorChangeService;
     this.organisationUnitQueryService = organisationUnitQueryService;
+    this.organisationChangeService = organisationChangeService;
   }
 
   @GetMapping("/position/{licencePositionId}/add-administrator-change")
@@ -66,22 +70,23 @@ public class LicencePositionAdministratorChangeController {
       LicenceCorrection correction,
       LicencePosition licencePosition
   ) {
-    var administratorChangeContext = administratorChangeService.getAdministratorChangeContext(
+    var administratorChangeContext = organisationChangeService.getOrganisationChangeContext(
         correction,
-        licencePosition.getId()
+        licencePosition.getId(),
+        AdministratorOperation.class
     );
 
-    var form = new AdministratorChangeForm();
-    if (administratorChangeContext.currentAdministratorId() != null
-        && administratorChangeService.hasPendingAdministratorChange(licencePosition, correction)
-    ) {
-      form.getAdminId().setInputValue(String.valueOf(administratorChangeContext.currentAdministratorId()));
-    }
+    var form = organisationChangeService.populateExistingOrganisationForm(
+        administratorChangeContext.currentId(),
+        correction,
+        licencePosition,
+        new AdministratorChangeForm()
+    );
 
     return getAdministratorChangeModelAndView(
         form,
         executedCancelUrl(correction, licencePosition),
-        administratorChangeContext.previousAdministratorName()
+        administratorChangeContext.previousName()
     );
   }
 
@@ -96,27 +101,29 @@ public class LicencePositionAdministratorChangeController {
       BindingResult bindingResult,
       RedirectAttributes redirectAttributes
   ) {
-    var administratorChangeContext = administratorChangeService.getAdministratorChangeContext(
+    var administratorChangeContext = organisationChangeService.getOrganisationChangeContext(
         correction,
-        licencePosition.getId()
+        licencePosition.getId(),
+        AdministratorOperation.class
     );
 
     if (administratorChangeFormValidator.hasErrors(
         form,
         bindingResult,
-        administratorChangeContext.previousAdministratorId()
+        administratorChangeContext.previousId()
     )) {
       return getAdministratorChangeModelAndView(
           form,
           executedCancelUrl(correction, licencePosition),
-          administratorChangeContext.previousAdministratorName()
+          administratorChangeContext.previousName()
       );
     }
 
-    administratorChangeService.addAdministratorChangeForExistingLicencePosition(
+    organisationChangeService.addOrganisationChangeForExistingLicencePosition(
         licencePosition,
         correction,
-        Integer.parseInt(form.getAdminId().getInputValue())
+        AdministratorOperation.class,
+        administratorOperation(Integer.parseInt(form.getId().getInputValue()))
     );
 
     NotificationBanner.newSuccessBannerWithHeader("Licence administrator change added", redirectAttributes);
@@ -131,19 +138,17 @@ public class LicencePositionAdministratorChangeController {
       LicencePositionCorrection licencePositionCorrection
   ) {
     var administratorChangeContext = getAddedPositionAdministratorChangeContext(correction, licencePositionCorrection);
-    var payload = (CreateLicencePositionPayload) licencePositionCorrection.getPayload();
 
-    var form = new AdministratorChangeForm();
-    if (administratorChangeContext.currentAdministratorId() != null
-        && LicencePositionAdministratorChangeUtil.adminChangeExists(payload.changes())
-    ) {
-      form.getAdminId().setInputValue(String.valueOf(administratorChangeContext.currentAdministratorId()));
-    }
+    var form = organisationChangeService.populateAddedOrganisationForm(
+        administratorChangeContext.currentId(),
+        licencePositionCorrection,
+        new AdministratorChangeForm()
+    );
 
     return getAdministratorChangeModelAndView(
         form,
         addedCancelUrl(correction, licencePositionCorrection),
-        administratorChangeContext.previousAdministratorName()
+        administratorChangeContext.previousName()
     );
   }
 
@@ -161,18 +166,19 @@ public class LicencePositionAdministratorChangeController {
     if (administratorChangeFormValidator.hasErrors(
         form,
         bindingResult,
-        administratorChangeContext.previousAdministratorId()
+        administratorChangeContext.previousId()
     )) {
       return getAdministratorChangeModelAndView(
           form,
           addedCancelUrl(correction, licencePositionCorrection),
-          administratorChangeContext.previousAdministratorName()
+          administratorChangeContext.previousName()
       );
     }
 
-    administratorChangeService.addAdministratorChangeForAddedLicencePosition(
+    organisationChangeService.addOrganisationChangeForAddedLicencePosition(
         licencePositionCorrection,
-        Integer.parseInt(form.getAdminId().getInputValue())
+        AdministratorOperation.class,
+        administratorOperation(Integer.parseInt(form.getId().getInputValue()))
     );
 
     NotificationBanner.newSuccessBannerWithHeader("Licence administrator change added", redirectAttributes);
@@ -191,15 +197,15 @@ public class LicencePositionAdministratorChangeController {
       LicencePositionChange licencePositionChange
   ) {
     var administratorChangeContext =
-        administratorChangeService.getAdministratorChangeContext(correction, licencePosition.getId());
+        organisationChangeService.getOrganisationChangeContext(correction, licencePosition.getId(), AdministratorOperation.class);
     var form = new AdministratorChangeForm();
-    if (administratorChangeContext.currentAdministratorId() != null) {
-      form.getAdminId().setInputValue(String.valueOf(administratorChangeContext.currentAdministratorId()));
+    if (administratorChangeContext.currentId() != null) {
+      form.getId().setInputValue(String.valueOf(administratorChangeContext.currentId()));
     }
     return getAdministratorChangeModelAndView(
         form,
         executedCancelUrl(correction, licencePosition),
-        administratorChangeContext.previousAdministratorName()
+        administratorChangeContext.previousName()
     );
   }
 
@@ -216,18 +222,18 @@ public class LicencePositionAdministratorChangeController {
       BindingResult bindingResult,
       RedirectAttributes redirectAttributes
   ) {
-    var administratorChangeContext =
-        administratorChangeService.getAdministratorChangeContext(correction, licencePosition.getId());
+    var administratorChangeContext = organisationChangeService
+        .getOrganisationChangeContext(correction, licencePosition.getId(), AdministratorOperation.class);
 
     if (administratorChangeFormValidator.hasErrors(
         form,
         bindingResult,
-        administratorChangeContext.previousAdministratorId()
+        administratorChangeContext.previousId()
     )) {
       return getAdministratorChangeModelAndView(
           form,
           executedCancelUrl(correction, licencePosition),
-          administratorChangeContext.previousAdministratorName()
+          administratorChangeContext.previousName()
       );
     }
 
@@ -235,7 +241,7 @@ public class LicencePositionAdministratorChangeController {
         licencePosition,
         correction,
         change.getId().toString(),
-        Integer.parseInt(form.getAdminId().getInputValue())
+        Integer.parseInt(form.getId().getInputValue())
     );
 
     NotificationBanner.newSuccessBannerWithHeader("Licence administrator change corrected", redirectAttributes);
@@ -243,12 +249,13 @@ public class LicencePositionAdministratorChangeController {
         .renderLicencePosition(correction, licencePosition, null));
   }
 
-  private AdministratorChangeContext getAddedPositionAdministratorChangeContext(
+  private OrganisationChangeContext getAddedPositionAdministratorChangeContext(
       LicenceCorrection correction,
       LicencePositionCorrection licencePositionCorrection
   ) {
     var payload = (CreateLicencePositionPayload) licencePositionCorrection.getPayload();
-    return administratorChangeService.getAdministratorChangeContext(correction, UUID.fromString(payload.licencePositionId()));
+    return organisationChangeService
+        .getOrganisationChangeContext(correction, UUID.fromString(payload.licencePositionId()), AdministratorOperation.class);
   }
 
   private String executedCancelUrl(LicenceCorrection correction, LicencePosition licencePosition) {
@@ -262,7 +269,7 @@ public class LicencePositionAdministratorChangeController {
   }
 
   private Map<String, String> preselectedAdministrator(AdministratorChangeForm form) {
-    var inputValue = form.getAdminId().getInputValue();
+    var inputValue = form.getId().getInputValue();
     return organisationUnitQueryService.getOrganisationUnitSelectOption(inputValue);
   }
 
@@ -279,5 +286,11 @@ public class LicencePositionAdministratorChangeController {
         .addObject("preselectedAdministrator", preselectedAdministrator(form))
         .addObject("organisationUnitsUrl",
             SearchSelectorService.route(on(OrganisationUnitRestController.class).searchOrganisationUnits(null)));
+  }
+
+  private static AdministratorOperation administratorOperation(Integer administratorId) {
+    return LicenceOperation.newAdministratorChange()
+        .withOperator(administratorId)
+        .build();
   }
 }

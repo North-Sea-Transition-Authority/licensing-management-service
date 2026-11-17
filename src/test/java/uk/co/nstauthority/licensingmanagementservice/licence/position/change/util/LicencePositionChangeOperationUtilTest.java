@@ -15,9 +15,11 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.UpdateChangeOperations;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.UpdateChangeOrder;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.AdministratorOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.ExplorationOperatorOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquityOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.StorageOperatorOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
 
 class LicencePositionChangeOperationUtilTest {
@@ -28,6 +30,8 @@ class LicencePositionChangeOperationUtilTest {
       LicenceOperation.newAdministratorChange().withOperator(116).build();
   private static final SetEquityOperation SET_EQUITY_OPERATION =
       new SetEquityOperation(300, BigDecimal.valueOf(50));
+  private static final Integer OPERATOR_ID = 47;
+  private static final Integer UPDATED_OPERATOR_ID = 48;
 
   private static Stream<Arguments> operationTypes() {
     return Stream.of(
@@ -258,6 +262,49 @@ class LicencePositionChangeOperationUtilTest {
     assertThat(result).containsExactly(administratorChange);
   }
 
+  @ParameterizedTest(name = "{argumentSetName}")
+  @MethodSource("upsertAddOperatorChange")
+  void upsertAddOperatorChange_ifChangeDoesNotExist_replacesOperation(
+      Class<? extends LicenceOperation> operationType,
+      LicenceOperation operation
+  ) {
+    var result = LicencePositionChangeOperationUtil.upsertAddOrganisationChange(List.of(), operationType, operation);
+    assertThat(result).hasSize(1);
+    assertThat(result.getFirst().operations().getFirst().operation()).isEqualTo(operation);
+  }
+
+  @ParameterizedTest(name = "{argumentSetName}")
+  @MethodSource("upsertAddOperatorChange")
+  void upsertAddOperatorChange_ifChangeExists_replacesOperation(
+      Class<? extends LicenceOperation> operationType,
+      LicenceOperation previousOperation,
+      LicenceOperation currentOperation
+  ) {
+    var changes = List.<LicencePositionChangeType>of(
+        AddChange.buildOperationsChange(List.of(previousOperation), 1)
+    );
+    var result = LicencePositionChangeOperationUtil.upsertAddOrganisationChange(changes, operationType, currentOperation);
+    assertThat(result).hasSize(1);
+    assertThat(result.getFirst().operations().getFirst().operation()).isEqualTo(currentOperation);
+  }
+
+  private static Stream<Arguments> upsertAddOperatorChange() {
+    return Stream.of(
+        Arguments.argumentSet("Storage Operator",
+            StorageOperatorOperation.class,
+            storageOperatorOperation(OPERATOR_ID),
+            storageOperatorOperation(UPDATED_OPERATOR_ID)),
+        Arguments.argumentSet("Exploration Operator",
+            ExplorationOperatorOperation.class,
+            explorationOperatorOperation(OPERATOR_ID),
+            explorationOperatorOperation(UPDATED_OPERATOR_ID)),
+        Arguments.argumentSet("Licence Administrator",
+            AdministratorOperation.class,
+            administratorOperation(OPERATOR_ID),
+            administratorOperation(UPDATED_OPERATOR_ID))
+    );
+  }
+
   private static PartialSurrenderOperation partialSurrender(UUID featureId) {
     return LicenceOperation.newPartialSurrenderOperation()
         .withSurrenderedFeatureIds(List.of(featureId))
@@ -268,5 +315,22 @@ class LicencePositionChangeOperationUtilTest {
     var change = new LicencePositionChange();
     change.setOperations(List.of(operations));
     return change;
+  }
+
+  private static StorageOperatorOperation storageOperatorOperation(Integer storageOperatorId) {
+    return LicenceOperation.newStorageOperatorOperation()
+        .withOperator(storageOperatorId)
+        .build();
+  }
+
+  private static ExplorationOperatorOperation explorationOperatorOperation(Integer explorationOperatorId) {
+    return LicenceOperation.newExplorationOperatorOperation()
+        .withOperator(explorationOperatorId)
+        .build();
+  }
+  private static AdministratorOperation administratorOperation(Integer administratorId) {
+    return LicenceOperation.newAdministratorChange()
+        .withOperator(administratorId)
+        .build();
   }
 }

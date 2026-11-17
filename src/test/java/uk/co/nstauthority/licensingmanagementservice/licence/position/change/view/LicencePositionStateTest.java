@@ -1,15 +1,24 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.position.change.view;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.MethodSource;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.AdministratorOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.ExplorationOperatorOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenseeOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.StorageOperatorOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaDetails;
 
 class LicencePositionStateTest {
@@ -20,6 +29,33 @@ class LicencePositionStateTest {
   private static final SubareaDetails FIRST_SUBAREA = new SubareaDetails(UUID.randomUUID(), "Subarea A", "A");
   private static final SubareaDetails SECOND_SUBAREA = new SubareaDetails(UUID.randomUUID(), "Subarea B", "B");
   private static final SubareaDetails THIRD_SUBAREA = new SubareaDetails(UUID.randomUUID(), "Subarea C", "C");
+
+  @ParameterizedTest(name = "{argumentSetName}")
+  @MethodSource("getOrganisationIdFor")
+  void getOrganisationIdFor(
+      Class<? extends LicenceOperation> operationType,
+      Integer id
+  ) {
+    var state = LicencePositionState.EMPTY.withAdministratorId(1).withStorageOperatorId(2).withExplorationOperatorId(3);
+
+    assertThat(state.getOrganisationIdFor(operationType)).isEqualTo(id);
+  }
+
+  private static Stream<Arguments> getOrganisationIdFor() {
+    return Stream.of(
+        Arguments.argumentSet("Licence Administrator", AdministratorOperation.class, 1),
+        Arguments.argumentSet("Storage Operator", StorageOperatorOperation.class, 2),
+        Arguments.argumentSet("Exploration Operator", ExplorationOperatorOperation.class, 3)
+    );
+  }
+
+  @Test
+  void getOrganisationIdFor_throwsIfUnsupportedType() {
+    var state = LicencePositionState.EMPTY;
+    assertThatThrownBy(() -> state.getOrganisationIdFor(LicenseeOperation.class))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("Unsupported operation type for retrieving organisation id: " + LicenseeOperation.class);
+  }
 
   @Test
   void subareasOf_whenBlockNotHeld_thenEmpty() {
@@ -85,6 +121,7 @@ class LicencePositionStateTest {
 
     var expected = new LicencePositionState(
         1,
+        null,
         null,
         Set.of(1, 2),
         Map.of(1, BigDecimal.TEN),
@@ -270,6 +307,7 @@ class LicencePositionStateTest {
     var state = LicencePositionState.EMPTY
         .withAdministratorId(1)
         .withStorageOperatorId(2)
+        .withExplorationOperatorId(3)
         .withLicenseeIds(List.of(1, 2), List.of())
         .withEquityByOrganisationId(Map.of(1, BigDecimal.TEN))
         .withBlock(FIRST_BLOCK_ID, List.of(FIRST_SUBAREA));
@@ -279,6 +317,7 @@ class LicencePositionStateTest {
     var expected = new LicencePositionState(
         1,
         2,
+        3,
         Set.of(1, 2),
         Map.of(1, BigDecimal.TEN),
         Map.of(FIRST_BLOCK_ID, Set.of(FIRST_SUBAREA)),
@@ -296,6 +335,7 @@ class LicencePositionStateTest {
     var result = state
         .withAdministratorId(1)
         .withStorageOperatorId(2)
+        .withExplorationOperatorId(3)
         .withLicenseeIds(List.of(1, 2), List.of())
         .withEquityByOrganisationId(Map.of(1, BigDecimal.TEN))
         .withSubareas(FIRST_BLOCK_ID, List.of(SECOND_SUBAREA));
@@ -303,6 +343,7 @@ class LicencePositionStateTest {
     var expected = new LicencePositionState(
         1,
         2,
+        3,
         Set.of(1, 2),
         Map.of(1, BigDecimal.TEN),
         Map.of(FIRST_BLOCK_ID, Set.of(FIRST_SUBAREA, SECOND_SUBAREA)),
@@ -316,6 +357,7 @@ class LicencePositionStateTest {
     var state = new LicencePositionState(
         1,
         2,
+        10,
         Set.of(1, 3),
         Map.of(3, new BigDecimal("50"), 4, new BigDecimal("50")),
         Map.of(FIRST_BLOCK_ID, Set.of(FIRST_SUBAREA)),
@@ -324,7 +366,7 @@ class LicencePositionStateTest {
 
     var result = state.legalEntityOrganisationUnitIds();
 
-    assertThat(result).isEqualTo(Set.of(1, 2, 3, 4, 5));
+    assertThat(result).isEqualTo(Set.of(1, 2, 3, 4, 5, 10));
   }
 
   @Test

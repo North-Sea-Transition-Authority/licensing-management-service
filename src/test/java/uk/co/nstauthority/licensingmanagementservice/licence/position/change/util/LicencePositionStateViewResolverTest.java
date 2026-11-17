@@ -41,6 +41,7 @@ class LicencePositionStateViewResolverTest {
   private static final String CURRENT_ADMIN_NAME = "Current Admin Ltd";
   private static final int CURRENT_STORAGE_OPERATOR_ID = 200;
   private static final String CURRENT_STORAGE_OPERATOR_NAME = "Current Storage Operator Ltd";
+  private static final int CURRENT_EXPLORATION_OPERATOR_ID = 300;
   private static final LocalDate POSITION_DATE = LocalDate.of(2010, Month.JUNE, 1);
   private static final LocalDate LONG_BEFORE_THE_POSITION_DATE = LocalDate.of(1990, Month.JANUARY, 1);
 
@@ -56,6 +57,7 @@ class LicencePositionStateViewResolverTest {
     var state = new LicencePositionState(
         CURRENT_ADMIN_ID,
         CURRENT_STORAGE_OPERATOR_ID,
+        CURRENT_EXPLORATION_OPERATOR_ID,
         Set.of(11, 12),
         equityByOrganisationId,
         Map.of(),
@@ -382,7 +384,8 @@ class LicencePositionStateViewResolverTest {
     var currentPositionId = UUID.randomUUID();
 
     var state = new LicencePositionState(
-        CURRENT_ADMIN_ID, CURRENT_STORAGE_OPERATOR_ID, Set.of(11), Map.of(1, new BigDecimal("100")), Map.of(), Map.of());
+        CURRENT_ADMIN_ID, CURRENT_STORAGE_OPERATOR_ID, CURRENT_EXPLORATION_OPERATOR_ID,
+        Set.of(11), Map.of(1, new BigDecimal("100")), Map.of(), Map.of());
 
     var nameHistories = Map.of(
         CURRENT_ADMIN_ID, new OrganisationNamePeriods("zeta admin", List.of(

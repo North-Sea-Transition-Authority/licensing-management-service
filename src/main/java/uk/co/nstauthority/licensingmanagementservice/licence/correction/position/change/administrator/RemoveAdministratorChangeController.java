@@ -22,6 +22,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceC
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.OrganisationChangeService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.AdministratorOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
@@ -40,13 +41,16 @@ public class RemoveAdministratorChangeController {
 
   private final LicencePositionCorrectionService licencePositionCorrectionService;
   private final AdministratorChangeService administratorChangeService;
+  private final OrganisationChangeService organisationChangeService;
 
   RemoveAdministratorChangeController(
       LicencePositionCorrectionService licencePositionCorrectionService,
-      AdministratorChangeService administratorChangeService
+      AdministratorChangeService administratorChangeService,
+      OrganisationChangeService organisationChangeService
   ) {
     this.licencePositionCorrectionService = licencePositionCorrectionService;
     this.administratorChangeService = administratorChangeService;
+    this.organisationChangeService = organisationChangeService;
   }
 
   @GetMapping("/position/{licencePositionId}/change/{changeId}/remove-administrator-change")
@@ -122,14 +126,14 @@ public class RemoveAdministratorChangeController {
       LicenceCorrection correction,
       LicencePosition licencePosition
   ) {
-    var administratorChangeContext =
-        administratorChangeService.getAdministratorChangeContext(correction, licencePosition.getId());
+    var administratorChangeContext = organisationChangeService
+        .getOrganisationChangeContext(correction, licencePosition.getId(), AdministratorOperation.class);
 
     return new ModelAndView(CONFIRMATION_TEMPLATE)
         .addObject("pageTitle", REMOVE_PAGE_TITLE)
         .addObject("primaryButton", Button.warningButton("Remove administrator change"))
-        .addObject("withdrawingAdministratorName", administratorChangeContext.previousAdministratorName())
-        .addObject("joiningAdministratorName", administratorChangeContext.currentAdministratorName())
+        .addObject("withdrawingAdministratorName", administratorChangeContext.previousName())
+        .addObject("joiningAdministratorName", administratorChangeContext.currentName())
         .addObject("cancelUrl",
             ReverseRouter.route(on(LicenceCorrectionController.class).renderLicencePosition(correction, licencePosition, null)));
   }
@@ -139,8 +143,8 @@ public class RemoveAdministratorChangeController {
       String changeId,
       LicencePositionCorrection positionCorrection
   ) {
-    var administratorChangeContext =
-        administratorChangeService.getAdministratorChangeContext(correction, getPositionId(positionCorrection));
+    var administratorChangeContext = organisationChangeService
+        .getOrganisationChangeContext(correction, getPositionId(positionCorrection), AdministratorOperation.class);
     var reinstating = licencePositionCorrectionService.isStagedRemoval(positionCorrection, changeId);
 
     var primaryButton = reinstating
@@ -150,8 +154,8 @@ public class RemoveAdministratorChangeController {
     return new ModelAndView(CONFIRMATION_TEMPLATE)
         .addObject("pageTitle", reinstating ? REINSTATE_PAGE_TITLE : UNDO_PAGE_TITLE)
         .addObject("primaryButton", primaryButton)
-        .addObject("withdrawingAdministratorName", administratorChangeContext.previousAdministratorName())
-        .addObject("joiningAdministratorName", administratorChangeContext.currentAdministratorName())
+        .addObject("withdrawingAdministratorName", administratorChangeContext.previousName())
+        .addObject("joiningAdministratorName", administratorChangeContext.currentName())
         .addObject("cancelUrl", positionPageRoute(correction, positionCorrection));
   }
 

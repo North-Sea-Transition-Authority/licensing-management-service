@@ -22,6 +22,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceC
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.OrganisationChangeService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.StorageOperatorOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
@@ -40,13 +41,16 @@ public class RemoveStorageOperatorChangeController {
 
   private final StorageOperatorChangeService storageOperatorChangeService;
   private final LicencePositionCorrectionService licencePositionCorrectionService;
+  private final OrganisationChangeService organisationChangeService;
 
   RemoveStorageOperatorChangeController(
       StorageOperatorChangeService storageOperatorChangeService,
-      LicencePositionCorrectionService licencePositionCorrectionService
+      LicencePositionCorrectionService licencePositionCorrectionService,
+      OrganisationChangeService organisationChangeService
   ) {
     this.storageOperatorChangeService = storageOperatorChangeService;
     this.licencePositionCorrectionService = licencePositionCorrectionService;
+    this.organisationChangeService = organisationChangeService;
   }
 
   @GetMapping("/position/{licencePositionId}/change/{changeId}/remove-storage-operator-change")
@@ -122,14 +126,14 @@ public class RemoveStorageOperatorChangeController {
       LicenceCorrection correction,
       LicencePosition licencePosition
   ) {
-    var storageOperatorChangeContext = storageOperatorChangeService
-        .getStorageOperatorChangeContext(correction, licencePosition.getId());
+    var storageOperatorChangeContext = organisationChangeService
+        .getOrganisationChangeContext(correction, licencePosition.getId(), StorageOperatorOperation.class);
 
     return new ModelAndView(CONFIRMATION_TEMPLATE)
         .addObject("pageTitle", REMOVE_PAGE_TITLE)
         .addObject("primaryButton", Button.warningButton("Remove storage operator change"))
-        .addObject("withdrawingStorageOperatorName", storageOperatorChangeContext.previousOperatorName())
-        .addObject("joiningStorageOperatorName", storageOperatorChangeContext.currentOperatorName())
+        .addObject("withdrawingStorageOperatorName", storageOperatorChangeContext.previousName())
+        .addObject("joiningStorageOperatorName", storageOperatorChangeContext.currentName())
         .addObject("cancelUrl", ReverseRouter.route(on(LicenceCorrectionController.class)
                 .renderLicencePosition(correction, licencePosition, null)));
   }
@@ -139,8 +143,8 @@ public class RemoveStorageOperatorChangeController {
       String changeId,
       LicencePositionCorrection positionCorrection
   ) {
-    var storageOperatorChangeContext =
-        storageOperatorChangeService.getStorageOperatorChangeContext(correction, getPositionId(positionCorrection));
+    var storageOperatorChangeContext = organisationChangeService
+        .getOrganisationChangeContext(correction, getPositionId(positionCorrection), StorageOperatorOperation.class);
     var reinstating = licencePositionCorrectionService.isStagedRemoval(positionCorrection, changeId);
 
     var primaryButton = reinstating
@@ -149,12 +153,12 @@ public class RemoveStorageOperatorChangeController {
 
     var joiningStorageOperatorName = reinstating
         ? storageOperatorChangeService.getJoiningOperatorForReinstating(correction, positionCorrection)
-        : storageOperatorChangeContext.currentOperatorName();
+        : storageOperatorChangeContext.currentName();
 
     return new ModelAndView(CONFIRMATION_TEMPLATE)
         .addObject("pageTitle", reinstating ? REINSTATE_PAGE_TITLE : UNDO_PAGE_TITLE)
         .addObject("primaryButton", primaryButton)
-        .addObject("withdrawingStorageOperatorName", storageOperatorChangeContext.previousOperatorName())
+        .addObject("withdrawingStorageOperatorName", storageOperatorChangeContext.previousName())
         .addObject("joiningStorageOperatorName", joiningStorageOperatorName)
         .addObject("cancelUrl", positionPageRoute(correction, positionCorrection));
   }

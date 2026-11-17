@@ -50,6 +50,7 @@ class SubareaSetEquityOperationTest {
     var state = LicencePositionState.EMPTY
         .withAdministratorId(1)
         .withStorageOperatorId(2)
+        .withExplorationOperatorId(3)
         .withSubareaEquity(BLOCK_FEATURE_ID, SUBAREA, 456, new BigDecimal("40"))
         .withSubareaEquity(BLOCK_FEATURE_ID, otherSubarea, 789, new BigDecimal("100"));
     var operation = new SubareaSetEquityOperation(BLOCK_FEATURE_ID, SUBAREA, TRANSFER_TO, new BigDecimal("60"));
@@ -59,6 +60,7 @@ class SubareaSetEquityOperationTest {
     var expected = new LicencePositionState(
         1,
         2,
+        3,
         Set.of(),
         Map.of(),
         Map.of(),

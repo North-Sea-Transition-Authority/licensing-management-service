@@ -16,7 +16,7 @@ backLinkEnabled=true
 
     <@fdsForm.htmlForm>
       <@fdsSearchSelector.searchSelectorRest
-        path="form.adminId.inputValue"
+        path="form.id.inputValue"
         restUrl=springUrl(organisationUnitsUrl)
         labelText="Select a licence administrator"
         preselectedItems=preselectedAdministrator!{}

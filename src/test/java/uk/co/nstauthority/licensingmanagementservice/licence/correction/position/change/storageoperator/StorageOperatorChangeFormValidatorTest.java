@@ -33,7 +33,7 @@ class StorageOperatorChangeFormValidatorTest {
 
   private Errors errors;
 
-  private static final String OPERATOR_INPUT_CODE = "operatorId.inputValue";
+  private static final String OPERATOR_INPUT_CODE = "id.inputValue";
   private static final String VALID_OPERATOR_MESSAGE = "Select a valid storage operator";
 
   @BeforeEach
@@ -45,7 +45,7 @@ class StorageOperatorChangeFormValidatorTest {
   @ParameterizedTest
   @NullAndEmptySource
   void hasErrors_whenOperatorIdEmpty_thenErrorWithMessage(String id) {
-    form.getOperatorId().setInputValue(id);
+    form.getId().setInputValue(id);
     var result = storageOperatorChangeFormValidator.hasErrors(form, errors, null);
 
     assertThat(result).isTrue();
@@ -57,7 +57,7 @@ class StorageOperatorChangeFormValidatorTest {
 
   @Test
   void hasErrors_whenOperatorIdNotAnExistingOrganisationUnit_thenErrorWithMessage() {
-    form.getOperatorId().setInputValue("123");
+    form.getId().setInputValue("123");
     when(organisationUnitQueryService.getOrganisationUnit(123)).thenReturn(Optional.empty());
 
     var result = storageOperatorChangeFormValidator.hasErrors(form, errors, OrganisationUnitTestUtil.ORG_UNIT_ID_1);
@@ -71,7 +71,7 @@ class StorageOperatorChangeFormValidatorTest {
 
   @Test
   void hasErrors_whenOperatorIdNotNumeric_thenErrorWithMessage() {
-    form.getOperatorId().setInputValue("not-a-number");
+    form.getId().setInputValue("not-a-number");
 
     var result = storageOperatorChangeFormValidator.hasErrors(form, errors, OrganisationUnitTestUtil.ORG_UNIT_ID_1);
 
@@ -84,7 +84,7 @@ class StorageOperatorChangeFormValidatorTest {
 
   @Test
   void hasErrors_whenOperatorIdIsSameAsPreviousOperator_thenErrorWithMessage() {
-    form.getOperatorId().setInputValue(OrganisationUnitTestUtil.ORG_UNIT_ID_1.toString());
+    form.getId().setInputValue(OrganisationUnitTestUtil.ORG_UNIT_ID_1.toString());
     when(organisationUnitQueryService.getOrganisationUnit(OrganisationUnitTestUtil.ORG_UNIT_ID_1))
         .thenReturn(Optional.of(OrganisationUnitTestUtil.ORG_UNIT_1));
 
@@ -100,7 +100,7 @@ class StorageOperatorChangeFormValidatorTest {
 
   @Test
   void hasErrors_whenOperatorIdDiffersFromPreviousOperator_thenNoErrors() {
-    form.getOperatorId().setInputValue(OrganisationUnitTestUtil.ORG_UNIT_ID_2.toString());
+    form.getId().setInputValue(OrganisationUnitTestUtil.ORG_UNIT_ID_2.toString());
     when(organisationUnitQueryService.getOrganisationUnit(OrganisationUnitTestUtil.ORG_UNIT_ID_2))
         .thenReturn(Optional.of(OrganisationUnitTestUtil.ORG_UNIT_2));
 
@@ -112,7 +112,7 @@ class StorageOperatorChangeFormValidatorTest {
 
   @Test
   void hasErrors_whenOperatorIdIsExistingOrganisationUnitAndNoPreviousOperator_thenNoErrors() {
-    form.getOperatorId().setInputValue(OrganisationUnitTestUtil.ORG_UNIT_ID_1.toString());
+    form.getId().setInputValue(OrganisationUnitTestUtil.ORG_UNIT_ID_1.toString());
     when(organisationUnitQueryService.getOrganisationUnit(OrganisationUnitTestUtil.ORG_UNIT_ID_1))
         .thenReturn(Optional.of(OrganisationUnitTestUtil.ORG_UNIT_1));
 

@@ -47,6 +47,7 @@ class PositionStateComparisonTest {
     holdsHere(position, new LicencePositionState(
         100,
         null,
+        null,
         Set.of(100, 200),
         Map.of(),
         Map.of(BLOCK_FEATURE_ID, Set.of(new SubareaDetails(SUBAREA_FEATURE_ID, "Subarea", "ALL"))),
@@ -122,7 +123,7 @@ class PositionStateComparisonTest {
         Set.of(BLOCK_SI_ID, 999),
         Set.of(new PearsPositionState.Subarea(999, null, "ALL"))
     ));
-    holdsHere(position, new LicencePositionState(100, null, Set.of(100), Map.of(), Map.of(BLOCK_FEATURE_ID, Set.of()), Map.of()));
+    holdsHere(position, new LicencePositionState(100, null, null, Set.of(100), Map.of(), Map.of(BLOCK_FEATURE_ID, Set.of()), Map.of()));
 
     var result = compare(List.of(position));
 
@@ -141,6 +142,7 @@ class PositionStateComparisonTest {
     ));
     holdsHere(position, new LicencePositionState(
         100,
+        null,
         null,
         Set.of(100),
         Map.of(),
@@ -176,6 +178,7 @@ class PositionStateComparisonTest {
     ));
     holdsHere(position, new LicencePositionState(
         100,
+        null,
         null,
         Set.of(100),
         Map.of(),
@@ -214,7 +217,7 @@ class PositionStateComparisonTest {
   }
 
   private static LicencePositionState organisations(Integer administratorId, Set<Integer> licenseeIds) {
-    return new LicencePositionState(administratorId, null, licenseeIds, Map.of(), Map.of(), Map.of());
+    return new LicencePositionState(administratorId, null, null, licenseeIds, Map.of(), Map.of(), Map.of());
   }
 
   private static LivePositionComparison.MatchedPosition matchedPosition(

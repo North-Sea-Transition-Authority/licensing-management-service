@@ -47,6 +47,7 @@ class PartialSurrenderLicenceAreaSummarySectionServiceTest {
   private static final LicencePositionState STATE_BEFORE = new LicencePositionState(
       null,
       null,
+      null,
       Set.of(),
       Map.of(),
       Map.of(FIRST_BLOCK.getId(), Set.of(), SECOND_BLOCK.getId(), Set.of()),

@@ -19,7 +19,7 @@ errorSummaryItems=errorSummaryItems
 
     <@fdsForm.htmlForm>
       <@fdsSearchSelector.searchSelectorRest
-        path="form.operatorId.inputValue"
+        path="form.id.inputValue"
         restUrl=springUrl(organisationUnitsUrl)
         labelText="Select a storage operator"
         preselectedItems=preselectedStorageOperator!{}

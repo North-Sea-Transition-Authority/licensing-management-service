@@ -845,6 +845,18 @@ public class LicencePositionCorrectionService {
     return stagedOnPositionId != null && !stagedOnPositionId.equals(licencePositionId);
   }
 
+  public boolean hasPendingChange(
+      LicencePosition licencePosition,
+      LicenceCorrection licenceCorrection,
+      Class<? extends LicenceOperation> operationType
+  ) {
+    return findUpdatePositionCorrection(licenceCorrection, licencePosition)
+        .map(positionCorrection ->
+            LicencePositionChangeOperationUtil
+                .changeExists(positionCorrection.getPayload().changes(), operationType))
+        .orElse(false);
+  }
+
   public Set<UUID> blockFeatureIdsAlreadyOperatedOnForExecutedPosition(
       LicenceCorrection licenceCorrection,
       LicencePosition licencePosition,

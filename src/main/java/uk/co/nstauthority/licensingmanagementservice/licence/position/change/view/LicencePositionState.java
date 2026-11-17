@@ -15,6 +15,10 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.AdministratorOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.ExplorationOperatorOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.StorageOperatorOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaDetails;
 
 /**
@@ -29,18 +33,21 @@ import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaDe
 public record LicencePositionState(
     @Nullable Integer administratorId,
     @Nullable Integer storageOperatorId,
+    @Nullable Integer explorationOperatorId,
     Set<Integer> licenseeIds,
     Map<Integer, BigDecimal> equityByOrganisationId,
     Map<UUID, Set<SubareaDetails>> blockFeatureIdToSubareas,
     Map<UUID, Map<SubareaDetails, Map<Integer, BigDecimal>>> blockFeatureIdToSubareaEquity
 ) {
 
-  public static final LicencePositionState EMPTY = new LicencePositionState(null, null, Set.of(), Map.of(), Map.of(), Map.of());
+  public static final LicencePositionState EMPTY =
+      new LicencePositionState(null, null, null, Set.of(), Map.of(), Map.of(), Map.of());
 
   public Set<Integer> legalEntityOrganisationUnitIds() {
     return Stream.of(
         Stream.of(administratorId),
         Stream.of(storageOperatorId),
+        Stream.of(explorationOperatorId),
         licenseeIds.stream(),
         beneficialInterestHolderIds().stream()
     )
@@ -53,6 +60,7 @@ public record LicencePositionState(
     return new LicencePositionState(
         administratorId,
         storageOperatorId,
+        explorationOperatorId,
         licenseeIds,
         equityByOrganisationId,
         blockFeatureIdToSubareas,
@@ -64,6 +72,19 @@ public record LicencePositionState(
     return new LicencePositionState(
         administratorId,
         storageOperatorId,
+        explorationOperatorId,
+        licenseeIds,
+        equityByOrganisationId,
+        blockFeatureIdToSubareas,
+        blockFeatureIdToSubareaEquity
+    );
+  }
+
+  public LicencePositionState withExplorationOperatorId(Integer explorationOperatorId) {
+    return new LicencePositionState(
+        administratorId,
+        storageOperatorId,
+        explorationOperatorId,
         licenseeIds,
         equityByOrganisationId,
         blockFeatureIdToSubareas,
@@ -75,6 +96,7 @@ public record LicencePositionState(
     return new LicencePositionState(
         administratorId,
         storageOperatorId,
+        explorationOperatorId,
         licenseeIds,
         equityByOrganisationId,
         blockFeatureIdToSubareas,
@@ -89,11 +111,32 @@ public record LicencePositionState(
     return new LicencePositionState(
         administratorId,
         storageOperatorId,
+        explorationOperatorId,
         newLicenseeIds,
         equityByOrganisationId,
         blockFeatureIdToSubareas,
         blockFeatureIdToSubareaEquity
     );
+  }
+
+  /**
+   * Returns the id of the organisation that fills the role identified by the operation type.
+   *
+   * @param operationType one of {@link AdministratorOperation}, {@link StorageOperatorOperation}
+   *                       or {@link ExplorationOperatorOperation}
+   * @return the {@code administratorId}, {@code storageOperatorId} or {@code  explorationOperatorId} respectively,
+   *         or {@code null} if no organisation is set for that role
+   * @throws IllegalArgumentException if the operation type is not one of the supported types
+   */
+  @Nullable
+  public Integer getOrganisationIdFor(Class<? extends LicenceOperation> operationType) {
+    return switch (operationType) {
+      case Class<?> c when c.equals(AdministratorOperation.class) -> administratorId;
+      case Class<?> c when c.equals(StorageOperatorOperation.class) -> storageOperatorId;
+      case Class<?> c when c.equals(ExplorationOperatorOperation.class) -> explorationOperatorId;
+      default -> throw new IllegalArgumentException(
+          "Unsupported operation type for retrieving organisation id: " + operationType);
+    };
   }
 
   public Set<UUID> blockFeatureIds() {
@@ -224,6 +267,7 @@ public record LicencePositionState(
     return new LicencePositionState(
         administratorId,
         storageOperatorId,
+        explorationOperatorId,
         licenseeIds,
         equityByOrganisationId,
         Collections.unmodifiableMap(blockFeatureIdToSubareas),
@@ -250,6 +294,7 @@ public record LicencePositionState(
     return new LicencePositionState(
         administratorId,
         storageOperatorId,
+        explorationOperatorId,
         licenseeIds,
         equityByOrganisationId,
         blockFeatureIdToSubareas,

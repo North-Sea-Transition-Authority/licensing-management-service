@@ -5,11 +5,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeoperation.LicencePositionAddOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeoperation.LicencePositionChangeOperation;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.AddChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
-import uk.co.nstauthority.licensingmanagementservice.licence.operation.AdministratorOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
 
@@ -22,34 +19,6 @@ class LicencePositionAdministratorChangeUtilTest {
   void adminChangeExists() {
     assertThat(LicencePositionAdministratorChangeUtil.adminChangeExists(List.of(adminAddChange(ADMINISTRATOR_ID))))
         .isTrue();
-  }
-
-  @Test
-  void upsertAddAdminChange_whenNoAdminChangeExists_appendsAddChange() {
-    var result = LicencePositionAdministratorChangeUtil.upsertAddAdminChange(List.of(), ADMINISTRATOR_ID);
-
-    assertThat(result).hasSize(1);
-    assertThat(operatorIdOf(result.getFirst())).isEqualTo(ADMINISTRATOR_ID);
-  }
-
-  @Test
-  void upsertAddAdminChange_whenAdminChangeExists_replacesOperatorInPlace() {
-    var existing = adminAddChange(ADMINISTRATOR_ID);
-
-    var result = LicencePositionAdministratorChangeUtil.upsertAddAdminChange(List.of(existing), UPDATED_ADMINISTRATOR_ID);
-
-    assertThat(result).hasSize(1);
-    assertThat(operatorIdOf(result.getFirst())).isEqualTo(UPDATED_ADMINISTRATOR_ID);
-  }
-
-  @Test
-  void replaceAdminChange_replacesOperatorInMatchingChange() {
-    var existing = adminAddChange(ADMINISTRATOR_ID);
-
-    var result = LicencePositionAdministratorChangeUtil.replaceAdminChange(List.of(existing), UPDATED_ADMINISTRATOR_ID);
-
-    assertThat(result).hasSize(1);
-    assertThat(operatorIdOf(result.getFirst())).isEqualTo(UPDATED_ADMINISTRATOR_ID);
   }
 
   @Test
@@ -83,10 +52,5 @@ class LicencePositionAdministratorChangeUtilTest {
         .withChangeOrder(1)
         .withOperations(List.of(operation))
         .build();
-  }
-
-  private Integer operatorIdOf(LicencePositionChangeType change) {
-    var addOperation = (LicencePositionAddOperation) ((AddChange) change).operations().getFirst();
-    return ((AdministratorOperation) addOperation.operation()).operatorId();
   }
 }

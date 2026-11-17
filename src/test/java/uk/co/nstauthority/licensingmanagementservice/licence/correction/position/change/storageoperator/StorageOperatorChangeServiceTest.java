@@ -9,7 +9,6 @@ import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -20,9 +19,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import uk.co.fivium.gisframework.feature.FeatureService;
-import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationNamePeriods;
-import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
@@ -31,13 +27,11 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeoperation.LicencePositionAddOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.OrganisationChangeService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeoperation.LicencePositionChangeOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeoperation.LicencePositionUpdateOperation;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.AddChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.UpdateChangeOperations;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.LicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.UpdateLicencePositionPayload;
@@ -45,7 +39,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOp
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.StorageOperatorOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.ChronologicalPositionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionNameService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.storageoperator.StorageOperatorChangeContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPositionTestUtil;
@@ -62,10 +55,7 @@ class StorageOperatorChangeServiceTest {
   private ChronologicalPositionService chronologicalPositionService;
 
   @Mock
-  private OrganisationUnitQueryService organisationUnitQueryService;
-
-  @Mock
-  private FeatureService featureService;
+  private OrganisationChangeService organisationChangeService;
 
   private StorageOperatorChangeService storageOperatorChangeService;
 
@@ -90,107 +80,9 @@ class StorageOperatorChangeServiceTest {
   void setUp() {
     storageOperatorChangeService = new StorageOperatorChangeService(
         licencePositionCorrectionService,
-        chronologicalPositionService,
-        new LicencePositionNameService(organisationUnitQueryService, featureService)
+        organisationChangeService,
+        chronologicalPositionService
     );
-  }
-
-  @Test
-  void addStorageOperatorChangeForAddedLicencePosition_whenNoOperatorChangeYet_appendsOperatorChange() {
-    var correction = addPositionCorrectionFor(List.of());
-
-    storageOperatorChangeService.addStorageOperatorChangeForAddedLicencePosition(correction, OPERATOR_ID);
-
-    verify(licencePositionCorrectionService).save(licencePositionCorrectionCaptor.capture());
-    var payload = (CreateLicencePositionPayload) licencePositionCorrectionCaptor.getValue().getPayload();
-
-    assertThat(payload.licencePositionId()).isEqualTo(POSITION_ID.toString());
-    assertThat(payload.changes()).hasSize(1);
-    assertThat(operatorIdOf(payload.changes().getFirst())).isEqualTo(OPERATOR_ID);
-  }
-
-  @Test
-  void addStorageOperatorChangeForAddedLicencePosition_whenOperatorChangeAlreadyExists_rewritesAddChange() {
-    var correction = addPositionCorrectionFor(List.of(storageOperatorAddChange()));
-
-    storageOperatorChangeService.addStorageOperatorChangeForAddedLicencePosition(correction, UPDATED_OPERATOR_ID);
-
-    verify(licencePositionCorrectionService).save(licencePositionCorrectionCaptor.capture());
-    var payload = (CreateLicencePositionPayload) licencePositionCorrectionCaptor.getValue().getPayload();
-    assertThat(payload.changes()).hasSize(1);
-    var change = payload.changes().getFirst();
-    assertThat(change).isInstanceOf(AddChange.class);
-    assertThat(operatorIdOf(change)).isEqualTo(UPDATED_OPERATOR_ID);
-  }
-
-  @Test
-  void addStorageOperatorChangeForExistingLicencePosition_whenNoExistingUpdateCorrection_createsNewCorrection() {
-    when(licencePositionCorrectionService.findUpdatePositionCorrection(LICENCE_CORRECTION, LICENCE_POSITION))
-        .thenReturn(Optional.empty());
-
-    storageOperatorChangeService
-        .addStorageOperatorChangeForExistingLicencePosition(LICENCE_POSITION, LICENCE_CORRECTION, OPERATOR_ID);
-
-    verify(licencePositionCorrectionService).save(licencePositionCorrectionCaptor.capture());
-    var saved = licencePositionCorrectionCaptor.getValue();
-
-    assertThat(saved.getLicenceCorrection()).isEqualTo(LICENCE_CORRECTION);
-    assertThat(saved.getChangeType()).isEqualTo(LicencePositionCorrectionChangeType.UPDATE_POSITION);
-    assertThat(saved.getTargetLicencePosition()).isEqualTo(LICENCE_POSITION);
-
-    var payload = (UpdateLicencePositionPayload) saved.getPayload();
-    assertThat(payload.changes()).hasSize(1);
-    assertThat(operatorIdOf(payload.changes().getFirst())).isEqualTo(OPERATOR_ID);
-  }
-
-  @Test
-  void addStorageOperatorChangeForExistingLicencePosition_whenExistingUpdateCorrection_appendsOperatorChange() {
-    var existing = LicencePositionCorrectionTestUtil.newBuilder()
-        .withPayload(LicencePositionPayload.newUpdateLicencePositionPayload().withChanges(List.of()).build())
-        .build();
-
-    when(licencePositionCorrectionService.findUpdatePositionCorrection(LICENCE_CORRECTION, LICENCE_POSITION))
-        .thenReturn(Optional.of(existing));
-
-    storageOperatorChangeService
-        .addStorageOperatorChangeForExistingLicencePosition(LICENCE_POSITION, LICENCE_CORRECTION, OPERATOR_ID);
-
-    verify(licencePositionCorrectionService).save(licencePositionCorrectionCaptor.capture());
-    var payload = (UpdateLicencePositionPayload) licencePositionCorrectionCaptor.getValue().getPayload();
-    assertThat(payload.changes()).hasSize(1);
-    assertThat(operatorIdOf(payload.changes().getFirst())).isEqualTo(OPERATOR_ID);
-  }
-
-  @Test
-  void addStorageOperatorChangeForExistingLicencePosition_whenOperatorChangeAlreadyExists_rewritesAddChange() {
-    var existing = LicencePositionCorrectionTestUtil.newBuilder()
-        .withPayload(
-            LicencePositionPayload.newUpdateLicencePositionPayload().withChanges(List.of(storageOperatorAddChange())).build())
-        .build();
-
-    when(licencePositionCorrectionService.findUpdatePositionCorrection(LICENCE_CORRECTION, LICENCE_POSITION))
-        .thenReturn(Optional.of(existing));
-
-    storageOperatorChangeService
-        .addStorageOperatorChangeForExistingLicencePosition(LICENCE_POSITION, LICENCE_CORRECTION, UPDATED_OPERATOR_ID);
-
-    verify(licencePositionCorrectionService).save(licencePositionCorrectionCaptor.capture());
-    var payload = (UpdateLicencePositionPayload) licencePositionCorrectionCaptor.getValue().getPayload();
-    assertThat(payload.changes()).hasSize(1);
-    var change = payload.changes().getFirst();
-    assertThat(change).isInstanceOf(AddChange.class);
-    assertThat(operatorIdOf(change)).isEqualTo(UPDATED_OPERATOR_ID);
-  }
-
-  private LicencePositionCorrection addPositionCorrectionFor(List<LicencePositionChangeType> changes) {
-    var payload = LicencePositionPayload.newCreateLicencePositionPayload()
-        .withLicencePositionId(POSITION_ID.toString())
-        .withChanges(changes)
-        .build();
-    return LicencePositionCorrectionTestUtil.newBuilder()
-        .withTargetLicencePosition(null)
-        .withPayload(payload)
-        .build();
   }
 
   @Test
@@ -354,103 +246,18 @@ class StorageOperatorChangeServiceTest {
         .thenReturn(List.of(positionCorrectionToUndo, otherPositionCorrection));
     when(chronologicalPositionService.getCorrectedChronologicalPositions(correction, List.of(otherPositionCorrection), Set.of(POSITION_ID)))
         .thenReturn(targetPositions);
-    when(organisationUnitQueryService.getOrganisationNameHistoriesByIds(List.of(1, 2)))
-        .thenReturn(Map.of(
-            1, new OrganisationNamePeriods("Uncorrected Previous Operator Name", List.of()),
-            2, new OrganisationNamePeriods("Uncorrected Current Operator Name", List.of())
-        ));
+    when(organisationChangeService.getOrganisationChangeContext(correction, POSITION_ID, StorageOperatorOperation.class, targetPositions))
+        .thenReturn(new StorageOperatorChangeContext(2, 1, "Uncorrected Current Operator Name", "Uncorrected Previous Operator Name"));
 
     assertThat(storageOperatorChangeService.getJoiningOperatorForReinstating(correction, positionCorrectionToUndo))
         .isEqualTo("Uncorrected Current Operator Name");
   }
 
   @Test
-  void getStorageOperatorChangeContext_emptyContext() {
-    var position = ChronologicalPositionTestUtil.newBuilder().withId(POSITION_ID).build();
-
-    when(chronologicalPositionService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, POSITION_ID))
-        .thenReturn(List.of(position));
-
-    var result = storageOperatorChangeService.getStorageOperatorChangeContext(LICENCE_CORRECTION, POSITION_ID);
-
-    assertThat(result).isEqualTo(new StorageOperatorChangeContext(null, null, "", ""));
-  }
-
-  @Test
-  void getStorageOperatorChangeContext_resolvesStorageOperatorNames() {
-    var position = ChronologicalPositionTestUtil.newBuilder()
-        .withId(POSITION_ID)
-        .withChanges(List.of(storageOperatorChange(1)))
-        .build();
-
-    when(chronologicalPositionService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, POSITION_ID))
-        .thenReturn(List.of(position));
-    when(organisationUnitQueryService.getOrganisationNameHistoriesByIds(List.of(1)))
-        .thenReturn(Map.of(1, new OrganisationNamePeriods("Current Operator Org", List.of())));
-
-    var result = storageOperatorChangeService.getStorageOperatorChangeContext(LICENCE_CORRECTION, POSITION_ID);
-
-    assertThat(result).isEqualTo(new StorageOperatorChangeContext(1, null, "Current Operator Org", ""));
-  }
-
-  @Test
-  void populateAddedStorageOperatorForm_storageOperatorChangeExists_returnsPopulatedForm() {
-    var context = new StorageOperatorChangeContext(OPERATOR_ID, null, "org1", "org2");
-    var operation = LicenceOperation.newStorageOperatorOperation().withOperator(OPERATOR_ID).build();
-    var changes = List.<LicencePositionChangeType>of(
-        AddChange.buildOperationsChange(List.of(operation), 1)
-    );
-    var payload = CreateLicencePositionPayloadTestUtil.newBuilder().withChanges(changes).build();
-    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder().withPayload(payload).build();
-    var expectedForm = new StorageOperatorChangeForm();
-    expectedForm.getOperatorId().setInputValue(OPERATOR_ID.toString());
-    assertThat(storageOperatorChangeService.populateAddedStorageOperatorForm(context, positionCorrection))
-        .usingRecursiveComparison().isEqualTo(expectedForm);
-  }
-
-  @Test
-  void populateAddedStorageOperatorForm_storageOperatorChangeDoesNotExists_returnsEmptyForm() {
-    var context = new StorageOperatorChangeContext(null, null, "org1", "org2");
-    var payload = CreateLicencePositionPayloadTestUtil.newBuilder().withChanges(List.of()).build();
-    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder().withPayload(payload).build();
-    var expectedForm = new StorageOperatorChangeForm();
-    assertThat(storageOperatorChangeService.populateAddedStorageOperatorForm(context, positionCorrection))
-        .usingRecursiveComparison().isEqualTo(expectedForm);
-  }
-
-  @Test
-  void populateExistingStorageOperatorForm_hasPendingStorageOperatorChange_returnsPopulatedForm() {
-    var context = new StorageOperatorChangeContext(OPERATOR_ID, null, "org1", "org2");
-    var operation = LicenceOperation.newStorageOperatorOperation().withOperator(OPERATOR_ID).build();
-    var changes = List.<LicencePositionChangeType>of(
-        AddChange.buildOperationsChange(List.of(operation), 1)
-    );
-    var payload = CreateLicencePositionPayloadTestUtil.newBuilder().withChanges(changes).build();
-    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder().withPayload(payload).build();
-    when(licencePositionCorrectionService.findUpdatePositionCorrection(LICENCE_CORRECTION, LICENCE_POSITION))
-        .thenReturn(Optional.of(positionCorrection));
-    var expectedForm = new StorageOperatorChangeForm();
-    expectedForm.getOperatorId().setInputValue(OPERATOR_ID.toString());
-    assertThat(storageOperatorChangeService.populateExistingStorageOperatorForm(context, LICENCE_CORRECTION, LICENCE_POSITION))
-        .usingRecursiveComparison().isEqualTo(expectedForm);
-  }
-
-  @Test
-  void populateExistingStorageOperatorForm_hasNoPendingStorageOperatorChange_returnsEmptyForm() {
-    var context = new StorageOperatorChangeContext(OPERATOR_ID, null, "org1", "org2");
-
-    when(licencePositionCorrectionService.findUpdatePositionCorrection(LICENCE_CORRECTION, LICENCE_POSITION))
-        .thenReturn(Optional.empty());
-    var expectedForm = new StorageOperatorChangeForm();
-    assertThat(storageOperatorChangeService.populateExistingStorageOperatorForm(context, LICENCE_CORRECTION, LICENCE_POSITION))
-        .usingRecursiveComparison().isEqualTo(expectedForm);
-  }
-
-  @Test
   void populateCorrectingStorageOperatorForm_returnsPopulatedForm() {
     var context = new StorageOperatorChangeContext(OPERATOR_ID, null, "org1", "org2");
     var expectedForm = new StorageOperatorChangeForm();
-    expectedForm.getOperatorId().setInputValue(OPERATOR_ID.toString());
+    expectedForm.getId().setInputValue(OPERATOR_ID.toString());
     assertThat(storageOperatorChangeService.populateCorrectingStorageOperatorForm(context))
         .usingRecursiveComparison().isEqualTo(expectedForm);
   }
@@ -459,7 +266,7 @@ class StorageOperatorChangeServiceTest {
   void populateCorrectingStorageOperatorForm_noIdInContext_returnsEmptyForm() {
     var context = new StorageOperatorChangeContext(null, null, "org1", "org2");
     var expectedForm = new StorageOperatorChangeForm();
-    expectedForm.getOperatorId().setInputValue(null);
+    expectedForm.getId().setInputValue(null);
     assertThat(storageOperatorChangeService.populateCorrectingStorageOperatorForm(context))
         .usingRecursiveComparison().isEqualTo(expectedForm);
   }
@@ -533,11 +340,6 @@ class StorageOperatorChangeServiceTest {
     return PositionChangeTestUtil.newBuilder()
         .withOperations(List.of(LicenceOperation.newStorageOperatorOperation().withOperator(operatorId).build()))
         .build();
-  }
-
-  private Integer operatorIdOf(LicencePositionChangeType change) {
-    var op = (LicencePositionAddOperation) change.operations().getFirst();
-    return ((StorageOperatorOperation ) op.operation()).operatorId();
   }
 
   private Integer updateOperatorIdOf(LicencePositionChangeType change) {

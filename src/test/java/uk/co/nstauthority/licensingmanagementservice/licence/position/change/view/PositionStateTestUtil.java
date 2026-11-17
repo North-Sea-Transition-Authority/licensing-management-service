@@ -7,6 +7,7 @@ public class PositionStateTestUtil {
 
   private Integer administratorId = null;
   private Integer storageOperatorId = null;
+  private Integer explorationOperatorId = null;
 
   public static PositionStateTestUtil newBuilder() {
     return new PositionStateTestUtil();
@@ -22,7 +23,12 @@ public class PositionStateTestUtil {
     return this;
   }
 
+  public PositionStateTestUtil withExplorationOperatorId(Integer explorationOperatorId) {
+    this.explorationOperatorId = explorationOperatorId;
+    return this;
+  }
+
   public LicencePositionState build() {
-    return new LicencePositionState(administratorId, storageOperatorId, Set.of(), Map.of(), Map.of(), Map.of());
+    return new LicencePositionState(administratorId, storageOperatorId, explorationOperatorId, Set.of(), Map.of(), Map.of(), Map.of());
   }
 }

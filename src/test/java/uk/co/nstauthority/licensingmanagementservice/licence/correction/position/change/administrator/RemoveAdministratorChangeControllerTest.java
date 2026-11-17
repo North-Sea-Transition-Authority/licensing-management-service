@@ -31,6 +31,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceC
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.OrganisationChangeService;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.AdministratorOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.AdministratorChangeContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
@@ -44,6 +46,9 @@ class RemoveAdministratorChangeControllerTest extends AbstractControllerTest {
 
   @MockitoBean
   private AdministratorChangeService administratorChangeService;
+
+  @MockitoBean
+  private OrganisationChangeService organisationChangeService;
 
   private static final Licence LICENCE = LicenceTestUtil.builder().withId(1).build();
   private static final UUID CORRECTION_ID = UUID.randomUUID();
@@ -93,7 +98,7 @@ class RemoveAdministratorChangeControllerTest extends AbstractControllerTest {
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(position);
     when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(position));
     when(licencePositionChangeService.findById(CHANGE.getId())).thenReturn(Optional.of(CHANGE));
-    when(administratorChangeService.getAdministratorChangeContext(correction, POSITION_ID))
+    when(organisationChangeService.getOrganisationChangeContext(correction, POSITION_ID, AdministratorOperation.class))
         .thenReturn(new AdministratorChangeContext(789, 456, "Joining Admin Org", "Withdrawing Admin Org"));
 
     mockMvc.perform(get(ReverseRouter.route(on(RemoveAdministratorChangeController.class)
@@ -176,7 +181,7 @@ class RemoveAdministratorChangeControllerTest extends AbstractControllerTest {
 
     when(licencePositionCorrectionService.getPositionCorrectionContainingChange(correction, CHANGE_ID))
         .thenReturn(positionCorrection);
-    when(administratorChangeService.getAdministratorChangeContext(correction, POSITION_ID))
+    when(organisationChangeService.getOrganisationChangeContext(correction, POSITION_ID, AdministratorOperation.class))
         .thenReturn(new AdministratorChangeContext(789, 456, "Joining Admin Org", "Withdrawing Admin Org"));
 
     mockMvc.perform(get(ReverseRouter.route(on(RemoveAdministratorChangeController.class)
@@ -205,7 +210,7 @@ class RemoveAdministratorChangeControllerTest extends AbstractControllerTest {
     when(licencePositionCorrectionService.getPositionCorrectionContainingChange(correction, CHANGE_ID))
         .thenReturn(positionCorrection);
     when(licencePositionCorrectionService.isStagedRemoval(positionCorrection, CHANGE_ID)).thenReturn(true);
-    when(administratorChangeService.getAdministratorChangeContext(correction, POSITION_ID))
+    when(organisationChangeService.getOrganisationChangeContext(correction, POSITION_ID, AdministratorOperation.class))
         .thenReturn(new AdministratorChangeContext(789, 456, "Joining Admin Org", "Withdrawing Admin Org"));
 
     mockMvc.perform(get(ReverseRouter.route(on(RemoveAdministratorChangeController.class)

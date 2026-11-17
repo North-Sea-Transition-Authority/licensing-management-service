@@ -42,6 +42,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquityOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.StorageOperatorOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaDetails;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaSetEquityOperation;
@@ -2365,6 +2366,51 @@ class LicencePositionCorrectionServiceTest {
     assertThat(result).containsExactly(
         new PositionChange(remainingChange.getId().toString(), 1, null, List.of(remainingOperation))
     );
+  }
+
+  @Test
+  void hasPendingChange_whenChangeIsPending_returnsTrue() {
+    var licencePosition = LicencePositionTestUtil.newBuilder()
+        .withLicence(LICENCE)
+        .withPositionDate(POSITION_DATE)
+        .build();
+    var operation = LicenceOperation.newStorageOperatorOperation().withOperator(1).build();
+    var change = UpdateChangeOperations.buildUpdateChange(
+        UUID.randomUUID().toString(),
+        operation
+    );
+    when(licencePositionCorrectionRepository.findByLicenceCorrectionAndTargetLicencePositionAndChangeType(
+        LICENCE_CORRECTION, LICENCE_POSITION, LicencePositionCorrectionChangeType.UPDATE_POSITION))
+        .thenReturn(Optional.of(LicencePositionCorrectionTestUtil.newBuilder()
+            .withTargetLicencePosition(licencePosition)
+            .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+            .withPayload(UpdateLicencePositionPayloadTestUtil.newBuilder()
+                .withEffectiveDate(null)
+                .withChanges(List.of(change))
+                .build())
+            .build()));
+    assertThat(licencePositionCorrectionService.hasPendingChange(LICENCE_POSITION, LICENCE_CORRECTION, StorageOperatorOperation.class))
+        .isTrue();
+  }
+
+  @Test
+  void hasPendingChange_whenChangeIsNotPending_returnsFalse() {
+    var licencePosition = LicencePositionTestUtil.newBuilder()
+        .withLicence(LICENCE)
+        .withPositionDate(POSITION_DATE)
+        .build();
+    when(licencePositionCorrectionRepository.findByLicenceCorrectionAndTargetLicencePositionAndChangeType(
+        LICENCE_CORRECTION, LICENCE_POSITION, LicencePositionCorrectionChangeType.UPDATE_POSITION))
+        .thenReturn(Optional.of(LicencePositionCorrectionTestUtil.newBuilder()
+            .withTargetLicencePosition(licencePosition)
+            .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+            .withPayload(UpdateLicencePositionPayloadTestUtil.newBuilder()
+                .withEffectiveDate(null)
+                .withChanges(List.of())
+                .build())
+            .build()));
+    assertThat(licencePositionCorrectionService.hasPendingChange(LICENCE_POSITION, LICENCE_CORRECTION, StorageOperatorOperation.class))
+        .isFalse();
   }
 
   private void givenExecutedTargetPosition(Optional<LicencePositionCorrection> updateCorrection) {

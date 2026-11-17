@@ -33,6 +33,8 @@ class AdministratorChangeFormValidatorTest {
 
   private Errors errors;
 
+  private static final String ADMIN_INPUT_CODE = "id.inputValue";
+
   @BeforeEach
   void setUp() {
     form = new AdministratorChangeForm();
@@ -46,13 +48,13 @@ class AdministratorChangeFormValidatorTest {
     assertThat(result).isTrue();
     assertThat(ValidatorTestingUtil.getErrorsFieldsAndMessages(errors))
         .containsOnly(
-            entry("adminId.inputValue", Collections.singletonList("Select a licence administrator"))
+            entry(ADMIN_INPUT_CODE, Collections.singletonList("Select a licence administrator"))
         );
   }
 
   @Test
   void hasErrors_whenAdminIdNotAnExistingOrganisationUnit_thenErrorWithMessage() {
-    form.getAdminId().setInputValue("123");
+    form.getId().setInputValue("123");
     when(organisationUnitQueryService.getOrganisationUnit(123)).thenReturn(Optional.empty());
 
     var result = administratorChangeFormValidator.hasErrors(form, errors, null);
@@ -60,26 +62,26 @@ class AdministratorChangeFormValidatorTest {
     assertThat(result).isTrue();
     assertThat(ValidatorTestingUtil.getErrorsFieldsAndMessages(errors))
         .containsOnly(
-            entry("adminId.inputValue", Collections.singletonList("Select a valid licence administrator"))
+            entry(ADMIN_INPUT_CODE, Collections.singletonList("Select a valid licence administrator"))
         );
   }
 
   @Test
   void hasErrors_whenAdminIdNotNumeric_thenErrorWithMessage() {
-    form.getAdminId().setInputValue("not-a-number");
+    form.getId().setInputValue("not-a-number");
 
     var result = administratorChangeFormValidator.hasErrors(form, errors, null);
 
     assertThat(result).isTrue();
     assertThat(ValidatorTestingUtil.getErrorsFieldsAndMessages(errors))
         .containsOnly(
-            entry("adminId.inputValue", Collections.singletonList("Select a valid licence administrator"))
+            entry(ADMIN_INPUT_CODE, Collections.singletonList("Select a valid licence administrator"))
         );
   }
 
   @Test
   void hasErrors_whenAdminIdIsSameAsPreviousAdministrator_thenErrorWithMessage() {
-    form.getAdminId().setInputValue(OrganisationUnitTestUtil.ORG_UNIT_ID_1.toString());
+    form.getId().setInputValue(OrganisationUnitTestUtil.ORG_UNIT_ID_1.toString());
     when(organisationUnitQueryService.getOrganisationUnit(OrganisationUnitTestUtil.ORG_UNIT_ID_1))
         .thenReturn(Optional.of(OrganisationUnitTestUtil.ORG_UNIT_1));
 
@@ -88,14 +90,14 @@ class AdministratorChangeFormValidatorTest {
     assertThat(result).isTrue();
     assertThat(ValidatorTestingUtil.getErrorsFieldsAndMessages(errors))
         .containsOnly(
-            entry("adminId.inputValue",
+            entry(ADMIN_INPUT_CODE,
                 Collections.singletonList("The new licence administrator must be different to the previous administrator"))
         );
   }
 
   @Test
   void hasErrors_whenAdminIdDiffersFromPreviousAdministrator_thenNoErrors() {
-    form.getAdminId().setInputValue(OrganisationUnitTestUtil.ORG_UNIT_ID_2.toString());
+    form.getId().setInputValue(OrganisationUnitTestUtil.ORG_UNIT_ID_2.toString());
     when(organisationUnitQueryService.getOrganisationUnit(OrganisationUnitTestUtil.ORG_UNIT_ID_2))
         .thenReturn(Optional.of(OrganisationUnitTestUtil.ORG_UNIT_2));
 
@@ -107,7 +109,7 @@ class AdministratorChangeFormValidatorTest {
 
   @Test
   void hasErrors_whenAdminIdIsExistingOrganisationUnitAndNoPreviousAdministrator_thenNoErrors() {
-    form.getAdminId().setInputValue(OrganisationUnitTestUtil.ORG_UNIT_ID_1.toString());
+    form.getId().setInputValue(OrganisationUnitTestUtil.ORG_UNIT_ID_1.toString());
     when(organisationUnitQueryService.getOrganisationUnit(OrganisationUnitTestUtil.ORG_UNIT_ID_1))
         .thenReturn(Optional.of(OrganisationUnitTestUtil.ORG_UNIT_1));
 

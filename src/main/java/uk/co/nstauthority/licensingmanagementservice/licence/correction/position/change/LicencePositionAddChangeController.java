@@ -120,6 +120,7 @@ public class LicencePositionAddChangeController {
           .renderForExecutedPosition(correction, licencePosition));
       case STORAGE_OPERATOR -> ReverseRouter.redirect(on(LicencePositionStorageOperatorChangeController.class)
           .renderForExecutedPosition(correction, licencePosition));
+      case EXPLORATION_OPERATOR -> null; //TODO LMS2-103-2: redirect to controller
       case SUBAREA_SET_EQUITY -> ReverseRouter.redirect(on(LicencePositionSubareaSetEquityController.class)
           .renderForExecutedPosition(correction, licencePosition, form.getSubarea()));
     };
@@ -182,6 +183,7 @@ public class LicencePositionAddChangeController {
           .renderForAddedPosition(correction, licencePositionCorrection));
       case STORAGE_OPERATOR -> ReverseRouter.redirect(on(LicencePositionStorageOperatorChangeController.class)
           .renderForAddedPosition(correction, licencePositionCorrection));
+      case EXPLORATION_OPERATOR -> null; //TODO LMS2-103-2: redirect to controller
       case SUBAREA_SET_EQUITY -> ReverseRouter.redirect(on(LicencePositionSubareaSetEquityController.class)
           .renderForAddedPosition(correction, licencePositionCorrection, form.getSubarea()));
     };

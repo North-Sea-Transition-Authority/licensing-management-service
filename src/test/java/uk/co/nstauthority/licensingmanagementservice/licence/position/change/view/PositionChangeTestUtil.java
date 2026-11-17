@@ -42,6 +42,16 @@ public class PositionChangeTestUtil {
     return this;
   }
 
+  public PositionChangeTestUtil withStorageOperatorOperation(int operatorId) {
+    this.operations = List.of(LicenceOperation.newStorageOperatorOperation().withOperator(operatorId).build());
+    return this;
+  }
+
+  public PositionChangeTestUtil withExplorationOperation(int operatorId) {
+    this.operations = List.of(LicenceOperation.newExplorationOperatorOperation().withOperator(operatorId).build());
+    return this;
+  }
+
   public PositionChangeTestUtil withLicenseeOperation(List<Integer> licenseesToAdd, List<Integer> licenseesToRemove) {
     this.operations = List.of(LicenceOperation
         .newLicenseeOperation().withLicenseesToAdd(licenseesToAdd).withLicenseesToRemove(licenseesToRemove).build());

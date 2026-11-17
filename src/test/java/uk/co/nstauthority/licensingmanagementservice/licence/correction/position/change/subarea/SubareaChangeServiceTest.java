@@ -627,6 +627,7 @@ class SubareaChangeServiceTest {
     return new LicencePositionState(
         null,
         null,
+        null,
         Set.of(),
         Map.of(),
         Map.of(BLOCK_FEATURE_ID, subareaDetails),

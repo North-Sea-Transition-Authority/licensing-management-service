@@ -26,6 +26,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.PartialSurrenderCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.AdministratorOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.ExplorationOperatorOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenseeOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquityOperation;
@@ -249,6 +250,62 @@ class AddPositionChangeFormValidatorTest {
     assertThat(ValidatorTestingUtil.getErrorsFieldsAndMessages(errors))
         .containsOnly(entry("changeType",
             Collections.singletonList("Storage operator change has already been added to this position")));
+  }
+
+  @ParameterizedTest
+  @EnumSource(value = LicenceType.class, names = {"CARBON_STORAGE"}, mode = EnumSource.Mode.EXCLUDE)
+  void hasErrors_whenExplorationOperatorAndLicenceTypeNotAllowed_thenErrorWithMessage(LicenceType licenceType) {
+    form.setChangeType(AddPositionChangeType.EXPLORATION_OPERATOR.name());
+
+    var result = addPositionChangeFormValidator.hasErrors(
+        form,
+        errors,
+        correctionForLicenceType(licenceType),
+        positionCorrection,
+        Set.of()
+    );
+
+    assertThat(result).isTrue();
+    assertThat(ValidatorTestingUtil.getErrorsFieldsAndMessages(errors))
+        .containsOnly(entry("changeType", Collections.singletonList(SELECT_A_CHANGE_TYPE)));
+  }
+
+  @Test
+  void hasErrors_whenExplorationOperatorChangeAndNoneExistsForPosition_thenNoErrors() {
+    form.setChangeType(AddPositionChangeType.EXPLORATION_OPERATOR.name());
+    when(licencePositionChangeService.changeExists(positionCorrection.getTargetLicencePosition().getId(), ExplorationOperatorOperation.class))
+        .thenReturn(false);
+
+    var result = addPositionChangeFormValidator.hasErrors(
+        form,
+        errors,
+        correctionForLicenceType(LicenceType.CARBON_STORAGE),
+        positionCorrection,
+        Set.of()
+    );
+
+    assertThat(result).isFalse();
+    assertThat(errors.hasErrors()).isFalse();
+  }
+
+  @Test
+  void hasErrors_whenExplorationOperatorChangeAlreadyExistsForPosition_thenErrorWithMessage() {
+    form.setChangeType(AddPositionChangeType.EXPLORATION_OPERATOR.name());
+    when(licencePositionChangeService.changeExists(positionCorrection.getTargetLicencePosition().getId(), ExplorationOperatorOperation.class))
+        .thenReturn(true);
+
+    var result = addPositionChangeFormValidator.hasErrors(
+        form,
+        errors,
+        correctionForLicenceType(LicenceType.CARBON_STORAGE),
+        positionCorrection,
+        Set.of()
+    );
+
+    assertThat(result).isTrue();
+    assertThat(ValidatorTestingUtil.getErrorsFieldsAndMessages(errors))
+        .containsOnly(entry("changeType",
+            Collections.singletonList("Exploration operator change has already been added to this position")));
   }
 
   @ParameterizedTest

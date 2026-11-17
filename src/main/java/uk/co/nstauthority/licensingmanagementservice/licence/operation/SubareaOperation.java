@@ -14,9 +14,8 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subarea.LicencePositionSubareaChangeStartController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subarea.RemoveSubareaChangeController;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subarea.SubareaChangeController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subarea.review.SubareaChangeReviewController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationError;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeViewContext;
@@ -126,13 +125,11 @@ public record SubareaOperation(
     return new OperationRoutes() {
       @Override
       public String correct(ChangeUrlTarget target) {
-        //TODO LMS2-269 update to redirect to review and submit page. Correcting a live change then no longer needs
-        // to stage its journey on a GET, so that can move to a POST.
         return switch (target.state()) {
-          case ADDED, OPERATIONS_UPDATED -> ReverseRouter.route(on(SubareaChangeController.class)
-              .renderSubareaChange(target.correction(), target.positionCorrection(), blockFeatureId));
-          case LIVE, ORDER_UPDATED -> ReverseRouter.route(on(LicencePositionSubareaChangeStartController.class)
-              .renderForCorrectingChange(target.correction(), target.licencePosition(), target.changeEntity()));
+          case ADDED, OPERATIONS_UPDATED -> ReverseRouter.route(on(SubareaChangeReviewController.class)
+              .renderStagedReview(target.correction(), target.positionCorrection(), blockFeatureId, null));
+          case LIVE, ORDER_UPDATED -> ReverseRouter.route(on(SubareaChangeReviewController.class)
+              .renderLiveReview(target.correction(), target.licencePosition(), target.changeEntity(), null));
           case REMOVED -> null;
         };
       }

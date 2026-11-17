@@ -1,5 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subarea;
 
+import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
+
 import java.util.List;
 import java.util.UUID;
 import org.springframework.stereotype.Controller;
@@ -8,18 +10,17 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
-import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import uk.co.fivium.gisframework.feature.CoordinateSystemUtils;
 import uk.co.fivium.gisframework.feature.FeatureService;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.CorrectionLicenceIsType;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanViewCorrection;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.LicencePositionCorrectionBelongsToCorrection;
 import uk.co.nstauthority.licensingmanagementservice.fds.error.ErrorSummaryItem;
-import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionRouteUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subarea.review.SubareaChangeReviewController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @Controller
@@ -32,7 +33,6 @@ import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 public class SubareaChangeController {
 
   private static final String PAGE_TITLE = "Subarea change";
-  private static final String SAVED_BANNER = "Subarea change saved";
   private static final String NO_CHANGE_ERROR = "You must make a change to the subareas before completing";
 
   private final SubareaChangeService subareaChangeService;
@@ -55,8 +55,9 @@ public class SubareaChangeController {
       LicencePositionCorrection licencePositionCorrection,
       @PathVariable UUID blockFeatureId
   ) {
-    // TODO LMS2-269: Revert to a simple get - command journey should be created on button click in the review and submit page.
-    var commandJourneyId = subareaChangeService.getOrCreateCommandJourney(licencePositionCorrection, blockFeatureId);
+    var commandJourneyId = subareaChangeService
+        .getSubareaOperationOrThrow(licencePositionCorrection, blockFeatureId)
+        .commandJourneyIdOrThrow();
 
     return getSubareaChangeModelAndView(correction, licencePositionCorrection, blockFeatureId, commandJourneyId);
   }
@@ -65,8 +66,7 @@ public class SubareaChangeController {
   ModelAndView complete(
       LicenceCorrection correction,
       LicencePositionCorrection licencePositionCorrection,
-      @PathVariable UUID blockFeatureId,
-      RedirectAttributes redirectAttributes
+      @PathVariable UUID blockFeatureId
   ) {
     var commandJourneyId = subareaChangeService
         .getSubareaOperationOrThrow(licencePositionCorrection, blockFeatureId)
@@ -78,15 +78,8 @@ public class SubareaChangeController {
           .addObject("mapErrorMessage", NO_CHANGE_ERROR);
     }
 
-    // TODO LMS2-269: move to the submit button on the review and submit page
-    subareaChangeService.completeSubareaChange(licencePositionCorrection, blockFeatureId);
-
-    NotificationBanner.newSuccessBannerWithHeader(SAVED_BANNER, redirectAttributes);
-    // TODO LMS2-269: redirect to review and submit when implemented
-    return ReverseRouter.redirectToUrl(LicencePositionCorrectionRouteUtil.getPositionPageUrl(
-        correction,
-        licencePositionCorrection
-    ));
+    return ReverseRouter.redirect(on(SubareaChangeReviewController.class)
+        .renderStagedReview(correction, licencePositionCorrection, blockFeatureId, null));
   }
 
   private ModelAndView getSubareaChangeModelAndView(

@@ -165,7 +165,7 @@ public class SubareaChangeService {
     );
   }
 
-  private List<SubareaTransfer> getTransfers(
+  public List<SubareaTransfer> getTransfers(
       UUID commandJourneyId,
       List<SubareaDetails> originalSubareas
   ) {
@@ -203,7 +203,7 @@ public class SubareaChangeService {
         : rebuiltChange;
   }
 
-  private LicencePositionChangeType getSubareaChangeOrThrow(
+  public LicencePositionChangeType getSubareaChangeOrThrow(
       LicencePositionCorrection positionCorrection,
       UUID blockFeatureId
   ) {

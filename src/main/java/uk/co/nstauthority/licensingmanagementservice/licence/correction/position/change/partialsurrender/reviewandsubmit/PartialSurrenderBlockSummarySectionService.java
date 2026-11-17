@@ -1,7 +1,9 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.reviewandsubmit;
 
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
-import static uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionChangeUtil.NOT_AVAILABLE;
+import static uk.co.nstauthority.licensingmanagementservice.licence.position.feature.SubareaSummaryUtil.getFeatureOrThrow;
+import static uk.co.nstauthority.licensingmanagementservice.licence.position.feature.SubareaSummaryUtil.subareaCard;
+import static uk.co.nstauthority.licensingmanagementservice.licence.position.feature.SubareaSummaryUtil.subareaHeading;
 
 import jakarta.annotation.Nullable;
 import java.math.BigDecimal;
@@ -25,7 +27,6 @@ import uk.co.fivium.grpc.gis.IntersectionStatus;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
 import uk.co.nstauthority.licensingmanagementservice.fds.tag.Tag;
-import uk.co.nstauthority.licensingmanagementservice.formatting.DecimalFormatUtils;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.PartialSurrenderCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderTypeController;
@@ -348,72 +349,34 @@ public class PartialSurrenderBlockSummarySectionService
     var before = new SummaryColumn(
         BEFORE,
         subarea.featureId() != null ? toSubareaMapView(List.of(subarea), srsWkid) : null,
-        List.of(SummaryCard.simpleSummaryCardWithHeading(
-            subarea.displayName(),
-            getSubareaDetails(subarea, equityByOrganisationId, featuresById, organisationNamesById)))
+        List.of(subareaCard(subarea, equityByOrganisationId, LICENSEES, featuresById, organisationNamesById))
     );
 
     if (outcome != PartialSurrenderSubareaOutcome.CROPPED) {
       var after = new SummaryColumn(AFTER, null, List.of(), getOutcomeExplanation(outcome, surrenderType));
-      return new SummaryRow(subarea.displayName(), tag, List.of(before, after));
+      return new SummaryRow(subareaHeading(subarea), tag, List.of(before, after));
     }
 
     var croppedSubareas = subareaSummary.croppedSubareas().stream()
         .sorted(Comparator.comparing(
-            croppedSubarea -> getSubareaFeatureOrThrow(featuresById, croppedSubarea.featureId()).getFeatureName()))
+            croppedSubarea -> getFeatureOrThrow(featuresById, croppedSubarea.featureId()).getFeatureName()
+        ))
         .toList();
 
     var after = new SummaryColumn(
         AFTER,
         toSubareaMapView(croppedSubareas, srsWkid),
         croppedSubareas.stream()
-            .map(croppedSubarea -> SummaryCard.simpleSummaryCardWithHeading(
-                croppedSubarea.displayName(),
-                // TODO LMS2-414: cascade subarea beneficial interests
-                getSubareaDetails(croppedSubarea, Map.of(), featuresById, organisationNamesById)
-            ))
+            // TODO LMS2-414: cascade subarea beneficial interests
+            .map(croppedSubarea -> subareaCard(croppedSubarea, Map.of(), LICENSEES, featuresById, organisationNamesById))
             .toList()
     );
 
-    return new SummaryRow(subarea.displayName(), tag, List.of(before, after));
+    return new SummaryRow(subareaHeading(subarea), tag, List.of(before, after));
   }
 
   private SummaryMapView toSubareaMapView(List<SubareaDetails> subareas, int srsWkid) {
     return new SummaryMapView(subareas.stream().map(SubareaDetails::featureId).toList(), srsWkid);
-  }
-
-  private SummaryDataView getSubareaDetails(
-      SubareaDetails subarea,
-      Map<Integer, BigDecimal> equityByOrganisationId,
-      Map<UUID, Feature> featuresById,
-      Map<Integer, String> organisationNamesById
-  ) {
-    var details = SummaryDataView.newBuilder();
-
-    // legacy subareas may have no shape to show
-    if (subarea.featureId() != null) {
-      var subareaFeature = getSubareaFeatureOrThrow(featuresById, subarea.featureId());
-      details.addStringValue(AREA, LicenceBlockFeatureUtil.formatArea(subareaFeature.getFeatureArea()));
-    }
-
-    if (!equityByOrganisationId.isEmpty()) {
-      details.addStringValue(LICENSEES, formatLicensees(equityByOrganisationId, organisationNamesById));
-    }
-
-    return details.build();
-  }
-
-  private List<String> formatLicensees(
-      Map<Integer, BigDecimal> equityByOrganisationId,
-      Map<Integer, String> organisationNamesById
-  ) {
-    return equityByOrganisationId.entrySet().stream()
-        .map(entry -> "%s (%s%%)".formatted(
-            organisationNamesById.getOrDefault(entry.getKey(), NOT_AVAILABLE),
-            DecimalFormatUtils.bigDecimalToFormattedString(entry.getValue())
-        ))
-        .sorted(String.CASE_INSENSITIVE_ORDER)
-        .toList();
   }
 
   private Map<Integer, String> getOrganisationNamesById(
@@ -428,17 +391,6 @@ public class PartialSurrenderBlockSummarySectionService
         .toList();
 
     return organisationUnitQueryService.getOrganisationUnitNamesByIds(organisationIds);
-  }
-
-  private Feature getSubareaFeatureOrThrow(
-      Map<UUID, Feature> featuresById,
-      UUID featureId
-  ) {
-    var feature = featuresById.get(featureId);
-    if (feature == null) {
-      throw new IllegalStateException("Subarea feature %s not found".formatted(featureId));
-    }
-    return feature;
   }
 
   private record SubareaSummary(

@@ -6,7 +6,7 @@ import uk.co.fivium.gisframework.command.CommandJourneyService;
 import uk.co.fivium.gisframework.command.OperatorCommandService;
 
 @Service
-class SubareaChangeValidator {
+public class SubareaChangeValidator {
 
   private final CommandJourneyService commandJourneyService;
   private final OperatorCommandService operatorCommandService;

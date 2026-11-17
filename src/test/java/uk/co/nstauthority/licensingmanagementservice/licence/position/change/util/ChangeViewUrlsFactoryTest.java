@@ -26,9 +26,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.setequity.LicencePositionSetEquityController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.storageoperator.LicencePositionStorageOperatorChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.storageoperator.RemoveStorageOperatorChangeController;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subarea.LicencePositionSubareaChangeStartController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subarea.RemoveSubareaChangeController;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subarea.SubareaChangeController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subarea.review.SubareaChangeReviewController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.transferequity.LicencePositionTransferEquityController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeorder.CorrectChangeOrderController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
@@ -258,10 +257,10 @@ class ChangeViewUrlsFactoryTest {
     var storageOperatorUndo = ReverseRouter.route(on(RemoveStorageOperatorChangeController.class)
         .renderUndoStorageOperatorChange(CORRECTION, CHANGE_ID.toString()));
 
-    var subareaCorrect = ReverseRouter.route(on(SubareaChangeController.class)
-        .renderSubareaChange(CORRECTION, POSITION_CORRECTION, SUBAREA_BLOCK_FEATURE_ID));
-    var subareaCorrecting = ReverseRouter.route(on(LicencePositionSubareaChangeStartController.class)
-        .renderForCorrectingChange(CORRECTION, LICENCE_POSITION, CHANGE_ENTITY));
+    var subareaCorrect = ReverseRouter.route(on(SubareaChangeReviewController.class)
+        .renderStagedReview(CORRECTION, POSITION_CORRECTION, SUBAREA_BLOCK_FEATURE_ID, null));
+    var subareaCorrecting = ReverseRouter.route(on(SubareaChangeReviewController.class)
+        .renderLiveReview(CORRECTION, LICENCE_POSITION, CHANGE_ENTITY, null));
     var subareaRemove = subareaRemoveUrl();
     var subareaUndo = subareaUndoUrl();
 

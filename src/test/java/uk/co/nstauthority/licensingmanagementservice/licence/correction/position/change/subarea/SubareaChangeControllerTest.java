@@ -1,9 +1,6 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subarea;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -14,7 +11,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 import static uk.co.nstauthority.licensingmanagementservice.authentication.TestUserProvider.user;
-import static uk.co.nstauthority.licensingmanagementservice.util.NotificationBannerTestUtil.notificationBanner;
 
 import java.util.List;
 import java.util.Optional;
@@ -27,7 +23,6 @@ import uk.co.fivium.gisframework.feature.FeatureService;
 import uk.co.fivium.grpc.gis.CoordinateSystem;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
 import uk.co.nstauthority.licensingmanagementservice.fds.error.ErrorSummaryItem;
-import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
@@ -35,11 +30,9 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceC
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subarea.review.SubareaChangeReviewController;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaOperation;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.FeatureTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
@@ -52,7 +45,6 @@ class SubareaChangeControllerTest extends AbstractControllerTest {
       .build();
   private static final UUID CORRECTION_ID = UUID.randomUUID();
   private static final UUID POSITION_CORRECTION_ID = UUID.randomUUID();
-  private static final UUID POSITION_ID = UUID.randomUUID();
   private static final UUID COMMAND_JOURNEY_ID = UUID.randomUUID();
   private static final int ED50_WKID = 4230;
   private static final String VIEW_NAME = "lms/licence/correction/change/subarea/subareaChange";
@@ -109,10 +101,7 @@ class SubareaChangeControllerTest extends AbstractControllerTest {
   @Test
   void renderSubareaChange_rendersMapWithCommandJourneyAndSrsWkid() throws Exception {
     var correction = givenCorrectionAllocatedToUser();
-    var positionCorrection = addedPositionCorrection(correction);
-    when(licencePositionCorrectionService.findById(POSITION_CORRECTION_ID)).thenReturn(Optional.of(positionCorrection));
-    when(subareaChangeService.getOrCreateCommandJourney(positionCorrection, BLOCK_FEATURE_ID))
-        .thenReturn(COMMAND_JOURNEY_ID);
+    var positionCorrection = givenSubareaChange(addedPositionCorrection(correction));
     when(featureService.getFeatureOrThrow(BLOCK_FEATURE_ID)).thenReturn(BLOCK_FEATURE);
 
     mockMvc.perform(get(subareaChangeUrl())
@@ -129,7 +118,7 @@ class SubareaChangeControllerTest extends AbstractControllerTest {
   }
 
   @Test
-  void complete_whenAddedPosition_redirectsToAddedPosition() throws Exception {
+  void complete_whenChangeMade_redirectsToReview() throws Exception {
     var correction = givenCorrectionAllocatedToUser();
     var positionCorrection = givenSubareaChange(addedPositionCorrection(correction));
     when(subareaChangeValidator.hasErrors(COMMAND_JOURNEY_ID)).thenReturn(false);
@@ -139,35 +128,8 @@ class SubareaChangeControllerTest extends AbstractControllerTest {
             .with(csrf()))
         .andExpectAll(
             status().is3xxRedirection(),
-            redirectedUrl(ReverseRouter.route(on(LicenceCorrectionController.class)
-                .renderAddedPosition(correction, positionCorrection, null))),
-            notificationBanner(NotificationBanner.newSuccessBanner()
-                .withHeadingContent("Subarea change saved")
-                .build()));
-
-    verify(subareaChangeService).completeSubareaChange(positionCorrection, BLOCK_FEATURE_ID);
-  }
-
-  @Test
-  void complete_whenExecutedPosition_redirectsToPosition() throws Exception {
-    var correction = givenCorrectionAllocatedToUser();
-    var licencePosition = LicencePositionTestUtil.newBuilder()
-        .withId(POSITION_ID)
-        .withLicence(LICENCE)
-        .build();
-    givenSubareaChange(updatePositionCorrection(correction, licencePosition));
-    when(subareaChangeValidator.hasErrors(COMMAND_JOURNEY_ID)).thenReturn(false);
-
-    mockMvc.perform(post(completeUrl())
-            .with(user(regulatorUser))
-            .with(csrf()))
-        .andExpectAll(
-            status().is3xxRedirection(),
-            redirectedUrl(ReverseRouter.route(on(LicenceCorrectionController.class)
-                .renderLicencePosition(correction, licencePosition, null))),
-            notificationBanner(NotificationBanner.newSuccessBanner()
-                .withHeadingContent("Subarea change saved")
-                .build()));
+            redirectedUrl(ReverseRouter.route(on(SubareaChangeReviewController.class)
+                .renderStagedReview(correction, positionCorrection, BLOCK_FEATURE_ID, null))));
   }
 
   @Test
@@ -190,7 +152,6 @@ class SubareaChangeControllerTest extends AbstractControllerTest {
     assertThat(result.getModelAndView().getModel().get("errorSummaryItems"))
         .usingRecursiveComparison()
         .isEqualTo(List.of(new ErrorSummaryItem(1, "subarea-change", NO_CHANGE_ERROR)));
-    verify(subareaChangeService, never()).completeSubareaChange(any(), any());
   }
 
   private LicencePositionCorrection givenSubareaChange(LicencePositionCorrection positionCorrection) {
@@ -216,18 +177,6 @@ class SubareaChangeControllerTest extends AbstractControllerTest {
         .build();
   }
 
-  private LicencePositionCorrection updatePositionCorrection(
-      LicenceCorrection correction,
-      LicencePosition licencePosition
-  ) {
-    return LicencePositionCorrectionTestUtil.newBuilder()
-        .withId(POSITION_CORRECTION_ID)
-        .withLicenceCorrection(correction)
-        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
-        .withTargetLicencePosition(licencePosition)
-        .build();
-  }
-
   private static String subareaChangeUrl() {
     return ReverseRouter.route(on(SubareaChangeController.class)
         .renderSubareaChange(CORRECTION, POSITION_CORRECTION, BLOCK_FEATURE_ID));
@@ -235,6 +184,6 @@ class SubareaChangeControllerTest extends AbstractControllerTest {
 
   private static String completeUrl() {
     return ReverseRouter.route(on(SubareaChangeController.class)
-        .complete(CORRECTION, POSITION_CORRECTION, BLOCK_FEATURE_ID, null));
+        .complete(CORRECTION, POSITION_CORRECTION, BLOCK_FEATURE_ID));
   }
 }

@@ -79,7 +79,7 @@ class OrganisationUnitQueryServiceTest {
     when(organisationUnitRequestCache.getOrganisationUnitsByIds(List.of(1, 2)))
         .thenReturn(List.of(organisationUnit, organisationUnit2));
 
-    assertThat(organisationUnitQueryService.getOrganisationUnitNamesByIds(List.of(1,2)))
+    assertThat(organisationUnitQueryService.getOrganisationUnitNamesByIds(List.of(1, 2)))
         .usingRecursiveComparison()
         .isEqualTo(Map.of(
             organisationUnit.getOrganisationUnitId(), organisationUnit.getName(),

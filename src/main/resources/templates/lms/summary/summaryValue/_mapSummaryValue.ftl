@@ -9,6 +9,7 @@
       featureIds=mapValue.featureIds()
       srsWkid=mapValue.srsWkid()
       describedFeatureId=mapValue.describedFeatureId()!""
-      layout=layout/>
+      layout=layout
+      toggle=true/>
   </#list>
 </#macro>

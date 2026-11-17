@@ -1,5 +1,14 @@
 package uk.co.nstauthority.licensingmanagementservice.fds.tag;
 
 public enum TagColour {
-  RED, YELLOW, GREY, BLUE, PURPLE
+  GREY,
+  GREEN,
+  TURQUOISE,
+  BLUE,
+  LIGHT_BLUE,
+  PURPLE,
+  PINK,
+  RED,
+  ORANGE,
+  YELLOW
 }

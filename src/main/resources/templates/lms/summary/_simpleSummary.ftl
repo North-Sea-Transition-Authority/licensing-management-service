@@ -11,11 +11,19 @@
     <#if actions?has_content>
       <@fdsSummaryList.summaryListCardActionList>
         <#list actions as action>
-          <@fdsSummaryList.summaryListCardActionItem
-            itemUrl=springUrl(action.url())
-            itemText=action.text()
-            itemScreenReaderText=summaryHeading
-          />
+          <#if action.post()>
+            <li class="govuk-summary-card__action">
+              <button type="submit" class="govuk-link fds-link-button fds-link-button--inline" formaction="${springUrl(action.url())}">
+                ${action.text()}<span class="govuk-visually-hidden"> ${summaryHeading}</span>
+              </button>
+            </li>
+          <#else>
+            <@fdsSummaryList.summaryListCardActionItem
+              itemUrl=springUrl(action.url())
+              itemText=action.text()
+              itemScreenReaderText=summaryHeading
+            />
+          </#if>
         </#list>
       </@fdsSummaryList.summaryListCardActionList>
     </#if>

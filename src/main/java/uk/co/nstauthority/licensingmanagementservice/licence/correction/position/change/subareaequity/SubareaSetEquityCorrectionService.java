@@ -153,7 +153,7 @@ public class SubareaSetEquityCorrectionService {
    * Lineage is lost when the subareas a subarea came from do not all share the same beneficial interests, or when it
    * came from none of them.
    */
-  boolean isLineageLost(
+  public boolean isLineageLost(
       LicencePositionState state,
       UUID blockFeatureId,
       Collection<SubareaDetails> originalSubareas

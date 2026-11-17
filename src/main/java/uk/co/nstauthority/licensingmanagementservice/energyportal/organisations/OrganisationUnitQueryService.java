@@ -54,8 +54,8 @@ public class OrganisationUnitQueryService {
         .toList();
   }
 
-  public Map<Integer, String> getOrganisationUnitNamesByIds(List<Integer> responsibleOrganisationIds) {
-    return getOrganisationUnitsByIdsFromEpa(responsibleOrganisationIds).stream()
+  public Map<Integer, String> getOrganisationUnitNamesByIds(Collection<Integer> organisationUnitIds) {
+    return getOrganisationUnitsByIdsFromEpa(organisationUnitIds).stream()
         .collect(Collectors.toMap(OrganisationUnit::getOrganisationUnitId, OrganisationUnit::getName));
   }
 
@@ -115,7 +115,7 @@ public class OrganisationUnitQueryService {
 
   // The access rules, services and page often ask for the same organisation units within a request, so within a web
   // request each is fetched from the Energy Portal once and shared
-  private List<OrganisationUnit> getOrganisationUnitsByIdsFromEpa(List<Integer> organisationUnitIds) {
+  private List<OrganisationUnit> getOrganisationUnitsByIdsFromEpa(Collection<Integer> organisationUnitIds) {
     return organisationUnitRequestCache.getOrganisationUnitsByIds(organisationUnitIds);
   }
 

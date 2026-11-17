@@ -1,6 +1,5 @@
 package uk.co.nstauthority.licensingmanagementservice.summary;
 
-import jakarta.annotation.Nullable;
 import java.util.List;
 import uk.co.nstauthority.licensingmanagementservice.fds.tag.Tag;
 
@@ -8,11 +7,11 @@ public record SummaryItem(
     String displayName,
     List<SummaryCard> summaryCards,
     List<SummaryRow> summaryRows,
-    @Nullable Tag tag
+    List<Tag> tags
 ) {
 
   public SummaryItem(String displayName, List<SummaryCard> summaryCards) {
-    this(displayName, summaryCards, List.of(), null);
+    this(displayName, summaryCards, List.of(), List.of());
   }
 
   public static SummaryItem withCard(String displayName,
@@ -37,10 +36,14 @@ public record SummaryItem(
 
   public static SummaryItem withRows(String displayName,
                                      List<SummaryRow> summaryRows) {
-    return new SummaryItem(displayName, List.of(), summaryRows, null);
+    return new SummaryItem(displayName, List.of(), summaryRows, List.of());
   }
 
   public SummaryItem withTag(Tag tag) {
-    return new SummaryItem(displayName, summaryCards, summaryRows, tag);
+    return withTags(List.of(tag));
+  }
+
+  public SummaryItem withTags(List<Tag> tags) {
+    return new SummaryItem(displayName, summaryCards, summaryRows, tags);
   }
 }

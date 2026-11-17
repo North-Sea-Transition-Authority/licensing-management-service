@@ -9,11 +9,16 @@ class TagTest {
 
   @ParameterizedTest
   @CsvSource({
-      "RED, govuk-tag--red",
-      "YELLOW, govuk-tag--yellow",
       "GREY, govuk-tag--grey",
+      "GREEN, govuk-tag--green",
+      "TURQUOISE, govuk-tag--turquoise",
       "BLUE, govuk-tag--blue",
-      "PURPLE, govuk-tag--purple"
+      "LIGHT_BLUE, govuk-tag--light-blue",
+      "PURPLE, govuk-tag--purple",
+      "PINK, govuk-tag--pink",
+      "RED, govuk-tag--red",
+      "ORANGE, govuk-tag--orange",
+      "YELLOW, govuk-tag--yellow"
   })
   void tagClass(TagColour tagColour, String expectedTagClass) {
     var tag = new Tag("text", tagColour);

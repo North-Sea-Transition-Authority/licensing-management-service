@@ -1,13 +1,12 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.IdClass;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import java.util.Objects;
-import org.hibernate.annotations.Cascade;
-import org.hibernate.annotations.CascadeType;
 import org.hibernate.envers.Audited;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 
@@ -17,9 +16,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 public class LicenceResponsibleOrganisation {
 
   @Id
-  @ManyToOne
+  @ManyToOne(cascade = CascadeType.MERGE)
   @JoinColumn(name = "licence_id")
-  @Cascade(CascadeType.MERGE)
   private Licence licence;
 
   @Id

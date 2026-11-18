@@ -158,7 +158,7 @@ steps:
       SONAR_USER_HOME: /drone/src/sonar_cache
     commands:
       - chmod +x gradlew
-      - ./gradlew sonarqube -info --parallel --build-cache
+      - ./gradlew sonar -info --parallel --build-cache
     when:
       # The Pull Request Pipeline will run the Code Analysis on all other branches (once a PR is open)
       branch:
@@ -523,7 +523,7 @@ steps:
       SONAR_USER_HOME: /drone/src/sonar_cache
     commands:
       - chmod +x gradlew
-      - ./gradlew sonarqube -info --parallel --build-cache
+      - ./gradlew sonar -info --parallel --build-cache
 
   - name: trufflehog-scan
     image: quay.io/fivium/drone-trufflehog-plugin:v1.0

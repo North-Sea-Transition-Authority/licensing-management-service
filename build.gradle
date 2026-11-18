@@ -20,7 +20,7 @@ plugins {
 	id 'org.springframework.boot' version '4.1.2'
 	id 'io.spring.dependency-management' version '1.1.7'
 	id 'java'
-	id "org.sonarqube" version "5.1.0.4882"
+	id "org.sonarqube" version "7.6.0.18749"
 	id 'checkstyle'
 	id 'jacoco'
 	id 'nu.studer.jooq' version '9.0'
@@ -259,13 +259,13 @@ tasks.register('pearsMigrationTest', Test) {
 	}
 }
 
-sonarqube {
+sonar {
 	properties {
 		property 'sonar.exclusions', '**/nstauthority/licensingmanagementservice/mockups/**'
 		property 'sonar.projectKey', "Fivium_${rootProject.name}"
 		property 'sonar.organization', 'fivium-gh'
 		property 'sonar.host.url', 'https://sonarcloud.io'
-		property 'sonar.login', System.getenv('SONARCLOUD_TOKEN')
+		property 'sonar.token', System.getenv('SONARCLOUD_TOKEN')
 
 		if (System.getenv('DRONE_PULL_REQUEST') != null) {
 			property 'sonar.pullrequest.key', System.getenv('DRONE_PULL_REQUEST')
@@ -288,7 +288,7 @@ sonarqube {
 }
 
 project(":gis-framework") {
-	sonarqube {
+	sonar {
 		properties {
 			property 'sonar.javascript.lcov.reportPaths', 'arcgis-node/coverage/lcov.info'
 			property 'sonar.sources',

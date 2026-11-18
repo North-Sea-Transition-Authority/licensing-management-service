@@ -18,7 +18,10 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.web.server.ResponseStatusException;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
+import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSchedule;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments.EventCommentService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailStatus;
@@ -62,6 +65,66 @@ class LicenceScheduleTermServiceTest {
     licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail);
 
     verify(licenceScheduleTermRepository).findAllByLicenceScheduleDetail(licenceScheduleDetail);
+  }
+
+  @Test
+  void getSelectableTermTypes_whenTheActiveVersionHasNoFourthTerm_leavesItOut() {
+    var draft = draftOf(LicenceType.SEAWARD_PRODUCTION);
+    when(licenceScheduleTermRepository.findAllByLicenceScheduleDetail_LicenceScheduleAndLicenceScheduleDetail_Status(
+        draft.getLicenceSchedule(), LicenceScheduleDetailStatus.ACTIVE))
+        .thenReturn(List.of(term(TermType.INITIAL), term(TermType.SECOND), term(TermType.THIRD)));
+
+    assertThat(licenceScheduleTermService.getSelectableTermTypes(draft))
+        .containsExactlyInAnyOrder(TermType.INITIAL, TermType.SECOND, TermType.THIRD);
+  }
+
+  @Test
+  void getSelectableTermTypes_whenTheActiveVersionHasAFourthTerm_includesIt() {
+    var draft = draftOf(LicenceType.LANDWARD_PRODUCTION);
+    when(licenceScheduleTermRepository.findAllByLicenceScheduleDetail_LicenceScheduleAndLicenceScheduleDetail_Status(
+        draft.getLicenceSchedule(), LicenceScheduleDetailStatus.ACTIVE))
+        .thenReturn(List.of(term(TermType.INITIAL), term(TermType.FOURTH)));
+
+    assertThat(licenceScheduleTermService.getSelectableTermTypes(draft))
+        .containsExactlyInAnyOrder(TermType.INITIAL, TermType.SECOND, TermType.THIRD, TermType.FOURTH);
+  }
+
+  @Test
+  void getSelectableTermTypes_whenThereIsNoActiveVersion_leavesOutHistoricTerms() {
+    var draft = draftOf(LicenceType.SEAWARD_PRODUCTION);
+    when(licenceScheduleTermRepository.findAllByLicenceScheduleDetail_LicenceScheduleAndLicenceScheduleDetail_Status(
+        draft.getLicenceSchedule(), LicenceScheduleDetailStatus.ACTIVE))
+        .thenReturn(List.of());
+
+    assertThat(licenceScheduleTermService.getSelectableTermTypes(draft)).doesNotContain(TermType.FOURTH);
+  }
+
+  @Test
+  void getSelectableTermTypes_carbonStorage_hasItsOwnTerms() {
+    var draft = draftOf(LicenceType.CARBON_STORAGE);
+    when(licenceScheduleTermRepository.findAllByLicenceScheduleDetail_LicenceScheduleAndLicenceScheduleDetail_Status(
+        draft.getLicenceSchedule(), LicenceScheduleDetailStatus.ACTIVE))
+        .thenReturn(List.of());
+
+    assertThat(licenceScheduleTermService.getSelectableTermTypes(draft)).containsExactlyInAnyOrder(
+        TermType.APPRAISAL, TermType.INITIAL_CS, TermType.OPERATIONAL, TermType.POST_CLOSURE_PERIOD);
+  }
+
+  private static LicenceScheduleDetail draftOf(LicenceType licenceType) {
+    var licence = new Licence();
+    licence.setType(licenceType);
+    var licenceSchedule = new LicenceSchedule();
+    licenceSchedule.setLicence(licence);
+    var draft = new LicenceScheduleDetail();
+    draft.setLicenceSchedule(licenceSchedule);
+    draft.setStatus(LicenceScheduleDetailStatus.DRAFT);
+    return draft;
+  }
+
+  private static LicenceScheduleTerm term(TermType termType) {
+    var term = new LicenceScheduleTerm();
+    term.setTermType(termType);
+    return term;
   }
 
   @Test

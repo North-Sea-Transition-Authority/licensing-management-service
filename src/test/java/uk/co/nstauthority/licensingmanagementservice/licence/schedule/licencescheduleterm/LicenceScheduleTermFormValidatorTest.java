@@ -6,6 +6,7 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -32,7 +33,37 @@ class LicenceScheduleTermFormValidatorTest {
   private LicenceScheduleTermFormValidator licenceScheduleTermFormValidator;
 
   @Test
+  void isValid_historicTermTypeTheScheduleCannotHave_isInvalid() {
+    givenTheProductionTermsAreSelectable();
+    var form = new LicenceScheduleTermForm();
+    form.setTermType(TermType.FOURTH);
+    form.setTermDuration(getValidDuration());
+
+    var bindingResult = ValidatorTestingUtil.getBindingResult(form);
+
+    assertThat(licenceScheduleTermFormValidator.isValid(form, bindingResult, new LicenceScheduleDetail())).isFalse();
+    assertThat(ValidatorTestingUtil.extractErrorMessages(bindingResult))
+        .containsEntry("termType", Set.of("Select a term type"));
+  }
+
+  @Test
+  void isValid_historicTermTypeTheActiveVersionHas_isValid() {
+    var licenceScheduleDetail = new LicenceScheduleDetail();
+    when(licenceScheduleTermService.getSelectableTermTypes(licenceScheduleDetail))
+        .thenReturn(Set.of(TermType.INITIAL, TermType.SECOND, TermType.THIRD, TermType.FOURTH));
+
+    var form = new LicenceScheduleTermForm();
+    form.setTermType(TermType.FOURTH);
+    form.setTermDuration(getValidDuration());
+
+    var bindingResult = ValidatorTestingUtil.getBindingResult(form);
+
+    assertThat(licenceScheduleTermFormValidator.isValid(form, bindingResult, licenceScheduleDetail)).isTrue();
+  }
+
+  @Test
   void isValid() {
+    givenTheProductionTermsAreSelectable();
     var form = new LicenceScheduleTermForm();
     form.setTermType(TermType.INITIAL);
     form.setTermDuration(getValidDuration());
@@ -54,6 +85,7 @@ class LicenceScheduleTermFormValidatorTest {
 
   @Test
   void isValid_invalid_termTypeAlreadyExists() {
+    givenTheProductionTermsAreSelectable();
     var form = new LicenceScheduleTermForm();
     form.setTermType(TermType.INITIAL);
     form.setTermDuration(getValidDuration());
@@ -72,6 +104,7 @@ class LicenceScheduleTermFormValidatorTest {
 
   @Test
   void isValid_invalid_invalidDuration() {
+    givenTheProductionTermsAreSelectable();
     var form = new LicenceScheduleTermForm();
     form.setTermType(TermType.INITIAL);
     form.setTermDuration(new ThreeFieldDurationInput("termDuration", "term"));
@@ -83,6 +116,7 @@ class LicenceScheduleTermFormValidatorTest {
 
   @Test
   void isValidUpdate() {
+    givenTheProductionTermsAreSelectable();
     var licenceScheduleDetail = new LicenceScheduleDetail();
     var licenceScheduleTerm = new LicenceScheduleTerm();
     licenceScheduleTerm.setId(UUID.randomUUID());
@@ -101,6 +135,7 @@ class LicenceScheduleTermFormValidatorTest {
 
   @Test
   void isValidUpdate_invalid_termShorteningCausesValidationError() {
+    givenTheProductionTermsAreSelectable();
     var licenceScheduleDetail = new LicenceScheduleDetail();
     var licenceScheduleTerm = new LicenceScheduleTerm();
     licenceScheduleTerm.setId(UUID.randomUUID());
@@ -130,6 +165,7 @@ class LicenceScheduleTermFormValidatorTest {
 
   @Test
   void isValidUpdate_invalid_termTypeAlreadyExists() {
+    givenTheProductionTermsAreSelectable();
     var licenceScheduleDetail = new LicenceScheduleDetail();
     var licenceScheduleTerm = new LicenceScheduleTerm();
     licenceScheduleTerm.setId(UUID.randomUUID());
@@ -148,6 +184,11 @@ class LicenceScheduleTermFormValidatorTest {
     var bindingResult = ValidatorTestingUtil.getBindingResult(form);
 
     assertThat(licenceScheduleTermFormValidator.isValidUpdate(form, bindingResult, licenceScheduleDetail, licenceScheduleTerm)).isFalse();
+  }
+
+  private void givenTheProductionTermsAreSelectable() {
+    when(licenceScheduleTermService.getSelectableTermTypes(any()))
+        .thenReturn(Set.of(TermType.INITIAL, TermType.SECOND, TermType.THIRD));
   }
 
   private ThreeFieldDurationInput getValidDuration() {

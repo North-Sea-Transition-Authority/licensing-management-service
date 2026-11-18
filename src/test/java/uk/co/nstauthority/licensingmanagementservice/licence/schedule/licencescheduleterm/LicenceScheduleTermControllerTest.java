@@ -30,6 +30,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesch
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
+import uk.co.nstauthority.licensingmanagementservice.util.enumutil.DisplayableEnumOptionUtil;
 
 @ContextConfiguration(classes = LicenceScheduleTermController.class)
 class LicenceScheduleTermControllerTest extends AbstractControllerTest {
@@ -52,6 +53,8 @@ class LicenceScheduleTermControllerTest extends AbstractControllerTest {
   private Licence licence;
   private static final String PAGE_CAPTION = "page caption";
 
+  private static final Set<TermType> SELECTABLE_TERM_TYPES = Set.of(TermType.INITIAL, TermType.SECOND, TermType.THIRD);
+
   @BeforeEach
   void setUp() {
     licence = new Licence();
@@ -69,6 +72,8 @@ class LicenceScheduleTermControllerTest extends AbstractControllerTest {
     licenceScheduleTerm.setTermType(TermType.INITIAL);
     licenceScheduleTerm.setTermDuration(new ThreeFieldDuration(1, 0, 0));
     licenceScheduleTerm.setLicenceScheduleDetail(licenceScheduleDetail);
+
+    when(licenceScheduleTermService.getSelectableTermTypes(any())).thenReturn(SELECTABLE_TERM_TYPES);
   }
 
   @Test
@@ -84,7 +89,7 @@ class LicenceScheduleTermControllerTest extends AbstractControllerTest {
         )
         .andExpect(status().isOk())
         .andExpect(view().name("lms/licence/schedule/createScheduleTerm"))
-        .andExpect(model().attribute("radioOptions", TermType.getTermRadioOptionsFor(LicenceType.SEAWARD_PRODUCTION)))
+        .andExpect(model().attribute("radioOptions", DisplayableEnumOptionUtil.getDisplayableOptions(SELECTABLE_TERM_TYPES)))
         .andExpect(model().attribute("cancelUrl", licenceScheduleDetail.getScheduleTimelineRouteUrl()))
         .andExpect(model().attribute("pageCaption", PAGE_CAPTION));
   }
@@ -133,7 +138,7 @@ class LicenceScheduleTermControllerTest extends AbstractControllerTest {
         )
         .andExpect(status().isOk())
         .andExpect(view().name("lms/licence/schedule/createScheduleTerm"))
-        .andExpect(model().attribute("radioOptions", TermType.getTermRadioOptionsFor(LicenceType.SEAWARD_PRODUCTION)))
+        .andExpect(model().attribute("radioOptions", DisplayableEnumOptionUtil.getDisplayableOptions(SELECTABLE_TERM_TYPES)))
         .andExpect(model().attribute("pageCaption", PAGE_CAPTION));
 
     verify(licenceScheduleTermFormService, never()).saveTermFromForm(any(), any(), any(), any());
@@ -168,7 +173,7 @@ class LicenceScheduleTermControllerTest extends AbstractControllerTest {
         )
         .andExpect(status().isOk())
         .andExpect(view().name("lms/licence/schedule/createScheduleTerm"))
-        .andExpect(model().attribute("radioOptions", TermType.getTermRadioOptionsFor(LicenceType.SEAWARD_PRODUCTION)))
+        .andExpect(model().attribute("radioOptions", DisplayableEnumOptionUtil.getDisplayableOptions(SELECTABLE_TERM_TYPES)))
         .andExpect(model().attribute("cancelUrl", licenceScheduleDetail.getScheduleTimelineRouteUrl()))
         .andExpect(model().attribute("pageCaption", PAGE_CAPTION));
   }
@@ -217,7 +222,7 @@ class LicenceScheduleTermControllerTest extends AbstractControllerTest {
         )
         .andExpect(status().isOk())
         .andExpect(view().name("lms/licence/schedule/createScheduleTerm"))
-        .andExpect(model().attribute("radioOptions", TermType.getTermRadioOptionsFor(LicenceType.SEAWARD_PRODUCTION)))
+        .andExpect(model().attribute("radioOptions", DisplayableEnumOptionUtil.getDisplayableOptions(SELECTABLE_TERM_TYPES)))
         .andExpect(model().attribute("pageCaption", PAGE_CAPTION));
 
     verify(licenceScheduleTermFormService, never()).saveTermFromForm(any(), any(), any(), any());

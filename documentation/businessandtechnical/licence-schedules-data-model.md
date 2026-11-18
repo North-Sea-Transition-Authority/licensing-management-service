@@ -17,7 +17,7 @@ codebase. All table and column names below are the live PostgreSQL names.
 | **Schedule** | The set of commitments and dates attached to a licence — terms, phases, work programme activities, rental rates, expiry. One schedule per licence. |
 | **Schedule version** (a.k.a. *schedule detail*) | A complete point-in-time snapshot of the whole schedule. A licence's schedule accumulates one row per version. Lives in `licence_schedule_details`. |
 | **Schedule event** | Any dated item within a schedule version — a term, a phase, a work programme activity, a rate, an "other" event, or the expiry date. |
-| **Term** | A major licence period — production: Initial, Second, Third; carbon storage: Appraisal, Operational, Post Closure Period (§7.3). |
+| **Term** | A major licence period — production: Initial, Second, Third, and a historic Fourth on the few schedules that have one; carbon storage: Appraisal, Operational, Post Closure Period (§7.3). |
 | **Phase** | A subdivision of the production Initial term (Phase A/B/C). Carbon storage schedules have no phases (§7.4). |
 | **Work programme activity (WPA)** | A committed piece of work with a due date (drill a well, shoot seismic, etc.). |
 
@@ -397,6 +397,7 @@ outside them is a data-quality signal, not a documentation gap.
 | `INITIAL` | Initial Term | Landward production, Seaward production |
 | `SECOND` | Second Term | Landward production, Seaward production |
 | `THIRD` | Third Term | Landward production, Seaward production |
+| `FOURTH` | Fourth Term | Landward production, Seaward production — **historic**, see below |
 | `APPRAISAL` | Appraisal Term | Carbon storage |
 | `OPERATIONAL` | Operational Term | Carbon storage |
 | `POST_CLOSURE_PERIOD` | Post Closure Period | Carbon storage |
@@ -405,8 +406,16 @@ outside them is a data-quality signal, not a documentation gap.
 **Term sequences.** Terms are ordered by a fixed rank held against each value, not by any
 column in the database. The live sequences are:
 
-- **Production** (landward and seaward): Initial → Second → Third
+- **Production** (landward and seaward): Initial → Second → Third, and → Fourth on the few
+  schedules that have one
 - **Carbon storage**: Appraisal → Operational → Post Closure Period
+
+**`FOURTH` is historic.** A small number of older production licences (13 seaward licences from
+the 2004–2009 rounds, in PEARS) have a fourth term, and only those schedules keep it. It can be
+added to a schedule version only when the licence's `ACTIVE` version already has a `FOURTH`
+term: a draft can keep, edit, or remove and re-add its Fourth term, but no other schedule is
+offered one. Once a version without a Fourth term is applied, the licence can't have one again.
+It ranks after `THIRD`, so ordering terms by rank needs no special handling.
 
 **`INITIAL_CS` is not part of the current carbon storage sequence.** It exists to carry
 carbon storage term data that originated as an "Initial" term in the source records, and is

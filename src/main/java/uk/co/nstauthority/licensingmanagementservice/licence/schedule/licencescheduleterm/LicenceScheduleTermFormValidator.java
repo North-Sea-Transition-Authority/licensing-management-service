@@ -12,6 +12,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesch
 @Service
 public class LicenceScheduleTermFormValidator {
 
+  private static final String TERM_TYPE_FIELD = "termType";
+
   private final LicenceScheduleTermService licenceScheduleTermService;
   private final ScheduleRelativeDateValidationService scheduleRelativeDateValidationService;
 
@@ -31,7 +33,7 @@ public class LicenceScheduleTermFormValidator {
         .map(LicenceScheduleTerm::getTermType)
         .toList();
 
-    doValidation(form, errors, existingTermTypes);
+    doValidation(form, errors, licenceScheduleDetail, existingTermTypes);
     return !errors.hasErrors();
   }
 
@@ -46,7 +48,7 @@ public class LicenceScheduleTermFormValidator {
         .map(LicenceScheduleTerm::getTermType)
         .toList();
 
-    doValidation(form, errors, existingTermTypes);
+    doValidation(form, errors, licenceScheduleDetail, existingTermTypes);
 
     if (!errors.hasErrors()) {
       scheduleRelativeDateValidationService.validateTermLengthUpdate(
@@ -62,12 +64,16 @@ public class LicenceScheduleTermFormValidator {
   private void doValidation(
       LicenceScheduleTermForm form,
       Errors errors,
+      LicenceScheduleDetail licenceScheduleDetail,
       List<TermType> existingTermTypes
   ) {
-    ValidationUtils.rejectIfEmpty(errors, "termType", "termType.required", "Select a term type");
-    if (form.getTermType() != null && existingTermTypes.contains(form.getTermType())) {
+    ValidationUtils.rejectIfEmpty(errors, TERM_TYPE_FIELD, "termType.required", "Select a term type");
+    if (form.getTermType() != null
+        && !licenceScheduleTermService.getSelectableTermTypes(licenceScheduleDetail).contains(form.getTermType())) {
+      errors.rejectValue(TERM_TYPE_FIELD, "termType.invalid", "Select a term type");
+    } else if (form.getTermType() != null && existingTermTypes.contains(form.getTermType())) {
       errors.rejectValue(
-          "termType",
+          TERM_TYPE_FIELD,
           "termType.invalid",
           "%s already exists on the licence schedule".formatted(form.getTermType().getDisplayName())
       );

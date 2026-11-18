@@ -10,6 +10,7 @@ import org.springframework.stereotype.Repository;
 import uk.co.nstauthority.licensingmanagementservice.duplication.DuplicateThisOnUpdate;
 import uk.co.nstauthority.licensingmanagementservice.duplication.DuplicationSource;
 import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSchedule;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailStatus;
 
@@ -33,5 +34,10 @@ public interface LicenceScheduleTermRepository
   Optional<LicenceScheduleTerm> findByLicenceScheduleDetailAndTermType(
       LicenceScheduleDetail licenceScheduleDetail,
       TermType termType
+  );
+
+  List<LicenceScheduleTerm> findAllByLicenceScheduleDetail_LicenceScheduleAndLicenceScheduleDetail_Status(
+      LicenceSchedule licenceSchedule,
+      LicenceScheduleDetailStatus licenceScheduleDetailStatus
   );
 }

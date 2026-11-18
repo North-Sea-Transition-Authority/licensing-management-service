@@ -14,11 +14,11 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.HasRolesInTea
 import uk.co.nstauthority.licensingmanagementservice.authorisation.RolesAndTeamType;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.licencescheduledetail.LicenceScheduleDetailHasStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
-import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailStatus;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
+import uk.co.nstauthority.licensingmanagementservice.util.enumutil.DisplayableEnumOptionUtil;
 
 @Controller
 @RequestMapping("/licence/schedule")
@@ -103,7 +103,8 @@ public class LicenceScheduleTermController {
 
     return new ModelAndView("lms/licence/schedule/createScheduleTerm")
         .addObject("form", form)
-        .addObject("radioOptions", TermType.getTermRadioOptionsFor(licence.getType()))
+        .addObject("radioOptions", DisplayableEnumOptionUtil.getDisplayableOptions(
+            licenceScheduleTermService.getSelectableTermTypes(licenceScheduleDetail)))
         .addObject("cancelUrl", licenceScheduleDetail.getScheduleTimelineRouteUrl())
         .addObject("pageCaption", licenceService.getLicencePageCaption(licence));
   }

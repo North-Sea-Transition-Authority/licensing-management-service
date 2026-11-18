@@ -4,7 +4,9 @@ import jakarta.transaction.Transactional;
 import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -64,6 +66,20 @@ public class LicenceScheduleTermService {
   @Transactional
   public Iterable<LicenceScheduleTerm> saveTerms(List<LicenceScheduleTerm> licenceScheduleTerms) {
     return licenceScheduleTermRepository.saveAll(licenceScheduleTerms);
+  }
+
+  public Set<TermType> getSelectableTermTypes(LicenceScheduleDetail licenceScheduleDetail) {
+    var licenceSchedule = licenceScheduleDetail.getLicenceSchedule();
+    var activeTermTypes = licenceScheduleTermRepository
+        .findAllByLicenceScheduleDetail_LicenceScheduleAndLicenceScheduleDetail_Status(
+            licenceSchedule,
+            LicenceScheduleDetailStatus.ACTIVE
+        )
+        .stream()
+        .map(LicenceScheduleTerm::getTermType)
+        .collect(Collectors.toSet());
+
+    return TermType.getSelectableTermsFor(licenceSchedule.getLicence().getType(), activeTermTypes);
   }
 
   public LicenceScheduleTerm getTermByIdOrThrow(UUID id) {

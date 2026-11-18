@@ -6,7 +6,9 @@ import static uk.co.nstauthority.licensingmanagementservice.licence.position.cha
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.annotation.Nullable;
 import java.time.LocalDate;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -16,6 +18,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subarea.RemoveSubareaChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subarea.review.SubareaChangeReviewController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subarea.review.SubareaChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationError;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeViewContext;
@@ -26,6 +29,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.vie
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.LicencePositionChangeView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.SubareaChangeView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.FeatureSummary;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.LicenceBlockFeatureUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.subareachange.SubareaChangeSummaryController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 /**
@@ -113,11 +118,53 @@ public record SubareaOperation(
       LicencePositionChangeViewContext context,
       ChangeViewUrls urls
   ) {
+    var featuresById = context.featuresById();
+
     return new SubareaChangeView(
-        Optional.ofNullable(context.featuresById().get(blockFeatureId)).map(FeatureSummary::name).orElse(UNKNOWN_BLOCK),
+        Optional.ofNullable(featuresById.get(blockFeatureId)).map(FeatureSummary::name).orElse(UNKNOWN_BLOCK),
+        getSubareaRows(featuresById),
         change.changeType(),
         urls
     );
+  }
+
+  private List<SubareaChangeView.SubareaRow> getSubareaRows(Map<UUID, FeatureSummary> featuresById) {
+    return transfers.stream()
+        .flatMap(transfer -> transfer.replacedSubareas().isEmpty()
+            ? Stream.of(getSubareaRow(null, transfer, featuresById))
+            : transfer.replacedSubareas().stream()
+            .map(replaced -> getSubareaRow(replaced, transfer, featuresById)))
+        .sorted(Comparator.comparing(SubareaChangeView.SubareaRow::inputSubarea))
+        .toList();
+  }
+
+  /**
+   * Get the row detailing what happened in the change for the replaced subarea.
+   * @param replacedSubarea null when a subarea is SET
+   */
+  private SubareaChangeView.SubareaRow getSubareaRow(
+      @Nullable SubareaDetails replacedSubarea,
+      SubareaTransfer transfer,
+      Map<UUID, FeatureSummary> featuresById
+  ) {
+    var outputs = transfer.outputSubareas().stream()
+        .map(output -> subareaLabelWithArea(output, featuresById))
+        .collect(Collectors.joining(", "));
+    return new SubareaChangeView.SubareaRow(
+        replacedSubarea == null ? "" : subareaLabelWithArea(replacedSubarea, featuresById),
+        SubareaChangeType.getLiveChangeType(transfer).toTag(),
+        outputs
+    );
+  }
+
+  private String subareaLabelWithArea(SubareaDetails subarea, Map<UUID, FeatureSummary> featuresById) {
+    var name = subarea.displayName();
+    return Optional.ofNullable(subarea.featureId())
+        .map(featuresById::get)
+        .map(FeatureSummary::area)
+        .map(LicenceBlockFeatureUtil::formatArea)
+        .map(area -> "%s (%s)".formatted(name, area))
+        .orElse(name);
   }
 
   @Override
@@ -144,6 +191,30 @@ public record SubareaOperation(
       public String undo(ChangeUrlTarget target) {
         return ReverseRouter.route(on(RemoveSubareaChangeController.class)
             .renderUndoSubareaChange(target.correction(), target.changeId()));
+      }
+
+      @Override
+      public String view(ChangeUrlTarget target) {
+        if (!target.inCorrection()) {
+          var licencePosition = target.licencePosition();
+          return ReverseRouter.route(on(SubareaChangeSummaryController.class).renderSubareaChangeSummary(
+              licencePosition.getLicence(), licencePosition, target.changeEntity(), null));
+        }
+        if (target.addedPosition()) {
+          return stagedReviewAndSubmit(target);
+        }
+        return switch (target.state()) {
+          case ADDED, OPERATIONS_UPDATED -> stagedReviewAndSubmit(target);
+          case LIVE, ORDER_UPDATED -> ReverseRouter.route(on(SubareaChangeReviewController.class)
+              .renderLiveReview(
+                  target.correction(), target.licencePosition(), target.changeEntity(), null));
+          case REMOVED -> null;
+        };
+      }
+
+      private String stagedReviewAndSubmit(ChangeUrlTarget target) {
+        return ReverseRouter.route(on(SubareaChangeReviewController.class)
+            .renderStagedReview(target.correction(), target.positionCorrection(), blockFeatureId, null));
       }
     };
   }

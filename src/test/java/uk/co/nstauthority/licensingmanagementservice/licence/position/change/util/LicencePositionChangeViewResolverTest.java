@@ -1307,7 +1307,12 @@ class LicencePositionChangeViewResolverTest {
 
     var result = changeViewsFor(currentLicencePosition.getId(), FEATURES_BY_ID, currentChronologicalPosition);
 
-    var expected = new SubareaChangeView(FEATURES_BY_ID.get(FIRST_FEATURE_ID).name(), null, ChangeViewUrls.none());
+    var expected = new SubareaChangeView(
+        FEATURES_BY_ID.get(FIRST_FEATURE_ID).name(),
+        List.of(),
+        null,
+        ChangeViewUrls.none()
+    );
     assertThat(result).containsExactly(expected);
   }
 
@@ -1322,7 +1327,7 @@ class LicencePositionChangeViewResolverTest {
     var result = changeViewsFor(currentLicencePosition.getId(), Map.of(), currentChronologicalPosition);
 
     var subareaChangeView = (SubareaChangeView) byType(result, LicenceOperation.SUBAREA);
-    assertThat(subareaChangeView.featureName()).isEqualTo("Unknown block");
+    assertThat(subareaChangeView.blockName()).isEqualTo("Unknown block");
   }
 
   @Test
@@ -1583,7 +1588,12 @@ class LicencePositionChangeViewResolverTest {
                 ReverseRouter.route(on(CorrectChangeOrderController.class)
                     .renderCorrectChangeOrder(correction, positionId, firstChangeId)),
                 correctPositionUrl(correction.getId(), positionId, firstChangeId),
-                null
+                ReverseRouter.route(on(SubareaChangeReviewController.class).renderLiveReview(
+                    correction,
+                    licencePosition,
+                    new LicencePositionChange(firstChangeId),
+                    null
+                ))
             )),
             tuple(LicenceOperation.SUBAREA, new ChangeViewUrls(
                 ReverseRouter.route(on(SubareaChangeReviewController.class).renderLiveReview(
@@ -1602,7 +1612,12 @@ class LicencePositionChangeViewResolverTest {
                 ReverseRouter.route(on(CorrectChangeOrderController.class)
                     .renderCorrectChangeOrder(correction, positionId, secondChangeId)),
                 correctPositionUrl(correction.getId(), positionId, secondChangeId),
-                null
+                ReverseRouter.route(on(SubareaChangeReviewController.class).renderLiveReview(
+                    correction,
+                    licencePosition,
+                    new LicencePositionChange(secondChangeId),
+                    null
+                ))
             ))
         );
   }

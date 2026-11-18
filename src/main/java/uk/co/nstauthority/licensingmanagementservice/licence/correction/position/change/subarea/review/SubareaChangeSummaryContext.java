@@ -1,5 +1,6 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subarea.review;
 
+import jakarta.annotation.Nullable;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -44,7 +45,7 @@ public sealed interface SubareaChangeSummaryContext {
       List<SubareaTransfer> transfers,
       LicencePositionState stateBefore,
       LicencePositionState stateAtEnd,
-      String changeSubareasUrl
+      @Nullable String changeSubareasUrl
   ) implements SubareaChangeSummaryContext {
   }
 }

@@ -2,9 +2,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.correction.positio
 
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
-import java.util.Comparator;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -39,7 +37,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.Lic
 import uk.co.nstauthority.licensingmanagementservice.licence.position.spatial.LicencePositionSpatialService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummarySection;
-import uk.co.nstauthority.licensingmanagementservice.summary.SummarySectionService;
 
 @Controller
 @RequestMapping("/licence-corrections/{correctionId}")
@@ -55,20 +52,20 @@ public class SubareaChangeReviewController {
   private static final String SAVED_BANNER = "Subarea change saved";
   private static final String NO_CHANGE_ERROR = "You must make a change to the subareas before submitting";
 
-  private final List<SummarySectionService<SubareaChangeSummaryContext>> summarySectionServices;
+  private final SubareaChangeSummarySectionService subareaChangeSummarySectionService;
   private final SubareaChangeService subareaChangeService;
   private final SubareaChangeValidator subareaChangeValidator;
   private final LicencePositionSpatialService licencePositionSpatialService;
   private final FeatureService featureService;
 
   SubareaChangeReviewController(
-      List<SummarySectionService<SubareaChangeSummaryContext>> summarySectionServices,
+      SubareaChangeSummarySectionService subareaChangeSummarySectionService,
       SubareaChangeService subareaChangeService,
       SubareaChangeValidator subareaChangeValidator,
       LicencePositionSpatialService licencePositionSpatialService,
       FeatureService featureService
   ) {
-    this.summarySectionServices = summarySectionServices;
+    this.subareaChangeSummarySectionService = subareaChangeSummarySectionService;
     this.subareaChangeService = subareaChangeService;
     this.subareaChangeValidator = subareaChangeValidator;
     this.licencePositionSpatialService = licencePositionSpatialService;
@@ -156,7 +153,11 @@ public class SubareaChangeReviewController {
         ReverseRouter.route(on(SubareaChangeReviewController.class).changeLiveSubareas(correction, licencePosition, change))
     );
 
-    return getReviewModelAndView(correction, blockFeatureId, getSummarySections(context, user));
+    return getReviewModelAndView(
+        correction,
+        blockFeatureId,
+        subareaChangeSummarySectionService.getSummarySections(context, user)
+    );
   }
 
   @PostMapping(LIVE_REVIEW_PATH + CHANGE_SUBAREAS_PATH)
@@ -199,7 +200,11 @@ public class SubareaChangeReviewController {
             .changeStagedSubareas(correction, licencePositionCorrection, blockFeatureId))
     );
 
-    var modelAndView = getReviewModelAndView(correction, blockFeatureId, getSummarySections(context, user));
+    var modelAndView = getReviewModelAndView(
+        correction,
+        blockFeatureId,
+        subareaChangeSummarySectionService.getSummarySections(context, user)
+    );
 
     if (commandJourneyId != null) {
       modelAndView
@@ -215,17 +220,6 @@ public class SubareaChangeReviewController {
           );
     }
     return modelAndView;
-  }
-
-  private List<SummarySection> getSummarySections(
-      SubareaChangeSummaryContext context,
-      ServiceUserDetail user
-  ) {
-    return summarySectionServices.stream()
-        .map(summarySectionService -> summarySectionService.getSummarySection(context, user))
-        .flatMap(Optional::stream)
-        .sorted(Comparator.comparing(SummarySection::displayOrder))
-        .toList();
   }
 
   private ModelAndView getReviewModelAndView(

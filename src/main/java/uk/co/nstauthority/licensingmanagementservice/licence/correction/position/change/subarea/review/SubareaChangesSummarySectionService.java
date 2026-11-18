@@ -124,8 +124,10 @@ class SubareaChangesSummarySectionService implements SummarySectionService<Subar
                 if (tags.contains(LINEAGE_LOST) && equityAfter.isEmpty()) {
                   details.addStringValue(BENEFICIAL_INTERESTS, NOT_ASSIGNED);
                 }
-                return SummaryCard.simpleSummaryCardWithHeading(subareaHeading(subarea), details.build())
-                    .withAction(SummaryCardAction.post(CHANGE, context.changeSubareasUrl()));
+                var card = SummaryCard.simpleSummaryCardWithHeading(subareaHeading(subarea), details.build());
+                return context.changeSubareasUrl() == null
+                    ? card
+                    : card.withAction(SummaryCardAction.post(CHANGE, context.changeSubareasUrl()));
               })
               .toList();
 
@@ -163,12 +165,12 @@ class SubareaChangesSummarySectionService implements SummarySectionService<Subar
 
     return switch (context) {
       case SubareaChangeSummaryContext.Staged staged -> {
-        var type = getStagedChangeType(transfer, staged.transfers());
+        var type = SubareaChangeType.getStagedChangeType(transfer, staged.transfers());
         yield type == SubareaChangeType.MERGE && lineageLostTransfers.contains(transfer)
             ? List.of(type.toTag(), LINEAGE_LOST)
             : List.of(type.toTag());
       }
-      case SubareaChangeSummaryContext.LiveChange ignored -> List.of(getLiveChangeType(transfer).toTag());
+      case SubareaChangeSummaryContext.LiveChange ignored -> List.of(SubareaChangeType.getLiveChangeType(transfer).toTag());
     };
   }
 
@@ -195,41 +197,6 @@ class SubareaChangesSummarySectionService implements SummarySectionService<Subar
       case SubareaChangeSummaryContext.LiveChange liveChange ->
           liveChange.stateAtEnd().subareaEquityOf(blockFeatureId, outputSubarea);
     };
-  }
-
-  private static SubareaChangeType getStagedChangeType(
-      SubareaTransfer transfer,
-      List<SubareaTransfer> transfers
-  ) {
-    var replacedSubareas = transfer.replacedSubareas();
-
-    if (replacedSubareas.isEmpty()) {
-      return SubareaChangeType.SET;
-    }
-
-    if (replacedSubareas.size() > 1) {
-      return SubareaChangeType.MERGE;
-    }
-
-    var isUsedByAnotherTransfer = transfers.stream()
-        .filter(otherTransfer -> otherTransfer != transfer)
-        .anyMatch(otherTransfer -> otherTransfer.replacedSubareas().contains(replacedSubareas.getFirst()));
-
-    return transfer.outputSubareas().size() > 1 || isUsedByAnotherTransfer
-        ? SubareaChangeType.SPLIT
-        : SubareaChangeType.RENAME;
-  }
-
-  private static SubareaChangeType getLiveChangeType(SubareaTransfer transfer) {
-    if (transfer.replacedSubareas().isEmpty()) {
-      return SubareaChangeType.SET;
-    }
-
-    if (transfer.outputSubareas().isEmpty()) {
-      return SubareaChangeType.REMOVE;
-    }
-
-    return SubareaChangeType.TRANSFER;
   }
 
   private static boolean isUnchanged(SubareaTransfer transfer) {

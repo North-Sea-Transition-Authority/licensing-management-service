@@ -41,6 +41,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.Lic
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.PositionChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.ChangeViewUrls;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.partialsurrender.PartialSurrenderSummaryController;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.subareachange.SubareaChangeSummaryController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 class ChangeViewUrlsFactoryTest {
@@ -138,6 +139,8 @@ class ChangeViewUrlsFactoryTest {
     return Stream.of(
         Arguments.of("partial surrender", PARTIAL_SURRENDER, ReverseRouter.route(on(PartialSurrenderSummaryController.class)
             .renderPartialSurrenderSummary(LICENCE_POSITION.getLicence(), LICENCE_POSITION, CHANGE_ENTITY, null))),
+        Arguments.of("subarea", SUBAREA, ReverseRouter.route(on(SubareaChangeSummaryController.class)
+            .renderSubareaChangeSummary(LICENCE_POSITION.getLicence(), LICENCE_POSITION, CHANGE_ENTITY, null))),
         Arguments.of("administrator", ADMINISTRATOR, null)
     );
   }
@@ -346,19 +349,19 @@ class ChangeViewUrlsFactoryTest {
             storageOperatorAdded, null, storageOperatorUndo, null, null),
 
         Arguments.of("subarea, live", SUBAREA, EXECUTED_POSITION, live,
-            subareaCorrecting, subareaRemove, null, null, null),
+            subareaCorrecting, subareaRemove, null, null, subareaCorrecting),
         Arguments.of("subarea, added", SUBAREA, EXECUTED_POSITION, added,
-            subareaCorrect, null, subareaUndo, null, null),
+            subareaCorrect, null, subareaUndo, null, subareaCorrect),
         Arguments.of("subarea, operations updated", SUBAREA, EXECUTED_POSITION, operationsUpdated,
-            subareaCorrect, null, subareaUndo, null, null),
+            subareaCorrect, null, subareaUndo, null, subareaCorrect),
         Arguments.of("subarea, order updated", SUBAREA, EXECUTED_POSITION, orderUpdated,
-            subareaCorrecting, null, subareaUndo, null, null),
+            subareaCorrecting, null, subareaUndo, null, subareaCorrecting),
         Arguments.of("subarea, removed", SUBAREA, EXECUTED_POSITION, removed,
             null, null, null, subareaUndo, null),
         Arguments.of("subarea, added position", SUBAREA, ADDED_POSITION, added,
-            subareaCorrect, null, subareaUndo, null, null),
+            subareaCorrect, null, subareaUndo, null, subareaCorrect),
         Arguments.of("subarea, moved to added position", SUBAREA, ADDED_POSITION, operationsUpdated,
-            subareaCorrect, null, subareaUndo, null, null)
+            subareaCorrect, null, subareaUndo, null, subareaCorrect)
     );
   }
 

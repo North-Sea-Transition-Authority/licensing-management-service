@@ -127,10 +127,7 @@ class SubareaChangeReviewControllerTest extends AbstractControllerTest {
   private static final List<SummarySection> REVIEW = List.of(OVERVIEW, CHANGES);
 
   @MockitoBean
-  private SubareaChangeOverviewSummarySectionService subareaChangeOverviewSummarySectionService;
-
-  @MockitoBean
-  private SubareaChangesSummarySectionService subareaChangesSummarySectionService;
+  private SubareaChangeSummarySectionService subareaChangeSummarySectionService;
 
   @MockitoBean
   private LicencePositionSpatialService licencePositionSpatialService;
@@ -419,9 +416,7 @@ class SubareaChangeReviewControllerTest extends AbstractControllerTest {
   }
 
   private void givenSummarySections(SubareaChangeSummaryContext context) {
-    when(subareaChangesSummarySectionService.getSummarySection(context, regulatorUser)).thenReturn(Optional.of(CHANGES));
-    when(subareaChangeOverviewSummarySectionService.getSummarySection(context, regulatorUser))
-        .thenReturn(Optional.of(OVERVIEW));
+    when(subareaChangeSummarySectionService.getSummarySections(context, regulatorUser)).thenReturn(REVIEW);
     when(featureService.getFeatureOrThrow(BLOCK_FEATURE_ID)).thenReturn(BLOCK_FEATURE);
   }
 

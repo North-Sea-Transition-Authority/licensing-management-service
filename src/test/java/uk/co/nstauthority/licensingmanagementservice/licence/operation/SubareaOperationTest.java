@@ -3,14 +3,23 @@ package uk.co.nstauthority.licensingmanagementservice.licence.operation;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import tools.jackson.databind.json.JsonMapper;
+import uk.co.nstauthority.licensingmanagementservice.fds.tag.Tag;
+import uk.co.nstauthority.licensingmanagementservice.fds.tag.TagColour;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationContextTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeViewContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.LicencePositionState;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.PositionChangeTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.ChangeViewUrls;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.SubareaChangeView;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.FeatureSummary;
 
 class SubareaOperationTest {
 
@@ -241,6 +250,104 @@ class SubareaOperationTest {
   }
 
   @Test
+  void getChangeView_whenSubareasSetTransferredAndRemoved_thenRowPerReplacedSubareaSortedByInput() {
+    var subareaA = new SubareaDetails(UUID.randomUUID(), "A", "A");
+    var subareaB = new SubareaDetails(UUID.randomUUID(), "B", "B");
+    var subareaC = new SubareaDetails(UUID.randomUUID(), "C", "C");
+    var subareaD = new SubareaDetails(UUID.randomUUID(), "D", "D");
+    var subareaE = new SubareaDetails(UUID.randomUUID(), "E", "E");
+    var operation = LicenceOperation.newSubAreaOperation()
+        .withBlockFeatureId(BLOCK_FEATURE_ID)
+        .withTransfers(List.of(
+            new SubareaTransfer(List.of(), List.of(subareaA)),
+            new SubareaTransfer(List.of(subareaB, subareaC), List.of(subareaD)),
+            new SubareaTransfer(List.of(subareaE), List.of())
+        ))
+        .build();
+    var context = new LicencePositionChangeViewContext(Map.of(), Map.of(
+        BLOCK_FEATURE_ID, featureSummary("Block 30/1", 6_000_000),
+        subareaA.featureId(), featureSummary("A", 1_000_000),
+        subareaB.featureId(), featureSummary("B", 2_000_000),
+        subareaC.featureId(), featureSummary("C", 3_000_000),
+        subareaD.featureId(), featureSummary("D", 5_000_000),
+        subareaE.featureId(), featureSummary("E", 8_000_000)
+    ));
+    var positionChange = PositionChangeTestUtil.newBuilder().build();
+    var urls = ChangeViewUrls.none();
+
+    var result = operation.getChangeView(positionChange, LicencePositionState.EMPTY, null, context, urls);
+
+    var expected = new SubareaChangeView(
+        "Block 30/1",
+        List.of(
+            new SubareaChangeView.SubareaRow("", new Tag("Set", TagColour.GREEN), "Subarea A (1.00\u00A0km²)"),
+            new SubareaChangeView.SubareaRow(
+                "Subarea B (2.00\u00A0km²)", new Tag("Transfer", TagColour.BLUE), "Subarea D (5.00\u00A0km²)"),
+            new SubareaChangeView.SubareaRow(
+                "Subarea C (3.00\u00A0km²)", new Tag("Transfer", TagColour.BLUE), "Subarea D (5.00\u00A0km²)"),
+            new SubareaChangeView.SubareaRow("Subarea E (8.00\u00A0km²)", new Tag("Remove", TagColour.RED), "")
+        ),
+        positionChange.changeType(),
+        urls
+    );
+    assertThat(result).isEqualTo(expected);
+  }
+
+  @Test
+  void getChangeView_whenTransferUnchanged_thenRowTaggedUnchanged() {
+    var subareaA = new SubareaDetails(UUID.randomUUID(), "A", "A");
+    var operation = LicenceOperation.newSubAreaOperation()
+        .withBlockFeatureId(BLOCK_FEATURE_ID)
+        .withTransfers(List.of(new SubareaTransfer(List.of(subareaA), List.of(subareaA))))
+        .build();
+    var context = new LicencePositionChangeViewContext(Map.of(), Map.of(
+        BLOCK_FEATURE_ID, featureSummary("Block 30/1", 6_000_000),
+        subareaA.featureId(), featureSummary("A", 1_000_000)
+    ));
+    var positionChange = PositionChangeTestUtil.newBuilder().build();
+    var urls = ChangeViewUrls.none();
+
+    var result = operation.getChangeView(positionChange, LicencePositionState.EMPTY, null, context, urls);
+
+    var expected = new SubareaChangeView(
+        "Block 30/1",
+        List.of(new SubareaChangeView.SubareaRow(
+            "Subarea A (1.00\u00A0km²)", new Tag("Unchanged", TagColour.GREY), "Subarea A (1.00\u00A0km²)")),
+        positionChange.changeType(),
+        urls
+    );
+    assertThat(result).isEqualTo(expected);
+  }
+
+  @Test
+  void getChangeView_whenSubareaFeatureUnknown_thenRowsOmitArea() {
+    var operation = new SubareaOperation(
+        BLOCK_FEATURE_ID,
+        List.of(new SubareaDetails(null, "Unknown Area", "UNKNOWN")),
+        List.of(OUTPUT_SUBAREA, new SubareaDetails(UUID.randomUUID(), "Other", "X"))
+    );
+    var context = new LicencePositionChangeViewContext(Map.of(), Map.of(
+        BLOCK_FEATURE_ID, featureSummary("Block 30/1", 100_000_000)
+    ));
+    var positionChange = PositionChangeTestUtil.newBuilder().build();
+    var urls = ChangeViewUrls.none();
+
+    var result = operation.getChangeView(positionChange, LicencePositionState.EMPTY, null, context, urls);
+
+    var expected = new SubareaChangeView(
+        "Block 30/1",
+        List.of(new SubareaChangeView.SubareaRow(
+            "Subarea Unknown Area",
+            new Tag("Transfer", TagColour.BLUE),
+            "Subarea New, Subarea Other"
+        )),
+        positionChange.changeType(),
+        urls
+    );
+    assertThat(result).isEqualTo(expected);
+  }
+
+  @Test
   void doInputsMatchPreviousStateOutputs_whenReplacedSubareasHeldOnBlock_thenTrue() {
     var state = LicencePositionState.EMPTY.withBlock(BLOCK_FEATURE_ID, List.of(REPLACED_SUBAREA));
     var operation = new SubareaOperation(BLOCK_FEATURE_ID, List.of(REPLACED_SUBAREA), List.of(OUTPUT_SUBAREA));
@@ -258,5 +365,9 @@ class SubareaOperationTest {
     var result = operation.doInputsMatchPreviousStateOutputs(state);
 
     assertThat(result).isFalse();
+  }
+
+  private static FeatureSummary featureSummary(String name, long squareMetres) {
+    return new FeatureSummary(4230, name, BigDecimal.valueOf(squareMetres), null, null);
   }
 }

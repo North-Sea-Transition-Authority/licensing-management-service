@@ -61,6 +61,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.Fe
 import uk.co.nstauthority.licensingmanagementservice.licence.position.filter.LicenceTimelineFilter;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.filter.LicenceTimelineFilterOptions;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.partialsurrender.PartialSurrenderSummaryController;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.subareachange.SubareaChangeSummaryController;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.transaction.LicenceTransactionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryMapView;
@@ -854,7 +855,13 @@ class LicencePositionViewServiceTest {
 
     var result = licencePositionViewService.getPositionPageView(position);
 
-    var expected = new SubareaChangeView(subarea.getFeatureName(), null, ChangeViewUrls.none());
+    var expected = new SubareaChangeView(
+        subarea.getFeatureName(),
+        List.of(),
+        null,
+        new ChangeViewUrls(null, null, null, null, null, null,
+            ReverseRouter.route(on(SubareaChangeSummaryController.class)
+                .renderSubareaChangeSummary(LICENCE, position, change, null))));
     assertThat(result.orderedChangeViews())
         .containsExactly(expected);
   }

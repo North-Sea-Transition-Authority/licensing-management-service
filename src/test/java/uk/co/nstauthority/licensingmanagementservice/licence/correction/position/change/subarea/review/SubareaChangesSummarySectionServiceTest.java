@@ -356,6 +356,44 @@ class SubareaChangesSummarySectionServiceTest {
     ));
   }
 
+  @Test
+  void getSummarySection_whenNoChangeSubareasUrl_thenCardsHaveNoChangeAction() {
+    var subareaA = subareaFeature("A", 10_000_000);
+    var subareaB = subareaFeature("B", 10_000_000);
+    var stateBefore = LicencePositionState.EMPTY
+        .withBlock(BLOCK_FEATURE_ID, List.of(details(subareaA)))
+        .withSubareaEquity(BLOCK_FEATURE_ID, details(subareaA), ORGANISATION_ONE, BigDecimal.valueOf(100));
+    var stateAtEnd = LicencePositionState.EMPTY
+        .withBlock(BLOCK_FEATURE_ID, List.of(details(subareaB)))
+        .withSubareaEquity(BLOCK_FEATURE_ID, details(subareaB), ORGANISATION_TWO, BigDecimal.valueOf(100));
+    var context = new SubareaChangeSummaryContext.LiveChange(
+        BLOCK_FEATURE_ID,
+        List.of(details(subareaA)),
+        List.of(transfer(List.of(subareaA), List.of(subareaB))),
+        stateBefore,
+        stateAtEnd,
+        null
+    );
+    givenFeatures(subareaA, subareaB);
+    givenOrganisationNames(Set.of(ORGANISATION_ONE, ORGANISATION_TWO));
+
+    var section = subareaChangesSummarySectionService.getSummarySection(context, null);
+
+    assertThat(section).usingRecursiveComparison().isEqualTo(changes(
+        section(
+            "Subarea A",
+            List.of(new Tag("Transfer", TagColour.BLUE)),
+            before(List.of(subareaA), card("Subarea A", "10.00\u00A0km²", "Organisation one (100%)")),
+            new SummaryColumn(
+                "After",
+                map(List.of(subareaB)),
+                List.of(card("Subarea B", "10.00\u00A0km²", "Organisation two (100%)")),
+                null
+            )
+        )
+    ));
+  }
+
   private void givenLineageLost(
       LicencePositionState stateBefore,
       List<Feature> replacedSubareas,

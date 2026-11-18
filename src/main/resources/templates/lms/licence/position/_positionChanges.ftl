@@ -331,11 +331,19 @@
 
 <#macro subareaRows change>
   <@fdsSummaryList.summaryListRowNoAction keyText="Licence block">
-    ${change.featureName()}
+    ${change.blockName()}
   </@fdsSummaryList.summaryListRowNoAction>
+  <#list change.subareaRows() as subareaRow>
+    <@fdsSummaryList.summaryListRowNoAction keyText=subareaRow.inputSubarea()>
+        <@fdsTag.tag tagClass=subareaRow.tag().tagClass()>${subareaRow.tag().tagText()}</@fdsTag.tag>
+        ${subareaRow.outputSubareas()}
+    </@fdsSummaryList.summaryListRowNoAction>
+  </#list>
 </#macro>
 
 <#macro subAreaChange change summaryListId="subarea" correction="">
+  <#local viewUrl = change.urls().view()!''>
+
   <#assign headingText>
     <@changeHeading change=change headingText="Subarea change" correction=correction/>
   </#assign>
@@ -351,6 +359,11 @@
   >
     <@correctionRows correction=correction/>
     <@subareaRows change=change/>
+    <#if viewUrl?has_content>
+        <@fdsSummaryList.summaryListRowNoAction keyText="">
+          <a class="govuk-link" href="${springUrl(viewUrl)}">View full subarea change details</a>
+        </@fdsSummaryList.summaryListRowNoAction>
+    </#if>
   </@fdsSummaryList.summaryListCard>
 </#macro>
 

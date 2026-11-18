@@ -1,15 +1,20 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.schedule.otherscheduleevent;
 
+import java.math.BigDecimal;
 import java.util.UUID;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.Errors;
 import org.springframework.validation.ValidationUtils;
+import uk.co.fivium.formlibrary.validator.decimal.DecimalInputValidator;
 import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFieldDurationValidationUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.common.ScheduleRelativeDateValidationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 
 @Service
 public class OtherScheduleEventFormValidator {
+
+  private static final BigDecimal ONE_HUNDRED = BigDecimal.valueOf(100);
 
   private final ScheduleRelativeDateValidationService scheduleRelativeDateValidationService;
 
@@ -37,6 +42,10 @@ public class OtherScheduleEventFormValidator {
           "otherCategoryName.required",
           "Enter a category"
       );
+    }
+
+    if (OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT.equals(form.getOtherScheduleEventCategory())) {
+      validateRelinquishmentPercentage(form, errors);
     }
 
     ValidationUtils.rejectIfEmpty(
@@ -94,5 +103,24 @@ public class OtherScheduleEventFormValidator {
     }
 
     return !errors.hasErrors();
+  }
+
+  private void validateRelinquishmentPercentage(OtherScheduleEventForm form, Errors errors) {
+    if (StringUtils.isBlank(form.getRelinquishmentPercentage().getInputValue())) {
+      errors.rejectValue(
+          "relinquishmentPercentage.inputValue",
+          "relinquishmentPercentage.required",
+          "Enter the mandatory relinquishment percentage"
+      );
+      return;
+    }
+
+    DecimalInputValidator.builder()
+        .invalidInputErrorMessage("The percentage must be a number")
+        .mustBeBetween(BigDecimal.ZERO, ONE_HUNDRED)
+        .mustBeBetweenErrorMessage("The percentage must be between 0 and 100")
+        .mustHaveNoMoreThanDecimalPlaces(1)
+        .mustHaveNoMoreThanDecimalPlacesErrorMessage("The percentage can only have 1 decimal place")
+        .validate(form.getRelinquishmentPercentage(), errors);
   }
 }

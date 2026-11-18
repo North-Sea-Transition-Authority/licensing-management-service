@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.Month;
 import java.util.ArrayList;
@@ -346,6 +347,56 @@ class OtherScheduleEventFormServiceTest {
   }
 
   @Test
+  void saveEventFromForm_mandatoryRelinquishment_savesThePercentage() {
+    var form = termOptionForm(OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT);
+    form.getRelinquishmentPercentage().setInputValue("87.5");
+
+    otherScheduleEventFormService.saveEventFromForm(form, licenceScheduleDetail, new OtherScheduleEvent(), USER);
+
+    verify(otherScheduleEventRepository).save(otherScheduleEventArgumentCaptor.capture());
+    assertThat(otherScheduleEventArgumentCaptor.getValue().getRelinquishmentPercentage())
+        .isEqualTo(new BigDecimal("87.5"));
+  }
+
+  @Test
+  void saveEventFromForm_mandatoryRelinquishmentWithNoPercentage_clearsThePercentage() {
+    var form = termOptionForm(OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT);
+    var event = new OtherScheduleEvent();
+    event.setRelinquishmentPercentage(new BigDecimal("50"));
+
+    otherScheduleEventFormService.saveEventFromForm(form, licenceScheduleDetail, event, USER);
+
+    verify(otherScheduleEventRepository).save(otherScheduleEventArgumentCaptor.capture());
+    assertThat(otherScheduleEventArgumentCaptor.getValue().getRelinquishmentPercentage()).isNull();
+  }
+
+  @Test
+  void saveEventFromForm_otherCategory_clearsThePercentage() {
+    var form = termOptionForm(OtherScheduleEventCategory.OTHER_ACTIVITY);
+    form.getRelinquishmentPercentage().setInputValue("50");
+    var event = new OtherScheduleEvent();
+    event.setRelinquishmentPercentage(new BigDecimal("50"));
+
+    otherScheduleEventFormService.saveEventFromForm(form, licenceScheduleDetail, event, USER);
+
+    verify(otherScheduleEventRepository).save(otherScheduleEventArgumentCaptor.capture());
+    assertThat(otherScheduleEventArgumentCaptor.getValue().getRelinquishmentPercentage()).isNull();
+  }
+
+  private OtherScheduleEventForm termOptionForm(OtherScheduleEventCategory category) {
+    var form = new OtherScheduleEventForm();
+    form.setOtherScheduleEventCategory(category);
+    form.setDescription("description");
+    form.setOtherScheduleEventDateOption(OtherScheduleEventDateOption.WITHIN_A_TERM);
+
+    var termId = UUID.randomUUID();
+    form.setLicenceScheduleTermId(String.valueOf(termId));
+    when(licenceScheduleTermService.getTermByIdOrThrow(termId)).thenReturn(new LicenceScheduleTerm());
+
+    return form;
+  }
+
+  @Test
   void saveEventFromForm_termOption_clearsExistingEventDate() {
     var form = new OtherScheduleEventForm();
     form.setOtherScheduleEventCategory(OtherScheduleEventCategory.OTHER_ACTIVITY);
@@ -474,6 +525,32 @@ class OtherScheduleEventFormServiceTest {
             null,
             null
     );
+  }
+
+  @Test
+  void getEventForm_relinquishmentPercentage_isShownWithoutTrailingZeros() {
+    var otherScheduleEvent = new OtherScheduleEvent();
+    otherScheduleEvent.setCategory(OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT);
+    otherScheduleEvent.setDateOption(OtherScheduleEventDateOption.WITHIN_A_TERM);
+    otherScheduleEvent.setRelinquishmentPercentage(new BigDecimal("50.0"));
+
+    assertThat(otherScheduleEventFormService.getEventForm(otherScheduleEvent).getRelinquishmentPercentage().getInputValue())
+        .isEqualTo("50");
+
+    otherScheduleEvent.setRelinquishmentPercentage(new BigDecimal("87.5"));
+
+    assertThat(otherScheduleEventFormService.getEventForm(otherScheduleEvent).getRelinquishmentPercentage().getInputValue())
+        .isEqualTo("87.5");
+  }
+
+  @Test
+  void getEventForm_noRelinquishmentPercentage_leavesItEmpty() {
+    var otherScheduleEvent = new OtherScheduleEvent();
+    otherScheduleEvent.setCategory(OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT);
+    otherScheduleEvent.setDateOption(OtherScheduleEventDateOption.WITHIN_A_TERM);
+
+    assertThat(otherScheduleEventFormService.getEventForm(otherScheduleEvent).getRelinquishmentPercentage().getInputValue())
+        .isNull();
   }
 
   @Test

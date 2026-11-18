@@ -537,6 +537,12 @@ Populated only when `rate_definition_option = 'CUSTOM_PERIOD'`.
 
 Same `other_category_name` rule as §7.5.
 
+`relinquishment_percentage` is the percentage of the initial licensed area a mandatory
+relinquishment relinquishes: 0 to 100, to 1 decimal place (`NUMERIC(4,1)`). It is only set when
+`category = 'MANDATORY_RELINQUISHMENT'` and is null for all other categories. The form requires it
+for mandatory relinquishments, but rows saved before it was added (and relinquishments migrated
+from PEARS without one) are null.
+
 ### 7.12 `event_comments.status`
 
 | Value | Meaning |
@@ -700,9 +706,10 @@ below do not.
 `relative_duration_months`, `relative_duration_years`, `start_date`, `rental_rate`
 
 **`other_schedule_events`**
-`id`, `licence_schedule_detail_id`, `category`, `other_category_name`, `description`,
-`date_option`, `licence_schedule_term_id`, `licence_schedule_phase_id`,
-`relative_duration_days`, `relative_duration_months`, `relative_duration_years`, `event_date`
+`id`, `licence_schedule_detail_id`, `category`, `other_category_name`,
+`relinquishment_percentage` (§7.11), `description`, `date_option`, `licence_schedule_term_id`,
+`licence_schedule_phase_id`, `relative_duration_days`, `relative_duration_months`,
+`relative_duration_years`, `event_date`
 
 **`licence_schedule_expiry_dates`**
 `id`, `licence_schedule_detail_id`, `expiry_date`, `comments`

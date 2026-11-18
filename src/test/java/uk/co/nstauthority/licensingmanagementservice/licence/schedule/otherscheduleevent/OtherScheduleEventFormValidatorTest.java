@@ -5,9 +5,15 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -158,9 +164,68 @@ class OtherScheduleEventFormValidatorTest {
     assertThat(validator.isValid(form, bindingResult, licenceScheduleDetail)).isFalse();
   }
 
+  @ParameterizedTest
+  @ValueSource(strings = {"0", "50", "87.5", "100", "100.0"})
+  void isValid_relinquishmentPercentage_zeroToOneHundredToOneDecimalPlace(String percentage) {
+    var form = createValidForm();
+    form.getRelinquishmentPercentage().setInputValue(percentage);
+
+    var bindingResult = ValidatorTestingUtil.getBindingResult(form);
+
+    assertThat(validator.isValid(form, bindingResult, licenceScheduleDetail)).isTrue();
+  }
+
+  @ParameterizedTest
+  @NullAndEmptySource
+  @ValueSource(strings = " ")
+  void isValid_invalidForm_missingRelinquishmentPercentage(String percentage) {
+    var form = createValidForm();
+    form.getRelinquishmentPercentage().setInputValue(percentage);
+
+    var bindingResult = ValidatorTestingUtil.getBindingResult(form);
+
+    assertThat(validator.isValid(form, bindingResult, licenceScheduleDetail)).isFalse();
+    assertThat(ValidatorTestingUtil.extractErrorMessages(bindingResult))
+        .containsExactly(
+            Map.entry("relinquishmentPercentage.inputValue", Set.of("Enter the mandatory relinquishment percentage"))
+        );
+  }
+
+  @ParameterizedTest
+  @CsvSource(delimiter = '|', value = {
+      "-1     | The percentage must be between 0 and 100",
+      "100.1  | The percentage must be between 0 and 100",
+      "12.25  | The percentage can only have 1 decimal place",
+      "x      | The percentage must be a number",
+      "50%    | The percentage must be a number"
+  })
+  void isValid_invalidForm_relinquishmentPercentage(String percentage, String message) {
+    var form = createValidForm();
+    form.getRelinquishmentPercentage().setInputValue(percentage);
+
+    var bindingResult = ValidatorTestingUtil.getBindingResult(form);
+
+    assertThat(validator.isValid(form, bindingResult, licenceScheduleDetail)).isFalse();
+    assertThat(ValidatorTestingUtil.extractErrorMessages(bindingResult))
+        .containsExactly(Map.entry("relinquishmentPercentage.inputValue", Set.of(message)));
+  }
+
+  @Test
+  void isValid_otherCategory_ignoresTheRelinquishmentPercentage() {
+    var form = createValidForm();
+    form.setOtherScheduleEventCategory(OtherScheduleEventCategory.OTHER_ACTIVITY);
+    form.setOtherCategoryName("Drill-or-drop");
+    form.getRelinquishmentPercentage().setInputValue("x");
+
+    var bindingResult = ValidatorTestingUtil.getBindingResult(form);
+
+    assertThat(validator.isValid(form, bindingResult, licenceScheduleDetail)).isTrue();
+  }
+
   private OtherScheduleEventForm createValidForm() {
     OtherScheduleEventForm form = new OtherScheduleEventForm();
     form.setOtherScheduleEventCategory(OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT);
+    form.getRelinquishmentPercentage().setInputValue("50");
     form.setDescription("description");
     form.setOtherScheduleEventDateOption(OtherScheduleEventDateOption.WITHIN_A_TERM);
     form.setLicenceScheduleTermId("licenceScheduleTermId");

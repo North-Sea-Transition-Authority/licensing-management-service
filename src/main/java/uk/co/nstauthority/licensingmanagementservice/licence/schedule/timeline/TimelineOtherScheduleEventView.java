@@ -12,11 +12,13 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomme
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.otherscheduleevent.OtherScheduleEvent;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.otherscheduleevent.OtherScheduleEventController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.otherscheduleevent.OtherScheduleEventDeletionController;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.otherscheduleevent.RelinquishmentPercentageFormat;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 public record TimelineOtherScheduleEventView(
     String category,
     String description,
+    String relinquishmentPercentage,
     LocalDate eventDate,
     String eventDateString,
     String updateUrl,
@@ -66,9 +68,14 @@ public record TimelineOtherScheduleEventView(
     var showProgress = otherScheduleEvent.getEventDate() != null
         && !otherScheduleEvent.getEventDate().isAfter(finalProgressDate);
 
+    var relinquishmentPercentage = otherScheduleEvent.getRelinquishmentPercentage() != null
+        ? "%s%%".formatted(RelinquishmentPercentageFormat.format(otherScheduleEvent.getRelinquishmentPercentage()))
+        : null;
+
     return new TimelineOtherScheduleEventView(
         otherScheduleEvent.getCategoryString(),
         otherScheduleEvent.getDescription(),
+        relinquishmentPercentage,
         otherScheduleEvent.getEventDate(),
         eventDateString,
         editUrl,

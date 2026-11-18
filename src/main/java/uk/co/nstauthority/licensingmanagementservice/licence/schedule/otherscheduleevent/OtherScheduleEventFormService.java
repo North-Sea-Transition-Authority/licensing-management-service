@@ -71,6 +71,11 @@ public class OtherScheduleEventFormService {
     event.setLicenceScheduleDetail(licenceScheduleDetail);
     event.setCategory(form.getOtherScheduleEventCategory());
     event.setOtherCategoryName(form.getOtherCategoryName());
+    event.setRelinquishmentPercentage(
+        OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT.equals(form.getOtherScheduleEventCategory())
+            ? form.getRelinquishmentPercentage().getAsBigDecimal().orElse(null)
+            : null
+    );
     event.setDescription(form.getDescription());
 
     var dateOption = form.getOtherScheduleEventDateOption();
@@ -115,6 +120,10 @@ public class OtherScheduleEventFormService {
     var form = new OtherScheduleEventForm();
     form.setOtherScheduleEventCategory(otherScheduleEvent.getCategory());
     form.setOtherCategoryName(otherScheduleEvent.getOtherCategoryName());
+    if (otherScheduleEvent.getRelinquishmentPercentage() != null) {
+      form.getRelinquishmentPercentage()
+          .setInputValue(RelinquishmentPercentageFormat.format(otherScheduleEvent.getRelinquishmentPercentage()));
+    }
     form.setDescription(otherScheduleEvent.getDescription());
     if (otherScheduleEvent.getLicenceSchedule() != null) {
       eventCommentService.findPendingCommentForScheduleEvent(otherScheduleEvent)

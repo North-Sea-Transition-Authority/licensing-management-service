@@ -20,6 +20,15 @@ errorSummaryItems=errorSummaryItems
             <#assign firstItem=true/>
             <#list categoryRadioOptions as key, value>
                 <@fdsRadio.radioItem path="form.otherScheduleEventCategory" itemMap={key : value} isFirstItem=firstItem>
+                    <#if key = "MANDATORY_RELINQUISHMENT">
+                        <@fdsTextInput.textInput
+                            path="form.relinquishmentPercentage.inputValue"
+                            labelText="Mandatory relinquishment percentage"
+                            suffix="%"
+                            inputClass="govuk-input--width-4"
+                            nestingPath="form.otherScheduleEventCategory"
+                        />
+                    </#if>
                     <#if key = "OTHER_ACTIVITY">
                         <@fdsTextInput.textInput
                             path="form.otherCategoryName"

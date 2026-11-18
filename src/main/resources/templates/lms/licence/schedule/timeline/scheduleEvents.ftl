@@ -377,6 +377,11 @@
             <p class="govuk-body">
                 ${eventView.description()}
             </p>
+            <#if eventView.relinquishmentPercentage()?has_content>
+                <p class="govuk-body">
+                    ${eventView.relinquishmentPercentage()} relinquished
+                </p>
+            </#if>
             <@eventComments comments=eventView.comments() canDeleteComments=eventView.addCommentUrl()?has_content/>
         </@fdsTimeline.timelineEvent>
     </@lmsTimeStamp.lmsTimeStamp>
@@ -411,6 +416,11 @@
             <p class="govuk-body">
                 ${eventView.description()}
             </p>
+            <#if eventView.relinquishmentPercentage()?has_content>
+                <p class="govuk-body">
+                    ${eventView.relinquishmentPercentage()} relinquished
+                </p>
+            </#if>
             <@eventComments comments=eventView.comments() canDeleteComments=eventView.addCommentUrl()?has_content/>
         </@fdsTimeline.timelineEvent>
     </@lmsTimeStamp.lmsTimeStamp>

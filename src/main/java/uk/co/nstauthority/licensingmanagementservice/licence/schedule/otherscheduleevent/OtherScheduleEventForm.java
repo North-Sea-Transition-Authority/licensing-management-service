@@ -1,5 +1,6 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.schedule.otherscheduleevent;
 
+import uk.co.fivium.formlibrary.input.DecimalInput;
 import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFieldDurationInput;
 
 public class OtherScheduleEventForm {
@@ -7,6 +8,8 @@ public class OtherScheduleEventForm {
   private OtherScheduleEventCategory otherScheduleEventCategory;
 
   private String otherCategoryName;
+
+  private DecimalInput relinquishmentPercentage = new DecimalInput("relinquishmentPercentage", "percentage");
 
   private String description;
 
@@ -36,6 +39,14 @@ public class OtherScheduleEventForm {
 
   public void setOtherCategoryName(String otherCategoryName) {
     this.otherCategoryName = otherCategoryName;
+  }
+
+  public DecimalInput getRelinquishmentPercentage() {
+    return relinquishmentPercentage;
+  }
+
+  public void setRelinquishmentPercentage(DecimalInput relinquishmentPercentage) {
+    this.relinquishmentPercentage = relinquishmentPercentage;
   }
 
   public String getDescription() {

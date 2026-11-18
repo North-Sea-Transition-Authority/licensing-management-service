@@ -338,6 +338,7 @@ class LicenceScheduleMockupData {
     return new TimelineOtherScheduleEventView(
         category,
         description,
+        null,
         eventDate,
         DateFormatUtil.convertToDisplayText(eventDate),
         MOCK_URL,

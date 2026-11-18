@@ -10,6 +10,7 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import org.hibernate.envers.Audited;
 import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFieldDuration;
@@ -36,6 +37,8 @@ public class OtherScheduleEvent extends ScheduleEvent implements LinkedToDuplica
   private String otherCategoryName;
 
   private String description;
+
+  private BigDecimal relinquishmentPercentage;
 
   @Enumerated(EnumType.STRING)
   private OtherScheduleEventDateOption dateOption;
@@ -91,6 +94,14 @@ public class OtherScheduleEvent extends ScheduleEvent implements LinkedToDuplica
 
   public void setDescription(String description) {
     this.description = description;
+  }
+
+  public BigDecimal getRelinquishmentPercentage() {
+    return relinquishmentPercentage;
+  }
+
+  public void setRelinquishmentPercentage(BigDecimal relinquishmentPercentage) {
+    this.relinquishmentPercentage = relinquishmentPercentage;
   }
 
   public OtherScheduleEventDateOption getDateOption() {

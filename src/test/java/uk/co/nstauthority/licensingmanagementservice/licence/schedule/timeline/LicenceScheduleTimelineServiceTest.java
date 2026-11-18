@@ -545,6 +545,7 @@ class LicenceScheduleTimelineServiceTest {
     var midPhaseEventView = new TimelineOtherScheduleEventView(
         OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT.getDisplayName(),
         "description",
+        null,
         LocalDate.of(2025, Month.FEBRUARY, 1),
         "1 February 2025",
         ReverseRouter.route(on(OtherScheduleEventController.class)
@@ -566,6 +567,7 @@ class LicenceScheduleTimelineServiceTest {
         OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT.getDisplayName(),
         "description",
         null,
+        null,
         "",
         ReverseRouter.route(on(OtherScheduleEventController.class)
             .renderUpdateEventForm(endOfPhaseEvent.getId())),
@@ -586,6 +588,7 @@ class LicenceScheduleTimelineServiceTest {
     var midTerm2EventView = new TimelineOtherScheduleEventView(
         OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT.getDisplayName(),
         "description",
+        null,
         LocalDate.of(2026, Month.FEBRUARY, 1),
         "1 February 2026",
         ReverseRouter.route(on(OtherScheduleEventController.class)
@@ -606,6 +609,7 @@ class LicenceScheduleTimelineServiceTest {
     var endOfTerm2EventView = new TimelineOtherScheduleEventView(
         OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT.getDisplayName(),
         "description",
+        null,
         null,
         "",
         ReverseRouter.route(on(OtherScheduleEventController.class)
@@ -904,6 +908,7 @@ class LicenceScheduleTimelineServiceTest {
     var midPhaseEventView = new TimelineOtherScheduleEventView(
         OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT.getDisplayName(),
         "description",
+        null,
         LocalDate.of(2025, Month.FEBRUARY, 1),
         "1 February 2025",
         "",
@@ -923,6 +928,7 @@ class LicenceScheduleTimelineServiceTest {
         OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT.getDisplayName(),
         "description",
         null,
+        null,
         "",
         "",
         "",
@@ -941,6 +947,7 @@ class LicenceScheduleTimelineServiceTest {
     var midTerm2EventView = new TimelineOtherScheduleEventView(
         OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT.getDisplayName(),
         "description",
+        null,
         LocalDate.of(2026, Month.FEBRUARY, 1),
         "1 February 2026",
         "",
@@ -959,6 +966,7 @@ class LicenceScheduleTimelineServiceTest {
     var endOfTerm2EventView = new TimelineOtherScheduleEventView(
         OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT.getDisplayName(),
         "description",
+        null,
         null,
         "",
         "",
@@ -1257,6 +1265,7 @@ class LicenceScheduleTimelineServiceTest {
     var midPhaseEventView = new TimelineOtherScheduleEventView(
         OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT.getDisplayName(),
         "description",
+        null,
         LocalDate.of(2025, Month.FEBRUARY, 1),
         "1 February 2025",
         ReverseRouter.route(on(OtherScheduleEventController.class)
@@ -1278,6 +1287,7 @@ class LicenceScheduleTimelineServiceTest {
         OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT.getDisplayName(),
         "description",
         null,
+        null,
         "",
         ReverseRouter.route(on(OtherScheduleEventController.class)
             .renderUpdateEventForm(endOfPhaseEvent.getId())),
@@ -1298,6 +1308,7 @@ class LicenceScheduleTimelineServiceTest {
     var midTerm2EventView = new TimelineOtherScheduleEventView(
         OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT.getDisplayName(),
         "description",
+        null,
         LocalDate.of(2026, Month.FEBRUARY, 1),
         "1 February 2026",
         ReverseRouter.route(on(OtherScheduleEventController.class)
@@ -1318,6 +1329,7 @@ class LicenceScheduleTimelineServiceTest {
     var endOfTerm2EventView = new TimelineOtherScheduleEventView(
         OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT.getDisplayName(),
         "description",
+        null,
         null,
         "",
         ReverseRouter.route(on(OtherScheduleEventController.class)
@@ -1535,6 +1547,7 @@ class LicenceScheduleTimelineServiceTest {
     var midPhaseEventView = new TimelineOtherScheduleEventView(
         OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT.getDisplayName(),
         "description",
+        null,
         LocalDate.of(2025, Month.FEBRUARY, 1),
         "1 February 2025",
         ReverseRouter.route(on(OtherScheduleEventController.class)
@@ -1556,6 +1569,7 @@ class LicenceScheduleTimelineServiceTest {
         OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT.getDisplayName(),
         "description",
         null,
+        null,
         "",
         ReverseRouter.route(on(OtherScheduleEventController.class)
             .renderUpdateEventForm(endOfPhaseEvent.getId())),
@@ -1576,6 +1590,7 @@ class LicenceScheduleTimelineServiceTest {
     var midTerm2EventView = new TimelineOtherScheduleEventView(
         OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT.getDisplayName(),
         "description",
+        null,
         LocalDate.of(2026, Month.FEBRUARY, 1),
         "1 February 2026",
         ReverseRouter.route(on(OtherScheduleEventController.class)
@@ -1596,6 +1611,7 @@ class LicenceScheduleTimelineServiceTest {
     var endOfTerm2EventView = new TimelineOtherScheduleEventView(
         OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT.getDisplayName(),
         "description",
+        null,
         null,
         "",
         ReverseRouter.route(on(OtherScheduleEventController.class)

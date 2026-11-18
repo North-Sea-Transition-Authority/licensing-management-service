@@ -422,7 +422,7 @@ public class TeamManagementController {
             .getScheduleWorkProgrammeApplicationById(UUID.fromString(team.getScopeId()));
 
         var applicationDetailId = scheduleWorkProgrammeApplicationService
-            .getFirstByScheduleWorkProgrammeApplicationOrderByVersionNumberDesc(scheduleWorkProgrammeApplication)
+            .getFirstByApplicationOrderByVersionNumberDesc(scheduleWorkProgrammeApplication)
             .getId();
 
         yield new ExternalContributorFormNavigation(

@@ -27,7 +27,7 @@ public class LicenceContinuationApplicationDetailQueryService {
       LicenceContinuationApplication licenceContinuationApplication
   ) {
     return licenceContinuationApplicationDetailRepository
-        .findFirstByLicenceContinuationApplicationOrderByVersionNumberDesc(licenceContinuationApplication);
+        .findFirstByApplicationOrderByVersionNumberDesc(licenceContinuationApplication);
   }
 
   public List<LatestApplicationDetailSummary> getLatestSummariesByApplicationIds(

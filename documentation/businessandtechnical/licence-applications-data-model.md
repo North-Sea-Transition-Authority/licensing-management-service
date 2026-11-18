@@ -20,20 +20,24 @@ schedule** — governs how application rows point at schedule rows (§7).
 | Term | Meaning |
 |---|---|
 | **Application** | A request from a licensee to change something about a licence. LMS has exactly two types (§3). |
-| **Extension and amendment application** (EAA) | "I want to extend a term, phase or work programme activity due date, or amend a work programme activity." Stored under `schedule_work_programme_applications`. Referred to in code and column names as *SWP* (schedule work programme). |
-| **Continuation application** (CA) | "I want to continue into the next term or phase of my production licence." Stored under `licence_continuation_applications`. |
-| **Application version** (a.k.a. *application detail*) | The mutable part of an application — status, timestamps, responsible organisation, and all the answers given in the journey. One row per version; there is one until an update is requested (§11.1). |
+| **Extension and amendment application** (EAA) | "I want to extend a term, phase or work programme activity due date, or amend a work programme activity." An `applications` row with `application_type = 'SCHEDULE_AMENDMENT_APPLICATION'`. Referred to in code and table names as *SWP* (schedule work programme). |
+| **Continuation application** (CA) | "I want to continue into the next term or phase of my production licence." An `applications` row with `application_type = 'CONTINUATION_APPLICATION'`. |
+| **Application version** (a.k.a. *application detail*) | The mutable part of an application — status, timestamps, responsible organisation, and all the answers given in the journey. One `application_details` row per version; there is one until an update is requested (§11.1). |
 | **Request** | A single thing being asked for within an application — one term extension, one work programme activity amendment, one requirement answer. Each has its own table. |
 | **Record of decision** (ROD) | The regulator's recorded outcome for an extension and amendment application. Lives in the `swp_record_of_decision*` tables (§5.7). |
-| **Steward** | The NSTA user allocated to progress an extension and amendment application. `schedule_work_programme_applications.steward_wua_id`. |
+| **Steward** | The NSTA user allocated to progress an extension and amendment application. `schedule_work_programme_applications.steward_wua_id`; the row exists only once a steward has been allocated. |
 
-Two structural facts drive almost every query:
+Three structural facts drive almost every query:
 
-1. **The application root table is thin; the detail table holds the state.** This mirrors the
+1. **Both application types share two central tables.** `applications` and `application_details`
+   hold every column the two types have in common, with an `application_type` column saying
+   which type a row is. Columns only one type uses live in that type's own table, which shares
+   its id with the central row (§2).
+2. **The application row is thin; the detail row holds the state.** This mirrors the
    `licence_schedules` / `licence_schedule_details` split, but for a different reason — here
-   the root exists to carry the application reference and the schedule binding, which must
-   not change once set.
-2. **Application rows point at *version-specific* schedule rows.** A term id, phase id or work
+   the application exists to carry the application reference, the licence and the schedule
+   binding, which must not change once set.
+3. **Application rows point at *version-specific* schedule rows.** A term id, phase id or work
    programme activity id held on an application row belongs to one `licence_schedule_details`
    version. §7 explains what to do about that.
 
@@ -42,33 +46,44 @@ Two structural facts drive almost every query:
 ## 2. How the tables fit together
 
 ```
-                          licences (id INTEGER)
-                                   │  1 : 1
-                                   ▼
-                      licence_schedules (id UUID, licence_id)
-                                   │
-        ┌──────────────────────────┼──────────────────────────┐
-        │ 1 : many                 │ 1 : many                 │ 1 : many
-        ▼                          ▼                          ▼
-licence_schedule_          schedule_work_programme_   licence_continuation_
-details                    applications               applications
-(the version chain)                │                          │
-                                   ▼                          ▼
-                           schedule_work_programme_   licence_continuation_
-                           application_details        application_details
-                                   │                          │
-                                   ▼                          ▼
-                           request + decision tables  requirement tables
-                           (§5)                       (§6)
+       licences (id INTEGER) ───────────────────────────┐
+              │  1 : 1                                  │ 1 : many
+              ▼                                         ▼
+       licence_schedules ◄──── schedule_applications ── applications (application_type)
+       (id UUID, licence_id)   (same id as the            │      │
+              │ 1 : many        application)              │      └── schedule_work_programme_applications
+              ▼                                           │          (same id; extension and amendment
+       licence_schedule_details                           │           only, once a steward is allocated)
+       (the version chain)                                ▼ 1 : many
+                                                  application_details (application_type)
+                                                          │
+                                  ┌───────────────────────┴───────────────────────┐
+                                  ▼ same id                                       ▼ same id
+             schedule_work_programme_application_details   licence_continuation_application_details
+                                  │                                               │
+                                  ▼                                               ▼
+                       request + decision tables (§5)                requirement tables (§6)
 ```
 
-- Both application root tables hang off `licence_schedules`, **not** off `licences` and not
-  off a schedule version. A licence with no schedule cannot have an application.
-- Both root tables additionally carry `submitted_licence_schedule_detail_id`, a nullable
-  pointer to the exact schedule version the application was submitted against (§7.1).
+- Every application, of either type, is one `applications` row and one or more
+  `application_details` rows. `application_type` on both says which type it is (§3).
+- Columns that only one type uses live in a **type-specific table that shares its id** with the
+  central row: an extension and amendment detail's extra columns are in
+  `schedule_work_programme_application_details`, a continuation detail's in
+  `licence_continuation_application_details`, under the same id as the `application_details`
+  row. Continuation applications have no extra application-level columns, so there is no
+  continuation table at that level.
+- Every application has a licence (`applications.licence_id`). Applications that relate to a
+  licence schedule, which today is both types, also have a `schedule_applications` row, under
+  the same id, holding the schedule and `submitted_licence_schedule_detail_id`, a nullable
+  pointer to the schedule version the application was most recently submitted against (§7.1). The
+  schedule hangs off `licence_schedules`, **not** off a schedule version. A licence with no
+  schedule cannot have either type of application.
 - Every journey answer lives in a child table keyed on the **application detail** id, except
   the two external contributor tables, which key on the **application** id so that a team and
-  its membership survive across application versions (§9).
+  its membership survive across application versions (§9). Child tables keyed on a detail
+  point at the type-specific detail table, so a continuation answer can only belong to a
+  continuation detail.
 
 ### 2.1 Entity relationship diagram
 
@@ -79,14 +94,16 @@ flowchart TB
     LIC["<b>licences</b><br/>id · type · licence_reference"]
     LS["<b>licence_schedules</b><br/>id · licence_id<br/><i>stable anchor, carries no application data</i>"]
     LSD["<b>licence_schedule_details</b><br/>id · licence_schedule_id · status · created_instant<br/><i>one row per schedule version</i>"]
-    SWPA["<b>schedule_work_programme_applications</b><br/>id · licence_schedule_id · application_reference · steward_wua_id<br/><i>extension and amendment — thin root</i>"]
-    LCA["<b>licence_continuation_applications</b><br/>id · licence_schedule_id · application_reference · withdrawal_reason · withdrawn_datetime<br/><i>continuation — thin root</i>"]
-    SWPAD["<b>schedule_work_programme_application_details</b><br/>id · version_number · status · decision_date<br/><i>one row per application version</i>"]
-    LCAD["<b>licence_continuation_application_details</b><br/>id · version_number · status · current/next term and phase ids<br/><i>one row per application version</i>"]
+    APP["<b>applications</b><br/>id · application_type · licence_id · application_reference · withdrawal_reason · withdrawn_datetime<br/><i>both types — thin root</i>"]
+    SA["<b>schedule_applications</b><br/>id · licence_schedule_id · submitted_licence_schedule_detail_id<br/><i>same id as the application; both current types</i>"]
+    SWPA["<b>schedule_work_programme_applications</b><br/>id · steward_wua_id<br/><i>same id as the application; extension and amendment, once a steward is allocated</i>"]
+    AD["<b>application_details</b><br/>id · application_id · application_type · version_number · status<br/><i>one row per application version, both types</i>"]
+    SWPAD["<b>schedule_work_programme_application_details</b><br/>id · all_licensees_permission_confirmed · decision_date<br/><i>same id as the detail; extension and amendment</i>"]
+    LCAD["<b>licence_continuation_application_details</b><br/>id · current/next term and phase ids<br/><i>same id as the detail; continuation</i>"]
     ECSWP["<b>swp_external_contributor_request</b><br/><i>keyed on the application, not the detail</i>"]
     ECC["<b>licence_continuation_external_contributor_request</b><br/><i>keyed on the application, not the detail</i>"]
 
-    subgraph EAA["extension and amendment content — all keyed on schedule_work_programme_application_details_id"]
+    subgraph EAA["extension and amendment content — all keyed on application_detail_id"]
         direction LR
         RP["swp_application_request_purpose"]
         EXT["licence_schedule_extension_request"]
@@ -96,7 +113,7 @@ flowchart TB
         ROD["swp_record_of_decision<br/>+ _extension · _reduction<br/>+ _work_programme · _work_programme_licence"]
     end
 
-    subgraph CONT["continuation content — all keyed on licence_continuation_application_detail_id"]
+    subgraph CONT["continuation content — all keyed on application_detail_id"]
         direction LR
         WPAR["licence_continuation_wpa_requirement_request"]
         OTHER["licence_continuation_other_requirement_request"]
@@ -106,30 +123,35 @@ flowchart TB
 
     LIC -- "1 : 1" --> LS
     LS -- "1 : many — the schedule version chain" --> LSD
-    LS -- "1 : many" --> SWPA
-    LS -- "1 : many" --> LCA
-    SWPA -- "1 : many" --> SWPAD
-    SWPA -- "1 : 1" --> ECSWP
-    LCA -- "1 : many" --> LCAD
-    LCA -- "1 : 1" --> ECC
+    LIC -- "1 : many" --> APP
+    APP -- "1 : 1, both current types" --> SA
+    SA -. "licence_schedule_id" .-> LS
+    APP -- "1 : 0..1, extension and amendment" --> SWPA
+    APP -- "1 : many" --> AD
+    APP -- "1 : 1" --> ECSWP
+    APP -- "1 : 1" --> ECC
+    AD -- "1 : 1, extension and amendment" --> SWPAD
+    AD -- "1 : 1, continuation" --> LCAD
     SWPAD -- "1 : many" --> EAA
     LCAD -- "1 : many" --> CONT
-    SWPA -. "submitted_licence_schedule_detail_id<br/>(set at submission)" .-> LSD
-    LCA -. "submitted_licence_schedule_detail_id<br/>(set at submission)" .-> LSD
+    SA -. "submitted_licence_schedule_detail_id<br/>(set on each submission)" .-> LSD
 ```
 
 ---
 
 ## 3. The two application types
 
-The application type is not stored in any column — it is implied by which pair of tables the
-row lives in. It appears as a **string** in two places outside these tables: the team scope
-(§9) and the document instance item type (§10).
+The application type is stored as `TEXT` in `applications.application_type` and repeated in
+`application_details.application_type`. The two always agree: `application_details` has a
+composite foreign key on `(application_id, application_type)` to `applications (id,
+application_type)`. The same string also appears outside these tables, in the team scope
+(§9), the document instance item type (§10), `application_decision_details` and the licence
+event cache.
 
-| Value | Display | Reference prefix | Root table | Licence types that can start one |
+| Value | Display | Reference prefix | Type-specific detail table | Licence types that can start one |
 |---|---|---|---|---|
-| `SCHEDULE_AMENDMENT_APPLICATION` | Licence and work programme extension and amendment application | `LMS/EAA/` | `schedule_work_programme_applications` | Landward production, Seaward production, Carbon storage |
-| `CONTINUATION_APPLICATION` | Licence continuation application | `LMS/CA/` | `licence_continuation_applications` | Landward production, Seaward production |
+| `SCHEDULE_AMENDMENT_APPLICATION` | Licence and work programme extension and amendment application | `LMS/EAA/` | `schedule_work_programme_application_details` | Landward production, Seaward production, Carbon storage |
+| `CONTINUATION_APPLICATION` | Licence continuation application | `LMS/CA/` | `licence_continuation_application_details` | Landward production, Seaward production |
 
 Note the mismatch between the stored name and everything user-facing: the value is
 `SCHEDULE_AMENDMENT_APPLICATION`, the reference prefix is `EAA`, the table prefix is `swp`,
@@ -142,8 +164,8 @@ environment is not a property of the data.
 
 ## 4. Application status — the lifecycle both types share
 
-`status` is stored as `TEXT` on the *detail* table of both families, from one shared value
-set:
+`status` is stored as `TEXT` on `application_details`, from one value set shared by both
+types:
 
 | Value | Meaning | Searchable in the work area |
 |---|---|---|
@@ -207,36 +229,60 @@ they are dead weight, not history.
 
 ## 5. Extension and amendment application
 
-### 5.1 The root and detail rows
+### 5.1 The application and detail rows
+
+An extension and amendment application is spread over the central tables, shared with
+continuation applications, and its own type-specific tables, joined on id:
 
 ```
-schedule_work_programme_applications
+applications                                          (both types)
   id                                   UUID PK
+  application_type                     TEXT NOT NULL  'SCHEDULE_AMENDMENT_APPLICATION'
+  licence_id                           INTEGER NOT NULL → licences.id  (the schedule's licence, §11.3)
+  application_reference                TEXT           UNIQUE, null until submission
+  withdrawal_reason                    TEXT           always null for this type today (§4)
+  withdrawn_datetime                   TIMESTAMPTZ    always null for this type today (§4)
+
+schedule_applications                                 (same id as the application)
+  id                                   UUID PK → applications.id
   licence_schedule_id                  UUID NOT NULL → licence_schedules.id
-  submitted_licence_schedule_detail_id UUID          → licence_schedule_details.id  (null until submission)
-  application_reference                TEXT          UNIQUE, null until submission
-  steward_wua_id                       INTEGER       Energy Portal wua id, null until allocated
+  submitted_licence_schedule_detail_id UUID          → licence_schedule_details.id  (null until first submission)
+
+schedule_work_programme_applications                  (same id as the application)
+  id                                   UUID PK → applications.id
+  steward_wua_id                       BIGINT NOT NULL Energy Portal wua id
 ```
 
+`schedule_work_programme_applications` holds the columns only extension and amendment
+applications have, which today is just the steward. **A row exists only once a steward has been
+allocated**, and reallocating updates it in place. No row means no steward: join to it with a
+left join.
+
 ```
-schedule_work_programme_application_details
-  id                                     UUID PK
-  schedule_work_programme_application_id UUID → schedule_work_programme_applications.id
-  version_number                         INTEGER      1 until an update is requested (§11.1)
-  status                                 TEXT         §4
-  all_licensees_permission_confirmed     BOOLEAN      captured on the first page of the journey
-  created_datetime                       TIMESTAMPTZ NOT NULL
-  created_by_wua_id                      BIGINT       Energy Portal wua id of the creator (§11.9)
-  submitted_datetime                     TIMESTAMPTZ  null until submission
-  submitted_by_wua_id                    INTEGER      null until submission
-  responsible_organisation_unit_id       INTEGER      Energy Portal organisation unit
-  decision_date                          DATE         set when the final decision is recorded
-  update_deadline_date                   DATE         date an update was requested by (§11.1); null if none requested
-  update_reason                          TEXT         why an update was requested (§11.1); null if none requested
+application_details                                   (both types)
+  id                                   UUID PK
+  application_id                       UUID NOT NULL  → applications.id
+  application_type                     TEXT NOT NULL  'SCHEDULE_AMENDMENT_APPLICATION'
+  version_number                       INTEGER        1 until an update is requested (§11.1)
+  status                               TEXT           §4
+  created_datetime                     TIMESTAMPTZ NOT NULL
+  created_by_wua_id                    BIGINT         Energy Portal wua id of the creator (§11.9)
+  submitted_datetime                   TIMESTAMPTZ    null until submission
+  submitted_by_wua_id                  BIGINT         null until submission
+  responsible_organisation_unit_id     INTEGER        Energy Portal organisation unit
+  update_deadline_date                 DATE           date an update was requested by (§11.1); null if none requested
+  update_reason                        TEXT           why an update was requested (§11.1); null if none requested
+
+schedule_work_programme_application_details           (same id as the application detail)
+  id                                   UUID PK → application_details.id
+  all_licensees_permission_confirmed   BOOLEAN        captured on the first page of the journey
+  decision_date                        DATE           set when the final decision is recorded
 ```
 
-Starting an application inserts one row in each table plus a scoped external contributors
-team (§9). The schedule version the licence had `ACTIVE` at that moment is *not* recorded yet —
+Every extension and amendment detail has a row in both detail tables. Starting an application
+inserts the `applications`, `schedule_applications`, `application_details` and
+`schedule_work_programme_application_details` rows, plus a scoped external contributors team
+(§9). The schedule version the licence had `ACTIVE` at that moment is *not* recorded yet —
 only `licence_schedule_id` is, which is the stable anchor, not a version.
 
 ### 5.2 `swp_application_request_purpose` — what is being asked for
@@ -245,7 +291,7 @@ One row per application detail, written at the first journey step.
 
 ```
 id                                            UUID PK
-schedule_work_programme_application_detail_id UUID → ..._details.id   ← singular "detail" (§11.4)
+application_detail_id                         UUID → schedule_work_programme_application_details.id
 extend_phase_or_term                          BOOLEAN NOT NULL
 extend_term                                   BOOLEAN NOT NULL
 amend_work_programme                          BOOLEAN NOT NULL
@@ -269,7 +315,7 @@ One row per term or phase the licensee wants extended.
 
 ```
 id                                             UUID PK
-schedule_work_programme_application_details_id  UUID NOT NULL   ← plural "details" (§11.4)
+application_detail_id                          UUID NOT NULL
 term_id                                        UUID   → a licence_schedule_terms row   (no FK)
 phase_id                                       UUID   → a licence_schedule_phases row  (no FK)
 extension_duration_days                        INTEGER NOT NULL
@@ -291,7 +337,7 @@ One row per work programme activity the licensee wants amended.
 
 ```
 id                                              UUID PK
-schedule_work_programme_application_details_id   UUID NOT NULL
+application_detail_id                           UUID NOT NULL
 work_programme_activity_id                      UUID   → a work_programme_activities row (no FK)
 work_programme_completion_date_change_requested  BOOLEAN
 work_programme_extension_duration_days           INTEGER
@@ -318,7 +364,7 @@ coming.
 
 ```
 id                                                UUID PK
-schedule_work_programme_application_details_id     UUID NOT NULL
+application_detail_id                             UUID NOT NULL
 licence_work_programme_amendment_summary_options   TEXT   ← §8.2
 ```
 
@@ -331,7 +377,7 @@ One row per application detail. Four free-text fields, all nullable.
 
 ```
 id                                             UUID PK
-schedule_work_programme_application_details_id  UUID NOT NULL
+application_detail_id                          UUID NOT NULL
 licence_progress                               TEXT
 reason_for_amendment                           TEXT
 plan_during_extension                          TEXT
@@ -343,13 +389,13 @@ Supporting **documents** are not in this table — see §10.
 ### 5.7 Record of decision
 
 The regulator's outcome is recorded across five tables. All are keyed on the application
-detail with the **singular** `schedule_work_programme_application_detail_id`.
+detail by `application_detail_id`, which points at `schedule_work_programme_application_details`.
 
 **`swp_record_of_decision`** — one row per application detail, the headline outcome.
 
 ```
 id                                            UUID PK
-schedule_work_programme_application_detail_id UUID NOT NULL
+application_detail_id                         UUID NOT NULL
 extension_decision                            TEXT   ← §8.3
 work_programme_decision                       TEXT   ← §8.3
 work_programme_summary_option                 TEXT   ← §8.4
@@ -365,7 +411,7 @@ duration column prefix:
 
 ```
 id                                            UUID PK
-schedule_work_programme_application_detail_id UUID NOT NULL
+application_detail_id                         UUID NOT NULL
 term_id                                       UUID   (no FK)
 phase_id                                      UUID   (no FK)
 extension_duration_days / _months / _years    INTEGER NOT NULL   (reduction_duration_* on the reduction table)
@@ -401,7 +447,7 @@ a row in *both* tables is malformed.
 
 ```
 id                                            UUID PK
-schedule_work_programme_application_detail_id UUID NOT NULL
+application_detail_id                         UUID NOT NULL
 work_programme_activity_id                    UUID NOT NULL → work_programme_activities.id  (FK enforced here)
 decision                                      TEXT NOT NULL ← §8.5
 amend_duration                                BOOLEAN
@@ -449,35 +495,27 @@ do not compute current term end dates from decision rows.
 
 ## 6. Continuation application
 
-### 6.1 The root and detail rows
+### 6.1 The application and detail rows
+
+A continuation application uses the same central rows as an extension and amendment
+application (§5.1), with `application_type = 'CONTINUATION_APPLICATION'`:
+
+- one `applications` row. `withdrawal_reason` and `withdrawn_datetime` are set when it is
+  withdrawn.
+- one `schedule_applications` row, under the same id, with the schedule and
+  `submitted_licence_schedule_detail_id`.
+- one `application_details` row per version.
+
+It has no application-level columns of its own, so there is no continuation table at that
+level. Each version also has a row in its type-specific detail table:
 
 ```
-licence_continuation_applications
-  id                                   UUID PK
-  licence_schedule_id                  UUID NOT NULL → licence_schedules.id
-  submitted_licence_schedule_detail_id UUID          → licence_schedule_details.id (null until submission)
-  application_reference                TEXT          UNIQUE, null until submission
-  withdrawal_reason                    TEXT          set when withdrawn
-  withdrawn_datetime                   TIMESTAMPTZ   set when withdrawn
-```
-
-```
-licence_continuation_application_details
-  id                                  UUID PK
-  licence_continuation_application_id  UUID → licence_continuation_applications.id
-  version_number                      INTEGER      1 until an update is requested (§11.1)
-  status                              TEXT         §4
-  created_datetime                    TIMESTAMPTZ  nullable, unlike the extension side (§11.3)
-  created_by_wua_id                   BIGINT       Energy Portal wua id of the creator (§11.9)
-  submitted_datetime                  TIMESTAMPTZ  null until submission
-  submitted_by_wua_id                 INTEGER      null until submission
-  responsible_organisation_unit_id    INTEGER
+licence_continuation_application_details              (same id as the application detail)
+  id                                  UUID PK → application_details.id
   current_term_id                     UUID → licence_schedule_terms.id   (FK enforced)
   current_phase_id                    UUID → licence_schedule_phases.id  (FK enforced)
   next_term_id                        UUID → licence_schedule_terms.id   (FK enforced)
   next_phase_id                       UUID → licence_schedule_phases.id  (FK enforced)
-  update_deadline_date                DATE         date an update was requested by (§11.1); null if none requested
-  update_reason                       TEXT         why an update was requested (§11.1); null if none requested
 ```
 
 The four term and phase columns are a **snapshot of the schedule state taken at submission**
@@ -494,7 +532,7 @@ One row per application detail.
 
 ```
 id                                            UUID PK
-licence_continuation_application_detail_id    UUID → ..._details.id
+application_detail_id                         UUID → licence_continuation_application_details.id
 work_programme_activities_completion_status   BOOLEAN   have all activities been completed?
 actions_to_complete_work_programme_activities TEXT      required when the above is false
 further_information                           TEXT
@@ -506,7 +544,7 @@ One row per application detail, holding up to three yes/no + explanation pairs.
 
 ```
 id                                            UUID PK
-licence_continuation_application_detail_id    UUID
+application_detail_id                         UUID
 financial_capacity_evidence_submission_status BOOLEAN
 actions_to_provide_financial_evidence         TEXT
 development_consent_grant_status              BOOLEAN
@@ -536,7 +574,7 @@ constraint enforces it.
 
 ```
 id                                         UUID PK
-licence_continuation_application_detail_id UUID
+application_detail_id                      UUID
 pending_actions_explanation                TEXT
 ```
 
@@ -546,7 +584,7 @@ One row per application detail.
 
 ```
 id                                         UUID PK
-licence_continuation_application_detail_id UUID
+application_detail_id                      UUID
 has_additional_supporting_information      BOOLEAN
 ```
 
@@ -564,29 +602,38 @@ alongside its extension and amendment twin in §9.
 
 ### 7.1 `submitted_licence_schedule_detail_id`
 
-Null while the application is a draft. On submission, both families set it to the schedule
-version that was `ACTIVE` for the licence **at that moment**, and never change it again.
+`schedule_applications.submitted_licence_schedule_detail_id` is null until the application is
+first submitted. On **every** submission, the first and each update submission, both types set
+it to the schedule version that is `ACTIVE` for the licence **at that moment**.
 
-This gives the correct rule for resolving an application's schedule:
+It is held once per application, not per version, so each resubmission overwrites it. Every
+version of the application, including earlier submitted ones, is then read against the
+schedule version of the latest submission. The column does not record which schedule version an
+earlier submission was made against; for that, use the history in `schedule_applications_aud`
+(§12). Continuation's term and phase snapshot is held per version and is not overwritten (§7.2).
+
+This gives the correct rule for resolving an application's schedule, for either type:
 
 ```sql
 -- the schedule version an application should be read against
 SELECT COALESCE(
-         app.submitted_licence_schedule_detail_id,
+         sa.submitted_licence_schedule_detail_id,
          (SELECT lsd.id
             FROM licence_schedule_details lsd
-           WHERE lsd.licence_schedule_id = app.licence_schedule_id
+           WHERE lsd.licence_schedule_id = sa.licence_schedule_id
              AND lsd.status = 'ACTIVE')
        ) AS schedule_detail_id
-FROM schedule_work_programme_applications app
-WHERE app.id = :application_id;
+FROM schedule_applications sa
+WHERE sa.id = :application_id;
 ```
 
 That is: **use the submitted version if there is one, otherwise the currently active
-version.** A draft moves with the licence's live schedule; a submitted application is frozen
-against the version it was submitted against, even after the licence's schedule is updated
-several times over. The one exception is the record of decision on an extension and
-amendment application, which reads the currently active version instead (§7.4).
+version.** An application that has never been submitted moves with the licence's live
+schedule. Once submitted, it stays on that version, even after the licence's schedule is updated
+several times over, until it is next submitted. An update draft therefore reads against the
+version of the previous submission, not the live schedule, until it is resubmitted. The one
+exception is the record of decision on an extension and amendment application, which reads the
+currently active version instead (§7.4).
 
 ### 7.2 Why continuation also snapshots term and phase
 
@@ -667,7 +714,7 @@ no lookup tables, no database `CHECK` constraints or `ENUM` types. Display strin
 code and are **not** present in the database. A value outside these lists is a data-quality
 signal, not a documentation gap.
 
-### 8.1 `status` on both application detail tables
+### 8.1 `application_details.status`
 
 `DRAFT`, `SUBMITTED`, `DSP_UPLOADED`, `DRAFT_DECISION`, `ISSUE_DECISION`, `COMPLETE`, `WITHDRAWN`,
 `DELETED` — see §4, including
@@ -759,19 +806,24 @@ the team:
 
 ```
 swp_external_contributor_request
-  id                                    UUID PK
-  schedule_work_programme_application_id UUID → schedule_work_programme_applications.id
-  add_external_contributors             BOOLEAN
+  id                        UUID PK
+  application_id            UUID → applications.id
+  add_external_contributors BOOLEAN
 
 licence_continuation_external_contributor_request
-  id                                  UUID PK
-  licence_continuation_application_id UUID → licence_continuation_applications.id
-  add_external_contributors           BOOLEAN
+  id                        UUID PK
+  application_id            UUID → applications.id
+  add_external_contributors BOOLEAN
 ```
 
 These are the only application content tables keyed on the application rather than the
 application detail. Joining either to its team means comparing that application id against
 `teams.scope_id` for the matching `scope_type`.
+
+Both point at `applications`, so the database does not check that a row in
+`swp_external_contributor_request` belongs to an extension and amendment application, or one in
+`licence_continuation_external_contributor_request` to a continuation application. That is
+enforced in application code (§11.4).
 
 The answer and the team move together in one direction only:
 
@@ -824,8 +876,8 @@ mnemonic:
 
 ### 11.1 `version_number` is 1 until an update is requested
 
-Both detail tables carry `version_number`, and both root tables can hold many detail rows. Every
-application starts with exactly one detail row, `version_number` 1. A second row appears only
+`application_details` carries `version_number`, and an application can have many detail rows.
+Every application starts with exactly one detail row, `version_number` 1. A second row appears only
 when a regulator requests an update to a `SUBMITTED` application (§11.1.1); nothing else
 creates one. Queries that fetch "the latest detail by version number descending" are therefore
 correct, and any query that assumes one detail row per application is wrong for applications
@@ -878,8 +930,9 @@ possible once the draft created by the earlier one has been submitted and the ap
 moves on. The earlier `SUBMITTED` row keeps its status throughout, so a
 `SUBMITTED` row with a later version is not the application's current version.
 
-The next update takes the number after the highest stored version, so a number is never reused. The pair (application, `version_number`) is unique in both
-detail tables, so two versions of one application can never share a number.
+The next update takes the number after the highest stored version, so a number is never
+reused. The pair (`application_id`, `version_number`) is unique in `application_details`, so
+two versions of one application can never share a number.
 
 While a draft update is open on a continuation application, the regulator cannot confirm the
 continuation from the earlier version. Confirming is possible again on the updated version once
@@ -892,7 +945,7 @@ submitted in the calendar year, so it is effectively a count of distinct applica
 
 ### 11.2 The application reference is assigned at submission, not creation
 
-`application_reference` is null for every draft, and unique across each table once set. The
+`application_reference` is null for every draft, and unique across `applications` once set. The
 format is `LMS/EAA/{year}/{n}/1` and `LMS/CA/{year}/{n}/1`, where the trailing `1` is the
 version number and `n` is one more than the number
 of applications of that type submitted so far in the current calendar year. The counter
@@ -908,31 +961,33 @@ including the original submitted one, shows the new reference once it is submitt
 Two consequences: a `DELETED` draft never consumes a number, and references are allocated at
 submission time, so their order matches `submitted_datetime`, not the creation timestamp.
 
-### 11.3 `created_datetime` is only `NOT NULL` for extension and amendment
+### 11.3 `applications.licence_id` repeats the schedule's licence
 
-Both detail tables name their timestamps `created_datetime` and `submitted_datetime`, so a
-query ports between the two families unchanged. The constraints differ, though:
-`created_datetime` is `NOT NULL` on the extension and amendment side but nullable on the
-continuation side. The service sets it on every continuation detail it writes, so a null there
-is a data-quality signal rather than an expected state.
+Every application has a licence, so `applications.licence_id` is `NOT NULL`. For the two
+current types the application also has a schedule, and the schedule belongs to a licence
+(`licence_schedules.licence_id`), so the licence is recorded twice. The two always agree: the
+licence is set from the schedule whenever the schedule is set, and neither changes after the
+application is created. That is enforced in application code, not by a database constraint.
 
-### 11.4 The extension and amendment detail foreign key is spelled two ways
+Use `applications.licence_id` to find an application's licence. Going through
+`schedule_applications` and `licence_schedules` gives the same answer for today's types but
+returns nothing for a future type that has no schedule.
 
-Tables keyed on `schedule_work_programme_application_details` do not agree on whether the
-column name is singular or plural:
+### 11.4 Foreign keys say which level, not always which type
 
-| Column | Tables using it |
-|---|---|
-| `schedule_work_programme_application_details_id` (plural) | `licence_schedule_extension_request`, `licence_work_programme_amendment_request`, `licence_work_programme_amendment_summary`, `licence_schedule_supporting_information` |
-| `schedule_work_programme_application_detail_id` (singular) | `swp_application_request_purpose`, all five `swp_record_of_decision*` tables |
+Every child table's foreign key column is named for what it points at:
+`application_detail_id` for the thirteen tables keyed on a detail, and `application_id` for the
+two external contributor request tables keyed on an application (§9).
 
-A query written against one spelling will not port to the other. The continuation family has
-no equivalent problem — everything keyed on the application detail uses
-`licence_continuation_application_detail_id`.
+The detail-level columns point at the **type-specific** detail table, so the database
+guarantees, for example, that a continuation requirement row belongs to a continuation detail.
+The two external contributor request tables, and `schedule_work_programme_applications.id`,
+point at the shared `applications` table instead. For those, the database only guarantees that
+the application exists, not that it is of the right type; that is enforced in application code.
 
-Both families' external contributor tables key on the application rather than the application
-detail, so they use `schedule_work_programme_application_id` and
-`licence_continuation_application_id` (§9).
+Inside the central tables the type is guaranteed: `application_details` references
+`applications` on `(application_id, application_type)`, so a detail always has the same type as
+its application.
 
 ### 11.5 Several references to schedule rows have no foreign key
 
@@ -995,11 +1050,24 @@ table (§12).
 ## 12. Audit history (Hibernate Envers)
 
 Every table in this document has a parallel audit table with the suffix `_aud`
-(`schedule_work_programme_application_details_aud`, `licence_continuation_applications_aud`,
-`swp_record_of_decision_aud`, and so on). Each holds the same data columns plus:
+(`applications_aud`, `application_details_aud`, `swp_record_of_decision_aud`, and so on). Each
+holds the same data columns plus:
 
 - `rev` — revision number, FK to `audit_revisions.rev`
 - `revtype` — `0` = insert, `1` = update, `2` = delete
+
+The two type-specific detail tables are the exception. A change to an application version
+writes one row to `application_details_aud`, carrying `revtype` and the shared columns, and one
+row to `schedule_work_programme_application_details_aud` or
+`licence_continuation_application_details_aud` with the same `rev` and `id`, carrying only the
+type-specific columns and **no `revtype`**. Join the two on `(rev, id)` to see a full version of
+a detail. `schedule_applications_aud` and `schedule_work_programme_applications_aud` do have
+their own `revtype`.
+
+History from before the central tables existed was copied into them, so `applications_aud`,
+`application_details_aud` and `schedule_applications_aud` go back to each application's start.
+`schedule_work_programme_applications_aud` also keeps its earlier rows from before any steward
+was allocated, with `steward_wua_id` null.
 
 Revision metadata lives in the same shared table the schedule model uses:
 
@@ -1013,13 +1081,12 @@ audit_revisions
 
 This is the **only** place recording *when* an application changed status and *who* did it,
 other than `created_by_wua_id` for the creation step, `submitted_datetime` /
-`submitted_by_wua_id` for the submission step, and
-`licence_continuation_applications.withdrawn_datetime` for a continuation withdrawal
-specifically:
+`submitted_by_wua_id` for the submission step, and `applications.withdrawn_datetime` for a
+withdrawal specifically:
 
 ```sql
 SELECT ar.created_date_time, ar.user_wua_id, d.status
-FROM schedule_work_programme_application_details_aud d
+FROM application_details_aud d
 JOIN audit_revisions ar ON ar.rev = d.rev
 WHERE d.id = :application_detail_id
 ORDER BY d.rev;
@@ -1033,91 +1100,91 @@ continuation applications withdrawn before the column existed; use this query fo
 
 ## 13. Reference: current columns per table
 
+### Both types
+
+**`applications`**
+`id`, `application_type`, `licence_id`, `application_reference`, `withdrawal_reason`,
+`withdrawn_datetime`
+
+**`schedule_applications`**
+`id`, `licence_schedule_id`, `submitted_licence_schedule_detail_id`
+
+**`application_details`**
+`id`, `application_id`, `application_type`, `version_number`, `status`, `created_datetime`,
+`created_by_wua_id`, `submitted_datetime`, `submitted_by_wua_id`,
+`responsible_organisation_unit_id`, `update_deadline_date`, `update_reason`
+
 ### Extension and amendment
 
 **`schedule_work_programme_applications`**
-`id`, `licence_schedule_id`, `submitted_licence_schedule_detail_id`, `application_reference`,
-`steward_wua_id`
+`id`, `steward_wua_id`
 
 **`schedule_work_programme_application_details`**
-`id`, `schedule_work_programme_application_id`, `version_number`, `status`,
-`all_licensees_permission_confirmed`, `created_datetime`, `created_by_wua_id`,
-`submitted_datetime`, `submitted_by_wua_id`, `responsible_organisation_unit_id`, `decision_date`,
-`update_deadline_date`, `update_reason`
+`id`, `all_licensees_permission_confirmed`, `decision_date`
 
 **`swp_application_request_purpose`**
-`id`, `schedule_work_programme_application_detail_id`, `extend_phase_or_term`, `extend_term`,
-`amend_work_programme`
+`id`, `application_detail_id`, `extend_phase_or_term`, `extend_term`, `amend_work_programme`
 
 **`licence_schedule_extension_request`**
-`id`, `schedule_work_programme_application_details_id`, `term_id`, `phase_id`,
-`extension_duration_days`, `extension_duration_months`, `extension_duration_years`
+`id`, `application_detail_id`, `term_id`, `phase_id`, `extension_duration_days`,
+`extension_duration_months`, `extension_duration_years`
 
 **`licence_work_programme_amendment_request`**
-`id`, `schedule_work_programme_application_details_id`, `work_programme_activity_id`,
+`id`, `application_detail_id`, `work_programme_activity_id`,
 `work_programme_completion_date_change_requested`, `work_programme_extension_duration_days`,
 `work_programme_extension_duration_months`, `work_programme_extension_duration_years`,
 `work_programme_change_requested`, `work_programme_amendment_information`
 
 **`licence_work_programme_amendment_summary`**
-`id`, `schedule_work_programme_application_details_id`,
-`licence_work_programme_amendment_summary_options`
+`id`, `application_detail_id`, `licence_work_programme_amendment_summary_options`
 
 **`licence_schedule_supporting_information`**
-`id`, `schedule_work_programme_application_details_id`, `licence_progress`,
-`reason_for_amendment`, `plan_during_extension`, `impact_on_deliverables`
+`id`, `application_detail_id`, `licence_progress`, `reason_for_amendment`,
+`plan_during_extension`, `impact_on_deliverables`
 
 **`swp_external_contributor_request`**
-`id`, `schedule_work_programme_application_id`, `add_external_contributors`
+`id`, `application_id`, `add_external_contributors`
 
 **`swp_record_of_decision`**
-`id`, `schedule_work_programme_application_detail_id`, `extension_decision`,
-`work_programme_decision`, `work_programme_summary_option`
+`id`, `application_detail_id`, `extension_decision`, `work_programme_decision`,
+`work_programme_summary_option`
 
 **`swp_record_of_decision_extension`**
-`id`, `schedule_work_programme_application_detail_id`, `term_id`, `phase_id`,
-`extension_duration_days`, `extension_duration_months`, `extension_duration_years`
+`id`, `application_detail_id`, `term_id`, `phase_id`, `extension_duration_days`,
+`extension_duration_months`, `extension_duration_years`
 
 **`swp_record_of_decision_reduction`**
-`id`, `schedule_work_programme_application_detail_id`, `term_id`, `phase_id`,
-`reduction_duration_days`, `reduction_duration_months`, `reduction_duration_years`
+`id`, `application_detail_id`, `term_id`, `phase_id`, `reduction_duration_days`,
+`reduction_duration_months`, `reduction_duration_years`
 
 **`swp_record_of_decision_work_programme`**
-`id`, `schedule_work_programme_application_detail_id`, `work_programme_activity_id`,
-`decision`, `amend_duration`, `amend_text`, `amended_duration_days`, `amended_duration_months`,
-`amended_duration_years`, `amended_text`
+`id`, `application_detail_id`, `work_programme_activity_id`, `decision`, `amend_duration`,
+`amend_text`, `amended_duration_days`, `amended_duration_months`, `amended_duration_years`,
+`amended_text`
 
 **`swp_record_of_decision_work_programme_licence`**
 `id`, `record_of_decision_work_programme_id`, `licence_id`
 
 ### Continuation
 
-**`licence_continuation_applications`**
-`id`, `licence_schedule_id`, `submitted_licence_schedule_detail_id`, `application_reference`,
-`withdrawal_reason`, `withdrawn_datetime`
-
 **`licence_continuation_application_details`**
-`id`, `licence_continuation_application_id`, `version_number`, `status`, `created_datetime`,
-`created_by_wua_id`, `submitted_datetime`, `submitted_by_wua_id`, `responsible_organisation_unit_id`,
-`current_term_id`, `current_phase_id`, `next_term_id`, `next_phase_id`, `update_deadline_date`,
-`update_reason`
+`id`, `current_term_id`, `current_phase_id`, `next_term_id`, `next_phase_id`
 
 **`licence_continuation_wpa_requirement_request`**
-`id`, `licence_continuation_application_detail_id`,
-`work_programme_activities_completion_status`,
+`id`, `application_detail_id`, `work_programme_activities_completion_status`,
 `actions_to_complete_work_programme_activities`, `further_information`
 
 **`licence_continuation_other_requirement_request`**
-`id`, `licence_continuation_application_detail_id`,
-`financial_capacity_evidence_submission_status`, `actions_to_provide_financial_evidence`,
-`development_consent_grant_status`, `actions_to_approve_development_consent`,
-`relinquishment_requirement_status`, `actions_to_relinquish_required_licence_area`
+`id`, `application_detail_id`, `financial_capacity_evidence_submission_status`,
+`actions_to_provide_financial_evidence`, `development_consent_grant_status`,
+`actions_to_approve_development_consent`, `relinquishment_requirement_status`,
+`actions_to_relinquish_required_licence_area`
 
 **`licence_continuation_licence_operators_request`**
-`id`, `licence_continuation_application_detail_id`, `pending_actions_explanation`
+`id`, `application_detail_id`, `pending_actions_explanation`
 
 **`licence_continuation_supporting_information`**
-`id`, `licence_continuation_application_detail_id`, `has_additional_supporting_information`
+`id`, `application_detail_id`, `has_additional_supporting_information`
 
 **`licence_continuation_external_contributor_request`**
-`id`, `licence_continuation_application_id`, `add_external_contributors`
+`id`, `application_id`, `add_external_contributors`

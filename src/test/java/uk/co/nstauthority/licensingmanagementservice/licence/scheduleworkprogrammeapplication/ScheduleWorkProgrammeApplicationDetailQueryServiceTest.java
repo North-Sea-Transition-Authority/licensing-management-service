@@ -33,7 +33,7 @@ class ScheduleWorkProgrammeApplicationDetailQueryServiceTest {
     applicationDetail.setId(UUID.randomUUID());
 
     when(scheduleWorkProgrammeApplicationDetailRepository
-        .getFirstByScheduleWorkProgrammeApplicationOrderByVersionNumberDesc(application))
+        .getFirstByApplicationOrderByVersionNumberDesc(application))
         .thenReturn(Optional.of(applicationDetail));
 
     var result = scheduleWorkProgrammeApplicationDetailQueryService.getLatestByApplication(application);

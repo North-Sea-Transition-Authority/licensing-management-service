@@ -139,7 +139,7 @@ class AllocateStewardServiceTest {
     var application = stubApplication();
 
     when(scheduleWorkProgrammeApplicationDetailRepository
-        .getFirstByScheduleWorkProgrammeApplicationOrderByVersionNumberDesc(application))
+        .getFirstByApplicationOrderByVersionNumberDesc(application))
         .thenReturn(Optional.empty());
 
     allocateStewardService.saveSteward(application, STEWARD_WUA_ID);
@@ -154,7 +154,7 @@ class AllocateStewardServiceTest {
     application.setStewardWuaId(STEWARD_WUA_ID);
 
     when(scheduleWorkProgrammeApplicationDetailRepository
-        .getFirstByScheduleWorkProgrammeApplicationOrderByVersionNumberDesc(application))
+        .getFirstByApplicationOrderByVersionNumberDesc(application))
         .thenReturn(Optional.empty());
 
     allocateStewardService.saveSteward(application, NEW_STEWARD_WUA_ID);
@@ -176,7 +176,7 @@ class AllocateStewardServiceTest {
         .build();
 
     when(scheduleWorkProgrammeApplicationDetailRepository
-        .getFirstByScheduleWorkProgrammeApplicationOrderByVersionNumberDesc(application))
+        .getFirstByApplicationOrderByVersionNumberDesc(application))
         .thenReturn(Optional.of(detail));
 
     allocateStewardService.saveSteward(application, NEW_STEWARD_WUA_ID);
@@ -197,7 +197,7 @@ class AllocateStewardServiceTest {
         .build();
 
     when(scheduleWorkProgrammeApplicationDetailRepository
-        .getFirstByScheduleWorkProgrammeApplicationOrderByVersionNumberDesc(application))
+        .getFirstByApplicationOrderByVersionNumberDesc(application))
         .thenReturn(Optional.of(detail));
 
     allocateStewardService.saveSteward(application, NEW_STEWARD_WUA_ID);
@@ -215,7 +215,7 @@ class AllocateStewardServiceTest {
         .build();
 
     when(scheduleWorkProgrammeApplicationDetailRepository
-        .getFirstByScheduleWorkProgrammeApplicationOrderByVersionNumberDesc(application))
+        .getFirstByApplicationOrderByVersionNumberDesc(application))
         .thenReturn(Optional.of(detail));
 
     allocateStewardService.saveSteward(application, NEW_STEWARD_WUA_ID);
@@ -231,7 +231,7 @@ class AllocateStewardServiceTest {
     var application = stubApplication();
 
     when(scheduleWorkProgrammeApplicationDetailRepository
-        .getFirstByScheduleWorkProgrammeApplicationOrderByVersionNumberDesc(application))
+        .getFirstByApplicationOrderByVersionNumberDesc(application))
         .thenReturn(Optional.empty());
 
     allocateStewardService.saveSteward(application, STEWARD_WUA_ID);

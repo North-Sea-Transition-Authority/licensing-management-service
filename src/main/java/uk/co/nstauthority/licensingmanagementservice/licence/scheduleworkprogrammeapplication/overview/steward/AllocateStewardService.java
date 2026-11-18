@@ -90,7 +90,7 @@ class AllocateStewardService {
         new CaseAllocationPayload(stewardWuaId)
     );
     scheduleWorkProgrammeApplicationDetailRepository
-        .getFirstByScheduleWorkProgrammeApplicationOrderByVersionNumberDesc(application)
+        .getFirstByApplicationOrderByVersionNumberDesc(application)
         .ifPresent(detail -> {
           clearDownWorkAreaLogService.clearDownViewFor(
               stewardWuaId,

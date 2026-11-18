@@ -449,7 +449,7 @@ class LicenceContinuationServiceTest {
     updateDraft.setStatus(ApplicationStatus.DRAFT);
     var deletedDraft = new LicenceContinuationApplicationDetail(UUID.randomUUID());
     deletedDraft.setStatus(ApplicationStatus.DELETED);
-    when(licenceContinuationApplicationDetailRepository.findAllByLicenceContinuationApplication(continuationApplication))
+    when(licenceContinuationApplicationDetailRepository.findAllByApplication(continuationApplication))
         .thenReturn(List.of(licenceContinuationApplicationDetail, updateDraft, deletedDraft));
 
     licenceContinuationService.withdrawContinuationChangeStatus(licenceContinuationApplicationDetail, reason);
@@ -527,7 +527,7 @@ class LicenceContinuationServiceTest {
     when(licenceContinuationApplicationRepository.findById(appId))
         .thenReturn(Optional.of(licenceContinuationApp));
 
-    when(licenceContinuationApplicationDetailRepository.findFirstByLicenceContinuationApplicationOrderByVersionNumberDesc(licenceContinuationApp))
+    when(licenceContinuationApplicationDetailRepository.findFirstByApplicationOrderByVersionNumberDesc(licenceContinuationApp))
         .thenReturn(Optional.of(licenceContinuationApplicationDetail));
 
     licenceContinuationApplicationDetail.setResponsibleOrganisationUnitId(orgUnitId);
@@ -568,7 +568,7 @@ class LicenceContinuationServiceTest {
     when(licenceContinuationApplicationRepository.findById(appId))
         .thenReturn(Optional.of(licenceContinuationApp));
 
-    when(licenceContinuationApplicationDetailRepository.findFirstByLicenceContinuationApplicationOrderByVersionNumberDesc(licenceContinuationApp))
+    when(licenceContinuationApplicationDetailRepository.findFirstByApplicationOrderByVersionNumberDesc(licenceContinuationApp))
         .thenReturn(Optional.empty());
 
     assertThrows(LmsEntityNotFoundException.class, () -> licenceContinuationService.issueContinuationLetter(application));

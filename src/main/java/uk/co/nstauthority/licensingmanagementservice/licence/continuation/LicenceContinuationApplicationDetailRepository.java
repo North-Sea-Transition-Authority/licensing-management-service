@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
@@ -20,24 +19,30 @@ public interface LicenceContinuationApplicationDetailRepository
 
   List<LicenceContinuationApplicationDetail> findAllByStatus(ApplicationStatus status);
 
-  @EntityGraph(attributePaths = {
-      "licenceContinuationApplication.licenceSchedule.licence",
-      "currentTerm",
-      "currentPhase",
-      "nextTerm",
-      "nextPhase"
-  })
+  @Query("""
+      SELECT d FROM licence_continuation_application_details d
+      JOIN FETCH d.application application
+      JOIN FETCH application.licence
+      LEFT JOIN FETCH TREAT(application AS LicenceContinuationApplication).schedule schedule
+      LEFT JOIN FETCH schedule.licenceSchedule
+      LEFT JOIN FETCH schedule.submittedLicenceScheduleDetail
+      LEFT JOIN FETCH d.currentTerm
+      LEFT JOIN FETCH d.currentPhase
+      LEFT JOIN FETCH d.nextTerm
+      LEFT JOIN FETCH d.nextPhase
+      WHERE d.status IN :statuses
+      """)
   List<LicenceContinuationApplicationDetail> findAllByStatusIn(Set<ApplicationStatus> statuses);
 
-  Optional<LicenceContinuationApplicationDetail> findFirstByLicenceContinuationApplicationOrderByVersionNumberDesc(
+  Optional<LicenceContinuationApplicationDetail> findFirstByApplicationOrderByVersionNumberDesc(
       LicenceContinuationApplication scheduleWorkProgrammeApplication
   );
 
-  List<LicenceContinuationApplicationDetail> findAllByLicenceContinuationApplication(
+  List<LicenceContinuationApplicationDetail> findAllByApplication(
       LicenceContinuationApplication licenceContinuationApplication
   );
 
-  boolean existsByLicenceContinuationApplicationAndVersionNumberGreaterThanAndStatusNot(
+  boolean existsByApplicationAndVersionNumberGreaterThanAndStatusNot(
       LicenceContinuationApplication licenceContinuationApplication,
       Integer versionNumber,
       ApplicationStatus status
@@ -52,17 +57,13 @@ public interface LicenceContinuationApplicationDetailRepository
           application.id, d.id, d.status, application.applicationReference
       )
       FROM licence_continuation_application_details d
-      JOIN d.licenceContinuationApplication application
+      JOIN d.application application
       WHERE application.id IN :licenceContinuationApplicationIds
       AND d.versionNumber = (
           SELECT MAX(latest.versionNumber) FROM licence_continuation_application_details latest
-          WHERE latest.licenceContinuationApplication = application
+          WHERE latest.application = application
       )
       """)
   List<LatestApplicationDetailSummary> findLatestSummariesByLicenceContinuationApplication_IdIn(
-      Collection<UUID> licenceContinuationApplicationIds);
-
-  @EntityGraph(attributePaths = "licenceContinuationApplication")
-  List<LicenceContinuationApplicationDetail> findAllByLicenceContinuationApplication_IdIn(
       Collection<UUID> licenceContinuationApplicationIds);
 }

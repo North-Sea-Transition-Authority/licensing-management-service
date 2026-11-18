@@ -8,21 +8,22 @@ INSERT INTO lms.document_library_document_instances
   (id, item_reference, item_type, title, description, document_template_id)
 SELECT
   gen_random_uuid(),
-  swpa.id::text,
+  a.id::text,
   'SCHEDULE_AMENDMENT_APPLICATION',
   t.title,
   t.description,
   t.id
-FROM lms.schedule_work_programme_applications swpa
-JOIN lms.schedule_work_programme_application_details swpad
-  ON swpad.schedule_work_programme_application_id = swpa.id
+FROM lms.applications a
+JOIN lms.application_details ad
+  ON ad.application_id = a.id
 JOIN lms.document_library_document_templates t
   ON t.mnemonic = 'EXTENSION_APPROVAL_LETTER-SCHEDULE_AMENDMENT_APPLICATION'
-WHERE swpad.status = 'ISSUE_DECISION'
+WHERE a.application_type = 'SCHEDULE_AMENDMENT_APPLICATION'
+  AND ad.status = 'ISSUE_DECISION'
   AND NOT EXISTS (
     SELECT 1
     FROM lms.document_library_document_instances di
-    WHERE di.item_reference = swpa.id::text
+    WHERE di.item_reference = a.id::text
       AND di.item_type = 'SCHEDULE_AMENDMENT_APPLICATION'
   );
 

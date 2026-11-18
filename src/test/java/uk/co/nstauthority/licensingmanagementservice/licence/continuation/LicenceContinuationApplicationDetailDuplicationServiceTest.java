@@ -147,7 +147,7 @@ class LicenceContinuationApplicationDetailDuplicationServiceTest {
       LicenceContinuationApplicationDetail highestVersion
   ) {
     when(licenceContinuationApplicationDetailRepository
-        .findFirstByLicenceContinuationApplicationOrderByVersionNumberDesc(application))
+        .findFirstByApplicationOrderByVersionNumberDesc(application))
         .thenReturn(Optional.of(highestVersion));
   }
 

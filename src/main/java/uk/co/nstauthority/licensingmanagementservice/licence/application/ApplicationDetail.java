@@ -1,10 +1,16 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.application;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.DiscriminatorColumn;
+import jakarta.persistence.DiscriminatorType;
+import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
-import jakarta.persistence.MappedSuperclass;
+import jakarta.persistence.Inheritance;
+import jakarta.persistence.InheritanceType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.UUID;
@@ -13,12 +19,18 @@ import org.hibernate.envers.Audited;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 
 @Audited
-@MappedSuperclass
+@Entity(name = "application_details")
+@Inheritance(strategy = InheritanceType.JOINED)
+@DiscriminatorColumn(name = "application_type", discriminatorType = DiscriminatorType.STRING)
 public abstract class ApplicationDetail {
 
   @Id
   @UuidGenerator
   private UUID id;
+
+  @ManyToOne
+  @JoinColumn(name = "application_id")
+  private Application application;
 
   @Column
   private Integer versionNumber;
@@ -55,7 +67,13 @@ public abstract class ApplicationDetail {
     this.id = id;
   }
 
-  public abstract Application getApplication();
+  public Application getApplication() {
+    return application;
+  }
+
+  protected void setApplication(Application application) {
+    this.application = application;
+  }
 
   public Licence getLicence() {
     return getApplication().getLicence();

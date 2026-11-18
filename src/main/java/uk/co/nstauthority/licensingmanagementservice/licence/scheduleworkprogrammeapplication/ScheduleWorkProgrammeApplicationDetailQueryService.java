@@ -27,7 +27,7 @@ public class ScheduleWorkProgrammeApplicationDetailQueryService {
       ScheduleWorkProgrammeApplication scheduleWorkProgrammeApplication
   ) {
     return scheduleWorkProgrammeApplicationDetailRepository
-        .getFirstByScheduleWorkProgrammeApplicationOrderByVersionNumberDesc(scheduleWorkProgrammeApplication);
+        .getFirstByApplicationOrderByVersionNumberDesc(scheduleWorkProgrammeApplication);
   }
 
   public List<LatestApplicationDetailSummary> getLatestSummariesByApplicationIds(

@@ -1,6 +1,7 @@
 # Investigation: Central Application and Application Detail Tables
 
-> **Status: Proposed.** Nothing in this document has been implemented. Written against
+> **Status: Implemented on the stacked branches, not yet merged.** Phase 1 is PR #932; Phases 2
+> and 3 are stacked on it. Phase 4 is not started. Originally written against
 > `develop` at `4f14542f6`, which includes the `created_datetime` rename (V130), plus
 > `licence_continuation_applications.withdrawn_datetime` (V131).
 
@@ -335,7 +336,9 @@ and need no change.
 ### Phase 2 — Flyway migration
 
 Its own PR (PR 3), targeting the Phase 1 PR's branch (see Delivery). One migration,
-`V<n>__application_root_tables.sql`. Outline:
+`V132__application_root_tables.sql`. The outline below follows it; the migration itself is the
+authoritative version. Constraint names over PostgreSQL's 63-character limit are abbreviated in
+the existing `swpa_` / `lca_` style.
 
 ```sql
 -- 1. Root tables
@@ -434,24 +437,10 @@ ALTER TABLE swp_external_contributor_request
   ADD CONSTRAINT swp_external_contributor_request_fk
     FOREIGN KEY (schedule_work_programme_application_id) REFERENCES applications (id);
 
--- schedule_work_programme_applications keeps only the steward: one row per extension
--- application that has one.
-DELETE FROM schedule_work_programme_applications WHERE steward_wua_id IS NULL;
-
-ALTER TABLE schedule_work_programme_applications
-  ADD CONSTRAINT schedule_work_programme_applications_application_fk FOREIGN KEY (id) REFERENCES applications (id),
-  DROP COLUMN licence_schedule_id,
-  DROP COLUMN submitted_licence_schedule_detail_id,
-  DROP COLUMN application_reference,
-  ALTER COLUMN steward_wua_id TYPE BIGINT,
-  ALTER COLUMN steward_wua_id SET NOT NULL;
-
--- licence_continuation_applications has nothing left of its own. The continuation details'
--- reference to it goes when their licence_continuation_application_id column is dropped below,
--- and then the table is dropped.
-
+-- The detail tables go before schedule_work_programme_applications: dropping their application
+-- columns removes the references that would otherwise block deleting steward-less rows below.
 ALTER TABLE schedule_work_programme_application_details
-  ADD CONSTRAINT schedule_work_programme_application_details_application_detail_fk FOREIGN KEY (id) REFERENCES application_details (id),
+  ADD CONSTRAINT swpad_application_detail_fk FOREIGN KEY (id) REFERENCES application_details (id),
   DROP COLUMN schedule_work_programme_application_id,
   DROP COLUMN version_number,
   DROP COLUMN status,
@@ -464,7 +453,7 @@ ALTER TABLE schedule_work_programme_application_details
   DROP COLUMN update_reason;
 
 ALTER TABLE licence_continuation_application_details
-  ADD CONSTRAINT licence_continuation_application_details_application_detail_fk FOREIGN KEY (id) REFERENCES application_details (id),
+  ADD CONSTRAINT lcad_application_detail_fk FOREIGN KEY (id) REFERENCES application_details (id),
   DROP COLUMN licence_continuation_application_id,
   DROP COLUMN version_number,
   DROP COLUMN status,
@@ -476,7 +465,20 @@ ALTER TABLE licence_continuation_application_details
   DROP COLUMN update_deadline_date,
   DROP COLUMN update_reason;
 
--- Dropping licence_continuation_application_id above removed the last reference to it.
+-- schedule_work_programme_applications keeps only the steward: one row per extension
+-- application that has one.
+DELETE FROM schedule_work_programme_applications WHERE steward_wua_id IS NULL;
+
+ALTER TABLE schedule_work_programme_applications
+  ADD CONSTRAINT swpa_application_fk FOREIGN KEY (id) REFERENCES applications (id),
+  DROP COLUMN licence_schedule_id,
+  DROP COLUMN submitted_licence_schedule_detail_id,
+  DROP COLUMN application_reference,
+  ALTER COLUMN steward_wua_id TYPE BIGINT,
+  ALTER COLUMN steward_wua_id SET NOT NULL;
+
+-- licence_continuation_applications has nothing left of its own; dropping the continuation
+-- details' licence_continuation_application_id above removed the last reference to it.
 DROP TABLE licence_continuation_applications;
 
 -- 4. Audit tables. Envers puts revtype, the discriminator and the shared columns in the root
@@ -556,7 +558,7 @@ ALTER TABLE swp_application_request_purpose_aud        RENAME COLUMN schedule_wo
 | `licence_schedule_extension_request` | `schedule_work_programme_application_details_id` | `application_detail_id` | `schedule_work_programme_application_details` |
 | `licence_work_programme_amendment_request` | `schedule_work_programme_application_details_id` | `application_detail_id` | `schedule_work_programme_application_details` |
 | `licence_work_programme_amendment_summary` | `schedule_work_programme_application_details_id` | `application_detail_id` | `schedule_work_programme_application_details` |
-| `licence_schedule_overall_request` | `schedule_work_programme_application_details_id` | `application_detail_id` | `schedule_work_programme_application_details` |
+| `licence_schedule_supporting_information` | `schedule_work_programme_application_details_id` | `application_detail_id` | `schedule_work_programme_application_details` |
 | `licence_continuation_wpa_requirement_request` | `licence_continuation_application_detail_id` | `application_detail_id` | `licence_continuation_application_details` |
 | `licence_continuation_other_requirement_request` | `licence_continuation_application_detail_id` | `application_detail_id` | `licence_continuation_application_details` |
 | `licence_continuation_licence_operators_request` | `licence_continuation_application_detail_id` | `application_detail_id` | `licence_continuation_application_details` |
@@ -623,17 +625,19 @@ Its own PR (PR 4), targeting the Phase 2 PR's branch (see Delivery).
    `@ManyToOne @JoinColumn(name = "application_id") Application application`.
    In each subclass, keep `getLicenceContinuationApplication()` /
    `getScheduleWorkProgrammeApplication()` as typed getters that cast `getApplication()`, so the
-   other files that call them don't change. The association is eager today; keep it eager or
-   use `Hibernate.unproxy` in the getter, because a lazy proxy of the abstract root can't be cast
-   to a subclass. The abstract `getApplication()` from Phase 1 becomes the concrete getter for
-   this association, and the two subclass implementations of it are deleted.
+   other files that call them don't change. The typed getters call `Hibernate.unproxy` before
+   casting, so they are safe even if the association is ever made lazy: a lazy proxy of the
+   abstract root can't be cast to a subclass. The abstract `getApplication()` from Phase 1
+   becomes the concrete getter for this association, and the two subclass implementations of it
+   are deleted. The typed setters call a protected `setApplication(...)`.
 4. Update what used the old property names:
-   - about 10 derived query methods in `LicenceContinuationApplicationDetailRepository` and
-     `ScheduleWorkProgrammeApplicationDetailRepository`. Either rename them to the `application`
-     property and update their callers, or give them `@Query` annotations so the method names
-     can stay.
-   - the two JPQL summary queries (`JOIN d.licenceContinuationApplication application`,
-     `WHERE latest.licenceContinuationApplication = application`, and the extension equivalents).
+   - the derived query methods in `LicenceContinuationApplicationDetailRepository` and
+     `ScheduleWorkProgrammeApplicationDetailRepository` are renamed to the `application` property
+     (for example `findFirstByApplicationOrderByVersionNumberDesc`) and their callers updated.
+     Every derived query is parsed at startup, so even the two unused `_IdIn` methods had to be
+     renamed.
+   - the two JPQL summary queries now join `d.application`. Their method names are free text, so
+     they keep their names.
 5. Map `schedule_applications` as its own entity, sharing the application's id, and move the
    schedule link onto it:
 
@@ -662,18 +666,19 @@ Its own PR (PR 4), targeting the Phase 2 PR's branch (see Delivery).
    ```
 
    `ScheduleApplication` replaces its two fields with the inverse side,
-   `@OneToOne(mappedBy = "application", cascade = CascadeType.ALL, optional = false) ApplicationSchedule schedule`,
+   `@OneToOne(mappedBy = "application", cascade = CascadeType.ALL) ApplicationSchedule schedule`,
    and keeps `getLicenceSchedule()`, `setLicenceSchedule(...)`,
    `getSubmittedLicenceScheduleDetail()` and `setSubmittedLicenceScheduleDetail(...)` as
    pass-throughs. The setters create the `ApplicationSchedule` the first time they're called, so
-   the two services that create applications don't change. Update the two entity-graph paths that
-   go through the old property (`licenceContinuationApplication.licenceSchedule.licence` and
-   `scheduleWorkProgrammeApplication.licenceSchedule.licence`) to go through `schedule`.
+   the two services that create applications don't change. The two entity graphs that went
+   through `...licenceSchedule.licence` now use `application.licence`: an entity graph can't
+   reach `schedule` through the root `Application` type, and the licence is on the root anyway.
 
    `Application` gets a `@ManyToOne @JoinColumn(name = "licence_id") Licence licence` field, and
    `getLicence()` becomes a concrete getter on the root instead of the abstract method that
-   `ScheduleApplication` implemented through the schedule. Both services that create
-   applications set it from the schedule's licence, which keeps it consistent with the schedule.
+   `ScheduleApplication` implemented through the schedule. `ScheduleApplication.setLicenceSchedule(...)`
+   also sets the licence to the schedule's licence, so the two can't disagree and the services
+   that create applications don't change.
 
 6. Map `schedule_work_programme_applications` as its own entity, sharing the application's id.
    It holds only the steward for now, but it is where any future extension-only application
@@ -699,17 +704,18 @@ Its own PR (PR 4), targeting the Phase 2 PR's branch (see Delivery).
    ```
 
    `ScheduleWorkProgrammeApplication` gets the inverse side,
-   `@OneToOne(mappedBy = "scheduleWorkProgrammeApplication") ScheduleWorkProgrammeApplicationData applicationData`,
+   `@OneToOne(mappedBy = "scheduleWorkProgrammeApplication", cascade = CascadeType.ALL) ScheduleWorkProgrammeApplicationData applicationData`,
    and keeps `getStewardWuaId()` as a null-safe read through it. The seven classes that read the
    steward (`ApplicationWorkAreaService`, `ScheduleAndWorkProgrammeApplicationWorkAreaService`,
    `ScheduleWorkProgrammeApplicationActionService`, `ScheduleWorkProgrammeApplicationOverviewService`,
    `RecordOfDecisionTaskListService`, `AllocateStewardService` and `CrossLicenceEventTrackerService`)
    then don't change.
 
-   Writing changes in one place: `AllocateStewardService` replaces `application.setStewardWuaId(...)`
-   with "find the application's `schedule_work_programme_applications` row, or create one, then
-   set the WUA id and save". Remove
-   `setStewardWuaId` from the application so nothing else can write it the old way.
+   `setStewardWuaId(...)` also stays on the application, following the same pattern as
+   `ScheduleApplication`'s schedule setters: it creates the `ScheduleWorkProgrammeApplicationData`
+   the first time it is called, and the cascade inserts the row when the application is saved.
+   `AllocateStewardService` and its tests don't change, and a row still appears only once a
+   steward is allocated.
 
 7. Keep `all_licensees_permission_confirmed`, `decision_date` and the four term/phase
    associations in the detail subclasses (where they already are). Move `withdrawalReason` and
@@ -828,8 +834,8 @@ the list queries.
 
 **`mappedBy` across the mapped superclass.** `ScheduleApplication` is a mapped superclass, and
 its inverse `@OneToOne` points at `ApplicationSchedule.application`, which is typed to the root
-`Application`. Hibernate should accept this, but prove it in a spike before Phase 3 relies on it.
-If it doesn't, move the inverse association down into the two application entities.
+`Application`. Confirmed in Phase 3: Hibernate and Envers both accept it, and the application
+context starts with it.
 
 **Licence and schedule stay consistent.** Test that creating each type of application sets
 `applications.licence_id` to the licence of its schedule.

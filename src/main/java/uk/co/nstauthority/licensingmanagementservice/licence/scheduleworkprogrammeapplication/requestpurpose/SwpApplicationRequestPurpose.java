@@ -22,7 +22,7 @@ public class SwpApplicationRequestPurpose implements LinkedToDuplicationParent<S
   private UUID id;
 
   @ManyToOne
-  @JoinColumn(name = "schedule_work_programme_application_detail_id")
+  @JoinColumn(name = "application_detail_id")
   private ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail;
 
   @Column

@@ -18,7 +18,7 @@ the application tables are where its status and content live.
 
 | Term | Meaning |
 |---|---|
-| **Application** | A request from a licensee to change something about a licence — either an extension and amendment application (`schedule_work_programme_applications`) or a continuation application (`licence_continuation_applications`). |
+| **Application** | A request from a licensee to change something about a licence — either an extension and amendment application or a continuation application. Both are rows in `applications`, told apart by `applications.application_type`. |
 | **Application detail** | One version of an application. There is one until an update is requested. See `licence-applications-data-model.md`. |
 | **Decision detail** | The row created when a regulator starts recording a decision on an application. It holds the decision's own status, version and who started it, not the outcome. Lives in `application_decision_details`. |
 | **Decision version** | One decision detail row. An application's first decision is version 1; a changed decision would be a new, higher version (§3.5). |
@@ -29,21 +29,19 @@ the application tables are where its status and content live.
 ## 2. How the tables fit together
 
 ```
-schedule_work_programme_applications        licence_continuation_applications
-                (id UUID)                                  (id UUID)
-                    ▲                                           ▲
-                    └──────────── application_type ─────────────┘
-                                + application_id
-                                  (no FK)
-                                     │
-                         application_decision_details
+                 applications (id UUID, application_type)
+                                  ▲
+                                  │  application_id + application_type
+                                  │  (no FK)
+                                  │
+                     application_decision_details
 ```
 
-- `application_decision_details` serves **both** application types. Which root table a row
-  belongs to is given by `application_type`, not by the column name.
+- `application_decision_details` serves **both** application types. `application_type` says
+  which type the application is, and always matches `applications.application_type`.
 - It is keyed on the **application**, not the application detail, so a decision detail is not
   tied to any one application version.
-- There is no foreign key to either root table.
+- There is no foreign key to `applications`.
 
 ### 2.1 Entity relationship diagram
 
@@ -51,12 +49,10 @@ Read top to bottom: each layer is keyed on the layer above it.
 
 ```mermaid
 flowchart TB
-    SWPA["<b>schedule_work_programme_applications</b><br/>id · licence_schedule_id · application_reference<br/><i>extension and amendment — thin root</i>"]
-    LCA["<b>licence_continuation_applications</b><br/>id · licence_schedule_id · application_reference<br/><i>continuation — thin root, no decision rows yet</i>"]
+    APP["<b>applications</b><br/>id · application_type · licence_id · application_reference<br/><i>both types — continuation has no decision rows yet</i>"]
     ADD["<b>application_decision_details</b><br/>id · application_type · application_id · version_number · status<br/><i>one row per decision version</i>"]
 
-    SWPA -. "application_type = SCHEDULE_AMENDMENT_APPLICATION<br/>(no FK)" .-> ADD
-    LCA -. "application_type = CONTINUATION_APPLICATION<br/>(no FK)" .-> ADD
+    APP -. "application_id + application_type<br/>(no FK)" .-> ADD
 ```
 
 ---
@@ -156,10 +152,13 @@ signal, not a documentation gap.
 
 ### 4.2 `application_type`
 
-| Value | Display | `application_id` points at |
+| Value | Display | Written |
 |---|---|---|
-| `SCHEDULE_AMENDMENT_APPLICATION` | Licence and work programme extension and amendment application | `schedule_work_programme_applications.id` |
-| `CONTINUATION_APPLICATION` | Licence continuation application | `licence_continuation_applications.id` — not yet written |
+| `SCHEDULE_AMENDMENT_APPLICATION` | Licence and work programme extension and amendment application | yes |
+| `CONTINUATION_APPLICATION` | Licence continuation application | not yet |
+
+In both cases `application_id` is an `applications.id` whose `application_type` is the same
+value.
 
 ---
 
@@ -167,18 +166,18 @@ signal, not a documentation gap.
 
 ### 5.1 Join on both key columns, and use a left join
 
-`application_id` identifies an application only together with `application_type`; on its own
-it could in principle match a row in either root table. There is no foreign key, so a dangling
-id is possible in principle.
+`application_id` is an `applications.id`. Join on `application_type` as well, which keeps the
+join correct if the two ever disagree. There is no foreign key, so a dangling id is possible in
+principle.
 
-An application can have more than one version (§3.5), so join to the latest one when you want
+A decision can have more than one version (§3.5), so join to the latest one when you want
 a single row per application:
 
 ```sql
 SELECT a.application_reference, d.version_number, d.status, d.created_datetime
-FROM schedule_work_programme_applications a
+FROM applications a
 LEFT JOIN application_decision_details d
-  ON d.application_type = 'SCHEDULE_AMENDMENT_APPLICATION'
+  ON d.application_type = a.application_type
  AND d.application_id = a.id
  AND d.version_number = (
        SELECT MAX(latest.version_number)
@@ -191,9 +190,9 @@ LEFT JOIN application_decision_details d
 ### 5.2 There is no direct link to the record of decision tables
 
 The `swp_record_of_decision*` tables are keyed on the application **detail**
-(`schedule_work_programme_application_detail_id`); `application_decision_details` is keyed on
-the application. To pair a decision detail with its record of decision rows, go through
-`schedule_work_programme_application_details.schedule_work_programme_application_id`.
+(`application_detail_id`); `application_decision_details` is keyed on the application. To pair
+a decision detail with its record of decision rows, go through
+`application_details.application_id`.
 
 ### 5.3 The decision row holds status, not the outcome
 
@@ -218,7 +217,7 @@ directly when the row is created, so it is never null.
 ### 5.6 Decision versions and application versions are numbered independently
 
 `application_decision_details.version_number` has no relationship to
-`schedule_work_programme_application_details.version_number`. Decision version 1 can sit
+`application_details.version_number`. Decision version 1 can sit
 alongside application version 2, and the `DRAFT_DECISION` status is written only to the
 latest non-`DELETED` application detail, not to every version of the application (§3.2).
 

@@ -61,7 +61,7 @@ public class ScheduleWorkProgrammeApplicationDetailDuplicationService {
   // Deleted versions keep their row, so the next number is based on the highest stored version.
   private int getNextVersionNumber(ScheduleWorkProgrammeApplicationDetail oldDetail) {
     return scheduleWorkProgrammeApplicationDetailRepository
-        .getFirstByScheduleWorkProgrammeApplicationOrderByVersionNumberDesc(oldDetail.getScheduleWorkProgrammeApplication())
+        .getFirstByApplicationOrderByVersionNumberDesc(oldDetail.getScheduleWorkProgrammeApplication())
         .map(ScheduleWorkProgrammeApplicationDetail::getVersionNumber)
         .map(highest -> Math.max(highest, oldDetail.getVersionNumber()) + 1)
         .orElse(oldDetail.getVersionNumber() + 1);

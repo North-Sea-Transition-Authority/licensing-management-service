@@ -7,21 +7,22 @@ INSERT INTO lms.document_library_document_instances
   (id, item_reference, item_type, title, description, document_template_id)
 SELECT
   gen_random_uuid(),
-  lca.id::text,
+  a.id::text,
   'CONTINUATION_APPLICATION',
   t.title,
   t.description,
   t.id
-FROM lms.licence_continuation_applications lca
-JOIN lms.licence_continuation_application_details lcad
-  ON lcad.licence_continuation_application_id = lca.id
+FROM lms.applications a
+JOIN lms.application_details ad
+  ON ad.application_id = a.id
 JOIN lms.document_library_document_templates t
   ON t.mnemonic = 'CONTINUATION_LETTER-CONTINUATION_APPLICATION'
-WHERE lcad.status = 'ISSUE_DECISION'
+WHERE a.application_type = 'CONTINUATION_APPLICATION'
+  AND ad.status = 'ISSUE_DECISION'
   AND NOT EXISTS (
     SELECT 1
     FROM lms.document_library_document_instances di
-    WHERE di.item_reference = lca.id::text
+    WHERE di.item_reference = a.id::text
       AND di.item_type = 'CONTINUATION_APPLICATION'
   );
 

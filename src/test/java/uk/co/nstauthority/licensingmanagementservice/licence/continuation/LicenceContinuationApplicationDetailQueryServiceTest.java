@@ -33,7 +33,7 @@ class LicenceContinuationApplicationDetailQueryServiceTest {
     applicationDetail.setId(UUID.randomUUID());
 
     when(licenceContinuationApplicationDetailRepository
-        .findFirstByLicenceContinuationApplicationOrderByVersionNumberDesc(application))
+        .findFirstByApplicationOrderByVersionNumberDesc(application))
         .thenReturn(Optional.of(applicationDetail));
 
     var result = licenceContinuationApplicationDetailQueryService.getLatestByApplication(application);

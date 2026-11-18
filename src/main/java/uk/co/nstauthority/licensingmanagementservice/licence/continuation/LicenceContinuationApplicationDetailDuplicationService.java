@@ -65,7 +65,7 @@ public class LicenceContinuationApplicationDetailDuplicationService {
   // Deleted versions keep their row, so the next number is based on the highest stored version.
   private int getNextVersionNumber(LicenceContinuationApplicationDetail oldDetail) {
     return licenceContinuationApplicationDetailRepository
-        .findFirstByLicenceContinuationApplicationOrderByVersionNumberDesc(oldDetail.getLicenceContinuationApplication())
+        .findFirstByApplicationOrderByVersionNumberDesc(oldDetail.getLicenceContinuationApplication())
         .map(LicenceContinuationApplicationDetail::getVersionNumber)
         .map(highest -> Math.max(highest, oldDetail.getVersionNumber()) + 1)
         .orElse(oldDetail.getVersionNumber() + 1);

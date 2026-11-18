@@ -85,7 +85,7 @@ public class LicenceContinuationActionService {
   }
 
   private boolean hasLaterVersion(LicenceContinuationApplicationDetail applicationDetail) {
-    return detailRepository.existsByLicenceContinuationApplicationAndVersionNumberGreaterThanAndStatusNot(
+    return detailRepository.existsByApplicationAndVersionNumberGreaterThanAndStatusNot(
         applicationDetail.getLicenceContinuationApplication(),
         applicationDetail.getVersionNumber(),
         ApplicationStatus.DELETED

@@ -25,7 +25,7 @@ confirm that is still the case:
 |---|---|
 | `licences-and-responsible-organisations-data-model.md` | `licences`, `licence_statuses`, `licence_responsible_organisations`, `licence_contact` — the licence record itself, its status history, its licensees, and the hourly PEARS refresh that maintains them |
 | `licence-schedules-data-model.md` | `licence_schedules`, `licence_schedule_details` and the seven schedule content tables, plus `schedule_events`, `event_comments` and `work_programme_activity_statuses` |
-| `licence-applications-data-model.md` | `schedule_work_programme_applications` and `licence_continuation_applications`, their detail tables, and every request, requirement and record-of-decision table hanging off them |
+| `licence-applications-data-model.md` | `applications`, `application_details` and `schedule_applications`, shared by both application types, the type-specific `schedule_work_programme_applications`, `schedule_work_programme_application_details` and `licence_continuation_application_details`, and every request, requirement and record-of-decision table hanging off them |
 | `licence-schedule-reminders-data-model.md` | `licence_reminders`, `licence_reminder_bounces`, `licence_reminder_missing_contacts` — which schedule deadlines have been warned about, what decides whether a reminder is sent, and how undelivered reminders and licensees with no contact are reported |
 | `licence-event-cache-data-model.md` | `licence_event_cache` — the denormalised read model behind the cross licence event tracker, and when it is rebuilt |
 | `application-decisions-data-model.md` | `application_decision_details` — the decision detail row written when a regulator starts recording a decision, shared by both application types and keyed on the application rather than the application detail |
@@ -162,7 +162,7 @@ Each document has its own baseline and its own code paths. Substitute accordingl
 |---|---|
 | `licences-and-responsible-organisations-data-model.md` | `licence/status`, `licence/contact`, `licence/licenceresponsibleorganisation`, and `licence/*.java` for the licence record and the refresh services |
 | `licence-schedules-data-model.md` | `licence/schedule` |
-| `licence-applications-data-model.md` | `licence/scheduleworkprogrammeapplication`, `licence/continuation` |
+| `licence-applications-data-model.md` | `licence/application` (outside `decision`), `licence/scheduleworkprogrammeapplication`, `licence/continuation` |
 | `licence-schedule-reminders-data-model.md` | `licence/eventreminder` |
 | `licence-event-cache-data-model.md` | `licence/crosslicenceeventtracker` |
 | `application-decisions-data-model.md` | `licence/application/decision`, `licence/scheduleworkprogrammeapplication/recordofdecision` |
@@ -290,9 +290,11 @@ No test fails when these stop being true. If your change goes near one, re-read 
   thing a new feature quietly changes.
 - **"Enforced in application code, not by a database constraint"** — if you add the
   constraint, the caveat becomes wrong in the reader's favour and should be deleted.
-- **The documented naming inconsistencies** — `created_datetime` versus `created_date_time`,
-  the three spellings of the application-detail foreign key. If a migration normalises one,
-  delete the caveat rather than leave it misleading.
+- **"Enforced in application code" claims about application types** — the applications
+  document says `applications.licence_id` always matches the schedule's licence, and that the
+  external contributor request tables and `schedule_work_programme_applications` hold only rows
+  of the right application type, all without a database constraint. Adding a composite foreign
+  key or check makes those caveats wrong in the reader's favour; delete them.
 - **"Never populated" claims** — the event cache document states that `quad_block` is always
   null. The moment anything writes it, a whole section and a caveat become wrong in the
   reader's favour. `steward_wua_id`, `application_id` and `application_type` are written, but

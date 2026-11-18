@@ -143,7 +143,7 @@ class LicenceContinuationActionServiceTest {
         .build();
 
     when(teamQueryService.getTeamRolesForUser(USER_WUA_ID)).thenReturn(Set.of(reviewerTeamRole()));
-    when(detailRepository.existsByLicenceContinuationApplicationAndVersionNumberGreaterThanAndStatusNot(
+    when(detailRepository.existsByApplicationAndVersionNumberGreaterThanAndStatusNot(
         applicationDetail.getLicenceContinuationApplication(),
         applicationDetail.getVersionNumber(),
         ApplicationStatus.DELETED
@@ -161,7 +161,7 @@ class LicenceContinuationActionServiceTest {
         .build();
 
     when(teamQueryService.getTeamRolesForUser(USER_WUA_ID)).thenReturn(Set.of(reviewerTeamRole()));
-    when(detailRepository.existsByLicenceContinuationApplicationAndVersionNumberGreaterThanAndStatusNot(
+    when(detailRepository.existsByApplicationAndVersionNumberGreaterThanAndStatusNot(
         applicationDetail.getLicenceContinuationApplication(),
         applicationDetail.getVersionNumber(),
         ApplicationStatus.DELETED
@@ -179,7 +179,7 @@ class LicenceContinuationActionServiceTest {
         .build();
 
     when(teamQueryService.getTeamRolesForUser(USER_WUA_ID)).thenReturn(Set.of(reviewerTeamRole()));
-    when(detailRepository.existsByLicenceContinuationApplicationAndVersionNumberGreaterThanAndStatusNot(
+    when(detailRepository.existsByApplicationAndVersionNumberGreaterThanAndStatusNot(
         applicationDetail.getLicenceContinuationApplication(),
         applicationDetail.getVersionNumber(),
         ApplicationStatus.DELETED

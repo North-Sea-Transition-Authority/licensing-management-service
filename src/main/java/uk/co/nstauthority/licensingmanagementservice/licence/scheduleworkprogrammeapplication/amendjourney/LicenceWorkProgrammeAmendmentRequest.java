@@ -28,7 +28,7 @@ public class LicenceWorkProgrammeAmendmentRequest implements LinkedToDuplication
   private WorkProgrammeActivity workProgrammeActivity;
 
   @ManyToOne
-  @JoinColumn(name = "schedule_work_programme_application_details_id")
+  @JoinColumn(name = "application_detail_id")
   private ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetails;
 
   @Embedded

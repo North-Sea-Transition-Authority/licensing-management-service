@@ -25,7 +25,7 @@ public class LicenceScheduleExtensionRequest implements LinkedToDuplicationParen
   private UUID id;
 
   @ManyToOne
-  @JoinColumn(name = "schedule_work_programme_application_details_id")
+  @JoinColumn(name = "application_detail_id")
   private ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetails;
 
   @ManyToOne

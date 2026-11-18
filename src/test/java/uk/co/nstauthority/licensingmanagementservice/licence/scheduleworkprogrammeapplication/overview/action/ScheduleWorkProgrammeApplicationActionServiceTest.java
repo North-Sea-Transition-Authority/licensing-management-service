@@ -431,7 +431,7 @@ class ScheduleWorkProgrammeApplicationActionServiceTest {
         .build();
 
     when(teamQueryService.getTeamRolesForUser(USER_WUA_ID)).thenReturn(Set.of(stewardTeamRole()));
-    when(detailRepository.existsByScheduleWorkProgrammeApplicationAndVersionNumberGreaterThanAndStatusNot(
+    when(detailRepository.existsByApplicationAndVersionNumberGreaterThanAndStatusNot(
         applicationDetail.getScheduleWorkProgrammeApplication(),
         applicationDetail.getVersionNumber(),
         ApplicationStatus.DELETED
@@ -450,7 +450,7 @@ class ScheduleWorkProgrammeApplicationActionServiceTest {
         .build();
 
     when(teamQueryService.getTeamRolesForUser(USER_WUA_ID)).thenReturn(Set.of(stewardTeamRole()));
-    when(detailRepository.existsByScheduleWorkProgrammeApplicationAndVersionNumberGreaterThanAndStatusNot(
+    when(detailRepository.existsByApplicationAndVersionNumberGreaterThanAndStatusNot(
         applicationDetail.getScheduleWorkProgrammeApplication(),
         applicationDetail.getVersionNumber(),
         ApplicationStatus.DELETED
@@ -469,7 +469,7 @@ class ScheduleWorkProgrammeApplicationActionServiceTest {
         .build();
 
     when(teamQueryService.getTeamRolesForUser(USER_WUA_ID)).thenReturn(Set.of(stewardTeamRole()));
-    when(detailRepository.existsByScheduleWorkProgrammeApplicationAndVersionNumberGreaterThanAndStatusNot(
+    when(detailRepository.existsByApplicationAndVersionNumberGreaterThanAndStatusNot(
         applicationDetail.getScheduleWorkProgrammeApplication(),
         applicationDetail.getVersionNumber(),
         ApplicationStatus.DELETED
@@ -493,7 +493,7 @@ class ScheduleWorkProgrammeApplicationActionServiceTest {
         .build();
 
     when(teamQueryService.getTeamRolesForUser(USER_WUA_ID)).thenReturn(Set.of(caseManagerRole));
-    when(detailRepository.existsByScheduleWorkProgrammeApplicationAndVersionNumberGreaterThanAndStatusNot(
+    when(detailRepository.existsByApplicationAndVersionNumberGreaterThanAndStatusNot(
         applicationDetail.getScheduleWorkProgrammeApplication(),
         applicationDetail.getVersionNumber(),
         ApplicationStatus.DELETED

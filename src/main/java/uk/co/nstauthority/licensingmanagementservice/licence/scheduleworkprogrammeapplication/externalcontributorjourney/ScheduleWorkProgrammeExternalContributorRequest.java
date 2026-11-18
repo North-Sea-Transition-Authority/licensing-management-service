@@ -18,7 +18,7 @@ public class ScheduleWorkProgrammeExternalContributorRequest {
   private UUID id;
 
   @ManyToOne
-  @JoinColumn(name = "schedule_work_programme_application_id")
+  @JoinColumn(name = "application_id")
   private ScheduleWorkProgrammeApplication scheduleWorkProgrammeApplication;
 
   private Boolean addExternalContributors;

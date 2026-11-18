@@ -173,7 +173,7 @@ public class ScheduleWorkProgrammeApplicationService {
   @Transactional
   public void draftDecisionCreated(ScheduleWorkProgrammeApplication application) {
     var latestDetail = scheduleWorkProgrammeApplicationDetailRepository
-        .findFirstByScheduleWorkProgrammeApplicationAndStatusNotOrderByVersionNumberDesc(
+        .findFirstByApplicationAndStatusNotOrderByVersionNumberDesc(
             application,
             ApplicationStatus.DELETED
         )
@@ -198,11 +198,11 @@ public class ScheduleWorkProgrammeApplicationService {
         () -> new LmsEntityNotFoundException("schedule work programme application detail", detailId));
   }
 
-  public ScheduleWorkProgrammeApplicationDetail getFirstByScheduleWorkProgrammeApplicationOrderByVersionNumberDesc(
+  public ScheduleWorkProgrammeApplicationDetail getFirstByApplicationOrderByVersionNumberDesc(
       ScheduleWorkProgrammeApplication scheduleWorkProgrammeApplication
   ) {
     return scheduleWorkProgrammeApplicationDetailRepository
-        .getFirstByScheduleWorkProgrammeApplicationOrderByVersionNumberDesc(scheduleWorkProgrammeApplication)
+        .getFirstByApplicationOrderByVersionNumberDesc(scheduleWorkProgrammeApplication)
         .orElseThrow(() -> new LmsEntityNotFoundException(
             "Schedule Work Programme Application Details not found",
             scheduleWorkProgrammeApplication.getId()
@@ -213,7 +213,7 @@ public class ScheduleWorkProgrammeApplicationService {
     var scheduleWorkProgrammeApplication = scheduleWorkProgrammeApplicationRepository.findById(applicationId)
         .orElseThrow(() -> new LmsEntityNotFoundException("schedule work programme application", applicationId));
 
-    return scheduleWorkProgrammeApplicationDetailRepository.getFirstByScheduleWorkProgrammeApplicationOrderByVersionNumberDesc(
+    return scheduleWorkProgrammeApplicationDetailRepository.getFirstByApplicationOrderByVersionNumberDesc(
         scheduleWorkProgrammeApplication
         )
         .orElseThrow(() -> new LmsEntityNotFoundException("schedule work programme application detail", applicationId));

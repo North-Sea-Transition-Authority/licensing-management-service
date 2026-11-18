@@ -354,7 +354,7 @@ class ScheduleWorkProgrammeApplicationServiceTest {
     var application = scheduleWorkProgrammeApplicationDetail.getScheduleWorkProgrammeApplication();
     scheduleWorkProgrammeApplicationDetail.setStatus(ApplicationStatus.DSP_UPLOADED);
     when(scheduleWorkProgrammeApplicationDetailRepository
-        .findFirstByScheduleWorkProgrammeApplicationAndStatusNotOrderByVersionNumberDesc(
+        .findFirstByApplicationAndStatusNotOrderByVersionNumberDesc(
             application,
             ApplicationStatus.DELETED
         ))
@@ -371,7 +371,7 @@ class ScheduleWorkProgrammeApplicationServiceTest {
   void draftDecisionCreated_whenNoLatestDetail_thenThrows() {
     var application = scheduleWorkProgrammeApplicationDetail.getScheduleWorkProgrammeApplication();
     when(scheduleWorkProgrammeApplicationDetailRepository
-        .findFirstByScheduleWorkProgrammeApplicationAndStatusNotOrderByVersionNumberDesc(
+        .findFirstByApplicationAndStatusNotOrderByVersionNumberDesc(
             application,
             ApplicationStatus.DELETED
         ))

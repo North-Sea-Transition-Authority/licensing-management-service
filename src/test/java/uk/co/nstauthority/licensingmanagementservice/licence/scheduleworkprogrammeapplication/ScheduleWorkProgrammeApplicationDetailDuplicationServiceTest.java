@@ -127,7 +127,7 @@ class ScheduleWorkProgrammeApplicationDetailDuplicationServiceTest {
       ScheduleWorkProgrammeApplicationDetail highestVersion
   ) {
     when(scheduleWorkProgrammeApplicationDetailRepository
-        .getFirstByScheduleWorkProgrammeApplicationOrderByVersionNumberDesc(application))
+        .getFirstByApplicationOrderByVersionNumberDesc(application))
         .thenReturn(Optional.of(highestVersion));
   }
 

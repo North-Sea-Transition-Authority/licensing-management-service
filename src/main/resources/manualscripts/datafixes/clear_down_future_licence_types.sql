@@ -18,22 +18,26 @@ CREATE TEMP TABLE future_schedule_events AS
 SELECT id FROM lms.schedule_events WHERE licence_schedule_id IN (SELECT id FROM future_schedules);
 
 CREATE TEMP TABLE future_swp_applications AS
-SELECT id FROM lms.schedule_work_programme_applications
-WHERE licence_schedule_id IN (SELECT id FROM future_schedules)
-   OR submitted_licence_schedule_detail_id IN (SELECT id FROM future_schedule_details);
+SELECT a.id FROM lms.applications a
+JOIN lms.schedule_applications sa ON sa.id = a.id
+WHERE a.application_type = 'SCHEDULE_AMENDMENT_APPLICATION'
+  AND (sa.licence_schedule_id IN (SELECT id FROM future_schedules)
+    OR sa.submitted_licence_schedule_detail_id IN (SELECT id FROM future_schedule_details));
 
 CREATE TEMP TABLE future_swp_application_details AS
-SELECT id FROM lms.schedule_work_programme_application_details
-WHERE schedule_work_programme_application_id IN (SELECT id FROM future_swp_applications);
+SELECT id FROM lms.application_details
+WHERE application_id IN (SELECT id FROM future_swp_applications);
 
 CREATE TEMP TABLE future_continuation_applications AS
-SELECT id FROM lms.licence_continuation_applications
-WHERE licence_schedule_id IN (SELECT id FROM future_schedules)
-   OR submitted_licence_schedule_detail_id IN (SELECT id FROM future_schedule_details);
+SELECT a.id FROM lms.applications a
+JOIN lms.schedule_applications sa ON sa.id = a.id
+WHERE a.application_type = 'CONTINUATION_APPLICATION'
+  AND (sa.licence_schedule_id IN (SELECT id FROM future_schedules)
+    OR sa.submitted_licence_schedule_detail_id IN (SELECT id FROM future_schedule_details));
 
 CREATE TEMP TABLE future_continuation_application_details AS
-SELECT id FROM lms.licence_continuation_application_details
-WHERE licence_continuation_application_id IN (SELECT id FROM future_continuation_applications);
+SELECT id FROM lms.application_details
+WHERE application_id IN (SELECT id FROM future_continuation_applications);
 
 CREATE TEMP TABLE future_corrections AS
 SELECT id FROM lms.licence_corrections WHERE licence_id IN (SELECT id FROM future_licences);
@@ -57,6 +61,10 @@ WHERE (application_type = 'SCHEDULE_AMENDMENT_APPLICATION' AND application_id IN
    OR (application_type = 'CONTINUATION_APPLICATION' AND application_id IN (SELECT id FROM future_continuation_applications));
 
 DELETE FROM lms.case_events
+WHERE (application_type = 'SCHEDULE_AMENDMENT_APPLICATION' AND application_id IN (SELECT id FROM future_swp_applications))
+   OR (application_type = 'CONTINUATION_APPLICATION' AND application_id IN (SELECT id FROM future_continuation_applications));
+
+DELETE FROM lms.application_decision_details
 WHERE (application_type = 'SCHEDULE_AMENDMENT_APPLICATION' AND application_id IN (SELECT id FROM future_swp_applications))
    OR (application_type = 'CONTINUATION_APPLICATION' AND application_id IN (SELECT id FROM future_continuation_applications));
 
@@ -98,47 +106,58 @@ DELETE FROM lms.swp_record_of_decision_work_programme_licence
 WHERE licence_id IN (SELECT id FROM future_licences)
    OR record_of_decision_work_programme_id IN (
      SELECT id FROM lms.swp_record_of_decision_work_programme
-     WHERE schedule_work_programme_application_detail_id IN (SELECT id FROM future_swp_application_details)
+     WHERE application_detail_id IN (SELECT id FROM future_swp_application_details)
    );
 
 DELETE FROM lms.swp_record_of_decision_work_programme
-WHERE schedule_work_programme_application_detail_id IN (SELECT id FROM future_swp_application_details);
+WHERE application_detail_id IN (SELECT id FROM future_swp_application_details);
 DELETE FROM lms.swp_record_of_decision_extension
-WHERE schedule_work_programme_application_detail_id IN (SELECT id FROM future_swp_application_details);
+WHERE application_detail_id IN (SELECT id FROM future_swp_application_details);
 DELETE FROM lms.swp_record_of_decision_reduction
-WHERE schedule_work_programme_application_detail_id IN (SELECT id FROM future_swp_application_details);
+WHERE application_detail_id IN (SELECT id FROM future_swp_application_details);
 DELETE FROM lms.swp_record_of_decision
-WHERE schedule_work_programme_application_detail_id IN (SELECT id FROM future_swp_application_details);
+WHERE application_detail_id IN (SELECT id FROM future_swp_application_details);
 DELETE FROM lms.swp_application_request_purpose
-WHERE schedule_work_programme_application_detail_id IN (SELECT id FROM future_swp_application_details);
+WHERE application_detail_id IN (SELECT id FROM future_swp_application_details);
 DELETE FROM lms.licence_work_programme_amendment_summary
-WHERE schedule_work_programme_application_details_id IN (SELECT id FROM future_swp_application_details);
+WHERE application_detail_id IN (SELECT id FROM future_swp_application_details);
 DELETE FROM lms.licence_work_programme_amendment_request
-WHERE schedule_work_programme_application_details_id IN (SELECT id FROM future_swp_application_details);
+WHERE application_detail_id IN (SELECT id FROM future_swp_application_details);
 DELETE FROM lms.licence_schedule_supporting_information
-WHERE schedule_work_programme_application_details_id IN (SELECT id FROM future_swp_application_details);
+WHERE application_detail_id IN (SELECT id FROM future_swp_application_details);
 DELETE FROM lms.licence_schedule_extension_request
-WHERE schedule_work_programme_application_details_id IN (SELECT id FROM future_swp_application_details);
+WHERE application_detail_id IN (SELECT id FROM future_swp_application_details);
 DELETE FROM lms.schedule_work_programme_application_details WHERE id IN (SELECT id FROM future_swp_application_details);
 DELETE FROM lms.swp_external_contributor_request
-WHERE schedule_work_programme_application_id IN (SELECT id FROM future_swp_applications);
+WHERE application_id IN (SELECT id FROM future_swp_applications);
 DELETE FROM lms.schedule_work_programme_applications WHERE id IN (SELECT id FROM future_swp_applications);
 
 -- Continuation applications
 
 DELETE FROM lms.licence_continuation_wpa_requirement_request
-WHERE licence_continuation_application_detail_id IN (SELECT id FROM future_continuation_application_details);
+WHERE application_detail_id IN (SELECT id FROM future_continuation_application_details);
 DELETE FROM lms.licence_continuation_other_requirement_request
-WHERE licence_continuation_application_detail_id IN (SELECT id FROM future_continuation_application_details);
+WHERE application_detail_id IN (SELECT id FROM future_continuation_application_details);
 DELETE FROM lms.licence_continuation_licence_operators_request
-WHERE licence_continuation_application_detail_id IN (SELECT id FROM future_continuation_application_details);
+WHERE application_detail_id IN (SELECT id FROM future_continuation_application_details);
 DELETE FROM lms.licence_continuation_supporting_information
-WHERE licence_continuation_application_detail_id IN (SELECT id FROM future_continuation_application_details);
+WHERE application_detail_id IN (SELECT id FROM future_continuation_application_details);
 DELETE FROM lms.licence_continuation_application_details
 WHERE id IN (SELECT id FROM future_continuation_application_details);
 DELETE FROM lms.licence_continuation_external_contributor_request
-WHERE licence_continuation_application_id IN (SELECT id FROM future_continuation_applications);
-DELETE FROM lms.licence_continuation_applications WHERE id IN (SELECT id FROM future_continuation_applications);
+WHERE application_id IN (SELECT id FROM future_continuation_applications);
+
+-- Rows shared by both application types
+
+DELETE FROM lms.application_details
+WHERE id IN (SELECT id FROM future_swp_application_details)
+   OR id IN (SELECT id FROM future_continuation_application_details);
+DELETE FROM lms.schedule_applications
+WHERE id IN (SELECT id FROM future_swp_applications)
+   OR id IN (SELECT id FROM future_continuation_applications);
+DELETE FROM lms.applications
+WHERE id IN (SELECT id FROM future_swp_applications)
+   OR id IN (SELECT id FROM future_continuation_applications);
 
 -- Reminders
 

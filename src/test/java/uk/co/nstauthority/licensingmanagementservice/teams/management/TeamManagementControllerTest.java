@@ -929,7 +929,7 @@ class TeamManagementControllerTest extends AbstractControllerTest {
     when(scheduleWorkProgrammeApplicationService.getScheduleWorkProgrammeApplicationById(id))
         .thenReturn(scheduleWorkProgrammeApplication);
 
-    when(scheduleWorkProgrammeApplicationService.getFirstByScheduleWorkProgrammeApplicationOrderByVersionNumberDesc(scheduleWorkProgrammeApplication))
+    when(scheduleWorkProgrammeApplicationService.getFirstByApplicationOrderByVersionNumberDesc(scheduleWorkProgrammeApplication))
         .thenReturn(scheduleWorkProgrammeApplicationDetail);
 
     externalContributors.setScopeType(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION.name());

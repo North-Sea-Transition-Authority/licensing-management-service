@@ -20,7 +20,7 @@ public class LicenceContinuationOtherRequirementRequest
   private UUID id;
 
   @ManyToOne
-  @JoinColumn(name = "licence_continuation_application_detail_id")
+  @JoinColumn(name = "application_detail_id")
   private LicenceContinuationApplicationDetail licenceContinuationApplicationDetail;
 
   private Boolean financialCapacityEvidenceSubmissionStatus;

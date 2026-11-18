@@ -23,7 +23,7 @@ public class LicenceWorkProgrammeAmendmentSummary implements LinkedToDuplication
   private UUID id;
 
   @ManyToOne
-  @JoinColumn(name = "schedule_work_programme_application_details_id")
+  @JoinColumn(name = "application_detail_id")
   private ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetails;
 
   @Enumerated(EnumType.STRING)

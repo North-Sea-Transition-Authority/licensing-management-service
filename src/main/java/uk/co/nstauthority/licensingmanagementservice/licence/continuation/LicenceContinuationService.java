@@ -146,7 +146,7 @@ public class LicenceContinuationService {
     var licenceContinuationApplication = licenceContinuationApplicationRepository.findById(applicationId)
         .orElseThrow(() -> new LmsEntityNotFoundException(LICENCE_CONTINUATION_APPLICATION_DETAIL, applicationId));
 
-    return licenceContinuationApplicationDetailRepository.findFirstByLicenceContinuationApplicationOrderByVersionNumberDesc(
+    return licenceContinuationApplicationDetailRepository.findFirstByApplicationOrderByVersionNumberDesc(
             licenceContinuationApplication
         )
         .orElseThrow(() -> new LmsEntityNotFoundException(LICENCE_CONTINUATION_APPLICATION_DETAIL, applicationId));
@@ -344,7 +344,7 @@ public class LicenceContinuationService {
       String withdrawalReason
   ) {
     var application = licenceContinuationApplicationDetail.getLicenceContinuationApplication();
-    licenceContinuationApplicationDetailRepository.findAllByLicenceContinuationApplication(application).stream()
+    licenceContinuationApplicationDetailRepository.findAllByApplication(application).stream()
         .filter(detail -> detail.getStatus() != ApplicationStatus.DELETED)
         .forEach(detail -> {
           detail.setStatus(ApplicationStatus.WITHDRAWN);

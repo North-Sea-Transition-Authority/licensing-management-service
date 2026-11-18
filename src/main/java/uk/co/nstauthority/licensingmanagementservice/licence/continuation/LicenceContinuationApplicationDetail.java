@@ -1,27 +1,25 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.continuation;
 
 import com.google.common.annotations.VisibleForTesting;
+import jakarta.persistence.DiscriminatorValue;
 import jakarta.persistence.Entity;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import java.util.UUID;
+import org.hibernate.Hibernate;
 import org.hibernate.envers.Audited;
 import uk.co.nstauthority.licensingmanagementservice.endpointvalidation.PathVariableEntity;
-import uk.co.nstauthority.licensingmanagementservice.licence.application.Application;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
 
 @Audited
 @Entity(name = "licence_continuation_application_details")
+@DiscriminatorValue("CONTINUATION_APPLICATION")
 @PathVariableEntity(pathVariableName = LicenceContinuationApplicationDetail.LICENCE_CONTINUATION_APPLICATION_DETAIL_ID)
 public class LicenceContinuationApplicationDetail extends ApplicationDetail {
 
   public static final String LICENCE_CONTINUATION_APPLICATION_DETAIL_ID = "licenceContinuationApplicationDetailId";
-
-  @ManyToOne
-  @JoinColumn(name = "licence_continuation_application_id")
-  private LicenceContinuationApplication licenceContinuationApplication;
 
   @ManyToOne
   @JoinColumn(name = "current_term_id")
@@ -48,17 +46,12 @@ public class LicenceContinuationApplicationDetail extends ApplicationDetail {
   }
 
   public LicenceContinuationApplication getLicenceContinuationApplication() {
-    return licenceContinuationApplication;
+    return (LicenceContinuationApplication) Hibernate.unproxy(getApplication());
   }
 
   public void setLicenceContinuationApplication(
       LicenceContinuationApplication licenceContinuationApplication) {
-    this.licenceContinuationApplication = licenceContinuationApplication;
-  }
-
-  @Override
-  public Application getApplication() {
-    return getLicenceContinuationApplication();
+    setApplication(licenceContinuationApplication);
   }
 
   public LicenceScheduleTerm getCurrentTerm() {

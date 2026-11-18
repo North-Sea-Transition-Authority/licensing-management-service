@@ -18,7 +18,7 @@ public class LicenceContinuationExternalContributorRequest {
   private UUID id;
 
   @ManyToOne
-  @JoinColumn(name = "licence_continuation_application_id")
+  @JoinColumn(name = "application_id")
   private LicenceContinuationApplication licenceContinuationApplication;
 
   private Boolean addExternalContributors;

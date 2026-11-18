@@ -54,8 +54,8 @@ flowchart TB
     LS["<b>licence_schedules</b><br/>id · licence_id"]
     LSD["<b>licence_schedule_details</b><br/>id · status<br/><i>only the ACTIVE version is ever cached</i>"]
     SE["<b>schedule_events</b><br/>id · event_type · original_event_id<br/><i>see the schedules data model</i>"]
-    SWPA["<b>schedule_work_programme_applications</b><br/>id · application_reference · steward_wua_id<br/><i>see the applications data model — extension and amendment only</i>"]
-    LCA["<b>licence_continuation_applications</b><br/>id · application_reference<br/><i>see the applications data model — no steward concept</i>"]
+    APP["<b>applications</b><br/>id · application_type · application_reference<br/><i>see the applications data model — both types</i>"]
+    SWPA["<b>schedule_work_programme_applications</b><br/>id · steward_wua_id<br/><i>same id as the application; extension and amendment only, once a steward is allocated</i>"]
     CACHE["<b>licence_event_cache</b><br/>id · licence_id · licence_reference · original_event_id<br/>event_type · current_term_phase · next_term_phase<br/>activity_type · event_date<br/>application_id · application_type · steward_wua_id<br/><i>one row per logical event per application — rebuilt on apply, application columns refreshed on submission</i>"]
 
     LIC -- "1 : 1" --> LS
@@ -63,8 +63,9 @@ flowchart TB
     LS -- "1 : many" --> SE
     LIC -- "1 : many" --> CACHE
     SE -. "original_event_id — no foreign key" .-> CACHE
-    SWPA -. "application_id — no foreign key<br/>(set on submission, §4.5)" .-> CACHE
-    LCA -. "application_id — no foreign key<br/>(set on submission, §4.5)" .-> CACHE
+    APP -- "1 : 0..1" --> SWPA
+    APP -. "application_id + application_type — no foreign key<br/>(set on submission, §4.5)" .-> CACHE
+    SWPA -. "steward_wua_id copied on submission (§4.5)" .-> CACHE
 ```
 
 The dotted edges are the ones that matter: they are value correspondences, not constraints.
@@ -225,9 +226,9 @@ Several things a reader is likely to assume, and shouldn't:
   Continuation applications have no steward concept, so a cache row linked to one always leaves
   `steward_wua_id` null, regardless of who is progressing it.
 - **For extension and amendment applications, `steward_wua_id` is a submission-time snapshot,
-  not the current steward.** It is copied from the application's own `steward_wua_id` at the
-  moment of submission, which is usually still null — a steward is normally allocated only
-  after submission. Allocating or reassigning a steward afterwards does not trigger another
+  not the current steward.** It is copied from `schedule_work_programme_applications.steward_wua_id`
+  at the moment of submission, and is null when that row doesn't exist yet, which is usual — a
+  steward is normally allocated only after submission. Allocating or reassigning a steward afterwards does not trigger another
   refresh, so the cached value can be stale or simply absent even once a steward is assigned
   (§6).
 - **An event that has never been through a schedule apply is not touched.** This refresh only

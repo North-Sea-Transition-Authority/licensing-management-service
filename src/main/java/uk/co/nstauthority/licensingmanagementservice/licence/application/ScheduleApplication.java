@@ -1,10 +1,9 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.application;
 
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.MappedSuperclass;
+import jakarta.persistence.OneToOne;
 import org.hibernate.envers.Audited;
-import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSchedule;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 
@@ -12,32 +11,31 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesch
 @MappedSuperclass
 public abstract class ScheduleApplication extends Application {
 
-  @ManyToOne
-  @JoinColumn(name = "licence_schedule_id")
-  private LicenceSchedule licenceSchedule;
-
-  @ManyToOne
-  @JoinColumn(name = "submitted_licence_schedule_detail_id")
-  private LicenceScheduleDetail submittedLicenceScheduleDetail;
-
-  @Override
-  public Licence getLicence() {
-    return getLicenceSchedule().getLicence();
-  }
+  @OneToOne(mappedBy = "application", cascade = CascadeType.ALL)
+  private ApplicationSchedule schedule;
 
   public LicenceSchedule getLicenceSchedule() {
-    return licenceSchedule;
+    return schedule.getLicenceSchedule();
   }
 
+  /** Also sets the application's licence, which must always be the schedule's licence. */
   public void setLicenceSchedule(LicenceSchedule licenceSchedule) {
-    this.licenceSchedule = licenceSchedule;
+    getOrCreateSchedule().setLicenceSchedule(licenceSchedule);
+    setLicence(licenceSchedule.getLicence());
   }
 
   public LicenceScheduleDetail getSubmittedLicenceScheduleDetail() {
-    return submittedLicenceScheduleDetail;
+    return schedule.getSubmittedLicenceScheduleDetail();
   }
 
   public void setSubmittedLicenceScheduleDetail(LicenceScheduleDetail submittedLicenceScheduleDetail) {
-    this.submittedLicenceScheduleDetail = submittedLicenceScheduleDetail;
+    getOrCreateSchedule().setSubmittedLicenceScheduleDetail(submittedLicenceScheduleDetail);
+  }
+
+  private ApplicationSchedule getOrCreateSchedule() {
+    if (schedule == null) {
+      schedule = new ApplicationSchedule(this);
+    }
+    return schedule;
   }
 }

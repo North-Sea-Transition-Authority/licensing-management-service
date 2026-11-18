@@ -125,7 +125,7 @@ public class ScheduleWorkProgrammeApplicationActionService {
   }
 
   private boolean hasLaterVersion(ScheduleWorkProgrammeApplicationDetail applicationDetail) {
-    return detailRepository.existsByScheduleWorkProgrammeApplicationAndVersionNumberGreaterThanAndStatusNot(
+    return detailRepository.existsByApplicationAndVersionNumberGreaterThanAndStatusNot(
         applicationDetail.getScheduleWorkProgrammeApplication(),
         applicationDetail.getVersionNumber(),
         ApplicationStatus.DELETED

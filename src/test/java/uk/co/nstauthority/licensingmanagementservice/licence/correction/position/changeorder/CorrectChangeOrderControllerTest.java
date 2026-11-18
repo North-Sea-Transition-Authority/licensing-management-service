@@ -34,15 +34,14 @@ import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.Noti
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionRouteUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.PositionMove;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.PositionMoveDirection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.PositionOrderView;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @ContextConfiguration(classes = CorrectChangeOrderController.class)
@@ -72,11 +71,7 @@ class CorrectChangeOrderControllerTest extends AbstractControllerTest {
   private static final LicenceCorrection CORRECTION = LicenceCorrectionTestUtil.newBuilder()
       .withId(CORRECTION_ID).withLicence(LICENCE).build();
 
-  private final String executedPositionUrl = ReverseRouter.route(on(LicenceCorrectionController.class)
-      .renderLicencePosition(CORRECTION, new LicencePosition(POSITION_ID), null));
-
-  private final String addedPositionUrl = ReverseRouter.route(on(LicenceCorrectionController.class)
-      .renderAddedPosition(CORRECTION, ADDED_POSITION_CORRECTION, null));
+  private final String positionUrl = LicencePositionCorrectionRouteUtil.getPositionPageUrl(CORRECTION, POSITION_ID);
 
   @Test
   void renderCorrectChangeOrder_whenNotLoggedIn() throws Exception {
@@ -124,7 +119,7 @@ class CorrectChangeOrderControllerTest extends AbstractControllerTest {
                 new PositionOrderView(2, "REF-B", false),
                 new PositionOrderView(1, "REF-A", true))),
             model().attribute("singleOutcome", true),
-            model().attribute("backLinkUrl", executedPositionUrl)
+            model().attribute("backLinkUrl", positionUrl)
         );
   }
 
@@ -195,7 +190,7 @@ class CorrectChangeOrderControllerTest extends AbstractControllerTest {
             .with(user(regulatorUser)))
         .andExpectAll(
             status().is3xxRedirection(),
-            redirectedUrl(executedPositionUrl)
+            redirectedUrl(positionUrl)
         );
   }
 
@@ -211,7 +206,7 @@ class CorrectChangeOrderControllerTest extends AbstractControllerTest {
             .with(user(regulatorUser)))
         .andExpectAll(
             status().is3xxRedirection(),
-            redirectedUrl(executedPositionUrl)
+            redirectedUrl(positionUrl)
         );
   }
 
@@ -228,7 +223,7 @@ class CorrectChangeOrderControllerTest extends AbstractControllerTest {
             .with(user(regulatorUser)))
         .andExpectAll(
             status().isOk(),
-            model().attribute("backLinkUrl", addedPositionUrl)
+            model().attribute("backLinkUrl", positionUrl)
         );
   }
 
@@ -292,7 +287,7 @@ class CorrectChangeOrderControllerTest extends AbstractControllerTest {
             .flashAttr("form", form))
         .andExpectAll(
             status().is3xxRedirection(),
-            redirectedUrl(executedPositionUrl),
+            redirectedUrl(positionUrl),
             notificationBanner(NotificationBanner.newSuccessBanner()
                 .withHeadingContent("Change order updated")
                 .build())
@@ -322,7 +317,7 @@ class CorrectChangeOrderControllerTest extends AbstractControllerTest {
             .flashAttr("form", form))
         .andExpectAll(
             status().is3xxRedirection(),
-            redirectedUrl(addedPositionUrl)
+            redirectedUrl(positionUrl)
         );
 
     verify(correctChangeOrderService)
@@ -354,7 +349,7 @@ class CorrectChangeOrderControllerTest extends AbstractControllerTest {
             model().attribute("currentChangeOrder", List.of(
                 new PositionOrderView(2, "REF-B", false),
                 new PositionOrderView(1, "REF-A", true))),
-            model().attribute("backLinkUrl", executedPositionUrl)
+            model().attribute("backLinkUrl", positionUrl)
         );
 
     verify(correctChangeOrderService, never())

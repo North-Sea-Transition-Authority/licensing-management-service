@@ -229,8 +229,6 @@ class LicencePositionCorrectionOrderChangeControllerTest extends AbstractControl
     when(licencePositionCorrectionService.getOrderableSameDatePositions(CORRECTION, POSITION_ID))
         .thenReturn(List.of(orderable(POSITION_ID, 1, "REF-A"), orderable(OTHER_POSITION_ID, 2, "REF-B")));
     when(correctPositionOrderFormValidator.hasErrors(eq(form), any(), any())).thenReturn(false);
-    when(licencePositionCorrectionService.findFirstAddedPositionCorrection(CORRECTION, POSITION_ID))
-        .thenReturn(Optional.empty());
 
     mockMvc.perform(post(ReverseRouter.route(on(LicencePositionCorrectionOrderChangeController.class)
             .correctLicencePositionCorrectionOrder(CORRECTION, POSITION_ID, null, null, null)))
@@ -239,8 +237,7 @@ class LicencePositionCorrectionOrderChangeControllerTest extends AbstractControl
             .flashAttr("form", form))
         .andExpectAll(
             status().is3xxRedirection(),
-            redirectedUrl(ReverseRouter.route(on(LicenceCorrectionController.class)
-                .renderLicencePosition(CORRECTION, new LicencePosition(POSITION_ID), null))),
+            redirectedUrl(LicencePositionCorrectionRouteUtil.getPositionPageUrl(CORRECTION, new LicencePosition(POSITION_ID).getId())),
             notificationBanner(NotificationBanner.newSuccessBanner()
                 .withHeadingContent("Licence position order updated")
                 .build())

@@ -1,7 +1,5 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subarea;
 
-import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
-
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -20,14 +18,12 @@ import uk.co.nstauthority.licensingmanagementservice.fds.button.Button;
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionRouteUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
-import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @Controller
 @RequestMapping("/licence-corrections/{correctionId}")
@@ -68,8 +64,7 @@ public class RemoveSubareaChangeController {
         .addObject("pageTitle", REMOVE_PAGE_TITLE)
         .addObject("primaryButton", Button.warningButton("Remove subarea change"))
         .addObject("blockName", subareaChangeService.getBlockName(subareaOperation))
-        .addObject("cancelUrl", ReverseRouter.route(on(LicenceCorrectionController.class)
-            .renderLicencePosition(correction, licencePosition, null)));
+        .addObject("cancelUrl", LicencePositionCorrectionRouteUtil.getPositionPageUrl(correction, licencePosition.getId()));
   }
 
   @PostMapping("/position/{licencePositionId}/change/{changeId}/remove-subarea-change")
@@ -91,8 +86,7 @@ public class RemoveSubareaChangeController {
 
     NotificationBanner.newSuccessBannerWithHeader("Subarea change removed", redirectAttributes);
 
-    return ReverseRouter.redirect(on(LicenceCorrectionController.class)
-        .renderLicencePosition(correction, licencePosition, null));
+    return LicencePositionCorrectionRouteUtil.redirectToPositionPage(correction, licencePosition.getId());
   }
 
   @GetMapping("/change/{changeId}/undo-subarea-change")
@@ -113,7 +107,7 @@ public class RemoveSubareaChangeController {
         .addObject("pageTitle", reinstating ? REINSTATE_PAGE_TITLE : UNDO_PAGE_TITLE)
         .addObject("primaryButton", primaryButton)
         .addObject("blockName", subareaChangeService.getBlockName(subareaOperation))
-        .addObject("cancelUrl", LicencePositionCorrectionRouteUtil.getPositionPageUrl(correction, positionCorrection));
+        .addObject("cancelUrl", LicencePositionCorrectionRouteUtil.getPositionPageUrl(positionCorrection));
   }
 
   @PostMapping("/change/{changeId}/undo-subarea-change")
@@ -133,6 +127,6 @@ public class RemoveSubareaChangeController {
         redirectAttributes
     );
 
-    return ReverseRouter.redirectToUrl(LicencePositionCorrectionRouteUtil.getPositionPageUrl(correction, positionCorrection));
+    return LicencePositionCorrectionRouteUtil.redirectToPositionPage(positionCorrection);
   }
 }

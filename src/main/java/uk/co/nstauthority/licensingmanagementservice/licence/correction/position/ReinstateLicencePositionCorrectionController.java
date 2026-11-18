@@ -55,8 +55,7 @@ public class ReinstateLicencePositionCorrectionController {
         .withHeadingContent("Licence correction position reinstated")
         .applyTo(redirectAttributes);
 
-    return ReverseRouter.redirect(on(LicenceCorrectionController.class)
-        .renderLicencePosition(correction, licencePosition, null));
+    return LicencePositionCorrectionRouteUtil.redirectToPositionPage(correction, licencePosition.getId());
   }
 
   private ModelAndView reinstatePositionModelAndView(LicenceCorrection correction, LicencePosition licencePosition) {

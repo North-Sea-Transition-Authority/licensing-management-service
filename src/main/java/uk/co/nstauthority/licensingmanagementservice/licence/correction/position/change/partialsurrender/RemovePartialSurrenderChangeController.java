@@ -1,7 +1,5 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender;
 
-import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
-
 import jakarta.annotation.Nullable;
 import java.time.LocalDate;
 import java.util.List;
@@ -23,16 +21,13 @@ import uk.co.nstauthority.licensingmanagementservice.fds.button.Button;
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionChangeType;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionRouteUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.PartialSurrenderChangeView;
-import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.util.DateUtil;
 
 @Controller
@@ -75,8 +70,7 @@ public class RemovePartialSurrenderChangeController {
         executedSurrender.surrenderDate(),
         () -> licencePositionCorrectionService.getEffectivePositionDate(correction, licencePosition));
 
-    var cancelUrl = ReverseRouter.route(on(LicenceCorrectionController.class)
-        .renderLicencePosition(correction, licencePosition, null));
+    var cancelUrl = LicencePositionCorrectionRouteUtil.getPositionPageUrl(correction, licencePosition.getId());
 
     return confirmationModelAndView(
         surrenderDate,
@@ -101,8 +95,7 @@ public class RemovePartialSurrenderChangeController {
 
     NotificationBanner.newSuccessBannerWithHeader("Partial surrender removed", redirectAttributes);
 
-    return ReverseRouter.redirect(on(LicenceCorrectionController.class)
-        .renderLicencePosition(correction, licencePosition, null));
+    return LicencePositionCorrectionRouteUtil.redirectToPositionPage(correction, licencePosition.getId());
   }
 
   @GetMapping("/change/{changeId}/undo-partial-surrender")
@@ -126,7 +119,7 @@ public class RemovePartialSurrenderChangeController {
         blockRows,
         reinstating ? REINSTATE_PAGE_TITLE : UNDO_PAGE_TITLE,
         reinstating ? Button.primaryButton("Reinstate partial surrender") : Button.warningButton("Undo partial surrender"),
-        positionPageRoute(correction, positionCorrection)
+        LicencePositionCorrectionRouteUtil.getPositionPageUrl(positionCorrection)
     );
   }
 
@@ -147,7 +140,7 @@ public class RemovePartialSurrenderChangeController {
         redirectAttributes
     );
 
-    return ReverseRouter.redirectToUrl(positionPageRoute(correction, positionCorrection));
+    return LicencePositionCorrectionRouteUtil.redirectToPositionPage(positionCorrection);
   }
 
   private static ModelAndView confirmationModelAndView(
@@ -163,17 +156,5 @@ public class RemovePartialSurrenderChangeController {
         .addObject("surrenderDate", surrenderDate == null ? null : DateUtil.formatLongDate(surrenderDate))
         .addObject("blockRows", blockRows)
         .addObject("cancelUrl", cancelUrl);
-  }
-
-  private static String positionPageRoute(
-      LicenceCorrection correction,
-      LicencePositionCorrection positionCorrection
-  ) {
-    if (positionCorrection.getChangeType() == LicencePositionCorrectionChangeType.ADD_POSITION) {
-      return ReverseRouter.route(on(LicenceCorrectionController.class).renderAddedPosition(correction, positionCorrection, null));
-    }
-
-    return ReverseRouter.route(on(LicenceCorrectionController.class)
-        .renderLicencePosition(correction, positionCorrection.getTargetLicencePosition(), null));
   }
 }

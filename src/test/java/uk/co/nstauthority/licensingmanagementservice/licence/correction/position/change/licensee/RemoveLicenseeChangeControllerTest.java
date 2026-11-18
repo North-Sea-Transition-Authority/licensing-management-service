@@ -30,10 +30,10 @@ import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.Noti
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionChangeType;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionRouteUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
@@ -69,8 +69,7 @@ class RemoveLicenseeChangeControllerTest extends AbstractControllerTest {
       .withId(POSITION_ID)
       .withLicence(LICENCE)
       .build();
-  private final String updatePositionUrl = ReverseRouter.route(on(LicenceCorrectionController.class)
-      .renderLicencePosition(CORRECTION, POSITION, null));
+  private final String updatePositionUrl = LicencePositionCorrectionRouteUtil.getPositionPageUrl(CORRECTION, POSITION.getId());
 
   @Test
   void renderLicenseeChange_whenNotAllocatedToUser() throws Exception {
@@ -200,8 +199,7 @@ class RemoveLicenseeChangeControllerTest extends AbstractControllerTest {
             model().attribute("primaryButton", Button.warningButton("Remove licensee change")),
             model().attribute("correctedLicenseeChangeView", expectedLicenseeChangeView),
             model().attribute("resultingLicensees", licenseeChangeContext.previousLicenseeNames()),
-            model().attribute("cancelUrl", ReverseRouter.route(on(LicenceCorrectionController.class)
-                .renderLicencePosition(correction, position, null)))
+            model().attribute("cancelUrl", LicencePositionCorrectionRouteUtil.getPositionPageUrl(correction, position.getId()))
         );
   }
 
@@ -220,7 +218,7 @@ class RemoveLicenseeChangeControllerTest extends AbstractControllerTest {
     when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(position));
     when(licencePositionChangeService.findById(positionChange.getId())).thenReturn(Optional.of(positionChange));
 
-    var expectedUrl = ReverseRouter.route(on(LicenceCorrectionController.class).renderLicencePosition(correction, position, null));
+    var expectedUrl = LicencePositionCorrectionRouteUtil.getPositionPageUrl(correction, position.getId());
 
     mockMvc.perform(post(ReverseRouter.route(on(RemoveLicenseeChangeController.class)
             .removeLicenseeChange(correction, position, positionChange, null)))
@@ -240,6 +238,7 @@ class RemoveLicenseeChangeControllerTest extends AbstractControllerTest {
     var position = LicencePositionTestUtil.newBuilder().withId(POSITION_ID).withLicence(LICENCE).build();
     var payload = CreateLicencePositionPayloadTestUtil.newBuilder().withLicencePositionId(POSITION_ID.toString()).build();
     var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withLicenceCorrection(correction)
         .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
         .withTargetLicencePosition(position)
         .withPayload(payload)
@@ -296,6 +295,7 @@ class RemoveLicenseeChangeControllerTest extends AbstractControllerTest {
     var correction = givenCorrectionAllocatedToUser();
     var position = LicencePositionTestUtil.newBuilder().withId(POSITION_ID).withLicence(LICENCE).build();
     var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withLicenceCorrection(correction)
         .withChangeType(LicencePositionCorrectionChangeType.ADD_POSITION)
         .withTargetLicencePosition(position)
         .withPayload(CreateLicencePositionPayloadTestUtil.newBuilder()
@@ -321,8 +321,7 @@ class RemoveLicenseeChangeControllerTest extends AbstractControllerTest {
     )
         .thenReturn(null);
 
-    var cancelUrl = ReverseRouter.route(on(LicenceCorrectionController.class)
-        .renderAddedPosition(CORRECTION, positionCorrection, null));
+    var cancelUrl = LicencePositionCorrectionRouteUtil.getPositionPageUrl(CORRECTION, positionCorrection.getPositionId());
 
     var expectedCurrentChangeView = new LicenseeChangeView(
         List.of("currentWithdraw1"),
@@ -351,6 +350,7 @@ class RemoveLicenseeChangeControllerTest extends AbstractControllerTest {
     var correction = givenCorrectionAllocatedToUser();
     var position = LicencePositionTestUtil.newBuilder().withId(POSITION_ID).withLicence(LICENCE).build();
     var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withLicenceCorrection(correction)
         .withChangeType(LicencePositionCorrectionChangeType.ADD_POSITION)
         .withTargetLicencePosition(position)
         .withPayload(CreateLicencePositionPayloadTestUtil.newBuilder()
@@ -384,8 +384,7 @@ class RemoveLicenseeChangeControllerTest extends AbstractControllerTest {
     )
         .thenReturn(expectedCurrentChangeView);
 
-    var cancelUrl = ReverseRouter.route(on(LicenceCorrectionController.class)
-        .renderAddedPosition(CORRECTION, positionCorrection, null));
+    var cancelUrl = LicencePositionCorrectionRouteUtil.getPositionPageUrl(CORRECTION, positionCorrection.getPositionId());
 
     mockMvc.perform(get(ReverseRouter.route(on(RemoveLicenseeChangeController.class)
             .renderUndoLicenseeChange(correction, CHANGE_ID)))
@@ -407,12 +406,12 @@ class RemoveLicenseeChangeControllerTest extends AbstractControllerTest {
     var correction = givenCorrectionAllocatedToUser();
     var position = LicencePositionTestUtil.newBuilder().withId(POSITION_ID).withLicence(LICENCE).build();
     var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withLicenceCorrection(correction)
         .withChangeType(LicencePositionCorrectionChangeType.ADD_POSITION)
         .withTargetLicencePosition(position)
         .build();
 
-    var expectedUrl = ReverseRouter.route(on(LicenceCorrectionController.class)
-        .renderAddedPosition(correction, positionCorrection, null));
+    var expectedUrl = LicencePositionCorrectionRouteUtil.getPositionPageUrl(correction, positionCorrection.getPositionId());
 
     when(licencePositionCorrectionService.getPositionCorrectionContainingChange(correction, CHANGE_ID))
         .thenReturn(positionCorrection);
@@ -437,12 +436,12 @@ class RemoveLicenseeChangeControllerTest extends AbstractControllerTest {
     var correction = givenCorrectionAllocatedToUser();
     var position = LicencePositionTestUtil.newBuilder().withId(POSITION_ID).withLicence(LICENCE).build();
     var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withLicenceCorrection(correction)
         .withChangeType(LicencePositionCorrectionChangeType.ADD_POSITION)
         .withTargetLicencePosition(position)
         .build();
 
-    var expectedUrl = ReverseRouter.route(on(LicenceCorrectionController.class)
-        .renderAddedPosition(correction, positionCorrection, null));
+    var expectedUrl = LicencePositionCorrectionRouteUtil.getPositionPageUrl(correction, positionCorrection.getPositionId());
 
     when(licencePositionCorrectionService.getPositionCorrectionContainingChange(correction, CHANGE_ID))
         .thenReturn(positionCorrection);
@@ -468,12 +467,12 @@ class RemoveLicenseeChangeControllerTest extends AbstractControllerTest {
     var correction = givenCorrectionAllocatedToUser();
     var position = LicencePositionTestUtil.newBuilder().withId(POSITION_ID).withLicence(LICENCE).build();
     var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withLicenceCorrection(correction)
         .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
         .withTargetLicencePosition(position)
         .build();
 
-    var expectedUrl = ReverseRouter.route(on(LicenceCorrectionController.class)
-        .renderLicencePosition(correction, positionCorrection.getTargetLicencePosition(), null));
+    var expectedUrl = LicencePositionCorrectionRouteUtil.getPositionPageUrl(correction, positionCorrection.getTargetLicencePosition().getId());
 
     when(licencePositionCorrectionService.getPositionCorrectionContainingChange(correction, CHANGE_ID))
         .thenReturn(positionCorrection);

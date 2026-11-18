@@ -187,8 +187,7 @@ class UndoLicencePositionCorrectionControllerTest extends AbstractControllerTest
             .with(csrf()))
         .andExpectAll(
             status().is3xxRedirection(),
-            redirectedUrl(ReverseRouter.route(on(LicenceCorrectionController.class)
-                .renderLicencePosition(CORRECTION, position, null)))
+            redirectedUrl(LicencePositionCorrectionRouteUtil.getPositionPageUrl(CORRECTION, position.getId()))
         );
 
     verify(licencePositionCorrectionService).undoPositionCorrection(positionCorrection);

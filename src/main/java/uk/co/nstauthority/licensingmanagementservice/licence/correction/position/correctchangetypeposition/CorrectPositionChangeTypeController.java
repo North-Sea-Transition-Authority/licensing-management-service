@@ -72,7 +72,7 @@ public class CorrectPositionChangeTypeController {
   ) {
     var change = findChange(correction, licencePositionId, changeId);
     if (change.isEmpty()) {
-      return ReverseRouter.redirectToUrl(positionPageUrl(correction, licencePositionId));
+      return LicencePositionCorrectionRouteUtil.redirectToPositionPage(correction, licencePositionId);
     }
 
     var currentPosition = licencePositionCorrectionService.getOrderableDatePosition(correction, licencePositionId);
@@ -98,7 +98,7 @@ public class CorrectPositionChangeTypeController {
   ) {
     var change = findChange(correction, licencePositionId, changeId);
     if (change.isEmpty()) {
-      return ReverseRouter.redirectToUrl(positionPageUrl(correction, licencePositionId));
+      return LicencePositionCorrectionRouteUtil.redirectToPositionPage(correction, licencePositionId);
     }
 
     var currentPosition = licencePositionCorrectionService.getOrderableDatePosition(correction, licencePositionId);
@@ -141,7 +141,7 @@ public class CorrectPositionChangeTypeController {
   ) {
     var change = findChange(correction, licencePositionId, changeId);
     if (change.isEmpty()) {
-      return ReverseRouter.redirectToUrl(positionPageUrl(correction, licencePositionId));
+      return LicencePositionCorrectionRouteUtil.redirectToPositionPage(correction, licencePositionId);
     }
 
     var positionsOnDate = licencePositionCorrectionService.getOrderablePositionsOnDate(correction, positionDate);
@@ -174,7 +174,7 @@ public class CorrectPositionChangeTypeController {
   ) {
     var change = findChange(correction, licencePositionId, changeId);
     if (change.isEmpty()) {
-      return ReverseRouter.redirectToUrl(positionPageUrl(correction, licencePositionId));
+      return LicencePositionCorrectionRouteUtil.redirectToPositionPage(correction, licencePositionId);
     }
 
     var positionsOnDate = licencePositionCorrectionService.getOrderablePositionsOnDate(correction, positionDate);
@@ -288,11 +288,7 @@ public class CorrectPositionChangeTypeController {
   }
 
   private String positionPageUrl(LicenceCorrection correction, UUID licencePositionId) {
-    return LicencePositionCorrectionRouteUtil.getPositionPageUrl(
-        correction,
-        licencePositionId,
-        licencePositionCorrectionService.findFirstAddedPositionCorrection(correction, licencePositionId).orElse(null)
-    );
+    return LicencePositionCorrectionRouteUtil.getPositionPageUrl(correction, licencePositionId);
   }
 
   private Optional<OrderableChange> findChange(LicenceCorrection correction, UUID licencePositionId, UUID changeId) {

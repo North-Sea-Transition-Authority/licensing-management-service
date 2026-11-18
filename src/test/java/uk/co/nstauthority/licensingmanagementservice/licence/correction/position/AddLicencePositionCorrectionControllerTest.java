@@ -150,16 +150,10 @@ class AddLicencePositionCorrectionControllerTest extends AbstractControllerTest 
     form.getPositionDate().setDate(POSITION_DATE);
 
     var addedPositionId = UUID.randomUUID();
-    var addedPositionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
-        .withLicenceCorrection(correction)
-        .build();
-
     when(addLicencePositionCorrectionValidator.hasErrors(eq(form), eq(correction), any(BindingResult.class)))
         .thenReturn(false);
     when(licencePositionCorrectionService.addNewPosition(correction, POSITION_DATE, REGULATOR_REFERENCE))
         .thenReturn(addedPositionId);
-    when(licencePositionCorrectionService.findFirstAddedPositionCorrection(correction, addedPositionId))
-        .thenReturn(Optional.of(addedPositionCorrection));
 
     mockMvc.perform(post(ReverseRouter.route(on(AddLicencePositionCorrectionController.class)
             .addLicencePositionCorrection(CORRECTION, null, null, null)))
@@ -168,8 +162,7 @@ class AddLicencePositionCorrectionControllerTest extends AbstractControllerTest 
             .flashAttr("form", form))
         .andExpectAll(
             status().is3xxRedirection(),
-            redirectedUrl(ReverseRouter.route(on(LicenceCorrectionController.class)
-                .renderAddedPosition(correction, addedPositionCorrection, null))),
+            redirectedUrl(LicencePositionCorrectionRouteUtil.getPositionPageUrl(correction, addedPositionId)),
             notificationBanner(NotificationBanner.newSuccessBanner()
                 .withHeadingContent("Licence correction position added")
                 .build())

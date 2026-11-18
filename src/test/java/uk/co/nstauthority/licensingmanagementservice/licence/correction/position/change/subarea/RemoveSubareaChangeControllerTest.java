@@ -32,11 +32,11 @@ import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionChangeType;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionRouteUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaOperation;
@@ -72,6 +72,7 @@ class RemoveSubareaChangeControllerTest extends AbstractControllerTest {
       .withLicence(LICENCE)
       .build();
   private static final LicencePositionCorrection ADDED_POSITION_CORRECTION = LicencePositionCorrectionTestUtil.newBuilder()
+      .withLicenceCorrection(CORRECTION)
       .withChangeType(LicencePositionCorrectionChangeType.ADD_POSITION)
       .withTargetLicencePosition(null)
       .build();
@@ -79,10 +80,8 @@ class RemoveSubareaChangeControllerTest extends AbstractControllerTest {
   @MockitoBean
   private SubareaChangeService subareaChangeService;
 
-  private final String positionUrl = ReverseRouter.route(on(LicenceCorrectionController.class)
-      .renderLicencePosition(CORRECTION, POSITION, null));
-  private final String addedPositionUrl = ReverseRouter.route(on(LicenceCorrectionController.class)
-      .renderAddedPosition(CORRECTION, ADDED_POSITION_CORRECTION, null));
+  private final String positionUrl = LicencePositionCorrectionRouteUtil.getPositionPageUrl(CORRECTION, POSITION.getId());
+  private final String addedPositionUrl = LicencePositionCorrectionRouteUtil.getPositionPageUrl(CORRECTION, ADDED_POSITION_CORRECTION.getPositionId());
 
   @Test
   void renderRemoveExecutedSubareaChange_whenNotLoggedIn() throws Exception {
@@ -438,6 +437,7 @@ class RemoveSubareaChangeControllerTest extends AbstractControllerTest {
 
   private LicencePositionCorrection executedPositionCorrection() {
     return LicencePositionCorrectionTestUtil.newBuilder()
+        .withLicenceCorrection(CORRECTION)
         .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
         .withTargetLicencePosition(POSITION)
         .build();

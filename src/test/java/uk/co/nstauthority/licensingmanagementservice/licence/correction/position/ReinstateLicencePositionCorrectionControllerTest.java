@@ -166,8 +166,7 @@ class ReinstateLicencePositionCorrectionControllerTest extends AbstractControlle
             .with(csrf()))
         .andExpectAll(
             status().is3xxRedirection(),
-            redirectedUrl(ReverseRouter.route(on(LicenceCorrectionController.class)
-                .renderLicencePosition(CORRECTION, POSITION, null))),
+            redirectedUrl(LicencePositionCorrectionRouteUtil.getPositionPageUrl(CORRECTION, POSITION.getId())),
             notificationBanner(NotificationBanner.newSuccessBanner()
                 .withHeadingContent("Licence correction position reinstated")
                 .build())

@@ -61,8 +61,10 @@ public class UndoLicencePositionCorrectionController {
       return ReverseRouter.redirect(on(LicenceCorrectionController.class).renderCorrection(licenceCorrection, null));
     }
 
-    return ReverseRouter.redirect(on(LicenceCorrectionController.class)
-        .renderLicencePosition(licenceCorrection, licencePositionCorrection.getTargetLicencePosition(), null));
+    return LicencePositionCorrectionRouteUtil.redirectToPositionPage(
+        licenceCorrection,
+        licencePositionCorrection.getTargetLicencePosition().getId()
+    );
   }
 
   private ModelAndView undoPositionModelAndView(

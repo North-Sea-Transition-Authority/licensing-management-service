@@ -1,7 +1,5 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.licensee;
 
-import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
-
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -18,17 +16,15 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.positio
 import uk.co.nstauthority.licensingmanagementservice.fds.button.Button;
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionChangeType;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionRouteUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenseeOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.ChangeViewUrls;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.LicenseeChangeView;
-import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @Controller
 @RequestMapping("/licence-corrections/{correctionId}")
@@ -80,8 +76,7 @@ public class RemoveLicenseeChangeController {
 
     NotificationBanner.newSuccessBannerWithHeader("Licensee change removed", redirectAttributes);
 
-    return ReverseRouter.redirect(on(LicenceCorrectionController.class)
-        .renderLicencePosition(correction, licencePosition, null));
+    return LicencePositionCorrectionRouteUtil.redirectToPositionPage(correction, licencePosition.getId());
   }
 
   @GetMapping("/change/{changeId}/undo-licensee-change")
@@ -111,12 +106,7 @@ public class RemoveLicenseeChangeController {
         reinstating ? "Licensee change reinstated" : "Licensee change undone",
         redirectAttributes);
 
-    if (positionCorrection.getChangeType() == LicencePositionCorrectionChangeType.ADD_POSITION) {
-      return ReverseRouter.redirect(on(LicenceCorrectionController.class)
-          .renderAddedPosition(correction, positionCorrection, null));
-    }
-    return ReverseRouter.redirect(on(LicenceCorrectionController.class)
-        .renderLicencePosition(correction, positionCorrection.getTargetLicencePosition(), null));
+    return LicencePositionCorrectionRouteUtil.redirectToPositionPage(positionCorrection);
   }
 
   private ModelAndView removeLicenseeChangeModelAndView(
@@ -139,7 +129,7 @@ public class RemoveLicenseeChangeController {
         .addObject("correctedLicenseeChangeView", correctedLicenseeChangeView)
         .addObject("resultingLicensees", licenseeChangeContext.previousLicenseeNames())
         .addObject("cancelUrl",
-            ReverseRouter.route(on(LicenceCorrectionController.class).renderLicencePosition(correction, licencePosition, null)));
+            LicencePositionCorrectionRouteUtil.getPositionPageUrl(correction, licencePosition.getId()));
   }
 
   private ModelAndView undoLicenseeChangeModelAndView(
@@ -183,15 +173,6 @@ public class RemoveLicenseeChangeController {
         .addObject("correctedLicenseeChangeView", correctedLicenseeChangeView)
         .addObject("restoredLicenseeChangeView", restoredLicenseeChangeView)
         .addObject("resultingLicensees", undoLicenseeChangeContext.resultingLicenseeNames())
-        .addObject("cancelUrl", positionPageRoute(correction, positionCorrection));
-  }
-
-  private String positionPageRoute(LicenceCorrection correction, LicencePositionCorrection positionCorrection) {
-    if (positionCorrection.getChangeType() == LicencePositionCorrectionChangeType.ADD_POSITION) {
-      return ReverseRouter.route(on(LicenceCorrectionController.class)
-          .renderAddedPosition(correction, positionCorrection, null));
-    }
-    return ReverseRouter.route(on(LicenceCorrectionController.class)
-        .renderLicencePosition(correction, positionCorrection.getTargetLicencePosition(), null));
+        .addObject("cancelUrl", LicencePositionCorrectionRouteUtil.getPositionPageUrl(positionCorrection));
   }
 }

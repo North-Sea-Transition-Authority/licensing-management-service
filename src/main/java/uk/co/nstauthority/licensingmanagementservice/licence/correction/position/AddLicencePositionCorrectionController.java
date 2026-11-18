@@ -65,12 +65,7 @@ public class AddLicencePositionCorrectionController {
         .withHeadingContent("Licence correction position added")
         .applyTo(redirectAttributes);
 
-    var addedPositionCorrection = licencePositionCorrectionService
-        .findFirstAddedPositionCorrection(correction, addedPositionId)
-        .orElseThrow();
-
-    return ReverseRouter.redirect(on(LicenceCorrectionController.class)
-        .renderAddedPosition(correction, addedPositionCorrection, null));
+    return LicencePositionCorrectionRouteUtil.redirectToPositionPage(correction, addedPositionId);
   }
 
   private ModelAndView addLicencePositionCorrectionModelAndView(

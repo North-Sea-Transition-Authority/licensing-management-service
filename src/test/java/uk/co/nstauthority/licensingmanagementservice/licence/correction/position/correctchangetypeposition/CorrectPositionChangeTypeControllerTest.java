@@ -42,6 +42,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceC
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectPositionOrderForm;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectPositionOrderFormValidator;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionRouteUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.OrderablePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.PositionMove;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.PositionMoveDirection;
@@ -112,8 +113,7 @@ class CorrectPositionChangeTypeControllerTest extends AbstractControllerTest {
   private final String correctionUrl = ReverseRouter.route(on(LicenceCorrectionController.class)
       .renderCorrection(CORRECTION, null));
 
-  private final String executedPositionUrl = ReverseRouter.route(on(LicenceCorrectionController.class)
-      .renderLicencePosition(CORRECTION, new LicencePosition(POSITION_ID), null));
+  private final String executedPositionUrl = LicencePositionCorrectionRouteUtil.getPositionPageUrl(CORRECTION, new LicencePosition(POSITION_ID).getId());
 
   private final String changeTypePageUrl = ReverseRouter.route(on(CorrectPositionChangeTypeController.class)
       .renderMoveChangeTypePosition(CORRECTION_ID, POSITION_ID, CHANGE_ID, null));

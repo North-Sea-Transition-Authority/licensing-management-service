@@ -29,10 +29,10 @@ import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.Noti
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionChangeType;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionRouteUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.OrganisationChangeService;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.StorageOperatorOperation;
@@ -73,8 +73,7 @@ class RemoveStorageOperatorChangeControllerTest extends AbstractControllerTest {
       .withId(POSITION_ID)
       .withLicence(LICENCE)
       .build();
-  private final String positionUrl = ReverseRouter.route(on(LicenceCorrectionController.class)
-      .renderLicencePosition(CORRECTION, POSITION, null));
+  private final String positionUrl = LicencePositionCorrectionRouteUtil.getPositionPageUrl(CORRECTION, POSITION.getId());
   @Test
   void renderRemoveExecutedStorageOperatorChange_whenNotLoggedIn() throws Exception {
     mockMvc.perform(get(ReverseRouter.route(on(RemoveStorageOperatorChangeController.class)
@@ -256,6 +255,7 @@ class RemoveStorageOperatorChangeControllerTest extends AbstractControllerTest {
     var correction = givenCorrectionAllocatedToUser();
     var position = LicencePositionTestUtil.newBuilder().withId(POSITION_ID).withLicence(LICENCE).build();
     var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withLicenceCorrection(correction)
         .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
         .withTargetLicencePosition(position)
         .build();
@@ -284,6 +284,7 @@ class RemoveStorageOperatorChangeControllerTest extends AbstractControllerTest {
     var correction = givenCorrectionAllocatedToUser();
     var position = LicencePositionTestUtil.newBuilder().withId(POSITION_ID).withLicence(LICENCE).build();
     var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withLicenceCorrection(correction)
         .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
         .withTargetLicencePosition(position)
         .build();
@@ -315,6 +316,7 @@ class RemoveStorageOperatorChangeControllerTest extends AbstractControllerTest {
     var correction = givenCorrectionAllocatedToUser();
     var position = LicencePositionTestUtil.newBuilder().withId(POSITION_ID).withLicence(LICENCE).build();
     var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withLicenceCorrection(correction)
         .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
         .withTargetLicencePosition(position)
         .build();
@@ -342,6 +344,7 @@ class RemoveStorageOperatorChangeControllerTest extends AbstractControllerTest {
     var correction = givenCorrectionAllocatedToUser();
     var position = LicencePositionTestUtil.newBuilder().withId(POSITION_ID).withLicence(LICENCE).build();
     var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withLicenceCorrection(correction)
         .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
         .withTargetLicencePosition(position)
         .build();
@@ -369,6 +372,7 @@ class RemoveStorageOperatorChangeControllerTest extends AbstractControllerTest {
   void undoStorageOperatorChange_whenAddedChange_redirectsCorrectly() throws Exception {
     var correction = givenCorrectionAllocatedToUser();
     var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withLicenceCorrection(correction)
         .withChangeType(LicencePositionCorrectionChangeType.ADD_POSITION)
         .withTargetLicencePosition(POSITION)
         .build();
@@ -381,8 +385,7 @@ class RemoveStorageOperatorChangeControllerTest extends AbstractControllerTest {
             .with(csrf()))
         .andExpectAll(
             status().is3xxRedirection(),
-            redirectedUrl(ReverseRouter.route(on(LicenceCorrectionController.class)
-                .renderAddedPosition(correction, positionCorrection, null))),
+            redirectedUrl(LicencePositionCorrectionRouteUtil.getPositionPageUrl(correction, positionCorrection.getPositionId())),
             notificationBanner(NotificationBanner.newSuccessBanner()
                 .withHeadingContent("Storage operator change undone")
                 .build())

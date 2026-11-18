@@ -77,11 +77,7 @@ public class LicencePositionCorrectionOrderChangeController {
 
     NotificationBanner.newSuccessBannerWithHeader("Licence position order updated", redirectAttributes);
 
-    return ReverseRouter.redirectToUrl(LicencePositionCorrectionRouteUtil.getPositionPageUrl(
-        correction,
-        licencePositionId,
-        licencePositionCorrectionService.findFirstAddedPositionCorrection(correction, licencePositionId).orElse(null)
-    ));
+    return LicencePositionCorrectionRouteUtil.redirectToPositionPage(correction, licencePositionId);
   }
 
   private ModelAndView correctPositionCorrectionOrderModelAndView(

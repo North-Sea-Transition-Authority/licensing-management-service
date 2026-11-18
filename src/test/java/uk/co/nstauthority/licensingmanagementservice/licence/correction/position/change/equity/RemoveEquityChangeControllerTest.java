@@ -31,10 +31,10 @@ import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.Noti
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionChangeType;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionRouteUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
@@ -76,8 +76,7 @@ class RemoveEquityChangeControllerTest extends AbstractControllerTest {
       List.of(new TransferEquityHoldingView("From Org Ltd", "To Org Ltd", BigDecimal.TEN, null));
   private static final String SUBAREA_LABEL = "Block 21/1 - Subarea A";
 
-  private final String positionUrl = ReverseRouter.route(on(LicenceCorrectionController.class)
-      .renderLicencePosition(CORRECTION, POSITION, null));
+  private final String positionUrl = LicencePositionCorrectionRouteUtil.getPositionPageUrl(CORRECTION, POSITION.getId());
 
   @Test
   void renderRemoveExecutedEquityChange_whenNotLoggedIn() throws Exception {
@@ -237,6 +236,7 @@ class RemoveEquityChangeControllerTest extends AbstractControllerTest {
     var correction = givenCorrectionAllocatedToUser();
     var position = positionWithId();
     var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withLicenceCorrection(correction)
         .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
         .withTargetLicencePosition(position)
         .build();
@@ -265,6 +265,7 @@ class RemoveEquityChangeControllerTest extends AbstractControllerTest {
     var correction = givenCorrectionAllocatedToUser();
     var position = positionWithId();
     var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withLicenceCorrection(correction)
         .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
         .withTargetLicencePosition(position)
         .build();
@@ -319,6 +320,7 @@ class RemoveEquityChangeControllerTest extends AbstractControllerTest {
     var correction = givenCorrectionAllocatedToUser();
     var position = positionWithId();
     var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withLicenceCorrection(correction)
         .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
         .withTargetLicencePosition(position)
         .build();
@@ -346,6 +348,7 @@ class RemoveEquityChangeControllerTest extends AbstractControllerTest {
     var correction = givenCorrectionAllocatedToUser();
     var position = positionWithId();
     var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withLicenceCorrection(correction)
         .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
         .withTargetLicencePosition(position)
         .build();

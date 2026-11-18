@@ -19,11 +19,9 @@ import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.Noti
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionRouteUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.PositionMove;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.PositionMoveDirection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.PositionMoveOptionUtil;
-import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @Controller
 @RequestMapping("/licence-corrections/{correctionId}/position/{licencePositionId}/change/{changeId}/correct-change-order")
@@ -34,16 +32,13 @@ public class CorrectChangeOrderController {
 
   private final CorrectChangeOrderFormValidator correctChangeOrderFormValidator;
   private final CorrectChangeOrderService correctChangeOrderService;
-  private final LicencePositionCorrectionService licencePositionCorrectionService;
 
   public CorrectChangeOrderController(
       CorrectChangeOrderFormValidator correctChangeOrderFormValidator,
-      CorrectChangeOrderService correctChangeOrderService,
-      LicencePositionCorrectionService licencePositionCorrectionService
+      CorrectChangeOrderService correctChangeOrderService
   ) {
     this.correctChangeOrderFormValidator = correctChangeOrderFormValidator;
     this.correctChangeOrderService = correctChangeOrderService;
-    this.licencePositionCorrectionService = licencePositionCorrectionService;
   }
 
   @GetMapping
@@ -54,10 +49,10 @@ public class CorrectChangeOrderController {
   ) {
     var orderedChanges = correctChangeOrderService.getOrderableChanges(correction, licencePositionId);
     var moveOptions = PositionMoveOptionUtil.buildMoveOptions(orderedChanges, changeId);
-    var positionPageUrl = positionPageUrl(correction, licencePositionId);
+    var positionPageUrl = LicencePositionCorrectionRouteUtil.getPositionPageUrl(correction, licencePositionId);
 
     if (doesNotContainChange(orderedChanges, changeId) || moveOptions.isEmpty()) {
-      return ReverseRouter.redirectToUrl(positionPageUrl);
+      return LicencePositionCorrectionRouteUtil.redirectToPositionPage(correction, licencePositionId);
     }
 
     return correctChangeOrderModelAndView(positionPageUrl, orderedChanges, changeId, moveOptions,
@@ -75,10 +70,10 @@ public class CorrectChangeOrderController {
   ) {
     var orderedChanges = correctChangeOrderService.getOrderableChanges(correction, licencePositionId);
     var moveOptions = PositionMoveOptionUtil.buildMoveOptions(orderedChanges, changeId);
-    var positionPageUrl = positionPageUrl(correction, licencePositionId);
+    var positionPageUrl = LicencePositionCorrectionRouteUtil.getPositionPageUrl(correction, licencePositionId);
 
     if (doesNotContainChange(orderedChanges, changeId) || moveOptions.isEmpty()) {
-      return ReverseRouter.redirectToUrl(positionPageUrl);
+      return LicencePositionCorrectionRouteUtil.redirectToPositionPage(correction, licencePositionId);
     }
 
     if (correctChangeOrderFormValidator.hasErrors(form, bindingResult, moveOptions.keySet())) {
@@ -92,15 +87,7 @@ public class CorrectChangeOrderController {
 
     NotificationBanner.newSuccessBannerWithHeader("Change order updated", redirectAttributes);
 
-    return ReverseRouter.redirectToUrl(positionPageUrl);
-  }
-
-  private String positionPageUrl(LicenceCorrection correction, UUID licencePositionId) {
-    return LicencePositionCorrectionRouteUtil.getPositionPageUrl(
-        correction,
-        licencePositionId,
-        licencePositionCorrectionService.findFirstAddedPositionCorrection(correction, licencePositionId).orElse(null)
-    );
+    return LicencePositionCorrectionRouteUtil.redirectToPositionPage(correction, licencePositionId);
   }
 
   private ModelAndView correctChangeOrderModelAndView(

@@ -37,11 +37,11 @@ import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionChangeType;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionRouteUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
@@ -86,8 +86,7 @@ class RemovePartialSurrenderChangeControllerTest extends AbstractControllerTest 
   @MockitoBean
   private PartialSurrenderCorrectionService partialSurrenderCorrectionService;
 
-  private final String positionUrl = ReverseRouter.route(on(LicenceCorrectionController.class)
-      .renderLicencePosition(CORRECTION, POSITION, null));
+  private final String positionUrl = LicencePositionCorrectionRouteUtil.getPositionPageUrl(CORRECTION, POSITION.getId());
 
   @Test
   void renderRemoveExecutedPartialSurrender_whenNotLoggedIn() throws Exception {
@@ -356,6 +355,7 @@ class RemovePartialSurrenderChangeControllerTest extends AbstractControllerTest 
       throws Exception {
     var correction = givenCorrectionAllocatedToUser();
     var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withLicenceCorrection(correction)
         .withChangeType(LicencePositionCorrectionChangeType.ADD_POSITION)
         .withTargetLicencePosition(null)
         .build();
@@ -369,8 +369,7 @@ class RemovePartialSurrenderChangeControllerTest extends AbstractControllerTest 
             .with(user(regulatorUser)))
         .andExpectAll(
             status().isOk(),
-            model().attribute("cancelUrl", ReverseRouter.route(on(LicenceCorrectionController.class)
-                .renderAddedPosition(correction, positionCorrection, null)))
+            model().attribute("cancelUrl", LicencePositionCorrectionRouteUtil.getPositionPageUrl(correction, positionCorrection.getPositionId()))
         );
   }
 
@@ -491,6 +490,7 @@ class RemovePartialSurrenderChangeControllerTest extends AbstractControllerTest 
 
   private LicencePositionCorrection executedPositionCorrection() {
     return LicencePositionCorrectionTestUtil.newBuilder()
+        .withLicenceCorrection(CORRECTION)
         .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
         .withTargetLicencePosition(positionWithId())
         .build();

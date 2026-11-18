@@ -55,8 +55,7 @@ public class RemoveExecutedLicencePositionCorrectionController {
         .withHeadingContent("Licence correction position removed")
         .applyTo(redirectAttributes);
 
-    return ReverseRouter.redirect(on(LicenceCorrectionController.class)
-        .renderLicencePosition(correction, licencePosition, null));
+    return LicencePositionCorrectionRouteUtil.redirectToPositionPage(correction, licencePosition.getId());
   }
 
   private ModelAndView removePositionModelAndView(

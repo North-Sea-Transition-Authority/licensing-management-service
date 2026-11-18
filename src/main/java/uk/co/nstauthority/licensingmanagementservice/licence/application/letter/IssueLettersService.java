@@ -7,7 +7,7 @@ import uk.co.fivium.fileuploadlibrary.core.FileService;
 import uk.co.fivium.fileuploadlibrary.core.FileSource;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.document.instance.LmsDocumentInstanceService;
-import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplication;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.Application;
 
 @Service
 public class IssueLettersService {
@@ -21,7 +21,7 @@ public class IssueLettersService {
   @Transactional
   public void saveApplicationLetterToS3(
       DocumentInstanceDto documentInstanceDto,
-      LicenceApplication licenceApplication,
+      Application application,
       ServiceUserDetail serviceUserDetail,
       boolean isPreview,
       LmsDocumentInstanceService lmsDocumentInstanceService,
@@ -31,12 +31,12 @@ public class IssueLettersService {
     var sectionsSummaryViews = lmsDocumentInstanceService.getDocumentInstanceSectionsSummaryView(
             documentInstanceDto,
             false,
-            licenceApplication
+            application
         )
         .topLevelDocumentInstanceSectionSummaryViews();
 
     var renderResult = lmsDocumentInstanceService.renderAndSignPdf(
-        licenceApplication,
+        application,
         isPreview,
         documentInstanceDto,
         sectionsSummaryViews,
@@ -49,7 +49,7 @@ public class IssueLettersService {
 
     fileService.upload(builder -> builder
         .withUsage(
-            licenceApplication.getId().toString(),
+            application.getId().toString(),
             fileUsageType,
             documentItemType
         )

@@ -23,7 +23,7 @@ import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
 import uk.co.nstauthority.licensingmanagementservice.document.DocumentItemType;
 import uk.co.nstauthority.licensingmanagementservice.document.instance.LmsDocumentInstanceService;
 import uk.co.nstauthority.licensingmanagementservice.file.FileUsageType;
-import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplication;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.Application;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
@@ -51,7 +51,7 @@ public class ContinuationApplicationDocumentActionsControllerTest extends Abstra
   @MockitoBean
   private IssueLettersService issueLettersService;
 
-  private final LicenceApplication licenceApplication = mock(LicenceApplication.class);
+  private final Application application = mock(Application.class);
 
   private final DocumentInstanceDto documentInstanceMock = mock(DocumentInstanceDto.class);
 
@@ -82,7 +82,7 @@ public class ContinuationApplicationDocumentActionsControllerTest extends Abstra
   @Test
   void approveAndSignDocument_assertRedirectsAndSavesLetter() throws Exception {
     when(applicationService.getApplication(applicationType, applicationId))
-        .thenReturn(licenceApplication);
+        .thenReturn(application);
 
     when(documentInstanceService.getDocumentInstanceDtoOrThrow(documentInstanceId))
         .thenReturn(documentInstanceMock);
@@ -100,7 +100,7 @@ public class ContinuationApplicationDocumentActionsControllerTest extends Abstra
 
     verify(issueLettersService).saveApplicationLetterToS3(
         documentInstanceMock,
-        licenceApplication,
+        application,
         regulatorUser,
         false,
         lmsDocumentInstanceService,
@@ -108,6 +108,6 @@ public class ContinuationApplicationDocumentActionsControllerTest extends Abstra
         DocumentItemType.CONTINUATION_LETTER.name()
     );
 
-    verify(licenceContinuationService).issueContinuationLetter(licenceApplication);
+    verify(licenceContinuationService).issueContinuationLetter(application);
   }
 }

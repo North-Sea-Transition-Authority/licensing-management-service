@@ -136,20 +136,20 @@ class ApplicationDocumentActionsControllerTest extends AbstractControllerTest {
 
   @Test
   void renderGeneratedPdf_assertOk() throws Exception {
-    var licenceApplication = new LicenceContinuationApplication();
-    licenceApplication.setId(applicationId);
-    when(applicationService.getApplication(applicationType, applicationId)).thenReturn(licenceApplication);
+    var application = new LicenceContinuationApplication();
+    application.setId(applicationId);
+    when(applicationService.getApplication(applicationType, applicationId)).thenReturn(application);
     when(documentInstanceService.getDocumentInstanceDtoOrThrow(documentInstanceId)).thenReturn(documentInstance);
 
     var summaryViews = new DocumentInstanceSectionsSummaryView(List.of(), List.of(), Map.of());
-    when(lmsDocumentInstanceService.getDocumentInstanceSectionsSummaryView(documentInstance, false, licenceApplication))
+    when(lmsDocumentInstanceService.getDocumentInstanceSectionsSummaryView(documentInstance, false, application))
         .thenReturn(summaryViews);
 
     var pdfBytes = new byte[]{1, 2, 3};
     var lmsPdfRenderResult = new LmsPdfRenderResult(new ByteArrayResource(pdfBytes), "<html></html>", Map.of());
 
     when(lmsDocumentInstanceService.renderAndSignPdf(
-        licenceApplication,
+        application,
         true,
         documentInstance,
         summaryViews.topLevelDocumentInstanceSectionSummaryViews(),

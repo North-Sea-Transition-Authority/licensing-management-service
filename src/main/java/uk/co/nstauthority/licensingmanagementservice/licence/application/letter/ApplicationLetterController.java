@@ -19,7 +19,7 @@ import uk.co.nstauthority.licensingmanagementservice.breadcrumbs.Breadcrumbs;
 import uk.co.nstauthority.licensingmanagementservice.breadcrumbs.BreadcrumbsUtil;
 import uk.co.nstauthority.licensingmanagementservice.document.DocumentLinkingService;
 import uk.co.nstauthority.licensingmanagementservice.document.instance.LmsDocumentInstanceService;
-import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplication;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.Application;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
@@ -69,7 +69,7 @@ public class ApplicationLetterController {
       ApplicationType applicationType,
       @PathVariable UUID applicationId
   ) {
-    LicenceApplication application = applicationService.getApplication(applicationType, applicationId);
+    Application application = applicationService.getApplication(applicationType, applicationId);
     DocumentInstanceDto documentInstance = applicationLetterService.getDocumentInstance(application);
     var documentInstanceSectionsSummaryView = lmsDocumentInstanceService.getDocumentInstanceSectionsSummaryView(
         documentInstance,

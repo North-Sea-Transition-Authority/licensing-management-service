@@ -44,8 +44,8 @@ import uk.co.nstauthority.licensingmanagementservice.email.GovukNotifyTemplate;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
-import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplication;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.Application;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationUpdateSubmittedEmailService;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.letter.ApplicationLetterService;
@@ -121,7 +121,7 @@ class LicenceContinuationServiceTest {
   private LicenceContinuationScheduleDetailRequestCache licenceContinuationScheduleDetailRequestCache;
 
   @Mock
-  private LicenceApplication licenceApplication;
+  private Application application;
 
   @Mock
   private MergedTemplate.MergedTemplateBuilder mergedTemplateBuilder;
@@ -444,12 +444,12 @@ class LicenceContinuationServiceTest {
     List<TeamMemberView> teamMemberViews = List.of();
     when(industryTeamService.getSubmitterDetails(orgGroupId)).thenReturn(teamMemberViews);
 
-    var application = licenceContinuationApplicationDetail.getLicenceContinuationApplication();
+    var continuationApplication = licenceContinuationApplicationDetail.getLicenceContinuationApplication();
     var updateDraft = new LicenceContinuationApplicationDetail(UUID.randomUUID());
     updateDraft.setStatus(ApplicationStatus.DRAFT);
     var deletedDraft = new LicenceContinuationApplicationDetail(UUID.randomUUID());
     deletedDraft.setStatus(ApplicationStatus.DELETED);
-    when(licenceContinuationApplicationDetailRepository.findAllByLicenceContinuationApplication(application))
+    when(licenceContinuationApplicationDetailRepository.findAllByLicenceContinuationApplication(continuationApplication))
         .thenReturn(List.of(licenceContinuationApplicationDetail, updateDraft, deletedDraft));
 
     licenceContinuationService.withdrawContinuationChangeStatus(licenceContinuationApplicationDetail, reason);
@@ -461,9 +461,9 @@ class LicenceContinuationServiceTest {
     assertThat(deletedDraft.getStatus()).isEqualTo(ApplicationStatus.DELETED);
     verify(licenceContinuationApplicationDetailRepository, never()).save(deletedDraft);
 
-    verify(licenceContinuationApplicationRepository).save(application);
-    assertThat(application.getWithdrawalReason()).isEqualTo(reason);
-    assertThat(application.getWithdrawnDatetime()).isEqualTo(FIXED_INSTANT);
+    verify(licenceContinuationApplicationRepository).save(continuationApplication);
+    assertThat(continuationApplication.getWithdrawalReason()).isEqualTo(reason);
+    assertThat(continuationApplication.getWithdrawnDatetime()).isEqualTo(FIXED_INSTANT);
 
     verify(applicationWithdrawService).sendApplicationWithdrawnEmails(
         reason,
@@ -476,7 +476,7 @@ class LicenceContinuationServiceTest {
   @Test
   void sendContinuationIssuanceEmails_whenValidSubmittersExist() {
     setupEmailTemplateMocks(GovukNotifyTemplate.SEND_CONTINUATION_ISSUED_DOCUMENT_V1);
-    when(licenceApplication.getId()).thenReturn(applicationId);
+    when(application.getId()).thenReturn(applicationId);
 
     licenceContinuationApplicationDetail.setResponsibleOrganisationUnitId(orgUnitId);
     when(organisationUnitQueryService.findOrganisationGroupIdByUnitId(orgUnitId)).thenReturn(Optional.of(orgGroupId));
@@ -487,7 +487,7 @@ class LicenceContinuationServiceTest {
     when(industryTeamService.getSubmitterDetails(orgGroupId)).thenReturn(List.of(submitter1, submitter2));
 
     licenceContinuationService.sendContinuationIssuanceEmails(
-        licenceApplication,
+        application,
         licenceContinuationApplicationDetail
     );
 
@@ -505,7 +505,7 @@ class LicenceContinuationServiceTest {
 
     assertThrows(
         LmsEntityNotFoundException.class,
-        () -> licenceContinuationService.sendContinuationIssuanceEmails(licenceApplication, licenceContinuationApplicationDetail)
+        () -> licenceContinuationService.sendContinuationIssuanceEmails(application, licenceContinuationApplicationDetail)
     );
 
     verifyNoInteractions(emailService);
@@ -520,7 +520,7 @@ class LicenceContinuationServiceTest {
   @Test
   void issueContinuationLetter_updatesStatusSavesAndSendsEmails() {
     UUID appId = UUID.randomUUID();
-    when(licenceApplication.getId()).thenReturn(appId);
+    when(application.getId()).thenReturn(appId);
 
     var licenceContinuationApp = licenceContinuationApplicationDetail.getLicenceContinuationApplication();
 
@@ -535,7 +535,7 @@ class LicenceContinuationServiceTest {
         .thenReturn(Optional.of(orgGroupId));
     when(industryTeamService.getSubmitterDetails(orgGroupId)).thenReturn(List.of());
 
-    licenceContinuationService.issueContinuationLetter(licenceApplication);
+    licenceContinuationService.issueContinuationLetter(application);
 
     assertThat(licenceContinuationApplicationDetail.getStatus()).isEqualTo(ApplicationStatus.COMPLETE);
     verify(licenceContinuationApplicationDetailRepository).save(licenceContinuationApplicationDetail);
@@ -550,10 +550,10 @@ class LicenceContinuationServiceTest {
   @Test
   void issueContinuationLetter_throwsException_whenApplicationNotFound() {
     UUID appId = UUID.randomUUID();
-    when(licenceApplication.getId()).thenReturn(appId);
+    when(application.getId()).thenReturn(appId);
     when(licenceContinuationApplicationRepository.findById(appId)).thenReturn(Optional.empty());
 
-    assertThrows(LmsEntityNotFoundException.class, () -> licenceContinuationService.issueContinuationLetter(licenceApplication));
+    assertThrows(LmsEntityNotFoundException.class, () -> licenceContinuationService.issueContinuationLetter(application));
 
     verify(licenceContinuationApplicationDetailRepository, times(0)).save(any());
   }
@@ -561,7 +561,7 @@ class LicenceContinuationServiceTest {
   @Test
   void issueContinuationLetter_throwsException_whenApplicationDetailNotFound() {
     UUID appId = UUID.randomUUID();
-    when(licenceApplication.getId()).thenReturn(appId);
+    when(application.getId()).thenReturn(appId);
 
     var licenceContinuationApp = licenceContinuationApplicationDetail.getLicenceContinuationApplication();
 
@@ -571,7 +571,7 @@ class LicenceContinuationServiceTest {
     when(licenceContinuationApplicationDetailRepository.findFirstByLicenceContinuationApplicationOrderByVersionNumberDesc(licenceContinuationApp))
         .thenReturn(Optional.empty());
 
-    assertThrows(LmsEntityNotFoundException.class, () -> licenceContinuationService.issueContinuationLetter(licenceApplication));
+    assertThrows(LmsEntityNotFoundException.class, () -> licenceContinuationService.issueContinuationLetter(application));
 
     verify(licenceContinuationApplicationDetailRepository, times(0)).save(any());
   }

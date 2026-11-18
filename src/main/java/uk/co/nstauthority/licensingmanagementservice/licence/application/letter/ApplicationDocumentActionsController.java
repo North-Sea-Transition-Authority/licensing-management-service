@@ -25,7 +25,7 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.document.DocumentLinkingService;
 import uk.co.nstauthority.licensingmanagementservice.document.instance.LmsDocumentInstanceService;
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
-import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplication;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.Application;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
@@ -120,13 +120,13 @@ public class ApplicationDocumentActionsController {
   }
 
   private ResponseEntity<ByteArrayResource> renderPreviewPdf(
-      LicenceApplication licenceApplication,
+      Application application,
       DocumentInstanceDto documentInstance,
       DocumentInstanceSectionsSummaryView sectionsSummaryView,
       ServiceUserDetail user
   ) {
     var pdf = lmsDocumentInstanceService.renderAndSignPdf(
-        licenceApplication,
+        application,
         true,
         documentInstance,
         sectionsSummaryView.topLevelDocumentInstanceSectionSummaryViews(),

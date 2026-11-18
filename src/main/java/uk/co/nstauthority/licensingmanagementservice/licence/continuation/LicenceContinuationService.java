@@ -25,7 +25,7 @@ import uk.co.nstauthority.licensingmanagementservice.email.GovukNotifyTemplate;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
-import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplication;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.Application;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationReferenceUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationUpdateSubmittedEmailService;
@@ -296,7 +296,7 @@ public class LicenceContinuationService {
   }
 
   public void sendContinuationIssuanceEmails(
-      LicenceApplication application,
+      Application application,
       LicenceContinuationApplicationDetail licenceContinuationApplicationDetail
   ) {
     var orgGroupId = getOrgGroupIdForContinuationApplication(licenceContinuationApplicationDetail);
@@ -375,7 +375,7 @@ public class LicenceContinuationService {
   }
 
   @Transactional
-  public void issueContinuationLetter(LicenceApplication application) {
+  public void issueContinuationLetter(Application application) {
     var continuationApplicationDetail = getLatestLicenceContinuationApplicationDetailByApplicationIdOrThrow(application.getId());
 
     continuationApplicationDetail.setStatus(ApplicationStatus.COMPLETE);

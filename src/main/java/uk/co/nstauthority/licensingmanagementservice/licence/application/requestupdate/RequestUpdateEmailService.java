@@ -12,7 +12,7 @@ import uk.co.nstauthority.licensingmanagementservice.email.EmailService;
 import uk.co.nstauthority.licensingmanagementservice.email.GovukNotifyTemplate;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
 import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplicationDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.contact.LicenceContactService;
 import uk.co.nstauthority.licensingmanagementservice.teams.IndustryTeamService;
 import uk.co.nstauthority.licensingmanagementservice.teams.management.view.TeamMemberView;
@@ -41,18 +41,18 @@ public class RequestUpdateEmailService {
     this.organisationUnitQueryService = organisationUnitQueryService;
   }
 
-  public void sendUpdateRequestedEmails(LicenceApplicationDetail updateDetail) {
-    var licenceApplication = updateDetail.getLicenceApplication();
+  public void sendUpdateRequestedEmails(ApplicationDetail updateDetail) {
+    var application = updateDetail.getApplication();
 
     var recipientEmails = getRecipientEmails(updateDetail);
     if (recipientEmails.isEmpty()) {
-      LOGGER.warn("No recipients found to notify of update request for Application ID: {}", licenceApplication.getId());
+      LOGGER.warn("No recipients found to notify of update request for Application ID: {}", application.getId());
       return;
     }
 
     var template = emailService.getTemplate(GovukNotifyTemplate.APPLICATION_UPDATE_REQUESTED_V1)
-        .withMailMergeField("APPLICATION_TYPE", licenceApplication.getApplicationType().getDisplayName())
-        .withMailMergeField("APPLICATION_REFERENCE", licenceApplication.getApplicationReference())
+        .withMailMergeField("APPLICATION_TYPE", application.getApplicationType().getDisplayName())
+        .withMailMergeField("APPLICATION_REFERENCE", application.getApplicationReference())
         .withMailMergeField("REQUEST_DEADLINE", DateFormatUtil.convertToDisplayText(updateDetail.getUpdateDeadlineDate()))
         .withMailMergeField("REQUEST_REASON", updateDetail.getUpdateReason());
 
@@ -63,16 +63,16 @@ public class RequestUpdateEmailService {
         emailService.sendEmail(
             mergedTemplate,
             EmailRecipient.directEmailAddress(email),
-            DomainReference.from(licenceApplication.getId().toString(), DOMAIN_REFERENCE_TYPE)
+            DomainReference.from(application.getId().toString(), DOMAIN_REFERENCE_TYPE)
         );
       } catch (Exception e) {
         LOGGER.error("Failed to send update requested email to {} for Application ID: {}",
-            email, licenceApplication.getId(), e);
+            email, application.getId(), e);
       }
     });
   }
 
-  private Set<String> getRecipientEmails(LicenceApplicationDetail updateDetail) {
+  private Set<String> getRecipientEmails(ApplicationDetail updateDetail) {
     var recipientEmails = new LinkedHashSet<String>();
 
     var organisationGroupId = organisationUnitQueryService

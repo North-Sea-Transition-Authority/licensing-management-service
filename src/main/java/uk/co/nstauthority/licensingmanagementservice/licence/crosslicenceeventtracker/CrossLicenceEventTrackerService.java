@@ -39,9 +39,9 @@ import uk.co.nstauthority.licensingmanagementservice.fds.table.SortableTableView
 import uk.co.nstauthority.licensingmanagementservice.fds.tag.Tag;
 import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
-import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplication;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.OrganisationUnit;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.Application;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplication;
@@ -449,10 +449,10 @@ public class CrossLicenceEventTrackerService {
   }
 
   @Transactional
-  public void refreshApplicationCache(LicenceApplication licenceApplication) {
-    if (licenceApplication instanceof ScheduleWorkProgrammeApplication scheduleWorkProgrammeApplication) {
+  public void refreshApplicationCache(Application application) {
+    if (application instanceof ScheduleWorkProgrammeApplication scheduleWorkProgrammeApplication) {
       refreshScheduleWorkProgrammeApplicationCache(scheduleWorkProgrammeApplication);
-    } else if (licenceApplication instanceof LicenceContinuationApplication continuationApplication) {
+    } else if (application instanceof LicenceContinuationApplication continuationApplication) {
       refreshContinuationApplicationCache(continuationApplication);
     }
   }
@@ -564,7 +564,7 @@ public class CrossLicenceEventTrackerService {
 
   private boolean canForkEventCache(
       LicenceEventCache eventCache,
-      LicenceApplication application,
+      Application application,
       Set<UUID> originalEventIdsWithoutDurationUpdate
   ) {
     return !isClaimedByAnotherApplication(eventCache, application)
@@ -575,7 +575,7 @@ public class CrossLicenceEventTrackerService {
   // current application's data is written to a new row against the same event rather than overwriting it.
   private LicenceEventCache applyApplicationToEventCache(
       LicenceEventCache eventCache,
-      LicenceApplication application,
+      Application application,
       Long stewardWuaId
   ) {
     var targetEventCache = isClaimedByAnotherApplication(eventCache, application)
@@ -592,7 +592,7 @@ public class CrossLicenceEventTrackerService {
   private record RelatedEvents(Set<UUID> originalEventIds, Set<UUID> originalEventIdsWithoutDurationUpdate) {
   }
 
-  private boolean isClaimedByAnotherApplication(LicenceEventCache eventCache, LicenceApplication application) {
+  private boolean isClaimedByAnotherApplication(LicenceEventCache eventCache, Application application) {
     return eventCache.getApplicationId() != null && !eventCache.getApplicationId().equals(application.getId());
   }
 

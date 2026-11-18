@@ -20,8 +20,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.fivium.energyportal.serviceproviders.epmq.ScopeType;
-import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplication;
-import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.Team;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
@@ -188,7 +186,7 @@ class ApplicationAccessServiceTest {
   })
   void userHasAccessToApplication_whenRegulatorAndSubmitted_returnsTrue(TeamType regulatorTeamType) {
     var role = buildTeamRole(Role.VIEW_ANY_LICENCE, buildTeam(regulatorTeamType));
-    var detail = mock(LicenceApplicationDetail.class);
+    var detail = mock(ApplicationDetail.class);
     when(detail.hasBeenSubmitted()).thenReturn(true);
 
     when(teamQueryService.getTeamRolesForUser(USER_1_WUA_ID)).thenReturn(Set.of(role));
@@ -391,21 +389,21 @@ class ApplicationAccessServiceTest {
     return team;
   }
 
-  private LicenceApplicationDetail mockApplicationDetail(ApplicationType applicationType) {
+  private ApplicationDetail mockApplicationDetail(ApplicationType applicationType) {
     return mockApplicationDetail(applicationType, null, null);
   }
 
-  private LicenceApplicationDetail mockApplicationDetail(
+  private ApplicationDetail mockApplicationDetail(
       ApplicationType applicationType,
       Integer responsibleOrganisationUnitId,
       Instant submittedDatetime
   ) {
-    var licenceApplication = mock(LicenceApplication.class);
-    lenient().when(licenceApplication.getId()).thenReturn(APP_ID);
-    lenient().when(licenceApplication.getApplicationType()).thenReturn(applicationType);
+    var application = mock(Application.class);
+    lenient().when(application.getId()).thenReturn(APP_ID);
+    lenient().when(application.getApplicationType()).thenReturn(applicationType);
 
-    var detail = mock(LicenceApplicationDetail.class);
-    when(detail.getLicenceApplication()).thenReturn(licenceApplication);
+    var detail = mock(ApplicationDetail.class);
+    when(detail.getApplication()).thenReturn(application);
 
     if (responsibleOrganisationUnitId != null) {
       when(detail.getResponsibleOrganisationUnitId()).thenReturn(responsibleOrganisationUnitId);

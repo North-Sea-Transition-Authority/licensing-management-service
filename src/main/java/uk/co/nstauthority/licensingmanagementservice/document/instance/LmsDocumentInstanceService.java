@@ -29,7 +29,7 @@ import uk.co.nstauthority.licensingmanagementservice.document.viewtemplates.LmsP
 import uk.co.nstauthority.licensingmanagementservice.document.viewtemplates.mailmerge.mailmergefields.CompanyNameMailMergeField;
 import uk.co.nstauthority.licensingmanagementservice.document.viewtemplates.mailmerge.mailmergefields.CompanyRegisteredAddressMailMergeField;
 import uk.co.nstauthority.licensingmanagementservice.document.viewtemplates.mailmerge.mailmergefields.CurrentDateMailMergeField;
-import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplication;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.Application;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.letter.ApplicationLetterDocumentController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
@@ -69,7 +69,7 @@ public class LmsDocumentInstanceService {
   public DocumentInstanceSectionsSummaryView getDocumentInstanceSectionsSummaryView(
       DocumentInstanceDto documentInstanceDto,
       boolean useDocumentMailMergeFieldFormatter,
-      LicenceApplication application
+      Application application
   ) {
     return documentInstanceSectionViewService.getDocumentInstanceSectionsSummaryView(
         documentInstanceDto,
@@ -86,7 +86,7 @@ public class LmsDocumentInstanceService {
   }
 
   static DocumentInstanceSectionUrls getDocumentInstanceSectionUrls(
-      LicenceApplication application,
+      Application application,
       DocumentInstanceSectionDto documentInstanceSectionDto
   ) {
     return new DocumentInstanceSectionUrls(
@@ -122,7 +122,7 @@ public class LmsDocumentInstanceService {
   }
 
   public LmsPdfRenderResult renderAndSignPdf(
-      LicenceApplication application,
+      Application application,
       boolean isPreview,
       DocumentInstanceDto documentInstanceDto,
       List<DocumentInstanceSectionSummaryView> documentInstanceSectionSummaryViews,

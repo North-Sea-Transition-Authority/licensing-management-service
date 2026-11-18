@@ -14,8 +14,6 @@ import uk.co.nstauthority.licensingmanagementservice.email.EmailService;
 import uk.co.nstauthority.licensingmanagementservice.email.GovukNotifyTemplate;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserService;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.WebUserAccountId;
-import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplication;
-import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.overview.LicenceContinuationApplicationOverviewController;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplication;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overview.ScheduleWorkProgrammeApplicationOverviewController;
@@ -45,8 +43,8 @@ public class ApplicationUpdateSubmittedEmailService {
     this.energyPortalUserService = energyPortalUserService;
   }
 
-  public void sendUpdateSubmittedEmails(LicenceApplicationDetail applicationDetail) {
-    var application = applicationDetail.getLicenceApplication();
+  public void sendUpdateSubmittedEmails(ApplicationDetail applicationDetail) {
+    var application = applicationDetail.getApplication();
     var licence = applicationDetail.getLicence();
 
     var requiredRole = CaseManagerRoles.getRequiredRoleForLicenceType(licence.getType());
@@ -94,16 +92,16 @@ public class ApplicationUpdateSubmittedEmailService {
     }
   }
 
-  private Optional<Long> getAssignedStewardWuaId(LicenceApplication application) {
+  private Optional<Long> getAssignedStewardWuaId(Application application) {
     if (application instanceof ScheduleWorkProgrammeApplication scheduleWorkProgrammeApplication) {
       return Optional.ofNullable(scheduleWorkProgrammeApplication.getStewardWuaId());
     }
     return Optional.empty();
   }
 
-  private String getApplicationUrl(LicenceApplicationDetail applicationDetail) {
+  private String getApplicationUrl(ApplicationDetail applicationDetail) {
     var id = applicationDetail.getId();
-    var overviewUrl = switch (applicationDetail.getLicenceApplication().getApplicationType()) {
+    var overviewUrl = switch (applicationDetail.getApplication().getApplicationType()) {
       case SCHEDULE_AMENDMENT_APPLICATION -> ReverseRouter.route(
           on(ScheduleWorkProgrammeApplicationOverviewController.class).renderOverview(id, null, null, null));
       case CONTINUATION_APPLICATION -> ReverseRouter.route(

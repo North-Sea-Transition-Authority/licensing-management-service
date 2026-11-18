@@ -12,8 +12,8 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import uk.co.fivium.energyportal.serviceproviders.epmq.ScopeType;
-import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplication;
-import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplicationDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.Application;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
@@ -41,13 +41,13 @@ public class ApplicationWorkAreaService {
   // Earlier versions are superseded by the latest one the user can see, so only the highest visible version of each
   // application is listed. This is applied after the access check so that a user who cannot see an update draft
   // (e.g. a regulator) still sees the latest submitted version.
-  public static <T extends LicenceApplicationDetail> List<T> latestVersionsOnly(List<T> applicationDetails) {
+  public static <T extends ApplicationDetail> List<T> latestVersionsOnly(List<T> applicationDetails) {
     return applicationDetails.stream()
         .collect(Collectors.toMap(
-            applicationDetail -> applicationDetail.getLicenceApplication().getId(),
+            applicationDetail -> applicationDetail.getApplication().getId(),
             Function.identity(),
             BinaryOperator.maxBy(Comparator.comparing(
-                LicenceApplicationDetail::getVersionNumber,
+                ApplicationDetail::getVersionNumber,
                 Comparator.nullsFirst(Comparator.<Integer>naturalOrder())
             )),
             LinkedHashMap::new
@@ -58,11 +58,11 @@ public class ApplicationWorkAreaService {
   }
 
   // An update draft is a later version of a submitted application with a deadline set by the regulator.
-  public static boolean isUpdateRequested(LicenceApplicationDetail applicationDetail) {
+  public static boolean isUpdateRequested(ApplicationDetail applicationDetail) {
     return applicationDetail.getStatus() == ApplicationStatus.DRAFT && applicationDetail.getUpdateDeadlineDate() != null;
   }
 
-  public boolean isRegulatorMyWork(LicenceApplicationDetail applicationDetail, Long userWuaId, Set<TeamRole> userTeamRoles) {
+  public boolean isRegulatorMyWork(ApplicationDetail applicationDetail, Long userWuaId, Set<TeamRole> userTeamRoles) {
     return switch (applicationDetail) {
       case ScheduleWorkProgrammeApplicationDetail scheduleDetail ->
           isScheduleApplicationMyWork(scheduleDetail, userWuaId, userTeamRoles);
@@ -72,7 +72,7 @@ public class ApplicationWorkAreaService {
     };
   }
 
-  public boolean isRegulatorAllWork(LicenceApplicationDetail applicationDetail, Long userWuaId, Set<TeamRole> userTeamRoles) {
+  public boolean isRegulatorAllWork(ApplicationDetail applicationDetail, Long userWuaId, Set<TeamRole> userTeamRoles) {
     return switch (applicationDetail) {
       case ScheduleWorkProgrammeApplicationDetail scheduleDetail ->
           isScheduleApplicationAllWork(scheduleDetail, userWuaId, userTeamRoles);
@@ -83,7 +83,7 @@ public class ApplicationWorkAreaService {
   }
 
   public boolean isIndustryMyWork(
-      LicenceApplicationDetail applicationDetail,
+      ApplicationDetail applicationDetail,
       Map<Integer, Integer> licenseeIdToGroupId,
       Long userWuaId,
       Set<TeamRole> userTeamRoles
@@ -178,16 +178,16 @@ public class ApplicationWorkAreaService {
         && (status == ApplicationStatus.ISSUE_DECISION || status == ApplicationStatus.COMPLETE));
   }
 
-  private boolean isExternalEditorOrViewerOnApplication(LicenceApplicationDetail applicationDetail, Set<TeamRole> userTeamRoles) {
-    var licenceApplication = applicationDetail.getLicenceApplication();
+  private boolean isExternalEditorOrViewerOnApplication(ApplicationDetail applicationDetail, Set<TeamRole> userTeamRoles) {
+    var application = applicationDetail.getApplication();
 
     return userTeamRoles.stream()
         .filter(teamRole -> EXTERNAL_CONTRIBUTOR_ROLES.contains(teamRole.getRole()))
-        .anyMatch(teamRole -> isExternalContributor(teamRole.getTeam(), licenceApplication));
+        .anyMatch(teamRole -> isExternalContributor(teamRole.getTeam(), application));
   }
 
   private boolean hasRoleInLicenseeGroups(
-      LicenceApplicationDetail applicationDetail,
+      ApplicationDetail applicationDetail,
       Map<Integer, Integer> licenseeIdToGroupId,
       Set<TeamRole> userTeamRoles,
       Set<Role> roles
@@ -200,7 +200,7 @@ public class ApplicationWorkAreaService {
   }
 
   private Set<String> getApplicationLicenseeGroupIds(
-      LicenceApplicationDetail applicationDetail,
+      ApplicationDetail applicationDetail,
       Map<Integer, Integer> licenseeIdToGroupId
   ) {
     if (applicationDetail.hasBeenSubmitted()) {
@@ -221,9 +221,9 @@ public class ApplicationWorkAreaService {
         && organisationGroupIds.contains(team.getScopeId());
   }
 
-  private boolean isExternalContributor(Team team, LicenceApplication licenceApplication) {
+  private boolean isExternalContributor(Team team, Application application) {
     return team.getTeamType() == TeamType.EXTERNAL_CONTRIBUTORS
-        && licenceApplication.getId().toString().equals(team.getScopeId())
-        && team.getScopeType().equals(licenceApplication.getApplicationType().name());
+        && application.getId().toString().equals(team.getScopeId())
+        && team.getScopeType().equals(application.getApplicationType().name());
   }
 }

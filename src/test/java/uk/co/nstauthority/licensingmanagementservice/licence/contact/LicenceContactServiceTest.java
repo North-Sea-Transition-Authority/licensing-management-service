@@ -33,9 +33,9 @@ import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
-import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatusType;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceOrganisationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisation;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisationService;
@@ -763,8 +763,8 @@ class LicenceContactServiceTest {
     when(licenceStatusService.getCurrentStatusesByLicenceId(licences)).thenReturn(statusByLicenceId);
   }
 
-  private LicenceApplicationDetail applicationDetail(Licence licence, Integer responsibleOrganisationUnitId) {
-    var applicationDetail = mock(LicenceApplicationDetail.class);
+  private ApplicationDetail applicationDetail(Licence licence, Integer responsibleOrganisationUnitId) {
+    var applicationDetail = mock(ApplicationDetail.class);
     when(applicationDetail.getLicence()).thenReturn(licence);
     when(applicationDetail.getResponsibleOrganisationUnitId()).thenReturn(responsibleOrganisationUnitId);
     return applicationDetail;

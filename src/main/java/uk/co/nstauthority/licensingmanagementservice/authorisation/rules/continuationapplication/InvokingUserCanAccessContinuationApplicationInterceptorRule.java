@@ -63,7 +63,7 @@ public class InvokingUserCanAccessContinuationApplicationInterceptorRule impleme
     return SecurityRuleResult.checkFailedWithStatusAndMessage(
         HttpStatus.FORBIDDEN,
         "wuaId %s does not have permission to access application %s"
-            .formatted(wuaId, applicationDetail.getLicenceApplication().getId())
+            .formatted(wuaId, applicationDetail.getApplication().getId())
     );
   }
 

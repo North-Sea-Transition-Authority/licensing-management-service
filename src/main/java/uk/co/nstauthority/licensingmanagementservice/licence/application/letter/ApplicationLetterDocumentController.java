@@ -28,7 +28,7 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.continu
 import uk.co.nstauthority.licensingmanagementservice.breadcrumbs.Breadcrumbs;
 import uk.co.nstauthority.licensingmanagementservice.breadcrumbs.BreadcrumbsUtil;
 import uk.co.nstauthority.licensingmanagementservice.document.AddSectionOption;
-import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplication;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.Application;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
@@ -224,7 +224,7 @@ public class ApplicationLetterDocumentController {
       DocumentInstanceSectionDto documentInstanceSectionDto,
       DocumentInstanceSectionForm form,
       String pageTitle,
-      LicenceApplication application
+      Application application
   ) {
     var documentInstance = documentInstanceSectionDto.documentInstanceDto();
     var modelAndView = new ModelAndView("lms/licence/application/documents/addOrEditLetterSection")
@@ -292,7 +292,7 @@ public class ApplicationLetterDocumentController {
 
   private ModelAndView getRemoveModelAndView(
       DocumentInstanceSectionDto documentSectionDto,
-      LicenceApplication application
+      Application application
   ) {
     var modelAndView = new ModelAndView("lms/licence/application/documents/removeLetterSection")
         .addObject("documentSectionDto", documentSectionDto)
@@ -314,7 +314,7 @@ public class ApplicationLetterDocumentController {
   private ModelAndView addBreadcrumbs(
       ModelAndView modelAndView,
       Breadcrumbs.Builder breadcrumbsBuilder,
-      LicenceApplication application
+      Application application
   ) {
     var breadcrumbs = breadcrumbsBuilder
         .addBreadcrumb(

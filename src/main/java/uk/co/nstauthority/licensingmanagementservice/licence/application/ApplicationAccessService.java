@@ -7,8 +7,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.springframework.stereotype.Service;
 import uk.co.fivium.energyportal.serviceproviders.epmq.ScopeType;
-import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplication;
-import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.Team;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamQueryService;
@@ -40,7 +38,7 @@ public class ApplicationAccessService {
   }
 
   public boolean userHasAccessToApplication(
-      LicenceApplicationDetail applicationDetail,
+      ApplicationDetail applicationDetail,
       Map<Integer, Integer> orgUnitIdToGroupId,
       Long wuaId
   ) {
@@ -48,7 +46,7 @@ public class ApplicationAccessService {
   }
 
   public boolean userHasViewAccessToApplication(
-      LicenceApplicationDetail applicationDetail,
+      ApplicationDetail applicationDetail,
       Map<Integer, Integer> orgUnitIdToGroupId,
       Long wuaId
   ) {
@@ -56,7 +54,7 @@ public class ApplicationAccessService {
   }
 
   private boolean hasAccess(
-      LicenceApplicationDetail applicationDetail,
+      ApplicationDetail applicationDetail,
       Map<Integer, Integer> orgUnitIdToGroupId,
       Long wuaId,
       Set<Role> industryRoles
@@ -74,7 +72,7 @@ public class ApplicationAccessService {
   }
 
   public boolean userHasIndustryEditAccessToApplication(
-      LicenceApplicationDetail applicationDetail,
+      ApplicationDetail applicationDetail,
       Map<Integer, Integer> orgUnitIdToGroupId,
       Set<TeamRole> teamRoles
   ) {
@@ -82,7 +80,7 @@ public class ApplicationAccessService {
   }
 
   public boolean userHasIndustryViewAccessToApplication(
-      LicenceApplicationDetail applicationDetail,
+      ApplicationDetail applicationDetail,
       Map<Integer, Integer> orgUnitIdToGroupId,
       Set<TeamRole> teamRoles
   ) {
@@ -90,25 +88,25 @@ public class ApplicationAccessService {
   }
 
   private boolean hasIndustryAccess(
-      LicenceApplicationDetail applicationDetail,
+      ApplicationDetail applicationDetail,
       Map<Integer, Integer> orgUnitIdToGroupId,
       Set<TeamRole> teamRoles,
       Set<Role> allowedRoles
   ) {
-    var licenceApplication = applicationDetail.getLicenceApplication();
+    var application = applicationDetail.getApplication();
     var licenseeGroupIds = getApplicationLicenseeGroupIds(applicationDetail, orgUnitIdToGroupId);
 
     return teamRoles.stream()
         .filter(teamRole -> allowedRoles.contains(teamRole.getRole()))
         .map(TeamRole::getTeam)
         .anyMatch(team ->
-            isExternalContributor(team, licenceApplication)
+            isExternalContributor(team, application)
             || isLicenseeOrgGroupMember(team, licenseeGroupIds)
         );
   }
 
   private Set<String> getApplicationLicenseeGroupIds(
-      LicenceApplicationDetail applicationDetail,
+      ApplicationDetail applicationDetail,
       Map<Integer, Integer> orgUnitIdToGroupId
   ) {
     if (applicationDetail.hasBeenSubmitted()) {
@@ -129,10 +127,10 @@ public class ApplicationAccessService {
         && organisationGroupIds.contains(team.getScopeId());
   }
 
-  private boolean isExternalContributor(Team team, LicenceApplication licenceApplication) {
+  private boolean isExternalContributor(Team team, Application application) {
     return team.getTeamType() == TeamType.EXTERNAL_CONTRIBUTORS
-        && licenceApplication.getId().toString().equals(team.getScopeId())
-        && team.getScopeType().equals(licenceApplication.getApplicationType().name());
+        && application.getId().toString().equals(team.getScopeId())
+        && team.getScopeType().equals(application.getApplicationType().name());
   }
 
 }

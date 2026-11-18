@@ -9,7 +9,7 @@ import uk.co.fivium.digitalnotificationlibrary.core.notification.MergedTemplate;
 import uk.co.fivium.digitalnotificationlibrary.core.notification.email.EmailRecipient;
 import uk.co.nstauthority.licensingmanagementservice.email.EmailService;
 import uk.co.nstauthority.licensingmanagementservice.email.GovukNotifyTemplate;
-import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplication;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.Application;
 import uk.co.nstauthority.licensingmanagementservice.teams.management.view.TeamMemberView;
 
 @Service
@@ -27,7 +27,7 @@ public class ApplicationWithdrawService {
       String withdrawalReason,
       List<TeamMemberView> submitters,
       String domainReferenceType,
-      LicenceApplication licenceApplication
+      Application application
   ) {
     if (submitters == null || submitters.isEmpty()) {
       return;
@@ -36,8 +36,8 @@ public class ApplicationWithdrawService {
     MergedTemplate.MergedTemplateBuilder template = emailService.getTemplate(
             GovukNotifyTemplate.APPLICATION_WITHDRAWAL_V1
         )
-        .withMailMergeField("APPLICATION_TYPE", licenceApplication.getApplicationType().getDisplayName())
-        .withMailMergeField("APPLICATION_REFERENCE", licenceApplication.getApplicationReference())
+        .withMailMergeField("APPLICATION_TYPE", application.getApplicationType().getDisplayName())
+        .withMailMergeField("APPLICATION_REFERENCE", application.getApplicationReference())
         .withMailMergeField("WITHDRAWAL_REASON", withdrawalReason);
 
     for (TeamMemberView submitter : submitters) {
@@ -47,11 +47,11 @@ public class ApplicationWithdrawService {
         emailService.sendEmail(
             mergedTemplate,
             EmailRecipient.directEmailAddress(submitter.email()),
-            DomainReference.from(licenceApplication.getId().toString(), domainReferenceType)
+            DomainReference.from(application.getId().toString(), domainReferenceType)
         );
       } catch (Exception e) {
         LOGGER.error("Failed to send {} withdrawn email to {} for Application ID: {}",
-                     licenceApplication.getApplicationType().getDisplayName(), submitter.email(), licenceApplication.getId(), e);
+                     application.getApplicationType().getDisplayName(), submitter.email(), application.getId(), e);
       }
     }
   }

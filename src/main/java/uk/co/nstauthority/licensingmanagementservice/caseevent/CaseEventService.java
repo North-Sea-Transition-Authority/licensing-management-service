@@ -19,7 +19,7 @@ import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPor
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserService;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.WebUserAccountId;
 import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplication;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.Application;
 
 @Service
 public class CaseEventService {
@@ -51,7 +51,7 @@ public class CaseEventService {
   @Transactional
   public CaseEvent recordCaseEvent(
       CaseEventType eventType,
-      LicenceApplication application,
+      Application application,
       @Nullable CaseEventPayload payload
   ) {
     var caseEvent = new CaseEvent(
@@ -65,7 +65,7 @@ public class CaseEventService {
     return caseEventRepository.save(caseEvent);
   }
 
-  public List<CaseEventView> getCaseEventViews(LicenceApplication application) {
+  public List<CaseEventView> getCaseEventViews(Application application) {
     var caseEvents = caseEventRepository.findByApplicationTypeAndApplicationIdOrderByEventInstantDesc(
         application.getApplicationType(),
         application.getId()

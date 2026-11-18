@@ -39,7 +39,7 @@ import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
 import uk.co.nstauthority.licensingmanagementservice.document.AddSectionOption;
 import uk.co.nstauthority.licensingmanagementservice.document.instance.DocumentInstanceSectionDtoTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.document.viewtemplates.DocumentInstanceDtoTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplication;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.Application;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
@@ -76,7 +76,7 @@ class ApplicationLetterDocumentControllerTest extends AbstractControllerTest {
   private ApplicationService applicationService;
 
   @MockitoBean
-  private LicenceApplication application;
+  private Application application;
 
   @MockitoBean
   private ApplicationLetterValidationService  applicationLetterValidationService;

@@ -39,7 +39,7 @@ import uk.co.nstauthority.licensingmanagementservice.document.viewtemplates.LmsP
 import uk.co.nstauthority.licensingmanagementservice.document.viewtemplates.mailmerge.mailmergefields.CompanyNameMailMergeField;
 import uk.co.nstauthority.licensingmanagementservice.document.viewtemplates.mailmerge.mailmergefields.CompanyRegisteredAddressMailMergeField;
 import uk.co.nstauthority.licensingmanagementservice.document.viewtemplates.mailmerge.mailmergefields.CurrentDateMailMergeField;
-import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplication;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.Application;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.letter.ApplicationLetterDocumentController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
@@ -54,7 +54,7 @@ class LmsDocumentInstanceServiceTest {
   private DocumentInstanceSectionViewService documentInstanceSectionViewService;
 
   @Mock
-  private LicenceApplication application;
+  private Application application;
 
   @Mock
   private DocumentInstanceService documentInstanceService;

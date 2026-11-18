@@ -32,8 +32,8 @@ import uk.co.nstauthority.licensingmanagementservice.email.GovukNotifyTemplate;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
 import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
-import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplication;
-import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplicationDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.Application;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
 import uk.co.nstauthority.licensingmanagementservice.licence.contact.LicenceContactService;
 import uk.co.nstauthority.licensingmanagementservice.teams.IndustryTeamService;
@@ -68,21 +68,21 @@ class RequestUpdateEmailServiceTest {
   @InjectMocks
   private RequestUpdateEmailService service;
 
-  private LicenceApplicationDetail updateDetail;
+  private ApplicationDetail updateDetail;
   private Licence licence;
   private UUID applicationId;
 
   @BeforeEach
   void setUp() {
-    var application = mock(LicenceApplication.class);
+    var application = mock(Application.class);
     applicationId = UUID.randomUUID();
     when(application.getId()).thenReturn(applicationId);
     lenient().when(application.getApplicationType()).thenReturn(ApplicationType.CONTINUATION_APPLICATION);
 
     licence = mock(Licence.class);
 
-    updateDetail = mock(LicenceApplicationDetail.class);
-    when(updateDetail.getLicenceApplication()).thenReturn(application);
+    updateDetail = mock(ApplicationDetail.class);
+    when(updateDetail.getApplication()).thenReturn(application);
     when(updateDetail.getLicence()).thenReturn(licence);
     when(updateDetail.getResponsibleOrganisationUnitId()).thenReturn(ORG_UNIT_ID);
   }
@@ -152,7 +152,7 @@ class RequestUpdateEmailServiceTest {
   private void givenTemplateMocks() {
     when(updateDetail.getUpdateDeadlineDate()).thenReturn(DEADLINE);
     when(updateDetail.getUpdateReason()).thenReturn("Further information is needed");
-    when(updateDetail.getLicenceApplication().getApplicationReference()).thenReturn("LMS/CA/2026/1/1");
+    when(updateDetail.getApplication().getApplicationReference()).thenReturn("LMS/CA/2026/1/1");
     when(emailService.getTemplate(GovukNotifyTemplate.APPLICATION_UPDATE_REQUESTED_V1)).thenReturn(mergedTemplateBuilder);
     when(mergedTemplateBuilder.withMailMergeField(anyString(), anyString())).thenReturn(mergedTemplateBuilder);
     when(mergedTemplateBuilder.merge()).thenReturn(mergedTemplate);

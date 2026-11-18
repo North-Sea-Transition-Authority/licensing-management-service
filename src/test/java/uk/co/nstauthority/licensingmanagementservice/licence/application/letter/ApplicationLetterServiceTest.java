@@ -21,7 +21,7 @@ import uk.co.nstauthority.licensingmanagementservice.document.AddSectionOption;
 import uk.co.nstauthority.licensingmanagementservice.document.DocumentTemplateDtoTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.document.instance.DocumentInstanceSectionDtoTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.document.viewtemplates.DocumentInstanceDtoTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplication;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.Application;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
 
 @ExtendWith(MockitoExtension.class)
@@ -37,7 +37,7 @@ class ApplicationLetterServiceTest {
   private DocumentTemplateService documentTemplateService;
 
   @Mock
-  private LicenceApplication application;
+  private Application application;
 
   @InjectMocks
   private ApplicationLetterService applicationLetterService;

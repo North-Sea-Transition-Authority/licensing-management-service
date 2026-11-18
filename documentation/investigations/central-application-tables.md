@@ -13,8 +13,8 @@ The two application families each have their own pair of tables:
 | Extension and amendment (`SCHEDULE_AMENDMENT_APPLICATION`) | `schedule_work_programme_applications` | `schedule_work_programme_application_details` |
 | Continuation (`CONTINUATION_APPLICATION`) | `licence_continuation_applications` | `licence_continuation_application_details` |
 
-Most of the columns are the same in both. The Java side shares only two thin interfaces
-(`LicenceApplication`, `LicenceApplicationDetail`), so every shared field is declared twice
+Most of the columns are the same in both. Before Phase 1, the Java side shared only two thin
+interfaces (`LicenceApplication`, `LicenceApplicationDetail`), so every shared field was declared twice
 and has already drifted: `created_date_time` and `created_datetime` (fixed in V130),
 `INTEGER` versus `BIGINT` for WUA ids, `@Column` on some fields and not others, and `NOT NULL`
 on one family's `created_datetime` only.
@@ -40,9 +40,12 @@ root. `licence_continuation_applications` would be left with no columns except `
 dropped.
 
 ```
-applications (shared columns, application_type)
+applications (shared columns, application_type, licence_id)
+├── schedule_applications                  id → applications.id   licence_schedule_id,
+│     (one row per application about a     submitted_licence_schedule_detail_id
+│      licence schedule: both existing types)
 └── schedule_work_programme_applications   id → applications.id   steward_wua_id
-    (a row only once a steward is assigned; continuation applications have no table)
+      (a row only once a steward is assigned; continuation applications have no table)
 
 application_details (shared columns, application_type)
 ├── schedule_work_programme_application_details  id → application_details.id
@@ -60,11 +63,18 @@ strategies, because Hibernate gives every subclass in a joined hierarchy its own
 | `application_details` | `@Inheritance(strategy = InheritanceType.JOINED)` | Both families have type-specific columns. Follows the existing precedent in `ScheduleEvent`. |
 | `applications` | `@Inheritance(strategy = InheritanceType.SINGLE_TABLE)` | Neither subclass has columns of its own in the hierarchy. Continuation applications have no table at all. |
 
+Every application relates to a licence, so `licence_id` is on `applications`. Not every future
+application type will relate to a licence schedule, so the schedule link is not: it moves to
+`schedule_applications`, which both existing types use. Like the steward table below, it is
+mapped as its own small entity that shares its id with the application, reached from the
+`ScheduleApplication` superclass (Phase 1 and Phase 3, step 5). A future application type with
+no schedule extends `Application` directly and has no `schedule_applications` row.
+
 `schedule_work_programme_applications` is not part of the applications hierarchy. It holds
 extension-only application data, mapped as its own small entity that shares its id with the
 application. Today that is just the steward: a row is inserted when a steward is first assigned
 and updated on reallocation, so an extension application with no steward has no row. The
-extension application reaches it through a one-to-one association (Phase 3, step 5).
+extension application reaches it through a one-to-one association (Phase 3, step 6).
 
 The discriminator values are the `ApplicationType` enum names. Those strings are already stored
 in `teams.scope_type`, `application_decision_details.application_type` and
@@ -116,12 +126,16 @@ about 10 derived queries in the two detail repositories and their callers.
 applications
   id                                   UUID PK
   application_type                     TEXT NOT NULL      discriminator
-  licence_schedule_id                  UUID NOT NULL → licence_schedules.id
-  submitted_licence_schedule_detail_id UUID          → licence_schedule_details.id
+  licence_id                           INTEGER NOT NULL → licences.id
   application_reference                TEXT UNIQUE
   withdrawal_reason                    TEXT               set when withdrawn, any type
   withdrawn_datetime                   TIMESTAMPTZ        set when withdrawn, any type
   UNIQUE (id, application_type)                           target for the composite FK below
+
+schedule_applications                                     one row per application about a licence schedule
+  id                                   UUID PK → applications.id
+  licence_schedule_id                  UUID NOT NULL → licence_schedules.id
+  submitted_licence_schedule_detail_id UUID          → licence_schedule_details.id (null until submission)
 
 schedule_work_programme_applications                      one row per extension application with a steward
   id                                   UUID PK → applications.id
@@ -169,6 +183,11 @@ for every application type. Today only continuations can be withdrawn, so after 
 extension and amendment rows have both null. That leaves `licence_continuation_applications` with nothing but its `id`, so
 it is dropped. If a continuation-only application column is ever needed, it would bring back a
 continuation table, mapped as its own entity sharing the application's id, like the steward one.
+
+For the two existing types, `applications.licence_id` duplicates the licence their schedule
+belongs to (`licence_schedules.licence_id`). The two must agree. That is enforced in application
+code, not by a database constraint: the licence is set from the schedule when the application is
+created, and neither changes afterwards.
 
 With both external contributor request tables pointing at `applications`, the database no
 longer guarantees that each points at an application of its own family. The same goes for
@@ -223,6 +242,9 @@ Things to know when working the stack:
 
 Run these before writing the migration. Every one should return zero rows or zero.
 
+> **Done.** Every check returned 0 on a local development database and on UAT, so no data fix
+> was needed and there is no PR 1. The Phase 1 PR targets `develop` directly.
+
 ```sql
 -- 1. UUID collisions between the families (should be impossible, but the root tables depend on it)
 SELECT id FROM schedule_work_programme_applications
@@ -239,6 +261,12 @@ INTERSECT SELECT application_reference FROM licence_continuation_applications;
 SELECT COUNT(*) FROM licence_continuation_application_details WHERE created_datetime IS NULL;
 SELECT COUNT(*) FROM schedule_work_programme_application_details WHERE schedule_work_programme_application_id IS NULL;
 SELECT COUNT(*) FROM licence_continuation_application_details WHERE licence_continuation_application_id IS NULL;
+
+-- 4. Applications whose schedule has no licence (would block applications.licence_id NOT NULL)
+SELECT COUNT(*) FROM schedule_work_programme_applications a
+  JOIN licence_schedules s ON s.id = a.licence_schedule_id WHERE s.licence_id IS NULL;
+SELECT COUNT(*) FROM licence_continuation_applications a
+  JOIN licence_schedules s ON s.id = a.licence_schedule_id WHERE s.licence_id IS NULL;
 ```
 
 If check 3 finds continuation rows with no `created_datetime`, either backfill them from the
@@ -271,23 +299,34 @@ Its own PR (PR 2). With no schema change, the existing tests cover it, so it is 
 the stack that can be checked on its own. It removes the duplicated Java, so Phase 3 is left
 with mapping annotations, the detail-to-application link and the renamed join columns.
 
-1. Add `@MappedSuperclass` `AbstractLicenceApplication` with the shared fields: `id`,
-   `licenceSchedule`, `submittedLicenceScheduleDetail`, `applicationReference`. Leave
+1. Add `@MappedSuperclass` `Application` (in `licence.application`) with the shared fields `id`
+   and `applicationReference`, and abstract `getApplicationType()` and `getLicence()`. Leave
    `withdrawalReason` and `withdrawnDatetime` in `LicenceContinuationApplication` for now: the
    extension table has no columns for them until Phase 2, and they move up to the root in Phase 3.
-2. Add `@MappedSuperclass` `AbstractLicenceApplicationDetail` with `id`, `versionNumber`,
-   `status`, `createdDatetime`, `createdByWuaId`, `submittedDatetime`, `submittedByWuaId`,
-   `responsibleOrganisationUnitId`, `updateDeadlineDate`, `updateReason`.
-3. Make the four entities extend them and delete the duplicated fields and accessors.
+   Add `@MappedSuperclass` `ScheduleApplication extends Application` with `licenceSchedule` and
+   `submittedLicenceScheduleDetail`, implementing `getLicence()` through the schedule. Both
+   existing application types extend `ScheduleApplication`; a future type that isn't about a
+   schedule extends `Application` directly.
+2. Add `@MappedSuperclass` `ApplicationDetail` (in `licence.application`) with `id`,
+   `versionNumber`, `status`, `createdDatetime`, `createdByWuaId`, `submittedDatetime`,
+   `submittedByWuaId`, `responsibleOrganisationUnitId`, `updateDeadlineDate`, `updateReason`.
+3. Make the four entities extend them (the applications through `ScheduleApplication`) and
+   delete the duplicated fields and accessors. Both
+   families now generate ids with `@UuidGenerator`; extensions used
+   `@GeneratedValue(strategy = GenerationType.UUID)`, which produces the same random UUIDs.
 4. Leave the detail-to-application association in each subclass for now. A mapped superclass
    cannot hold a `@ManyToOne` to another mapped superclass, so it moves in Phase 3.
 5. Envers only audits a mapped superclass's fields if the superclass is `@Audited` too (or the
-   subclass declares `@AuditOverride(forClass = ...)`). Annotate the superclasses and check
-   with an integration test that an update to a shared field (for example `status`) still
-   writes an audit row.
-6. Fold `getCreatedDatetime()` and the other shared getters into the existing
-   `LicenceApplication` / `LicenceApplicationDetail` interfaces, or replace the interfaces with
-   the superclasses.
+   subclass declares `@AuditOverride(forClass = ...)`). Annotate the superclasses, and check
+   with an integration test that every persistent property of each entity, including those
+   inherited from the superclass, appears on its Envers audit entity.
+6. Delete the `LicenceApplication` and `LicenceApplicationDetail` interfaces. The superclasses
+   were their only implementations, so every reference switches to `Application` /
+   `ApplicationDetail`. `getLicenceApplication()` is renamed `getApplication()` and becomes
+   abstract on `ApplicationDetail`, and `hasBeenSubmitted()` and `getLicence()` move there as
+   concrete methods; `getLicence()` delegates to the application, replacing the two copies in the
+   detail subclasses. Variables named after the old interfaces (`licenceApplication`) are renamed
+   to `application`.
 
 `DuplicationUtil` uses `ReflectionUtil.getAllFields`, which includes superclass fields, so
 duplication is unaffected. The detail duplication services build new details field by field
@@ -301,21 +340,30 @@ Its own PR (PR 3), targeting the Phase 1 PR's branch (see Delivery). One migrati
 ```sql
 -- 1. Root tables
 CREATE TABLE applications (
-  id                                   UUID PRIMARY KEY,
-  application_type                     TEXT NOT NULL,
-  licence_schedule_id                  UUID NOT NULL,
-  submitted_licence_schedule_detail_id UUID,
-  application_reference                TEXT,
-  withdrawal_reason                    TEXT,
-  withdrawn_datetime                   TIMESTAMPTZ,
-  CONSTRAINT applications_licence_schedule_fk FOREIGN KEY (licence_schedule_id) REFERENCES licence_schedules (id),
-  CONSTRAINT applications_submitted_licence_schedule_detail_fk FOREIGN KEY (submitted_licence_schedule_detail_id) REFERENCES licence_schedule_details (id),
+  id                    UUID PRIMARY KEY,
+  application_type      TEXT NOT NULL,
+  licence_id            INTEGER NOT NULL,
+  application_reference TEXT,
+  withdrawal_reason     TEXT,
+  withdrawn_datetime    TIMESTAMPTZ,
+  CONSTRAINT applications_licence_fk FOREIGN KEY (licence_id) REFERENCES licences (id),
   CONSTRAINT applications_application_reference_unique UNIQUE (application_reference),
   CONSTRAINT applications_id_type_uk UNIQUE (id, application_type)
 );
 
-CREATE INDEX applications_licence_schedule_idx ON applications (licence_schedule_id);
-CREATE INDEX applications_submitted_licence_schedule_detail_idx ON applications (submitted_licence_schedule_detail_id);
+CREATE INDEX applications_licence_idx ON applications (licence_id);
+
+CREATE TABLE schedule_applications (
+  id                                   UUID PRIMARY KEY,
+  licence_schedule_id                  UUID NOT NULL,
+  submitted_licence_schedule_detail_id UUID,
+  CONSTRAINT schedule_applications_application_fk FOREIGN KEY (id) REFERENCES applications (id),
+  CONSTRAINT schedule_applications_licence_schedule_fk FOREIGN KEY (licence_schedule_id) REFERENCES licence_schedules (id),
+  CONSTRAINT schedule_applications_submitted_licence_schedule_detail_fk FOREIGN KEY (submitted_licence_schedule_detail_id) REFERENCES licence_schedule_details (id)
+);
+
+CREATE INDEX schedule_applications_licence_schedule_idx ON schedule_applications (licence_schedule_id);
+CREATE INDEX schedule_applications_submitted_licence_schedule_detail_idx ON schedule_applications (submitted_licence_schedule_detail_id);
 
 CREATE TABLE application_details (
   id                               UUID PRIMARY KEY,
@@ -336,16 +384,22 @@ CREATE TABLE application_details (
 );
 -- application_details_version_uk's index covers lookups by application_id
 
--- 2. Copy the shared columns up, keeping every id
-INSERT INTO applications (id, application_type, licence_schedule_id, submitted_licence_schedule_detail_id, application_reference)
-SELECT id, 'SCHEDULE_AMENDMENT_APPLICATION', licence_schedule_id, submitted_licence_schedule_detail_id, application_reference
-FROM schedule_work_programme_applications;
+-- 2. Copy the shared columns up, keeping every id. The licence comes from each application's
+--    schedule (Phase 0, check 4).
+INSERT INTO applications (id, application_type, licence_id, application_reference)
+SELECT a.id, 'SCHEDULE_AMENDMENT_APPLICATION', s.licence_id, a.application_reference
+FROM schedule_work_programme_applications a
+JOIN licence_schedules s ON s.id = a.licence_schedule_id;
 
-INSERT INTO applications (id, application_type, licence_schedule_id, submitted_licence_schedule_detail_id,
-                          application_reference, withdrawal_reason, withdrawn_datetime)
-SELECT id, 'CONTINUATION_APPLICATION', licence_schedule_id, submitted_licence_schedule_detail_id,
-       application_reference, withdrawal_reason, withdrawn_datetime
-FROM licence_continuation_applications;
+INSERT INTO applications (id, application_type, licence_id, application_reference, withdrawal_reason, withdrawn_datetime)
+SELECT a.id, 'CONTINUATION_APPLICATION', s.licence_id, a.application_reference, a.withdrawal_reason, a.withdrawn_datetime
+FROM licence_continuation_applications a
+JOIN licence_schedules s ON s.id = a.licence_schedule_id;
+
+INSERT INTO schedule_applications (id, licence_schedule_id, submitted_licence_schedule_detail_id)
+SELECT id, licence_schedule_id, submitted_licence_schedule_detail_id FROM schedule_work_programme_applications
+UNION ALL
+SELECT id, licence_schedule_id, submitted_licence_schedule_detail_id FROM licence_continuation_applications;
 
 INSERT INTO application_details (id, application_id, application_type, version_number, status,
     created_datetime, created_by_wua_id, submitted_datetime, submitted_by_wua_id,
@@ -427,31 +481,48 @@ DROP TABLE licence_continuation_applications;
 
 -- 4. Audit tables. Envers puts revtype, the discriminator and the shared columns in the root
 --    audit table. A joined subclass's audit table holds only rev, id and its own columns.
---    ScheduleWorkProgrammeApplicationData is an entity in its own right, so
---    schedule_work_programme_applications_aud keeps revtype. (rev, id) cannot collide in the root audit tables because ids are unique
---    across families (Phase 0, check 1).
+--    ScheduleWorkProgrammeApplicationData and the schedule_applications entity are entities in
+--    their own right, so their audit tables keep revtype. (rev, id) cannot collide in the root
+--    audit tables because ids are unique across families (Phase 0, check 1).
 CREATE TABLE applications_aud (
-  rev                                  INTEGER NOT NULL,
-  revtype                              NUMERIC,
-  id                                   UUID NOT NULL,
-  application_type                     TEXT,
-  licence_schedule_id                  UUID,
-  submitted_licence_schedule_detail_id UUID,
-  application_reference                TEXT,
-  withdrawal_reason                    TEXT,
-  withdrawn_datetime                   TIMESTAMPTZ,
+  rev                   INTEGER NOT NULL,
+  revtype               NUMERIC,
+  id                    UUID NOT NULL,
+  application_type      TEXT,
+  licence_id            INTEGER,
+  application_reference TEXT,
+  withdrawal_reason     TEXT,
+  withdrawn_datetime    TIMESTAMPTZ,
   CONSTRAINT applications_aud_pk PRIMARY KEY (rev, id),
   CONSTRAINT applications_aud_rev_fk FOREIGN KEY (rev) REFERENCES audit_revisions (rev)
 );
 CREATE INDEX applications_aud_rev_idx ON applications_aud (rev);
 
-INSERT INTO applications_aud (rev, revtype, id, application_type, licence_schedule_id,
-                              submitted_licence_schedule_detail_id, application_reference)
-SELECT rev, revtype, id, 'SCHEDULE_AMENDMENT_APPLICATION', licence_schedule_id,
-       submitted_licence_schedule_detail_id, application_reference
-FROM schedule_work_programme_applications_aud;
+-- An application never changes schedule, so each audit row's licence comes from the schedule
+-- the audit row records.
+INSERT INTO applications_aud (rev, revtype, id, application_type, licence_id, application_reference)
+SELECT a.rev, a.revtype, a.id, 'SCHEDULE_AMENDMENT_APPLICATION', s.licence_id, a.application_reference
+FROM schedule_work_programme_applications_aud a
+LEFT JOIN licence_schedules s ON s.id = a.licence_schedule_id;
 -- ...and the same from licence_continuation_applications_aud, also copying withdrawal_reason
 -- and withdrawn_datetime.
+
+CREATE TABLE schedule_applications_aud (
+  rev                                  INTEGER NOT NULL,
+  revtype                              NUMERIC,
+  id                                   UUID NOT NULL,
+  licence_schedule_id                  UUID,
+  submitted_licence_schedule_detail_id UUID,
+  CONSTRAINT schedule_applications_aud_pk PRIMARY KEY (rev, id),
+  CONSTRAINT schedule_applications_aud_rev_fk FOREIGN KEY (rev) REFERENCES audit_revisions (rev)
+);
+CREATE INDEX schedule_applications_aud_rev_idx ON schedule_applications_aud (rev);
+
+INSERT INTO schedule_applications_aud (rev, revtype, id, licence_schedule_id, submitted_licence_schedule_detail_id)
+SELECT rev, revtype, id, licence_schedule_id, submitted_licence_schedule_detail_id FROM schedule_work_programme_applications_aud
+UNION ALL
+SELECT rev, revtype, id, licence_schedule_id, submitted_licence_schedule_detail_id FROM licence_continuation_applications_aud;
+
 DROP TABLE licence_continuation_applications_aud;
 
 -- application_details_aud: same pattern, copied from both detail _aud tables.
@@ -509,7 +580,7 @@ Its own PR (PR 4), targeting the Phase 2 PR's branch (see Delivery).
    @Entity(name = "application_details")
    @Inheritance(strategy = InheritanceType.JOINED)
    @DiscriminatorColumn(name = "application_type", discriminatorType = DiscriminatorType.STRING)
-   public abstract class AbstractLicenceApplicationDetail implements LicenceApplicationDetail { ... }
+   public abstract class ApplicationDetail { ... }
    ```
 
    The application root is single-table, and neither subclass maps a table of its own:
@@ -519,18 +590,25 @@ Its own PR (PR 4), targeting the Phase 2 PR's branch (see Delivery).
    @Entity(name = "applications")
    @Inheritance(strategy = InheritanceType.SINGLE_TABLE)
    @DiscriminatorColumn(name = "application_type", discriminatorType = DiscriminatorType.STRING)
-   public abstract class AbstractLicenceApplication implements LicenceApplication { ... }
+   public abstract class Application { ... }
+
+   @Audited
+   @MappedSuperclass
+   public abstract class ScheduleApplication extends Application { ... }
 
    @Audited
    @Entity
    @DiscriminatorValue("SCHEDULE_AMENDMENT_APPLICATION")
-   public class ScheduleWorkProgrammeApplication extends AbstractLicenceApplication { ... }
+   public class ScheduleWorkProgrammeApplication extends ScheduleApplication { ... }
 
    @Audited
    @Entity
    @DiscriminatorValue("CONTINUATION_APPLICATION")
-   public class LicenceContinuationApplication extends AbstractLicenceApplication { ... }
+   public class LicenceContinuationApplication extends ScheduleApplication { ... }
    ```
+
+   `ScheduleApplication` stays a mapped superclass between the root and the two entities. It
+   maps no columns of its own any more (step 5 moves its fields to a separate entity).
 
 2. The detail subclasses keep their `@Entity(name = ...)`, which is still the name of their own
    table, and gain `@DiscriminatorValue` with their `ApplicationType` name. Keep the existing
@@ -542,12 +620,13 @@ Its own PR (PR 4), targeting the Phase 2 PR's branch (see Delivery).
    Nothing in JPQL uses
    either entity name.
 3. Move the detail-to-application link to the root as
-   `@ManyToOne @JoinColumn(name = "application_id") AbstractLicenceApplication application`.
+   `@ManyToOne @JoinColumn(name = "application_id") Application application`.
    In each subclass, keep `getLicenceContinuationApplication()` /
    `getScheduleWorkProgrammeApplication()` as typed getters that cast `getApplication()`, so the
    other files that call them don't change. The association is eager today; keep it eager or
    use `Hibernate.unproxy` in the getter, because a lazy proxy of the abstract root can't be cast
-   to a subclass.
+   to a subclass. The abstract `getApplication()` from Phase 1 becomes the concrete getter for
+   this association, and the two subclass implementations of it are deleted.
 4. Update what used the old property names:
    - about 10 derived query methods in `LicenceContinuationApplicationDetailRepository` and
      `ScheduleWorkProgrammeApplicationDetailRepository`. Either rename them to the `application`
@@ -555,7 +634,48 @@ Its own PR (PR 4), targeting the Phase 2 PR's branch (see Delivery).
      can stay.
    - the two JPQL summary queries (`JOIN d.licenceContinuationApplication application`,
      `WHERE latest.licenceContinuationApplication = application`, and the extension equivalents).
-5. Map `schedule_work_programme_applications` as its own entity, sharing the application's id.
+5. Map `schedule_applications` as its own entity, sharing the application's id, and move the
+   schedule link onto it:
+
+   ```java
+   @Audited
+   @Entity(name = "schedule_applications")
+   public class ApplicationSchedule {
+
+     @Id
+     private UUID id;
+
+     @MapsId
+     @OneToOne
+     @JoinColumn(name = "id")
+     private Application application;
+
+     @ManyToOne
+     @JoinColumn(name = "licence_schedule_id")
+     private LicenceSchedule licenceSchedule;
+
+     @ManyToOne
+     @JoinColumn(name = "submitted_licence_schedule_detail_id")
+     private LicenceScheduleDetail submittedLicenceScheduleDetail;
+     ...
+   }
+   ```
+
+   `ScheduleApplication` replaces its two fields with the inverse side,
+   `@OneToOne(mappedBy = "application", cascade = CascadeType.ALL, optional = false) ApplicationSchedule schedule`,
+   and keeps `getLicenceSchedule()`, `setLicenceSchedule(...)`,
+   `getSubmittedLicenceScheduleDetail()` and `setSubmittedLicenceScheduleDetail(...)` as
+   pass-throughs. The setters create the `ApplicationSchedule` the first time they're called, so
+   the two services that create applications don't change. Update the two entity-graph paths that
+   go through the old property (`licenceContinuationApplication.licenceSchedule.licence` and
+   `scheduleWorkProgrammeApplication.licenceSchedule.licence`) to go through `schedule`.
+
+   `Application` gets a `@ManyToOne @JoinColumn(name = "licence_id") Licence licence` field, and
+   `getLicence()` becomes a concrete getter on the root instead of the abstract method that
+   `ScheduleApplication` implemented through the schedule. Both services that create
+   applications set it from the schedule's licence, which keeps it consistent with the schedule.
+
+6. Map `schedule_work_programme_applications` as its own entity, sharing the application's id.
    It holds only the steward for now, but it is where any future extension-only application
    column goes, so name the entity for the table rather than the steward (for example
    `ScheduleWorkProgrammeApplicationData`):
@@ -591,12 +711,12 @@ Its own PR (PR 4), targeting the Phase 2 PR's branch (see Delivery).
    set the WUA id and save". Remove
    `setStewardWuaId` from the application so nothing else can write it the old way.
 
-6. Keep `all_licensees_permission_confirmed`, `decision_date` and the four term/phase
+7. Keep `all_licensees_permission_confirmed`, `decision_date` and the four term/phase
    associations in the detail subclasses (where they already are). Move `withdrawalReason` and
    `withdrawnDatetime` from `LicenceContinuationApplication` to the root, which leaves both application subclasses with no
    fields of their own apart from the inverse steward association. `submittedByWuaId` and
    `stewardWuaId` are already `Long`, matching `BIGINT`.
-7. In the 15 child entities, change only the `@JoinColumn` name to `application_detail_id` or
+8. In the 15 child entities, change only the `@JoinColumn` name to `application_detail_id` or
    `application_id` (see the Phase 2, step 5 table). The `@ManyToOne` fields keep their names and
    subclass types, so derived queries on the child repositories don't change. Nothing outside the
    `@JoinColumn`s uses these column names. The two external contributor request entities still
@@ -638,7 +758,7 @@ Each of these is independent and can be done later.
 Under the `changing-documented-licence-areas` skill, the documentation change ships with the code
 that makes it true, in the Phase 3 PR (PR 4):
 
-- `licence-applications-data-model.md`: add the two root tables, remove
+- `licence-applications-data-model.md`: add the two root tables and `schedule_applications`, remove
   `licence_continuation_applications`, cut the other three table blocks down to their
   type-specific columns, redraw the ERD with the root layer on top, rewrite the column reference
   section, and update the caveat about WUA id types. Delete §11.3 (`created_datetime` becomes one
@@ -647,8 +767,10 @@ that makes it true, in the Phase 3 PR (PR 4):
   Document the discriminator values, that each type-specific row shares its id with its root row,
   that `schedule_work_programme_applications` holds extension-only application data, currently
   just the steward (a row exists only once a steward is assigned), and that both external
-  contributor request tables now
-  reference `applications`.
+  contributor request tables now reference `applications`. Document that every application has a
+  `licence_id`, that every application about a licence schedule (both existing types) has a
+  `schedule_applications` row, and that `applications.licence_id` matches the schedule's licence
+  by application code rather than a constraint.
 - `application-decisions-data-model.md` and `licence-event-cache-data-model.md`: update the
   passages that say there is no single application table to reference.
 - `.claude/skills/changing-documented-licence-areas/SKILL.md`: its table and examples describe
@@ -697,10 +819,20 @@ than inserting a second, and that `getStewardWuaId()` returns null when there is
 test that an external contributor request can be added to an extension application with no
 steward, since that is exactly the case the re-pointed foreign key exists for.
 
-**Loading the steward.** Hibernate can't lazily load the inverse side of an optional
+**Loading the steward and the schedule.** Hibernate can't lazily load the inverse side of a
 `@OneToOne` without bytecode enhancement, so every extension application load also selects its
-`schedule_work_programme_applications` row. The work area services read the steward for every listed application, so check them
-for a new N+1 and fetch the steward with a targeted `@EntityGraph` on the list queries.
+`schedule_work_programme_applications` row, and every schedule application load selects its
+`schedule_applications` row. The work area services read the steward and the licence for every
+listed application, so check them for a new N+1 and fetch both with targeted `@EntityGraph`s on
+the list queries.
+
+**`mappedBy` across the mapped superclass.** `ScheduleApplication` is a mapped superclass, and
+its inverse `@OneToOne` points at `ApplicationSchedule.application`, which is typed to the root
+`Application`. Hibernate should accept this, but prove it in a spike before Phase 3 relies on it.
+If it doesn't, move the inverse association down into the two application entities.
+
+**Licence and schedule stay consistent.** Test that creating each type of application sets
+`applications.licence_id` to the licence of its schedule.
 
 **Envers audit tables.** Envers expects `revtype`, the discriminator and the shared columns in
 each root audit table. For the joined detail hierarchy, each subclass audit table holds only
@@ -747,6 +879,13 @@ audit tables.
 8. Each phase is its own PR. The PRs cascade off each other and are merged up the stack before
    the whole change goes into `develop` in one merge (see Delivery). With no live data, separate
    releases aren't needed to manage risk; the split is for review.
+9. The superclasses are named `Application` and `ApplicationDetail`, and the
+   `LicenceApplication` / `LicenceApplicationDetail` interfaces are removed in Phase 1.
+10. The licence schedule link isn't shared by all application types: future types won't relate
+    to schedules. It lives on a `ScheduleApplication` superclass in Java and in a
+    `schedule_applications` table, one row per application of the two existing types.
+11. Every application, now and in future, relates to a licence, so `applications.licence_id` is
+    shared and `getLicence()` is on `Application`.
 
 ## Open decisions
 

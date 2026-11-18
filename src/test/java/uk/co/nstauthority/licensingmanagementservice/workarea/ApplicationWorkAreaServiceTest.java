@@ -13,9 +13,9 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.EnumSource;
 import uk.co.fivium.energyportal.serviceproviders.epmq.ScopeType;
-import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplication;
-import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.Application;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
@@ -426,18 +426,18 @@ class ApplicationWorkAreaServiceTest {
     assertThat(applicationWorkAreaService.isIndustryMyWork(mockDetail(null, null, null, null), Map.of(), USER_WUA_ID, teamRoles)).isFalse();
   }
 
-  private LicenceApplicationDetail mockDetail(
+  private ApplicationDetail mockDetail(
       Long createdByWuaId,
       Long submittedByWuaId,
       Integer responsibleOrganisationUnitId,
       Instant submittedDatetime
   ) {
-    var licenceApplication = mock(LicenceApplication.class);
-    lenient().when(licenceApplication.getId()).thenReturn(APP_ID);
-    lenient().when(licenceApplication.getApplicationType()).thenReturn(ApplicationType.CONTINUATION_APPLICATION);
+    var application = mock(Application.class);
+    lenient().when(application.getId()).thenReturn(APP_ID);
+    lenient().when(application.getApplicationType()).thenReturn(ApplicationType.CONTINUATION_APPLICATION);
 
-    var detail = mock(LicenceApplicationDetail.class);
-    lenient().when(detail.getLicenceApplication()).thenReturn(licenceApplication);
+    var detail = mock(ApplicationDetail.class);
+    lenient().when(detail.getApplication()).thenReturn(application);
     lenient().when(detail.getCreatedByWuaId()).thenReturn(createdByWuaId);
     lenient().when(detail.getSubmittedByWuaId()).thenReturn(submittedByWuaId);
     lenient().when(detail.getResponsibleOrganisationUnitId()).thenReturn(responsibleOrganisationUnitId);

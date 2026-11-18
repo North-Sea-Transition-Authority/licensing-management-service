@@ -25,8 +25,8 @@ import uk.co.nstauthority.licensingmanagementservice.fds.table.SortableTableView
 import uk.co.nstauthority.licensingmanagementservice.fds.tag.Tag;
 import uk.co.nstauthority.licensingmanagementservice.fds.tag.TagColour;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
-import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatusType;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceOrganisationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisation;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisationService;
@@ -112,7 +112,7 @@ public class LicenceContactService {
         .map(LicenceContact::getContactEmail);
   }
 
-  public boolean hasContactForLicensee(LicenceApplicationDetail applicationDetail) {
+  public boolean hasContactForLicensee(ApplicationDetail applicationDetail) {
     var licence = applicationDetail.getLicence();
     var responsibleOrganisationUnitId = applicationDetail.getResponsibleOrganisationUnitId();
 

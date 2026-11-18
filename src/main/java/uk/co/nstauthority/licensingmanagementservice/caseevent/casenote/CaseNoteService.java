@@ -7,7 +7,7 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.caseevent.CaseEventService;
 import uk.co.nstauthority.licensingmanagementservice.caseevent.CaseEventType;
 import uk.co.nstauthority.licensingmanagementservice.caseevent.payload.CaseNotePayload;
-import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplication;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.Application;
 
 @Service
 public class CaseNoteService {
@@ -28,7 +28,7 @@ public class CaseNoteService {
 
   @Transactional
   public CaseNote addCaseNote(
-      LicenceApplication application,
+      Application application,
       String noteText,
       ServiceUserDetail author
   ) {

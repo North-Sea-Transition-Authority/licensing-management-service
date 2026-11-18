@@ -24,13 +24,13 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFieldDuration;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
-import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplication;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceSchedulePhaseTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceScheduleTermTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
 import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.Application;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplication;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
@@ -302,9 +302,9 @@ class CrossLicenceEventTrackerServiceTest {
 
   @Test
   void refreshApplicationCache_whenNotScheduleAmendmentApplication_thenDoesNothing() {
-    var licenceApplication = mock(LicenceApplication.class);
+    var application = mock(Application.class);
 
-    crossLicenceEventTrackerService.refreshApplicationCache(licenceApplication);
+    crossLicenceEventTrackerService.refreshApplicationCache(application);
 
     verifyNoInteractions(scheduleWorkProgrammeApplicationDetailQueryService, licenceEventCacheRepository);
   }

@@ -2,7 +2,6 @@ package uk.co.nstauthority.licensingmanagementservice.licence.application;
 
 import java.util.UUID;
 import org.springframework.stereotype.Service;
-import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplication;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationService;
 
@@ -20,7 +19,7 @@ public class ApplicationService {
     this.scheduleWorkProgrammeApplicationService = scheduleWorkProgrammeApplicationService;
   }
 
-  public LicenceApplication getApplication(
+  public Application getApplication(
       ApplicationType applicationType,
       UUID applicationId
   ) {

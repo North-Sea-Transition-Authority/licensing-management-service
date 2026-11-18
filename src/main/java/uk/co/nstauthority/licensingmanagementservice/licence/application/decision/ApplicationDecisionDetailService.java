@@ -7,7 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
-import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplication;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.Application;
 
 @Service
 public class ApplicationDecisionDetailService {
@@ -23,7 +23,7 @@ public class ApplicationDecisionDetailService {
     this.clock = clock;
   }
 
-  public Optional<ApplicationDecisionDetail> findDraftDecision(LicenceApplication application) {
+  public Optional<ApplicationDecisionDetail> findDraftDecision(Application application) {
     return applicationDecisionDetailRepository.findByApplicationTypeAndApplicationIdAndStatus(
         application.getApplicationType(),
         application.getId(),
@@ -32,7 +32,7 @@ public class ApplicationDecisionDetailService {
   }
 
   @Transactional
-  public ApplicationDecisionDetail createDraftDecision(LicenceApplication application, ServiceUserDetail user) {
+  public ApplicationDecisionDetail createDraftDecision(Application application, ServiceUserDetail user) {
     var nextVersionNumber = applicationDecisionDetailRepository
         .findFirstByApplicationTypeAndApplicationIdOrderByVersionNumberDesc(
             application.getApplicationType(),
@@ -52,7 +52,7 @@ public class ApplicationDecisionDetailService {
   }
 
   @Transactional
-  public void completeDraftDecision(LicenceApplication application) {
+  public void completeDraftDecision(Application application) {
     var decisionDetail = findDraftDecision(application)
         .orElseThrow(() -> new LmsEntityNotFoundException(
             "Draft application decision for %s application %s".formatted(

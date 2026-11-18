@@ -14,7 +14,7 @@ import uk.co.fivium.digitaldocumentlibrary.document.DocumentTemplateDto;
 import uk.co.fivium.digitaldocumentlibrary.document.DocumentTemplateService;
 import uk.co.nstauthority.licensingmanagementservice.document.AddSectionOption;
 import uk.co.nstauthority.licensingmanagementservice.document.DocumentTemplateType;
-import uk.co.nstauthority.licensingmanagementservice.licence.LicenceApplication;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.Application;
 
 @Service
 public class ApplicationLetterService {
@@ -35,7 +35,7 @@ public class ApplicationLetterService {
   }
 
   @Transactional
-  public DocumentInstanceDto createDocumentInstance(LicenceApplication application) {
+  public DocumentInstanceDto createDocumentInstance(Application application) {
     String itemReference = application.getId().toString();
 
     DocumentTemplateType templateType = switch (application.getApplicationType()) {
@@ -58,7 +58,7 @@ public class ApplicationLetterService {
     );
   }
 
-  public DocumentInstanceDto getDocumentInstance(LicenceApplication application) {
+  public DocumentInstanceDto getDocumentInstance(Application application) {
     String itemReference = application.getId().toString();
 
     var existingDocs = documentInstanceService.getDocumentInstanceDtosByItemReference(itemReference);
@@ -71,7 +71,7 @@ public class ApplicationLetterService {
             ));
   }
 
-  public List<DocumentInstanceDto> getApplicationLetters(List<LicenceApplication> applications) {
+  public List<DocumentInstanceDto> getApplicationLetters(List<Application> applications) {
     if (CollectionUtils.isEmpty(applications)) {
       return List.of();
     }
@@ -83,7 +83,7 @@ public class ApplicationLetterService {
     return documentInstanceService.getDocumentInstanceDtosByItemReferences(applicationIds);
   }
 
-  public String getApplicationLetterTitle(LicenceApplication application) {
+  public String getApplicationLetterTitle(Application application) {
     return documentInstanceService.getDocumentInstanceDtosByItemReference(application.getId().toString()).stream()
         .findFirst()
         .map(DocumentInstanceDto::title)

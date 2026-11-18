@@ -51,6 +51,10 @@ class ChangeViewUrlsFactoryTest {
   private static final LicencePositionChange CHANGE_ENTITY =
       LicencePositionChangeTestUtil.newBuilder().withId(CHANGE_ID).build();
 
+  private static final CorrectionPosition EXECUTED_CORRECTION_POSITION =
+      new CorrectionPosition.Executed(CORRECTION, LICENCE_POSITION);
+  private static final CorrectionPosition STAGED_POSITION = new CorrectionPosition.Staged(POSITION_CORRECTION);
+
   private static final PositionChangeUrlContext EXECUTED_POSITION =
       PositionChangeUrlContext.forExecutedPosition(CORRECTION, LICENCE_POSITION, POSITION_CORRECTION);
   private static final PositionChangeUrlContext ADDED_POSITION =
@@ -198,21 +202,19 @@ class ChangeViewUrlsFactoryTest {
     var remove = removeUrl();
     var undo = undoUrl();
 
-    var adminAdded = ReverseRouter.route(on(ChangeFormController.class)
-        .addToPosition(new CorrectionPosition.Staged(POSITION_CORRECTION), AddPositionChangeType.ADMINISTRATOR, null, null, null));
-    var adminExecuted = ReverseRouter.route(on(ChangeFormController.class)
-        .addToPosition(new CorrectionPosition.Executed(CORRECTION, LICENCE_POSITION), AddPositionChangeType.ADMINISTRATOR, null, null, null));
+    var adminAdded = changeFormUrl(STAGED_POSITION, AddPositionChangeType.ADMINISTRATOR);
+    var adminExecuted = changeFormUrl(EXECUTED_CORRECTION_POSITION, AddPositionChangeType.ADMINISTRATOR);
     var adminCorrecting = ReverseRouter.route(on(ChangeFormController.class)
         .correctLiveChange(CORRECTION, LICENCE_POSITION, CHANGE_ENTITY, null, null, null));
 
     var setEquityAdded = ReverseRouter.route(on(LicencePositionSetEquityController.class)
-        .renderSummaryForAddedPosition(CORRECTION, POSITION_CORRECTION));
+        .renderSummaryForPosition(STAGED_POSITION));
     var setEquityExecuted = ReverseRouter.route(on(LicencePositionSetEquityController.class)
-        .renderSummaryForExecutedPosition(CORRECTION, LICENCE_POSITION));
+        .renderSummaryForPosition(EXECUTED_CORRECTION_POSITION));
     var transferEquityAdded = ReverseRouter.route(on(LicencePositionTransferEquityController.class)
-        .renderSummaryForAddedPosition(CORRECTION, POSITION_CORRECTION));
+        .renderSummaryForPosition(STAGED_POSITION));
     var transferEquityExecuted = ReverseRouter.route(on(LicencePositionTransferEquityController.class)
-        .renderSummaryForExecutedPosition(CORRECTION, LICENCE_POSITION));
+        .renderSummaryForPosition(EXECUTED_CORRECTION_POSITION));
 
     var partialSurrenderStaged = ReverseRouter.route(on(PartialSurrenderTaskListController.class)
         .renderTaskList(CORRECTION, POSITION_CORRECTION, null));
@@ -223,17 +225,13 @@ class ChangeViewUrlsFactoryTest {
     var partialSurrenderReviewCorrecting = ReverseRouter.route(on(PartialSurrenderReviewAndSubmitController.class)
         .renderReviewAndSubmitForCorrectingChange(CORRECTION, LICENCE_POSITION, CHANGE_ENTITY, null));
 
-    var licenseeAdded = ReverseRouter.route(on(ChangeFormController.class)
-        .addToPosition(new CorrectionPosition.Staged(POSITION_CORRECTION), AddPositionChangeType.LICENSEE, null, null, null));
-    var licenseeExecuted = ReverseRouter.route(on(ChangeFormController.class)
-        .addToPosition(new CorrectionPosition.Executed(CORRECTION, LICENCE_POSITION), AddPositionChangeType.LICENSEE, null, null, null));
+    var licenseeAdded = changeFormUrl(STAGED_POSITION, AddPositionChangeType.LICENSEE);
+    var licenseeExecuted = changeFormUrl(EXECUTED_CORRECTION_POSITION, AddPositionChangeType.LICENSEE);
     var licenseeCorrecting = ReverseRouter.route(on(ChangeFormController.class)
         .correctLiveChange(CORRECTION, LICENCE_POSITION, CHANGE_ENTITY, null, null, null));
 
-    var storageOperatorAdded = ReverseRouter.route(on(ChangeFormController.class)
-        .addToPosition(new CorrectionPosition.Staged(POSITION_CORRECTION), AddPositionChangeType.STORAGE_OPERATOR, null, null, null));
-    var storageOperatorExecuted = ReverseRouter.route(on(ChangeFormController.class)
-        .addToPosition(new CorrectionPosition.Executed(CORRECTION, LICENCE_POSITION), AddPositionChangeType.STORAGE_OPERATOR, null, null, null));
+    var storageOperatorAdded = changeFormUrl(STAGED_POSITION, AddPositionChangeType.STORAGE_OPERATOR);
+    var storageOperatorExecuted = changeFormUrl(EXECUTED_CORRECTION_POSITION, AddPositionChangeType.STORAGE_OPERATOR);
     var storageOperatorCorrecting = ReverseRouter.route(on(ChangeFormController.class)
         .correctLiveChange(CORRECTION, LICENCE_POSITION, CHANGE_ENTITY, null, null, null));
 
@@ -379,5 +377,10 @@ class ChangeViewUrlsFactoryTest {
   private static String correctPositionUrl() {
     return ReverseRouter.route(on(CorrectPositionChangeTypeController.class)
         .renderMoveChangeTypePosition(CORRECTION.getId(), POSITION_ID, CHANGE_ID, null));
+  }
+
+  private static String changeFormUrl(CorrectionPosition correctionPosition, AddPositionChangeType changeType) {
+    return ReverseRouter.route(on(ChangeFormController.class)
+        .addToPosition(correctionPosition, changeType, null, null, null));
   }
 }

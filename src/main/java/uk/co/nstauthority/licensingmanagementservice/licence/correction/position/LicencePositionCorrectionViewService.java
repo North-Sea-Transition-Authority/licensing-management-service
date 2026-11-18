@@ -105,8 +105,7 @@ public class LicencePositionCorrectionViewService {
 
     var actions = positionRemoved
         ? LicencePositionPageView.Actions.none()
-        : new LicencePositionPageView.Actions(ReverseRouter.route(on(LicencePositionAddChangeController.class)
-            .renderForExecutedPosition(executed.correction(), licencePosition)));
+        : new LicencePositionPageView.Actions(addChangeUrl(executed));
 
     return new SelectedPosition(
         licencePosition.getId(),
@@ -127,10 +126,13 @@ public class LicencePositionCorrectionViewService {
         DateUtil.formatLongDate(payload.effectiveDate()),
         payload.correctionReference(),
         PositionChangeUrlContext.forAddedPosition(staged.correction(), positionCorrection),
-        new LicencePositionPageView.Actions(ReverseRouter.route(on(LicencePositionAddChangeController.class)
-            .renderForAddedPosition(staged.correction(), positionCorrection))),
+        new LicencePositionPageView.Actions(addChangeUrl(staged)),
         true
     );
+  }
+
+  private static String addChangeUrl(CorrectionPosition correctionPosition) {
+    return ReverseRouter.route(on(LicencePositionAddChangeController.class).renderForPosition(correctionPosition));
   }
 
   private LicencePositionPageView getCorrectionPageView(

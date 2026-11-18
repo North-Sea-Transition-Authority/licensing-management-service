@@ -8,6 +8,7 @@ import java.util.Set;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.BeanPropertyBindingResult;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectionPosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.LicencePositionPartialSurrenderController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.PartialSurrenderCorrectionService;
@@ -82,16 +83,8 @@ public class PartialSurrenderDetailsTaskListSectionService
   }
 
   private String surrenderDetailsUrl(LicencePositionCorrection positionCorrection) {
-    var correction = positionCorrection.getLicenceCorrection();
-
-    return switch (positionCorrection.getChangeType()) {
-      case ADD_POSITION -> ReverseRouter.route(on(LicencePositionPartialSurrenderController.class)
-          .renderForAddedPosition(correction, positionCorrection));
-      case UPDATE_POSITION -> ReverseRouter.route(on(LicencePositionPartialSurrenderController.class)
-          .renderForExecutedPosition(correction, positionCorrection.getTargetLicencePosition()));
-      case REMOVE_POSITION -> throw new IllegalStateException(
-          "Licence position correction %s removes a position so cannot carry a partial surrender"
-              .formatted(positionCorrection.getId()));
-    };
+    return ReverseRouter.route(on(LicencePositionPartialSurrenderController.class)
+        .renderForPosition(CorrectionPosition.of(positionCorrection)));
   }
+
 }

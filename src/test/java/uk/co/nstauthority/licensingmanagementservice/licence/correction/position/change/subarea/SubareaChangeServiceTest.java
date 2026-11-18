@@ -33,6 +33,7 @@ import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFound
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectionPosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
@@ -88,7 +89,7 @@ class SubareaChangeServiceTest {
   private ArgumentCaptor<List<? extends LicenceOperation>> operationsCaptor;
 
   @Test
-  void commitSubareaChangeForExecutedPosition() {
+  void commitSubareaChange_whenExecutedPosition() {
     var licencePosition = LicencePositionTestUtil.newBuilder().build();
     var positionCorrection = positionCorrectionWithChanges(List.of());
     var savedPositionCorrection = positionCorrectionWithChanges(List.of());
@@ -104,11 +105,7 @@ class SubareaChangeServiceTest {
         operationsCaptor.capture()
     )).thenReturn(savedPositionCorrection);
 
-    var result = subareaChangeService.commitSubareaChangeForExecutedPosition(
-        LICENCE_CORRECTION,
-        licencePosition,
-        BLOCK_FEATURE_ID
-    );
+    var result = subareaChangeService.commitSubareaChange(new CorrectionPosition.Executed(LICENCE_CORRECTION, licencePosition), BLOCK_FEATURE_ID);
 
     assertThat(result).isSameAs(savedPositionCorrection);
     assertThat(operationsCaptor.getValue())
@@ -118,6 +115,26 @@ class SubareaChangeServiceTest {
     assertThat(operationToReplaceCaptor.getValue())
         .accepts(new SubareaOperation(BLOCK_FEATURE_ID, List.of(), List.of()))
         .rejects(new SubareaOperation(UUID.randomUUID(), List.of(), List.of()));
+  }
+
+  @Test
+  void commitSubareaChange_whenStagedPosition_thenStagesOnTheAddCorrectionAndReturnsIt() {
+    var positionCorrection = positionCorrectionWithChanges(List.of());
+    givenCommandJourneyCreatedForSubareas(positionCorrection);
+
+    var result = subareaChangeService.commitSubareaChange(new CorrectionPosition.Staged(positionCorrection), BLOCK_FEATURE_ID);
+
+    assertThat(result).isSameAs(positionCorrection);
+    verify(licencePositionCorrectionService).replaceAddChangeFor(
+        eq(positionCorrection),
+        eq(SubareaOperation.class),
+        operationToReplaceCaptor.capture(),
+        operationsCaptor.capture()
+    );
+    assertThat(operationsCaptor.getValue())
+        .usingRecursiveComparison()
+        .ignoringFields("id")
+        .isEqualTo(List.of(expectedOperation()));
   }
 
   @Test

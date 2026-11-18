@@ -111,13 +111,12 @@ class LicencePositionAddChangeControllerTest extends AbstractControllerTest {
     return correction;
   }
 
-  private LicencePosition givenExecutedPosition() {
-    return givenExecutedPosition(LICENCE);
-  }
-
-  private LicencePosition givenExecutedPosition(Licence licence) {
-    var licencePosition = LicencePositionTestUtil.newBuilder().withId(POSITION_ID).withLicence(licence).build();
-    when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(licencePosition));
+  private LicencePosition givenExecutedPosition(LicenceCorrection correction) {
+    var licencePosition = LicencePositionTestUtil.newBuilder()
+        .withId(POSITION_ID)
+        .withLicence(correction.getLicence())
+        .build();
+    givenCorrectionPosition(new CorrectionPosition.Executed(correction, licencePosition));
     return licencePosition;
   }
 
@@ -126,17 +125,17 @@ class LicencePositionAddChangeControllerTest extends AbstractControllerTest {
         .withId(POSITION_CORRECTION_ID)
         .withLicenceCorrection(correction)
         .build();
-    when(licencePositionCorrectionService.findById(POSITION_CORRECTION_ID)).thenReturn(Optional.of(positionCorrection));
+    givenCorrectionPosition(new CorrectionPosition.Staged(positionCorrection));
     return positionCorrection;
   }
 
   @Test
-  void renderForExecutedPosition_whenNotAllocated_forbidden() throws Exception {
+  void renderForPosition_whenNotAllocated_forbidden() throws Exception {
     when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
         .thenReturn(Optional.empty());
 
     mockMvc.perform(get(ReverseRouter.route(on(LicencePositionAddChangeController.class)
-            .renderForExecutedPosition(CORRECTION, POSITION)))
+            .renderForPosition(new CorrectionPosition.Executed(CORRECTION, POSITION))))
             .with(user(regulatorUser)))
         .andExpect(status().isForbidden());
 
@@ -144,7 +143,7 @@ class LicencePositionAddChangeControllerTest extends AbstractControllerTest {
   }
 
   @Test
-  void renderForExecutedPosition_whenCorrectionIsNotInProgress() throws Exception {
+  void renderForPosition_whenCorrectionIsNotInProgress() throws Exception {
     var correction = LicenceCorrectionTestUtil.newBuilder()
         .withId(CORRECTION_ID)
         .withStatus(LicenceCorrectionStatus.COMPLETE)
@@ -154,7 +153,7 @@ class LicencePositionAddChangeControllerTest extends AbstractControllerTest {
         .thenReturn(Optional.of(correction));
     when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(correction));
     mockMvc.perform(get(ReverseRouter.route(on(LicencePositionAddChangeController.class)
-            .renderForExecutedPosition(correction, POSITION)))
+            .renderForPosition(new CorrectionPosition.Executed(correction, POSITION))))
             .with(user(regulatorUser)))
         .andExpect(status().isForbidden())
         .andExpect(status().reason(
@@ -163,13 +162,13 @@ class LicencePositionAddChangeControllerTest extends AbstractControllerTest {
   }
 
   @Test
-  void renderForExecutedPosition_whenCarbonStorage_offersCorrectOptions()
+  void renderForPosition_whenCarbonStorage_offersCorrectOptions()
       throws Exception {
     var correction = givenCorrectionAllocatedToUser(CARBON_STORAGE_LICENCE);
-    var licencePosition = givenExecutedPosition(CARBON_STORAGE_LICENCE);
+    var licencePosition = givenExecutedPosition(correction);
 
     mockMvc.perform(get(ReverseRouter.route(on(LicencePositionAddChangeController.class)
-            .renderForExecutedPosition(correction, licencePosition)))
+            .renderForPosition(new CorrectionPosition.Executed(correction, licencePosition))))
             .with(user(regulatorUser)))
         .andExpectAll(
             status().isOk(),
@@ -188,13 +187,13 @@ class LicencePositionAddChangeControllerTest extends AbstractControllerTest {
   }
 
   @Test
-  void renderForExecutedPosition_whenProduction_offersAdministratorPartialSurrenderSubareaLicenseeAndSubareaSetEquity() throws Exception {
+  void renderForPosition_whenProduction_offersAdministratorPartialSurrenderSubareaLicenseeAndSubareaSetEquity() throws Exception {
     var correction = givenCorrectionAllocatedToUser();
-    var licencePosition = givenExecutedPosition();
-    when(subareaEquityOptionsService.getSubareaOptions(correction, licencePosition)).thenReturn(SUBAREA_OPTIONS);
+    var licencePosition = givenExecutedPosition(correction);
+    when(subareaEquityOptionsService.getSubareaOptions(new CorrectionPosition.Executed(correction, licencePosition))).thenReturn(SUBAREA_OPTIONS);
 
     mockMvc.perform(get(ReverseRouter.route(on(LicencePositionAddChangeController.class)
-            .renderForExecutedPosition(correction, licencePosition)))
+            .renderForPosition(new CorrectionPosition.Executed(correction, licencePosition))))
             .with(user(regulatorUser)))
         .andExpectAll(
             status().isOk(),
@@ -210,12 +209,12 @@ class LicencePositionAddChangeControllerTest extends AbstractControllerTest {
   }
 
   @Test
-  void renderForExecutedPosition_whenExploration_offersNothing() throws Exception {
+  void renderForPosition_whenExploration_offersNothing() throws Exception {
     var correction = givenCorrectionAllocatedToUser(EXPLORATION_LICENCE);
-    var licencePosition = givenExecutedPosition(EXPLORATION_LICENCE);
+    var licencePosition = givenExecutedPosition(correction);
 
     mockMvc.perform(get(ReverseRouter.route(on(LicencePositionAddChangeController.class)
-            .renderForExecutedPosition(correction, licencePosition)))
+            .renderForPosition(new CorrectionPosition.Executed(correction, licencePosition))))
             .with(user(regulatorUser)))
         .andExpectAll(
             status().isOk(),
@@ -224,12 +223,12 @@ class LicencePositionAddChangeControllerTest extends AbstractControllerTest {
   }
 
   @Test
-  void submitForExecutedPosition_whenInvalid_rendersForm() throws Exception {
+  void submitForPosition_whenInvalid_rendersForm() throws Exception {
     var correction = givenCorrectionAllocatedToUser();
-    var licencePosition = givenExecutedPosition();
+    var licencePosition = givenExecutedPosition(correction);
     var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder().build();
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(licencePosition);
-    when(licencePositionCorrectionService.getOrBuildUpdatePositionCorrection(correction, licencePosition))
+    when(licencePositionCorrectionService.getOrBuildPositionCorrection(new CorrectionPosition.Executed(correction, licencePosition)))
         .thenReturn(positionCorrection);
 
     var form = new AddPositionChangeForm();
@@ -238,7 +237,7 @@ class LicencePositionAddChangeControllerTest extends AbstractControllerTest {
         .thenReturn(true);
 
     mockMvc.perform(post(ReverseRouter.route(on(LicencePositionAddChangeController.class)
-            .submitForExecutedPosition(correction, licencePosition, null, null)))
+            .submitForPosition(new CorrectionPosition.Executed(correction, licencePosition), null, null)))
             .with(user(regulatorUser)).with(csrf())
             .flashAttr("form", form))
         .andExpectAll(
@@ -248,45 +247,12 @@ class LicencePositionAddChangeControllerTest extends AbstractControllerTest {
   }
 
   @Test
-  void submitForExecutedPosition_whenExplorationOperatorChange_redirectsToExplorationOperatorChangeForm() throws Exception{
+  void submitForPosition_whenStorageOperatorChange_redirectsToStorageOperatorChangeForm() throws Exception {
     var correction = givenCorrectionAllocatedToUser();
-    var licencePosition = givenExecutedPosition();
+    var licencePosition = givenExecutedPosition(correction);
     var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder().build();
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(licencePosition);
-    when(licencePositionCorrectionService.getOrBuildUpdatePositionCorrection(correction, licencePosition))
-        .thenReturn(positionCorrection);
-
-    var form = new AddPositionChangeForm();
-    form.setChangeType(AddPositionChangeType.EXPLORATION_OPERATOR.name());
-    when(addPositionChangeFormValidator.hasErrors(
-        eq(form),
-        any(BindingResult.class),
-        eq(correction),
-        eq(positionCorrection),
-        eq(Set.of())
-    )).thenReturn(false);
-
-    mockMvc.perform(post(ReverseRouter.route(on(LicencePositionAddChangeController.class)
-            .submitForExecutedPosition(correction, licencePosition, null, null)))
-            .with(user(regulatorUser)).with(csrf())
-            .flashAttr("form", form))
-        .andExpect(status().is3xxRedirection())
-        .andExpect(redirectedUrl(ReverseRouter.route(on(ChangeFormController.class).addToPosition(
-            new CorrectionPosition.Executed(correction, licencePosition),
-            AddPositionChangeType.EXPLORATION_OPERATOR,
-            null,
-            null,
-            null
-        ))));
-  }
-
-  @Test
-  void submitForExecutedPosition_whenStorageOperatorChange_redirectsToStorageOperatorChangeForm() throws Exception{
-    var correction = givenCorrectionAllocatedToUser();
-    var licencePosition = givenExecutedPosition();
-    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder().build();
-    when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(licencePosition);
-    when(licencePositionCorrectionService.getOrBuildUpdatePositionCorrection(correction, licencePosition))
+    when(licencePositionCorrectionService.getOrBuildPositionCorrection(new CorrectionPosition.Executed(correction, licencePosition)))
         .thenReturn(positionCorrection);
 
     var form = new AddPositionChangeForm();
@@ -300,21 +266,55 @@ class LicencePositionAddChangeControllerTest extends AbstractControllerTest {
     )).thenReturn(false);
 
     mockMvc.perform(post(ReverseRouter.route(on(LicencePositionAddChangeController.class)
-            .submitForExecutedPosition(correction, licencePosition, null, null)))
+            .submitForPosition(new CorrectionPosition.Executed(correction, licencePosition), null, null)))
             .with(user(regulatorUser)).with(csrf())
             .flashAttr("form", form))
         .andExpect(status().is3xxRedirection())
-        .andExpect(redirectedUrl(ReverseRouter.route(on(ChangeFormController.class)
-            .addToPosition(new CorrectionPosition.Executed(correction, licencePosition), AddPositionChangeType.STORAGE_OPERATOR, null, null, null))));
+        .andExpect(redirectedUrl(ReverseRouter.route(on(ChangeFormController.class).addToPosition(
+            new CorrectionPosition.Executed(correction, licencePosition),
+            AddPositionChangeType.STORAGE_OPERATOR,
+            null,
+            null,
+            null
+        ))));
   }
 
   @Test
-  void submitForExecutedPosition_whenLicenseeChange_redirectsToLicenseeChangeForm() throws Exception {
+  void submitForPosition_whenExplorationOperatorChange_redirectsToExplorationOperatorChangeForm() throws Exception {
     var correction = givenCorrectionAllocatedToUser();
-    var licencePosition = givenExecutedPosition();
+    var licencePosition = givenExecutedPosition(correction);
+    var correctionPosition = new CorrectionPosition.Executed(correction, licencePosition);
     var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder().build();
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(licencePosition);
-    when(licencePositionCorrectionService.getOrBuildUpdatePositionCorrection(correction, licencePosition))
+    when(licencePositionCorrectionService.getOrBuildPositionCorrection(correctionPosition)).thenReturn(positionCorrection);
+
+    var form = new AddPositionChangeForm();
+    form.setChangeType(AddPositionChangeType.EXPLORATION_OPERATOR.name());
+    when(addPositionChangeFormValidator.hasErrors(
+        eq(form), any(BindingResult.class), eq(correction), eq(positionCorrection), eq(Set.of())))
+        .thenReturn(false);
+
+    mockMvc.perform(post(ReverseRouter.route(on(LicencePositionAddChangeController.class)
+            .submitForPosition(correctionPosition, null, null)))
+            .with(user(regulatorUser)).with(csrf())
+            .flashAttr("form", form))
+        .andExpect(status().is3xxRedirection())
+        .andExpect(redirectedUrl(ReverseRouter.route(on(ChangeFormController.class).addToPosition(
+            correctionPosition,
+            AddPositionChangeType.EXPLORATION_OPERATOR,
+            null,
+            null,
+            null
+        ))));
+  }
+
+  @Test
+  void submitForPosition_whenLicenseeChange_redirectsToLicenseeChangeForm() throws Exception {
+    var correction = givenCorrectionAllocatedToUser();
+    var licencePosition = givenExecutedPosition(correction);
+    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder().build();
+    when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(licencePosition);
+    when(licencePositionCorrectionService.getOrBuildPositionCorrection(new CorrectionPosition.Executed(correction, licencePosition)))
         .thenReturn(positionCorrection);
 
     var form = new AddPositionChangeForm();
@@ -324,21 +324,26 @@ class LicencePositionAddChangeControllerTest extends AbstractControllerTest {
         .thenReturn(false);
 
     mockMvc.perform(post(ReverseRouter.route(on(LicencePositionAddChangeController.class)
-            .submitForExecutedPosition(correction, licencePosition, null, null)))
+            .submitForPosition(new CorrectionPosition.Executed(correction, licencePosition), null, null)))
             .with(user(regulatorUser)).with(csrf())
             .flashAttr("form", form))
         .andExpect(status().is3xxRedirection())
-        .andExpect(redirectedUrl(ReverseRouter.route(on(ChangeFormController.class)
-            .addToPosition(new CorrectionPosition.Executed(correction, licencePosition), AddPositionChangeType.LICENSEE, null, null, null))));
+        .andExpect(redirectedUrl(ReverseRouter.route(on(ChangeFormController.class).addToPosition(
+            new CorrectionPosition.Executed(correction, licencePosition),
+            AddPositionChangeType.LICENSEE,
+            null,
+            null,
+            null
+        ))));
   }
 
   @Test
-  void submitForExecutedPosition_whenAdministratorChange_redirectsToAdministratorChangeForm() throws Exception {
+  void submitForPosition_whenAdministratorChange_redirectsToAdministratorChangeForm() throws Exception {
     var correction = givenCorrectionAllocatedToUser();
-    var licencePosition = givenExecutedPosition();
+    var licencePosition = givenExecutedPosition(correction);
     var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder().build();
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(licencePosition);
-    when(licencePositionCorrectionService.getOrBuildUpdatePositionCorrection(correction, licencePosition))
+    when(licencePositionCorrectionService.getOrBuildPositionCorrection(new CorrectionPosition.Executed(correction, licencePosition)))
         .thenReturn(positionCorrection);
 
     var form = new AddPositionChangeForm();
@@ -348,21 +353,26 @@ class LicencePositionAddChangeControllerTest extends AbstractControllerTest {
         .thenReturn(false);
 
     mockMvc.perform(post(ReverseRouter.route(on(LicencePositionAddChangeController.class)
-            .submitForExecutedPosition(correction, licencePosition, null, null)))
+            .submitForPosition(new CorrectionPosition.Executed(correction, licencePosition), null, null)))
             .with(user(regulatorUser)).with(csrf())
             .flashAttr("form", form))
         .andExpect(status().is3xxRedirection())
-        .andExpect(redirectedUrl(ReverseRouter.route(on(ChangeFormController.class)
-            .addToPosition(new CorrectionPosition.Executed(correction, licencePosition), AddPositionChangeType.ADMINISTRATOR, null, null, null))));
+        .andExpect(redirectedUrl(ReverseRouter.route(on(ChangeFormController.class).addToPosition(
+            new CorrectionPosition.Executed(correction, licencePosition),
+            AddPositionChangeType.ADMINISTRATOR,
+            null,
+            null,
+            null
+        ))));
   }
 
   @Test
-  void submitForExecutedPosition_whenSetEquity_redirectsToSetEquityForm() throws Exception {
+  void submitForPosition_whenSetEquity_redirectsToSetEquityForm() throws Exception {
     var correction = givenCorrectionAllocatedToUser();
-    var licencePosition = givenExecutedPosition();
+    var licencePosition = givenExecutedPosition(correction);
     var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder().build();
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(licencePosition);
-    when(licencePositionCorrectionService.getOrBuildUpdatePositionCorrection(correction, licencePosition))
+    when(licencePositionCorrectionService.getOrBuildPositionCorrection(new CorrectionPosition.Executed(correction, licencePosition)))
         .thenReturn(positionCorrection);
 
     var form = new AddPositionChangeForm();
@@ -372,21 +382,21 @@ class LicencePositionAddChangeControllerTest extends AbstractControllerTest {
         .thenReturn(false);
 
     mockMvc.perform(post(ReverseRouter.route(on(LicencePositionAddChangeController.class)
-            .submitForExecutedPosition(correction, licencePosition, null, null)))
+            .submitForPosition(new CorrectionPosition.Executed(correction, licencePosition), null, null)))
             .with(user(regulatorUser)).with(csrf())
             .flashAttr("form", form))
         .andExpect(status().is3xxRedirection())
         .andExpect(redirectedUrl(ReverseRouter.route(on(LicencePositionSetEquityController.class)
-            .renderForExecutedPosition(correction, licencePosition))));
+            .renderForPosition(new CorrectionPosition.Executed(correction, licencePosition)))));
   }
 
   @Test
-  void submitForExecutedPosition_whenTransferEquity_redirectsToTransferEquityForm() throws Exception {
+  void submitForPosition_whenTransferEquity_redirectsToTransferEquityForm() throws Exception {
     var correction = givenCorrectionAllocatedToUser();
-    var licencePosition = givenExecutedPosition();
+    var licencePosition = givenExecutedPosition(correction);
     var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder().build();
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(licencePosition);
-    when(licencePositionCorrectionService.getOrBuildUpdatePositionCorrection(correction, licencePosition))
+    when(licencePositionCorrectionService.getOrBuildPositionCorrection(new CorrectionPosition.Executed(correction, licencePosition)))
         .thenReturn(positionCorrection);
 
     var form = new AddPositionChangeForm();
@@ -397,16 +407,16 @@ class LicencePositionAddChangeControllerTest extends AbstractControllerTest {
         .thenReturn(false);
 
     mockMvc.perform(post(ReverseRouter.route(on(LicencePositionAddChangeController.class)
-            .submitForExecutedPosition(correction, licencePosition, null, null)))
+            .submitForPosition(new CorrectionPosition.Executed(correction, licencePosition), null, null)))
             .with(user(regulatorUser)).with(csrf())
             .flashAttr("form", form))
         .andExpect(status().is3xxRedirection())
         .andExpect(redirectedUrl(ReverseRouter.route(on(LicencePositionTransferEquityController.class)
-            .renderForExecutedPosition(correction, licencePosition))));
+            .renderForPosition(new CorrectionPosition.Executed(correction, licencePosition)))));
   }
 
   @Test
-  void submitForExecutedPosition_whenCorrectionIsNotInProgress() throws Exception {
+  void submitForPosition_whenCorrectionIsNotInProgress() throws Exception {
     var correction = LicenceCorrectionTestUtil.newBuilder()
         .withId(CORRECTION_ID)
         .withStatus(LicenceCorrectionStatus.COMPLETE)
@@ -416,7 +426,7 @@ class LicencePositionAddChangeControllerTest extends AbstractControllerTest {
         .thenReturn(Optional.of(correction));
     when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(correction));
     mockMvc.perform(post(ReverseRouter.route(on(LicencePositionAddChangeController.class)
-            .submitForExecutedPosition(correction, POSITION, null, null)))
+            .submitForPosition(new CorrectionPosition.Executed(correction, POSITION), null, null)))
             .with(user(regulatorUser))
             .with(csrf()))
         .andExpect(status().isForbidden())
@@ -430,7 +440,7 @@ class LicencePositionAddChangeControllerTest extends AbstractControllerTest {
     when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser)).thenReturn(Optional.empty());
 
     mockMvc.perform(get(ReverseRouter.route(on(LicencePositionAddChangeController.class)
-            .renderForAddedPosition(CORRECTION, POSITION_CORRECTION)))
+            .renderForPosition(new CorrectionPosition.Staged(POSITION_CORRECTION))))
             .with(user(regulatorUser)))
         .andExpect(status().isForbidden())
         .andExpect(status().reason(
@@ -441,117 +451,7 @@ class LicencePositionAddChangeControllerTest extends AbstractControllerTest {
   }
 
   @Test
-  void renderForAddedPosition_whenCarbonStorage_offersCorrectOptions()
-      throws Exception {
-    var correction = givenCorrectionAllocatedToUser(CARBON_STORAGE_LICENCE);
-    var positionCorrection = givenAddedPositionCorrection(correction);
-
-    mockMvc.perform(get(ReverseRouter.route(on(LicencePositionAddChangeController.class)
-            .renderForAddedPosition(correction, positionCorrection)))
-            .with(user(regulatorUser)))
-        .andExpectAll(
-            status().isOk(),
-            view().name(VIEW_NAME),
-            model().attributeExists("form"),
-            model().attribute("pageTitle", "Add change"),
-            model().attribute("pageCaption", CARBON_STORAGE_LICENCE.getLicenceReference()),
-            model().attribute("changeTypeOptions", Map.of(
-                "SET_EQUITY", "Set equity",
-                "TRANSFER_EQUITY", "Transfer equity",
-                "PARTIAL_SURRENDER", "Partial surrender",
-                "LICENSEE", "Licensee change",
-                "STORAGE_OPERATOR", "Storage operator change",
-                "EXPLORATION_OPERATOR", "Exploration operator change")),
-            model().attribute("backLinkUrl", LicencePositionCorrectionRouteUtil.getPositionPageUrl(correction, positionCorrection.getPositionId())));
-  }
-
-  @Test
-  void renderForAddedPosition_whenProduction_offersAdministratorPartialSurrenderSubareaLicenseeAndSubareaSetEquity() throws Exception {
-    var correction = givenCorrectionAllocatedToUser();
-    var positionCorrection = givenAddedPositionCorrection(correction);
-    when(subareaEquityOptionsService.getSubareaOptions(positionCorrection)).thenReturn(SUBAREA_OPTIONS);
-
-    mockMvc.perform(get(ReverseRouter.route(on(LicencePositionAddChangeController.class)
-            .renderForAddedPosition(correction, positionCorrection)))
-            .with(user(regulatorUser)))
-        .andExpectAll(
-            status().isOk(),
-            view().name(VIEW_NAME),
-            model().attribute("changeTypeOptions", Map.of(
-                "ADMINISTRATOR", "Administrator change",
-                "PARTIAL_SURRENDER", "Partial surrender",
-                "SUBAREA", "Subarea change",
-                "LICENSEE", "Licensee change",
-                "SUBAREA_SET_EQUITY", "Subarea set equity change")),
-            model().attribute("subareaSetEquityChangeType", AddPositionChangeType.SUBAREA_SET_EQUITY.name()),
-            model().attribute("subareaOptions", SUBAREA_OPTIONS));
-  }
-
-  @Test
-  void renderForAddedPosition_whenExploration_offersNothing() throws Exception {
-    var correction = givenCorrectionAllocatedToUser(EXPLORATION_LICENCE);
-    var positionCorrection = givenAddedPositionCorrection(correction);
-
-    mockMvc.perform(get(ReverseRouter.route(on(LicencePositionAddChangeController.class)
-            .renderForAddedPosition(correction, positionCorrection)))
-            .with(user(regulatorUser)))
-        .andExpectAll(
-            status().isOk(),
-            view().name(VIEW_NAME),
-            model().attribute("changeTypeOptions", Map.of()));
-  }
-
-  @Test
-  void submitForAddedPosition_whenInvalid_rendersForm() throws Exception {
-    var correction = givenCorrectionAllocatedToUser();
-    var positionCorrection = givenAddedPositionCorrection(correction);
-
-    var form = new AddPositionChangeForm();
-    when(addPositionChangeFormValidator.hasErrors(
-        eq(form), any(BindingResult.class), eq(correction), eq(positionCorrection), eq(Set.of())))
-        .thenReturn(true);
-
-    mockMvc.perform(post(ReverseRouter.route(on(LicencePositionAddChangeController.class)
-            .submitForAddedPosition(correction, positionCorrection, null, null)))
-            .with(user(regulatorUser)).with(csrf())
-            .flashAttr("form", form))
-        .andExpectAll(
-            status().isOk(),
-            view().name(VIEW_NAME),
-            model().attributeExists("form", "changeTypeOptions", "backLinkUrl"));
-  }
-
-  @Test
-  void submitForAddedPosition_whenExplorationOperatorChange_redirectsToExplorationOperatorChangeForm() throws Exception {
-    var correction = givenCorrectionAllocatedToUser();
-    var positionCorrection = givenAddedPositionCorrection(correction);
-
-    var form = new AddPositionChangeForm();
-    form.setChangeType(AddPositionChangeType.EXPLORATION_OPERATOR.name());
-    when(addPositionChangeFormValidator.hasErrors(
-        eq(form),
-        any(BindingResult.class),
-        eq(correction),
-        eq(positionCorrection),
-        eq(Set.of())
-    )).thenReturn(false);
-
-    mockMvc.perform(post(ReverseRouter.route(on(LicencePositionAddChangeController.class)
-            .submitForAddedPosition(correction, positionCorrection, null, null)))
-            .with(user(regulatorUser)).with(csrf())
-            .flashAttr("form", form))
-        .andExpect(status().is3xxRedirection())
-        .andExpect(redirectedUrl(ReverseRouter.route(on(ChangeFormController.class).addToPosition(
-            new CorrectionPosition.Staged(positionCorrection),
-            AddPositionChangeType.EXPLORATION_OPERATOR,
-            null,
-            null,
-            null
-        ))));
-  }
-
-  @Test
-  void submitForAddedPosition_whenStorageOperatorChange_redirectsToStorageOperatorChangeForm() throws Exception {
+  void submitForPosition_whenStagedPositionAndStorageOperatorChange_redirectsToStorageOperatorChangeForm() throws Exception {
     var correction = givenCorrectionAllocatedToUser();
     var positionCorrection = givenAddedPositionCorrection(correction);
 
@@ -566,84 +466,29 @@ class LicencePositionAddChangeControllerTest extends AbstractControllerTest {
     )).thenReturn(false);
 
     mockMvc.perform(post(ReverseRouter.route(on(LicencePositionAddChangeController.class)
-            .submitForAddedPosition(correction, positionCorrection, null, null)))
+            .submitForPosition(new CorrectionPosition.Staged(positionCorrection), null, null)))
             .with(user(regulatorUser)).with(csrf())
             .flashAttr("form", form))
         .andExpect(status().is3xxRedirection())
-        .andExpect(redirectedUrl(ReverseRouter.route(on(ChangeFormController.class)
-            .addToPosition(new CorrectionPosition.Staged(positionCorrection), AddPositionChangeType.STORAGE_OPERATOR, null, null, null))));
+        .andExpect(redirectedUrl(ReverseRouter.route(on(ChangeFormController.class).addToPosition(
+            new CorrectionPosition.Staged(positionCorrection),
+            AddPositionChangeType.STORAGE_OPERATOR,
+            null,
+            null,
+            null
+        ))));
   }
 
   @Test
-  void submitForAddedPosition_whenLicenseeChange_redirectsToLicenseeChangeForm() throws Exception {
-    var correction = givenCorrectionAllocatedToUser();
-    var positionCorrection = givenAddedPositionCorrection(correction);
-
-    var form = new AddPositionChangeForm();
-    form.setChangeType(AddPositionChangeType.LICENSEE.name());
-    when(addPositionChangeFormValidator.hasErrors(
-        eq(form), any(BindingResult.class), eq(correction), eq(positionCorrection), eq(Set.of())))
-        .thenReturn(false);
-
-    mockMvc.perform(post(ReverseRouter.route(on(LicencePositionAddChangeController.class)
-            .submitForAddedPosition(correction, positionCorrection, null, null)))
-            .with(user(regulatorUser)).with(csrf())
-            .flashAttr("form", form))
-        .andExpect(status().is3xxRedirection())
-        .andExpect(redirectedUrl(ReverseRouter.route(on(ChangeFormController.class)
-            .addToPosition(new CorrectionPosition.Staged(positionCorrection), AddPositionChangeType.LICENSEE, null, null, null))));
-  }
-
-  @Test
-  void submitForAddedPosition_whenAdministratorChange_redirectsToAdministratorChangeForm() throws Exception {
-    var correction = givenCorrectionAllocatedToUser();
-    var positionCorrection = givenAddedPositionCorrection(correction);
-
-    var form = new AddPositionChangeForm();
-    form.setChangeType(AddPositionChangeType.ADMINISTRATOR.name());
-    when(addPositionChangeFormValidator.hasErrors(
-        eq(form), any(BindingResult.class), eq(correction), eq(positionCorrection), eq(Set.of())))
-        .thenReturn(false);
-
-    mockMvc.perform(post(ReverseRouter.route(on(LicencePositionAddChangeController.class)
-            .submitForAddedPosition(correction, positionCorrection, null, null)))
-            .with(user(regulatorUser)).with(csrf())
-            .flashAttr("form", form))
-        .andExpect(status().is3xxRedirection())
-        .andExpect(redirectedUrl(ReverseRouter.route(on(ChangeFormController.class)
-            .addToPosition(new CorrectionPosition.Staged(positionCorrection), AddPositionChangeType.ADMINISTRATOR, null, null, null))));
-  }
-
-  @Test
-  void submitForAddedPosition_whenSetEquity_redirectsToSetEquityForm() throws Exception {
-    var correction = givenCorrectionAllocatedToUser();
-    var positionCorrection = givenAddedPositionCorrection(correction);
-
-    var form = new AddPositionChangeForm();
-    form.setChangeType(AddPositionChangeType.SET_EQUITY.name());
-    when(addPositionChangeFormValidator.hasErrors(
-        eq(form), any(BindingResult.class), eq(correction), eq(positionCorrection), eq(Set.of())))
-        .thenReturn(false);
-
-    mockMvc.perform(post(ReverseRouter.route(on(LicencePositionAddChangeController.class)
-            .submitForAddedPosition(correction, positionCorrection, null, null)))
-            .with(user(regulatorUser)).with(csrf())
-            .flashAttr("form", form))
-        .andExpect(status().is3xxRedirection())
-        .andExpect(redirectedUrl(ReverseRouter.route(on(LicencePositionSetEquityController.class)
-            .renderForAddedPosition(correction, positionCorrection))));
-  }
-
-  @Test
-  void submitForExecutedPosition_whenPartialSurrenderOfMoreThanOneBlock_redirectsToSurrenderDetailsForm()
+  void submitForPosition_whenPartialSurrenderOfMoreThanOneBlock_redirectsToSurrenderDetailsForm()
       throws Exception {
     var correction = givenCorrectionAllocatedToUser();
-    var licencePosition = givenExecutedPosition();
+    var licencePosition = givenExecutedPosition(correction);
     var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder().build();
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(licencePosition);
-    when(licencePositionCorrectionService.getOrBuildUpdatePositionCorrection(correction, licencePosition))
+    when(licencePositionCorrectionService.getOrBuildPositionCorrection(new CorrectionPosition.Executed(correction, licencePosition)))
         .thenReturn(positionCorrection);
-    when(partialSurrenderCorrectionService.stageSingleBlockSurrenderForExecutedPosition(correction, licencePosition))
+    when(partialSurrenderCorrectionService.stageSingleBlockSurrender(new CorrectionPosition.Executed(correction, licencePosition)))
         .thenReturn(Optional.empty());
 
     var form = new AddPositionChangeForm();
@@ -653,26 +498,26 @@ class LicencePositionAddChangeControllerTest extends AbstractControllerTest {
         .thenReturn(false);
 
     mockMvc.perform(post(ReverseRouter.route(on(LicencePositionAddChangeController.class)
-            .submitForExecutedPosition(correction, licencePosition, null, null)))
+            .submitForPosition(new CorrectionPosition.Executed(correction, licencePosition), null, null)))
             .with(user(regulatorUser)).with(csrf())
             .flashAttr("form", form))
         .andExpect(status().is3xxRedirection())
         .andExpect(redirectedUrl(ReverseRouter.route(on(LicencePositionPartialSurrenderController.class)
-            .renderForExecutedPosition(correction, licencePosition))));
+            .renderForPosition(new CorrectionPosition.Executed(correction, licencePosition)))));
   }
 
   @Test
-  void submitForExecutedPosition_whenPartialSurrenderOfASingleBlock_redirectsToDefineAreaForTheStagedSurrender()
+  void submitForPosition_whenPartialSurrenderOfASingleBlock_redirectsToDefineAreaForTheStagedSurrender()
       throws Exception {
     var correction = givenCorrectionAllocatedToUser();
-    var licencePosition = givenExecutedPosition();
+    var licencePosition = givenExecutedPosition(correction);
     var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder().build();
     var stagedPositionCorrection = LicencePositionCorrectionTestUtil.newBuilder().withId(POSITION_CORRECTION_ID).build();
     var block = FeatureTestUtil.builder().build();
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(licencePosition);
-    when(licencePositionCorrectionService.getOrBuildUpdatePositionCorrection(correction, licencePosition))
+    when(licencePositionCorrectionService.getOrBuildPositionCorrection(new CorrectionPosition.Executed(correction, licencePosition)))
         .thenReturn(positionCorrection);
-    when(partialSurrenderCorrectionService.stageSingleBlockSurrenderForExecutedPosition(correction, licencePosition))
+    when(partialSurrenderCorrectionService.stageSingleBlockSurrender(new CorrectionPosition.Executed(correction, licencePosition)))
         .thenReturn(Optional.of(new SingleBlockSurrender(stagedPositionCorrection, block)));
 
     var form = new AddPositionChangeForm();
@@ -682,7 +527,7 @@ class LicencePositionAddChangeControllerTest extends AbstractControllerTest {
         .thenReturn(false);
 
     mockMvc.perform(post(ReverseRouter.route(on(LicencePositionAddChangeController.class)
-            .submitForExecutedPosition(correction, licencePosition, null, null)))
+            .submitForPosition(new CorrectionPosition.Executed(correction, licencePosition), null, null)))
             .with(user(regulatorUser)).with(csrf())
             .flashAttr("form", form))
         .andExpect(status().is3xxRedirection())
@@ -691,12 +536,12 @@ class LicencePositionAddChangeControllerTest extends AbstractControllerTest {
   }
 
   @Test
-  void submitForExecutedPosition_whenSubarea_redirectsToSubareaChangeStartForm() throws Exception {
+  void submitForPosition_whenSubarea_redirectsToSubareaChangeStartForm() throws Exception {
     var correction = givenCorrectionAllocatedToUser();
-    var licencePosition = givenExecutedPosition();
+    var licencePosition = givenExecutedPosition(correction);
     var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder().build();
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(licencePosition);
-    when(licencePositionCorrectionService.getOrBuildUpdatePositionCorrection(correction, licencePosition))
+    when(licencePositionCorrectionService.getOrBuildPositionCorrection(new CorrectionPosition.Executed(correction, licencePosition)))
         .thenReturn(positionCorrection);
 
     var form = new AddPositionChangeForm();
@@ -706,110 +551,23 @@ class LicencePositionAddChangeControllerTest extends AbstractControllerTest {
         .thenReturn(false);
 
     mockMvc.perform(post(ReverseRouter.route(on(LicencePositionAddChangeController.class)
-            .submitForExecutedPosition(correction, licencePosition, null, null)))
+            .submitForPosition(new CorrectionPosition.Executed(correction, licencePosition), null, null)))
             .with(user(regulatorUser)).with(csrf())
             .flashAttr("form", form))
         .andExpect(status().is3xxRedirection())
         .andExpect(redirectedUrl(ReverseRouter.route(on(LicencePositionSubareaChangeStartController.class)
-            .renderForExecutedPosition(correction, licencePosition))));
+            .renderForPosition(new CorrectionPosition.Executed(correction, licencePosition)))));
   }
 
   @Test
-  void submitForAddedPosition_whenPartialSurrenderOfMoreThanOneBlock_redirectsToSurrenderDetailsForm()
-      throws Exception {
+  void submitForPosition_whenSubareaSetEquityInvalid_rendersFormWithSubareaOptions() throws Exception {
     var correction = givenCorrectionAllocatedToUser();
-    var positionCorrection = givenAddedPositionCorrection(correction);
-    when(partialSurrenderCorrectionService.stageSingleBlockSurrenderForAddedPosition(positionCorrection))
-        .thenReturn(Optional.empty());
-
-    var form = new AddPositionChangeForm();
-    form.setChangeType(AddPositionChangeType.PARTIAL_SURRENDER.name());
-    when(addPositionChangeFormValidator.hasErrors(
-        eq(form), any(BindingResult.class), eq(correction), eq(positionCorrection), eq(Set.of())))
-        .thenReturn(false);
-
-    mockMvc.perform(post(ReverseRouter.route(on(LicencePositionAddChangeController.class)
-            .submitForAddedPosition(correction, positionCorrection, null, null)))
-            .with(user(regulatorUser)).with(csrf())
-            .flashAttr("form", form))
-        .andExpect(status().is3xxRedirection())
-        .andExpect(redirectedUrl(ReverseRouter.route(on(LicencePositionPartialSurrenderController.class)
-            .renderForAddedPosition(correction, positionCorrection))));
-  }
-
-  @Test
-  void submitForAddedPosition_whenPartialSurrenderOfASingleBlock_redirectsToDefineAreaForTheStagedSurrender()
-      throws Exception {
-    var correction = givenCorrectionAllocatedToUser();
-    var positionCorrection = givenAddedPositionCorrection(correction);
-    var block = FeatureTestUtil.builder().build();
-    when(partialSurrenderCorrectionService.stageSingleBlockSurrenderForAddedPosition(positionCorrection))
-        .thenReturn(Optional.of(new SingleBlockSurrender(positionCorrection, block)));
-
-    var form = new AddPositionChangeForm();
-    form.setChangeType(AddPositionChangeType.PARTIAL_SURRENDER.name());
-    when(addPositionChangeFormValidator.hasErrors(
-        eq(form), any(BindingResult.class), eq(correction), eq(positionCorrection), eq(Set.of())))
-        .thenReturn(false);
-
-    mockMvc.perform(post(ReverseRouter.route(on(LicencePositionAddChangeController.class)
-            .submitForAddedPosition(correction, positionCorrection, null, null)))
-            .with(user(regulatorUser)).with(csrf())
-            .flashAttr("form", form))
-        .andExpect(status().is3xxRedirection())
-        .andExpect(redirectedUrl(ReverseRouter.route(on(PartialSurrenderDefineAreaController.class)
-            .renderDefineArea(CORRECTION, POSITION_CORRECTION, block.getId()))));
-  }
-
-  @Test
-  void submitForAddedPosition_whenSubarea_redirectsToSubareaChangeStartForm() throws Exception {
-    var correction = givenCorrectionAllocatedToUser();
-    var positionCorrection = givenAddedPositionCorrection(correction);
-
-    var form = new AddPositionChangeForm();
-    form.setChangeType(AddPositionChangeType.SUBAREA.name());
-    when(addPositionChangeFormValidator.hasErrors(
-        eq(form), any(BindingResult.class), eq(correction), eq(positionCorrection), eq(Set.of())))
-        .thenReturn(false);
-
-    mockMvc.perform(post(ReverseRouter.route(on(LicencePositionAddChangeController.class)
-            .submitForAddedPosition(correction, positionCorrection, null, null)))
-            .with(user(regulatorUser)).with(csrf())
-            .flashAttr("form", form))
-        .andExpect(status().is3xxRedirection())
-        .andExpect(redirectedUrl(ReverseRouter.route(on(LicencePositionSubareaChangeStartController.class)
-            .renderForAddedPosition(correction, positionCorrection))));
-  }
-
-  @Test
-  void submitForAddedPosition_whenTransferEquity_redirectsToTransferEquityForm() throws Exception {
-    var correction = givenCorrectionAllocatedToUser();
-    var positionCorrection = givenAddedPositionCorrection(correction);
-
-    var form = new AddPositionChangeForm();
-    form.setChangeType(AddPositionChangeType.TRANSFER_EQUITY.name());
-    when(addPositionChangeFormValidator.hasErrors(
-        eq(form), any(BindingResult.class), eq(correction), eq(positionCorrection), eq(Set.of())))
-        .thenReturn(false);
-
-    mockMvc.perform(post(ReverseRouter.route(on(LicencePositionAddChangeController.class)
-            .submitForAddedPosition(correction, positionCorrection, null, null)))
-            .with(user(regulatorUser)).with(csrf())
-            .flashAttr("form", form))
-        .andExpect(status().is3xxRedirection())
-        .andExpect(redirectedUrl(ReverseRouter.route(on(LicencePositionTransferEquityController.class)
-            .renderForAddedPosition(correction, positionCorrection))));
-  }
-
-  @Test
-  void submitForExecutedPosition_whenSubareaSetEquityInvalid_rendersFormWithSubareaOptions() throws Exception {
-    var correction = givenCorrectionAllocatedToUser();
-    var licencePosition = givenExecutedPosition();
+    var licencePosition = givenExecutedPosition(correction);
     var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder().build();
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(licencePosition);
-    when(licencePositionCorrectionService.getOrBuildUpdatePositionCorrection(correction, licencePosition))
+    when(licencePositionCorrectionService.getOrBuildPositionCorrection(new CorrectionPosition.Executed(correction, licencePosition)))
         .thenReturn(positionCorrection);
-    when(subareaEquityOptionsService.getSubareaOptions(correction, licencePosition)).thenReturn(SUBAREA_OPTIONS);
+    when(subareaEquityOptionsService.getSubareaOptions(new CorrectionPosition.Executed(correction, licencePosition))).thenReturn(SUBAREA_OPTIONS);
 
     var form = new AddPositionChangeForm();
     form.setChangeType(AddPositionChangeType.SUBAREA_SET_EQUITY.name());
@@ -818,7 +576,7 @@ class LicencePositionAddChangeControllerTest extends AbstractControllerTest {
         .thenReturn(true);
 
     mockMvc.perform(post(ReverseRouter.route(on(LicencePositionAddChangeController.class)
-            .submitForExecutedPosition(correction, licencePosition, null, null)))
+            .submitForPosition(new CorrectionPosition.Executed(correction, licencePosition), null, null)))
             .with(user(regulatorUser)).with(csrf())
             .flashAttr("form", form))
         .andExpectAll(
@@ -828,14 +586,14 @@ class LicencePositionAddChangeControllerTest extends AbstractControllerTest {
   }
 
   @Test
-  void submitForExecutedPosition_whenSubareaSetEquity_redirectsToSubareaSetEquityForm() throws Exception {
+  void submitForPosition_whenSubareaSetEquity_redirectsToSubareaSetEquityForm() throws Exception {
     var correction = givenCorrectionAllocatedToUser();
-    var licencePosition = givenExecutedPosition();
+    var licencePosition = givenExecutedPosition(correction);
     var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder().build();
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(licencePosition);
-    when(licencePositionCorrectionService.getOrBuildUpdatePositionCorrection(correction, licencePosition))
+    when(licencePositionCorrectionService.getOrBuildPositionCorrection(new CorrectionPosition.Executed(correction, licencePosition)))
         .thenReturn(positionCorrection);
-    when(subareaEquityOptionsService.getSubareaOptions(correction, licencePosition)).thenReturn(SUBAREA_OPTIONS);
+    when(subareaEquityOptionsService.getSubareaOptions(new CorrectionPosition.Executed(correction, licencePosition))).thenReturn(SUBAREA_OPTIONS);
 
     var form = new AddPositionChangeForm();
     form.setChangeType(AddPositionChangeType.SUBAREA_SET_EQUITY.name());
@@ -845,55 +603,11 @@ class LicencePositionAddChangeControllerTest extends AbstractControllerTest {
         .thenReturn(false);
 
     mockMvc.perform(post(ReverseRouter.route(on(LicencePositionAddChangeController.class)
-            .submitForExecutedPosition(correction, licencePosition, null, null)))
+            .submitForPosition(new CorrectionPosition.Executed(correction, licencePosition), null, null)))
             .with(user(regulatorUser)).with(csrf())
             .flashAttr("form", form))
         .andExpect(status().is3xxRedirection())
         .andExpect(redirectedUrl(ReverseRouter.route(on(LicencePositionSubareaSetEquityController.class)
-            .renderForExecutedPosition(correction, licencePosition, SUBAREA_KEY))));
-  }
-
-  @Test
-  void submitForAddedPosition_whenSubareaSetEquityInvalid_rendersFormWithSubareaOptions() throws Exception {
-    var correction = givenCorrectionAllocatedToUser();
-    var positionCorrection = givenAddedPositionCorrection(correction);
-    when(subareaEquityOptionsService.getSubareaOptions(positionCorrection)).thenReturn(SUBAREA_OPTIONS);
-
-    var form = new AddPositionChangeForm();
-    form.setChangeType(AddPositionChangeType.SUBAREA_SET_EQUITY.name());
-    when(addPositionChangeFormValidator.hasErrors(
-        eq(form), any(BindingResult.class), eq(correction), eq(positionCorrection), eq(SUBAREA_OPTIONS.keySet())))
-        .thenReturn(true);
-
-    mockMvc.perform(post(ReverseRouter.route(on(LicencePositionAddChangeController.class)
-            .submitForAddedPosition(correction, positionCorrection, null, null)))
-            .with(user(regulatorUser)).with(csrf())
-            .flashAttr("form", form))
-        .andExpectAll(
-            status().isOk(),
-            view().name(VIEW_NAME),
-            model().attribute("subareaOptions", SUBAREA_OPTIONS));
-  }
-
-  @Test
-  void submitForAddedPosition_whenSubareaSetEquity_redirectsToSubareaSetEquityForm() throws Exception {
-    var correction = givenCorrectionAllocatedToUser();
-    var positionCorrection = givenAddedPositionCorrection(correction);
-    when(subareaEquityOptionsService.getSubareaOptions(positionCorrection)).thenReturn(SUBAREA_OPTIONS);
-
-    var form = new AddPositionChangeForm();
-    form.setChangeType(AddPositionChangeType.SUBAREA_SET_EQUITY.name());
-    form.setSubarea(SUBAREA_KEY);
-    when(addPositionChangeFormValidator.hasErrors(
-        eq(form), any(BindingResult.class), eq(correction), eq(positionCorrection), eq(SUBAREA_OPTIONS.keySet())))
-        .thenReturn(false);
-
-    mockMvc.perform(post(ReverseRouter.route(on(LicencePositionAddChangeController.class)
-            .submitForAddedPosition(correction, positionCorrection, null, null)))
-            .with(user(regulatorUser)).with(csrf())
-            .flashAttr("form", form))
-        .andExpect(status().is3xxRedirection())
-        .andExpect(redirectedUrl(ReverseRouter.route(on(LicencePositionSubareaSetEquityController.class)
-            .renderForAddedPosition(correction, positionCorrection, SUBAREA_KEY))));
+            .renderForPosition(new CorrectionPosition.Executed(correction, licencePosition), SUBAREA_KEY))));
   }
 }

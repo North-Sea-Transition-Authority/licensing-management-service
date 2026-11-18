@@ -160,13 +160,8 @@ public record TransferEquityOperation(
         return null;
       }
 
-      if (changeUrlTarget.addedPosition()) {
-        return ReverseRouter.route(on(LicencePositionTransferEquityController.class)
-            .renderSummaryForAddedPosition(changeUrlTarget.correction(), changeUrlTarget.positionCorrection()));
-      }
-
       return ReverseRouter.route(on(LicencePositionTransferEquityController.class)
-          .renderSummaryForExecutedPosition(changeUrlTarget.correction(), changeUrlTarget.licencePosition()));
+          .renderSummaryForPosition(changeUrlTarget.correctionPosition()));
     };
   }
 

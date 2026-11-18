@@ -18,6 +18,7 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectionPosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
@@ -78,7 +79,7 @@ class PartialSurrenderDetailsTaskListSectionServiceTest {
     assertThat(section).contains(expectedSection(
         TaskListLabel.COMPLETE,
         ReverseRouter.route(on(LicencePositionPartialSurrenderController.class)
-            .renderForAddedPosition(CORRECTION, positionCorrection))));
+            .renderForPosition(new CorrectionPosition.Staged(positionCorrection)))));
   }
 
   @Test
@@ -92,7 +93,7 @@ class PartialSurrenderDetailsTaskListSectionServiceTest {
     assertThat(section).contains(expectedSection(
         TaskListLabel.COMPLETE,
         ReverseRouter.route(on(LicencePositionPartialSurrenderController.class)
-            .renderForExecutedPosition(CORRECTION, POSITION))));
+            .renderForPosition(new CorrectionPosition.Executed(CORRECTION, POSITION)))));
   }
 
   @Test
@@ -106,7 +107,7 @@ class PartialSurrenderDetailsTaskListSectionServiceTest {
     assertThat(section).contains(expectedSection(
         TaskListLabel.NOT_COMPLETE,
         ReverseRouter.route(on(LicencePositionPartialSurrenderController.class)
-            .renderForExecutedPosition(CORRECTION, POSITION))));
+            .renderForPosition(new CorrectionPosition.Executed(CORRECTION, POSITION)))));
   }
 
   @Test
@@ -120,7 +121,7 @@ class PartialSurrenderDetailsTaskListSectionServiceTest {
     assertThat(section).contains(expectedSection(
         TaskListLabel.NOT_COMPLETE,
         ReverseRouter.route(on(LicencePositionPartialSurrenderController.class)
-            .renderForExecutedPosition(CORRECTION, POSITION))));
+            .renderForPosition(new CorrectionPosition.Executed(CORRECTION, POSITION)))));
   }
 
   @Test

@@ -22,7 +22,6 @@ import uk.co.fivium.gisframework.feature.Feature;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.CorrectionHasStatus;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.CorrectionLicenceIsType;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanViewCorrection;
-import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.LicencePositionCorrectionBelongsToCorrection;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.LicencePositionIsNotRemovedInCorrection;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.LicencePositionChangeBelongsToPosition;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.LicencePositionChangeIsOfType;
@@ -31,6 +30,7 @@ import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.Noti
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectionPosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionRouteUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
@@ -77,124 +77,56 @@ public class LicencePositionPartialSurrenderController {
 
   @GetMapping("/position/{licencePositionId}/partial-surrender/surrender-details")
   @LicencePositionIsNotRemovedInCorrection
-  @LicencePositionBelongsToCorrectionLicence
-  public ModelAndView renderForExecutedPosition(
-      LicenceCorrection correction,
-      LicencePosition licencePosition
-  ) {
-    var positionCorrection = licencePositionCorrectionService
-        .findUpdatePositionCorrection(correction, licencePosition)
-        .orElse(null);
+  public ModelAndView renderForPosition(CorrectionPosition correctionPosition) {
+    var correction = correctionPosition.correction();
+    var positionCorrection = licencePositionCorrectionService.findPositionCorrection(correctionPosition).orElse(null);
     var existing = partialSurrenderCorrectionService.getCommittedPartialSurrender(positionCorrection).orElse(null);
 
     return surrenderDetailsModelAndView(
         correction,
         PartialSurrenderDetailsForm.from(existing),
-        licencePositionCorrectionService.getEffectivePositionDate(correction, licencePosition),
+        licencePositionCorrectionService.getEffectivePositionDate(correctionPosition),
         licencePositionSpatialService.getBlockFeaturesGoingIntoChange(
             correction,
-            licencePosition,
+            correctionPosition.positionId(),
             partialSurrenderCorrectionService.getCommittedPartialSurrenderChangeId(positionCorrection).orElse(null)),
-        getBackLinkUrl(positionCorrection, existing, executedChangeUrl(correction, licencePosition)));
+        getBackLinkUrl(positionCorrection, existing, addChangeUrl(correctionPosition)));
   }
 
   @PostMapping("/position/{licencePositionId}/partial-surrender/surrender-details")
   @LicencePositionIsNotRemovedInCorrection
-  @LicencePositionBelongsToCorrectionLicence
-  public ModelAndView submitForExecutedPosition(
-      LicenceCorrection correction,
-      LicencePosition licencePosition,
+  public ModelAndView submitForPosition(
+      CorrectionPosition correctionPosition,
       @ModelAttribute("form") PartialSurrenderDetailsForm form,
       BindingResult bindingResult,
       RedirectAttributes redirectAttributes
   ) {
-    var positionCorrection = licencePositionCorrectionService
-        .findUpdatePositionCorrection(correction, licencePosition)
-        .orElse(null);
+    var correction = correctionPosition.correction();
+    var positionCorrection = licencePositionCorrectionService.findPositionCorrection(correctionPosition).orElse(null);
     var stagedChangeId = partialSurrenderCorrectionService
         .getCommittedPartialSurrenderChangeId(positionCorrection)
         .orElse(null);
     var blockFeatures = licencePositionSpatialService
-        .getBlockFeaturesGoingIntoChange(correction, licencePosition, stagedChangeId);
+        .getBlockFeaturesGoingIntoChange(correction, correctionPosition.positionId(), stagedChangeId);
     var existing = partialSurrenderCorrectionService.getCommittedPartialSurrender(positionCorrection).orElse(null);
-    var featureIdsAlreadyOperatedOn = licencePositionCorrectionService.blockFeatureIdsAlreadyOperatedOnForExecutedPosition(
-        correction,
-        licencePosition,
-        positionCorrection,
-        stagedChangeId
-    );
+    var featureIdsAlreadyOperatedOn =
+        licencePositionCorrectionService.blockFeatureIdsAlreadyOperatedOn(correctionPosition, stagedChangeId);
 
     if (partialSurrenderDetailsFormValidator.hasErrors(form, bindingResult, blockFeatures, featureIdsAlreadyOperatedOn)) {
       return surrenderDetailsModelAndView(
           correction,
           form,
-          licencePositionCorrectionService.getEffectivePositionDate(correction, licencePosition),
+          licencePositionCorrectionService.getEffectivePositionDate(correctionPosition),
           blockFeatures,
-          getBackLinkUrl(positionCorrection, existing, executedChangeUrl(correction, licencePosition)));
+          getBackLinkUrl(positionCorrection, existing, addChangeUrl(correctionPosition)));
     }
 
-    var committedPositionCorrection = partialSurrenderCorrectionService.commitPartialSurrenderForExecutedPosition(
-        correction, licencePosition, toOperation(existing, form.getFeatureIds()));
+    var committedPositionCorrection = partialSurrenderCorrectionService.commitPartialSurrender(
+        correctionPosition, toOperation(existing, form.getFeatureIds()));
 
     NotificationBanner.newSuccessBannerWithHeader(SAVED_BANNER, redirectAttributes);
     return ReverseRouter.redirect(on(PartialSurrenderTaskListController.class)
         .renderTaskList(correction, committedPositionCorrection, null));
-  }
-
-  @GetMapping("/added-position/{licencePositionCorrectionId}/partial-surrender/surrender-details")
-  @LicencePositionCorrectionBelongsToCorrection
-  public ModelAndView renderForAddedPosition(
-      LicenceCorrection correction,
-      LicencePositionCorrection licencePositionCorrection
-  ) {
-    var existing = partialSurrenderCorrectionService.getCommittedPartialSurrender(licencePositionCorrection).orElse(null);
-
-    return surrenderDetailsModelAndView(
-        correction,
-        PartialSurrenderDetailsForm.from(existing),
-        licencePositionCorrectionService.resolveEffectiveDate(licencePositionCorrection),
-        licencePositionSpatialService.getBlockFeaturesGoingIntoChange(
-            licencePositionCorrection,
-            partialSurrenderCorrectionService.getCommittedPartialSurrenderChangeId(licencePositionCorrection).orElse(null)),
-        getBackLinkUrl(
-            licencePositionCorrection, existing, addedChangeUrl(licencePositionCorrection)));
-  }
-
-  @PostMapping("/added-position/{licencePositionCorrectionId}/partial-surrender/surrender-details")
-  @LicencePositionCorrectionBelongsToCorrection
-  public ModelAndView submitForAddedPosition(
-      LicenceCorrection correction,
-      LicencePositionCorrection licencePositionCorrection,
-      @ModelAttribute("form") PartialSurrenderDetailsForm form,
-      BindingResult bindingResult,
-      RedirectAttributes redirectAttributes
-  ) {
-    var stagedChangeId = partialSurrenderCorrectionService
-        .getCommittedPartialSurrenderChangeId(licencePositionCorrection)
-        .orElse(null);
-    var blockFeatures = licencePositionSpatialService.getBlockFeaturesGoingIntoChange(licencePositionCorrection, stagedChangeId);
-    var existing = partialSurrenderCorrectionService.getCommittedPartialSurrender(licencePositionCorrection).orElse(null);
-    var featureIdsAlreadyOperatedOn = licencePositionCorrectionService.blockFeatureIdsAlreadyOperatedOnForAddedPosition(
-        licencePositionCorrection,
-        stagedChangeId
-    );
-
-    if (partialSurrenderDetailsFormValidator.hasErrors(form, bindingResult, blockFeatures, featureIdsAlreadyOperatedOn)) {
-      return surrenderDetailsModelAndView(
-          correction,
-          form,
-          licencePositionCorrectionService.resolveEffectiveDate(licencePositionCorrection),
-          blockFeatures,
-          getBackLinkUrl(licencePositionCorrection, existing,
-              addedChangeUrl(licencePositionCorrection)));
-    }
-
-    partialSurrenderCorrectionService.commitPartialSurrender(
-        licencePositionCorrection, toOperation(existing, form.getFeatureIds()));
-
-    NotificationBanner.newSuccessBannerWithHeader(SAVED_BANNER, redirectAttributes);
-    return ReverseRouter.redirect(on(PartialSurrenderTaskListController.class)
-        .renderTaskList(correction, licencePositionCorrection, null));
   }
 
   @GetMapping("/position/{licencePositionId}/change/{changeId}/partial-surrender/correct-surrender-details")
@@ -384,15 +316,10 @@ public class LicencePositionPartialSurrenderController {
         .renderTaskList(positionCorrection.getLicenceCorrection(), positionCorrection, null));
   }
 
-  private String executedChangeUrl(LicenceCorrection correction, LicencePosition licencePosition) {
-    return ReverseRouter.route(on(LicencePositionAddChangeController.class)
-        .renderForExecutedPosition(correction, licencePosition));
+  private String addChangeUrl(CorrectionPosition correctionPosition) {
+    return ReverseRouter.route(on(LicencePositionAddChangeController.class).renderForPosition(correctionPosition));
   }
 
-  private String addedChangeUrl(LicencePositionCorrection licencePositionCorrection) {
-    return ReverseRouter.route(on(LicencePositionAddChangeController.class)
-        .renderForAddedPosition(licencePositionCorrection.getLicenceCorrection(), licencePositionCorrection));
-  }
 
   private ModelAndView startSingleBlockCorrectionModelAndView(
       LicenceCorrection correction,

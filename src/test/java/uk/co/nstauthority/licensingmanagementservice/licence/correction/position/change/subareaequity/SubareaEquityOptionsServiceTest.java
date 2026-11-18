@@ -16,6 +16,7 @@ import uk.co.fivium.gisframework.feature.Feature;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectionPosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.LicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaDetails;
@@ -51,7 +52,7 @@ class SubareaEquityOptionsServiceTest {
             new BlockSubareas(BLOCK_30_2, List.of(subareaC, subareaZ))
         ));
 
-    var result = subareaEquityOptionsService.getSubareaOptions(CORRECTION, POSITION);
+    var result = subareaEquityOptionsService.getSubareaOptions(new CorrectionPosition.Executed(CORRECTION, POSITION));
 
     assertThat(result).containsExactly(
         entry("%s:%s".formatted(BLOCK_30_1.getId(), subareaA.featureId()), "Block 30/1 - Subarea A"),
@@ -72,7 +73,7 @@ class SubareaEquityOptionsServiceTest {
             new BlockSubareas(BLOCK_30_1, List.of(subareaB, subareaA))
         ));
 
-    var result = subareaEquityOptionsService.getSubareaOptions(CORRECTION, POSITION);
+    var result = subareaEquityOptionsService.getSubareaOptions(new CorrectionPosition.Executed(CORRECTION, POSITION));
 
     assertThat(result).containsExactly(
         entry("%s:%s".formatted(BLOCK_30_1.getId(), subareaA.featureId()), "Block 30/1 - Subarea A"),
@@ -87,7 +88,7 @@ class SubareaEquityOptionsServiceTest {
     when(licencePositionSpatialService.getBlockSubareasGoingIntoChange(CORRECTION, POSITION.getId(), null))
         .thenReturn(List.of(new BlockSubareas(BLOCK_30_1, List.of(legacySubarea))));
 
-    var result = subareaEquityOptionsService.getSubareaOptions(CORRECTION, POSITION);
+    var result = subareaEquityOptionsService.getSubareaOptions(new CorrectionPosition.Executed(CORRECTION, POSITION));
 
     assertThat(result).containsExactly(
         entry("%s:LEG".formatted(BLOCK_30_1.getId()), "Block 30/1 - Subarea LEG"));
@@ -101,7 +102,7 @@ class SubareaEquityOptionsServiceTest {
     when(licencePositionSpatialService.getBlockSubareasGoingIntoChange(CORRECTION, POSITION.getId(), null))
         .thenReturn(List.of(new BlockSubareas(BLOCK_30_1, List.of(subarea, renamedSubarea))));
 
-    var result = subareaEquityOptionsService.getSubareaOptions(CORRECTION, POSITION);
+    var result = subareaEquityOptionsService.getSubareaOptions(new CorrectionPosition.Executed(CORRECTION, POSITION));
 
     assertThat(result).containsExactly(
         entry("%s:%s".formatted(BLOCK_30_1.getId(), featureId), "Block 30/1 - Subarea A"));
@@ -120,7 +121,7 @@ class SubareaEquityOptionsServiceTest {
     when(licencePositionSpatialService.getBlockSubareasGoingIntoChange(CORRECTION, addedPositionId, null))
         .thenReturn(List.of(new BlockSubareas(BLOCK_30_1, List.of(subarea))));
 
-    var result = subareaEquityOptionsService.getSubareaOptions(positionCorrection);
+    var result = subareaEquityOptionsService.getSubareaOptions(new CorrectionPosition.Staged(positionCorrection));
 
     assertThat(result).containsExactly(
         entry("%s:%s".formatted(BLOCK_30_1.getId(), subarea.featureId()), "Block 30/1 - Subarea A"));
@@ -136,8 +137,7 @@ class SubareaEquityOptionsServiceTest {
             new BlockSubareas(BLOCK_30_2, List.of(subareaC))
         ));
 
-    var result = subareaEquityOptionsService.getSubareaOptionOrThrow(
-        CORRECTION, POSITION, "%s:%s".formatted(BLOCK_30_2.getId(), subareaC.featureId()));
+    var result = subareaEquityOptionsService.getSubareaOptionOrThrow(new CorrectionPosition.Executed(CORRECTION, POSITION), "%s:%s".formatted(BLOCK_30_2.getId(), subareaC.featureId()));
 
     assertThat(result).isEqualTo(new SubareaOption(BLOCK_30_2, subareaC));
   }
@@ -155,8 +155,7 @@ class SubareaEquityOptionsServiceTest {
     when(licencePositionSpatialService.getBlockSubareasGoingIntoChange(CORRECTION, addedPositionId, null))
         .thenReturn(List.of(new BlockSubareas(BLOCK_30_1, List.of(legacySubarea))));
 
-    var result = subareaEquityOptionsService.getSubareaOptionOrThrow(
-        positionCorrection, "%s:LEG".formatted(BLOCK_30_1.getId()));
+    var result = subareaEquityOptionsService.getSubareaOptionOrThrow(new CorrectionPosition.Staged(positionCorrection), "%s:LEG".formatted(BLOCK_30_1.getId()));
 
     assertThat(result).isEqualTo(new SubareaOption(BLOCK_30_1, legacySubarea));
   }
@@ -170,7 +169,7 @@ class SubareaEquityOptionsServiceTest {
         )));
     var unknownKey = "%s:%s".formatted(BLOCK_30_1.getId(), UUID.randomUUID());
 
-    assertThatThrownBy(() -> subareaEquityOptionsService.getSubareaOptionOrThrow(CORRECTION, POSITION, unknownKey))
+    assertThatThrownBy(() -> subareaEquityOptionsService.getSubareaOptionOrThrow(new CorrectionPosition.Executed(CORRECTION, POSITION), unknownKey))
         .isInstanceOf(LmsEntityNotFoundException.class);
   }
 }

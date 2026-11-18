@@ -7,6 +7,7 @@ import java.util.function.Predicate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectionPosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
@@ -36,7 +37,40 @@ public class SubareaSetEquityCorrectionService {
         .toList();
   }
 
-  List<SubareaSetEquityOperation> getCommittedSubareaSetEquityOperationsForExecutedPosition(
+  List<SubareaSetEquityOperation> getCommittedSubareaSetEquityOperations(
+      CorrectionPosition correctionPosition,
+      SubareaOption subareaOption
+  ) {
+    return switch (correctionPosition) {
+      case CorrectionPosition.Executed executed -> getCommittedSubareaSetEquityOperationsForExecutedPosition(
+          executed.correction(),
+          executed.licencePosition(),
+          subareaOption
+      );
+      case CorrectionPosition.Staged staged ->
+          getCommittedSubareaSetEquityOperations(staged.licencePositionCorrection(), subareaOption);
+    };
+  }
+
+  @Transactional
+  void commitSubareaSetEquity(
+      CorrectionPosition correctionPosition,
+      SubareaOption subareaOption,
+      List<SubareaSetEquityOperation> operations
+  ) {
+    switch (correctionPosition) {
+      case CorrectionPosition.Executed executed -> commitSubareaSetEquityForExecutedPosition(
+          executed.correction(),
+          executed.licencePosition(),
+          subareaOption,
+          operations
+      );
+      case CorrectionPosition.Staged staged ->
+          commitSubareaSetEquity(staged.licencePositionCorrection(), subareaOption, operations);
+    }
+  }
+
+  private List<SubareaSetEquityOperation> getCommittedSubareaSetEquityOperationsForExecutedPosition(
       LicenceCorrection licenceCorrection,
       LicencePosition licencePosition,
       SubareaOption subareaOption
@@ -60,8 +94,7 @@ public class SubareaSetEquityCorrectionService {
     );
   }
 
-  @Transactional
-  void commitSubareaSetEquityForExecutedPosition(
+  private void commitSubareaSetEquityForExecutedPosition(
       LicenceCorrection licenceCorrection,
       LicencePosition licencePosition,
       SubareaOption subareaOption,

@@ -4,6 +4,7 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectionPosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.EquitySetterOperation;
@@ -45,7 +46,23 @@ public class SetEquityCorrectionService {
         .toList();
   }
 
-  public List<SetEquityOperation> getCommittedSetEquityOperationsForExecutedPosition(
+  public List<SetEquityOperation> getCommittedSetEquityOperations(CorrectionPosition correctionPosition) {
+    return switch (correctionPosition) {
+      case CorrectionPosition.Executed executed ->
+          getCommittedSetEquityOperationsForExecutedPosition(executed.correction(), executed.licencePosition());
+      case CorrectionPosition.Staged staged -> getCommittedSetEquityOperations(staged.licencePositionCorrection());
+    };
+  }
+
+  public void commitSetEquity(CorrectionPosition correctionPosition, List<SetEquityOperation> operations) {
+    switch (correctionPosition) {
+      case CorrectionPosition.Executed executed ->
+          commitSetEquityForExecutedPosition(executed.correction(), executed.licencePosition(), operations);
+      case CorrectionPosition.Staged staged -> commitSetEquity(staged.licencePositionCorrection(), operations);
+    }
+  }
+
+  private List<SetEquityOperation> getCommittedSetEquityOperationsForExecutedPosition(
       LicenceCorrection licenceCorrection,
       LicencePosition licencePosition
   ) {
@@ -61,7 +78,7 @@ public class SetEquityCorrectionService {
     licencePositionCorrectionService.replaceAddChangeFor(licencePositionCorrection, SetEquityOperation.class, operations);
   }
 
-  public void commitSetEquityForExecutedPosition(
+  private void commitSetEquityForExecutedPosition(
       LicenceCorrection licenceCorrection,
       LicencePosition licencePosition,
       List<SetEquityOperation> operations

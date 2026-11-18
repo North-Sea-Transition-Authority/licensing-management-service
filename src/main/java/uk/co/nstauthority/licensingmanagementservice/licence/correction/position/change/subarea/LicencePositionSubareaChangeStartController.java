@@ -15,16 +15,13 @@ import uk.co.fivium.gisframework.feature.Feature;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.CorrectionHasStatus;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.CorrectionLicenceIsType;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanViewCorrection;
-import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.LicencePositionCorrectionBelongsToCorrection;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.LicencePositionIsNotRemovedInCorrection;
-import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.position.LicencePositionBelongsToCorrectionLicence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectionPosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.LicencePositionAddChangeController;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.LicenceBlockFeatureUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.spatial.LicencePositionSpatialService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
@@ -57,104 +54,39 @@ public class LicencePositionSubareaChangeStartController {
 
   @GetMapping("/position/{licencePositionId}/subarea-change")
   @LicencePositionIsNotRemovedInCorrection
-  @LicencePositionBelongsToCorrectionLicence
-  public ModelAndView renderForExecutedPosition(
-      LicenceCorrection correction,
-      LicencePosition licencePosition
-  ) {
+  public ModelAndView renderForPosition(CorrectionPosition correctionPosition) {
     return getSubareaChangeModelAndView(
-        correction,
+        correctionPosition.correction(),
         new SubareaChangeStartForm(),
-        licencePositionSpatialService.getBlockFeaturesGoingIntoChange(correction, licencePosition, null),
-        executedChangeUrl(correction, licencePosition)
+        getBlockFeatures(correctionPosition),
+        addChangeUrl(correctionPosition)
     );
   }
 
   @PostMapping("/position/{licencePositionId}/subarea-change")
   @LicencePositionIsNotRemovedInCorrection
-  @LicencePositionBelongsToCorrectionLicence
-  public ModelAndView submitForExecutedPosition(
-      LicenceCorrection correction,
-      LicencePosition licencePosition,
+  public ModelAndView submitForPosition(
+      CorrectionPosition correctionPosition,
       @ModelAttribute("form") SubareaChangeStartForm form,
       BindingResult bindingResult
   ) {
-    var positionCorrection = licencePositionCorrectionService
-        .findUpdatePositionCorrection(correction, licencePosition)
-        .orElse(null);
-    var blockFeatures = licencePositionSpatialService.getBlockFeaturesGoingIntoChange(correction, licencePosition, null);
-    var featureIdsAlreadyOperatedOn = licencePositionCorrectionService.blockFeatureIdsAlreadyOperatedOnForExecutedPosition(
-        correction,
-        licencePosition,
-        positionCorrection
-    );
-
-    if (subareaChangeStartFormValidator.hasErrors(
-        form,
-        bindingResult,
-        blockFeatures,
-        featureIdsAlreadyOperatedOn
-    )) {
-      return getSubareaChangeModelAndView(
-          correction,
-          form,
-          blockFeatures,
-          executedChangeUrl(correction, licencePosition)
-      );
-    }
-
-    var blockFeatureId = UUID.fromString(form.getFeatureId());
-    var savedPositionCorrection = subareaChangeService.commitSubareaChangeForExecutedPosition(
-        correction,
-        licencePosition,
-        blockFeatureId
-    );
-
-    return ReverseRouter.redirect(on(SubareaChangeController.class)
-        .renderSubareaChange(correction, savedPositionCorrection, blockFeatureId));
-  }
-
-  @GetMapping("/added-position/{licencePositionCorrectionId}/subarea-change")
-  @LicencePositionCorrectionBelongsToCorrection
-  public ModelAndView renderForAddedPosition(
-      LicenceCorrection correction,
-      LicencePositionCorrection licencePositionCorrection
-  ) {
-    return getSubareaChangeModelAndView(
-        correction,
-        new SubareaChangeStartForm(),
-        licencePositionSpatialService.getBlockFeaturesGoingIntoChange(licencePositionCorrection, null),
-        addedChangeUrl(licencePositionCorrection)
-    );
-  }
-
-  @PostMapping("/added-position/{licencePositionCorrectionId}/subarea-change")
-  @LicencePositionCorrectionBelongsToCorrection
-  public ModelAndView submitForAddedPosition(
-      LicenceCorrection correction,
-      LicencePositionCorrection licencePositionCorrection,
-      @ModelAttribute("form") SubareaChangeStartForm form,
-      BindingResult bindingResult
-  ) {
-    var blockFeatures = licencePositionSpatialService.getBlockFeaturesGoingIntoChange(licencePositionCorrection, null);
-    var featureIdsAlreadyOperatedOn = licencePositionCorrectionService.blockFeatureIdsAlreadyOperatedOnForAddedPosition(
-        licencePositionCorrection
-    );
+    var blockFeatures = getBlockFeatures(correctionPosition);
+    var featureIdsAlreadyOperatedOn = licencePositionCorrectionService.blockFeatureIdsAlreadyOperatedOn(correctionPosition);
 
     if (subareaChangeStartFormValidator.hasErrors(form, bindingResult, blockFeatures, featureIdsAlreadyOperatedOn)) {
       return getSubareaChangeModelAndView(
-          correction,
+          correctionPosition.correction(),
           form,
           blockFeatures,
-          addedChangeUrl(licencePositionCorrection)
+          addChangeUrl(correctionPosition)
       );
     }
 
     var blockFeatureId = UUID.fromString(form.getFeatureId());
-    subareaChangeService.commitSubareaChange(licencePositionCorrection, blockFeatureId);
+    var positionCorrection = subareaChangeService.commitSubareaChange(correctionPosition, blockFeatureId);
 
     return ReverseRouter.redirect(on(SubareaChangeController.class)
-        .renderSubareaChange(correction, licencePositionCorrection, blockFeatureId));
+        .renderSubareaChange(correctionPosition.correction(), positionCorrection, blockFeatureId));
   }
 
   private ModelAndView getSubareaChangeModelAndView(
@@ -171,13 +103,15 @@ public class LicencePositionSubareaChangeStartController {
         .addObject("backLinkUrl", backLinkUrl);
   }
 
-  private String executedChangeUrl(LicenceCorrection correction, LicencePosition licencePosition) {
-    return ReverseRouter.route(on(LicencePositionAddChangeController.class)
-        .renderForExecutedPosition(correction, licencePosition));
+  private List<Feature> getBlockFeatures(CorrectionPosition correctionPosition) {
+    return licencePositionSpatialService.getBlockFeaturesGoingIntoChange(
+        correctionPosition.correction(),
+        correctionPosition.positionId(),
+        null
+    );
   }
 
-  private String addedChangeUrl(LicencePositionCorrection licencePositionCorrection) {
-    return ReverseRouter.route(on(LicencePositionAddChangeController.class)
-        .renderForAddedPosition(licencePositionCorrection.getLicenceCorrection(), licencePositionCorrection));
+  private String addChangeUrl(CorrectionPosition correctionPosition) {
+    return ReverseRouter.route(on(LicencePositionAddChangeController.class).renderForPosition(correctionPosition));
   }
 }

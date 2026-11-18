@@ -34,6 +34,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectionPosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionRouteUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
@@ -85,12 +86,12 @@ class LicencePositionSetEquityControllerTest extends AbstractControllerTest {
   }
 
   @Test
-  void renderForAddedPosition_whenAllocated_rendersForm() throws Exception {
+  void renderForPosition_whenStagedPositionAndAllocated_rendersForm() throws Exception {
     givenCorrectionAllocatedToUser();
-    when(licencePositionCorrectionService.findById(POSITION_CORRECTION_ID)).thenReturn(Optional.of(POSITION_CORRECTION));
+    givenCorrectionPosition(new CorrectionPosition.Staged(POSITION_CORRECTION));
 
     mockMvc.perform(get(ReverseRouter.route(on(LicencePositionSetEquityController.class)
-            .renderForAddedPosition(CORRECTION, POSITION_CORRECTION)))
+            .renderForPosition(new CorrectionPosition.Staged(POSITION_CORRECTION))))
             .with(user(regulatorUser)))
         .andExpectAll(
             status().isOk(),
@@ -99,67 +100,15 @@ class LicencePositionSetEquityControllerTest extends AbstractControllerTest {
             model().attribute("pageTitle", "Add equity"),
             model().attribute("pageCaption", LICENCE.getLicenceReference()),
             model().attribute("backLinkUrl", ReverseRouter.route(on(LicencePositionAddChangeController.class)
-                .renderForAddedPosition(CORRECTION, POSITION_CORRECTION))));
+                .renderForPosition(new CorrectionPosition.Staged(POSITION_CORRECTION)))));
   }
 
   @Test
-  void submitForAddedPosition_whenValid_persistsToCorrectionAndRedirectsToSummary() throws Exception {
-    givenCorrectionAllocatedToUser();
-    when(licencePositionCorrectionService.findById(POSITION_CORRECTION_ID)).thenReturn(Optional.of(POSITION_CORRECTION));
-    when(setEquityCorrectionService.getCommittedSetEquityOperations(POSITION_CORRECTION)).thenReturn(List.of());
-
-    var form = new LicencePositionSetEquityForm();
-    form.setTransferTo("123");
-    form.getEquity().setInputValue("40");
-
-    when(validator.hasErrors(eq(form), any(BindingResult.class), eq(List.of()))).thenReturn(false);
-
-    mockMvc.perform(post(ReverseRouter.route(on(LicencePositionSetEquityController.class)
-            .submitForAddedPosition(CORRECTION, POSITION_CORRECTION, null, null, null)))
-            .with(user(regulatorUser)).with(csrf())
-            .flashAttr("form", form))
-        .andExpect(status().is3xxRedirection())
-        .andExpect(redirectedUrl(ReverseRouter.route(on(LicencePositionSetEquityController.class)
-            .renderSummaryForAddedPosition(CORRECTION, POSITION_CORRECTION))));
-
-    verify(setEquityCorrectionService).commitSetEquity(POSITION_CORRECTION,
-        List.of(new SetEquityOperation(123, form.getEquity().getAsBigDecimal().orElseThrow())));
-  }
-
-  @Test
-  void submitForAddedPosition_whenInvalid_rendersFormAndDoesNotPersist() throws Exception {
+  void submitForPosition_whenStagedPositionAndOrganisationAlreadyAdded_rendersFormAndDoesNotPersist() throws Exception {
     var correction = givenCorrectionAllocatedToUser();
-    when(licencePositionCorrectionService.findById(POSITION_CORRECTION_ID)).thenReturn(Optional.of(POSITION_CORRECTION));
-    when(setEquityCorrectionService.getCommittedSetEquityOperations(POSITION_CORRECTION))
-        .thenReturn(List.of());
-
-    var form = new LicencePositionSetEquityForm();
-    form.setTransferTo("123");
-
-    when(validator.hasErrors(eq(form), any(BindingResult.class), eq(List.of()))).thenReturn(true);
-
-    mockMvc.perform(post(ReverseRouter.route(on(LicencePositionSetEquityController.class)
-            .submitForAddedPosition(CORRECTION, POSITION_CORRECTION, null, null, null)))
-            .with(user(regulatorUser)).with(csrf())
-            .flashAttr("form", form))
-        .andExpectAll(
-            status().isOk(),
-            view().name("lms/licence/correction/setEquity"),
-            model().attributeExists("form", "licenseeOrgUnitUrl"),
-            model().attribute("pageTitle", "Add equity"),
-            model().attribute("pageCaption", correction.getLicence().getLicenceReference()),
-            model().attribute("backLinkUrl", ReverseRouter.route(on(LicencePositionAddChangeController.class)
-                .renderForAddedPosition(CORRECTION, POSITION_CORRECTION))));
-
-    verify(setEquityCorrectionService, never()).commitSetEquity(any(), anyList());
-  }
-
-  @Test
-  void submitForAddedPosition_whenOrganisationAlreadyAdded_rendersFormAndDoesNotPersist() throws Exception {
-    var correction = givenCorrectionAllocatedToUser();
-    when(licencePositionCorrectionService.findById(POSITION_CORRECTION_ID)).thenReturn(Optional.of(POSITION_CORRECTION));
+    givenCorrectionPosition(new CorrectionPosition.Staged(POSITION_CORRECTION));
     var committedOperations = List.of(new SetEquityOperation(123, BigDecimal.valueOf(40)));
-    when(setEquityCorrectionService.getCommittedSetEquityOperations(POSITION_CORRECTION))
+    when(setEquityCorrectionService.getCommittedSetEquityOperations(new CorrectionPosition.Staged(POSITION_CORRECTION)))
         .thenReturn(committedOperations);
 
     var form = new LicencePositionSetEquityForm();
@@ -169,7 +118,7 @@ class LicencePositionSetEquityControllerTest extends AbstractControllerTest {
     when(validator.hasErrors(eq(form), any(BindingResult.class), eq(List.of(123)))).thenReturn(true);
 
     mockMvc.perform(post(ReverseRouter.route(on(LicencePositionSetEquityController.class)
-            .submitForAddedPosition(CORRECTION, POSITION_CORRECTION, null, null, null)))
+            .submitForPosition(new CorrectionPosition.Staged(POSITION_CORRECTION), null, null, null)))
             .with(user(regulatorUser)).with(csrf())
             .flashAttr("form", form))
         .andExpectAll(
@@ -179,71 +128,28 @@ class LicencePositionSetEquityControllerTest extends AbstractControllerTest {
             model().attribute("pageTitle", "Add equity"),
             model().attribute("pageCaption", correction.getLicence().getLicenceReference()));
 
-    verify(setEquityCorrectionService, never()).commitSetEquity(any(), anyList());
+    verify(setEquityCorrectionService, never()).commitSetEquity(any(CorrectionPosition.class), anyList());
   }
 
   @Test
-  void renderSummaryForAddedPosition_rendersViewsFromCorrection() throws Exception {
+  void submitSummaryForPosition_whenStagedPosition_redirectsToAddedPosition() throws Exception {
     givenCorrectionAllocatedToUser();
-    when(licencePositionCorrectionService.findById(POSITION_CORRECTION_ID)).thenReturn(Optional.of(POSITION_CORRECTION));
-    var committedOperations = List.of(new SetEquityOperation(1, BigDecimal.valueOf(40)));
-    var setEquityViews = List.of(new SetEquityRow("Org One", BigDecimal.valueOf(40)));
-    when(setEquityCorrectionService.getCommittedSetEquityOperations(POSITION_CORRECTION))
-        .thenReturn(committedOperations);
-    when(setEquityCorrectionService.getSetEquityViews(committedOperations))
-        .thenReturn(setEquityViews);
-
-    mockMvc.perform(get(ReverseRouter.route(on(LicencePositionSetEquityController.class)
-            .renderSummaryForAddedPosition(CORRECTION, POSITION_CORRECTION)))
-            .with(user(regulatorUser)))
-        .andExpectAll(
-            status().isOk(),
-            view().name("lms/licence/correction/setEquitySummary"),
-            model().attribute("pageTitle", "Add licence equity"),
-            model().attribute("pageCaption", LICENCE.getLicenceReference()),
-            model().attribute("setEquityViews", setEquityViews),
-            model().attribute("totalEquity", BigDecimal.valueOf(40)),
-            model().attributeExists("removeUrls", "addOrganisationUrl", "saveAndContinueUrl", "backLinkUrl"));
-  }
-
-  @Test
-  void removeForAddedPosition_removesFromCorrectionAndRedirectsToSummary() throws Exception {
-    givenCorrectionAllocatedToUser();
-    when(licencePositionCorrectionService.findById(POSITION_CORRECTION_ID)).thenReturn(Optional.of(POSITION_CORRECTION));
-    when(setEquityCorrectionService.getCommittedSetEquityOperations(POSITION_CORRECTION))
-        .thenReturn(List.of(
-            new SetEquityOperation(1, BigDecimal.valueOf(40)),
-            new SetEquityOperation(2, BigDecimal.valueOf(60))));
+    givenCorrectionPosition(new CorrectionPosition.Staged(POSITION_CORRECTION));
 
     mockMvc.perform(post(ReverseRouter.route(on(LicencePositionSetEquityController.class)
-            .removeForAddedPosition(CORRECTION, POSITION_CORRECTION, 1)))
-            .with(user(regulatorUser)).with(csrf()))
-        .andExpect(status().is3xxRedirection())
-        .andExpect(redirectedUrl(ReverseRouter.route(on(LicencePositionSetEquityController.class)
-            .renderSummaryForAddedPosition(CORRECTION, POSITION_CORRECTION))));
-
-    verify(setEquityCorrectionService).commitSetEquity(POSITION_CORRECTION, List.of(new SetEquityOperation(2, BigDecimal.valueOf(60))));
-  }
-
-  @Test
-  void submitSummaryForAddedPosition_redirectsToAddedPosition() throws Exception {
-    givenCorrectionAllocatedToUser();
-    when(licencePositionCorrectionService.findById(POSITION_CORRECTION_ID)).thenReturn(Optional.of(POSITION_CORRECTION));
-
-    mockMvc.perform(post(ReverseRouter.route(on(LicencePositionSetEquityController.class)
-            .submitSummaryForAddedPosition(CORRECTION, POSITION_CORRECTION)))
+            .submitSummaryForPosition(new CorrectionPosition.Staged(POSITION_CORRECTION))))
             .with(user(regulatorUser)).with(csrf()))
         .andExpect(status().is3xxRedirection())
         .andExpect(redirectedUrl(LicencePositionCorrectionRouteUtil.getPositionPageUrl(CORRECTION, POSITION_CORRECTION.getPositionId())));
   }
 
   @Test
-  void renderSummaryForAddedPosition_whenNotAllocated_forbidden() throws Exception {
+  void renderSummaryForPosition_whenStagedPositionAndNotAllocated_forbidden() throws Exception {
     when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser)).thenReturn(
         Optional.empty());
 
     mockMvc.perform(get(ReverseRouter.route(on(LicencePositionSetEquityController.class)
-            .renderSummaryForAddedPosition(CORRECTION, POSITION_CORRECTION)))
+            .renderSummaryForPosition(new CorrectionPosition.Staged(POSITION_CORRECTION))))
             .with(user(regulatorUser)))
         .andExpect(status().isForbidden());
 
@@ -251,7 +157,7 @@ class LicencePositionSetEquityControllerTest extends AbstractControllerTest {
   }
 
   @Test
-  void renderForAddedPosition_whenLicenceIsNotCarbonStorage_forbidden() throws Exception {
+  void renderForPosition_whenStagedPositionAndLicenceIsNotCarbonStorage_forbidden() throws Exception {
     var nonCarbonStorageLicence = LicenceTestUtil.builder()
         .withLicenceType(LicenceType.GAS_STORAGE)
         .build();
@@ -264,7 +170,7 @@ class LicencePositionSetEquityControllerTest extends AbstractControllerTest {
     when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(correction));
 
     mockMvc.perform(get(ReverseRouter.route(on(LicencePositionSetEquityController.class)
-            .renderForAddedPosition(correction, POSITION_CORRECTION)))
+            .renderForPosition(new CorrectionPosition.Staged(POSITION_CORRECTION))))
             .with(user(regulatorUser)))
         .andExpect(status().isForbidden());
 
@@ -272,23 +178,23 @@ class LicencePositionSetEquityControllerTest extends AbstractControllerTest {
   }
 
   @Test
-  void renderForExecutedPosition_whenAllocated_rendersFormWithAddChangeBackLink() throws Exception {
+  void renderForPosition_whenAllocated_rendersFormWithAddChangeBackLink() throws Exception {
     givenCorrectionAllocatedToUser();
-    when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(POSITION));
+    givenCorrectionPosition(new CorrectionPosition.Executed(CORRECTION, POSITION));
 
     mockMvc.perform(get(ReverseRouter.route(on(LicencePositionSetEquityController.class)
-            .renderForExecutedPosition(CORRECTION, POSITION)))
+            .renderForPosition(new CorrectionPosition.Executed(CORRECTION, POSITION))))
             .with(user(regulatorUser)))
         .andExpectAll(
             status().isOk(),
             view().name("lms/licence/correction/setEquity"),
             model().attributeExists("form", "licenseeOrgUnitUrl"),
             model().attribute("backLinkUrl", ReverseRouter.route(on(LicencePositionAddChangeController.class)
-                .renderForExecutedPosition(CORRECTION, POSITION))));
+                .renderForPosition(new CorrectionPosition.Executed(CORRECTION, POSITION)))));
   }
 
   @Test
-  void renderForExecutedPosition_whenCorrectionIsNotInProgress() throws Exception {
+  void renderForPosition_whenCorrectionIsNotInProgress() throws Exception {
     var correction = LicenceCorrectionTestUtil.newBuilder()
         .withId(CORRECTION_ID)
         .withStatus(LicenceCorrectionStatus.COMPLETE)
@@ -298,7 +204,7 @@ class LicencePositionSetEquityControllerTest extends AbstractControllerTest {
         .thenReturn(Optional.of(correction));
     when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(correction));
     mockMvc.perform(get(ReverseRouter.route(on(LicencePositionSetEquityController.class)
-            .renderForExecutedPosition(correction, POSITION)))
+            .renderForPosition(new CorrectionPosition.Executed(correction, POSITION))))
             .with(user(regulatorUser)))
         .andExpect(status().isForbidden())
         .andExpect(status().reason(
@@ -307,12 +213,11 @@ class LicencePositionSetEquityControllerTest extends AbstractControllerTest {
   }
 
   @Test
-  void submitForExecutedPosition_whenValid_persistsToCorrectionAndRedirectsToSummary() throws Exception {
+  void submitForPosition_whenValid_persistsToCorrectionAndRedirectsToSummary() throws Exception {
     var correction = givenCorrectionAllocatedToUser();
-    when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(POSITION));
+    givenCorrectionPosition(new CorrectionPosition.Executed(correction, POSITION));
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(POSITION);
-    when(setEquityCorrectionService.getCommittedSetEquityOperationsForExecutedPosition(correction,
-        POSITION))
+    when(setEquityCorrectionService.getCommittedSetEquityOperations(new CorrectionPosition.Executed(correction, POSITION)))
         .thenReturn(List.of());
 
     var form = new LicencePositionSetEquityForm();
@@ -322,23 +227,22 @@ class LicencePositionSetEquityControllerTest extends AbstractControllerTest {
     when(validator.hasErrors(eq(form), any(BindingResult.class), eq(List.of()))).thenReturn(false);
 
     mockMvc.perform(post(ReverseRouter.route(on(LicencePositionSetEquityController.class)
-            .submitForExecutedPosition(CORRECTION, POSITION, null, null, null)))
+            .submitForPosition(new CorrectionPosition.Executed(CORRECTION, POSITION), null, null, null)))
             .with(user(regulatorUser)).with(csrf())
             .flashAttr("form", form))
         .andExpect(status().is3xxRedirection())
         .andExpect(redirectedUrl(ReverseRouter.route(on(LicencePositionSetEquityController.class)
-            .renderSummaryForExecutedPosition(CORRECTION, POSITION))));
+            .renderSummaryForPosition(new CorrectionPosition.Executed(CORRECTION, POSITION)))));
 
-    verify(setEquityCorrectionService).commitSetEquityForExecutedPosition(correction, POSITION,
-        List.of(new SetEquityOperation(123, form.getEquity().getAsBigDecimal().orElseThrow())));
+    verify(setEquityCorrectionService).commitSetEquity(new CorrectionPosition.Executed(correction, POSITION), List.of(new SetEquityOperation(123, form.getEquity().getAsBigDecimal().orElseThrow())));
   }
 
   @Test
-  void submitForExecutedPosition_whenInvalid_rendersFormAndDoesNotPersist() throws Exception {
+  void submitForPosition_whenInvalid_rendersFormAndDoesNotPersist() throws Exception {
     var correction = givenCorrectionAllocatedToUser();
-    when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(POSITION));
+    givenCorrectionPosition(new CorrectionPosition.Executed(correction, POSITION));
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(POSITION);
-    when(setEquityCorrectionService.getCommittedSetEquityOperationsForExecutedPosition(correction, POSITION))
+    when(setEquityCorrectionService.getCommittedSetEquityOperations(new CorrectionPosition.Executed(correction, POSITION)))
         .thenReturn(List.of());
 
     var form = new LicencePositionSetEquityForm();
@@ -347,7 +251,7 @@ class LicencePositionSetEquityControllerTest extends AbstractControllerTest {
     when(validator.hasErrors(eq(form), any(BindingResult.class), eq(List.of()))).thenReturn(true);
 
     mockMvc.perform(post(ReverseRouter.route(on(LicencePositionSetEquityController.class)
-            .submitForExecutedPosition(CORRECTION, POSITION, null, null, null)))
+            .submitForPosition(new CorrectionPosition.Executed(CORRECTION, POSITION), null, null, null)))
             .with(user(regulatorUser)).with(csrf())
             .flashAttr("form", form))
         .andExpectAll(
@@ -357,13 +261,13 @@ class LicencePositionSetEquityControllerTest extends AbstractControllerTest {
             model().attribute("pageTitle", "Add equity"),
             model().attribute("pageCaption", correction.getLicence().getLicenceReference()),
             model().attribute("backLinkUrl", ReverseRouter.route(on(LicencePositionAddChangeController.class)
-                .renderForExecutedPosition(CORRECTION, POSITION))));
+                .renderForPosition(new CorrectionPosition.Executed(CORRECTION, POSITION)))));
 
-    verify(setEquityCorrectionService, never()).commitSetEquityForExecutedPosition(any(), any(), anyList());
+    verify(setEquityCorrectionService, never()).commitSetEquity(any(CorrectionPosition.class), anyList());
   }
 
   @Test
-  void submitForExecutedPosition_whenCorrectionIsNotInProgress() throws Exception {
+  void submitForPosition_whenCorrectionIsNotInProgress() throws Exception {
     var correction = LicenceCorrectionTestUtil.newBuilder()
         .withId(CORRECTION_ID)
         .withStatus(LicenceCorrectionStatus.COMPLETE)
@@ -373,7 +277,7 @@ class LicencePositionSetEquityControllerTest extends AbstractControllerTest {
         .thenReturn(Optional.of(correction));
     when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(correction));
     mockMvc.perform(post(ReverseRouter.route(on(LicencePositionSetEquityController.class)
-            .submitForExecutedPosition(correction, POSITION, null, null, null)))
+            .submitForPosition(new CorrectionPosition.Executed(correction, POSITION), null, null, null)))
             .with(user(regulatorUser))
             .with(csrf()))
         .andExpect(status().isForbidden())
@@ -383,19 +287,18 @@ class LicencePositionSetEquityControllerTest extends AbstractControllerTest {
   }
 
   @Test
-  void renderSummaryForExecutedPosition_rendersViewsFromCorrection() throws Exception {
+  void renderSummaryForPosition_rendersViewsFromCorrection() throws Exception {
     var correction = givenCorrectionAllocatedToUser();
-    when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(POSITION));
+    givenCorrectionPosition(new CorrectionPosition.Executed(correction, POSITION));
     var committedOperations = List.of(new SetEquityOperation(1, BigDecimal.valueOf(40)));
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(POSITION);
-    when(setEquityCorrectionService.getCommittedSetEquityOperationsForExecutedPosition(correction,
-        POSITION))
+    when(setEquityCorrectionService.getCommittedSetEquityOperations(new CorrectionPosition.Executed(correction, POSITION)))
         .thenReturn(committedOperations);
     when(setEquityCorrectionService.getSetEquityViews(committedOperations))
         .thenReturn(List.of(new SetEquityRow("Org One", BigDecimal.valueOf(40))));
 
     mockMvc.perform(get(ReverseRouter.route(on(LicencePositionSetEquityController.class)
-            .renderSummaryForExecutedPosition(CORRECTION, POSITION)))
+            .renderSummaryForPosition(new CorrectionPosition.Executed(CORRECTION, POSITION))))
             .with(user(regulatorUser)))
         .andExpectAll(
             status().isOk(),
@@ -405,34 +308,32 @@ class LicencePositionSetEquityControllerTest extends AbstractControllerTest {
   }
 
   @Test
-  void removeForExecutedPosition_removesFromCorrectionAndRedirectsToSummary() throws Exception {
+  void removeForPosition_removesFromCorrectionAndRedirectsToSummary() throws Exception {
     var correction = givenCorrectionAllocatedToUser();
-    when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(POSITION));
+    givenCorrectionPosition(new CorrectionPosition.Executed(correction, POSITION));
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(POSITION);
-    when(setEquityCorrectionService.getCommittedSetEquityOperationsForExecutedPosition(correction,
-        POSITION))
+    when(setEquityCorrectionService.getCommittedSetEquityOperations(new CorrectionPosition.Executed(correction, POSITION)))
         .thenReturn(List.of(
             new SetEquityOperation(1, BigDecimal.valueOf(40)),
             new SetEquityOperation(2, BigDecimal.valueOf(60))));
 
     mockMvc.perform(post(ReverseRouter.route(on(LicencePositionSetEquityController.class)
-            .removeForExecutedPosition(CORRECTION, POSITION, 1)))
+            .removeForPosition(new CorrectionPosition.Executed(CORRECTION, POSITION), 1)))
             .with(user(regulatorUser)).with(csrf()))
         .andExpect(status().is3xxRedirection())
         .andExpect(redirectedUrl(ReverseRouter.route(on(LicencePositionSetEquityController.class)
-            .renderSummaryForExecutedPosition(CORRECTION, POSITION))));
+            .renderSummaryForPosition(new CorrectionPosition.Executed(CORRECTION, POSITION)))));
 
-    verify(setEquityCorrectionService).commitSetEquityForExecutedPosition(correction, POSITION,
-        List.of(new SetEquityOperation(2, BigDecimal.valueOf(60))));
+    verify(setEquityCorrectionService).commitSetEquity(new CorrectionPosition.Executed(correction, POSITION), List.of(new SetEquityOperation(2, BigDecimal.valueOf(60))));
   }
 
   @Test
-  void submitSummaryForExecutedPosition_redirectsToLicencePosition() throws Exception {
+  void submitSummaryForPosition_redirectsToLicencePosition() throws Exception {
     givenCorrectionAllocatedToUser();
-    when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(POSITION));
+    givenCorrectionPosition(new CorrectionPosition.Executed(CORRECTION, POSITION));
 
     mockMvc.perform(post(ReverseRouter.route(on(LicencePositionSetEquityController.class)
-            .submitSummaryForExecutedPosition(CORRECTION, POSITION)))
+            .submitSummaryForPosition(new CorrectionPosition.Executed(CORRECTION, POSITION))))
             .with(user(regulatorUser)).with(csrf()))
         .andExpect(status().is3xxRedirection())
         .andExpect(redirectedUrl(LicencePositionCorrectionRouteUtil.getPositionPageUrl(CORRECTION, POSITION.getId())));

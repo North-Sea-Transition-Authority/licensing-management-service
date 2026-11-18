@@ -13,6 +13,7 @@ import uk.co.fivium.gisframework.command.CommandJourneyService;
 import uk.co.fivium.gisframework.feature.FeatureService;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectionPosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subareaequity.SubareaSetEquityCorrectionService;
@@ -52,8 +53,25 @@ public class SubareaChangeService {
     this.subareaSetEquityCorrectionService = subareaSetEquityCorrectionService;
   }
 
+  /**
+   * Stages a subarea change for the block, returning the position correction it is staged on.
+   */
   @Transactional
-  public LicencePositionCorrection commitSubareaChangeForExecutedPosition(
+  public LicencePositionCorrection commitSubareaChange(CorrectionPosition correctionPosition, UUID blockFeatureId) {
+    return switch (correctionPosition) {
+      case CorrectionPosition.Executed executed -> commitSubareaChangeForExecutedPosition(
+          executed.correction(),
+          executed.licencePosition(),
+          blockFeatureId
+      );
+      case CorrectionPosition.Staged staged -> {
+        commitSubareaChange(staged.licencePositionCorrection(), blockFeatureId);
+        yield staged.licencePositionCorrection();
+      }
+    };
+  }
+
+  private LicencePositionCorrection commitSubareaChangeForExecutedPosition(
       LicenceCorrection licenceCorrection,
       LicencePosition licencePosition,
       UUID blockFeatureId

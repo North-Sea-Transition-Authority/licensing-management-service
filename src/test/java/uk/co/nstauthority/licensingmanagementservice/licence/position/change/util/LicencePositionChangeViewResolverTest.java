@@ -19,6 +19,7 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectionPosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.action.ChangeActionController;
@@ -615,7 +616,7 @@ class LicencePositionChangeViewResolverTest {
         LicencePositionChangeType.ADD_CHANGE,
         new ChangeViewUrls(
             ReverseRouter.route(on(LicencePositionSetEquityController.class)
-                .renderSummaryForExecutedPosition(correction, licencePosition)),
+                .renderSummaryForPosition(new CorrectionPosition.Executed(correction, licencePosition))),
             null,
             ReverseRouter.route(on(ChangeActionController.class)
                 .undoChange(correction, changeId, null, null)),
@@ -636,7 +637,7 @@ class LicencePositionChangeViewResolverTest {
     var view = setEquityChangeView(LicencePositionChangeType.UPDATE_CHANGE_OPERATIONS, urlContext);
 
     assertThat(view.urls().correct()).isEqualTo(ReverseRouter.route(on(LicencePositionSetEquityController.class)
-        .renderSummaryForExecutedPosition(correction, licencePosition)));
+        .renderSummaryForPosition(new CorrectionPosition.Executed(correction, licencePosition))));
   }
 
   @Test
@@ -648,7 +649,7 @@ class LicencePositionChangeViewResolverTest {
     var view = setEquityChangeView(LicencePositionChangeType.ADD_CHANGE, urlContext);
 
     assertThat(view.urls().correct()).isEqualTo(ReverseRouter.route(on(LicencePositionSetEquityController.class)
-        .renderSummaryForAddedPosition(correction, licencePositionCorrection)));
+        .renderSummaryForPosition(new CorrectionPosition.Staged(licencePositionCorrection))));
   }
 
   @Test
@@ -816,7 +817,7 @@ class LicencePositionChangeViewResolverTest {
     var view = transferEquityChangeView(LicencePositionChangeType.ADD_CHANGE, urlContext, null);
 
     assertThat(view.urls().correct()).isEqualTo(ReverseRouter.route(on(LicencePositionTransferEquityController.class)
-        .renderSummaryForExecutedPosition(correction, licencePosition)));
+        .renderSummaryForPosition(new CorrectionPosition.Executed(correction, licencePosition))));
   }
 
   @Test
@@ -828,7 +829,7 @@ class LicencePositionChangeViewResolverTest {
     var view = transferEquityChangeView(LicencePositionChangeType.UPDATE_CHANGE_OPERATIONS, urlContext, null);
 
     assertThat(view.urls().correct()).isEqualTo(ReverseRouter.route(on(LicencePositionTransferEquityController.class)
-        .renderSummaryForAddedPosition(correction, licencePositionCorrection)));
+        .renderSummaryForPosition(new CorrectionPosition.Staged(licencePositionCorrection))));
   }
 
   @Test
@@ -1391,7 +1392,7 @@ class LicencePositionChangeViewResolverTest {
         LicencePositionChangeType.ADD_CHANGE,
         new ChangeViewUrls(
             ReverseRouter.route(on(LicencePositionSubareaSetEquityController.class)
-                .renderSummaryForExecutedPosition(correction, licencePosition, SUBAREA_KEY)),
+                .renderSummaryForPosition(new CorrectionPosition.Executed(correction, licencePosition), SUBAREA_KEY)),
             null,
             ReverseRouter.route(on(ChangeActionController.class)
                 .undoChange(correction, changeId, null, null)),
@@ -1439,7 +1440,7 @@ class LicencePositionChangeViewResolverTest {
     var view = subareaEquityChangeView(UUID.randomUUID().toString(), LicencePositionChangeType.ADD_CHANGE, urlContext);
 
     assertThat(view.urls().correct()).isEqualTo(ReverseRouter.route(on(LicencePositionSubareaSetEquityController.class)
-        .renderSummaryForAddedPosition(correction, licencePositionCorrection, SUBAREA_KEY)));
+        .renderSummaryForPosition(new CorrectionPosition.Staged(licencePositionCorrection), SUBAREA_KEY)));
   }
 
   private SubareaEquityChangeView subareaEquityChangeView(

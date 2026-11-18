@@ -27,6 +27,7 @@ import uk.co.fivium.gisframework.feature.FeatureService;
 import uk.co.fivium.gisframework.operator.merge.MergeOperatorService;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectionPosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderType;
@@ -136,8 +137,22 @@ public class PartialSurrenderCorrectionService {
     return applyPartialSurrender(licencePositionCorrection, operation);
   }
 
+  /**
+   * Stages the partial surrender, returning the position correction it is staged on.
+   */
   @Transactional
-  public LicencePositionCorrection commitPartialSurrenderForExecutedPosition(
+  public LicencePositionCorrection commitPartialSurrender(
+      CorrectionPosition correctionPosition,
+      PartialSurrenderOperation operation
+  ) {
+    return switch (correctionPosition) {
+      case CorrectionPosition.Executed executed ->
+          commitPartialSurrenderForExecutedPosition(executed.correction(), executed.licencePosition(), operation);
+      case CorrectionPosition.Staged staged -> commitPartialSurrender(staged.licencePositionCorrection(), operation);
+    };
+  }
+
+  private LicencePositionCorrection commitPartialSurrenderForExecutedPosition(
       LicenceCorrection licenceCorrection,
       LicencePosition licencePosition,
       PartialSurrenderOperation operation
@@ -148,8 +163,19 @@ public class PartialSurrenderCorrectionService {
     return applyPartialSurrender(positionCorrection, operation);
   }
 
+  /**
+   * Stages a partial surrender of the position's only block not already operated on, if it has exactly one.
+   */
   @Transactional
-  public Optional<SingleBlockSurrender> stageSingleBlockSurrenderForExecutedPosition(
+  public Optional<SingleBlockSurrender> stageSingleBlockSurrender(CorrectionPosition correctionPosition) {
+    return switch (correctionPosition) {
+      case CorrectionPosition.Executed executed ->
+          stageSingleBlockSurrenderForExecutedPosition(executed.correction(), executed.licencePosition());
+      case CorrectionPosition.Staged staged -> stageSingleBlockSurrenderForAddedPosition(staged.licencePositionCorrection());
+    };
+  }
+
+  private Optional<SingleBlockSurrender> stageSingleBlockSurrenderForExecutedPosition(
       LicenceCorrection licenceCorrection,
       LicencePosition licencePosition
   ) {
@@ -172,8 +198,7 @@ public class PartialSurrenderCorrectionService {
     });
   }
 
-  @Transactional
-  public Optional<SingleBlockSurrender> stageSingleBlockSurrenderForAddedPosition(
+  private Optional<SingleBlockSurrender> stageSingleBlockSurrenderForAddedPosition(
       LicencePositionCorrection licencePositionCorrection
   ) {
     return findSingleBlockNotOperatedOn(licencePositionCorrection).map(block -> {

@@ -28,6 +28,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectionPosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
@@ -98,7 +99,7 @@ class SubareaSetEquityCorrectionServiceTest {
   }
 
   @Test
-  void getCommittedSubareaSetEquityOperationsForExecutedPosition_whenUpdateCorrectionExists_thenOperationsForTheSubarea() {
+  void getCommittedSubareaSetEquityOperations_whenExecutedPositionAndUpdateCorrectionExists_thenOperationsForTheSubarea() {
     var subareaAOperation = subareaSetEquityOperation(SUBAREA_A, 1, 40);
     var positionCorrection = positionCorrectionWith(subareaAOperation);
 
@@ -108,19 +109,17 @@ class SubareaSetEquityCorrectionServiceTest {
         positionCorrection.getPayload().changes(), SubareaSetEquityOperation.class))
         .thenReturn(List.of(subareaAOperation));
 
-    var result = subareaSetEquityCorrectionService.getCommittedSubareaSetEquityOperationsForExecutedPosition(
-        LICENCE_CORRECTION, LICENCE_POSITION, SUBAREA_A_OPTION);
+    var result = subareaSetEquityCorrectionService.getCommittedSubareaSetEquityOperations(new CorrectionPosition.Executed(LICENCE_CORRECTION, LICENCE_POSITION), SUBAREA_A_OPTION);
 
     assertThat(result).containsExactly(subareaAOperation);
   }
 
   @Test
-  void getCommittedSubareaSetEquityOperationsForExecutedPosition_whenNoUpdateCorrection_thenEmpty() {
+  void getCommittedSubareaSetEquityOperations_whenExecutedPositionAndNoUpdateCorrection_thenEmpty() {
     when(licencePositionCorrectionService.findUpdatePositionCorrection(LICENCE_CORRECTION, LICENCE_POSITION))
         .thenReturn(Optional.empty());
 
-    var result = subareaSetEquityCorrectionService.getCommittedSubareaSetEquityOperationsForExecutedPosition(
-        LICENCE_CORRECTION, LICENCE_POSITION, SUBAREA_A_OPTION);
+    var result = subareaSetEquityCorrectionService.getCommittedSubareaSetEquityOperations(new CorrectionPosition.Executed(LICENCE_CORRECTION, LICENCE_POSITION), SUBAREA_A_OPTION);
 
     assertThat(result).isEmpty();
   }
@@ -158,7 +157,7 @@ class SubareaSetEquityCorrectionServiceTest {
   }
 
   @Test
-  void commitSubareaSetEquityForExecutedPosition_replacesOnlyTheAddChangeForTheSubareaOnTheUpdateCorrection() {
+  void commitSubareaSetEquity_whenExecutedPosition_replacesOnlyTheAddChangeForTheSubareaOnTheUpdateCorrection() {
     var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
         .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
         .withTargetLicencePosition(LICENCE_POSITION)
@@ -168,8 +167,7 @@ class SubareaSetEquityCorrectionServiceTest {
     when(licencePositionCorrectionService.getOrBuildUpdatePositionCorrection(LICENCE_CORRECTION, LICENCE_POSITION))
         .thenReturn(positionCorrection);
 
-    subareaSetEquityCorrectionService.commitSubareaSetEquityForExecutedPosition(
-        LICENCE_CORRECTION, LICENCE_POSITION, SUBAREA_A_OPTION, operations);
+    subareaSetEquityCorrectionService.commitSubareaSetEquity(new CorrectionPosition.Executed(LICENCE_CORRECTION, LICENCE_POSITION), SUBAREA_A_OPTION, operations);
 
     verify(licencePositionCorrectionService).replaceAddChangeForExecutedPosition(
         eq(LICENCE_CORRECTION),

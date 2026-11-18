@@ -110,13 +110,8 @@ public record SetEquityOperation(
         return null;
       }
 
-      if (changeUrlTarget.addedPosition()) {
-        return ReverseRouter.route(on(LicencePositionSetEquityController.class)
-            .renderSummaryForAddedPosition(changeUrlTarget.correction(), changeUrlTarget.positionCorrection()));
-      }
-
       return ReverseRouter.route(on(LicencePositionSetEquityController.class)
-          .renderSummaryForExecutedPosition(changeUrlTarget.correction(), changeUrlTarget.licencePosition()));
+          .renderSummaryForPosition(changeUrlTarget.correctionPosition()));
     };
   }
 

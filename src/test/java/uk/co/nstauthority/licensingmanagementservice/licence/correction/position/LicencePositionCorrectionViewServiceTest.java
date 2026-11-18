@@ -491,7 +491,7 @@ class LicencePositionCorrectionViewServiceTest {
 
     assertThat(result.actions().addChangeUrl())
         .isEqualTo(ReverseRouter.route(on(LicencePositionAddChangeController.class)
-            .renderForExecutedPosition(correction, executed)));
+            .renderForPosition(new CorrectionPosition.Executed(correction, executed))));
     assertThat(result.canEdit()).isTrue();
     assertThat(result.timelineViews())
         .extracting(LicencePositionTimelineView::regulatorReference, LicencePositionTimelineView::addedInThisCorrection)
@@ -532,7 +532,7 @@ class LicencePositionCorrectionViewServiceTest {
 
     assertThat(result.actions().addChangeUrl())
         .isEqualTo(ReverseRouter.route(on(LicencePositionAddChangeController.class)
-            .renderForAddedPosition(correction, positionCorrection)));
+            .renderForPosition(new CorrectionPosition.Staged(positionCorrection))));
     assertThat(result.orderedChangeViews()).isEmpty();
     assertThat(result.stateView()).isEqualTo(new LicencePositionStateView(
         new AdministratorStateView(""),
@@ -578,12 +578,17 @@ class LicencePositionCorrectionViewServiceTest {
 
     var adminChange = (AdministratorChangeView) changeViewOfType(result, LicenceOperation.LICENCE_ADMINISTRATOR);
     assertThat(adminChange.urls().correct())
-        .isEqualTo(ReverseRouter.route(on(ChangeFormController.class)
-            .addToPosition(new CorrectionPosition.Executed(correction, executed), AddPositionChangeType.ADMINISTRATOR, null, null, null)));
+        .isEqualTo(ReverseRouter.route(on(ChangeFormController.class).addToPosition(
+            new CorrectionPosition.Executed(correction, executed),
+            AddPositionChangeType.ADMINISTRATOR,
+            null,
+            null,
+            null
+        )));
     // The page-level "Add change" action stays available even when an administrator change is present.
     assertThat(result.actions().addChangeUrl())
         .isEqualTo(ReverseRouter.route(on(LicencePositionAddChangeController.class)
-            .renderForExecutedPosition(correction, executed)));
+            .renderForPosition(new CorrectionPosition.Executed(correction, executed))));
   }
 
   @Test
@@ -757,8 +762,13 @@ class LicencePositionCorrectionViewServiceTest {
 
     var adminChange = (AdministratorChangeView) changeViewOfType(result, LicenceOperation.LICENCE_ADMINISTRATOR);
     assertThat(adminChange.urls().correct())
-        .isEqualTo(ReverseRouter.route(on(ChangeFormController.class)
-            .addToPosition(new CorrectionPosition.Staged(positionCorrection), AddPositionChangeType.ADMINISTRATOR, null, null, null)));
+        .isEqualTo(ReverseRouter.route(on(ChangeFormController.class).addToPosition(
+            new CorrectionPosition.Staged(positionCorrection),
+            AddPositionChangeType.ADMINISTRATOR,
+            null,
+            null,
+            null
+        )));
   }
 
   @Test

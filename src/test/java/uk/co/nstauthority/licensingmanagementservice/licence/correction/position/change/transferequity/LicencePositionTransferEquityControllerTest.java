@@ -40,6 +40,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectionPosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionRouteUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
@@ -99,13 +100,12 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
   }
 
   @Test
-  void renderForAddedPosition_whenAllocated_rendersFormWithAllAttributes() throws Exception {
+  void renderForPosition_whenStagedPositionAndAllocated_rendersFormWithAllAttributes() throws Exception {
     var correction = givenCorrectionAllocatedToUser();
     var positionCorrection = addedPositionCorrection(correction);
-    when(licencePositionCorrectionService.findById(POSITION_CORRECTION_ID))
-        .thenReturn(Optional.of(positionCorrection));
+    givenCorrectionPosition(new CorrectionPosition.Staged(positionCorrection));
     var equityHoldings = Map.of(1, BigDecimal.valueOf(60));
-    when(transferEquityCorrectionService.getEquityHoldingsForAddedPosition(correction, positionCorrection))
+    when(transferEquityCorrectionService.getEquityHoldings(new CorrectionPosition.Staged(positionCorrection)))
         .thenReturn(equityHoldings);
     var licenseeOptions = Map.of("1", "Org One (60%)");
     when(transferEquityCorrectionService.getLicenseeOptions(equityHoldings)).thenReturn(licenseeOptions);
@@ -125,36 +125,14 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
   }
 
   @Test
-  void renderForAddedPosition_whenTransfersAlreadyAdded_backLinkIsSummary() throws Exception {
+  void submitForPosition_whenStagedPositionAndValidAndTransferorRetainsEquity_redirectsToSummary() throws Exception {
     var correction = givenCorrectionAllocatedToUser();
     var positionCorrection = addedPositionCorrection(correction);
-    when(licencePositionCorrectionService.findById(POSITION_CORRECTION_ID))
-        .thenReturn(Optional.of(positionCorrection));
-    when(transferEquityCorrectionService.getCommittedTransferEquityOperations(positionCorrection))
-        .thenReturn(List.of(transferOp(1, 2, 40, null)));
-
-    mockMvc.perform(get(addedFormUrl()).with(user(regulatorUser)))
-        .andExpectAll(
-            status().isOk(),
-            view().name("lms/licence/correction/transferEquity"),
-            model().attribute("pageTitle", "Add equity transfer"),
-            model().attribute("pageCaption", LICENCE_REFERENCE),
-            model().attribute("form", instanceOf(LicencePositionTransferEquityForm.class)),
-            model().attribute("licenseeOptions", Map.of()),
-            model().attribute("transferToOptions", Map.of()),
-            model().attribute("backLinkUrl", addedSummaryUrl()));
-  }
-
-  @Test
-  void submitForAddedPosition_whenValidAndTransferorRetainsEquity_redirectsToSummary() throws Exception {
-    var correction = givenCorrectionAllocatedToUser();
-    var positionCorrection = addedPositionCorrection(correction);
-    when(licencePositionCorrectionService.findById(POSITION_CORRECTION_ID))
-        .thenReturn(Optional.of(positionCorrection));
-    when(transferEquityCorrectionService.getCommittedTransferEquityOperations(positionCorrection))
+    givenCorrectionPosition(new CorrectionPosition.Staged(positionCorrection));
+    when(transferEquityCorrectionService.getCommittedTransferEquityOperations(new CorrectionPosition.Staged(positionCorrection)))
         .thenReturn(List.of(transferOp(1, 2, 40, null)));
     var equityHoldings = Map.of(1, BigDecimal.valueOf(60));
-    when(transferEquityCorrectionService.getEquityHoldingsForAddedPosition(correction, positionCorrection))
+    when(transferEquityCorrectionService.getEquityHoldings(new CorrectionPosition.Staged(positionCorrection)))
         .thenReturn(equityHoldings);
 
     var form = transferForm();
@@ -164,19 +142,18 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
         .andExpect(status().is3xxRedirection())
         .andExpect(redirectedUrl(addedSummaryUrl()));
 
-    verify(transferEquityCorrectionService).addTransferEquity(positionCorrection, form);
+    verify(transferEquityCorrectionService).addTransferEquity(new CorrectionPosition.Staged(positionCorrection), form);
   }
 
   @Test
-  void submitForAddedPosition_whenValidAndTransferorHoldsNoEquity_redirectsToWithdraw() throws Exception {
+  void submitForPosition_whenStagedPositionAndValidAndTransferorHoldsNoEquity_redirectsToWithdraw() throws Exception {
     var correction = givenCorrectionAllocatedToUser();
     var positionCorrection = addedPositionCorrection(correction);
-    when(licencePositionCorrectionService.findById(POSITION_CORRECTION_ID))
-        .thenReturn(Optional.of(positionCorrection));
-    when(transferEquityCorrectionService.getCommittedTransferEquityOperations(positionCorrection))
+    givenCorrectionPosition(new CorrectionPosition.Staged(positionCorrection));
+    when(transferEquityCorrectionService.getCommittedTransferEquityOperations(new CorrectionPosition.Staged(positionCorrection)))
         .thenReturn(List.of(transferOp(1, 2, 100, null)));
     var equityHoldings = Map.of(1, BigDecimal.ZERO);
-    when(transferEquityCorrectionService.getEquityHoldingsForAddedPosition(correction, positionCorrection))
+    when(transferEquityCorrectionService.getEquityHoldings(new CorrectionPosition.Staged(positionCorrection)))
         .thenReturn(equityHoldings);
 
     var form = transferForm();
@@ -186,75 +163,16 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
         .andExpect(status().is3xxRedirection())
         .andExpect(redirectedUrl(addedWithdrawUrl(0)));
 
-    verify(transferEquityCorrectionService).addTransferEquity(positionCorrection, form);
+    verify(transferEquityCorrectionService).addTransferEquity(new CorrectionPosition.Staged(positionCorrection), form);
   }
 
   @Test
-  void submitForAddedPosition_whenInvalid_rendersFormWithTransferFromOptionsAndDoesNotPersist() throws Exception {
-    var correction = givenCorrectionAllocatedToUser();
-    var positionCorrection = addedPositionCorrection(correction);
-    when(licencePositionCorrectionService.findById(POSITION_CORRECTION_ID))
-        .thenReturn(Optional.of(positionCorrection));
-    var equityHoldings = Map.of(1, BigDecimal.valueOf(60));
-    when(transferEquityCorrectionService.getEquityHoldingsForAddedPosition(correction, positionCorrection))
-        .thenReturn(equityHoldings);
-
-    var form = new LicencePositionTransferEquityForm();
-    form.setTransferFrom("1");
-    form.setTransferTo("2");
-    when(validator.hasErrors(eq(form), any(BindingResult.class), eq(equityHoldings))).thenReturn(true);
-    var licenseeOptions = Map.of("1", "Org One (60%)");
-    when(transferEquityCorrectionService.getLicenseeOptions(equityHoldings)).thenReturn(licenseeOptions);
-    var transferToOptions = Map.of("1", "Org One (60%)", "2", "Org Two (0%)");
-    when(transferEquityCorrectionService.getTransferToOptions(equityHoldings)).thenReturn(transferToOptions);
-
-    mockMvc.perform(post(addedFormUrl()).with(user(regulatorUser)).with(csrf()).flashAttr("form", form))
-        .andExpectAll(
-            status().isOk(),
-            view().name("lms/licence/correction/transferEquity"),
-            model().attribute("pageTitle", "Add equity transfer"),
-            model().attribute("pageCaption", LICENCE_REFERENCE),
-            model().attribute("form", form),
-            model().attribute("licenseeOptions", licenseeOptions),
-            model().attribute("transferToOptions", transferToOptions),
-            model().attribute("backLinkUrl", addedChangeChooserUrl()));
-
-    verify(transferEquityCorrectionService, never()).addTransferEquity(any(), eq(form));
-  }
-
-  @Test
-  void renderWithdrawForAddedPosition_rendersWithdrawPageWithAllAttributes() throws Exception {
-    var correction = givenCorrectionAllocatedToUser();
-    var positionCorrection = addedPositionCorrection(correction);
-    var operation = transferOp(1, 2, 100, Boolean.TRUE);
-    when(licencePositionCorrectionService.findById(POSITION_CORRECTION_ID))
-        .thenReturn(Optional.of(positionCorrection));
-    when(transferEquityCorrectionService.getCommittedTransferEquityOperations(positionCorrection))
-        .thenReturn(List.of(operation));
-    when(transferEquityCorrectionService.getTransferEquityViews(List.of(operation)))
-        .thenReturn(List.of(new TransferEquityHoldingView("From Org", "To Org", BigDecimal.valueOf(100), true)));
-
-    mockMvc.perform(get(addedWithdrawUrl(0)).with(user(regulatorUser)))
-        .andExpectAll(
-            status().isOk(),
-            view().name("lms/licence/correction/transferEquityWithdraw"),
-            model().attribute("pageTitle", "Add equity transfer"),
-            model().attribute("pageCaption", LICENCE_REFERENCE),
-            model().attribute("form", hasProperty("withdrawalDecision", is("RETAIN"))),
-            model().attribute("organisationName", "From Org"),
-            model().attribute("withdrawalOptions", TransferEquityWithdrawalDecision.getOptions()),
-            model().attribute("submitUrl", addedWithdrawUrl(0)),
-            model().attribute("backLinkUrl", addedSummaryUrl()));
-  }
-
-  @Test
-  void renderWithdrawForAddedPosition_whenUnanswered_preselectsNothing() throws Exception {
+  void renderWithdrawForPosition_whenStagedPositionAndUnanswered_preselectsNothing() throws Exception {
     var correction = givenCorrectionAllocatedToUser();
     var positionCorrection = addedPositionCorrection(correction);
     var operation = transferOp(1, 2, 100, null);
-    when(licencePositionCorrectionService.findById(POSITION_CORRECTION_ID))
-        .thenReturn(Optional.of(positionCorrection));
-    when(transferEquityCorrectionService.getCommittedTransferEquityOperations(positionCorrection))
+    givenCorrectionPosition(new CorrectionPosition.Staged(positionCorrection));
+    when(transferEquityCorrectionService.getCommittedTransferEquityOperations(new CorrectionPosition.Staged(positionCorrection)))
         .thenReturn(List.of(operation));
     when(transferEquityCorrectionService.getTransferEquityViews(List.of(operation)))
         .thenReturn(List.of(new TransferEquityHoldingView("From Org", "To Org", BigDecimal.valueOf(100), null)));
@@ -266,129 +184,7 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
   }
 
   @Test
-  void renderWithdrawForAddedPosition_whenIndexOutOfRange_redirectsToSummary() throws Exception {
-    var correction = givenCorrectionAllocatedToUser();
-    var positionCorrection = addedPositionCorrection(correction);
-    when(licencePositionCorrectionService.findById(POSITION_CORRECTION_ID))
-        .thenReturn(Optional.of(positionCorrection));
-    when(transferEquityCorrectionService.getCommittedTransferEquityOperations(positionCorrection))
-        .thenReturn(List.of());
-
-    mockMvc.perform(get(addedWithdrawUrl(0)).with(user(regulatorUser)))
-        .andExpect(status().is3xxRedirection())
-        .andExpect(redirectedUrl(addedSummaryUrl()));
-  }
-
-  @Test
-  void submitWithdrawForAddedPosition_whenValid_persistsRetentionAndRedirectsToSummary() throws Exception {
-    var correction = givenCorrectionAllocatedToUser();
-    var positionCorrection = addedPositionCorrection(correction);
-    when(licencePositionCorrectionService.findById(POSITION_CORRECTION_ID))
-        .thenReturn(Optional.of(positionCorrection));
-    when(transferEquityCorrectionService.getCommittedTransferEquityOperations(positionCorrection))
-        .thenReturn(List.of(transferOp(1, 2, 100, null)));
-
-    var form = withdrawForm("RETAIN");
-    when(withdrawValidator.hasErrors(eq(form), any(BindingResult.class))).thenReturn(false);
-
-    mockMvc.perform(post(addedWithdrawUrl(0)).with(user(regulatorUser)).with(csrf()).flashAttr("form", form))
-        .andExpect(status().is3xxRedirection())
-        .andExpect(redirectedUrl(addedSummaryUrl()));
-
-    verify(transferEquityCorrectionService).setTransferEquityRetention(positionCorrection, 0, true);
-  }
-
-  @Test
-  void submitWithdrawForAddedPosition_whenInvalid_rendersWithdrawPageAndDoesNotPersist() throws Exception {
-    var correction = givenCorrectionAllocatedToUser();
-    var positionCorrection = addedPositionCorrection(correction);
-    var operation = transferOp(1, 2, 100, null);
-    when(licencePositionCorrectionService.findById(POSITION_CORRECTION_ID))
-        .thenReturn(Optional.of(positionCorrection));
-    when(transferEquityCorrectionService.getCommittedTransferEquityOperations(positionCorrection))
-        .thenReturn(List.of(operation));
-    when(transferEquityCorrectionService.getTransferEquityViews(List.of(operation)))
-        .thenReturn(List.of(new TransferEquityHoldingView("From Org", "To Org", BigDecimal.valueOf(100), null)));
-
-    var form = new TransferEquityWithdrawForm();
-    when(withdrawValidator.hasErrors(eq(form), any(BindingResult.class))).thenReturn(true);
-
-    mockMvc.perform(post(addedWithdrawUrl(0)).with(user(regulatorUser)).with(csrf()).flashAttr("form", form))
-        .andExpectAll(
-            status().isOk(),
-            view().name("lms/licence/correction/transferEquityWithdraw"),
-            model().attribute("form", form),
-            model().attribute("organisationName", "From Org"),
-            model().attribute("submitUrl", addedWithdrawUrl(0)),
-            model().attribute("backLinkUrl", addedSummaryUrl()));
-
-    verify(transferEquityCorrectionService, never()).setTransferEquityRetention(eq(positionCorrection), eq(0), anyBoolean());
-  }
-
-  @Test
-  void renderSummaryForAddedPosition_rendersSummaryWithAllAttributes() throws Exception {
-    var correction = givenCorrectionAllocatedToUser();
-    var positionCorrection = addedPositionCorrection(correction);
-    var operations = List.of(transferOp(1, 2, 100, true));
-    var views = List.of(new TransferEquityHoldingView("From Org", "To Org", BigDecimal.valueOf(100), true));
-    when(licencePositionCorrectionService.findById(POSITION_CORRECTION_ID))
-        .thenReturn(Optional.of(positionCorrection));
-    when(transferEquityCorrectionService.getCommittedTransferEquityOperations(positionCorrection))
-        .thenReturn(operations);
-    when(transferEquityCorrectionService.getTransferEquityViews(operations)).thenReturn(views);
-    when(transferEquityCorrectionService.getEquityHoldingsForAddedPosition(correction, positionCorrection))
-        .thenReturn(Map.of(1, BigDecimal.ZERO));
-
-    mockMvc.perform(get(addedSummaryUrl()).with(user(regulatorUser)))
-        .andExpectAll(
-            status().isOk(),
-            view().name("lms/licence/correction/transferEquitySummary"),
-            model().attribute("pageTitle", "Transfer equity"),
-            model().attribute("pageCaption", LICENCE_REFERENCE),
-            model().attribute("transferEquityViews", views),
-            model().attribute("addTransferUrl", addedFormUrl()),
-            model().attribute("backLinkUrl", addedPositionUrl()),
-            model().attribute("saveAndContinueUrl", addedPositionUrl()),
-            model().attribute("removeUrls", List.of(addedRemoveUrl(0))),
-            model().attribute("withdrawUrls", List.of(addedWithdrawUrl(0))),
-            model().attribute("withdrawApplicable", List.of(true)));
-  }
-
-  @Test
-  void renderSummaryForAddedPosition_whenTransferorRetainsEquity_marksWithdrawalNotApplicable() throws Exception {
-    var correction = givenCorrectionAllocatedToUser();
-    var positionCorrection = addedPositionCorrection(correction);
-    var operations = List.of(transferOp(1, 2, 40, null));
-    when(licencePositionCorrectionService.findById(POSITION_CORRECTION_ID))
-        .thenReturn(Optional.of(positionCorrection));
-    when(transferEquityCorrectionService.getCommittedTransferEquityOperations(positionCorrection))
-        .thenReturn(operations);
-    when(transferEquityCorrectionService.getTransferEquityViews(operations))
-        .thenReturn(List.of(new TransferEquityHoldingView("From Org", "To Org", BigDecimal.valueOf(40), null)));
-    when(transferEquityCorrectionService.getEquityHoldingsForAddedPosition(correction, positionCorrection))
-        .thenReturn(Map.of(1, BigDecimal.valueOf(60)));
-
-    mockMvc.perform(get(addedSummaryUrl()).with(user(regulatorUser)))
-        .andExpect(status().isOk())
-        .andExpect(model().attribute("withdrawApplicable", List.of(false)));
-  }
-
-  @Test
-  void removeForAddedPosition_removesFromCorrectionAndRedirectsToSummary() throws Exception {
-    var correction = givenCorrectionAllocatedToUser();
-    var positionCorrection = addedPositionCorrection(correction);
-    when(licencePositionCorrectionService.findById(POSITION_CORRECTION_ID))
-        .thenReturn(Optional.of(positionCorrection));
-
-    mockMvc.perform(post(addedRemoveUrl(0)).with(user(regulatorUser)).with(csrf()))
-        .andExpect(status().is3xxRedirection())
-        .andExpect(redirectedUrl(addedSummaryUrl()));
-
-    verify(transferEquityCorrectionService).removeTransferEquity(positionCorrection, 0);
-  }
-
-  @Test
-  void renderForAddedPosition_whenNotAllocated_forbidden() throws Exception {
+  void renderForPosition_whenStagedPositionAndNotAllocated_forbidden() throws Exception {
     when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser)).thenReturn(Optional.empty());
 
     mockMvc.perform(get(addedFormUrl()).with(user(regulatorUser)))
@@ -398,7 +194,7 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
   }
 
   @Test
-  void renderForAddedPosition_whenLicenceIsNotCarbonStorage_forbidden() throws Exception {
+  void renderForPosition_whenStagedPositionAndLicenceIsNotCarbonStorage_forbidden() throws Exception {
     var nonCarbonStorageLicence = LicenceTestUtil.builder().withLicenceType(LicenceType.GAS_STORAGE).build();
     var correction = LicenceCorrectionTestUtil.newBuilder()
         .withId(CORRECTION_ID)
@@ -415,12 +211,12 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
   }
 
   @Test
-  void renderForExecutedPosition_whenAllocated_rendersFormWithPositionBackLink() throws Exception {
+  void renderForPosition_whenNoTransfersYet_rendersFormWithAddChangeBackLink() throws Exception {
     var correction = givenCorrectionAllocatedToUser();
     var licencePosition = executedPosition();
-    when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(licencePosition));
+    givenCorrectionPosition(new CorrectionPosition.Executed(correction, licencePosition));
     var equityHoldings = Map.of(1, BigDecimal.valueOf(60));
-    when(transferEquityCorrectionService.getEquityHoldingsForCorrection(correction, POSITION_ID))
+    when(transferEquityCorrectionService.getEquityHoldings(new CorrectionPosition.Executed(correction, licencePosition)))
         .thenReturn(equityHoldings);
     var licenseeOptions = Map.of("1", "Org One (60%)");
     when(transferEquityCorrectionService.getLicenseeOptions(equityHoldings)).thenReturn(licenseeOptions);
@@ -436,16 +232,17 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
             model().attribute("form", instanceOf(LicencePositionTransferEquityForm.class)),
             model().attribute("licenseeOptions", licenseeOptions),
             model().attribute("transferToOptions", transferToOptions),
-            model().attribute("backLinkUrl", executedPositionUrl()));
+            model().attribute("backLinkUrl", ReverseRouter.route(on(LicencePositionAddChangeController.class)
+                .renderForPosition(new CorrectionPosition.Executed(CORRECTION, POSITION)))));
   }
 
   @Test
-  void renderForExecutedPosition_whenTransfersAlreadyAdded_backLinkIsSummary() throws Exception {
+  void renderForPosition_whenTransfersAlreadyAdded_backLinkIsSummary() throws Exception {
     var correction = givenCorrectionAllocatedToUser();
     var licencePosition = executedPosition();
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(licencePosition);
-    when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(licencePosition));
-    when(transferEquityCorrectionService.getCommittedTransferEquityOperationsForExecutedPosition(correction, licencePosition))
+    givenCorrectionPosition(new CorrectionPosition.Executed(correction, licencePosition));
+    when(transferEquityCorrectionService.getCommittedTransferEquityOperations(new CorrectionPosition.Executed(correction, licencePosition)))
         .thenReturn(List.of(transferOp(1, 2, 40, null)));
 
     mockMvc.perform(get(executedFormUrl()).with(user(regulatorUser)))
@@ -461,7 +258,7 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
   }
 
   @Test
-  void renderForExecutedPosition_whenCorrectionIsNotInProgress() throws Exception {
+  void renderForPosition_whenCorrectionIsNotInProgress() throws Exception {
     var correction = LicenceCorrectionTestUtil.newBuilder()
         .withId(CORRECTION_ID)
         .withStatus(LicenceCorrectionStatus.COMPLETE)
@@ -471,7 +268,7 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
         .thenReturn(Optional.of(correction));
     when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(correction));
     mockMvc.perform(get(ReverseRouter.route(on(LicencePositionTransferEquityController.class)
-            .renderForExecutedPosition(correction, POSITION)))
+            .renderForPosition(new CorrectionPosition.Executed(correction, POSITION))))
             .with(user(regulatorUser)))
         .andExpect(status().isForbidden())
         .andExpect(status().reason(
@@ -480,15 +277,15 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
   }
 
   @Test
-  void submitForExecutedPosition_whenTransferorHoldsNoEquity_redirectsToWithdraw() throws Exception {
+  void submitForPosition_whenTransferorHoldsNoEquity_redirectsToWithdraw() throws Exception {
     var correction = givenCorrectionAllocatedToUser();
     var licencePosition = executedPosition();
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(licencePosition);
-    when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(licencePosition));
-    when(transferEquityCorrectionService.getCommittedTransferEquityOperationsForExecutedPosition(correction, licencePosition))
+    givenCorrectionPosition(new CorrectionPosition.Executed(correction, licencePosition));
+    when(transferEquityCorrectionService.getCommittedTransferEquityOperations(new CorrectionPosition.Executed(correction, licencePosition)))
         .thenReturn(List.of(transferOp(1, 2, 100, null)));
     var equityHoldings = Map.of(1, BigDecimal.ZERO);
-    when(transferEquityCorrectionService.getEquityHoldingsForCorrection(correction, POSITION_ID))
+    when(transferEquityCorrectionService.getEquityHoldings(new CorrectionPosition.Executed(correction, licencePosition)))
         .thenReturn(equityHoldings);
 
     var form = transferForm();
@@ -498,19 +295,19 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
         .andExpect(status().is3xxRedirection())
         .andExpect(redirectedUrl(executedWithdrawUrl(0)));
 
-    verify(transferEquityCorrectionService).addTransferEquityForExecutedPosition(correction, licencePosition, form);
+    verify(transferEquityCorrectionService).addTransferEquity(new CorrectionPosition.Executed(correction, licencePosition), form);
   }
 
   @Test
-  void submitForExecutedPosition_whenTransferorRetainsEquity_redirectsToSummary() throws Exception {
+  void submitForPosition_whenTransferorRetainsEquity_redirectsToSummary() throws Exception {
     var correction = givenCorrectionAllocatedToUser();
     var licencePosition = executedPosition();
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(licencePosition);
-    when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(licencePosition));
-    when(transferEquityCorrectionService.getCommittedTransferEquityOperationsForExecutedPosition(correction, licencePosition))
+    givenCorrectionPosition(new CorrectionPosition.Executed(correction, licencePosition));
+    when(transferEquityCorrectionService.getCommittedTransferEquityOperations(new CorrectionPosition.Executed(correction, licencePosition)))
         .thenReturn(List.of(transferOp(1, 2, 40, null)));
     var equityHoldings = Map.of(1, BigDecimal.valueOf(60));
-    when(transferEquityCorrectionService.getEquityHoldingsForCorrection(correction, POSITION_ID))
+    when(transferEquityCorrectionService.getEquityHoldings(new CorrectionPosition.Executed(correction, licencePosition)))
         .thenReturn(equityHoldings);
 
     var form = transferForm();
@@ -520,11 +317,11 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
         .andExpect(status().is3xxRedirection())
         .andExpect(redirectedUrl(executedSummaryUrl()));
 
-    verify(transferEquityCorrectionService).addTransferEquityForExecutedPosition(correction, licencePosition, form);
+    verify(transferEquityCorrectionService).addTransferEquity(new CorrectionPosition.Executed(correction, licencePosition), form);
   }
 
   @Test
-  void submitForExecutedPosition_whenCorrectionIsNotInProgress() throws Exception {
+  void submitForPosition_whenCorrectionIsNotInProgress() throws Exception {
     var correction = LicenceCorrectionTestUtil.newBuilder()
         .withId(CORRECTION_ID)
         .withStatus(LicenceCorrectionStatus.COMPLETE)
@@ -534,7 +331,7 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
         .thenReturn(Optional.of(correction));
     when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(correction));
     mockMvc.perform(post(ReverseRouter.route(on(LicencePositionTransferEquityController.class)
-            .submitForExecutedPosition(correction, POSITION, null, null, null)))
+            .submitForPosition(new CorrectionPosition.Executed(correction, POSITION), null, null, null)))
             .with(user(regulatorUser))
             .with(csrf()))
         .andExpect(status().isForbidden())
@@ -544,12 +341,12 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
   }
 
   @Test
-  void submitWithdrawForExecutedPosition_whenValid_persistsRetentionAndRedirectsToSummary() throws Exception {
+  void submitWithdrawForPosition_whenValid_persistsRetentionAndRedirectsToSummary() throws Exception {
     var correction = givenCorrectionAllocatedToUser();
     var licencePosition = executedPosition();
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(licencePosition);
-    when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(licencePosition));
-    when(transferEquityCorrectionService.getCommittedTransferEquityOperationsForExecutedPosition(correction, licencePosition))
+    givenCorrectionPosition(new CorrectionPosition.Executed(correction, licencePosition));
+    when(transferEquityCorrectionService.getCommittedTransferEquityOperations(new CorrectionPosition.Executed(correction, licencePosition)))
         .thenReturn(List.of(transferOp(1, 2, 100, null)));
 
     var form = withdrawForm("WITHDRAW");
@@ -560,21 +357,21 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
         .andExpect(redirectedUrl(executedSummaryUrl()));
 
     verify(transferEquityCorrectionService)
-        .setTransferEquityRetentionForExecutedPosition(correction, licencePosition, 0, false);
+        .setTransferEquityRetention(new CorrectionPosition.Executed(correction, licencePosition), 0, false);
   }
 
   @Test
-  void renderSummaryForExecutedPosition_rendersSummaryWithAllAttributes() throws Exception {
+  void renderSummaryForPosition_rendersSummaryWithAllAttributes() throws Exception {
     var correction = givenCorrectionAllocatedToUser();
     var licencePosition = executedPosition();
     var operations = List.of(transferOp(1, 2, 100, true));
     var views = List.of(new TransferEquityHoldingView("From Org", "To Org", BigDecimal.valueOf(100), true));
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(licencePosition);
-    when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(licencePosition));
-    when(transferEquityCorrectionService.getCommittedTransferEquityOperationsForExecutedPosition(correction, licencePosition))
+    givenCorrectionPosition(new CorrectionPosition.Executed(correction, licencePosition));
+    when(transferEquityCorrectionService.getCommittedTransferEquityOperations(new CorrectionPosition.Executed(correction, licencePosition)))
         .thenReturn(operations);
     when(transferEquityCorrectionService.getTransferEquityViews(operations)).thenReturn(views);
-    when(transferEquityCorrectionService.getEquityHoldingsForCorrection(correction, POSITION_ID))
+    when(transferEquityCorrectionService.getEquityHoldings(new CorrectionPosition.Executed(correction, licencePosition)))
         .thenReturn(Map.of(1, BigDecimal.ZERO));
 
     mockMvc.perform(get(executedSummaryUrl()).with(user(regulatorUser)))
@@ -593,13 +390,13 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
   }
 
   @Test
-  void submitForExecutedPosition_whenInvalid_rendersFormWithTransferFromOptionsAndDoesNotPersist() throws Exception {
+  void submitForPosition_whenInvalid_rendersFormWithTransferFromOptionsAndDoesNotPersist() throws Exception {
     var correction = givenCorrectionAllocatedToUser();
     var licencePosition = executedPosition();
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(licencePosition);
-    when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(licencePosition));
+    givenCorrectionPosition(new CorrectionPosition.Executed(correction, licencePosition));
     var equityHoldings = Map.of(1, BigDecimal.valueOf(60));
-    when(transferEquityCorrectionService.getEquityHoldingsForCorrection(correction, POSITION_ID))
+    when(transferEquityCorrectionService.getEquityHoldings(new CorrectionPosition.Executed(correction, licencePosition)))
         .thenReturn(equityHoldings);
 
     var form = new LicencePositionTransferEquityForm();
@@ -620,20 +417,21 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
             model().attribute("form", form),
             model().attribute("licenseeOptions", licenseeOptions),
             model().attribute("transferToOptions", transferToOptions),
-            model().attribute("backLinkUrl", executedPositionUrl()));
+            model().attribute("backLinkUrl", ReverseRouter.route(on(LicencePositionAddChangeController.class)
+                .renderForPosition(new CorrectionPosition.Executed(CORRECTION, POSITION)))));
 
     verify(transferEquityCorrectionService, never())
-        .addTransferEquityForExecutedPosition(any(), any(), any());
+        .addTransferEquity(any(CorrectionPosition.class), any());
   }
 
   @Test
-  void renderWithdrawForExecutedPosition_rendersWithdrawPageWithAllAttributes() throws Exception {
+  void renderWithdrawForPosition_rendersWithdrawPageWithAllAttributes() throws Exception {
     var correction = givenCorrectionAllocatedToUser();
     var licencePosition = executedPosition();
     var operation = transferOp(1, 2, 100, true);
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(licencePosition);
-    when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(licencePosition));
-    when(transferEquityCorrectionService.getCommittedTransferEquityOperationsForExecutedPosition(correction, licencePosition))
+    givenCorrectionPosition(new CorrectionPosition.Executed(correction, licencePosition));
+    when(transferEquityCorrectionService.getCommittedTransferEquityOperations(new CorrectionPosition.Executed(correction, licencePosition)))
         .thenReturn(List.of(operation));
     when(transferEquityCorrectionService.getTransferEquityViews(List.of(operation)))
         .thenReturn(List.of(new TransferEquityHoldingView("From Org", "To Org", BigDecimal.valueOf(100), true)));
@@ -652,12 +450,12 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
   }
 
   @Test
-  void renderWithdrawForExecutedPosition_whenIndexOutOfRange_redirectsToSummary() throws Exception {
+  void renderWithdrawForPosition_whenIndexOutOfRange_redirectsToSummary() throws Exception {
     var correction = givenCorrectionAllocatedToUser();
     var licencePosition = executedPosition();
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(licencePosition);
-    when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(licencePosition));
-    when(transferEquityCorrectionService.getCommittedTransferEquityOperationsForExecutedPosition(correction, licencePosition))
+    givenCorrectionPosition(new CorrectionPosition.Executed(correction, licencePosition));
+    when(transferEquityCorrectionService.getCommittedTransferEquityOperations(new CorrectionPosition.Executed(correction, licencePosition)))
         .thenReturn(List.of());
 
     mockMvc.perform(get(executedWithdrawUrl(0)).with(user(regulatorUser)))
@@ -666,12 +464,12 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
   }
 
   @Test
-  void submitWithdrawForExecutedPosition_whenIndexOutOfRange_redirectsToSummaryAndDoesNotPersist() throws Exception {
+  void submitWithdrawForPosition_whenIndexOutOfRange_redirectsToSummaryAndDoesNotPersist() throws Exception {
     var correction = givenCorrectionAllocatedToUser();
     var licencePosition = executedPosition();
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(licencePosition);
-    when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(licencePosition));
-    when(transferEquityCorrectionService.getCommittedTransferEquityOperationsForExecutedPosition(correction, licencePosition))
+    givenCorrectionPosition(new CorrectionPosition.Executed(correction, licencePosition));
+    when(transferEquityCorrectionService.getCommittedTransferEquityOperations(new CorrectionPosition.Executed(correction, licencePosition)))
         .thenReturn(List.of());
 
     var form = withdrawForm("RETAIN");
@@ -681,17 +479,17 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
         .andExpect(redirectedUrl(executedSummaryUrl()));
 
     verify(transferEquityCorrectionService, never())
-        .setTransferEquityRetentionForExecutedPosition(any(), any(), anyInt(), anyBoolean());
+        .setTransferEquityRetention(any(CorrectionPosition.class), anyInt(), anyBoolean());
   }
 
   @Test
-  void submitWithdrawForExecutedPosition_whenInvalid_rendersWithdrawPageAndDoesNotPersist() throws Exception {
+  void submitWithdrawForPosition_whenInvalid_rendersWithdrawPageAndDoesNotPersist() throws Exception {
     var correction = givenCorrectionAllocatedToUser();
     var licencePosition = executedPosition();
     var operation = transferOp(1, 2, 100, null);
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(licencePosition);
-    when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(licencePosition));
-    when(transferEquityCorrectionService.getCommittedTransferEquityOperationsForExecutedPosition(correction, licencePosition))
+    givenCorrectionPosition(new CorrectionPosition.Executed(correction, licencePosition));
+    when(transferEquityCorrectionService.getCommittedTransferEquityOperations(new CorrectionPosition.Executed(correction, licencePosition)))
         .thenReturn(List.of(operation));
     when(transferEquityCorrectionService.getTransferEquityViews(List.of(operation)))
         .thenReturn(List.of(new TransferEquityHoldingView("From Org", "To Org", BigDecimal.valueOf(100), null)));
@@ -709,58 +507,40 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
             model().attribute("backLinkUrl", executedSummaryUrl()));
 
     verify(transferEquityCorrectionService, never())
-        .setTransferEquityRetentionForExecutedPosition(any(), any(), anyInt(), anyBoolean());
+        .setTransferEquityRetention(any(CorrectionPosition.class), anyInt(), anyBoolean());
   }
 
   @Test
-  void removeForExecutedPosition_removesFromCorrectionAndRedirectsToSummary() throws Exception {
+  void removeForPosition_removesFromCorrectionAndRedirectsToSummary() throws Exception {
     var correction = givenCorrectionAllocatedToUser();
     var licencePosition = executedPosition();
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(licencePosition);
-    when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(licencePosition));
+    givenCorrectionPosition(new CorrectionPosition.Executed(correction, licencePosition));
 
     mockMvc.perform(post(executedRemoveUrl(0)).with(user(regulatorUser)).with(csrf()))
         .andExpect(status().is3xxRedirection())
         .andExpect(redirectedUrl(executedSummaryUrl()));
 
-    verify(transferEquityCorrectionService).removeTransferEquityForExecutedPosition(correction, licencePosition, 0);
+    verify(transferEquityCorrectionService).removeTransferEquity(new CorrectionPosition.Executed(correction, licencePosition), 0);
   }
 
   @Test
-  void renderSummaryForExecutedPosition_whenTransferorRetainsEquity_marksWithdrawalNotApplicable() throws Exception {
+  void renderSummaryForPosition_whenTransferorRetainsEquity_marksWithdrawalNotApplicable() throws Exception {
     var correction = givenCorrectionAllocatedToUser();
     var licencePosition = executedPosition();
     var operations = List.of(transferOp(1, 2, 40, null));
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(licencePosition);
-    when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(licencePosition));
-    when(transferEquityCorrectionService.getCommittedTransferEquityOperationsForExecutedPosition(correction, licencePosition))
+    givenCorrectionPosition(new CorrectionPosition.Executed(correction, licencePosition));
+    when(transferEquityCorrectionService.getCommittedTransferEquityOperations(new CorrectionPosition.Executed(correction, licencePosition)))
         .thenReturn(operations);
     when(transferEquityCorrectionService.getTransferEquityViews(operations))
         .thenReturn(List.of(new TransferEquityHoldingView("From Org", "To Org", BigDecimal.valueOf(40), null)));
-    when(transferEquityCorrectionService.getEquityHoldingsForCorrection(correction, POSITION_ID))
+    when(transferEquityCorrectionService.getEquityHoldings(new CorrectionPosition.Executed(correction, licencePosition)))
         .thenReturn(Map.of(1, BigDecimal.valueOf(60)));
 
     mockMvc.perform(get(executedSummaryUrl()).with(user(regulatorUser)))
         .andExpect(status().isOk())
         .andExpect(model().attribute("withdrawApplicable", List.of(false)));
-  }
-
-  @Test
-  void submitWithdrawForAddedPosition_whenIndexOutOfRange_redirectsToSummaryAndDoesNotPersist() throws Exception {
-    var correction = givenCorrectionAllocatedToUser();
-    var positionCorrection = addedPositionCorrection(correction);
-    when(licencePositionCorrectionService.findById(POSITION_CORRECTION_ID))
-        .thenReturn(Optional.of(positionCorrection));
-    when(transferEquityCorrectionService.getCommittedTransferEquityOperations(positionCorrection))
-        .thenReturn(List.of());
-
-    var form = withdrawForm("RETAIN");
-
-    mockMvc.perform(post(addedWithdrawUrl(0)).with(user(regulatorUser)).with(csrf()).flashAttr("form", form))
-        .andExpect(status().is3xxRedirection())
-        .andExpect(redirectedUrl(addedSummaryUrl()));
-
-    verify(transferEquityCorrectionService, never()).setTransferEquityRetention(any(), anyInt(), anyBoolean());
   }
 
   private LicencePositionTransferEquityForm transferForm() {
@@ -800,27 +580,27 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
 
   private static String addedFormUrl() {
     return ReverseRouter.route(on(LicencePositionTransferEquityController.class)
-        .renderForAddedPosition(CORRECTION, POSITION_CORRECTION));
+        .renderForPosition(new CorrectionPosition.Staged(POSITION_CORRECTION)));
   }
 
   private static String addedSummaryUrl() {
     return ReverseRouter.route(on(LicencePositionTransferEquityController.class)
-        .renderSummaryForAddedPosition(CORRECTION, POSITION_CORRECTION));
+        .renderSummaryForPosition(new CorrectionPosition.Staged(POSITION_CORRECTION)));
   }
 
   private static String addedWithdrawUrl(int index) {
     return ReverseRouter.route(on(LicencePositionTransferEquityController.class)
-        .renderWithdrawForAddedPosition(CORRECTION, POSITION_CORRECTION, index));
+        .renderWithdrawForPosition(new CorrectionPosition.Staged(POSITION_CORRECTION), index));
   }
 
   private static String addedRemoveUrl(int index) {
     return ReverseRouter.route(on(LicencePositionTransferEquityController.class)
-        .removeForAddedPosition(CORRECTION, POSITION_CORRECTION, index));
+        .removeForPosition(new CorrectionPosition.Staged(POSITION_CORRECTION), index));
   }
 
   private static String addedChangeChooserUrl() {
     return ReverseRouter.route(on(LicencePositionAddChangeController.class)
-        .renderForAddedPosition(CORRECTION, POSITION_CORRECTION));
+        .renderForPosition(new CorrectionPosition.Staged(POSITION_CORRECTION)));
   }
 
   private static String addedPositionUrl() {
@@ -829,22 +609,22 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
 
   private static String executedFormUrl() {
     return ReverseRouter.route(on(LicencePositionTransferEquityController.class)
-        .renderForExecutedPosition(CORRECTION, POSITION));
+        .renderForPosition(new CorrectionPosition.Executed(CORRECTION, POSITION)));
   }
 
   private static String executedSummaryUrl() {
     return ReverseRouter.route(on(LicencePositionTransferEquityController.class)
-        .renderSummaryForExecutedPosition(CORRECTION, POSITION));
+        .renderSummaryForPosition(new CorrectionPosition.Executed(CORRECTION, POSITION)));
   }
 
   private static String executedWithdrawUrl(int index) {
     return ReverseRouter.route(on(LicencePositionTransferEquityController.class)
-        .renderWithdrawForExecutedPosition(CORRECTION, POSITION, index));
+        .renderWithdrawForPosition(new CorrectionPosition.Executed(CORRECTION, POSITION), index));
   }
 
   private static String executedRemoveUrl(int index) {
     return ReverseRouter.route(on(LicencePositionTransferEquityController.class)
-        .removeForExecutedPosition(CORRECTION, POSITION, index));
+        .removeForPosition(new CorrectionPosition.Executed(CORRECTION, POSITION), index));
   }
 
   private static String executedPositionUrl() {

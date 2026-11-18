@@ -136,13 +136,8 @@ public record SubareaSetEquityOperation(
         return null;
       }
 
-      if (changeUrlTarget.addedPosition()) {
-        return ReverseRouter.route(on(LicencePositionSubareaSetEquityController.class)
-            .renderSummaryForAddedPosition(changeUrlTarget.correction(), changeUrlTarget.positionCorrection(), subareaKey));
-      }
-
       return ReverseRouter.route(on(LicencePositionSubareaSetEquityController.class)
-          .renderSummaryForExecutedPosition(changeUrlTarget.correction(), changeUrlTarget.licencePosition(), subareaKey));
+          .renderSummaryForPosition(changeUrlTarget.correctionPosition(), subareaKey));
     };
   }
 

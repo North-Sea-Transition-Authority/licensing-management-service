@@ -18,18 +18,15 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.CorrectionHasStatus;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.CorrectionLicenceIsType;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanViewCorrection;
-import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.LicencePositionCorrectionBelongsToCorrection;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.LicencePositionIsNotRemovedInCorrection;
-import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.position.LicencePositionBelongsToCorrectionLicence;
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectionPosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionRouteUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.LicencePositionAddChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.TransferEquityOperation;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @Controller
@@ -58,308 +55,139 @@ public class LicencePositionTransferEquityController {
 
   @GetMapping("/position/{licencePositionId}/transfer-equity")
   @LicencePositionIsNotRemovedInCorrection
-  @LicencePositionBelongsToCorrectionLicence
-  public ModelAndView renderForExecutedPosition(
-      LicenceCorrection correction,
-      LicencePosition licencePosition
-  ) {
+  public ModelAndView renderForPosition(CorrectionPosition correctionPosition) {
     return transferEquityModelAndView(
-        correction,
+        correctionPosition.correction(),
         new LicencePositionTransferEquityForm(),
-        transferEquityCorrectionService.getEquityHoldingsForCorrection(correction, licencePosition.getId()),
-        executedAddTransferBackLinkUrl(correction, licencePosition)
+        transferEquityCorrectionService.getEquityHoldings(correctionPosition),
+        addTransferBackLinkUrl(correctionPosition)
     );
   }
 
   @PostMapping("/position/{licencePositionId}/transfer-equity")
   @LicencePositionIsNotRemovedInCorrection
-  @LicencePositionBelongsToCorrectionLicence
-  public ModelAndView submitForExecutedPosition(
-      LicenceCorrection correction,
-      LicencePosition licencePosition,
+  public ModelAndView submitForPosition(
+      CorrectionPosition correctionPosition,
       @ModelAttribute("form") LicencePositionTransferEquityForm form,
       BindingResult bindingResult,
       RedirectAttributes redirectAttributes
   ) {
-    var equityHoldings = transferEquityCorrectionService.getEquityHoldingsForCorrection(correction, licencePosition.getId());
+    var equityHoldings = transferEquityCorrectionService.getEquityHoldings(correctionPosition);
     if (licencePositionTransferEquityFormValidator.hasErrors(form, bindingResult, equityHoldings)) {
       return transferEquityModelAndView(
-          correction,
+          correctionPosition.correction(),
           form,
           equityHoldings,
-          executedAddTransferBackLinkUrl(correction, licencePosition)
+          addTransferBackLinkUrl(correctionPosition)
       );
     }
 
-    transferEquityCorrectionService.addTransferEquityForExecutedPosition(correction, licencePosition, form);
+    transferEquityCorrectionService.addTransferEquity(correctionPosition, form);
 
-    var operations = transferEquityCorrectionService
-        .getCommittedTransferEquityOperationsForExecutedPosition(correction, licencePosition);
+    var operations = transferEquityCorrectionService.getCommittedTransferEquityOperations(correctionPosition);
     var index = operations.size() - 1;
-    var holdings = transferEquityCorrectionService.getEquityHoldingsForCorrection(correction, licencePosition.getId());
+    var holdings = transferEquityCorrectionService.getEquityHoldings(correctionPosition);
 
     if (transferorHoldsNoEquity(holdings, operations.get(index))) {
-      return ReverseRouter.redirect(on(this.getClass())
-          .renderWithdrawForExecutedPosition(correction, licencePosition, index));
+      return ReverseRouter.redirect(on(this.getClass()).renderWithdrawForPosition(correctionPosition, index));
     }
 
     generateSuccessBanner(redirectAttributes);
-    return ReverseRouter.redirect(on(this.getClass())
-        .renderSummaryForExecutedPosition(correction, licencePosition));
+    return ReverseRouter.redirect(on(this.getClass()).renderSummaryForPosition(correctionPosition));
   }
 
   @GetMapping("/position/{licencePositionId}/transfer-equity/withdraw")
   @LicencePositionIsNotRemovedInCorrection
-  @LicencePositionBelongsToCorrectionLicence
-  public ModelAndView renderWithdrawForExecutedPosition(
-      LicenceCorrection correction,
-      LicencePosition licencePosition,
+  public ModelAndView renderWithdrawForPosition(
+      CorrectionPosition correctionPosition,
       @RequestParam int index
   ) {
-    var operations = transferEquityCorrectionService
-        .getCommittedTransferEquityOperationsForExecutedPosition(correction, licencePosition);
+    var operations = transferEquityCorrectionService.getCommittedTransferEquityOperations(correctionPosition);
 
     if (isOutOfRange(operations, index)) {
-      return ReverseRouter.redirect(on(this.getClass())
-          .renderSummaryForExecutedPosition(correction, licencePosition));
+      return ReverseRouter.redirect(on(this.getClass()).renderSummaryForPosition(correctionPosition));
     }
 
     var operation = operations.get(index);
     return withdrawModelAndView(
-        correction,
+        correctionPosition.correction(),
         operation,
         withdrawForm(operation),
-        executedWithdrawUrl(correction, licencePosition, index),
-        executedSummaryUrl(correction, licencePosition));
+        withdrawUrl(correctionPosition, index),
+        summaryUrl(correctionPosition)
+    );
   }
 
   @PostMapping("/position/{licencePositionId}/transfer-equity/withdraw")
   @LicencePositionIsNotRemovedInCorrection
-  @LicencePositionBelongsToCorrectionLicence
-  public ModelAndView submitWithdrawForExecutedPosition(
-      LicenceCorrection correction,
-      LicencePosition licencePosition,
+  public ModelAndView submitWithdrawForPosition(
+      CorrectionPosition correctionPosition,
       @RequestParam int index,
       @ModelAttribute("form") TransferEquityWithdrawForm form,
       BindingResult bindingResult,
       RedirectAttributes redirectAttributes
   ) {
-    var operations = transferEquityCorrectionService
-        .getCommittedTransferEquityOperationsForExecutedPosition(correction, licencePosition);
+    var operations = transferEquityCorrectionService.getCommittedTransferEquityOperations(correctionPosition);
 
     if (isOutOfRange(operations, index)) {
-      return ReverseRouter.redirect(on(this.getClass())
-          .renderSummaryForExecutedPosition(correction, licencePosition));
+      return ReverseRouter.redirect(on(this.getClass()).renderSummaryForPosition(correctionPosition));
     }
 
     if (transferEquityWithdrawFormValidator.hasErrors(form, bindingResult)) {
       return withdrawModelAndView(
-          correction,
+          correctionPosition.correction(),
           operations.get(index),
           form,
-          executedWithdrawUrl(correction, licencePosition, index),
-          executedSummaryUrl(correction, licencePosition));
+          withdrawUrl(correctionPosition, index),
+          summaryUrl(correctionPosition)
+      );
     }
 
-    transferEquityCorrectionService.setTransferEquityRetentionForExecutedPosition(
-        correction, licencePosition, index, retainsBeneficialInterest(form));
+    transferEquityCorrectionService.setTransferEquityRetention(
+        correctionPosition,
+        index,
+        retainsBeneficialInterest(form)
+    );
 
     generateSuccessBanner(redirectAttributes);
-    return ReverseRouter.redirect(on(this.getClass())
-        .renderSummaryForExecutedPosition(correction, licencePosition));
+    return ReverseRouter.redirect(on(this.getClass()).renderSummaryForPosition(correctionPosition));
   }
 
   @GetMapping("/position/{licencePositionId}/transfer-equity/summary")
   @LicencePositionIsNotRemovedInCorrection
-  @LicencePositionBelongsToCorrectionLicence
-  public ModelAndView renderSummaryForExecutedPosition(
-      LicenceCorrection correction,
-      LicencePosition licencePosition
-  ) {
-    var operations = transferEquityCorrectionService
-        .getCommittedTransferEquityOperationsForExecutedPosition(correction, licencePosition);
+  public ModelAndView renderSummaryForPosition(CorrectionPosition correctionPosition) {
+    var operations = transferEquityCorrectionService.getCommittedTransferEquityOperations(correctionPosition);
 
     var removeUrls = IntStream.range(0, operations.size())
-        .mapToObj(index -> ReverseRouter.route(on(this.getClass())
-            .removeForExecutedPosition(correction, licencePosition, index)))
+        .mapToObj(index -> ReverseRouter.route(on(this.getClass()).removeForPosition(correctionPosition, index)))
         .toList();
 
     var withdrawUrls = IntStream.range(0, operations.size())
-        .mapToObj(index -> executedWithdrawUrl(correction, licencePosition, index))
+        .mapToObj(index -> withdrawUrl(correctionPosition, index))
         .toList();
 
-    var holdings = transferEquityCorrectionService.getEquityHoldingsForCorrection(correction, licencePosition.getId());
+    var holdings = transferEquityCorrectionService.getEquityHoldings(correctionPosition);
 
     return transferEquitySummaryModelAndView(
-        correction,
+        correctionPosition.correction(),
         operations,
-        ReverseRouter.route(on(this.getClass()).renderForExecutedPosition(correction, licencePosition)),
-        executedPositionUrl(correction, licencePosition),
-        removeUrls,
-        withdrawUrls,
-        holdings);
-  }
-
-  @PostMapping("/position/{licencePositionId}/transfer-equity/remove")
-  @LicencePositionIsNotRemovedInCorrection
-  @LicencePositionBelongsToCorrectionLicence
-  public ModelAndView removeForExecutedPosition(
-      LicenceCorrection correction,
-      LicencePosition licencePosition,
-      @RequestParam int index
-  ) {
-    transferEquityCorrectionService.removeTransferEquityForExecutedPosition(correction, licencePosition, index);
-
-    return ReverseRouter.redirect(on(this.getClass())
-        .renderSummaryForExecutedPosition(correction, licencePosition));
-  }
-
-  @GetMapping("/added-position/{licencePositionCorrectionId}/transfer-equity")
-  @LicencePositionCorrectionBelongsToCorrection
-  public ModelAndView renderForAddedPosition(
-      LicenceCorrection correction,
-      LicencePositionCorrection licencePositionCorrection
-  ) {
-    return transferEquityModelAndView(
-        correction,
-        new LicencePositionTransferEquityForm(),
-        transferEquityCorrectionService.getEquityHoldingsForAddedPosition(correction, licencePositionCorrection),
-        addedAddTransferBackLinkUrl(licencePositionCorrection)
-    );
-  }
-
-  @PostMapping("/added-position/{licencePositionCorrectionId}/transfer-equity")
-  @LicencePositionCorrectionBelongsToCorrection
-  public ModelAndView submitForAddedPosition(
-      LicenceCorrection correction,
-      LicencePositionCorrection licencePositionCorrection,
-      @ModelAttribute("form") LicencePositionTransferEquityForm form,
-      BindingResult bindingResult,
-      RedirectAttributes redirectAttributes
-  ) {
-    var equityHoldings = transferEquityCorrectionService.getEquityHoldingsForAddedPosition(correction, licencePositionCorrection);
-    if (licencePositionTransferEquityFormValidator.hasErrors(form, bindingResult, equityHoldings)) {
-      return transferEquityModelAndView(
-          correction,
-          form,
-          equityHoldings,
-          addedAddTransferBackLinkUrl(licencePositionCorrection)
-      );
-    }
-    transferEquityCorrectionService.addTransferEquity(licencePositionCorrection, form);
-
-    var operations = transferEquityCorrectionService.getCommittedTransferEquityOperations(licencePositionCorrection);
-    var index = operations.size() - 1;
-    var holdings = transferEquityCorrectionService.getEquityHoldingsForAddedPosition(correction, licencePositionCorrection);
-
-    if (transferorHoldsNoEquity(holdings, operations.get(index))) {
-      return ReverseRouter.redirect(on(this.getClass())
-          .renderWithdrawForAddedPosition(correction, licencePositionCorrection, index));
-    }
-
-    generateSuccessBanner(redirectAttributes);
-    return ReverseRouter.redirect(on(this.getClass())
-        .renderSummaryForAddedPosition(correction, licencePositionCorrection));
-  }
-
-  @GetMapping("/added-position/{licencePositionCorrectionId}/transfer-equity/withdraw")
-  @LicencePositionCorrectionBelongsToCorrection
-  public ModelAndView renderWithdrawForAddedPosition(
-      LicenceCorrection correction,
-      LicencePositionCorrection licencePositionCorrection,
-      @RequestParam int index
-  ) {
-    var operations = transferEquityCorrectionService.getCommittedTransferEquityOperations(licencePositionCorrection);
-
-    if (isOutOfRange(operations, index)) {
-      return ReverseRouter.redirect(on(this.getClass())
-          .renderSummaryForAddedPosition(correction, licencePositionCorrection));
-    }
-
-    var operation = operations.get(index);
-    return withdrawModelAndView(
-        correction,
-        operation,
-        withdrawForm(operation),
-        addedWithdrawUrl(licencePositionCorrection, index),
-        addedSummaryUrl(licencePositionCorrection)
-    );
-  }
-
-  @PostMapping("/added-position/{licencePositionCorrectionId}/transfer-equity/withdraw")
-  @LicencePositionCorrectionBelongsToCorrection
-  public ModelAndView submitWithdrawForAddedPosition(
-      LicenceCorrection correction,
-      LicencePositionCorrection licencePositionCorrection,
-      @RequestParam int index,
-      @ModelAttribute("form") TransferEquityWithdrawForm form,
-      BindingResult bindingResult,
-      RedirectAttributes redirectAttributes
-  ) {
-    var operations = transferEquityCorrectionService.getCommittedTransferEquityOperations(licencePositionCorrection);
-
-    if (isOutOfRange(operations, index)) {
-      return ReverseRouter.redirect(on(this.getClass())
-          .renderSummaryForAddedPosition(correction, licencePositionCorrection));
-    }
-
-    if (transferEquityWithdrawFormValidator.hasErrors(form, bindingResult)) {
-      return withdrawModelAndView(
-          correction,
-          operations.get(index),
-          form,
-          addedWithdrawUrl(licencePositionCorrection, index),
-          addedSummaryUrl(licencePositionCorrection));
-    }
-
-    transferEquityCorrectionService.setTransferEquityRetention(licencePositionCorrection, index, retainsBeneficialInterest(form));
-
-    generateSuccessBanner(redirectAttributes);
-    return ReverseRouter.redirect(on(this.getClass())
-        .renderSummaryForAddedPosition(correction, licencePositionCorrection));
-  }
-
-  @GetMapping("/added-position/{licencePositionCorrectionId}/transfer-equity/summary")
-  @LicencePositionCorrectionBelongsToCorrection
-  public ModelAndView renderSummaryForAddedPosition(
-      LicenceCorrection correction,
-      LicencePositionCorrection licencePositionCorrection
-  ) {
-    var operations = transferEquityCorrectionService.getCommittedTransferEquityOperations(licencePositionCorrection);
-
-    var removeUrls = IntStream.range(0, operations.size())
-        .mapToObj(index -> ReverseRouter.route(on(this.getClass())
-            .removeForAddedPosition(correction, licencePositionCorrection, index)))
-        .toList();
-
-    var withdrawUrls = IntStream.range(0, operations.size())
-        .mapToObj(index -> addedWithdrawUrl(licencePositionCorrection, index))
-        .toList();
-
-    var holdings = transferEquityCorrectionService.getEquityHoldingsForAddedPosition(correction, licencePositionCorrection);
-
-    return transferEquitySummaryModelAndView(
-        correction,
-        operations,
-        ReverseRouter.route(on(this.getClass()).renderForAddedPosition(correction, licencePositionCorrection)),
-        addedPositionUrl(licencePositionCorrection),
+        ReverseRouter.route(on(this.getClass()).renderForPosition(correctionPosition)),
+        LicencePositionCorrectionRouteUtil.getPositionPageUrl(correctionPosition),
         removeUrls,
         withdrawUrls,
         holdings
     );
   }
 
-  @PostMapping("/added-position/{licencePositionCorrectionId}/transfer-equity/remove")
-  @LicencePositionCorrectionBelongsToCorrection
-  public ModelAndView removeForAddedPosition(
-      LicenceCorrection correction,
-      LicencePositionCorrection licencePositionCorrection,
+  @PostMapping("/position/{licencePositionId}/transfer-equity/remove")
+  @LicencePositionIsNotRemovedInCorrection
+  public ModelAndView removeForPosition(
+      CorrectionPosition correctionPosition,
       @RequestParam int index
   ) {
-    transferEquityCorrectionService.removeTransferEquity(licencePositionCorrection, index);
+    transferEquityCorrectionService.removeTransferEquity(correctionPosition, index);
 
-    return ReverseRouter.redirect(on(this.getClass())
-        .renderSummaryForAddedPosition(correction, licencePositionCorrection));
+    return ReverseRouter.redirect(on(this.getClass()).renderSummaryForPosition(correctionPosition));
   }
 
   private void generateSuccessBanner(RedirectAttributes redirectAttributes) {
@@ -455,57 +283,19 @@ public class LicencePositionTransferEquityController {
         .addObject("withdrawApplicable", withdrawApplicable);
   }
 
-  private String executedAddTransferBackLinkUrl(
-      LicenceCorrection correction,
-      LicencePosition licencePosition
-  ) {
+  private String addTransferBackLinkUrl(CorrectionPosition correctionPosition) {
     var hasExistingTransfers = !transferEquityCorrectionService
-        .getCommittedTransferEquityOperationsForExecutedPosition(correction, licencePosition).isEmpty();
+        .getCommittedTransferEquityOperations(correctionPosition).isEmpty();
     return hasExistingTransfers
-        ? executedSummaryUrl(correction, licencePosition)
-        : executedPositionUrl(correction, licencePosition);
+        ? summaryUrl(correctionPosition)
+        : ReverseRouter.route(on(LicencePositionAddChangeController.class).renderForPosition(correctionPosition));
   }
 
-  private String addedAddTransferBackLinkUrl(
-      LicencePositionCorrection licencePositionCorrection
-  ) {
-    var hasExistingTransfers = !transferEquityCorrectionService
-        .getCommittedTransferEquityOperations(licencePositionCorrection).isEmpty();
-    return hasExistingTransfers
-        ? addedSummaryUrl(licencePositionCorrection)
-        : addedChangeChooserUrl(licencePositionCorrection);
+  private String summaryUrl(CorrectionPosition correctionPosition) {
+    return ReverseRouter.route(on(this.getClass()).renderSummaryForPosition(correctionPosition));
   }
 
-  private String executedPositionUrl(LicenceCorrection correction, LicencePosition licencePosition) {
-    return LicencePositionCorrectionRouteUtil.getPositionPageUrl(correction, licencePosition.getId());
-  }
-
-  private String executedSummaryUrl(LicenceCorrection correction, LicencePosition licencePosition) {
-    return ReverseRouter.route(on(this.getClass())
-        .renderSummaryForExecutedPosition(correction, licencePosition));
-  }
-
-  private String executedWithdrawUrl(LicenceCorrection correction, LicencePosition licencePosition, int index) {
-    return ReverseRouter.route(on(this.getClass())
-        .renderWithdrawForExecutedPosition(correction, licencePosition, index));
-  }
-
-  private String addedPositionUrl(LicencePositionCorrection licencePositionCorrection) {
-    return LicencePositionCorrectionRouteUtil.getPositionPageUrl(licencePositionCorrection);
-  }
-
-  private String addedSummaryUrl(LicencePositionCorrection licencePositionCorrection) {
-    return ReverseRouter.route(on(this.getClass())
-        .renderSummaryForAddedPosition(licencePositionCorrection.getLicenceCorrection(), licencePositionCorrection));
-  }
-
-  private String addedWithdrawUrl(LicencePositionCorrection licencePositionCorrection, int index) {
-    return ReverseRouter.route(on(this.getClass())
-        .renderWithdrawForAddedPosition(licencePositionCorrection.getLicenceCorrection(), licencePositionCorrection, index));
-  }
-
-  private String addedChangeChooserUrl(LicencePositionCorrection licencePositionCorrection) {
-    return ReverseRouter.route(on(LicencePositionAddChangeController.class)
-        .renderForAddedPosition(licencePositionCorrection.getLicenceCorrection(), licencePositionCorrection));
+  private String withdrawUrl(CorrectionPosition correctionPosition, int index) {
+    return ReverseRouter.route(on(this.getClass()).renderWithdrawForPosition(correctionPosition, index));
   }
 }

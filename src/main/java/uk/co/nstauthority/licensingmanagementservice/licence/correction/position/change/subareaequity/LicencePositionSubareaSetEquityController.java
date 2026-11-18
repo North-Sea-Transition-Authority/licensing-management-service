@@ -17,9 +17,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.CorrectionHasStatus;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.CorrectionLicenceIsType;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanViewCorrection;
-import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.LicencePositionCorrectionBelongsToCorrection;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.LicencePositionIsNotRemovedInCorrection;
-import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.position.LicencePositionBelongsToCorrectionLicence;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitRestController;
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
@@ -27,7 +25,7 @@ import uk.co.nstauthority.licensingmanagementservice.fds.searchselector.SearchSe
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectionPosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionRouteUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.LicencePositionAddChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.setequity.LicencePositionSetEquityForm;
@@ -35,7 +33,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.setequity.SetEquityCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaSetEquityOperation;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @Controller
@@ -69,234 +66,100 @@ public class LicencePositionSubareaSetEquityController {
 
   @GetMapping("/position/{licencePositionId}/subarea-set-equity")
   @LicencePositionIsNotRemovedInCorrection
-  @LicencePositionBelongsToCorrectionLicence
-  public ModelAndView renderForExecutedPosition(
-      LicenceCorrection correction,
-      LicencePosition licencePosition,
+  public ModelAndView renderForPosition(
+      CorrectionPosition correctionPosition,
       @RequestParam(SUBAREA_PARAM) String subareaKey
   ) {
-    var subareaOption = subareaEquityOptionsService.getSubareaOptionOrThrow(correction, licencePosition, subareaKey);
+    var subareaOption = subareaEquityOptionsService.getSubareaOptionOrThrow(correctionPosition, subareaKey);
 
     return setEquityModelAndView(
-        correction,
+        correctionPosition.correction(),
         subareaOption,
         new LicencePositionSetEquityForm(),
-        ReverseRouter.route(on(LicencePositionAddChangeController.class).renderForExecutedPosition(correction, licencePosition))
+        addChangeUrl(correctionPosition)
     );
   }
 
   @PostMapping("/position/{licencePositionId}/subarea-set-equity")
   @LicencePositionIsNotRemovedInCorrection
-  @LicencePositionBelongsToCorrectionLicence
-  ModelAndView submitForExecutedPosition(
-      LicenceCorrection correction,
-      LicencePosition licencePosition,
+  ModelAndView submitForPosition(
+      CorrectionPosition correctionPosition,
       @RequestParam(SUBAREA_PARAM) String subareaKey,
       @ModelAttribute("form") LicencePositionSetEquityForm form,
       BindingResult bindingResult,
       RedirectAttributes redirectAttributes
   ) {
-    var subareaOption = subareaEquityOptionsService.getSubareaOptionOrThrow(correction, licencePosition, subareaKey);
+    var subareaOption = subareaEquityOptionsService.getSubareaOptionOrThrow(correctionPosition, subareaKey);
     var operations = new ArrayList<>(
-        subareaSetEquityCorrectionService.getCommittedSubareaSetEquityOperationsForExecutedPosition(
-            correction,
-            licencePosition,
-            subareaOption
-        )
+        subareaSetEquityCorrectionService.getCommittedSubareaSetEquityOperations(correctionPosition, subareaOption)
     );
 
     var organisationIds = operations.stream().map(SubareaSetEquityOperation::transferTo).toList();
     if (licencePositionSetEquityFormValidator.hasErrors(form, bindingResult, organisationIds)) {
       return setEquityModelAndView(
-          correction,
+          correctionPosition.correction(),
           subareaOption,
           form,
-          ReverseRouter.route(on(LicencePositionAddChangeController.class).renderForExecutedPosition(correction, licencePosition))
+          addChangeUrl(correctionPosition)
       );
     }
 
     operations.add(toOperation(subareaOption, form));
-    subareaSetEquityCorrectionService.commitSubareaSetEquityForExecutedPosition(
-        correction,
-        licencePosition,
-        subareaOption,
-        operations
-    );
+    subareaSetEquityCorrectionService.commitSubareaSetEquity(correctionPosition, subareaOption, operations);
 
     NotificationBanner.newSuccessBannerWithHeader("Equity set updated", redirectAttributes);
-    return ReverseRouter.redirect(on(this.getClass()).renderSummaryForExecutedPosition(correction, licencePosition, subareaKey));
+    return ReverseRouter.redirect(on(this.getClass()).renderSummaryForPosition(correctionPosition, subareaKey));
   }
 
   @GetMapping("/position/{licencePositionId}/subarea-set-equity/summary")
   @LicencePositionIsNotRemovedInCorrection
-  @LicencePositionBelongsToCorrectionLicence
-  public ModelAndView renderSummaryForExecutedPosition(
-      LicenceCorrection correction,
-      LicencePosition licencePosition,
+  public ModelAndView renderSummaryForPosition(
+      CorrectionPosition correctionPosition,
       @RequestParam(SUBAREA_PARAM) String subareaKey
   ) {
-    var subareaOption = subareaEquityOptionsService.getSubareaOptionOrThrow(correction, licencePosition, subareaKey);
+    var subareaOption = subareaEquityOptionsService.getSubareaOptionOrThrow(correctionPosition, subareaKey);
     var operations = subareaSetEquityCorrectionService
-        .getCommittedSubareaSetEquityOperationsForExecutedPosition(correction, licencePosition, subareaOption);
+        .getCommittedSubareaSetEquityOperations(correctionPosition, subareaOption);
 
     var removeUrls = operations.stream()
         .map(operation -> ReverseRouter.route(on(this.getClass())
-            .removeForExecutedPosition(correction, licencePosition, subareaKey, operation.transferTo())))
+            .removeForPosition(correctionPosition, subareaKey, operation.transferTo())))
         .toList();
 
     return setEquitySummaryModelAndView(
-        correction,
+        correctionPosition.correction(),
         subareaOption,
         operations,
-        ReverseRouter.route(on(this.getClass()).renderForExecutedPosition(correction, licencePosition, subareaKey)),
-        LicencePositionCorrectionRouteUtil.getPositionPageUrl(correction, licencePosition.getId()),
-        ReverseRouter.route(on(this.getClass()).submitSummaryForExecutedPosition(correction, licencePosition)),
+        ReverseRouter.route(on(this.getClass()).renderForPosition(correctionPosition, subareaKey)),
+        LicencePositionCorrectionRouteUtil.getPositionPageUrl(correctionPosition),
+        ReverseRouter.route(on(this.getClass()).submitSummaryForPosition(correctionPosition)),
         removeUrls
     );
   }
 
   @PostMapping("/position/{licencePositionId}/subarea-set-equity/summary")
   @LicencePositionIsNotRemovedInCorrection
-  @LicencePositionBelongsToCorrectionLicence
-  ModelAndView submitSummaryForExecutedPosition(
-      LicenceCorrection correction,
-      LicencePosition licencePosition
-  ) {
-    return LicencePositionCorrectionRouteUtil.redirectToPositionPage(correction, licencePosition.getId());
+  ModelAndView submitSummaryForPosition(CorrectionPosition correctionPosition) {
+    return LicencePositionCorrectionRouteUtil.redirectToPositionPage(correctionPosition);
   }
 
   @PostMapping("/position/{licencePositionId}/subarea-set-equity/remove")
   @LicencePositionIsNotRemovedInCorrection
-  @LicencePositionBelongsToCorrectionLicence
-  ModelAndView removeForExecutedPosition(
-      LicenceCorrection correction,
-      LicencePosition licencePosition,
+  ModelAndView removeForPosition(
+      CorrectionPosition correctionPosition,
       @RequestParam(SUBAREA_PARAM) String subareaKey,
       @RequestParam Integer transferTo
   ) {
-    var subareaOption = subareaEquityOptionsService.getSubareaOptionOrThrow(correction, licencePosition, subareaKey);
+    var subareaOption = subareaEquityOptionsService.getSubareaOptionOrThrow(correctionPosition, subareaKey);
     var operations = subareaSetEquityCorrectionService
-        .getCommittedSubareaSetEquityOperationsForExecutedPosition(correction, licencePosition, subareaOption)
+        .getCommittedSubareaSetEquityOperations(correctionPosition, subareaOption)
         .stream()
         .filter(operation -> !operation.transferTo().equals(transferTo))
         .toList();
 
-    subareaSetEquityCorrectionService
-        .commitSubareaSetEquityForExecutedPosition(correction, licencePosition, subareaOption, operations);
+    subareaSetEquityCorrectionService.commitSubareaSetEquity(correctionPosition, subareaOption, operations);
 
-    return ReverseRouter.redirect(on(this.getClass())
-        .renderSummaryForExecutedPosition(correction, licencePosition, subareaKey));
-  }
-
-  @GetMapping("/added-position/{licencePositionCorrectionId}/subarea-set-equity")
-  @LicencePositionCorrectionBelongsToCorrection
-  public ModelAndView renderForAddedPosition(
-      LicenceCorrection correction,
-      LicencePositionCorrection licencePositionCorrection,
-      @RequestParam(SUBAREA_PARAM) String subareaKey
-  ) {
-    var subareaOption = subareaEquityOptionsService.getSubareaOptionOrThrow(licencePositionCorrection, subareaKey);
-
-    return setEquityModelAndView(
-        correction,
-        subareaOption,
-        new LicencePositionSetEquityForm(),
-        ReverseRouter.route(on(LicencePositionAddChangeController.class)
-            .renderForAddedPosition(correction, licencePositionCorrection))
-    );
-  }
-
-  @PostMapping("/added-position/{licencePositionCorrectionId}/subarea-set-equity")
-  @LicencePositionCorrectionBelongsToCorrection
-  ModelAndView submitForAddedPosition(
-      LicenceCorrection correction,
-      LicencePositionCorrection licencePositionCorrection,
-      @RequestParam(SUBAREA_PARAM) String subareaKey,
-      @ModelAttribute("form") LicencePositionSetEquityForm form,
-      BindingResult bindingResult,
-      RedirectAttributes redirectAttributes
-  ) {
-    var subareaOption = subareaEquityOptionsService.getSubareaOptionOrThrow(licencePositionCorrection, subareaKey);
-    var operations = new ArrayList<>(
-        subareaSetEquityCorrectionService.getCommittedSubareaSetEquityOperations(
-            licencePositionCorrection,
-            subareaOption
-        )
-    );
-
-    var organisationIds = operations.stream().map(SubareaSetEquityOperation::transferTo).toList();
-    if (licencePositionSetEquityFormValidator.hasErrors(form, bindingResult, organisationIds)) {
-      return setEquityModelAndView(
-          correction,
-          subareaOption,
-          form,
-          ReverseRouter.route(on(LicencePositionAddChangeController.class)
-              .renderForAddedPosition(correction, licencePositionCorrection))
-      );
-    }
-
-    operations.add(toOperation(subareaOption, form));
-    subareaSetEquityCorrectionService.commitSubareaSetEquity(licencePositionCorrection, subareaOption, operations);
-
-    NotificationBanner.newSuccessBannerWithHeader("Equity set updated", redirectAttributes);
-    return ReverseRouter.redirect(on(this.getClass())
-        .renderSummaryForAddedPosition(correction, licencePositionCorrection, subareaKey));
-  }
-
-  @GetMapping("/added-position/{licencePositionCorrectionId}/subarea-set-equity/summary")
-  @LicencePositionCorrectionBelongsToCorrection
-  public ModelAndView renderSummaryForAddedPosition(
-      LicenceCorrection correction,
-      LicencePositionCorrection licencePositionCorrection,
-      @RequestParam(SUBAREA_PARAM) String subareaKey
-  ) {
-    var subareaOption = subareaEquityOptionsService.getSubareaOptionOrThrow(licencePositionCorrection, subareaKey);
-    var operations = subareaSetEquityCorrectionService
-        .getCommittedSubareaSetEquityOperations(licencePositionCorrection, subareaOption);
-
-    var removeUrls = operations.stream()
-        .map(operation -> ReverseRouter.route(on(this.getClass())
-            .removeForAddedPosition(correction, licencePositionCorrection, subareaKey, operation.transferTo())))
-        .toList();
-
-    return setEquitySummaryModelAndView(
-        correction,
-        subareaOption,
-        operations,
-        ReverseRouter.route(on(this.getClass()).renderForAddedPosition(correction, licencePositionCorrection, subareaKey)),
-        LicencePositionCorrectionRouteUtil.getPositionPageUrl(correction, licencePositionCorrection.getPositionId()),
-        ReverseRouter.route(on(this.getClass()).submitSummaryForAddedPosition(correction, licencePositionCorrection)),
-        removeUrls
-    );
-  }
-
-  @PostMapping("/added-position/{licencePositionCorrectionId}/subarea-set-equity/summary")
-  @LicencePositionCorrectionBelongsToCorrection
-  ModelAndView submitSummaryForAddedPosition(
-      LicenceCorrection correction,
-      LicencePositionCorrection licencePositionCorrection
-  ) {
-    return LicencePositionCorrectionRouteUtil.redirectToPositionPage(correction, licencePositionCorrection.getPositionId());
-  }
-
-  @PostMapping("/added-position/{licencePositionCorrectionId}/subarea-set-equity/remove")
-  @LicencePositionCorrectionBelongsToCorrection
-  ModelAndView removeForAddedPosition(
-      LicenceCorrection correction,
-      LicencePositionCorrection licencePositionCorrection,
-      @RequestParam(SUBAREA_PARAM) String subareaKey,
-      @RequestParam Integer transferTo
-  ) {
-    var subareaOption = subareaEquityOptionsService.getSubareaOptionOrThrow(licencePositionCorrection, subareaKey);
-    var operations = subareaSetEquityCorrectionService
-        .getCommittedSubareaSetEquityOperations(licencePositionCorrection, subareaOption)
-        .stream()
-        .filter(operation -> !operation.transferTo().equals(transferTo))
-        .toList();
-
-    subareaSetEquityCorrectionService.commitSubareaSetEquity(licencePositionCorrection, subareaOption, operations);
-    return ReverseRouter.redirect(on(this.getClass())
-        .renderSummaryForAddedPosition(correction, licencePositionCorrection, subareaKey));
+    return ReverseRouter.redirect(on(this.getClass()).renderSummaryForPosition(correctionPosition, subareaKey));
   }
 
   private SubareaSetEquityOperation toOperation(SubareaOption subareaOption, LicencePositionSetEquityForm form) {
@@ -352,5 +215,9 @@ public class LicencePositionSubareaSetEquityController {
 
   private String pageCaption(LicenceCorrection licenceCorrection, SubareaOption subareaOption) {
     return "%s - %s".formatted(licenceCorrection.getLicence().getLicenceReference(), subareaOption.label());
+  }
+
+  private String addChangeUrl(CorrectionPosition correctionPosition) {
+    return ReverseRouter.route(on(LicencePositionAddChangeController.class).renderForPosition(correctionPosition));
   }
 }

@@ -35,6 +35,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectionPosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionRouteUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
@@ -102,12 +103,12 @@ class LicencePositionSubareaSetEquityControllerTest extends AbstractControllerTe
   private OrganisationUnitQueryService organisationUnitQueryService;
 
   @Test
-  void renderForExecutedPosition_whenSubareaGoesIntoChange_rendersFormWithSubareaCaption() throws Exception {
+  void renderForPosition_whenSubareaGoesIntoChange_rendersFormWithSubareaCaption() throws Exception {
     givenCorrectionAllocatedToUser();
     givenExecutedPositionWithSubarea();
 
     mockMvc.perform(get(ReverseRouter.route(on(LicencePositionSubareaSetEquityController.class)
-            .renderForExecutedPosition(CORRECTION, POSITION, SUBAREA_KEY)))
+            .renderForPosition(new CorrectionPosition.Executed(CORRECTION, POSITION), SUBAREA_KEY)))
             .with(user(regulatorUser)))
         .andExpectAll(
             status().isOk(),
@@ -116,24 +117,24 @@ class LicencePositionSubareaSetEquityControllerTest extends AbstractControllerTe
             model().attribute("pageTitle", "Add equity"),
             model().attribute("pageCaption", PAGE_CAPTION),
             model().attribute("backLinkUrl", ReverseRouter.route(on(LicencePositionAddChangeController.class)
-                .renderForExecutedPosition(CORRECTION, POSITION))));
+                .renderForPosition(new CorrectionPosition.Executed(CORRECTION, POSITION)))));
   }
 
   @Test
-  void renderForExecutedPosition_whenSubareaUnknown_notFound() throws Exception {
+  void renderForPosition_whenSubareaUnknown_notFound() throws Exception {
     givenCorrectionAllocatedToUser();
-    when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(POSITION));
-    when(subareaEquityOptionsService.getSubareaOptionOrThrow(CORRECTION, POSITION, SUBAREA_KEY))
+    givenCorrectionPosition(new CorrectionPosition.Executed(CORRECTION, POSITION));
+    when(subareaEquityOptionsService.getSubareaOptionOrThrow(new CorrectionPosition.Executed(CORRECTION, POSITION), SUBAREA_KEY))
         .thenThrow(new LmsEntityNotFoundException("subarea", SUBAREA_KEY));
 
     mockMvc.perform(get(ReverseRouter.route(on(LicencePositionSubareaSetEquityController.class)
-            .renderForExecutedPosition(CORRECTION, POSITION, SUBAREA_KEY)))
+            .renderForPosition(new CorrectionPosition.Executed(CORRECTION, POSITION), SUBAREA_KEY)))
             .with(user(regulatorUser)))
         .andExpect(status().isNotFound());
   }
 
   @Test
-  void renderForExecutedPosition_whenCorrectionIsNotInProgress() throws Exception {
+  void renderForPosition_whenCorrectionIsNotInProgress() throws Exception {
     var correction = LicenceCorrectionTestUtil.newBuilder()
         .withId(CORRECTION_ID)
         .withStatus(LicenceCorrectionStatus.COMPLETE)
@@ -143,7 +144,7 @@ class LicencePositionSubareaSetEquityControllerTest extends AbstractControllerTe
         .thenReturn(Optional.of(correction));
     when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(correction));
     mockMvc.perform(get(ReverseRouter.route(on(LicencePositionSubareaSetEquityController.class)
-            .renderForExecutedPosition(correction, POSITION, null)))
+            .renderForPosition(new CorrectionPosition.Executed(correction, POSITION), null)))
             .with(user(regulatorUser)))
         .andExpect(status().isForbidden())
         .andExpect(status().reason(
@@ -152,12 +153,12 @@ class LicencePositionSubareaSetEquityControllerTest extends AbstractControllerTe
   }
 
   @Test
-  void submitForExecutedPosition_whenValid_addsOrganisationToSubareaAndRedirectsToSummary() throws Exception {
+  void submitForPosition_whenValid_addsOrganisationToSubareaAndRedirectsToSummary() throws Exception {
     givenCorrectionAllocatedToUser();
     givenExecutedPositionWithSubarea();
     var committedOperation = subareaSetEquityOperation(1, 40);
     when(subareaSetEquityCorrectionService
-        .getCommittedSubareaSetEquityOperationsForExecutedPosition(CORRECTION, POSITION, SUBAREA_OPTION))
+        .getCommittedSubareaSetEquityOperations(new CorrectionPosition.Executed(CORRECTION, POSITION), SUBAREA_OPTION))
         .thenReturn(List.of(committedOperation));
 
     var form = new LicencePositionSetEquityForm();
@@ -167,26 +168,22 @@ class LicencePositionSubareaSetEquityControllerTest extends AbstractControllerTe
     when(validator.hasErrors(eq(form), any(BindingResult.class), eq(List.of(1)))).thenReturn(false);
 
     mockMvc.perform(post(ReverseRouter.route(on(LicencePositionSubareaSetEquityController.class)
-            .submitForExecutedPosition(CORRECTION, POSITION, SUBAREA_KEY, null, null, null)))
+            .submitForPosition(new CorrectionPosition.Executed(CORRECTION, POSITION), SUBAREA_KEY, null, null, null)))
             .with(user(regulatorUser)).with(csrf())
             .flashAttr("form", form))
         .andExpect(status().is3xxRedirection())
         .andExpect(redirectedUrl(ReverseRouter.route(on(LicencePositionSubareaSetEquityController.class)
-            .renderSummaryForExecutedPosition(CORRECTION, POSITION, SUBAREA_KEY))));
+            .renderSummaryForPosition(new CorrectionPosition.Executed(CORRECTION, POSITION), SUBAREA_KEY))));
 
-    verify(subareaSetEquityCorrectionService).commitSubareaSetEquityForExecutedPosition(
-        CORRECTION,
-        POSITION,
-        SUBAREA_OPTION,
-        List.of(committedOperation, subareaSetEquityOperation(123, 60)));
+    verify(subareaSetEquityCorrectionService).commitSubareaSetEquity(new CorrectionPosition.Executed(CORRECTION, POSITION), SUBAREA_OPTION, List.of(committedOperation, subareaSetEquityOperation(123, 60)));
   }
 
   @Test
-  void submitForExecutedPosition_whenInvalid_rendersFormAndDoesNotPersist() throws Exception {
+  void submitForPosition_whenInvalid_rendersFormAndDoesNotPersist() throws Exception {
     givenCorrectionAllocatedToUser();
     givenExecutedPositionWithSubarea();
     when(subareaSetEquityCorrectionService
-        .getCommittedSubareaSetEquityOperationsForExecutedPosition(CORRECTION, POSITION, SUBAREA_OPTION))
+        .getCommittedSubareaSetEquityOperations(new CorrectionPosition.Executed(CORRECTION, POSITION), SUBAREA_OPTION))
         .thenReturn(List.of());
 
     var form = new LicencePositionSetEquityForm();
@@ -195,7 +192,7 @@ class LicencePositionSubareaSetEquityControllerTest extends AbstractControllerTe
     when(validator.hasErrors(eq(form), any(BindingResult.class), eq(List.of()))).thenReturn(true);
 
     mockMvc.perform(post(ReverseRouter.route(on(LicencePositionSubareaSetEquityController.class)
-            .submitForExecutedPosition(CORRECTION, POSITION, SUBAREA_KEY, null, null, null)))
+            .submitForPosition(new CorrectionPosition.Executed(CORRECTION, POSITION), SUBAREA_KEY, null, null, null)))
             .with(user(regulatorUser)).with(csrf())
             .flashAttr("form", form))
         .andExpectAll(
@@ -203,15 +200,15 @@ class LicencePositionSubareaSetEquityControllerTest extends AbstractControllerTe
             view().name(FORM_VIEW),
             model().attribute("pageCaption", PAGE_CAPTION),
             model().attribute("backLinkUrl", ReverseRouter.route(on(LicencePositionAddChangeController.class)
-                .renderForExecutedPosition(CORRECTION, POSITION))));
+                .renderForPosition(new CorrectionPosition.Executed(CORRECTION, POSITION)))));
 
     verify(subareaSetEquityCorrectionService)
-        .getCommittedSubareaSetEquityOperationsForExecutedPosition(CORRECTION, POSITION, SUBAREA_OPTION);
+        .getCommittedSubareaSetEquityOperations(new CorrectionPosition.Executed(CORRECTION, POSITION), SUBAREA_OPTION);
     verifyNoMoreInteractions(subareaSetEquityCorrectionService);
   }
 
   @Test
-  void submitForExecutedPosition_whenCorrectionIsNotInProgress() throws Exception {
+  void submitForPosition_whenCorrectionIsNotInProgress() throws Exception {
     var correction = LicenceCorrectionTestUtil.newBuilder()
         .withId(CORRECTION_ID)
         .withStatus(LicenceCorrectionStatus.COMPLETE)
@@ -221,7 +218,7 @@ class LicencePositionSubareaSetEquityControllerTest extends AbstractControllerTe
         .thenReturn(Optional.of(correction));
     when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(correction));
     mockMvc.perform(post(ReverseRouter.route(on(LicencePositionSubareaSetEquityController.class)
-            .submitForExecutedPosition(correction, POSITION, null, null, null, null)))
+            .submitForPosition(new CorrectionPosition.Executed(correction, POSITION), null, null, null, null)))
             .with(user(regulatorUser))
             .with(csrf()))
         .andExpect(status().isForbidden())
@@ -231,7 +228,7 @@ class LicencePositionSubareaSetEquityControllerTest extends AbstractControllerTe
   }
 
   @Test
-  void renderSummaryForExecutedPosition_rendersTheSubareasOrganisations() throws Exception {
+  void renderSummaryForPosition_rendersTheSubareasOrganisations() throws Exception {
     givenCorrectionAllocatedToUser();
     givenExecutedPositionWithSubarea();
     var committedOperations = List.of(subareaSetEquityOperation(1, 40), subareaSetEquityOperation(2, 60));
@@ -239,12 +236,12 @@ class LicencePositionSubareaSetEquityControllerTest extends AbstractControllerTe
         new SetEquityRow("Org One", BigDecimal.valueOf(40)),
         new SetEquityRow("Org Two", BigDecimal.valueOf(60)));
     when(subareaSetEquityCorrectionService
-        .getCommittedSubareaSetEquityOperationsForExecutedPosition(CORRECTION, POSITION, SUBAREA_OPTION))
+        .getCommittedSubareaSetEquityOperations(new CorrectionPosition.Executed(CORRECTION, POSITION), SUBAREA_OPTION))
         .thenReturn(committedOperations);
     when(setEquityCorrectionService.getSetEquityViews(committedOperations)).thenReturn(views);
 
     mockMvc.perform(get(ReverseRouter.route(on(LicencePositionSubareaSetEquityController.class)
-            .renderSummaryForExecutedPosition(CORRECTION, POSITION, SUBAREA_KEY)))
+            .renderSummaryForPosition(new CorrectionPosition.Executed(CORRECTION, POSITION), SUBAREA_KEY)))
             .with(user(regulatorUser)))
         .andExpectAll(
             status().isOk(),
@@ -255,42 +252,41 @@ class LicencePositionSubareaSetEquityControllerTest extends AbstractControllerTe
             model().attribute("totalEquity", BigDecimal.valueOf(100)),
             model().attribute("removeUrls", List.of(
                 ReverseRouter.route(on(LicencePositionSubareaSetEquityController.class)
-                    .removeForExecutedPosition(CORRECTION, POSITION, SUBAREA_KEY, 1)),
+                    .removeForPosition(new CorrectionPosition.Executed(CORRECTION, POSITION), SUBAREA_KEY, 1)),
                 ReverseRouter.route(on(LicencePositionSubareaSetEquityController.class)
-                    .removeForExecutedPosition(CORRECTION, POSITION, SUBAREA_KEY, 2)))),
+                    .removeForPosition(new CorrectionPosition.Executed(CORRECTION, POSITION), SUBAREA_KEY, 2)))),
             model().attribute("addOrganisationUrl", ReverseRouter.route(on(LicencePositionSubareaSetEquityController.class)
-                .renderForExecutedPosition(CORRECTION, POSITION, SUBAREA_KEY))),
+                .renderForPosition(new CorrectionPosition.Executed(CORRECTION, POSITION), SUBAREA_KEY))),
             model().attribute("saveAndContinueUrl", ReverseRouter.route(on(LicencePositionSubareaSetEquityController.class)
-                .submitSummaryForExecutedPosition(CORRECTION, POSITION))),
+                .submitSummaryForPosition(new CorrectionPosition.Executed(CORRECTION, POSITION)))),
             model().attribute("backLinkUrl", LicencePositionCorrectionRouteUtil.getPositionPageUrl(CORRECTION, POSITION.getId())));
   }
 
   @Test
-  void removeForExecutedPosition_removesTheOrganisationFromTheSubareaAndRedirectsToSummary() throws Exception {
+  void removeForPosition_removesTheOrganisationFromTheSubareaAndRedirectsToSummary() throws Exception {
     givenCorrectionAllocatedToUser();
     givenExecutedPositionWithSubarea();
     when(subareaSetEquityCorrectionService
-        .getCommittedSubareaSetEquityOperationsForExecutedPosition(CORRECTION, POSITION, SUBAREA_OPTION))
+        .getCommittedSubareaSetEquityOperations(new CorrectionPosition.Executed(CORRECTION, POSITION), SUBAREA_OPTION))
         .thenReturn(List.of(subareaSetEquityOperation(1, 40), subareaSetEquityOperation(2, 60)));
 
     mockMvc.perform(post(ReverseRouter.route(on(LicencePositionSubareaSetEquityController.class)
-            .removeForExecutedPosition(CORRECTION, POSITION, SUBAREA_KEY, 1)))
+            .removeForPosition(new CorrectionPosition.Executed(CORRECTION, POSITION), SUBAREA_KEY, 1)))
             .with(user(regulatorUser)).with(csrf()))
         .andExpect(status().is3xxRedirection())
         .andExpect(redirectedUrl(ReverseRouter.route(on(LicencePositionSubareaSetEquityController.class)
-            .renderSummaryForExecutedPosition(CORRECTION, POSITION, SUBAREA_KEY))));
+            .renderSummaryForPosition(new CorrectionPosition.Executed(CORRECTION, POSITION), SUBAREA_KEY))));
 
-    verify(subareaSetEquityCorrectionService).commitSubareaSetEquityForExecutedPosition(
-        CORRECTION, POSITION, SUBAREA_OPTION, List.of(subareaSetEquityOperation(2, 60)));
+    verify(subareaSetEquityCorrectionService).commitSubareaSetEquity(new CorrectionPosition.Executed(CORRECTION, POSITION), SUBAREA_OPTION, List.of(subareaSetEquityOperation(2, 60)));
   }
 
   @Test
-  void submitSummaryForExecutedPosition_redirectsToLicencePosition() throws Exception {
+  void submitSummaryForPosition_redirectsToLicencePosition() throws Exception {
     givenCorrectionAllocatedToUser();
-    when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(POSITION));
+    givenCorrectionPosition(new CorrectionPosition.Executed(CORRECTION, POSITION));
 
     mockMvc.perform(post(ReverseRouter.route(on(LicencePositionSubareaSetEquityController.class)
-            .submitSummaryForExecutedPosition(CORRECTION, POSITION)))
+            .submitSummaryForPosition(new CorrectionPosition.Executed(CORRECTION, POSITION))))
             .with(user(regulatorUser)).with(csrf()))
         .andExpect(status().is3xxRedirection())
         .andExpect(redirectedUrl(LicencePositionCorrectionRouteUtil.getPositionPageUrl(CORRECTION, POSITION.getId())));
@@ -299,53 +295,10 @@ class LicencePositionSubareaSetEquityControllerTest extends AbstractControllerTe
   }
 
   @Test
-  void renderForAddedPosition_whenSubareaGoesIntoChange_rendersFormWithSubareaCaption() throws Exception {
+  void submitForPosition_whenStagedPositionAndOrganisationAlreadyAddedToSubarea_rendersFormAndDoesNotPersist() throws Exception {
     givenCorrectionAllocatedToUser();
     givenAddedPositionWithSubarea();
-
-    mockMvc.perform(get(ReverseRouter.route(on(LicencePositionSubareaSetEquityController.class)
-            .renderForAddedPosition(CORRECTION, POSITION_CORRECTION, SUBAREA_KEY)))
-            .with(user(regulatorUser)))
-        .andExpectAll(
-            status().isOk(),
-            view().name(FORM_VIEW),
-            model().attributeExists("form", "licenseeOrgUnitUrl", "preselectedTransferTo"),
-            model().attribute("pageTitle", "Add equity"),
-            model().attribute("pageCaption", PAGE_CAPTION),
-            model().attribute("backLinkUrl", ReverseRouter.route(on(LicencePositionAddChangeController.class)
-                .renderForAddedPosition(CORRECTION, POSITION_CORRECTION))));
-  }
-
-  @Test
-  void submitForAddedPosition_whenValid_addsOrganisationToSubareaAndRedirectsToSummary() throws Exception {
-    givenCorrectionAllocatedToUser();
-    givenAddedPositionWithSubarea();
-    when(subareaSetEquityCorrectionService.getCommittedSubareaSetEquityOperations(POSITION_CORRECTION, SUBAREA_OPTION))
-        .thenReturn(List.of());
-
-    var form = new LicencePositionSetEquityForm();
-    form.setTransferTo("123");
-    form.getEquity().setInputValue("100");
-
-    when(validator.hasErrors(eq(form), any(BindingResult.class), eq(List.of()))).thenReturn(false);
-
-    mockMvc.perform(post(ReverseRouter.route(on(LicencePositionSubareaSetEquityController.class)
-            .submitForAddedPosition(CORRECTION, POSITION_CORRECTION, SUBAREA_KEY, null, null, null)))
-            .with(user(regulatorUser)).with(csrf())
-            .flashAttr("form", form))
-        .andExpect(status().is3xxRedirection())
-        .andExpect(redirectedUrl(ReverseRouter.route(on(LicencePositionSubareaSetEquityController.class)
-            .renderSummaryForAddedPosition(CORRECTION, POSITION_CORRECTION, SUBAREA_KEY))));
-
-    verify(subareaSetEquityCorrectionService).commitSubareaSetEquity(
-        POSITION_CORRECTION, SUBAREA_OPTION, List.of(subareaSetEquityOperation(123, 100)));
-  }
-
-  @Test
-  void submitForAddedPosition_whenOrganisationAlreadyAddedToSubarea_rendersFormAndDoesNotPersist() throws Exception {
-    givenCorrectionAllocatedToUser();
-    givenAddedPositionWithSubarea();
-    when(subareaSetEquityCorrectionService.getCommittedSubareaSetEquityOperations(POSITION_CORRECTION, SUBAREA_OPTION))
+    when(subareaSetEquityCorrectionService.getCommittedSubareaSetEquityOperations(new CorrectionPosition.Staged(POSITION_CORRECTION), SUBAREA_OPTION))
         .thenReturn(List.of(subareaSetEquityOperation(123, 40)));
 
     var form = new LicencePositionSetEquityForm();
@@ -355,7 +308,7 @@ class LicencePositionSubareaSetEquityControllerTest extends AbstractControllerTe
     when(validator.hasErrors(eq(form), any(BindingResult.class), eq(List.of(123)))).thenReturn(true);
 
     mockMvc.perform(post(ReverseRouter.route(on(LicencePositionSubareaSetEquityController.class)
-            .submitForAddedPosition(CORRECTION, POSITION_CORRECTION, SUBAREA_KEY, null, null, null)))
+            .submitForPosition(new CorrectionPosition.Staged(POSITION_CORRECTION), SUBAREA_KEY, null, null, null)))
             .with(user(regulatorUser)).with(csrf())
             .flashAttr("form", form))
         .andExpectAll(
@@ -363,67 +316,19 @@ class LicencePositionSubareaSetEquityControllerTest extends AbstractControllerTe
             view().name(FORM_VIEW),
             model().attribute("pageCaption", PAGE_CAPTION),
             model().attribute("backLinkUrl", ReverseRouter.route(on(LicencePositionAddChangeController.class)
-                .renderForAddedPosition(CORRECTION, POSITION_CORRECTION))));
+                .renderForPosition(new CorrectionPosition.Staged(POSITION_CORRECTION)))));
 
-    verify(subareaSetEquityCorrectionService).getCommittedSubareaSetEquityOperations(POSITION_CORRECTION, SUBAREA_OPTION);
+    verify(subareaSetEquityCorrectionService).getCommittedSubareaSetEquityOperations(new CorrectionPosition.Staged(POSITION_CORRECTION), SUBAREA_OPTION);
     verifyNoMoreInteractions(subareaSetEquityCorrectionService);
   }
 
   @Test
-  void renderSummaryForAddedPosition_rendersTheSubareasOrganisations() throws Exception {
+  void submitSummaryForPosition_whenStagedPosition_redirectsToAddedPosition() throws Exception {
     givenCorrectionAllocatedToUser();
-    givenAddedPositionWithSubarea();
-    var committedOperations = List.of(subareaSetEquityOperation(1, 40));
-    var views = List.of(new SetEquityRow("Org One", BigDecimal.valueOf(40)));
-    when(subareaSetEquityCorrectionService.getCommittedSubareaSetEquityOperations(POSITION_CORRECTION, SUBAREA_OPTION))
-        .thenReturn(committedOperations);
-    when(setEquityCorrectionService.getSetEquityViews(committedOperations)).thenReturn(views);
-
-    mockMvc.perform(get(ReverseRouter.route(on(LicencePositionSubareaSetEquityController.class)
-            .renderSummaryForAddedPosition(CORRECTION, POSITION_CORRECTION, SUBAREA_KEY)))
-            .with(user(regulatorUser)))
-        .andExpectAll(
-            status().isOk(),
-            view().name(SUMMARY_VIEW),
-            model().attribute("pageTitle", "Add subarea equity"),
-            model().attribute("pageCaption", PAGE_CAPTION),
-            model().attribute("setEquityViews", views),
-            model().attribute("totalEquity", BigDecimal.valueOf(40)),
-            model().attribute("removeUrls", List.of(
-                ReverseRouter.route(on(LicencePositionSubareaSetEquityController.class)
-                    .removeForAddedPosition(CORRECTION, POSITION_CORRECTION, SUBAREA_KEY, 1)))),
-            model().attribute("addOrganisationUrl", ReverseRouter.route(on(LicencePositionSubareaSetEquityController.class)
-                .renderForAddedPosition(CORRECTION, POSITION_CORRECTION, SUBAREA_KEY))),
-            model().attribute("saveAndContinueUrl", ReverseRouter.route(on(LicencePositionSubareaSetEquityController.class)
-                .submitSummaryForAddedPosition(CORRECTION, POSITION_CORRECTION))),
-            model().attribute("backLinkUrl", LicencePositionCorrectionRouteUtil.getPositionPageUrl(CORRECTION, POSITION_CORRECTION.getPositionId())));
-  }
-
-  @Test
-  void removeForAddedPosition_removesTheOrganisationFromTheSubareaAndRedirectsToSummary() throws Exception {
-    givenCorrectionAllocatedToUser();
-    givenAddedPositionWithSubarea();
-    when(subareaSetEquityCorrectionService.getCommittedSubareaSetEquityOperations(POSITION_CORRECTION, SUBAREA_OPTION))
-        .thenReturn(List.of(subareaSetEquityOperation(1, 40), subareaSetEquityOperation(2, 60)));
+    givenCorrectionPosition(new CorrectionPosition.Staged(POSITION_CORRECTION));
 
     mockMvc.perform(post(ReverseRouter.route(on(LicencePositionSubareaSetEquityController.class)
-            .removeForAddedPosition(CORRECTION, POSITION_CORRECTION, SUBAREA_KEY, 2)))
-            .with(user(regulatorUser)).with(csrf()))
-        .andExpect(status().is3xxRedirection())
-        .andExpect(redirectedUrl(ReverseRouter.route(on(LicencePositionSubareaSetEquityController.class)
-            .renderSummaryForAddedPosition(CORRECTION, POSITION_CORRECTION, SUBAREA_KEY))));
-
-    verify(subareaSetEquityCorrectionService).commitSubareaSetEquity(
-        POSITION_CORRECTION, SUBAREA_OPTION, List.of(subareaSetEquityOperation(1, 40)));
-  }
-
-  @Test
-  void submitSummaryForAddedPosition_redirectsToAddedPosition() throws Exception {
-    givenCorrectionAllocatedToUser();
-    when(licencePositionCorrectionService.findById(POSITION_CORRECTION_ID)).thenReturn(Optional.of(POSITION_CORRECTION));
-
-    mockMvc.perform(post(ReverseRouter.route(on(LicencePositionSubareaSetEquityController.class)
-            .submitSummaryForAddedPosition(CORRECTION, POSITION_CORRECTION)))
+            .submitSummaryForPosition(new CorrectionPosition.Staged(POSITION_CORRECTION))))
             .with(user(regulatorUser)).with(csrf()))
         .andExpect(status().is3xxRedirection())
         .andExpect(redirectedUrl(LicencePositionCorrectionRouteUtil.getPositionPageUrl(CORRECTION, POSITION_CORRECTION.getPositionId())));
@@ -432,7 +337,7 @@ class LicencePositionSubareaSetEquityControllerTest extends AbstractControllerTe
   }
 
   @Test
-  void renderForAddedPosition_whenLicenceIsCarbonStorage_forbidden() throws Exception {
+  void renderForPosition_whenStagedPositionAndLicenceIsCarbonStorage_forbidden() throws Exception {
     var carbonStorageCorrection = LicenceCorrectionTestUtil.newBuilder()
         .withId(CORRECTION_ID)
         .withLicence(LicenceTestUtil.builder().withLicenceType(LicenceType.CARBON_STORAGE).build())
@@ -442,7 +347,7 @@ class LicencePositionSubareaSetEquityControllerTest extends AbstractControllerTe
     when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(carbonStorageCorrection));
 
     mockMvc.perform(get(ReverseRouter.route(on(LicencePositionSubareaSetEquityController.class)
-            .renderForAddedPosition(carbonStorageCorrection, POSITION_CORRECTION, SUBAREA_KEY)))
+            .renderForPosition(new CorrectionPosition.Staged(POSITION_CORRECTION), SUBAREA_KEY)))
             .with(user(regulatorUser)))
         .andExpect(status().isForbidden());
 
@@ -450,12 +355,12 @@ class LicencePositionSubareaSetEquityControllerTest extends AbstractControllerTe
   }
 
   @Test
-  void renderForAddedPosition_whenNotAllocated_forbidden() throws Exception {
+  void renderForPosition_whenStagedPositionAndNotAllocated_forbidden() throws Exception {
     when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
         .thenReturn(Optional.empty());
 
     mockMvc.perform(get(ReverseRouter.route(on(LicencePositionSubareaSetEquityController.class)
-            .renderForAddedPosition(CORRECTION, POSITION_CORRECTION, SUBAREA_KEY)))
+            .renderForPosition(new CorrectionPosition.Staged(POSITION_CORRECTION), SUBAREA_KEY)))
             .with(user(regulatorUser)))
         .andExpect(status().isForbidden());
 
@@ -469,13 +374,13 @@ class LicencePositionSubareaSetEquityControllerTest extends AbstractControllerTe
   }
 
   private void givenExecutedPositionWithSubarea() {
-    when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(POSITION));
-    when(subareaEquityOptionsService.getSubareaOptionOrThrow(CORRECTION, POSITION, SUBAREA_KEY)).thenReturn(SUBAREA_OPTION);
+    var correctionPosition = givenCorrectionPosition(new CorrectionPosition.Executed(CORRECTION, POSITION));
+    when(subareaEquityOptionsService.getSubareaOptionOrThrow(correctionPosition, SUBAREA_KEY)).thenReturn(SUBAREA_OPTION);
   }
 
   private void givenAddedPositionWithSubarea() {
-    when(licencePositionCorrectionService.findById(POSITION_CORRECTION_ID)).thenReturn(Optional.of(POSITION_CORRECTION));
-    when(subareaEquityOptionsService.getSubareaOptionOrThrow(POSITION_CORRECTION, SUBAREA_KEY)).thenReturn(SUBAREA_OPTION);
+    var correctionPosition = givenCorrectionPosition(new CorrectionPosition.Staged(POSITION_CORRECTION));
+    when(subareaEquityOptionsService.getSubareaOptionOrThrow(correctionPosition, SUBAREA_KEY)).thenReturn(SUBAREA_OPTION);
   }
 
   private static SubareaSetEquityOperation subareaSetEquityOperation(int transferTo, int equity) {

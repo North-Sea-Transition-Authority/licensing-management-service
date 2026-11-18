@@ -9,8 +9,7 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectionPosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.spatial.LicencePositionSpatialService;
 
 @Service
@@ -22,30 +21,12 @@ public class SubareaEquityOptionsService {
     this.licencePositionSpatialService = licencePositionSpatialService;
   }
 
-  public Map<String, String> getSubareaOptions(LicenceCorrection correction, LicencePosition licencePosition) {
-    return toOptionMap(getOptions(correction, licencePosition.getId()));
+  public Map<String, String> getSubareaOptions(CorrectionPosition correctionPosition) {
+    return toOptionMap(getOptions(correctionPosition.correction(), correctionPosition.positionId()));
   }
 
-  public Map<String, String> getSubareaOptions(LicencePositionCorrection licencePositionCorrection) {
-    return toOptionMap(getOptions(
-        licencePositionCorrection.getLicenceCorrection(),
-        licencePositionCorrection.getPositionId()
-    ));
-  }
-
-  SubareaOption getSubareaOptionOrThrow(
-      LicenceCorrection correction,
-      LicencePosition licencePosition,
-      String subareaKey
-  ) {
-    return findOptionOrThrow(getOptions(correction, licencePosition.getId()), subareaKey);
-  }
-
-  SubareaOption getSubareaOptionOrThrow(LicencePositionCorrection licencePositionCorrection, String subareaKey) {
-    return findOptionOrThrow(
-        getOptions(licencePositionCorrection.getLicenceCorrection(), licencePositionCorrection.getPositionId()),
-        subareaKey
-    );
+  SubareaOption getSubareaOptionOrThrow(CorrectionPosition correctionPosition, String subareaKey) {
+    return findOptionOrThrow(getOptions(correctionPosition.correction(), correctionPosition.positionId()), subareaKey);
   }
 
   private List<SubareaOption> getOptions(LicenceCorrection correction, UUID licencePositionId) {

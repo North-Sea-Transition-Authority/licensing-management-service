@@ -30,11 +30,11 @@ import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionChangeType;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionRouteUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.LicencePositionPartialSurrenderController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.PartialSurrenderCorrectionService;
@@ -66,6 +66,7 @@ class PartialSurrenderTaskListControllerTest extends AbstractControllerTest {
       .build();
   private static final UUID CORRECTION_ID = UUID.randomUUID();
   private static final UUID POSITION_CORRECTION_ID = UUID.randomUUID();
+  private static final UUID STAGED_POSITION_ID = UUID.randomUUID();
   private static final UUID POSITION_ID = UUID.randomUUID();
   private static final String LIVE_CHANGE_ID = UUID.randomUUID().toString();
   private static final LicencePositionChange LIVE_CHANGE = LicencePositionChangeTestUtil.newBuilder()
@@ -97,6 +98,9 @@ class PartialSurrenderTaskListControllerTest extends AbstractControllerTest {
   private static final LicencePositionCorrection POSITION_CORRECTION = LicencePositionCorrectionTestUtil.newBuilder()
       .withId(POSITION_CORRECTION_ID)
       .withLicenceCorrection(CORRECTION)
+      .withPayload(CreateLicencePositionPayloadTestUtil.newBuilder()
+          .withLicencePositionId(STAGED_POSITION_ID.toString())
+          .build())
       .build();
 
   private static final String VIEW_NAME = "lms/licence/correction/change/partialSurrender/partialSurrenderTaskList";
@@ -127,8 +131,7 @@ class PartialSurrenderTaskListControllerTest extends AbstractControllerTest {
             model().attribute("positionReference", POSITION_REGULATOR_REFERENCE),
             model().attribute("positionDate", DateUtil.formatLongDate(POSITION_DATE)),
             model().attribute("taskListSections", SECTIONS),
-            model().attribute("backLinkUrl", ReverseRouter.route(on(LicenceCorrectionController.class)
-                .renderLicencePosition(CORRECTION, POSITION, null))));
+            model().attribute("backLinkUrl", LicencePositionCorrectionRouteUtil.getPositionPageUrl(CORRECTION, POSITION.getId())));
   }
 
   @Test
@@ -185,8 +188,7 @@ class PartialSurrenderTaskListControllerTest extends AbstractControllerTest {
             status().isOk(),
             model().attribute("positionReference", ADDED_POSITION_CORRECTION_REFERENCE),
             model().attribute("positionDate", DateUtil.formatLongDate(POSITION_DATE)),
-            model().attribute("backLinkUrl", ReverseRouter.route(on(LicenceCorrectionController.class)
-                .renderAddedPosition(CORRECTION, POSITION_CORRECTION, null))));
+            model().attribute("backLinkUrl", LicencePositionCorrectionRouteUtil.getPositionPageUrl(CORRECTION, STAGED_POSITION_ID)));
   }
 
   @Test
@@ -292,8 +294,7 @@ class PartialSurrenderTaskListControllerTest extends AbstractControllerTest {
             model().attribute("positionReference", POSITION_REGULATOR_REFERENCE),
             model().attribute("positionDate", DateUtil.formatLongDate(POSITION_DATE)),
             model().attribute("taskListSections", SECTIONS),
-            model().attribute("backLinkUrl", ReverseRouter.route(on(LicenceCorrectionController.class)
-                .renderLicencePosition(CORRECTION, POSITION, null))));
+            model().attribute("backLinkUrl", LicencePositionCorrectionRouteUtil.getPositionPageUrl(CORRECTION, POSITION.getId())));
   }
 
   @Test
@@ -397,6 +398,7 @@ class PartialSurrenderTaskListControllerTest extends AbstractControllerTest {
   ) {
     var payload = changeType == LicencePositionCorrectionChangeType.ADD_POSITION
         ? CreateLicencePositionPayloadTestUtil.newBuilder()
+            .withLicencePositionId(STAGED_POSITION_ID.toString())
             .withCorrectionReference(ADDED_POSITION_CORRECTION_REFERENCE)
             .build()
         : UpdateLicencePositionPayloadTestUtil.newBuilder().build();

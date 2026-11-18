@@ -28,9 +28,9 @@ import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.Noti
 import uk.co.nstauthority.licensingmanagementservice.fds.searchselector.SearchSelectorService;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionRouteUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.OrganisationChangeForm;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.OrganisationChangeFormValidator;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.OrganisationChangeService;
@@ -40,7 +40,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.operation.StorageOp
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.OrganisationChangeContext;
-import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @Controller
 @RequestMapping("/licence-corrections/{correctionId}")
@@ -125,8 +124,7 @@ public class LicencePositionStorageOperatorChangeController {
     );
 
     NotificationBanner.newSuccessBannerWithHeader("Storage operator change added", redirectAttributes);
-    return ReverseRouter.redirect(on(LicenceCorrectionController.class)
-        .renderLicencePosition(correction, licencePosition, null));
+    return LicencePositionCorrectionRouteUtil.redirectToPositionPage(correction, licencePosition.getId());
   }
 
   @GetMapping("/added-position/{licencePositionCorrectionId}/add-storage-operator-change")
@@ -146,7 +144,7 @@ public class LicencePositionStorageOperatorChangeController {
 
     return getStorageOperatorChangeModelAndView(
         form,
-        addedCancelUrl(correction, licencePositionCorrection),
+        addedCancelUrl(licencePositionCorrection),
         storageOperatorChangeContext.previousName()
     );
   }
@@ -171,7 +169,7 @@ public class LicencePositionStorageOperatorChangeController {
     )) {
       return getStorageOperatorChangeModelAndView(
           form,
-          addedCancelUrl(correction, licencePositionCorrection),
+          addedCancelUrl(licencePositionCorrection),
           storageOperatorChangeContext.previousName()
       );
     }
@@ -183,8 +181,7 @@ public class LicencePositionStorageOperatorChangeController {
     );
 
     NotificationBanner.newSuccessBannerWithHeader("Storage operator change added", redirectAttributes);
-    return ReverseRouter.redirect(on(LicenceCorrectionController.class)
-        .renderAddedPosition(correction, licencePositionCorrection, null));
+    return LicencePositionCorrectionRouteUtil.redirectToPositionPage(correction, licencePositionCorrection.getPositionId());
   }
 
   @GetMapping("/position/{licencePositionId}/change/{changeId}/correct-storage-operator-change")
@@ -245,8 +242,7 @@ public class LicencePositionStorageOperatorChangeController {
     );
 
     NotificationBanner.newSuccessBannerWithHeader("Storage operator change corrected", redirectAttributes);
-    return ReverseRouter.redirect(on(LicenceCorrectionController.class)
-        .renderLicencePosition(correction, licencePosition, null));
+    return LicencePositionCorrectionRouteUtil.redirectToPositionPage(correction, licencePosition.getId());
   }
 
   private ModelAndView getStorageOperatorChangeModelAndView(
@@ -267,13 +263,11 @@ public class LicencePositionStorageOperatorChangeController {
   }
 
   private String executedCancelUrl(LicenceCorrection correction, LicencePosition licencePosition) {
-    return ReverseRouter.route(on(LicenceCorrectionController.class)
-        .renderLicencePosition(correction, licencePosition, null));
+    return LicencePositionCorrectionRouteUtil.getPositionPageUrl(correction, licencePosition.getId());
   }
 
-  private String addedCancelUrl(LicenceCorrection correction, LicencePositionCorrection licencePositionCorrection) {
-    return ReverseRouter.route(on(LicenceCorrectionController.class)
-        .renderAddedPosition(correction, licencePositionCorrection, null));
+  private String addedCancelUrl(LicencePositionCorrection licencePositionCorrection) {
+    return LicencePositionCorrectionRouteUtil.getPositionPageUrl(licencePositionCorrection);
   }
 
   private Map<String, String> preselectedOperator(OrganisationChangeForm form) {

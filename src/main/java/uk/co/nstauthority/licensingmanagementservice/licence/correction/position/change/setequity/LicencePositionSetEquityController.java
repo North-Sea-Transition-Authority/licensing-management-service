@@ -26,9 +26,9 @@ import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.Noti
 import uk.co.nstauthority.licensingmanagementservice.fds.searchselector.SearchSelectorService;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionRouteUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.LicencePositionAddChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.EquitySetterOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
@@ -116,7 +116,7 @@ public class LicencePositionSetEquityController {
         correction,
         operations,
         ReverseRouter.route(on(this.getClass()).renderForExecutedPosition(correction, licencePosition)),
-        ReverseRouter.route(on(LicenceCorrectionController.class).renderLicencePosition(correction, licencePosition, null)),
+        LicencePositionCorrectionRouteUtil.getPositionPageUrl(correction, licencePosition.getId()),
         ReverseRouter.route(on(this.getClass()).submitSummaryForExecutedPosition(correction, licencePosition)),
         removeUrls
     );
@@ -129,8 +129,7 @@ public class LicencePositionSetEquityController {
       LicenceCorrection correction,
       LicencePosition licencePosition
   ) {
-    return ReverseRouter.redirect(on(LicenceCorrectionController.class)
-        .renderLicencePosition(correction, licencePosition, null));
+    return LicencePositionCorrectionRouteUtil.redirectToPositionPage(correction, licencePosition.getId());
   }
 
   @LicencePositionIsNotRemovedInCorrection
@@ -160,7 +159,7 @@ public class LicencePositionSetEquityController {
     return setEquityModelAndView(
         correction,
         new LicencePositionSetEquityForm(),
-        addedChangeChooserUrl(correction, licencePositionCorrection)
+        addedChangeChooserUrl(licencePositionCorrection)
     );
   }
 
@@ -177,7 +176,7 @@ public class LicencePositionSetEquityController {
 
     var organisationIds = operations.stream().map(SetEquityOperation::transferTo).toList();
     if (licencePositionSetEquityFormValidator.hasErrors(form, bindingResult, organisationIds)) {
-      return setEquityModelAndView(correction, form, addedChangeChooserUrl(correction, licencePositionCorrection));
+      return setEquityModelAndView(correction, form, addedChangeChooserUrl(licencePositionCorrection));
     }
 
     operations.add(toOperation(form));
@@ -207,8 +206,7 @@ public class LicencePositionSetEquityController {
         correction,
         operations,
         ReverseRouter.route(on(this.getClass()).renderForAddedPosition(correction, licencePositionCorrection)),
-        ReverseRouter.route(on(LicenceCorrectionController.class)
-            .renderAddedPosition(correction, licencePositionCorrection, null)),
+        LicencePositionCorrectionRouteUtil.getPositionPageUrl(correction, licencePositionCorrection.getPositionId()),
         ReverseRouter.route(on(this.getClass()).submitSummaryForAddedPosition(correction, licencePositionCorrection)),
         removeUrls
     );
@@ -220,8 +218,7 @@ public class LicencePositionSetEquityController {
       LicenceCorrection correction,
       LicencePositionCorrection licencePositionCorrection
   ) {
-    return ReverseRouter.redirect(on(LicenceCorrectionController.class)
-        .renderAddedPosition(correction, licencePositionCorrection, null));
+    return LicencePositionCorrectionRouteUtil.redirectToPositionPage(correction, licencePositionCorrection.getPositionId());
   }
 
   @PostMapping("/added-position/{licencePositionCorrectionId}/set-equity/remove")
@@ -292,9 +289,9 @@ public class LicencePositionSetEquityController {
         .renderForExecutedPosition(correction, licencePosition));
   }
 
-  private String addedChangeChooserUrl(LicenceCorrection correction, LicencePositionCorrection licencePositionCorrection) {
+  private String addedChangeChooserUrl(LicencePositionCorrection licencePositionCorrection) {
     return ReverseRouter.route(on(LicencePositionAddChangeController.class)
-        .renderForAddedPosition(correction, licencePositionCorrection));
+        .renderForAddedPosition(licencePositionCorrection.getLicenceCorrection(), licencePositionCorrection));
   }
 
 }

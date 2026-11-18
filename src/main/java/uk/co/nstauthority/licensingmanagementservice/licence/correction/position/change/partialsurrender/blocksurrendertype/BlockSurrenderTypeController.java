@@ -69,7 +69,7 @@ public class BlockSurrenderTypeController {
         correction,
         feature,
         BlockSurrenderTypeForm.from(existing, featureId),
-        taskListUrl(correction, licencePositionCorrection)
+        taskListUrl(licencePositionCorrection)
     );
   }
 
@@ -90,7 +90,7 @@ public class BlockSurrenderTypeController {
           correction,
           feature,
           form,
-          taskListUrl(correction, licencePositionCorrection)
+          taskListUrl(licencePositionCorrection)
       );
     }
 
@@ -211,9 +211,9 @@ public class BlockSurrenderTypeController {
         .addObject("backLinkUrl", backLinkUrl);
   }
 
-  private String taskListUrl(LicenceCorrection correction, LicencePositionCorrection licencePositionCorrection) {
+  private String taskListUrl(LicencePositionCorrection licencePositionCorrection) {
     return ReverseRouter.route(on(PartialSurrenderTaskListController.class)
-        .renderTaskList(correction, licencePositionCorrection, null));
+        .renderTaskList(licencePositionCorrection.getLicenceCorrection(), licencePositionCorrection, null));
   }
 
   private String correctingChangeTaskListUrl(

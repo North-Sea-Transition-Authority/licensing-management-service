@@ -27,9 +27,9 @@ import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.Noti
 import uk.co.nstauthority.licensingmanagementservice.fds.searchselector.SearchSelectorService;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionRouteUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.OrganisationChangeFormValidator;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.OrganisationChangeService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayload;
@@ -38,7 +38,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOp
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.OrganisationChangeContext;
-import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @Controller
 @RequestMapping("/licence-corrections/{correctionId}")
@@ -133,8 +132,7 @@ public class LicencePositionAdministratorChangeController {
     );
 
     NotificationBanner.newSuccessBannerWithHeader("Licence administrator change added", redirectAttributes);
-    return ReverseRouter.redirect(on(LicenceCorrectionController.class)
-        .renderLicencePosition(correction, licencePosition, null));
+    return LicencePositionCorrectionRouteUtil.redirectToPositionPage(correction, licencePosition.getId());
   }
 
   @GetMapping("/added-position/{licencePositionCorrectionId}/add-administrator-change")
@@ -153,7 +151,7 @@ public class LicencePositionAdministratorChangeController {
 
     return getAdministratorChangeModelAndView(
         form,
-        addedCancelUrl(correction, licencePositionCorrection),
+        LicencePositionCorrectionRouteUtil.getPositionPageUrl(correction, licencePositionCorrection.getPositionId()),
         administratorChangeContext.previousName()
     );
   }
@@ -177,7 +175,7 @@ public class LicencePositionAdministratorChangeController {
     )) {
       return getAdministratorChangeModelAndView(
           form,
-          addedCancelUrl(correction, licencePositionCorrection),
+          LicencePositionCorrectionRouteUtil.getPositionPageUrl(correction, licencePositionCorrection.getPositionId()),
           administratorChangeContext.previousName()
       );
     }
@@ -189,8 +187,7 @@ public class LicencePositionAdministratorChangeController {
     );
 
     NotificationBanner.newSuccessBannerWithHeader("Licence administrator change added", redirectAttributes);
-    return ReverseRouter.redirect(on(LicenceCorrectionController.class)
-        .renderAddedPosition(correction, licencePositionCorrection, null));
+    return LicencePositionCorrectionRouteUtil.redirectToPositionPage(correction, licencePositionCorrection.getPositionId());
   }
 
   @GetMapping("/position/{licencePositionId}/change/{changeId}/correct-administrator-change")
@@ -253,8 +250,7 @@ public class LicencePositionAdministratorChangeController {
     );
 
     NotificationBanner.newSuccessBannerWithHeader("Licence administrator change corrected", redirectAttributes);
-    return ReverseRouter.redirect(on(LicenceCorrectionController.class)
-        .renderLicencePosition(correction, licencePosition, null));
+    return LicencePositionCorrectionRouteUtil.redirectToPositionPage(correction, licencePosition.getId());
   }
 
   private OrganisationChangeContext getAddedPositionAdministratorChangeContext(
@@ -267,13 +263,7 @@ public class LicencePositionAdministratorChangeController {
   }
 
   private String executedCancelUrl(LicenceCorrection correction, LicencePosition licencePosition) {
-    return ReverseRouter.route(on(LicenceCorrectionController.class)
-        .renderLicencePosition(correction, licencePosition, null));
-  }
-
-  private String addedCancelUrl(LicenceCorrection correction, LicencePositionCorrection licencePositionCorrection) {
-    return ReverseRouter.route(on(LicenceCorrectionController.class)
-        .renderAddedPosition(correction, licencePositionCorrection, null));
+    return LicencePositionCorrectionRouteUtil.getPositionPageUrl(correction, licencePosition.getId());
   }
 
   private Map<String, String> preselectedAdministrator(AdministratorChangeForm form) {

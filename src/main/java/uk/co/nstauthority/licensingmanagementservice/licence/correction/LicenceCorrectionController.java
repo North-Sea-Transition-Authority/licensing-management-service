@@ -15,20 +15,16 @@ import org.springframework.web.bind.support.SessionStatus;
 import org.springframework.web.servlet.ModelAndView;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.LogWorkAreaItemView;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanViewCorrection;
-import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.LicencePositionCorrectionBelongsToCorrection;
-import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.position.LicencePositionBelongsToCorrectionLicence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.AddLicencePositionCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectionPosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectionPositionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.FilteredCorrectionTimeline;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionFilterService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionRouteUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionViewService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.reviewandapply.ReviewCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.update.UpdateCorrectionGeneralDetailsController;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionPageView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.filter.LicenceTimelineFilter;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.filter.LicenceTimelineFilterForm;
@@ -132,34 +128,6 @@ public class LicenceCorrectionController {
     );
 
     return ReverseRouter.redirect(on(LicenceCorrectionController.class).renderCorrection(licenceCorrection, null));
-  }
-
-  /**
-   * The old page for an executed position, which now redirects to {@link #renderPosition}. Removed once nothing links
-   * to it.
-   */
-  @GetMapping("/{correctionId}/{licencePositionId}")
-  @LicencePositionBelongsToCorrectionLicence
-  public ModelAndView renderLicencePosition(
-      LicenceCorrection licenceCorrection,
-      LicencePosition licencePosition,
-      @ModelAttribute(FILTER_SESSION_ATTRIBUTE) LicenceTimelineFilterSession filterSession
-  ) {
-    return LicencePositionCorrectionRouteUtil.redirectToPositionPage(licenceCorrection, licencePosition.getId());
-  }
-
-  /**
-   * The old page for a position the correction adds, which now redirects to {@link #renderPosition}. Removed once
-   * nothing links to it.
-   */
-  @GetMapping("/{correctionId}/added-positions/{licencePositionCorrectionId}")
-  @LicencePositionCorrectionBelongsToCorrection
-  public ModelAndView renderAddedPosition(
-      LicenceCorrection licenceCorrection,
-      LicencePositionCorrection licencePositionCorrection,
-      @ModelAttribute(FILTER_SESSION_ATTRIBUTE) LicenceTimelineFilterSession filterSession
-  ) {
-    return LicencePositionCorrectionRouteUtil.redirectToPositionPage(licencePositionCorrection);
   }
 
   @GetMapping("/{correctionId}/clear-filters")

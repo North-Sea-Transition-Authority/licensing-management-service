@@ -413,51 +413,6 @@ class LicenceCorrectionControllerTest extends AbstractControllerTest {
   }
 
   @Test
-  void renderLicencePosition_redirectsToThePositionPage() throws Exception {
-    var correction = allocatedCorrection();
-    var position = LicencePositionTestUtil.newBuilder()
-        .withId(UUID.randomUUID())
-        .withLicence(correction.getLicence())
-        .build();
-
-    when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
-        .thenReturn(Optional.of(correction));
-    when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(correction));
-    when(licencePositionService.findById(position.getId())).thenReturn(Optional.of(position));
-    when(licencePositionService.getPositionForLicence(correction.getLicence(), position.getId())).thenReturn(position);
-
-    mockMvc.perform(get(ReverseRouter.route(on(LicenceCorrectionController.class)
-            .renderLicencePosition(correction, position, null)))
-            .with(user(regulatorUser)))
-        .andExpectAll(
-            status().is3xxRedirection(),
-            redirectedUrl(LicencePositionCorrectionRouteUtil.getPositionPageUrl(correction, position.getId()))
-        );
-  }
-
-  @Test
-  void renderAddedPosition_redirectsToThePositionPage() throws Exception {
-    var correction = allocatedCorrection();
-    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
-        .withId(POSITION_CORRECTION_ID)
-        .withLicenceCorrection(correction)
-        .build();
-
-    when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
-        .thenReturn(Optional.of(correction));
-    when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(correction));
-    when(licencePositionCorrectionService.findById(POSITION_CORRECTION_ID)).thenReturn(Optional.of(positionCorrection));
-
-    mockMvc.perform(get(ReverseRouter.route(on(LicenceCorrectionController.class)
-            .renderAddedPosition(correction, positionCorrection, null)))
-            .with(user(regulatorUser)))
-        .andExpectAll(
-            status().is3xxRedirection(),
-            redirectedUrl(LicencePositionCorrectionRouteUtil.getPositionPageUrl(correction, positionCorrection.getPositionId()))
-        );
-  }
-
-  @Test
   void renderCorrection_whenNotAllocatedToUser() throws Exception {
     var correction = LicenceCorrectionTestUtil.newBuilder()
         .withId(CORRECTION_ID)

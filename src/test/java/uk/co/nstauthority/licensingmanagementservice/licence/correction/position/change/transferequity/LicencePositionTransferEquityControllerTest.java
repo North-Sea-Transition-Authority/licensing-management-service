@@ -38,12 +38,13 @@ import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionRouteUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.LicencePositionAddChangeController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.TransferEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
@@ -71,6 +72,7 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
       .build();
   private static final UUID CORRECTION_ID = UUID.randomUUID();
   private static final UUID POSITION_CORRECTION_ID = UUID.randomUUID();
+  private static final UUID STAGED_POSITION_ID = UUID.randomUUID();
   private static final UUID POSITION_ID = UUID.randomUUID();
   private static final LicenceCorrection CORRECTION = LicenceCorrectionTestUtil.newBuilder()
       .withId(CORRECTION_ID)
@@ -83,6 +85,9 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
   private static final LicencePositionCorrection POSITION_CORRECTION = LicencePositionCorrectionTestUtil.newBuilder()
       .withId(POSITION_CORRECTION_ID)
       .withLicenceCorrection(CORRECTION)
+      .withPayload(CreateLicencePositionPayloadTestUtil.newBuilder()
+          .withLicencePositionId(STAGED_POSITION_ID.toString())
+          .build())
       .build();
 
   private LicenceCorrection givenCorrectionAllocatedToUser() {
@@ -787,6 +792,9 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
     return LicencePositionCorrectionTestUtil.newBuilder()
         .withId(POSITION_CORRECTION_ID)
         .withLicenceCorrection(correction)
+        .withPayload(CreateLicencePositionPayloadTestUtil.newBuilder()
+            .withLicencePositionId(STAGED_POSITION_ID.toString())
+            .build())
         .build();
   }
 
@@ -816,8 +824,7 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
   }
 
   private static String addedPositionUrl() {
-    return ReverseRouter.route(on(LicenceCorrectionController.class)
-        .renderAddedPosition(CORRECTION, POSITION_CORRECTION, null));
+    return LicencePositionCorrectionRouteUtil.getPositionPageUrl(CORRECTION, STAGED_POSITION_ID);
   }
 
   private static String executedFormUrl() {
@@ -841,7 +848,6 @@ class LicencePositionTransferEquityControllerTest extends AbstractControllerTest
   }
 
   private static String executedPositionUrl() {
-    return ReverseRouter.route(on(LicenceCorrectionController.class)
-        .renderLicencePosition(CORRECTION, POSITION, null));
+    return LicencePositionCorrectionRouteUtil.getPositionPageUrl(CORRECTION, POSITION.getId());
   }
 }

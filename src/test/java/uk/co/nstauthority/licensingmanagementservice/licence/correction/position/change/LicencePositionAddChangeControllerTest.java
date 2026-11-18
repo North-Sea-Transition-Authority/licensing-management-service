@@ -30,10 +30,10 @@ import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionRouteUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.administrator.LicencePositionAdministratorChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.explorationoperator.LicencePositionExplorationOperatorChangeController;
@@ -186,8 +186,7 @@ class LicencePositionAddChangeControllerTest extends AbstractControllerTest {
                 "LICENSEE", "Licensee change",
                 "STORAGE_OPERATOR", "Storage operator change",
                 "EXPLORATION_OPERATOR", "Exploration operator change")),
-            model().attribute("backLinkUrl", ReverseRouter.route(on(LicenceCorrectionController.class)
-                .renderLicencePosition(correction, licencePosition, null))));
+            model().attribute("backLinkUrl", LicencePositionCorrectionRouteUtil.getPositionPageUrl(correction, licencePosition.getId())));
   }
 
   @Test
@@ -460,8 +459,7 @@ class LicencePositionAddChangeControllerTest extends AbstractControllerTest {
                 "LICENSEE", "Licensee change",
                 "STORAGE_OPERATOR", "Storage operator change",
                 "EXPLORATION_OPERATOR", "Exploration operator change")),
-            model().attribute("backLinkUrl", ReverseRouter.route(on(LicenceCorrectionController.class)
-                .renderAddedPosition(correction, positionCorrection, null))));
+            model().attribute("backLinkUrl", LicencePositionCorrectionRouteUtil.getPositionPageUrl(correction, positionCorrection.getPositionId())));
   }
 
   @Test

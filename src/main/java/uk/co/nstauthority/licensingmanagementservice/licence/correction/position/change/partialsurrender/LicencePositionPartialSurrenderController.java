@@ -30,9 +30,9 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.positio
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionRouteUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.LicencePositionAddChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.definearea.PartialSurrenderDefineAreaController;
@@ -95,7 +95,7 @@ public class LicencePositionPartialSurrenderController {
             correction,
             licencePosition,
             partialSurrenderCorrectionService.getCommittedPartialSurrenderChangeId(positionCorrection).orElse(null)),
-        getBackLinkUrl(correction, positionCorrection, existing, executedChangeUrl(correction, licencePosition)));
+        getBackLinkUrl(positionCorrection, existing, executedChangeUrl(correction, licencePosition)));
   }
 
   @PostMapping("/position/{licencePositionId}/partial-surrender/surrender-details")
@@ -130,7 +130,7 @@ public class LicencePositionPartialSurrenderController {
           form,
           licencePositionCorrectionService.getEffectivePositionDate(correction, licencePosition),
           blockFeatures,
-          getBackLinkUrl(correction, positionCorrection, existing, executedChangeUrl(correction, licencePosition)));
+          getBackLinkUrl(positionCorrection, existing, executedChangeUrl(correction, licencePosition)));
     }
 
     var committedPositionCorrection = partialSurrenderCorrectionService.commitPartialSurrenderForExecutedPosition(
@@ -157,7 +157,7 @@ public class LicencePositionPartialSurrenderController {
             licencePositionCorrection,
             partialSurrenderCorrectionService.getCommittedPartialSurrenderChangeId(licencePositionCorrection).orElse(null)),
         getBackLinkUrl(
-            correction, licencePositionCorrection, existing, addedChangeUrl(correction, licencePositionCorrection)));
+            licencePositionCorrection, existing, addedChangeUrl(licencePositionCorrection)));
   }
 
   @PostMapping("/added-position/{licencePositionCorrectionId}/partial-surrender/surrender-details")
@@ -185,8 +185,8 @@ public class LicencePositionPartialSurrenderController {
           form,
           licencePositionCorrectionService.resolveEffectiveDate(licencePositionCorrection),
           blockFeatures,
-          getBackLinkUrl(correction, licencePositionCorrection, existing,
-              addedChangeUrl(correction, licencePositionCorrection)));
+          getBackLinkUrl(licencePositionCorrection, existing,
+              addedChangeUrl(licencePositionCorrection)));
     }
 
     partialSurrenderCorrectionService.commitPartialSurrender(
@@ -224,7 +224,7 @@ public class LicencePositionPartialSurrenderController {
       return startSingleBlockCorrectionModelAndView(correction, licencePosition, change, singleBlock.get());
     }
 
-    var backLinkUrl = getBackLinkUrl(correction, positionCorrection, stagedSurrender,
+    var backLinkUrl = getBackLinkUrl(positionCorrection, stagedSurrender,
         correctingChangeTaskListUrl(correction, licencePosition, change));
 
     return surrenderDetailsModelAndView(
@@ -257,7 +257,6 @@ public class LicencePositionPartialSurrenderController {
     }
 
     return redirectToDefineArea(
-        correction,
         singleBlockCorrection.get().licencePositionCorrection(),
         singleBlockCorrection.get().block()
     );
@@ -291,7 +290,7 @@ public class LicencePositionPartialSurrenderController {
     );
 
     if (partialSurrenderDetailsFormValidator.hasErrors(form, bindingResult, blockFeatures, featureIdsAlreadyOperatedOn)) {
-      var backLinkUrl = getBackLinkUrl(correction, positionCorrection, stagedSurrender,
+      var backLinkUrl = getBackLinkUrl(positionCorrection, stagedSurrender,
           correctingChangeTaskListUrl(correction, licencePosition, change));
 
       return surrenderDetailsModelAndView(
@@ -373,7 +372,6 @@ public class LicencePositionPartialSurrenderController {
   }
 
   private String getBackLinkUrl(
-      LicenceCorrection correction,
       @Nullable LicencePositionCorrection positionCorrection,
       @Nullable PartialSurrenderOperation stagedSurrender,
       String addChangeUrl
@@ -383,7 +381,7 @@ public class LicencePositionPartialSurrenderController {
     }
 
     return ReverseRouter.route(on(PartialSurrenderTaskListController.class)
-        .renderTaskList(correction, positionCorrection, null));
+        .renderTaskList(positionCorrection.getLicenceCorrection(), positionCorrection, null));
   }
 
   private String executedChangeUrl(LicenceCorrection correction, LicencePosition licencePosition) {
@@ -391,9 +389,9 @@ public class LicencePositionPartialSurrenderController {
         .renderForExecutedPosition(correction, licencePosition));
   }
 
-  private String addedChangeUrl(LicenceCorrection correction, LicencePositionCorrection licencePositionCorrection) {
+  private String addedChangeUrl(LicencePositionCorrection licencePositionCorrection) {
     return ReverseRouter.route(on(LicencePositionAddChangeController.class)
-        .renderForAddedPosition(correction, licencePositionCorrection));
+        .renderForAddedPosition(licencePositionCorrection.getLicenceCorrection(), licencePositionCorrection));
   }
 
   private ModelAndView startSingleBlockCorrectionModelAndView(
@@ -412,8 +410,7 @@ public class LicencePositionPartialSurrenderController {
         .addObject("srsWkid", CoordinateSystemUtils.getWkid(block.getCoordinateSystem()))
         .addObject("startCorrectionUrl", ReverseRouter.route(on(LicencePositionPartialSurrenderController.class)
             .startCorrectingSingleBlockChange(correction, licencePosition, change)))
-        .addObject("backLinkUrl", ReverseRouter.route(on(LicenceCorrectionController.class)
-            .renderLicencePosition(correction, licencePosition, null)));
+        .addObject("backLinkUrl", LicencePositionCorrectionRouteUtil.getPositionPageUrl(correction, licencePosition.getId()));
   }
 
   private static List<UUID> surrenderedFeatureIdsOf(PartialSurrenderOperation surrender, Feature block) {
@@ -424,12 +421,11 @@ public class LicencePositionPartialSurrenderController {
   }
 
   private ModelAndView redirectToDefineArea(
-      LicenceCorrection correction,
       LicencePositionCorrection licencePositionCorrection,
       Feature block
   ) {
     return ReverseRouter.redirect(on(PartialSurrenderDefineAreaController.class).renderDefineArea(
-        correction,
+        licencePositionCorrection.getLicenceCorrection(),
         licencePositionCorrection,
         block.getId()
     ));

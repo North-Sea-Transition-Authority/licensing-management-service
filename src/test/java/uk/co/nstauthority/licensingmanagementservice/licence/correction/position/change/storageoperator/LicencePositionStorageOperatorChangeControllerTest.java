@@ -37,10 +37,10 @@ import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionRouteUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.OrganisationChangeFormValidator;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.OrganisationChangeService;
@@ -101,14 +101,10 @@ class LicencePositionStorageOperatorChangeControllerTest extends AbstractControl
   private static final LicencePositionChange POSITION_CHANGE = LicencePositionChangeTestUtil.newBuilder()
       .withId(UUID.randomUUID())
       .build();
-  private static final String EXECUTED_CANCEL_URL = ReverseRouter.route(on(LicenceCorrectionController.class)
-      .renderLicencePosition(CORRECTION, POSITION, null));
-  private static final String EXECUTED_REDIRECT_URL = ReverseRouter.route(on(LicenceCorrectionController.class)
-      .renderLicencePosition(CORRECTION, POSITION, null));
-  private static final String ADDED_CANCEL_URL = ReverseRouter.route(on(LicenceCorrectionController.class)
-      .renderAddedPosition(CORRECTION, POSITION_CORRECTION, null));
-  private static final String ADDED_REDIRECT_URL = ReverseRouter.route(on(LicenceCorrectionController.class)
-      .renderAddedPosition(CORRECTION, POSITION_CORRECTION, null));
+  private static final String EXECUTED_CANCEL_URL = LicencePositionCorrectionRouteUtil.getPositionPageUrl(CORRECTION, POSITION.getId());
+  private static final String EXECUTED_REDIRECT_URL = LicencePositionCorrectionRouteUtil.getPositionPageUrl(CORRECTION, POSITION.getId());
+  private static final String ADDED_CANCEL_URL = LicencePositionCorrectionRouteUtil.getPositionPageUrl(CORRECTION, POSITION_CORRECTION.getPositionId());
+  private static final String ADDED_REDIRECT_URL = LicencePositionCorrectionRouteUtil.getPositionPageUrl(CORRECTION, POSITION_CORRECTION.getPositionId());
 
   @Test
   void renderForExecutedPosition_whenNotLoggedIn() throws Exception {
@@ -167,11 +163,11 @@ class LicencePositionStorageOperatorChangeControllerTest extends AbstractControl
         .andExpect(status().isForbidden());
   }
 
-
   @Test
   void submitForExecutedPosition_whenNotLoggedIn() throws Exception {
     mockMvc.perform(post(ReverseRouter.route(on(LicencePositionStorageOperatorChangeController.class)
             .submitForExecutedPosition(CORRECTION, POSITION, null, null, null)))
+
             .with(csrf()))
         .andExpect(redirectionToLoginUrl());
   }
@@ -267,11 +263,11 @@ class LicencePositionStorageOperatorChangeControllerTest extends AbstractControl
         .andExpect(status().isForbidden());
   }
 
-
   @Test
   void submitForAddedPosition_whenNotLoggedIn() throws Exception {
     mockMvc.perform(post(ReverseRouter.route(on(LicencePositionStorageOperatorChangeController.class)
             .renderForAddedPosition(CORRECTION, POSITION_CORRECTION)))
+
             .with(csrf()))
         .andExpect(redirectionToLoginUrl());
   }

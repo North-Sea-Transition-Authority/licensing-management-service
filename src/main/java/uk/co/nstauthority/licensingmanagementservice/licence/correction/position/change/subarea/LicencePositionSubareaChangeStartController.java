@@ -124,7 +124,7 @@ public class LicencePositionSubareaChangeStartController {
         correction,
         new SubareaChangeStartForm(),
         licencePositionSpatialService.getBlockFeaturesGoingIntoChange(licencePositionCorrection, null),
-        addedChangeUrl(correction, licencePositionCorrection)
+        addedChangeUrl(licencePositionCorrection)
     );
   }
 
@@ -146,7 +146,7 @@ public class LicencePositionSubareaChangeStartController {
           correction,
           form,
           blockFeatures,
-          addedChangeUrl(correction, licencePositionCorrection)
+          addedChangeUrl(licencePositionCorrection)
       );
     }
 
@@ -176,8 +176,8 @@ public class LicencePositionSubareaChangeStartController {
         .renderForExecutedPosition(correction, licencePosition));
   }
 
-  private String addedChangeUrl(LicenceCorrection correction, LicencePositionCorrection licencePositionCorrection) {
+  private String addedChangeUrl(LicencePositionCorrection licencePositionCorrection) {
     return ReverseRouter.route(on(LicencePositionAddChangeController.class)
-        .renderForAddedPosition(correction, licencePositionCorrection));
+        .renderForAddedPosition(licencePositionCorrection.getLicenceCorrection(), licencePositionCorrection));
   }
 }

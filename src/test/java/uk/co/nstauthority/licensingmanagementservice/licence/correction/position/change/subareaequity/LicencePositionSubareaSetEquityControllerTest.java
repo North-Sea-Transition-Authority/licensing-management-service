@@ -33,10 +33,10 @@ import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionRouteUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.LicencePositionAddChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.setequity.LicencePositionSetEquityForm;
@@ -262,8 +262,7 @@ class LicencePositionSubareaSetEquityControllerTest extends AbstractControllerTe
                 .renderForExecutedPosition(CORRECTION, POSITION, SUBAREA_KEY))),
             model().attribute("saveAndContinueUrl", ReverseRouter.route(on(LicencePositionSubareaSetEquityController.class)
                 .submitSummaryForExecutedPosition(CORRECTION, POSITION))),
-            model().attribute("backLinkUrl", ReverseRouter.route(on(LicenceCorrectionController.class)
-                .renderLicencePosition(CORRECTION, POSITION, null))));
+            model().attribute("backLinkUrl", LicencePositionCorrectionRouteUtil.getPositionPageUrl(CORRECTION, POSITION.getId())));
   }
 
   @Test
@@ -294,8 +293,7 @@ class LicencePositionSubareaSetEquityControllerTest extends AbstractControllerTe
             .submitSummaryForExecutedPosition(CORRECTION, POSITION)))
             .with(user(regulatorUser)).with(csrf()))
         .andExpect(status().is3xxRedirection())
-        .andExpect(redirectedUrl(ReverseRouter.route(on(LicenceCorrectionController.class)
-            .renderLicencePosition(CORRECTION, POSITION, null))));
+        .andExpect(redirectedUrl(LicencePositionCorrectionRouteUtil.getPositionPageUrl(CORRECTION, POSITION.getId())));
 
     verifyNoInteractions(subareaSetEquityCorrectionService);
   }
@@ -398,8 +396,7 @@ class LicencePositionSubareaSetEquityControllerTest extends AbstractControllerTe
                 .renderForAddedPosition(CORRECTION, POSITION_CORRECTION, SUBAREA_KEY))),
             model().attribute("saveAndContinueUrl", ReverseRouter.route(on(LicencePositionSubareaSetEquityController.class)
                 .submitSummaryForAddedPosition(CORRECTION, POSITION_CORRECTION))),
-            model().attribute("backLinkUrl", ReverseRouter.route(on(LicenceCorrectionController.class)
-                .renderAddedPosition(CORRECTION, POSITION_CORRECTION, null))));
+            model().attribute("backLinkUrl", LicencePositionCorrectionRouteUtil.getPositionPageUrl(CORRECTION, POSITION_CORRECTION.getPositionId())));
   }
 
   @Test
@@ -429,8 +426,7 @@ class LicencePositionSubareaSetEquityControllerTest extends AbstractControllerTe
             .submitSummaryForAddedPosition(CORRECTION, POSITION_CORRECTION)))
             .with(user(regulatorUser)).with(csrf()))
         .andExpect(status().is3xxRedirection())
-        .andExpect(redirectedUrl(ReverseRouter.route(on(LicenceCorrectionController.class)
-            .renderAddedPosition(CORRECTION, POSITION_CORRECTION, null))));
+        .andExpect(redirectedUrl(LicencePositionCorrectionRouteUtil.getPositionPageUrl(CORRECTION, POSITION_CORRECTION.getPositionId())));
 
     verifyNoInteractions(subareaSetEquityCorrectionService);
   }

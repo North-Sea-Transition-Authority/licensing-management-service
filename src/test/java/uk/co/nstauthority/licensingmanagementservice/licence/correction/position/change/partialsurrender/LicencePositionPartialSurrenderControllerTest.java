@@ -43,11 +43,11 @@ import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionChangeType;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionRouteUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.LicencePositionAddChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderType;
@@ -376,7 +376,7 @@ class LicencePositionPartialSurrenderControllerTest extends AbstractControllerTe
     givenNoUpdatePositionCorrection(correction, licencePosition);
     when(partialSurrenderCorrectionService.commitPartialSurrenderForExecutedPosition(
         eq(correction), eq(licencePosition), any(PartialSurrenderOperation.class)))
-        .thenReturn(updatePositionCorrection(licencePosition));
+        .thenReturn(updatePositionCorrection(correction, licencePosition));
     when(licencePositionCorrectionService.blockFeatureIdsAlreadyOperatedOnForExecutedPosition(
         correction,
         licencePosition,
@@ -682,8 +682,7 @@ class LicencePositionPartialSurrenderControllerTest extends AbstractControllerTe
             model().attribute("surrenderedFeatureIds", List.of(surrenderedHalfId)),
             model().attribute("srsWkid", CoordinateSystemUtils.getWkid(BLOCK_30_1A.getCoordinateSystem())),
             model().attribute("startCorrectionUrl", startCorrectionUrl()),
-            model().attribute("backLinkUrl", ReverseRouter.route(on(LicenceCorrectionController.class)
-                .renderLicencePosition(correction, licencePosition, null))));
+            model().attribute("backLinkUrl", LicencePositionCorrectionRouteUtil.getPositionPageUrl(correction, licencePosition.getId())));
 
     verify(partialSurrenderCorrectionService, never()).correctExistingPartialSurrender(any(), any(), any(), any());
     verify(partialSurrenderCorrectionService, never()).getOrCreatePartialSurrenderDetails(any(), any(), any());
@@ -716,7 +715,7 @@ class LicencePositionPartialSurrenderControllerTest extends AbstractControllerTe
   void startCorrectingSingleBlockChange_whenSingleBlock_stagesTheCorrectionAndRedirectsToDefineArea() throws Exception {
     var correction = givenCorrectionAllocatedToUser();
     var licencePosition = executedPosition();
-    var committedPositionCorrection = updatePositionCorrection(licencePosition);
+    var committedPositionCorrection = updatePositionCorrection(correction, licencePosition);
 
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(licencePosition);
     when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(licencePosition));
@@ -1156,9 +1155,13 @@ class LicencePositionPartialSurrenderControllerTest extends AbstractControllerTe
         .build();
   }
 
-  private LicencePositionCorrection updatePositionCorrection(LicencePosition licencePosition) {
+  private LicencePositionCorrection updatePositionCorrection(
+      LicenceCorrection correction,
+      LicencePosition licencePosition
+  ) {
     return LicencePositionCorrectionTestUtil.newBuilder()
         .withId(POSITION_CORRECTION_ID)
+        .withLicenceCorrection(correction)
         .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
         .withTargetLicencePosition(licencePosition)
         .withPayload(LicencePositionPayload.newUpdateLicencePositionPayload().build())
@@ -1184,7 +1187,7 @@ class LicencePositionPartialSurrenderControllerTest extends AbstractControllerTe
       LicencePosition licencePosition,
       PartialSurrenderOperation staged
   ) {
-    var positionCorrection = updatePositionCorrection(licencePosition);
+    var positionCorrection = updatePositionCorrection(correction, licencePosition);
     when(licencePositionCorrectionService.findUpdatePositionCorrection(correction, licencePosition))
         .thenReturn(Optional.of(positionCorrection));
     when(partialSurrenderCorrectionService.getCommittedPartialSurrender(positionCorrection))

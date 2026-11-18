@@ -28,16 +28,15 @@ import uk.co.nstauthority.licensingmanagementservice.fds.searchselector.SearchSe
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceFormService;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionRouteUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenseeOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.licensee.LicenseeChangeContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionLicenseeChangeUtil;
-import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.util.ListUtil;
 
 @Controller
@@ -101,8 +100,7 @@ public class LicencePositionLicenseeChangeController {
     );
 
     NotificationBanner.newSuccessBannerWithHeader("Licensee change added", redirectAttributes);
-    return ReverseRouter.redirect(on(LicenceCorrectionController.class)
-        .renderLicencePosition(correction, licencePosition, null));
+    return LicencePositionCorrectionRouteUtil.redirectToPositionPage(correction, licencePosition.getId());
   }
 
   @GetMapping("/added-position/{licencePositionCorrectionId}/add-licensee-change")
@@ -117,7 +115,7 @@ public class LicencePositionLicenseeChangeController {
 
     return getLicenseeChangeModelAndView(
         form,
-        addedCancelUrl(correction, licencePositionCorrection),
+        LicencePositionCorrectionRouteUtil.getPositionPageUrl(correction, licencePositionCorrection.getPositionId()),
         licenseeChangeContext.previousLicenseeNames()
     );
   }
@@ -144,7 +142,7 @@ public class LicencePositionLicenseeChangeController {
     )) {
       return getLicenseeChangeModelAndView(
           form,
-          addedCancelUrl(correction, licencePositionCorrection),
+          LicencePositionCorrectionRouteUtil.getPositionPageUrl(correction, licencePositionCorrection.getPositionId()),
           licenseeChangeContext.previousLicenseeNames()
       );
     }
@@ -156,8 +154,7 @@ public class LicencePositionLicenseeChangeController {
     );
 
     NotificationBanner.newSuccessBannerWithHeader("Licensee change added", redirectAttributes);
-    return ReverseRouter.redirect(on(LicenceCorrectionController.class)
-        .renderAddedPosition(correction, licencePositionCorrection, null));
+    return LicencePositionCorrectionRouteUtil.redirectToPositionPage(correction, licencePositionCorrection.getPositionId());
   }
 
   @GetMapping("/position/{licencePositionId}/change/{changeId}/correct-licensee-change")
@@ -203,8 +200,7 @@ public class LicencePositionLicenseeChangeController {
     );
 
     NotificationBanner.newSuccessBannerWithHeader("Licensee change corrected", redirectAttributes);
-    return ReverseRouter.redirect(on(LicenceCorrectionController.class)
-        .renderLicencePosition(correction, licencePosition, null));
+    return LicencePositionCorrectionRouteUtil.redirectToPositionPage(correction, licencePosition.getId());
   }
 
   private ModelAndView getLicenseeChangeModelAndView(
@@ -236,7 +232,7 @@ public class LicencePositionLicenseeChangeController {
     var form = LicencePositionLicenseeChangeUtil.populateLicenseeForm(licenseeChangeContext);
     return getLicenseeChangeModelAndView(
         form,
-        executedCancelUrl(correction, position),
+        LicencePositionCorrectionRouteUtil.getPositionPageUrl(correction, position.getId()),
         licenseeChangeContext.previousLicenseeNames()
     );
   }
@@ -267,16 +263,6 @@ public class LicencePositionLicenseeChangeController {
     }
   }
 
-  private String executedCancelUrl(LicenceCorrection correction, LicencePosition licencePosition) {
-    return ReverseRouter.route(on(LicenceCorrectionController.class)
-        .renderLicencePosition(correction, licencePosition, null));
-  }
-
-  private String addedCancelUrl(LicenceCorrection correction, LicencePositionCorrection licencePositionCorrection) {
-    return ReverseRouter.route(on(LicenceCorrectionController.class)
-        .renderAddedPosition(correction, licencePositionCorrection, null));
-  }
-
   /**
    * Returns the licensee change form's {@link ModelAndView} with validation errors if {@code form} is invalid, or
    * {@code null} if it is valid and the caller should continue. Defaults a {@code null} withdrawing organisation list
@@ -301,7 +287,7 @@ public class LicencePositionLicenseeChangeController {
     if (licenseeChangeFormValidator.hasErrors(form, bindingResult, licenseeChangeContext.previousLicenseeIds())) {
       return getLicenseeChangeModelAndView(
           form,
-          executedCancelUrl(correction, position),
+          LicencePositionCorrectionRouteUtil.getPositionPageUrl(correction, position.getId()),
           licenseeChangeContext.previousLicenseeNames()
       );
     } else {

@@ -26,9 +26,9 @@ import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.Noti
 import uk.co.nstauthority.licensingmanagementservice.fds.searchselector.SearchSelectorService;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionRouteUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.OrganisationChangeForm;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.OrganisationChangeFormValidator;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.OrganisationChangeService;
@@ -37,7 +37,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.operation.Explorati
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.OrganisationChangeContext;
-import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @Controller
 @RequestMapping("/licence-corrections/{correctionId}")
@@ -119,8 +118,7 @@ public class LicencePositionExplorationOperatorChangeController {
     );
 
     NotificationBanner.newSuccessBannerWithHeader("Exploration operator change added", redirectAttributes);
-    return ReverseRouter.redirect(on(LicenceCorrectionController.class)
-        .renderLicencePosition(correction, licencePosition, null));
+    return LicencePositionCorrectionRouteUtil.redirectToPositionPage(correction, licencePosition.getId());
   }
 
   @GetMapping("/added-position/{licencePositionCorrectionId}/add-exploration-operator-change")
@@ -140,7 +138,7 @@ public class LicencePositionExplorationOperatorChangeController {
 
     return getExplorationOperatorChangeModelAndView(
         form,
-        addedCancelUrl(correction, licencePositionCorrection),
+        addedCancelUrl(licencePositionCorrection),
         explorationOperatorChangeContext.previousName()
     );
   }
@@ -165,7 +163,7 @@ public class LicencePositionExplorationOperatorChangeController {
     )) {
       return getExplorationOperatorChangeModelAndView(
           form,
-          addedCancelUrl(correction, licencePositionCorrection),
+          addedCancelUrl(licencePositionCorrection),
           explorationOperatorChangeContext.previousName()
       );
     }
@@ -177,8 +175,7 @@ public class LicencePositionExplorationOperatorChangeController {
     );
 
     NotificationBanner.newSuccessBannerWithHeader("Exploration operator change added", redirectAttributes);
-    return ReverseRouter.redirect(on(LicenceCorrectionController.class)
-        .renderAddedPosition(correction, licencePositionCorrection, null));
+    return LicencePositionCorrectionRouteUtil.redirectToPositionPage(licencePositionCorrection);
   }
 
   private ModelAndView getExplorationOperatorChangeModelAndView(
@@ -199,13 +196,11 @@ public class LicencePositionExplorationOperatorChangeController {
   }
 
   private String executedCancelUrl(LicenceCorrection correction, LicencePosition licencePosition) {
-    return ReverseRouter.route(on(LicenceCorrectionController.class)
-        .renderLicencePosition(correction, licencePosition, null));
+    return LicencePositionCorrectionRouteUtil.getPositionPageUrl(correction, licencePosition.getId());
   }
 
-  private String addedCancelUrl(LicenceCorrection correction, LicencePositionCorrection licencePositionCorrection) {
-    return ReverseRouter.route(on(LicenceCorrectionController.class)
-        .renderAddedPosition(correction, licencePositionCorrection, null));
+  private String addedCancelUrl(LicencePositionCorrection licencePositionCorrection) {
+    return LicencePositionCorrectionRouteUtil.getPositionPageUrl(licencePositionCorrection);
   }
 
   private Map<String, String> preselectedOperator(OrganisationChangeForm form) {

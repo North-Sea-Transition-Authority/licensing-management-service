@@ -105,10 +105,7 @@ public class SubareaChangeReviewController {
     subareaChangeService.completeSubareaChange(licencePositionCorrection, blockFeatureId);
 
     NotificationBanner.newSuccessBannerWithHeader(SAVED_BANNER, redirectAttributes);
-    return ReverseRouter.redirectToUrl(LicencePositionCorrectionRouteUtil.getPositionPageUrl(
-        correction,
-        licencePositionCorrection
-    ));
+    return LicencePositionCorrectionRouteUtil.redirectToPositionPage(licencePositionCorrection);
   }
 
   @PostMapping(STAGED_REVIEW_PATH + CHANGE_SUBAREAS_PATH)

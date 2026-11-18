@@ -17,9 +17,9 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correct
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.LicencePositionIsNotRemovedInCorrection;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.position.LicencePositionBelongsToCorrectionLicence;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionRouteUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.administrator.LicencePositionAdministratorChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.explorationoperator.LicencePositionExplorationOperatorChangeController;
@@ -74,7 +74,7 @@ public class LicencePositionAddChangeController {
         correction,
         new AddPositionChangeForm(),
         subareaEquityOptionsService.getSubareaOptions(correction, licencePosition),
-        executedBackUrl(correction, licencePosition)
+        LicencePositionCorrectionRouteUtil.getPositionPageUrl(correction, licencePosition.getId())
     );
   }
 
@@ -102,7 +102,7 @@ public class LicencePositionAddChangeController {
           correction,
           form,
           subareaOptions,
-          executedBackUrl(correction, licencePosition)
+          LicencePositionCorrectionRouteUtil.getPositionPageUrl(correction, licencePosition.getId())
       );
     }
 
@@ -141,7 +141,7 @@ public class LicencePositionAddChangeController {
         correction,
         new AddPositionChangeForm(),
         subareaEquityOptionsService.getSubareaOptions(licencePositionCorrection),
-        addedBackUrl(correction, licencePositionCorrection)
+        LicencePositionCorrectionRouteUtil.getPositionPageUrl(correction, licencePositionCorrection.getPositionId())
     );
   }
 
@@ -166,7 +166,7 @@ public class LicencePositionAddChangeController {
           correction,
           form,
           subareaOptions,
-          addedBackUrl(correction, licencePositionCorrection)
+          LicencePositionCorrectionRouteUtil.getPositionPageUrl(correction, licencePositionCorrection.getPositionId())
       );
     }
 
@@ -217,16 +217,6 @@ public class LicencePositionAddChangeController {
         singleBlockSurrender.licencePositionCorrection(),
         singleBlockSurrender.block().getId()
     ));
-  }
-
-  private String executedBackUrl(LicenceCorrection correction, LicencePosition licencePosition) {
-    return ReverseRouter.route(on(LicenceCorrectionController.class)
-        .renderLicencePosition(correction, licencePosition, null));
-  }
-
-  private String addedBackUrl(LicenceCorrection correction, LicencePositionCorrection licencePositionCorrection) {
-    return ReverseRouter.route(on(LicenceCorrectionController.class)
-        .renderAddedPosition(correction, licencePositionCorrection, null));
   }
 
   private Map<String, String> availableChangeTypeOptions(LicenceCorrection correction) {

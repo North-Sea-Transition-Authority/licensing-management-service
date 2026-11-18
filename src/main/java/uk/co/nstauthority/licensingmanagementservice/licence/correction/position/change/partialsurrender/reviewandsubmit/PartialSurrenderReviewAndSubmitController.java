@@ -27,7 +27,6 @@ import uk.co.nstauthority.licensingmanagementservice.fds.error.ErrorSummaryItem;
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionRouteUtil;
@@ -140,8 +139,7 @@ public class PartialSurrenderReviewAndSubmitController {
     }
 
     NotificationBanner.newSuccessBannerWithHeader(SUBMITTED_BANNER, redirectAttributes);
-    return ReverseRouter.redirectToUrl(
-        LicencePositionCorrectionRouteUtil.getPositionPageUrl(correction, licencePositionCorrection));
+    return LicencePositionCorrectionRouteUtil.redirectToPositionPage(licencePositionCorrection);
   }
 
   @GetMapping("/position/{licencePositionId}/change/{changeId}/partial-surrender/review-and-submit")
@@ -215,8 +213,7 @@ public class PartialSurrenderReviewAndSubmitController {
     }
 
     NotificationBanner.newSuccessBannerWithHeader(SUBMITTED_BANNER, redirectAttributes);
-    return ReverseRouter.redirect(on(LicenceCorrectionController.class)
-        .renderLicencePosition(correction, licencePosition, null));
+    return LicencePositionCorrectionRouteUtil.redirectToPositionPage(correction, licencePosition.getId());
   }
 
   private List<String> validate(
@@ -256,7 +253,7 @@ public class PartialSurrenderReviewAndSubmitController {
   ) {
     var taskListUrl = ReverseRouter.route(on(PartialSurrenderTaskListController.class)
         .renderTaskList(correction, licencePositionCorrection, null));
-    var singleBlockSelectAreasUrl = singleBlockSelectAreasUrl(correction, licencePositionCorrection);
+    var singleBlockSelectAreasUrl = singleBlockSelectAreasUrl(licencePositionCorrection);
     var sections = partialSurrenderSummarySectionService.getSummarySections(
         new PartialSurrenderSummaryContext.Staged(licencePositionCorrection, surrender, stateGoingIntoChange),
         user
@@ -288,7 +285,7 @@ public class PartialSurrenderReviewAndSubmitController {
         .filter(positionCorrection -> partialSurrenderCorrectionService.findCorrectedLiveChangeId(positionCorrection)
             .filter(changeId::equals)
             .isPresent())
-        .flatMap(positionCorrection -> singleBlockSelectAreasUrl(correction, positionCorrection));
+        .flatMap(this::singleBlockSelectAreasUrl);
     var sections = partialSurrenderSummarySectionService.getSummarySections(
         new PartialSurrenderSummaryContext.LiveChange(
             correction,
@@ -311,12 +308,11 @@ public class PartialSurrenderReviewAndSubmitController {
   }
 
   private Optional<String> singleBlockSelectAreasUrl(
-      LicenceCorrection correction,
       LicencePositionCorrection positionCorrection
   ) {
     return partialSurrenderCorrectionService.findSingleBlockNotOperatedOn(positionCorrection)
         .map(block -> ReverseRouter.route(on(PartialSurrenderDefineAreaController.class)
-            .renderSelectAreas(correction, positionCorrection, block.getId())));
+            .renderSelectAreas(positionCorrection.getLicenceCorrection(), positionCorrection, block.getId())));
   }
 
   private ModelAndView reviewAndSubmitModelAndView(

@@ -26,9 +26,9 @@ import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.Noti
 import uk.co.nstauthority.licensingmanagementservice.fds.searchselector.SearchSelectorService;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionRouteUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.LicencePositionAddChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.setequity.LicencePositionSetEquityForm;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.setequity.LicencePositionSetEquityFormValidator;
@@ -149,7 +149,7 @@ public class LicencePositionSubareaSetEquityController {
         subareaOption,
         operations,
         ReverseRouter.route(on(this.getClass()).renderForExecutedPosition(correction, licencePosition, subareaKey)),
-        ReverseRouter.route(on(LicenceCorrectionController.class).renderLicencePosition(correction, licencePosition, null)),
+        LicencePositionCorrectionRouteUtil.getPositionPageUrl(correction, licencePosition.getId()),
         ReverseRouter.route(on(this.getClass()).submitSummaryForExecutedPosition(correction, licencePosition)),
         removeUrls
     );
@@ -162,8 +162,7 @@ public class LicencePositionSubareaSetEquityController {
       LicenceCorrection correction,
       LicencePosition licencePosition
   ) {
-    return ReverseRouter.redirect(on(LicenceCorrectionController.class)
-        .renderLicencePosition(correction, licencePosition, null));
+    return LicencePositionCorrectionRouteUtil.redirectToPositionPage(correction, licencePosition.getId());
   }
 
   @PostMapping("/position/{licencePositionId}/subarea-set-equity/remove")
@@ -265,8 +264,7 @@ public class LicencePositionSubareaSetEquityController {
         subareaOption,
         operations,
         ReverseRouter.route(on(this.getClass()).renderForAddedPosition(correction, licencePositionCorrection, subareaKey)),
-        ReverseRouter.route(on(LicenceCorrectionController.class)
-            .renderAddedPosition(correction, licencePositionCorrection, null)),
+        LicencePositionCorrectionRouteUtil.getPositionPageUrl(correction, licencePositionCorrection.getPositionId()),
         ReverseRouter.route(on(this.getClass()).submitSummaryForAddedPosition(correction, licencePositionCorrection)),
         removeUrls
     );
@@ -278,8 +276,7 @@ public class LicencePositionSubareaSetEquityController {
       LicenceCorrection correction,
       LicencePositionCorrection licencePositionCorrection
   ) {
-    return ReverseRouter.redirect(on(LicenceCorrectionController.class)
-        .renderAddedPosition(correction, licencePositionCorrection, null));
+    return LicencePositionCorrectionRouteUtil.redirectToPositionPage(correction, licencePositionCorrection.getPositionId());
   }
 
   @PostMapping("/added-position/{licencePositionCorrectionId}/subarea-set-equity/remove")

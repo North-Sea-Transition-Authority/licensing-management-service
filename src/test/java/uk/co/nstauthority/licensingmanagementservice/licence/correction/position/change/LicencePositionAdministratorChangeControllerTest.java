@@ -33,10 +33,10 @@ import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionRouteUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.administrator.AdministratorChangeForm;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.administrator.AdministratorChangeService;
@@ -72,6 +72,7 @@ class LicencePositionAdministratorChangeControllerTest extends AbstractControlle
   private static final UUID CORRECTION_ID = UUID.randomUUID();
   private static final UUID POSITION_ID = UUID.randomUUID();
   private static final UUID POSITION_CORRECTION_ID = UUID.randomUUID();
+  private static final UUID STAGED_POSITION_ID = UUID.randomUUID();
   private static final Integer ADMINISTRATOR_ID = 123;
   private static final Integer PREVIOUS_ADMINISTRATOR_ID = 456;
   private static final Integer CURRENT_ADMINISTRATOR_ID = 789;
@@ -89,19 +90,18 @@ class LicencePositionAdministratorChangeControllerTest extends AbstractControlle
   private static final LicencePositionCorrection POSITION_CORRECTION = LicencePositionCorrectionTestUtil.newBuilder()
       .withId(POSITION_CORRECTION_ID)
       .withLicenceCorrection(CORRECTION)
+      .withPayload(CreateLicencePositionPayloadTestUtil.newBuilder()
+          .withLicencePositionId(STAGED_POSITION_ID.toString())
+          .build())
       .build();
 
-  private final String executedCancelUrl = ReverseRouter.route(on(LicenceCorrectionController.class)
-      .renderLicencePosition(CORRECTION, POSITION, null));
+  private final String executedCancelUrl = LicencePositionCorrectionRouteUtil.getPositionPageUrl(CORRECTION, POSITION.getId());
 
-  private final String addedCancelUrl = ReverseRouter.route(on(LicenceCorrectionController.class)
-      .renderAddedPosition(CORRECTION, POSITION_CORRECTION, null));
+  private final String addedCancelUrl = LicencePositionCorrectionRouteUtil.getPositionPageUrl(CORRECTION, STAGED_POSITION_ID);
 
-  private final String executedRedirectUrl = ReverseRouter.route(on(LicenceCorrectionController.class)
-      .renderLicencePosition(CORRECTION, POSITION, null));
+  private final String executedRedirectUrl = LicencePositionCorrectionRouteUtil.getPositionPageUrl(CORRECTION, POSITION.getId());
 
-  private final String addedRedirectUrl = ReverseRouter.route(on(LicenceCorrectionController.class)
-      .renderAddedPosition(CORRECTION, POSITION_CORRECTION, null));
+  private final String addedRedirectUrl = LicencePositionCorrectionRouteUtil.getPositionPageUrl(CORRECTION, STAGED_POSITION_ID);
 
   @Test
   void renderForExecutedPosition_whenNotLoggedIn() throws Exception {
@@ -303,12 +303,14 @@ class LicencePositionAdministratorChangeControllerTest extends AbstractControlle
     var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
         .withId(POSITION_CORRECTION_ID)
         .withLicenceCorrection(correction)
-        .withPayload(CreateLicencePositionPayloadTestUtil.newBuilder().withLicencePositionId(POSITION_ID.toString()).build())
+        .withPayload(CreateLicencePositionPayloadTestUtil.newBuilder()
+            .withLicencePositionId(STAGED_POSITION_ID.toString())
+            .build())
         .build();
     var form = new AdministratorChangeForm(CURRENT_ADMINISTRATOR_ID.toString());
     when(licencePositionCorrectionService.findById(POSITION_CORRECTION_ID))
         .thenReturn(Optional.of(positionCorrection));
-    when(organisationChangeService.getOrganisationChangeContext(correction, POSITION_ID, AdministratorOperation.class))
+    when(organisationChangeService.getOrganisationChangeContext(correction, STAGED_POSITION_ID, AdministratorOperation.class))
         .thenReturn(new AdministratorChangeContext(CURRENT_ADMINISTRATOR_ID, null, "", ""));
     when(organisationChangeService.populateAddedOrganisationForm(eq(CURRENT_ADMINISTRATOR_ID), eq(positionCorrection),  any()))
         .thenReturn(form);
@@ -334,7 +336,7 @@ class LicencePositionAdministratorChangeControllerTest extends AbstractControlle
         .withId(POSITION_CORRECTION_ID)
         .withLicenceCorrection(correction)
         .withPayload(CreateLicencePositionPayloadTestUtil.newBuilder()
-            .withLicencePositionId(POSITION_ID.toString())
+            .withLicencePositionId(STAGED_POSITION_ID.toString())
             .build())
         .build();
 
@@ -346,7 +348,7 @@ class LicencePositionAdministratorChangeControllerTest extends AbstractControlle
         .thenReturn(false);
     when(licencePositionCorrectionService.findById(POSITION_CORRECTION_ID))
         .thenReturn(Optional.of(positionCorrection));
-    when(organisationChangeService.getOrganisationChangeContext(correction, POSITION_ID, AdministratorOperation.class))
+    when(organisationChangeService.getOrganisationChangeContext(correction, STAGED_POSITION_ID, AdministratorOperation.class))
         .thenReturn(new AdministratorChangeContext(CURRENT_ADMINISTRATOR_ID, PREVIOUS_ADMINISTRATOR_ID, "", ""));
 
     mockMvc.perform(post(ReverseRouter.route(on(LicencePositionAdministratorChangeController.class)
@@ -379,7 +381,7 @@ class LicencePositionAdministratorChangeControllerTest extends AbstractControlle
         .withId(POSITION_CORRECTION_ID)
         .withLicenceCorrection(correction)
         .withPayload(CreateLicencePositionPayloadTestUtil.newBuilder()
-            .withLicencePositionId(POSITION_ID.toString())
+            .withLicencePositionId(STAGED_POSITION_ID.toString())
             .build())
         .build();
 
@@ -387,7 +389,7 @@ class LicencePositionAdministratorChangeControllerTest extends AbstractControlle
 
     when(licencePositionCorrectionService.findById(POSITION_CORRECTION_ID))
         .thenReturn(Optional.of(positionCorrection));
-    when(organisationChangeService.getOrganisationChangeContext(correction, POSITION_ID, AdministratorOperation.class))
+    when(organisationChangeService.getOrganisationChangeContext(correction, STAGED_POSITION_ID, AdministratorOperation.class))
         .thenReturn(new AdministratorChangeContext(CURRENT_ADMINISTRATOR_ID, PREVIOUS_ADMINISTRATOR_ID, "", ""));
     when(organisationChangeFormValidator.hasErrors(
         eq(form), any(BindingResult.class), eq(PREVIOUS_ADMINISTRATOR_ID), eq(OPERATOR_TYPE)))

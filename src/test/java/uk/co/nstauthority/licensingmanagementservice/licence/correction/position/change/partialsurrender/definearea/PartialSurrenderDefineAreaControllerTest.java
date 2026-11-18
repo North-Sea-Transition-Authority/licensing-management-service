@@ -45,11 +45,11 @@ import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionChangeType;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionRouteUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.PartialSurrenderCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.PartialSurrenderValidator;
@@ -57,6 +57,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderTypeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.reviewandsubmit.PartialSurrenderReviewAndSubmitController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.tasklist.PartialSurrenderTaskListController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.UpdateLicencePositionPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation.SurrenderDetails;
@@ -80,6 +81,7 @@ class PartialSurrenderDefineAreaControllerTest extends AbstractControllerTest {
       .build();
   private static final UUID CORRECTION_ID = UUID.randomUUID();
   private static final UUID POSITION_CORRECTION_ID = UUID.randomUUID();
+  private static final UUID STAGED_POSITION_ID = UUID.randomUUID();
   private static final UUID POSITION_ID = UUID.randomUUID();
   private static final LicencePositionChange LIVE_CHANGE = LicencePositionChangeTestUtil.newBuilder().build();
   private static final LicenceCorrection CORRECTION = LicenceCorrectionTestUtil.newBuilder()
@@ -93,6 +95,9 @@ class PartialSurrenderDefineAreaControllerTest extends AbstractControllerTest {
   private static final LicencePositionCorrection POSITION_CORRECTION = LicencePositionCorrectionTestUtil.newBuilder()
       .withId(POSITION_CORRECTION_ID)
       .withLicenceCorrection(CORRECTION)
+      .withPayload(CreateLicencePositionPayloadTestUtil.newBuilder()
+          .withLicencePositionId(STAGED_POSITION_ID.toString())
+          .build())
       .build();
   private static final Feature FEATURE = FeatureTestUtil.builder()
       .withCoordinateSystem(CoordinateSystem.ED50)
@@ -225,8 +230,7 @@ class PartialSurrenderDefineAreaControllerTest extends AbstractControllerTest {
         .andExpectAll(
             status().isOk(),
             view().name(VIEW_NAME),
-            model().attribute("backLinkUrl", ReverseRouter.route(on(LicenceCorrectionController.class)
-                .renderAddedPosition(CORRECTION, POSITION_CORRECTION, null)))
+            model().attribute("backLinkUrl", LicencePositionCorrectionRouteUtil.getPositionPageUrl(CORRECTION, STAGED_POSITION_ID))
         );
   }
 
@@ -244,8 +248,7 @@ class PartialSurrenderDefineAreaControllerTest extends AbstractControllerTest {
         .andExpectAll(
             status().isOk(),
             view().name(VIEW_NAME),
-            model().attribute("backLinkUrl", ReverseRouter.route(on(LicenceCorrectionController.class)
-                .renderLicencePosition(CORRECTION, POSITION, null)))
+            model().attribute("backLinkUrl", LicencePositionCorrectionRouteUtil.getPositionPageUrl(CORRECTION, POSITION.getId()))
         );
   }
 
@@ -265,8 +268,7 @@ class PartialSurrenderDefineAreaControllerTest extends AbstractControllerTest {
         .andExpectAll(
             status().isOk(),
             view().name(VIEW_NAME),
-            model().attribute("backLinkUrl", ReverseRouter.route(on(LicenceCorrectionController.class)
-                .renderLicencePosition(CORRECTION, POSITION, null)))
+            model().attribute("backLinkUrl", LicencePositionCorrectionRouteUtil.getPositionPageUrl(CORRECTION, POSITION.getId()))
         );
   }
 
@@ -522,6 +524,9 @@ class PartialSurrenderDefineAreaControllerTest extends AbstractControllerTest {
     return LicencePositionCorrectionTestUtil.newBuilder()
         .withId(POSITION_CORRECTION_ID)
         .withLicenceCorrection(correction)
+        .withPayload(CreateLicencePositionPayloadTestUtil.newBuilder()
+            .withLicencePositionId(STAGED_POSITION_ID.toString())
+            .build())
         .build();
   }
 

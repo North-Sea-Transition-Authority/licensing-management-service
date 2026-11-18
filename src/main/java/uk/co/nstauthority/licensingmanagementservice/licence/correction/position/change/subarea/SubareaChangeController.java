@@ -98,6 +98,6 @@ public class SubareaChangeController {
         .addObject("srsWkid", CoordinateSystemUtils.getWkid(coordinateSystem))
         .addObject("pageTitle", PAGE_TITLE)
         .addObject("pageCaption", correction.getLicence().getLicenceReference())
-        .addObject("backLinkUrl", LicencePositionCorrectionRouteUtil.getPositionPageUrl(correction, licencePositionCorrection));
+        .addObject("backLinkUrl", LicencePositionCorrectionRouteUtil.getPositionPageUrl(licencePositionCorrection));
   }
 }

@@ -40,10 +40,10 @@ import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionRouteUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.OrganisationChangeFormValidator;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.OrganisationChangeService;
@@ -94,14 +94,14 @@ class LicencePositionExplorationOperatorChangeControllerTest extends AbstractCon
           .withLicencePositionId(POSITION_ID.toString())
           .build())
       .build();
-  private static final String EXECUTED_CANCEL_URL = ReverseRouter.route(on(LicenceCorrectionController.class)
-      .renderLicencePosition(CORRECTION, POSITION, null));
-  private static final String EXECUTED_REDIRECT_URL = ReverseRouter.route(on(LicenceCorrectionController.class)
-      .renderLicencePosition(CORRECTION, POSITION, null));
-  private static final String ADDED_CANCEL_URL = ReverseRouter.route(on(LicenceCorrectionController.class)
-      .renderAddedPosition(CORRECTION, POSITION_CORRECTION, null));
-  private static final String ADDED_REDIRECT_URL = ReverseRouter.route(on(LicenceCorrectionController.class)
-      .renderAddedPosition(CORRECTION, POSITION_CORRECTION, null));
+  private static final String EXECUTED_CANCEL_URL =
+      LicencePositionCorrectionRouteUtil.getPositionPageUrl(CORRECTION, POSITION_ID);
+  private static final String EXECUTED_REDIRECT_URL =
+      LicencePositionCorrectionRouteUtil.getPositionPageUrl(CORRECTION, POSITION_ID);
+  private static final String ADDED_CANCEL_URL =
+      LicencePositionCorrectionRouteUtil.getPositionPageUrl(POSITION_CORRECTION);
+  private static final String ADDED_REDIRECT_URL =
+      LicencePositionCorrectionRouteUtil.getPositionPageUrl(POSITION_CORRECTION);
 
   @Test
   void renderForExecutedPosition_whenNotLoggedIn() throws Exception {

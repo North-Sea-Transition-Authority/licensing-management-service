@@ -24,9 +24,9 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.positio
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionRouteUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.LicencePositionAddChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.TransferEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
@@ -224,7 +224,7 @@ public class LicencePositionTransferEquityController {
         correction,
         new LicencePositionTransferEquityForm(),
         transferEquityCorrectionService.getEquityHoldingsForAddedPosition(correction, licencePositionCorrection),
-        addedAddTransferBackLinkUrl(correction, licencePositionCorrection)
+        addedAddTransferBackLinkUrl(licencePositionCorrection)
     );
   }
 
@@ -243,7 +243,7 @@ public class LicencePositionTransferEquityController {
           correction,
           form,
           equityHoldings,
-          addedAddTransferBackLinkUrl(correction, licencePositionCorrection)
+          addedAddTransferBackLinkUrl(licencePositionCorrection)
       );
     }
     transferEquityCorrectionService.addTransferEquity(licencePositionCorrection, form);
@@ -281,8 +281,8 @@ public class LicencePositionTransferEquityController {
         correction,
         operation,
         withdrawForm(operation),
-        addedWithdrawUrl(correction, licencePositionCorrection, index),
-        addedSummaryUrl(correction, licencePositionCorrection)
+        addedWithdrawUrl(licencePositionCorrection, index),
+        addedSummaryUrl(licencePositionCorrection)
     );
   }
 
@@ -308,8 +308,8 @@ public class LicencePositionTransferEquityController {
           correction,
           operations.get(index),
           form,
-          addedWithdrawUrl(correction, licencePositionCorrection, index),
-          addedSummaryUrl(correction, licencePositionCorrection));
+          addedWithdrawUrl(licencePositionCorrection, index),
+          addedSummaryUrl(licencePositionCorrection));
     }
 
     transferEquityCorrectionService.setTransferEquityRetention(licencePositionCorrection, index, retainsBeneficialInterest(form));
@@ -333,7 +333,7 @@ public class LicencePositionTransferEquityController {
         .toList();
 
     var withdrawUrls = IntStream.range(0, operations.size())
-        .mapToObj(index -> addedWithdrawUrl(correction, licencePositionCorrection, index))
+        .mapToObj(index -> addedWithdrawUrl(licencePositionCorrection, index))
         .toList();
 
     var holdings = transferEquityCorrectionService.getEquityHoldingsForAddedPosition(correction, licencePositionCorrection);
@@ -342,7 +342,7 @@ public class LicencePositionTransferEquityController {
         correction,
         operations,
         ReverseRouter.route(on(this.getClass()).renderForAddedPosition(correction, licencePositionCorrection)),
-        addedPositionUrl(correction, licencePositionCorrection),
+        addedPositionUrl(licencePositionCorrection),
         removeUrls,
         withdrawUrls,
         holdings
@@ -467,19 +467,17 @@ public class LicencePositionTransferEquityController {
   }
 
   private String addedAddTransferBackLinkUrl(
-      LicenceCorrection correction,
       LicencePositionCorrection licencePositionCorrection
   ) {
     var hasExistingTransfers = !transferEquityCorrectionService
         .getCommittedTransferEquityOperations(licencePositionCorrection).isEmpty();
     return hasExistingTransfers
-        ? addedSummaryUrl(correction, licencePositionCorrection)
-        : addedChangeChooserUrl(correction, licencePositionCorrection);
+        ? addedSummaryUrl(licencePositionCorrection)
+        : addedChangeChooserUrl(licencePositionCorrection);
   }
 
   private String executedPositionUrl(LicenceCorrection correction, LicencePosition licencePosition) {
-    return ReverseRouter.route(on(LicenceCorrectionController.class)
-        .renderLicencePosition(correction, licencePosition, null));
+    return LicencePositionCorrectionRouteUtil.getPositionPageUrl(correction, licencePosition.getId());
   }
 
   private String executedSummaryUrl(LicenceCorrection correction, LicencePosition licencePosition) {
@@ -492,23 +490,22 @@ public class LicencePositionTransferEquityController {
         .renderWithdrawForExecutedPosition(correction, licencePosition, index));
   }
 
-  private String addedPositionUrl(LicenceCorrection correction, LicencePositionCorrection licencePositionCorrection) {
-    return ReverseRouter.route(on(LicenceCorrectionController.class)
-        .renderAddedPosition(correction, licencePositionCorrection, null));
+  private String addedPositionUrl(LicencePositionCorrection licencePositionCorrection) {
+    return LicencePositionCorrectionRouteUtil.getPositionPageUrl(licencePositionCorrection);
   }
 
-  private String addedSummaryUrl(LicenceCorrection correction, LicencePositionCorrection licencePositionCorrection) {
+  private String addedSummaryUrl(LicencePositionCorrection licencePositionCorrection) {
     return ReverseRouter.route(on(this.getClass())
-        .renderSummaryForAddedPosition(correction, licencePositionCorrection));
+        .renderSummaryForAddedPosition(licencePositionCorrection.getLicenceCorrection(), licencePositionCorrection));
   }
 
-  private String addedWithdrawUrl(LicenceCorrection correction, LicencePositionCorrection licencePositionCorrection, int index) {
+  private String addedWithdrawUrl(LicencePositionCorrection licencePositionCorrection, int index) {
     return ReverseRouter.route(on(this.getClass())
-        .renderWithdrawForAddedPosition(correction, licencePositionCorrection, index));
+        .renderWithdrawForAddedPosition(licencePositionCorrection.getLicenceCorrection(), licencePositionCorrection, index));
   }
 
-  private String addedChangeChooserUrl(LicenceCorrection correction, LicencePositionCorrection licencePositionCorrection) {
+  private String addedChangeChooserUrl(LicencePositionCorrection licencePositionCorrection) {
     return ReverseRouter.route(on(LicencePositionAddChangeController.class)
-        .renderForAddedPosition(correction, licencePositionCorrection));
+        .renderForAddedPosition(licencePositionCorrection.getLicenceCorrection(), licencePositionCorrection));
   }
 }

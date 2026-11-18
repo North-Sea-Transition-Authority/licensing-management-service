@@ -19,7 +19,6 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correct
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.position.LicencePositionBelongsToCorrectionLicence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionRouteUtil;
@@ -89,7 +88,7 @@ public class PartialSurrenderTaskListController {
             new PartialSurrenderTaskListContext.Staged(licencePositionCorrection), user),
         positionReference(licencePositionCorrection),
         DateUtil.formatLongDate(licencePositionCorrectionService.resolveEffectiveDate(licencePositionCorrection)),
-        LicencePositionCorrectionRouteUtil.getPositionPageUrl(correction, licencePositionCorrection));
+        LicencePositionCorrectionRouteUtil.getPositionPageUrl(licencePositionCorrection));
   }
 
   @GetMapping("/position/{licencePositionId}/change/{changeId}/partial-surrender/task-list")
@@ -122,8 +121,7 @@ public class PartialSurrenderTaskListController {
             new PartialSurrenderTaskListContext.LiveChange(correction, licencePosition, change), user),
         licencePosition.getLicenceTransaction().getRegulatorReference(),
         licencePosition.getFormattedPositionDate(),
-        ReverseRouter.route(on(LicenceCorrectionController.class)
-            .renderLicencePosition(correction, licencePosition, null)));
+        LicencePositionCorrectionRouteUtil.getPositionPageUrl(correction, licencePosition.getId()));
   }
 
   private ModelAndView taskListModelAndView(

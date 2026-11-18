@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatNoException;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
@@ -19,6 +20,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectionPosition;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.AddPositionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.AdministratorOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
@@ -115,9 +118,10 @@ class ChangeFormServiceTest {
   void checkNoLiveChangeOfType_whenPositionHasLiveChangeOfType_thenConflict() {
     var service = service();
     var position = LicencePositionTestUtil.newBuilder().withId(UUID.randomUUID()).build();
+    var correctionPosition = new CorrectionPosition.Executed(PRODUCTION_CORRECTION, position);
     when(licencePositionChangeService.changeExists(position.getId(), AdministratorOperation.class)).thenReturn(true);
 
-    assertThatThrownBy(() -> service.checkNoLiveChangeOfType(administratorHandler, position))
+    assertThatThrownBy(() -> service.checkNoLiveChangeOfType(administratorHandler, correctionPosition))
         .isInstanceOfSatisfying(ResponseStatusException.class, exception ->
             assertThat(exception.getStatusCode()).isEqualTo(HttpStatus.CONFLICT));
   }
@@ -126,9 +130,21 @@ class ChangeFormServiceTest {
   void checkNoLiveChangeOfType_whenPositionHasNoLiveChangeOfType_thenPasses() {
     var service = service();
     var position = LicencePositionTestUtil.newBuilder().withId(UUID.randomUUID()).build();
+    var correctionPosition = new CorrectionPosition.Executed(PRODUCTION_CORRECTION, position);
     when(licencePositionChangeService.changeExists(position.getId(), AdministratorOperation.class)).thenReturn(false);
 
-    assertThatNoException().isThrownBy(() -> service.checkNoLiveChangeOfType(administratorHandler, position));
+    assertThatNoException().isThrownBy(() -> service.checkNoLiveChangeOfType(administratorHandler, correctionPosition));
+  }
+
+  @Test
+  void checkNoLiveChangeOfType_whenStagedPosition_thenPassesWithoutLookingForLiveChanges() {
+    var service = service();
+    var correctionPosition = new CorrectionPosition.Staged(LicencePositionCorrectionTestUtil.newBuilder()
+        .withLicenceCorrection(PRODUCTION_CORRECTION)
+        .build());
+
+    assertThatNoException().isThrownBy(() -> service.checkNoLiveChangeOfType(administratorHandler, correctionPosition));
+    verifyNoInteractions(licencePositionChangeService);
   }
 
   @Test

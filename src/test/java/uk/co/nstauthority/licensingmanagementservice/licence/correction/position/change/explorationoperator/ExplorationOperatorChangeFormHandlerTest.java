@@ -21,6 +21,7 @@ import uk.co.nstauthority.licensingmanagementservice.fds.searchselector.SearchSe
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectionPosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.OrganisationChangeFormValidator;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.OrganisationChangeService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.form.ChangeFormTarget;
@@ -61,13 +62,13 @@ class ExplorationOperatorChangeFormHandlerTest {
 
   @Test
   void formPage() {
-    var target = new ChangeFormTarget.ExecutedPosition(CORRECTION, POSITION);
+    var correctionPosition = new CorrectionPosition.Executed(CORRECTION, POSITION);
+    var target = new ChangeFormTarget.NewChange(correctionPosition);
     when(organisationChangeService.getOrganisationChangeContext(CORRECTION, POSITION_ID, ExplorationOperatorOperation.class))
         .thenReturn(new ExplorationOperatorChangeContext(123, 456, "Current operator", "Previous operator"));
-    when(organisationChangeService.populateExistingOrganisationForm(
+    when(organisationChangeService.populateOrganisationForm(
         eq(123),
-        eq(CORRECTION),
-        eq(POSITION),
+        eq(correctionPosition),
         isA(ExplorationOperatorChangeForm.class)
     ))
         .thenReturn(new ExplorationOperatorChangeForm("123"));
@@ -89,15 +90,16 @@ class ExplorationOperatorChangeFormHandlerTest {
   }
 
   @Test
-  void save_whenExecutedPosition_thenAddsExplorationOperatorChange() {
+  void save_whenNewChange_thenAddsExplorationOperatorChange() {
+    var correctionPosition = new CorrectionPosition.Executed(CORRECTION, POSITION);
+
     explorationOperatorChangeFormHandler.save(
-        new ChangeFormTarget.ExecutedPosition(CORRECTION, POSITION),
+        new ChangeFormTarget.NewChange(correctionPosition),
         new ExplorationOperatorChangeForm("789")
     );
 
-    verify(organisationChangeService).addOrganisationChangeForExistingLicencePosition(
-        POSITION,
-        CORRECTION,
+    verify(organisationChangeService).addOrganisationChange(
+        correctionPosition,
         ExplorationOperatorOperation.class,
         LicenceOperation.newExplorationOperatorOperation().withOperator(789).build()
     );

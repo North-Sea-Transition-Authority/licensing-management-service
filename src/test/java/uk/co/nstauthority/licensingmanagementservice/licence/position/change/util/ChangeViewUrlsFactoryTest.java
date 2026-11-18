@@ -13,6 +13,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectionPosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.AddPositionChangeType;
@@ -198,9 +199,9 @@ class ChangeViewUrlsFactoryTest {
     var undo = undoUrl();
 
     var adminAdded = ReverseRouter.route(on(ChangeFormController.class)
-        .addToAddedPosition(CORRECTION, POSITION_CORRECTION, AddPositionChangeType.ADMINISTRATOR, null, null, null));
+        .addToPosition(new CorrectionPosition.Staged(POSITION_CORRECTION), AddPositionChangeType.ADMINISTRATOR, null, null, null));
     var adminExecuted = ReverseRouter.route(on(ChangeFormController.class)
-        .addToExecutedPosition(CORRECTION, LICENCE_POSITION, AddPositionChangeType.ADMINISTRATOR, null, null, null));
+        .addToPosition(new CorrectionPosition.Executed(CORRECTION, LICENCE_POSITION), AddPositionChangeType.ADMINISTRATOR, null, null, null));
     var adminCorrecting = ReverseRouter.route(on(ChangeFormController.class)
         .correctLiveChange(CORRECTION, LICENCE_POSITION, CHANGE_ENTITY, null, null, null));
 
@@ -223,23 +224,23 @@ class ChangeViewUrlsFactoryTest {
         .renderReviewAndSubmitForCorrectingChange(CORRECTION, LICENCE_POSITION, CHANGE_ENTITY, null));
 
     var licenseeAdded = ReverseRouter.route(on(ChangeFormController.class)
-        .addToAddedPosition(CORRECTION, POSITION_CORRECTION, AddPositionChangeType.LICENSEE, null, null, null));
+        .addToPosition(new CorrectionPosition.Staged(POSITION_CORRECTION), AddPositionChangeType.LICENSEE, null, null, null));
     var licenseeExecuted = ReverseRouter.route(on(ChangeFormController.class)
-        .addToExecutedPosition(CORRECTION, LICENCE_POSITION, AddPositionChangeType.LICENSEE, null, null, null));
+        .addToPosition(new CorrectionPosition.Executed(CORRECTION, LICENCE_POSITION), AddPositionChangeType.LICENSEE, null, null, null));
     var licenseeCorrecting = ReverseRouter.route(on(ChangeFormController.class)
         .correctLiveChange(CORRECTION, LICENCE_POSITION, CHANGE_ENTITY, null, null, null));
 
     var storageOperatorAdded = ReverseRouter.route(on(ChangeFormController.class)
-        .addToAddedPosition(CORRECTION, POSITION_CORRECTION, AddPositionChangeType.STORAGE_OPERATOR, null, null, null));
+        .addToPosition(new CorrectionPosition.Staged(POSITION_CORRECTION), AddPositionChangeType.STORAGE_OPERATOR, null, null, null));
     var storageOperatorExecuted = ReverseRouter.route(on(ChangeFormController.class)
-        .addToExecutedPosition(CORRECTION, LICENCE_POSITION, AddPositionChangeType.STORAGE_OPERATOR, null, null, null));
+        .addToPosition(new CorrectionPosition.Executed(CORRECTION, LICENCE_POSITION), AddPositionChangeType.STORAGE_OPERATOR, null, null, null));
     var storageOperatorCorrecting = ReverseRouter.route(on(ChangeFormController.class)
         .correctLiveChange(CORRECTION, LICENCE_POSITION, CHANGE_ENTITY, null, null, null));
 
-    var explorationOperatorAdded = ReverseRouter.route(on(ChangeFormController.class).addToAddedPosition(
-        CORRECTION, POSITION_CORRECTION, AddPositionChangeType.EXPLORATION_OPERATOR, null, null, null));
-    var explorationOperatorExecuted = ReverseRouter.route(on(ChangeFormController.class).addToExecutedPosition(
-        CORRECTION, LICENCE_POSITION, AddPositionChangeType.EXPLORATION_OPERATOR, null, null, null));
+    var explorationOperatorAdded = ReverseRouter.route(on(ChangeFormController.class)
+        .addToPosition(new CorrectionPosition.Staged(POSITION_CORRECTION), AddPositionChangeType.EXPLORATION_OPERATOR, null, null, null));
+    var explorationOperatorExecuted = ReverseRouter.route(on(ChangeFormController.class)
+        .addToPosition(new CorrectionPosition.Executed(CORRECTION, LICENCE_POSITION), AddPositionChangeType.EXPLORATION_OPERATOR, null, null, null));
     var explorationOperatorCorrecting = ReverseRouter.route(on(ChangeFormController.class)
         .correctLiveChange(CORRECTION, LICENCE_POSITION, CHANGE_ENTITY, null, null, null));
 

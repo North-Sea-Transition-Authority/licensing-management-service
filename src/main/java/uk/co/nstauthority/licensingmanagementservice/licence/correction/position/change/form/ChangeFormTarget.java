@@ -2,13 +2,12 @@ package uk.co.nstauthority.licensingmanagementservice.licence.correction.positio
 
 import java.util.UUID;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectionPosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
 
 /**
- * What a change form acts on: a new change on an executed position, a new change on a position the correction has
- * added, or a correction to a live change.
+ * What a change form acts on: a new change on a position, or a correction to a live change.
  */
 public sealed interface ChangeFormTarget {
 
@@ -19,24 +18,19 @@ public sealed interface ChangeFormTarget {
    */
   UUID positionId();
 
-  record ExecutedPosition(LicenceCorrection correction, LicencePosition position) implements ChangeFormTarget {
-
-    @Override
-    public UUID positionId() {
-      return position.getId();
-    }
-  }
-
-  record AddedPosition(LicencePositionCorrection positionCorrection) implements ChangeFormTarget {
+  /**
+   * A new change on a position on the correction's timeline, whether executed or added by the correction.
+   */
+  record NewChange(CorrectionPosition correctionPosition) implements ChangeFormTarget {
 
     @Override
     public LicenceCorrection correction() {
-      return positionCorrection.getLicenceCorrection();
+      return correctionPosition.correction();
     }
 
     @Override
     public UUID positionId() {
-      return positionCorrection.getPositionId();
+      return correctionPosition.positionId();
     }
   }
 

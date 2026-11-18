@@ -21,6 +21,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceFormService;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectionPosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.form.ChangeFormTarget;
@@ -80,7 +81,9 @@ class LicenseeChangeFormHandlerTest {
     when(licenceFormService.getPreselectedOrganisationUnits(List.of("2"))).thenReturn(List.of());
     when(licenceFormService.getPreselectedOrganisationUnits(List.of("1"))).thenReturn(List.of());
 
-    var result = licenseeChangeFormHandler.formPage(new ChangeFormTarget.ExecutedPosition(CORRECTION, POSITION));
+    var result = licenseeChangeFormHandler.formPage(
+        new ChangeFormTarget.NewChange(new CorrectionPosition.Executed(CORRECTION, POSITION))
+    );
 
     var expectedForm = new LicenseeChangeForm()
         .setJoiningOrganisationIds(List.of("2"))
@@ -104,7 +107,7 @@ class LicenseeChangeFormHandlerTest {
     when(licenceFormService.getPreselectedOrganisationUnits(null)).thenReturn(List.of());
 
     var result = licenseeChangeFormHandler.formPage(
-        new ChangeFormTarget.AddedPosition(ADDED_POSITION_CORRECTION)
+        new ChangeFormTarget.NewChange(new CorrectionPosition.Staged(ADDED_POSITION_CORRECTION))
     );
 
     var expected = expectedFormPage(
@@ -147,7 +150,7 @@ class LicenseeChangeFormHandlerTest {
     when(licenceFormService.getPreselectedOrganisationUnits(List.of("1"))).thenReturn(List.of());
 
     var result = licenseeChangeFormHandler.formPageIfInvalid(
-        new ChangeFormTarget.ExecutedPosition(CORRECTION, POSITION),
+        new ChangeFormTarget.NewChange(new CorrectionPosition.Executed(CORRECTION, POSITION)),
         form,
         bindingResult
     );
@@ -165,22 +168,12 @@ class LicenseeChangeFormHandlerTest {
   }
 
   @Test
-  void save_whenExecutedPosition_thenAddsChangeToPosition() {
-    licenseeChangeFormHandler.save(new ChangeFormTarget.ExecutedPosition(CORRECTION, POSITION), validForm());
+  void save_whenNewChange_thenAddsChangeToPosition() {
+    var correctionPosition = new CorrectionPosition.Staged(ADDED_POSITION_CORRECTION);
 
-    verify(licenseeChangeService)
-        .addLicenseeChangeForExistingLicencePosition(POSITION, CORRECTION, List.of(2), List.of(1));
-  }
+    licenseeChangeFormHandler.save(new ChangeFormTarget.NewChange(correctionPosition), validForm());
 
-  @Test
-  void save_whenAddedPosition_thenAddsChangeToAddedPosition() {
-    licenseeChangeFormHandler.save(
-        new ChangeFormTarget.AddedPosition(ADDED_POSITION_CORRECTION),
-        validForm()
-    );
-
-    verify(licenseeChangeService)
-        .addLicenseeChangeForAddedLicencePosition(ADDED_POSITION_CORRECTION, List.of(2), List.of(1));
+    verify(licenseeChangeService).addLicenseeChange(correctionPosition, List.of(2), List.of(1));
   }
 
   @Test

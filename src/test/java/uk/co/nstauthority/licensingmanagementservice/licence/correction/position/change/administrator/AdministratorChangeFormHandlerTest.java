@@ -7,7 +7,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -23,12 +22,10 @@ import uk.co.nstauthority.licensingmanagementservice.fds.searchselector.SearchSe
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectionPosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.OrganisationChangeFormValidator;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.OrganisationChangeService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.form.ChangeFormTarget;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.AdministratorOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.AdministratorChangeContext;
@@ -43,7 +40,6 @@ class AdministratorChangeFormHandlerTest {
   private static final String TEMPLATE_NAME = "lms/licence/correction/change/addOrganisationChange";
   private static final String OPERATOR_TYPE = "licence administrator";
   private static final UUID POSITION_ID = UUID.randomUUID();
-  private static final UUID ADDED_POSITION_ID = UUID.randomUUID();
   private static final Integer CURRENT_ADMINISTRATOR_ID = 123;
   private static final Integer PREVIOUS_ADMINISTRATOR_ID = 456;
   private static final String PREVIOUS_ADMINISTRATOR_NAME = "Previous administrator";
@@ -60,17 +56,10 @@ class AdministratorChangeFormHandlerTest {
   private static final LicencePosition POSITION = LicencePositionTestUtil.newBuilder()
       .withId(POSITION_ID)
       .build();
+  private static final CorrectionPosition EXECUTED_POSITION = new CorrectionPosition.Executed(CORRECTION, POSITION);
   private static final LicencePositionChange LIVE_CHANGE = LicencePositionChangeTestUtil.newBuilder()
       .withId(UUID.randomUUID())
       .withLicencePosition(POSITION)
-      .build();
-  private static final LicencePositionCorrection ADDED_POSITION_CORRECTION = LicencePositionCorrectionTestUtil.newBuilder()
-      .withLicenceCorrection(CORRECTION)
-      .withTargetLicencePosition(null)
-      .withPayload(CreateLicencePositionPayloadTestUtil.newBuilder()
-          .withLicencePositionId(ADDED_POSITION_ID.toString())
-          .withChanges(List.of())
-          .build())
       .build();
 
   @Mock
@@ -89,32 +78,15 @@ class AdministratorChangeFormHandlerTest {
   private AdministratorChangeFormHandler administratorChangeFormHandler;
 
   @Test
-  void formPage_whenExecutedPosition_thenFormIsPopulatedForThePosition() {
+  void formPage_whenNewChange_thenFormIsPopulatedForThePosition() {
     var populatedForm = formWithAdministrator("123");
     givenChangeContext(POSITION_ID);
-    when(organisationChangeService.populateExistingOrganisationForm(
-        eq(CURRENT_ADMINISTRATOR_ID), eq(CORRECTION), eq(POSITION), any(AdministratorChangeForm.class)))
+    when(organisationChangeService.populateOrganisationForm(
+        eq(CURRENT_ADMINISTRATOR_ID), eq(EXECUTED_POSITION), any(AdministratorChangeForm.class)))
         .thenReturn(populatedForm);
     when(organisationUnitQueryService.getOrganisationUnitSelectOption("123")).thenReturn(PRESELECTED_ADMINISTRATOR);
 
-    var result = administratorChangeFormHandler.formPage(new ChangeFormTarget.ExecutedPosition(CORRECTION, POSITION));
-
-    assertThat(result).usingRecursiveComparison()
-        .isEqualTo(expectedFormPage(populatedForm, PRESELECTED_ADMINISTRATOR));
-  }
-
-  @Test
-  void formPage_whenAddedPosition_thenFormIsPopulatedForTheAddedPosition() {
-    var populatedForm = formWithAdministrator("123");
-    givenChangeContext(ADDED_POSITION_ID);
-    when(organisationChangeService.populateAddedOrganisationForm(
-        eq(CURRENT_ADMINISTRATOR_ID), eq(ADDED_POSITION_CORRECTION), any(AdministratorChangeForm.class)))
-        .thenReturn(populatedForm);
-    when(organisationUnitQueryService.getOrganisationUnitSelectOption("123")).thenReturn(PRESELECTED_ADMINISTRATOR);
-
-    var result = administratorChangeFormHandler.formPage(
-        new ChangeFormTarget.AddedPosition(ADDED_POSITION_CORRECTION)
-    );
+    var result = administratorChangeFormHandler.formPage(new ChangeFormTarget.NewChange(EXECUTED_POSITION));
 
     assertThat(result).usingRecursiveComparison()
         .isEqualTo(expectedFormPage(populatedForm, PRESELECTED_ADMINISTRATOR));
@@ -157,7 +129,7 @@ class AdministratorChangeFormHandlerTest {
     when(organisationUnitQueryService.getOrganisationUnitSelectOption("789")).thenReturn(Map.of());
 
     var result = administratorChangeFormHandler.formPageIfInvalid(
-        new ChangeFormTarget.ExecutedPosition(CORRECTION, POSITION),
+        new ChangeFormTarget.NewChange(EXECUTED_POSITION),
         form,
         bindingResult
     );
@@ -174,7 +146,7 @@ class AdministratorChangeFormHandlerTest {
         .thenReturn(false);
 
     var result = administratorChangeFormHandler.formPageIfInvalid(
-        new ChangeFormTarget.ExecutedPosition(CORRECTION, POSITION),
+        new ChangeFormTarget.NewChange(EXECUTED_POSITION),
         form,
         bindingResult
     );
@@ -183,29 +155,11 @@ class AdministratorChangeFormHandlerTest {
   }
 
   @Test
-  void save_whenExecutedPosition_thenAddsChangeToPosition() {
-    administratorChangeFormHandler.save(
-        new ChangeFormTarget.ExecutedPosition(CORRECTION, POSITION),
-        formWithAdministrator("789")
-    );
+  void save_whenNewChange_thenAddsChangeToPosition() {
+    administratorChangeFormHandler.save(new ChangeFormTarget.NewChange(EXECUTED_POSITION), formWithAdministrator("789"));
 
-    verify(organisationChangeService).addOrganisationChangeForExistingLicencePosition(
-        POSITION,
-        CORRECTION,
-        AdministratorOperation.class,
-        LicenceOperation.newAdministratorChange().withOperator(789).build()
-    );
-  }
-
-  @Test
-  void save_whenAddedPosition_thenAddsChangeToAddedPosition() {
-    administratorChangeFormHandler.save(
-        new ChangeFormTarget.AddedPosition(ADDED_POSITION_CORRECTION),
-        formWithAdministrator("789")
-    );
-
-    verify(organisationChangeService).addOrganisationChangeForAddedLicencePosition(
-        ADDED_POSITION_CORRECTION,
+    verify(organisationChangeService).addOrganisationChange(
+        EXECUTED_POSITION,
         AdministratorOperation.class,
         LicenceOperation.newAdministratorChange().withOperator(789).build()
     );

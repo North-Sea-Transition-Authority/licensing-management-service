@@ -43,13 +43,10 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionChangeType;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectionPosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionRouteUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.AddPositionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.administrator.AdministratorChangeForm;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
@@ -67,7 +64,6 @@ class ChangeFormControllerTest extends AbstractControllerTest {
       .build();
   private static final UUID CORRECTION_ID = UUID.randomUUID();
   private static final UUID POSITION_ID = UUID.randomUUID();
-  private static final UUID POSITION_CORRECTION_ID = UUID.randomUUID();
   private static final String TEMPLATE_NAME = "lms/licence/correction/change/administratorChange";
   private static final AddPositionChangeType CHANGE_TYPE = AddPositionChangeType.ADMINISTRATOR;
   private static final LicenceCorrection CORRECTION = LicenceCorrectionTestUtil.newBuilder()
@@ -78,15 +74,7 @@ class ChangeFormControllerTest extends AbstractControllerTest {
       .withId(POSITION_ID)
       .withLicence(LICENCE)
       .build();
-  private static final LicencePositionCorrection ADDED_POSITION_CORRECTION = LicencePositionCorrectionTestUtil.newBuilder()
-      .withId(POSITION_CORRECTION_ID)
-      .withLicenceCorrection(CORRECTION)
-      .withChangeType(LicencePositionCorrectionChangeType.ADD_POSITION)
-      .withTargetLicencePosition(null)
-      .withPayload(CreateLicencePositionPayloadTestUtil.newBuilder()
-          .withLicencePositionId(UUID.randomUUID().toString())
-          .build())
-      .build();
+  private static final CorrectionPosition EXECUTED_POSITION = new CorrectionPosition.Executed(CORRECTION, POSITION);
   private static final LicencePositionChange LIVE_CHANGE = LicencePositionChangeTestUtil.newBuilder()
       .withId(UUID.randomUUID())
       .withLicencePosition(POSITION)
@@ -100,20 +88,18 @@ class ChangeFormControllerTest extends AbstractControllerTest {
 
   private final String positionUrl =
       LicencePositionCorrectionRouteUtil.getPositionPageUrl(CORRECTION, POSITION.getId());
-  private final String addedPositionUrl =
-      LicencePositionCorrectionRouteUtil.getPositionPageUrl(ADDED_POSITION_CORRECTION);
 
   @Test
-  void addToExecutedPosition_whenNotLoggedIn_thenRedirectsToLogin() throws Exception {
-    mockMvc.perform(get(addToExecutedPositionUrl()))
+  void addToPosition_whenNotLoggedIn_thenRedirectsToLogin() throws Exception {
+    mockMvc.perform(get(addToPositionUrl()))
         .andExpect(redirectionToLoginUrl());
   }
 
   @Test
-  void addToExecutedPosition_whenNotAllocatedToUser_thenForbidden() throws Exception {
+  void addToPosition_whenNotAllocatedToUser_thenForbidden() throws Exception {
     givenCorrectionNotAllocatedToUser();
 
-    mockMvc.perform(get(addToExecutedPositionUrl())
+    mockMvc.perform(get(addToPositionUrl())
             .with(user(regulatorUser)))
         .andExpect(status().isForbidden());
 
@@ -121,7 +107,7 @@ class ChangeFormControllerTest extends AbstractControllerTest {
   }
 
   @Test
-  void addToExecutedPosition_whenCorrectionIsNotInProgress_thenForbidden() throws Exception {
+  void addToPosition_whenCorrectionIsNotInProgress_thenForbidden() throws Exception {
     var completeCorrection = LicenceCorrectionTestUtil.newBuilder()
         .withId(CORRECTION_ID)
         .withStatus(LicenceCorrectionStatus.COMPLETE)
@@ -131,7 +117,7 @@ class ChangeFormControllerTest extends AbstractControllerTest {
         .thenReturn(Optional.of(completeCorrection));
     when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(completeCorrection));
 
-    mockMvc.perform(get(addToExecutedPositionUrl())
+    mockMvc.perform(get(addToPositionUrl())
             .with(user(regulatorUser)))
         .andExpect(status().isForbidden())
         .andExpect(status().reason(CorrectionHasStatusInterceptorRule.notInExpectedStatusMessage(CORRECTION_ID)));
@@ -140,12 +126,12 @@ class ChangeFormControllerTest extends AbstractControllerTest {
   }
 
   @Test
-  void addToExecutedPosition_whenPositionIsRemovedInCorrection_thenForbidden() throws Exception {
+  void addToPosition_whenPositionIsRemovedInCorrection_thenForbidden() throws Exception {
     givenCorrectionAllocatedToUser();
     givenExecutedPosition();
     when(licencePositionCorrectionService.isPositionRemovedInCorrection(CORRECTION, POSITION)).thenReturn(true);
 
-    mockMvc.perform(get(addToExecutedPositionUrl())
+    mockMvc.perform(get(addToPositionUrl())
             .with(user(regulatorUser)))
         .andExpect(status().isForbidden());
 
@@ -154,26 +140,26 @@ class ChangeFormControllerTest extends AbstractControllerTest {
 
   @ParameterizedTest
   @EnumSource(value = HttpStatus.class, names = {"NOT_FOUND", "FORBIDDEN"})
-  void addToExecutedPosition_whenChangeTypeHasNoAvailableForm_thenRespondsWithServiceStatus(HttpStatus httpStatus)
+  void addToPosition_whenChangeTypeHasNoAvailableForm_thenRespondsWithServiceStatus(HttpStatus httpStatus)
       throws Exception {
     givenCorrectionAllocatedToUser();
     givenExecutedPosition();
     when(changeFormService.getHandler(CORRECTION, CHANGE_TYPE)).thenThrow(new ResponseStatusException(httpStatus));
 
-    mockMvc.perform(get(addToExecutedPositionUrl())
+    mockMvc.perform(get(addToPositionUrl())
             .with(user(regulatorUser)))
         .andExpect(status().is(httpStatus.value()));
   }
 
   @Test
-  void addToExecutedPosition_whenPositionHasLiveChangeOfType_thenConflict() throws Exception {
+  void addToPosition_whenPositionHasLiveChangeOfType_thenConflict() throws Exception {
     givenCorrectionAllocatedToUser();
     givenExecutedPosition();
     givenHandlerForChangeType();
     doThrow(new ResponseStatusException(HttpStatus.CONFLICT))
-        .when(changeFormService).checkNoLiveChangeOfType(handler, POSITION);
+        .when(changeFormService).checkNoLiveChangeOfType(handler, EXECUTED_POSITION);
 
-    mockMvc.perform(get(addToExecutedPositionUrl())
+    mockMvc.perform(get(addToPositionUrl())
             .with(user(regulatorUser)))
         .andExpect(status().isConflict());
 
@@ -181,14 +167,14 @@ class ChangeFormControllerTest extends AbstractControllerTest {
   }
 
   @Test
-  void addToExecutedPosition_whenGet_thenShowsFormPage() throws Exception {
+  void addToPosition_whenGet_thenShowsFormPage() throws Exception {
     givenCorrectionAllocatedToUser();
     givenExecutedPosition();
     givenHandlerForChangeType();
-    var target = new ChangeFormTarget.ExecutedPosition(CORRECTION, POSITION);
+    var target = new ChangeFormTarget.NewChange(EXECUTED_POSITION);
     when(handler.formPage(target)).thenReturn(formPage(new AdministratorChangeForm()));
 
-    mockMvc.perform(get(addToExecutedPositionUrl())
+    mockMvc.perform(get(addToPositionUrl())
             .with(user(regulatorUser)))
         .andExpectAll(
             status().isOk(),
@@ -200,11 +186,11 @@ class ChangeFormControllerTest extends AbstractControllerTest {
   }
 
   @Test
-  void addToExecutedPosition_whenPostIsInvalid_thenShowsFormPageWithErrors() throws Exception {
+  void addToPosition_whenPostIsInvalid_thenShowsFormPageWithErrors() throws Exception {
     givenCorrectionAllocatedToUser();
     givenExecutedPosition();
     givenHandlerForChangeType();
-    var target = new ChangeFormTarget.ExecutedPosition(CORRECTION, POSITION);
+    var target = new ChangeFormTarget.NewChange(EXECUTED_POSITION);
     var form = new AdministratorChangeForm();
     when(handler.newForm()).thenReturn(form);
     when(handler.formPageIfInvalid(eq(target), eq(form), any(BindingResult.class))).thenAnswer(invocation -> {
@@ -212,7 +198,7 @@ class ChangeFormControllerTest extends AbstractControllerTest {
       return Optional.of(formPage(form));
     });
 
-    mockMvc.perform(post(addToExecutedPositionUrl())
+    mockMvc.perform(post(addToPositionUrl())
             .with(user(regulatorUser))
             .with(csrf()))
         .andExpectAll(
@@ -226,17 +212,17 @@ class ChangeFormControllerTest extends AbstractControllerTest {
   }
 
   @Test
-  void addToExecutedPosition_whenPostIsValid_thenSavesBoundFormAndRedirectsToPosition() throws Exception {
+  void addToPosition_whenPostIsValid_thenSavesBoundFormAndRedirectsToPosition() throws Exception {
     givenCorrectionAllocatedToUser();
     givenExecutedPosition();
     givenHandlerForChangeType();
-    var target = new ChangeFormTarget.ExecutedPosition(CORRECTION, POSITION);
+    var target = new ChangeFormTarget.NewChange(EXECUTED_POSITION);
     var form = new AdministratorChangeForm();
     when(handler.newForm()).thenReturn(form);
     when(handler.formPageIfInvalid(eq(target), eq(form), any(BindingResult.class))).thenReturn(Optional.empty());
     when(handler.displayName()).thenReturn("Licence administrator change");
 
-    mockMvc.perform(post(addToExecutedPositionUrl())
+    mockMvc.perform(post(addToPositionUrl())
             .param("id.inputValue", " 123 ")
             .with(user(regulatorUser))
             .with(csrf()))
@@ -250,60 +236,6 @@ class ChangeFormControllerTest extends AbstractControllerTest {
 
     verify(handler).save(target, form);
     assertThat(form.getId().getInputValue()).isEqualTo("123");
-  }
-
-  @Test
-  void addToAddedPosition_whenNotAllocatedToUser_thenForbidden() throws Exception {
-    givenCorrectionNotAllocatedToUser();
-
-    mockMvc.perform(get(addToAddedPositionUrl())
-            .with(user(regulatorUser)))
-        .andExpect(status().isForbidden());
-
-    verifyNoInteractions(changeFormService);
-  }
-
-  @Test
-  void addToAddedPosition_whenGet_thenShowsFormPage() throws Exception {
-    givenCorrectionAllocatedToUser();
-    givenAddedPosition();
-    givenHandlerForChangeType();
-    var target = new ChangeFormTarget.AddedPosition(ADDED_POSITION_CORRECTION);
-    when(handler.formPage(target)).thenReturn(formPage(new AdministratorChangeForm()));
-
-    mockMvc.perform(get(addToAddedPositionUrl())
-            .with(user(regulatorUser)))
-        .andExpectAll(
-            status().isOk(),
-            view().name(TEMPLATE_NAME),
-            model().attribute("cancelUrl", addedPositionUrl)
-        );
-  }
-
-  @Test
-  void addToAddedPosition_whenPostIsValid_thenSavesAndRedirectsToAddedPosition() throws Exception {
-    givenCorrectionAllocatedToUser();
-    givenAddedPosition();
-    givenHandlerForChangeType();
-    var target = new ChangeFormTarget.AddedPosition(ADDED_POSITION_CORRECTION);
-    var form = new AdministratorChangeForm();
-    when(handler.newForm()).thenReturn(form);
-    when(handler.formPageIfInvalid(eq(target), eq(form), any(BindingResult.class))).thenReturn(Optional.empty());
-    when(handler.displayName()).thenReturn("Licence administrator change");
-
-    mockMvc.perform(post(addToAddedPositionUrl())
-            .with(user(regulatorUser))
-            .with(csrf()))
-        .andExpectAll(
-            status().is3xxRedirection(),
-            redirectedUrl(addedPositionUrl),
-            notificationBanner(NotificationBanner.newSuccessBanner()
-                .withHeadingContent("Licence administrator change added")
-                .build())
-        );
-
-    verify(handler).save(target, form);
-    verify(changeFormService, never()).checkNoLiveChangeOfType(any(), any());
   }
 
   @Test
@@ -380,14 +312,9 @@ class ChangeFormControllerTest extends AbstractControllerTest {
         .addObject("organisationUnitsUrl", "/organisation-units");
   }
 
-  private String addToExecutedPositionUrl() {
+  private String addToPositionUrl() {
     return ReverseRouter.route(on(ChangeFormController.class)
-        .addToExecutedPosition(CORRECTION, POSITION, CHANGE_TYPE, null, null, null));
-  }
-
-  private String addToAddedPositionUrl() {
-    return ReverseRouter.route(on(ChangeFormController.class)
-        .addToAddedPosition(CORRECTION, ADDED_POSITION_CORRECTION, CHANGE_TYPE, null, null, null));
+        .addToPosition(EXECUTED_POSITION, CHANGE_TYPE, null, null, null));
   }
 
   private String correctLiveChangeUrl() {
@@ -406,11 +333,7 @@ class ChangeFormControllerTest extends AbstractControllerTest {
   private void givenExecutedPosition() {
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(POSITION);
     when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(POSITION));
-  }
-
-  private void givenAddedPosition() {
-    when(licencePositionCorrectionService.findById(POSITION_CORRECTION_ID))
-        .thenReturn(Optional.of(ADDED_POSITION_CORRECTION));
+    givenCorrectionPosition(EXECUTED_POSITION);
   }
 
   private void givenLiveChange() {

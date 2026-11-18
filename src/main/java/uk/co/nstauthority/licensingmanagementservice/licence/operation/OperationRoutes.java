@@ -43,12 +43,12 @@ public interface OperationRoutes {
     return target -> {
       if (target.addedPosition()) {
         return ReverseRouter.route(on(ChangeFormController.class)
-            .addToAddedPosition(target.correction(), target.positionCorrection(), changeType, null, null, null));
+            .addToPosition(target.correctionPosition(), changeType, null, null, null));
       }
 
       return switch (target.state()) {
         case ADDED -> ReverseRouter.route(on(ChangeFormController.class)
-            .addToExecutedPosition(target.correction(), target.licencePosition(), changeType, null, null, null));
+            .addToPosition(target.correctionPosition(), changeType, null, null, null));
         case LIVE, OPERATIONS_UPDATED, ORDER_UPDATED -> ReverseRouter.route(on(ChangeFormController.class)
             .correctLiveChange(target.correction(), target.licencePosition(), target.changeEntity(), null, null, null));
         case REMOVED -> null;

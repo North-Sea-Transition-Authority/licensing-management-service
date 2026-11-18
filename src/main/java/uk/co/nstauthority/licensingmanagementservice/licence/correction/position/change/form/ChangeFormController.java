@@ -13,14 +13,13 @@ import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.CorrectionHasStatus;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanViewCorrection;
-import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.LicencePositionCorrectionBelongsToCorrection;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.LicencePositionIsNotRemovedInCorrection;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.LicencePositionChangeBelongsToPosition;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.position.LicencePositionBelongsToCorrectionLicence;
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectionPosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionRouteUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.AddPositionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
@@ -47,44 +46,19 @@ public class ChangeFormController {
 
   @RequestMapping(value = "/position/{licencePositionId}/change/add", method = {RequestMethod.GET, RequestMethod.POST})
   @LicencePositionIsNotRemovedInCorrection
-  @LicencePositionBelongsToCorrectionLicence
-  public ModelAndView addToExecutedPosition(
-      LicenceCorrection correction,
-      LicencePosition licencePosition,
+  public ModelAndView addToPosition(
+      CorrectionPosition correctionPosition,
       @RequestParam("type") AddPositionChangeType changeType,
       HttpMethod httpMethod,
       HttpServletRequest request,
       RedirectAttributes redirectAttributes
   ) {
-    var handler = changeFormService.getHandler(correction, changeType);
-    changeFormService.checkNoLiveChangeOfType(handler, licencePosition);
+    var handler = changeFormService.getHandler(correctionPosition.correction(), changeType);
+    changeFormService.checkNoLiveChangeOfType(handler, correctionPosition);
 
     return handle(
         handler,
-        new ChangeFormTarget.ExecutedPosition(correction, licencePosition),
-        "added",
-        httpMethod,
-        request,
-        redirectAttributes
-    );
-  }
-
-  @RequestMapping(
-      value = "/added-position/{licencePositionCorrectionId}/change/add",
-      method = {RequestMethod.GET, RequestMethod.POST}
-  )
-  @LicencePositionCorrectionBelongsToCorrection
-  public ModelAndView addToAddedPosition(
-      LicenceCorrection correction,
-      LicencePositionCorrection licencePositionCorrection,
-      @RequestParam("type") AddPositionChangeType changeType,
-      HttpMethod httpMethod,
-      HttpServletRequest request,
-      RedirectAttributes redirectAttributes
-  ) {
-    return handle(
-        changeFormService.getHandler(correction, changeType),
-        new ChangeFormTarget.AddedPosition(licencePositionCorrection),
+        new ChangeFormTarget.NewChange(correctionPosition),
         "added",
         httpMethod,
         request,

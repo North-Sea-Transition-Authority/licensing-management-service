@@ -9,8 +9,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectionPosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.AddPositionChangeType;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeService;
 
@@ -69,16 +69,22 @@ public class ChangeFormService {
 
   /**
    * A position holds at most one live change of each kind with a change form, so a new one cannot be added while a
-   * live one exists; the live one is corrected instead.
+   * live one exists; the live one is corrected instead. A position the correction adds has no live changes.
    *
    * @throws ResponseStatusException with {@link HttpStatus#CONFLICT} when the position has a live change of the kind
    */
-  public void checkNoLiveChangeOfType(ChangeFormHandler<?> handler, LicencePosition licencePosition) {
-    if (licencePositionChangeService.changeExists(licencePosition.getId(), handler.operationType())) {
+  public void checkNoLiveChangeOfType(ChangeFormHandler<?> handler, CorrectionPosition correctionPosition) {
+    if (!(correctionPosition instanceof CorrectionPosition.Executed executed)) {
+      return;
+    }
+
+    var licencePositionId = executed.positionId();
+
+    if (licencePositionChangeService.changeExists(licencePositionId, handler.operationType())) {
       throw new ResponseStatusException(
           HttpStatus.CONFLICT,
           "Licence position %s already has a live %s".formatted(
-              licencePosition.getId(),
+              licencePositionId,
               handler.operationType().getSimpleName()
           )
       );

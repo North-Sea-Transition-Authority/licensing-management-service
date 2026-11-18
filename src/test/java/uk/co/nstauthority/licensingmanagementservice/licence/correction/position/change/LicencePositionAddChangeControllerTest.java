@@ -32,6 +32,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectionPosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionRouteUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
@@ -270,9 +271,8 @@ class LicencePositionAddChangeControllerTest extends AbstractControllerTest {
             .with(user(regulatorUser)).with(csrf())
             .flashAttr("form", form))
         .andExpect(status().is3xxRedirection())
-        .andExpect(redirectedUrl(ReverseRouter.route(on(ChangeFormController.class).addToExecutedPosition(
-            correction,
-            licencePosition,
+        .andExpect(redirectedUrl(ReverseRouter.route(on(ChangeFormController.class).addToPosition(
+            new CorrectionPosition.Executed(correction, licencePosition),
             AddPositionChangeType.EXPLORATION_OPERATOR,
             null,
             null,
@@ -305,7 +305,7 @@ class LicencePositionAddChangeControllerTest extends AbstractControllerTest {
             .flashAttr("form", form))
         .andExpect(status().is3xxRedirection())
         .andExpect(redirectedUrl(ReverseRouter.route(on(ChangeFormController.class)
-            .addToExecutedPosition(correction, licencePosition, AddPositionChangeType.STORAGE_OPERATOR, null, null, null))));
+            .addToPosition(new CorrectionPosition.Executed(correction, licencePosition), AddPositionChangeType.STORAGE_OPERATOR, null, null, null))));
   }
 
   @Test
@@ -329,7 +329,7 @@ class LicencePositionAddChangeControllerTest extends AbstractControllerTest {
             .flashAttr("form", form))
         .andExpect(status().is3xxRedirection())
         .andExpect(redirectedUrl(ReverseRouter.route(on(ChangeFormController.class)
-            .addToExecutedPosition(correction, licencePosition, AddPositionChangeType.LICENSEE, null, null, null))));
+            .addToPosition(new CorrectionPosition.Executed(correction, licencePosition), AddPositionChangeType.LICENSEE, null, null, null))));
   }
 
   @Test
@@ -353,7 +353,7 @@ class LicencePositionAddChangeControllerTest extends AbstractControllerTest {
             .flashAttr("form", form))
         .andExpect(status().is3xxRedirection())
         .andExpect(redirectedUrl(ReverseRouter.route(on(ChangeFormController.class)
-            .addToExecutedPosition(correction, licencePosition, AddPositionChangeType.ADMINISTRATOR, null, null, null))));
+            .addToPosition(new CorrectionPosition.Executed(correction, licencePosition), AddPositionChangeType.ADMINISTRATOR, null, null, null))));
   }
 
   @Test
@@ -541,9 +541,8 @@ class LicencePositionAddChangeControllerTest extends AbstractControllerTest {
             .with(user(regulatorUser)).with(csrf())
             .flashAttr("form", form))
         .andExpect(status().is3xxRedirection())
-        .andExpect(redirectedUrl(ReverseRouter.route(on(ChangeFormController.class).addToAddedPosition(
-            correction,
-            positionCorrection,
+        .andExpect(redirectedUrl(ReverseRouter.route(on(ChangeFormController.class).addToPosition(
+            new CorrectionPosition.Staged(positionCorrection),
             AddPositionChangeType.EXPLORATION_OPERATOR,
             null,
             null,
@@ -572,7 +571,7 @@ class LicencePositionAddChangeControllerTest extends AbstractControllerTest {
             .flashAttr("form", form))
         .andExpect(status().is3xxRedirection())
         .andExpect(redirectedUrl(ReverseRouter.route(on(ChangeFormController.class)
-            .addToAddedPosition(correction, positionCorrection, AddPositionChangeType.STORAGE_OPERATOR, null, null, null))));
+            .addToPosition(new CorrectionPosition.Staged(positionCorrection), AddPositionChangeType.STORAGE_OPERATOR, null, null, null))));
   }
 
   @Test
@@ -592,7 +591,7 @@ class LicencePositionAddChangeControllerTest extends AbstractControllerTest {
             .flashAttr("form", form))
         .andExpect(status().is3xxRedirection())
         .andExpect(redirectedUrl(ReverseRouter.route(on(ChangeFormController.class)
-            .addToAddedPosition(correction, positionCorrection, AddPositionChangeType.LICENSEE, null, null, null))));
+            .addToPosition(new CorrectionPosition.Staged(positionCorrection), AddPositionChangeType.LICENSEE, null, null, null))));
   }
 
   @Test
@@ -612,7 +611,7 @@ class LicencePositionAddChangeControllerTest extends AbstractControllerTest {
             .flashAttr("form", form))
         .andExpect(status().is3xxRedirection())
         .andExpect(redirectedUrl(ReverseRouter.route(on(ChangeFormController.class)
-            .addToAddedPosition(correction, positionCorrection, AddPositionChangeType.ADMINISTRATOR, null, null, null))));
+            .addToPosition(new CorrectionPosition.Staged(positionCorrection), AddPositionChangeType.ADMINISTRATOR, null, null, null))));
   }
 
   @Test

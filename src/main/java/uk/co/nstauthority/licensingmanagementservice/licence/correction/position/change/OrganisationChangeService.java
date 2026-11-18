@@ -6,6 +6,7 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectionPosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
@@ -45,7 +46,24 @@ public class OrganisationChangeService {
   }
 
   @Transactional
-  public void addOrganisationChangeForAddedLicencePosition(
+  public void addOrganisationChange(
+      CorrectionPosition correctionPosition,
+      Class<? extends LicenceOperation> operationType,
+      LicenceOperation operation
+  ) {
+    switch (correctionPosition) {
+      case CorrectionPosition.Executed executed -> addOrganisationChangeForExistingLicencePosition(
+          executed.licencePosition(),
+          executed.correction(),
+          operationType,
+          operation
+      );
+      case CorrectionPosition.Staged staged ->
+          addOrganisationChangeForAddedLicencePosition(staged.licencePositionCorrection(), operationType, operation);
+    }
+  }
+
+  private void addOrganisationChangeForAddedLicencePosition(
       LicencePositionCorrection licencePositionCorrection,
       Class<? extends LicenceOperation> operationType,
       LicenceOperation operation
@@ -62,8 +80,7 @@ public class OrganisationChangeService {
     licencePositionCorrectionService.save(licencePositionCorrection);
   }
 
-  @Transactional
-  public void addOrganisationChangeForExistingLicencePosition(
+  private void addOrganisationChangeForExistingLicencePosition(
       LicencePosition licencePosition,
       LicenceCorrection licenceCorrection,
       Class<? extends LicenceOperation> operationType,
@@ -129,7 +146,24 @@ public class OrganisationChangeService {
     licencePositionCorrectionService.save(positionCorrection);
   }
 
-  public <T extends OrganisationChangeForm> T populateExistingOrganisationForm(
+  /**
+   * The form for a new change on the position, showing the organisation the correction has already given the role to,
+   * if it has.
+   */
+  public <T extends OrganisationChangeForm> T populateOrganisationForm(
+      Integer currentId,
+      CorrectionPosition correctionPosition,
+      T form
+  ) {
+    return switch (correctionPosition) {
+      case CorrectionPosition.Executed executed ->
+          populateExistingOrganisationForm(currentId, executed.correction(), executed.licencePosition(), form);
+      case CorrectionPosition.Staged staged ->
+          populateAddedOrganisationForm(currentId, staged.licencePositionCorrection(), form);
+    };
+  }
+
+  private <T extends OrganisationChangeForm> T populateExistingOrganisationForm(
       Integer currentId,
       LicenceCorrection correction,
       LicencePosition position,
@@ -143,7 +177,7 @@ public class OrganisationChangeService {
     return form;
   }
 
-  public <T extends OrganisationChangeForm> T populateAddedOrganisationForm(
+  private <T extends OrganisationChangeForm> T populateAddedOrganisationForm(
       Integer currentId,
       LicencePositionCorrection positionCorrection,
       T form

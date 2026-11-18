@@ -19,6 +19,7 @@ import uk.co.nstauthority.licensingmanagementservice.fds.searchselector.SearchSe
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectionPosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.OrganisationChangeFormValidator;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.OrganisationChangeService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.form.ChangeFormTarget;
@@ -81,15 +82,16 @@ class StorageOperatorChangeFormHandlerTest {
   }
 
   @Test
-  void save_whenExecutedPosition_thenAddsStorageOperatorChange() {
+  void save_whenNewChange_thenAddsStorageOperatorChange() {
+    var correctionPosition = new CorrectionPosition.Executed(CORRECTION, POSITION);
+
     storageOperatorChangeFormHandler.save(
-        new ChangeFormTarget.ExecutedPosition(CORRECTION, POSITION),
+        new ChangeFormTarget.NewChange(correctionPosition),
         new StorageOperatorChangeForm("789")
     );
 
-    verify(organisationChangeService).addOrganisationChangeForExistingLicencePosition(
-        POSITION,
-        CORRECTION,
+    verify(organisationChangeService).addOrganisationChange(
+        correctionPosition,
         StorageOperatorOperation.class,
         LicenceOperation.newStorageOperatorOperation().withOperator(789).build()
     );

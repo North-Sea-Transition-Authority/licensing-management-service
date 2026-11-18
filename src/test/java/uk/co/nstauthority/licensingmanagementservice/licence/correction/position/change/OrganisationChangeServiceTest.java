@@ -25,6 +25,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectionPosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
@@ -94,14 +95,14 @@ class OrganisationChangeServiceTest {
 
   @ParameterizedTest(name = "{argumentSetName}")
   @MethodSource("addOrganisationChange_whenNoChangeAlreadyExists")
-  void addOrganisationChangeForAddedLicencePosition_whenNoPreviousOrganisationChange_appendsOrganisationChange(
+  void addOrganisationChange_whenStagedPositionAndNoPreviousOrganisationChange_appendsOrganisationChange(
       Class<? extends LicenceOperation> operationType,
       LicenceOperation operation
   ) {
     var correction = addPositionCorrectionFor(List.of());
 
-    organisationChangeService.addOrganisationChangeForAddedLicencePosition(
-        correction,
+    organisationChangeService.addOrganisationChange(
+        new CorrectionPosition.Staged(correction),
         operationType,
         operation
     );
@@ -118,15 +119,15 @@ class OrganisationChangeServiceTest {
 
   @ParameterizedTest(name = "{argumentSetName}")
   @MethodSource("addOrganisationChange_whenChangeAlreadyExists")
-  void addOrganisationChangeForAddedLicencePosition_whenOrganisationChangeAlreadyExists_rewritesAddChange(
+  void addOrganisationChange_whenStagedPositionAndOrganisationChangeAlreadyExists_rewritesAddChange(
       Class<? extends LicenceOperation> operationType,
       LicenceOperation previousOperation,
       LicenceOperation currentOperation
   ) {
     var correction = addPositionCorrectionFor(List.of(organisationAddChange(previousOperation)));
 
-    organisationChangeService.addOrganisationChangeForAddedLicencePosition(
-        correction,
+    organisationChangeService.addOrganisationChange(
+        new CorrectionPosition.Staged(correction),
         operationType,
         currentOperation
     );
@@ -141,16 +142,15 @@ class OrganisationChangeServiceTest {
 
   @ParameterizedTest(name = "{argumentSetName}")
   @MethodSource("addOrganisationChange_whenNoChangeAlreadyExists")
-  void addOrganisationChangeForExistingLicencePosition_whenNoExistingUpdateCorrection_createsNewCorrection(
+  void addOrganisationChange_whenExecutedPositionAndNoExistingUpdateCorrection_createsNewCorrection(
       Class<? extends LicenceOperation> operationType,
       LicenceOperation operation
   ) {
     when(licencePositionCorrectionService.findUpdatePositionCorrection(LICENCE_CORRECTION, LICENCE_POSITION))
         .thenReturn(Optional.empty());
 
-    organisationChangeService.addOrganisationChangeForExistingLicencePosition(
-        LICENCE_POSITION,
-        LICENCE_CORRECTION,
+    organisationChangeService.addOrganisationChange(
+        new CorrectionPosition.Executed(LICENCE_CORRECTION, LICENCE_POSITION),
         operationType,
         operation
     );
@@ -169,7 +169,7 @@ class OrganisationChangeServiceTest {
 
   @ParameterizedTest(name = "{argumentSetName}")
   @MethodSource("addOrganisationChange_whenNoChangeAlreadyExists")
-  void addOrganisationChangeForExistingLicencePosition_whenExistingUpdateCorrection_appendsOrganisationChange(
+  void addOrganisationChange_whenExecutedPositionAndExistingUpdateCorrection_appendsOrganisationChange(
       Class<? extends LicenceOperation> operationType,
       LicenceOperation operation
   ) {
@@ -180,13 +180,11 @@ class OrganisationChangeServiceTest {
     when(licencePositionCorrectionService.findUpdatePositionCorrection(LICENCE_CORRECTION, LICENCE_POSITION))
         .thenReturn(Optional.of(existing));
 
-    organisationChangeService
-        .addOrganisationChangeForExistingLicencePosition(
-            LICENCE_POSITION,
-            LICENCE_CORRECTION,
-            operationType,
-            operation
-        );
+    organisationChangeService.addOrganisationChange(
+        new CorrectionPosition.Executed(LICENCE_CORRECTION, LICENCE_POSITION),
+        operationType,
+        operation
+    );
 
     verify(licencePositionCorrectionService).save(licencePositionCorrectionCaptor.capture());
     var payload = (UpdateLicencePositionPayload) licencePositionCorrectionCaptor.getValue().getPayload();
@@ -196,7 +194,7 @@ class OrganisationChangeServiceTest {
 
   @ParameterizedTest(name = "{argumentSetName}")
   @MethodSource("addOrganisationChange_whenChangeAlreadyExists")
-  void addOrganisationChangeForExistingLicencePosition_whenOrganisationChangeAlreadyExists_rewritesAddChange(
+  void addOrganisationChange_whenExecutedPositionAndOrganisationChangeAlreadyExists_rewritesAddChange(
       Class<? extends LicenceOperation> operationType,
       LicenceOperation previousOperation,
       LicenceOperation currentOperation
@@ -211,13 +209,11 @@ class OrganisationChangeServiceTest {
     when(licencePositionCorrectionService.findUpdatePositionCorrection(LICENCE_CORRECTION, LICENCE_POSITION))
         .thenReturn(Optional.of(existing));
 
-    organisationChangeService
-        .addOrganisationChangeForExistingLicencePosition(
-            LICENCE_POSITION,
-            LICENCE_CORRECTION,
-            operationType,
-            currentOperation
-        );
+    organisationChangeService.addOrganisationChange(
+        new CorrectionPosition.Executed(LICENCE_CORRECTION, LICENCE_POSITION),
+        operationType,
+        currentOperation
+    );
 
     verify(licencePositionCorrectionService).save(licencePositionCorrectionCaptor.capture());
     var payload = (UpdateLicencePositionPayload) licencePositionCorrectionCaptor.getValue().getPayload();
@@ -229,7 +225,7 @@ class OrganisationChangeServiceTest {
 
   @ParameterizedTest(name = "{argumentSetName}")
   @MethodSource("populateOrganisationForm")
-  void populateAddedOrganisationForm_organisationChangeExists_returnsPopulatedForm(
+  void populateOrganisationForm_whenStagedPosition_organisationChangeExists_returnsPopulatedForm(
       Class<? extends LicenceOperation> operationType,
       LicenceOperation operation,
       OrganisationChangeForm newForm,
@@ -240,46 +236,46 @@ class OrganisationChangeServiceTest {
     );
     var payload = CreateLicencePositionPayloadTestUtil.newBuilder().withChanges(changes).build();
     var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder().withPayload(payload).build();
-    assertThat(organisationChangeService.populateAddedOrganisationForm(
+    assertThat(organisationChangeService.populateOrganisationForm(
         ORGANISATION_ID,
-        positionCorrection,
+        new CorrectionPosition.Staged(positionCorrection),
         newForm
     )).usingRecursiveComparison().isEqualTo(expectedForm);
   }
 
   @ParameterizedTest(name = "{argumentSetName}")
   @MethodSource("populateOrganisationForm_returnsEmpty")
-  void populateAddedOrganisationForm_organisationChangeDoesNotExists_returnsEmptyForm(
+  void populateOrganisationForm_whenStagedPosition_organisationChangeDoesNotExists_returnsEmptyForm(
       OrganisationChangeForm newForm,
       OrganisationChangeForm expectedForm
   ) {
     var payload = CreateLicencePositionPayloadTestUtil.newBuilder().withChanges(List.of()).build();
     var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder().withPayload(payload).build();
-    assertThat(organisationChangeService.populateAddedOrganisationForm(
+    assertThat(organisationChangeService.populateOrganisationForm(
         ORGANISATION_ID,
-        positionCorrection,
+        new CorrectionPosition.Staged(positionCorrection),
         newForm
     )).usingRecursiveComparison().isEqualTo(expectedForm);
   }
 
   @ParameterizedTest(name = "{argumentSetName}")
   @MethodSource("populateOrganisationForm_returnsEmpty")
-  void populateAddedOrganisationForm_currentIdIsNull_returnsEmptyForm(
+  void populateOrganisationForm_whenStagedPosition_currentIdIsNull_returnsEmptyForm(
       OrganisationChangeForm newForm,
       OrganisationChangeForm expectedForm
   ) {
     var payload = CreateLicencePositionPayloadTestUtil.newBuilder().build();
     var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder().withPayload(payload).build();
-    assertThat(organisationChangeService.populateAddedOrganisationForm(
+    assertThat(organisationChangeService.populateOrganisationForm(
         null,
-        positionCorrection,
+        new CorrectionPosition.Staged(positionCorrection),
         newForm
     )).usingRecursiveComparison().isEqualTo(expectedForm);
   }
 
   @ParameterizedTest(name = "{argumentSetName}")
   @MethodSource("populateOrganisationForm")
-  void populateExistingOrganisationForm_hasPendingOrganisationChange_returnsPopulatedForm(
+  void populateOrganisationForm_whenExecutedPosition_hasPendingOrganisationChange_returnsPopulatedForm(
       Class<? extends LicenceOperation> operationType,
       LicenceOperation operation,
       OrganisationChangeForm newForm,
@@ -287,40 +283,37 @@ class OrganisationChangeServiceTest {
   ) {
     when(licencePositionCorrectionService.hasPendingChange(LICENCE_POSITION, LICENCE_CORRECTION, operationType))
         .thenReturn(true);
-    assertThat(organisationChangeService.populateExistingOrganisationForm(
+    assertThat(organisationChangeService.populateOrganisationForm(
         ORGANISATION_ID,
-        LICENCE_CORRECTION,
-        LICENCE_POSITION,
+        new CorrectionPosition.Executed(LICENCE_CORRECTION, LICENCE_POSITION),
         newForm
     )).usingRecursiveComparison().isEqualTo(expectedForm);
   }
 
   @ParameterizedTest(name = "{argumentSetName}")
   @MethodSource("populateOrganisationForm_returnsEmpty")
-  void populateExistingOrganisationForm_hasNoPendingOrganisationChange_returnsEmptyForm(
+  void populateOrganisationForm_whenExecutedPosition_hasNoPendingOrganisationChange_returnsEmptyForm(
       OrganisationChangeForm newForm,
       OrganisationChangeForm expectedForm
   ) {
     when(licencePositionCorrectionService.hasPendingChange(LICENCE_POSITION, LICENCE_CORRECTION, newForm.operationType()))
         .thenReturn(false);
-    assertThat(organisationChangeService.populateExistingOrganisationForm(
+    assertThat(organisationChangeService.populateOrganisationForm(
         ORGANISATION_ID,
-        LICENCE_CORRECTION,
-        LICENCE_POSITION,
+        new CorrectionPosition.Executed(LICENCE_CORRECTION, LICENCE_POSITION),
         newForm
     )).usingRecursiveComparison().isEqualTo(expectedForm);
   }
 
   @ParameterizedTest(name = "{argumentSetName}")
   @MethodSource("populateOrganisationForm_returnsEmpty")
-  void populateExistingOrganisationForm_currentIdIsNull_returnsEmptyForm(
+  void populateOrganisationForm_whenExecutedPosition_currentIdIsNull_returnsEmptyForm(
       OrganisationChangeForm newForm,
       OrganisationChangeForm expectedForm
   ) {
-    assertThat(organisationChangeService.populateExistingOrganisationForm(
+    assertThat(organisationChangeService.populateOrganisationForm(
         null,
-        LICENCE_CORRECTION,
-        LICENCE_POSITION,
+        new CorrectionPosition.Executed(LICENCE_CORRECTION, LICENCE_POSITION),
         newForm
     )).usingRecursiveComparison().isEqualTo(expectedForm);
   }

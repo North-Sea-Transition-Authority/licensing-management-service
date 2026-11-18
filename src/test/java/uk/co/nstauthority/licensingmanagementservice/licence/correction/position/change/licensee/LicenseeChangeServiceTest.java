@@ -25,6 +25,7 @@ import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectionPosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
@@ -74,17 +75,13 @@ class LicenseeChangeServiceTest {
   }
 
   @Test
-  void addLicenseeChangeForAddedLicencePosition() {
+  void addLicenseeChange_whenStagedPosition() {
     var payload = CreateLicencePositionPayloadTestUtil.newBuilder().build();
     var joiningLicenseeIds = List.of(2, 3, 4);
     var withdrawingLicenseeIds = List.of(1);
     var licencePositionCorrection = LicencePositionCorrectionTestUtil.newBuilder().withPayload(payload).build();
 
-    licenseeChangeService.addLicenseeChangeForAddedLicencePosition(
-        licencePositionCorrection,
-        joiningLicenseeIds,
-        withdrawingLicenseeIds
-    );
+    licenseeChangeService.addLicenseeChange(new CorrectionPosition.Staged(licencePositionCorrection), joiningLicenseeIds, withdrawingLicenseeIds);
 
     verify(licencePositionCorrectionService).save(licencePositionCorrection);
     var expectedLicenseeOperation = (LicenseeOperation)
@@ -95,7 +92,7 @@ class LicenseeChangeServiceTest {
   }
 
   @Test
-  void addLicenseeChangeForExistingLicencePosition() {
+  void addLicenseeChange_whenExecutedPosition() {
     var licencePosition = LicencePositionTestUtil.newBuilder().withPositionOrder(10).build();
     var licenceCorrection = LicenceCorrectionTestUtil.newBuilder().withCorrectionReference("correctionReference").build();
     var joiningLicenseeIds = List.of(2, 3, 4);
@@ -106,12 +103,7 @@ class LicenseeChangeServiceTest {
     when(licencePositionCorrectionService.getOrBuildUpdatePositionCorrection(licenceCorrection, licencePosition))
         .thenReturn(licencePositionCorrection);
 
-    licenseeChangeService.addLicenseeChangeForExistingLicencePosition(
-        licencePosition,
-        licenceCorrection,
-        joiningLicenseeIds,
-        withdrawingLicenseeIds
-    );
+    licenseeChangeService.addLicenseeChange(new CorrectionPosition.Executed(licenceCorrection, licencePosition), joiningLicenseeIds, withdrawingLicenseeIds);
 
     ArgumentCaptor<LicencePositionCorrection> captor = ArgumentCaptor.forClass(LicencePositionCorrection.class);
     verify(licencePositionCorrectionService).save(captor.capture());

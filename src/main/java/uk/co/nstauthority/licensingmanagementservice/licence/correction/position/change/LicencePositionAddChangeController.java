@@ -18,6 +18,7 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correct
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.position.LicencePositionBelongsToCorrectionLicence;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectionPosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionRouteUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
@@ -108,7 +109,7 @@ public class LicencePositionAddChangeController {
     return switch (changeType) {
       case ADMINISTRATOR, LICENSEE, STORAGE_OPERATOR, EXPLORATION_OPERATOR ->
           ReverseRouter.redirect(on(ChangeFormController.class)
-              .addToExecutedPosition(correction, licencePosition, changeType, null, null, null));
+              .addToPosition(new CorrectionPosition.Executed(correction, licencePosition), changeType, null, null, null));
       case SET_EQUITY -> ReverseRouter.redirect(on(LicencePositionSetEquityController.class)
           .renderForExecutedPosition(correction, licencePosition));
       case TRANSFER_EQUITY -> ReverseRouter.redirect(on(LicencePositionTransferEquityController.class)
@@ -169,7 +170,7 @@ public class LicencePositionAddChangeController {
     return switch (changeType) {
       case ADMINISTRATOR, LICENSEE, STORAGE_OPERATOR, EXPLORATION_OPERATOR ->
           ReverseRouter.redirect(on(ChangeFormController.class)
-              .addToAddedPosition(correction, licencePositionCorrection, changeType, null, null, null));
+              .addToPosition(new CorrectionPosition.Staged(licencePositionCorrection), changeType, null, null, null));
       case SET_EQUITY -> ReverseRouter.redirect(on(LicencePositionSetEquityController.class)
           .renderForAddedPosition(correction, licencePositionCorrection));
       case TRANSFER_EQUITY -> ReverseRouter.redirect(on(LicencePositionTransferEquityController.class)

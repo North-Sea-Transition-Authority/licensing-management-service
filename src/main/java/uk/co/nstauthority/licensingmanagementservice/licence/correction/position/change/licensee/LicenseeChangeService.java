@@ -6,6 +6,7 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectionPosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.LicencePositionPayload;
@@ -39,7 +40,27 @@ public class LicenseeChangeService {
   }
 
   @Transactional
-  public void addLicenseeChangeForAddedLicencePosition(
+  public void addLicenseeChange(
+      CorrectionPosition correctionPosition,
+      List<Integer> joiningLicenseeIds,
+      List<Integer> withdrawingLicenseeIds
+  ) {
+    switch (correctionPosition) {
+      case CorrectionPosition.Executed executed -> addLicenseeChangeForExistingLicencePosition(
+          executed.licencePosition(),
+          executed.correction(),
+          joiningLicenseeIds,
+          withdrawingLicenseeIds
+      );
+      case CorrectionPosition.Staged staged -> addLicenseeChangeForAddedLicencePosition(
+          staged.licencePositionCorrection(),
+          joiningLicenseeIds,
+          withdrawingLicenseeIds
+      );
+    }
+  }
+
+  private void addLicenseeChangeForAddedLicencePosition(
       LicencePositionCorrection licencePositionCorrection,
       List<Integer> joiningLicenseeIds,
       List<Integer> withdrawingLicenseeIds
@@ -47,8 +68,7 @@ public class LicenseeChangeService {
     stageLicenseeChange(licencePositionCorrection, joiningLicenseeIds, withdrawingLicenseeIds);
   }
 
-  @Transactional
-  public void addLicenseeChangeForExistingLicencePosition(
+  private void addLicenseeChangeForExistingLicencePosition(
       LicencePosition licencePosition,
       LicenceCorrection licenceCorrection,
       List<Integer> joiningLicenseeIds,

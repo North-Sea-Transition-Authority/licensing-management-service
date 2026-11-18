@@ -29,6 +29,30 @@ class LicencePositionCorrectionRouteUtilTest {
   }
 
   @Test
+  void getPositionPageUrl_whenCorrectionPosition_thenPositionPage() {
+    var correctionPosition = new CorrectionPosition.Executed(
+        LICENCE_CORRECTION,
+        LicencePositionTestUtil.newBuilder().withId(POSITION_ID).build()
+    );
+
+    var result = LicencePositionCorrectionRouteUtil.getPositionPageUrl(correctionPosition);
+
+    assertThat(result).isEqualTo(POSITION_PAGE_URL);
+  }
+
+  @Test
+  void redirectToPositionPage() {
+    var correctionPosition = new CorrectionPosition.Executed(
+        LICENCE_CORRECTION,
+        LicencePositionTestUtil.newBuilder().withId(POSITION_ID).build()
+    );
+
+    var result = LicencePositionCorrectionRouteUtil.redirectToPositionPage(correctionPosition);
+
+    assertThat(result.getViewName()).isEqualTo("redirect:" + POSITION_PAGE_URL);
+  }
+
+  @Test
   void getPositionPageUrl_whenAddedPosition_thenAddedPositionPage() {
     var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
         .withChangeType(LicencePositionCorrectionChangeType.ADD_POSITION)

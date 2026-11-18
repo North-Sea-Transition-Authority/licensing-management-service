@@ -2,8 +2,10 @@ package uk.co.nstauthority.licensingmanagementservice.licence.correction.positio
 
 import java.time.LocalDate;
 import java.util.Comparator;
+import java.util.Map;
 import java.util.UUID;
 import org.jspecify.annotations.NonNull;
+import uk.co.nstauthority.licensingmanagementservice.endpointvalidation.PathVariableSource;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 
@@ -11,7 +13,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePos
  * A position on a correction's timeline, whether it is an executed position on the licence or one staged by the
  * correction. Both are identified by the same position id, as a staged position keeps its id once applied.
  */
-public sealed interface CorrectionPosition extends Comparable<CorrectionPosition> {
+public sealed interface CorrectionPosition extends Comparable<CorrectionPosition>, PathVariableSource {
 
   Comparator<CorrectionPosition> NATURAL_ORDER =
       Comparator.comparing(CorrectionPosition::effectiveDate)
@@ -30,6 +32,29 @@ public sealed interface CorrectionPosition extends Comparable<CorrectionPosition
   @Override
   default int compareTo(@NonNull CorrectionPosition o) {
     return NATURAL_ORDER.compare(this, o);
+  }
+
+  /**
+   * The position a position correction stages changes against: the position it adds, or the executed position it
+   * updates.
+   */
+  static CorrectionPosition of(LicencePositionCorrection positionCorrection) {
+    return switch (positionCorrection.getChangeType()) {
+      case ADD_POSITION -> new Staged(positionCorrection);
+      case UPDATE_POSITION ->
+          new Executed(positionCorrection.getLicenceCorrection(), positionCorrection.getTargetLicencePosition());
+      case REMOVE_POSITION -> throw new IllegalStateException(
+          "Licence position correction %s removes a position so cannot have changes made against it"
+              .formatted(positionCorrection.getId()));
+    };
+  }
+
+  @Override
+  default Map<String, Object> getPathVariables() {
+    return Map.of(
+        CorrectionPositionArgumentResolver.CORRECTION_ID, correction().getId(),
+        CorrectionPositionArgumentResolver.LICENCE_POSITION_ID, positionId()
+    );
   }
 
   /**

@@ -27,6 +27,13 @@ public class LicencePositionCorrectionRouteUtil {
   }
 
   /**
+   * The page for a position on the correction timeline, whether the position is executed or added in the correction.
+   */
+  public static String getPositionPageUrl(CorrectionPosition correctionPosition) {
+    return ReverseRouter.route(on(LicenceCorrectionController.class).renderPosition(correctionPosition, null));
+  }
+
+  /**
    * The page for the position a position correction stages changes against: the position it adds, or the executed
    * position it updates.
    */
@@ -40,6 +47,14 @@ public class LicencePositionCorrectionRouteUtil {
    */
   public static ModelAndView redirectToPositionPage(LicencePositionCorrection positionCorrection) {
     return redirectToPositionPage(positionCorrection.getLicenceCorrection(), getStagedPositionId(positionCorrection));
+  }
+
+  /**
+   * Redirect to the page for a position on the correction timeline, whether the position is executed or added in the
+   * correction.
+   */
+  public static ModelAndView redirectToPositionPage(CorrectionPosition correctionPosition) {
+    return ReverseRouter.redirect(on(LicenceCorrectionController.class).renderPosition(correctionPosition, null));
   }
 
   /**

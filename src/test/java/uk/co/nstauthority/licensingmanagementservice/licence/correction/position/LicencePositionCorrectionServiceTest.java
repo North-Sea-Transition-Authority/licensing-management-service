@@ -1180,6 +1180,123 @@ class LicencePositionCorrectionServiceTest {
     return (CreateLicencePositionPayload) payload;
   }
 
+  @Test
+  void findPositionCorrection_whenExecutedPosition_thenItsUpdateCorrection() {
+    var updateCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+        .withTargetLicencePosition(LICENCE_POSITION)
+        .build();
+
+    when(licencePositionCorrectionRepository.findByLicenceCorrectionAndTargetLicencePositionAndChangeType(
+        LICENCE_CORRECTION, LICENCE_POSITION, LicencePositionCorrectionChangeType.UPDATE_POSITION))
+        .thenReturn(Optional.of(updateCorrection));
+
+    var result = licencePositionCorrectionService
+        .findPositionCorrection(new CorrectionPosition.Executed(LICENCE_CORRECTION, LICENCE_POSITION));
+
+    assertThat(result).containsSame(updateCorrection);
+  }
+
+  @Test
+  void findPositionCorrection_whenStagedPosition_thenItsAddCorrection() {
+    var addCorrection = LicencePositionCorrectionTestUtil.newBuilder().withLicenceCorrection(LICENCE_CORRECTION).build();
+
+    var result = licencePositionCorrectionService.findPositionCorrection(new CorrectionPosition.Staged(addCorrection));
+
+    assertThat(result).containsSame(addCorrection);
+  }
+
+  @Test
+  void getOrBuildPositionCorrection_whenExecutedPosition_thenItsUpdateCorrection() {
+    var updateCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+        .withTargetLicencePosition(LICENCE_POSITION)
+        .build();
+
+    when(licencePositionCorrectionRepository.findByLicenceCorrectionAndTargetLicencePositionAndChangeType(
+        LICENCE_CORRECTION, LICENCE_POSITION, LicencePositionCorrectionChangeType.UPDATE_POSITION))
+        .thenReturn(Optional.of(updateCorrection));
+
+    var result = licencePositionCorrectionService
+        .getOrBuildPositionCorrection(new CorrectionPosition.Executed(LICENCE_CORRECTION, LICENCE_POSITION));
+
+    assertThat(result).isSameAs(updateCorrection);
+  }
+
+  @Test
+  void getOrBuildPositionCorrection_whenStagedPosition_thenItsAddCorrection() {
+    var addCorrection = LicencePositionCorrectionTestUtil.newBuilder().withLicenceCorrection(LICENCE_CORRECTION).build();
+
+    var result = licencePositionCorrectionService.getOrBuildPositionCorrection(new CorrectionPosition.Staged(addCorrection));
+
+    assertThat(result).isSameAs(addCorrection);
+  }
+
+  @Test
+  void getEffectivePositionDate_whenStagedPosition_thenThePayloadEffectiveDate() {
+    var addCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withLicenceCorrection(LICENCE_CORRECTION)
+        .withTargetLicencePosition(null)
+        .withPayload(CreateLicencePositionPayloadTestUtil.newBuilder()
+            .withEffectiveDate(POSITION_DATE)
+            .build())
+        .build();
+
+    var result = licencePositionCorrectionService.getEffectivePositionDate(new CorrectionPosition.Staged(addCorrection));
+
+    assertThat(result).isEqualTo(POSITION_DATE);
+  }
+
+  @Test
+  void blockFeatureIdsAlreadyOperatedOn_whenExecutedPosition_collectsFeatureIdsFromLiveAndStagedChanges() {
+    var liveFeatureId = UUID.randomUUID();
+    var liveChange = LicencePositionChangeTestUtil.newBuilder()
+        .withLicencePosition(LICENCE_POSITION)
+        .withChangeOrder(1)
+        .withOperations(List.of(new SubareaOperation(liveFeatureId, List.of(), List.of())))
+        .build();
+    var stagedFeatureId = UUID.randomUUID();
+    var updateCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+        .withTargetLicencePosition(LICENCE_POSITION)
+        .withPayload(UpdateLicencePositionPayloadTestUtil.newBuilder()
+            .withChanges(List.of(AddChange.buildOperationsChange(
+                List.of(new SubareaOperation(stagedFeatureId, List.of(), List.of())), 2)))
+            .build())
+        .build();
+
+    when(licencePositionCorrectionRepository.findByLicenceCorrectionAndTargetLicencePositionAndChangeType(
+        LICENCE_CORRECTION, LICENCE_POSITION, LicencePositionCorrectionChangeType.UPDATE_POSITION))
+        .thenReturn(Optional.of(updateCorrection));
+    when(licencePositionChangeService.findByLicencePositionId(LICENCE_POSITION.getId()))
+        .thenReturn(List.of(liveChange));
+
+    var result = licencePositionCorrectionService
+        .blockFeatureIdsAlreadyOperatedOn(new CorrectionPosition.Executed(LICENCE_CORRECTION, LICENCE_POSITION));
+
+    assertThat(result).containsExactlyInAnyOrder(liveFeatureId, stagedFeatureId);
+  }
+
+  @Test
+  void blockFeatureIdsAlreadyOperatedOn_whenStagedPositionAndChangeIdExcluded_omitsThatChangesFeatureIds() {
+    var excludedChange = AddChange.buildOperationsChange(
+        List.of(new SubareaOperation(UUID.randomUUID(), List.of(), List.of())), 1);
+    var retainedFeatureId = UUID.randomUUID();
+    var retainedChange = AddChange.buildOperationsChange(
+        List.of(new SubareaOperation(retainedFeatureId, List.of(), List.of())), 2);
+    var addCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withLicenceCorrection(LICENCE_CORRECTION)
+        .withPayload(CreateLicencePositionPayloadTestUtil.newBuilder()
+            .withChanges(List.of(excludedChange, retainedChange))
+            .build())
+        .build();
+
+    var result = licencePositionCorrectionService
+        .blockFeatureIdsAlreadyOperatedOn(new CorrectionPosition.Staged(addCorrection), excludedChange.changeId());
+
+    assertThat(result).containsExactly(retainedFeatureId);
+  }
+
   private LicencePositionCorrection addedCorrectionForPosition(UUID licencePositionId) {
     return LicencePositionCorrectionTestUtil.newBuilder()
         .withChangeType(LicencePositionCorrectionChangeType.ADD_POSITION)

@@ -2,6 +2,7 @@ package uk.co.nstauthority.licensingmanagementservice;
 
 import static org.mockito.Mockito.when;
 
+import java.util.Optional;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -70,6 +71,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.continuation.Licenc
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionArgumentResolver;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectionPosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectionPositionArgumentResolver;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectionPositionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionArgumentResolver;
@@ -279,6 +281,17 @@ public abstract class AbstractControllerTest {
 
   protected ServiceUserDetail regulatorUser;
   protected static final Long REGULATOR_USER_WUA_ID = 1L;
+
+  /**
+   * Resolves the correction position from its correction and position path variables.
+   */
+  protected CorrectionPosition givenCorrectionPosition(CorrectionPosition correctionPosition) {
+    when(correctionPositionService.findCorrectionPosition(
+        correctionPosition.correction(),
+        correctionPosition.positionId()
+    )).thenReturn(Optional.of(correctionPosition));
+    return correctionPosition;
+  }
 
   @BeforeEach
   void setupAbstractControllerTest() {

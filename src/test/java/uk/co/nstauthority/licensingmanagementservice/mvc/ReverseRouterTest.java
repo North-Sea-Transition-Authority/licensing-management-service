@@ -26,6 +26,7 @@ import org.springframework.web.servlet.ModelAndView;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
 import uk.co.nstauthority.licensingmanagementservice.endpointvalidation.PathVariableEntity;
 import uk.co.nstauthority.licensingmanagementservice.endpointvalidation.PathVariableEnum;
+import uk.co.nstauthority.licensingmanagementservice.endpointvalidation.PathVariableSource;
 
 @ExtendWith(SpringExtension.class)
 @WebMvcTest
@@ -236,6 +237,14 @@ class ReverseRouterTest extends AbstractControllerTest {
   }
 
   @Test
+  void route_whenPathVariableSource_thenUsesItsPathVariables() {
+    var route = ReverseRouter.route(
+        on(TestController.class).testPathVariableSourceMethod(new TestPathVariableSource("source_parent_id", "source_child_id"))
+    );
+    assertThat(route).isEqualTo("/parent/source_parent_id/source/source_child_id");
+  }
+
+  @Test
   void emptyBindingResult_verifyResponse() {
     var emptyBindingResult = (BeanPropertyBindingResult) ReverseRouter.emptyBindingResult();
     assertThat(emptyBindingResult.getTarget()).isNull();
@@ -273,6 +282,19 @@ class ReverseRouterTest extends AbstractControllerTest {
     @GetMapping("/enum/{enumValue}")
     ModelAndView testEnumMethod(TestPathVariableEnum testEnum) {
       return new ModelAndView(testEnum.getUrlSlug());
+    }
+
+    @GetMapping("/source/{childId}")
+    ModelAndView testPathVariableSourceMethod(TestPathVariableSource testPathVariableSource) {
+      return new ModelAndView(testPathVariableSource.childId());
+    }
+  }
+
+  record TestPathVariableSource(String parentId, String childId) implements PathVariableSource {
+
+    @Override
+    public Map<String, Object> getPathVariables() {
+      return Map.of("parentId", parentId, "childId", childId);
     }
   }
 

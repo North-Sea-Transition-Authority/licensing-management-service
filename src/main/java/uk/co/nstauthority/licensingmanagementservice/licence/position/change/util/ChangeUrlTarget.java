@@ -3,6 +3,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.position.change.ut
 import jakarta.annotation.Nullable;
 import java.util.UUID;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectionPosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
@@ -37,6 +38,10 @@ public record ChangeUrlTarget(PositionChangeUrlContext context, PositionChange c
       case LicencePositionChangeType.REMOVE_CHANGE -> State.REMOVED;
       default -> throw new IllegalStateException("Unknown change type %s".formatted(changeType));
     };
+  }
+
+  public CorrectionPosition correctionPosition() {
+    return context.correctionPosition();
   }
 
   public boolean addedPosition() {

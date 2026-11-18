@@ -306,6 +306,30 @@ public class LicencePositionCorrectionService {
         .orElseGet(() -> newUpdatePositionCorrection(licenceCorrection, licencePosition));
   }
 
+  /**
+   * The position correction that changes to the position are staged on, if there is one yet: the staged position's own
+   * correction, or the executed position's update correction once the correction has changed it.
+   */
+  public Optional<LicencePositionCorrection> findPositionCorrection(CorrectionPosition correctionPosition) {
+    return switch (correctionPosition) {
+      case CorrectionPosition.Executed executed ->
+          findUpdatePositionCorrection(executed.correction(), executed.licencePosition());
+      case CorrectionPosition.Staged staged -> Optional.of(staged.licencePositionCorrection());
+    };
+  }
+
+  /**
+   * The position correction that changes to the position are staged on: the staged position's own correction, or the
+   * executed position's update correction, built but not saved if the correction has not changed it yet.
+   */
+  public LicencePositionCorrection getOrBuildPositionCorrection(CorrectionPosition correctionPosition) {
+    return switch (correctionPosition) {
+      case CorrectionPosition.Executed executed ->
+          getOrBuildUpdatePositionCorrection(executed.correction(), executed.licencePosition());
+      case CorrectionPosition.Staged staged -> staged.licencePositionCorrection();
+    };
+  }
+
   public LicencePositionCorrection getOrBuildPositionCorrection(
       LicenceCorrection licenceCorrection,
       UUID licencePositionId
@@ -396,6 +420,14 @@ public class LicencePositionCorrectionService {
     }
 
     return targetLicencePosition.getPositionDate();
+  }
+
+  public LocalDate getEffectivePositionDate(CorrectionPosition correctionPosition) {
+    return switch (correctionPosition) {
+      case CorrectionPosition.Executed executed ->
+          getEffectivePositionDate(executed.correction(), executed.licencePosition());
+      case CorrectionPosition.Staged staged -> resolveEffectiveDate(staged.licencePositionCorrection());
+    };
   }
 
   public LocalDate getEffectivePositionDate(
@@ -860,6 +892,26 @@ public class LicencePositionCorrectionService {
             LicencePositionChangeOperationUtil
                 .changeExists(positionCorrection.getPayload().changes(), operationType))
         .orElse(false);
+  }
+
+  public Set<UUID> blockFeatureIdsAlreadyOperatedOn(CorrectionPosition correctionPosition) {
+    return blockFeatureIdsAlreadyOperatedOn(correctionPosition, null);
+  }
+
+  public Set<UUID> blockFeatureIdsAlreadyOperatedOn(
+      CorrectionPosition correctionPosition,
+      @Nullable String changeIdToExclude
+  ) {
+    return switch (correctionPosition) {
+      case CorrectionPosition.Executed executed -> blockFeatureIdsAlreadyOperatedOnForExecutedPosition(
+          executed.correction(),
+          executed.licencePosition(),
+          findUpdatePositionCorrection(executed.correction(), executed.licencePosition()).orElse(null),
+          changeIdToExclude
+      );
+      case CorrectionPosition.Staged staged ->
+          blockFeatureIdsAlreadyOperatedOnForAddedPosition(staged.licencePositionCorrection(), changeIdToExclude);
+    };
   }
 
   public Set<UUID> blockFeatureIdsAlreadyOperatedOnForExecutedPosition(

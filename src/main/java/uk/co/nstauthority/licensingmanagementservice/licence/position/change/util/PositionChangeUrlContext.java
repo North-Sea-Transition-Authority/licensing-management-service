@@ -2,6 +2,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.position.change.ut
 
 import jakarta.annotation.Nullable;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectionPosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 
@@ -37,6 +38,18 @@ public record PositionChangeUrlContext(
 
   public static PositionChangeUrlContext forTimelinePosition(LicencePosition licencePosition) {
     return new PositionChangeUrlContext(null, licencePosition, null);
+  }
+
+  /**
+   * The position as the correction sees it. Only available within a correction.
+   */
+  public CorrectionPosition correctionPosition() {
+    if (correction == null) {
+      throw new IllegalStateException("A position on the licence timeline is not being viewed within a correction");
+    }
+    return addedPosition()
+        ? new CorrectionPosition.Staged(positionCorrection)
+        : new CorrectionPosition.Executed(correction, licencePosition);
   }
 
   public boolean addedPosition() {

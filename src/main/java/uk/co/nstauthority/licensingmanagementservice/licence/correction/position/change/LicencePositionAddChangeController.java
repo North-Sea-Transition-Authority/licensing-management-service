@@ -21,15 +21,13 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceC
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionRouteUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.administrator.LicencePositionAdministratorChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.explorationoperator.LicencePositionExplorationOperatorChangeController;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.licensee.LicencePositionLicenseeChangeController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.form.ChangeFormController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.LicencePositionPartialSurrenderController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.PartialSurrenderCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.SingleBlockSurrender;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.definearea.PartialSurrenderDefineAreaController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.setequity.LicencePositionSetEquityController;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.storageoperator.LicencePositionStorageOperatorChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subarea.LicencePositionSubareaChangeStartController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subareaequity.LicencePositionSubareaSetEquityController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subareaequity.SubareaEquityOptionsService;
@@ -106,9 +104,11 @@ public class LicencePositionAddChangeController {
       );
     }
 
-    return switch (AddPositionChangeType.valueOf(form.getChangeType())) {
-      case ADMINISTRATOR -> ReverseRouter.redirect(on(LicencePositionAdministratorChangeController.class)
-          .renderForExecutedPosition(correction, licencePosition));
+    var changeType = AddPositionChangeType.valueOf(form.getChangeType());
+
+    return switch (changeType) {
+      case ADMINISTRATOR, LICENSEE, STORAGE_OPERATOR -> ReverseRouter.redirect(on(ChangeFormController.class)
+          .addToExecutedPosition(correction, licencePosition, changeType, null, null, null));
       case SET_EQUITY -> ReverseRouter.redirect(on(LicencePositionSetEquityController.class)
           .renderForExecutedPosition(correction, licencePosition));
       case TRANSFER_EQUITY -> ReverseRouter.redirect(on(LicencePositionTransferEquityController.class)
@@ -119,10 +119,6 @@ public class LicencePositionAddChangeController {
           .orElseGet(() -> ReverseRouter.redirect(on(LicencePositionPartialSurrenderController.class)
               .renderForExecutedPosition(correction, licencePosition)));
       case SUBAREA -> ReverseRouter.redirect(on(LicencePositionSubareaChangeStartController.class)
-          .renderForExecutedPosition(correction, licencePosition));
-      case LICENSEE -> ReverseRouter.redirect(on(LicencePositionLicenseeChangeController.class)
-          .renderForExecutedPosition(correction, licencePosition));
-      case STORAGE_OPERATOR -> ReverseRouter.redirect(on(LicencePositionStorageOperatorChangeController.class)
           .renderForExecutedPosition(correction, licencePosition));
       case EXPLORATION_OPERATOR -> ReverseRouter.redirect(on(LicencePositionExplorationOperatorChangeController.class)
           .renderForExecutedPosition(correction, licencePosition));
@@ -170,9 +166,11 @@ public class LicencePositionAddChangeController {
       );
     }
 
-    return switch (AddPositionChangeType.valueOf(form.getChangeType())) {
-      case ADMINISTRATOR -> ReverseRouter.redirect(on(LicencePositionAdministratorChangeController.class)
-          .renderForAddedPosition(correction, licencePositionCorrection));
+    var changeType = AddPositionChangeType.valueOf(form.getChangeType());
+
+    return switch (changeType) {
+      case ADMINISTRATOR, LICENSEE, STORAGE_OPERATOR -> ReverseRouter.redirect(on(ChangeFormController.class)
+          .addToAddedPosition(correction, licencePositionCorrection, changeType, null, null, null));
       case SET_EQUITY -> ReverseRouter.redirect(on(LicencePositionSetEquityController.class)
           .renderForAddedPosition(correction, licencePositionCorrection));
       case TRANSFER_EQUITY -> ReverseRouter.redirect(on(LicencePositionTransferEquityController.class)
@@ -183,10 +181,6 @@ public class LicencePositionAddChangeController {
           .orElseGet(() -> ReverseRouter.redirect(on(LicencePositionPartialSurrenderController.class)
               .renderForAddedPosition(correction, licencePositionCorrection)));
       case SUBAREA -> ReverseRouter.redirect(on(LicencePositionSubareaChangeStartController.class)
-          .renderForAddedPosition(correction, licencePositionCorrection));
-      case LICENSEE -> ReverseRouter.redirect(on(LicencePositionLicenseeChangeController.class)
-          .renderForAddedPosition(correction, licencePositionCorrection));
-      case STORAGE_OPERATOR -> ReverseRouter.redirect(on(LicencePositionStorageOperatorChangeController.class)
           .renderForAddedPosition(correction, licencePositionCorrection));
       case EXPLORATION_OPERATOR -> ReverseRouter.redirect(on(LicencePositionExplorationOperatorChangeController.class)
           .renderForAddedPosition(correction, licencePositionCorrection));

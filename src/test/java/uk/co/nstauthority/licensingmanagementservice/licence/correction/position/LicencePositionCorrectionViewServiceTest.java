@@ -34,9 +34,10 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.AddPositionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.LicencePositionAddChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.action.ChangeActionController;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.administrator.LicencePositionAdministratorChangeController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.form.ChangeFormController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.tasklist.PartialSurrenderTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.AddChange;
@@ -577,8 +578,8 @@ class LicencePositionCorrectionViewServiceTest {
 
     var adminChange = (AdministratorChangeView) changeViewOfType(result, LicenceOperation.LICENCE_ADMINISTRATOR);
     assertThat(adminChange.urls().correct())
-        .isEqualTo(ReverseRouter.route(on(LicencePositionAdministratorChangeController.class)
-            .renderForExecutedPosition(correction, executed)));
+        .isEqualTo(ReverseRouter.route(on(ChangeFormController.class)
+            .addToExecutedPosition(correction, executed, AddPositionChangeType.ADMINISTRATOR, null, null, null)));
     // The page-level "Add change" action stays available even when an administrator change is present.
     assertThat(result.actions().addChangeUrl())
         .isEqualTo(ReverseRouter.route(on(LicencePositionAddChangeController.class)
@@ -612,8 +613,8 @@ class LicencePositionCorrectionViewServiceTest {
 
     var adminChange = (AdministratorChangeView) changeViewOfType(result, LicenceOperation.LICENCE_ADMINISTRATOR);
     assertThat(adminChange.urls().correct())
-        .isEqualTo(ReverseRouter.route(on(LicencePositionAdministratorChangeController.class)
-            .renderForCorrectingChange(correction, executed, committedChange)));
+        .isEqualTo(ReverseRouter.route(on(ChangeFormController.class)
+            .correctLiveChange(correction, executed, committedChange, null, null, null)));
   }
 
   @Test
@@ -756,8 +757,8 @@ class LicencePositionCorrectionViewServiceTest {
 
     var adminChange = (AdministratorChangeView) changeViewOfType(result, LicenceOperation.LICENCE_ADMINISTRATOR);
     assertThat(adminChange.urls().correct())
-        .isEqualTo(ReverseRouter.route(on(LicencePositionAdministratorChangeController.class)
-            .renderForAddedPosition(correction, positionCorrection)));
+        .isEqualTo(ReverseRouter.route(on(ChangeFormController.class)
+            .addToAddedPosition(correction, positionCorrection, AddPositionChangeType.ADMINISTRATOR, null, null, null)));
   }
 
   @Test

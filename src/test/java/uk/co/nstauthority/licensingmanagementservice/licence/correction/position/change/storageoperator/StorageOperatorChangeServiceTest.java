@@ -170,24 +170,6 @@ class StorageOperatorChangeServiceTest {
         .isEqualTo("Uncorrected Current Operator Name");
   }
 
-  @Test
-  void populateCorrectingStorageOperatorForm_returnsPopulatedForm() {
-    var context = new StorageOperatorChangeContext(OPERATOR_ID, null, "org1", "org2");
-    var expectedForm = new StorageOperatorChangeForm();
-    expectedForm.getId().setInputValue(OPERATOR_ID.toString());
-    assertThat(storageOperatorChangeService.populateCorrectingStorageOperatorForm(context))
-        .usingRecursiveComparison().isEqualTo(expectedForm);
-  }
-
-  @Test
-  void populateCorrectingStorageOperatorForm_noIdInContext_returnsEmptyForm() {
-    var context = new StorageOperatorChangeContext(null, null, "org1", "org2");
-    var expectedForm = new StorageOperatorChangeForm();
-    expectedForm.getId().setInputValue(null);
-    assertThat(storageOperatorChangeService.populateCorrectingStorageOperatorForm(context))
-        .usingRecursiveComparison().isEqualTo(expectedForm);
-  }
-
   private LicencePositionChangeType storageOperatorUpdateChange(String changeId) {
     var storageOperatorOperation = LicenceOperation.newStorageOperatorOperation().withOperator(OPERATOR_ID).build();
     var operation = LicencePositionChangeOperation.newLicencePositionUpdateOperation()

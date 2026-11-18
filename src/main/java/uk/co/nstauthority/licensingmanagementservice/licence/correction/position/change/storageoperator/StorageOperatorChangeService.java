@@ -11,7 +11,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.StorageOperatorOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.ChronologicalPositionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.change.OrganisationChangeContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionChangeOperationUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionStorageOperatorChangeUtil;
 
@@ -78,13 +77,4 @@ public class StorageOperatorChangeService {
     return uncorrectedChangeContext.currentName();
   }
 
-  public StorageOperatorChangeForm populateCorrectingStorageOperatorForm(
-      OrganisationChangeContext changeContext
-  ) {
-    var form = new StorageOperatorChangeForm();
-    if (changeContext.currentId() != null) {
-      form.getId().setInputValue(String.valueOf(changeContext.currentId()));
-    }
-    return form;
-  }
 }

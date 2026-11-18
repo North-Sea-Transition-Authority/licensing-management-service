@@ -35,15 +35,13 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceC
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionRouteUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.administrator.LicencePositionAdministratorChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.explorationoperator.LicencePositionExplorationOperatorChangeController;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.licensee.LicencePositionLicenseeChangeController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.form.ChangeFormController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.LicencePositionPartialSurrenderController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.PartialSurrenderCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.SingleBlockSurrender;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.definearea.PartialSurrenderDefineAreaController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.setequity.LicencePositionSetEquityController;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.storageoperator.LicencePositionStorageOperatorChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subarea.LicencePositionSubareaChangeStartController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subareaequity.LicencePositionSubareaSetEquityController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subareaequity.SubareaEquityOptionsService;
@@ -301,8 +299,8 @@ class LicencePositionAddChangeControllerTest extends AbstractControllerTest {
             .with(user(regulatorUser)).with(csrf())
             .flashAttr("form", form))
         .andExpect(status().is3xxRedirection())
-        .andExpect(redirectedUrl(ReverseRouter.route(on(LicencePositionStorageOperatorChangeController.class)
-            .renderForExecutedPosition(correction, licencePosition))));
+        .andExpect(redirectedUrl(ReverseRouter.route(on(ChangeFormController.class)
+            .addToExecutedPosition(correction, licencePosition, AddPositionChangeType.STORAGE_OPERATOR, null, null, null))));
   }
 
   @Test
@@ -325,8 +323,8 @@ class LicencePositionAddChangeControllerTest extends AbstractControllerTest {
             .with(user(regulatorUser)).with(csrf())
             .flashAttr("form", form))
         .andExpect(status().is3xxRedirection())
-        .andExpect(redirectedUrl(ReverseRouter.route(on(LicencePositionLicenseeChangeController.class)
-            .renderForExecutedPosition(correction, licencePosition))));
+        .andExpect(redirectedUrl(ReverseRouter.route(on(ChangeFormController.class)
+            .addToExecutedPosition(correction, licencePosition, AddPositionChangeType.LICENSEE, null, null, null))));
   }
 
   @Test
@@ -349,8 +347,8 @@ class LicencePositionAddChangeControllerTest extends AbstractControllerTest {
             .with(user(regulatorUser)).with(csrf())
             .flashAttr("form", form))
         .andExpect(status().is3xxRedirection())
-        .andExpect(redirectedUrl(ReverseRouter.route(on(LicencePositionAdministratorChangeController.class)
-            .renderForExecutedPosition(correction, licencePosition))));
+        .andExpect(redirectedUrl(ReverseRouter.route(on(ChangeFormController.class)
+            .addToExecutedPosition(correction, licencePosition, AddPositionChangeType.ADMINISTRATOR, null, null, null))));
   }
 
   @Test
@@ -562,8 +560,8 @@ class LicencePositionAddChangeControllerTest extends AbstractControllerTest {
             .with(user(regulatorUser)).with(csrf())
             .flashAttr("form", form))
         .andExpect(status().is3xxRedirection())
-        .andExpect(redirectedUrl(ReverseRouter.route(on(LicencePositionStorageOperatorChangeController.class)
-            .renderForAddedPosition(correction, positionCorrection))));
+        .andExpect(redirectedUrl(ReverseRouter.route(on(ChangeFormController.class)
+            .addToAddedPosition(correction, positionCorrection, AddPositionChangeType.STORAGE_OPERATOR, null, null, null))));
   }
 
   @Test
@@ -582,8 +580,8 @@ class LicencePositionAddChangeControllerTest extends AbstractControllerTest {
             .with(user(regulatorUser)).with(csrf())
             .flashAttr("form", form))
         .andExpect(status().is3xxRedirection())
-        .andExpect(redirectedUrl(ReverseRouter.route(on(LicencePositionLicenseeChangeController.class)
-            .renderForAddedPosition(correction, positionCorrection))));
+        .andExpect(redirectedUrl(ReverseRouter.route(on(ChangeFormController.class)
+            .addToAddedPosition(correction, positionCorrection, AddPositionChangeType.LICENSEE, null, null, null))));
   }
 
   @Test
@@ -602,8 +600,8 @@ class LicencePositionAddChangeControllerTest extends AbstractControllerTest {
             .with(user(regulatorUser)).with(csrf())
             .flashAttr("form", form))
         .andExpect(status().is3xxRedirection())
-        .andExpect(redirectedUrl(ReverseRouter.route(on(LicencePositionAdministratorChangeController.class)
-            .renderForAddedPosition(correction, positionCorrection))));
+        .andExpect(redirectedUrl(ReverseRouter.route(on(ChangeFormController.class)
+            .addToAddedPosition(correction, positionCorrection, AddPositionChangeType.ADMINISTRATOR, null, null, null))));
   }
 
   @Test

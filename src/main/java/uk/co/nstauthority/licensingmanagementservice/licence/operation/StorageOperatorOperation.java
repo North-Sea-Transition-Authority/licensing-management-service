@@ -1,6 +1,5 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.operation;
 
-import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 import static uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionChangeUtil.NOT_AVAILABLE;
 
 import java.time.LocalDate;
@@ -8,8 +7,8 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import org.jetbrains.annotations.Nullable;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.AddPositionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.action.ChangeActionHandler;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.storageoperator.LicencePositionStorageOperatorChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.storageoperator.StorageOperatorChangeActionHandler;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationError;
@@ -19,7 +18,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.vie
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.ChangeViewUrls;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.LicencePositionChangeView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.StorageOperatorChangeView;
-import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 public record StorageOperatorOperation(
     UUID id,
@@ -105,28 +103,7 @@ public record StorageOperatorOperation(
 
   @Override
   public OperationRoutes getOperationUrls() {
-    return changeUrlTarget -> {
-      if (changeUrlTarget.addedPosition()) {
-        return ReverseRouter.route(on(LicencePositionStorageOperatorChangeController.class)
-            .renderForAddedPosition(changeUrlTarget.correction(), changeUrlTarget.positionCorrection()));
-      }
-      return switch (changeUrlTarget.state()) {
-        case ADDED ->
-            ReverseRouter.route(on(LicencePositionStorageOperatorChangeController.class)
-                .renderForExecutedPosition(
-                    changeUrlTarget.correction(),
-                    changeUrlTarget.licencePosition()
-                ));
-        case LIVE, OPERATIONS_UPDATED, ORDER_UPDATED ->
-            ReverseRouter.route(on(LicencePositionStorageOperatorChangeController.class)
-                .renderForCorrectingChange(
-                    changeUrlTarget.correction(),
-                    changeUrlTarget.licencePosition(),
-                    changeUrlTarget.changeEntity()
-                ));
-        case REMOVED -> null;
-      };
-    };
+    return OperationRoutes.changeForm(AddPositionChangeType.STORAGE_OPERATOR);
   }
 
   public static class Builder {

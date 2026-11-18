@@ -188,7 +188,7 @@ class LicencePositionChangeViewResolverTest {
         PositionChangeUrlContext.forExecutedPosition(CORRECTION, LICENCE_POSITION, POSITION_CORRECTION)
     );
 
-    assertThat(view.urls().correct()).contains("correct-licensee-change");
+    assertThat(view.urls().correct()).endsWith("/correct");
     assertThat(view.urls().remove()).isNull();
     assertThat(view.urls().undo()).endsWith("/undo");
   }
@@ -200,7 +200,7 @@ class LicencePositionChangeViewResolverTest {
         PositionChangeUrlContext.forExecutedPosition(CORRECTION, LICENCE_POSITION, POSITION_CORRECTION)
     );
 
-    assertThat(view.urls().correct()).contains("add-licensee-change");
+    assertThat(view.urls().correct()).endsWith("/change/add?type=LICENSEE");
     assertThat(view.urls().remove()).isNull();
     assertThat(view.urls().undo()).endsWith("/undo");
   }
@@ -212,7 +212,7 @@ class LicencePositionChangeViewResolverTest {
         PositionChangeUrlContext.forExecutedPosition(CORRECTION, LICENCE_POSITION, POSITION_CORRECTION)
     );
 
-    assertThat(view.urls().correct()).contains("correct-licensee-change");
+    assertThat(view.urls().correct()).endsWith("/correct");
     assertThat(view.urls().remove()).endsWith("/remove");
     assertThat(view.urls().undo()).isNull();
   }
@@ -378,7 +378,7 @@ class LicencePositionChangeViewResolverTest {
         PositionChangeUrlContext.forExecutedPosition(CORRECTION, LICENCE_POSITION, POSITION_CORRECTION)
     );
 
-    assertThat(view.urls().correct()).contains("correct-administrator-change");
+    assertThat(view.urls().correct()).endsWith("/correct");
     assertThat(view.urls().remove()).endsWith("/remove");
     assertThat(view.urls().undo()).isNull();
   }
@@ -390,7 +390,7 @@ class LicencePositionChangeViewResolverTest {
         PositionChangeUrlContext.forExecutedPosition(CORRECTION, LICENCE_POSITION, POSITION_CORRECTION)
     );
 
-    assertThat(view.urls().correct()).contains("correct-administrator-change");
+    assertThat(view.urls().correct()).endsWith("/correct");
     assertThat(view.urls().remove()).isNull();
     assertThat(view.urls().undo()).endsWith("/undo");
   }
@@ -402,7 +402,7 @@ class LicencePositionChangeViewResolverTest {
         PositionChangeUrlContext.forExecutedPosition(CORRECTION, LICENCE_POSITION, POSITION_CORRECTION)
     );
 
-    assertThat(view.urls().correct()).contains("add-administrator-change");
+    assertThat(view.urls().correct()).endsWith("/change/add?type=ADMINISTRATOR");
     assertThat(view.urls().remove()).isNull();
     assertThat(view.urls().undo()).endsWith("/undo");
   }

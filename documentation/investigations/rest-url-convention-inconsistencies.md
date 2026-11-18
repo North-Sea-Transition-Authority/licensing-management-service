@@ -158,7 +158,7 @@ trailing slash their siblings do not.
 ### 8. Other structural smells (noted, low priority)
 
 - **Deeply nested paths (>5 segments)** in corrections, e.g.
-  `/licence-corrections/{correctionId}/position/{licencePositionId}/change/{changeId}/correct-administrator-change`
+  `/licence-corrections/{correctionId}/position/{licencePositionId}/change/{changeId}/correct`
   (7 segments).
 - **Shared URI space, inconsistent variable naming** — `/application/{applicationType}/{applicationId}/document/{…}`
   is used by `ApplicationDocumentActionsController` and `ContinuationApplicationDocumentActionsController`,

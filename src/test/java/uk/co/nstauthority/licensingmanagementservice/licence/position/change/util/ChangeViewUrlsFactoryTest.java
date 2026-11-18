@@ -15,13 +15,12 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceC
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.AddPositionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.action.ChangeActionController;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.administrator.LicencePositionAdministratorChangeController;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.licensee.LicencePositionLicenseeChangeController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.form.ChangeFormController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.reviewandsubmit.PartialSurrenderReviewAndSubmitController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.tasklist.PartialSurrenderTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.setequity.LicencePositionSetEquityController;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.storageoperator.LicencePositionStorageOperatorChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subarea.review.SubareaChangeReviewController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.transferequity.LicencePositionTransferEquityController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeorder.CorrectChangeOrderController;
@@ -198,12 +197,12 @@ class ChangeViewUrlsFactoryTest {
     var remove = removeUrl();
     var undo = undoUrl();
 
-    var adminAdded = ReverseRouter.route(on(LicencePositionAdministratorChangeController.class)
-        .renderForAddedPosition(CORRECTION, POSITION_CORRECTION));
-    var adminExecuted = ReverseRouter.route(on(LicencePositionAdministratorChangeController.class)
-        .renderForExecutedPosition(CORRECTION, LICENCE_POSITION));
-    var adminCorrecting = ReverseRouter.route(on(LicencePositionAdministratorChangeController.class)
-        .renderForCorrectingChange(CORRECTION, LICENCE_POSITION, CHANGE_ENTITY));
+    var adminAdded = ReverseRouter.route(on(ChangeFormController.class)
+        .addToAddedPosition(CORRECTION, POSITION_CORRECTION, AddPositionChangeType.ADMINISTRATOR, null, null, null));
+    var adminExecuted = ReverseRouter.route(on(ChangeFormController.class)
+        .addToExecutedPosition(CORRECTION, LICENCE_POSITION, AddPositionChangeType.ADMINISTRATOR, null, null, null));
+    var adminCorrecting = ReverseRouter.route(on(ChangeFormController.class)
+        .correctLiveChange(CORRECTION, LICENCE_POSITION, CHANGE_ENTITY, null, null, null));
 
     var setEquityAdded = ReverseRouter.route(on(LicencePositionSetEquityController.class)
         .renderSummaryForAddedPosition(CORRECTION, POSITION_CORRECTION));
@@ -223,19 +222,19 @@ class ChangeViewUrlsFactoryTest {
     var partialSurrenderReviewCorrecting = ReverseRouter.route(on(PartialSurrenderReviewAndSubmitController.class)
         .renderReviewAndSubmitForCorrectingChange(CORRECTION, LICENCE_POSITION, CHANGE_ENTITY, null));
 
-    var licenseeAdded = ReverseRouter.route(on(LicencePositionLicenseeChangeController.class)
-        .renderForAddedPosition(CORRECTION, POSITION_CORRECTION));
-    var licenseeExecuted = ReverseRouter.route(on(LicencePositionLicenseeChangeController.class)
-        .renderForExecutedPosition(CORRECTION, LICENCE_POSITION));
-    var licenseeCorrecting = ReverseRouter.route(on(LicencePositionLicenseeChangeController.class)
-        .renderForCorrectingChange(CORRECTION, LICENCE_POSITION, CHANGE_ENTITY));
+    var licenseeAdded = ReverseRouter.route(on(ChangeFormController.class)
+        .addToAddedPosition(CORRECTION, POSITION_CORRECTION, AddPositionChangeType.LICENSEE, null, null, null));
+    var licenseeExecuted = ReverseRouter.route(on(ChangeFormController.class)
+        .addToExecutedPosition(CORRECTION, LICENCE_POSITION, AddPositionChangeType.LICENSEE, null, null, null));
+    var licenseeCorrecting = ReverseRouter.route(on(ChangeFormController.class)
+        .correctLiveChange(CORRECTION, LICENCE_POSITION, CHANGE_ENTITY, null, null, null));
 
-    var storageOperatorAdded = ReverseRouter.route(on(LicencePositionStorageOperatorChangeController.class)
-        .renderForAddedPosition(CORRECTION, POSITION_CORRECTION));
-    var storageOperatorExecuted = ReverseRouter.route(on(LicencePositionStorageOperatorChangeController.class)
-        .renderForExecutedPosition(CORRECTION, LICENCE_POSITION));
-    var storageOperatorCorrecting = ReverseRouter.route(on(LicencePositionStorageOperatorChangeController.class)
-        .renderForCorrectingChange(CORRECTION, LICENCE_POSITION, CHANGE_ENTITY));
+    var storageOperatorAdded = ReverseRouter.route(on(ChangeFormController.class)
+        .addToAddedPosition(CORRECTION, POSITION_CORRECTION, AddPositionChangeType.STORAGE_OPERATOR, null, null, null));
+    var storageOperatorExecuted = ReverseRouter.route(on(ChangeFormController.class)
+        .addToExecutedPosition(CORRECTION, LICENCE_POSITION, AddPositionChangeType.STORAGE_OPERATOR, null, null, null));
+    var storageOperatorCorrecting = ReverseRouter.route(on(ChangeFormController.class)
+        .correctLiveChange(CORRECTION, LICENCE_POSITION, CHANGE_ENTITY, null, null, null));
 
     var subareaCorrect = ReverseRouter.route(on(SubareaChangeReviewController.class)
         .renderStagedReview(CORRECTION, POSITION_CORRECTION, SUBAREA_BLOCK_FEATURE_ID, null));

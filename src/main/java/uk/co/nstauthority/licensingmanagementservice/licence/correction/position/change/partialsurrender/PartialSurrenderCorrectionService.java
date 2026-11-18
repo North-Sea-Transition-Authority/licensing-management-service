@@ -291,29 +291,6 @@ public class PartialSurrenderCorrectionService {
   }
 
   /**
-   * Used by {@code RemovePartialSurrenderChangeController}, until it is replaced by {@code ChangeActionController}.
-   */
-  @Transactional
-  public void removeExistingPartialSurrender(
-      LicencePosition licencePosition,
-      LicenceCorrection licenceCorrection,
-      String changeId
-  ) {
-    licencePositionCorrectionService.stageRemovalOfExecutedChange(licenceCorrection, licencePosition, changeId);
-  }
-
-  /**
-   * Used by {@code RemovePartialSurrenderChangeController}, until it is replaced by {@code ChangeActionController}.
-   */
-  @Transactional
-  public void undoPartialSurrenderChange(LicenceCorrection licenceCorrection, String changeId) {
-    var positionCorrection = licencePositionCorrectionService
-        .getPositionCorrectionContainingChange(licenceCorrection, changeId);
-    deleteStagedSurrenderArtefacts(licencePositionCorrectionService.getStagedChangeOrThrow(positionCorrection, changeId));
-    licencePositionCorrectionService.dropStagedChange(positionCorrection, changeId);
-  }
-
-  /**
    * Deletes the command journeys and cropped subareas a staged partial surrender change created, ahead of the change
    * being dropped.
    */

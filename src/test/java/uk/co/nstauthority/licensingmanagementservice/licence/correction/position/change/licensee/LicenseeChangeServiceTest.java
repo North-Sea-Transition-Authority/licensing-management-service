@@ -1,14 +1,10 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.licensee;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -32,13 +28,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceC
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeoperation.LicencePositionChangeOperation;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayloadTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.LicencePositionPayload;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.UpdateLicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.UpdateLicencePositionPayloadTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenseeOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.ChronologicalPositionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionNameService;
@@ -163,79 +154,6 @@ class LicenseeChangeServiceTest {
     assertThat(positionCorrection.getPayload().changes()).hasSize(1);
     assertThat(expectedLicenseeOperation.licenseesToAdd()).isEqualTo(joiningLicenseeIds);
     assertThat(expectedLicenseeOperation.licenseesToRemove()).isEqualTo(withdrawingLicenseeIds);
-  }
-
-  @Test
-  void removeExistingLicenseeChange_whenNoExistingUpdateCorrection_thenOnlyStagesTheRemoval() {
-    var licencePosition = LicencePositionTestUtil.newBuilder().build();
-    var licenceCorrection = LicenceCorrectionTestUtil.newBuilder().withCorrectionReference("correctionReference").build();
-    var originalChangeId = UUID.randomUUID().toString();
-
-    when(licencePositionCorrectionService.findUpdatePositionCorrection(licenceCorrection, licencePosition))
-        .thenReturn(Optional.empty());
-
-    licenseeChangeService.removeExistingLicenseeChange(licencePosition, licenceCorrection, originalChangeId);
-
-    verify(licencePositionCorrectionService)
-        .stageRemovalOfExecutedChange(licenceCorrection, licencePosition, originalChangeId);
-    verify(licencePositionCorrectionService, never()).save(any());
-  }
-
-  @Test
-  void removeExistingLicenseeChange_whenExistingUpdateCorrection_thenDropsLicenseeChangeAndStagesTheRemoval() {
-    var licencePosition = LicencePositionTestUtil.newBuilder().withPositionOrder(10).build();
-    var licenceCorrection = LicenceCorrectionTestUtil.newBuilder().withCorrectionReference("correctionReference").build();
-    var originalChangeId = UUID.randomUUID().toString();
-
-    var existing = LicencePositionCorrectionTestUtil.newBuilder()
-        .withPayload(LicencePositionPayload.newUpdateLicencePositionPayload()
-            .withChanges(List.of(licenseeUpdateChange(originalChangeId, List.of(1), List.of(3))))
-            .build())
-        .build();
-
-    when(licencePositionCorrectionService.findUpdatePositionCorrection(licenceCorrection, licencePosition))
-        .thenReturn(Optional.of(existing));
-
-    licenseeChangeService.removeExistingLicenseeChange(licencePosition, licenceCorrection, originalChangeId);
-
-    verify(licencePositionCorrectionService).save(licencePositionCorrectionCaptor.capture());
-    var payload = (UpdateLicencePositionPayload) licencePositionCorrectionCaptor.getValue().getPayload();
-
-    assertThat(payload.changes()).isEmpty();
-    verify(licencePositionCorrectionService)
-        .stageRemovalOfExecutedChange(licenceCorrection, licencePosition, originalChangeId);
-  }
-
-  @Test
-  void undoLicenseeChange_isLicenseeChange_dropsChange() {
-    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder().build();
-    var changeId = "1";
-    var changeToUndo = LicencePositionChangeType.addChange().build();
-
-    when(licencePositionCorrectionService.getStagedChangeOrThrow(positionCorrection, changeId))
-        .thenReturn(changeToUndo);
-    when(licencePositionCorrectionService.resolveStagedChangeOperations(changeToUndo))
-        .thenReturn(List.of(LicenceOperation.newLicenseeOperation().build()));
-
-    licenseeChangeService.undoLicenseeChange(positionCorrection, changeId);
-
-    verify(licencePositionCorrectionService).dropStagedChange(positionCorrection, changeId);
-  }
-
-  @Test
-  void undoLicenseeChange_isNotLicenseeChange_throwsException() {
-    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder().build();
-    var changeId = "1";
-    var changeToUndo = LicencePositionChangeType.addChange().build();
-
-    when(licencePositionCorrectionService.getStagedChangeOrThrow(positionCorrection, changeId))
-        .thenReturn(changeToUndo);
-    when(licencePositionCorrectionService.resolveStagedChangeOperations(changeToUndo))
-        .thenReturn(List.of(LicenceOperation.newAdministratorChange().withOperator(2).build()));
-
-    assertThatThrownBy(() -> licenseeChangeService.undoLicenseeChange(positionCorrection, changeId))
-        .isInstanceOf(IllegalStateException.class)
-        .hasMessage("Change with id %s is not a licensee change".formatted(changeId));
   }
 
   @Test
@@ -402,25 +320,6 @@ class LicenseeChangeServiceTest {
                 ChangeViewUrls.none()
             ))
     );
-  }
-
-  private LicencePositionChangeType licenseeUpdateChange(
-      String changeId,
-      List<Integer> licenseesToAdd,
-      List<Integer> licenseesToRemove
-  ) {
-    var licenseeOperation = LicenceOperation.newLicenseeOperation()
-        .withLicenseesToAdd(licenseesToAdd)
-        .withLicenseesToRemove(licenseesToRemove)
-        .build();
-    var operation = LicencePositionChangeOperation.newLicencePositionUpdateOperation()
-        .withOperationId(licenseeOperation.id())
-        .withOperation(licenseeOperation)
-        .build();
-    return LicencePositionChangeType.updateChangeOperations()
-        .withChangeId(changeId)
-        .withOperations(List.of(operation))
-        .build();
   }
 
   private static ChronologicalPosition licenseePosition(

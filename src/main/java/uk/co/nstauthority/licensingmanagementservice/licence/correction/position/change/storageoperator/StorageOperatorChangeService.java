@@ -55,41 +55,6 @@ public class StorageOperatorChangeService {
     licencePositionCorrectionService.save(positionCorrection);
   }
 
-  @Transactional
-  public void removeExistingStorageOperatorChange(
-      LicencePosition licencePosition,
-      LicenceCorrection licenceCorrection,
-      String originalChangeId
-  ) {
-    licencePositionCorrectionService.findUpdatePositionCorrection(licenceCorrection, licencePosition)
-        .ifPresent(this::removeStagedStorageOperatorChange);
-
-    licencePositionCorrectionService
-        .stageRemovalOfExecutedChange(licenceCorrection, licencePosition, originalChangeId);
-  }
-
-  @Transactional
-  public void undoStorageOperatorChange(
-      LicenceCorrection licenceCorrection,
-      String changeId
-  ) {
-    var positionCorrection = licencePositionCorrectionService
-        .getPositionCorrectionContainingChange(licenceCorrection, changeId);
-
-    var changeToUndo = licencePositionCorrectionService.getStagedChangeOrThrow(positionCorrection, changeId);
-
-    var isStorageOperatorChange = licencePositionCorrectionService.resolveStagedChangeOperations(changeToUndo).stream()
-        .anyMatch(StorageOperatorOperation.class::isInstance);
-
-    if (!isStorageOperatorChange) {
-      throw new IllegalStateException(
-          "Change with id %s is not an storage operator change"
-              .formatted(changeId));
-    }
-
-    licencePositionCorrectionService.dropStagedChange(positionCorrection, changeId);
-  }
-
   public String getJoiningOperatorForReinstating(
       LicenceCorrection licenceCorrection,
       LicencePositionCorrection positionCorrectionToUndo
@@ -111,14 +76,6 @@ public class StorageOperatorChangeService {
         .getOrganisationChangeContext(licenceCorrection, licencePositionId, StorageOperatorOperation.class, targetPositions);
 
     return uncorrectedChangeContext.currentName();
-  }
-
-  private void removeStagedStorageOperatorChange(LicencePositionCorrection positionCorrection) {
-    var payload = positionCorrection.getPayload();
-    var changes = LicencePositionStorageOperatorChangeUtil.removeStorageOperatorChange(payload.changes());
-
-    positionCorrection.setPayload(LicencePositionPayload.withChanges(payload, changes));
-    licencePositionCorrectionService.save(positionCorrection);
   }
 
   public StorageOperatorChangeForm populateCorrectingStorageOperatorForm(

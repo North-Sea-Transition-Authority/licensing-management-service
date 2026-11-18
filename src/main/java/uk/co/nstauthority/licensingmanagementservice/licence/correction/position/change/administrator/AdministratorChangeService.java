@@ -15,14 +15,12 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.UpdateLicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.AdministratorOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.AdministratorChangeContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.ChronologicalPositionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionNameService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionAdministratorChangeUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionChangeOperationUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionStateResolver;
 
 @Service
 public class AdministratorChangeService {
@@ -100,51 +98,6 @@ public class AdministratorChangeService {
     }
 
     licencePositionCorrectionService.save(positionCorrection);
-  }
-
-  @Transactional
-  public void removeExistingAdministratorChange(
-      LicencePosition licencePosition,
-      LicenceCorrection licenceCorrection,
-      String originalChangeId
-  ) {
-    licencePositionCorrectionService.findUpdatePositionCorrection(licenceCorrection, licencePosition)
-        .ifPresent(this::removeStagedAdministratorChange);
-
-    licencePositionCorrectionService
-        .stageRemovalOfExecutedChange(licenceCorrection, licencePosition, originalChangeId);
-  }
-
-  private void removeStagedAdministratorChange(LicencePositionCorrection positionCorrection) {
-    var payload = positionCorrection.getPayload();
-    var changes = LicencePositionChangeOperationUtil.removeChangesOf(payload.changes(), AdministratorOperation.class);
-
-    positionCorrection.setPayload(LicencePositionPayload.withChanges(payload, changes));
-    licencePositionCorrectionService.save(positionCorrection);
-  }
-
-  @Transactional
-  public void undoAdministratorChange(
-      LicenceCorrection licenceCorrection,
-      String changeId
-  ) {
-    var positionCorrection = licencePositionCorrectionService
-        .getPositionCorrectionContainingChange(licenceCorrection, changeId);
-
-    var changeToUndo = licencePositionCorrectionService.getStagedChangeOrThrow(positionCorrection, changeId);
-
-    if (!isAdministratorChange(changeToUndo)) {
-      throw new IllegalStateException(
-          "Change with id %s is not an administrator change"
-              .formatted(changeId));
-    }
-
-    licencePositionCorrectionService.dropStagedChange(positionCorrection, changeId);
-  }
-
-  private boolean isAdministratorChange(LicencePositionChangeType change) {
-    return licencePositionCorrectionService.resolveStagedChangeOperations(change).stream()
-        .anyMatch(AdministratorOperation.class::isInstance);
   }
 
   private static AdministratorOperation administratorOperation(Integer administratorId) {

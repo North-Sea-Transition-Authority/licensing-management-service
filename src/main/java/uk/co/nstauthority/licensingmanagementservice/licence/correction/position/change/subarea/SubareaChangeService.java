@@ -272,18 +272,6 @@ public class SubareaChangeService {
   }
 
   /**
-   * Used by {@code RemoveSubareaChangeController}, until it is replaced by {@code ChangeActionController}.
-   */
-  @Transactional
-  public void undoSubareaChange(
-      LicencePositionCorrection positionCorrection,
-      String changeId
-  ) {
-    deleteStagedSubareaArtefacts(licencePositionCorrectionService.getStagedChangeOrThrow(positionCorrection, changeId));
-    licencePositionCorrectionService.dropStagedChange(positionCorrection, changeId);
-  }
-
-  /**
    * Deletes the command journey a staged subarea change created, ahead of the change being dropped.
    */
   @Transactional

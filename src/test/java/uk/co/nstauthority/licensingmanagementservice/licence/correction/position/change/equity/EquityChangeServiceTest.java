@@ -1,10 +1,6 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.equity;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
@@ -77,59 +73,6 @@ class EquityChangeServiceTest {
 
   @InjectMocks
   private EquityChangeService equityChangeService;
-
-  @Test
-  void removeExistingEquityChange() {
-    var changeId = UUID.randomUUID().toString();
-
-    equityChangeService.removeExistingEquityChange(LICENCE_POSITION, LICENCE_CORRECTION, changeId);
-
-    verify(licencePositionCorrectionService)
-        .stageRemovalOfExecutedChange(LICENCE_CORRECTION, LICENCE_POSITION, changeId);
-  }
-
-  @Test
-  void undoEquityChange_whenTheChangeStagesASetEquityOperation_thenDropsIt() {
-    var changeId = UUID.randomUUID().toString();
-    var correction = givenStagedChange(setEquityAddChange(changeId), setEquityOperation());
-
-    equityChangeService.undoEquityChange(LICENCE_CORRECTION, changeId);
-
-    verify(licencePositionCorrectionService).dropStagedChange(correction, changeId);
-  }
-
-  @Test
-  void undoEquityChange_whenTheChangeStagesATransferEquityOperation_thenDropsIt() {
-    var changeId = UUID.randomUUID().toString();
-    var correction = givenStagedChange(transferEquityAddChange(changeId), transferEquityOperation());
-
-    equityChangeService.undoEquityChange(LICENCE_CORRECTION, changeId);
-
-    verify(licencePositionCorrectionService).dropStagedChange(correction, changeId);
-  }
-
-  @Test
-  void undoEquityChange_whenTheChangeStagesASubareaSetEquityOperation_thenDropsIt() {
-    var changeId = UUID.randomUUID().toString();
-    var correction = givenStagedChange(addChange(changeId, subareaSetEquityOperation()), subareaSetEquityOperation());
-
-    equityChangeService.undoEquityChange(LICENCE_CORRECTION, changeId);
-
-    verify(licencePositionCorrectionService).dropStagedChange(correction, changeId);
-  }
-
-  @Test
-  void undoEquityChange_whenTheChangeIsNotAnEquityChange_thenThrowsAndDropsNothing() {
-    var changeId = UUID.randomUUID().toString();
-    givenStagedChange(administratorAddChange(changeId),
-        LicenceOperation.newAdministratorChange().withOperator(1).build());
-
-    assertThatThrownBy(() -> equityChangeService.undoEquityChange(LICENCE_CORRECTION, changeId))
-        .isInstanceOf(IllegalStateException.class)
-        .hasMessageContaining(changeId);
-
-    verify(licencePositionCorrectionService, never()).dropStagedChange(any(), any());
-  }
 
   @Test
   void getEquityChangeContext_whenSetEquityChange_returnsSetEquityRows() {
@@ -315,20 +258,6 @@ class EquityChangeServiceTest {
         .withTransferFrom(TRANSFER_FROM_ID)
         .withTransferTo(TRANSFER_TO_ID)
         .withEquity(BigDecimal.TEN)
-        .build();
-    return LicencePositionChangeType.addChange()
-        .withChangeId(changeId)
-        .withChangeOrder(1)
-        .withOperations(List.of(LicencePositionChangeOperation.newLicencePositionAddOperation()
-            .withOperationId(operation.id())
-            .withOperation(operation)
-            .build()))
-        .build();
-  }
-
-  private LicencePositionChangeType administratorAddChange(String changeId) {
-    var operation = LicenceOperation.newAdministratorChange()
-        .withOperator(TRANSFER_TO_ID)
         .build();
     return LicencePositionChangeType.addChange()
         .withChangeId(changeId)

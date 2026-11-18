@@ -89,45 +89,6 @@ public class LicenseeChangeService {
     licencePositionCorrectionService.save(positionCorrection);
   }
 
-  @Transactional
-  public void removeExistingLicenseeChange(
-      LicencePosition licencePosition,
-      LicenceCorrection licenceCorrection,
-      String originalChangeId
-  ) {
-    licencePositionCorrectionService.findUpdatePositionCorrection(licenceCorrection, licencePosition)
-        .ifPresent(this::removeStagedLicenseeChange);
-
-    licencePositionCorrectionService
-        .stageRemovalOfExecutedChange(licenceCorrection, licencePosition, originalChangeId);
-  }
-
-  private void removeStagedLicenseeChange(LicencePositionCorrection positionCorrection) {
-    var payload = positionCorrection.getPayload();
-    var changes = LicencePositionLicenseeChangeUtil.removeLicenseeChange(payload.changes());
-
-    positionCorrection.setPayload(LicencePositionPayload.withChanges(payload, changes));
-    licencePositionCorrectionService.save(positionCorrection);
-  }
-
-  @Transactional
-  public void undoLicenseeChange(
-      LicencePositionCorrection positionCorrection,
-      String changeId
-  ) {
-    var changeToUndo = licencePositionCorrectionService.getStagedChangeOrThrow(positionCorrection, changeId);
-
-    var isLicenseeChange = licencePositionCorrectionService.resolveStagedChangeOperations(changeToUndo).stream()
-        .anyMatch(LicenseeOperation.class::isInstance);
-
-    if (!isLicenseeChange) {
-      throw new IllegalStateException(
-          "Change with id %s is not a licensee change".formatted(changeId));
-    }
-
-    licencePositionCorrectionService.dropStagedChange(positionCorrection, changeId);
-  }
-
   public LicenseeChangeView getRestoredLicenseeChangeView(List<String> withdrawingNames, List<String> joiningNames) {
     if (!joiningNames.isEmpty() || !withdrawingNames.isEmpty()) {
       return new LicenseeChangeView(

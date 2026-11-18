@@ -354,13 +354,6 @@ public class LicencePositionCorrectionService {
   }
 
   /**
-   * Used by the per-type remove change controllers, until they are replaced by {@code ChangeActionController}.
-   */
-  public boolean isStagedRemoval(LicencePositionCorrection positionCorrection, String changeId) {
-    return getStagedChangeOrThrow(positionCorrection, changeId) instanceof RemoveChange;
-  }
-
-  /**
    * Drops every change this licence correction has staged against an executed position that carries the operation
    * type, for operations a position holds at most one of.
    */

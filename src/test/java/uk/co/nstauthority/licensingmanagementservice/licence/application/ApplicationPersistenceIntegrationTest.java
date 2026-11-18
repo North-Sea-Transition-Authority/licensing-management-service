@@ -3,7 +3,6 @@ package uk.co.nstauthority.licensingmanagementservice.licence.application;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import jakarta.persistence.EntityManager;
-import jakarta.persistence.EntityManagerFactory;
 import jakarta.transaction.Transactional;
 import java.time.Instant;
 import java.util.Arrays;
@@ -11,8 +10,9 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import org.hibernate.SessionFactory;
-import org.hibernate.stat.Statistics;
+import java.util.concurrent.atomic.AtomicLong;
+import org.hibernate.Session;
+import org.hibernate.SessionEventListener;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
@@ -38,9 +38,6 @@ class ApplicationPersistenceIntegrationTest {
 
   @Autowired
   private EntityManager entityManager;
-
-  @Autowired
-  private EntityManagerFactory entityManagerFactory;
 
   @Autowired
   private ScheduleWorkProgrammeApplicationRepository scheduleWorkProgrammeApplicationRepository;
@@ -148,31 +145,29 @@ class ApplicationPersistenceIntegrationTest {
 
   @Test
   void findAllByStatusIn_whenMoreExtensionApplicationsExist_thenQueryCountStaysConstant() {
-    var statistics = entityManagerFactory.unwrap(SessionFactory.class).getStatistics();
-    statistics.setStatisticsEnabled(true);
     persistSubmittedExtensionApplications(9750, 5);
-    var queryCountForFiveApplications = countQueries(statistics,
+    var queryCountForFiveApplications = countQueries(
         () -> scheduleWorkProgrammeApplicationDetailRepository.findAllByStatusIn(Set.of(ApplicationStatus.SUBMITTED)));
     persistSubmittedExtensionApplications(9755, 15);
 
-    var queryCountForTwentyApplications = countQueries(statistics,
+    var queryCountForTwentyApplications = countQueries(
         () -> scheduleWorkProgrammeApplicationDetailRepository.findAllByStatusIn(Set.of(ApplicationStatus.SUBMITTED)));
 
+    assertThat(queryCountForFiveApplications).isPositive();
     assertThat(queryCountForTwentyApplications).isEqualTo(queryCountForFiveApplications);
   }
 
   @Test
   void findAllByStatusIn_whenMoreContinuationApplicationsExist_thenQueryCountStaysConstant() {
-    var statistics = entityManagerFactory.unwrap(SessionFactory.class).getStatistics();
-    statistics.setStatisticsEnabled(true);
     persistSubmittedContinuationApplications(9770, 5);
-    var queryCountForFiveApplications = countQueries(statistics,
+    var queryCountForFiveApplications = countQueries(
         () -> licenceContinuationApplicationDetailRepository.findAllByStatusIn(Set.of(ApplicationStatus.SUBMITTED)));
     persistSubmittedContinuationApplications(9775, 15);
 
-    var queryCountForTwentyApplications = countQueries(statistics,
+    var queryCountForTwentyApplications = countQueries(
         () -> licenceContinuationApplicationDetailRepository.findAllByStatusIn(Set.of(ApplicationStatus.SUBMITTED)));
 
+    assertThat(queryCountForFiveApplications).isPositive();
     assertThat(queryCountForTwentyApplications).isEqualTo(queryCountForFiveApplications);
   }
 
@@ -191,13 +186,20 @@ class ApplicationPersistenceIntegrationTest {
   }
 
   // Clears the first-level cache so the count reflects a fresh request, rather than resolving associations
-  // against entities this test has just persisted.
-  private long countQueries(Statistics statistics, Runnable query) {
+  // against entities this test has just persisted. Counts only this test's session: the session factory's
+  // statistics also count statements from anything else running in the JVM, which made the comparison flaky.
+  private long countQueries(Runnable query) {
     entityManager.flush();
     entityManager.clear();
-    statistics.clear();
+    var preparedStatements = new AtomicLong();
+    entityManager.unwrap(Session.class).addEventListeners(new SessionEventListener() {
+      @Override
+      public void jdbcPrepareStatementEnd() {
+        preparedStatements.incrementAndGet();
+      }
+    });
     query.run();
-    return statistics.getPrepareStatementCount();
+    return preparedStatements.get();
   }
 
   private LicenceSchedule persistLicenceSchedule(int licenceId) {

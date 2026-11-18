@@ -14,12 +14,13 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.AddPositionChangeType;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.action.ChangeActionHandler;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.equity.EquityChangeActionHandler;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subareaequity.LicencePositionSubareaSetEquityController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationError;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.SubareaEquityPositionRule;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeViewContext;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.ChangeUrlTarget;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.LicencePositionState;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.PositionChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.ChangeViewUrls;
@@ -59,6 +60,16 @@ public record SubareaSetEquityOperation(
   @Override
   public String displayName() {
     return "Subarea set equity";
+  }
+
+  @Override
+  public Class<? extends ChangeActionHandler> changeActionHandlerType() {
+    return EquityChangeActionHandler.class;
+  }
+
+  @Override
+  public String changeName() {
+    return "beneficial interest change";
   }
 
   @Override
@@ -120,28 +131,18 @@ public record SubareaSetEquityOperation(
   @Override
   public OperationRoutes getOperationUrls() {
     var subareaKey = subareaKey();
-    return new OperationRoutes() {
-      @Override
-      public String correct(ChangeUrlTarget target) {
-        if (!OperationRoutes.isStagedEquityChange(target)) {
-          return null;
-        }
-        return target.addedPosition()
-            ? ReverseRouter.route(on(LicencePositionSubareaSetEquityController.class)
-            .renderSummaryForAddedPosition(target.correction(), target.positionCorrection(), subareaKey))
-            : ReverseRouter.route(on(LicencePositionSubareaSetEquityController.class)
-            .renderSummaryForExecutedPosition(target.correction(), target.licencePosition(), subareaKey));
+    return changeUrlTarget -> {
+      if (!OperationRoutes.isStagedEquityChange(changeUrlTarget)) {
+        return null;
       }
 
-      @Override
-      public String remove(ChangeUrlTarget target) {
-        return OperationRoutes.removeEquityChange(target);
+      if (changeUrlTarget.addedPosition()) {
+        return ReverseRouter.route(on(LicencePositionSubareaSetEquityController.class)
+            .renderSummaryForAddedPosition(changeUrlTarget.correction(), changeUrlTarget.positionCorrection(), subareaKey));
       }
 
-      @Override
-      public String undo(ChangeUrlTarget target) {
-        return OperationRoutes.undoEquityChange(target);
-      }
+      return ReverseRouter.route(on(LicencePositionSubareaSetEquityController.class)
+          .renderSummaryForExecutedPosition(changeUrlTarget.correction(), changeUrlTarget.licencePosition(), subareaKey));
     };
   }
 

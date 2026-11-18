@@ -3,6 +3,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.operation;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.annotation.Nullable;
 import java.time.LocalDate;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.action.ChangeActionHandler;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeViewContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.LicencePositionState;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.PositionChange;
@@ -17,6 +18,28 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.vie
  * position yet.
  */
 public non-sealed interface VisibleLicenceOperation extends LicenceOperation {
+
+  /**
+   * The change this operation makes, in lower case as it reads mid-sentence, e.g. "licensee change".
+   */
+  default String changeName() {
+    return displayName().toLowerCase();
+  }
+
+  /**
+   * Whether a position holds at most one change carrying this operation. Removing a live change of such an operation
+   * also drops any change of it the correction has staged against the position.
+   */
+  default boolean atMostOnePerPosition() {
+    return false;
+  }
+
+  /**
+   * The handler for removing, undoing or reinstating a change this operation is shown as, or null when such a change
+   * can't be removed, undone or reinstated.
+   */
+  @Nullable
+  Class<? extends ChangeActionHandler> changeActionHandlerType();
 
   /**
    * The view this operation is shown as.

@@ -290,6 +290,9 @@ public class PartialSurrenderCorrectionService {
     discardedCommandJourneyIds.forEach(commandJourneyService::deleteCommandJourney);
   }
 
+  /**
+   * Used by {@code RemovePartialSurrenderChangeController}, until it is replaced by {@code ChangeActionController}.
+   */
   @Transactional
   public void removeExistingPartialSurrender(
       LicencePosition licencePosition,
@@ -299,15 +302,26 @@ public class PartialSurrenderCorrectionService {
     licencePositionCorrectionService.stageRemovalOfExecutedChange(licenceCorrection, licencePosition, changeId);
   }
 
+  /**
+   * Used by {@code RemovePartialSurrenderChangeController}, until it is replaced by {@code ChangeActionController}.
+   */
   @Transactional
   public void undoPartialSurrenderChange(LicenceCorrection licenceCorrection, String changeId) {
     var positionCorrection = licencePositionCorrectionService
         .getPositionCorrectionContainingChange(licenceCorrection, changeId);
-    var changeToUndo = licencePositionCorrectionService.getStagedChangeOrThrow(positionCorrection, changeId);
+    deleteStagedSurrenderArtefacts(licencePositionCorrectionService.getStagedChangeOrThrow(positionCorrection, changeId));
+    licencePositionCorrectionService.dropStagedChange(positionCorrection, changeId);
+  }
 
-    var surrender = getPartialSurrenderForChangeOrThrow(changeToUndo);
+  /**
+   * Deletes the command journeys and cropped subareas a staged partial surrender change created, ahead of the change
+   * being dropped.
+   */
+  @Transactional
+  public void deleteStagedSurrenderArtefacts(LicencePositionChangeType stagedChange) {
+    var surrender = getPartialSurrenderForChangeOrThrow(stagedChange);
 
-    switch (changeToUndo) {
+    switch (stagedChange) {
       case AddChange ignored -> deleteCorrectionOwnedJourneysAndFeatures(surrender, null);
       case UpdateChangeOperations updateChange -> deleteCorrectionOwnedJourneysAndFeatures(surrender, updateChange.changeId());
       case RemoveChange ignored -> {
@@ -317,8 +331,6 @@ public class PartialSurrenderCorrectionService {
         // a staged reorder creates no command journeys or cropped subareas
       }
     }
-
-    licencePositionCorrectionService.dropStagedChange(positionCorrection, changeId);
   }
 
   /**

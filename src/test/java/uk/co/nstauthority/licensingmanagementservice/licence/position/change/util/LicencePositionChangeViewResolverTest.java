@@ -21,14 +21,11 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceC
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.administrator.RemoveAdministratorChangeController;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.equity.RemoveEquityChangeController;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.RemovePartialSurrenderChangeController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.action.ChangeActionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.reviewandsubmit.PartialSurrenderReviewAndSubmitController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.tasklist.PartialSurrenderTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.setequity.LicencePositionSetEquityController;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subarea.RemoveSubareaChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subarea.review.SubareaChangeReviewController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subareaequity.LicencePositionSubareaSetEquityController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.transferequity.LicencePositionTransferEquityController;
@@ -193,7 +190,7 @@ class LicencePositionChangeViewResolverTest {
 
     assertThat(view.urls().correct()).contains("correct-licensee-change");
     assertThat(view.urls().remove()).isNull();
-    assertThat(view.urls().undo()).contains("undo-licensee-change");
+    assertThat(view.urls().undo()).endsWith("/undo");
   }
 
   @Test
@@ -205,7 +202,7 @@ class LicencePositionChangeViewResolverTest {
 
     assertThat(view.urls().correct()).contains("add-licensee-change");
     assertThat(view.urls().remove()).isNull();
-    assertThat(view.urls().undo()).contains("undo-licensee-change");
+    assertThat(view.urls().undo()).endsWith("/undo");
   }
 
   @Test
@@ -216,7 +213,7 @@ class LicencePositionChangeViewResolverTest {
     );
 
     assertThat(view.urls().correct()).contains("correct-licensee-change");
-    assertThat(view.urls().remove()).contains("remove-licensee-change");
+    assertThat(view.urls().remove()).endsWith("/remove");
     assertThat(view.urls().undo()).isNull();
   }
 
@@ -230,7 +227,7 @@ class LicencePositionChangeViewResolverTest {
     assertThat(view.urls().correct()).isNull();
     assertThat(view.urls().remove()).isNull();
     assertThat(view.urls().undo()).isNull();
-    assertThat(view.urls().reinstate()).contains("undo-licensee-change");
+    assertThat(view.urls().reinstate()).endsWith("/undo");
   }
 
   @Test
@@ -241,7 +238,7 @@ class LicencePositionChangeViewResolverTest {
     );
 
     assertThat(view.urls().remove()).isNull();
-    assertThat(view.urls().undo()).contains("undo-licensee-change");
+    assertThat(view.urls().undo()).endsWith("/undo");
   }
 
   private LicenseeChangeView licenseeChangeView(String changeType, PositionChangeUrlContext urlContext) {
@@ -382,7 +379,7 @@ class LicencePositionChangeViewResolverTest {
     );
 
     assertThat(view.urls().correct()).contains("correct-administrator-change");
-    assertThat(view.urls().remove()).contains("remove-administrator-change");
+    assertThat(view.urls().remove()).endsWith("/remove");
     assertThat(view.urls().undo()).isNull();
   }
 
@@ -395,7 +392,7 @@ class LicencePositionChangeViewResolverTest {
 
     assertThat(view.urls().correct()).contains("correct-administrator-change");
     assertThat(view.urls().remove()).isNull();
-    assertThat(view.urls().undo()).contains("undo-administrator-change");
+    assertThat(view.urls().undo()).endsWith("/undo");
   }
 
   @Test
@@ -407,7 +404,7 @@ class LicencePositionChangeViewResolverTest {
 
     assertThat(view.urls().correct()).contains("add-administrator-change");
     assertThat(view.urls().remove()).isNull();
-    assertThat(view.urls().undo()).contains("undo-administrator-change");
+    assertThat(view.urls().undo()).endsWith("/undo");
   }
 
   @Test
@@ -420,7 +417,7 @@ class LicencePositionChangeViewResolverTest {
     assertThat(view.urls().correct()).isNull();
     assertThat(view.urls().remove()).isNull();
     assertThat(view.urls().undo()).isNull();
-    assertThat(view.urls().reinstate()).contains("undo-administrator-change");
+    assertThat(view.urls().reinstate()).endsWith("/undo");
   }
 
   @Test
@@ -448,7 +445,7 @@ class LicencePositionChangeViewResolverTest {
     );
 
     assertThat(view.urls().remove()).isNull();
-    assertThat(view.urls().undo()).contains("undo-administrator-change");
+    assertThat(view.urls().undo()).endsWith("/undo");
   }
 
   @Test
@@ -620,8 +617,8 @@ class LicencePositionChangeViewResolverTest {
             ReverseRouter.route(on(LicencePositionSetEquityController.class)
                 .renderSummaryForExecutedPosition(correction, licencePosition)),
             null,
-            ReverseRouter.route(on(RemoveEquityChangeController.class)
-                .renderUndoEquityChange(correction, changeId)),
+            ReverseRouter.route(on(ChangeActionController.class)
+                .undoChange(correction, changeId, null, null)),
             null,
             null,
             correctPositionUrl(correction.getId(), SET_EQUITY_POSITION_ID, UUID.fromString(changeId)),
@@ -673,7 +670,7 @@ class LicencePositionChangeViewResolverTest {
     var urlContext = PositionChangeUrlContext.forExecutedPosition(CORRECTION, LICENCE_POSITION, null);
     var view = setEquityChangeView(null, urlContext);
 
-    assertThat(view.urls().remove()).contains("remove-equity-change");
+    assertThat(view.urls().remove()).endsWith("/remove");
     assertThat(view.urls().undo()).isNull();
   }
 
@@ -683,7 +680,7 @@ class LicencePositionChangeViewResolverTest {
     var view = setEquityChangeView(LicencePositionChangeType.UPDATE_CHANGE_OPERATIONS, urlContext);
 
     assertThat(view.urls().remove()).isNull();
-    assertThat(view.urls().undo()).contains("undo-equity-change");
+    assertThat(view.urls().undo()).endsWith("/undo");
   }
 
   @Test
@@ -692,7 +689,7 @@ class LicencePositionChangeViewResolverTest {
     var view = setEquityChangeView(LicencePositionChangeType.ADD_CHANGE, urlContext);
 
     assertThat(view.urls().remove()).isNull();
-    assertThat(view.urls().undo()).contains("undo-equity-change");
+    assertThat(view.urls().undo()).endsWith("/undo");
   }
 
   @Test
@@ -702,7 +699,7 @@ class LicencePositionChangeViewResolverTest {
 
     assertThat(view.urls().remove()).isNull();
     assertThat(view.urls().undo()).isNull();
-    assertThat(view.urls().reinstate()).contains("undo-equity-change");
+    assertThat(view.urls().reinstate()).endsWith("/undo");
   }
 
   @Test
@@ -711,7 +708,7 @@ class LicencePositionChangeViewResolverTest {
     var view = setEquityChangeView(LicencePositionChangeType.ADD_CHANGE, urlContext);
 
     assertThat(view.urls().remove()).isNull();
-    assertThat(view.urls().undo()).contains("undo-equity-change");
+    assertThat(view.urls().undo()).endsWith("/undo");
   }
 
   @Test
@@ -853,7 +850,7 @@ class LicencePositionChangeViewResolverTest {
     var urlContext = PositionChangeUrlContext.forExecutedPosition(CORRECTION, LICENCE_POSITION, null);
     var view = transferEquityChangeView(null, urlContext, null);
 
-    assertThat(view.urls().remove()).contains("remove-equity-change");
+    assertThat(view.urls().remove()).endsWith("/remove");
     assertThat(view.urls().undo()).isNull();
   }
 
@@ -863,7 +860,7 @@ class LicencePositionChangeViewResolverTest {
     var view = transferEquityChangeView(LicencePositionChangeType.ADD_CHANGE, urlContext, null);
 
     assertThat(view.urls().remove()).isNull();
-    assertThat(view.urls().undo()).contains("undo-equity-change");
+    assertThat(view.urls().undo()).endsWith("/undo");
   }
 
   private SetEquityChangeView setEquityChangeView(String changeType, PositionChangeUrlContext urlContext) {
@@ -1183,9 +1180,9 @@ class LicencePositionChangeViewResolverTest {
     assertThat(result.urls()).isEqualTo(new ChangeViewUrls(
         ReverseRouter.route(on(PartialSurrenderTaskListController.class)
             .renderForCorrectingChange(correction, licencePosition, change, null)),
-        ReverseRouter.route(on(RemovePartialSurrenderChangeController.class)
-            .renderRemoveExecutedPartialSurrender(
-                correction, licencePosition, change)),
+        ReverseRouter.route(on(ChangeActionController.class)
+            .removeChange(
+                correction, licencePosition, change, null, null)),
         null,
         null,
         null,
@@ -1219,8 +1216,8 @@ class LicencePositionChangeViewResolverTest {
         ? ReverseRouter.route(on(PartialSurrenderTaskListController.class)
             .renderTaskList(correction, positionCorrection, null))
         : null;
-    var undoUrl = ReverseRouter.route(on(RemovePartialSurrenderChangeController.class)
-        .renderUndoPartialSurrender(correction, changeId));
+    var undoUrl = ReverseRouter.route(on(ChangeActionController.class)
+        .undoChange(correction, changeId, null, null));
     var viewUrl = correctable
         ? ReverseRouter.route(on(PartialSurrenderReviewAndSubmitController.class)
             .renderReviewAndSubmit(correction, positionCorrection, null))
@@ -1252,8 +1249,8 @@ class LicencePositionChangeViewResolverTest {
         ReverseRouter.route(on(PartialSurrenderTaskListController.class)
             .renderTaskList(correction, positionCorrection, null)),
         null,
-        ReverseRouter.route(on(RemovePartialSurrenderChangeController.class)
-            .renderUndoPartialSurrender(correction, changeId)),
+        ReverseRouter.route(on(ChangeActionController.class)
+            .undoChange(correction, changeId, null, null)),
         null,
         null,
         correctPositionUrl(correction.getId(), positionId, UUID.fromString(changeId)),
@@ -1396,8 +1393,8 @@ class LicencePositionChangeViewResolverTest {
             ReverseRouter.route(on(LicencePositionSubareaSetEquityController.class)
                 .renderSummaryForExecutedPosition(correction, licencePosition, SUBAREA_KEY)),
             null,
-            ReverseRouter.route(on(RemoveEquityChangeController.class)
-                .renderUndoEquityChange(correction, changeId)),
+            ReverseRouter.route(on(ChangeActionController.class)
+                .undoChange(correction, changeId, null, null)),
             null,
             null,
             correctPositionUrl(correction.getId(), SET_EQUITY_POSITION_ID, UUID.fromString(changeId)),
@@ -1421,8 +1418,8 @@ class LicencePositionChangeViewResolverTest {
         null,
         new ChangeViewUrls(
             null,
-            ReverseRouter.route(on(RemoveEquityChangeController.class)
-                .renderRemoveExecutedEquityChange(CORRECTION, LICENCE_POSITION, liveChange)),
+            ReverseRouter.route(on(ChangeActionController.class)
+                .removeChange(CORRECTION, LICENCE_POSITION, liveChange, null, null)),
             null,
             null,
             null,
@@ -1528,8 +1525,8 @@ class LicencePositionChangeViewResolverTest {
         .containsExactly(
             new ChangeViewUrls(
                 null,
-                ReverseRouter.route(on(RemoveEquityChangeController.class).renderRemoveExecutedEquityChange(
-                    correction, licencePosition, setEquityLiveChange)),
+                ReverseRouter.route(on(ChangeActionController.class).removeChange(
+                    correction, licencePosition, setEquityLiveChange, null, null)),
                 null,
                 null,
                 ReverseRouter.route(on(CorrectChangeOrderController.class)
@@ -1539,9 +1536,9 @@ class LicencePositionChangeViewResolverTest {
             new ChangeViewUrls(
                 ReverseRouter.route(on(PartialSurrenderTaskListController.class).renderForCorrectingChange(
                     correction, licencePosition, partialSurrenderLiveChange, null)),
-                ReverseRouter.route(on(RemovePartialSurrenderChangeController.class)
-                    .renderRemoveExecutedPartialSurrender(
-                        correction, licencePosition, partialSurrenderLiveChange)),
+                ReverseRouter.route(on(ChangeActionController.class)
+                    .removeChange(
+                        correction, licencePosition, partialSurrenderLiveChange, null, null)),
                 null,
                 null,
                 ReverseRouter.route(on(CorrectChangeOrderController.class)
@@ -1578,10 +1575,12 @@ class LicencePositionChangeViewResolverTest {
                     new LicencePositionChange(firstChangeId),
                     null
                 )),
-                ReverseRouter.route(on(RemoveSubareaChangeController.class).renderRemoveExecutedSubareaChange(
+                ReverseRouter.route(on(ChangeActionController.class).removeChange(
                     correction,
                     licencePosition,
-                    new LicencePositionChange(firstChangeId)
+                    new LicencePositionChange(firstChangeId),
+                    null,
+                    null
                 )),
                 null,
                 null,
@@ -1602,10 +1601,12 @@ class LicencePositionChangeViewResolverTest {
                     new LicencePositionChange(secondChangeId),
                     null
                 )),
-                ReverseRouter.route(on(RemoveSubareaChangeController.class).renderRemoveExecutedSubareaChange(
+                ReverseRouter.route(on(ChangeActionController.class).removeChange(
                     correction,
                     licencePosition,
-                    new LicencePositionChange(secondChangeId)
+                    new LicencePositionChange(secondChangeId),
+                    null,
+                    null
                 )),
                 null,
                 null,
@@ -1641,8 +1642,8 @@ class LicencePositionChangeViewResolverTest {
         .extracting(LicencePositionChangeView::urls)
         .isEqualTo(new ChangeViewUrls(
             null,
-            ReverseRouter.route(on(RemoveEquityChangeController.class).renderRemoveExecutedEquityChange(
-                correction, licencePosition, change)),
+            ReverseRouter.route(on(ChangeActionController.class).removeChange(
+                correction, licencePosition, change, null, null)),
             null,
             null,
             null,
@@ -1674,8 +1675,8 @@ class LicencePositionChangeViewResolverTest {
         .extracting(LicencePositionChangeView::urls)
         .isEqualTo(new ChangeViewUrls(
             null,
-            ReverseRouter.route(on(RemoveEquityChangeController.class).renderRemoveExecutedEquityChange(
-                correction, licencePosition, change)),
+            ReverseRouter.route(on(ChangeActionController.class).removeChange(
+                correction, licencePosition, change, null, null)),
             null,
             null,
             null,
@@ -1706,8 +1707,8 @@ class LicencePositionChangeViewResolverTest {
             null,
             null,
             null,
-            ReverseRouter.route(on(RemoveAdministratorChangeController.class)
-                .renderUndoAdminChange(correction, administratorChangeId.toString())),
+            ReverseRouter.route(on(ChangeActionController.class)
+                .undoChange(correction, administratorChangeId.toString(), null, null)),
             null,
             null,
             null));

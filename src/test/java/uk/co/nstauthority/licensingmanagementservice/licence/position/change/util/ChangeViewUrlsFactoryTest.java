@@ -15,18 +15,13 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceC
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.action.ChangeActionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.administrator.LicencePositionAdministratorChangeController;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.administrator.RemoveAdministratorChangeController;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.equity.RemoveEquityChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.licensee.LicencePositionLicenseeChangeController;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.licensee.RemoveLicenseeChangeController;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.RemovePartialSurrenderChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.reviewandsubmit.PartialSurrenderReviewAndSubmitController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.tasklist.PartialSurrenderTaskListController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.setequity.LicencePositionSetEquityController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.storageoperator.LicencePositionStorageOperatorChangeController;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.storageoperator.RemoveStorageOperatorChangeController;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subarea.RemoveSubareaChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subarea.review.SubareaChangeReviewController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.transferequity.LicencePositionTransferEquityController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeorder.CorrectChangeOrderController;
@@ -79,6 +74,8 @@ class ChangeViewUrlsFactoryTest {
   private static final VisibleLicenceOperation LICENSEE = LicenceOperation.newLicenseeOperation().build();
   private static final VisibleLicenceOperation STORAGE_OPERATOR =
       LicenceOperation.newStorageOperatorOperation().withOperator(1).build();
+  private static final VisibleLicenceOperation EXPLORATION_OPERATOR =
+      LicenceOperation.newExplorationOperatorOperation().withOperator(1).build();
 
   @Test
   void build_whenNoUrlContext_thenHasNoUrls() {
@@ -148,13 +145,11 @@ class ChangeViewUrlsFactoryTest {
   @Test
   void build_whenLiveChangeHasNoCorrectRoute_thenHasRemoveAndPositionUrls() {
     var change = change(SET_EQUITY, null);
-    var equityRemoveUrl = ReverseRouter.route(on(RemoveEquityChangeController.class)
-        .renderRemoveExecutedEquityChange(CORRECTION, LICENCE_POSITION, CHANGE_ENTITY));
 
     var result = ChangeViewUrlsFactory.build(EXECUTED_POSITION, change, POSITION_ID, true, SET_EQUITY);
 
     assertThat(result).isEqualTo(
-        new ChangeViewUrls(null, equityRemoveUrl, null, null, correctChangeOrderUrl(), correctPositionUrl(), null)
+        new ChangeViewUrls(null, removeUrl(), null, null, correctChangeOrderUrl(), correctPositionUrl(), null)
     );
   }
 
@@ -173,7 +168,7 @@ class ChangeViewUrlsFactoryTest {
 
     var result = ChangeViewUrlsFactory.build(EXECUTED_POSITION, change, POSITION_ID, true, SUBAREA);
 
-    assertThat(result).isEqualTo(new ChangeViewUrls(null, null, null, subareaUndoUrl(), null, null, null));
+    assertThat(result).isEqualTo(new ChangeViewUrls(null, null, null, undoUrl(), null, null, null));
   }
 
   @Test
@@ -200,6 +195,8 @@ class ChangeViewUrlsFactoryTest {
     var operationsUpdated = LicencePositionChangeType.UPDATE_CHANGE_OPERATIONS;
     var orderUpdated = LicencePositionChangeType.UPDATE_CHANGE_ORDER;
     var removed = LicencePositionChangeType.REMOVE_CHANGE;
+    var remove = removeUrl();
+    var undo = undoUrl();
 
     var adminAdded = ReverseRouter.route(on(LicencePositionAdministratorChangeController.class)
         .renderForAddedPosition(CORRECTION, POSITION_CORRECTION));
@@ -207,10 +204,6 @@ class ChangeViewUrlsFactoryTest {
         .renderForExecutedPosition(CORRECTION, LICENCE_POSITION));
     var adminCorrecting = ReverseRouter.route(on(LicencePositionAdministratorChangeController.class)
         .renderForCorrectingChange(CORRECTION, LICENCE_POSITION, CHANGE_ENTITY));
-    var adminRemove = ReverseRouter.route(on(RemoveAdministratorChangeController.class)
-        .renderRemoveExecutedAdminChange(CORRECTION, LICENCE_POSITION, CHANGE_ENTITY));
-    var adminUndo = ReverseRouter.route(on(RemoveAdministratorChangeController.class)
-        .renderUndoAdminChange(CORRECTION, CHANGE_ID.toString()));
 
     var setEquityAdded = ReverseRouter.route(on(LicencePositionSetEquityController.class)
         .renderSummaryForAddedPosition(CORRECTION, POSITION_CORRECTION));
@@ -220,19 +213,11 @@ class ChangeViewUrlsFactoryTest {
         .renderSummaryForAddedPosition(CORRECTION, POSITION_CORRECTION));
     var transferEquityExecuted = ReverseRouter.route(on(LicencePositionTransferEquityController.class)
         .renderSummaryForExecutedPosition(CORRECTION, LICENCE_POSITION));
-    var equityRemove = ReverseRouter.route(on(RemoveEquityChangeController.class)
-        .renderRemoveExecutedEquityChange(CORRECTION, LICENCE_POSITION, CHANGE_ENTITY));
-    var equityUndo = ReverseRouter.route(on(RemoveEquityChangeController.class)
-        .renderUndoEquityChange(CORRECTION, CHANGE_ID.toString()));
 
     var partialSurrenderStaged = ReverseRouter.route(on(PartialSurrenderTaskListController.class)
         .renderTaskList(CORRECTION, POSITION_CORRECTION, null));
     var partialSurrenderCorrecting = ReverseRouter.route(on(PartialSurrenderTaskListController.class)
         .renderForCorrectingChange(CORRECTION, LICENCE_POSITION, CHANGE_ENTITY, null));
-    var partialSurrenderRemove = ReverseRouter.route(on(RemovePartialSurrenderChangeController.class)
-        .renderRemoveExecutedPartialSurrender(CORRECTION, LICENCE_POSITION, CHANGE_ENTITY));
-    var partialSurrenderUndo = ReverseRouter.route(on(RemovePartialSurrenderChangeController.class)
-        .renderUndoPartialSurrender(CORRECTION, CHANGE_ID.toString()));
     var partialSurrenderReviewStaged = ReverseRouter.route(on(PartialSurrenderReviewAndSubmitController.class)
         .renderReviewAndSubmit(CORRECTION, POSITION_CORRECTION, null));
     var partialSurrenderReviewCorrecting = ReverseRouter.route(on(PartialSurrenderReviewAndSubmitController.class)
@@ -244,10 +229,6 @@ class ChangeViewUrlsFactoryTest {
         .renderForExecutedPosition(CORRECTION, LICENCE_POSITION));
     var licenseeCorrecting = ReverseRouter.route(on(LicencePositionLicenseeChangeController.class)
         .renderForCorrectingChange(CORRECTION, LICENCE_POSITION, CHANGE_ENTITY));
-    var licenseeRemove = ReverseRouter.route(on(RemoveLicenseeChangeController.class)
-        .renderRemoveExecutedLicenseeChange(CORRECTION, LICENCE_POSITION, CHANGE_ENTITY));
-    var licenseeUndo = ReverseRouter.route(on(RemoveLicenseeChangeController.class)
-        .renderUndoLicenseeChange(CORRECTION, CHANGE_ID.toString()));
 
     var storageOperatorAdded = ReverseRouter.route(on(LicencePositionStorageOperatorChangeController.class)
         .renderForAddedPosition(CORRECTION, POSITION_CORRECTION));
@@ -255,113 +236,113 @@ class ChangeViewUrlsFactoryTest {
         .renderForExecutedPosition(CORRECTION, LICENCE_POSITION));
     var storageOperatorCorrecting = ReverseRouter.route(on(LicencePositionStorageOperatorChangeController.class)
         .renderForCorrectingChange(CORRECTION, LICENCE_POSITION, CHANGE_ENTITY));
-    var storageOperatorRemove = ReverseRouter.route(on(RemoveStorageOperatorChangeController.class)
-        .renderRemoveExecutedStorageOperatorChange(CORRECTION, LICENCE_POSITION, CHANGE_ENTITY));
-    var storageOperatorUndo = ReverseRouter.route(on(RemoveStorageOperatorChangeController.class)
-        .renderUndoStorageOperatorChange(CORRECTION, CHANGE_ID.toString()));
 
     var subareaCorrect = ReverseRouter.route(on(SubareaChangeReviewController.class)
         .renderStagedReview(CORRECTION, POSITION_CORRECTION, SUBAREA_BLOCK_FEATURE_ID, null));
     var subareaCorrecting = ReverseRouter.route(on(SubareaChangeReviewController.class)
         .renderLiveReview(CORRECTION, LICENCE_POSITION, CHANGE_ENTITY, null));
-    var subareaRemove = subareaRemoveUrl();
-    var subareaUndo = subareaUndoUrl();
 
     return Stream.of(
         Arguments.of("administrator, live", ADMINISTRATOR, EXECUTED_POSITION, live,
-            adminCorrecting, adminRemove, null, null, null),
+            adminCorrecting, remove, null, null, null),
         Arguments.of("administrator, added", ADMINISTRATOR, EXECUTED_POSITION, added,
-            adminExecuted, null, adminUndo, null, null),
+            adminExecuted, null, undo, null, null),
         Arguments.of("administrator, operations updated", ADMINISTRATOR, EXECUTED_POSITION, operationsUpdated,
-            adminCorrecting, null, adminUndo, null, null),
+            adminCorrecting, null, undo, null, null),
         Arguments.of("administrator, order updated", ADMINISTRATOR, EXECUTED_POSITION, orderUpdated,
-            adminCorrecting, null, adminUndo, null, null),
+            adminCorrecting, null, undo, null, null),
         Arguments.of("administrator, removed", ADMINISTRATOR, EXECUTED_POSITION, removed,
-            null, null, null, adminUndo, null),
+            null, null, null, undo, null),
         Arguments.of("administrator, added position", ADMINISTRATOR, ADDED_POSITION, added,
-            adminAdded, null, adminUndo, null, null),
+            adminAdded, null, undo, null, null),
 
         Arguments.of("set equity, live", SET_EQUITY, EXECUTED_POSITION, live,
-            null, equityRemove, null, null, null),
+            null, remove, null, null, null),
         Arguments.of("set equity, added", SET_EQUITY, EXECUTED_POSITION, added,
-            setEquityExecuted, null, equityUndo, null, null),
+            setEquityExecuted, null, undo, null, null),
         Arguments.of("set equity, operations updated", SET_EQUITY, EXECUTED_POSITION, operationsUpdated,
-            setEquityExecuted, null, equityUndo, null, null),
+            setEquityExecuted, null, undo, null, null),
         Arguments.of("set equity, order updated", SET_EQUITY, EXECUTED_POSITION, orderUpdated,
-            null, null, equityUndo, null, null),
+            null, null, undo, null, null),
         Arguments.of("set equity, removed", SET_EQUITY, EXECUTED_POSITION, removed,
-            null, null, null, equityUndo, null),
+            null, null, null, undo, null),
         Arguments.of("set equity, added position", SET_EQUITY, ADDED_POSITION, added,
-            setEquityAdded, null, equityUndo, null, null),
+            setEquityAdded, null, undo, null, null),
 
         Arguments.of("transfer equity, live", TRANSFER_EQUITY, EXECUTED_POSITION, live,
-            null, equityRemove, null, null, null),
+            null, remove, null, null, null),
         Arguments.of("transfer equity, added", TRANSFER_EQUITY, EXECUTED_POSITION, added,
-            transferEquityExecuted, null, equityUndo, null, null),
+            transferEquityExecuted, null, undo, null, null),
         Arguments.of("transfer equity, operations updated", TRANSFER_EQUITY, EXECUTED_POSITION, operationsUpdated,
-            transferEquityExecuted, null, equityUndo, null, null),
+            transferEquityExecuted, null, undo, null, null),
         Arguments.of("transfer equity, order updated", TRANSFER_EQUITY, EXECUTED_POSITION, orderUpdated,
-            null, null, equityUndo, null, null),
+            null, null, undo, null, null),
         Arguments.of("transfer equity, removed", TRANSFER_EQUITY, EXECUTED_POSITION, removed,
-            null, null, null, equityUndo, null),
+            null, null, null, undo, null),
         Arguments.of("transfer equity, added position", TRANSFER_EQUITY, ADDED_POSITION, operationsUpdated,
-            transferEquityAdded, null, equityUndo, null, null),
+            transferEquityAdded, null, undo, null, null),
 
         Arguments.of("partial surrender, live", PARTIAL_SURRENDER, EXECUTED_POSITION, live,
-            partialSurrenderCorrecting, partialSurrenderRemove, null, null, partialSurrenderReviewCorrecting),
+            partialSurrenderCorrecting, remove, null, null, partialSurrenderReviewCorrecting),
         Arguments.of("partial surrender, added", PARTIAL_SURRENDER, EXECUTED_POSITION, added,
-            partialSurrenderStaged, null, partialSurrenderUndo, null, partialSurrenderReviewStaged),
+            partialSurrenderStaged, null, undo, null, partialSurrenderReviewStaged),
         Arguments.of("partial surrender, operations updated", PARTIAL_SURRENDER, EXECUTED_POSITION, operationsUpdated,
-            partialSurrenderStaged, null, partialSurrenderUndo, null, partialSurrenderReviewStaged),
+            partialSurrenderStaged, null, undo, null, partialSurrenderReviewStaged),
         Arguments.of("partial surrender, order updated", PARTIAL_SURRENDER, EXECUTED_POSITION, orderUpdated,
-            partialSurrenderCorrecting, null, partialSurrenderUndo, null, partialSurrenderReviewCorrecting),
+            partialSurrenderCorrecting, null, undo, null, partialSurrenderReviewCorrecting),
         Arguments.of("partial surrender, removed", PARTIAL_SURRENDER, EXECUTED_POSITION, removed,
-            null, null, null, partialSurrenderUndo, null),
+            null, null, null, undo, null),
         Arguments.of("partial surrender, added position", PARTIAL_SURRENDER, ADDED_POSITION, added,
-            partialSurrenderStaged, null, partialSurrenderUndo, null, partialSurrenderReviewStaged),
+            partialSurrenderStaged, null, undo, null, partialSurrenderReviewStaged),
         Arguments.of("partial surrender, added position, live", PARTIAL_SURRENDER, ADDED_POSITION, live,
             partialSurrenderStaged, null, null, null, partialSurrenderReviewStaged),
 
         Arguments.of("licensee, live", LICENSEE, EXECUTED_POSITION, live,
-            licenseeCorrecting, licenseeRemove, null, null, null),
+            licenseeCorrecting, remove, null, null, null),
         Arguments.of("licensee, added", LICENSEE, EXECUTED_POSITION, added,
-            licenseeExecuted, null, licenseeUndo, null, null),
+            licenseeExecuted, null, undo, null, null),
         Arguments.of("licensee, operations updated", LICENSEE, EXECUTED_POSITION, operationsUpdated,
-            licenseeCorrecting, null, licenseeUndo, null, null),
+            licenseeCorrecting, null, undo, null, null),
         Arguments.of("licensee, order updated", LICENSEE, EXECUTED_POSITION, orderUpdated,
-            licenseeCorrecting, null, licenseeUndo , null, null),
+            licenseeCorrecting, null, undo, null, null),
         Arguments.of("licensee, removed", LICENSEE, EXECUTED_POSITION, removed,
-            null, null, null, licenseeUndo, null),
+            null, null, null, undo, null),
         Arguments.of("licensee, added position", LICENSEE, ADDED_POSITION, added,
-            licenseeAdded, null, licenseeUndo, null, null),
+            licenseeAdded, null, undo, null, null),
 
         Arguments.of("storage operator, live", STORAGE_OPERATOR, EXECUTED_POSITION, live,
-            storageOperatorCorrecting, storageOperatorRemove, null, null, null),
+            storageOperatorCorrecting, remove, null, null, null),
         Arguments.of("storage operator, added", STORAGE_OPERATOR, EXECUTED_POSITION, added,
-            storageOperatorExecuted, null, storageOperatorUndo, null, null),
+            storageOperatorExecuted, null, undo, null, null),
         Arguments.of("storage operator, operations updated", STORAGE_OPERATOR, EXECUTED_POSITION, operationsUpdated,
-            storageOperatorCorrecting, null, storageOperatorUndo, null, null),
+            storageOperatorCorrecting, null, undo, null, null),
         Arguments.of("storage operator, order updated", STORAGE_OPERATOR, EXECUTED_POSITION, orderUpdated,
-            storageOperatorCorrecting, null, storageOperatorUndo , null, null),
+            storageOperatorCorrecting, null, undo, null, null),
         Arguments.of("storage operator, removed", STORAGE_OPERATOR, EXECUTED_POSITION, removed,
-            null, null, null, storageOperatorUndo, null),
+            null, null, null, undo, null),
         Arguments.of("storage operator, added position", STORAGE_OPERATOR, ADDED_POSITION, added,
-            storageOperatorAdded, null, storageOperatorUndo, null, null),
+            storageOperatorAdded, null, undo, null, null),
 
         Arguments.of("subarea, live", SUBAREA, EXECUTED_POSITION, live,
-            subareaCorrecting, subareaRemove, null, null, subareaCorrecting),
+            subareaCorrecting, remove, null, null, subareaCorrecting),
         Arguments.of("subarea, added", SUBAREA, EXECUTED_POSITION, added,
-            subareaCorrect, null, subareaUndo, null, subareaCorrect),
+            subareaCorrect, null, undo, null, subareaCorrect),
         Arguments.of("subarea, operations updated", SUBAREA, EXECUTED_POSITION, operationsUpdated,
-            subareaCorrect, null, subareaUndo, null, subareaCorrect),
+            subareaCorrect, null, undo, null, subareaCorrect),
         Arguments.of("subarea, order updated", SUBAREA, EXECUTED_POSITION, orderUpdated,
-            subareaCorrecting, null, subareaUndo, null, subareaCorrecting),
+            subareaCorrecting, null, undo, null, subareaCorrecting),
         Arguments.of("subarea, removed", SUBAREA, EXECUTED_POSITION, removed,
-            null, null, null, subareaUndo, null),
+            null, null, null, undo, null),
         Arguments.of("subarea, added position", SUBAREA, ADDED_POSITION, added,
-            subareaCorrect, null, subareaUndo, null, subareaCorrect),
+            subareaCorrect, null, undo, null, subareaCorrect),
         Arguments.of("subarea, moved to added position", SUBAREA, ADDED_POSITION, operationsUpdated,
-            subareaCorrect, null, subareaUndo, null, subareaCorrect)
+            subareaCorrect, null, undo, null, subareaCorrect),
+        Arguments.of("exploration operator, live", EXPLORATION_OPERATOR, EXECUTED_POSITION, live,
+            null, null, null, null, null),
+        Arguments.of("exploration operator, added", EXPLORATION_OPERATOR, EXECUTED_POSITION, added,
+            null, null, null, null, null),
+        Arguments.of("exploration operator, removed", EXPLORATION_OPERATOR, EXECUTED_POSITION, removed,
+            null, null, null, null, null)
     );
   }
 
@@ -369,14 +350,14 @@ class ChangeViewUrlsFactoryTest {
     return new PositionChange(CHANGE_ID.toString(), 1, changeType, List.of(operation));
   }
 
-  private static String subareaRemoveUrl() {
-    return ReverseRouter.route(on(RemoveSubareaChangeController.class)
-        .renderRemoveExecutedSubareaChange(CORRECTION, LICENCE_POSITION, CHANGE_ENTITY));
+  private static String removeUrl() {
+    return ReverseRouter.route(on(ChangeActionController.class)
+        .removeChange(CORRECTION, LICENCE_POSITION, CHANGE_ENTITY, null, null));
   }
 
-  private static String subareaUndoUrl() {
-    return ReverseRouter.route(on(RemoveSubareaChangeController.class)
-        .renderUndoSubareaChange(CORRECTION, CHANGE_ID.toString()));
+  private static String undoUrl() {
+    return ReverseRouter.route(on(ChangeActionController.class)
+        .undoChange(CORRECTION, CHANGE_ID.toString(), null, null));
   }
 
   private static String correctChangeOrderUrl() {

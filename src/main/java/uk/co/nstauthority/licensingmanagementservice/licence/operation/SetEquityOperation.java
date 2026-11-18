@@ -11,12 +11,13 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.action.ChangeActionHandler;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.equity.EquityChangeActionHandler;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.setequity.LicencePositionSetEquityController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.EquityOperationRule;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationError;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeViewContext;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.ChangeUrlTarget;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.LicencePositionState;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.PositionChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.ChangeViewUrls;
@@ -43,6 +44,16 @@ public record SetEquityOperation(
   @Override
   public String displayName() {
     return "Set equity";
+  }
+
+  @Override
+  public Class<? extends ChangeActionHandler> changeActionHandlerType() {
+    return EquityChangeActionHandler.class;
+  }
+
+  @Override
+  public String changeName() {
+    return "beneficial interest change";
   }
 
   @Override
@@ -94,28 +105,18 @@ public record SetEquityOperation(
 
   @Override
   public OperationRoutes getOperationUrls() {
-    return new OperationRoutes() {
-      @Override
-      public String correct(ChangeUrlTarget target) {
-        if (!OperationRoutes.isStagedEquityChange(target)) {
-          return null;
-        }
-        return target.addedPosition()
-            ? ReverseRouter.route(on(LicencePositionSetEquityController.class)
-            .renderSummaryForAddedPosition(target.correction(), target.positionCorrection()))
-            : ReverseRouter.route(on(LicencePositionSetEquityController.class)
-            .renderSummaryForExecutedPosition(target.correction(), target.licencePosition()));
+    return changeUrlTarget -> {
+      if (!OperationRoutes.isStagedEquityChange(changeUrlTarget)) {
+        return null;
       }
 
-      @Override
-      public String remove(ChangeUrlTarget target) {
-        return OperationRoutes.removeEquityChange(target);
+      if (changeUrlTarget.addedPosition()) {
+        return ReverseRouter.route(on(LicencePositionSetEquityController.class)
+            .renderSummaryForAddedPosition(changeUrlTarget.correction(), changeUrlTarget.positionCorrection()));
       }
 
-      @Override
-      public String undo(ChangeUrlTarget target) {
-        return OperationRoutes.undoEquityChange(target);
-      }
+      return ReverseRouter.route(on(LicencePositionSetEquityController.class)
+          .renderSummaryForExecutedPosition(changeUrlTarget.correction(), changeUrlTarget.licencePosition()));
     };
   }
 

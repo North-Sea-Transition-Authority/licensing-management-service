@@ -4,6 +4,7 @@ import static org.springframework.web.servlet.mvc.method.annotation.MvcUriCompon
 
 import jakarta.annotation.Nullable;
 import java.util.UUID;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.action.ChangeActionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeorder.CorrectChangeOrderController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.correctchangetypeposition.CorrectPositionChangeTypeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.VisibleLicenceOperation;
@@ -43,11 +44,13 @@ final class ChangeViewUrlsFactory {
       return new ChangeViewUrls(null, null, null, null, null, null, routes.view(target));
     }
 
+    var hasChangeActions = operation.changeActionHandlerType() != null;
+
     return new ChangeViewUrls(
         routes.correct(target),
-        canRemove(target) ? routes.remove(target) : null,
-        canUndo(target) ? routes.undo(target) : null,
-        canReinstate(target) ? routes.undo(target) : null,
+        hasChangeActions && canRemove(target) ? removeUrl(target) : null,
+        hasChangeActions && canUndo(target) ? undoUrl(target) : null,
+        hasChangeActions && canReinstate(target) ? undoUrl(target) : null,
         canReorder && change.canBeReordered() ? correctChangeOrderUrl(target, positionId) : null,
         change.canBeReordered() ? correctPositionUrl(target, positionId) : null,
         routes.view(target)
@@ -75,6 +78,19 @@ final class ChangeViewUrlsFactory {
    */
   private static boolean canReinstate(ChangeUrlTarget target) {
     return target.state() == ChangeUrlTarget.State.REMOVED && !target.change().movedAway();
+  }
+
+  private static String removeUrl(ChangeUrlTarget target) {
+    return ReverseRouter.route(on(ChangeActionController.class)
+        .removeChange(target.correction(), target.licencePosition(), target.changeEntity(), null, null));
+  }
+
+  /**
+   * Undoing a staged removal reinstates the change, so undo and reinstate share a url.
+   */
+  private static String undoUrl(ChangeUrlTarget target) {
+    return ReverseRouter.route(on(ChangeActionController.class)
+        .undoChange(target.correction(), target.changeId(), null, null));
   }
 
   private static String correctChangeOrderUrl(ChangeUrlTarget target, UUID positionId) {

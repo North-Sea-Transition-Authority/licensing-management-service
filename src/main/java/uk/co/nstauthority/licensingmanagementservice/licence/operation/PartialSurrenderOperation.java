@@ -22,7 +22,8 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.commons.collections.CollectionUtils;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.RemovePartialSurrenderChangeController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.action.ChangeActionHandler;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.PartialSurrenderChangeActionHandler;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.reviewandsubmit.PartialSurrenderReviewAndSubmitController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.tasklist.PartialSurrenderTaskListController;
@@ -286,6 +287,11 @@ public record PartialSurrenderOperation(
   }
 
   @Override
+  public Class<? extends ChangeActionHandler> changeActionHandlerType() {
+    return PartialSurrenderChangeActionHandler.class;
+  }
+
+  @Override
   public PositionValidationError validate(PositionValidationContext positionValidationContext) {
     //TODO EPGF-205: identify when a partial surrender results in an invalid licence position
     return null;
@@ -439,18 +445,6 @@ public record PartialSurrenderOperation(
               .renderForCorrectingChange(target.correction(), target.licencePosition(), target.changeEntity(), null));
           case REMOVED -> null;
         };
-      }
-
-      @Override
-      public String remove(ChangeUrlTarget target) {
-        return ReverseRouter.route(on(RemovePartialSurrenderChangeController.class)
-            .renderRemoveExecutedPartialSurrender(target.correction(), target.licencePosition(), target.changeEntity()));
-      }
-
-      @Override
-      public String undo(ChangeUrlTarget target) {
-        return ReverseRouter.route(on(RemovePartialSurrenderChangeController.class)
-            .renderUndoPartialSurrender(target.correction(), target.changeId()));
       }
 
       @Override

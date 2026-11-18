@@ -336,66 +336,50 @@ class SubareaChangeServiceTest {
   }
 
   @Test
-  void undoSubareaChange_whenCommandJourneyStarted_deletesJourneyAndDropsChange() {
+  void deleteStagedSubareaArtefacts_whenCommandJourneyStarted_thenDeletesJourney() {
     var operation = expectedOperation();
     var change = AddChange.buildOperationsChange(List.of(operation), 1);
-    var positionCorrection = positionCorrectionWithChanges(List.of(change));
-    when(licencePositionCorrectionService.getStagedChangeOrThrow(positionCorrection, change.changeId()))
-        .thenReturn(change);
     when(licencePositionCorrectionService.findStagedChangeOperation(change, SubareaOperation.class))
         .thenReturn(Optional.of(operation));
 
-    subareaChangeService.undoSubareaChange(positionCorrection, change.changeId());
+    subareaChangeService.deleteStagedSubareaArtefacts(change);
 
     verify(commandJourneyService).deleteCommandJourney(COMMAND_JOURNEY_ID);
-    verify(licencePositionCorrectionService).dropStagedChange(positionCorrection, change.changeId());
   }
 
   @Test
-  void undoSubareaChange_whenNoCommandJourneyStarted_onlyDropsChange() {
+  void deleteStagedSubareaArtefacts_whenNoCommandJourneyStarted_thenDeletesNothing() {
     var operation = new SubareaOperation(BLOCK_FEATURE_ID, List.of(), List.of());
     var change = AddChange.buildOperationsChange(List.of(operation), 1);
-    var positionCorrection = positionCorrectionWithChanges(List.of(change));
-    when(licencePositionCorrectionService.getStagedChangeOrThrow(positionCorrection, change.changeId()))
-        .thenReturn(change);
     when(licencePositionCorrectionService.findStagedChangeOperation(change, SubareaOperation.class))
         .thenReturn(Optional.of(operation));
 
-    subareaChangeService.undoSubareaChange(positionCorrection, change.changeId());
+    subareaChangeService.deleteStagedSubareaArtefacts(change);
 
     verifyNoInteractions(commandJourneyService);
-    verify(licencePositionCorrectionService).dropStagedChange(positionCorrection, change.changeId());
   }
 
   @Test
-  void undoSubareaChange_whenRemovalOfLiveChange_thenOnlyDropsChange() {
+  void deleteStagedSubareaArtefacts_whenRemovalOfLiveChange_thenDeletesNothing() {
     var change = new RemoveChange(UUID.randomUUID().toString());
-    var positionCorrection = positionCorrectionWithChanges(List.of(change));
-    when(licencePositionCorrectionService.getStagedChangeOrThrow(positionCorrection, change.changeId()))
-        .thenReturn(change);
     when(licencePositionCorrectionService.findStagedChangeOperation(change, SubareaOperation.class))
         .thenReturn(Optional.of(expectedOperation()));
 
-    subareaChangeService.undoSubareaChange(positionCorrection, change.changeId());
+    subareaChangeService.deleteStagedSubareaArtefacts(change);
 
     verifyNoInteractions(commandJourneyService);
-    verify(licencePositionCorrectionService).dropStagedChange(positionCorrection, change.changeId());
   }
 
   @Test
-  void undoSubareaChange_whenCorrectionToLiveChange_thenDeletesJourneyAndDropsChange() {
+  void deleteStagedSubareaArtefacts_whenCorrectionToLiveChange_thenDeletesJourney() {
     var operation = expectedOperation();
     var change = UpdateChangeOperations.buildUpdateChange(UUID.randomUUID().toString(), operation);
-    var positionCorrection = positionCorrectionWithChanges(List.of(change));
-    when(licencePositionCorrectionService.getStagedChangeOrThrow(positionCorrection, change.changeId()))
-        .thenReturn(change);
     when(licencePositionCorrectionService.findStagedChangeOperation(change, SubareaOperation.class))
         .thenReturn(Optional.of(operation));
 
-    subareaChangeService.undoSubareaChange(positionCorrection, change.changeId());
+    subareaChangeService.deleteStagedSubareaArtefacts(change);
 
     verify(commandJourneyService).deleteCommandJourney(COMMAND_JOURNEY_ID);
-    verify(licencePositionCorrectionService).dropStagedChange(positionCorrection, change.changeId());
   }
 
   @Test

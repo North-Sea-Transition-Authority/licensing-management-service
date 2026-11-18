@@ -16,7 +16,8 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subarea.RemoveSubareaChangeController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.action.ChangeActionHandler;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subarea.SubareaChangeActionHandler;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subarea.review.SubareaChangeReviewController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subarea.review.SubareaChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationContext;
@@ -95,6 +96,11 @@ public record SubareaOperation(
   @Override
   public String displayName() {
     return "Subarea change";
+  }
+
+  @Override
+  public Class<? extends ChangeActionHandler> changeActionHandlerType() {
+    return SubareaChangeActionHandler.class;
   }
 
   @Override
@@ -179,18 +185,6 @@ public record SubareaOperation(
               .renderLiveReview(target.correction(), target.licencePosition(), target.changeEntity(), null));
           case REMOVED -> null;
         };
-      }
-
-      @Override
-      public String remove(ChangeUrlTarget target) {
-        return ReverseRouter.route(on(RemoveSubareaChangeController.class)
-            .renderRemoveExecutedSubareaChange(target.correction(), target.licencePosition(), target.changeEntity()));
-      }
-
-      @Override
-      public String undo(ChangeUrlTarget target) {
-        return ReverseRouter.route(on(RemoveSubareaChangeController.class)
-            .renderUndoSubareaChange(target.correction(), target.changeId()));
       }
 
       @Override

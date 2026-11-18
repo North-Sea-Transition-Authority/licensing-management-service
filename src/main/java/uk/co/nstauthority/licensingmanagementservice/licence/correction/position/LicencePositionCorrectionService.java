@@ -354,6 +354,32 @@ public class LicencePositionCorrectionService {
   }
 
   /**
+   * Used by the per-type remove change controllers, until they are replaced by {@code ChangeActionController}.
+   */
+  public boolean isStagedRemoval(LicencePositionCorrection positionCorrection, String changeId) {
+    return getStagedChangeOrThrow(positionCorrection, changeId) instanceof RemoveChange;
+  }
+
+  /**
+   * Drops every change this licence correction has staged against an executed position that carries the operation
+   * type, for operations a position holds at most one of.
+   */
+  @Transactional
+  public void dropStagedChangesOf(
+      LicenceCorrection licenceCorrection,
+      LicencePosition licencePosition,
+      Class<? extends LicenceOperation> operationType
+  ) {
+    findUpdatePositionCorrection(licenceCorrection, licencePosition).ifPresent(positionCorrection -> {
+      var payload = positionCorrection.getPayload();
+      var changes = LicencePositionChangeOperationUtil.removeChangesOf(payload.changes(), operationType);
+
+      positionCorrection.setPayload(LicencePositionPayload.withChanges(payload, changes));
+      licencePositionCorrectionRepository.save(positionCorrection);
+    });
+  }
+
+  /**
    * The date a change staged against this position correction takes effect. A partial surrender does
    * not record its own date on a correction - it takes the position date, so correcting that date
    * later moves the surrender with it.
@@ -434,10 +460,6 @@ public class LicencePositionCorrectionService {
         .orElseThrow(() -> new IllegalStateException(
             "No change with id %s found in position correction %s"
                 .formatted(changeId, positionCorrection.getId())));
-  }
-
-  public boolean isStagedRemoval(LicencePositionCorrection positionCorrection, String changeId) {
-    return getStagedChangeOrThrow(positionCorrection, changeId) instanceof RemoveChange;
   }
 
   public List<LicenceOperation> resolveStagedChangeOperations(LicencePositionChangeType change) {

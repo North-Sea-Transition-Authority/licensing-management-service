@@ -11,12 +11,12 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.action.ChangeActionHandler;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.licensee.LicencePositionLicenseeChangeController;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.licensee.RemoveLicenseeChangeController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.licensee.LicenseeChangeActionHandler;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationError;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeViewContext;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.ChangeUrlTarget;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.LicencePositionState;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.PositionChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.ChangeViewUrls;
@@ -40,6 +40,16 @@ public record LicenseeOperation(
   @Override
   public String displayName() {
     return "Licensee change";
+  }
+
+  @Override
+  public Class<? extends ChangeActionHandler> changeActionHandlerType() {
+    return LicenseeChangeActionHandler.class;
+  }
+
+  @Override
+  public boolean atMostOnePerPosition() {
+    return true;
   }
 
   @Override
@@ -77,34 +87,25 @@ public record LicenseeOperation(
 
   @Override
   public OperationRoutes getOperationUrls() {
-    return new OperationRoutes() {
-      @Override
-      public String correct(ChangeUrlTarget target) {
-        if (target.addedPosition()) {
-          return ReverseRouter.route(on(LicencePositionLicenseeChangeController.class)
-              .renderForAddedPosition(target.correction(), target.positionCorrection()));
-        }
-        return switch (target.state()) {
-          case ADDED -> ReverseRouter.route(on(LicencePositionLicenseeChangeController.class)
-              .renderForExecutedPosition(target.correction(), target.licencePosition()));
-          case LIVE, OPERATIONS_UPDATED, ORDER_UPDATED ->
-              ReverseRouter.route(on(LicencePositionLicenseeChangeController.class)
-                  .renderForCorrectingChange(target.correction(), target.licencePosition(), target.changeEntity()));
-          case REMOVED -> null;
-        };
+    return changeUrlTarget -> {
+      if (changeUrlTarget.addedPosition()) {
+        return ReverseRouter.route(on(LicencePositionLicenseeChangeController.class)
+            .renderForAddedPosition(changeUrlTarget.correction(), changeUrlTarget.positionCorrection()));
       }
-
-      @Override
-      public String remove(ChangeUrlTarget target) {
-        return ReverseRouter.route(on(RemoveLicenseeChangeController.class)
-            .renderRemoveExecutedLicenseeChange(target.correction(), target.licencePosition(), target.changeEntity()));
-      }
-
-      @Override
-      public String undo(ChangeUrlTarget target) {
-        return ReverseRouter.route(on(RemoveLicenseeChangeController.class)
-            .renderUndoLicenseeChange(target.correction(), target.changeId()));
-      }
+      return switch (changeUrlTarget.state()) {
+        case ADDED -> ReverseRouter.route(on(LicencePositionLicenseeChangeController.class)
+            .renderForExecutedPosition(
+                changeUrlTarget.correction(),
+                changeUrlTarget.licencePosition()
+            ));
+        case LIVE, OPERATIONS_UPDATED, ORDER_UPDATED -> ReverseRouter.route(on(LicencePositionLicenseeChangeController.class)
+            .renderForCorrectingChange(
+                changeUrlTarget.correction(),
+                changeUrlTarget.licencePosition(),
+                changeUrlTarget.changeEntity()
+            ));
+        case REMOVED -> null;
+      };
     };
   }
 

@@ -8,12 +8,12 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import org.jetbrains.annotations.Nullable;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.action.ChangeActionHandler;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.storageoperator.LicencePositionStorageOperatorChangeController;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.storageoperator.RemoveStorageOperatorChangeController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.storageoperator.StorageOperatorChangeActionHandler;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationError;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeViewContext;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.ChangeUrlTarget;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.LicencePositionState;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.PositionChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.ChangeViewUrls;
@@ -40,6 +40,16 @@ public record StorageOperatorOperation(
   @Override
   public String displayName() {
     return "Storage operator change";
+  }
+
+  @Override
+  public Class<? extends ChangeActionHandler> changeActionHandlerType() {
+    return StorageOperatorChangeActionHandler.class;
+  }
+
+  @Override
+  public boolean atMostOnePerPosition() {
+    return true;
   }
 
   @Override
@@ -95,34 +105,27 @@ public record StorageOperatorOperation(
 
   @Override
   public OperationRoutes getOperationUrls() {
-    return new OperationRoutes() {
-      @Override
-      public String correct(ChangeUrlTarget target) {
-        if (target.addedPosition()) {
-          return ReverseRouter.route(on(LicencePositionStorageOperatorChangeController.class)
-              .renderForAddedPosition(target.correction(), target.positionCorrection()));
-        }
-        return switch (target.state()) {
-          case ADDED -> ReverseRouter.route(on(LicencePositionStorageOperatorChangeController.class)
-              .renderForExecutedPosition(target.correction(), target.licencePosition()));
-          case LIVE, OPERATIONS_UPDATED, ORDER_UPDATED ->
-              ReverseRouter.route(on(LicencePositionStorageOperatorChangeController.class)
-                  .renderForCorrectingChange(target.correction(), target.licencePosition(), target.changeEntity()));
-          case REMOVED -> null;
-        };
+    return changeUrlTarget -> {
+      if (changeUrlTarget.addedPosition()) {
+        return ReverseRouter.route(on(LicencePositionStorageOperatorChangeController.class)
+            .renderForAddedPosition(changeUrlTarget.correction(), changeUrlTarget.positionCorrection()));
       }
-
-      @Override
-      public String remove(ChangeUrlTarget target) {
-        return ReverseRouter.route(on(RemoveStorageOperatorChangeController.class)
-            .renderRemoveExecutedStorageOperatorChange(target.correction(), target.licencePosition(), target.changeEntity()));
-      }
-
-      @Override
-      public String undo(ChangeUrlTarget target) {
-        return ReverseRouter.route(on(RemoveStorageOperatorChangeController.class)
-            .renderUndoStorageOperatorChange(target.correction(), target.changeId()));
-      }
+      return switch (changeUrlTarget.state()) {
+        case ADDED ->
+            ReverseRouter.route(on(LicencePositionStorageOperatorChangeController.class)
+                .renderForExecutedPosition(
+                    changeUrlTarget.correction(),
+                    changeUrlTarget.licencePosition()
+                ));
+        case LIVE, OPERATIONS_UPDATED, ORDER_UPDATED ->
+            ReverseRouter.route(on(LicencePositionStorageOperatorChangeController.class)
+                .renderForCorrectingChange(
+                    changeUrlTarget.correction(),
+                    changeUrlTarget.licencePosition(),
+                    changeUrlTarget.changeEntity()
+                ));
+        case REMOVED -> null;
+      };
     };
   }
 

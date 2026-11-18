@@ -1,0 +1,55 @@
+package uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subarea;
+
+import org.springframework.stereotype.Component;
+import org.springframework.web.servlet.ModelAndView;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.action.ChangeAction;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.action.ChangeActionHandler;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
+
+@Component
+public class SubareaChangeActionHandler implements ChangeActionHandler {
+
+  private static final String TEMPLATE_NAME = "lms/licence/correction/change/subarea/removeSubareaChange";
+
+  private final SubareaChangeService subareaChangeService;
+
+  SubareaChangeActionHandler(SubareaChangeService subareaChangeService) {
+    this.subareaChangeService = subareaChangeService;
+  }
+
+  @Override
+  public ModelAndView executedChangeConfirmation(
+      LicenceCorrection licenceCorrection,
+      LicencePosition licencePosition,
+      LicencePositionChange liveChange
+  ) {
+    return confirmation(subareaChangeService.getLiveSubareaOperationOrThrow(liveChange));
+  }
+
+  @Override
+  public ModelAndView stagedChangeConfirmation(
+      LicenceCorrection licenceCorrection,
+      LicencePositionCorrection positionCorrection,
+      String changeId,
+      ChangeAction action
+  ) {
+    return confirmation(subareaChangeService.getStagedSubareaOperationOrThrow(positionCorrection, changeId));
+  }
+
+  @Override
+  public void beforeDroppingStagedChange(
+      LicencePositionCorrection positionCorrection,
+      LicencePositionChangeType stagedChange
+  ) {
+    subareaChangeService.deleteStagedSubareaArtefacts(stagedChange);
+  }
+
+  private ModelAndView confirmation(SubareaOperation subareaOperation) {
+    return new ModelAndView(TEMPLATE_NAME).addObject("blockName", subareaChangeService.getBlockName(subareaOperation));
+  }
+}

@@ -39,6 +39,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.LicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.UpdateLicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.UpdateLicencePositionPayloadTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.AdministratorOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SetEquityOperation;
@@ -1308,6 +1309,40 @@ class LicencePositionCorrectionServiceTest {
         LicencePositionChangeType.removeChange().withChangeId(changeId).build());
   }
 
+  @Test
+  void dropStagedChangesOf_whenChangesOfTheOperationTypeAreStaged_thenDropsOnlyThose() {
+    var addedAdministratorChange = AddChange.buildOperationsChange(
+        List.of(LicenceOperation.newAdministratorChange().withOperator(ADMINISTRATOR_ID).build()), 1);
+    var correctedAdministratorChange = UpdateChangeOperations.buildUpdateChange(UUID.randomUUID().toString(),
+        LicenceOperation.newAdministratorChange().withOperator(ADMINISTRATOR_ID).build());
+    var licenseeChange = AddChange.buildOperationsChange(List.of(LicenceOperation.newLicenseeOperation().build()), 2);
+    givenUpdatePositionCorrection(List.of(addedAdministratorChange, correctedAdministratorChange, licenseeChange));
+
+    licencePositionCorrectionService.dropStagedChangesOf(
+        LICENCE_CORRECTION,
+        LICENCE_POSITION,
+        AdministratorOperation.class
+    );
+
+    verify(licencePositionCorrectionRepository).save(licencePositionCorrectionCaptor.capture());
+    assertThat(licencePositionCorrectionCaptor.getValue().getPayload().changes()).containsExactly(licenseeChange);
+  }
+
+  @Test
+  void dropStagedChangesOf_whenNothingIsStagedAgainstThePosition_thenSavesNothing() {
+    when(licencePositionCorrectionRepository.findByLicenceCorrectionAndTargetLicencePositionAndChangeType(
+        LICENCE_CORRECTION, LICENCE_POSITION, LicencePositionCorrectionChangeType.UPDATE_POSITION))
+        .thenReturn(Optional.empty());
+
+    licencePositionCorrectionService.dropStagedChangesOf(
+        LICENCE_CORRECTION,
+        LICENCE_POSITION,
+        AdministratorOperation.class
+    );
+
+    verify(licencePositionCorrectionRepository, never()).save(any());
+  }
+
   private void givenUpdatePositionCorrection(List<LicencePositionChangeType> changes) {
     var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
         .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
@@ -1964,26 +1999,6 @@ class LicencePositionCorrectionServiceTest {
     assertThatThrownBy(() -> licencePositionCorrectionService.getStagedChangeOrThrow(positionCorrection, changeId))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining(changeId);
-  }
-
-  @Test
-  void isStagedRemoval_whenTheStagedChangeRemovesALiveChange_thenTrue() {
-    var change = LicencePositionChangeType.removeChange().withChangeId(UUID.randomUUID().toString()).build();
-    var positionCorrection = updatePositionCorrectionWith(List.of(change));
-
-    var result = licencePositionCorrectionService.isStagedRemoval(positionCorrection, change.changeId());
-
-    assertThat(result).isTrue();
-  }
-
-  @Test
-  void isStagedRemoval_whenTheStagedChangeAddsOperations_thenFalse() {
-    var change = AddChange.buildOperationsChange(List.of(new SubareaOperation(UUID.randomUUID(), List.of(), List.of())), 1);
-    var positionCorrection = updatePositionCorrectionWith(List.of(change));
-
-    var result = licencePositionCorrectionService.isStagedRemoval(positionCorrection, change.changeId());
-
-    assertThat(result).isFalse();
   }
 
   @Test

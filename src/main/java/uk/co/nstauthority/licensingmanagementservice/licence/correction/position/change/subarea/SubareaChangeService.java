@@ -271,23 +271,32 @@ public class SubareaChangeService {
     return featureService.getFeatureOrThrow(subareaOperation.blockFeatureId()).getFeatureName();
   }
 
+  /**
+   * Used by {@code RemoveSubareaChangeController}, until it is replaced by {@code ChangeActionController}.
+   */
   @Transactional
   public void undoSubareaChange(
       LicencePositionCorrection positionCorrection,
       String changeId
   ) {
-    var change = licencePositionCorrectionService.getStagedChangeOrThrow(positionCorrection, changeId);
-    var subareaOperation = getSubareaOperationForChangeOrThrow(change);
+    deleteStagedSubareaArtefacts(licencePositionCorrectionService.getStagedChangeOrThrow(positionCorrection, changeId));
+    licencePositionCorrectionService.dropStagedChange(positionCorrection, changeId);
+  }
 
-    switch (change) {
+  /**
+   * Deletes the command journey a staged subarea change created, ahead of the change being dropped.
+   */
+  @Transactional
+  public void deleteStagedSubareaArtefacts(LicencePositionChangeType stagedChange) {
+    var subareaOperation = getSubareaOperationForChangeOrThrow(stagedChange);
+
+    switch (stagedChange) {
       case AddChange ignored -> deleteCommandJourney(subareaOperation);
       case UpdateChangeOperations ignored -> deleteCommandJourney(subareaOperation);
       default -> {
         // a staged removal or reorder creates no command journey
       }
     }
-
-    licencePositionCorrectionService.dropStagedChange(positionCorrection, changeId);
   }
 
   private void deleteCommandJourney(SubareaOperation subareaOperation) {

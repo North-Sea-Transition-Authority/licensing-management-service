@@ -861,7 +861,6 @@ class PartialSurrenderCorrectionServiceTest {
 
     partialSurrenderCorrectionService.adjustPartialSurrenderBlocks(positionCorrection);
 
-    verify(licencePositionCorrectionService).dropStagedChange(positionCorrection, LIVE_CHANGE_ID);
     verify(licencePositionCorrectionService).stageChangesOnPosition(
         LICENCE_CORRECTION,
         LICENCE_POSITION.getId(),
@@ -999,64 +998,50 @@ class PartialSurrenderCorrectionServiceTest {
   }
 
   @Test
-  void removeExistingPartialSurrender() {
-    partialSurrenderCorrectionService
-        .removeExistingPartialSurrender(LICENCE_POSITION, LICENCE_CORRECTION, LIVE_CHANGE_ID);
-
-    verify(licencePositionCorrectionService)
-        .stageRemovalOfExecutedChange(LICENCE_CORRECTION, LICENCE_POSITION, LIVE_CHANGE_ID);
-  }
-
-  @Test
-  void undoPartialSurrenderChange_whenTheSurrenderWasAddedByThisCorrection_thenDeletesItsCommandJourneys() {
+  void deleteStagedSurrenderArtefacts_whenTheSurrenderWasAddedByThisCorrection_thenDeletesItsCommandJourneys() {
     var surrender = fullSurrenderOf(FIRST_FEATURE_ID);
     var addChange = AddChange.buildOperationsChange(List.of(surrender), 1);
-    var positionCorrection = givenStagedChange(addChange, surrender);
+    givenStagedChange(addChange, surrender);
 
-    partialSurrenderCorrectionService.undoPartialSurrenderChange(LICENCE_CORRECTION, addChange.changeId());
+    partialSurrenderCorrectionService.deleteStagedSurrenderArtefacts(addChange);
 
     verify(commandJourneyService).deleteCommandJourney(FIRST_COMMAND_JOURNEY_ID);
-    verify(licencePositionCorrectionService).dropStagedChange(positionCorrection, addChange.changeId());
   }
 
   @Test
-  void undoPartialSurrenderChange_whenTheSurrenderCorrectsALiveChange_thenDeletesItsCommandJourneys() {
+  void deleteStagedSurrenderArtefacts_whenTheSurrenderCorrectsALiveChange_thenDeletesItsCommandJourneys() {
     var surrender = twoBlockSurrenderOf(FIRST_FEATURE_ID, SECOND_FEATURE_ID);
     var updateChange = UpdateChangeOperations.buildUpdateChange(LIVE_CHANGE_ID, surrender);
-    var positionCorrection = givenStagedChange(updateChange, surrender);
+    givenStagedChange(updateChange, surrender);
 
-    partialSurrenderCorrectionService.undoPartialSurrenderChange(LICENCE_CORRECTION, updateChange.changeId());
+    partialSurrenderCorrectionService.deleteStagedSurrenderArtefacts(updateChange);
 
     verify(commandJourneyService).deleteCommandJourney(FIRST_COMMAND_JOURNEY_ID);
     verify(commandJourneyService).deleteCommandJourney(SECOND_COMMAND_JOURNEY_ID);
-    verify(licencePositionCorrectionService).dropStagedChange(positionCorrection, updateChange.changeId());
   }
 
-
   @Test
-  void undoPartialSurrenderChange_whenTheSurrenderWasRemovedByThisCorrection_thenDeletesNoCommandJourneys() {
+  void deleteStagedSurrenderArtefacts_whenTheSurrenderWasRemovedByThisCorrection_thenDeletesNoCommandJourneys() {
     var removeChange = LicencePositionChangeType.removeChange().withChangeId(LIVE_CHANGE_ID).build();
-    var positionCorrection = givenStagedChange(removeChange, fullSurrenderOf(FIRST_FEATURE_ID));
+    givenStagedChange(removeChange, fullSurrenderOf(FIRST_FEATURE_ID));
 
-    partialSurrenderCorrectionService.undoPartialSurrenderChange(LICENCE_CORRECTION, LIVE_CHANGE_ID);
+    partialSurrenderCorrectionService.deleteStagedSurrenderArtefacts(removeChange);
 
     verify(commandJourneyService, never()).deleteCommandJourney(any());
-    verify(licencePositionCorrectionService).dropStagedChange(positionCorrection, LIVE_CHANGE_ID);
   }
 
   @Test
-  void undoPartialSurrenderChange_whenTheChangeIsNotAPartialSurrender_thenThrowsAndDropsNothing() {
+  void deleteStagedSurrenderArtefacts_whenTheChangeIsNotAPartialSurrender_thenThrowsAndDeletesNothing() {
     var administratorChange = AddChange.buildOperationsChange(
         List.of(LicenceOperation.newAdministratorChange().withOperator(ADMINISTRATOR_ID).build()), 1);
     var changeId = administratorChange.changeId();
     givenStagedChange(administratorChange, Optional.empty());
 
     assertThatThrownBy(() ->
-        partialSurrenderCorrectionService.undoPartialSurrenderChange(LICENCE_CORRECTION, changeId))
+        partialSurrenderCorrectionService.deleteStagedSurrenderArtefacts(administratorChange))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining(changeId);
 
-    verify(licencePositionCorrectionService, never()).dropStagedChange(any(), any());
     verify(commandJourneyService, never()).deleteCommandJourney(any());
   }
 
@@ -2094,26 +2079,26 @@ class PartialSurrenderCorrectionServiceTest {
   }
 
   @Test
-  void undoPartialSurrenderChange_whenTheSurrenderWasAddedByThisCorrection_thenDeletesItsCroppedSubareas() {
+  void deleteStagedSurrenderArtefacts_whenTheSurrenderWasAddedByThisCorrection_thenDeletesItsCroppedSubareas() {
     var croppedFeature = FeatureTestUtil.builder().build();
     var croppedSurrender = croppedSurrenderOf(FIRST_FEATURE_ID, croppedFeature);
     var addChange = AddChange.buildOperationsChange(List.of(croppedSurrender), 1);
     givenStagedChange(addChange, croppedSurrender);
     when(featureService.getFeaturesByIds(Set.of(croppedFeature.getId()))).thenReturn(List.of(croppedFeature));
 
-    partialSurrenderCorrectionService.undoPartialSurrenderChange(LICENCE_CORRECTION, addChange.changeId());
+    partialSurrenderCorrectionService.deleteStagedSurrenderArtefacts(addChange);
 
     verify(commandJourneyService).deleteFeaturesNotHeldByAJourney(List.of(croppedFeature));
   }
 
   @Test
-  void undoPartialSurrenderChange_whenTheSurrenderCorrectsALiveChange_thenKeepsTheLiveCroppedSubareas() {
+  void deleteStagedSurrenderArtefacts_whenTheSurrenderCorrectsALiveChange_thenKeepsTheLiveCroppedSubareas() {
     var croppedSurrender = croppedSurrenderOf(FIRST_FEATURE_ID, FeatureTestUtil.builder().build());
     var updateChange = UpdateChangeOperations.buildUpdateChange(LIVE_CHANGE_ID, croppedSurrender);
     givenStagedChange(updateChange, croppedSurrender);
     givenLiveSurrenderChange(croppedSurrender);
 
-    partialSurrenderCorrectionService.undoPartialSurrenderChange(LICENCE_CORRECTION, updateChange.changeId());
+    partialSurrenderCorrectionService.deleteStagedSurrenderArtefacts(updateChange);
 
     verify(commandJourneyService, never()).deleteFeaturesNotHeldByAJourney(any());
   }
@@ -2315,28 +2300,16 @@ class PartialSurrenderCorrectionServiceTest {
         .build();
   }
 
-  private LicencePositionCorrection givenStagedChange(
-      LicencePositionChangeType change,
-      PartialSurrenderOperation resolvedSurrender
-  ) {
-    return givenStagedChange(change, Optional.of(resolvedSurrender));
+  private void givenStagedChange(LicencePositionChangeType change, PartialSurrenderOperation resolvedSurrender) {
+    givenStagedChange(change, Optional.of(resolvedSurrender));
   }
 
-  private LicencePositionCorrection givenStagedChange(
+  private void givenStagedChange(
       LicencePositionChangeType change,
       Optional<PartialSurrenderOperation> resolvedSurrender
   ) {
-    var positionCorrection = updatePositionCorrection(List.of(change));
-
-    when(licencePositionCorrectionService
-        .getPositionCorrectionContainingChange(LICENCE_CORRECTION, change.changeId()))
-        .thenReturn(positionCorrection);
-    when(licencePositionCorrectionService.getStagedChangeOrThrow(positionCorrection, change.changeId()))
-        .thenReturn(change);
     when(licencePositionCorrectionService.findStagedChangeOperation(change, PartialSurrenderOperation.class))
         .thenReturn(resolvedSurrender);
-
-    return positionCorrection;
   }
 
   private void givenLiveSurrenderChange(PartialSurrenderOperation liveSurrender) {

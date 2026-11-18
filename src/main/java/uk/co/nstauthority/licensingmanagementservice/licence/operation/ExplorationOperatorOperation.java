@@ -7,10 +7,10 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import org.jetbrains.annotations.Nullable;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.action.ChangeActionHandler;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationError;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeViewContext;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.ChangeUrlTarget;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.LicencePositionState;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.PositionChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.ChangeViewUrls;
@@ -94,22 +94,16 @@ public record ExplorationOperatorOperation(
 
   @Override
   public OperationRoutes getOperationUrls() {
-    return new OperationRoutes() {
-      @Override
-      public String correct(ChangeUrlTarget target) {
-        return null;
-      }
+    return OperationRoutes.none();
+  }
 
-      @Override
-      public String remove(ChangeUrlTarget target) {
-        return null;
-      }
-
-      @Override
-      public String undo(ChangeUrlTarget target) {
-        return null;
-      }
-    };
+  /**
+   * Exploration operator changes can't be removed, undone or reinstated yet.
+   */
+  @Nullable
+  @Override
+  public Class<? extends ChangeActionHandler> changeActionHandlerType() {
+    return null;
   }
 
   public static class Builder {

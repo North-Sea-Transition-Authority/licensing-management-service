@@ -7,7 +7,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Collectors;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.BindingResult;
@@ -74,15 +73,13 @@ public class CorrectPositionChangeTypeController {
     }
 
     var currentPosition = licencePositionCorrectionService.getOrderableDatePosition(correction, licencePositionId);
-    var changeTypePositionMoveOptions = changeTypePositionMoveOptions(correction, licencePositionId);
 
     return correctChangeTypePositionMoveModelAndView(
         new CorrectPositionChangeTypeForm(),
         change.get(),
         currentPosition,
         correction,
-        licencePositionId,
-        changeTypePositionMoveOptions
+        licencePositionId
     );
   }
 
@@ -102,12 +99,10 @@ public class CorrectPositionChangeTypeController {
     }
 
     var currentPosition = licencePositionCorrectionService.getOrderableDatePosition(correction, licencePositionId);
-    var changeTypePositionMoveOptions = changeTypePositionMoveOptions(correction, licencePositionId);
 
     if (correctPositionChangeTypeFormValidator.hasErrors(
         form,
         bindingResult,
-        changeTypePositionMoveOptions.keySet(),
         correction,
         licencePositionId,
         changeId
@@ -117,22 +112,8 @@ public class CorrectPositionChangeTypeController {
           change.get(),
           currentPosition,
           correction,
-          licencePositionId,
-          changeTypePositionMoveOptions
+          licencePositionId
       );
-    }
-
-    var selectedMove = form.getChangeTypePositionMove().getInputValue();
-
-    if (!CorrectPositionChangeTypeForm.OTHER_DATE_OPTION.equals(selectedMove)) {
-      correctChangeOrderService.moveChangeToPosition(
-          correction,
-          licencePositionId,
-          changeId,
-          UUID.fromString(selectedMove)
-      );
-      addPositionUpdatedBanner(change.get(), redirectAttributes);
-      return ReverseRouter.redirectToUrl(correctionUrl(correction));
     }
 
     var positionDate = form.getCorrectPositionDate().getAsLocalDate().orElseThrow();
@@ -285,8 +266,7 @@ public class CorrectPositionChangeTypeController {
       OrderableChange change,
       OrderablePosition currentPosition,
       LicenceCorrection correction,
-      UUID licencePositionId,
-      LinkedHashMap<String, String> changeTypePositionMoveOptions
+      UUID licencePositionId
   ) {
     return new ModelAndView("lms/licence/correction/change/moveChangeTypePosition")
         .addObject("pageTitle", buildPageTitle(change))
@@ -295,7 +275,6 @@ public class CorrectPositionChangeTypeController {
             DateUtil.formatLongDateWithOrder(currentPosition.effectiveDate(), currentPosition.effectiveDateOrder())
         )
         .addObject("positionReference", currentPosition.reference())
-        .addObject("changeTypePositionMoveOptions", changeTypePositionMoveOptions)
         .addObject("form", form)
         .addObject("backLinkUrl", positionPageUrl(correction, licencePositionId));
   }
@@ -319,23 +298,8 @@ public class CorrectPositionChangeTypeController {
         .findFirst();
   }
 
-  private LinkedHashMap<String, String> changeTypePositionMoveOptions(
-      LicenceCorrection correction,
-      UUID licencePositionId
-  ) {
-    return licencePositionCorrectionService.getOrderableDatePositionsExcluding(correction, licencePositionId).stream()
-        .collect(Collectors.toMap(
-            position -> position.id().toString(),
-            position -> "%s - %s".formatted(
-                position.reference(),
-                DateUtil.formatLongDateWithOrder(position.effectiveDate(), position.effectiveDateOrder())),
-            (existing, duplicate) -> existing,
-            LinkedHashMap::new
-        ));
-  }
-
   private static String buildPageTitle(OrderableChange change) {
-    return "Update position of %s".formatted(change.reference());
+    return "Update execution date of %s".formatted(change.reference());
   }
 
 }

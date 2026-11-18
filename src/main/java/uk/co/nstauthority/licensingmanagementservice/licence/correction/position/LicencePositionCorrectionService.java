@@ -546,16 +546,6 @@ public class LicencePositionCorrectionService {
         .orElseThrow(() -> new LmsEntityNotFoundException("licencePosition", positionId));
   }
 
-  public List<OrderablePosition> getOrderableDatePositionsExcluding(
-      LicenceCorrection licenceCorrection,
-      UUID positionIdToExclude
-  ) {
-    return getOrderableDatePositions(licenceCorrection)
-        .stream()
-        .filter(position -> !position.id().equals(positionIdToExclude))
-        .toList();
-  }
-
   @Transactional
   public void correctPositionOrder(
       LicenceCorrection licenceCorrection,

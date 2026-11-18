@@ -890,28 +890,6 @@ class LicencePositionCorrectionServiceTest {
   }
 
   @Test
-  void getOrderableDatePositionsExcluding() {
-    var excludedId = UUID.randomUUID();
-    var laterDateId = UUID.randomUUID();
-    var secondOnDateId = UUID.randomUUID();
-    var firstOnDateId = UUID.randomUUID();
-
-    givenExecutedPositions(
-        executedPosition(laterDateId, POSITION_DATE.plusDays(1), 1, "REF-LATER"),
-        executedPosition(excludedId, POSITION_DATE, 3, "REF-EXCLUDED"),
-        executedPosition(secondOnDateId, POSITION_DATE, 2, "REF-SECOND"),
-        executedPosition(firstOnDateId, POSITION_DATE, 1, "REF-FIRST")
-    );
-
-    assertThat(licencePositionCorrectionService.getOrderableDatePositionsExcluding(LICENCE_CORRECTION, excludedId))
-        .containsExactly(
-            new OrderablePosition(firstOnDateId, POSITION_DATE, 1, "REF-FIRST", false),
-            new OrderablePosition(secondOnDateId, POSITION_DATE, 2, "REF-SECOND", false),
-            new OrderablePosition(laterDateId, POSITION_DATE.plusDays(1), 1, "REF-LATER", false)
-        );
-  }
-
-  @Test
   void correctPositionOrder_whenMovedPositionNotOnSameDate_throwsAndWritesNothing() {
     var movedId = UUID.randomUUID();
     var targetId = UUID.randomUUID();

@@ -6,36 +6,21 @@
 >
   <@fdsForm.htmlForm>
     <@fdsSummaryList.summaryList>
-      <@fdsSummaryList.summaryListRowNoAction keyText="Position date">
+      <@fdsSummaryList.summaryListRowNoAction keyText="Execution date">
         ${positionDate}
       </@fdsSummaryList.summaryListRowNoAction>
-      <@fdsSummaryList.summaryListRowNoAction keyText="Position reference">
+      <@fdsSummaryList.summaryListRowNoAction keyText="Transaction reference">
         ${positionReference}
       </@fdsSummaryList.summaryListRowNoAction>
     </@fdsSummaryList.summaryList>
 
-    <@fdsRadio.radioGroup
-      path="form.changeTypePositionMove.inputValue"
-      labelText="Where do you want to move this change to?"
-      hiddenContent=true
-    >
-      <#assign firstItem=true/>
-      <#list changeTypePositionMoveOptions as positionId, positionLabel>
-        <@fdsRadio.radioItem path="form.changeTypePositionMove.inputValue" itemMap={positionId : positionLabel} isFirstItem=firstItem/>
-        <#assign firstItem=false/>
-      </#list>
-
-      <@fdsRadio.radioItem path="form.changeTypePositionMove.inputValue" itemMap={"OTHER_DATE" : "Other date"} isFirstItem=firstItem>
-        <@fdsDateInput.dateInput
-          dayPath="form.correctPositionDate.dayInput.inputValue"
-          monthPath="form.correctPositionDate.monthInput.inputValue"
-          yearPath="form.correctPositionDate.yearInput.inputValue"
-          labelText="Position date"
-          formId="correctPositionDate"
-          nestingPath="form.changeTypePositionMove.inputValue"
-        />
-      </@fdsRadio.radioItem>
-    </@fdsRadio.radioGroup>
+    <@fdsDateInput.dateInput
+      dayPath="form.correctPositionDate.dayInput.inputValue"
+      monthPath="form.correctPositionDate.monthInput.inputValue"
+      yearPath="form.correctPositionDate.yearInput.inputValue"
+      labelText="What do you want the new execution date to be?"
+      formId="correctPositionDate"
+    />
 
     <@fdsAction.submitButtons
       primaryButtonText="Continue"

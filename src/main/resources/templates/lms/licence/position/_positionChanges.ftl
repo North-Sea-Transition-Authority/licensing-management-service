@@ -26,7 +26,7 @@
     <#if correctPositionUrl?has_content>
       <@fdsSummaryList.summaryListCardActionItem
         itemUrl=springUrl(correctPositionUrl)
-        itemText="Change position"
+        itemText="Change execution date"
         itemScreenReaderText=screenReaderText
       />
     </#if>

@@ -24,7 +24,6 @@ import java.time.Month;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.context.ActiveProfiles;
@@ -73,7 +72,7 @@ class CorrectPositionChangeTypeControllerTest extends AbstractControllerTest {
   private static final UUID NEW_POSITION_ID = UUID.randomUUID();
   private static final LocalDate POSITION_DATE = LocalDate.of(2026, Month.JUNE, 1);
   private static final String CHANGE_REFERENCE = "Subarea – Block A";
-  private static final String PAGE_TITLE = "Update position of Subarea – Block A";
+  private static final String PAGE_TITLE = "Update execution date of Subarea – Block A";
   private static final LocalDate OTHER_DATE = LocalDate.of(2026, Month.JUNE, 30);
   private static final String VIEW_NAME = "lms/licence/correction/change/moveChangeTypePosition";
   private static final String NEW_POSITION_ORDER_PAGE_TITLE = "Where should the new position on 30 June 2026 go?";
@@ -88,19 +87,11 @@ class CorrectPositionChangeTypeControllerTest extends AbstractControllerTest {
   private static final OrderablePosition CURRENT_POSITION =
       new OrderablePosition(POSITION_ID, POSITION_DATE, 2, "REF-A", false);
 
-  private static final OrderablePosition OTHER_POSITION =
-      new OrderablePosition(OTHER_POSITION_ID, POSITION_DATE.plusDays(1), 2, "REF-B", false);
-
   private static final OrderablePosition FIRST_ON_OTHER_DATE =
       new OrderablePosition(UUID.randomUUID(), OTHER_DATE, 1, "REF-C", false);
 
   private static final OrderablePosition SECOND_ON_OTHER_DATE =
       new OrderablePosition(UUID.randomUUID(), OTHER_DATE, 2, "REF-D", true);
-
-  private static final Map<String, String> MOVE_OPTIONS =
-      Map.of(OTHER_POSITION_ID.toString(), "REF-B - 2 June 2026 (2)");
-
-  private static final Set<String> ALLOWED_MOVES = Set.of(OTHER_POSITION_ID.toString());
 
   private static final Map<String, String> INSERT_OPTIONS = Map.of(
       new PositionMove(PositionMoveDirection.BEFORE, FIRST_ON_OTHER_DATE.id()).toFormValue(), "Before REF-C",
@@ -139,7 +130,6 @@ class CorrectPositionChangeTypeControllerTest extends AbstractControllerTest {
     givenPosition();
     givenExecutedPosition();
     givenChangeOnPosition();
-    givenMoveOptions();
 
     mockMvc.perform(get(ReverseRouter.route(on(CorrectPositionChangeTypeController.class)
             .renderMoveChangeTypePosition(CORRECTION_ID, POSITION_ID, CHANGE_ID, null)))
@@ -151,7 +141,6 @@ class CorrectPositionChangeTypeControllerTest extends AbstractControllerTest {
             model().attributeExists("form"),
             model().attribute("positionDate", "1 June 2026 (2)"),
             model().attribute("positionReference", "REF-A"),
-            model().attribute("changeTypePositionMoveOptions", MOVE_OPTIONS),
             model().attribute("backLinkUrl", executedPositionUrl)
         );
   }
@@ -191,44 +180,7 @@ class CorrectPositionChangeTypeControllerTest extends AbstractControllerTest {
   }
 
   @Test
-  void correctChangeTypePosition_whenAPositionIsSelected_thenMovesTheChange() throws Exception {
-    givenCorrectionAllocatedToUser();
-    givenPosition();
-    givenChangeOnPosition();
-    givenMoveOptions();
-
-    var form = new CorrectPositionChangeTypeForm();
-    form.getChangeTypePositionMove().setInputValue(OTHER_POSITION_ID.toString());
-
-    when(correctPositionChangeTypeFormValidator.hasErrors(
-        eq(form),
-        any(BindingResult.class),
-        eq(ALLOWED_MOVES),
-        eq(CORRECTION),
-        eq(POSITION_ID),
-        eq(CHANGE_ID)
-    ))
-        .thenReturn(false);
-
-    mockMvc.perform(post(ReverseRouter.route(on(CorrectPositionChangeTypeController.class)
-            .correctChangeTypePosition(CORRECTION_ID, POSITION_ID, CHANGE_ID, null, null, null, null)))
-            .with(user(regulatorUser))
-            .with(csrf())
-            .flashAttr("form", form))
-        .andExpectAll(
-            status().is3xxRedirection(),
-            redirectedUrl(correctionUrl),
-            notificationBanner(NotificationBanner.newSuccessBanner()
-                .withHeadingContent("Position of Subarea – Block A updated")
-                .build())
-        );
-
-    verify(correctChangeOrderService).moveChangeToPosition(CORRECTION, POSITION_ID, CHANGE_ID, OTHER_POSITION_ID);
-    verify(correctChangeOrderService, never()).moveChangeToDate(any(), any(), any(), any(), any());
-  }
-
-  @Test
-  void correctChangeTypePosition_whenOtherDateMovesToAnExistingPosition_thenRedirectsToItsChangeOrderWithABanner()
+  void correctChangeTypePosition_whenDateMovesToAnExistingPosition_thenRedirectsToItsChangeOrderWithABanner()
       throws Exception {
     givenValidOtherDateSubmission(
         new MoveChangeToDateResult(MoveChangeToDateResult.Outcome.MOVED_TO_EXISTING_POSITION, OTHER_POSITION_ID));
@@ -247,7 +199,7 @@ class CorrectPositionChangeTypeControllerTest extends AbstractControllerTest {
   }
 
   @Test
-  void correctChangeTypePosition_whenOtherDateMovesToANewPosition_thenRedirectsToTheCorrectionWithABanner()
+  void correctChangeTypePosition_whenDateMovesToANewPosition_thenRedirectsToTheCorrectionWithABanner()
       throws Exception {
     givenValidOtherDateSubmission(
         new MoveChangeToDateResult(MoveChangeToDateResult.Outcome.MOVED_TO_NEW_POSITION, NEW_POSITION_ID));
@@ -265,7 +217,7 @@ class CorrectPositionChangeTypeControllerTest extends AbstractControllerTest {
   }
 
   @Test
-  void correctChangeTypePosition_whenOtherDateNeedsThePositionOrder_thenRedirectsToTheNewPositionOrderPageWithoutABanner()
+  void correctChangeTypePosition_whenDateNeedsThePositionOrder_thenRedirectsToTheNewPositionOrderPageWithoutABanner()
       throws Exception {
     givenValidOtherDateSubmission(
         new MoveChangeToDateResult(MoveChangeToDateResult.Outcome.NEEDS_POSITION_ORDER, null));
@@ -490,14 +442,12 @@ class CorrectPositionChangeTypeControllerTest extends AbstractControllerTest {
     givenPosition();
     givenExecutedPosition();
     givenChangeOnPosition();
-    givenMoveOptions();
 
     var form = new CorrectPositionChangeTypeForm();
 
     when(correctPositionChangeTypeFormValidator.hasErrors(
         eq(form),
         any(BindingResult.class),
-        eq(ALLOWED_MOVES),
         eq(CORRECTION),
         eq(POSITION_ID),
         eq(CHANGE_ID)
@@ -516,11 +466,9 @@ class CorrectPositionChangeTypeControllerTest extends AbstractControllerTest {
             model().attribute("form", form),
             model().attribute("positionDate", "1 June 2026 (2)"),
             model().attribute("positionReference", "REF-A"),
-            model().attribute("changeTypePositionMoveOptions", MOVE_OPTIONS),
             model().attribute("backLinkUrl", executedPositionUrl)
         );
 
-    verify(correctChangeOrderService, never()).moveChangeToPosition(any(), any(), any(), any());
     verify(correctChangeOrderService, never()).moveChangeToDate(any(), any(), any(), any(), any());
   }
 
@@ -587,11 +535,6 @@ class CorrectPositionChangeTypeControllerTest extends AbstractControllerTest {
         .thenReturn(Optional.empty());
   }
 
-  private void givenMoveOptions() {
-    when(licencePositionCorrectionService.getOrderableDatePositionsExcluding(CORRECTION, POSITION_ID))
-        .thenReturn(List.of(OTHER_POSITION));
-  }
-
   private void givenChangeNotOnPosition() {
     when(correctChangeOrderService.getOrderableChanges(CORRECTION, POSITION_ID))
         .thenReturn(List.of(new OrderableChange(UUID.randomUUID(), "REF-B")));
@@ -612,12 +555,10 @@ class CorrectPositionChangeTypeControllerTest extends AbstractControllerTest {
     givenCorrectionAllocatedToUser();
     givenPosition();
     givenChangeOnPosition();
-    givenMoveOptions();
 
     when(correctPositionChangeTypeFormValidator.hasErrors(
         eq(otherDateForm),
         any(BindingResult.class),
-        eq(ALLOWED_MOVES),
         eq(CORRECTION),
         eq(POSITION_ID),
         eq(CHANGE_ID)
@@ -639,7 +580,6 @@ class CorrectPositionChangeTypeControllerTest extends AbstractControllerTest {
 
   private static CorrectPositionChangeTypeForm buildOtherDateForm() {
     var form = new CorrectPositionChangeTypeForm();
-    form.getChangeTypePositionMove().setInputValue(CorrectPositionChangeTypeForm.OTHER_DATE_OPTION);
     form.getCorrectPositionDate().setDate(OTHER_DATE);
     return form;
   }

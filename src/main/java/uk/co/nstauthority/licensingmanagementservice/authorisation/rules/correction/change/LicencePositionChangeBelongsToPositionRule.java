@@ -3,21 +3,35 @@ package uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correc
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.lang.annotation.Annotation;
+import java.util.UUID;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.SecurityRuleResult;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.AccessInterceptorRule;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeService;
+import uk.co.nstauthority.licensingmanagementservice.util.RequestUtil;
 
 @Component
 @Order(9)
 public class LicencePositionChangeBelongsToPositionRule implements AccessInterceptorRule {
 
-  private final LicencePositionChangeService licencePositionChangeService;
+  private static final String CORRECTION_ID_PATH_VARIABLE = "correctionId";
 
-  public LicencePositionChangeBelongsToPositionRule(LicencePositionChangeService licencePositionChangeService) {
+  private final LicencePositionChangeService licencePositionChangeService;
+  private final LicenceCorrectionService licenceCorrectionService;
+  private final LicencePositionCorrectionService licencePositionCorrectionService;
+
+  public LicencePositionChangeBelongsToPositionRule(
+      LicencePositionChangeService licencePositionChangeService,
+      LicenceCorrectionService licenceCorrectionService,
+      LicencePositionCorrectionService licencePositionCorrectionService
+  ) {
     this.licencePositionChangeService = licencePositionChangeService;
+    this.licenceCorrectionService = licenceCorrectionService;
+    this.licencePositionCorrectionService = licencePositionCorrectionService;
   }
 
   @Override
@@ -38,12 +52,22 @@ public class LicencePositionChangeBelongsToPositionRule implements AccessInterce
       );
     }
 
-    if (!change.getLicencePosition().getId().equals(licencePositionId)) {
+    if (!change.getLicencePosition().getId().equals(licencePositionId)
+        && !isMovedToPositionInCorrection(request, licencePositionId, changeId)) {
       return SecurityRuleResult.checkFailedWithStatusAndMessage(HttpStatus.NOT_FOUND,
           "Change %s does not belong to licence position %s".formatted(changeId, licencePositionId)
       );
     }
 
     return SecurityRuleResult.continueAsNormal();
+  }
+
+  private boolean isMovedToPositionInCorrection(HttpServletRequest request, UUID licencePositionId, UUID changeId) {
+    return RequestUtil.getId(request, CORRECTION_ID_PATH_VARIABLE)
+        .flatMap(licenceCorrectionService::findById)
+        .map(licencePositionCorrectionService::getPositionCorrections)
+        .map(LicencePositionCorrectionService::getUpdatedChangePositionIds)
+        .map(stagedPositionIds -> licencePositionId.equals(stagedPositionIds.get(changeId.toString())))
+        .orElse(false);
   }
 }

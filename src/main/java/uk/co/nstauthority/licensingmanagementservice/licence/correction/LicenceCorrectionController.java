@@ -2,7 +2,9 @@ package uk.co.nstauthority.licensingmanagementservice.licence.correction;
 
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
+import jakarta.annotation.Nullable;
 import jakarta.servlet.http.HttpSession;
+import java.util.UUID;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -17,16 +19,17 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correct
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.position.LicencePositionBelongsToCorrectionLicence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.AddLicencePositionCorrectionController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectionPosition;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectionPositionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.FilteredCorrectionTimeline;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionFilterService;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionRouteUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionViewService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.reviewandapply.ReviewCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.update.UpdateCorrectionGeneralDetailsController;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionPageView;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.filter.LicenceTimelineFilter;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.filter.LicenceTimelineFilterForm;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.filter.LicenceTimelineFilterSession;
@@ -46,25 +49,22 @@ public class LicenceCorrectionController {
   // Kept apart from the licence timeline's filters, so filtering a correction never filters the licence timeline.
   static final String FILTER_SESSION_ATTRIBUTE = "licenceCorrectionTimelineFilterSession";
 
-  private final LicencePositionService licencePositionService;
+  private final CorrectionPositionService correctionPositionService;
   private final LicencePositionCorrectionViewService licencePositionCorrectionViewService;
   private final LicencePositionCorrectionFilterService licencePositionCorrectionFilterService;
-  private final LicencePositionCorrectionService licencePositionCorrectionService;
   private final LicenceService licenceService;
   private final CorrectionDetailsViewService correctionDetailsViewService;
 
-  public LicenceCorrectionController(
-      LicencePositionService licencePositionService,
+  LicenceCorrectionController(
+      CorrectionPositionService correctionPositionService,
       LicencePositionCorrectionViewService licencePositionCorrectionViewService,
       LicencePositionCorrectionFilterService licencePositionCorrectionFilterService,
-      LicencePositionCorrectionService licencePositionCorrectionService,
       LicenceService licenceService,
       CorrectionDetailsViewService correctionDetailsViewService
   ) {
-    this.licencePositionService = licencePositionService;
+    this.correctionPositionService = correctionPositionService;
     this.licencePositionCorrectionViewService = licencePositionCorrectionViewService;
     this.licencePositionCorrectionFilterService = licencePositionCorrectionFilterService;
-    this.licencePositionCorrectionService = licencePositionCorrectionService;
     this.licenceService = licenceService;
     this.correctionDetailsViewService = correctionDetailsViewService;
   }
@@ -89,58 +89,29 @@ public class LicenceCorrectionController {
       };
     }
 
-    var licence = licenceCorrection.getLicence();
-    var executedLicencePositions = licencePositionService.getExecutedChronologicalLicencePositions(licence);
-    var addedPositions = licencePositionCorrectionService.getAddedLicencePositionCorrections(licenceCorrection);
+    var latestPositionId = latestPositionId(licenceCorrection);
 
-    if (executedLicencePositions.isEmpty() && addedPositions.isEmpty()) {
+    if (latestPositionId == null) {
       return licencePositionsModelAndView(licenceCorrection, LicencePositionPageView.empty(), filter);
     }
 
-    if (!executedLicencePositions.isEmpty()) {
-      return ReverseRouter.redirect(on(this.getClass()).renderLicencePosition(
-          licenceCorrection, executedLicencePositions.getLast(), null));
-    }
-
-    return ReverseRouter.redirect(on(this.getClass())
-        .renderAddedPosition(licenceCorrection, addedPositions.getLast(), null));
+    return LicencePositionCorrectionRouteUtil.redirectToPositionPage(licenceCorrection, latestPositionId);
   }
 
-  @GetMapping("/{correctionId}/{licencePositionId}")
-  @LicencePositionBelongsToCorrectionLicence
-  public ModelAndView renderLicencePosition(
-      LicenceCorrection licenceCorrection,
-      LicencePosition licencePosition,
+  @GetMapping("/{correctionId}/positions/{licencePositionId}")
+  public ModelAndView renderPosition(
+      CorrectionPosition correctionPosition,
       @ModelAttribute(FILTER_SESSION_ATTRIBUTE) LicenceTimelineFilterSession filterSession
   ) {
+    var licenceCorrection = correctionPosition.correction();
+
     if (licenceCorrection.isComplete()) {
       return appliedCorrectionRedirect(licenceCorrection);
     }
 
     var filter = getFilter(licenceCorrection, filterSession);
     var licencePositionPageView =
-        licencePositionCorrectionViewService.getCorrectionPositionPageView(licenceCorrection, licencePosition, filter);
-
-    return licencePositionsModelAndView(licenceCorrection, licencePositionPageView, filter);
-  }
-
-  @GetMapping("/{correctionId}/added-positions/{licencePositionCorrectionId}")
-  @LicencePositionCorrectionBelongsToCorrection
-  public ModelAndView renderAddedPosition(
-      LicenceCorrection licenceCorrection,
-      LicencePositionCorrection licencePositionCorrection,
-      @ModelAttribute(FILTER_SESSION_ATTRIBUTE) LicenceTimelineFilterSession filterSession
-  ) {
-    if (licenceCorrection.isComplete()) {
-      return appliedCorrectionRedirect(licenceCorrection);
-    }
-
-    var filter = getFilter(licenceCorrection, filterSession);
-    var licencePositionPageView = licencePositionCorrectionViewService.getCorrectionAddedPositionPageView(
-        licenceCorrection,
-        licencePositionCorrection,
-        filter
-    );
+        licencePositionCorrectionViewService.getCorrectionPositionPageView(correctionPosition, filter);
 
     return licencePositionsModelAndView(licenceCorrection, licencePositionPageView, filter);
   }
@@ -161,6 +132,34 @@ public class LicenceCorrectionController {
     );
 
     return ReverseRouter.redirect(on(LicenceCorrectionController.class).renderCorrection(licenceCorrection, null));
+  }
+
+  /**
+   * The old page for an executed position, which now redirects to {@link #renderPosition}. Removed once nothing links
+   * to it.
+   */
+  @GetMapping("/{correctionId}/{licencePositionId}")
+  @LicencePositionBelongsToCorrectionLicence
+  public ModelAndView renderLicencePosition(
+      LicenceCorrection licenceCorrection,
+      LicencePosition licencePosition,
+      @ModelAttribute(FILTER_SESSION_ATTRIBUTE) LicenceTimelineFilterSession filterSession
+  ) {
+    return LicencePositionCorrectionRouteUtil.redirectToPositionPage(licenceCorrection, licencePosition.getId());
+  }
+
+  /**
+   * The old page for a position the correction adds, which now redirects to {@link #renderPosition}. Removed once
+   * nothing links to it.
+   */
+  @GetMapping("/{correctionId}/added-positions/{licencePositionCorrectionId}")
+  @LicencePositionCorrectionBelongsToCorrection
+  public ModelAndView renderAddedPosition(
+      LicenceCorrection licenceCorrection,
+      LicencePositionCorrection licencePositionCorrection,
+      @ModelAttribute(FILTER_SESSION_ATTRIBUTE) LicenceTimelineFilterSession filterSession
+  ) {
+    return LicencePositionCorrectionRouteUtil.redirectToPositionPage(licencePositionCorrection);
   }
 
   @GetMapping("/{correctionId}/clear-filters")
@@ -211,6 +210,16 @@ public class LicenceCorrectionController {
 
   private static String filterKey(LicenceCorrection licenceCorrection) {
     return licenceCorrection.getId().toString();
+  }
+
+  /**
+   * The position the correction opens on: the latest position on its timeline, whether executed or staged by the
+   * correction. Null when the timeline has no positions.
+   */
+  @Nullable
+  private UUID latestPositionId(LicenceCorrection licenceCorrection) {
+    var correctionPositions = correctionPositionService.getCorrectionPositions(licenceCorrection);
+    return correctionPositions.isEmpty() ? null : correctionPositions.getLast().positionId();
   }
 
   private static ModelAndView appliedCorrectionRedirect(LicenceCorrection correction) {

@@ -15,7 +15,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.LicencePositionValidationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationError;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.ChronologicalPositionService;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionNameService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionPageView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionService;
@@ -59,17 +58,32 @@ public class LicencePositionCorrectionViewService {
   }
 
   /**
-   * The correction page view for an executed position, with the timeline limited to the positions the filter matches,
-   * the position itself and any position with a validation error. The position's change views are never filtered, so
-   * every change on the position being corrected can be edited. Validation always covers every position.
+   * The correction page view for a position on the correction timeline, whether executed or staged by the correction,
+   * with the timeline limited to the positions the filter matches, the position itself and any position with a
+   * validation error. The position's change views are never filtered, so every change on the position being corrected
+   * can be edited. Validation always covers every position.
    */
   public LicencePositionPageView getCorrectionPositionPageView(
-      LicenceCorrection licenceCorrection,
-      LicencePosition licencePosition,
+      CorrectionPosition correctionPosition,
       LicenceTimelineFilter filter
   ) {
-    var licence = licencePosition.getLicence();
+    var licenceCorrection = correctionPosition.correction();
+    var licence = licenceCorrection.getLicence();
     var correctionPositions = getCorrectionPositions(licenceCorrection, licence);
+
+    var selectedPosition = switch (correctionPosition) {
+      case CorrectionPosition.Executed executed -> executedSelectedPosition(executed, correctionPositions);
+      case CorrectionPosition.Staged staged -> stagedSelectedPosition(staged);
+    };
+
+    return getCorrectionPageView(licenceCorrection, licence, correctionPositions, selectedPosition, filter);
+  }
+
+  private static SelectedPosition executedSelectedPosition(
+      CorrectionPosition.Executed executed,
+      CorrectionTimelinePositions correctionPositions
+  ) {
+    var licencePosition = executed.licencePosition();
     var positionRemoved = correctionPositions.removedPositionIds().contains(licencePosition.getId());
 
     var stagedPositionCorrection = LicencePositionCorrectionService.correctionsOfType(
@@ -84,7 +98,7 @@ public class LicencePositionCorrectionViewService {
     var urlContext = positionRemoved
         ? null
         : PositionChangeUrlContext.forExecutedPosition(
-            licenceCorrection,
+            executed.correction(),
             licencePosition,
             stagedPositionCorrection
         );
@@ -92,9 +106,9 @@ public class LicencePositionCorrectionViewService {
     var actions = positionRemoved
         ? LicencePositionPageView.Actions.none()
         : new LicencePositionPageView.Actions(ReverseRouter.route(on(LicencePositionAddChangeController.class)
-            .renderForExecutedPosition(licenceCorrection, licencePosition)));
+            .renderForExecutedPosition(executed.correction(), licencePosition)));
 
-    var selectedPosition = new SelectedPosition(
+    return new SelectedPosition(
         licencePosition.getId(),
         licencePosition.getFormattedPositionDate(),
         licencePosition.getLicenceTransaction().getRegulatorReference(),
@@ -102,40 +116,20 @@ public class LicencePositionCorrectionViewService {
         actions,
         false
     );
-
-    return getCorrectionPageView(licenceCorrection, licence, correctionPositions, selectedPosition, filter);
   }
 
-  /**
-   * The correction page view for a position added in the correction, with the timeline limited to the positions the
-   * filter matches, the position itself and any position with a validation error. The position's change views are
-   * never filtered, so every change on the position being corrected can be edited. Validation always covers every
-   * position.
-   */
-  public LicencePositionPageView getCorrectionAddedPositionPageView(
-      LicenceCorrection licenceCorrection,
-      LicencePositionCorrection positionCorrection,
-      LicenceTimelineFilter filter
-  ) {
-    var licence = licenceCorrection.getLicence();
+  private static SelectedPosition stagedSelectedPosition(CorrectionPosition.Staged staged) {
+    var positionCorrection = staged.licencePositionCorrection();
     var payload = (CreateLicencePositionPayload) positionCorrection.getPayload();
 
-    var selectedPosition = new SelectedPosition(
-        CorrectionTimelineViewResolver.addedPositionId(positionCorrection),
+    return new SelectedPosition(
+        staged.positionId(),
         DateUtil.formatLongDate(payload.effectiveDate()),
         payload.correctionReference(),
-        PositionChangeUrlContext.forAddedPosition(licenceCorrection, positionCorrection),
+        PositionChangeUrlContext.forAddedPosition(staged.correction(), positionCorrection),
         new LicencePositionPageView.Actions(ReverseRouter.route(on(LicencePositionAddChangeController.class)
-            .renderForAddedPosition(licenceCorrection, positionCorrection))),
+            .renderForAddedPosition(staged.correction(), positionCorrection))),
         true
-    );
-
-    return getCorrectionPageView(
-        licenceCorrection,
-        licence,
-        getCorrectionPositions(licenceCorrection, licence),
-        selectedPosition,
-        filter
     );
   }
 

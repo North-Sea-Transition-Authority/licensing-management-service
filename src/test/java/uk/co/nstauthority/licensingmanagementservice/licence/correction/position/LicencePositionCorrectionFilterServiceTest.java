@@ -2,7 +2,6 @@ package uk.co.nstauthority.licensingmanagementservice.licence.correction.positio
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
-import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -10,9 +9,7 @@ import java.time.Month;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
-import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -25,11 +22,9 @@ import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.AddChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.RemoveChange;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.UpdateLicencePositionPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.AdministratorOperation;
@@ -47,7 +42,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.Lic
 import uk.co.nstauthority.licensingmanagementservice.licence.position.filter.LicenceTimelineFilter;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.filter.LicenceTimelineFilterOptions;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.transaction.LicenceTransactionTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @ExtendWith(MockitoExtension.class)
 class LicencePositionCorrectionFilterServiceTest {
@@ -142,16 +136,10 @@ class LicencePositionCorrectionFilterServiceTest {
         .thenReturn(List.of(changeOn(executed, 1, ADMINISTRATOR_OPERATION)));
     when(licencePositionCorrectionService.getPositionCorrections(correction))
         .thenReturn(List.of(addedPositionCorrection));
-    var addedPositionId = UUID.fromString(
-        ((CreateLicencePositionPayload) addedPositionCorrection.getPayload()).licencePositionId());
-    when(licencePositionCorrectionService.findFirstAddedPositionCorrection(correction, addedPositionId))
-        .thenReturn(Optional.of(addedPositionCorrection));
-
     var result = licencePositionCorrectionFilterService.getFilteredCorrectionTimeline(correction, organisationFilter(1));
 
     assertThat(result).isEqualTo(new FilteredCorrectionTimeline.LatestMatchingPosition(
-        ReverseRouter.route(on(LicenceCorrectionController.class)
-            .renderAddedPosition(correction, addedPositionCorrection, null))
+        LicencePositionCorrectionRouteUtil.getPositionPageUrl(correction, addedPositionCorrection.getPositionId())
     ));
   }
 
@@ -166,13 +154,11 @@ class LicencePositionCorrectionFilterServiceTest {
     when(licencePositionChangeService.findByLicencePositionIn(List.of(matching, later)))
         .thenReturn(List.of(changeOn(matching, 1, ADMINISTRATOR_OPERATION)));
     when(licencePositionCorrectionService.getPositionCorrections(correction)).thenReturn(List.of(laterAdded));
-    when(licencePositionCorrectionService.findFirstAddedPositionCorrection(correction, matching.getId()))
-        .thenReturn(Optional.empty());
 
     var result = licencePositionCorrectionFilterService.getFilteredCorrectionTimeline(correction, organisationFilter(1));
 
     assertThat(result).isEqualTo(new FilteredCorrectionTimeline.LatestMatchingPosition(
-        ReverseRouter.route(on(LicenceCorrectionController.class).renderLicencePosition(correction, matching, null))
+        LicencePositionCorrectionRouteUtil.getPositionPageUrl(correction, matching.getId())
     ));
   }
 

@@ -3,6 +3,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.correction.positio
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import java.time.LocalDate;
 import java.util.List;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
 
@@ -26,6 +27,10 @@ public sealed interface LicencePositionPayload permits CreateLicencePositionPayl
   String type();
 
   List<LicencePositionChangeType> changes();
+
+  LocalDate effectiveDate();
+
+  Integer effectiveDateOrder();
 
   default <T extends LicencePositionChangeType> List<T> changesOfType(Class<T> changeType) {
     return changes().stream()

@@ -13,7 +13,9 @@ public class LicencePositionCorrectionTestUtil {
   private LicenceCorrection licenceCorrection = LicenceCorrectionTestUtil.newBuilder().build();
   private LicencePositionCorrectionChangeType changeType = LicencePositionCorrectionChangeType.ADD_POSITION;
   private LicencePosition targetLicencePosition = LicencePositionTestUtil.newBuilder().build();
-  private LicencePositionPayload payload = LicencePositionPayload.newCreateLicencePositionPayload().build();
+  private LicencePositionPayload payload = LicencePositionPayload.newCreateLicencePositionPayload()
+      .withLicencePositionId(UUID.randomUUID().toString())
+      .build();
 
   public static LicencePositionCorrectionTestUtil newBuilder() {
     return new LicencePositionCorrectionTestUtil();

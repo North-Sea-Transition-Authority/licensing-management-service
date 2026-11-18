@@ -10,7 +10,6 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.UpdateLicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
@@ -98,8 +97,7 @@ final class CorrectionTimelineViewResolver {
 
     var timelineViewBuilder = LicencePositionTimelineView.builder()
         .withPositionId(position.id())
-        .withUrl(ReverseRouter.route(on(LicenceCorrectionController.class)
-            .renderLicencePosition(licenceCorrection, licencePosition, null)))
+        .withUrl(LicencePositionCorrectionRouteUtil.getPositionPageUrl(licenceCorrection, position.id()))
         .withRegulatorReference(position.reference())
         .withFormattedPositionDate(position.positionName())
         .withCorrectedInThisCorrection(hasPendingCorrection(correctedPayload) || movedAway)
@@ -131,8 +129,7 @@ final class CorrectionTimelineViewResolver {
   ) {
     var timelineViewBuilder = LicencePositionTimelineView.builder()
         .withPositionId(position.id())
-        .withUrl(ReverseRouter.route(on(LicenceCorrectionController.class)
-            .renderAddedPosition(licenceCorrection, addedCorrection, null)))
+        .withUrl(LicencePositionCorrectionRouteUtil.getPositionPageUrl(licenceCorrection, position.id()))
         .withRegulatorReference(position.reference())
         .withFormattedPositionDate(position.positionName())
         .withAddedInThisCorrection(true)

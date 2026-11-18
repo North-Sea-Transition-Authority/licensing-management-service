@@ -70,6 +70,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.continuation.Licenc
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionArgumentResolver;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectionPositionArgumentResolver;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectionPositionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionArgumentResolver;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionViewService;
@@ -155,6 +157,7 @@ import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.W
     LicencePositionIsNotRemovedInCorrectionRule.class,
     LicencePositionArgumentResolver.class,
     LicencePositionCorrectionArgumentResolver.class,
+    CorrectionPositionArgumentResolver.class,
     LicencePositionChangeArgumentResolver.class,
     LicencePositionBelongsToLicenceRule.class,
     LicencePositionBelongsToCorrectionLicenceRule.class,
@@ -255,6 +258,9 @@ public abstract class AbstractControllerTest {
 
   @MockitoBean
   protected LicencePositionCorrectionViewService licencePositionCorrectionViewService;
+
+  @MockitoBean
+  protected CorrectionPositionService correctionPositionService;
 
   @MockitoBean
   protected LicencePositionService licencePositionService;

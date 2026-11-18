@@ -505,6 +505,7 @@ class LicencePositionCorrectionServiceTest {
 
     assertThat(saved.getLicenceCorrection()).isEqualTo(LICENCE_CORRECTION);
     assertThat(saved.getTargetLicencePosition()).isEqualTo(LICENCE_POSITION);
+
     assertThat(saved.getChangeType()).isEqualTo(LicencePositionCorrectionChangeType.UPDATE_POSITION);
 
     assertThat(saved.getPayload()).isInstanceOf(UpdateLicencePositionPayload.class);
@@ -594,7 +595,6 @@ class LicencePositionCorrectionServiceTest {
     var payload = (UpdateLicencePositionPayload) licencePositionCorrectionCaptor.getValue().getPayload();
     assertThat(payload.effectiveDateOrder()).isEqualTo(5);
   }
-
 
   @Test
   void getOrderableSameDatePositions_whenPositionNotFound_returnsEmpty() {

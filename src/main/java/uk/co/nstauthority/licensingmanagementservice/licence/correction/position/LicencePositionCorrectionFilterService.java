@@ -71,12 +71,7 @@ public class LicencePositionCorrectionFilterService {
         .filter(matchingPositionIds::contains)
         .findFirst()
         .<FilteredCorrectionTimeline>map(positionId -> new FilteredCorrectionTimeline.LatestMatchingPosition(
-            LicencePositionCorrectionRouteUtil.getPositionPageUrl(
-                licenceCorrection,
-                positionId,
-                licencePositionCorrectionService.findFirstAddedPositionCorrection(licenceCorrection, positionId)
-                    .orElse(null)
-            )
+            LicencePositionCorrectionRouteUtil.getPositionPageUrl(licenceCorrection, positionId)
         ))
         .orElseGet(() -> new FilteredCorrectionTimeline.NoMatchingPositions(
             LicencePositionPageView.noMatchingPositions(

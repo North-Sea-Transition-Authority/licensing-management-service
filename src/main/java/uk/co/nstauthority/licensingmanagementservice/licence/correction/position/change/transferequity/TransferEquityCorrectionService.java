@@ -41,7 +41,7 @@ public class TransferEquityCorrectionService {
   private final OrganisationUnitQueryService organisationUnitQueryService;
   private final ChronologicalPositionService chronologicalPositionService;
 
-  public TransferEquityCorrectionService(
+  TransferEquityCorrectionService(
       LicencePositionCorrectionRepository licencePositionCorrectionRepository,
       LicencePositionCorrectionService licencePositionCorrectionService,
       OrganisationUnitQueryService organisationUnitQueryService,
@@ -196,27 +196,20 @@ public class TransferEquityCorrectionService {
   @Transactional
   public void addTransferEquity(CorrectionPosition correctionPosition, LicencePositionTransferEquityForm form) {
     switch (correctionPosition) {
-      case CorrectionPosition.Executed executed ->
-          addTransferEquityForExecutedPosition(executed.correction(), executed.licencePosition(), form);
-      case CorrectionPosition.Staged staged -> addTransferEquity(staged.licencePositionCorrection(), form);
+      case CorrectionPosition.Executed(LicenceCorrection correction, LicencePosition licencePosition) ->
+          addTransferEquityForExecutedPosition(correction, licencePosition, form);
+      case CorrectionPosition.Staged(LicencePositionCorrection licencePositionCorrection) ->
+          addTransferEquity(licencePositionCorrection, form);
     }
   }
 
   @Transactional
-  public void setTransferEquityRetention(
-      CorrectionPosition correctionPosition,
-      int index,
-      boolean retainsBeneficialInterest
-  ) {
+  public void setTransferEquityRetention(CorrectionPosition correctionPosition, int index, boolean retainsBeneficialInterest) {
     switch (correctionPosition) {
-      case CorrectionPosition.Executed executed -> setTransferEquityRetentionForExecutedPosition(
-          executed.correction(),
-          executed.licencePosition(),
-          index,
-          retainsBeneficialInterest
-      );
-      case CorrectionPosition.Staged staged ->
-          setTransferEquityRetention(staged.licencePositionCorrection(), index, retainsBeneficialInterest);
+      case CorrectionPosition.Executed(LicenceCorrection correction, LicencePosition licencePosition) ->
+          setTransferEquityRetentionForExecutedPosition(correction, licencePosition, index, retainsBeneficialInterest);
+      case CorrectionPosition.Staged(LicencePositionCorrection licencePositionCorrection) ->
+          setTransferEquityRetention(licencePositionCorrection, index, retainsBeneficialInterest);
     }
   }
 

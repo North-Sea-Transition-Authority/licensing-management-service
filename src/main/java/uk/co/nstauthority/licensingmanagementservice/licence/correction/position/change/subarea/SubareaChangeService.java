@@ -39,7 +39,7 @@ public class SubareaChangeService {
   private final CommandJourneyService commandJourneyService;
   private final SubareaSetEquityCorrectionService subareaSetEquityCorrectionService;
 
-  public SubareaChangeService(
+  SubareaChangeService(
       LicencePositionCorrectionService licencePositionCorrectionService,
       LicencePositionSpatialService licencePositionSpatialService,
       FeatureService featureService,
@@ -59,14 +59,11 @@ public class SubareaChangeService {
   @Transactional
   public LicencePositionCorrection commitSubareaChange(CorrectionPosition correctionPosition, UUID blockFeatureId) {
     return switch (correctionPosition) {
-      case CorrectionPosition.Executed executed -> commitSubareaChangeForExecutedPosition(
-          executed.correction(),
-          executed.licencePosition(),
-          blockFeatureId
-      );
-      case CorrectionPosition.Staged staged -> {
-        commitSubareaChange(staged.licencePositionCorrection(), blockFeatureId);
-        yield staged.licencePositionCorrection();
+      case CorrectionPosition.Executed(LicenceCorrection correction, LicencePosition licencePosition) ->
+          commitSubareaChangeForExecutedPosition(correction, licencePosition, blockFeatureId);
+      case CorrectionPosition.Staged(LicencePositionCorrection licencePositionCorrection) -> {
+        commitSubareaChange(licencePositionCorrection, blockFeatureId);
+        yield licencePositionCorrection;
       }
     };
   }

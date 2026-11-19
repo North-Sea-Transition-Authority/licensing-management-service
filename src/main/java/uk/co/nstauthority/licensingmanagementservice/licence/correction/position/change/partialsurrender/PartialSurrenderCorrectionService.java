@@ -60,7 +60,7 @@ public class PartialSurrenderCorrectionService {
   private final PartialSurrenderSubareaService partialSurrenderSubareaService;
   private final MergeOperatorService mergeOperatorService;
 
-  public PartialSurrenderCorrectionService(
+  PartialSurrenderCorrectionService(
       LicencePositionCorrectionService licencePositionCorrectionService,
       LicencePositionSpatialService licencePositionSpatialService,
       LicencePositionChangeService licencePositionChangeService,
@@ -146,9 +146,10 @@ public class PartialSurrenderCorrectionService {
       PartialSurrenderOperation operation
   ) {
     return switch (correctionPosition) {
-      case CorrectionPosition.Executed executed ->
-          commitPartialSurrenderForExecutedPosition(executed.correction(), executed.licencePosition(), operation);
-      case CorrectionPosition.Staged staged -> commitPartialSurrender(staged.licencePositionCorrection(), operation);
+      case CorrectionPosition.Executed(LicenceCorrection correction, LicencePosition licencePosition) ->
+          commitPartialSurrenderForExecutedPosition(correction, licencePosition, operation);
+      case CorrectionPosition.Staged(LicencePositionCorrection licencePositionCorrection) ->
+          commitPartialSurrender(licencePositionCorrection, operation);
     };
   }
 
@@ -169,9 +170,10 @@ public class PartialSurrenderCorrectionService {
   @Transactional
   public Optional<SingleBlockSurrender> stageSingleBlockSurrender(CorrectionPosition correctionPosition) {
     return switch (correctionPosition) {
-      case CorrectionPosition.Executed executed ->
-          stageSingleBlockSurrenderForExecutedPosition(executed.correction(), executed.licencePosition());
-      case CorrectionPosition.Staged staged -> stageSingleBlockSurrenderForAddedPosition(staged.licencePositionCorrection());
+      case CorrectionPosition.Executed(LicenceCorrection correction, LicencePosition licencePosition) ->
+          stageSingleBlockSurrenderForExecutedPosition(correction, licencePosition);
+      case CorrectionPosition.Staged(LicencePositionCorrection licencePositionCorrection) ->
+          stageSingleBlockSurrenderForAddedPosition(licencePositionCorrection);
     };
   }
 

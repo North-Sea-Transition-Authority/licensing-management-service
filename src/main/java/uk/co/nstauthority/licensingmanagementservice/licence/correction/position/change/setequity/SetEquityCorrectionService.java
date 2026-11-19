@@ -26,7 +26,7 @@ public class SetEquityCorrectionService {
     this.organisationUnitQueryService = organisationUnitQueryService;
   }
 
-  public List<SetEquityOperation> getCommittedSetEquityOperations(LicencePositionCorrection licencePositionCorrection) {
+  List<SetEquityOperation> getCommittedSetEquityOperations(LicencePositionCorrection licencePositionCorrection) {
     var changes = licencePositionCorrection.getPayload().changes();
     return licencePositionCorrectionService.getAddOperationsOfType(changes, SetEquityOperation.class);
   }
@@ -48,17 +48,19 @@ public class SetEquityCorrectionService {
 
   public List<SetEquityOperation> getCommittedSetEquityOperations(CorrectionPosition correctionPosition) {
     return switch (correctionPosition) {
-      case CorrectionPosition.Executed executed ->
-          getCommittedSetEquityOperationsForExecutedPosition(executed.correction(), executed.licencePosition());
-      case CorrectionPosition.Staged staged -> getCommittedSetEquityOperations(staged.licencePositionCorrection());
+      case CorrectionPosition.Executed(LicenceCorrection correction, LicencePosition licencePosition) ->
+          getCommittedSetEquityOperationsForExecutedPosition(correction, licencePosition);
+      case CorrectionPosition.Staged(LicencePositionCorrection licencePositionCorrection) ->
+          getCommittedSetEquityOperations(licencePositionCorrection);
     };
   }
 
   public void commitSetEquity(CorrectionPosition correctionPosition, List<SetEquityOperation> operations) {
     switch (correctionPosition) {
-      case CorrectionPosition.Executed executed ->
-          commitSetEquityForExecutedPosition(executed.correction(), executed.licencePosition(), operations);
-      case CorrectionPosition.Staged staged -> commitSetEquity(staged.licencePositionCorrection(), operations);
+      case CorrectionPosition.Executed(LicenceCorrection correction, LicencePosition licencePosition) ->
+          commitSetEquityForExecutedPosition(correction, licencePosition, operations);
+      case CorrectionPosition.Staged(LicencePositionCorrection licencePositionCorrection) ->
+          commitSetEquity(licencePositionCorrection, operations);
     }
   }
 
@@ -71,10 +73,7 @@ public class SetEquityCorrectionService {
         .orElse(List.of());
   }
 
-  public void commitSetEquity(
-      LicencePositionCorrection licencePositionCorrection,
-      List<SetEquityOperation> operations
-  ) {
+  void commitSetEquity(LicencePositionCorrection licencePositionCorrection, List<SetEquityOperation> operations) {
     licencePositionCorrectionService.replaceAddChangeFor(licencePositionCorrection, SetEquityOperation.class, operations);
   }
 

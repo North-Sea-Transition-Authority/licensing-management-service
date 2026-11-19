@@ -42,13 +42,10 @@ public class SubareaSetEquityCorrectionService {
       SubareaOption subareaOption
   ) {
     return switch (correctionPosition) {
-      case CorrectionPosition.Executed executed -> getCommittedSubareaSetEquityOperationsForExecutedPosition(
-          executed.correction(),
-          executed.licencePosition(),
-          subareaOption
-      );
-      case CorrectionPosition.Staged staged ->
-          getCommittedSubareaSetEquityOperations(staged.licencePositionCorrection(), subareaOption);
+      case CorrectionPosition.Executed(LicenceCorrection correction, LicencePosition licencePosition) ->
+          getCommittedSubareaSetEquityOperationsForExecutedPosition(correction, licencePosition, subareaOption);
+      case CorrectionPosition.Staged(LicencePositionCorrection licencePositionCorrection) ->
+          getCommittedSubareaSetEquityOperations(licencePositionCorrection, subareaOption);
     };
   }
 
@@ -59,14 +56,10 @@ public class SubareaSetEquityCorrectionService {
       List<SubareaSetEquityOperation> operations
   ) {
     switch (correctionPosition) {
-      case CorrectionPosition.Executed executed -> commitSubareaSetEquityForExecutedPosition(
-          executed.correction(),
-          executed.licencePosition(),
-          subareaOption,
-          operations
-      );
-      case CorrectionPosition.Staged staged ->
-          commitSubareaSetEquity(staged.licencePositionCorrection(), subareaOption, operations);
+      case CorrectionPosition.Executed(LicenceCorrection correction, LicencePosition licencePosition) ->
+          commitSubareaSetEquityForExecutedPosition(correction, licencePosition, subareaOption, operations);
+      case CorrectionPosition.Staged(LicencePositionCorrection licencePositionCorrection) ->
+          commitSubareaSetEquity(licencePositionCorrection, subareaOption, operations);
     }
   }
 

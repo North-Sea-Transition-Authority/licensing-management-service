@@ -50,11 +50,48 @@ All the URLs below are under `http://localhost:8080/lms`.
 Only one run can be active at a time. It works through the licences in batches of 10 in the
 background.
 
-## 4. Check the result
+## 4. Compare with PEARS
 
-- Migrated licences with issues, which should be none: `/migration/pears-schedules/compare?licences=all&issues=only`.
-- Add `&format=csv` for a CSV, or `&versions=all` to compare every version, not just the current one.
-- Compare particular licences: `/migration/pears-schedules/compare?licences=P1556,PL211`.
+`/migration/pears-schedules/compare` reads a licence's schedule from PEARS and from LMS and lists them
+side by side, event by event. It's read-only, so you can run it at any time.
+
+| Parameter | Values | Default |
+|---|---|---|
+| `licences` (required) | Licence references separated by commas, such as `P1556,PEDL236`, or `all` for every licence the migration wrote a schedule for | |
+| `versions` | `all`: every version, oldest first, each PEARS version against the LMS version migrated from it | PEARS's current version against LMS's active version |
+| `issues` | `only`: just the licences with an issue to look into | Every licence given |
+| `format` | `csv`: download the rows as `pears-schedule-comparison.csv` | A page |
+
+The parameters combine. For example:
+
+- After a run, list the migrated licences with an issue. It should list none:
+  `/migration/pears-schedules/compare?licences=all&issues=only`.
+- Look at one or two licences in full: `/migration/pears-schedules/compare?licences=P1556,PL211`.
+- Look at a licence's whole history: `/migration/pears-schedules/compare?licences=P1556&versions=all`.
+- Download every migrated licence for a spreadsheet:
+  `/migration/pears-schedules/compare?licences=all&format=csv`.
+
+An unknown option or licence reference gives a 400 that says which.
+
+**Reading the page.** Each licence lists its PEARS events and the LMS events they became, with a
+result for each row:
+
+| Result | Issue? | Means |
+|---|---|---|
+| Match | | Same event, date and value |
+| Dated from its offset | | PEARS's stored date is out of date (often a 1900s date); LMS's date, worked out from the offset, is the one compared |
+| Carried on | | A further LMS rate made from one PEARS yearly rate, where it carries on into a later term or phase |
+| No start date in PEARS | | The version has no start date in PEARS, so LMS's comes from another version |
+| No expiry in PEARS | | PEARS has no expiry event, so LMS has none either |
+| Not migrated | | An event the migration leaves out by its rules, or every event of a licence it doesn't migrate; the row says why |
+| Differs | Yes | The dates differ, by the number of days shown |
+| Value differs | Yes | Same event and date, different value (rate or percentage) |
+| Original event differs | Yes | LMS links the event to a different earlier version's event than the migration would |
+| Missing in LMS | Yes | A PEARS event with no LMS event |
+| LMS only | Yes | An LMS event with no PEARS event: added in LMS, or from another PEARS version |
+
+Rows with an issue are red, and "Not migrated" rows are yellow. A licence the migration doesn't
+migrate says why at the top, such as "No terms in PEARS".
 
 ## 5. Run it again
 

@@ -1722,6 +1722,7 @@ application, which already holds both connections (`pearsDataSource` and the LMS
 /migration/pears-schedules/compare?licences=P1234&versions=all   -> every version, oldest first
 /migration/pears-schedules/compare?licences=all                  -> every licence the migration wrote
 /migration/pears-schedules/compare?licences=all&issues=only      -> only the licences with issues
+/migration/pears-schedules/compare?licences=all&notMigrated=only -> only the licences with events not migrated
 ```
 
 `issues=only` (added 19 November 2026, after local testing) keeps the licences with a row to look
@@ -1730,6 +1731,10 @@ were compared. Rows not migrated on purpose don't count otherwise. The options c
 `&format=csv` for the issues as a download. Comparing every licence reads each one from PEARS in
 turn within the request, so on a full UAT run it may take minutes; the full-estate sweep is the
 validation test's job (step 9).
+
+`notMigrated=only` (added 20 November 2026) keeps the licences with an event not migrated (shaded
+yellow), such as the rates after the last term (Open question 16), to list them for the licensing
+team. With `issues=only` too, it keeps the licences with either.
 
 By default it compares the current PEARS version with the `ACTIVE` LMS detail. If PEARS has saved
 a version since the migration (as AL10 has on UAT), the table says which PEARS version the LMS

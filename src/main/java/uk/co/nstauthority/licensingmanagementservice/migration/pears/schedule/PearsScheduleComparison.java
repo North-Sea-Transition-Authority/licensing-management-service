@@ -44,6 +44,11 @@ public record PearsScheduleComparison(
         || versions.stream().flatMap(version -> version.rows().stream()).anyMatch(row -> row.result().isIssue());
   }
 
+  public boolean hasEventsNotMigrated() {
+    return versions.stream().flatMap(version -> version.rows().stream())
+        .anyMatch(row -> row.result() == Result.NOT_MIGRATED);
+  }
+
   public Map<Result, Integer> resultCounts() {
     var counts = new EnumMap<Result, Integer>(Result.class);
     versions.forEach(version -> version.rows().forEach(row -> counts.merge(row.result(), 1, Integer::sum)));

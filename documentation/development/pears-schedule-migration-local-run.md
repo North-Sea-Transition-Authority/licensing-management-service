@@ -59,13 +59,16 @@ side by side, event by event. It's read-only, so you can run it at any time.
 |---|---|---|
 | `licences` (required) | Licence references separated by commas, such as `P1556,PEDL236`, or `all` for every licence the migration wrote a schedule for | |
 | `versions` | `all`: every version, oldest first, each PEARS version against the LMS version migrated from it | PEARS's current version against LMS's active version |
-| `issues` | `only`: just the licences with an issue to look into | Every licence given |
+| `issues` | `only`: just the licences with an issue to look into (red rows) | Every licence given |
+| `notMigrated` | `only`: just the licences with an event not migrated (yellow rows). With `issues=only` too, the licences with either | Every licence given |
 | `format` | `csv`: download the rows as `pears-schedule-comparison.csv` | A page |
 
 The parameters combine. For example:
 
 - After a run, list the migrated licences with an issue. It should list none:
   `/migration/pears-schedules/compare?licences=all&issues=only`.
+- List the migrated licences with events the migration left out, such as rates after the last term:
+  `/migration/pears-schedules/compare?licences=all&notMigrated=only`.
 - Look at one or two licences in full: `/migration/pears-schedules/compare?licences=P1556,PL211`.
 - Look at a licence's whole history: `/migration/pears-schedules/compare?licences=P1556&versions=all`.
 - Download every migrated licence for a spreadsheet:

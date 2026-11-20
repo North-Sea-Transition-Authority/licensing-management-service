@@ -49,22 +49,32 @@ public class PearsScheduleComparisonController {
    * @param versions {@code all} for every version, oldest first; otherwise PEARS's current version against LMS's active
    *                 detail
    * @param issues   {@code only} for just the licences with an issue to look into
+   * @param notMigrated {@code only} for just the licences with an event not migrated (the yellow rows); with
+   *                    {@code issues}, the licences with either
    */
   @RequestMapping(method = {RequestMethod.GET, RequestMethod.POST})
   public ResponseEntity<String> compare(
       @RequestParam(required = false) @Nullable String licences,
       @RequestParam(required = false) @Nullable String format,
       @RequestParam(required = false) @Nullable String versions,
-      @RequestParam(required = false) @Nullable String issues
+      @RequestParam(required = false) @Nullable String issues,
+      @RequestParam(required = false) @Nullable String notMigrated
   ) {
     var csv = isOption(format, "csv");
     var allVersions = isOption(versions, ALL);
     var onlyIssues = isOption(issues, "only");
+    var onlyNotMigrated = isOption(notMigrated, "only");
     var everyMigratedLicence = licences != null && licences.trim().equalsIgnoreCase(ALL);
     var references = everyMigratedLicence ? comparisonService.migratedLicences() : licenceReferences(licences);
 
     var compared = comparisonService.compare(references, allVersions);
-    var comparisons = onlyIssues ? compared.stream().filter(PearsScheduleComparison::hasIssues).toList() : compared;
+    var filtered = onlyIssues || onlyNotMigrated;
+    var comparisons = filtered
+        ? compared.stream()
+            .filter(comparison -> (onlyIssues && comparison.hasIssues())
+                || (onlyNotMigrated && comparison.hasEventsNotMigrated()))
+            .toList()
+        : compared;
 
     if (csv) {
       return ResponseEntity.ok()
@@ -74,19 +84,27 @@ public class PearsScheduleComparisonController {
     }
     return ResponseEntity.ok()
         .contentType(new MediaType(MediaType.TEXT_HTML, StandardCharsets.UTF_8))
-        .body(PearsScheduleComparisonReport.html(comparisons, scope(compared, comparisons, onlyIssues)));
+        .body(PearsScheduleComparisonReport.html(comparisons, scope(compared, comparisons, onlyIssues, onlyNotMigrated)));
   }
 
   private static String scope(
       List<PearsScheduleComparison> compared,
       List<PearsScheduleComparison> shown,
-      boolean onlyIssues
+      boolean onlyIssues,
+      boolean onlyNotMigrated
   ) {
-    if (onlyIssues) {
-      return "%d licences compared, %d with issues to look into: only those are shown".formatted(
-          compared.size(), shown.size());
+    if (!onlyIssues && !onlyNotMigrated) {
+      return "%d licences compared".formatted(compared.size());
     }
-    return "%d licences compared".formatted(compared.size());
+    String kept;
+    if (onlyIssues && onlyNotMigrated) {
+      kept = "issues to look into or events not migrated";
+    } else if (onlyIssues) {
+      kept = "issues to look into";
+    } else {
+      kept = "events not migrated";
+    }
+    return "%d licences compared, %d with %s: only those are shown".formatted(compared.size(), shown.size(), kept);
   }
 
   /**

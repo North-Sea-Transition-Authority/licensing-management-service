@@ -35,7 +35,7 @@ import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 class PearsScheduleComparisonControllerTest extends AbstractControllerTest {
 
   private static final String ROUTE =
-      ReverseRouter.route(on(PearsScheduleComparisonController.class).compare(null, null, null, null));
+      ReverseRouter.route(on(PearsScheduleComparisonController.class).compare(null, null, null, null, null));
 
   private static final PearsScheduleComparison NOT_IN_LMS =
       PearsScheduleComparison.problem("P1556", "Not a licence in LMS");
@@ -44,6 +44,11 @@ class PearsScheduleComparisonControllerTest extends AbstractControllerTest {
       new PearsScheduleComparison.Version(1L, null, null, null, null, null, null, List.of(
           new PearsScheduleComparison.Row("Start", "Schedule start", null, null, null, null, null, null, null,
               PearsScheduleComparison.Result.MATCH, null)))));
+
+  private static final PearsScheduleComparison NOT_MIGRATED = new PearsScheduleComparison("P2000", null, null, List.of(
+      new PearsScheduleComparison.Version(1L, null, null, null, null, null, null, List.of(
+          new PearsScheduleComparison.Row("Rate", "Rate", null, null, null, null, null, null, null,
+              PearsScheduleComparison.Result.NOT_MIGRATED, "After the last term")))));
 
   @MockitoBean
   private PearsScheduleComparisonService comparisonService;
@@ -95,6 +100,43 @@ class PearsScheduleComparisonControllerTest extends AbstractControllerTest {
         .andExpect(status().isOk())
         .andExpect(content().string(Matchers.containsString("P1556,,,,Not a licence in LMS")))
         .andExpect(content().string(Matchers.not(Matchers.containsString("P1728"))));
+  }
+
+  @Test
+  void compare_withOnlyNotMigrated_showsJustTheLicencesWithEventsNotMigrated() throws Exception {
+    givenTheComparisons(NOT_IN_LMS, NO_ISSUES, NOT_MIGRATED);
+
+    mockMvc.perform(get(ROUTE).param("licences", "P1556,P1728,P2000").param("notMigrated", "only")
+            .with(user(regulatorUser)))
+        .andExpect(status().isOk())
+        .andExpect(content().string(Matchers.containsString(
+            "<p>3 licences compared, 1 with events not migrated: only those are shown</p>")))
+        .andExpect(content().string(Matchers.containsString("<h2>P2000</h2>")))
+        .andExpect(content().string(Matchers.not(Matchers.containsString("<h2>P1556</h2>"))))
+        .andExpect(content().string(Matchers.not(Matchers.containsString("<h2>P1728</h2>"))));
+  }
+
+  @Test
+  void compare_withOnlyIssuesAndOnlyNotMigrated_showsTheLicencesWithEither() throws Exception {
+    givenTheComparisons(NOT_IN_LMS, NO_ISSUES, NOT_MIGRATED);
+
+    mockMvc.perform(get(ROUTE).param("licences", "P1556,P1728,P2000").param("issues", "only")
+            .param("notMigrated", "only").with(user(regulatorUser)))
+        .andExpect(status().isOk())
+        .andExpect(content().string(Matchers.containsString(
+            "<p>3 licences compared, 2 with issues to look into or events not migrated: only those are shown</p>")))
+        .andExpect(content().string(Matchers.containsString("<h2>P1556</h2>")))
+        .andExpect(content().string(Matchers.containsString("<h2>P2000</h2>")))
+        .andExpect(content().string(Matchers.not(Matchers.containsString("<h2>P1728</h2>"))));
+  }
+
+  @Test
+  void compare_withANotMigratedOptionTheReportDoesNotHave_isABadRequest() throws Exception {
+    mockMvc.perform(get(ROUTE).param("licences", "P1556").param("notMigrated", "all").with(user(regulatorUser)))
+        .andExpect(status().isBadRequest())
+        .andExpect(content().string("all is not an option of the comparison report"));
+
+    verifyNoInteractions(comparisonService);
   }
 
   @Test

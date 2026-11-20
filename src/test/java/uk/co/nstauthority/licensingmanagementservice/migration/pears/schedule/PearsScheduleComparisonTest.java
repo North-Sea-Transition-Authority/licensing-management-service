@@ -30,6 +30,16 @@ class PearsScheduleComparisonTest {
     assertThat(PearsScheduleComparison.problem("P9999", "Not a licence in LMS").hasIssues()).isTrue();
   }
 
+  @Test
+  void hasEventsNotMigrated_whenARowIsNotMigrated_isTrue() {
+    assertThat(comparison(null, Result.MATCH, Result.NOT_MIGRATED).hasEventsNotMigrated()).isTrue();
+  }
+
+  @Test
+  void hasEventsNotMigrated_whenEveryRowIsMigrated_isFalse() {
+    assertThat(comparison(null, Result.MATCH, Result.CARRIED_ON, Result.MISSING_IN_LMS).hasEventsNotMigrated()).isFalse();
+  }
+
   private static PearsScheduleComparison comparison(String migrationFailure, Result... results) {
     var rows = List.of(results).stream()
         .map(result -> new Row("Rate", "Caption", 1, null, null, null, null, null, null, result, null))

@@ -2292,6 +2292,33 @@ planned with that work.
     where the NSTA has to decide the dates anyway. Any licence fixed by neither by the production run
     migrates as now, with the rates after its last term reported as not migrated.
 
+    **Prolongations (20 November 2026): to discuss with the NSTA.** The licences with no `E` are
+    not missing an expiry: at least some have been **prolonged indefinitely**. When a licence term is
+    prolonged by a Deed of Amendment and a Direction letter is issued, the licensing team deletes the
+    Licence Expiry event in PEARS (and on P312 the "End of 3rd Term" event too, "to remove implication
+    that 3rd Term ended at this point"), so the final term runs on with no end. Searching live current
+    schedules for comments starting "prolong" found such a note on **24 licences with no `E`**: P251,
+    P254, P312, P478, P491, P493, P496, P523, P534, P547, P558, P559, P566, P570, P590, P591, P598,
+    P606, P612, P622, P631, P666, P672 and P686 (Direction letters 2016 to 2025, mostly as 36-year
+    terms ended). The note is usually on a rate, as the deleted expiry can't hold it. The other 135 of
+    the 159 are older licences with the same shape, probably prolonged before such notes were kept.
+    Three licences with an `E` were prolonged for a fixed time instead (EXL250 by 5 years and EXL253 by
+    2, with `E` updated; PL199, which has no terms). So the rates after the last `T` on these licences
+    belong to the prolonged final term.
+
+    **Prolongations are to be built into LMS shortly.** Agree with the NSTA how the migration should
+    use them for these licences, for example:
+    - which licences are prolonged: the 24 with notes, all 159 with no `E`, or a list the licensing team
+      confirms;
+    - which term is prolonged and from when (the term after the last `T`, from the last `T`'s date,
+      or the date of the Deed of Amendment), and whether the migration records the prolongation or the
+      licensing team adds it in LMS after the migration;
+    - whether the rates after the last `T` then migrate into the prolonged term, which resolves this
+      question for the no-`E` licences without a PEARS fix or an invented end date;
+    - how the write-back shows a prolonged term to PEARS (with no `E`, as PEARS holds it today).
+
+    Pattern B (an `E` after the last `T`) is unaffected: option A or a PEARS fix still applies.
+
 ## Out of scope
 
 - The onshore retention area rate (`RETENTION_AREA_RATE`): unused in PEARS. Onshore schedules and

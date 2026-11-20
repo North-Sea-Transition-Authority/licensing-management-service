@@ -247,7 +247,6 @@ class LicencePositionLicenseeChangeControllerTest extends AbstractControllerTest
         .renderForExecutedPosition(CORRECTION, POSITION)))
         .with(user(regulatorUser)))
         .andExpectAll(
-
             status().isOk(),
             view().name(VIEW_NAME),
             model().attribute("previousLicenseeNames", LICENSEE_CHANGE_CONTEXT.previousLicenseeNames()),

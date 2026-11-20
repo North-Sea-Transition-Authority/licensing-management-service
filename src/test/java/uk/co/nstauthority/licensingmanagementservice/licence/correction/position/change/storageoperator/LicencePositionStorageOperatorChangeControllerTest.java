@@ -167,7 +167,6 @@ class LicencePositionStorageOperatorChangeControllerTest extends AbstractControl
   void submitForExecutedPosition_whenNotLoggedIn() throws Exception {
     mockMvc.perform(post(ReverseRouter.route(on(LicencePositionStorageOperatorChangeController.class)
             .submitForExecutedPosition(CORRECTION, POSITION, null, null, null)))
-
             .with(csrf()))
         .andExpect(redirectionToLoginUrl());
   }
@@ -267,7 +266,6 @@ class LicencePositionStorageOperatorChangeControllerTest extends AbstractControl
   void submitForAddedPosition_whenNotLoggedIn() throws Exception {
     mockMvc.perform(post(ReverseRouter.route(on(LicencePositionStorageOperatorChangeController.class)
             .renderForAddedPosition(CORRECTION, POSITION_CORRECTION)))
-
             .with(csrf()))
         .andExpect(redirectionToLoginUrl());
   }

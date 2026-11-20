@@ -89,7 +89,7 @@ public class LicencePositionAdministratorChangeController {
 
     return getAdministratorChangeModelAndView(
         form,
-        executedCancelUrl(correction, licencePosition),
+        LicencePositionCorrectionRouteUtil.getPositionPageUrl(correction, licencePosition.getId()),
         administratorChangeContext.previousName()
     );
   }
@@ -119,7 +119,7 @@ public class LicencePositionAdministratorChangeController {
     )) {
       return getAdministratorChangeModelAndView(
           form,
-          executedCancelUrl(correction, licencePosition),
+          LicencePositionCorrectionRouteUtil.getPositionPageUrl(correction, licencePosition.getId()),
           administratorChangeContext.previousName()
       );
     }
@@ -208,7 +208,7 @@ public class LicencePositionAdministratorChangeController {
     }
     return getAdministratorChangeModelAndView(
         form,
-        executedCancelUrl(correction, licencePosition),
+        LicencePositionCorrectionRouteUtil.getPositionPageUrl(correction, licencePosition.getId()),
         administratorChangeContext.previousName()
     );
   }
@@ -237,7 +237,7 @@ public class LicencePositionAdministratorChangeController {
     )) {
       return getAdministratorChangeModelAndView(
           form,
-          executedCancelUrl(correction, licencePosition),
+          LicencePositionCorrectionRouteUtil.getPositionPageUrl(correction, licencePosition.getId()),
           administratorChangeContext.previousName()
       );
     }
@@ -260,10 +260,6 @@ public class LicencePositionAdministratorChangeController {
     var payload = (CreateLicencePositionPayload) licencePositionCorrection.getPayload();
     return organisationChangeService
         .getOrganisationChangeContext(correction, UUID.fromString(payload.licencePositionId()), AdministratorOperation.class);
-  }
-
-  private String executedCancelUrl(LicenceCorrection correction, LicencePosition licencePosition) {
-    return LicencePositionCorrectionRouteUtil.getPositionPageUrl(correction, licencePosition.getId());
   }
 
   private Map<String, String> preselectedAdministrator(AdministratorChangeForm form) {

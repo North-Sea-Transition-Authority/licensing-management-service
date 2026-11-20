@@ -18,4 +18,13 @@ public record UploadDspFileUsage(
         "final-decision-support-paper"
     );
   }
+
+  public static UploadDspFileUsage supersededFromApplication(
+      ScheduleWorkProgrammeApplicationDetail applicationDetail) {
+    return new UploadDspFileUsage(
+        applicationDetail.getId().toString(),
+        FileUsageType.FINAL_DECISION_SUPPORT_PAPER.getUsageType(),
+        "superseded-final-decision-support-paper"
+    );
+  }
 }

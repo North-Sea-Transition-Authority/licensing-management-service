@@ -72,6 +72,13 @@ public class ApplicationFileService {
     uploadedFiles.forEach(fileService::delete);
   }
 
+  @Transactional
+  public List<UploadedFile> moveFiles(ApplicationFileUsage from, ApplicationFileUsage to) {
+    var uploadedFiles = getUploadedFiles(from);
+    uploadedFiles.forEach(uploadedFile -> fileService.updateUsage(uploadedFile, builder -> buildFileUsage(builder, to)));
+    return uploadedFiles;
+  }
+
   public List<UploadedFileForm> getUploadedFileForms(Collection<UUID> fileIds) {
     return fileService
         .findAll(fileIds)

@@ -29,6 +29,7 @@ import uk.co.nstauthority.licensingmanagementservice.caseevent.payload.CaseAlloc
 import uk.co.nstauthority.licensingmanagementservice.caseevent.payload.CaseNotePayload;
 import uk.co.nstauthority.licensingmanagementservice.caseevent.payload.CaseUpdateRequestPayload;
 import uk.co.nstauthority.licensingmanagementservice.caseevent.payload.CaseUpdateSubmittedPayload;
+import uk.co.nstauthority.licensingmanagementservice.caseevent.payload.DspCorrectedPayload;
 import uk.co.nstauthority.licensingmanagementservice.caseevent.payload.DspUploadedPayload;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserService;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.WebUserAccountId;
@@ -414,6 +415,56 @@ class CaseEventServiceTest {
         .thenReturn(List.of(dspUploadedEvent, submittedEvent));
 
     assertThat(caseEventService.isFileOnApplicationEvent(UUID.randomUUID(), application)).isFalse();
+  }
+
+  @Test
+  void getCaseEventViews_whenDspCorrectedEvent_thenShowsReplacedThenCorrectedFiles() {
+    var eventInstant = Instant.parse("2026-09-24T12:00:00Z");
+    var replacedFile = ApplicationFileTestUtil.createUploadFile();
+    var correctedFile = ApplicationFileTestUtil.createUploadFile();
+    var dspCorrectedEvent = new CaseEvent(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION, APPLICATION_ID,
+        CaseEventType.DSP_CORRECTED, eventInstant, new CaseEventUser(10L, null, false),
+        new DspCorrectedPayload(List.of(replacedFile.getId()), List.of(correctedFile.getId())));
+
+    when(caseEventRepository.findByApplicationTypeAndApplicationIdOrderByEventInstantDesc(
+        ApplicationType.SCHEDULE_AMENDMENT_APPLICATION, APPLICATION_ID))
+        .thenReturn(List.of(dspCorrectedEvent));
+    stubCaseManagerUser();
+    when(fileService.findAll(List.of(replacedFile.getId(), correctedFile.getId())))
+        .thenReturn(List.of(correctedFile, replacedFile));
+
+    var result = caseEventService.getCaseEventViews(application, fileId -> "/download/" + fileId);
+
+    assertThat(result).containsExactly(
+        new CaseEventView(
+            CaseEventType.DSP_CORRECTED,
+            Map.of(),
+            Map.of(
+                CaseEventService.REPLACED_DSP_KEY,
+                List.of(UploadedFileView.from(replacedFile, "/download/" + replacedFile.getId())),
+                CaseEventService.CORRECTED_DSP_KEY,
+                List.of(UploadedFileView.from(correctedFile, "/download/" + correctedFile.getId()))
+            ),
+            "Case Manager (case.manager@example.com)",
+            eventInstant
+        )
+    );
+    assertThat(result.get(0).files().keySet())
+        .containsExactly(CaseEventService.REPLACED_DSP_KEY, CaseEventService.CORRECTED_DSP_KEY);
+  }
+
+  @Test
+  void isFileOnApplicationEvent_whenTheFileWasReplacedByACorrection_thenTrue() {
+    var replacedFileId = UUID.randomUUID();
+    var dspCorrectedEvent = new CaseEvent(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION, APPLICATION_ID,
+        CaseEventType.DSP_CORRECTED, Instant.parse("2026-09-24T12:00:00Z"), new CaseEventUser(10L, null, false),
+        new DspCorrectedPayload(List.of(replacedFileId), List.of(UUID.randomUUID())));
+
+    when(caseEventRepository.findByApplicationTypeAndApplicationIdOrderByEventInstantDesc(
+        ApplicationType.SCHEDULE_AMENDMENT_APPLICATION, APPLICATION_ID))
+        .thenReturn(List.of(dspCorrectedEvent));
+
+    assertThat(caseEventService.isFileOnApplicationEvent(replacedFileId, application)).isTrue();
   }
 
   private void stubCaseManagerUser() {

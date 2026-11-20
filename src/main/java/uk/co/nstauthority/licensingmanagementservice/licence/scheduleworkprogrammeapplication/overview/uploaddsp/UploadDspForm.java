@@ -8,6 +8,7 @@ import uk.co.fivium.formlibrary.input.ThreeFieldDateInput;
 public class UploadDspForm {
 
   private ThreeFieldDateInput decisionDate = new ThreeFieldDateInput("decisionDate", "decision date");
+  private UploadDspAction dspAction;
   private List<UploadedFileForm> finalDecisionSupportPapers = new ArrayList<>();
 
   public ThreeFieldDateInput getDecisionDate() {
@@ -16,6 +17,14 @@ public class UploadDspForm {
 
   public void setDecisionDate(ThreeFieldDateInput decisionDate) {
     this.decisionDate = decisionDate;
+  }
+
+  public UploadDspAction getDspAction() {
+    return dspAction;
+  }
+
+  public void setDspAction(UploadDspAction dspAction) {
+    this.dspAction = dspAction;
   }
 
   public List<UploadedFileForm> getFinalDecisionSupportPapers() {

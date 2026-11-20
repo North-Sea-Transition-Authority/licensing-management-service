@@ -64,11 +64,13 @@ public class ScheduleWorkProgrammeApplicationActionService {
           )
           .allowWhenDraftUpdateOpen(true)
         .registerAction(ScheduleWorkProgrammeApplicationActionItem.UPLOAD_DSP)
-          .requiresAnyStatusFrom(ApplicationStatus.SUBMITTED)
+          .requiresAnyStatusFrom(
+              ApplicationStatus.SUBMITTED, ApplicationStatus.DSP_UPLOADED, ApplicationStatus.DRAFT_DECISION)
           .requiresAnyRoleFrom(detail -> StreamUtil.toSet(caseManagerRole(detail)))
             .orGrantedToUser(detail -> detail.getScheduleWorkProgrammeApplication().getStewardWuaId())
           .isPrimaryButton((detail, userRoles) ->
-              hasRole(stewardRole(detail), userRoles)
+              detail.getStatus() == ApplicationStatus.SUBMITTED
+              && hasRole(stewardRole(detail), userRoles)
               && stewardIsAllocated(detail)
           )
           .allowWhenDraftUpdateOpen(false)

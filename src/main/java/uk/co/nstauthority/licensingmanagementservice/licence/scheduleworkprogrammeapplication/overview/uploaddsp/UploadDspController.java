@@ -30,7 +30,8 @@ import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 @Controller
 @RequestMapping(
     "licence/schedule-work-programme-application/{scheduleWorkProgrammeApplicationDetailId}/upload-dsp")
-@ScheduleAmendmentApplicationHasStatus(ApplicationStatus.SUBMITTED)
+@ScheduleAmendmentApplicationHasStatus({
+    ApplicationStatus.SUBMITTED, ApplicationStatus.DSP_UPLOADED, ApplicationStatus.DRAFT_DECISION})
 @InvokingUserCanAccessScheduleApplication
 @ScheduleWorkProgrammeApplicationActionEndPointInterceptorRule.ActionEndPoint(
     ScheduleWorkProgrammeApplicationActionItem.UPLOAD_DSP)
@@ -57,7 +58,9 @@ public class UploadDspController {
       @PathVariable UUID scheduleWorkProgrammeApplicationDetailId,
       ScheduleWorkProgrammeApplicationDetail applicationDetail
   ) {
-    var form = uploadDspService.getFormForApplication(applicationDetail);
+    var form = isCorrection(applicationDetail)
+        ? new UploadDspForm()
+        : uploadDspService.getFormForApplication(applicationDetail);
     return getModelAndView(applicationDetail, form);
   }
 
@@ -69,15 +72,23 @@ public class UploadDspController {
       BindingResult bindingResult,
       RedirectAttributes redirectAttributes
   ) {
-    if (!uploadDspFormValidator.isValid(form, bindingResult)) {
+    var correction = isCorrection(applicationDetail);
+    var valid = correction
+        ? uploadDspFormValidator.isValidCorrection(form, bindingResult)
+        : uploadDspFormValidator.isValid(form, bindingResult);
+    if (!valid) {
       return getModelAndView(applicationDetail, form);
     }
 
-    uploadDspService.uploadDsp(applicationDetail, form);
+    if (correction) {
+      uploadDspService.correctDsp(applicationDetail, form);
+    } else {
+      uploadDspService.uploadDsp(applicationDetail, form);
+    }
 
     var applicationReference = applicationDetail.getScheduleWorkProgrammeApplication().getApplicationReference();
     NotificationBanner.newSuccessBanner()
-        .withHeadingContent(String.format("DSP uploaded on %s", applicationReference))
+        .withHeadingContent(String.format("DSP %s on %s", correction ? "corrected" : "uploaded", applicationReference))
         .applyTo(redirectAttributes);
 
     return ReverseRouter.redirect(on(ScheduleWorkProgrammeApplicationOverviewController.class)
@@ -105,11 +116,7 @@ public class UploadDspController {
       ScheduleWorkProgrammeApplicationDetail applicationDetail,
       ServiceUserDetail userDetail
   ) {
-    return fileControllerHelperService.delete(
-        fileId,
-        () -> UploadDspFileUsage.fromApplication(applicationDetail),
-        userDetail
-    );
+    return fileControllerHelperService.deleteUnlinked(fileId, userDetail);
   }
 
   private ModelAndView getModelAndView(
@@ -126,12 +133,24 @@ public class UploadDspController {
         "form.finalDecisionSupportPapers"
     );
 
-    return new ModelAndView("lms/licence/scheduleWorkProgrammeApplication/uploadDsp")
+    var modelAndView = new ModelAndView("lms/licence/scheduleWorkProgrammeApplication/uploadDsp")
         .addObject("pageTitle", PAGE_TITLE)
         .addObject("caption", licence.getType().getDisplayName())
         .addObject("form", form)
         .addObject("fileUploadAttributes", fileUploadAttributes)
         .addObject("backUrl", ReverseRouter.route(on(ScheduleWorkProgrammeApplicationOverviewController.class)
             .renderOverview(applicationDetail.getId(), null, null, null)));
+
+    if (isCorrection(applicationDetail)) {
+      modelAndView
+          .addObject("currentDsp", uploadDspService.getCurrentDsp(applicationDetail))
+          .addObject("dspActionOptions", UploadDspAction.getOptionsWithHintText());
+    }
+    return modelAndView;
+  }
+
+  // SUBMITTED is the only allowed status without a DSP, so anything else is a correction.
+  private static boolean isCorrection(ScheduleWorkProgrammeApplicationDetail applicationDetail) {
+    return applicationDetail.getStatus() != ApplicationStatus.SUBMITTED;
   }
 }

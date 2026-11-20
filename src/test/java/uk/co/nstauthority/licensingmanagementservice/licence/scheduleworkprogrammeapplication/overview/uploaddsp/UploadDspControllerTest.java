@@ -1,14 +1,17 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overview.uploaddsp;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -22,10 +25,12 @@ import java.util.UUID;
 import java.util.function.Function;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.validation.Errors;
 import uk.co.fivium.fileuploadlibrary.fds.FileUploadComponentAttributes;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
+import uk.co.fivium.fileuploadlibrary.fds.FileDeleteResponse;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.InvokingUserCanAccessScheduleApplication;
@@ -70,7 +75,7 @@ class UploadDspControllerTest extends AbstractControllerTest {
         .hasAnnotation(InvokingUserCanAccessScheduleApplication.class)
         .hasAnnotation(ScheduleWorkProgrammeApplicationActionEndPointInterceptorRule.ActionEndPoint.class);
     assertThat(UploadDspController.class.getAnnotation(ScheduleAmendmentApplicationHasStatus.class).value())
-        .containsOnly(ApplicationStatus.SUBMITTED);
+        .containsOnly(ApplicationStatus.SUBMITTED, ApplicationStatus.DSP_UPLOADED, ApplicationStatus.DRAFT_DECISION);
     assertThat(UploadDspController.class
         .getAnnotation(ScheduleWorkProgrammeApplicationActionEndPointInterceptorRule.ActionEndPoint.class).value())
         .containsOnly(ScheduleWorkProgrammeApplicationActionItem.UPLOAD_DSP);
@@ -161,6 +166,70 @@ class UploadDspControllerTest extends AbstractControllerTest {
   }
 
   @Test
+  void render_whenDspUploaded_showsCurrentDspWithEmptyForm() throws Exception {
+    var applicationDetailId = UUID.randomUUID();
+    var applicationDetail = buildApplicationDetail(applicationDetailId, ApplicationStatus.DSP_UPLOADED);
+    var currentDsp = new CurrentDspView("15 March 2024", List.of(), "Jane Smith, 16 March 2024 10:15");
+
+    setupPassingInterceptors(applicationDetail);
+    when(uploadDspService.getCurrentDsp(applicationDetail)).thenReturn(currentDsp);
+    mockFileUploadComponentAttributes();
+
+    mockMvc.perform(
+            get(ReverseRouter.route(on(UploadDspController.class).render(applicationDetailId, null)))
+                .with(user(USER))
+        )
+        .andExpect(status().isOk())
+        .andExpect(view().name("lms/licence/scheduleWorkProgrammeApplication/uploadDsp"))
+        .andExpect(model().attribute("currentDsp", currentDsp))
+        .andExpect(model().attribute("dspActionOptions", UploadDspAction.getOptionsWithHintText()))
+        .andExpect(content().string(containsString(UploadDspAction.CORRECT.getDisplayName())))
+        .andExpect(content().string(containsString(UploadDspAction.CORRECT.getDescription())));
+  }
+
+  @Test
+  void save_whenDspUploadedAndValid_correctsDspAndRedirectsToOverview() throws Exception {
+    var applicationDetailId = UUID.randomUUID();
+    var applicationDetail = buildApplicationDetail(applicationDetailId, ApplicationStatus.DSP_UPLOADED);
+
+    setupPassingInterceptors(applicationDetail);
+    when(uploadDspFormValidator.isValidCorrection(any(UploadDspForm.class), any(Errors.class)))
+        .thenReturn(true);
+
+    mockMvc.perform(
+            post(ReverseRouter.route(on(UploadDspController.class)
+                .save(applicationDetailId, null, null, null, null)))
+                .with(user(USER))
+                .with(csrf())
+        )
+        .andExpect(status().is3xxRedirection())
+        .andExpect(redirectedUrl(ReverseRouter.route(on(ScheduleWorkProgrammeApplicationOverviewController.class)
+            .renderOverview(applicationDetailId, null, null, null))));
+
+    verify(uploadDspService).correctDsp(eq(applicationDetail), any(UploadDspForm.class));
+  }
+
+  @Test
+  void save_whenDspUploadedAndInvalid_returnsForm() throws Exception {
+    var applicationDetailId = UUID.randomUUID();
+    var applicationDetail = buildApplicationDetail(applicationDetailId, ApplicationStatus.DSP_UPLOADED);
+
+    setupPassingInterceptors(applicationDetail);
+    when(uploadDspFormValidator.isValidCorrection(any(UploadDspForm.class), any(Errors.class)))
+        .thenReturn(false);
+    mockFileUploadComponentAttributes();
+
+    mockMvc.perform(
+            post(ReverseRouter.route(on(UploadDspController.class)
+                .save(applicationDetailId, null, null, null, null)))
+                .with(user(USER))
+                .with(csrf())
+        )
+        .andExpect(status().isOk())
+        .andExpect(view().name("lms/licence/scheduleWorkProgrammeApplication/uploadDsp"));
+  }
+
+  @Test
   void save_invalidForm_returnsForm() throws Exception {
     var applicationDetailId = UUID.randomUUID();
     var applicationDetail = buildApplicationDetail(applicationDetailId);
@@ -180,19 +249,45 @@ class UploadDspControllerTest extends AbstractControllerTest {
         .andExpect(view().name("lms/licence/scheduleWorkProgrammeApplication/uploadDsp"));
   }
 
+  @Test
+  void deleteFile_delegatesToDeleteUnlinked() throws Exception {
+    var applicationDetailId = UUID.randomUUID();
+    var fileId = UUID.randomUUID();
+    var applicationDetail = buildApplicationDetail(applicationDetailId, ApplicationStatus.DSP_UPLOADED);
+
+    setupPassingInterceptors(applicationDetail);
+    when(fileControllerHelperService.deleteUnlinked(eq(fileId), any(ServiceUserDetail.class)))
+        .thenReturn(ResponseEntity.ok(FileDeleteResponse.success(fileId)));
+
+    mockMvc.perform(
+            post(ReverseRouter.route(on(UploadDspController.class).deleteFile(fileId, applicationDetailId, null, null)))
+                .with(user(USER))
+                .with(csrf())
+        )
+        .andExpect(status().isOk());
+
+  }
+
   private void mockFileUploadComponentAttributes() {
     when(fileControllerHelperService.fileUploadComponentAttributes(anyList(), any(Class.class), any(Function.class), any(Function.class), any(String.class)))
         .thenReturn(FILE_UPLOAD_ATTRIBUTES);
   }
 
   private ScheduleWorkProgrammeApplicationDetail buildApplicationDetail(UUID applicationDetailId) {
+    return buildApplicationDetail(applicationDetailId, ApplicationStatus.SUBMITTED);
+  }
+
+  private ScheduleWorkProgrammeApplicationDetail buildApplicationDetail(
+      UUID applicationDetailId,
+      ApplicationStatus status
+  ) {
     var licence = createLicence();
     var licenceSchedule = LicenceScheduleTestUtil.createLicenceSchedule(licence);
     var licenceScheduleDetail = LicenceScheduleTestUtil.createLicenceScheduleDetail(licenceSchedule);
     var swpApp = ScheduleWorkProgrammeApplicationDetailTestUtil.createScheduleWorkProgrammeApplication(licenceScheduleDetail);
     return ScheduleWorkProgrammeApplicationDetailTestUtil.builder()
         .withId(applicationDetailId)
-        .withStatus(ApplicationStatus.SUBMITTED)
+        .withStatus(status)
         .withScheduleWorkProgrammeApplication(swpApp)
         .build();
   }

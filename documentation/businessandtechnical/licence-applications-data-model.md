@@ -171,7 +171,7 @@ types:
 |---|---|---|
 | `DRAFT` | Being built by the licensee. Not visible to the regulator. | Yes |
 | `SUBMITTED` | Submitted to the NSTA and under assessment. | Yes |
-| `DSP_UPLOADED` | The signed decision support paper has been uploaded; the application is ready for a decision to be recorded. | Yes |
+| `DSP_UPLOADED` | The signed decision support paper has been uploaded; the application is ready for a decision to be recorded. The paper can still be replaced in this status and in `DRAFT_DECISION` (see below). | Yes |
 | `DRAFT_DECISION` | A regulator has started recording the decision but has not yet submitted it. See `application-decisions-data-model.md`. | Yes |
 | `ISSUE_DECISION` | A decision has been recorded and the decision letter is being prepared or issued. | Yes |
 | `COMPLETE` | The decision letter has been issued. | Yes |
@@ -204,6 +204,17 @@ types:
                   ▼
                COMPLETE
 ```
+
+**Correcting a DSP.** While an extension and amendment application detail is in `DSP_UPLOADED`
+or `DRAFT_DECISION` the uploaded DSP can be replaced, for example when the wrong document was
+uploaded. The replacement does not move the status, so the row stays in its current status, and
+it does not change `decision_date` or any recorded decision answer. The replaced file is kept
+and re-filed as superseded (section 10), and the corrected file is filed in its place, so there
+is only ever one current DSP. A "DSP corrected" case event
+(`case_events.event_type = 'DSP_CORRECTED'`) is recorded against the application, attributed to
+the user who made the correction. Its payload is JSON with `type` `dsp-corrected`, `replacedFileIds`
+and `correctedFileIds`, and the case events tab shows each file as a download link. Once the
+decision has been submitted (`ISSUE_DECISION`) the DSP can no longer be replaced.
 
 **The two families do not use the same portion of this lifecycle.**
 
@@ -858,6 +869,10 @@ LMS. The mapping is:
 
 These five are the only usage types LMS writes. Historic rows may still carry a usage type no
 longer in the list.
+
+A final decision support paper that a correction has replaced keeps its usage id and usage type
+but has `document_type` `superseded-final-decision-support-paper`; the current one has
+`document_type` `final-decision-support-paper`.
 
 Files filed under an application **detail** id for supporting documents and continuation
 other requirement documents are copied, not moved, when a new detail version is created (see

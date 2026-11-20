@@ -121,6 +121,14 @@ public class FileControllerHelperService {
     );
   }
 
+  public ResponseEntity<FileDeleteResponse> deleteUnlinked(UUID fileId, ServiceUserDetail userDetail) {
+    return fileService.find(fileId)
+        .filter(file -> !applicationFileService.doesFileHaveUsage(file)
+            && applicationFileService.fileBelongsToUser(file, userDetail))
+        .map(file -> ResponseEntity.ok(fileService.delete(file)))
+        .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).build());
+  }
+
   <T> ResponseEntity<T> findFileAndThen(
       UUID fileId,
       Supplier<ApplicationFileUsage> usageSupplier,

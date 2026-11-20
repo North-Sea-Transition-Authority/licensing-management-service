@@ -21,6 +21,7 @@ import uk.co.nstauthority.licensingmanagementservice.caseevent.payload.CaseEvent
 import uk.co.nstauthority.licensingmanagementservice.caseevent.payload.CaseNotePayload;
 import uk.co.nstauthority.licensingmanagementservice.caseevent.payload.CaseUpdateRequestPayload;
 import uk.co.nstauthority.licensingmanagementservice.caseevent.payload.CaseUpdateSubmittedPayload;
+import uk.co.nstauthority.licensingmanagementservice.caseevent.payload.DspCorrectedPayload;
 import uk.co.nstauthority.licensingmanagementservice.caseevent.payload.DspUploadedPayload;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserJson;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserService;
@@ -39,6 +40,8 @@ public class CaseEventService {
   static final String UPDATE_DEADLINE_KEY = "Update deadline";
   static final String VERSION_KEY = "Version";
   static final String DSP_KEY = "DSP";
+  static final String REPLACED_DSP_KEY = "Replaced DSP";
+  static final String CORRECTED_DSP_KEY = "Corrected DSP";
 
   private final CaseEventRepository caseEventRepository;
   private final UserDetailService userDetailService;
@@ -137,6 +140,12 @@ public class CaseEventService {
   private static Map<String, List<UUID>> getFileIdsByLabel(CaseEventPayload payload) {
     return switch (payload) {
       case DspUploadedPayload(var fileIds) -> Map.of(DSP_KEY, fileIds);
+      case DspCorrectedPayload(var replacedFileIds, var correctedFileIds) -> {
+        var fileIdsByLabel = new LinkedHashMap<String, List<UUID>>();
+        fileIdsByLabel.put(REPLACED_DSP_KEY, replacedFileIds);
+        fileIdsByLabel.put(CORRECTED_DSP_KEY, correctedFileIds);
+        yield fileIdsByLabel;
+      }
       case CaseNotePayload ignored -> Map.of();
       case CaseAllocationPayload ignored -> Map.of();
       case CaseUpdateRequestPayload ignored -> Map.of();

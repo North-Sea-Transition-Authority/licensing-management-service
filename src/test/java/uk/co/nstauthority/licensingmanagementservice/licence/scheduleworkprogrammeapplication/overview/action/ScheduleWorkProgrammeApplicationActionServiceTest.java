@@ -170,6 +170,47 @@ class ScheduleWorkProgrammeApplicationActionServiceTest {
   }
 
   @Test
+  void getAvailableUserActionItems_uploadDsp_availableAsSecondaryWhenCaseManagerAndDspUploaded() {
+    var applicationDetail = ScheduleWorkProgrammeApplicationDetailTestUtil.builder()
+        .withId(UUID.randomUUID())
+        .withStatus(ApplicationStatus.DSP_UPLOADED)
+        .withLicenceType(LicenceType.CARBON_STORAGE)
+        .build();
+
+    var teamRole = TeamRoleTestUtil.newBuilder()
+        .withRole(Role.CASE_MANAGER_CARBON_STORAGE)
+        .withTeam(new Team())
+        .withWuaId(USER_WUA_ID)
+        .build();
+
+    when(teamQueryService.getTeamRolesForUser(USER_WUA_ID)).thenReturn(Set.of(teamRole));
+
+    assertThat(scheduleWorkProgrammeApplicationActionService.getAvailableUserActionItems(applicationDetail, serviceUserDetail))
+        .contains(ScheduleWorkProgrammeApplicationActionItem.UPLOAD_DSP.toActionItemView(applicationDetail, false));
+  }
+
+  @Test
+  void getAvailableUserActionItems_uploadDsp_notPrimaryForAllocatedStewardWhenDspUploaded() {
+    var applicationDetail = ScheduleWorkProgrammeApplicationDetailTestUtil.builder()
+        .withId(UUID.randomUUID())
+        .withStatus(ApplicationStatus.DSP_UPLOADED)
+        .withLicenceType(LicenceType.SEAWARD_PRODUCTION)
+        .build();
+    applicationDetail.getScheduleWorkProgrammeApplication().setStewardWuaId(USER_WUA_ID);
+
+    var teamRole = TeamRoleTestUtil.newBuilder()
+        .withRole(Role.STEWARD_OFFSHORE)
+        .withTeam(new Team())
+        .withWuaId(USER_WUA_ID)
+        .build();
+
+    when(teamQueryService.getTeamRolesForUser(USER_WUA_ID)).thenReturn(Set.of(teamRole));
+
+    assertThat(scheduleWorkProgrammeApplicationActionService.getAvailableUserActionItems(applicationDetail, serviceUserDetail))
+        .contains(ScheduleWorkProgrammeApplicationActionItem.UPLOAD_DSP.toActionItemView(applicationDetail, false));
+  }
+
+  @Test
   void getAvailableUserActionItems_uploadDsp_notAvailableWhenNotCaseManagerAndNotAllocatedSteward() {
     var applicationDetail = ScheduleWorkProgrammeApplicationDetailTestUtil.builder()
         .withId(UUID.randomUUID())
@@ -290,7 +331,7 @@ class ScheduleWorkProgrammeApplicationActionServiceTest {
   }
 
   @Test
-  void getAvailableUserActionItems_whenCaseManagerAndDraftDecision_thenResumeDraftDecisionReplacesRecordDecision() {
+  void getAvailableUserActionItems_whenCaseManagerAndDraftDecision_thenUploadDspAndResumeDraftDecisionAvailable() {
     var applicationDetail = ScheduleWorkProgrammeApplicationDetailTestUtil.builder()
         .withId(UUID.randomUUID())
         .withStatus(ApplicationStatus.DRAFT_DECISION)
@@ -307,6 +348,7 @@ class ScheduleWorkProgrammeApplicationActionServiceTest {
 
     assertThat(scheduleWorkProgrammeApplicationActionService.getAvailableUserActionItems(applicationDetail, serviceUserDetail))
         .containsExactly(
+            ScheduleWorkProgrammeApplicationActionItem.UPLOAD_DSP.toActionItemView(applicationDetail, false),
             ScheduleWorkProgrammeApplicationActionItem.RESUME_DRAFT_DECISION.toActionItemView(applicationDetail, true));
   }
 

@@ -276,6 +276,66 @@ class FileControllerHelperServiceTest {
   }
 
   @Test
+  void deleteUnlinked_whenFileHasUsage_thenNotFoundAndNotDeleted() {
+    var fileId = UUID.randomUUID();
+    var userDetail = ServiceUserDetailTestUtil.newBuilder().build();
+    var uploadedFile = new UploadedFile();
+
+    when(fileService.find(fileId)).thenReturn(Optional.of(uploadedFile));
+    when(applicationFileService.doesFileHaveUsage(uploadedFile)).thenReturn(true);
+
+    var result = fileControllerHelperService.deleteUnlinked(fileId, userDetail);
+
+    assertThat(result).isEqualTo(ResponseEntity.status(HttpStatus.NOT_FOUND).build());
+    verify(fileService, never()).delete(uploadedFile);
+  }
+
+  @Test
+  void deleteUnlinked_whenFileDoesNotExist_thenNotFound() {
+    var fileId = UUID.randomUUID();
+    var userDetail = ServiceUserDetailTestUtil.newBuilder().build();
+
+    when(fileService.find(fileId)).thenReturn(Optional.empty());
+
+    var result = fileControllerHelperService.deleteUnlinked(fileId, userDetail);
+
+    assertThat(result).isEqualTo(ResponseEntity.status(HttpStatus.NOT_FOUND).build());
+  }
+
+  @Test
+  void deleteUnlinked_whenUnlinkedFileBelongsToAnotherUser_thenNotFoundAndNotDeleted() {
+    var fileId = UUID.randomUUID();
+    var userDetail = ServiceUserDetailTestUtil.newBuilder().build();
+    var uploadedFile = new UploadedFile();
+
+    when(fileService.find(fileId)).thenReturn(Optional.of(uploadedFile));
+    when(applicationFileService.doesFileHaveUsage(uploadedFile)).thenReturn(false);
+    when(applicationFileService.fileBelongsToUser(uploadedFile, userDetail)).thenReturn(false);
+
+    var result = fileControllerHelperService.deleteUnlinked(fileId, userDetail);
+
+    assertThat(result).isEqualTo(ResponseEntity.status(HttpStatus.NOT_FOUND).build());
+    verify(fileService, never()).delete(uploadedFile);
+  }
+
+  @Test
+  void deleteUnlinked_whenUnlinkedFileBelongsToUser_thenDeleted() {
+    var fileId = UUID.randomUUID();
+    var userDetail = ServiceUserDetailTestUtil.newBuilder().build();
+    var uploadedFile = new UploadedFile();
+    var deleteResponse = FileDeleteResponse.success(fileId);
+
+    when(fileService.find(fileId)).thenReturn(Optional.of(uploadedFile));
+    when(applicationFileService.doesFileHaveUsage(uploadedFile)).thenReturn(false);
+    when(applicationFileService.fileBelongsToUser(uploadedFile, userDetail)).thenReturn(true);
+    when(fileService.delete(uploadedFile)).thenReturn(deleteResponse);
+
+    var result = fileControllerHelperService.deleteUnlinked(fileId, userDetail);
+
+    assertThat(result).isEqualTo(ResponseEntity.ok(deleteResponse));
+  }
+
+  @Test
   void findFileAndThen_fileExists_hasUsage_valid() {
     var fileId = UUID.randomUUID();
     var userDetail = ServiceUserDetailTestUtil.newBuilder().build();

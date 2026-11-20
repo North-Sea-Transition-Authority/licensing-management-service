@@ -114,6 +114,28 @@ class ApplicationFileServiceTest {
   }
 
   @Test
+  void moveFiles() {
+    var targetUsage = new TestApplicationFileUsage(USAGE_ID, USAGE_TYPE, "superseded-document");
+    when(fileService.findAll(USAGE_ID, USAGE_TYPE, DOCUMENT_TYPE)).thenReturn(uploadedFiles);
+
+    var result = applicationFileService.moveFiles(applicationFileUsage, targetUsage);
+
+    assertThat(result).isEqualTo(uploadedFiles);
+
+    verify(fileService).updateUsage(eq(uploadedFiles.get(0)), fileUsageFunctionCaptor.capture());
+    assertThat(fileUsageFunctionCaptor.getValue().apply(uk.co.fivium.fileuploadlibrary.core.FileUsage.newBuilder()))
+        .extracting(
+            uk.co.fivium.fileuploadlibrary.core.FileUsage::usageId,
+            uk.co.fivium.fileuploadlibrary.core.FileUsage::usageType,
+            uk.co.fivium.fileuploadlibrary.core.FileUsage::documentType
+        ).containsExactly(
+            USAGE_ID,
+            USAGE_TYPE,
+            "superseded-document"
+        );
+  }
+
+  @Test
   void getUploadedFiles() {
     when(fileService.findAll(applicationFileUsage.usageId(), applicationFileUsage.usageType(), applicationFileUsage.documentType()))
         .thenReturn(uploadedFiles);

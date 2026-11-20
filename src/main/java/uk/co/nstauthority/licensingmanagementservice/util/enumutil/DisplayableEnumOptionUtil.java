@@ -49,4 +49,15 @@ public class DisplayableEnumOptionUtil {
             opt -> "%s (%s)".formatted(opt.getDescription(), opt.getDisplayName())
         ));
   }
+
+  public static Map<String, Map<String, String>> getDisplayableOptionsWithSeparateNameAndDescription(
+      Class<? extends DisplayableEnumWithDescription> displayableOptionEnum
+  ) {
+    return Arrays.stream((DisplayableEnumWithDescription[]) displayableOptionEnum.getEnumConstants())
+        .sorted(Comparator.comparingInt(Displayable::getDisplayOrder))
+        .collect(StreamUtil.toLinkedHashMap(
+            Displayable::getEnumName,
+            option -> Map.of(option.getDisplayName(), option.getDescription())
+        ));
+  }
 }

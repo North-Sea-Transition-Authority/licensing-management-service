@@ -4,7 +4,9 @@ import static org.springframework.web.servlet.mvc.method.annotation.MvcUriCompon
 
 import java.util.List;
 import java.util.UUID;
+import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -18,6 +20,7 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.schedul
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.ScheduleAmendmentApplicationHasStatus;
 import uk.co.nstauthority.licensingmanagementservice.caseevent.CaseEventService;
 import uk.co.nstauthority.licensingmanagementservice.caseevent.CaseEventView;
+import uk.co.nstauthority.licensingmanagementservice.file.FileControllerHelperService;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.caseprocessing.OverviewTab;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetail;
@@ -53,6 +56,7 @@ public class ScheduleWorkProgrammeApplicationOverviewController {
   private final RegulatorRoleService regulatorRoleService;
   private final CaseEventService caseEventService;
   private final ScheduleWorkProgrammeApplicationTaskListService taskListService;
+  private final FileControllerHelperService fileControllerHelperService;
 
   public ScheduleWorkProgrammeApplicationOverviewController(
       ScheduleWorkProgrammeApplicationOverviewService overviewService,
@@ -60,7 +64,8 @@ public class ScheduleWorkProgrammeApplicationOverviewController {
       ScheduleWorkProgrammeApplicationActionService applicationActionService,
       RegulatorRoleService regulatorRoleService,
       CaseEventService caseEventService,
-      ScheduleWorkProgrammeApplicationTaskListService taskListService
+      ScheduleWorkProgrammeApplicationTaskListService taskListService,
+      FileControllerHelperService fileControllerHelperService
   ) {
     this.overviewService = overviewService;
     this.licenceScheduleSummarySectionService = licenceScheduleSummarySectionService;
@@ -68,6 +73,7 @@ public class ScheduleWorkProgrammeApplicationOverviewController {
     this.regulatorRoleService = regulatorRoleService;
     this.caseEventService = caseEventService;
     this.taskListService = taskListService;
+    this.fileControllerHelperService = fileControllerHelperService;
   }
 
   @GetMapping
@@ -113,7 +119,11 @@ public class ScheduleWorkProgrammeApplicationOverviewController {
         );
 
     if (tab == OverviewTab.CASE_EVENTS) {
-      var caseEventCards = caseEventService.getCaseEventViews(applicationDetail.getScheduleWorkProgrammeApplication())
+      var caseEventCards = caseEventService.getCaseEventViews(
+              applicationDetail.getScheduleWorkProgrammeApplication(),
+              fileId -> ReverseRouter.route(on(ScheduleWorkProgrammeApplicationOverviewController.class)
+                  .downloadFile(scheduleWorkProgrammeApplicationDetailId, null, fileId, null))
+          )
           .stream()
           .map(CaseEventView::toSummaryCard)
           .toList();
@@ -121,5 +131,23 @@ public class ScheduleWorkProgrammeApplicationOverviewController {
     }
 
     return modelAndView;
+  }
+
+  @GetMapping("/files/{fileId}")
+  public ResponseEntity<InputStreamResource> downloadFile(
+      @PathVariable UUID scheduleWorkProgrammeApplicationDetailId,
+      ScheduleWorkProgrammeApplicationDetail applicationDetail,
+      @PathVariable UUID fileId,
+      ServiceUserDetail serviceUserDetail
+  ) {
+    if (!regulatorRoleService.isRegulator(serviceUserDetail)) {
+      throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+          "User with wuaId %d cannot download case event files".formatted(serviceUserDetail.wuaId()));
+    }
+
+    return fileControllerHelperService.downloadIf(
+        fileId,
+        file -> caseEventService.isFileOnApplicationEvent(file.getId(), applicationDetail.getScheduleWorkProgrammeApplication())
+    );
   }
 }

@@ -218,6 +218,44 @@ class FileControllerHelperServiceTest {
   }
 
   @Test
+  void downloadIf_whenFileAllowed_thenDownloadsFile() {
+    var fileId = UUID.randomUUID();
+    var uploadedFile = new UploadedFile();
+    ResponseEntity<InputStreamResource> responseEntity = ResponseEntity.ok().build();
+
+    when(fileService.find(fileId)).thenReturn(Optional.of(uploadedFile));
+    when(fileService.download(uploadedFile)).thenReturn(responseEntity);
+
+    var result = fileControllerHelperService.downloadIf(fileId, file -> file == uploadedFile);
+
+    assertThat(result).isEqualTo(responseEntity);
+  }
+
+  @Test
+  void downloadIf_whenFileNotAllowed_thenNotFoundAndNotDownloaded() {
+    var fileId = UUID.randomUUID();
+    var uploadedFile = new UploadedFile();
+
+    when(fileService.find(fileId)).thenReturn(Optional.of(uploadedFile));
+
+    var result = fileControllerHelperService.downloadIf(fileId, file -> false);
+
+    assertThat(result).isEqualTo(ResponseEntity.status(HttpStatus.NOT_FOUND).build());
+    verify(fileService, never()).download(uploadedFile);
+  }
+
+  @Test
+  void downloadIf_whenFileDoesNotExist_thenNotFound() {
+    var fileId = UUID.randomUUID();
+
+    when(fileService.find(fileId)).thenReturn(Optional.empty());
+
+    var result = fileControllerHelperService.downloadIf(fileId, file -> true);
+
+    assertThat(result).isEqualTo(ResponseEntity.status(HttpStatus.NOT_FOUND).build());
+  }
+
+  @Test
   void delete() {
     var fileId = UUID.randomUUID();
     var userDetail = ServiceUserDetailTestUtil.newBuilder().build();

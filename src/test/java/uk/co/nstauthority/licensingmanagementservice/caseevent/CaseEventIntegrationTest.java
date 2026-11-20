@@ -24,6 +24,7 @@ import uk.co.nstauthority.licensingmanagementservice.caseevent.payload.CaseEvent
 import uk.co.nstauthority.licensingmanagementservice.caseevent.payload.CaseNotePayload;
 import uk.co.nstauthority.licensingmanagementservice.caseevent.payload.CaseUpdateRequestPayload;
 import uk.co.nstauthority.licensingmanagementservice.caseevent.payload.CaseUpdateSubmittedPayload;
+import uk.co.nstauthority.licensingmanagementservice.caseevent.payload.DspUploadedPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplication;
 import uk.co.nstauthority.licensingmanagementservice.util.IntegrationTest;
@@ -161,7 +162,8 @@ class CaseEventIntegrationTest {
         Arguments.of(CaseEventType.CASE_NOTE_ADDED, new CaseNotePayload(UUID.randomUUID())),
         Arguments.of(CaseEventType.STEWARD_ALLOCATED, new CaseAllocationPayload(123L)),
         Arguments.of(CaseEventType.APPLICATION_UPDATE_REQUESTED, new CaseUpdateRequestPayload(LocalDate.of(2026, Month.DECEMBER, 1), "Further information is needed")),
-        Arguments.of(CaseEventType.APPLICATION_UPDATE_SUBMITTED, new CaseUpdateSubmittedPayload(2))
+        Arguments.of(CaseEventType.APPLICATION_UPDATE_SUBMITTED, new CaseUpdateSubmittedPayload(2)),
+        Arguments.of(CaseEventType.DSP_UPLOADED, new DspUploadedPayload(List.of(UUID.randomUUID(), UUID.randomUUID())))
     );
   }
 

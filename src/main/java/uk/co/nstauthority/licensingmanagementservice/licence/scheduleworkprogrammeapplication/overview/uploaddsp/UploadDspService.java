@@ -3,6 +3,10 @@ package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogra
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 import uk.co.fivium.fileuploadlibrary.FileUploadLibraryUtils;
+import uk.co.fivium.fileuploadlibrary.fds.UploadedFileForm;
+import uk.co.nstauthority.licensingmanagementservice.caseevent.CaseEventService;
+import uk.co.nstauthority.licensingmanagementservice.caseevent.CaseEventType;
+import uk.co.nstauthority.licensingmanagementservice.caseevent.payload.DspUploadedPayload;
 import uk.co.nstauthority.licensingmanagementservice.file.ApplicationFileService;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.letter.ApplicationLetterService;
@@ -15,15 +19,18 @@ public class UploadDspService {
   private final ScheduleWorkProgrammeApplicationDetailRepository detailRepository;
   private final ApplicationFileService applicationFileService;
   private final ApplicationLetterService applicationLetterService;
+  private final CaseEventService caseEventService;
 
   public UploadDspService(
       ScheduleWorkProgrammeApplicationDetailRepository detailRepository,
       ApplicationFileService applicationFileService,
-      ApplicationLetterService applicationLetterService
+      ApplicationLetterService applicationLetterService,
+      CaseEventService caseEventService
   ) {
     this.detailRepository = detailRepository;
     this.applicationFileService = applicationFileService;
     this.applicationLetterService = applicationLetterService;
+    this.caseEventService = caseEventService;
   }
 
   public UploadDspForm getFormForApplication(
@@ -56,6 +63,15 @@ public class UploadDspService {
     applicationFileService.saveDocuments(
         UploadDspFileUsage.fromApplication(applicationDetail),
         form.getFinalDecisionSupportPapers()
+    );
+
+    var fileIds = form.getFinalDecisionSupportPapers().stream()
+        .map(UploadedFileForm::getFileId)
+        .toList();
+    caseEventService.recordCaseEvent(
+        CaseEventType.DSP_UPLOADED,
+        applicationDetail.getScheduleWorkProgrammeApplication(),
+        new DspUploadedPayload(fileIds)
     );
   }
 }

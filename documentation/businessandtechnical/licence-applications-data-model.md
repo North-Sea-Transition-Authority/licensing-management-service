@@ -225,6 +225,12 @@ read the absence of `COMPLETE` rows on that side as a data problem, and do not b
 `DELETED` rows are abandoned drafts that were never submitted. Exclude them from reporting;
 they are dead weight, not history.
 
+Uploading the decision support paper on an extension and amendment application moves the
+application detail from `SUBMITTED` to `DSP_UPLOADED` and records a "DSP uploaded" case event
+(`case_events.event_type = 'DSP_UPLOADED'`) against the application, attributed to the user who
+uploaded it. The event payload is JSON with `type` `dsp-uploaded` and `fileIds`, the ids of the
+uploaded DSP files; the case events tab shows each as a download link.
+
 ---
 
 ## 5. Extension and amendment application

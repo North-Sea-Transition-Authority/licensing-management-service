@@ -16,6 +16,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.fivium.fileuploadlibrary.fds.UploadedFileForm;
+import uk.co.nstauthority.licensingmanagementservice.caseevent.CaseEventService;
+import uk.co.nstauthority.licensingmanagementservice.caseevent.CaseEventType;
+import uk.co.nstauthority.licensingmanagementservice.caseevent.payload.DspUploadedPayload;
 import uk.co.nstauthority.licensingmanagementservice.file.ApplicationFileService;
 import uk.co.nstauthority.licensingmanagementservice.file.FileUploadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
@@ -34,6 +37,9 @@ class UploadDspServiceTest {
 
   @Mock
   private ApplicationLetterService applicationLetterService;
+
+  @Mock
+  private CaseEventService caseEventService;
 
   @InjectMocks
   private UploadDspService service;
@@ -113,6 +119,25 @@ class UploadDspServiceTest {
     verify(applicationFileService).saveDocuments(
         UploadDspFileUsage.fromApplication(applicationDetail),
         papers
+    );
+  }
+
+  @Test
+  void uploadDsp_recordsCaseEventWithUploadedFiles() {
+    var applicationDetail = ScheduleWorkProgrammeApplicationDetailTestUtil.builder()
+        .withId(UUID.randomUUID())
+        .build();
+    var form = new UploadDspForm();
+    form.getDecisionDate().setDate(LocalDate.of(2024, Month.MARCH, 15));
+    form.setFinalDecisionSupportPapers(List.of(
+        FileUploadTestUtil.getUploadedFileFormWithDescription("decision.pdf", "Final decision paper")));
+
+    service.uploadDsp(applicationDetail, form);
+
+    verify(caseEventService).recordCaseEvent(
+        CaseEventType.DSP_UPLOADED,
+        applicationDetail.getScheduleWorkProgrammeApplication(),
+        new DspUploadedPayload(List.of(FileUploadTestUtil.FILE_ID))
     );
   }
 }

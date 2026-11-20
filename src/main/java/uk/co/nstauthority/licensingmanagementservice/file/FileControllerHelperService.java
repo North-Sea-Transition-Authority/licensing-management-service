@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpStatus;
@@ -99,6 +100,14 @@ public class FileControllerHelperService {
         userDetail,
         fileService::download
     );
+  }
+
+  // Unlike download, does not check the file's usage: the predicate is the only authorisation.
+  public ResponseEntity<InputStreamResource> downloadIf(UUID fileId, Predicate<UploadedFile> isAllowed) {
+    return fileService.find(fileId)
+        .filter(isAllowed)
+        .map(fileService::download)
+        .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).build());
   }
 
   public ResponseEntity<FileDeleteResponse> delete(UUID fileId,

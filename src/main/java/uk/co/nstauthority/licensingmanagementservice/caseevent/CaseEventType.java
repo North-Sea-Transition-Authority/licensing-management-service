@@ -9,6 +9,7 @@ public enum CaseEventType implements Displayable {
   CASE_NOTE_ADDED("Case note added"),
   DECISION_RECORDED("Decision recorded"),
   DRAFT_DECISION_STARTED("Draft decision started"),
+  DSP_UPLOADED("DSP uploaded"),
   STEWARD_ALLOCATED("Steward allocated");
 
   private final String displayName;

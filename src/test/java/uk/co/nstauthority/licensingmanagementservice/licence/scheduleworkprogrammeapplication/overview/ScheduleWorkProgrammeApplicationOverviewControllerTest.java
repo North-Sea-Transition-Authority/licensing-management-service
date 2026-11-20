@@ -3,8 +3,10 @@ package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogra
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -15,13 +17,19 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 import static uk.co.nstauthority.licensingmanagementservice.authentication.TestUserProvider.user;
 
+import java.io.ByteArrayInputStream;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.function.Predicate;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.ArgumentCaptor;
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
@@ -32,6 +40,8 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.schedul
 import uk.co.nstauthority.licensingmanagementservice.caseevent.CaseEventService;
 import uk.co.nstauthority.licensingmanagementservice.caseevent.CaseEventType;
 import uk.co.nstauthority.licensingmanagementservice.caseevent.CaseEventView;
+import uk.co.nstauthority.licensingmanagementservice.file.ApplicationFileTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.file.FileControllerHelperService;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
@@ -78,6 +88,9 @@ class ScheduleWorkProgrammeApplicationOverviewControllerTest extends AbstractCon
 
   @MockitoBean
   private ScheduleWorkProgrammeApplicationTaskListService taskListService;
+
+  @MockitoBean
+  private FileControllerHelperService fileControllerHelperService;
 
   @Test
   void renderOverview_classAnnotations_presentAndCorrect() {
@@ -213,7 +226,8 @@ class ScheduleWorkProgrammeApplicationOverviewControllerTest extends AbstractCon
         "John Smith",
         Instant.parse("2026-09-24T10:15:30Z")
     );
-    when(caseEventService.getCaseEventViews(applicationDetail.getScheduleWorkProgrammeApplication()))
+    when(caseEventService.getCaseEventViews(
+        eq(applicationDetail.getScheduleWorkProgrammeApplication()), any(Function.class)))
         .thenReturn(List.of(caseEventView));
 
     mockMvc.perform(
@@ -286,6 +300,54 @@ class ScheduleWorkProgrammeApplicationOverviewControllerTest extends AbstractCon
         .withStatus(status)
         .withScheduleWorkProgrammeApplication(swpApp)
         .build();
+  }
+
+  @Test
+  void downloadFile_whenRegulator_thenDownloadsFileReferencedByAnEventOnTheApplication() throws Exception {
+    var applicationDetail = createSubmittedApplicationDetail();
+    var fileId = UUID.randomUUID();
+    stubOverviewFor(applicationDetail, regulatorUser);
+    when(regulatorRoleService.isRegulator(regulatorUser)).thenReturn(true);
+    var fileResponse = ResponseEntity.ok(new InputStreamResource(new ByteArrayInputStream(new byte[0])));
+    when(fileControllerHelperService.downloadIf(eq(fileId), any(Predicate.class)))
+        .thenReturn(fileResponse);
+
+    mockMvc.perform(
+            get(ReverseRouter.route(on(ScheduleWorkProgrammeApplicationOverviewController.class)
+                .downloadFile(applicationDetail.getId(), null, fileId, null)))
+                .with(user(regulatorUser))
+        )
+        .andExpect(status().isOk());
+
+    var isAllowedCaptor = ArgumentCaptor.forClass(Predicate.class);
+    verify(fileControllerHelperService).downloadIf(eq(fileId), isAllowedCaptor.capture());
+    var file = ApplicationFileTestUtil.createUploadFile();
+    when(caseEventService.isFileOnApplicationEvent(file.getId(), applicationDetail.getScheduleWorkProgrammeApplication()))
+        .thenReturn(true);
+    assertThat(isAllowedCaptor.getValue().test(file)).isTrue();
+  }
+
+  @Test
+  void downloadFile_whenNonRegulator_thenForbidden() throws Exception {
+    var applicationDetail = createSubmittedApplicationDetail();
+    var fileId = UUID.randomUUID();
+    when(scheduleWorkProgrammeApplicationService.getDetailByIdOrThrow(applicationDetail.getId()))
+        .thenReturn(applicationDetail);
+    when(applicationAccessService.userHasViewAccessToApplication(
+        eq(applicationDetail),
+        anyMap(),
+        eq(ORGANISATION_USER_WUA_ID)))
+        .thenReturn(true);
+    when(regulatorRoleService.isRegulator(USER)).thenReturn(false);
+
+    mockMvc.perform(
+            get(ReverseRouter.route(on(ScheduleWorkProgrammeApplicationOverviewController.class)
+                .downloadFile(applicationDetail.getId(), null, fileId, null)))
+                .with(user(USER))
+        )
+        .andExpect(status().isForbidden());
+
+    verifyNoInteractions(fileControllerHelperService);
   }
 
   private void stubOverviewFor(ScheduleWorkProgrammeApplicationDetail applicationDetail, ServiceUserDetail user) {

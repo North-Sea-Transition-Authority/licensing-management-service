@@ -8,18 +8,26 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
+import uk.co.fivium.fileuploadlibrary.core.FileService;
+import uk.co.fivium.fileuploadlibrary.core.UploadedFile;
 import uk.co.nstauthority.licensingmanagementservice.audit.AuditRevisionUtil;
 import uk.co.nstauthority.licensingmanagementservice.authentication.UserDetailService;
 import uk.co.nstauthority.licensingmanagementservice.caseevent.payload.CaseAllocationPayload;
 import uk.co.nstauthority.licensingmanagementservice.caseevent.payload.CaseEventPayload;
+import uk.co.nstauthority.licensingmanagementservice.caseevent.payload.CaseNotePayload;
 import uk.co.nstauthority.licensingmanagementservice.caseevent.payload.CaseUpdateRequestPayload;
 import uk.co.nstauthority.licensingmanagementservice.caseevent.payload.CaseUpdateSubmittedPayload;
+import uk.co.nstauthority.licensingmanagementservice.caseevent.payload.DspUploadedPayload;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserJson;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserService;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.WebUserAccountId;
 import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.Application;
+import uk.co.nstauthority.licensingmanagementservice.summary.UploadedFileView;
 
 @Service
 public class CaseEventService {
@@ -30,21 +38,25 @@ public class CaseEventService {
   static final String UPDATE_REASON_KEY = "Update reason";
   static final String UPDATE_DEADLINE_KEY = "Update deadline";
   static final String VERSION_KEY = "Version";
+  static final String DSP_KEY = "DSP";
 
   private final CaseEventRepository caseEventRepository;
   private final UserDetailService userDetailService;
   private final EnergyPortalUserService energyPortalUserService;
+  private final FileService fileService;
   private final Clock clock;
 
   public CaseEventService(
       CaseEventRepository caseEventRepository,
       UserDetailService userDetailService,
       EnergyPortalUserService energyPortalUserService,
+      FileService fileService,
       Clock clock
   ) {
     this.caseEventRepository = caseEventRepository;
     this.userDetailService = userDetailService;
     this.energyPortalUserService = energyPortalUserService;
+    this.fileService = fileService;
     this.clock = clock;
   }
 
@@ -66,10 +78,16 @@ public class CaseEventService {
   }
 
   public List<CaseEventView> getCaseEventViews(Application application) {
-    var caseEvents = caseEventRepository.findByApplicationTypeAndApplicationIdOrderByEventInstantDesc(
-        application.getApplicationType(),
-        application.getId()
-    );
+    return getCaseEventViews(application, fileId -> {
+      throw new IllegalStateException("No download route for case event file " + fileId);
+    });
+  }
+
+  public List<CaseEventView> getCaseEventViews(
+      Application application,
+      Function<UUID, String> downloadUrlByFileId
+  ) {
+    var caseEvents = findCaseEvents(application);
 
     if (caseEvents.isEmpty()) {
       return List.of();
@@ -81,9 +99,50 @@ public class CaseEventService {
         CASE_EVENT_USER_PURPOSE
     );
 
+    var filesById = getFilesById(caseEvents);
+
     return caseEvents.stream()
-        .map(caseEvent -> createViewFrom(caseEvent, usersByWuaId))
+        .map(caseEvent -> createViewFrom(caseEvent, usersByWuaId, filesById, downloadUrlByFileId))
         .toList();
+  }
+
+  public boolean isFileOnApplicationEvent(UUID fileId, Application application) {
+    return findCaseEvents(application).stream()
+        .anyMatch(caseEvent -> getFileIdsByLabel(caseEvent.getPayload()).values().stream()
+            .anyMatch(fileIds -> fileIds.contains(fileId)));
+  }
+
+  private List<CaseEvent> findCaseEvents(Application application) {
+    return caseEventRepository.findByApplicationTypeAndApplicationIdOrderByEventInstantDesc(
+        application.getApplicationType(),
+        application.getId()
+    );
+  }
+
+  private Map<UUID, UploadedFile> getFilesById(List<CaseEvent> caseEvents) {
+    var fileIds = caseEvents.stream()
+        .flatMap(caseEvent -> getFileIdsByLabel(caseEvent.getPayload()).values().stream())
+        .flatMap(List::stream)
+        .distinct()
+        .toList();
+
+    if (fileIds.isEmpty()) {
+      return Map.of();
+    }
+
+    return fileService.findAll(fileIds).stream()
+        .collect(Collectors.toMap(UploadedFile::getId, Function.identity()));
+  }
+
+  private static Map<String, List<UUID>> getFileIdsByLabel(CaseEventPayload payload) {
+    return switch (payload) {
+      case DspUploadedPayload(var fileIds) -> Map.of(DSP_KEY, fileIds);
+      case CaseNotePayload ignored -> Map.of();
+      case CaseAllocationPayload ignored -> Map.of();
+      case CaseUpdateRequestPayload ignored -> Map.of();
+      case CaseUpdateSubmittedPayload ignored -> Map.of();
+      case null -> Map.of();
+    };
   }
 
   private List<WebUserAccountId> getUserWuaIds(List<CaseEvent> caseEvents) {
@@ -120,11 +179,14 @@ public class CaseEventService {
 
   private CaseEventView createViewFrom(
       CaseEvent caseEvent,
-      Map<WebUserAccountId, EnergyPortalUserJson> usersByWuaId
+      Map<WebUserAccountId, EnergyPortalUserJson> usersByWuaId,
+      Map<UUID, UploadedFile> filesById,
+      Function<UUID, String> downloadUrlByFileId
   ) {
     return new CaseEventView(
         caseEvent.getEventType(),
         getDetails(caseEvent.getPayload(), usersByWuaId),
+        getFiles(caseEvent.getPayload(), filesById, downloadUrlByFileId),
         getEventBy(caseEvent, usersByWuaId),
         caseEvent.getEventInstant()
     );
@@ -154,6 +216,25 @@ public class CaseEventService {
       details.put(VERSION_KEY, String.valueOf(versionNumber));
     }
     return details;
+  }
+
+  private static Map<String, List<UploadedFileView>> getFiles(
+      CaseEventPayload payload,
+      Map<UUID, UploadedFile> filesById,
+      Function<UUID, String> downloadUrlByFileId
+  ) {
+    var files = new LinkedHashMap<String, List<UploadedFileView>>();
+    getFileIdsByLabel(payload).forEach((label, fileIds) -> {
+      var fileViews = fileIds.stream()
+          .map(filesById::get)
+          .filter(Objects::nonNull)
+          .map(file -> UploadedFileView.from(file, downloadUrlByFileId.apply(file.getId())))
+          .toList();
+      if (!fileViews.isEmpty()) {
+        files.put(label, fileViews);
+      }
+    });
+    return files;
   }
 
   private static String getUserDisplayText(Long wuaId, Map<WebUserAccountId, EnergyPortalUserJson> usersByWuaId) {

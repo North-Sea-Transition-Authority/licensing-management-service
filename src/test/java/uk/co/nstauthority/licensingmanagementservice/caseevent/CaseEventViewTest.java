@@ -3,11 +3,13 @@ package uk.co.nstauthority.licensingmanagementservice.caseevent;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryCard;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryDataView;
+import uk.co.nstauthority.licensingmanagementservice.summary.UploadedFileView;
 
 class CaseEventViewTest {
 
@@ -44,6 +46,32 @@ class CaseEventViewTest {
         "Steward allocated",
         SummaryDataView.newBuilder()
             .addStringValue(CaseEventService.ALLOCATED_TO_KEY, "John Steward")
+            .addStringValue(CaseEventView.EVENT_BY_KEY, "Jane Smith")
+            .addStringValue(CaseEventView.DATE_KEY, DateFormatUtil.convertToDisplayTextWithTime(eventInstant))
+            .build()
+    );
+    assertThat(result).usingRecursiveComparison().isEqualTo(expected);
+  }
+
+  @Test
+  void toSummaryCard_whenFiles_thenShowsFilesAfterDetailsAndBeforeCompletedByAndDate() {
+    var eventInstant = Instant.parse("2026-09-24T10:15:30Z");
+    var fileView = new UploadedFileView(
+        "file-id", "decision.pdf", "1.3 MB", "Final decision paper", Instant.parse("2026-09-24T10:00:00Z"), "/download/file-id");
+    var view = new CaseEventView(
+        CaseEventType.DSP_UPLOADED,
+        Map.of(),
+        Map.of(CaseEventService.DSP_KEY, List.of(fileView)),
+        "Jane Smith",
+        eventInstant
+    );
+
+    var result = view.toSummaryCard();
+
+    var expected = SummaryCard.simpleSummaryCardWithHeading(
+        "DSP uploaded",
+        SummaryDataView.newBuilder()
+            .addFileValue(CaseEventService.DSP_KEY, List.of(fileView))
             .addStringValue(CaseEventView.EVENT_BY_KEY, "Jane Smith")
             .addStringValue(CaseEventView.DATE_KEY, DateFormatUtil.convertToDisplayTextWithTime(eventInstant))
             .build()

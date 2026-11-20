@@ -20,7 +20,7 @@ mean joining the event supertype, six child tables and the term and phase hierar
 page load.
 
 `licence_event_cache` is a **flat, denormalised copy** of the events that screen shows, written
-when a schedule is applied — and, for a narrower set of columns, when an extension and
+when a schedule is applied or migrated from PEARS (§4.1) — and, for a narrower set of columns, when an extension and
 amendment or continuation application is submitted (§4.5) — then read directly afterwards.
 
 **It is a read model, not a source of truth.** Nothing in the service treats it as
@@ -56,7 +56,7 @@ flowchart TB
     SE["<b>schedule_events</b><br/>id · event_type · original_event_id<br/><i>see the schedules data model</i>"]
     APP["<b>applications</b><br/>id · application_type · application_reference<br/><i>see the applications data model — both types</i>"]
     SWPA["<b>schedule_work_programme_applications</b><br/>id · steward_wua_id<br/><i>same id as the application; extension and amendment only, once a steward is allocated</i>"]
-    CACHE["<b>licence_event_cache</b><br/>id · licence_id · licence_reference · original_event_id<br/>event_type · current_term_phase · next_term_phase<br/>activity_type · event_date<br/>application_id · application_type · steward_wua_id<br/><i>one row per logical event per application — rebuilt on apply, application columns refreshed on submission</i>"]
+    CACHE["<b>licence_event_cache</b><br/>id · licence_id · licence_reference · original_event_id<br/>event_type · current_term_phase · next_term_phase<br/>activity_type · event_date<br/>application_id · application_type · steward_wua_id<br/><i>one row per logical event per application — rebuilt on apply and on PEARS schedule migration, application columns refreshed on submission</i>"]
 
     LIC -- "1 : 1" --> LS
     LS -- "1 : many" --> LSD
@@ -119,14 +119,23 @@ Two consequences:
 
 ## 4. When and how it is refreshed
 
-### 4.1 The two triggers
+### 4.1 The triggers
 
 The cache rows themselves — one per term, phase and work programme activity — are rebuilt for
 one licence at the moment a **schedule version is applied**, the step that moves a draft to
 `ACTIVE` and the previous version to `REPLACED`. There is no scheduled rebuild and no rebuild
 on licence import.
 
-It is always rebuilt from the **`ACTIVE`** version. Draft content is never cached.
+The one other time the rows are rebuilt is when a licence's schedule is **migrated from PEARS**
+by the PEARS schedule migration. The migration creates the licence's whole
+schedule history at once, then runs the same refresh as an apply for the migrated `ACTIVE`
+version, in the licence's migration transaction. It happens once per licence: the migration skips
+a licence that already has a schedule, and from then on the cache is rebuilt on apply as for any
+other licence. A licence that is cleared down and migrated again (the migration's cleardown) gets
+the same rows again.
+
+It is always rebuilt from the **`ACTIVE`** version. Draft content is never cached, and nor are the
+`REPLACED` versions the migration creates.
 
 A second, narrower trigger exists for the application-linked columns only
 (`application_id`, `application_type`, `steward_wua_id`): **submitting an extension and
@@ -280,15 +289,19 @@ inconsistent with how the refresh writes them — the two are always set togethe
 ## 6. Staleness — what the cache does not track
 
 The refresh only ever writes rows for events present in the schedule being applied, and its
-only delete is the term-gains-phases case. Nothing else prunes it. So:
+only delete is the term-gains-phases case. Outside the refresh, only the PEARS schedule
+migration's cleardown (outside production only) deletes rows: those of a migrated schedule's
+events, with their audit rows ([schedules §5.3a](licence-schedules-data-model.md)). Nothing else
+prunes it. So:
 
 - **An event deleted from the schedule keeps its cache row**, holding the last values it had.
   The tracker will keep showing it.
-- **A licence whose schedule has never been applied since the cache was introduced has no rows
-  at all**, and is simply absent from the tracker rather than showing as empty.
-- **A change made anywhere other than an apply is invisible to the cache.** Correcting a
-  licence reference, for example, does not update `licence_reference` here until the next time
-  that licence's schedule is applied.
+- **A licence whose schedule has never been applied or migrated from PEARS since the cache was
+  introduced has no rows at all**, and is simply absent from the tracker rather than showing as
+  empty.
+- **A change made anywhere other than an apply (or the PEARS migration) is invisible to the
+  cache.** Correcting a licence reference, for example, does not update `licence_reference` here
+  until the next time that licence's schedule is applied.
 - **`application_id`, `application_type` and `steward_wua_id` are a submission-time snapshot
   (§4.5), not a live link.** Allocating or reassigning a steward, recording a decision,
   withdrawing or deleting the application — none of these trigger another refresh, so what is
@@ -297,7 +310,8 @@ only delete is the term-gains-phases case. Nothing else prunes it. So:
   continuation application it is always null, since continuation applications have no steward
   concept (§4.5).
 
-The cache is therefore a snapshot of each licence at the time of its last schedule apply, plus,
+The cache is therefore a snapshot of each licence at the time of its last schedule apply (or, for
+a migrated licence not applied since, its migration), plus,
 where an application has been submitted since, a further snapshot of that application taken at
 submission — and different licences, and different rows within the same licence, will be at
 different ages.
@@ -321,7 +335,8 @@ last refreshed, which the table has no column for. Revision metadata lives in th
 ## 8. Caveats and known gotchas
 
 1. **Never use this table to answer a question about a licence schedule.** It is a read model
-   for one screen, rebuilt only on apply, with no referential integrity and known staleness
+   for one screen, rebuilt only on apply (and once when a licence's schedule is migrated from
+   PEARS), with no referential integrity and known staleness
    (§6). Query the schedule tables instead.
 2. **`quad_block` is always null** (§4.3). `application_id` and `application_type` are null far
    more often than not, but are not reliably null — they are written for submitted applications

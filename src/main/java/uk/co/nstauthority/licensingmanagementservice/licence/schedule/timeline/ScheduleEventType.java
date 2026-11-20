@@ -12,6 +12,7 @@ public enum ScheduleEventType implements Displayable {
   RATE("Rates", 1, true),
   WORK_PROGRAMME_ACTIVITY("Work programme activities", 2, true),
   OTHER("Other schedule events", 3, true),
+  AREA("Retention, development and pre-producing areas", 4, true),
   EXPIRY("Expiry", 999, false);
 
   private final String displayName;

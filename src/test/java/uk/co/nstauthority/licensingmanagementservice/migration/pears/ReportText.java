@@ -9,12 +9,12 @@ import java.util.regex.Pattern;
  * Shortens the lists that go into difference messages and summaries. A licence can be short of eighty positions for
  * the one reason, and naming all eighty says nothing the count and a handful of examples do not.
  */
-final class ReportText {
+public final class ReportText {
 
   /**
    * How many items of a list are worth naming before the rest become a count.
    */
-  static final int SAMPLE_SIZE = 12;
+  public static final int SAMPLE_SIZE = 12;
 
   private static final Pattern LICENCE_REFERENCE = Pattern.compile("([A-Z]+)(\\d+)");
 
@@ -22,7 +22,7 @@ final class ReportText {
    * Licence references in the order the sweep reads them from PEARS, by licence type and then number, so a summary
    * reads the same however the licences' comparisons happened to finish.
    */
-  static final Comparator<String> SWEEP_ORDER = Comparator
+  public static final Comparator<String> SWEEP_ORDER = Comparator
       .comparing(ReportText::licenceType)
       .thenComparingLong(ReportText::licenceNumber)
       .thenComparing(Comparator.naturalOrder());
@@ -44,7 +44,7 @@ final class ReportText {
    * The list as a comma separated string, with everything past {@link #SAMPLE_SIZE} collapsed into
    * a count.
    */
-  static String sample(List<String> items) {
+  public static String sample(List<String> items) {
     if (items.size() <= SAMPLE_SIZE) {
       return String.join(", ", items);
     }
@@ -58,7 +58,7 @@ final class ReportText {
    * The list truncated to {@link #SAMPLE_SIZE} items plus a line saying how many were dropped, for
    * where the items are lines in their own right rather than a phrase.
    */
-  static List<String> capped(List<String> items) {
+  public static List<String> capped(List<String> items) {
     if (items.size() <= SAMPLE_SIZE) {
       return items;
     }

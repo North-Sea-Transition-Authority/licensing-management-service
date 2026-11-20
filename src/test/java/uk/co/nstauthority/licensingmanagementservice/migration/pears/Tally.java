@@ -12,7 +12,7 @@ import org.apache.commons.collections4.multimap.ArrayListValuedHashMap;
  * the example chosen, by {@link ReportText#SWEEP_ORDER} rather than the order they were added in, which a parallel
  * sweep does not fix.
  */
-class Tally {
+public class Tally {
 
   /**
    * How many licences a key can hold before naming them stops being useful.
@@ -23,11 +23,11 @@ class Tally {
   private final ListValuedMap<String, String> licences = new ArrayListValuedHashMap<>();
   private final Map<String, Example> examples = new HashMap<>();
 
-  Tally(String heading) {
+  public Tally(String heading) {
     this.heading = heading;
   }
 
-  void add(String key, String licenceReference) {
+  public void add(String key, String licenceReference) {
     licences.put(key, licenceReference);
   }
 
@@ -35,20 +35,20 @@ class Tally {
    * Offers an example for the key, kept if no licence earlier in the sweep has already given one. A licence offering
    * several keeps its first.
    */
-  void example(String key, String licenceReference, String detail) {
+  public void example(String key, String licenceReference, String detail) {
     examples.merge(key, new Example(licenceReference, detail), (kept, offered) ->
         ReportText.SWEEP_ORDER.compare(offered.licenceReference(), kept.licenceReference()) < 0 ? offered : kept
     );
   }
 
-  boolean isEmpty() {
+  public boolean isEmpty() {
     return licences.isEmpty();
   }
 
   /**
    * The section, biggest key first, or nothing at all when the tally is empty.
    */
-  void appendTo(StringBuilder out) {
+  public void appendTo(StringBuilder out) {
     if (isEmpty()) {
       return;
     }

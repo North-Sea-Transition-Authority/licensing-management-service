@@ -1,11 +1,14 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline;
 
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.stringContainsInOrder;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -13,6 +16,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 import static uk.co.nstauthority.licensingmanagementservice.authentication.TestUserProvider.user;
 
+import java.time.LocalDate;
+import java.time.Month;
 import java.util.List;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
@@ -24,6 +29,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatusType;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
+import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
 import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
@@ -112,6 +118,75 @@ class LicenceScheduleTimelineControllerTest extends AbstractControllerTest {
         .andExpect(model().attribute("deleteScheduleUrl", ReverseRouter.route(on(DeleteDraftScheduleController.class)
             .renderDeleteDraftPage(licenceScheduleDetail.getId(), null)))
         );
+  }
+
+  @Test
+  void renderLicenceScheduleTimeline_withAreaEvents_rendersThemInTermsAndPhases() throws Exception {
+    when(licenceService.findLicenceByIdOrThrow(licence.getId())).thenReturn(licence);
+    when(licenceScheduleDetailService.getByIdOrThrow(licenceScheduleDetail.getId())).thenReturn(licenceScheduleDetail);
+
+    var inATerm = new TimelineAreaEventView("Area one (A1)", "Approval: 01-03-2025", LocalDate.of(2025, Month.MARCH, 1),
+        "1 March 2025", true);
+    var inAPhase = new TimelineAreaEventView("Area two (A2v2)", "Drill one well", LocalDate.of(2031, Month.MARCH, 1),
+        "1 March 2031", false);
+    var phase = new TimelinePhaseView(List.of(inAPhase), List.of(), PhaseType.PHASE_A, LocalDate.of(2030, Month.JANUARY, 1),
+        "", "", "", "", "", List.of(), false, false);
+    var scheduleEventViews = List.of(
+        new TimelineTermView(List.of(inATerm), List.of(), TermType.INITIAL, "", "", "", "", "", false, List.of(), true, true),
+        new TimelineTermView(List.of(phase), List.of(), TermType.SECOND, "", "", "", "", "", true, List.of(), false, false)
+    );
+    var allowedActions = List.of(ScheduleEventAction.EDIT_SCHEDULE_EVENTS, ScheduleEventAction.EDIT_WORK_PROGRAMME);
+
+    when(licenceScheduleTimelineService.getTimelineSummaryCardView(licenceScheduleDetail))
+        .thenReturn(new TimelineSummaryCardView("date", "date2", true, "1", LicenceStatusType.EXTANT.getDisplayName(), "", "",
+            List.of()));
+    when(licenceScheduleTimelineService.getAllowedEventActionsForUser(regulatorUser)).thenReturn(allowedActions);
+    when(licenceScheduleTimelineService.getLicenceScheduleTimelineActions(licenceScheduleDetail, allowedActions))
+        .thenReturn(List.of());
+    when(licenceScheduleTimelineService.getEditableLicenceScheduleEventViews(eq(licenceScheduleDetail), any(), eq(allowedActions)))
+        .thenReturn(scheduleEventViews);
+
+    mockMvc.perform(
+            get(viewTimelineUrl)
+                .with(user(regulatorUser))
+        )
+        .andExpect(status().isOk())
+        .andExpect(content().string(containsString("Area one (A1)")))
+        .andExpect(content().string(containsString("Approval: 01-03-2025")))
+        .andExpect(content().string(containsString("Area two (A2v2)")))
+        .andExpect(content().string(containsString("Drill one well")))
+        .andExpect(content().string(containsString(ScheduleEventType.AREA.getDisplayName())));
+  }
+
+  @Test
+  void renderLicenceScheduleTimeline_withARelinquishmentPercentage_showsItBeforeTheDescription() throws Exception {
+    when(licenceService.findLicenceByIdOrThrow(licence.getId())).thenReturn(licence);
+    when(licenceScheduleDetailService.getByIdOrThrow(licenceScheduleDetail.getId())).thenReturn(licenceScheduleDetail);
+
+    var relinquishment = new TimelineOtherScheduleEventView("Mandatory relinquishment", "Relinquish the northern blocks",
+        "50%", LocalDate.of(2013, Month.FEBRUARY, 12), "12 February 2013", "", "", "", List.of(), true);
+    var scheduleEventViews = List.of(
+        new TimelineTermView(List.of(relinquishment), List.of(), TermType.INITIAL, "", "", "", "", "", false, List.of(), true,
+            true)
+    );
+    var allowedActions = List.of(ScheduleEventAction.EDIT_SCHEDULE_EVENTS, ScheduleEventAction.EDIT_WORK_PROGRAMME);
+
+    when(licenceScheduleTimelineService.getTimelineSummaryCardView(licenceScheduleDetail))
+        .thenReturn(new TimelineSummaryCardView("date", "date2", true, "1", LicenceStatusType.EXTANT.getDisplayName(), "", "",
+            List.of()));
+    when(licenceScheduleTimelineService.getAllowedEventActionsForUser(regulatorUser)).thenReturn(allowedActions);
+    when(licenceScheduleTimelineService.getLicenceScheduleTimelineActions(licenceScheduleDetail, allowedActions))
+        .thenReturn(List.of());
+    when(licenceScheduleTimelineService.getEditableLicenceScheduleEventViews(eq(licenceScheduleDetail), any(), eq(allowedActions)))
+        .thenReturn(scheduleEventViews);
+
+    mockMvc.perform(
+            get(viewTimelineUrl)
+                .with(user(regulatorUser))
+        )
+        .andExpect(status().isOk())
+        .andExpect(content().string(stringContainsInOrder(
+            "Mandatory relinquishment", "50% relinquished", "Relinquish the northern blocks")));
   }
 
   @Test

@@ -33,6 +33,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.rules.LicenceTypeRulesResolver;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.areaevent.LicenceScheduleAreaEvent;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.areaevent.LicenceScheduleAreaEventService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculation.LicenceScheduleCalculationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculation.StartEndDates;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments.EventCommentController;
@@ -125,6 +127,9 @@ class LicenceScheduleTimelineServiceTest {
 
   @Mock
   private LicenceResponsibleOrganisationService licenceResponsibleOrganisationService;
+
+  @Mock
+  private LicenceScheduleAreaEventService licenceScheduleAreaEventService;
 
   @InjectMocks
   private LicenceScheduleTimelineService licenceScheduleTimelineService;
@@ -2828,6 +2833,127 @@ class LicenceScheduleTimelineServiceTest {
     assertThat(termView.events())
         .singleElement()
         .isInstanceOfSatisfying(TimelinePhaseView.class, phaseView -> assertThat(phaseView.phaseType()).isEqualTo(PhaseType.PHASE_A));
+  }
+
+  @Test
+  void getEditableLicenceScheduleEventViews_areaEventsAreShownByDateWithinTheirTerm() {
+    var term = termWithoutPhases();
+    var areaApproval = areaEvent(LocalDate.of(2025, Month.MARCH, 1), "Approval: 01-03-2025");
+    var areaWorkProgramme = areaEvent(LocalDate.of(2025, Month.FEBRUARY, 1), "Drill one well");
+    var afterTheTerm = areaEvent(LocalDate.of(2026, Month.MARCH, 1), "Expiry: 01-03-2026");
+    givenTheTimelineHas(term, List.of(areaApproval, areaWorkProgramme, afterTheTerm));
+
+    var form = new ScheduleTimelineFilterForm();
+    form.setEventTypes(ScheduleEventType.getFilterDefaults());
+
+    var result = licenceScheduleTimelineService.getEditableLicenceScheduleEventViews(licenceScheduleDetail, form, List.of());
+
+    assertThat(result.getFirst().events())
+        .extracting(event -> ((TimelineAreaEventView) event).description())
+        .containsExactly("Drill one well", "Approval: 01-03-2025");
+  }
+
+  @Test
+  void getEditableLicenceScheduleEventViews_areasFilteredOut_thenNoAreaEventsShown() {
+    var term = termWithoutPhases();
+    givenTheTimelineHas(term, List.of(areaEvent(LocalDate.of(2025, Month.MARCH, 1), "Approval: 01-03-2025")));
+
+    var form = new ScheduleTimelineFilterForm();
+    form.setEventTypes(List.of(ScheduleEventType.OTHER.name()));
+
+    var result = licenceScheduleTimelineService.getEditableLicenceScheduleEventViews(licenceScheduleDetail, form, List.of());
+
+    assertThat(result.getFirst().events()).isEmpty();
+  }
+
+  @Test
+  void getEditableLicenceScheduleEventViews_areaEventsAreShownWithinTheirPhase() {
+    when(clock.instant()).thenReturn(LocalDate.of(2026, Month.JULY, 16).atStartOfDay(ZoneId.systemDefault()).toInstant());
+    when(clock.getZone()).thenReturn(ZoneId.systemDefault());
+
+    var term = new LicenceScheduleTerm();
+    term.setId(UUID.randomUUID());
+    term.setOriginalEventId(term.getId());
+    term.setLicenceScheduleDetail(licenceScheduleDetail);
+    term.setTermType(TermType.INITIAL);
+    term.setTermDuration(new ThreeFieldDuration(1, 0, 0));
+    term.setStartDate(LocalDate.of(2025, Month.JANUARY, 1));
+    term.setEndDate(LocalDate.of(2025, Month.DECEMBER, 31));
+
+    var phase = new LicenceSchedulePhase();
+    phase.setId(UUID.randomUUID());
+    phase.setOriginalEventId(phase.getId());
+    phase.setLicenceScheduleDetail(licenceScheduleDetail);
+    phase.setLicenceScheduleTerm(term);
+    phase.setPhaseType(PhaseType.PHASE_A);
+    phase.setPhaseDuration(new ThreeFieldDuration(1, 0, 0));
+    phase.setStartDate(LocalDate.of(2025, Month.JANUARY, 1));
+    phase.setEndDate(LocalDate.of(2025, Month.DECEMBER, 31));
+
+    when(licenceScheduleTermRequestCache.getTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(term));
+    when(licenceSchedulePhaseService.getPhasesByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(phase));
+    when(licenceScheduleRateService.getLicenceScheduleRatesForTermsAndDefinitionOption(List.of(term), RateDefinitionOption.TERM))
+        .thenReturn(List.of());
+    when(licenceScheduleRateService.getLicenceScheduleRatesForPhasesAndDefinitionOption(List.of(phase), RateDefinitionOption.PHASE))
+        .thenReturn(List.of());
+    when(licenceScheduleAreaEventService.getAreaEvents(licenceScheduleDetail))
+        .thenReturn(List.of(areaEvent(LocalDate.of(2025, Month.MARCH, 1), "Approval: 01-03-2025")));
+    when(eventCommentService.getEventCommentViewsForSchedule(licenceScheduleDetail.getLicenceSchedule()))
+        .thenReturn(Map.of());
+    when(licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail, List.of()))
+        .thenReturn(Map.of());
+
+    var form = new ScheduleTimelineFilterForm();
+    form.setEventTypes(ScheduleEventType.getFilterDefaults());
+
+    var result = licenceScheduleTimelineService.getEditableLicenceScheduleEventViews(licenceScheduleDetail, form, List.of());
+
+    assertThat(result.getFirst().events())
+        .singleElement()
+        .isInstanceOfSatisfying(TimelinePhaseView.class, phaseView -> assertThat(phaseView.events())
+            .singleElement()
+            .isInstanceOfSatisfying(TimelineAreaEventView.class, areaView -> {
+              assertThat(areaView.description()).isEqualTo("Approval: 01-03-2025");
+              assertThat(areaView.showProgress()).isTrue();
+            }));
+  }
+
+  private LicenceScheduleTerm termWithoutPhases() {
+    when(clock.instant()).thenReturn(LocalDate.of(2026, Month.JULY, 16).atStartOfDay(ZoneId.systemDefault()).toInstant());
+    when(clock.getZone()).thenReturn(ZoneId.systemDefault());
+
+    var term = new LicenceScheduleTerm();
+    term.setId(UUID.randomUUID());
+    term.setOriginalEventId(term.getId());
+    term.setLicenceScheduleDetail(licenceScheduleDetail);
+    term.setTermType(TermType.INITIAL);
+    term.setTermDuration(new ThreeFieldDuration(1, 0, 0));
+    term.setStartDate(LocalDate.of(2025, Month.JANUARY, 1));
+    term.setEndDate(LocalDate.of(2025, Month.DECEMBER, 31));
+    return term;
+  }
+
+  private void givenTheTimelineHas(LicenceScheduleTerm term, List<LicenceScheduleAreaEvent> areaEvents) {
+    when(licenceScheduleTermRequestCache.getTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of(term));
+    when(licenceSchedulePhaseService.getPhasesByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(List.of());
+    when(licenceScheduleAreaEventService.getAreaEvents(licenceScheduleDetail)).thenReturn(areaEvents);
+    when(eventCommentService.getEventCommentViewsForSchedule(licenceScheduleDetail.getLicenceSchedule()))
+        .thenReturn(Map.of());
+    when(licenceScheduleCalculationService.calculateRateEndDatesForDisplay(licenceScheduleDetail, List.of()))
+        .thenReturn(Map.of());
+  }
+
+  private LicenceScheduleAreaEvent areaEvent(LocalDate eventDate, String comments) {
+    var areaEvent = new LicenceScheduleAreaEvent();
+    areaEvent.setLicenceScheduleDetail(licenceScheduleDetail);
+    areaEvent.setEventMnem("PA");
+    areaEvent.setSubtype("APPROVAL");
+    areaEvent.setEventDate(eventDate);
+    areaEvent.setComments(comments);
+    areaEvent.setAreaName("Area one");
+    areaEvent.setAreaShortName("A1");
+    areaEvent.setAreaVersion("1");
+    return areaEvent;
   }
 
   @Test

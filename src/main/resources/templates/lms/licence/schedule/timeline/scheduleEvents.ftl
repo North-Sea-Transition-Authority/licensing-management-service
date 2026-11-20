@@ -94,6 +94,8 @@
                 <@rate rateView=eventView/>
             <#elseif eventView.getEventType() = "OTHER">
                 <@otherScheduleEvent eventView=eventView/>
+            <#elseif eventView.getEventType() = "AREA">
+                <@areaEvent eventView=eventView/>
             </#if>
         </#list>
 
@@ -167,6 +169,8 @@
             <@rate eventView/>
         <#elseif eventView.getEventType() = "OTHER">
             <@otherScheduleEvent eventView=eventView/>
+        <#elseif eventView.getEventType() = "AREA">
+            <@areaEvent eventView=eventView/>
         </#if>
     </#list>
     <#assign phaseEndTimeStampClass = "fds-timeline__time-stamp--no-border"/>
@@ -374,14 +378,14 @@
     nodeNumberClass=nodeClass
     >
         <@fdsTimeline.timelineEvent>
-            <p class="govuk-body">
-                ${eventView.description()}
-            </p>
             <#if eventView.relinquishmentPercentage()?has_content>
                 <p class="govuk-body">
                     ${eventView.relinquishmentPercentage()} relinquished
                 </p>
             </#if>
+            <p class="govuk-body">
+                ${eventView.description()}
+            </p>
             <@eventComments comments=eventView.comments() canDeleteComments=eventView.addCommentUrl()?has_content/>
         </@fdsTimeline.timelineEvent>
     </@lmsTimeStamp.lmsTimeStamp>
@@ -413,15 +417,37 @@
     nodeNumberClass="fds-timeline__node-number--no-dot"
     >
         <@fdsTimeline.timelineEvent>
-            <p class="govuk-body">
-                ${eventView.description()}
-            </p>
             <#if eventView.relinquishmentPercentage()?has_content>
                 <p class="govuk-body">
                     ${eventView.relinquishmentPercentage()} relinquished
                 </p>
             </#if>
+            <p class="govuk-body">
+                ${eventView.description()}
+            </p>
             <@eventComments comments=eventView.comments() canDeleteComments=eventView.addCommentUrl()?has_content/>
+        </@fdsTimeline.timelineEvent>
+    </@lmsTimeStamp.lmsTimeStamp>
+</#macro>
+
+<#macro areaEvent eventView>
+    <#assign timeStampClass = "">
+    <#if eventView.showProgress()>
+        <#assign timeStampClass = "fds-timeline__time-stamp--complete">
+    </#if>
+
+    <@lmsTimeStamp.lmsTimeStamp
+    timeStampHeading=eventView.heading()
+    timeStampHeadingHint=eventView.eventDateString()
+    timeStampClass=timeStampClass
+    nodeNumberClass="fds-timeline__node-number--small-dot"
+    >
+        <@fdsTimeline.timelineEvent>
+            <#if eventView.description()?has_content>
+                <p class="govuk-body">
+                    ${eventView.description()}
+                </p>
+            </#if>
         </@fdsTimeline.timelineEvent>
     </@lmsTimeStamp.lmsTimeStamp>
 </#macro>

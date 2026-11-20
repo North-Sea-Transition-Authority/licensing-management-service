@@ -24,6 +24,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenseeUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.rules.LicenceTypeRulesResolver;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.areaevent.LicenceScheduleAreaEvent;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.areaevent.LicenceScheduleAreaEventService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculation.LicenceScheduleCalculationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculation.StartEndDates;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments.EventCommentController;
@@ -75,6 +77,7 @@ public class LicenceScheduleTimelineService {
   private final LicenceScheduleCalculationService licenceScheduleCalculationService;
   private final LicenceStatusService licenceStatusService;
   private final LicenceResponsibleOrganisationService licenceResponsibleOrganisationService;
+  private final LicenceScheduleAreaEventService licenceScheduleAreaEventService;
   private final Clock clock;
 
   public LicenceScheduleTimelineService(
@@ -92,7 +95,8 @@ public class LicenceScheduleTimelineService {
       LicenceStatusService licenceStatusService,
       LicenceResponsibleOrganisationService licenceResponsibleOrganisationService,
       Clock clock,
-      LicenceScheduleTermRequestCache licenceScheduleTermRequestCache
+      LicenceScheduleTermRequestCache licenceScheduleTermRequestCache,
+      LicenceScheduleAreaEventService licenceScheduleAreaEventService
   ) {
     this.licenceStartDateService = licenceStartDateService;
     this.licenceTypeRulesResolver = licenceTypeRulesResolver;
@@ -109,6 +113,7 @@ public class LicenceScheduleTimelineService {
     this.licenceResponsibleOrganisationService = licenceResponsibleOrganisationService;
     this.clock = clock;
     this.licenceScheduleTermRequestCache = licenceScheduleTermRequestCache;
+    this.licenceScheduleAreaEventService = licenceScheduleAreaEventService;
   }
 
   public TimelineSummaryCardView getTimelineSummaryCardView(LicenceScheduleDetail licenceScheduleDetail) {
@@ -385,6 +390,8 @@ public class LicenceScheduleTimelineService {
 
     var allRates = licenceScheduleRateService.getLicenceScheduleRates(licenceScheduleDetail);
 
+    var allAreaEvents = licenceScheduleAreaEventService.getAreaEvents(licenceScheduleDetail);
+
     return new ScheduleEventData(
         phasesByTerm,
         withinTermActivities,
@@ -395,7 +402,8 @@ public class LicenceScheduleTimelineService {
         allOtherEvents,
         termLinkedRatesByTerm,
         phaseLinkedRatesByPhase,
-        allRates
+        allRates,
+        allAreaEvents
     );
   }
 
@@ -569,12 +577,34 @@ public class LicenceScheduleTimelineService {
                 finalProgressDate
             ));
 
-    return Stream.of(workProgrammeActivities, rates, otherScheduleEvents)
+    var areaEvents = getAreaEventsBetween(
+        scheduleEventData,
+        licenceScheduleTerm.getStartDate(),
+        licenceScheduleTerm.getEndDate(),
+        finalProgressDate
+    );
+
+    return Stream.of(workProgrammeActivities, rates, otherScheduleEvents, areaEvents)
         .flatMap(Function.identity())
         .filter(event -> includedEventTypes.contains(event.getEventType()))
         .sorted(Comparator.comparing(ScheduleEvent::getSortingDate)
             .thenComparing(event -> event.getEventType().getEventTypeOrder()))
         .toList();
+  }
+
+  private Stream<ScheduleEvent> getAreaEventsBetween(
+      ScheduleEventData scheduleEventData,
+      LocalDate startDate,
+      LocalDate endDate,
+      LocalDate finalProgressDate
+  ) {
+    return DateUtil.filterByDateRange(
+        scheduleEventData.allAreaEvents(),
+        LicenceScheduleAreaEvent::getEventDate,
+        startDate,
+        endDate
+    ).stream()
+        .map(areaEvent -> TimelineAreaEventView.getScheduleEventFrom(areaEvent, finalProgressDate));
   }
 
   private List<ScheduleEvent> getEndOfTermRequirementEvents(
@@ -744,7 +774,14 @@ public class LicenceScheduleTimelineService {
                 finalProgressDate
             ));
 
-    return Stream.of(workProgrammeActivities, rates, otherScheduleEvents)
+    var areaEvents = getAreaEventsBetween(
+        scheduleEventData,
+        licenceSchedulePhase.getStartDate(),
+        licenceSchedulePhase.getEndDate(),
+        finalProgressDate
+    );
+
+    return Stream.of(workProgrammeActivities, rates, otherScheduleEvents, areaEvents)
         .flatMap(Function.identity())
         .filter(event -> includedEventTypes.contains(event.getEventType()))
         .sorted(Comparator.comparing(ScheduleEvent::getSortingDate)
@@ -872,7 +909,8 @@ public class LicenceScheduleTimelineService {
       List<OtherScheduleEvent> allOtherEvents,
       Map<UUID, List<LicenceScheduleRate>> termLinkedRatesByTerm,
       Map<UUID, List<LicenceScheduleRate>> phaseLinkedRatesByPhase,
-      List<LicenceScheduleRate> allRates
+      List<LicenceScheduleRate> allRates,
+      List<LicenceScheduleAreaEvent> allAreaEvents
   ) {
   }
 }

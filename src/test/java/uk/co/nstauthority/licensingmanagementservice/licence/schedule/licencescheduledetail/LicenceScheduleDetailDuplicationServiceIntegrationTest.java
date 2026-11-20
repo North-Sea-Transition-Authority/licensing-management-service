@@ -17,6 +17,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
 import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSchedule;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.areaevent.LicenceScheduleAreaEvent;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.areaevent.LicenceScheduleAreaEventRepository;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleexpiry.LicenceScheduleExpiry;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleexpiry.LicenceScheduleExpiryRepository;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
@@ -67,6 +69,9 @@ class LicenceScheduleDetailDuplicationServiceIntegrationTest {
 
   @Autowired
   private LicenceScheduleExpiryRepository licenceScheduleExpiryRepository;
+
+  @Autowired
+  private LicenceScheduleAreaEventRepository licenceScheduleAreaEventRepository;
 
   @Autowired
   private LicenceScheduleDetailDuplicationService licenceScheduleDetailDuplicationService;
@@ -225,6 +230,40 @@ class LicenceScheduleDetailDuplicationServiceIntegrationTest {
         .ignoringFields("id", "eventDate", "originalEventId")
         .ignoringCollectionOrder()
         .isEqualTo(List.of(expectedNewTermLinkedEvent, expectedNewPhaseLinkedEvent));
+  }
+
+  @Test
+  void createNewDraftLicenceScheduleDetailVersion_copiesAreaEvents() {
+    createDbBaseline();
+
+    var areaEvent = new LicenceScheduleAreaEvent();
+    areaEvent.setLicenceScheduleDetail(oldLicenceScheduleDetail);
+    areaEvent.setEventMnem("RD");
+    areaEvent.setSubtype("APPROVAL");
+    areaEvent.setEventDate(LocalDate.of(2026, Month.MARCH, 1));
+    areaEvent.setComments("Approval: 01-03-2026");
+    areaEvent.setAreaShortName("A1");
+    areaEvent.setPearsEventId("7001");
+    em.persist(areaEvent);
+
+    var newDetail =
+        licenceScheduleDetailDuplicationService.createNewDraftLicenceScheduleDetailVersion(oldLicenceScheduleDetail);
+    em.flush();
+
+    assertThat(licenceScheduleAreaEventRepository.findAllByLicenceScheduleDetail(newDetail))
+        .singleElement()
+        .satisfies(copy -> assertThat(copy.getId()).isNotEqualTo(areaEvent.getId()))
+        .extracting(
+            LicenceScheduleAreaEvent::getEventMnem,
+            LicenceScheduleAreaEvent::getSubtype,
+            LicenceScheduleAreaEvent::getEventDate,
+            LicenceScheduleAreaEvent::getComments,
+            LicenceScheduleAreaEvent::getAreaShortName,
+            LicenceScheduleAreaEvent::getPearsEventId
+        )
+        .containsExactly("RD", "APPROVAL", LocalDate.of(2026, Month.MARCH, 1), "Approval: 01-03-2026", "A1", "7001");
+    assertThat(licenceScheduleAreaEventRepository.findAllByLicenceScheduleDetail(oldLicenceScheduleDetail))
+        .containsExactly(areaEvent);
   }
 
   private void createDbBaseline() {

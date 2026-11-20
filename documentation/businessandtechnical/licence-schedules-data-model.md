@@ -41,7 +41,7 @@ licence_schedule_details (id UUID, licence_schedule_id, status, created_instant)
    ▼
 licence_start_dates, licence_schedule_terms, licence_schedule_phases,
 work_programme_activities, licence_schedule_rates, other_schedule_events,
-licence_schedule_expiry_dates
+licence_schedule_expiry_dates, licence_schedule_area_events
 ```
 
 - `licence_schedules` is a thin stable anchor. It exists so that things which must outlive
@@ -78,6 +78,7 @@ flowchart TB
         RATE["licence_schedule_rates"]
         OTHER["other_schedule_events"]
         EXP["licence_schedule_expiry_dates"]
+        AREA["licence_schedule_area_events<br/><i>not a schedule event</i>"]
     end
 
     subgraph SAT["survives versioning — keyed on schedule_events.id via event_reference_id"]
@@ -90,13 +91,46 @@ flowchart TB
     LS -- "1 : many — the version chain" --> LSD
     LS -- "1 : many" --> SE
     LSD -- "1 : many" --> CONTENT
-    SE -. "shared primary key, id to id<br/>(every table except licence_start_dates)" .-> CONTENT
+    SE -. "shared primary key, id to id<br/>(every table except licence_start_dates<br/>and licence_schedule_area_events)" .-> CONTENT
     SE -- "1 : many" --> SAT
 ```
 
-Two of the seven content tables hold **at most one row per version** — `licence_start_dates`
-and `licence_schedule_expiry_dates`. The other five hold many, so the single `1 : many` edge
+Two of the eight content tables hold **at most one row per version** — `licence_start_dates`
+and `licence_schedule_expiry_dates`. The other six hold many, so the single `1 : many` edge
 into the content layer is a simplification on that point.
+
+### 2.2 `licence_schedule_area_events`
+
+Retention, development and pre-producing area events, held **as PEARS holds them**: `RD` events
+on onshore licences (retention or development areas) and `PA` events on offshore licences
+(pre-producing areas). LMS doesn't manage these areas yet, so they are kept as plain rows against
+a schedule version rather than as schedule events:
+
+- Rows are only written by the PEARS schedule migration, one per `RD`/`PA` event in each
+  migrated PEARS version, against that version's detail. No LMS screen adds, edits or deletes
+  them yet. Licences migrated without area events, and schedules created in LMS, have none.
+- Like `licence_start_dates`, they have **no `schedule_events` row**, so no `original_event_id`,
+  no `event_comments` rows (§6.1) and no event tracker entry. PEARS's comments on the event are
+  held in the row's own `comments` column instead.
+- They are **copied with the rest of the version** when a draft is created (§5.2).
+- `event_date` is the date PEARS holds, not one LMS works out: there is no duration or anchor.
+- `subtype`, the `area_*` columns and `pears_event_id` (PEARS's `EVENT_ID`, held as text) are
+  null on older hand-entered `PA` events, which PEARS holds without them.
+- The timeline shows them, read-only, under their own filter, "Retention, development and
+  pre-producing areas" (`ScheduleEventType.AREA`). Each one sits in the term or phase its
+  `event_date` falls in, as other dated events do, so one dated outside every term (or, in a term
+  with phases, outside every phase) isn't shown. The heading is the area name and its short name,
+  with `v` and the version from version 2 on (`Area one (A1v2)`), as PEARS shows it. A hand-entered
+  event with no area is headed "Pre-producing area". The body is the event's `comments`.
+
+| Column | Meaning |
+|---|---|
+| `event_mnem` | `RD` (onshore) or `PA` (offshore) |
+| `subtype` | `APPROVAL`, `EXPIRY`, `WORK_PROGRAMME` or `END`; nullable |
+| `event_date` | The event's date in PEARS |
+| `comments` | PEARS's comments, e.g. "Approval: 01-12-2021" |
+| `area_name`, `area_short_name`, `area_type`, `area_version` | The area the event is about. `area_type` is `RETENTION` or `DEVELOPMENT` onshore, `PROSPECTIVE` offshore |
+| `pears_event_id` | PEARS's `EVENT_ID`, kept for writing the events back to PEARS |
 
 The diagram also omits the foreign keys *within* the content layer, which would obscure the
 top-down shape. They are:
@@ -110,6 +144,37 @@ top-down shape. They are:
 
 In all four cases the target row belongs to the **same schedule version** as the source row —
 these references never cross between versions (§5.2).
+
+### 2.3 PEARS schedule migration tables
+
+Four tables only the PEARS schedule migration uses. They are made by hand-run scripts
+(`manualscripts/pearsschedulemigration`), not Flyway, in each environment the migration runs in, so
+other environments don't have them. Nothing else in LMS reads them.
+
+| Table | One row per | Used for |
+|---|---|---|
+| `pears_schedule_event_migration_links` | Migrated schedule event | The PEARS event it came from, for the comparison report and the write-back |
+| `pears_schedule_migrated_licences` | Schedule the migration created | Telling migrated schedules from ones made in LMS; only these are cleared down (§5.3a) |
+| `pears_schedule_migration_runs` | Run | A migration, cleardown or dry run, and how far it has got. Only one is queued or running at a time (a unique partial index) |
+| `pears_schedule_migration_queue` | Licence in a run | What happened to the licence in that run |
+
+| Column | Meaning |
+|---|---|
+| `pears_schedule_event_migration_links.schedule_event_id` | The LMS event (`schedule_events.id`) |
+| `pears_schedule_event_migration_links.pears_plsd_id` | The PEARS schedule version it came from (`PED_LICENCE_SCHEDULE_DETAILS.ID`) |
+| `pears_schedule_event_migration_links.pears_event_mnem`, `pears_event_index` | The PEARS event's type and its position in that version's event list, from 1 |
+| `pears_schedule_event_migration_links.pears_event_id` | PEARS's `EVENT_ID`, where it has one |
+| `pears_schedule_migrated_licences.licence_schedule_id`, `licence_id` | The migrated schedule and its licence |
+| `pears_schedule_migrated_licences.run_id`, `migrated_at` | The run that migrated it, and when |
+| `pears_schedule_migration_runs.kind` | `MIGRATE`, `CLEARDOWN` or `VALIDATE` (a dry run) |
+| `pears_schedule_migration_runs.status` | `QUEUED`, `RUNNING`, `COMPLETE` or `CANCELLED` |
+| `pears_schedule_migration_runs.requested_by`, `requested_at`, `completed_at` | Who started the run (a WUA id), when, and when it finished |
+| `pears_schedule_migration_queue.run_id`, `licence_reference` | The run, and the licence as PEARS names it, e.g. `P1556` |
+| `pears_schedule_migration_queue.status` | `PENDING` until worked, then `MIGRATED`, `CLEARED`, `MATCHED` or `DIFFERS` (dry run), `SKIPPED` or `FAILED` |
+| `pears_schedule_migration_queue.attempts` | How many times the licence has been worked, retries included |
+| `pears_schedule_migration_queue.outcome` | Why it was skipped or failed, or a dry run's first issues; null while pending |
+| `pears_schedule_migration_queue.notes` | JSON counts of the migration's notes by reason, and a dry run's comparison results; null while pending |
+| `pears_schedule_migration_queue.started_at`, `finished_at` | The last attempt; null while pending |
 
 ---
 
@@ -214,9 +279,10 @@ LMS has no in-place edit path for a live schedule. An update is:
    current `ACTIVE` detail and creates a **new** `licence_schedule_details` row with
    `status = 'DRAFT'`, `created_instant = now()`, pointing at the same `licence_schedule_id`.
 2. Every child row of the old detail is **copied field-for-field** into new rows attached to
-   the new detail. This applies to all seven child tables: `licence_start_dates`,
+   the new detail. This applies to all eight child tables: `licence_start_dates`,
    `licence_schedule_terms`, `licence_schedule_phases`, `work_programme_activities`,
-   `licence_schedule_rates`, `other_schedule_events`, `licence_schedule_expiry_dates`.
+   `licence_schedule_rates`, `other_schedule_events`, `licence_schedule_expiry_dates`,
+   `licence_schedule_area_events`.
    - Every copied row gets a **new `id`**. All other columns — including
      `licence_schedule_id` and `original_event_id` — are carried over unchanged.
    - Internal cross-references are then re-pointed: a copied phase's
@@ -257,6 +323,22 @@ rows; it does not guarantee one row per version.
 The draft detail is set to `status = 'DELETED'`. Its child rows remain in place. Pending
 comments for that schedule are removed. Nothing is physically deleted except the child rows
 the user explicitly deleted while editing.
+
+### 5.3a Clearing down a migrated schedule (outside production only)
+
+The one place whole schedules are physically deleted. To let the PEARS schedule migration run
+again in a non-production environment, its cleardown deletes every schedule listed in
+`pears_schedule_migrated_licences`: every version and event, comments, work programme activity
+statuses, area events, start dates, the PEARS link rows, and the schedule's reminders,
+missing-contact reports and event tracker rows ([reminders](licence-schedule-reminders-data-model.md),
+[event cache](licence-event-cache-data-model.md)). Its audit history goes too (§9), including that
+of events users had deleted, so a re-run leaves no history of the old schedule.
+
+The licence and everything else about it stay. Schedules LMS created itself have no
+`pears_schedule_migrated_licences` row and are never touched. Environments are reset before a
+migration, so no application references a migrated schedule; if one did, its foreign key would
+stop that licence's cleardown. It is off unless `pears.schedule-migration.cleardown-enabled` is
+set, which it never is in production.
 
 ### 5.4 Derived dates — what is stored versus what is calculated
 
@@ -723,6 +805,10 @@ below do not.
 **`licence_schedule_expiry_dates`**
 `id`, `licence_schedule_detail_id`, `expiry_date`, `comments`
 
+**`licence_schedule_area_events`** *(not a schedule event, §2.2)*
+`id`, `licence_schedule_detail_id`, `event_mnem`, `subtype`, `event_date`, `comments`,
+`area_name`, `area_short_name`, `area_type`, `area_version`, `pears_event_id`
+
 **`schedule_events`**
 `id`, `licence_schedule_id`, `event_type`, `original_event_id`
 
@@ -731,3 +817,15 @@ below do not.
 
 **`work_programme_activity_statuses`**
 `id`, `event_reference_id`, `status`, `applied_datetime`, `licence_transferred_to`
+
+**`pears_schedule_event_migration_links`** *(migration only, §2.3)*
+`schedule_event_id`, `pears_plsd_id`, `pears_event_mnem`, `pears_event_index`, `pears_event_id`
+
+**`pears_schedule_migrated_licences`** *(migration only, §2.3)*
+`licence_schedule_id`, `licence_id`, `run_id`, `migrated_at`
+
+**`pears_schedule_migration_runs`** *(migration only, §2.3)*
+`id`, `kind`, `status`, `requested_by`, `requested_at`, `completed_at`
+
+**`pears_schedule_migration_queue`** *(migration only, §2.3)*
+`run_id`, `licence_reference`, `status`, `attempts`, `outcome`, `notes`, `started_at`, `finished_at`

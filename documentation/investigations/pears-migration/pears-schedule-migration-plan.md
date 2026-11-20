@@ -2272,6 +2272,26 @@ planned with that work.
     to option A, and still needs a term to hold them and, with no `E`, its end date. Put to the NSTA
     with L12's final check.
 
+    **Rates outside the terms ruled out (20 November 2026).** Migrating these rates as they are,
+    after the final term (as area events are shown, LMS1-501), was considered and rejected: LMS's
+    own validation keeps a licence's rent within its terms, and stays as it is. The rate, work
+    programme and other event forms refuse a date after the end of the schedule
+    (`ScheduleRelativeDateValidationService.validateRelativeDateBeforeEndOfSchedule`), so such a rate
+    couldn't be edited or followed by another; a term can't be shortened or removed to leave a rate
+    after it; and for pattern B the expiry still wouldn't match the final term's end
+    (`doesExpiryDateMatchEndOfFinalTerm`). So the term has to exist, made either way:
+
+    - **In the migration (option A):** add the term after the last `T`. For pattern B it ends on `E`,
+      a single rule from the data; for the licences with no `E` the regulators give its end.
+    - **A PEARS data fix by the NSTA:** add the missing term (and the expiry, where there is none) to
+      each licence's PEARS schedule before the production run. The migration then takes the
+      schedules as they are, with no new rule, and PEARS and LMS agree, so the write-back has nothing
+      to undo.
+
+    They can be combined, for example A for pattern B and a PEARS fix for the licences with no `E`,
+    where the NSTA has to decide the dates anyway. Any licence fixed by neither by the production run
+    migrates as now, with the rates after its last term reported as not migrated.
+
 ## Out of scope
 
 - The onshore retention area rate (`RETENTION_AREA_RATE`): unused in PEARS. Onshore schedules and

@@ -548,13 +548,29 @@ no-payment years: 298 on `P` and 12 on `PL` (data survey,
 Either way, LMS's "in force until the next rate" model then describes every year correctly, so the
 write-back can rebuild yearly recurrence without inventing payments.
 
-**Assumed for now (L12, 17 November 2026): (a), the gaps are errors.** The mapper treats every rate
+**Agreed with the NSTA (L12, 20 November 2026): (a), the gaps are errors**, pending the NSTA's
+final check. It was the working assumption from 17 November 2026, so the mapper already does it. The
+mapper treats every rate
 as in force until the next rate or the final term's end, whatever PEARS's recurrence says: its
 yearly occurrences carry on through the gap years, so a gap that crosses into a new phase or term
 gives that period its own LMS rate, on the anniversary. Each gap is noted ("Years with no rate in
 PEARS: the previous rate is carried on through them"), so the migration report lists them. If the
-licensing team finds they are legitimate, (b) adds a £0 rate on each gap's first missing
-anniversary, in the same place.
+NSTA's final check finds any are legitimate after all, (b) adds a £0 rate on each such gap's first
+missing anniversary, in the same place.
+
+Still to settle with the NSTA's final check:
+
+- **Past years gain payments in PEARS.** Once the write-back writes these schedules back, the gap
+  years carry the previous rate, so PEARS's payments report and the data warehouse feed show rent
+  in years that show none today. The gaps are mostly before 1999. The NSTA confirms that is
+  intended for past years too, or gives a date before which gaps are left as no-payment years
+  (case (b) for those).
+- **The list to check.** The "L12" sheet of `pears-schedule-migration-licensing-items.xlsx` is from
+  the survey's S12b query on live of 27 October 2026; run it again on live for the final check.
+  After a migration run, each licence's "Years with no rate in PEARS" note gives the same list from
+  the migration's side.
+- **The same view may apply to Open question 16**, rates after the last term, which are dropped
+  rather than carried on. Put both to the NSTA together.
 
 Also noted, and otherwise handled the same way:
 - a counted yearly rate that runs into the next rate (the `AL` overlap, step 5): it stops when the
@@ -2118,12 +2134,14 @@ planned with that work.
    (the write-back fills them), or they are legitimate, and LMS uses a **£0 rate** for those
    years (migrated in, written back as 0, and used by users for future gaps). See "Rates and yearly
    recurrence" step 4. Either way option A no longer invents payments, and a "recurs yearly" flag
-   on LMS rates isn't needed for gaps. **Assumed for now (17 November 2026): the gaps are
-   errors** (case (a)), and each is noted in the migration report. The licensing team can still
-   say they are legitimate, which adds the £0 rates of case (b).
+   on LMS rates isn't needed for gaps. **Agreed with the NSTA (20 November 2026): the gaps are
+   errors** (case (a)), so the previous rate runs on through the missing years, and each gap is
+   noted in the migration report. The NSTA does a final check; any it finds legitimate would get
+   the £0 rates of case (b).
    **Data warehouse (option A):** the write-back would put `RECURRANCES` counts on `P` and `PEDL`
    schedules, which have never had them. The data warehouse owners confirm their feed handles
-   that, alongside the 0-rate rows of gap case (b).
+   that. With the gaps agreed as errors, the 0-rate rows of gap case (b) are only needed for any
+   gaps the NSTA's final check finds legitimate, so confirming those can wait for its answer.
 8. **Expiry date convention.** **Option A for now (18 November 2026): store `E - 1 day`**, built
    in PR 5. It changes later only if the licensing team expects the anniversary. PEARS dates the expiry on the anniversary the licence ends
    (P2244: 01-Dec-2040). In LMS the final term ends the day before (30-Nov-2040), and Review and
@@ -2247,6 +2265,12 @@ planned with that work.
     **Until answered:** B, as built. The next term is not created, and option A is not built unless
     the regulators choose it. Asked as question 2.5 of the licensing review document
     (`pears-schedule-migration-licensing-review.docx`), which no longer lists rule 3 as agreed.
+
+    **Rate gaps (20 November 2026):** the NSTA agreed that years with no rate between two rates are
+    errors and the previous rate runs on through them (L12, "Rates and yearly recurrence" step 4).
+    If the same holds here, these licences' rents carry on after their last term too, which points
+    to option A, and still needs a term to hold them and, with no `E`, its end date. Put to the NSTA
+    with L12's final check.
 
 ## Out of scope
 

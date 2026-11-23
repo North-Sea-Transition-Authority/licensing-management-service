@@ -1332,16 +1332,23 @@ job like any LMS schedule:
 
 So on the first run after the production migration, **every extant licence with a deadline in its
 window is reminded at once**. Each deadline is only reminded once (`licence_reminders`), so later
-runs are back to normal. Before go-live, decide (Open question 15):
+runs are back to normal.
 
-- whether licensees should get these emails from the first run, or reminders for migrated licences
-  start from an agreed date (e.g. only deadlines first entering the window after go-live);
-- whether PEARS sends anything equivalent today (e.g. acknowledgements) that would duplicate them;
-- whether licensees have licence contacts in LMS. Missing ones are reported to the licence contacts
-  managers (`licence_reminder_missing_contacts`), which could be a large first report.
+**Decided (23 November 2026, Open question 15):**
 
-The UAT rehearsal should run the reminder job against the migrated data, with email going to a test
-inbox, to see the volume.
+- **Every reminder in its window goes out on go-live.** The first run after the production
+  migration sends them all, as built, with no change to the job and no `licence_reminders` rows
+  written by the migration. That is every term, phase and other deadline in the next 6 months and
+  every expiry in the next 12, some with less than the usual notice. Live is expected to be close
+  to UAT's estimate, about 17 emails.
+- **Licence contacts are filled in before go-live**, so the missing-contacts report
+  (`licence_reminder_missing_contacts`) stays small. A licensee with no contact gets nothing, and
+  its deadlines aren't recorded as reminded, so they go out once a contact is added and the
+  deadline is still in its window.
+- **PEARS doesn't change.** Deadline reminders are new in LMS; PEARS sends nothing they duplicate.
+
+The UAT rehearsal still runs the reminder job against the migrated data, with email going to a test
+inbox, to confirm the volume.
 
 ## Design
 
@@ -2213,11 +2220,10 @@ planned with that work.
     starts, so PEARS may pay both in that year (AL6 1999, AL9 2000, AL10 2001; data survey S12c).
     LMS and the write-back drop the overlap ("Rates and yearly recurrence" step 5). The licensing
     team confirms on the "AL rate overlap" sheet that the double payment was never intended.
-15. **Event reminders for migrated licences.** Open. Once a licence is migrated, LMS's reminder
-    job emails its licensees about deadlines in its active schedule. On the first run that is every
-    extant licence with a deadline in the window, all at once. Decide when reminders start for
-    migrated licences, and whether PEARS sends anything equivalent today that would need to stop.
-    See "Event reminders after migration".
+15. **Event reminders for migrated licences.** Resolved (23 November 2026): **every reminder in
+    its window goes out on go-live**, from the first run after the production migration, as built.
+    Licence contacts are filled in before go-live, and PEARS doesn't change, as deadline reminders
+    are new in LMS. See "Event reminders after migration".
 16. **Licences whose rates carry on after their last term (pattern B, and no expiry).** Open, **for
     the regulators** (raised 19 November 2026). Under "Term boundaries" rule 3 these licences are
     migrated with no term after the last `T`, so **every rate from the last `T` onwards falls

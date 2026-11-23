@@ -6,7 +6,6 @@ import java.util.UUID;
 import java.util.function.Predicate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
@@ -21,14 +20,9 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.vie
 public class SubareaSetEquityCorrectionService {
 
   private final LicencePositionCorrectionService licencePositionCorrectionService;
-  private final OrganisationUnitQueryService organisationUnitQueryService;
 
-  SubareaSetEquityCorrectionService(
-      LicencePositionCorrectionService licencePositionCorrectionService,
-      OrganisationUnitQueryService organisationUnitQueryService
-  ) {
+  SubareaSetEquityCorrectionService(LicencePositionCorrectionService licencePositionCorrectionService) {
     this.licencePositionCorrectionService = licencePositionCorrectionService;
-    this.organisationUnitQueryService = organisationUnitQueryService;
   }
 
   List<SubareaSetEquityOperation> getCommittedSubareaSetEquityOperations(

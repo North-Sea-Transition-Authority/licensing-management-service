@@ -302,7 +302,7 @@ class TeamQueryServiceTest {
     var pearsResyncEnabled = new TeamQueryService(
         teamRepository,
         teamRoleRepository,
-        FeatureFlagServiceTestUtil.withProfiles(ReleasePhase.PEARS_LICENCE_RESYNC.getProfileName()),
+        FeatureFlagServiceTestUtil.withProfiles(ReleasePhase.PEARS_LICENCE_RESYNC.getRequiredProfiles()),
         teamRoleRequestCache
     );
 

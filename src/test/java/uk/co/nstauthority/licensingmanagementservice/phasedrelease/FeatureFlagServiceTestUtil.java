@@ -1,5 +1,6 @@
 package uk.co.nstauthority.licensingmanagementservice.phasedrelease;
 
+import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.Objects;
 import org.springframework.mock.env.MockEnvironment;
@@ -18,7 +19,9 @@ public class FeatureFlagServiceTestUtil {
   public static FeatureFlagService allPhasesEnabled() {
     var allProfiles = EnumSet.allOf(ReleasePhase.class)
         .stream()
-        .map(ReleasePhase::getProfileName)
+        .map(ReleasePhase::getRequiredProfiles)
+        .filter(Objects::nonNull)
+        .flatMap(Arrays::stream)
         .filter(Objects::nonNull)
         .toArray(String[]::new);
 

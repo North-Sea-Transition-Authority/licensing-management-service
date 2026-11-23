@@ -98,7 +98,7 @@ class NewLicenceValidatorTest {
     var validator = new NewLicenceValidator(
         licenceService,
         clock,
-        FeatureFlagServiceTestUtil.withProfiles(ReleasePhase.FUTURE.getProfileName())
+        FeatureFlagServiceTestUtil.withProfiles(ReleasePhase.FUTURE.getRequiredProfiles())
     );
     var form = validForm();
     form.setLicenceType(LicenceType.GAS_STORAGE);

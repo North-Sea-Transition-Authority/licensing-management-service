@@ -1,5 +1,8 @@
 package uk.co.nstauthority.licensingmanagementservice.phasedrelease;
 
+import java.util.Arrays;
+import java.util.stream.Stream;
+
 /**
  * The phased go-live releases. Each phase (other than {@link #NOT_FLAGGED}) is backed by a Spring profile; the phase is
  * "on" when its profile is active. {@code NOT_FLAGGED} is always on.
@@ -22,20 +25,27 @@ public enum ReleasePhase {
 
   /**
    * Not a go-live phase: resyncing a production licence from PEARS on demand, switched on only where the PEARS
-   * datasource is configured, and independently of the phases above.
+   * datasource is configured, and only when both LMS2 and the PEARS licence resync profile are active.
    */
-  PEARS_LICENCE_RESYNC("enable-pears-licence-resync");
+  PEARS_LICENCE_RESYNC(LMS2, "enable-pears-licence-resync");
 
-  private final String profileName;
+  private final String[] requiresProfiles;
 
-  ReleasePhase(String profileName) {
-    this.profileName = profileName;
+  ReleasePhase(String... requiresProfiles) {
+    this.requiresProfiles = requiresProfiles;
+  }
+
+  ReleasePhase(ReleasePhase base, String... extraProfiles) {
+    this.requiresProfiles = Stream.concat(
+        Arrays.stream(base.requiresProfiles),
+        Arrays.stream(extraProfiles)
+    ).toArray(String[]::new);
   }
 
   /**
    * The Spring profile that activates this phase, or {@code null} for {@link #NOT_FLAGGED} which is always on.
    */
-  public String getProfileName() {
-    return profileName;
+  public String[] getRequiredProfiles() {
+    return requiresProfiles;
   }
 }

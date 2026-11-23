@@ -67,6 +67,14 @@ class FeatureFlagServiceTest {
   }
 
   @Test
+  void isEnabled_whenPhaseRequiresMultipleProfiles_thenEnabledOnlyWhenAllRequiredProfilesAreActive() {
+    assertThat(serviceWithProfiles("enable-lms1", "enable-lms2").isEnabled(ReleaseFeature.RESYNC_LICENCE_FROM_PEARS)).isFalse();
+    assertThat(serviceWithProfiles("enable-lms1", "enable-pears-licence-resync").isEnabled(ReleaseFeature.RESYNC_LICENCE_FROM_PEARS)).isFalse();
+    assertThat(serviceWithProfiles("enable-lms2").isEnabled(ReleaseFeature.RESYNC_LICENCE_FROM_PEARS)).isFalse();
+    assertThat(serviceWithProfiles("enable-lms2", "enable-pears-licence-resync").isEnabled(ReleaseFeature.RESYNC_LICENCE_FROM_PEARS)).isTrue();
+  }
+
+  @Test
   void getEnabledFeatures_whenLms1Only_thenExcludesLms2Features() {
     var enabled = serviceWithProfiles("enable-lms1").getEnabledFeatures();
 

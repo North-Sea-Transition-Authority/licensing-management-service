@@ -31,7 +31,7 @@ public class FeatureFlagService {
    */
   public boolean isEnabled(ReleasePhase phase) {
     return phase == ReleasePhase.NOT_FLAGGED
-        || environment.acceptsProfiles(Profiles.of(phase.getProfileName()));
+        || environment.acceptsProfiles(Profiles.of(String.join("&", phase.getRequiredProfiles())));
   }
 
   /** Feature-level check — the generic entry point for actions / in-page features / options. */

@@ -11,9 +11,13 @@ import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation.SurrenderDetails;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaDetails;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaSurrenderOutcome;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPosition;
@@ -563,6 +567,177 @@ class LicencePositionStateResolverTest {
     assertThat(result.currentState(FIRST_POSITION.getId()).blockFeatureIdToSubareaEquity())
         .isEqualTo(Map.of(blockId, Map.of(subarea, Map.of(1, new BigDecimal("100")))));
     assertThat(result.currentState(SECOND_POSITION.getId()).blockFeatureIdToSubareaEquity()).isEmpty();
+  }
+
+  @Test
+  void resolveStates_whenBlockPartiallySurrendered_thenSubareasLeftCarryTheirBeneficialInterestsToLaterPositions() {
+    var blockId = UUID.randomUUID();
+    var retainedFeatureId = UUID.randomUUID();
+    var keptSubarea = new SubareaDetails(UUID.randomUUID(), "Subarea A", "A");
+    var croppedSubarea = new SubareaDetails(UUID.randomUUID(), "Subarea B", "B");
+    var croppedPart = new SubareaDetails(UUID.randomUUID(), "Subarea B", "B");
+    var relinquishedSubarea = new SubareaDetails(UUID.randomUUID(), "Subarea C", "C");
+
+    var firstChronological = ChronologicalPositionTestUtil.live(
+        FIRST_POSITION,
+        blockCreate(blockId, keptSubarea, croppedSubarea, relinquishedSubarea),
+        subareaSetEquity(blockId, keptSubarea, 1, "100"),
+        subareaSetEquity(blockId, croppedSubarea, 2, "60"),
+        subareaSetEquity(blockId, croppedSubarea, 3, "40"),
+        subareaSetEquity(blockId, relinquishedSubarea, 4, "100")
+    );
+    var secondChronological = ChronologicalPositionTestUtil.live(
+        SECOND_POSITION,
+        partialSurrender(blockId, retainedFeatureId, List.of(
+            SubareaSurrenderOutcome.kept(keptSubarea),
+            SubareaSurrenderOutcome.cropped(croppedSubarea, croppedPart),
+            SubareaSurrenderOutcome.relinquished(relinquishedSubarea)
+        ))
+    );
+    var thirdChronological = ChronologicalPositionTestUtil.live(
+        THIRD_POSITION,
+        LicenceOperation.newAdministratorChange().withOperator(1).build()
+    );
+
+    var result = LicencePositionStateResolver.resolve(
+        List.of(firstChronological, secondChronological, thirdChronological));
+
+    var expectedAfterSurrender = LicencePositionState.EMPTY
+        .withBlock(retainedFeatureId, List.of(keptSubarea, croppedPart))
+        .withSubareaEquity(retainedFeatureId, keptSubarea, 1, new BigDecimal("100"))
+        .withSubareaEquity(retainedFeatureId, croppedPart, 2, new BigDecimal("60"))
+        .withSubareaEquity(retainedFeatureId, croppedPart, 3, new BigDecimal("40"));
+
+    assertThat(result.currentState(SECOND_POSITION.getId()))
+        .usingRecursiveComparison()
+        .isEqualTo(expectedAfterSurrender);
+
+    assertThat(result.currentState(THIRD_POSITION.getId()))
+        .usingRecursiveComparison()
+        .isEqualTo(expectedAfterSurrender.withAdministratorId(1));
+  }
+
+  @Test
+  void resolveStates_whenBeneficialInterestsChangedBeforeASurrender_thenTheSurrenderCarriesTheChangedInterests() {
+    var blockId = UUID.randomUUID();
+    var retainedFeatureId = UUID.randomUUID();
+    var subarea = new SubareaDetails(UUID.randomUUID(), "Subarea A", "A");
+
+    var firstChronological = ChronologicalPositionTestUtil.live(
+        FIRST_POSITION,
+        blockCreate(blockId, subarea),
+        subareaSetEquity(blockId, subarea, 1, "60"),
+        subareaSetEquity(blockId, subarea, 2, "40")
+    );
+    var secondChronological = ChronologicalPositionTestUtil.live(
+        SECOND_POSITION,
+        subareaSetEquity(blockId, subarea, 1, "50"),
+        subareaSetEquity(blockId, subarea, 3, "10")
+    );
+    var thirdChronological = ChronologicalPositionTestUtil.live(
+        THIRD_POSITION,
+        partialSurrender(blockId, retainedFeatureId, List.of(SubareaSurrenderOutcome.kept(subarea)))
+    );
+
+    var result = LicencePositionStateResolver.resolve(List.of(firstChronological, secondChronological, thirdChronological));
+
+    assertThat(result.currentState(THIRD_POSITION.getId()).blockFeatureIdToSubareaEquity())
+        .isEqualTo(Map.of(retainedFeatureId, Map.of(subarea, Map.of(
+            1, new BigDecimal("50"),
+            2, new BigDecimal("40"),
+            3, new BigDecimal("10")
+        ))));
+  }
+
+  @Test
+  void resolveStates_whenPartialSurrenderRemoved_thenBeneficialInterestsStayOnTheOriginalBlock() {
+    var blockId = UUID.randomUUID();
+    var retainedFeatureId = UUID.randomUUID();
+    var subarea = new SubareaDetails(UUID.randomUUID(), "Subarea A", "A");
+
+    var firstChronological = ChronologicalPositionTestUtil.live(
+        FIRST_POSITION,
+        blockCreate(blockId, subarea),
+        subareaSetEquity(blockId, subarea, 1, "100")
+    );
+    var removedSurrender = new PositionChange(
+        UUID.randomUUID().toString(),
+        1,
+        LicencePositionChangeType.REMOVE_CHANGE,
+        List.of(partialSurrender(blockId, retainedFeatureId, List.of(SubareaSurrenderOutcome.kept(subarea))))
+    );
+    var secondChronological = ChronologicalPosition.fromLicencePosition(
+        SECOND_POSITION,
+        SECOND_POSITION.getLicenceTransaction().getRegulatorReference(),
+        SECOND_POSITION.getPositionDate(),
+        SECOND_POSITION.getPositionDateOrder(),
+        List.of(removedSurrender)
+    );
+    var thirdChronological = ChronologicalPositionTestUtil.live(THIRD_POSITION);
+
+    var result = LicencePositionStateResolver.resolve(List.of(firstChronological, secondChronological, thirdChronological));
+
+    var expected = LicencePositionState.EMPTY
+        .withBlock(blockId, List.of(subarea))
+        .withSubareaEquity(blockId, subarea, 1, new BigDecimal("100"));
+
+    assertThat(result.currentState(THIRD_POSITION.getId())).usingRecursiveComparison().isEqualTo(expected);
+  }
+
+  @Test
+  void resolveStates_whenSubareaEquitySetOnASubareaLeftByASurrender_thenAppliedOnTopOfTheCarriedInterests() {
+    var blockId = UUID.randomUUID();
+    var retainedFeatureId = UUID.randomUUID();
+    var subarea = new SubareaDetails(UUID.randomUUID(), "Subarea A", "A");
+
+    var firstChronological = ChronologicalPositionTestUtil.live(
+        FIRST_POSITION,
+        blockCreate(blockId, subarea),
+        subareaSetEquity(blockId, subarea, 1, "60"),
+        subareaSetEquity(blockId, subarea, 2, "40")
+    );
+    var secondChronological = ChronologicalPositionTestUtil.live(
+        SECOND_POSITION,
+        partialSurrender(blockId, retainedFeatureId, List.of(SubareaSurrenderOutcome.kept(subarea)))
+    );
+    var thirdChronological = ChronologicalPositionTestUtil.live(
+        THIRD_POSITION,
+        subareaSetEquity(retainedFeatureId, subarea, 1, "30"),
+        subareaSetEquity(retainedFeatureId, subarea, 3, "30")
+    );
+
+    var result = LicencePositionStateResolver.resolve(
+        List.of(firstChronological, secondChronological, thirdChronological));
+
+    assertThat(result.currentState(THIRD_POSITION.getId()).blockFeatureIdToSubareaEquity())
+        .isEqualTo(Map.of(retainedFeatureId, Map.of(subarea, Map.of(
+            1, new BigDecimal("30"),
+            2, new BigDecimal("40"),
+            3, new BigDecimal("30")
+        ))));
+  }
+
+  private static LicenceOperation blockCreate(UUID blockId, SubareaDetails... subareas) {
+    return LicenceOperation.newBlockCreateOperation()
+        .withFeatureIds(Set.of(blockId))
+        .withCreatedSubareas(Map.of(blockId, List.of(subareas)))
+        .build();
+  }
+
+  private static LicenceOperation partialSurrender(
+      UUID blockId,
+      UUID retainedFeatureId,
+      List<SubareaSurrenderOutcome> outcomes
+  ) {
+    var surrenderDetails = new SurrenderDetails(
+        BlockSurrenderType.PARTIAL_SURRENDER,
+        null,
+        List.of(),
+        List.of(retainedFeatureId),
+        Map.of(retainedFeatureId, outcomes),
+        null
+    );
+    return new PartialSurrenderOperation(null, List.of(blockId), Map.of(blockId, surrenderDetails));
   }
 
   private static LicenceOperation subareaSetEquity(UUID blockId, SubareaDetails subarea, int organisationId, String equity) {

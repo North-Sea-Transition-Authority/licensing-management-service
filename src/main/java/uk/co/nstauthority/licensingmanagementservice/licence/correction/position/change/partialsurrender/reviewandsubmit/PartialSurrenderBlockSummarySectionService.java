@@ -31,6 +31,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderTypeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.definearea.PartialSurrenderDefineAreaController;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation.SurrenderDetails;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaDetails;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaSurrenderOutcome;
@@ -53,7 +54,7 @@ public class PartialSurrenderBlockSummarySectionService
     implements SummarySectionService<PartialSurrenderSummaryContext> {
 
   static final String AREA = "Area";
-  static final String LICENSEES = "Licensees";
+  static final String BENEFICIAL_INTERESTS = "Beneficial interests";
   static final String BEFORE = "Before";
   static final String AFTER = "After";
   static final String CHANGE = "Change";
@@ -256,6 +257,7 @@ public class PartialSurrenderBlockSummarySectionService
 
     var featuresById = getSubareaFeaturesById(subareaSummaries);
     var subareaEquity = stateBefore.blockFeatureIdToSubareaEquity().getOrDefault(block.getId(), Map.of());
+    var afterSubareaEquity = getAfterSubareaEquity(stateBefore, block, blockSurrender);
 
     return subareaSummaries.stream()
         .sorted(SUBAREA_ORDER)
@@ -263,11 +265,29 @@ public class PartialSurrenderBlockSummarySectionService
             subareaSummary,
             blockSurrender.type(),
             subareaEquity.getOrDefault(subareaSummary.subarea(), Map.of()),
+            afterSubareaEquity,
             featuresById,
             organisationNamesById,
             srsWkid
         ))
         .toList();
+  }
+
+  private static Map<SubareaDetails, Map<Integer, BigDecimal>> getAfterSubareaEquity(
+      LicencePositionState stateBefore,
+      Feature block,
+      SurrenderDetails blockSurrender
+  ) {
+    var blockStateAfter = new PartialSurrenderOperation(
+        null,
+        List.of(block.getId()),
+        Map.of(block.getId(), blockSurrender)
+    ).applyState(stateBefore);
+
+    return blockSurrender.outputRetainedFeatureIds().stream()
+        .flatMap(retainedFeatureId ->
+            blockStateAfter.blockFeatureIdToSubareaEquity().getOrDefault(retainedFeatureId, Map.of()).entrySet().stream())
+        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
   }
 
   private List<SubareaSummary> getFullySurrenderedBlockSubareas(
@@ -338,6 +358,7 @@ public class PartialSurrenderBlockSummarySectionService
       SubareaSummary subareaSummary,
       BlockSurrenderType surrenderType,
       Map<Integer, BigDecimal> equityByOrganisationId,
+      Map<SubareaDetails, Map<Integer, BigDecimal>> afterSubareaEquity,
       Map<UUID, Feature> featuresById,
       Map<Integer, String> organisationNamesById,
       int srsWkid
@@ -349,7 +370,7 @@ public class PartialSurrenderBlockSummarySectionService
     var before = new SummaryColumn(
         BEFORE,
         subarea.featureId() != null ? toSubareaMapView(List.of(subarea), srsWkid) : null,
-        List.of(subareaCard(subarea, equityByOrganisationId, LICENSEES, featuresById, organisationNamesById))
+        List.of(subareaCard(subarea, equityByOrganisationId, BENEFICIAL_INTERESTS, featuresById, organisationNamesById))
     );
 
     if (outcome != PartialSurrenderSubareaOutcome.CROPPED) {
@@ -367,8 +388,13 @@ public class PartialSurrenderBlockSummarySectionService
         AFTER,
         toSubareaMapView(croppedSubareas, srsWkid),
         croppedSubareas.stream()
-            // TODO LMS2-414: cascade subarea beneficial interests
-            .map(croppedSubarea -> subareaCard(croppedSubarea, Map.of(), LICENSEES, featuresById, organisationNamesById))
+            .map(croppedSubarea -> subareaCard(
+                croppedSubarea,
+                afterSubareaEquity.getOrDefault(croppedSubarea, Map.of()),
+                BENEFICIAL_INTERESTS,
+                featuresById,
+                organisationNamesById
+            ))
             .toList()
     );
 

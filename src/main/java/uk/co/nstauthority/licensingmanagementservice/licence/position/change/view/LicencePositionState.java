@@ -211,6 +211,21 @@ public record LicencePositionState(
     return withBlockSubareaEquity(blockFeatureId, subareaEquityForBlock);
   }
 
+  public LicencePositionState withSubareaEquity(
+      UUID blockFeatureId,
+      SubareaDetails subareaDetails,
+      Map<Integer, BigDecimal> equityByOrganisationId
+  ) {
+    if (equityByOrganisationId.isEmpty()) {
+      return this;
+    }
+
+    var subareaEquityForBlock = new HashMap<>(blockFeatureIdToSubareaEquity.getOrDefault(blockFeatureId, Map.of()));
+    subareaEquityForBlock.put(subareaDetails, equityByOrganisationId);
+
+    return withBlockSubareaEquity(blockFeatureId, subareaEquityForBlock);
+  }
+
   private static BigDecimal withoutTrailingZeros(BigDecimal equity) {
     // via the plain string, as stripTrailingZeros alone turns 100 into 1E+2
     return new BigDecimal(equity.stripTrailingZeros().toPlainString());

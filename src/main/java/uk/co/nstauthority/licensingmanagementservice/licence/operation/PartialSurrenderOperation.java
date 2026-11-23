@@ -301,24 +301,32 @@ public record PartialSurrenderOperation(
       return licencePositionState;
     }
 
-    // TODO LMS2-414: cascade subarea beneficial interests
     var updatedState = licencePositionState.withoutBlocks(surrenderedFeatureIds);
-    for (var surrenderDetails : featureIdToSurrenderDetails.values()) {
+    for (var entry : featureIdToSurrenderDetails.entrySet()) {
+      var surrenderedBlockId = entry.getKey();
+      var surrenderDetails = entry.getValue();
+
       for (var retainedFeatureId : surrenderDetails.outputRetainedFeatureIds()) {
-        updatedState = updatedState.withBlock(
-            retainedFeatureId,
-            outputSubareasOf(surrenderDetails, retainedFeatureId)
-        );
+        var outcomes = surrenderDetails.retainedFeatureIdToSubareas().getOrDefault(retainedFeatureId, List.of());
+        updatedState = updatedState.withBlock(retainedFeatureId, outputSubareasOf(outcomes));
+
+        for (var outcome : outcomes) {
+          var outputSubarea = outcome.outputSubarea();
+          if (outputSubarea != null) {
+            updatedState = updatedState.withSubareaEquity(
+                retainedFeatureId,
+                outputSubarea,
+                licencePositionState.subareaEquityOf(surrenderedBlockId, outcome.subarea())
+            );
+          }
+        }
       }
     }
     return updatedState;
   }
 
-  private static List<SubareaDetails> outputSubareasOf(
-      SurrenderDetails surrenderDetails,
-      UUID retainedFeatureId
-  ) {
-    return surrenderDetails.retainedFeatureIdToSubareas().getOrDefault(retainedFeatureId, List.of()).stream()
+  private static List<SubareaDetails> outputSubareasOf(List<SubareaSurrenderOutcome> outcomes) {
+    return outcomes.stream()
         .map(SubareaSurrenderOutcome::outputSubarea)
         .filter(Objects::nonNull)
         .toList();

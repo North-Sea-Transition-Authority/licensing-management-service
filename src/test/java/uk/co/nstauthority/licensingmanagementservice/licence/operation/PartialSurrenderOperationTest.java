@@ -552,6 +552,190 @@ class PartialSurrenderOperationTest {
     assertThat(result).usingRecursiveComparison().isEqualTo(expected);
   }
 
+  @Test
+  void applyState_whenSubareasHoldBeneficialInterests_thenSubareasLeftOnThePartKeptCarryThem() {
+    var otherBlockId = UUID.randomUUID();
+    var otherBlockSubarea = new SubareaDetails(UUID.randomUUID(), "Subarea D", "D");
+    var fullySurrenderedBlockSubarea = new SubareaDetails(UUID.randomUUID(), "Subarea E", "E");
+    var retainedFeatureId = UUID.randomUUID();
+
+    var state = LicencePositionState.EMPTY
+        .withBlock(FIRST_FEATURE_ID, List.of(FIRST_SUBAREA, SECOND_SUBAREA, THIRD_SUBAREA, UNSCRIBED_SUBAREA))
+        .withBlock(SECOND_FEATURE_ID, List.of(fullySurrenderedBlockSubarea))
+        .withBlock(otherBlockId, List.of(otherBlockSubarea))
+        .withSubareaEquity(FIRST_FEATURE_ID, FIRST_SUBAREA, 1, new BigDecimal("100"))
+        .withSubareaEquity(FIRST_FEATURE_ID, SECOND_SUBAREA, 2, new BigDecimal("60"))
+        .withSubareaEquity(FIRST_FEATURE_ID, SECOND_SUBAREA, 3, new BigDecimal("40"))
+        .withSubareaEquity(FIRST_FEATURE_ID, THIRD_SUBAREA, 4, new BigDecimal("100"))
+        .withSubareaEquity(FIRST_FEATURE_ID, UNSCRIBED_SUBAREA, 5, new BigDecimal("100"))
+        .withSubareaEquity(SECOND_FEATURE_ID, fullySurrenderedBlockSubarea, 6, new BigDecimal("100"))
+        .withSubareaEquity(otherBlockId, otherBlockSubarea, 7, new BigDecimal("100"));
+
+    var partialSurrenderDetails = new SurrenderDetails(
+        BlockSurrenderType.PARTIAL_SURRENDER,
+        null,
+        List.of(),
+        List.of(retainedFeatureId),
+        Map.of(retainedFeatureId, List.of(
+            SubareaSurrenderOutcome.relinquished(FIRST_SUBAREA),
+            SubareaSurrenderOutcome.cropped(SECOND_SUBAREA, CROPPED_SUBAREA),
+            SubareaSurrenderOutcome.kept(THIRD_SUBAREA),
+            SubareaSurrenderOutcome.kept(UNSCRIBED_SUBAREA)
+        )),
+        null
+    );
+    var fullSurrenderDetails = new SurrenderDetails(
+        BlockSurrenderType.FULL_SURRENDER,
+        null,
+        List.of(SECOND_FEATURE_ID),
+        List.of(),
+        Map.of(SECOND_FEATURE_ID, List.of(SubareaSurrenderOutcome.relinquished(fullySurrenderedBlockSubarea))),
+        null
+    );
+    var operation = new PartialSurrenderOperation(
+        SURRENDER_DATE,
+        List.of(FIRST_FEATURE_ID, SECOND_FEATURE_ID),
+        Map.of(FIRST_FEATURE_ID, partialSurrenderDetails, SECOND_FEATURE_ID, fullSurrenderDetails)
+    );
+
+    var result = operation.applyState(state);
+
+    var expected = LicencePositionState.EMPTY
+        .withBlock(otherBlockId, List.of(otherBlockSubarea))
+        .withBlock(retainedFeatureId, List.of(CROPPED_SUBAREA, THIRD_SUBAREA, UNSCRIBED_SUBAREA))
+        .withSubareaEquity(otherBlockId, otherBlockSubarea, 7, new BigDecimal("100"))
+        .withSubareaEquity(retainedFeatureId, CROPPED_SUBAREA, 2, new BigDecimal("60"))
+        .withSubareaEquity(retainedFeatureId, CROPPED_SUBAREA, 3, new BigDecimal("40"))
+        .withSubareaEquity(retainedFeatureId, THIRD_SUBAREA, 4, new BigDecimal("100"))
+        .withSubareaEquity(retainedFeatureId, UNSCRIBED_SUBAREA, 5, new BigDecimal("100"));
+
+    assertThat(result).usingRecursiveComparison().isEqualTo(expected);
+  }
+
+  @Test
+  void applyState_whenSubareaCroppedOntoSeveralPartsKept_thenEachPartCarriesItsBeneficialInterests() {
+    var secondCroppedSubarea = new SubareaDetails(UUID.randomUUID(), "Subarea B", "B");
+    var state = LicencePositionState.EMPTY
+        .withBlock(FIRST_FEATURE_ID, List.of(SECOND_SUBAREA))
+        .withSubareaEquity(FIRST_FEATURE_ID, SECOND_SUBAREA, 1, new BigDecimal("70"))
+        .withSubareaEquity(FIRST_FEATURE_ID, SECOND_SUBAREA, 2, new BigDecimal("30"));
+    var surrenderDetails = new SurrenderDetails(
+        BlockSurrenderType.PARTIAL_SURRENDER,
+        null,
+        List.of(SURRENDERED_PART_ID),
+        List.of(FIRST_RETAINED_PART_ID, SECOND_RETAINED_PART_ID),
+        Map.of(
+            FIRST_RETAINED_PART_ID, List.of(SubareaSurrenderOutcome.cropped(SECOND_SUBAREA, CROPPED_SUBAREA)),
+            SECOND_RETAINED_PART_ID, List.of(SubareaSurrenderOutcome.cropped(SECOND_SUBAREA, secondCroppedSubarea))
+        ),
+        null
+    );
+    var operation = new PartialSurrenderOperation(
+        SURRENDER_DATE,
+        List.of(FIRST_FEATURE_ID),
+        Map.of(FIRST_FEATURE_ID, surrenderDetails)
+    );
+
+    var result = operation.applyState(state);
+
+    var expected = LicencePositionState.EMPTY
+        .withBlock(FIRST_RETAINED_PART_ID, List.of(CROPPED_SUBAREA))
+        .withBlock(SECOND_RETAINED_PART_ID, List.of(secondCroppedSubarea))
+        .withSubareaEquity(FIRST_RETAINED_PART_ID, CROPPED_SUBAREA, 1, new BigDecimal("70"))
+        .withSubareaEquity(FIRST_RETAINED_PART_ID, CROPPED_SUBAREA, 2, new BigDecimal("30"))
+        .withSubareaEquity(SECOND_RETAINED_PART_ID, secondCroppedSubarea, 1, new BigDecimal("70"))
+        .withSubareaEquity(SECOND_RETAINED_PART_ID, secondCroppedSubarea, 2, new BigDecimal("30"));
+
+    assertThat(result).usingRecursiveComparison().isEqualTo(expected);
+  }
+
+  @Test
+  void applyState_whenRetainedPartsMerged_thenTheMergedFeatureCarriesTheBeneficialInterests() {
+    var mergedFeatureId = UUID.randomUUID();
+    var state = LicencePositionState.EMPTY
+        .withBlock(FIRST_FEATURE_ID, List.of(FIRST_SUBAREA, SECOND_SUBAREA))
+        .withSubareaEquity(FIRST_FEATURE_ID, FIRST_SUBAREA, 1, new BigDecimal("100"))
+        .withSubareaEquity(FIRST_FEATURE_ID, SECOND_SUBAREA, 2, new BigDecimal("100"));
+    var operation = new PartialSurrenderOperation(
+        SURRENDER_DATE,
+        List.of(FIRST_FEATURE_ID),
+        Map.of(FIRST_FEATURE_ID, mergedSurrenderDetails(mergedFeatureId, Map.of(mergedFeatureId, List.of(
+            SubareaSurrenderOutcome.kept(FIRST_SUBAREA),
+            SubareaSurrenderOutcome.cropped(SECOND_SUBAREA, CROPPED_SUBAREA)))))
+    );
+
+    var result = operation.applyState(state);
+
+    var expected = LicencePositionState.EMPTY
+        .withBlock(mergedFeatureId, List.of(FIRST_SUBAREA, CROPPED_SUBAREA))
+        .withSubareaEquity(mergedFeatureId, FIRST_SUBAREA, 1, new BigDecimal("100"))
+        .withSubareaEquity(mergedFeatureId, CROPPED_SUBAREA, 2, new BigDecimal("100"));
+
+    assertThat(result).usingRecursiveComparison().isEqualTo(expected);
+  }
+
+  @Test
+  void applyState_whenSubareaHoldsNoBeneficialInterests_thenNoneCarriedForIt() {
+    var retainedFeatureId = UUID.randomUUID();
+    var state = LicencePositionState.EMPTY
+        .withBlock(FIRST_FEATURE_ID, List.of(FIRST_SUBAREA, SECOND_SUBAREA))
+        .withSubareaEquity(FIRST_FEATURE_ID, FIRST_SUBAREA, 1, new BigDecimal("100"));
+    var surrenderDetails = new SurrenderDetails(
+        BlockSurrenderType.PARTIAL_SURRENDER,
+        null,
+        List.of(),
+        List.of(retainedFeatureId),
+        Map.of(retainedFeatureId, List.of(
+            SubareaSurrenderOutcome.kept(FIRST_SUBAREA),
+            SubareaSurrenderOutcome.cropped(SECOND_SUBAREA, CROPPED_SUBAREA)
+        )),
+        null
+    );
+    var operation = new PartialSurrenderOperation(
+        SURRENDER_DATE,
+        List.of(FIRST_FEATURE_ID),
+        Map.of(FIRST_FEATURE_ID, surrenderDetails)
+    );
+
+    var result = operation.applyState(state);
+
+    var expected = LicencePositionState.EMPTY
+        .withBlock(retainedFeatureId, List.of(FIRST_SUBAREA, CROPPED_SUBAREA))
+        .withSubareaEquity(retainedFeatureId, FIRST_SUBAREA, 1, new BigDecimal("100"));
+
+    assertThat(result).usingRecursiveComparison().isEqualTo(expected);
+  }
+
+  @Test
+  void applyState_whenOnlyRelinquishedSubareasHoldBeneficialInterests_thenThePartKeptHasNone() {
+    var retainedFeatureId = UUID.randomUUID();
+    var state = LicencePositionState.EMPTY
+        .withBlock(FIRST_FEATURE_ID, List.of(FIRST_SUBAREA, SECOND_SUBAREA))
+        .withSubareaEquity(FIRST_FEATURE_ID, FIRST_SUBAREA, 1, new BigDecimal("100"));
+    var surrenderDetails = new SurrenderDetails(
+        BlockSurrenderType.PARTIAL_SURRENDER,
+        null,
+        List.of(),
+        List.of(retainedFeatureId),
+        Map.of(retainedFeatureId, List.of(
+            SubareaSurrenderOutcome.relinquished(FIRST_SUBAREA),
+            SubareaSurrenderOutcome.kept(SECOND_SUBAREA)
+        )),
+        null
+    );
+    var operation = new PartialSurrenderOperation(
+        SURRENDER_DATE,
+        List.of(FIRST_FEATURE_ID),
+        Map.of(FIRST_FEATURE_ID, surrenderDetails)
+    );
+
+    var result = operation.applyState(state);
+
+    var expected = LicencePositionState.EMPTY.withBlock(retainedFeatureId, List.of(SECOND_SUBAREA));
+
+    assertThat(result).usingRecursiveComparison().isEqualTo(expected);
+  }
+
   @ParameterizedTest
   @MethodSource("surrenderDetailsAndTheirOutputRetainedFeatureIds")
   void outputRetainedFeatureIds(SurrenderDetails surrenderDetails, List<UUID> expectedOutputRetainedFeatureIds) {

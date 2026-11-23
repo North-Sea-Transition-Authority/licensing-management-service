@@ -265,6 +265,49 @@ class LicencePositionStateTest {
   }
 
   @Test
+  void withSubareaEquity_whenHoldersGiven_thenSubareaHoldsThemAndOtherHoldersUnchanged() {
+    var state = LicencePositionState.EMPTY
+        .withSubareaEquity(FIRST_BLOCK_ID, SECOND_SUBAREA, 3, new BigDecimal("100"))
+        .withSubareaEquity(SECOND_BLOCK_ID, THIRD_SUBAREA, 4, new BigDecimal("100"));
+
+    var result = state.withSubareaEquity(
+        FIRST_BLOCK_ID,
+        FIRST_SUBAREA,
+        Map.of(1, new BigDecimal("60"), 2, new BigDecimal("40"))
+    );
+
+    assertThat(result.blockFeatureIdToSubareaEquity())
+        .isEqualTo(Map.of(
+            FIRST_BLOCK_ID, Map.of(
+                FIRST_SUBAREA, Map.of(1, new BigDecimal("60"), 2, new BigDecimal("40")),
+                SECOND_SUBAREA, Map.of(3, new BigDecimal("100"))
+            ),
+            SECOND_BLOCK_ID, Map.of(THIRD_SUBAREA, Map.of(4, new BigDecimal("100")))
+        ));
+  }
+
+  @Test
+  void withSubareaEquity_whenNoHoldersGiven_thenStateUnchanged() {
+    var state = LicencePositionState.EMPTY
+        .withBlock(FIRST_BLOCK_ID, List.of(FIRST_SUBAREA))
+        .withSubareaEquity(FIRST_BLOCK_ID, SECOND_SUBAREA, 1, new BigDecimal("100"));
+
+    var result = state.withSubareaEquity(FIRST_BLOCK_ID, FIRST_SUBAREA, Map.of());
+
+    assertThat(result).isSameAs(state);
+  }
+
+  @Test
+  void withSubareaEquity_whenHoldersGiven_thenOriginalStateUnchanged() {
+    var state = LicencePositionState.EMPTY.withSubareaEquity(FIRST_BLOCK_ID, SECOND_SUBAREA, 3, new BigDecimal("100"));
+
+    state.withSubareaEquity(FIRST_BLOCK_ID, FIRST_SUBAREA, Map.of(1, new BigDecimal("100")));
+
+    assertThat(state.blockFeatureIdToSubareaEquity())
+        .isEqualTo(Map.of(FIRST_BLOCK_ID, Map.of(SECOND_SUBAREA, Map.of(3, new BigDecimal("100")))));
+  }
+
+  @Test
   void withoutBlocks_whenBlockHasSubareaEquity_thenItsSubareaEquityRemoved() {
     var state = LicencePositionState.EMPTY
         .withBlock(FIRST_BLOCK_ID, List.of(FIRST_SUBAREA))

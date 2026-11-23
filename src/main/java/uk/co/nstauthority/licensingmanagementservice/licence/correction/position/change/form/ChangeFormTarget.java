@@ -27,10 +27,12 @@ public sealed interface ChangeFormTarget {
     }
   }
 
-  record AddedPosition(
-      LicenceCorrection correction,
-      LicencePositionCorrection positionCorrection
-  ) implements ChangeFormTarget {
+  record AddedPosition(LicencePositionCorrection positionCorrection) implements ChangeFormTarget {
+
+    @Override
+    public LicenceCorrection correction() {
+      return positionCorrection.getLicenceCorrection();
+    }
 
     @Override
     public UUID positionId() {

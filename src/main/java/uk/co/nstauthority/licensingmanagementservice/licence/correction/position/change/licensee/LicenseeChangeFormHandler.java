@@ -90,21 +90,18 @@ class LicenseeChangeFormHandler implements ChangeFormHandler<LicenseeChangeForm>
     var withdrawingIds = ListUtil.toIntegers(form.getWithdrawingOrganisationIds());
 
     switch (target) {
-      case ChangeFormTarget.ExecutedPosition executed -> licenseeChangeService.addLicenseeChangeForExistingLicencePosition(
-          executed.position(),
-          executed.correction(),
-          joiningIds,
-          withdrawingIds
-      );
-      case ChangeFormTarget.AddedPosition added -> licenseeChangeService
-          .addLicenseeChangeForAddedLicencePosition(added.positionCorrection(), joiningIds, withdrawingIds);
-      case ChangeFormTarget.LiveChange liveChange -> licenseeChangeService.correctExistingLicenseeChange(
-          liveChange.position(),
-          liveChange.correction(),
-          joiningIds,
-          withdrawingIds,
-          liveChange.change().getId().toString()
-      );
+      case ChangeFormTarget.ExecutedPosition(var correction, var position) -> licenseeChangeService
+          .addLicenseeChangeForExistingLicencePosition(position, correction, joiningIds, withdrawingIds);
+      case ChangeFormTarget.AddedPosition(var positionCorrection) -> licenseeChangeService
+          .addLicenseeChangeForAddedLicencePosition(positionCorrection, joiningIds, withdrawingIds);
+      case ChangeFormTarget.LiveChange(var correction, var position, var change) -> licenseeChangeService
+          .correctExistingLicenseeChange(
+              position,
+              correction,
+              joiningIds,
+              withdrawingIds,
+              change.getId().toString()
+          );
     }
   }
 

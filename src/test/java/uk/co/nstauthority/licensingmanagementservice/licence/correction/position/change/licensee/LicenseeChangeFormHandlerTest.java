@@ -104,7 +104,7 @@ class LicenseeChangeFormHandlerTest {
     when(licenceFormService.getPreselectedOrganisationUnits(null)).thenReturn(List.of());
 
     var result = licenseeChangeFormHandler.formPage(
-        new ChangeFormTarget.AddedPosition(CORRECTION, ADDED_POSITION_CORRECTION)
+        new ChangeFormTarget.AddedPosition(ADDED_POSITION_CORRECTION)
     );
 
     var expected = expectedFormPage(
@@ -175,7 +175,7 @@ class LicenseeChangeFormHandlerTest {
   @Test
   void save_whenAddedPosition_thenAddsChangeToAddedPosition() {
     licenseeChangeFormHandler.save(
-        new ChangeFormTarget.AddedPosition(CORRECTION, ADDED_POSITION_CORRECTION),
+        new ChangeFormTarget.AddedPosition(ADDED_POSITION_CORRECTION),
         validForm()
     );
 

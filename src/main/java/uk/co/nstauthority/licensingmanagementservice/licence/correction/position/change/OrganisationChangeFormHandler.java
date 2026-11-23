@@ -65,17 +65,10 @@ public abstract class OrganisationChangeFormHandler<F extends OrganisationChange
     var context = changeContext(target);
 
     var form = switch (target) {
-      case ChangeFormTarget.ExecutedPosition executed -> organisationChangeService.populateExistingOrganisationForm(
-          context.currentId(),
-          executed.correction(),
-          executed.position(),
-          newForm()
-      );
-      case ChangeFormTarget.AddedPosition added -> organisationChangeService.populateAddedOrganisationForm(
-          context.currentId(),
-          added.positionCorrection(),
-          newForm()
-      );
+      case ChangeFormTarget.ExecutedPosition(var correction, var position) -> organisationChangeService
+          .populateExistingOrganisationForm(context.currentId(), correction, position, newForm());
+      case ChangeFormTarget.AddedPosition(var positionCorrection) -> organisationChangeService
+          .populateAddedOrganisationForm(context.currentId(), positionCorrection, newForm());
       case ChangeFormTarget.LiveChange ignored -> formForCorrectingChange(context);
     };
 
@@ -98,19 +91,15 @@ public abstract class OrganisationChangeFormHandler<F extends OrganisationChange
     var organisationId = Integer.parseInt(form.getId().getInputValue());
 
     switch (target) {
-      case ChangeFormTarget.ExecutedPosition executed -> organisationChangeService
+      case ChangeFormTarget.ExecutedPosition(var correction, var position) -> organisationChangeService
           .addOrganisationChangeForExistingLicencePosition(
-              executed.position(),
-              executed.correction(),
+              position,
+              correction,
               operationType(),
               operation(organisationId)
           );
-      case ChangeFormTarget.AddedPosition added -> organisationChangeService
-          .addOrganisationChangeForAddedLicencePosition(
-              added.positionCorrection(),
-              operationType(),
-              operation(organisationId)
-          );
+      case ChangeFormTarget.AddedPosition(var positionCorrection) -> organisationChangeService
+          .addOrganisationChangeForAddedLicencePosition(positionCorrection, operationType(), operation(organisationId));
       case ChangeFormTarget.LiveChange liveChange -> correctLiveChange(liveChange, organisationId);
     }
   }

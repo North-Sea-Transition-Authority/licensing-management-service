@@ -86,7 +86,7 @@ public class ChangeFormController {
   ) {
     return handle(
         changeFormService.getHandler(correction, changeType),
-        new ChangeFormTarget.AddedPosition(correction, licencePositionCorrection),
+        new ChangeFormTarget.AddedPosition(licencePositionCorrection),
         "added",
         httpMethod,
         request,

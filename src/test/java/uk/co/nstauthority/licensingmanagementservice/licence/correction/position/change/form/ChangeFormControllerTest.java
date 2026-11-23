@@ -268,7 +268,7 @@ class ChangeFormControllerTest extends AbstractControllerTest {
     givenCorrectionAllocatedToUser();
     givenAddedPosition();
     givenHandlerForChangeType();
-    var target = new ChangeFormTarget.AddedPosition(CORRECTION, ADDED_POSITION_CORRECTION);
+    var target = new ChangeFormTarget.AddedPosition(ADDED_POSITION_CORRECTION);
     when(handler.formPage(target)).thenReturn(formPage(new AdministratorChangeForm()));
 
     mockMvc.perform(get(addToAddedPositionUrl())
@@ -285,7 +285,7 @@ class ChangeFormControllerTest extends AbstractControllerTest {
     givenCorrectionAllocatedToUser();
     givenAddedPosition();
     givenHandlerForChangeType();
-    var target = new ChangeFormTarget.AddedPosition(CORRECTION, ADDED_POSITION_CORRECTION);
+    var target = new ChangeFormTarget.AddedPosition(ADDED_POSITION_CORRECTION);
     var form = new AdministratorChangeForm();
     when(handler.newForm()).thenReturn(form);
     when(handler.formPageIfInvalid(eq(target), eq(form), any(BindingResult.class))).thenReturn(Optional.empty());

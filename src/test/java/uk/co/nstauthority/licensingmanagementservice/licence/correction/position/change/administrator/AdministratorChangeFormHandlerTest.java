@@ -113,7 +113,7 @@ class AdministratorChangeFormHandlerTest {
     when(organisationUnitQueryService.getOrganisationUnitSelectOption("123")).thenReturn(PRESELECTED_ADMINISTRATOR);
 
     var result = administratorChangeFormHandler.formPage(
-        new ChangeFormTarget.AddedPosition(CORRECTION, ADDED_POSITION_CORRECTION)
+        new ChangeFormTarget.AddedPosition(ADDED_POSITION_CORRECTION)
     );
 
     assertThat(result).usingRecursiveComparison()
@@ -200,7 +200,7 @@ class AdministratorChangeFormHandlerTest {
   @Test
   void save_whenAddedPosition_thenAddsChangeToAddedPosition() {
     administratorChangeFormHandler.save(
-        new ChangeFormTarget.AddedPosition(CORRECTION, ADDED_POSITION_CORRECTION),
+        new ChangeFormTarget.AddedPosition(ADDED_POSITION_CORRECTION),
         formWithAdministrator("789")
     );
 

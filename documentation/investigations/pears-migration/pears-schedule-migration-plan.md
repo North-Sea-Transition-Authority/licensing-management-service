@@ -4,7 +4,7 @@
 > licence schedule on a PEARS-managed licence type, whatever the licence status. It reuses the PEARS Oracle datasource
 > (`migration/pears`) and the schedule-building pattern from the carbon storage migration
 > (`migration/carbonstorage`). Survey queries and their live results are kept in
-> [pears-schedule-migration-data-survey.md](pears-schedule-migration-data-survey.md).
+> the data survey (`pears-schedule-migration-data-survey.md`), a migration document provided separately.
 
 ## Problem
 
@@ -131,7 +131,7 @@ the input is the last day of a month.
 `pedmgr.ped_template_event_types` holds 11 types: `P`, `T`, `R`, `MR` (fixed grid columns,
 `display_seq` < 0) and `E`, `PA`, `BM`, `DD`, `2M`, `2N`, `RD` (generated columns). `RD` is onshore
 only and `PA` offshore only. The full query and result are in the data survey,
-[S1](pears-schedule-migration-data-survey.md#s1-event-type-catalogue).
+S1.
 
 The migration must **re-read this table at run time** and fail on any `event_mnem` it has no
 mapping for, rather than hard-coding the list, since users can add types on live.
@@ -435,7 +435,7 @@ detail per case date (`cs-migration-schedule-details-per-case.md`).
   PEARS rate becomes several LMS rates: each is matched to the previous version's LMS rate from the
   matched `R` event in the same term or phase.
   **Live data (data survey,
-  [S16](pears-schedule-migration-data-survey.md#s16-event_id-and-ambiguous-cross-version-matches)):**
+  S16):**
   type + offset never repeats within a version, but type + comments often does (e.g. 472 groups of
   rates sharing a comment). That is why offset comes before comments. Any pair still ambiguous is
   matched in date order and listed in the report.
@@ -448,13 +448,13 @@ detail per case date (`cs-migration-schedule-details-per-case.md`).
   no `ORIGIN_DATE`, use the next version's start date, then the earliest that exists, and record
   the substitution. If no version has one, skip the licence. On live (27 October 2026) that is
   1,125 historical versions (1,004 `P`, 67 `PEDL`, 54 other types); every current version has one (data survey,
-  [S10](pears-schedule-migration-data-survey.md#s10-origin_date-all-versions)). PEARS calculated
+  S10). PEARS calculated
   these versions' `EVENT_DATE`s from its `1900-01-01` base, so they are not real dates. The
   comparison report marks every event in such a version **"No start date in PEARS"** rather than
   comparing dates, and the validation test counts them separately rather than as differences.
   Their dates are worked out from the offsets with PEARS's arithmetic. Almost all have their offsets
   set (data survey
-  [S19](pears-schedule-migration-data-survey.md#s19-historical-versions-the-mapper-cannot-map)).
+  S19).
 - **Versions with stale dates (decided, 17 November 2026).** About 1,113 historical versions
   (949 `P`, 163 `PEDL`, plus P1622) **have** an `ORIGIN_DATE`, but their stored term dates are on or
   before it: PEARS worked them out from its 1900 base and didn't recalculate them once the start
@@ -531,7 +531,7 @@ final term end, PEARS has a period with no rate and LMS would carry the rate on.
 **non-recurring** `R` followed by one or more anniversaries with no `R` at all. Report each such gap as
 a migration note rather than guessing. On live there are about 310 on migrated schedules, all deliberate-looking
 no-payment years: 298 on `P` and 12 on `PL` (data survey,
-[S12b](pears-schedule-migration-data-survey.md#s12b-rate-gaps-one-row-per-gap)).
+S12b).
 
 **How gaps are handled depends on what they are. The licensing team confirms which, per pattern:**
 
@@ -703,7 +703,7 @@ phase 1. The background below explains where PEARS derives the events from, for 
 | `pears_event_id` | `EVENT_ID` (kept so PEARS acknowledgements still match after write-back), **nullable** |
 
 **Live data (data survey,
-[S15](pears-schedule-migration-data-survey.md#s15-rdpa-events-current-versions)):** 463 current
+S15):** 463 current
 `RD`/`PA` events (60 of them on the other onshore types, all complete). Subtypes include **`END`** (25 events) as well as approval, expiry and work
 programme. **51 `PA` events have no subtype, no `RETENTION_AREA` block and no `EVENT_ID`**: older,
 hand-entered pre-producing area events. They are copied as is with those columns empty. On the
@@ -1071,7 +1071,7 @@ XML and calls `process_event_date_from_origin`.
 is created by users. The comparison report lists them as "No PEARS schedule". On live (27 October
 2026) there are 1,114 `P` and 124 `PEDL` licences with no schedule, and **none is extant**. They
 are surrendered or revoked licences, or records with no live data point that never became licences
-(data survey, [S17](pears-schedule-migration-data-survey.md#s17-licences-with-no-pears-schedule)).
+(data survey, S17).
 The other PEARS-managed types also have licences with no schedule (e.g. 283 `EXL`, 240 `PL`, 25
 `ML`, 7 `AL`), and **none of them is extant either**. So no existing licence without a PEARS
 schedule needs one created by hand at go-live. (The 40 schedules with no terms are a separate
@@ -1142,7 +1142,7 @@ comparison report checks it per event. The cost is an LMS model change before th
 field only mandatory relinquishments use.
 
 **Data (data survey,
-[S13](pears-schedule-migration-data-survey.md#s13-mandatory-relinquishment-percentages-current-versions),
+S13,
 live 27 October 2026):** 585 current `MR` events hold a number on the `T(1)` date (428 `P`, 149
 `PEDL`, 8 `PL`), so they feed licence documents today. They migrate into the new field. 303 hold
 `x` and migrate with an empty percentage. 713 `P` events hold the figure only in `COMMENTS`, with an
@@ -1158,7 +1158,7 @@ have to parse comment text to send it back).
 `SCHEDULE/RETENTION_AREA_RATE` is the only schedule value the payments report uses besides `R`
 events (it multiplies the onshore retention/development area). Checked on **live** in October 2026,
 it has never been set (data survey,
-[S4](pears-schedule-migration-data-survey.md#s4-retentiondevelopment-area-rate)). The report
+S4). The report
 therefore always costs retention/development area at 0. The migration ignores it and the
 write-back leaves it empty, which keeps the report output unchanged.
 
@@ -1174,7 +1174,7 @@ events by type (the payments report reads `R` only), so these rows are **invisib
 About 180 of the 201 current ones are **empty rows** (template or grid leftovers). About 20 **hold
 data**: rates missing their `R` code, terms missing their `T` code, text in the wrong field, and
 comment-only rows. The queries and the per-licence list are in the data survey,
-[S6](pears-schedule-migration-data-survey.md#s6-events-with-no-event-type).
+S6.
 
 **Decided rule: untyped events are ignored by the migration**, whether they are empty or hold
 data. The licensing team never sees them: the schedule screen (`PED012X`) only displays and edits
@@ -1218,7 +1218,7 @@ not `7500.00`). Values with pence are written with **2** decimal places (`12.50`
 `7.5E+3`).
 
 **Data survey (live, 27 October 2026,
-[S11](pears-schedule-migration-data-survey.md#s11-rate-values)):** every populated `RATE` is a whole
+S11):** every populated `RATE` is a whole
 number, so rounding is never needed on today's data. 12 `R` events have an empty rate, all on two
 rate-only schedules (P293, P295) with no terms (pattern E), which aren't migrated anyway.
 
@@ -1227,7 +1227,7 @@ rate-only schedules (P293, P295) with no terms (pattern E), which aren't migrate
 `RECUR_END_DATE` (a recurrence end date) is read by the payments report and exposed by
 `xview_ped_lic_schedule_events`, but the Fox schedule screen has no field for it. Checked in October
 2026, no schedule version, current or historical, holds a value (data survey,
-[S5](pears-schedule-migration-data-survey.md#s5-recur_end_date)). The migration therefore never
+S5). The migration therefore never
 sees it, and the mapper (PR 3) doesn't read it: with the gaps taken as errors, a rate runs on to
 the next rate whatever its recurrence says. The write-back does not produce it. Recurrence is written back with `RECURRANCES` only.
 
@@ -1919,15 +1919,15 @@ skipped, for the same reasons. The comparison report of every migrated licence
   for the extant ones.
 
 The queries, full results and breakdowns are in the data survey,
-[S2](pears-schedule-migration-data-survey.md#s2-licences-and-schedule-versions),
-[S3](pears-schedule-migration-data-survey.md#s3-events-by-type) and
-[S18](pears-schedule-migration-data-survey.md#s18-licences-with-a-schedule-by-status).
+S2,
+S3 and
+S18.
 
 ## Delivery steps
 
 1. **Data survey: done** (live, read-only, 27 October 2026). Queries, results and the list of items
    for the licensing team are in
-   [pears-schedule-migration-data-survey.md](pears-schedule-migration-data-survey.md). Re-run it
+   the data survey (`pears-schedule-migration-data-survey.md`, a migration document provided separately). Re-run it
    before the production run, since PEARS keeps changing. It covers:
    - schedules per licence type (PEARS prefix **and** the LMS `LicenceType` it maps to, onshore
      and offshore) and per `event_mnem`;

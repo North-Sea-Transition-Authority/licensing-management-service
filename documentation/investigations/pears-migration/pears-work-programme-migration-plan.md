@@ -10,7 +10,7 @@
 > [pears-schedule-migration-plan.md](pears-schedule-migration-plan.md), which lists LMS work
 > programme activities as out of scope and is the base this builds on. The live data survey is
 > complete: the queries and results are in
-> [pears-work-programme-migration-data-survey.md](pears-work-programme-migration-data-survey.md).
+> the data survey (`pears-work-programme-migration-data-survey.md`), a migration document provided separately.
 > The questions for the licensing team (survey WP-L1 to WP-L13) are in the licensing team review
 > document, with the per-licence lists in the licensing items spreadsheet. Both are migration
 > documents, provided separately.
@@ -578,8 +578,8 @@ Consequences:
 
 ## Data survey needed
 
-The queries are in
-[pears-work-programme-migration-data-survey.md](pears-work-programme-migration-data-survey.md). All
+The queries are in the data survey (`pears-work-programme-migration-data-survey.md`, a migration document provided
+separately). All
 were run on live on 29 October 2026, except WP-S4c (optional) and WP-S8b (left for the licensing
 team). WP-S1e, WP-S1f, WP-S1g and WP-S4d were added and run on 3 November 2026. Each item feeds
 these parts of the plan:

@@ -42,11 +42,6 @@ public class ChangeActionService {
     return firstVisibleOperation(changeId, licencePositionCorrectionService.resolveStagedChangeOperations(stagedChange));
   }
 
-  /**
-   * The handler the operation names for itself.
-   *
-   * @throws IllegalStateException when the handler the operation names is not a bean
-   */
   public ChangeActionHandler getHandler(VisibleLicenceOperation operation) {
     var handler = handlersByType.get(operation.changeActionHandlerType());
 
@@ -60,9 +55,6 @@ public class ChangeActionService {
     return handler;
   }
 
-  /**
-   * Undoing a staged removal reinstates the live change; undoing anything else undoes this correction's change.
-   */
   public ChangeAction getUndoAction(LicencePositionCorrection positionCorrection, String changeId) {
     if (licencePositionCorrectionService.getStagedChangeOrThrow(positionCorrection, changeId) instanceof RemoveChange) {
       return ChangeAction.REINSTATE;
@@ -79,7 +71,7 @@ public class ChangeActionService {
   ) {
     var operation = getOperationOfLiveChange(liveChange);
 
-    if (operation.atMostOnePerPosition()) {
+    if (operation.atMostOnePerTransaction()) {
       licencePositionCorrectionService.dropStagedChangesOf(licenceCorrection, licencePosition, operation.getClass());
     }
 
@@ -103,12 +95,7 @@ public class ChangeActionService {
     licencePositionCorrectionService.dropStagedChange(positionCorrection, changeId);
   }
 
-  /**
-   * A change is acted on as the first of its operations shown on a position.
-   *
-   * @throws ResponseStatusException with {@link HttpStatus#NOT_FOUND} when the change has no visible operation, or its
-   *                                 first one has no change action handler, so no action can be taken on it
-   */
+  // TODO: LMS2-499 Update changes to store a single operation rather than allowing a list
   private static VisibleLicenceOperation firstVisibleOperation(String changeId, List<LicenceOperation> operations) {
     var operation = operations.stream()
         .filter(VisibleLicenceOperation.class::isInstance)

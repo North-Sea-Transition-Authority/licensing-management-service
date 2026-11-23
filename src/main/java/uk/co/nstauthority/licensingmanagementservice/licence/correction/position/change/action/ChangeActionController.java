@@ -21,11 +21,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePos
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
-/**
- * Removes a live change from a position, or undoes or reinstates a change a correction has staged, whatever kind of
- * change it is. What differs between kinds of change comes from the change's operation and its
- * {@link ChangeActionHandler}.
- */
 @Controller
 @RequestMapping("/licence-corrections/{correctionId}")
 @InvokingUserCanViewCorrection

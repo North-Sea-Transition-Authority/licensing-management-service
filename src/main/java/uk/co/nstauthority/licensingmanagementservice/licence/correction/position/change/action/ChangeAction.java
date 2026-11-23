@@ -1,13 +1,10 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.action;
 
 import org.apache.commons.lang3.StringUtils;
+import uk.co.fivium.digitalenummaterialisationlibrary.enummaterialisation.MaterialisableEnum;
 import uk.co.nstauthority.licensingmanagementservice.fds.button.Button;
 
-/**
- * What a correction can do to a single change on a position: remove a live change, undo a change it has staged, or
- * reinstate a live change it has staged the removal of.
- */
-public enum ChangeAction {
+public enum ChangeAction implements MaterialisableEnum {
 
   REMOVE("remove", "removed", true),
   UNDO("undo", "undone", true),
@@ -34,5 +31,15 @@ public enum ChangeAction {
 
   public String successBannerHeading(String changeName) {
     return "%s %s".formatted(StringUtils.capitalize(changeName), pastParticiple);
+  }
+
+  @Override
+  public String getDisplayName() {
+    return verb;
+  }
+
+  @Override
+  public int getDisplayOrder() {
+    return ordinal();
   }
 }

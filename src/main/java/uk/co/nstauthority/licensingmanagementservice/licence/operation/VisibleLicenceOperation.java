@@ -30,7 +30,7 @@ public non-sealed interface VisibleLicenceOperation extends LicenceOperation {
    * Whether a position holds at most one change carrying this operation. Removing a live change of such an operation
    * also drops any change of it the correction has staged against the position.
    */
-  default boolean atMostOnePerPosition() {
+  default boolean atMostOnePerTransaction() {
     return false;
   }
 

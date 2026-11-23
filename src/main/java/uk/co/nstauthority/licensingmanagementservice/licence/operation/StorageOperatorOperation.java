@@ -48,7 +48,7 @@ public record StorageOperatorOperation(
   }
 
   @Override
-  public boolean atMostOnePerPosition() {
+  public boolean atMostOnePerTransaction() {
     return true;
   }
 

@@ -312,9 +312,9 @@ public class LicencePositionCorrectionService {
    */
   public Optional<LicencePositionCorrection> findPositionCorrection(CorrectionPosition correctionPosition) {
     return switch (correctionPosition) {
-      case CorrectionPosition.Executed executed ->
-          findUpdatePositionCorrection(executed.correction(), executed.licencePosition());
-      case CorrectionPosition.Staged staged -> Optional.of(staged.licencePositionCorrection());
+      case CorrectionPosition.Executed(var licenceCorrection, var licencePosition) ->
+          findUpdatePositionCorrection(licenceCorrection, licencePosition);
+      case CorrectionPosition.Staged(var licencePositionCorrection) -> Optional.of(licencePositionCorrection);
     };
   }
 
@@ -324,9 +324,9 @@ public class LicencePositionCorrectionService {
    */
   public LicencePositionCorrection getOrBuildPositionCorrection(CorrectionPosition correctionPosition) {
     return switch (correctionPosition) {
-      case CorrectionPosition.Executed executed ->
-          getOrBuildUpdatePositionCorrection(executed.correction(), executed.licencePosition());
-      case CorrectionPosition.Staged staged -> staged.licencePositionCorrection();
+      case CorrectionPosition.Executed(var licenceCorrection, var licencePosition) ->
+          getOrBuildUpdatePositionCorrection(licenceCorrection, licencePosition);
+      case CorrectionPosition.Staged(var licencePositionCorrection) -> licencePositionCorrection;
     };
   }
 
@@ -424,9 +424,9 @@ public class LicencePositionCorrectionService {
 
   public LocalDate getEffectivePositionDate(CorrectionPosition correctionPosition) {
     return switch (correctionPosition) {
-      case CorrectionPosition.Executed executed ->
-          getEffectivePositionDate(executed.correction(), executed.licencePosition());
-      case CorrectionPosition.Staged staged -> resolveEffectiveDate(staged.licencePositionCorrection());
+      case CorrectionPosition.Executed(var licenceCorrection, var licencePosition) ->
+          getEffectivePositionDate(licenceCorrection, licencePosition);
+      case CorrectionPosition.Staged(var licencePositionCorrection) -> resolveEffectiveDate(licencePositionCorrection);
     };
   }
 
@@ -903,14 +903,15 @@ public class LicencePositionCorrectionService {
       @Nullable String changeIdToExclude
   ) {
     return switch (correctionPosition) {
-      case CorrectionPosition.Executed executed -> blockFeatureIdsAlreadyOperatedOnForExecutedPosition(
-          executed.correction(),
-          executed.licencePosition(),
-          findUpdatePositionCorrection(executed.correction(), executed.licencePosition()).orElse(null),
-          changeIdToExclude
-      );
-      case CorrectionPosition.Staged staged ->
-          blockFeatureIdsAlreadyOperatedOnForAddedPosition(staged.licencePositionCorrection(), changeIdToExclude);
+      case CorrectionPosition.Executed(var licenceCorrection, var licencePosition) ->
+          blockFeatureIdsAlreadyOperatedOnForExecutedPosition(
+              licenceCorrection,
+              licencePosition,
+              findUpdatePositionCorrection(licenceCorrection, licencePosition).orElse(null),
+              changeIdToExclude
+          );
+      case CorrectionPosition.Staged(var licencePositionCorrection) ->
+          blockFeatureIdsAlreadyOperatedOnForAddedPosition(licencePositionCorrection, changeIdToExclude);
     };
   }
 

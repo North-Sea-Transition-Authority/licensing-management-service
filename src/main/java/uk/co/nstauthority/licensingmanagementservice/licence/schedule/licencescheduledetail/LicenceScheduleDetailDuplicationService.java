@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import org.springframework.stereotype.Service;
+import uk.co.nstauthority.licensingmanagementservice.authentication.UserDetailService;
 import uk.co.nstauthority.licensingmanagementservice.duplication.DuplicationService;
 import uk.co.nstauthority.licensingmanagementservice.duplication.DuplicationSource;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.calculation.LicenceScheduleCalculationService;
@@ -34,6 +35,7 @@ public class LicenceScheduleDetailDuplicationService {
   private final WorkProgrammeActivityService workProgrammeActivityService;
   private final OtherScheduleEventService otherScheduleEventService;
   private final DuplicationService duplicationService;
+  private final UserDetailService userDetailService;
   private final Clock clock;
 
   public LicenceScheduleDetailDuplicationService(
@@ -46,6 +48,7 @@ public class LicenceScheduleDetailDuplicationService {
       WorkProgrammeActivityService workProgrammeActivityService,
       OtherScheduleEventService otherScheduleEventService,
       DuplicationService duplicationService,
+      UserDetailService userDetailService,
       Clock clock
   ) {
     this.duplicationSources = duplicationSources;
@@ -57,6 +60,7 @@ public class LicenceScheduleDetailDuplicationService {
     this.workProgrammeActivityService = workProgrammeActivityService;
     this.otherScheduleEventService = otherScheduleEventService;
     this.duplicationService = duplicationService;
+    this.userDetailService = userDetailService;
     this.clock = clock;
   }
 
@@ -74,6 +78,7 @@ public class LicenceScheduleDetailDuplicationService {
     var newDetail = new LicenceScheduleDetail();
     newDetail.setLicenceSchedule(oldDetail.getLicenceSchedule());
     newDetail.setCreatedInstant(Instant.now(clock));
+    newDetail.setCreatedByWuaId(userDetailService.getUserDetail().wuaId());
     newDetail.setStatus(LicenceScheduleDetailStatus.DRAFT);
 
     return newDetail;

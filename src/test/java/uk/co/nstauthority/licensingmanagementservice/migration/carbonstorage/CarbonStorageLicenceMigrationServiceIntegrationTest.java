@@ -8,6 +8,7 @@ import jakarta.transaction.Transactional;
 import java.time.LocalDate;
 import java.time.Month;
 import java.time.ZoneOffset;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,6 +39,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogra
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.status.WorkProgrammeStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.status.LicenceStatusRepository;
 import uk.co.nstauthority.licensingmanagementservice.migration.MigrationPreconditionException;
+import uk.co.nstauthority.licensingmanagementservice.migration.MigrationUser;
 import uk.co.nstauthority.licensingmanagementservice.util.IntegrationTest;
 
 @Sql(
@@ -355,6 +357,8 @@ class CarbonStorageLicenceMigrationServiceIntegrationTest {
     assertThat(scheduleDetail.getStatus()).isEqualTo(LicenceScheduleDetailStatus.ACTIVE);
     assertThat(scheduleDetail.getCreatedInstant())
         .isEqualTo(LocalDate.of(2021, Month.JUNE, 1).atStartOfDay(ZoneOffset.UTC).toInstant());
+    assertThat(scheduleDetail.getAppliedInstant())
+        .isEqualTo(LocalDate.of(2021, Month.JUNE, 1).atStartOfDay(ZoneOffset.UTC).toInstant());
 
     var startDate = licenceStartDateRepository.findByLicenceScheduleDetail(scheduleDetail).orElseThrow();
     assertThat(startDate.getStartDate()).isEqualTo(LocalDate.of(2020, Month.JANUARY, 1));
@@ -418,6 +422,14 @@ class CarbonStorageLicenceMigrationServiceIntegrationTest {
         .isEqualTo(LocalDate.of(2021, Month.JANUARY, 1).atStartOfDay(ZoneOffset.UTC).toInstant());
     assertThat(activeDetail.getCreatedInstant())
         .isEqualTo(LocalDate.of(2021, Month.JUNE, 1).atStartOfDay(ZoneOffset.UTC).toInstant());
+    assertThat(replacedDetail.getAppliedInstant())
+        .isEqualTo(LocalDate.of(2021, Month.JANUARY, 1).atStartOfDay(ZoneOffset.UTC).toInstant());
+    assertThat(activeDetail.getAppliedInstant())
+        .isEqualTo(LocalDate.of(2021, Month.JUNE, 1).atStartOfDay(ZoneOffset.UTC).toInstant());
+    assertThat(List.of(replacedDetail, activeDetail)).allSatisfy(detail -> {
+      assertThat(detail.getCreatedByWuaId()).isEqualTo(MigrationUser.WUA_ID);
+      assertThat(detail.getAppliedByWuaId()).isEqualTo(MigrationUser.WUA_ID);
+    });
 
     var replacedTerms = licenceScheduleTermRepository.findAllByLicenceScheduleDetail(replacedDetail);
     assertThat(replacedTerms).hasSize(1);

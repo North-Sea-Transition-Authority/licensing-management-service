@@ -1,6 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail;
 
 import jakarta.transaction.Transactional;
+import java.time.Clock;
 import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
@@ -10,6 +11,7 @@ import java.util.Set;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
+import uk.co.nstauthority.licensingmanagementservice.authentication.UserDetailService;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
@@ -26,15 +28,21 @@ public class LicenceScheduleDetailService {
   private final LicenceScheduleDetailRepository licenceScheduleDetailRepository;
   private final LicenceScheduleService licenceScheduleService;
   private final TeamQueryService teamQueryService;
+  private final UserDetailService userDetailService;
+  private final Clock clock;
 
   public LicenceScheduleDetailService(
       LicenceScheduleDetailRepository licenceScheduleDetailRepository,
       LicenceScheduleService licenceScheduleService,
-      TeamQueryService teamQueryService
+      TeamQueryService teamQueryService,
+      UserDetailService userDetailService,
+      Clock clock
   ) {
     this.licenceScheduleDetailRepository = licenceScheduleDetailRepository;
     this.licenceScheduleService = licenceScheduleService;
     this.teamQueryService = teamQueryService;
+    this.userDetailService = userDetailService;
+    this.clock = clock;
   }
 
   public LicenceScheduleDetail getByIdOrThrow(UUID id) {
@@ -83,6 +91,7 @@ public class LicenceScheduleDetailService {
     licenceScheduleDetail.setLicenceSchedule(licenceSchedule);
     licenceScheduleDetail.setStatus(LicenceScheduleDetailStatus.DRAFT);
     licenceScheduleDetail.setCreatedInstant(Instant.now());
+    licenceScheduleDetail.setCreatedByWuaId(userDetailService.getUserDetail().wuaId());
 
     return licenceScheduleDetailRepository.save(licenceScheduleDetail);
   }
@@ -121,6 +130,8 @@ public class LicenceScheduleDetailService {
     previousActiveDetail.ifPresent(this::replaceScheduleDetail);
 
     licenceScheduleDetail.setStatus(LicenceScheduleDetailStatus.ACTIVE);
+    licenceScheduleDetail.setAppliedInstant(Instant.now(clock));
+    licenceScheduleDetail.setAppliedByWuaId(userDetailService.getUserDetail().wuaId());
 
     licenceScheduleDetailRepository.save(licenceScheduleDetail);
   }
@@ -149,11 +160,11 @@ public class LicenceScheduleDetailService {
             List.of(LicenceScheduleDetailStatus.ACTIVE, LicenceScheduleDetailStatus.REPLACED)
         )
         .stream()
-        .sorted(Comparator.comparing(LicenceScheduleDetail::getCreatedInstant).reversed())
+        .sorted(Comparator.comparing(LicenceScheduleDetail::getAppliedInstant).reversed())
         .collect(StreamUtil.toLinkedHashMap(
             licenceScheduleDetail -> licenceScheduleDetail.getId().toString(),
             licenceScheduleDetail -> "Applied date: %s"
-                .formatted(DateFormatUtil.convertToDisplayTextWithTime(licenceScheduleDetail.getCreatedInstant())))
+                .formatted(DateFormatUtil.convertToDisplayTextWithTime(licenceScheduleDetail.getAppliedInstant())))
         );
   }
 }

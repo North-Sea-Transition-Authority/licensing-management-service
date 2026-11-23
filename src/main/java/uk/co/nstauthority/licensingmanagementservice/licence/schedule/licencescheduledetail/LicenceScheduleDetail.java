@@ -37,6 +37,12 @@ public class LicenceScheduleDetail {
 
   private Instant createdInstant;
 
+  private Instant appliedInstant;
+
+  private Long createdByWuaId;
+
+  private Long appliedByWuaId;
+
   public UUID getId() {
     return id;
   }
@@ -67,6 +73,30 @@ public class LicenceScheduleDetail {
 
   public void setCreatedInstant(Instant createdInstant) {
     this.createdInstant = createdInstant;
+  }
+
+  public Instant getAppliedInstant() {
+    return appliedInstant;
+  }
+
+  public void setAppliedInstant(Instant appliedInstant) {
+    this.appliedInstant = appliedInstant;
+  }
+
+  public Long getCreatedByWuaId() {
+    return createdByWuaId;
+  }
+
+  public void setCreatedByWuaId(Long createdByWuaId) {
+    this.createdByWuaId = createdByWuaId;
+  }
+
+  public Long getAppliedByWuaId() {
+    return appliedByWuaId;
+  }
+
+  public void setAppliedByWuaId(Long appliedByWuaId) {
+    this.appliedByWuaId = appliedByWuaId;
   }
 
   public String getScheduleTimelineRouteUrl() {

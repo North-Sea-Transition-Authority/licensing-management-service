@@ -36,7 +36,8 @@ licences (id INTEGER)
 licence_schedules (id UUID, licence_id)
    │  1 : many  ← one row per *version* of the schedule
    ▼
-licence_schedule_details (id UUID, licence_schedule_id, status, created_instant)
+licence_schedule_details (id UUID, licence_schedule_id, status, created_instant, created_by_wua_id,
+                          applied_instant, applied_by_wua_id)
    │  1 : many  ← the actual content, re-created per version
    ▼
 licence_start_dates, licence_schedule_terms, licence_schedule_phases,
@@ -66,7 +67,7 @@ Read top to bottom: each layer is keyed on the layer above it.
 flowchart TB
     LIC["<b>licences</b><br/>id · type · licence_reference"]
     LS["<b>licence_schedules</b><br/>id · licence_id<br/><i>stable anchor, carries no schedule data</i>"]
-    LSD["<b>licence_schedule_details</b><br/>id · licence_schedule_id · status · created_instant<br/><i>one row per schedule version</i>"]
+    LSD["<b>licence_schedule_details</b><br/>id · licence_schedule_id · status<br/>created_instant · created_by_wua_id · applied_instant · applied_by_wua_id<br/><i>one row per schedule version</i>"]
     SE["<b>schedule_events</b><br/>id · licence_schedule_id · event_type · original_event_id<br/><i>supertype of the six event tables below</i>"]
 
     subgraph CONTENT["schedule content — a complete set per version, all keyed on licence_schedule_detail_id"]
@@ -231,11 +232,30 @@ Stored as `TEXT`. Values:
 | `DELETED` | A draft that was abandoned. **The rows are not physically deleted** — the status is flipped and everything stays in place. |
 
 **For any "what is the schedule right now" query, filter to `status = 'ACTIVE'`.**
-For "what did the schedule look like historically", `REPLACED` rows plus `created_instant`
-form the version chain. `DRAFT` and `DELETED` must be excluded from published reporting —
-`DRAFT` is unapproved work in progress and `DELETED` is abandoned work.
+For "what did the schedule look like historically", `ACTIVE` and `REPLACED` rows ordered by
+`applied_instant` form the version chain. `DRAFT` and `DELETED` must be excluded from published
+reporting — `DRAFT` is unapproved work in progress and `DELETED` is abandoned work.
 
-### 4.1 Status transitions
+### 4.1 Who created and applied a version, and when
+
+| Column | Set when | Null when |
+|---|---|---|
+| `created_instant` | The version's row is inserted — for a version built in LMS, that is when its draft was started | Never, for any row the service writes |
+| `created_by_wua_id` | The version's row is inserted — the Energy Portal wua id of the user who started the draft | Older versions, which predate it being recorded |
+| `applied_instant` | The version moves `DRAFT → ACTIVE` | The version is `DRAFT`, or is `DELETED` (it was abandoned without ever being applied) |
+| `applied_by_wua_id` | The version moves `DRAFT → ACTIVE` — the wua id of the user who applied it | As `applied_instant`, and also on older versions, which predate it being recorded |
+
+`applied_instant` and `applied_by_wua_id` are not cleared when a version later moves to
+`REPLACED`, so a `REPLACED` row still records when it went live and who applied it. The rule
+that only `ACTIVE` and `REPLACED` rows carry them is enforced in application code, not by a
+database constraint.
+
+| Version origin | `applied_instant` | `created_by_wua_id` and `applied_by_wua_id` |
+|---|---|---|
+| Built and applied in LMS | When the user applied the draft | The users who started and applied the draft — not necessarily the same person |
+| Migrated from PEARS or carbon storage | Equal to `created_instant`. These rows are inserted already `ACTIVE` or `REPLACED` and carry their historical date in `created_instant`, so there is no separate apply step to date. | Both `1`, a placeholder meaning "written by the migration" rather than a real user |
+
+### 4.2 Status transitions
 
 ```
    (user creates or updates a schedule)
@@ -259,17 +279,16 @@ and submits the licence start date. In database terms:
 
 1. A `licence_schedules` row is created for the licence if one does not already exist
    (`licence_id` set, nothing else).
-2. A `licence_schedule_details` row is inserted with `status = 'DRAFT'` and
-   `created_instant = now()`.
+2. A `licence_schedule_details` row is inserted with `status = 'DRAFT'`,
+   `created_instant = now()` and `created_by_wua_id` set to the user.
 3. A `licence_start_dates` row is inserted against that detail, holding the licence start date.
 4. The user then adds terms, phases, work programme activities, rates and other events one at
    a time. Each add/edit/delete writes to the relevant child table (plus a `schedule_events`
    row for the event types listed in §3) and **immediately triggers a full recalculation of
    all derived dates for that version** (§5.4).
-5. When the user chooses "Apply", the detail's `status` moves `DRAFT → ACTIVE`. Because there
-   was no prior active version, nothing is set to `REPLACED`.
-
-There is no separate "applied" timestamp — see the caveats in §10.
+5. When the user chooses "Apply", the detail's `status` moves `DRAFT → ACTIVE`,
+   `applied_instant` is set to now and `applied_by_wua_id` to the applying user. Because there was no prior active version, nothing is set
+   to `REPLACED`.
 
 ### 5.2 Updating an existing schedule — copy, edit, apply
 
@@ -277,7 +296,9 @@ LMS has no in-place edit path for a live schedule. An update is:
 
 1. **Copy.** The user starts "Update an existing licence schedule". The system takes the
    current `ACTIVE` detail and creates a **new** `licence_schedule_details` row with
-   `status = 'DRAFT'`, `created_instant = now()`, pointing at the same `licence_schedule_id`.
+   `status = 'DRAFT'`, `created_instant = now()`, `created_by_wua_id` set to the user, and
+   `applied_instant` and `applied_by_wua_id` null, pointing at the same `licence_schedule_id`.
+   None of the old detail's dates or users are carried across.
 2. Every child row of the old detail is **copied field-for-field** into new rows attached to
    the new detail. This applies to all eight child tables: `licence_start_dates`,
    `licence_schedule_terms`, `licence_schedule_phases`, `work_programme_activities`,
@@ -293,8 +314,10 @@ LMS has no in-place edit path for a live schedule. An update is:
    *within the draft*; deletes physically `DELETE` rows from the draft's child tables.
    The old `ACTIVE` version is untouched throughout.
 4. **Apply.** On apply:
-   - the previous `ACTIVE` detail is set to `REPLACED`;
-   - the draft detail is set to `ACTIVE`;
+   - the previous `ACTIVE` detail is set to `REPLACED`, keeping its `applied_instant` and
+     `applied_by_wua_id`;
+   - the draft detail is set to `ACTIVE`, with `applied_instant` set to now and
+     `applied_by_wua_id` to the applying user;
    - any `PENDING` event comments on this schedule are promoted to `PUBLISHED` (§6.1).
 
 **Tracking one logical event across versions: `original_event_id`.**
@@ -718,8 +741,9 @@ audit_revisions
   proxy_user_wua_id BIGINT      ← set when acting on behalf of another user
 ```
 
-This is the **only** place that records *when* a schedule version changed status and *who*
-did it. To find when a version went live:
+Who created a version, and when and by whom it went live, are held directly on
+`licence_schedule_details` (§4.1). The audit tables are the only place that records when a
+version was replaced or deleted, and by whom:
 
 ```sql
 SELECT ar.created_date_time, ar.user_wua_id, d.status
@@ -733,11 +757,11 @@ ORDER BY d.rev;
 
 ## 10. Caveats and known gotchas
 
-1. **`created_instant` is not an applied date.** `licence_schedule_details.created_instant` is
-   set when the *draft* is created, not when it is applied. The LMS UI labels it "Applied
-   date" in the schedule history dropdown; that label is misleading. For a genuine applied
-   timestamp, use `audit_revisions.created_date_time` for the revision where `status` became
-   `ACTIVE` (§9). The gap between the two can be days or weeks.
+1. **`created_instant` is not an applied date — use `applied_instant`.**
+   `licence_schedule_details.created_instant` is set when the *draft* is created; the gap
+   before it is applied can be days or weeks. `applied_instant` is when it went live (§4.1). It
+   is null for `DRAFT` and `DELETED` rows, so filter on `status` rather than relying on the
+   null. For migrated versions the two columns are equal.
 2. **"At most one `ACTIVE` per licence" is not a database constraint.** It is enforced only in
    application code, so it is an invariant to verify rather than one the schema guarantees.
 3. **The individual event tables carry no status column.** `licence_schedule_terms`,
@@ -760,8 +784,11 @@ ORDER BY d.rev;
    `_aud` table.
 7. **`DELETED` versions are dead weight, not history.** They represent abandoned drafts that
    were never live. Exclude them; do not present them as a past state of the licence.
-8. **User identifiers are external.** `author_wua_id`, `user_wua_id` and `proxy_user_wua_id` are
-   Energy Portal web user account ids. LMS stores no names or email addresses for them.
+8. **User identifiers are external.** `author_wua_id`, `created_by_wua_id`, `applied_by_wua_id`,
+   `user_wua_id` and `proxy_user_wua_id` are Energy Portal web user account ids. LMS stores no
+   names or email addresses for them. On `licence_schedule_details`, the value `1` is a
+   placeholder for versions written by the PEARS and carbon storage migrations (§4.1), not a
+   real user.
 
 ---
 
@@ -773,7 +800,8 @@ and expiry — each additionally join to `schedule_events` on `id` to reach
 below do not.
 
 **`licence_schedule_details`**
-`id`, `licence_schedule_id`, `status`, `created_instant`
+`id`, `licence_schedule_id`, `status`, `created_instant`, `created_by_wua_id`, `applied_instant`,
+`applied_by_wua_id`
 
 **`licence_start_dates`** *(not a schedule event)*
 `id`, `licence_schedule_detail_id`, `start_date`

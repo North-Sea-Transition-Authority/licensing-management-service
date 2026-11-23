@@ -38,6 +38,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesch
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.otherscheduleevent.OtherScheduleEvent;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.otherscheduleevent.OtherScheduleEventCategory;
+import uk.co.nstauthority.licensingmanagementservice.migration.MigrationUser;
 import uk.co.nstauthority.licensingmanagementservice.migration.pears.PearsLicenceReference;
 import uk.co.nstauthority.licensingmanagementservice.util.IntegrationTest;
 
@@ -124,6 +125,13 @@ class PearsScheduleWriterIntegrationTest {
         .containsExactly(LicenceScheduleDetailStatus.REPLACED, LicenceScheduleDetailStatus.ACTIVE);
     var replaced = details.get(0);
     var active = details.get(1);
+
+    // A migrated version was applied in PEARS when it was created there
+    assertThat(details).allSatisfy(detail -> {
+      assertThat(detail.getAppliedInstant()).isEqualTo(detail.getCreatedInstant());
+      assertThat(detail.getCreatedByWuaId()).isEqualTo(MigrationUser.WUA_ID);
+      assertThat(detail.getAppliedByWuaId()).isEqualTo(MigrationUser.WUA_ID);
+    });
 
     // LMS works the dates out itself, and lands on the PEARS boundaries
     assertThat(terms(active))

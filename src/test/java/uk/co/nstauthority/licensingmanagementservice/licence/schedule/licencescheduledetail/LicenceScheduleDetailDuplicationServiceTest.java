@@ -16,6 +16,8 @@ import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.authentication.UserDetailService;
 import uk.co.nstauthority.licensingmanagementservice.duplication.DuplicationService;
 import uk.co.nstauthority.licensingmanagementservice.duplication.DuplicationSource;
 import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
@@ -65,6 +67,9 @@ class LicenceScheduleDetailDuplicationServiceTest {
   private DuplicationService duplicationService;
 
   @Mock
+  private UserDetailService userDetailService;
+
+  @Mock
   private Clock clock;
 
   @InjectMocks
@@ -87,6 +92,8 @@ class LicenceScheduleDetailDuplicationServiceTest {
 
   private static final Instant FIXED_INSTANT = Instant.now();
 
+  private static final Long USER_WUA_ID = 123L;
+
   @Test
   void createNewDraftLicenceScheduleDetailVersion() {
     var schedule = new LicenceSchedule();
@@ -101,6 +108,8 @@ class LicenceScheduleDetailDuplicationServiceTest {
         .build();
 
     when(clock.instant()).thenReturn(FIXED_INSTANT);
+    when(userDetailService.getUserDetail())
+        .thenReturn(ServiceUserDetailTestUtil.newBuilder().withWuaId(USER_WUA_ID).build());
 
     licenceScheduleDetailDuplicationService.createNewDraftLicenceScheduleDetailVersion(oldDetail);
 
@@ -113,11 +122,13 @@ class LicenceScheduleDetailDuplicationServiceTest {
     assertThat(licenceScheduleDetailArgumentCaptor.getValue()).extracting(
         LicenceScheduleDetail::getLicenceSchedule,
         LicenceScheduleDetail::getStatus,
-        LicenceScheduleDetail::getCreatedInstant
+        LicenceScheduleDetail::getCreatedInstant,
+        LicenceScheduleDetail::getCreatedByWuaId
     ).containsExactly(
         newDetail.getLicenceSchedule(),
         newDetail.getStatus(),
-        newDetail.getCreatedInstant()
+        newDetail.getCreatedInstant(),
+        USER_WUA_ID
     );
   }
 

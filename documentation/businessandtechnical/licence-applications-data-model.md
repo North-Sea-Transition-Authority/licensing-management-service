@@ -93,7 +93,7 @@ Read top to bottom: each layer is keyed on the layer above it.
 flowchart TB
     LIC["<b>licences</b><br/>id · type · licence_reference"]
     LS["<b>licence_schedules</b><br/>id · licence_id<br/><i>stable anchor, carries no application data</i>"]
-    LSD["<b>licence_schedule_details</b><br/>id · licence_schedule_id · status · created_instant<br/><i>one row per schedule version</i>"]
+    LSD["<b>licence_schedule_details</b><br/>id · licence_schedule_id · status<br/>created_instant · created_by_wua_id · applied_instant · applied_by_wua_id<br/><i>one row per schedule version</i>"]
     APP["<b>applications</b><br/>id · application_type · licence_id · application_reference · withdrawal_reason · withdrawn_datetime<br/><i>both types — thin root</i>"]
     SA["<b>schedule_applications</b><br/>id · licence_schedule_id · submitted_licence_schedule_detail_id<br/><i>same id as the application; both current types</i>"]
     SWPA["<b>schedule_work_programme_applications</b><br/>id · steward_wua_id<br/><i>same id as the application; extension and amendment, once a steward is allocated</i>"]

@@ -45,6 +45,8 @@ public class LicenceScheduleTestUtil {
     private UUID id;
     private LicenceScheduleDetailStatus licenceScheduleDetailStatus;
     private Instant createdInstant;
+    private Instant appliedInstant;
+    private Long appliedByWuaId;
 
     public Builder(LicenceSchedule licenceSchedule) {
       this.licenceSchedule = licenceSchedule;
@@ -65,12 +67,24 @@ public class LicenceScheduleTestUtil {
       return this;
     }
 
+    public Builder withAppliedInstant(Instant appliedInstant) {
+      this.appliedInstant = appliedInstant;
+      return this;
+    }
+
+    public Builder withAppliedByWuaId(Long appliedByWuaId) {
+      this.appliedByWuaId = appliedByWuaId;
+      return this;
+    }
+
     public LicenceScheduleDetail build() {
       var licenceScheduleDetail = new LicenceScheduleDetail();
       licenceScheduleDetail.setLicenceSchedule(licenceSchedule);
       licenceScheduleDetail.setId(id);
       licenceScheduleDetail.setStatus(licenceScheduleDetailStatus);
       licenceScheduleDetail.setCreatedInstant(createdInstant);
+      licenceScheduleDetail.setAppliedInstant(appliedInstant);
+      licenceScheduleDetail.setAppliedByWuaId(appliedByWuaId);
       return licenceScheduleDetail;
     }
   }

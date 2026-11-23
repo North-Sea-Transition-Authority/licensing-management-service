@@ -1,14 +1,19 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.when;
 
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import java.time.LocalDate;
 import java.time.Month;
 import java.util.List;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.authentication.UserDetailService;
 import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFieldDuration;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
@@ -43,8 +48,19 @@ import uk.co.nstauthority.licensingmanagementservice.util.IntegrationTest;
 @IntegrationTest
 class LicenceScheduleDetailDuplicationServiceIntegrationTest {
 
+  private static final Long USER_WUA_ID = 123L;
+
   @Autowired
   private EntityManager em;
+
+  @MockitoBean
+  private UserDetailService userDetailService;
+
+  @BeforeEach
+  void setUp() {
+    when(userDetailService.getUserDetail())
+        .thenReturn(ServiceUserDetailTestUtil.newBuilder().withWuaId(USER_WUA_ID).build());
+  }
 
   @Autowired
   private LicenceScheduleDetailRepository licenceScheduleDetailRepository;
@@ -114,10 +130,16 @@ class LicenceScheduleDetailDuplicationServiceIntegrationTest {
 
     assertThat(newLicenceScheduleDetail).extracting(
         LicenceScheduleDetail::getLicenceSchedule,
-        LicenceScheduleDetail::getStatus
+        LicenceScheduleDetail::getStatus,
+        LicenceScheduleDetail::getCreatedByWuaId,
+        LicenceScheduleDetail::getAppliedInstant,
+        LicenceScheduleDetail::getAppliedByWuaId
     ).containsExactly(
         licenceSchedule,
-        LicenceScheduleDetailStatus.DRAFT
+        LicenceScheduleDetailStatus.DRAFT,
+        USER_WUA_ID,
+        null,
+        null
     );
 
     var newLicenceStartDate = licenceStartDateRepository.findByLicenceScheduleDetail(newLicenceScheduleDetail).get();

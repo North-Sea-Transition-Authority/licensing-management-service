@@ -51,6 +51,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.status.LicenceStatu
 import uk.co.nstauthority.licensingmanagementservice.licence.status.LicenceStatusRepository;
 import uk.co.nstauthority.licensingmanagementservice.migration.MigrationPreconditionException;
 import uk.co.nstauthority.licensingmanagementservice.migration.MigrationResult;
+import uk.co.nstauthority.licensingmanagementservice.migration.MigrationUser;
 
 @Service
 public class CarbonStorageLicenceMigrationService {
@@ -319,7 +320,11 @@ public class CarbonStorageLicenceMigrationService {
         var detail = new LicenceScheduleDetail();
         detail.setLicenceSchedule(savedSchedule);
         detail.setStatus(LicenceScheduleDetailStatus.ACTIVE);
-        detail.setCreatedInstant(Instant.now());
+        var now = Instant.now();
+        detail.setCreatedInstant(now);
+        detail.setAppliedInstant(now);
+        detail.setCreatedByWuaId(MigrationUser.WUA_ID);
+        detail.setAppliedByWuaId(MigrationUser.WUA_ID);
         licenceScheduleDetails.add(detail);
       } else {
         for (int i = 0; i < cases.size(); i++) {
@@ -329,8 +334,12 @@ public class CarbonStorageLicenceMigrationService {
           detail.setStatus(i == cases.size() - 1
               ? LicenceScheduleDetailStatus.ACTIVE
               : LicenceScheduleDetailStatus.REPLACED);
-          detail.setCreatedInstant(LocalDate.parse(c.getCaseDate(), CASE_DATE_FORMAT)
-              .atStartOfDay(ZoneOffset.UTC).toInstant());
+          var caseInstant = LocalDate.parse(c.getCaseDate(), CASE_DATE_FORMAT)
+              .atStartOfDay(ZoneOffset.UTC).toInstant();
+          detail.setCreatedInstant(caseInstant);
+          detail.setAppliedInstant(caseInstant);
+          detail.setCreatedByWuaId(MigrationUser.WUA_ID);
+          detail.setAppliedByWuaId(MigrationUser.WUA_ID);
           licenceScheduleDetails.add(detail);
           detailsByCaseDate.put(caseKey(licenceRef, c.getCaseDate()), detail);
         }

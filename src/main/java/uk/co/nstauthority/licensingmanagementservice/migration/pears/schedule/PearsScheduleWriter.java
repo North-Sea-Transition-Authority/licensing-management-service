@@ -44,6 +44,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.othersched
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.otherscheduleevent.OtherScheduleEventCategory;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.otherscheduleevent.OtherScheduleEventDateOption;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.otherscheduleevent.OtherScheduleEventService;
+import uk.co.nstauthority.licensingmanagementservice.migration.MigrationUser;
 
 /**
  * Saves a licence's mapped PEARS schedule as its LMS schedule, in the caller's transaction (plan, design section 3).
@@ -170,6 +171,9 @@ class PearsScheduleWriter {
     detail.setLicenceSchedule(licenceSchedule);
     detail.setStatus(version.status());
     detail.setCreatedInstant(version.createdInstant());
+    detail.setAppliedInstant(version.createdInstant());
+    detail.setCreatedByWuaId(MigrationUser.WUA_ID);
+    detail.setAppliedByWuaId(MigrationUser.WUA_ID);
     licenceScheduleDetailService.saveLicenceScheduleDetails(List.of(detail));
 
     var startDate = new LicenceStartDate();

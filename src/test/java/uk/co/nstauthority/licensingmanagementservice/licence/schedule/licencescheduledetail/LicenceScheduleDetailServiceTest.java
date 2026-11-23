@@ -7,7 +7,9 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.time.Clock;
 import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -19,8 +21,10 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.authentication.UserDetailService;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
@@ -43,6 +47,16 @@ class LicenceScheduleDetailServiceTest {
 
   @Mock
   private TeamQueryService teamQueryService;
+
+  @Mock
+  private UserDetailService userDetailService;
+
+  private static final Instant NOW = Instant.parse("2026-11-23T10:15:00Z");
+
+  private static final Long USER_WUA_ID = 123L;
+
+  @Spy
+  private Clock clock = Clock.fixed(NOW, ZoneOffset.UTC);
 
   @InjectMocks
   private LicenceScheduleDetailService licenceScheduleDetailService;
@@ -120,6 +134,8 @@ class LicenceScheduleDetailServiceTest {
     var licenceSchedule = new LicenceSchedule();
 
     when(licenceScheduleService.getOrCreateNewLicenceScheduleForLicence(licence)).thenReturn(licenceSchedule);
+    when(userDetailService.getUserDetail())
+        .thenReturn(ServiceUserDetailTestUtil.newBuilder().withWuaId(USER_WUA_ID).build());
 
     licenceScheduleDetailService.createNewLicenceScheduleEntitiesForLicence(licence);
 
@@ -131,12 +147,26 @@ class LicenceScheduleDetailServiceTest {
   @Test
   void createNewDraftLicenceScheduleDetail() {
     var licenceSchedule = new LicenceSchedule();
+    when(userDetailService.getUserDetail())
+        .thenReturn(ServiceUserDetailTestUtil.newBuilder().withWuaId(USER_WUA_ID).build());
 
     licenceScheduleDetailService.createNewDraftLicenceScheduleDetail(licenceSchedule);
 
     verify(licenceScheduleDetailRepository).save(licenceScheduleDetailArgumentCaptor.capture());
 
-    assertThat(licenceScheduleDetailArgumentCaptor.getValue().getLicenceSchedule()).isEqualTo(licenceSchedule);
+    assertThat(licenceScheduleDetailArgumentCaptor.getValue()).extracting(
+        LicenceScheduleDetail::getLicenceSchedule,
+        LicenceScheduleDetail::getStatus,
+        LicenceScheduleDetail::getCreatedByWuaId,
+        LicenceScheduleDetail::getAppliedInstant,
+        LicenceScheduleDetail::getAppliedByWuaId
+    ).containsExactly(
+        licenceSchedule,
+        LicenceScheduleDetailStatus.DRAFT,
+        USER_WUA_ID,
+        null,
+        null
+    );
   }
 
   @Test
@@ -184,13 +214,20 @@ class LicenceScheduleDetailServiceTest {
         .withStatus(LicenceScheduleDetailStatus.DRAFT)
         .build();
 
+    var previousAppliedInstant = Instant.parse("2025-01-01T09:00:00Z");
+    var previousAppliedByWuaId = 999L;
+
     var previousDetail = LicenceScheduleTestUtil.licenceScheduleDetailBuilder(licenceSchedule)
         .withId(UUID.randomUUID())
         .withStatus(LicenceScheduleDetailStatus.ACTIVE)
+        .withAppliedInstant(previousAppliedInstant)
+        .withAppliedByWuaId(previousAppliedByWuaId)
         .build();
 
     when(licenceScheduleDetailRepository.findByLicenceSchedule_LicenceAndStatus(licence, LicenceScheduleDetailStatus.ACTIVE))
         .thenReturn(Optional.of(previousDetail));
+    when(userDetailService.getUserDetail())
+        .thenReturn(ServiceUserDetailTestUtil.newBuilder().withWuaId(USER_WUA_ID).build());
 
     licenceScheduleDetailService.applyAndReplaceActiveScheduleDetail(currentDetail);
 
@@ -198,18 +235,26 @@ class LicenceScheduleDetailServiceTest {
 
     assertThat(licenceScheduleDetailArgumentCaptor.getAllValues().getFirst()).extracting(
         LicenceScheduleDetail::getId,
-        LicenceScheduleDetail::getStatus
+        LicenceScheduleDetail::getStatus,
+        LicenceScheduleDetail::getAppliedInstant,
+        LicenceScheduleDetail::getAppliedByWuaId
     ).containsExactly(
         previousDetail.getId(),
-        LicenceScheduleDetailStatus.REPLACED
+        LicenceScheduleDetailStatus.REPLACED,
+        previousAppliedInstant,
+        previousAppliedByWuaId
     );
 
     assertThat(licenceScheduleDetailArgumentCaptor.getAllValues().get(1)).extracting(
         LicenceScheduleDetail::getId,
-        LicenceScheduleDetail::getStatus
+        LicenceScheduleDetail::getStatus,
+        LicenceScheduleDetail::getAppliedInstant,
+        LicenceScheduleDetail::getAppliedByWuaId
     ).containsExactly(
         currentDetail.getId(),
-        LicenceScheduleDetailStatus.ACTIVE
+        LicenceScheduleDetailStatus.ACTIVE,
+        NOW,
+        USER_WUA_ID
     );
   }
 
@@ -238,16 +283,19 @@ class LicenceScheduleDetailServiceTest {
     var licence = LicenceTestUtil.builder().build();
     var licenceSchedule = LicenceScheduleTestUtil.createLicenceSchedule(licence);
 
+    // Created dates run the opposite way to applied dates, so ordering and labels must come from the applied date
     var olderDetail = LicenceScheduleTestUtil.licenceScheduleDetailBuilder(licenceSchedule)
         .withId(UUID.randomUUID())
         .withStatus(LicenceScheduleDetailStatus.REPLACED)
-        .withCreatedInstant(Instant.parse("2024-01-01T09:00:00Z"))
+        .withCreatedInstant(Instant.parse("2024-05-01T09:00:00Z"))
+        .withAppliedInstant(Instant.parse("2024-05-02T09:00:00Z"))
         .build();
 
     var newerDetail = LicenceScheduleTestUtil.licenceScheduleDetailBuilder(licenceSchedule)
         .withId(UUID.randomUUID())
         .withStatus(LicenceScheduleDetailStatus.ACTIVE)
-        .withCreatedInstant(Instant.parse("2024-06-01T09:00:00Z"))
+        .withCreatedInstant(Instant.parse("2024-04-01T09:00:00Z"))
+        .withAppliedInstant(Instant.parse("2024-06-01T09:00:00Z"))
         .build();
 
     when(licenceScheduleDetailRepository.findAllByLicenceSchedule_LicenceAndStatusIn(
@@ -261,11 +309,11 @@ class LicenceScheduleDetailServiceTest {
     assertThat(result).containsExactly(
         Map.entry(
             newerDetail.getId().toString(),
-            "Applied date: %s".formatted(DateFormatUtil.convertToDisplayTextWithTime(newerDetail.getCreatedInstant()))
+            "Applied date: %s".formatted(DateFormatUtil.convertToDisplayTextWithTime(newerDetail.getAppliedInstant()))
         ),
         Map.entry(
             olderDetail.getId().toString(),
-            "Applied date: %s".formatted(DateFormatUtil.convertToDisplayTextWithTime(olderDetail.getCreatedInstant()))
+            "Applied date: %s".formatted(DateFormatUtil.convertToDisplayTextWithTime(olderDetail.getAppliedInstant()))
         )
     );
   }

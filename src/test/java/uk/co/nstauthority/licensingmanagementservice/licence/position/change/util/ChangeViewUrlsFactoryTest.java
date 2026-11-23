@@ -236,6 +236,13 @@ class ChangeViewUrlsFactoryTest {
     var storageOperatorCorrecting = ReverseRouter.route(on(ChangeFormController.class)
         .correctLiveChange(CORRECTION, LICENCE_POSITION, CHANGE_ENTITY, null, null, null));
 
+    var explorationOperatorAdded = ReverseRouter.route(on(ChangeFormController.class).addToAddedPosition(
+        CORRECTION, POSITION_CORRECTION, AddPositionChangeType.EXPLORATION_OPERATOR, null, null, null));
+    var explorationOperatorExecuted = ReverseRouter.route(on(ChangeFormController.class).addToExecutedPosition(
+        CORRECTION, LICENCE_POSITION, AddPositionChangeType.EXPLORATION_OPERATOR, null, null, null));
+    var explorationOperatorCorrecting = ReverseRouter.route(on(ChangeFormController.class)
+        .correctLiveChange(CORRECTION, LICENCE_POSITION, CHANGE_ENTITY, null, null, null));
+
     var subareaCorrect = ReverseRouter.route(on(SubareaChangeReviewController.class)
         .renderStagedReview(CORRECTION, POSITION_CORRECTION, SUBAREA_BLOCK_FEATURE_ID, null));
     var subareaCorrecting = ReverseRouter.route(on(SubareaChangeReviewController.class)
@@ -337,11 +344,15 @@ class ChangeViewUrlsFactoryTest {
         Arguments.of("subarea, moved to added position", SUBAREA, ADDED_POSITION, operationsUpdated,
             subareaCorrect, null, undo, null, subareaCorrect),
         Arguments.of("exploration operator, live", EXPLORATION_OPERATOR, EXECUTED_POSITION, live,
-            null, null, null, null, null),
+            explorationOperatorCorrecting, null, null, null, null),
         Arguments.of("exploration operator, added", EXPLORATION_OPERATOR, EXECUTED_POSITION, added,
-            null, null, null, null, null),
+            explorationOperatorExecuted, null, null, null, null),
+        Arguments.of("exploration operator, operations updated", EXPLORATION_OPERATOR, EXECUTED_POSITION,
+            operationsUpdated, explorationOperatorCorrecting, null, null, null, null),
         Arguments.of("exploration operator, removed", EXPLORATION_OPERATOR, EXECUTED_POSITION, removed,
-            null, null, null, null, null)
+            null, null, null, null, null),
+        Arguments.of("exploration operator, added position", EXPLORATION_OPERATOR, ADDED_POSITION, added,
+            explorationOperatorAdded, null, null, null, null)
     );
   }
 

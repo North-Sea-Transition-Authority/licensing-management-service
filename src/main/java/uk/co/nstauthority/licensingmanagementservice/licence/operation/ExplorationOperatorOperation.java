@@ -7,6 +7,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import org.jetbrains.annotations.Nullable;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.AddPositionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.action.ChangeActionHandler;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationError;
@@ -94,7 +95,7 @@ public record ExplorationOperatorOperation(
 
   @Override
   public OperationRoutes getOperationUrls() {
-    return OperationRoutes.none();
+    return OperationRoutes.changeForm(AddPositionChangeType.EXPLORATION_OPERATOR);
   }
 
   /**

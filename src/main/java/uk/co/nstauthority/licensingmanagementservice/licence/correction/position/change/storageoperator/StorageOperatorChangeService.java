@@ -2,17 +2,12 @@ package uk.co.nstauthority.licensingmanagementservice.licence.correction.positio
 
 import java.util.Set;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.OrganisationChangeService;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.LicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.StorageOperatorOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.ChronologicalPositionService;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionChangeOperationUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionStorageOperatorChangeUtil;
 
 @Service
 public class StorageOperatorChangeService {
@@ -29,29 +24,6 @@ public class StorageOperatorChangeService {
     this.licencePositionCorrectionService = licencePositionCorrectionService;
     this.organisationChangeService = organisationChangeService;
     this.chronologicalPositionService = chronologicalPositionService;
-  }
-
-  @Transactional
-  public void correctExistingStorageOperatorChange(
-      LicencePosition licencePosition,
-      LicenceCorrection licenceCorrection,
-      Integer storageOperatorId,
-      String originalChangeId
-  ) {
-    var positionCorrection = licencePositionCorrectionService
-        .getOrBuildUpdatePositionCorrection(licenceCorrection, licencePosition);
-
-    var payload = positionCorrection.getPayload();
-
-    var changes = LicencePositionChangeOperationUtil.upsertUpdateChange(
-        payload.changes(),
-        StorageOperatorOperation.class,
-        originalChangeId,
-        LicencePositionStorageOperatorChangeUtil.storageOperatorOperation(storageOperatorId)
-    );
-
-    positionCorrection.setPayload(LicencePositionPayload.withChanges(payload, changes));
-    licencePositionCorrectionService.save(positionCorrection);
   }
 
   public String getJoiningOperatorForReinstating(

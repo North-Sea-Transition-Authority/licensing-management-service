@@ -35,6 +35,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeoperation.LicencePositionChangeOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.AddChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.UpdateChangeOperations;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.LicencePositionPayload;
@@ -411,6 +412,62 @@ class OrganisationChangeServiceTest {
     ))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessage("Unsupported operation type for retrieving organisation id: " + LicenseeOperation.class);
+  }
+
+  @ParameterizedTest(name = "{argumentSetName}")
+  @MethodSource("addOrganisationChange_whenNoChangeAlreadyExists")
+  void correctOrganisationChange_whenCorrectionHasNoChangeOfType_appendsUpdateChange(
+      Class<? extends LicenceOperation> operationType,
+      LicenceOperation operation
+  ) {
+    var liveChangeId = UUID.randomUUID().toString();
+    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withPayload(LicencePositionPayload.newUpdateLicencePositionPayload().withChanges(List.of()).build())
+        .build();
+    when(licencePositionCorrectionService.getOrBuildUpdatePositionCorrection(LICENCE_CORRECTION, LICENCE_POSITION))
+        .thenReturn(positionCorrection);
+
+    organisationChangeService.correctOrganisationChange(
+        LICENCE_POSITION,
+        LICENCE_CORRECTION,
+        operationType,
+        liveChangeId,
+        operation
+    );
+
+    verify(licencePositionCorrectionService).save(licencePositionCorrectionCaptor.capture());
+    var payload = (UpdateLicencePositionPayload) licencePositionCorrectionCaptor.getValue().getPayload();
+    assertThat(payload.changes()).containsExactly(UpdateChangeOperations.buildUpdateChange(liveChangeId, operation));
+  }
+
+  @ParameterizedTest(name = "{argumentSetName}")
+  @MethodSource("addOrganisationChange_whenChangeAlreadyExists")
+  void correctOrganisationChange_whenCorrectionAlreadyCorrectsChangeOfType_rewritesUpdateChange(
+      Class<? extends LicenceOperation> operationType,
+      LicenceOperation previousOperation,
+      LicenceOperation currentOperation
+  ) {
+    var liveChangeId = UUID.randomUUID().toString();
+    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withPayload(LicencePositionPayload.newUpdateLicencePositionPayload()
+            .withChanges(List.of(UpdateChangeOperations.buildUpdateChange(liveChangeId, previousOperation)))
+            .build())
+        .build();
+    when(licencePositionCorrectionService.getOrBuildUpdatePositionCorrection(LICENCE_CORRECTION, LICENCE_POSITION))
+        .thenReturn(positionCorrection);
+
+    organisationChangeService.correctOrganisationChange(
+        LICENCE_POSITION,
+        LICENCE_CORRECTION,
+        operationType,
+        liveChangeId,
+        currentOperation
+    );
+
+    verify(licencePositionCorrectionService).save(licencePositionCorrectionCaptor.capture());
+    var payload = (UpdateLicencePositionPayload) licencePositionCorrectionCaptor.getValue().getPayload();
+    assertThat(payload.changes())
+        .containsExactly(UpdateChangeOperations.buildUpdateChange(liveChangeId, currentOperation));
   }
 
   private static Stream<Arguments> getOrganisationChangeContext() {

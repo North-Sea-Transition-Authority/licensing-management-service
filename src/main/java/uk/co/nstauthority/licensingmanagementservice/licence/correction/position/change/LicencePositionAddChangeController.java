@@ -21,7 +21,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceC
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionRouteUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.explorationoperator.LicencePositionExplorationOperatorChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.form.ChangeFormController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.LicencePositionPartialSurrenderController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.PartialSurrenderCorrectionService;
@@ -107,8 +106,9 @@ public class LicencePositionAddChangeController {
     var changeType = AddPositionChangeType.valueOf(form.getChangeType());
 
     return switch (changeType) {
-      case ADMINISTRATOR, LICENSEE, STORAGE_OPERATOR -> ReverseRouter.redirect(on(ChangeFormController.class)
-          .addToExecutedPosition(correction, licencePosition, changeType, null, null, null));
+      case ADMINISTRATOR, LICENSEE, STORAGE_OPERATOR, EXPLORATION_OPERATOR ->
+          ReverseRouter.redirect(on(ChangeFormController.class)
+              .addToExecutedPosition(correction, licencePosition, changeType, null, null, null));
       case SET_EQUITY -> ReverseRouter.redirect(on(LicencePositionSetEquityController.class)
           .renderForExecutedPosition(correction, licencePosition));
       case TRANSFER_EQUITY -> ReverseRouter.redirect(on(LicencePositionTransferEquityController.class)
@@ -119,8 +119,6 @@ public class LicencePositionAddChangeController {
           .orElseGet(() -> ReverseRouter.redirect(on(LicencePositionPartialSurrenderController.class)
               .renderForExecutedPosition(correction, licencePosition)));
       case SUBAREA -> ReverseRouter.redirect(on(LicencePositionSubareaChangeStartController.class)
-          .renderForExecutedPosition(correction, licencePosition));
-      case EXPLORATION_OPERATOR -> ReverseRouter.redirect(on(LicencePositionExplorationOperatorChangeController.class)
           .renderForExecutedPosition(correction, licencePosition));
       case SUBAREA_SET_EQUITY -> ReverseRouter.redirect(on(LicencePositionSubareaSetEquityController.class)
           .renderForExecutedPosition(correction, licencePosition, form.getSubarea()));
@@ -169,8 +167,9 @@ public class LicencePositionAddChangeController {
     var changeType = AddPositionChangeType.valueOf(form.getChangeType());
 
     return switch (changeType) {
-      case ADMINISTRATOR, LICENSEE, STORAGE_OPERATOR -> ReverseRouter.redirect(on(ChangeFormController.class)
-          .addToAddedPosition(correction, licencePositionCorrection, changeType, null, null, null));
+      case ADMINISTRATOR, LICENSEE, STORAGE_OPERATOR, EXPLORATION_OPERATOR ->
+          ReverseRouter.redirect(on(ChangeFormController.class)
+              .addToAddedPosition(correction, licencePositionCorrection, changeType, null, null, null));
       case SET_EQUITY -> ReverseRouter.redirect(on(LicencePositionSetEquityController.class)
           .renderForAddedPosition(correction, licencePositionCorrection));
       case TRANSFER_EQUITY -> ReverseRouter.redirect(on(LicencePositionTransferEquityController.class)
@@ -181,8 +180,6 @@ public class LicencePositionAddChangeController {
           .orElseGet(() -> ReverseRouter.redirect(on(LicencePositionPartialSurrenderController.class)
               .renderForAddedPosition(correction, licencePositionCorrection)));
       case SUBAREA -> ReverseRouter.redirect(on(LicencePositionSubareaChangeStartController.class)
-          .renderForAddedPosition(correction, licencePositionCorrection));
-      case EXPLORATION_OPERATOR -> ReverseRouter.redirect(on(LicencePositionExplorationOperatorChangeController.class)
           .renderForAddedPosition(correction, licencePositionCorrection));
       case SUBAREA_SET_EQUITY -> ReverseRouter.redirect(on(LicencePositionSubareaSetEquityController.class)
           .renderForAddedPosition(correction, licencePositionCorrection, form.getSubarea()));

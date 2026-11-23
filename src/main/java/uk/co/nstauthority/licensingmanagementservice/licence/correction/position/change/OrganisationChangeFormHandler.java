@@ -15,7 +15,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.Org
 
 /**
  * A change form that replaces the single organisation a position holds in some role, such as its licence administrator
- * or storage operator. Everything but the role, the operation and how a live change is corrected is shared.
+ * or storage operator. Everything but the role and the operation is shared.
  *
  * @param <F> the form the page binds
  */
@@ -50,7 +50,15 @@ public abstract class OrganisationChangeFormHandler<F extends OrganisationChange
   /**
    * Stages a correction of the live change, so it gives the role to the organisation instead.
    */
-  protected abstract void correctLiveChange(ChangeFormTarget.LiveChange liveChange, Integer organisationId);
+  protected void correctLiveChange(ChangeFormTarget.LiveChange liveChange, Integer organisationId) {
+    organisationChangeService.correctOrganisationChange(
+        liveChange.position(),
+        liveChange.correction(),
+        operationType(),
+        liveChange.change().getId().toString(),
+        operation(organisationId)
+    );
+  }
 
   @Override
   public ModelAndView formPage(ChangeFormTarget target) {

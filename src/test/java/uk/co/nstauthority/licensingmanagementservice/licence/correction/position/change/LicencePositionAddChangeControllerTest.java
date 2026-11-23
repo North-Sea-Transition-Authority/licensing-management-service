@@ -35,7 +35,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceC
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionRouteUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.explorationoperator.LicencePositionExplorationOperatorChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.form.ChangeFormController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.LicencePositionPartialSurrenderController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.PartialSurrenderCorrectionService;
@@ -271,8 +270,14 @@ class LicencePositionAddChangeControllerTest extends AbstractControllerTest {
             .with(user(regulatorUser)).with(csrf())
             .flashAttr("form", form))
         .andExpect(status().is3xxRedirection())
-        .andExpect(redirectedUrl(ReverseRouter.route(on(LicencePositionExplorationOperatorChangeController.class)
-            .renderForExecutedPosition(correction, licencePosition))));
+        .andExpect(redirectedUrl(ReverseRouter.route(on(ChangeFormController.class).addToExecutedPosition(
+            correction,
+            licencePosition,
+            AddPositionChangeType.EXPLORATION_OPERATOR,
+            null,
+            null,
+            null
+        ))));
   }
 
   @Test
@@ -536,8 +541,14 @@ class LicencePositionAddChangeControllerTest extends AbstractControllerTest {
             .with(user(regulatorUser)).with(csrf())
             .flashAttr("form", form))
         .andExpect(status().is3xxRedirection())
-        .andExpect(redirectedUrl(ReverseRouter.route(on(LicencePositionExplorationOperatorChangeController.class)
-            .renderForAddedPosition(correction, positionCorrection))));
+        .andExpect(redirectedUrl(ReverseRouter.route(on(ChangeFormController.class).addToAddedPosition(
+            correction,
+            positionCorrection,
+            AddPositionChangeType.EXPLORATION_OPERATOR,
+            null,
+            null,
+            null
+        ))));
   }
 
   @Test

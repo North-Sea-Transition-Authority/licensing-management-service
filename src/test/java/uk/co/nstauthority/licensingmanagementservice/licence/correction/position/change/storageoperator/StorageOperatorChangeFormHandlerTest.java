@@ -54,9 +54,6 @@ class StorageOperatorChangeFormHandlerTest {
   @Mock
   private OrganisationUnitQueryService organisationUnitQueryService;
 
-  @Mock
-  private StorageOperatorChangeService storageOperatorChangeService;
-
   @InjectMocks
   private StorageOperatorChangeFormHandler storageOperatorChangeFormHandler;
 
@@ -105,7 +102,12 @@ class StorageOperatorChangeFormHandlerTest {
         new StorageOperatorChangeForm("789")
     );
 
-    verify(storageOperatorChangeService)
-        .correctExistingStorageOperatorChange(POSITION, CORRECTION, 789, LIVE_CHANGE.getId().toString());
+    verify(organisationChangeService).correctOrganisationChange(
+        POSITION,
+        CORRECTION,
+        StorageOperatorOperation.class,
+        LIVE_CHANGE.getId().toString(),
+        LicenceOperation.newStorageOperatorOperation().withOperator(789).build()
+    );
   }
 }

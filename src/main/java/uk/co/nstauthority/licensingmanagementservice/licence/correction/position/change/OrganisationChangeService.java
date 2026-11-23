@@ -102,6 +102,33 @@ public class OrganisationChangeService {
     licencePositionCorrectionService.save(positionCorrection);
   }
 
+  /**
+   * Stages a correction of a live change, so it gives the role to the organisation in {@code operation} instead.
+   */
+  @Transactional
+  public void correctOrganisationChange(
+      LicencePosition licencePosition,
+      LicenceCorrection licenceCorrection,
+      Class<? extends LicenceOperation> operationType,
+      String liveChangeId,
+      LicenceOperation operation
+  ) {
+    var positionCorrection = licencePositionCorrectionService
+        .getOrBuildUpdatePositionCorrection(licenceCorrection, licencePosition);
+
+    var payload = positionCorrection.getPayload();
+
+    var changes = LicencePositionChangeOperationUtil.upsertUpdateChange(
+        payload.changes(),
+        operationType,
+        liveChangeId,
+        operation
+    );
+
+    positionCorrection.setPayload(LicencePositionPayload.withChanges(payload, changes));
+    licencePositionCorrectionService.save(positionCorrection);
+  }
+
   public <T extends OrganisationChangeForm> T populateExistingOrganisationForm(
       Integer currentId,
       LicenceCorrection correction,

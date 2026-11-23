@@ -6,7 +6,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.OrganisationChangeFormHandler;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.OrganisationChangeFormValidator;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.OrganisationChangeService;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.form.ChangeFormTarget;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.StorageOperatorOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.VisibleLicenceOperation;
@@ -15,16 +14,12 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.uti
 @Component
 class StorageOperatorChangeFormHandler extends OrganisationChangeFormHandler<StorageOperatorChangeForm> {
 
-  private final StorageOperatorChangeService storageOperatorChangeService;
-
   StorageOperatorChangeFormHandler(
       OrganisationChangeService organisationChangeService,
       OrganisationChangeFormValidator organisationChangeFormValidator,
-      OrganisationUnitQueryService organisationUnitQueryService,
-      StorageOperatorChangeService storageOperatorChangeService
+      OrganisationUnitQueryService organisationUnitQueryService
   ) {
     super(organisationChangeService, organisationChangeFormValidator, organisationUnitQueryService);
-    this.storageOperatorChangeService = storageOperatorChangeService;
   }
 
   @Override
@@ -55,15 +50,5 @@ class StorageOperatorChangeFormHandler extends OrganisationChangeFormHandler<Sto
   @Override
   protected LicenceOperation operation(Integer organisationId) {
     return LicencePositionStorageOperatorChangeUtil.storageOperatorOperation(organisationId);
-  }
-
-  @Override
-  protected void correctLiveChange(ChangeFormTarget.LiveChange liveChange, Integer organisationId) {
-    storageOperatorChangeService.correctExistingStorageOperatorChange(
-        liveChange.position(),
-        liveChange.correction(),
-        organisationId,
-        liveChange.change().getId().toString()
-    );
   }
 }

@@ -65,9 +65,6 @@ class LicenseeChangeFormHandler implements ChangeFormHandler<LicenseeChangeForm>
     return formPage(LicencePositionLicenseeChangeUtil.populateLicenseeForm(context), context);
   }
 
-  /**
-   * Defaults a {@code null} withdrawing organisation list on {@code form} to empty before validating.
-   */
   @Override
   public Optional<ModelAndView> formPageIfInvalid(
       ChangeFormTarget target,

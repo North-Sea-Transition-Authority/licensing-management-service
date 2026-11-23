@@ -15,6 +15,7 @@ import uk.co.fivium.gisframework.feature.Feature;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderType;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.ExplorationOperatorOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation.SurrenderDetails;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaSurrenderOutcome;
@@ -109,13 +110,14 @@ class TestHarnessService {
     } else if (LicenceType.CARBON_STORAGE.equals(licence.getType())) {
       generateCarbonStorageBeneficialInterestPositionChanges(positions);
       generateStorageOperatorPositionChanges(positions);
+      generateExplorationOperatorPositionChanges(positions);
     }
     generateLicenseePositionChanges(positions);
 
     if (secondaryLicence.getType().isProduction()) {
       generateInitialAdministrator(secondaryLicence);
     } else if (LicenceType.CARBON_STORAGE.equals(secondaryLicence.getType())) {
-      generateInitialStorageOperator(secondaryLicence);
+      generateInitialExplorationOperator(secondaryLicence);
     }
 
     var seededFeatures = licencePositionFeatureTestHarnessService.createAndLinkFeatures(licence);
@@ -419,15 +421,34 @@ class TestHarnessService {
         .build();
   }
 
-  private void generateStorageOperatorPositionChanges(List<LicencePosition> positions) {
-    createStorageOperatorChange(positions.getFirst(), SHELL_PLC_ID);
-    createStorageOperatorChange(positions.get(positions.size() - 3), BP_EXPLORATION_ALPHA_LTD_ID);
+  private void generateExplorationOperatorPositionChanges(List<LicencePosition> positions) {
+    createExplorationOperatorChange(positions.getFirst(), PPRS_TRAINING_ORG);
+    createExplorationOperatorChange(positions.get(positions.size() - 6), null);
   }
 
-  private void generateInitialStorageOperator(Licence licence) {
+  private void generateInitialExplorationOperator(Licence licence) {
     var firstPosition = licencePositionService.getExecutedChronologicalLicencePositions(licence).getFirst();
 
-    createStorageOperatorChange(firstPosition, SHELL_PLC_ID);
+    createExplorationOperatorChange(firstPosition, SHELL_PLC_ID);
+  }
+
+  private void createExplorationOperatorChange(LicencePosition licencePosition, Integer operatorId) {
+    ExplorationOperatorOperation explorationOperatorOperation;
+    if (operatorId == null) {
+      explorationOperatorOperation = LicenceOperation.newExplorationOperatorOperation()
+          .build();
+    } else {
+      explorationOperatorOperation = LicenceOperation.newExplorationOperatorOperation()
+          .withOperator(operatorId)
+          .build();
+    }
+
+    createConsentedChange(licencePosition, List.of(explorationOperatorOperation), FIRST_CHANGE_ORDER);
+  }
+
+  private void generateStorageOperatorPositionChanges(List<LicencePosition> positions) {
+    createStorageOperatorChange(positions.get(positions.size() - 3), SHELL_PLC_ID);
+    createStorageOperatorChange(positions.get(positions.size() - 6), BP_EXPLORATION_ALPHA_LTD_ID);
   }
 
   private void createStorageOperatorChange(LicencePosition licencePosition, int operatorId) {

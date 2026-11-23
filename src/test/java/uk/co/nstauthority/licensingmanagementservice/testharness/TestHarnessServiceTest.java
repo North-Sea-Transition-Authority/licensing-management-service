@@ -33,6 +33,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderType;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.AdministratorOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.ExplorationOperatorOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenseeOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
@@ -278,7 +279,7 @@ class TestHarnessServiceTest {
   void generateLicencePositions_createsFeaturesOnBothLicences() {
     var licence = carbonStorage(1);
     var secondaryLicence = carbonStorage(2);
-    givenPositions(licence, 5);
+    givenPositions(licence, 10);
     givenPositions(secondaryLicence, 1);
     givenNoSeededFeatures(licence);
     givenNoSeededFeatures(secondaryLicence);
@@ -587,7 +588,7 @@ class TestHarnessServiceTest {
   void generateLicencePositions_whenNoBlockHasSubareas_thenNoSubareaBeneficialInterestIsSet() {
     var licence = carbonStorage(1);
     var secondaryLicence = carbonStorage(2);
-    givenPositions(licence, 5);
+    givenPositions(licence, 10);
     givenPositions(secondaryLicence, 1);
     var block = FeatureTestUtil.blockFeature(UUID.randomUUID(), "30", 7);
     when(licencePositionFeatureTestHarnessService.createAndLinkFeatures(licence))
@@ -622,7 +623,7 @@ class TestHarnessServiceTest {
   }
 
   @Test
-  void generateLicencePositions_whenSecondaryIsCarbonStorage_addsInitialStorageOperatorOnFirstPosition() {
+  void generateLicencePositions_whenSecondaryIsCarbonStorage_addsInitialExplorationOperatorOnFirstPosition() {
     var licence = gasStorage(1);
     givenPositions(licence, 5);
     var secondaryLicence = carbonStorage(2);
@@ -637,15 +638,15 @@ class TestHarnessServiceTest {
 
     assertThat(positionCaptor.getValue()).isEqualTo(secondaryPositions.getFirst());
     assertThat(operationsCaptor.getValue())
-        .containsExactly(new StorageOperatorOperation(StorageOperatorOperation.STORAGE_OPERATOR_OPERATION_ID, SHELL_PLC_ID));
+        .containsExactly(new ExplorationOperatorOperation(ExplorationOperatorOperation.EXPLORATION_OPERATOR_OPERATION_ID, SHELL_PLC_ID));
   }
 
   @Test
-  void generateLicencePositions_whenPrimaryIsCarbonStorage_addsStorageOperatorOnFirstAndNonFinalPosition() {
+  void generateLicencePositions_whenPrimaryIsCarbonStorage_addsExplorationOperatorOnFirstAndNonFinalPositions() {
     var licence = carbonStorage(1);
     var secondaryLicence = production(2);
     givenPositions(secondaryLicence, 1);
-    var positions = givenPositions(licence, 5);
+    var positions = givenPositions(licence, 10);
     givenNoSeededFeatures(licence);
     givenNoSeededFeatures(secondaryLicence);
 
@@ -653,16 +654,41 @@ class TestHarnessServiceTest {
 
     verify(licencePositionChangeService).createLicencePositionChange(
         positions.getFirst(),
-        List.of(new StorageOperatorOperation(StorageOperatorOperation.STORAGE_OPERATOR_OPERATION_ID, SHELL_PLC_ID)),
+        List.of(new ExplorationOperatorOperation(ExplorationOperatorOperation.EXPLORATION_OPERATOR_OPERATION_ID, PPRS_TRAINING_ORG)),
         1,
         LicencePositionChangeStatus.CONSENTED
     );
     verify(licencePositionChangeService).createLicencePositionChange(
-        positions.get(2),
+        positions.get(positions.size()-6),
+        List.of(new ExplorationOperatorOperation(ExplorationOperatorOperation.EXPLORATION_OPERATOR_OPERATION_ID, null)),
+        1,
+        LicencePositionChangeStatus.CONSENTED
+    );
+  }
+
+  @Test
+  void generateLicencePositions_whenPrimaryIsCarbonStorage_addsStorageOperatorOnNonFinalPositions() {
+    var licence = carbonStorage(1);
+    var secondaryLicence = production(2);
+    givenPositions(secondaryLicence, 1);
+    var positions = givenPositions(licence, 10);
+    givenNoSeededFeatures(licence);
+    givenNoSeededFeatures(secondaryLicence);
+
+    testHarnessService.generateLicencePositions(licence, secondaryLicence);
+
+    verify(licencePositionChangeService).createLicencePositionChange(
+        positions.get(positions.size()-6),
         List.of(new StorageOperatorOperation(
             StorageOperatorOperation.STORAGE_OPERATOR_OPERATION_ID,
             BP_EXPLORATION_ALPHA_LTD_ID
         )),
+        1,
+        LicencePositionChangeStatus.CONSENTED
+    );
+    verify(licencePositionChangeService).createLicencePositionChange(
+        positions.get(positions.size()-3),
+        List.of(new StorageOperatorOperation(StorageOperatorOperation.STORAGE_OPERATOR_OPERATION_ID, SHELL_PLC_ID)),
         1,
         LicencePositionChangeStatus.CONSENTED
     );
@@ -672,7 +698,7 @@ class TestHarnessServiceTest {
   void generateLicencePositions_whenPrimaryIsCarbonStorage_addsSetOnFirstAndTransferOnNonFinalPosition() {
     var licence = carbonStorage(1);
     var secondaryLicence = carbonStorage(2);
-    var positions = givenPositions(licence, 5);
+    var positions = givenPositions(licence, 10);
     givenPositions(secondaryLicence, 1);
     givenNoSeededFeatures(licence);
     givenNoSeededFeatures(secondaryLicence);
@@ -690,7 +716,7 @@ class TestHarnessServiceTest {
         LicencePositionChangeStatus.CONSENTED
     );
     verify(licencePositionChangeService).createLicencePositionChange(
-        positions.get(2),
+        positions.get(positions.size()-3),
         List.of(
             new TransferEquityOperation(SHELL_PLC_ID, BP_EXPLORATION_ALPHA_LTD_ID, BigDecimal.valueOf(10), null),
             new TransferEquityOperation(SHELL_PLC_ID, PPRS_TRAINING_ORG, BigDecimal.valueOf(15), null)
@@ -699,7 +725,7 @@ class TestHarnessServiceTest {
         LicencePositionChangeStatus.CONSENTED
     );
 
-    verify(licencePositionChangeService, times(7)).createLicencePositionChange(
+    verify(licencePositionChangeService, times(9)).createLicencePositionChange(
         positionCaptor.capture(), operationsCaptor.capture(), eq(1), eq(LicencePositionChangeStatus.CONSENTED));
     assertThat(operationsCaptor.getAllValues().stream().flatMap(List::stream))
         .noneMatch(AdministratorOperation.class::isInstance)

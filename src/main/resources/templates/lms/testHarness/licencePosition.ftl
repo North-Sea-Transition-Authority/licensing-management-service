@@ -111,7 +111,7 @@ pageSize=PageSize.TWO_THIRDS_COLUMN
         4 weeks ago
         <ul class="govuk-list govuk-list--bullet">
           <li>Beneficial interests: Shell transfers 10% to BP and 15% to PPRS</li>
-          <li>Storage operator: BP</li>
+          <li>Storage operator: Shell joins, BP leaves</li>
         </ul>
       </li>
       <li>
@@ -129,7 +129,8 @@ pageSize=PageSize.TWO_THIRDS_COLUMN
       <li>
         7 weeks ago
         <ul class="govuk-list govuk-list--bullet">
-          <li>No changes</li>
+          <li>Storage operator: BP joins</li>
+          <li>Exploration operator: PPRS leaves</li>
         </ul>
       </li>
       <li>
@@ -154,7 +155,7 @@ pageSize=PageSize.TWO_THIRDS_COLUMN
         7 weeks ago
         <ul class="govuk-list govuk-list--bullet">
           <li>Beneficial interests: Shell 60%, BP 40%, PPRS 0%</li>
-          <li>Storage operator: Shell</li>
+          <li>Exploration operator: PPRS joins</li>
           <li>Licensees: BP and Flamstone join</li>
           <li>One block is created with no subareas</li>
         </ul>

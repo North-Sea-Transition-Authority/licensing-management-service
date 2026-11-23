@@ -1,7 +1,6 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.operation;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionChangeUtil.NOT_AVAILABLE;
 
 import java.util.Map;
@@ -32,13 +31,6 @@ class ExplorationOperatorOperationTest {
   void displayName() {
     var operation = new ExplorationOperatorOperation(UUID.randomUUID(), 1);
     assertThat(operation.displayName()).isEqualTo("Exploration operator change");
-  }
-
-  @Test
-  void nullOperatorId_assertThrows() {
-    assertThatThrownBy(() -> new ExplorationOperatorOperation(ExplorationOperatorOperation.EXPLORATION_OPERATOR_OPERATION_ID, null))
-        .isInstanceOf(NullPointerException.class)
-        .hasMessageContaining("operatorId must not be null");
   }
 
   @Test
@@ -82,6 +74,18 @@ class ExplorationOperatorOperationTest {
   }
 
   @Test
+  void validate_whenJoiningOperatorIsNull_returnsNull() {
+    var operation = LicenceOperation.newExplorationOperatorOperation().withOperator(null).build();
+
+    var context = PositionValidationContextTestUtil.newBuilder()
+        .withPreviousState(PositionStateTestUtil.newBuilder().withExplorationOperatorId(null).build())
+        .withLicenceType(LicenceType.CARBON_STORAGE)
+        .build();
+
+    assertThat(operation.validate(context)).isNull();
+  }
+
+  @Test
   void organisationUnitIds() {
     var operation = LicenceOperation.newExplorationOperatorOperation().withOperator(100).build();
 
@@ -91,11 +95,28 @@ class ExplorationOperatorOperationTest {
   }
 
   @Test
+  void organisationUnitIds_operatorIdIsNull() {
+    var operation = LicenceOperation.newExplorationOperatorOperation().build();
+
+    var result = operation.organisationUnitIds();
+
+    assertThat(result).isEmpty();
+  }
+
+  @Test
   void applyState() {
     var state = LicencePositionState.EMPTY;
     var expectedState = LicencePositionState.EMPTY.withExplorationOperatorId(2);
     var explorationOperatorOperation = LicenceOperation.newExplorationOperatorOperation().withOperator(2).build();
     assertThat(explorationOperatorOperation.applyState(state)).isEqualTo(expectedState);
+  }
+
+  @Test
+  void applyState_joiningIdIsNull() {
+    var state = LicencePositionState.EMPTY;
+    var explorationOperatorOperation = LicenceOperation.newExplorationOperatorOperation().withOperator(null).build();
+    assertThat(explorationOperatorOperation.applyState(state)).usingRecursiveComparison()
+        .isEqualTo(LicencePositionState.EMPTY);
   }
 
   @Test

@@ -17,16 +17,16 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.vie
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.ExplorationOperatorChangeView;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.change.LicencePositionChangeView;
 
+/** Operation related to exploration operators on a carbon storage licence.
+ *  @param operatorId id of the exploration operator, is null when a storage operator joins the licence
+ *                    for the first time and the exploration operator is removed
+ */
 public record ExplorationOperatorOperation(
     UUID id,
-    Integer operatorId
+    @Nullable Integer operatorId
 ) implements VisibleLicenceOperation {
 
   public static final UUID EXPLORATION_OPERATOR_OPERATION_ID = new UUID(0L, 0L);
-
-  public ExplorationOperatorOperation {
-    Objects.requireNonNull(operatorId, "operatorId must not be null");
-  }
 
   @Override
   public String type() {
@@ -40,6 +40,9 @@ public record ExplorationOperatorOperation(
 
   @Override
   public Set<Integer> organisationUnitIds() {
+    if (operatorId == null) {
+      return Set.of();
+    }
     return Set.of(operatorId);
   }
 
@@ -52,7 +55,7 @@ public record ExplorationOperatorOperation(
 
     var previousOperatorId = positionValidationContext.previousState().explorationOperatorId();
 
-    if (Objects.equals(previousOperatorId, operatorId)) {
+    if (previousOperatorId != null && Objects.equals(previousOperatorId, operatorId)) {
       return PositionValidationError.forOperation(
           positionValidationContext,
           type(),

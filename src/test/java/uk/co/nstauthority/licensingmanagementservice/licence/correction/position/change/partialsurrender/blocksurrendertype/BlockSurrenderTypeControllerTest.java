@@ -31,12 +31,14 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.validation.BindingResult;
 import uk.co.fivium.gisframework.feature.Feature;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.CorrectionHasStatusInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
@@ -106,6 +108,25 @@ class BlockSurrenderTypeControllerTest extends AbstractControllerTest {
         .andExpectAll(
             status().isForbidden(),
             status().reason(NOT_ALLOCATED_REASON));
+  }
+
+  @Test
+  void renderSurrenderTypeForm_whenCorrectionIsNotInProgress() throws Exception {
+    var correction = LicenceCorrectionTestUtil.newBuilder()
+        .withId(CORRECTION_ID)
+        .withStatus(LicenceCorrectionStatus.COMPLETE)
+        .withLicence(LICENCE)
+        .build();
+    when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
+        .thenReturn(Optional.of(correction));
+    when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(correction));
+    mockMvc.perform(get(ReverseRouter.route(on(BlockSurrenderTypeController.class)
+            .renderSurrenderTypeForm(correction, POSITION_CORRECTION, FEATURE_ID)))
+            .with(user(regulatorUser)))
+        .andExpect(status().isForbidden())
+        .andExpect(status().reason(
+            CorrectionHasStatusInterceptorRule.notInExpectedStatusMessage(CORRECTION_ID)
+        ));
   }
 
   @ParameterizedTest
@@ -199,6 +220,26 @@ class BlockSurrenderTypeControllerTest extends AbstractControllerTest {
             model().attribute("backLinkUrl", taskListUrl()));
 
     verify(partialSurrenderCorrectionService, never()).setBlockSurrenderType(any(), any(), any());
+  }
+
+  @Test
+  void submitSurrenderTypeForm_whenCorrectionIsNotInProgress() throws Exception {
+    var correction = LicenceCorrectionTestUtil.newBuilder()
+        .withId(CORRECTION_ID)
+        .withStatus(LicenceCorrectionStatus.COMPLETE)
+        .withLicence(LICENCE)
+        .build();
+    when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
+        .thenReturn(Optional.of(correction));
+    when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(correction));
+    mockMvc.perform(post(ReverseRouter.route(on(BlockSurrenderTypeController.class)
+            .submitSurrenderTypeForm(correction, POSITION_CORRECTION, FEATURE_ID, null, null, null)))
+            .with(user(regulatorUser))
+            .with(csrf()))
+        .andExpect(status().isForbidden())
+        .andExpect(status().reason(
+            CorrectionHasStatusInterceptorRule.notInExpectedStatusMessage(CORRECTION_ID)
+        ));
   }
 
   @Test

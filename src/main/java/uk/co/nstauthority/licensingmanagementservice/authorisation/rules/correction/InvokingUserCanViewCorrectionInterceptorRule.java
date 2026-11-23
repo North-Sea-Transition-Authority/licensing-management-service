@@ -3,6 +3,7 @@ package uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correc
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.lang.annotation.Annotation;
+import java.util.UUID;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
@@ -46,7 +47,7 @@ public class InvokingUserCanViewCorrectionInterceptorRule implements AccessInter
     if (correctionOptional.isEmpty()) {
       return SecurityRuleResult.checkFailedWithStatusAndMessage(
           HttpStatus.FORBIDDEN,
-          "Licence correction %s is not assigned to wuaId %s".formatted(correctionId, user.wuaId())
+          notAssignedMessage(correctionId, user.wuaId())
       );
     }
     var correction = correctionOptional.get();
@@ -58,5 +59,9 @@ public class InvokingUserCanViewCorrectionInterceptorRule implements AccessInter
     }
 
     return SecurityRuleResult.continueAsNormal();
+  }
+
+  public static String notAssignedMessage(UUID correctionId, Object wuaId) {
+    return "Licence correction %s is not assigned to wuaId %s".formatted(correctionId, wuaId);
   }
 }

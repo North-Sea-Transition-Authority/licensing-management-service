@@ -26,11 +26,14 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.validation.BindingResult;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.CorrectionHasStatusInterceptorRule;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanViewCorrectionInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
@@ -63,6 +66,25 @@ class AddLicencePositionCorrectionControllerTest extends AbstractControllerTest 
   }
 
   @Test
+  void renderAddLicencePositionCorrection_whenCorrectionIsNotInProgress() throws Exception {
+    var correction = LicenceCorrectionTestUtil.newBuilder()
+        .withId(CORRECTION_ID)
+        .withStatus(LicenceCorrectionStatus.COMPLETE)
+        .withLicence(LICENCE)
+        .build();
+    when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
+        .thenReturn(Optional.of(correction));
+    when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(correction));
+    mockMvc.perform(get(ReverseRouter.route(on(AddLicencePositionCorrectionController.class)
+            .renderAddLicencePositionCorrection(correction)))
+            .with(user(regulatorUser)))
+        .andExpect(status().isForbidden())
+        .andExpect(status().reason(
+            CorrectionHasStatusInterceptorRule.notInExpectedStatusMessage(CORRECTION_ID)
+        ));
+  }
+
+  @Test
   void renderAddLicencePositionCorrection_whenAllocatedToUser() throws Exception {
     givenCorrectionAllocatedToUser();
 
@@ -85,7 +107,10 @@ class AddLicencePositionCorrectionControllerTest extends AbstractControllerTest 
     mockMvc.perform(get(ReverseRouter.route(on(AddLicencePositionCorrectionController.class)
             .renderAddLicencePositionCorrection(CORRECTION)))
             .with(user(regulatorUser)))
-        .andExpect(status().isForbidden());
+        .andExpect(status().isForbidden())
+        .andExpect(status().reason(
+            InvokingUserCanViewCorrectionInterceptorRule.notAssignedMessage(CORRECTION_ID, regulatorUser.wuaId()))
+        );
   }
 
   @Test
@@ -94,6 +119,26 @@ class AddLicencePositionCorrectionControllerTest extends AbstractControllerTest 
             .addLicencePositionCorrection(CORRECTION, null, null, null)))
             .with(csrf()))
         .andExpect(redirectionToLoginUrl());
+  }
+
+  @Test
+  void addLicencePositionCorrection_whenCorrectionIsNotInProgress() throws Exception {
+    var correction = LicenceCorrectionTestUtil.newBuilder()
+        .withId(CORRECTION_ID)
+        .withStatus(LicenceCorrectionStatus.COMPLETE)
+        .withLicence(LICENCE)
+        .build();
+    when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
+        .thenReturn(Optional.of(correction));
+    when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(correction));
+    mockMvc.perform(post(ReverseRouter.route(on(AddLicencePositionCorrectionController.class)
+            .addLicencePositionCorrection(correction, null, null, null)))
+            .with(user(regulatorUser))
+            .with(csrf()))
+        .andExpect(status().isForbidden())
+        .andExpect(status().reason(
+            CorrectionHasStatusInterceptorRule.notInExpectedStatusMessage(CORRECTION_ID)
+        ));
   }
 
   @Test
@@ -164,7 +209,10 @@ class AddLicencePositionCorrectionControllerTest extends AbstractControllerTest 
             .addLicencePositionCorrection(CORRECTION, null, null, null)))
             .with(user(regulatorUser))
             .with(csrf()))
-        .andExpect(status().isForbidden());
+        .andExpect(status().isForbidden())
+        .andExpect(status().reason(
+            InvokingUserCanViewCorrectionInterceptorRule.notAssignedMessage(CORRECTION_ID, regulatorUser.wuaId()))
+        );
 
     verifyNoInteractions(addLicencePositionCorrectionValidator);
     verifyNoInteractions(licencePositionCorrectionService);

@@ -27,7 +27,6 @@ import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 @Controller
 @RequestMapping("/licence-corrections/{correctionId}/review")
 @InvokingUserCanViewCorrection
-@CorrectionHasStatus(LicenceCorrectionStatus.IN_PROGRESS)
 public class ReviewCorrectionController {
 
   private static final String POSITIONS = "positions";
@@ -50,7 +49,8 @@ public class ReviewCorrectionController {
       LicencePositionValidationService licencePositionValidationService,
       CorrectionApplyService correctionApplyService,
       TabbedLicencePageService tabbedLicencePageService,
-      LicenceStatusService licenceStatusService) {
+      LicenceStatusService licenceStatusService
+  ) {
     this.correctionDetailsViewService = correctionDetailsViewService;
     this.licenceService = licenceService;
     this.correctedTimelineService = correctedTimelineService;
@@ -86,6 +86,7 @@ public class ReviewCorrectionController {
   }
 
   @PostMapping
+  @CorrectionHasStatus(LicenceCorrectionStatus.IN_PROGRESS)
   public ModelAndView processApplyCorrection(
       LicenceCorrection licenceCorrection,
       RedirectAttributes redirectAttributes,

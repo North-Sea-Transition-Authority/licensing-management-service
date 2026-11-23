@@ -30,6 +30,8 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.validation.BindingResult;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.CorrectionHasStatusInterceptorRule;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanViewCorrectionInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitRestController;
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
@@ -39,6 +41,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
@@ -114,7 +117,10 @@ class LicencePositionExplorationOperatorChangeControllerTest extends AbstractCon
     mockMvc.perform(get(ReverseRouter.route(on(LicencePositionExplorationOperatorChangeController.class)
             .renderForExecutedPosition(CORRECTION, POSITION)))
             .with(user(regulatorUser)))
-        .andExpect(status().isForbidden());
+        .andExpect(status().isForbidden())
+        .andExpect(status().reason(
+            InvokingUserCanViewCorrectionInterceptorRule.notAssignedMessage(CORRECTION_ID, regulatorUser.wuaId()))
+        );
   }
 
   @ParameterizedTest
@@ -136,6 +142,25 @@ class LicencePositionExplorationOperatorChangeControllerTest extends AbstractCon
   }
 
   @Test
+  void renderForExecutedPosition_whenCorrectionIsNotInProgress() throws Exception {
+    var correction = LicenceCorrectionTestUtil.newBuilder()
+        .withId(CORRECTION_ID)
+        .withStatus(LicenceCorrectionStatus.COMPLETE)
+        .withLicence(LICENCE)
+        .build();
+    when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
+        .thenReturn(Optional.of(correction));
+    when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(correction));
+    mockMvc.perform(get(ReverseRouter.route(on(LicencePositionExplorationOperatorChangeController.class)
+            .renderForExecutedPosition(correction, POSITION)))
+            .with(user(regulatorUser)))
+        .andExpect(status().isForbidden())
+        .andExpect(status().reason(
+            CorrectionHasStatusInterceptorRule.notInExpectedStatusMessage(CORRECTION_ID)
+        ));
+  }
+
+  @Test
   void submitForExecutedPosition_whenNotLoggedIn() throws Exception {
     mockMvc.perform(post(ReverseRouter.route(on(LicencePositionExplorationOperatorChangeController.class)
             .submitForExecutedPosition(CORRECTION, POSITION, null, null, null)))
@@ -151,7 +176,10 @@ class LicencePositionExplorationOperatorChangeControllerTest extends AbstractCon
             .submitForExecutedPosition(CORRECTION, POSITION, null, null, null)))
             .with(user(regulatorUser))
             .with(csrf()))
-        .andExpect(status().isForbidden());
+        .andExpect(status().isForbidden())
+        .andExpect(status().reason(
+            InvokingUserCanViewCorrectionInterceptorRule.notAssignedMessage(CORRECTION_ID, regulatorUser.wuaId()))
+        );
   }
 
   @ParameterizedTest
@@ -174,6 +202,26 @@ class LicencePositionExplorationOperatorChangeControllerTest extends AbstractCon
   }
 
   @Test
+  void submitForExecutedPosition_whenCorrectionIsNotInProgress() throws Exception {
+    var correction = LicenceCorrectionTestUtil.newBuilder()
+        .withId(CORRECTION_ID)
+        .withStatus(LicenceCorrectionStatus.COMPLETE)
+        .withLicence(LICENCE)
+        .build();
+    when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
+        .thenReturn(Optional.of(correction));
+    when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(correction));
+    mockMvc.perform(post(ReverseRouter.route(on(LicencePositionExplorationOperatorChangeController.class)
+            .submitForExecutedPosition(correction, POSITION, null, null, null)))
+            .with(user(regulatorUser))
+            .with(csrf()))
+        .andExpect(status().isForbidden())
+        .andExpect(status().reason(
+            CorrectionHasStatusInterceptorRule.notInExpectedStatusMessage(CORRECTION_ID)
+        ));
+  }
+
+  @Test
   void renderForAddedPosition_whenNotLoggedIn() throws Exception {
     mockMvc.perform(get(ReverseRouter.route(on(LicencePositionExplorationOperatorChangeController.class)
             .renderForAddedPosition(CORRECTION, POSITION_CORRECTION))))
@@ -187,7 +235,10 @@ class LicencePositionExplorationOperatorChangeControllerTest extends AbstractCon
     mockMvc.perform(get(ReverseRouter.route(on(LicencePositionExplorationOperatorChangeController.class)
             .renderForAddedPosition(CORRECTION, POSITION_CORRECTION)))
             .with(user(regulatorUser)))
-        .andExpect(status().isForbidden());
+        .andExpect(status().isForbidden())
+        .andExpect(status().reason(
+            InvokingUserCanViewCorrectionInterceptorRule.notAssignedMessage(CORRECTION_ID, regulatorUser.wuaId()))
+        );
   }
 
   @ParameterizedTest
@@ -225,7 +276,10 @@ class LicencePositionExplorationOperatorChangeControllerTest extends AbstractCon
             .renderForAddedPosition(CORRECTION, POSITION_CORRECTION)))
             .with(user(regulatorUser))
             .with(csrf()))
-        .andExpect(status().isForbidden());
+        .andExpect(status().isForbidden())
+        .andExpect(status().reason(
+            InvokingUserCanViewCorrectionInterceptorRule.notAssignedMessage(CORRECTION_ID, regulatorUser.wuaId()))
+        );
   }
 
   @ParameterizedTest

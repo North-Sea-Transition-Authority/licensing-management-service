@@ -17,6 +17,7 @@ import uk.co.fivium.gisframework.command.CommandJourneyService;
 import uk.co.fivium.gisframework.feature.CoordinateSystemUtils;
 import uk.co.fivium.gisframework.feature.Feature;
 import uk.co.fivium.gisframework.relationship.FeatureRelationshipService;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.CorrectionHasStatus;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.CorrectionLicenceIsType;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanViewCorrection;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.LicencePositionCorrectionBelongsToCorrection;
@@ -25,6 +26,7 @@ import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.Noti
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionRouteUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
@@ -44,6 +46,7 @@ import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 )
 @InvokingUserCanViewCorrection
 @LicencePositionCorrectionBelongsToCorrection
+@CorrectionHasStatus(LicenceCorrectionStatus.IN_PROGRESS)
 @CorrectionLicenceIsType({LicenceType.CARBON_STORAGE, LicenceType.SEAWARD_PRODUCTION, LicenceType.LANDWARD_PRODUCTION})
 public class PartialSurrenderDefineAreaController {
 

@@ -29,6 +29,8 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.CorrectionHasStatusInterceptorRule;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanViewCorrectionInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.fds.button.Button;
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
@@ -36,6 +38,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionChangeType;
@@ -94,13 +97,35 @@ class RemovePartialSurrenderChangeControllerTest extends AbstractControllerTest 
   }
 
   @Test
+  void renderRemoveExecutedPartialSurrender_whenCorrectionIsNotInProgress() throws Exception {
+    var correction = LicenceCorrectionTestUtil.newBuilder()
+        .withId(CORRECTION_ID)
+        .withStatus(LicenceCorrectionStatus.COMPLETE)
+        .withLicence(LICENCE)
+        .build();
+    when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
+        .thenReturn(Optional.of(correction));
+    when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(correction));
+    mockMvc.perform(get(ReverseRouter.route(on(RemovePartialSurrenderChangeController.class)
+            .renderRemoveExecutedPartialSurrender(correction, POSITION, CHANGE)))
+            .with(user(regulatorUser)))
+        .andExpect(status().isForbidden())
+        .andExpect(status().reason(
+            CorrectionHasStatusInterceptorRule.notInExpectedStatusMessage(CORRECTION_ID)
+        ));
+  }
+
+  @Test
   void renderRemoveExecutedPartialSurrender_whenNotAllocatedToUser() throws Exception {
     givenCorrectionNotAllocatedToUser();
 
     mockMvc.perform(get(ReverseRouter.route(on(RemovePartialSurrenderChangeController.class)
             .renderRemoveExecutedPartialSurrender(CORRECTION, POSITION, CHANGE)))
             .with(user(regulatorUser)))
-        .andExpect(status().isForbidden());
+        .andExpect(status().isForbidden())
+        .andExpect(status().reason(
+            InvokingUserCanViewCorrectionInterceptorRule.notAssignedMessage(CORRECTION_ID, regulatorUser.wuaId()))
+        );
   }
 
   @ParameterizedTest
@@ -203,6 +228,26 @@ class RemovePartialSurrenderChangeControllerTest extends AbstractControllerTest 
   }
 
   @Test
+  void removePartialSurrender_whenCorrectionIsNotInProgress() throws Exception {
+    var correction = LicenceCorrectionTestUtil.newBuilder()
+        .withId(CORRECTION_ID)
+        .withStatus(LicenceCorrectionStatus.COMPLETE)
+        .withLicence(LICENCE)
+        .build();
+    when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
+        .thenReturn(Optional.of(correction));
+    when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(correction));
+    mockMvc.perform(post(ReverseRouter.route(on(RemovePartialSurrenderChangeController.class)
+            .removePartialSurrender(correction, POSITION, CHANGE, null)))
+            .with(user(regulatorUser))
+            .with(csrf()))
+        .andExpect(status().isForbidden())
+        .andExpect(status().reason(
+            CorrectionHasStatusInterceptorRule.notInExpectedStatusMessage(CORRECTION_ID)
+        ));
+  }
+
+  @Test
   void removePartialSurrender_whenNotAllocatedToUser() throws Exception {
     givenCorrectionNotAllocatedToUser();
 
@@ -210,7 +255,10 @@ class RemovePartialSurrenderChangeControllerTest extends AbstractControllerTest 
             .removePartialSurrender(CORRECTION, POSITION, CHANGE, null)))
             .with(user(regulatorUser))
             .with(csrf()))
-        .andExpect(status().isForbidden());
+        .andExpect(status().isForbidden())
+        .andExpect(status().reason(
+            InvokingUserCanViewCorrectionInterceptorRule.notAssignedMessage(CORRECTION_ID, regulatorUser.wuaId()))
+        );
 
     verifyNoInteractions(partialSurrenderCorrectionService);
   }
@@ -252,7 +300,10 @@ class RemovePartialSurrenderChangeControllerTest extends AbstractControllerTest 
     mockMvc.perform(get(ReverseRouter.route(on(RemovePartialSurrenderChangeController.class)
             .renderUndoPartialSurrender(CORRECTION, CHANGE_ID)))
             .with(user(regulatorUser)))
-        .andExpect(status().isForbidden());
+        .andExpect(status().isForbidden())
+        .andExpect(status().reason(
+            InvokingUserCanViewCorrectionInterceptorRule.notAssignedMessage(CORRECTION_ID, regulatorUser.wuaId()))
+        );
   }
 
   @Test
@@ -363,7 +414,10 @@ class RemovePartialSurrenderChangeControllerTest extends AbstractControllerTest 
             .undoPartialSurrender(CORRECTION, CHANGE_ID, null)))
             .with(user(regulatorUser))
             .with(csrf()))
-        .andExpect(status().isForbidden());
+        .andExpect(status().isForbidden())
+        .andExpect(status().reason(
+            InvokingUserCanViewCorrectionInterceptorRule.notAssignedMessage(CORRECTION_ID, regulatorUser.wuaId()))
+        );
 
     verifyNoInteractions(partialSurrenderCorrectionService);
   }

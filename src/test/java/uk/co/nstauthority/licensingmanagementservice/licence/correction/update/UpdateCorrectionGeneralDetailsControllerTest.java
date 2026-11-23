@@ -29,6 +29,8 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.validation.BindingResult;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.CorrectionHasStatusInterceptorRule;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanViewCorrectionInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
@@ -78,7 +80,10 @@ class UpdateCorrectionGeneralDetailsControllerTest extends AbstractControllerTes
     mockMvc.perform(get(ReverseRouter.route(on(UpdateCorrectionGeneralDetailsController.class)
             .renderUpdateGeneralDetails(correction)))
             .with(user(regulatorUser)))
-        .andExpect(status().isForbidden());
+        .andExpect(status().isForbidden())
+        .andExpect(status().reason(
+            InvokingUserCanViewCorrectionInterceptorRule.notAssignedMessage(CORRECTION_ID, regulatorUser.wuaId()))
+        );
   }
 
   @Test
@@ -95,7 +100,10 @@ class UpdateCorrectionGeneralDetailsControllerTest extends AbstractControllerTes
     mockMvc.perform(get(ReverseRouter.route(on(UpdateCorrectionGeneralDetailsController.class)
             .renderUpdateGeneralDetails(correction)))
             .with(user(regulatorUser)))
-        .andExpect(status().isForbidden());
+        .andExpect(status().isForbidden())
+        .andExpect(status().reason(
+            CorrectionHasStatusInterceptorRule.notInExpectedStatusMessage(CORRECTION_ID)
+        ));
   }
 
   @Test
@@ -147,7 +155,10 @@ class UpdateCorrectionGeneralDetailsControllerTest extends AbstractControllerTes
             .updateGeneralDetails(correction, null, null, null, null)))
             .with(user(regulatorUser))
             .with(csrf()))
-        .andExpect(status().isForbidden());
+        .andExpect(status().isForbidden())
+        .andExpect(status().reason(
+            InvokingUserCanViewCorrectionInterceptorRule.notAssignedMessage(CORRECTION_ID, regulatorUser.wuaId()))
+        );
 
     verifyNoInteractions(updateCorrectionGeneralDetailsFormValidator);
     verify(updateCorrectionGeneralDetailsService, never())

@@ -63,7 +63,11 @@ public class CorrectionLicenceIsTypeRule implements AccessInterceptorRule {
 
     return SecurityRuleResult.checkFailedWithStatusAndMessage(
         HttpStatus.FORBIDDEN,
-        "Licence %s is not of an expected type".formatted(licence.getId())
+        notOfExpectedTypeMessage(licence.getId())
     );
+  }
+
+  public static String notOfExpectedTypeMessage(Integer licenceId) {
+    return "Licence %s is not of an expected type".formatted(licenceId);
   }
 }

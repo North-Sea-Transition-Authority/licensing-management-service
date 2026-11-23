@@ -24,11 +24,13 @@ import org.junit.jupiter.api.Test;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanViewCorrectionInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
@@ -66,6 +68,22 @@ class RemoveExecutedLicencePositionCorrectionControllerTest extends AbstractCont
   }
 
   @Test
+  void renderRemovePosition_whenCorrectionIsNotInProgress() throws Exception {
+    var correction = LicenceCorrectionTestUtil.newBuilder()
+        .withId(CORRECTION_ID)
+        .withStatus(LicenceCorrectionStatus.COMPLETE)
+        .withLicence(LICENCE)
+        .build();
+    when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
+        .thenReturn(Optional.of(correction));
+    when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(correction));
+    mockMvc.perform(get(ReverseRouter.route(on(RemoveExecutedLicencePositionCorrectionController.class)
+            .renderRemovePosition(correction, POSITION)))
+            .with(user(regulatorUser)))
+        .andExpect(status().isForbidden());
+  }
+
+  @Test
   void renderRemovePosition_whenEligible() throws Exception {
     var correction = givenCorrectionAllocatedToUser();
     givenPositionRemovable(correction, true);
@@ -90,7 +108,10 @@ class RemoveExecutedLicencePositionCorrectionControllerTest extends AbstractCont
     mockMvc.perform(get(ReverseRouter.route(on(RemoveExecutedLicencePositionCorrectionController.class)
             .renderRemovePosition(CORRECTION, POSITION)))
             .with(user(regulatorUser)))
-        .andExpect(status().isForbidden());
+        .andExpect(status().isForbidden())
+        .andExpect(status().reason(
+            InvokingUserCanViewCorrectionInterceptorRule.notAssignedMessage(CORRECTION_ID, regulatorUser.wuaId()))
+        );
   }
 
   @Test
@@ -110,6 +131,23 @@ class RemoveExecutedLicencePositionCorrectionControllerTest extends AbstractCont
             .removePosition(CORRECTION, POSITION, null)))
             .with(csrf()))
         .andExpect(redirectionToLoginUrl());
+  }
+
+  @Test
+  void removePosition_whenCorrectionIsNotInProgress() throws Exception {
+    var correction = LicenceCorrectionTestUtil.newBuilder()
+        .withId(CORRECTION_ID)
+        .withStatus(LicenceCorrectionStatus.COMPLETE)
+        .withLicence(LICENCE)
+        .build();
+    when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
+        .thenReturn(Optional.of(correction));
+    when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(correction));
+    mockMvc.perform(post(ReverseRouter.route(on(RemoveExecutedLicencePositionCorrectionController.class)
+            .removePosition(correction, POSITION, null)))
+            .with(user(regulatorUser))
+            .with(csrf()))
+        .andExpect(status().isForbidden());
   }
 
   @Test
@@ -142,7 +180,10 @@ class RemoveExecutedLicencePositionCorrectionControllerTest extends AbstractCont
             .removePosition(CORRECTION, POSITION, null)))
             .with(user(regulatorUser))
             .with(csrf()))
-        .andExpect(status().isForbidden());
+        .andExpect(status().isForbidden())
+        .andExpect(status().reason(
+            InvokingUserCanViewCorrectionInterceptorRule.notAssignedMessage(CORRECTION_ID, regulatorUser.wuaId()))
+        );
 
     verify(licencePositionCorrectionService, never()).removeExecutedPosition(any(), any());
   }

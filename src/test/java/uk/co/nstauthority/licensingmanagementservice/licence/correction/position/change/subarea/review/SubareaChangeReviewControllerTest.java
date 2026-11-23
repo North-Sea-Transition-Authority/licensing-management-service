@@ -27,6 +27,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.co.fivium.gisframework.feature.Feature;
 import uk.co.fivium.gisframework.feature.FeatureService;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.CorrectionHasStatusInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.fds.error.ErrorSummaryItem;
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
 import uk.co.nstauthority.licensingmanagementservice.fds.tag.Tag;
@@ -164,6 +165,25 @@ class SubareaChangeReviewControllerTest extends AbstractControllerTest {
   }
 
   @Test
+  void renderStagedReview_whenCorrectionIsNotInProgress_thenForbidden() throws Exception {
+    var correction = LicenceCorrectionTestUtil.newBuilder()
+        .withId(CORRECTION_ID)
+        .withStatus(LicenceCorrectionStatus.COMPLETE)
+        .withLicence(LICENCE)
+        .build();
+    when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
+        .thenReturn(Optional.of(correction));
+    when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(correction));
+    mockMvc.perform(get(ReverseRouter.route(on(SubareaChangeReviewController.class)
+            .renderStagedReview(correction, POSITION_CORRECTION, BLOCK_FEATURE_ID, null)))
+            .with(user(regulatorUser)))
+        .andExpect(status().isForbidden())
+        .andExpect(status().reason(
+            CorrectionHasStatusInterceptorRule.notInExpectedStatusMessage(CORRECTION_ID)
+        ));
+  }
+
+  @Test
   void renderStagedReview_whenCommandJourneyStarted_thenCanSubmit() throws Exception {
     givenCorrectionAllocatedToUser(CORRECTION);
     givenStagedSubareaChange(COMMAND_JOURNEY_ID);
@@ -245,6 +265,26 @@ class SubareaChangeReviewControllerTest extends AbstractControllerTest {
             "You must make a change to the subareas before submitting"
         )));
     verify(subareaChangeService, never()).completeSubareaChange(POSITION_CORRECTION, BLOCK_FEATURE_ID);
+  }
+
+  @Test
+  void submit_whenCorrectionIsNotInProgress_thenForbidden() throws Exception {
+    var correction = LicenceCorrectionTestUtil.newBuilder()
+        .withId(CORRECTION_ID)
+        .withStatus(LicenceCorrectionStatus.COMPLETE)
+        .withLicence(LICENCE)
+        .build();
+    when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
+        .thenReturn(Optional.of(correction));
+    when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(correction));
+    mockMvc.perform(post(ReverseRouter.route(on(SubareaChangeReviewController.class)
+            .submit(correction, POSITION_CORRECTION, BLOCK_FEATURE_ID, null, null)))
+            .with(user(regulatorUser))
+            .with(csrf()))
+        .andExpect(status().isForbidden())
+        .andExpect(status().reason(
+            CorrectionHasStatusInterceptorRule.notInExpectedStatusMessage(CORRECTION_ID)
+        ));
   }
 
   @Test

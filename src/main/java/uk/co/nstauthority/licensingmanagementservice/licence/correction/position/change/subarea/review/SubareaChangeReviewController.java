@@ -41,6 +41,7 @@ import uk.co.nstauthority.licensingmanagementservice.summary.SummarySection;
 @Controller
 @RequestMapping("/licence-corrections/{correctionId}")
 @InvokingUserCanViewCorrection
+@CorrectionHasStatus(LicenceCorrectionStatus.IN_PROGRESS)
 @CorrectionLicenceIsType({LicenceType.SEAWARD_PRODUCTION, LicenceType.LANDWARD_PRODUCTION})
 public class SubareaChangeReviewController {
 
@@ -84,7 +85,6 @@ public class SubareaChangeReviewController {
   }
 
   @PostMapping(STAGED_REVIEW_PATH)
-  @CorrectionHasStatus(LicenceCorrectionStatus.IN_PROGRESS)
   @LicencePositionCorrectionBelongsToCorrection
   ModelAndView submit(
       LicenceCorrection correction,
@@ -112,7 +112,6 @@ public class SubareaChangeReviewController {
   }
 
   @PostMapping(STAGED_REVIEW_PATH + CHANGE_SUBAREAS_PATH)
-  @CorrectionHasStatus(LicenceCorrectionStatus.IN_PROGRESS)
   @LicencePositionCorrectionBelongsToCorrection
   ModelAndView changeStagedSubareas(
       LicenceCorrection correction,
@@ -126,7 +125,6 @@ public class SubareaChangeReviewController {
   }
 
   @GetMapping(LIVE_REVIEW_PATH)
-  @CorrectionHasStatus(LicenceCorrectionStatus.IN_PROGRESS)
   @LicencePositionIsNotRemovedInCorrection
   @LicencePositionChangeBelongsToPosition
   @LicencePositionChangeIsOfType(SubareaOperation.class)
@@ -161,7 +159,6 @@ public class SubareaChangeReviewController {
   }
 
   @PostMapping(LIVE_REVIEW_PATH + CHANGE_SUBAREAS_PATH)
-  @CorrectionHasStatus(LicenceCorrectionStatus.IN_PROGRESS)
   @LicencePositionIsNotRemovedInCorrection
   @LicencePositionChangeBelongsToPosition
   @LicencePositionChangeIsOfType(SubareaOperation.class)

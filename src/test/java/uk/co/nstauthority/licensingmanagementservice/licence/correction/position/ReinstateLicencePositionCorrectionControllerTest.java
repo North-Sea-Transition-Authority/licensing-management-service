@@ -29,6 +29,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
@@ -63,6 +64,22 @@ class ReinstateLicencePositionCorrectionControllerTest extends AbstractControlle
     mockMvc.perform(get(ReverseRouter.route(on(ReinstateLicencePositionCorrectionController.class)
             .renderReinstatePosition(CORRECTION, POSITION))))
         .andExpect(redirectionToLoginUrl());
+  }
+
+  @Test
+  void renderReinstatePosition_whenCorrectionIsNotInProgress() throws Exception {
+    var correction = LicenceCorrectionTestUtil.newBuilder()
+        .withId(CORRECTION_ID)
+        .withStatus(LicenceCorrectionStatus.COMPLETE)
+        .withLicence(LICENCE)
+        .build();
+    when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
+        .thenReturn(Optional.of(correction));
+    when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(correction));
+    mockMvc.perform(get(ReverseRouter.route(on(ReinstateLicencePositionCorrectionController.class)
+            .renderReinstatePosition(correction, POSITION)))
+            .with(user(regulatorUser)))
+        .andExpect(status().isForbidden());
   }
 
   @Test
@@ -118,6 +135,23 @@ class ReinstateLicencePositionCorrectionControllerTest extends AbstractControlle
             .reinstatePosition(CORRECTION, POSITION, null)))
             .with(csrf()))
         .andExpect(redirectionToLoginUrl());
+  }
+
+  @Test
+  void reinstatePosition_whenCorrectionIsNotInProgress() throws Exception {
+    var correction = LicenceCorrectionTestUtil.newBuilder()
+        .withId(CORRECTION_ID)
+        .withStatus(LicenceCorrectionStatus.COMPLETE)
+        .withLicence(LICENCE)
+        .build();
+    when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
+        .thenReturn(Optional.of(correction));
+    when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(correction));
+    mockMvc.perform(post(ReverseRouter.route(on(ReinstateLicencePositionCorrectionController.class)
+            .reinstatePosition(correction, POSITION, null)))
+            .with(user(regulatorUser))
+            .with(csrf()))
+        .andExpect(status().isForbidden());
   }
 
   @Test

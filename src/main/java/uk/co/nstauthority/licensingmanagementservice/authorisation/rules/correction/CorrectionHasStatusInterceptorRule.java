@@ -3,6 +3,7 @@ package uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correc
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.lang.annotation.Annotation;
+import java.util.UUID;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
@@ -61,7 +62,11 @@ public class CorrectionHasStatusInterceptorRule implements AccessInterceptorRule
 
     return SecurityRuleResult.checkFailedWithStatusAndMessage(
         HttpStatus.FORBIDDEN,
-        "Licence correction %s is not in an expected status".formatted(correction.getId())
+        notInExpectedStatusMessage(correction.getId())
     );
+  }
+
+  public static String notInExpectedStatusMessage(UUID correctionId) {
+    return "Licence correction %s is not in an expected status".formatted(correctionId);
   }
 }

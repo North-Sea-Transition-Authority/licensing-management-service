@@ -31,11 +31,14 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.validation.BindingResult;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.CorrectionHasStatusInterceptorRule;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanViewCorrectionInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectPositionOrderForm;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectPositionOrderFormValidator;
@@ -125,6 +128,25 @@ class CorrectPositionChangeTypeControllerTest extends AbstractControllerTest {
   }
 
   @Test
+  void renderMoveChangeTypePosition_whenCorrectionIsNotInProgress() throws Exception {
+    var correction = LicenceCorrectionTestUtil.newBuilder()
+        .withId(CORRECTION_ID)
+        .withStatus(LicenceCorrectionStatus.COMPLETE)
+        .withLicence(LICENCE)
+        .build();
+    when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
+        .thenReturn(Optional.of(correction));
+    when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(correction));
+    mockMvc.perform(get(ReverseRouter.route(on(CorrectPositionChangeTypeController.class)
+            .renderMoveChangeTypePosition(CORRECTION_ID, POSITION_ID, CHANGE_ID, correction)))
+            .with(user(regulatorUser)))
+        .andExpect(status().isForbidden())
+        .andExpect(status().reason(
+            CorrectionHasStatusInterceptorRule.notInExpectedStatusMessage(CORRECTION_ID)
+        ));
+  }
+
+  @Test
   void renderMoveChangeTypePosition_whenAllocatedToUser() throws Exception {
     givenCorrectionAllocatedToUser();
     givenPosition();
@@ -168,7 +190,10 @@ class CorrectPositionChangeTypeControllerTest extends AbstractControllerTest {
     mockMvc.perform(get(ReverseRouter.route(on(CorrectPositionChangeTypeController.class)
             .renderMoveChangeTypePosition(CORRECTION_ID, POSITION_ID, CHANGE_ID, null)))
             .with(user(regulatorUser)))
-        .andExpect(status().isForbidden());
+        .andExpect(status().isForbidden())
+        .andExpect(status().reason(
+            InvokingUserCanViewCorrectionInterceptorRule.notAssignedMessage(CORRECTION_ID, regulatorUser.wuaId()))
+        );
   }
 
   @Test
@@ -177,6 +202,26 @@ class CorrectPositionChangeTypeControllerTest extends AbstractControllerTest {
             .correctChangeTypePosition(CORRECTION_ID, POSITION_ID, CHANGE_ID, null, null, null, null)))
             .with(csrf()))
         .andExpect(redirectionToLoginUrl());
+  }
+
+  @Test
+  void correctChangeTypePosition_whenCorrectionIsNotInProgress() throws Exception {
+    var correction = LicenceCorrectionTestUtil.newBuilder()
+        .withId(CORRECTION_ID)
+        .withStatus(LicenceCorrectionStatus.COMPLETE)
+        .withLicence(LICENCE)
+        .build();
+    when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
+        .thenReturn(Optional.of(correction));
+    when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(correction));
+    mockMvc.perform(post(ReverseRouter.route(on(CorrectPositionChangeTypeController.class)
+            .correctChangeTypePosition(CORRECTION_ID, POSITION_ID, CHANGE_ID, null, null, null, null)))
+            .with(user(regulatorUser))
+            .with(csrf()))
+        .andExpect(status().isForbidden())
+        .andExpect(status().reason(
+            CorrectionHasStatusInterceptorRule.notInExpectedStatusMessage(CORRECTION_ID)
+        ));
   }
 
   @Test
@@ -246,7 +291,10 @@ class CorrectPositionChangeTypeControllerTest extends AbstractControllerTest {
 
     mockMvc.perform(get(newPositionOrderUrl())
             .with(user(regulatorUser)))
-        .andExpect(status().isForbidden());
+        .andExpect(status().isForbidden())
+        .andExpect(status().reason(
+            InvokingUserCanViewCorrectionInterceptorRule.notAssignedMessage(CORRECTION_ID, regulatorUser.wuaId()))
+        );
   }
 
   @Test
@@ -321,7 +369,10 @@ class CorrectPositionChangeTypeControllerTest extends AbstractControllerTest {
     mockMvc.perform(post(placeNewPositionUrl())
             .with(user(regulatorUser))
             .with(csrf()))
-        .andExpect(status().isForbidden());
+        .andExpect(status().isForbidden())
+        .andExpect(status().reason(
+            InvokingUserCanViewCorrectionInterceptorRule.notAssignedMessage(CORRECTION_ID, regulatorUser.wuaId()))
+        );
 
     verifyNoInteractions(correctPositionOrderFormValidator);
   }
@@ -500,7 +551,10 @@ class CorrectPositionChangeTypeControllerTest extends AbstractControllerTest {
             .correctChangeTypePosition(CORRECTION_ID, POSITION_ID, CHANGE_ID, null, null, null, null)))
             .with(user(regulatorUser))
             .with(csrf()))
-        .andExpect(status().isForbidden());
+        .andExpect(status().isForbidden())
+        .andExpect(status().reason(
+            InvokingUserCanViewCorrectionInterceptorRule.notAssignedMessage(CORRECTION_ID, regulatorUser.wuaId()))
+        );
 
     verifyNoInteractions(correctPositionChangeTypeFormValidator);
     verifyNoInteractions(licencePositionService);

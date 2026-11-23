@@ -25,6 +25,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanViewCorrectionInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.fds.button.Button;
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
@@ -100,7 +101,10 @@ class RemoveSubareaChangeControllerTest extends AbstractControllerTest {
     mockMvc.perform(get(ReverseRouter.route(on(RemoveSubareaChangeController.class)
             .renderRemoveExecutedSubareaChange(CORRECTION, POSITION, positionChange)))
             .with(user(regulatorUser)))
-        .andExpect(status().isForbidden());
+        .andExpect(status().isForbidden())
+        .andExpect(status().reason(
+            InvokingUserCanViewCorrectionInterceptorRule.notAssignedMessage(CORRECTION_ID, regulatorUser.wuaId()))
+        );
   }
 
   @Test
@@ -144,7 +148,10 @@ class RemoveSubareaChangeControllerTest extends AbstractControllerTest {
             .removeSubareaChange(CORRECTION, POSITION, positionChange, null)))
             .with(user(regulatorUser))
             .with(csrf()))
-        .andExpect(status().isForbidden());
+        .andExpect(status().isForbidden())
+        .andExpect(status().reason(
+            InvokingUserCanViewCorrectionInterceptorRule.notAssignedMessage(CORRECTION_ID, regulatorUser.wuaId()))
+        );
 
     verifyNoInteractions(subareaChangeService);
   }
@@ -185,7 +192,10 @@ class RemoveSubareaChangeControllerTest extends AbstractControllerTest {
     mockMvc.perform(get(ReverseRouter.route(on(RemoveSubareaChangeController.class)
             .renderUndoSubareaChange(CORRECTION, CHANGE_ID)))
             .with(user(regulatorUser)))
-        .andExpect(status().isForbidden());
+        .andExpect(status().isForbidden())
+        .andExpect(status().reason(
+            InvokingUserCanViewCorrectionInterceptorRule.notAssignedMessage(CORRECTION_ID, regulatorUser.wuaId()))
+        );
   }
 
   @ParameterizedTest
@@ -295,7 +305,10 @@ class RemoveSubareaChangeControllerTest extends AbstractControllerTest {
             .undoSubareaChange(CORRECTION, CHANGE_ID, null)))
             .with(user(regulatorUser))
             .with(csrf()))
-        .andExpect(status().isForbidden());
+        .andExpect(status().isForbidden())
+        .andExpect(status().reason(
+            InvokingUserCanViewCorrectionInterceptorRule.notAssignedMessage(CORRECTION_ID, regulatorUser.wuaId()))
+        );
 
     verifyNoInteractions(subareaChangeService);
   }

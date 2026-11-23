@@ -18,11 +18,14 @@ import static uk.co.nstauthority.licensingmanagementservice.util.RedirectedToLog
 
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.CorrectionHasStatusInterceptorRule;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanViewCorrectionInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.filter.LicenceTimelineFilter;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.filter.LicenceTimelineFilterSession;
@@ -55,7 +58,29 @@ class LicenceCorrectionCancelControllerTest extends AbstractControllerTest {
     mockMvc.perform(get(ReverseRouter.route(on(LicenceCorrectionCancelController.class)
             .renderCancelCorrection(correction)))
             .with(user(regulatorUser)))
-        .andExpect(status().isForbidden());
+        .andExpect(status().isForbidden())
+        .andExpect(status().reason(
+            InvokingUserCanViewCorrectionInterceptorRule.notAssignedMessage(correction.getId(), regulatorUser.wuaId()))
+        );
+  }
+
+  @Test
+  void renderCancelCorrection_whenCorrectionIsNotInProgress() throws Exception {
+    var correctionId = UUID.randomUUID();
+    var correction = LicenceCorrectionTestUtil.newBuilder()
+        .withId(correctionId)
+        .withStatus(LicenceCorrectionStatus.COMPLETE)
+        .build();
+    when(licenceCorrectionService.findByIdAndAllocatedToWuaId(correctionId, regulatorUser))
+        .thenReturn(Optional.of(correction));
+    when(licenceCorrectionService.findById(correctionId)).thenReturn(Optional.of(correction));
+    mockMvc.perform(get(ReverseRouter.route(on(LicenceCorrectionCancelController.class)
+            .renderCancelCorrection(correction)))
+            .with(user(regulatorUser)))
+        .andExpect(status().isForbidden())
+        .andExpect(status().reason(
+            CorrectionHasStatusInterceptorRule.notInExpectedStatusMessage(correctionId)
+        ));
   }
 
   @Test
@@ -91,9 +116,32 @@ class LicenceCorrectionCancelControllerTest extends AbstractControllerTest {
             .processCancelCorrection(correction, null, null)))
             .with(user(regulatorUser))
             .with(csrf()))
-        .andExpect(status().isForbidden());
+        .andExpect(status().isForbidden())
+        .andExpect(status().reason(
+            InvokingUserCanViewCorrectionInterceptorRule.notAssignedMessage(correction.getId(), regulatorUser.wuaId()))
+        );
 
     verify(licenceCorrectionService, never()).cancelCorrection(any());
+  }
+
+  @Test
+  void processCancelCorrection_whenCorrectionIsNotInProgress() throws Exception {
+    var correctionId = UUID.randomUUID();
+    var correction = LicenceCorrectionTestUtil.newBuilder()
+        .withId(correctionId)
+        .withStatus(LicenceCorrectionStatus.COMPLETE)
+        .build();
+    when(licenceCorrectionService.findByIdAndAllocatedToWuaId(correctionId, regulatorUser))
+        .thenReturn(Optional.of(correction));
+    when(licenceCorrectionService.findById(correctionId)).thenReturn(Optional.of(correction));
+    mockMvc.perform(post(ReverseRouter.route(on(LicenceCorrectionCancelController.class)
+            .processCancelCorrection(correction, null, null)))
+            .with(user(regulatorUser))
+            .with(csrf()))
+        .andExpect(status().isForbidden())
+        .andExpect(status().reason(
+            CorrectionHasStatusInterceptorRule.notInExpectedStatusMessage(correctionId)
+        ));
   }
 
   @Test

@@ -320,7 +320,6 @@ public class LicencePositionPartialSurrenderController {
     return ReverseRouter.route(on(LicencePositionAddChangeController.class).renderForPosition(correctionPosition));
   }
 
-
   private ModelAndView startSingleBlockCorrectionModelAndView(
       LicenceCorrection correction,
       LicencePosition licencePosition,

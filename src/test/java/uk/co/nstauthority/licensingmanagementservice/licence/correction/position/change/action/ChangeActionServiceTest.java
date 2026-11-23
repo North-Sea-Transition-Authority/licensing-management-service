@@ -52,23 +52,16 @@ class ChangeActionServiceTest {
   private static final LicenceCorrection CORRECTION = LicenceCorrectionTestUtil.newBuilder().build();
   private static final LicencePosition POSITION = LicencePositionTestUtil.newBuilder().build();
   private static final LicencePositionCorrection POSITION_CORRECTION = LicencePositionCorrectionTestUtil.newBuilder().build();
-  private static final LicenceOperation HIDDEN_OPERATION = LicenceOperation.newBlockEndOperation()
-      .withEndedFeatureIds(List.of(UUID.randomUUID()))
-      .build();
-  private static final SubareaOperation SUBAREA_OPERATION = LicenceOperation.newSubAreaOperation()
-      .withBlockFeatureId(UUID.randomUUID())
-      .build();
-  private static final AdministratorOperation ADMINISTRATOR_OPERATION = LicenceOperation.newAdministratorChange()
-      .withOperator(1)
-      .build();
-  private static final LicencePositionChangeType STAGED_CHANGE = LicencePositionChangeType.removeChange()
-      .withChangeId(CHANGE_ID)
-      .build();
+  private static final LicenceOperation HIDDEN_OPERATION = LicenceOperation.newBlockEndOperation().withEndedFeatureIds(List.of(UUID.randomUUID())).build();
+  private static final SubareaOperation SUBAREA_OPERATION = LicenceOperation.newSubAreaOperation().withBlockFeatureId(UUID.randomUUID()).build();
+  private static final AdministratorOperation ADMINISTRATOR_OPERATION = LicenceOperation.newAdministratorChange().withOperator(1).build();
+  private static final LicencePositionChangeType STAGED_CHANGE = LicencePositionChangeType.removeChange().withChangeId(CHANGE_ID).build();
 
   @Mock
   private LicencePositionCorrectionService licencePositionCorrectionService;
 
-  private final SubareaChangeActionHandler subareaHandler = mock(SubareaChangeActionHandler.class);
+  @Mock
+  private SubareaChangeActionHandler subareaHandler;
 
   private ChangeActionService changeActionService;
 

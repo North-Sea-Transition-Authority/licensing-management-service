@@ -89,8 +89,7 @@ public class ChangeActionController {
 
     if (HttpMethod.GET.equals(httpMethod)) {
       return withConfirmationObjects(
-          changeActionService.getHandler(operation)
-              .stagedChangeConfirmation(correction, positionCorrection, changeId, action),
+          changeActionService.getHandler(operation).stagedChangeConfirmation(correction, positionCorrection, changeId, action),
           operation.changeName(),
           action,
           positionPageUrl

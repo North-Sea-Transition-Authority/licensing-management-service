@@ -250,7 +250,10 @@ class LicenceScheduleDetailServiceTest {
         .withCreatedInstant(Instant.parse("2024-06-01T09:00:00Z"))
         .build();
 
-    when(licenceScheduleDetailRepository.findAllByLicenceSchedule_Licence(licence))
+    when(licenceScheduleDetailRepository.findAllByLicenceSchedule_LicenceAndStatusIn(
+        licence,
+        List.of(LicenceScheduleDetailStatus.ACTIVE, LicenceScheduleDetailStatus.REPLACED)
+    ))
         .thenReturn(List.of(olderDetail, newerDetail));
 
     var result = licenceScheduleDetailService.getScheduleDetailHistoryOptions(licence);
@@ -271,7 +274,11 @@ class LicenceScheduleDetailServiceTest {
   void getScheduleDetailHistoryOptions_noScheduleDetails() {
     var licence = LicenceTestUtil.builder().build();
 
-    when(licenceScheduleDetailRepository.findAllByLicenceSchedule_Licence(licence)).thenReturn(List.of());
+    when(licenceScheduleDetailRepository.findAllByLicenceSchedule_LicenceAndStatusIn(
+        licence,
+        List.of(LicenceScheduleDetailStatus.ACTIVE, LicenceScheduleDetailStatus.REPLACED)
+    ))
+        .thenReturn(List.of());
 
     var result = licenceScheduleDetailService.getScheduleDetailHistoryOptions(licence);
 

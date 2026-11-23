@@ -16,6 +16,11 @@ public interface LicenceScheduleDetailRepository extends JpaRepository<LicenceSc
 
   List<LicenceScheduleDetail> findAllByLicenceSchedule_Licence(Licence licence);
 
+  List<LicenceScheduleDetail> findAllByLicenceSchedule_LicenceAndStatusIn(
+      Licence licence,
+      List<LicenceScheduleDetailStatus> licenceScheduleDetailStatuses
+  );
+
   Optional<LicenceScheduleDetail> findByLicenceSchedule_LicenceAndStatus(
       Licence licence,
       LicenceScheduleDetailStatus licenceScheduleDetailStatus

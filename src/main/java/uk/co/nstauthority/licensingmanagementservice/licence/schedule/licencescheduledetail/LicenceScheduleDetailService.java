@@ -144,7 +144,11 @@ public class LicenceScheduleDetailService {
   }
 
   public Map<String, String> getScheduleDetailHistoryOptions(Licence licence) {
-    return licenceScheduleDetailRepository.findAllByLicenceSchedule_Licence(licence).stream()
+    return licenceScheduleDetailRepository.findAllByLicenceSchedule_LicenceAndStatusIn(
+            licence,
+            List.of(LicenceScheduleDetailStatus.ACTIVE, LicenceScheduleDetailStatus.REPLACED)
+        )
+        .stream()
         .sorted(Comparator.comparing(LicenceScheduleDetail::getCreatedInstant).reversed())
         .collect(StreamUtil.toLinkedHashMap(
             licenceScheduleDetail -> licenceScheduleDetail.getId().toString(),

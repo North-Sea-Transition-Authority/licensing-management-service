@@ -15,6 +15,7 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.RolesAndTeamT
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.crosslicenceeventtracker.CrossLicenceEventTrackerService;
+import uk.co.nstauthority.licensingmanagementservice.licence.overview.LicenceScheduleTabController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.common.ScheduleRelativeDateValidationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments.EventCommentService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
@@ -23,7 +24,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.L
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
-import uk.co.nstauthority.licensingmanagementservice.workarea.WorkAreaController;
 
 @Controller
 @RequestMapping("/licence/schedule/{licenceScheduleDetailId}/review")
@@ -85,12 +85,13 @@ public class ReviewAndApplyScheduleController {
     licenceScheduleDetailService.applyAndReplaceActiveScheduleDetail(licenceScheduleDetail);
     crossLicenceEventTrackerService.refreshScheduleCache(licenceScheduleDetail);
 
-    var licenceReference = licenceScheduleDetail.getLicenceSchedule().getLicence().getLicenceReference();
+    var licence = licenceScheduleDetail.getLicenceSchedule().getLicence();
 
     NotificationBanner.newSuccessBanner()
-        .withHeadingContent(String.format("Changes to the schedule for %s have been applied", licenceReference))
+        .withHeadingContent(String.format("Changes to the schedule for %s have been applied", licence.getLicenceReference()))
         .applyTo(redirectAttributes);
 
-    return ReverseRouter.redirect(on(WorkAreaController.class).getWorkArea(null, null));
+    return ReverseRouter.redirect(on(LicenceScheduleTabController.class)
+        .renderLicenceOverview(licence.getId(), null, null, null));
   }
 }

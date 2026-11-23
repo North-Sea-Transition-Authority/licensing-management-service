@@ -14,6 +14,7 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.HasRolesInTea
 import uk.co.nstauthority.licensingmanagementservice.authorisation.RolesAndTeamType;
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
+import uk.co.nstauthority.licensingmanagementservice.licence.overview.LicenceScheduleTabController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments.EventCommentService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailService;
@@ -21,7 +22,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.L
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
-import uk.co.nstauthority.licensingmanagementservice.workarea.WorkAreaController;
 
 @Controller
 @RequestMapping("/licence/schedule/{licenceScheduleDetailId}/delete")
@@ -72,12 +72,13 @@ public class DeleteDraftScheduleController {
     eventCommentService.deletePendingCommentsForSchedule(licenceScheduleDetail.getLicenceSchedule());
     licenceScheduleDetailService.deleteDraftScheduleDetail(licenceScheduleDetail);
 
-    var licenceReference = licenceScheduleDetail.getLicenceSchedule().getLicence().getLicenceReference();
+    var licence = licenceScheduleDetail.getLicenceSchedule().getLicence();
 
     NotificationBanner.newSuccessBanner()
-        .withHeadingContent(String.format("The draft schedule for %s has been deleted", licenceReference))
+        .withHeadingContent(String.format("The draft schedule for %s has been deleted", licence.getLicenceReference()))
         .applyTo(redirectAttributes);
 
-    return ReverseRouter.redirect(on(WorkAreaController.class).getWorkArea(null, null));
+    return ReverseRouter.redirect(on(LicenceScheduleTabController.class)
+        .renderLicenceOverview(licence.getId(), null, null, null));
   }
 }

@@ -27,4 +27,13 @@ public record UploadDspFileUsage(
         "superseded-final-decision-support-paper"
     );
   }
+
+  public static UploadDspFileUsage addendumFromApplication(
+      ScheduleWorkProgrammeApplicationDetail applicationDetail) {
+    return new UploadDspFileUsage(
+        applicationDetail.getId().toString(),
+        FileUsageType.FINAL_DECISION_SUPPORT_PAPER_ADDENDUM.getUsageType(),
+        "final-decision-support-paper-addendum"
+    );
+  }
 }

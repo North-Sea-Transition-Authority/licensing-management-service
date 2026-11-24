@@ -216,6 +216,15 @@ the user who made the correction. Its payload is JSON with `type` `dsp-corrected
 and `correctedFileIds`, and the case events tab shows each file as a download link. Once the
 decision has been submitted (`ISSUE_DECISION`) the DSP can no longer be replaced.
 
+**Adding a DSP addendum.** In the same statuses a further document can be filed alongside the
+DSP without replacing it. Any number of addendums can be added. An addendum does not move the
+status and does not change `decision_date`, the current DSP or any recorded decision answer, and
+it is never superseded. A "DSP addendum uploaded" case event
+(`case_events.event_type = 'DSP_ADDENDUM_UPLOADED'`) is recorded against the application,
+attributed to the user who added it. Its payload is JSON with `type` `dsp-addendum-uploaded`
+and `fileIds`, the ids of the addendum files, and the case events tab shows each as a download
+link.
+
 **The two families do not use the same portion of this lifecycle.**
 
 | Status | Extension and amendment | Continuation |
@@ -863,16 +872,18 @@ LMS. The mapping is:
 |---|---|---|
 | Extension and amendment — supporting documents | application **detail** id | `SCHEDULE-AMENDMENT-APP-SUPPORTING-DOCUMENT` |
 | Extension and amendment — final decision support papers | application **detail** id | `FINAL-DECISION-SUPPORT-PAPER` |
+| Extension and amendment — DSP addendums | application **detail** id | `FINAL-DECISION-SUPPORT-PAPER-ADDENDUM` |
 | Continuation — other requirement documents | application **detail** id | `CONTINUATION-OTHER-REQUIREMENT-DOCUMENT` |
 | Continuation — additional supporting documents | application **detail** id | `CONTINUATION-ADDITIONAL-SUPPORTING-DOCUMENT` |
 | Continuation — issued letter | **application** id | `APPLICATION-CONTINUATION-LETTER` |
 
-These five are the only usage types LMS writes. Historic rows may still carry a usage type no
+These six are the only usage types LMS writes. Historic rows may still carry a usage type no
 longer in the list.
 
 A final decision support paper that a correction has replaced keeps its usage id and usage type
 but has `document_type` `superseded-final-decision-support-paper`; the current one has
-`document_type` `final-decision-support-paper`.
+`document_type` `final-decision-support-paper`. A DSP addendum has `document_type`
+`final-decision-support-paper-addendum`.
 
 Files filed under an application **detail** id for supporting documents and continuation
 other requirement documents are copied, not moved, when a new detail version is created (see

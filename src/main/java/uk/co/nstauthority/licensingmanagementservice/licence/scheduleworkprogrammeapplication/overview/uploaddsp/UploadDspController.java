@@ -2,6 +2,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogra
 
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
+import java.util.ArrayList;
 import java.util.UUID;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.ResponseEntity;
@@ -58,7 +59,7 @@ public class UploadDspController {
       @PathVariable UUID scheduleWorkProgrammeApplicationDetailId,
       ScheduleWorkProgrammeApplicationDetail applicationDetail
   ) {
-    var form = isCorrection(applicationDetail)
+    var form = hasExistingDsp(applicationDetail)
         ? new UploadDspForm()
         : uploadDspService.getFormForApplication(applicationDetail);
     return getModelAndView(applicationDetail, form);
@@ -72,23 +73,32 @@ public class UploadDspController {
       BindingResult bindingResult,
       RedirectAttributes redirectAttributes
   ) {
-    var correction = isCorrection(applicationDetail);
-    var valid = correction
-        ? uploadDspFormValidator.isValidCorrection(form, bindingResult)
+    var hasDsp = hasExistingDsp(applicationDetail);
+    if (hasDsp) {
+      discardUnselectedFiles(form);
+    }
+    var valid = hasDsp
+        ? uploadDspFormValidator.isValidUpdate(form, bindingResult)
         : uploadDspFormValidator.isValid(form, bindingResult);
     if (!valid) {
       return getModelAndView(applicationDetail, form);
     }
 
-    if (correction) {
-      uploadDspService.correctDsp(applicationDetail, form);
-    } else {
+    String outcome;
+    if (!hasDsp) {
       uploadDspService.uploadDsp(applicationDetail, form);
+      outcome = "uploaded";
+    } else if (form.getDspAction() == UploadDspAction.ADD_ADDENDUM) {
+      uploadDspService.addAddendum(applicationDetail, form);
+      outcome = "addendum uploaded";
+    } else {
+      uploadDspService.correctDsp(applicationDetail, form);
+      outcome = "corrected";
     }
 
     var applicationReference = applicationDetail.getScheduleWorkProgrammeApplication().getApplicationReference();
     NotificationBanner.newSuccessBanner()
-        .withHeadingContent(String.format("DSP %s on %s", correction ? "corrected" : "uploaded", applicationReference))
+        .withHeadingContent(String.format("DSP %s on %s", outcome, applicationReference))
         .applyTo(redirectAttributes);
 
     return ReverseRouter.redirect(on(ScheduleWorkProgrammeApplicationOverviewController.class)
@@ -105,6 +115,20 @@ public class UploadDspController {
     return fileControllerHelperService.download(
         fileId,
         () -> UploadDspFileUsage.fromApplication(applicationDetail),
+        userDetail
+    );
+  }
+
+  @GetMapping("/addendums/{fileId}")
+  public ResponseEntity<InputStreamResource> downloadAddendum(
+      @PathVariable UUID fileId,
+      @PathVariable UUID scheduleWorkProgrammeApplicationDetailId,
+      ScheduleWorkProgrammeApplicationDetail applicationDetail,
+      ServiceUserDetail userDetail
+  ) {
+    return fileControllerHelperService.download(
+        fileId,
+        () -> UploadDspFileUsage.addendumFromApplication(applicationDetail),
         userDetail
     );
   }
@@ -141,16 +165,33 @@ public class UploadDspController {
         .addObject("backUrl", ReverseRouter.route(on(ScheduleWorkProgrammeApplicationOverviewController.class)
             .renderOverview(applicationDetail.getId(), null, null, null)));
 
-    if (isCorrection(applicationDetail)) {
+    if (hasExistingDsp(applicationDetail)) {
+      var addendumUploadAttributes = fileControllerHelperService.fileUploadComponentAttributes(
+          form.getDspAddendums(),
+          this.getClass(),
+          controller -> controller.downloadAddendum(null, applicationDetail.getId(), null, null),
+          controller -> controller.deleteFile(null, applicationDetail.getId(), null, null),
+          "form.dspAddendums"
+      );
       modelAndView
+          .addObject("addendumUploadAttributes", addendumUploadAttributes)
           .addObject("currentDsp", uploadDspService.getCurrentDsp(applicationDetail))
           .addObject("dspActionOptions", UploadDspAction.getOptionsWithHintText());
     }
     return modelAndView;
   }
 
-  // SUBMITTED is the only allowed status without a DSP, so anything else is a correction.
-  private static boolean isCorrection(ScheduleWorkProgrammeApplicationDetail applicationDetail) {
+  // Both uploads share one page; only the chosen action's files are used, so drop the other's.
+  private static void discardUnselectedFiles(UploadDspForm form) {
+    if (form.getDspAction() == UploadDspAction.ADD_ADDENDUM) {
+      form.setFinalDecisionSupportPapers(new ArrayList<>());
+    } else if (form.getDspAction() == UploadDspAction.CORRECT) {
+      form.setDspAddendums(new ArrayList<>());
+    }
+  }
+
+  // SUBMITTED is the only allowed status without a DSP.
+  private static boolean hasExistingDsp(ScheduleWorkProgrammeApplicationDetail applicationDetail) {
     return applicationDetail.getStatus() != ApplicationStatus.SUBMITTED;
   }
 }

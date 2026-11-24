@@ -2,8 +2,10 @@ package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogra
 
 import java.time.Clock;
 import java.time.LocalDate;
+import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.Errors;
+import uk.co.fivium.fileuploadlibrary.fds.UploadedFileForm;
 import uk.co.fivium.formlibrary.validator.date.ThreeFieldDateInputValidator;
 import uk.co.nstauthority.licensingmanagementservice.file.FileValidationUtil;
 
@@ -23,24 +25,27 @@ public class UploadDspFormValidator {
         .mustBeBeforeOrEqualToErrorMessage("Decision date must be today or in the past")
         .validate(form.getDecisionDate(), errors);
 
-    validateFiles(form, errors, "Upload the Final Decision Support Paper");
+    validateFiles(
+        form.getFinalDecisionSupportPapers(), errors, "finalDecisionSupportPapers", "Upload the Final Decision Support Paper");
 
     return !errors.hasErrors();
   }
 
-  boolean isValidCorrection(UploadDspForm form, Errors errors) {
+  boolean isValidUpdate(UploadDspForm form, Errors errors) {
     if (form.getDspAction() == null) {
       errors.rejectValue("dspAction", "dspAction.required", "Select what you want to do");
+    } else if (form.getDspAction() == UploadDspAction.ADD_ADDENDUM) {
+      validateFiles(form.getDspAddendums(), errors, "dspAddendums", "Upload the DSP addendum");
+    } else {
+      validateFiles(form.getFinalDecisionSupportPapers(), errors, "finalDecisionSupportPapers", "Upload the corrected DSP");
     }
-
-    validateFiles(form, errors, "Upload the corrected DSP");
 
     return !errors.hasErrors();
   }
 
-  private void validateFiles(UploadDspForm form, Errors errors, String missingFilesMessage) {
+  private void validateFiles(List<UploadedFileForm> files, Errors errors, String path, String missingFilesMessage) {
     FileValidationUtil.validator()
         .withMinimumNumberOfFiles(1, missingFilesMessage)
-        .validate(errors, form.getFinalDecisionSupportPapers(), "finalDecisionSupportPapers");
+        .validate(errors, files, path);
   }
 }

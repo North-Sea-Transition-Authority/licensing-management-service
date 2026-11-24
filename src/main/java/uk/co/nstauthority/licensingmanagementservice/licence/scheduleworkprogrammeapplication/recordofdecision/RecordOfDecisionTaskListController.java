@@ -94,4 +94,16 @@ public class RecordOfDecisionTaskListController {
         () -> UploadDspFileUsage.fromApplication(scheduleWorkProgrammeApplicationDetail),
         serviceUserDetail);
   }
+
+  @GetMapping("/dsp-addendum/{fileId}")
+  public ResponseEntity<InputStreamResource> downloadDspAddendum(
+      @PathVariable UUID fileId,
+      @PathVariable UUID scheduleWorkProgrammeApplicationDetailId,
+      ScheduleWorkProgrammeApplicationDetail scheduleWorkProgrammeApplicationDetail,
+      ServiceUserDetail serviceUserDetail) {
+    return fileControllerHelperService.download(
+        fileId,
+        () -> UploadDspFileUsage.addendumFromApplication(scheduleWorkProgrammeApplicationDetail),
+        serviceUserDetail);
+  }
 }

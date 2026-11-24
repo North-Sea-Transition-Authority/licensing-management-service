@@ -21,31 +21,54 @@ class UploadDspFormValidatorCorrectionTest {
   }
 
   @Test
-  void isValidCorrection_whenActionAndFile_returnsTrue() {
+  void isValidUpdate_whenActionAndFile_returnsTrue() {
     var form = buildValidForm();
     var bindingResult = ValidatorTestingUtil.getBindingResult(form);
 
-    assertThat(validator.isValidCorrection(form, bindingResult)).isTrue();
+    assertThat(validator.isValidUpdate(form, bindingResult)).isTrue();
     assertThat(bindingResult.hasErrors()).isFalse();
   }
 
   @Test
-  void isValidCorrection_whenNoAction_returnsFalse() {
+  void isValidUpdate_whenNoAction_returnsFalse() {
     var form = buildValidForm();
     form.setDspAction(null);
     var bindingResult = ValidatorTestingUtil.getBindingResult(form);
 
-    assertThat(validator.isValidCorrection(form, bindingResult)).isFalse();
+    assertThat(validator.isValidUpdate(form, bindingResult)).isFalse();
     assertThat(bindingResult.hasFieldErrors("dspAction")).isTrue();
   }
 
   @Test
-  void isValidCorrection_whenNoFiles_returnsFalse() {
+  void isValidUpdate_whenNoFiles_returnsFalse() {
     var form = buildValidForm();
     form.setFinalDecisionSupportPapers(List.of());
     var bindingResult = ValidatorTestingUtil.getBindingResult(form);
 
-    assertThat(validator.isValidCorrection(form, bindingResult)).isFalse();
+    assertThat(validator.isValidUpdate(form, bindingResult)).isFalse();
     assertThat(bindingResult.hasFieldErrors("finalDecisionSupportPapers")).isTrue();
+  }
+
+  @Test
+  void isValidUpdate_whenAddendumActionAndFile_returnsTrue() {
+    var form = new UploadDspForm();
+    form.setDspAction(UploadDspAction.ADD_ADDENDUM);
+    form.setDspAddendums(List.of(
+        FileUploadTestUtil.getUploadedFileFormWithDescription("addendum.pdf", "Addendum")));
+    var bindingResult = ValidatorTestingUtil.getBindingResult(form);
+
+    assertThat(validator.isValidUpdate(form, bindingResult)).isTrue();
+    assertThat(bindingResult.hasErrors()).isFalse();
+  }
+
+  @Test
+  void isValidUpdate_whenAddendumActionAndNoAddendumFiles_returnsFalse() {
+    var form = buildValidForm();
+    form.setDspAction(UploadDspAction.ADD_ADDENDUM);
+    var bindingResult = ValidatorTestingUtil.getBindingResult(form);
+
+    assertThat(validator.isValidUpdate(form, bindingResult)).isFalse();
+    assertThat(bindingResult.hasFieldErrors("dspAddendums")).isTrue();
+    assertThat(bindingResult.hasFieldErrors("finalDecisionSupportPapers")).isFalse();
   }
 }

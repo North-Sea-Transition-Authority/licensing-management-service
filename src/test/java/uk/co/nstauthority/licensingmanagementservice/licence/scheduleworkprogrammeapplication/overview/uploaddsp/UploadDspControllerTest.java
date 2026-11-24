@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
@@ -169,7 +170,7 @@ class UploadDspControllerTest extends AbstractControllerTest {
   void render_whenDspUploaded_showsCurrentDspWithEmptyForm() throws Exception {
     var applicationDetailId = UUID.randomUUID();
     var applicationDetail = buildApplicationDetail(applicationDetailId, ApplicationStatus.DSP_UPLOADED);
-    var currentDsp = new CurrentDspView("15 March 2024", List.of(), "Jane Smith, 16 March 2024 10:15");
+    var currentDsp = new CurrentDspView("15 March 2024", List.of(), List.of(), "Jane Smith, 16 March 2024 10:15");
 
     setupPassingInterceptors(applicationDetail);
     when(uploadDspService.getCurrentDsp(applicationDetail)).thenReturn(currentDsp);
@@ -183,6 +184,7 @@ class UploadDspControllerTest extends AbstractControllerTest {
         .andExpect(view().name("lms/licence/scheduleWorkProgrammeApplication/uploadDsp"))
         .andExpect(model().attribute("currentDsp", currentDsp))
         .andExpect(model().attribute("dspActionOptions", UploadDspAction.getOptionsWithHintText()))
+        .andExpect(model().attribute("addendumUploadAttributes", FILE_UPLOAD_ATTRIBUTES))
         .andExpect(content().string(containsString(UploadDspAction.CORRECT.getDisplayName())))
         .andExpect(content().string(containsString(UploadDspAction.CORRECT.getDescription())));
   }
@@ -193,7 +195,7 @@ class UploadDspControllerTest extends AbstractControllerTest {
     var applicationDetail = buildApplicationDetail(applicationDetailId, ApplicationStatus.DSP_UPLOADED);
 
     setupPassingInterceptors(applicationDetail);
-    when(uploadDspFormValidator.isValidCorrection(any(UploadDspForm.class), any(Errors.class)))
+    when(uploadDspFormValidator.isValidUpdate(any(UploadDspForm.class), any(Errors.class)))
         .thenReturn(true);
 
     mockMvc.perform(
@@ -210,12 +212,36 @@ class UploadDspControllerTest extends AbstractControllerTest {
   }
 
   @Test
+  void save_whenAddendumActionAndValid_addsAddendumAndRedirectsToOverview() throws Exception {
+    var applicationDetailId = UUID.randomUUID();
+    var applicationDetail = buildApplicationDetail(applicationDetailId, ApplicationStatus.DSP_UPLOADED);
+
+    setupPassingInterceptors(applicationDetail);
+    when(uploadDspFormValidator.isValidUpdate(any(UploadDspForm.class), any(Errors.class)))
+        .thenReturn(true);
+
+    mockMvc.perform(
+            post(ReverseRouter.route(on(UploadDspController.class)
+                .save(applicationDetailId, null, null, null, null)))
+                .param("dspAction", UploadDspAction.ADD_ADDENDUM.name())
+                .with(user(USER))
+                .with(csrf())
+        )
+        .andExpect(status().is3xxRedirection())
+        .andExpect(redirectedUrl(ReverseRouter.route(on(ScheduleWorkProgrammeApplicationOverviewController.class)
+            .renderOverview(applicationDetailId, null, null, null))));
+
+    verify(uploadDspService).addAddendum(eq(applicationDetail), any(UploadDspForm.class));
+    verify(uploadDspService, never()).correctDsp(any(ScheduleWorkProgrammeApplicationDetail.class), any(UploadDspForm.class));
+  }
+
+  @Test
   void save_whenDspUploadedAndInvalid_returnsForm() throws Exception {
     var applicationDetailId = UUID.randomUUID();
     var applicationDetail = buildApplicationDetail(applicationDetailId, ApplicationStatus.DSP_UPLOADED);
 
     setupPassingInterceptors(applicationDetail);
-    when(uploadDspFormValidator.isValidCorrection(any(UploadDspForm.class), any(Errors.class)))
+    when(uploadDspFormValidator.isValidUpdate(any(UploadDspForm.class), any(Errors.class)))
         .thenReturn(false);
     mockFileUploadComponentAttributes();
 

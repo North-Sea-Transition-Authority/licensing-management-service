@@ -10,7 +10,11 @@ public enum UploadDspAction implements DisplayableEnumWithDescription {
       "Use this if the wrong document was uploaded. The new document replaces the current DSP.",
       10
   ),
-  ;
+  ADD_ADDENDUM(
+      "Add a DSP addendum",
+      "Use this to supply a further document. The current DSP is not changed.",
+      20
+  );
 
   private final String displayName;
   private final String description;

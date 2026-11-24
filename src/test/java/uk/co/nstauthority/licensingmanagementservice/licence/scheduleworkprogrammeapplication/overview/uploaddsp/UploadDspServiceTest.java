@@ -13,7 +13,9 @@ import java.time.LocalDate;
 import java.time.Month;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -29,6 +31,7 @@ import uk.co.fivium.fileuploadlibrary.core.UploadedFile;
 import uk.co.fivium.fileuploadlibrary.fds.UploadedFileForm;
 import uk.co.nstauthority.licensingmanagementservice.caseevent.CaseEventService;
 import uk.co.nstauthority.licensingmanagementservice.caseevent.CaseEventType;
+import uk.co.nstauthority.licensingmanagementservice.caseevent.payload.DspAddendumUploadedPayload;
 import uk.co.nstauthority.licensingmanagementservice.caseevent.payload.DspCorrectedPayload;
 import uk.co.nstauthority.licensingmanagementservice.caseevent.payload.DspUploadedPayload;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserJson;
@@ -203,6 +206,31 @@ class UploadDspServiceTest {
   }
 
   @Test
+  void addAddendum_filesAddendumsAndRecordsCaseEvent() {
+    var applicationDetail = ScheduleWorkProgrammeApplicationDetailTestUtil.builder()
+        .withId(UUID.randomUUID())
+        .withStatus(ApplicationStatus.DSP_UPLOADED)
+        .build();
+    var form = new UploadDspForm();
+    var addendums = new ArrayList<UploadedFileForm>(List.of(
+        FileUploadTestUtil.getUploadedFileFormWithDescription("addendum.pdf", "Addendum")));
+    form.setDspAddendums(addendums);
+
+    service.addAddendum(applicationDetail, form);
+
+    var inOrder = inOrder(applicationFileService, caseEventService);
+    inOrder.verify(applicationFileService)
+        .saveDocuments(UploadDspFileUsage.addendumFromApplication(applicationDetail), addendums);
+    inOrder.verify(caseEventService).recordCaseEvent(
+        CaseEventType.DSP_ADDENDUM_UPLOADED,
+        applicationDetail.getScheduleWorkProgrammeApplication(),
+        new DspAddendumUploadedPayload(List.of(FileUploadTestUtil.FILE_ID))
+    );
+    assertThat(applicationDetail.getStatus()).isEqualTo(ApplicationStatus.DSP_UPLOADED);
+    verifyNoMoreInteractions(detailRepository, applicationLetterService);
+  }
+
+  @Test
   void getCurrentDsp_returnsDecisionDateFilesAndUploader() {
     var applicationDetail = ScheduleWorkProgrammeApplicationDetailTestUtil.builder()
         .withId(UUID.randomUUID())
@@ -213,17 +241,28 @@ class UploadDspServiceTest {
     var file = mock(UploadedFile.class);
     when(file.getId()).thenReturn(fileId);
     when(file.getName()).thenReturn("decision.pdf");
+    when(file.getDescription()).thenReturn("Final decision paper");
     when(file.getUploadedBy()).thenReturn("5");
     when(file.getUploadedAt()).thenReturn(uploadedAt);
     when(applicationFileService.getUploadedFiles(UploadDspFileUsage.fromApplication(applicationDetail)))
         .thenReturn(List.of(file));
+    var addendumId = UUID.randomUUID();
+    var addendum = mock(UploadedFile.class);
+    when(addendum.getId()).thenReturn(addendumId);
+    when(addendum.getName()).thenReturn("addendum.pdf");
+    when(addendum.getDescription()).thenReturn("Addendum");
+    when(addendum.getUploadedBy()).thenReturn("5");
+    when(addendum.getUploadedAt()).thenReturn(uploadedAt);
+    when(applicationFileService.getUploadedFiles(UploadDspFileUsage.addendumFromApplication(applicationDetail)))
+        .thenReturn(List.of(addendum));
     var uploader = EnergyPortalUserJson.from(EnergyPortalUserTestUtil.newBuilder()
         .withWebUserAccountId(5L)
         .withForename("Jane")
         .withSurname("Smith")
         .build());
-    when(energyPortalUserService.findByWuaId(WebUserAccountId.from(5L), UploadDspService.UPLOADER_USER_PURPOSE))
-        .thenReturn(Optional.of(uploader));
+    when(energyPortalUserService.getEnergyPortalUserMap(
+        Set.of(WebUserAccountId.from(5L)), UploadDspService.UPLOADER_USER_PURPOSE))
+        .thenReturn(Map.of(WebUserAccountId.from(5L), uploader));
 
     var result = service.getCurrentDsp(applicationDetail);
 
@@ -232,7 +271,16 @@ class UploadDspServiceTest {
         List.of(new CurrentDspView.DspFileView(
             "decision.pdf",
             ReverseRouter.route(on(UploadDspController.class)
-                .downloadFile(fileId, applicationDetail.getId(), null, null))
+                .downloadFile(fileId, applicationDetail.getId(), null, null)),
+            "Final decision paper"
+        )),
+        List.of(new CurrentDspView.DspAddendumView(
+            "addendum.pdf",
+            ReverseRouter.route(on(UploadDspController.class)
+                .downloadAddendum(addendumId, applicationDetail.getId(), null, null)),
+            "Addendum",
+            uploader.displayName(),
+            DateFormatUtil.convertToDisplayTextWithTime(uploadedAt)
         )),
         "%s, %s".formatted(uploader.displayName(), DateFormatUtil.convertToDisplayTextWithTime(uploadedAt))
     );

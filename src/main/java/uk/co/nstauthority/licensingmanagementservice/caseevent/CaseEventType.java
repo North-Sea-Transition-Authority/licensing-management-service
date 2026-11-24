@@ -11,6 +11,7 @@ public enum CaseEventType implements Displayable {
   DRAFT_DECISION_STARTED("Draft decision started"),
   DSP_UPLOADED("DSP uploaded"),
   DSP_CORRECTED("DSP corrected"),
+  DSP_ADDENDUM_UPLOADED("DSP addendum uploaded"),
   STEWARD_ALLOCATED("Steward allocated");
 
   private final String displayName;

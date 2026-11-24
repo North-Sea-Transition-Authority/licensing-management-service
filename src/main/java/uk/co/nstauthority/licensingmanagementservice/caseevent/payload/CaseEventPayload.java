@@ -14,7 +14,8 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
     @JsonSubTypes.Type(value = CaseUpdateRequestPayload.class, name = "case-update-request"),
     @JsonSubTypes.Type(value = CaseUpdateSubmittedPayload.class, name = "case-update-submitted"),
     @JsonSubTypes.Type(value = DspUploadedPayload.class, name = "dsp-uploaded"),
-    @JsonSubTypes.Type(value = DspCorrectedPayload.class, name = "dsp-corrected")
+    @JsonSubTypes.Type(value = DspCorrectedPayload.class, name = "dsp-corrected"),
+    @JsonSubTypes.Type(value = DspAddendumUploadedPayload.class, name = "dsp-addendum-uploaded")
 })
 public sealed interface CaseEventPayload permits
     CaseNotePayload,
@@ -22,5 +23,6 @@ public sealed interface CaseEventPayload permits
     CaseUpdateRequestPayload,
     CaseUpdateSubmittedPayload,
     DspUploadedPayload,
-    DspCorrectedPayload {
+    DspCorrectedPayload,
+    DspAddendumUploadedPayload {
 }

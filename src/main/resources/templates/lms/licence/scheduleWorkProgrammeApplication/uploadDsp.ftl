@@ -15,12 +15,31 @@ backLinkUrl=springUrl(backUrl)>
             </@fdsSummaryList.summaryListRowNoAction>
             <@fdsSummaryList.summaryListRowNoAction keyText="Final Decision Support Paper">
                 <#list currentDsp.files() as file>
-                    <div><a class="govuk-link" href="${springUrl(file.downloadUrl())}">${file.name()}</a></div>
+                    <div class="govuk-!-margin-bottom-2">
+                        <div><a class="govuk-link" href="${springUrl(file.downloadUrl())}">${file.name()}</a></div>
+                        <#if file.description()?has_content>
+                            <div class="govuk-body-s govuk-!-margin-bottom-0">${file.description()}</div>
+                        </#if>
+                    </div>
                 </#list>
             </@fdsSummaryList.summaryListRowNoAction>
             <@fdsSummaryList.summaryListRowNoAction keyText="Uploaded by">
                 ${currentDsp.uploadedBy()!""}
             </@fdsSummaryList.summaryListRowNoAction>
+            <#if currentDsp.addendums()?has_content>
+                <@fdsSummaryList.summaryListRowNoAction keyText="DSP addendums">
+                    <#list currentDsp.addendums() as addendum>
+                        <div class="govuk-!-margin-bottom-2">
+                            <div><a class="govuk-link" href="${springUrl(addendum.downloadUrl())}">${addendum.name()}</a></div>
+                            <#if addendum.description()?has_content>
+                                <div class="govuk-body-s govuk-!-margin-bottom-0">${addendum.description()}</div>
+                            </#if>
+                            <div class="govuk-body-s govuk-!-margin-bottom-0">${addendum.uploadedBy()}</div>
+                            <div class="govuk-body-s govuk-!-margin-bottom-0">${addendum.uploadedAt()}</div>
+                        </div>
+                    </#list>
+                </@fdsSummaryList.summaryListRowNoAction>
+            </#if>
         </@fdsSummaryList.summaryList>
 
         <@fdsForm.htmlForm>
@@ -39,19 +58,22 @@ backLinkUrl=springUrl(backUrl)>
                             itemHintText=hintText
                             isFirstItem=firstItem>
                             <#if key == "CORRECT">
-                                <@fdsFieldset.fieldset legendHeading="Upload the corrected DSP" legendHeadingClass="govuk-fieldset__legend--s">
-                                    <@fdsFileUpload.fileUpload
-                                        path=fileUploadAttributes.path()
-                                        allowedExtensions=fileUploadAttributes.allowedExtensions()
-                                        uploadUrl=fileUploadAttributes.uploadUrl()
-                                        downloadUrl=fileUploadAttributes.downloadUrl()
-                                        deleteUrl=fileUploadAttributes.deleteUrl()
-                                        existingFiles=fileUploadAttributes.existingFiles()
-                                        maxAllowedSize=fileUploadAttributes.maxAllowedSize()/>
-                                </@fdsFieldset.fieldset>
-                                <#-- fileUpload rebinds spring status to its own path, so restore the parent radio's binding -->
-                                <@spring.bind "form.dspAction"/>
+                                <#assign uploadAttributes=fileUploadAttributes uploadLegend="Upload the corrected DSP"/>
+                            <#else>
+                                <#assign uploadAttributes=addendumUploadAttributes uploadLegend="Upload the DSP addendum"/>
                             </#if>
+                            <@fdsFieldset.fieldset legendHeading=uploadLegend legendHeadingClass="govuk-fieldset__legend--s">
+                                <@fdsFileUpload.fileUpload
+                                    path=uploadAttributes.path()
+                                    allowedExtensions=uploadAttributes.allowedExtensions()
+                                    uploadUrl=uploadAttributes.uploadUrl()
+                                    downloadUrl=uploadAttributes.downloadUrl()
+                                    deleteUrl=uploadAttributes.deleteUrl()
+                                    existingFiles=uploadAttributes.existingFiles()
+                                    maxAllowedSize=uploadAttributes.maxAllowedSize()/>
+                            </@fdsFieldset.fieldset>
+                            <#-- fileUpload rebinds spring status to its own path, so restore the parent radio's binding -->
+                            <@spring.bind "form.dspAction"/>
                             <#assign firstItem=false/>
                         </@fdsRadio.radioItem>
                     </#list>

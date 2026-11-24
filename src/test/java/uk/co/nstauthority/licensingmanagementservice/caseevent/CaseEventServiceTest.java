@@ -29,6 +29,7 @@ import uk.co.nstauthority.licensingmanagementservice.caseevent.payload.CaseAlloc
 import uk.co.nstauthority.licensingmanagementservice.caseevent.payload.CaseNotePayload;
 import uk.co.nstauthority.licensingmanagementservice.caseevent.payload.CaseUpdateRequestPayload;
 import uk.co.nstauthority.licensingmanagementservice.caseevent.payload.CaseUpdateSubmittedPayload;
+import uk.co.nstauthority.licensingmanagementservice.caseevent.payload.DspAddendumUploadedPayload;
 import uk.co.nstauthority.licensingmanagementservice.caseevent.payload.DspCorrectedPayload;
 import uk.co.nstauthority.licensingmanagementservice.caseevent.payload.DspUploadedPayload;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserService;
@@ -451,6 +452,36 @@ class CaseEventServiceTest {
     );
     assertThat(result.get(0).files().keySet())
         .containsExactly(CaseEventService.REPLACED_DSP_KEY, CaseEventService.CORRECTED_DSP_KEY);
+  }
+
+  @Test
+  void getCaseEventViews_whenDspAddendumUploadedEvent_thenShowsAddendumFile() {
+    var eventInstant = Instant.parse("2026-09-24T12:00:00Z");
+    var addendumFile = ApplicationFileTestUtil.createUploadFile();
+    var addendumEvent = new CaseEvent(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION, APPLICATION_ID,
+        CaseEventType.DSP_ADDENDUM_UPLOADED, eventInstant, new CaseEventUser(10L, null, false),
+        new DspAddendumUploadedPayload(List.of(addendumFile.getId())));
+
+    when(caseEventRepository.findByApplicationTypeAndApplicationIdOrderByEventInstantDesc(
+        ApplicationType.SCHEDULE_AMENDMENT_APPLICATION, APPLICATION_ID))
+        .thenReturn(List.of(addendumEvent));
+    stubCaseManagerUser();
+    when(fileService.findAll(List.of(addendumFile.getId()))).thenReturn(List.of(addendumFile));
+
+    var result = caseEventService.getCaseEventViews(application, fileId -> "/download/" + fileId);
+
+    assertThat(result).containsExactly(
+        new CaseEventView(
+            CaseEventType.DSP_ADDENDUM_UPLOADED,
+            Map.of(),
+            Map.of(
+                CaseEventService.DSP_ADDENDUM_KEY,
+                List.of(UploadedFileView.from(addendumFile, "/download/" + addendumFile.getId()))
+            ),
+            "Case Manager (case.manager@example.com)",
+            eventInstant
+        )
+    );
   }
 
   @Test

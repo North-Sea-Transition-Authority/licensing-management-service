@@ -10,6 +10,7 @@ public class UploadDspForm {
   private ThreeFieldDateInput decisionDate = new ThreeFieldDateInput("decisionDate", "decision date");
   private UploadDspAction dspAction;
   private List<UploadedFileForm> finalDecisionSupportPapers = new ArrayList<>();
+  private List<UploadedFileForm> dspAddendums = new ArrayList<>();
 
   public ThreeFieldDateInput getDecisionDate() {
     return decisionDate;
@@ -25,6 +26,14 @@ public class UploadDspForm {
 
   public void setDspAction(UploadDspAction dspAction) {
     this.dspAction = dspAction;
+  }
+
+  public List<UploadedFileForm> getDspAddendums() {
+    return dspAddendums;
+  }
+
+  public void setDspAddendums(List<UploadedFileForm> dspAddendums) {
+    this.dspAddendums = dspAddendums;
   }
 
   public List<UploadedFileForm> getFinalDecisionSupportPapers() {

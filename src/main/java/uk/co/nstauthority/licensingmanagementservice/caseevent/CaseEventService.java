@@ -21,6 +21,7 @@ import uk.co.nstauthority.licensingmanagementservice.caseevent.payload.CaseEvent
 import uk.co.nstauthority.licensingmanagementservice.caseevent.payload.CaseNotePayload;
 import uk.co.nstauthority.licensingmanagementservice.caseevent.payload.CaseUpdateRequestPayload;
 import uk.co.nstauthority.licensingmanagementservice.caseevent.payload.CaseUpdateSubmittedPayload;
+import uk.co.nstauthority.licensingmanagementservice.caseevent.payload.DspAddendumUploadedPayload;
 import uk.co.nstauthority.licensingmanagementservice.caseevent.payload.DspCorrectedPayload;
 import uk.co.nstauthority.licensingmanagementservice.caseevent.payload.DspUploadedPayload;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserJson;
@@ -42,6 +43,7 @@ public class CaseEventService {
   static final String DSP_KEY = "DSP";
   static final String REPLACED_DSP_KEY = "Replaced DSP";
   static final String CORRECTED_DSP_KEY = "Corrected DSP";
+  static final String DSP_ADDENDUM_KEY = "DSP addendum";
 
   private final CaseEventRepository caseEventRepository;
   private final UserDetailService userDetailService;
@@ -146,6 +148,7 @@ public class CaseEventService {
         fileIdsByLabel.put(CORRECTED_DSP_KEY, correctedFileIds);
         yield fileIdsByLabel;
       }
+      case DspAddendumUploadedPayload(var fileIds) -> Map.of(DSP_ADDENDUM_KEY, fileIds);
       case CaseNotePayload ignored -> Map.of();
       case CaseAllocationPayload ignored -> Map.of();
       case CaseUpdateRequestPayload ignored -> Map.of();

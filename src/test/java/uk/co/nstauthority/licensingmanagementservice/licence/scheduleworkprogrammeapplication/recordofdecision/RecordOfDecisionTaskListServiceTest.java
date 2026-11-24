@@ -29,6 +29,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogram
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.overview.uploaddsp.UploadDspFileUsage;
+import uk.co.nstauthority.licensingmanagementservice.summary.SummaryCard;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryKeyValue;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryValueType;
 import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListSection;
@@ -154,6 +155,27 @@ class RecordOfDecisionTaskListServiceTest {
         .thenReturn(List.of(uploadedFile));
 
     assertThat(recordOfDecisionTaskListService.getSignedDspSummaryItem(applicationDetail)).isPresent();
+  }
+
+  @Test
+  void getSignedDspSummaryItem_whenAddendumsExist_addsAddendumsCard() {
+    var uploadedFile = new UploadedFile(UUID.randomUUID());
+    uploadedFile.setName("signed-dsp.pdf");
+    var addendum = new UploadedFile(UUID.randomUUID());
+    addendum.setName("addendum.pdf");
+    when(applicationFileService.getUploadedFiles(UploadDspFileUsage.fromApplication(applicationDetail)))
+        .thenReturn(List.of(uploadedFile));
+    when(applicationFileService.getUploadedFiles(UploadDspFileUsage.addendumFromApplication(applicationDetail)))
+        .thenReturn(List.of(addendum));
+
+    var result = recordOfDecisionTaskListService.getSignedDspSummaryItem(applicationDetail);
+
+    assertThat(result).isPresent();
+    assertThat(result.get().summaryCards())
+        .extracting(SummaryCard::displayName)
+        .containsExactly(
+            RecordOfDecisionTaskListService.SIGNED_DSP_HEADING,
+            RecordOfDecisionTaskListService.DSP_ADDENDUMS_HEADING);
   }
 
   @Test

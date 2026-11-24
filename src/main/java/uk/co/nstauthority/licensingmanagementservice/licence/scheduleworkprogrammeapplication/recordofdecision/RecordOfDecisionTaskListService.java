@@ -2,12 +2,14 @@ package uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogra
 
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import uk.co.fivium.fileuploadlibrary.core.UploadedFile;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.caseevent.CaseEventService;
 import uk.co.nstauthority.licensingmanagementservice.caseevent.CaseEventType;
@@ -35,6 +37,7 @@ import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListSectionSer
 public class RecordOfDecisionTaskListService {
 
   static final String SIGNED_DSP_HEADING = "Signed DSP";
+  static final String DSP_ADDENDUMS_HEADING = "DSP addendums";
   static final String SUBMITTED_BY_USER_PURPOSE = "Fetch submitted by user for record of decision task list";
   static final String STEWARD_USER_PURPOSE = "Fetch steward user for record of decision task list";
 
@@ -117,9 +120,24 @@ public class RecordOfDecisionTaskListService {
                 .downloadSignedDsp(file.getId(), applicationDetail.getId(), null, null))))
         .toList();
 
-    return Optional.of(SummaryItem.withCards(
-        null,
-        List.of(SummaryCard.filesSummaryCardWithHeading(SIGNED_DSP_HEADING, fileViews))));
+    var cards = new ArrayList<SummaryCard>();
+    cards.add(SummaryCard.filesSummaryCardWithHeading(SIGNED_DSP_HEADING, fileViews));
+
+    var addendumFileViews = applicationFileService.getUploadedFiles(
+            UploadDspFileUsage.addendumFromApplication(applicationDetail))
+        .stream()
+        .sorted(Comparator.comparing(UploadedFile::getUploadedAt))
+        .map(file -> SummaryFileView.newFromUploadedFile(
+            file.getKey(),
+            file,
+            ReverseRouter.route(on(RecordOfDecisionTaskListController.class)
+                .downloadDspAddendum(file.getId(), applicationDetail.getId(), null, null))))
+        .toList();
+    if (!addendumFileViews.isEmpty()) {
+      cards.add(SummaryCard.filesSummaryCardWithHeading(DSP_ADDENDUMS_HEADING, addendumFileViews));
+    }
+
+    return Optional.of(SummaryItem.withCards(null, cards));
   }
 
   public ScheduleWorkProgrammeApplicationContext getApplicationContext(

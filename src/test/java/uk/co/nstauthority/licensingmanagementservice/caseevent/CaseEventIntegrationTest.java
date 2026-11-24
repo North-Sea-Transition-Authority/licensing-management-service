@@ -24,6 +24,7 @@ import uk.co.nstauthority.licensingmanagementservice.caseevent.payload.CaseEvent
 import uk.co.nstauthority.licensingmanagementservice.caseevent.payload.CaseNotePayload;
 import uk.co.nstauthority.licensingmanagementservice.caseevent.payload.CaseUpdateRequestPayload;
 import uk.co.nstauthority.licensingmanagementservice.caseevent.payload.CaseUpdateSubmittedPayload;
+import uk.co.nstauthority.licensingmanagementservice.caseevent.payload.DspAddendumUploadedPayload;
 import uk.co.nstauthority.licensingmanagementservice.caseevent.payload.DspCorrectedPayload;
 import uk.co.nstauthority.licensingmanagementservice.caseevent.payload.DspUploadedPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
@@ -165,7 +166,8 @@ class CaseEventIntegrationTest {
         Arguments.of(CaseEventType.APPLICATION_UPDATE_REQUESTED, new CaseUpdateRequestPayload(LocalDate.of(2026, Month.DECEMBER, 1), "Further information is needed")),
         Arguments.of(CaseEventType.APPLICATION_UPDATE_SUBMITTED, new CaseUpdateSubmittedPayload(2)),
         Arguments.of(CaseEventType.DSP_UPLOADED, new DspUploadedPayload(List.of(UUID.randomUUID(), UUID.randomUUID()))),
-        Arguments.of(CaseEventType.DSP_CORRECTED, new DspCorrectedPayload(List.of(UUID.randomUUID()), List.of(UUID.randomUUID())))
+        Arguments.of(CaseEventType.DSP_CORRECTED, new DspCorrectedPayload(List.of(UUID.randomUUID()), List.of(UUID.randomUUID()))),
+        Arguments.of(CaseEventType.DSP_ADDENDUM_UPLOADED, new DspAddendumUploadedPayload(List.of(UUID.randomUUID())))
     );
   }
 

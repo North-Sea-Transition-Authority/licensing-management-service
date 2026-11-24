@@ -430,10 +430,17 @@
     </@lmsTimeStamp.lmsTimeStamp>
 </#macro>
 
-<#macro areaEvent eventView>
-    <#assign timeStampClass = "">
-    <#if eventView.showProgress()>
-        <#assign timeStampClass = "fds-timeline__time-stamp--complete">
+<#macro areaEvent eventView last=false>
+    <#if last>
+        <#assign timeStampClass = "fds-timeline__time-stamp--no-border">
+        <#if eventView.showProgress()>
+            <#assign timeStampClass = "fds-timeline__time-stamp--complete--no-border">
+        </#if>
+    <#else>
+        <#assign timeStampClass = "">
+        <#if eventView.showProgress()>
+            <#assign timeStampClass = "fds-timeline__time-stamp--complete">
+        </#if>
     </#if>
 
     <@lmsTimeStamp.lmsTimeStamp
@@ -443,6 +450,9 @@
     nodeNumberClass="fds-timeline__node-number--small-dot"
     >
         <@fdsTimeline.timelineEvent>
+            <#if eventView.areaType()?has_content>
+                <p class="govuk-caption-m">${eventView.areaType()}</p>
+            </#if>
             <#if eventView.description()?has_content>
                 <p class="govuk-body">
                     ${eventView.description()}

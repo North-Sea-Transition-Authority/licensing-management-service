@@ -119,10 +119,13 @@ a schedule version rather than as schedule events:
   null on older hand-entered `PA` events, which PEARS holds without them.
 - The timeline shows them, read-only, under their own filter, "Retention, development and
   pre-producing areas" (`ScheduleEventType.AREA`). Each one sits in the term or phase its
-  `event_date` falls in, as other dated events do, so one dated outside every term (or, in a term
-  with phases, outside every phase) isn't shown. The heading is the area name and its short name,
+  `event_date` falls in, as other dated events do. An area can sit outside the terms, as when it
+  carries on after a licence's last term, so one dated after the last term is shown in its own
+  section, "After the …" that term. The heading is the area name and its short name,
   with `v` and the version from version 2 on (`Area one (A1v2)`), as PEARS shows it. A hand-entered
-  event with no area is headed "Pre-producing area". The body is the event's `comments`.
+  event with no area is headed "Pre-producing area". Below the heading is the area type, from
+  `area_type` ("Retention area", "Development area" or "Pre-producing area"; from `event_mnem` when
+  there is no type), left out where the heading already says it. The body is the event's `comments`.
 
 | Column | Meaning |
 |---|---|

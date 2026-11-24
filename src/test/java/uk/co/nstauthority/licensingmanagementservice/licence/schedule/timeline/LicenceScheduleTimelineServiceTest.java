@@ -2854,6 +2854,41 @@ class LicenceScheduleTimelineServiceTest {
   }
 
   @Test
+  void getEditableLicenceScheduleEventViews_areaEventsAfterTheLastTerm_areShownAfterIt() {
+    var term = termWithoutPhases();
+    var inTheTerm = areaEvent(LocalDate.of(2025, Month.MARCH, 1), "Approval: 01-03-2025");
+    var expiry = areaEvent(LocalDate.of(2027, Month.MARCH, 1), "Expiry: 01-03-2027");
+    var workProgramme = areaEvent(LocalDate.of(2026, Month.MARCH, 1), "Drill one well");
+    givenTheTimelineHas(term, List.of(inTheTerm, expiry, workProgramme));
+
+    var form = new ScheduleTimelineFilterForm();
+    form.setEventTypes(ScheduleEventType.getFilterDefaults());
+
+    var result = licenceScheduleTimelineService.getEditableLicenceScheduleEventViews(licenceScheduleDetail, form, List.of());
+
+    var termView = result.getFirst();
+    assertThat(termView.events())
+        .extracting(event -> ((TimelineAreaEventView) event).description())
+        .containsExactly("Approval: 01-03-2025");
+    assertThat(termView.eventsAfterTerm())
+        .extracting(event -> ((TimelineAreaEventView) event).description())
+        .containsExactly("Drill one well", "Expiry: 01-03-2027");
+  }
+
+  @Test
+  void getEditableLicenceScheduleEventViews_areasFilteredOut_thenNoAreaEventsShownAfterTheTerms() {
+    var term = termWithoutPhases();
+    givenTheTimelineHas(term, List.of(areaEvent(LocalDate.of(2027, Month.MARCH, 1), "Expiry: 01-03-2027")));
+
+    var form = new ScheduleTimelineFilterForm();
+    form.setEventTypes(List.of(ScheduleEventType.OTHER.name()));
+
+    var result = licenceScheduleTimelineService.getEditableLicenceScheduleEventViews(licenceScheduleDetail, form, List.of());
+
+    assertThat(result.getFirst().eventsAfterTerm()).isEmpty();
+  }
+
+  @Test
   void getEditableLicenceScheduleEventViews_areasFilteredOut_thenNoAreaEventsShown() {
     var term = termWithoutPhases();
     givenTheTimelineHas(term, List.of(areaEvent(LocalDate.of(2025, Month.MARCH, 1), "Approval: 01-03-2025")));

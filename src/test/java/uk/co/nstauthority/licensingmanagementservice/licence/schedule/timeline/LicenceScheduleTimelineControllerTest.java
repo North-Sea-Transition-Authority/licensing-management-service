@@ -125,10 +125,10 @@ class LicenceScheduleTimelineControllerTest extends AbstractControllerTest {
     when(licenceService.findLicenceByIdOrThrow(licence.getId())).thenReturn(licence);
     when(licenceScheduleDetailService.getByIdOrThrow(licenceScheduleDetail.getId())).thenReturn(licenceScheduleDetail);
 
-    var inATerm = new TimelineAreaEventView("Area one (A1)", "Approval: 01-03-2025", LocalDate.of(2025, Month.MARCH, 1),
-        "1 March 2025", true);
-    var inAPhase = new TimelineAreaEventView("Area two (A2v2)", "Drill one well", LocalDate.of(2031, Month.MARCH, 1),
-        "1 March 2031", false);
+    var inATerm = new TimelineAreaEventView("Area one (A1)", "Development area", "Approval: 01-03-2025",
+        LocalDate.of(2025, Month.MARCH, 1), "1 March 2025", true);
+    var inAPhase = new TimelineAreaEventView("Area two (A2v2)", "Pre-producing area", "Drill one well",
+        LocalDate.of(2031, Month.MARCH, 1), "1 March 2031", false);
     var phase = new TimelinePhaseView(List.of(inAPhase), List.of(), PhaseType.PHASE_A, LocalDate.of(2030, Month.JANUARY, 1),
         "", "", "", "", "", List.of(), false, false);
     var scheduleEventViews = List.of(
@@ -152,10 +152,53 @@ class LicenceScheduleTimelineControllerTest extends AbstractControllerTest {
         )
         .andExpect(status().isOk())
         .andExpect(content().string(containsString("Area one (A1)")))
+        .andExpect(content().string(containsString("Development area")))
         .andExpect(content().string(containsString("Approval: 01-03-2025")))
         .andExpect(content().string(containsString("Area two (A2v2)")))
         .andExpect(content().string(containsString("Drill one well")))
         .andExpect(content().string(containsString(ScheduleEventType.AREA.getDisplayName())));
+  }
+
+  @Test
+  void renderLicenceScheduleTimeline_withAreaEventsAfterTheTerms_rendersThemAfterTheLastTermEndingTheLineOnTheLast()
+      throws Exception {
+    when(licenceService.findLicenceByIdOrThrow(licence.getId())).thenReturn(licence);
+    when(licenceScheduleDetailService.getByIdOrThrow(licenceScheduleDetail.getId())).thenReturn(licenceScheduleDetail);
+
+    var firstAfter = new TimelineAreaEventView("Area one (A1)", "Retention area", "",
+        LocalDate.of(2025, Month.JANUARY, 1), "1 January 2025", false);
+    var lastAfter = new TimelineAreaEventView("Area two (A2v2)", "Pre-producing area", "Expiry: 22-05-2030",
+        LocalDate.of(2030, Month.MAY, 22), "22 May 2030", false);
+    var phase = new TimelinePhaseView(List.of(), List.of(), PhaseType.PHASE_A, LocalDate.of(2008, Month.JULY, 1),
+        "", "", "", "", "", List.of(), true, true);
+    var scheduleEventViews = List.of(
+        new TimelineTermView(List.of(phase), List.of(), TermType.INITIAL, "", "", "", "", "", true, List.of(),
+            true, true, List.of()),
+        new TimelineTermView(List.of(), List.of(), TermType.SECOND, "", "30 June 2019", "", "", "", false, List.of(), true,
+            true, List.of(firstAfter, lastAfter))
+    );
+    var allowedActions = List.of(ScheduleEventAction.EDIT_SCHEDULE_EVENTS, ScheduleEventAction.EDIT_WORK_PROGRAMME);
+
+    when(licenceScheduleTimelineService.getTimelineSummaryCardView(licenceScheduleDetail))
+        .thenReturn(new TimelineSummaryCardView("date", "date2", true, "1", LicenceStatusType.EXTANT.getDisplayName(), "", "",
+            List.of()));
+    when(licenceScheduleTimelineService.getAllowedEventActionsForUser(regulatorUser)).thenReturn(allowedActions);
+    when(licenceScheduleTimelineService.getLicenceScheduleTimelineActions(licenceScheduleDetail, allowedActions))
+        .thenReturn(List.of());
+    when(licenceScheduleTimelineService.getEditableLicenceScheduleEventViews(eq(licenceScheduleDetail), any(), eq(allowedActions)))
+        .thenReturn(scheduleEventViews);
+
+    mockMvc.perform(
+            get(viewTimelineUrl)
+                .with(user(regulatorUser))
+        )
+        .andExpect(status().isOk())
+        .andExpect(content().string(stringContainsInOrder(
+            "Initial Term", "After the Second Term", "30 June 2019",
+            "<li class=\"fds-timeline__time-stamp \">", "Area one (A1)",
+            "<li class=\"fds-timeline__time-stamp fds-timeline__time-stamp--no-border\">", "Area two (A2v2)",
+            "Expiry: 22-05-2030"
+        )));
   }
 
   @Test

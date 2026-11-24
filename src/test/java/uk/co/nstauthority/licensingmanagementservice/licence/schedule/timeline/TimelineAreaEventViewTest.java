@@ -53,6 +53,30 @@ class TimelineAreaEventViewTest {
   }
 
   @Test
+  void getScheduleEventFrom_areaTypes_thenTheKindOfArea() {
+    assertThat(view(typedAreaEvent("RD", "RETENTION"), EVENT_DATE).areaType()).isEqualTo(TimelineAreaEventView.RETENTION_AREA);
+    assertThat(view(typedAreaEvent("RD", "DEVELOPMENT"), EVENT_DATE).areaType())
+        .isEqualTo(TimelineAreaEventView.DEVELOPMENT_AREA);
+    assertThat(view(typedAreaEvent("PA", "PROSPECTIVE"), EVENT_DATE).areaType())
+        .isEqualTo(TimelineAreaEventView.PRE_PRODUCING_AREA);
+  }
+
+  @Test
+  void getScheduleEventFrom_noAreaType_thenTheKindFromTheEventCode() {
+    assertThat(view(typedAreaEvent("RD", null), EVENT_DATE).areaType())
+        .isEqualTo(TimelineAreaEventView.RETENTION_OR_DEVELOPMENT_AREA);
+    assertThat(view(typedAreaEvent("PA", " "), EVENT_DATE).areaType()).isEqualTo(TimelineAreaEventView.PRE_PRODUCING_AREA);
+  }
+
+  @Test
+  void getScheduleEventFrom_noArea_thenNoKindAsTheHeadingSaysIt() {
+    var view = view(areaEvent("PA", null, null, null, "Pre-producing area approved"), EVENT_DATE);
+
+    assertThat(view.heading()).isEqualTo(TimelineAreaEventView.PRE_PRODUCING_AREA);
+    assertThat(view.areaType()).isEmpty();
+  }
+
+  @Test
   void getScheduleEventFrom_showsProgressUpToTheProgressDate() {
     var areaEvent = areaEvent("RD", "Area one", "A1", "1", null);
 
@@ -62,6 +86,12 @@ class TimelineAreaEventViewTest {
 
   private static TimelineAreaEventView view(LicenceScheduleAreaEvent areaEvent, LocalDate finalProgressDate) {
     return (TimelineAreaEventView) TimelineAreaEventView.getScheduleEventFrom(areaEvent, finalProgressDate);
+  }
+
+  private static LicenceScheduleAreaEvent typedAreaEvent(String eventMnem, String areaType) {
+    var areaEvent = areaEvent(eventMnem, "Area one", "A1", "1", null);
+    areaEvent.setAreaType(areaType);
+    return areaEvent;
   }
 
   private static LicenceScheduleAreaEvent areaEvent(

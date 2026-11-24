@@ -15,5 +15,32 @@ public record TimelineTermView(
     String addCommentUrl,
     boolean hasPhases,
     List<EventCommentView> comments,
-    boolean showStartDateProgress, boolean showEndDateProgress) {
+    boolean showStartDateProgress,
+    boolean showEndDateProgress,
+    List<ScheduleEvent> eventsAfterTerm
+) {
+
+  public TimelineTermView(
+      List<ScheduleEvent> events,
+      List<ScheduleEvent> endOfTermEvents,
+      TermType termType,
+      String dateDurationString,
+      String endDateString,
+      String updateUrl,
+      String deleteUrl,
+      String addCommentUrl,
+      boolean hasPhases,
+      List<EventCommentView> comments,
+      boolean showStartDateProgress,
+      boolean showEndDateProgress
+  ) {
+    this(events, endOfTermEvents, termType, dateDurationString, endDateString, updateUrl, deleteUrl, addCommentUrl,
+        hasPhases, comments, showStartDateProgress, showEndDateProgress, List.of());
+  }
+
+  TimelineTermView withEventsAfterTerm(List<ScheduleEvent> after) {
+    return new TimelineTermView(events, endOfTermEvents, termType, dateDurationString, endDateString, updateUrl, deleteUrl,
+        addCommentUrl, hasPhases, comments, showStartDateProgress, showEndDateProgress, after
+    );
+  }
 }

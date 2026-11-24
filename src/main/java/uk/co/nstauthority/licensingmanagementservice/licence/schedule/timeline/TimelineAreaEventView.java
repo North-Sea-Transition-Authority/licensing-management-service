@@ -1,6 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline;
 
 import java.time.LocalDate;
+import java.util.Locale;
 import java.util.Objects;
 import org.apache.commons.lang3.StringUtils;
 import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
@@ -8,6 +9,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.areaevent.
 
 public record TimelineAreaEventView(
     String heading,
+    String areaType,
     String description,
     LocalDate eventDate,
     String eventDateString,
@@ -16,6 +18,8 @@ public record TimelineAreaEventView(
 
   static final String PRE_PRODUCING_AREA = "Pre-producing area";
   static final String RETENTION_OR_DEVELOPMENT_AREA = "Retention or development area";
+  static final String RETENTION_AREA = "Retention area";
+  static final String DEVELOPMENT_AREA = "Development area";
 
   @Override
   public ScheduleEventType getEventType() {
@@ -28,13 +32,29 @@ public record TimelineAreaEventView(
   }
 
   public static ScheduleEvent getScheduleEventFrom(LicenceScheduleAreaEvent areaEvent, LocalDate finalProgressDate) {
+    var heading = heading(areaEvent);
     return new TimelineAreaEventView(
-        heading(areaEvent),
+        heading,
+        areaType(areaEvent, heading),
         Objects.requireNonNullElse(areaEvent.getComments(), ""),
         areaEvent.getEventDate(),
         DateFormatUtil.convertToDisplayText(areaEvent.getEventDate()),
         !areaEvent.getEventDate().isAfter(finalProgressDate)
     );
+  }
+
+  /**
+   * The area type, from the area's own type or else the event's code. Empty where the heading already says it, as for an event
+   * with no area.
+   */
+  private static String areaType(LicenceScheduleAreaEvent areaEvent, String heading) {
+    var type = switch (StringUtils.trimToEmpty(areaEvent.getAreaType()).toUpperCase(Locale.ROOT)) {
+      case "RETENTION" -> RETENTION_AREA;
+      case "DEVELOPMENT" -> DEVELOPMENT_AREA;
+      case "PROSPECTIVE" -> PRE_PRODUCING_AREA;
+      default -> "PA".equals(areaEvent.getEventMnem()) ? PRE_PRODUCING_AREA : RETENTION_OR_DEVELOPMENT_AREA;
+    };
+    return type.equals(heading) ? "" : type;
   }
 
   /**

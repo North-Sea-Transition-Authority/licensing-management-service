@@ -9,6 +9,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
@@ -335,7 +336,7 @@ public class LicenceScheduleTimelineService {
         scheduleEventData.allRates()
     );
 
-    return terms.stream()
+    var termViews = terms.stream()
         .sorted(Comparator.comparing(term -> term.getTermType().getDisplayOrder()))
         .map(term -> convertToTimelineTermView(
             term,
@@ -348,6 +349,35 @@ public class LicenceScheduleTimelineService {
             scheduleEventData
         ))
         .toList();
+
+    return includedEventTypes.contains(ScheduleEventType.AREA)
+        ? withAreaEventsAfterTerms(termViews, terms, scheduleEventData, finalProgressDate)
+        : termViews;
+  }
+
+  /**
+   * An area can carry on after a licence's last term, so its events are shown there rather than left off the timeline.
+   */
+  private List<TimelineTermView> withAreaEventsAfterTerms(
+      List<TimelineTermView> termViews,
+      List<LicenceScheduleTerm> terms,
+      ScheduleEventData scheduleEventData,
+      LocalDate finalProgressDate
+  ) {
+    var lastEnd = terms.stream().map(LicenceScheduleTerm::getEndDate).filter(Objects::nonNull)
+        .max(Comparator.naturalOrder());
+    if (termViews.isEmpty() || lastEnd.isEmpty()) {
+      return termViews;
+    }
+
+    var after = scheduleEventData.allAreaEvents().stream()
+        .filter(areaEvent -> areaEvent.getEventDate() != null && areaEvent.getEventDate().isAfter(lastEnd.get()))
+        .sorted(Comparator.comparing(LicenceScheduleAreaEvent::getEventDate))
+        .map(areaEvent -> TimelineAreaEventView.getScheduleEventFrom(areaEvent, finalProgressDate))
+        .toList();
+    var views = new ArrayList<>(termViews);
+    views.set(views.size() - 1, views.getLast().withEventsAfterTerm(after));
+    return views;
   }
 
   /**

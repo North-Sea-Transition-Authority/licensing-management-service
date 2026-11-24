@@ -733,9 +733,17 @@ history faithful.
 - A new timeline event type, `ScheduleEventType.AREA` ("Retention, development and pre-producing
   areas", filterable), looked up from `licence_schedule_area_events` for the detail being viewed.
   The filter offers it on every schedule, as it does the other event types. Each event sits in the
-  term or phase its date falls in, like other dated events. The heading is the area name and
+  term or phase its date falls in, like other dated events. **Outside the terms (20 November
+  2026):** an area can legitimately sit outside a licence's terms, so an event dated after the last
+  term is shown in its own section of the timeline, such as "After the Second Term". None on dev or
+  live is dated before the first term, and no live schedule has both phases and area events, so
+  none falls between phases; neither case is handled.
+  On live, 27 `P` licences with no `E` have 151 `PA` events after their last term, many current
+  (P198 has 30 to 2030); without this they wouldn't be shown at all. The heading is the area name and
   versioned short name, `Area one (A1v2)` (as PEARS shows it,
   `licensing_retention_areas.get_versioned_short_name`: the version is added from version 2 on),
+  with the area type below it ("Retention area", "Development area" or "Pre-producing area", from
+  `area_type`, which PEARS's grid doesn't show; LMS1-501),
   and the body is the comments. Built in PR 6.
 - **Read-only** in phase 1. They are not `ScheduleEvent` subclasses and take no part in term/phase
   date calculation.
@@ -2074,7 +2082,7 @@ for bespoke milestones, and the percentage as a number, and PR 5 turns them into
 | 3 | 5 | **Mapper: rates.** Occurrence expansion (`RECURRANCES` counts), placement per phase/term, gap handling ((a): gaps taken as errors and noted, per L12 for now), fixed-count rates (PL116, AL10 overlap), rate values and rounding. Option A (Open question 7, for now). | Unit tests: P2522, P516, PL116, AL10, a yearly rate crossing phase and term boundaries; S14b dates reproduced (P1609). |
 | 4 | 5 | **Mapper: other events.** `MR` with percentage, `BM`, `DD`/`2M`/`2N`, default descriptions, anchoring to a term, comments as `EventComment`s (new or changed only), `original_event_id` matching across versions. | Unit tests: P2244's two `BM` events, a multi-version licence, the percentage cases (`x`, `50%`, comment-only). |
 | 5 | 6 | **Write.** `PearsScheduleMigrationService.migrateLicence` (one licence per transaction, idempotent), date calculation for every version, cross-licence cache refresh, `licence_schedule_area_events` (Flyway) with `RD`/`PA` copied as is and copied on draft duplication, `pears_schedule_event_migration_links` and `pears_schedule_migrated_licences` (manual script). Turns the mapper's records into entities: term 4 into `TermType.FOURTH`, its bespoke milestone category into `BESPOKE_MILESTONE`, the percentage into the new column, events sharing an `eventKey` into one `originalEventId`, and new `MappedComment`s into published `EventComment`s. Needs A, B and C on `develop`; until A lands, licences with a bespoke milestone are skipped. Expiry stored as `E - 1 day` (Open question 8, for now). | Integration test (Testcontainers Postgres, mapper input stubbed): migrate, re-run skips, failure rolls back the whole licence. |
-| 6 | 6a | **Area events on the timeline.** Read-only, filterable display of `licence_schedule_area_events` (`ScheduleEventType.AREA`, `TimelineAreaEventView`), in the term or phase each event's date falls in. | Unit tests for the heading (versioned short name, hand-entered events), placement in terms and phases, and the filter; a controller test renders them. Licences without area events show no area events. |
+| 6 | 6a | **Area events on the timeline.** Read-only, filterable display of `licence_schedule_area_events` (`ScheduleEventType.AREA`, `TimelineAreaEventView`), in the term or phase each event's date falls in. Since LMS1-501, one dated after the last term is shown in an "After the …" section. | Unit tests for the heading (versioned short name, hand-entered events), placement in terms and phases (and after the last term), and the filter; a controller test renders them. Licences without area events show no area events. |
 | 7 | 7 | **Background run.** Run and queue tables (manual script, as they are migration-only), `PearsScheduleMigrationRunService`, `PearsScheduleMigrationJob` (ShedLock), controller (start, status, retry-failed, cancel). | Tests: restart mid-run, a second instance, cancel, retry. |
 | 8 | 7a | **Cleardown.** `PearsScheduleCleardownService`, the `CLEARDOWN` run kind and endpoint, behind `pears.schedule-migration.cleardown-enabled` (section 4a). | Integration tests: migrate, clear, migrate again with the same result; every row hanging off the schedule goes, audit history of deleted events included; the licence, other licences' rows and an LMS-created schedule are untouched; run history goes once no migrated schedule is left; 404 without the property. |
 | 9 | 8 | **Comparison.** `PearsScheduleComparisonService`, `PearsScheduleComparisonController` (HTML, CSV, `versions=all`). | Tests over a migrated fixture licence: every result type. |

@@ -104,7 +104,26 @@
                         </@fdsTimeline.timeline>
                     </@fdsAccordion.accordionSection>
                 </#list>
+                <#if scheduleEventViews?has_content && scheduleEventViews?last.eventsAfterTerm()?has_content>
+                    <@areaEventsAfterTerms
+                    sectionHeading="After the ${scheduleEventViews?last.termType().displayName}"
+                    summaryText="Area events dated after ${scheduleEventViews?last.endDateString()}, the end of the licence's terms"
+                    areaEvents=scheduleEventViews?last.eventsAfterTerm()
+                    />
+                </#if>
             </@fdsAccordion.accordion>
         </@fdsSearch.searchPageContent>
     </@fdsSearch.searchPage>
+</#macro>
+
+<#macro areaEventsAfterTerms sectionHeading summaryText areaEvents>
+    <@fdsAccordion.accordionSection sectionHeading=sectionHeading summaryText=summaryText>
+        <@fdsTimeline.timeline>
+            <@fdsTimeline.timelineSection>
+                <#list areaEvents as eventView>
+                    <@scheduleEvents.areaEvent eventView=eventView last=eventView?is_last/>
+                </#list>
+            </@fdsTimeline.timelineSection>
+        </@fdsTimeline.timeline>
+    </@fdsAccordion.accordionSection>
 </#macro>

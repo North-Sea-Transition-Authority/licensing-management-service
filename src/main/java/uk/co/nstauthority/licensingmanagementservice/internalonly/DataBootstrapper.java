@@ -3,6 +3,7 @@ package uk.co.nstauthority.licensingmanagementservice.internalonly;
 import jakarta.persistence.EntityManager;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.slf4j.Logger;
@@ -28,7 +29,6 @@ import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
 public class DataBootstrapper {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(DataBootstrapper.class);
-  private static final String INDUSTRY_TEAM_NAME = "BP EXPLORATION";
 
   private final EnergyPortalUserService energyPortalUserService;
   private final EntityManager entityManager;
@@ -97,19 +97,28 @@ public class DataBootstrapper {
     regulationsLicensingUserMap.put(Role.DECISION_EXECUTOR, "decision.executor@lms.co.uk");
     regulatorTeamUsers.put(TeamType.REGULATIONS_LICENSING, regulationsLicensingUserMap);
 
-    var industryTeamUsers = new HashMap<Role, String>();
-    industryTeamUsers.put(Role.MANAGE_TEAM, "bp.administrator@lms.co.uk");
-    industryTeamUsers.put(Role.LICENSEE_CONTACTS_MANAGER, "bp.contacts.manager@lms.co.uk");
-    industryTeamUsers.put(Role.APPLICATION_EDITOR, "bp.editor@lms.co.uk");
-    industryTeamUsers.put(Role.APPLICATION_SUBMITTER, "bp.submitter@lms.co.uk");
-    industryTeamUsers.put(Role.VIEW_ORGANISATION_LICENCES, "bp.viewer@lms.co.uk");
+    var industryTeams = List.of(
+        new IndustryTeam("BP EXPLORATION", "50", industryTeamUsers("bp")),
+        new IndustryTeam("ITHACA ENERGY INC.", "1403", industryTeamUsers("ithaca"))
+    );
 
-    var emailAddresses = new HashSet<String>(industryTeamUsers.values());
+    var emailAddresses = new HashSet<String>();
     regulatorTeamUsers.values().forEach(roleUserMap -> emailAddresses.addAll(roleUserMap.values()));
+    industryTeams.forEach(industryTeam -> emailAddresses.addAll(industryTeam.roleUserMap().values()));
     var usersByEmail = findUsersByEmail(emailAddresses);
 
     bootstrapRegulatorTeams(regulatorTeamUsers, usersByEmail);
-    bootstrapIndustryTeam(industryTeamUsers, usersByEmail);
+    industryTeams.forEach(industryTeam -> bootstrapIndustryTeam(industryTeam, usersByEmail));
+  }
+
+  private Map<Role, String> industryTeamUsers(String emailPrefix) {
+    var industryTeamUsers = new HashMap<Role, String>();
+    industryTeamUsers.put(Role.MANAGE_TEAM, emailPrefix + ".administrator@lms.co.uk");
+    industryTeamUsers.put(Role.LICENSEE_CONTACTS_MANAGER, emailPrefix + ".contacts.manager@lms.co.uk");
+    industryTeamUsers.put(Role.APPLICATION_EDITOR, emailPrefix + ".editor@lms.co.uk");
+    industryTeamUsers.put(Role.APPLICATION_SUBMITTER, emailPrefix + ".submitter@lms.co.uk");
+    industryTeamUsers.put(Role.VIEW_ORGANISATION_LICENCES, emailPrefix + ".viewer@lms.co.uk");
+    return industryTeamUsers;
   }
 
   private Map<String, EnergyPortalUserJson> findUsersByEmail(Set<String> emailAddresses) {
@@ -129,35 +138,42 @@ public class DataBootstrapper {
     return usersByEmail;
   }
 
-  private void bootstrapIndustryTeam(Map<Role, String> industryTeamUsers, Map<String, EnergyPortalUserJson> usersByEmail) {
+  private void bootstrapIndustryTeam(IndustryTeam industryTeamToBootstrap,
+                                     Map<String, EnergyPortalUserJson> usersByEmail) {
+    var teamName = industryTeamToBootstrap.name();
+    var organisationGroupId = industryTeamToBootstrap.organisationGroupId();
 
     var industryTeamCount = (Integer) entityManager.createNativeQuery(
-            "SELECT COUNT(*) FROM lms.teams t WHERE t.type = :type AND t.name = :name",
+            "SELECT COUNT(*) FROM lms.teams t " +
+                "WHERE t.type = :type AND t.scope_type = :scopeType AND t.scope_id = :scopeId",
             Integer.class
         )
         .setParameter("type", TeamType.ORGANISATION.name())
-        .setParameter("name", INDUSTRY_TEAM_NAME)
+        .setParameter("scopeType", ScopeType.ORGANISATION_GROUP.name())
+        .setParameter("scopeId", organisationGroupId)
         .getSingleResult();
 
     if (industryTeamCount == 0) {
-      LOGGER.info("Bootstrapping industry team");
+      LOGGER.info("Bootstrapping industry team {}", teamName);
       var team = new Team();
-      team.setName(INDUSTRY_TEAM_NAME);
+      team.setName(teamName);
       team.setTeamType(TeamType.ORGANISATION);
       team.setScopeType(ScopeType.ORGANISATION_GROUP.name());
-      team.setScopeId("50");
+      team.setScopeId(organisationGroupId);
       entityManager.persist(team);
       entityManager.flush();
     }
 
     var industryTeam = (Team) entityManager.createNativeQuery(
-            "SELECT * FROM lms.teams t WHERE type = :type AND t.name = :name",
+            "SELECT * FROM lms.teams t " +
+                "WHERE t.type = :type AND t.scope_type = :scopeType AND t.scope_id = :scopeId",
             Team.class
         ).setParameter("type", TeamType.ORGANISATION.name())
-        .setParameter("name", INDUSTRY_TEAM_NAME)
+        .setParameter("scopeType", ScopeType.ORGANISATION_GROUP.name())
+        .setParameter("scopeId", organisationGroupId)
         .getSingleResult();
 
-    bootstrapTeamRoles(industryTeam, INDUSTRY_TEAM_NAME, industryTeamUsers, usersByEmail);
+    bootstrapTeamRoles(industryTeam, teamName, industryTeamToBootstrap.roleUserMap(), usersByEmail);
   }
 
   private void bootstrapRegulatorTeams(Map<TeamType, Map<Role, String>> regulatorTeamUsers,
@@ -222,5 +238,8 @@ public class DataBootstrapper {
     );
 
     energyPortalServiceAccessService.addUser(wuaId);
+  }
+
+  private record IndustryTeam(String name, String organisationGroupId, Map<Role, String> roleUserMap) {
   }
 }

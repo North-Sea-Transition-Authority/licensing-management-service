@@ -350,7 +350,7 @@ public class LicenceScheduleTimelineService {
         ))
         .toList();
 
-    return includedEventTypes.contains(ScheduleEventType.AREA)
+    return includedFilterOptions.contains(ScheduleTimelineFilterOption.AREA)
         ? withAreaEventsAfterTerms(termViews, terms, scheduleEventData, finalProgressDate)
         : termViews;
   }

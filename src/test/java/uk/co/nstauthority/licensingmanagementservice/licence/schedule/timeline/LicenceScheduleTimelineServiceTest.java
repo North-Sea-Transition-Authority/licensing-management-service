@@ -2880,7 +2880,7 @@ class LicenceScheduleTimelineServiceTest {
     givenTheTimelineHas(term, List.of(inTheTerm, expiry, workProgramme));
 
     var form = new ScheduleTimelineFilterForm();
-    form.setEventTypes(ScheduleEventType.getFilterDefaults());
+    form.setEventTypes(ScheduleTimelineFilterOption.getDefaults());
 
     var result = licenceScheduleTimelineService.getEditableLicenceScheduleEventViews(licenceScheduleDetail, form, List.of());
 
@@ -2899,7 +2899,7 @@ class LicenceScheduleTimelineServiceTest {
     givenTheTimelineHas(term, List.of(areaEvent(LocalDate.of(2027, Month.MARCH, 1), "Expiry: 01-03-2027")));
 
     var form = new ScheduleTimelineFilterForm();
-    form.setEventTypes(List.of(ScheduleEventType.OTHER.name()));
+    form.setEventTypes(List.of(ScheduleTimelineFilterOption.OTHER.name()));
 
     var result = licenceScheduleTimelineService.getEditableLicenceScheduleEventViews(licenceScheduleDetail, form, List.of());
 

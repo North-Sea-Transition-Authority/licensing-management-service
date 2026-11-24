@@ -46,6 +46,7 @@ class ScheduleWorkProgrammeApplicationOverviewService {
         .addStringValue("Submitted by", submittedByUser.displayNameAndEmail())
         .addStringValue("Submission date",
             DateFormatUtil.convertToDisplayTextWithTime(applicationDetail.getSubmittedDatetime()))
+        .addStringValue("Status", applicationDetail.getStatus().getDisplayName())
         .addStringValue("Steward", getStewardName(applicationDetail.getScheduleWorkProgrammeApplication()))
         .build();
 
@@ -70,6 +71,7 @@ class ScheduleWorkProgrammeApplicationOverviewService {
   ) {
     var summaryDataView = SummaryDataView.newBuilder()
         .addStringValue("Created", DateFormatUtil.convertToDisplayTextWithTime(applicationDetail.getCreatedDatetime()))
+        .addStringValue("Status", applicationDetail.getStatus().getDisplayName())
         .build();
 
     return new ScheduleWorkProgrammeApplicationContext(

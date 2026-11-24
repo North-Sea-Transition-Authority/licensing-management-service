@@ -7,7 +7,6 @@
 <#import '../../summary/_externalViewerDraftApplicationBanner.ftl' as externalViewerBanner>
 
 <#macro overviewContent>
-  <@applicationContextInfo.applicationContextInfo applicationContext=applicationContext/>
   <@actionItems.actionItems actionItems=applicationActions screenReaderText=applicationContext.reference()/>
   <@scheduleApplicationSummary.scheduleApplicationSummary accordionId=accordionId summarySections=summarySections/>
 </#macro>
@@ -21,6 +20,8 @@ extendContainerWidth=true
   <#if isDraft>
     <@externalViewerBanner.externalViewerDraftApplicationBanner hasIncompleteSections=hasIncompleteSections/>
   </#if>
+
+  <@applicationContextInfo.applicationContextInfo applicationContext=applicationContext/>
 
   <#if availableTabs?size gt 1>
     <@caseProccessingTabs.caseProcessingTabsWithContent

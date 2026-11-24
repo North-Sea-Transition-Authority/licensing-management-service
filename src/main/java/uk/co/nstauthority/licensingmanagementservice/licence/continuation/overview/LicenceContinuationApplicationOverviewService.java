@@ -44,6 +44,7 @@ public class LicenceContinuationApplicationOverviewService {
         .addStringValue("Submitted by", submittedByUser.displayNameAndEmail())
         .addStringValue("Submission date",
             DateFormatUtil.convertToDisplayTextWithTime(applicationDetail.getSubmittedDatetime()))
+        .addStringValue("Status", applicationDetail.getStatus().getDisplayName())
         .build();
 
     return new LicenceContinuationApplicationContext(
@@ -59,6 +60,7 @@ public class LicenceContinuationApplicationOverviewService {
   ) {
     var summaryDataView = SummaryDataView.newBuilder()
         .addStringValue("Created", DateFormatUtil.convertToDisplayTextWithTime(applicationDetail.getCreatedDatetime()))
+        .addStringValue("Status", applicationDetail.getStatus().getDisplayName())
         .build();
 
     return new LicenceContinuationApplicationContext(

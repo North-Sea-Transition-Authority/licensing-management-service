@@ -124,7 +124,7 @@ class ScheduleWorkProgrammeApplicationOverviewServiceTest {
     var keys = context.summaryDataView().get(0).keyValues().stream()
         .map(SummaryKeyValue::key)
         .toList();
-    assertThat(keys).containsExactly("Submitted by", "Submission date", "Steward");
+    assertThat(keys).containsExactly("Submitted by", "Submission date", "Status", "Steward");
   }
 
   @Test
@@ -157,7 +157,8 @@ class ScheduleWorkProgrammeApplicationOverviewServiceTest {
     assertThat(getSummaryValueData(keyValues.get(0))).isEqualTo("John Smith (john.smith@example.com)");
     assertThat(getSummaryValueData(keyValues.get(1)))
         .isEqualTo(DateFormatUtil.convertToDisplayTextWithTime(Instant.parse("2024-03-15T10:30:00Z")));
-    assertThat(getSummaryValueData(keyValues.get(2))).isEqualTo("Not allocated");
+    assertThat(getSummaryValueData(keyValues.get(2))).isEqualTo(ApplicationStatus.SUBMITTED.getDisplayName());
+    assertThat(getSummaryValueData(keyValues.get(3))).isEqualTo("Not allocated");
   }
 
   @Test
@@ -180,6 +181,7 @@ class ScheduleWorkProgrammeApplicationOverviewServiceTest {
         "Carbon storage licence - CS1",
         List.of(SummaryDataView.newBuilder()
             .addStringValue("Created", DateFormatUtil.convertToDisplayTextWithTime(createdDate))
+            .addStringValue("Status", ApplicationStatus.DRAFT.getDisplayName())
             .build())
     );
     assertThat(context).usingRecursiveComparison().isEqualTo(expected);

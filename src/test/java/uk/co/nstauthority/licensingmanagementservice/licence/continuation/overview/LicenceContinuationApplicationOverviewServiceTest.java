@@ -125,7 +125,7 @@ class LicenceContinuationApplicationOverviewServiceTest {
     var keys = context.summaryDataView().get(0).keyValues().stream()
         .map(SummaryKeyValue::key)
         .toList();
-    assertThat(keys).containsExactly("Submitted by", "Submission date");
+    assertThat(keys).containsExactly("Submitted by", "Submission date", "Status");
   }
 
   @Test
@@ -157,6 +157,7 @@ class LicenceContinuationApplicationOverviewServiceTest {
     var keyValues = context.summaryDataView().get(0).keyValues();
     assertThat(getSummaryValueData(keyValues.get(0))).isEqualTo("John Smith (john.smith@example.com)");
     assertThat(getSummaryValueData(keyValues.get(1))).isNotBlank();
+    assertThat(getSummaryValueData(keyValues.get(2))).isEqualTo(ApplicationStatus.SUBMITTED.getDisplayName());
   }
 
   @Test
@@ -179,6 +180,7 @@ class LicenceContinuationApplicationOverviewServiceTest {
         "Production licence - P1",
         List.of(SummaryDataView.newBuilder()
             .addStringValue("Created", DateFormatUtil.convertToDisplayTextWithTime(createdDate))
+            .addStringValue("Status", ApplicationStatus.DRAFT.getDisplayName())
             .build())
     );
     assertThat(context).usingRecursiveComparison().isEqualTo(expected);

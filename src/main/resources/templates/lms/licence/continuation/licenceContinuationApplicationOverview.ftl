@@ -17,12 +17,13 @@ extendContainerWidth=true
         <@externalViewerBanner.externalViewerDraftApplicationBanner hasIncompleteSections=hasIncompleteSections/>
     </#if>
 
+    <@applicationContextInfo.applicationContextInfo applicationContext=applicationContext/>
+
     <@caseProccessingTabs.caseProcessingTabsWithContent
     tabs=availableTabs
     selectedTab={"value": selectedTab.value()} <#--TODO: Passing inline hash to avoid changing the shared macro. Fix change macro to use unified field or method instead of both -->
     controllerUrl=controllerUrl>
         <#if selectedTab.value() == "overview">
-            <@applicationContextInfo.applicationContextInfo applicationContext=applicationContext/>
             <@actionItems.actionItems actionItems=applicationActions screenReaderText=applicationContext.reference()/>
             <@continuationApplicationSummary.continuationApplicationSummary accordionId=accordionId summarySections=summarySections workProgrammeActivities=workProgrammeActivities![] isReviewer=isReviewer/>
         </#if>

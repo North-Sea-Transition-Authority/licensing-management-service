@@ -2,6 +2,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.correction.positio
 
 import jakarta.annotation.Nullable;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -235,5 +236,29 @@ public class OrganisationChangeService {
           currentOrganisationId, previousOrganisationId, currentName, previousName);
       default -> null;
     };
+  }
+
+  public String getJoiningOrganisationForReinstating(
+      LicenceCorrection licenceCorrection,
+      LicencePositionCorrection positionCorrectionToUndo,
+      Class<? extends LicenceOperation> operationType
+  ) {
+    var licencePositionId = positionCorrectionToUndo.getPositionId();
+
+    var remainingPositionCorrections = licencePositionCorrectionService.getPositionCorrections(licenceCorrection)
+        .stream()
+        .filter(correction -> !correction.getId().equals(positionCorrectionToUndo.getId()))
+        .toList();
+
+    var targetPositions = chronologicalPositionService.getCorrectedChronologicalPositions(
+        licenceCorrection,
+        remainingPositionCorrections,
+        Set.of(licencePositionId)
+    );
+
+    var uncorrectedChangeContext =
+        getOrganisationChangeContext(licenceCorrection, licencePositionId, operationType, targetPositions);
+
+    return uncorrectedChangeContext.currentName();
   }
 }

@@ -17,14 +17,11 @@ public class StorageOperatorChangeActionHandler implements ChangeActionHandler {
   private static final String TEMPLATE_NAME = "lms/licence/correction/change/removeStorageOperatorChange";
 
   private final OrganisationChangeService organisationChangeService;
-  private final StorageOperatorChangeService storageOperatorChangeService;
 
   StorageOperatorChangeActionHandler(
-      OrganisationChangeService organisationChangeService,
-      StorageOperatorChangeService storageOperatorChangeService
+      OrganisationChangeService organisationChangeService
   ) {
     this.organisationChangeService = organisationChangeService;
-    this.storageOperatorChangeService = storageOperatorChangeService;
   }
 
   @Override
@@ -55,7 +52,11 @@ public class StorageOperatorChangeActionHandler implements ChangeActionHandler {
     );
 
     var joiningStorageOperatorName = action == ChangeAction.REINSTATE
-        ? storageOperatorChangeService.getJoiningOperatorForReinstating(licenceCorrection, positionCorrection)
+        ? organisationChangeService.getJoiningOrganisationForReinstating(
+            licenceCorrection,
+            positionCorrection,
+            StorageOperatorOperation.class
+        )
         : storageOperatorChangeContext.currentName();
 
     return new ModelAndView(TEMPLATE_NAME)

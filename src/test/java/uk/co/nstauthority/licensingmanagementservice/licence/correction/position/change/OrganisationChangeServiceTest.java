@@ -8,6 +8,7 @@ import static org.mockito.Mockito.when;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
@@ -52,6 +53,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePos
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.OrganisationNameContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPositionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.PositionChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.PositionChangeTestUtil;
 
 @ExtendWith(MockitoExtension.class)
@@ -463,6 +465,70 @@ class OrganisationChangeServiceTest {
         .containsExactly(UpdateChangeOperations.buildUpdateChange(liveChangeId, currentOperation));
   }
 
+  @ParameterizedTest(name = "{argumentSetName}")
+  @MethodSource("getJoiningOrganisationForReinstating")
+  void getJoiningOrganisationForReinstating(
+      PositionChange organisationChange1,
+      PositionChange organisationChange2,
+      Class<? extends LicenceOperation> operationType
+  ) {
+    var correction = LicenceCorrectionTestUtil.newBuilder().withLicence(LICENCE).build();
+    var payloadToUndo = CreateLicencePositionPayloadTestUtil
+        .newBuilder()
+        .withLicencePositionId(POSITION_ID.toString())
+        .build();
+    var otherPayload = CreateLicencePositionPayloadTestUtil
+        .newBuilder()
+        .withLicencePositionId(POSITION_ID.toString())
+        .build();
+    var positionCorrectionToUndo = LicencePositionCorrectionTestUtil.newBuilder()
+        .withId(UUID.randomUUID())
+        .withPayload(payloadToUndo)
+        .build();
+    var otherPositionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+        .withId(UUID.randomUUID())
+        .withPayload(otherPayload)
+        .build();
+
+    var targetPosition1 = ChronologicalPositionTestUtil.newBuilder()
+        .withOrder(1)
+        .withChanges(List.of(organisationChange1))
+        .build();
+    var targetPosition2 = ChronologicalPositionTestUtil.newBuilder()
+        .withId(POSITION_ID)
+        .withOrder(2)
+        .withChanges(List.of(organisationChange2))
+        .build();
+    var targetPositions = List.of(targetPosition1, targetPosition2);
+
+    var organisationNameContext = new OrganisationNameContext(Map.of(
+        1, new OrganisationNamePeriods("Uncorrected Previous Org Name", List.of()),
+        2, new OrganisationNamePeriods("Uncorrected Current Org Name", List.of())
+    ));
+
+    when(licencePositionCorrectionService.getPositionCorrections(correction))
+        .thenReturn(List.of(positionCorrectionToUndo, otherPositionCorrection));
+    when(chronologicalPositionService.getCorrectedChronologicalPositions(correction, List.of(otherPositionCorrection), Set.of(POSITION_ID)))
+        .thenReturn(targetPositions);
+    when(licencePositionNameService.getOrganisationNameContext(targetPositions)).thenReturn(organisationNameContext);
+
+    assertThat(organisationChangeService.getJoiningOrganisationForReinstating(correction, positionCorrectionToUndo, operationType))
+        .isEqualTo("Uncorrected Current Org Name");
+  }
+
+  private static Stream<Arguments> getJoiningOrganisationForReinstating() {
+    return Stream.of(
+        Arguments.argumentSet("Licence Administrator",
+            buildPositionChange(administratorOperation(1)),
+            buildPositionChange(administratorOperation(2)),
+            AdministratorOperation.class),
+        Arguments.argumentSet("Storage Operator",
+            buildPositionChange(storageOperatorOperation(1)),
+            buildPositionChange(storageOperatorOperation(2)),
+            StorageOperatorOperation.class)
+    );
+  }
+
   private static Stream<Arguments> getOrganisationChangeContext() {
     return Stream.of(
         Arguments.argumentSet("Licence Administrator", AdministratorOperation.class, 1, ADMIN_NAME),
@@ -572,6 +638,12 @@ class OrganisationChangeServiceTest {
   private static AdministratorOperation administratorOperation(Integer administratorId) {
     return LicenceOperation.newAdministratorChange()
         .withOperator(administratorId)
+        .build();
+  }
+
+  private static PositionChange buildPositionChange(LicenceOperation operation) {
+    return PositionChangeTestUtil.newBuilder()
+        .withOperations(List.of(operation))
         .build();
   }
 }

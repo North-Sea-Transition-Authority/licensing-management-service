@@ -42,9 +42,6 @@ class StorageOperatorChangeActionHandlerTest {
   @Mock
   private OrganisationChangeService organisationChangeService;
 
-  @Mock
-  private StorageOperatorChangeService storageOperatorChangeService;
-
   @InjectMocks
   private StorageOperatorChangeActionHandler storageOperatorChangeActionHandler;
 
@@ -81,7 +78,7 @@ class StorageOperatorChangeActionHandlerTest {
   void stagedChangeSummary_whenReinstating_thenJoiningOperatorIsTheOneBeingReinstated() {
     when(organisationChangeService.getOrganisationChangeContext(CORRECTION, POSITION.getId(), StorageOperatorOperation.class))
         .thenReturn(CONTEXT);
-    when(storageOperatorChangeService.getJoiningOperatorForReinstating(CORRECTION, POSITION_CORRECTION))
+    when(organisationChangeService.getJoiningOrganisationForReinstating(CORRECTION, POSITION_CORRECTION, StorageOperatorOperation.class))
         .thenReturn("Reinstated operator");
 
     var result = storageOperatorChangeActionHandler.stagedChangeConfirmation(

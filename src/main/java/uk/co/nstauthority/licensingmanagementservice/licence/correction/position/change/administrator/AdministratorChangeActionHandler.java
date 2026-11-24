@@ -1,6 +1,5 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.administrator;
 
-import java.util.UUID;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.ModelAndView;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
@@ -29,7 +28,12 @@ public class AdministratorChangeActionHandler implements ChangeActionHandler {
       LicencePosition licencePosition,
       LicencePositionChange liveChange
   ) {
-    return confirmation(licenceCorrection, licencePosition.getId());
+    var administratorChangeContext = organisationChangeService
+        .getOrganisationChangeContext(licenceCorrection, licencePosition.getId(), AdministratorOperation.class);
+
+    return new ModelAndView(TEMPLATE_NAME)
+        .addObject("withdrawingAdministratorName", administratorChangeContext.previousName())
+        .addObject("joiningAdministratorName", administratorChangeContext.currentName());
   }
 
   @Override
@@ -39,15 +43,22 @@ public class AdministratorChangeActionHandler implements ChangeActionHandler {
       String changeId,
       ChangeAction action
   ) {
-    return confirmation(licenceCorrection, positionCorrection.getPositionId());
-  }
+    var administratorChangeContext = organisationChangeService.getOrganisationChangeContext(
+        licenceCorrection,
+        positionCorrection.getPositionId(),
+        AdministratorOperation.class
+    );
 
-  private ModelAndView confirmation(LicenceCorrection licenceCorrection, UUID licencePositionId) {
-    var administratorChangeContext = organisationChangeService
-        .getOrganisationChangeContext(licenceCorrection, licencePositionId, AdministratorOperation.class);
+    var joiningAdministratorName = action == ChangeAction.REINSTATE
+        ? organisationChangeService.getJoiningOrganisationForReinstating(
+            licenceCorrection,
+            positionCorrection,
+            AdministratorOperation.class
+        )
+        : administratorChangeContext.currentName();
 
     return new ModelAndView(TEMPLATE_NAME)
         .addObject("withdrawingAdministratorName", administratorChangeContext.previousName())
-        .addObject("joiningAdministratorName", administratorChangeContext.currentName());
+        .addObject("joiningAdministratorName", joiningAdministratorName);
   }
 }

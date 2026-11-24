@@ -12,6 +12,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.web.servlet.ModelAndView;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.OrganisationChangeService;
@@ -27,13 +28,16 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.Lic
 class AdministratorChangeActionHandlerTest {
 
   private static final String TEMPLATE_NAME = "lms/licence/correction/change/removeAdministratorChange";
+  private static final String CHANGE_ID = UUID.randomUUID().toString();
   private static final LicenceCorrection CORRECTION = LicenceCorrectionTestUtil.newBuilder().build();
   private static final LicencePosition POSITION = LicencePositionTestUtil.newBuilder().withId(UUID.randomUUID()).build();
+  private static final LicencePositionCorrection POSITION_CORRECTION = LicencePositionCorrectionTestUtil.newBuilder()
+      .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+      .withTargetLicencePosition(POSITION)
+      .withPayload(UpdateLicencePositionPayloadTestUtil.newBuilder().build())
+      .build();
   private static final AdministratorChangeContext CONTEXT =
       new AdministratorChangeContext(2, 1, "Joining admin", "Withdrawing admin");
-  private static final ModelAndView EXPECTED_CONFIRMATION = new ModelAndView(TEMPLATE_NAME)
-      .addObject("withdrawingAdministratorName", "Withdrawing admin")
-      .addObject("joiningAdministratorName", "Joining admin");
 
   @Mock
   private OrganisationChangeService organisationChangeService;
@@ -52,7 +56,7 @@ class AdministratorChangeActionHandlerTest {
         LicencePositionChangeTestUtil.newBuilder().build()
     );
 
-    assertThat(result).usingRecursiveComparison().isEqualTo(EXPECTED_CONFIRMATION);
+    assertThat(result).usingRecursiveComparison().isEqualTo(expectedConfirmation("Joining admin"));
   }
 
   @Test
@@ -72,6 +76,29 @@ class AdministratorChangeActionHandlerTest {
         ChangeAction.UNDO
     );
 
-    assertThat(result).usingRecursiveComparison().isEqualTo(EXPECTED_CONFIRMATION);
+    assertThat(result).usingRecursiveComparison().isEqualTo(expectedConfirmation("Joining admin"));
+  }
+
+  @Test
+  void stagedChangeSummary_whenReinstating_thenJoiningOperatorIsTheOneBeingReinstated() {
+    when(organisationChangeService.getOrganisationChangeContext(CORRECTION, POSITION.getId(), AdministratorOperation.class))
+        .thenReturn(CONTEXT);
+    when(organisationChangeService.getJoiningOrganisationForReinstating(CORRECTION, POSITION_CORRECTION, AdministratorOperation.class))
+        .thenReturn("Reinstated admin");
+
+    var result = administratorChangeActionHandler.stagedChangeConfirmation(
+        CORRECTION,
+        POSITION_CORRECTION,
+        CHANGE_ID,
+        ChangeAction.REINSTATE
+    );
+
+    assertThat(result).usingRecursiveComparison().isEqualTo(expectedConfirmation("Reinstated admin"));
+  }
+
+  private static ModelAndView expectedConfirmation(String joiningAdministratorName) {
+    return new ModelAndView(TEMPLATE_NAME)
+        .addObject("withdrawingAdministratorName", "Withdrawing admin")
+        .addObject("joiningAdministratorName", joiningAdministratorName);
   }
 }

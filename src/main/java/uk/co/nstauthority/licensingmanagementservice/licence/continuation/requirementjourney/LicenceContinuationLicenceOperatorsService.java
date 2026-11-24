@@ -3,12 +3,16 @@ package uk.co.nstauthority.licensingmanagementservice.licence.continuation.requi
 import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import uk.co.fivium.energyportalapi.generated.types.OrganisationUnit;
 import uk.co.fivium.energyportalapi.generated.types.Subarea;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.subarea.SubareaQueryService;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
 
 @Service
 public class LicenceContinuationLicenceOperatorsService {
+
+  // The Energy Portal records some subareas against this placeholder organisation rather than leaving the operator empty
+  static final String NO_OPERATOR_ORGANISATION_UNIT_NAME = "NO OPERATOR";
 
   private final LicenceContinuationLicenceOperatorsRepository licenceContinuationLicenceOperatorsRepository;
   private final SubareaQueryService subareaQueryService;
@@ -28,7 +32,13 @@ public class LicenceContinuationLicenceOperatorsService {
 
   public boolean hasMissingOperators(List<Subarea> subareas) {
     return subareas.stream()
-        .anyMatch(subarea -> subarea.getOperator() == null);
+        .map(Subarea::getOperator)
+        .anyMatch(this::isMissingOperator);
+  }
+
+  private boolean isMissingOperator(OrganisationUnit operator) {
+    return operator == null
+        || NO_OPERATOR_ORGANISATION_UNIT_NAME.equals(operator.getName());
   }
 
   @Transactional

@@ -604,6 +604,21 @@ application_detail_id                      UUID
 pending_actions_explanation                TEXT
 ```
 
+`pending_actions_explanation` is asked for only when at least one extant subarea on the licence
+is missing an operator, judged against the Energy Portal each time the section is viewed or
+submitted rather than stored. A subarea counts as missing an operator when the Energy Portal
+returns no operator for it, or when the operator it returns is the placeholder organisation named
+`NO OPERATOR`.
+
+| Any subarea missing an operator? | `pending_actions_explanation` |
+|---|---|
+| Yes | Required, so populated once the section is complete |
+| No | Never asked, so null |
+
+Because the check is live, a value can be present on an application whose subareas all have an
+operator today, and a section completed with a null value can become incomplete if a subarea
+later loses its operator.
+
 ### 6.5 `licence_continuation_supporting_information`
 
 One row per application detail.

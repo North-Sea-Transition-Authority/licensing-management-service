@@ -13,6 +13,7 @@ import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import uk.co.fivium.energyportalapi.generated.types.OrganisationUnit;
 import uk.co.fivium.energyportalapi.generated.types.Subarea;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
 
@@ -29,14 +30,33 @@ class LicenceContinuationLicenceOperatorsServiceTest {
   private ArgumentCaptor<LicenceContinuationLicenceOperatorsRequest> requestCaptor;
 
   @Test
-  void hasMissingOperators_returnsTrue() {
-    var subareaWithOp = new Subarea();
-    subareaWithOp.setOperator(new uk.co.fivium.energyportalapi.generated.types.OrganisationUnit());
+  void hasMissingOperators_whenOperatorIsNoOperatorOrganisation_thenTrue() {
+    var subareaWithOperator = subareaWithOperatorNamed("Shell UK Limited");
+    var subareaWithNoOperator = subareaWithOperatorNamed("NO OPERATOR");
 
-    var subareaWithoutOp = new Subarea();
-    subareaWithoutOp.setOperator(null);
+    var result = service.hasMissingOperators(List.of(subareaWithOperator, subareaWithNoOperator));
 
-    assertThat(service.hasMissingOperators(List.of(subareaWithOp, subareaWithoutOp))).isTrue();
+    assertThat(result).isTrue();
+  }
+
+  @Test
+  void hasMissingOperators_whenOperatorIsNotReturned_thenTrue() {
+    var subareaWithOperator = subareaWithOperatorNamed("Shell UK Limited");
+    var subareaWithoutOperator = new Subarea();
+
+    var result = service.hasMissingOperators(List.of(subareaWithOperator, subareaWithoutOperator));
+
+    assertThat(result).isTrue();
+  }
+
+  @Test
+  void hasMissingOperators_whenAllSubareasHaveAnOperator_thenFalse() {
+    var firstSubarea = subareaWithOperatorNamed("Shell UK Limited");
+    var secondSubarea = subareaWithOperatorNamed("BP Exploration Operating Company Limited");
+
+    var result = service.hasMissingOperators(List.of(firstSubarea, secondSubarea));
+
+    assertThat(result).isFalse();
   }
 
   @Test
@@ -87,5 +107,13 @@ class LicenceContinuationLicenceOperatorsServiceTest {
     var form = service.getLicenceContinuationLicenceOperatorsForm(applicationDetail);
 
     assertThat(form.getPendingActionsExplanation()).isEqualTo("Expected explanation");
+  }
+
+  private static Subarea subareaWithOperatorNamed(String operatorName) {
+    var operator = new OrganisationUnit();
+    operator.setName(operatorName);
+    var subarea = new Subarea();
+    subarea.setOperator(operator);
+    return subarea;
   }
 }

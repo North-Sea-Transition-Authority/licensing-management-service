@@ -127,7 +127,7 @@ public class LicenceScheduleTimelineController {
                 allowedActions
             )
         )
-        .addObject("timelineFilterOptions", ScheduleEventType.getFilterableEventTypeOptions())
+        .addObject("timelineFilterOptions", ScheduleTimelineFilterOption.getOptions())
         .addObject("reviewAndApplyUrl", ReverseRouter.route(on(ReviewAndApplyScheduleController.class)
             .renderReviewAndApplyPage(licenceScheduleDetail.getId(), null))
         )

@@ -18,8 +18,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSch
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.LicenceScheduleTimelineService;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.ScheduleEventType;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.ScheduleTimelineFilterForm;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.ScheduleTimelineFilterOption;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.ScheduleTimelineSession;
 import uk.co.nstauthority.licensingmanagementservice.licence.tab.TabbedLicencePageService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
@@ -76,7 +76,7 @@ public class LicenceScheduleHistoryOverviewController {
             .viewScheduleHistory(licenceScheduleDetailId, null))
         )
         .addObject("timelineSummaryCardView", licenceScheduleTimelineService.getTimelineSummaryCardView(licenceScheduleDetail))
-        .addObject("timelineFilterOptions", ScheduleEventType.getFilterableEventTypeOptions())
+        .addObject("timelineFilterOptions", ScheduleTimelineFilterOption.getOptions())
         .addObject("scheduleEventViews",
             licenceScheduleTimelineService.getLicenceScheduleEventViewsForOverview(licenceScheduleDetail, form, user)
         )

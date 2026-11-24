@@ -20,6 +20,6 @@ public class ScheduleTimelineFilterForm implements Serializable {
   }
 
   public void clearFilter() {
-    this.setEventTypes(ScheduleEventType.getFilterDefaults());
+    this.setEventTypes(ScheduleTimelineFilterOption.getDefaults());
   }
 }

@@ -21,8 +21,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSch
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.LicenceScheduleTimelineService;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.ScheduleEventType;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.ScheduleTimelineFilterForm;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.ScheduleTimelineFilterOption;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.ScheduleTimelineSession;
 import uk.co.nstauthority.licensingmanagementservice.licence.tab.TabbedLicencePageService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
@@ -85,7 +85,7 @@ public class LicenceScheduleTabController {
 
     licenceScheduleDetail.ifPresent(scheduleDetail -> modelAndView
         .addObject("timelineSummaryCardView", licenceScheduleTimelineService.getTimelineSummaryCardView(scheduleDetail))
-        .addObject("timelineFilterOptions", ScheduleEventType.getFilterableEventTypeOptions())
+        .addObject("timelineFilterOptions", ScheduleTimelineFilterOption.getOptions())
         .addObject("scheduleEventViews",
             licenceScheduleTimelineService.getLicenceScheduleEventViewsForOverview(scheduleDetail, form, user)
         )
@@ -131,7 +131,7 @@ public class LicenceScheduleTabController {
       @ModelAttribute("scheduleTimelineSession") ScheduleTimelineSession filterSession
   ) {
     var form = new ScheduleTimelineFilterForm();
-    form.setEventTypes(List.of(ScheduleEventType.WORK_PROGRAMME_ACTIVITY.name()));
+    form.setEventTypes(List.of(ScheduleTimelineFilterOption.WORK_PROGRAMME_ACTIVITY.name()));
     filterSession.update(form);
     return ReverseRouter.redirect(on(LicenceScheduleTabController.class)
         .renderLicenceOverview(licenceId, null, null, null));

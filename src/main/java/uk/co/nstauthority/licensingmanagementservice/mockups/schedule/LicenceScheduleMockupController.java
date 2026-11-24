@@ -5,8 +5,8 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.ScheduleEventType;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.ScheduleTimelineFilterForm;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.ScheduleTimelineFilterOption;
 
 /**
  * Renders the licence schedule timeline with hardcoded data covering an initial, second and third term. Uses the real
@@ -33,7 +33,7 @@ public class LicenceScheduleMockupController {
         .addObject("scheduleComments", LicenceScheduleMockupData.getScheduleComments())
         .addObject("actions", LicenceScheduleMockupData.getActions())
         .addObject("scheduleEventViews", LicenceScheduleMockupData.getTermViews())
-        .addObject("timelineFilterOptions", ScheduleEventType.getFilterableEventTypeOptions())
+        .addObject("timelineFilterOptions", ScheduleTimelineFilterOption.getOptions())
         .addObject("updateLicenceStartDateUrl", PAGE_URL)
         .addObject("updateExpiryDateUrl", PAGE_URL)
         .addObject("clearFilterUrl", PAGE_URL)

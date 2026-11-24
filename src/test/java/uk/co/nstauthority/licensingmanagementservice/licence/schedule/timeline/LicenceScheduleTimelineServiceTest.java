@@ -549,6 +549,7 @@ class LicenceScheduleTimelineServiceTest {
 
     var midPhaseEventView = new TimelineOtherScheduleEventView(
         OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT.getDisplayName(),
+        OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT,
         "description",
         null,
         LocalDate.of(2025, Month.FEBRUARY, 1),
@@ -570,6 +571,7 @@ class LicenceScheduleTimelineServiceTest {
 
     var endOfPhaseEventView = new TimelineOtherScheduleEventView(
         OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT.getDisplayName(),
+        OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT,
         "description",
         null,
         null,
@@ -592,6 +594,7 @@ class LicenceScheduleTimelineServiceTest {
 
     var midTerm2EventView = new TimelineOtherScheduleEventView(
         OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT.getDisplayName(),
+        OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT,
         "description",
         null,
         LocalDate.of(2026, Month.FEBRUARY, 1),
@@ -613,6 +616,7 @@ class LicenceScheduleTimelineServiceTest {
 
     var endOfTerm2EventView = new TimelineOtherScheduleEventView(
         OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT.getDisplayName(),
+        OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT,
         "description",
         null,
         null,
@@ -753,7 +757,7 @@ class LicenceScheduleTimelineServiceTest {
         true, false);
 
     var form = new ScheduleTimelineFilterForm();
-    form.setEventTypes(ScheduleEventType.getFilterDefaults());
+    form.setEventTypes(ScheduleTimelineFilterOption.getDefaults());
 
     var allowedActions = List.of(ScheduleEventAction.EDIT_SCHEDULE_EVENTS, ScheduleEventAction.EDIT_WORK_PROGRAMME);
 
@@ -912,6 +916,7 @@ class LicenceScheduleTimelineServiceTest {
 
     var midPhaseEventView = new TimelineOtherScheduleEventView(
         OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT.getDisplayName(),
+        OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT,
         "description",
         null,
         LocalDate.of(2025, Month.FEBRUARY, 1),
@@ -931,6 +936,7 @@ class LicenceScheduleTimelineServiceTest {
 
     var endOfPhaseEventView = new TimelineOtherScheduleEventView(
         OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT.getDisplayName(),
+        OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT,
         "description",
         null,
         null,
@@ -951,6 +957,7 @@ class LicenceScheduleTimelineServiceTest {
 
     var midTerm2EventView = new TimelineOtherScheduleEventView(
         OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT.getDisplayName(),
+        OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT,
         "description",
         null,
         LocalDate.of(2026, Month.FEBRUARY, 1),
@@ -970,6 +977,7 @@ class LicenceScheduleTimelineServiceTest {
 
     var endOfTerm2EventView = new TimelineOtherScheduleEventView(
         OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT.getDisplayName(),
+        OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT,
         "description",
         null,
         null,
@@ -1104,7 +1112,7 @@ class LicenceScheduleTimelineServiceTest {
         true, false);
 
     var form = new ScheduleTimelineFilterForm();
-    form.setEventTypes(ScheduleEventType.getFilterDefaults());
+    form.setEventTypes(ScheduleTimelineFilterOption.getDefaults());
 
     var activities = List.of(midPhaseActivity, endOfPhaseActivity, midTerm2Activity, endOfTerm2Activity);
 
@@ -1269,6 +1277,7 @@ class LicenceScheduleTimelineServiceTest {
 
     var midPhaseEventView = new TimelineOtherScheduleEventView(
         OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT.getDisplayName(),
+        OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT,
         "description",
         null,
         LocalDate.of(2025, Month.FEBRUARY, 1),
@@ -1290,6 +1299,7 @@ class LicenceScheduleTimelineServiceTest {
 
     var endOfPhaseEventView = new TimelineOtherScheduleEventView(
         OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT.getDisplayName(),
+        OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT,
         "description",
         null,
         null,
@@ -1312,6 +1322,7 @@ class LicenceScheduleTimelineServiceTest {
 
     var midTerm2EventView = new TimelineOtherScheduleEventView(
         OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT.getDisplayName(),
+        OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT,
         "description",
         null,
         LocalDate.of(2026, Month.FEBRUARY, 1),
@@ -1333,6 +1344,7 @@ class LicenceScheduleTimelineServiceTest {
 
     var endOfTerm2EventView = new TimelineOtherScheduleEventView(
         OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT.getDisplayName(),
+        OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT,
         "description",
         null,
         null,
@@ -1446,8 +1458,9 @@ class LicenceScheduleTimelineServiceTest {
 
     var form = new ScheduleTimelineFilterForm();
     form.setEventTypes(List.of(
-        ScheduleEventType.WORK_PROGRAMME_ACTIVITY.name(),
-        ScheduleEventType.OTHER.name()
+        ScheduleTimelineFilterOption.WORK_PROGRAMME_ACTIVITY.name(),
+        ScheduleTimelineFilterOption.MANDATORY_RELINQUISHMENT.name(),
+        ScheduleTimelineFilterOption.OTHER.name()
     ));
 
     var allowedActions = List.of(ScheduleEventAction.EDIT_SCHEDULE_EVENTS, ScheduleEventAction.EDIT_WORK_PROGRAMME);
@@ -1551,6 +1564,7 @@ class LicenceScheduleTimelineServiceTest {
 
     var midPhaseEventView = new TimelineOtherScheduleEventView(
         OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT.getDisplayName(),
+        OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT,
         "description",
         null,
         LocalDate.of(2025, Month.FEBRUARY, 1),
@@ -1572,6 +1586,7 @@ class LicenceScheduleTimelineServiceTest {
 
     var endOfPhaseEventView = new TimelineOtherScheduleEventView(
         OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT.getDisplayName(),
+        OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT,
         "description",
         null,
         null,
@@ -1594,6 +1609,7 @@ class LicenceScheduleTimelineServiceTest {
 
     var midTerm2EventView = new TimelineOtherScheduleEventView(
         OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT.getDisplayName(),
+        OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT,
         "description",
         null,
         LocalDate.of(2026, Month.FEBRUARY, 1),
@@ -1615,6 +1631,7 @@ class LicenceScheduleTimelineServiceTest {
 
     var endOfTerm2EventView = new TimelineOtherScheduleEventView(
         OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT.getDisplayName(),
+        OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT,
         "description",
         null,
         null,
@@ -1756,8 +1773,9 @@ class LicenceScheduleTimelineServiceTest {
 
     var form = new ScheduleTimelineFilterForm();
     form.setEventTypes(List.of(
-        ScheduleEventType.RATE.name(),
-        ScheduleEventType.OTHER.name()
+        ScheduleTimelineFilterOption.RATE.name(),
+        ScheduleTimelineFilterOption.MANDATORY_RELINQUISHMENT.name(),
+        ScheduleTimelineFilterOption.OTHER.name()
     ));
 
     var allowedActions = List.of(ScheduleEventAction.EDIT_SCHEDULE_EVENTS, ScheduleEventAction.EDIT_WORK_PROGRAMME);
@@ -2070,8 +2088,8 @@ class LicenceScheduleTimelineServiceTest {
 
     var form = new ScheduleTimelineFilterForm();
     form.setEventTypes(List.of(
-        ScheduleEventType.RATE.name(),
-        ScheduleEventType.WORK_PROGRAMME_ACTIVITY.name()
+        ScheduleTimelineFilterOption.RATE.name(),
+        ScheduleTimelineFilterOption.WORK_PROGRAMME_ACTIVITY.name()
     ));
 
     var allowedActions = List.of(ScheduleEventAction.EDIT_SCHEDULE_EVENTS, ScheduleEventAction.EDIT_WORK_PROGRAMME);
@@ -2347,7 +2365,7 @@ class LicenceScheduleTimelineServiceTest {
         true, false);
 
     var form = new ScheduleTimelineFilterForm();
-    form.setEventTypes(ScheduleEventType.getFilterDefaults());
+    form.setEventTypes(ScheduleTimelineFilterOption.getDefaults());
 
     var user = ServiceUserDetailTestUtil.newBuilder().build();
 
@@ -2601,7 +2619,7 @@ class LicenceScheduleTimelineServiceTest {
         true, false);
 
     var form = new ScheduleTimelineFilterForm();
-    form.setEventTypes(ScheduleEventType.getFilterDefaults());
+    form.setEventTypes(ScheduleTimelineFilterOption.getDefaults());
 
     var user = ServiceUserDetailTestUtil.newBuilder().build();
 
@@ -2705,7 +2723,7 @@ class LicenceScheduleTimelineServiceTest {
     when(licenceScheduleRateService.getLicenceScheduleRates(licenceScheduleDetail)).thenReturn(List.of(rate));
 
     var form = new ScheduleTimelineFilterForm();
-    form.setEventTypes(ScheduleEventType.getFilterDefaults());
+    form.setEventTypes(ScheduleTimelineFilterOption.getDefaults());
 
     var allowedActions = List.of(ScheduleEventAction.EDIT_SCHEDULE_EVENTS, ScheduleEventAction.EDIT_WORK_PROGRAMME);
 
@@ -2760,7 +2778,7 @@ class LicenceScheduleTimelineServiceTest {
         .thenReturn(Map.of());
 
     var form = new ScheduleTimelineFilterForm();
-    form.setEventTypes(ScheduleEventType.getFilterDefaults());
+    form.setEventTypes(ScheduleTimelineFilterOption.getDefaults());
 
     var result = licenceScheduleTimelineService.getEditableLicenceScheduleEventViews(licenceScheduleDetail, form, List.of());
 
@@ -2823,7 +2841,7 @@ class LicenceScheduleTimelineServiceTest {
         .thenReturn(Map.of());
 
     var form = new ScheduleTimelineFilterForm();
-    form.setEventTypes(ScheduleEventType.getFilterDefaults());
+    form.setEventTypes(ScheduleTimelineFilterOption.getDefaults());
 
     var result = licenceScheduleTimelineService.getEditableLicenceScheduleEventViews(licenceScheduleDetail, form, List.of());
 
@@ -2844,7 +2862,7 @@ class LicenceScheduleTimelineServiceTest {
     givenTheTimelineHas(term, List.of(areaApproval, areaWorkProgramme, afterTheTerm));
 
     var form = new ScheduleTimelineFilterForm();
-    form.setEventTypes(ScheduleEventType.getFilterDefaults());
+    form.setEventTypes(ScheduleTimelineFilterOption.getDefaults());
 
     var result = licenceScheduleTimelineService.getEditableLicenceScheduleEventViews(licenceScheduleDetail, form, List.of());
 
@@ -2894,11 +2912,47 @@ class LicenceScheduleTimelineServiceTest {
     givenTheTimelineHas(term, List.of(areaEvent(LocalDate.of(2025, Month.MARCH, 1), "Approval: 01-03-2025")));
 
     var form = new ScheduleTimelineFilterForm();
-    form.setEventTypes(List.of(ScheduleEventType.OTHER.name()));
+    form.setEventTypes(List.of(ScheduleTimelineFilterOption.OTHER.name()));
 
     var result = licenceScheduleTimelineService.getEditableLicenceScheduleEventViews(licenceScheduleDetail, form, List.of());
 
     assertThat(result.getFirst().events()).isEmpty();
+  }
+
+  @Test
+  void getEditableLicenceScheduleEventViews_whenOnlyMandatoryRelinquishmentsFiltered_thenOnlyRelinquishmentsShown() {
+    var term = termWithoutPhases();
+    var relinquishment = otherScheduleEvent(OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT, null);
+    var otherActivity = otherScheduleEvent(OtherScheduleEventCategory.OTHER_ACTIVITY, "Site survey");
+    givenTheTimelineHas(term, List.of());
+    when(otherScheduleEventService.getOtherScheduleEvents(licenceScheduleDetail))
+        .thenReturn(List.of(relinquishment, otherActivity));
+
+    var form = new ScheduleTimelineFilterForm();
+    form.setEventTypes(List.of(ScheduleTimelineFilterOption.MANDATORY_RELINQUISHMENT.name()));
+
+    var result = licenceScheduleTimelineService.getEditableLicenceScheduleEventViews(licenceScheduleDetail, form, List.of());
+
+    assertThat(result.getFirst().events())
+        .containsExactly(expectedOtherScheduleEventView(relinquishment, "Mandatory relinquishment"));
+  }
+
+  @Test
+  void getEditableLicenceScheduleEventViews_whenOnlyOtherScheduleEventsFiltered_thenRelinquishmentsNotShown() {
+    var term = termWithoutPhases();
+    var relinquishment = otherScheduleEvent(OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT, null);
+    var otherActivity = otherScheduleEvent(OtherScheduleEventCategory.OTHER_ACTIVITY, "Site survey");
+    givenTheTimelineHas(term, List.of());
+    when(otherScheduleEventService.getOtherScheduleEvents(licenceScheduleDetail))
+        .thenReturn(List.of(relinquishment, otherActivity));
+
+    var form = new ScheduleTimelineFilterForm();
+    form.setEventTypes(List.of(ScheduleTimelineFilterOption.OTHER.name()));
+
+    var result = licenceScheduleTimelineService.getEditableLicenceScheduleEventViews(licenceScheduleDetail, form, List.of());
+
+    assertThat(result.getFirst().events())
+        .containsExactly(expectedOtherScheduleEventView(otherActivity, "Site survey"));
   }
 
   @Test
@@ -2939,7 +2993,7 @@ class LicenceScheduleTimelineServiceTest {
         .thenReturn(Map.of());
 
     var form = new ScheduleTimelineFilterForm();
-    form.setEventTypes(ScheduleEventType.getFilterDefaults());
+    form.setEventTypes(ScheduleTimelineFilterOption.getDefaults());
 
     var result = licenceScheduleTimelineService.getEditableLicenceScheduleEventViews(licenceScheduleDetail, form, List.of());
 
@@ -2966,6 +3020,36 @@ class LicenceScheduleTimelineServiceTest {
     term.setStartDate(LocalDate.of(2025, Month.JANUARY, 1));
     term.setEndDate(LocalDate.of(2025, Month.DECEMBER, 31));
     return term;
+  }
+
+  private OtherScheduleEvent otherScheduleEvent(OtherScheduleEventCategory category, String otherCategoryName) {
+    var otherScheduleEvent = new OtherScheduleEvent();
+    otherScheduleEvent.setId(UUID.randomUUID());
+    otherScheduleEvent.setOriginalEventId(otherScheduleEvent.getId());
+    otherScheduleEvent.setCategory(category);
+    otherScheduleEvent.setOtherCategoryName(otherCategoryName);
+    otherScheduleEvent.setDescription("description");
+    otherScheduleEvent.setEventDate(LocalDate.of(2025, Month.FEBRUARY, 1));
+    return otherScheduleEvent;
+  }
+
+  private TimelineOtherScheduleEventView expectedOtherScheduleEventView(
+      OtherScheduleEvent otherScheduleEvent,
+      String category
+  ) {
+    return new TimelineOtherScheduleEventView(
+        category,
+        otherScheduleEvent.getCategory(),
+        "description",
+        null,
+        LocalDate.of(2025, Month.FEBRUARY, 1),
+        "1 February 2025",
+        "",
+        "",
+        "",
+        List.of(),
+        true
+    );
   }
 
   private void givenTheTimelineHas(LicenceScheduleTerm term, List<LicenceScheduleAreaEvent> areaEvents) {

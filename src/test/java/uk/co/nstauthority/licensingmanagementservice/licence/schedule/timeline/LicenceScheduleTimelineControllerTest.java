@@ -35,6 +35,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSch
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleexpiry.LicenceScheduleExpiryController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencestartdate.LicenceStartDateController;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.otherscheduleevent.OtherScheduleEventCategory;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.reviewandapply.DeleteDraftScheduleController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.reviewandapply.ReviewAndApplyScheduleController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
@@ -102,7 +103,7 @@ class LicenceScheduleTimelineControllerTest extends AbstractControllerTest {
         .andExpect(model().attribute("timelineSummaryCardView", timelineSummaryCardView))
         .andExpect(model().attribute("actions", timelineActionViews))
         .andExpect(model().attribute("scheduleEventViews", scheduleEventViews))
-        .andExpect(model().attribute("timelineFilterOptions", ScheduleEventType.getFilterableEventTypeOptions()))
+        .andExpect(model().attribute("timelineFilterOptions", ScheduleTimelineFilterOption.getOptions()))
         .andExpect(model().attribute("updateLicenceStartDateUrl",
             ReverseRouter.route(on(LicenceStartDateController.class).renderLicenceStartDateUpdateForm(licenceScheduleDetail.getId(), null)))
         )
@@ -206,7 +207,8 @@ class LicenceScheduleTimelineControllerTest extends AbstractControllerTest {
     when(licenceService.findLicenceByIdOrThrow(licence.getId())).thenReturn(licence);
     when(licenceScheduleDetailService.getByIdOrThrow(licenceScheduleDetail.getId())).thenReturn(licenceScheduleDetail);
 
-    var relinquishment = new TimelineOtherScheduleEventView("Mandatory relinquishment", "Relinquish the northern blocks",
+    var relinquishment = new TimelineOtherScheduleEventView("Mandatory relinquishment",
+        OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT, "Relinquish the northern blocks",
         "50%", LocalDate.of(2013, Month.FEBRUARY, 12), "12 February 2013", "", "", "", List.of(), true);
     var scheduleEventViews = List.of(
         new TimelineTermView(List.of(relinquishment), List.of(), TermType.INITIAL, "", "", "", "", "", false, List.of(), true,

@@ -7,6 +7,7 @@ import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
 import uk.co.nstauthority.licensingmanagementservice.licence.TermType;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.eventcomments.EventCommentView;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.otherscheduleevent.OtherScheduleEventCategory;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.LicenceScheduleTimelineAction;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.ScheduleEvent;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.TimelineActionView;
@@ -335,8 +336,13 @@ class LicenceScheduleMockupData {
       String description,
       LocalDate eventDate
   ) {
+    var categoryType = OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT.getDisplayName().equals(category)
+        ? OtherScheduleEventCategory.MANDATORY_RELINQUISHMENT
+        : OtherScheduleEventCategory.OTHER_ACTIVITY;
+
     return new TimelineOtherScheduleEventView(
         category,
+        categoryType,
         description,
         null,
         eventDate,

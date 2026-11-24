@@ -327,9 +327,9 @@ public class LicenceScheduleTimelineService {
       Map<UUID, List<EventCommentView>> eventRefCommentsMap,
       LocalDate finalProgressDate
   ) {
-    var includedEventTypes = scheduleTimelineFilterForm.getEventTypes().stream()
-        .map(ScheduleEventType::valueOf)
-        .toList();
+    var includedFilterOptions = scheduleTimelineFilterForm.getEventTypes().stream()
+        .map(ScheduleTimelineFilterOption::valueOf)
+        .collect(Collectors.toSet());
 
     var rateDatesMap = licenceScheduleCalculationService.calculateRateEndDatesForDisplay(
         licenceScheduleDetail,
@@ -340,7 +340,7 @@ public class LicenceScheduleTimelineService {
         .sorted(Comparator.comparing(term -> term.getTermType().getDisplayOrder()))
         .map(term -> convertToTimelineTermView(
             term,
-            includedEventTypes,
+            includedFilterOptions,
             allowedActions,
             eventRefWpStatusMap,
             eventRefCommentsMap,
@@ -439,7 +439,7 @@ public class LicenceScheduleTimelineService {
 
   private TimelineTermView convertToTimelineTermView(
       LicenceScheduleTerm licenceScheduleTerm,
-      List<ScheduleEventType> includedEventTypes,
+      Set<ScheduleTimelineFilterOption> includedFilterOptions,
       List<ScheduleEventAction> allowedActions,
       Map<UUID, WorkProgrammeActivityStatus> eventRefWpStatusMap,
       Map<UUID, List<EventCommentView>> eventRefCommentsMap,
@@ -455,7 +455,7 @@ public class LicenceScheduleTimelineService {
 
     var scheduleEvents = getScheduleEventsForTerm(
         licenceScheduleTerm,
-        includedEventTypes,
+        includedFilterOptions,
         allowedActions,
         eventRefWpStatusMap,
         eventRefCommentsMap,
@@ -470,7 +470,7 @@ public class LicenceScheduleTimelineService {
 
     var endOfTermEvents = getEndOfTermRequirementEvents(
         licenceScheduleTerm,
-        includedEventTypes,
+        includedFilterOptions,
         allowedActions,
         eventRefWpStatusMap,
         eventRefCommentsMap,
@@ -514,7 +514,7 @@ public class LicenceScheduleTimelineService {
 
   private List<ScheduleEvent> getScheduleEventsForTerm(
       LicenceScheduleTerm licenceScheduleTerm,
-      List<ScheduleEventType> includedEventTypes,
+      Set<ScheduleTimelineFilterOption> includedFilterOptions,
       List<ScheduleEventAction> allowedActions,
       Map<UUID, WorkProgrammeActivityStatus> eventRefWpStatusMap,
       Map<UUID, List<EventCommentView>> eventRefCommentsMap,
@@ -534,7 +534,7 @@ public class LicenceScheduleTimelineService {
         .map(phase -> convertToTimelinePhaseView(
             phase,
             firstPhaseType,
-            includedEventTypes,
+            includedFilterOptions,
             allowedActions,
             eventRefWpStatusMap,
             eventRefCommentsMap,
@@ -553,7 +553,7 @@ public class LicenceScheduleTimelineService {
               eventRefCommentsMap,
               finalProgressDate
           ))
-          .filter(event -> includedEventTypes.contains(event.getEventType()))
+          .filter(event -> isIncludedByFilter(event, includedFilterOptions))
           .toList();
 
       return Stream.concat(phaseViews.stream(), termRateViews.stream())
@@ -616,7 +616,7 @@ public class LicenceScheduleTimelineService {
 
     return Stream.of(workProgrammeActivities, rates, otherScheduleEvents, areaEvents)
         .flatMap(Function.identity())
-        .filter(event -> includedEventTypes.contains(event.getEventType()))
+        .filter(event -> isIncludedByFilter(event, includedFilterOptions))
         .sorted(Comparator.comparing(ScheduleEvent::getSortingDate)
             .thenComparing(event -> event.getEventType().getEventTypeOrder()))
         .toList();
@@ -639,7 +639,7 @@ public class LicenceScheduleTimelineService {
 
   private List<ScheduleEvent> getEndOfTermRequirementEvents(
       LicenceScheduleTerm licenceScheduleTerm,
-      List<ScheduleEventType> includedEventTypes,
+      Set<ScheduleTimelineFilterOption> includedFilterOptions,
       List<ScheduleEventAction> allowedActions,
       Map<UUID, WorkProgrammeActivityStatus> eventRefWpStatusMap,
       Map<UUID, List<EventCommentView>> eventRefCommentsMap,
@@ -673,7 +673,7 @@ public class LicenceScheduleTimelineService {
 
     return Stream.of(workProgrammeActivities, otherScheduleEvents)
         .flatMap(Function.identity())
-        .filter(event -> includedEventTypes.contains(event.getEventType()))
+        .filter(event -> isIncludedByFilter(event, includedFilterOptions))
         .sorted(Comparator.comparing(event -> event.getEventType().getEventTypeOrder()))
         .toList();
   }
@@ -681,7 +681,7 @@ public class LicenceScheduleTimelineService {
   private ScheduleEvent convertToTimelinePhaseView(
       LicenceSchedulePhase licenceSchedulePhase,
       PhaseType firstPhaseType,
-      List<ScheduleEventType> includedEventTypes,
+      Set<ScheduleTimelineFilterOption> includedFilterOptions,
       List<ScheduleEventAction> allowedActions,
       Map<UUID, WorkProgrammeActivityStatus> eventRefWpStatusMap,
       Map<UUID, List<EventCommentView>> eventRefCommentsMap,
@@ -718,7 +718,7 @@ public class LicenceScheduleTimelineService {
         getScheduleEventsForPhase(
             licenceSchedulePhase,
             firstPhaseType,
-            includedEventTypes,
+            includedFilterOptions,
             allowedActions,
             eventRefWpStatusMap,
             eventRefCommentsMap,
@@ -728,7 +728,7 @@ public class LicenceScheduleTimelineService {
         ),
         getEndOfPhaseRequirementEvents(
             licenceSchedulePhase,
-            includedEventTypes,
+            includedFilterOptions,
             allowedActions,
             eventRefWpStatusMap,
             eventRefCommentsMap,
@@ -751,7 +751,7 @@ public class LicenceScheduleTimelineService {
   private List<ScheduleEvent> getScheduleEventsForPhase(
       LicenceSchedulePhase licenceSchedulePhase,
       PhaseType firstPhaseType,
-      List<ScheduleEventType> includedEventTypes,
+      Set<ScheduleTimelineFilterOption> includedFilterOptions,
       List<ScheduleEventAction> allowedActions,
       Map<UUID, WorkProgrammeActivityStatus> eventRefWpStatusMap,
       Map<UUID, List<EventCommentView>> eventRefCommentsMap,
@@ -813,7 +813,7 @@ public class LicenceScheduleTimelineService {
 
     return Stream.of(workProgrammeActivities, rates, otherScheduleEvents, areaEvents)
         .flatMap(Function.identity())
-        .filter(event -> includedEventTypes.contains(event.getEventType()))
+        .filter(event -> isIncludedByFilter(event, includedFilterOptions))
         .sorted(Comparator.comparing(ScheduleEvent::getSortingDate)
             .thenComparing(event -> event.getEventType().getEventTypeOrder()))
         .toList();
@@ -821,7 +821,7 @@ public class LicenceScheduleTimelineService {
 
   private List<ScheduleEvent> getEndOfPhaseRequirementEvents(
       LicenceSchedulePhase licenceSchedulePhase,
-      List<ScheduleEventType> includedEventTypes,
+      Set<ScheduleTimelineFilterOption> includedFilterOptions,
       List<ScheduleEventAction> allowedActions,
       Map<UUID, WorkProgrammeActivityStatus> eventRefWpStatusMap,
       Map<UUID, List<EventCommentView>> eventRefCommentsMap,
@@ -855,9 +855,18 @@ public class LicenceScheduleTimelineService {
 
     return Stream.of(workProgrammeActivities, otherScheduleEvents)
         .flatMap(Function.identity())
-        .filter(event -> includedEventTypes.contains(event.getEventType()))
+        .filter(event -> isIncludedByFilter(event, includedFilterOptions))
         .sorted(Comparator.comparing(event -> event.getEventType().getEventTypeOrder()))
         .toList();
+  }
+
+  private boolean isIncludedByFilter(
+      ScheduleEvent scheduleEvent,
+      Set<ScheduleTimelineFilterOption> includedFilterOptions
+  ) {
+    return scheduleEvent.getFilterOption()
+        .map(includedFilterOptions::contains)
+        .orElse(true);
   }
 
   /**

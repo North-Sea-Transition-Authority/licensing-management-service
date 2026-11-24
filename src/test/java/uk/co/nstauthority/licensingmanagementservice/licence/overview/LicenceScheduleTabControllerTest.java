@@ -37,7 +37,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSch
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.LicenceScheduleTimelineService;
-import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.ScheduleEventType;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.ScheduleTimelineFilterOption;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.TimelineSummaryCardView;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.TimelineTermView;
 import uk.co.nstauthority.licensingmanagementservice.licence.tab.LicenceTabContext;
@@ -127,7 +127,7 @@ class LicenceScheduleTabControllerTest extends AbstractControllerTest {
         )
         .andExpect(model().attribute("timelineSummaryCardView", timelineSummaryCardView))
         .andExpect(model().attribute("scheduleEventViews", scheduleEventViews))
-        .andExpect(model().attribute("timelineFilterOptions", ScheduleEventType.getFilterableEventTypeOptions()))
+        .andExpect(model().attribute("timelineFilterOptions", ScheduleTimelineFilterOption.getOptions()))
         .andExpect(model().attribute("clearFilterUrl", ReverseRouter.route(on(LicenceScheduleTabController.class)
             .clearFilters(licence.getId(), null, null)))
         )

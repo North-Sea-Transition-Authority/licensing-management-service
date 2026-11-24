@@ -41,6 +41,7 @@ import uk.co.nstauthority.licensingmanagementservice.configuration.EnergyPortalC
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.AllowedDomainService;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserJson;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserService;
+import uk.co.nstauthority.licensingmanagementservice.fds.error.ErrorSummaryItem;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplication;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetail;
@@ -948,8 +949,8 @@ class TeamManagementControllerTest extends AbstractControllerTest {
                 scheduleWorkProgrammeApplicationDetail.getId(), null))
         ))
         .andExpect(model().attribute("saveAndCompleteUrl",
-            ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class).getTaskList(
-                scheduleWorkProgrammeApplicationDetail.getId(), null, null))
+            ReverseRouter.route(on(TeamManagementController.class).handleExternalContributorsSaveAndComplete(
+                externalContributors.getId(), null))
         ))
         .andExpect(model().attribute("currentEndPoint",
             ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class).getTaskList(null, null, null))
@@ -999,8 +1000,8 @@ class TeamManagementControllerTest extends AbstractControllerTest {
                                          licenceContinuationApplicationDetail.getId(), null))
         ))
         .andExpect(model().attribute("saveAndCompleteUrl",
-                                     ReverseRouter.route(on(LicenceContinuationApplicationTaskListController.class).getTaskList(
-                                         licenceContinuationApplicationDetail.getId(), null, null))
+                                     ReverseRouter.route(on(TeamManagementController.class).handleExternalContributorsSaveAndComplete(
+                                         externalContributors.getId(), null))
         ))
         .andExpect(model().attribute("currentEndPoint",
                                      ReverseRouter.route(on(LicenceContinuationApplicationTaskListController.class).getTaskList(null, null, null))
@@ -1009,6 +1010,99 @@ class TeamManagementControllerTest extends AbstractControllerTest {
                                      ReverseRouter.route(on(TeamManagementController.class).renderAddMemberToScheduleExternalContributorsTeam(
                                          externalContributors.getId(), null))
         ));
+  }
+
+  @Test
+  void handleExternalContributorsSaveAndComplete_whenTeamHasMembers_thenRedirectToTaskList() throws Exception {
+    var id = UUID.fromString(externalContributors.getScopeId());
+
+    var scheduleWorkProgrammeApplication = new ScheduleWorkProgrammeApplication();
+    scheduleWorkProgrammeApplication.setId(id);
+
+    var scheduleWorkProgrammeApplicationDetail = ScheduleWorkProgrammeApplicationDetailTestUtil.builder()
+        .withId(UUID.randomUUID())
+        .withScheduleWorkProgrammeApplication(scheduleWorkProgrammeApplication)
+        .build();
+
+    externalContributors.setScopeType(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION.name());
+
+    when(teamManagementService.getTeam(externalContributors.getId())).thenReturn(externalContributors);
+    when(teamManagementService.isMemberOfTeam(externalContributors, invokingUser.wuaId())).thenReturn(true);
+    when(teamManagementService.teamHasMembers(externalContributors)).thenReturn(true);
+    when(scheduleWorkProgrammeApplicationService.getScheduleWorkProgrammeApplicationById(id))
+        .thenReturn(scheduleWorkProgrammeApplication);
+    when(scheduleWorkProgrammeApplicationService
+        .getFirstByApplicationOrderByVersionNumberDesc(scheduleWorkProgrammeApplication))
+        .thenReturn(scheduleWorkProgrammeApplicationDetail);
+
+    mockMvc.perform(
+            post(ReverseRouter.route(on(TeamManagementController.class).handleExternalContributorsSaveAndComplete(
+                externalContributors.getId(), null)))
+                .with(csrf())
+                .with(user(invokingUser)))
+        .andExpect(status().is3xxRedirection())
+        .andExpect(redirectedUrl(
+            ReverseRouter.route(on(ScheduleWorkProgrammeApplicationTaskListController.class).getTaskList(
+                scheduleWorkProgrammeApplicationDetail.getId(), null, null))));
+  }
+
+  @Test
+  void handleExternalContributorsSaveAndComplete_whenTeamHasNoMembers_thenShowError() throws Exception {
+    var id = UUID.fromString(externalContributors.getScopeId());
+
+    var licenceContinuationApplication = new LicenceContinuationApplication();
+    licenceContinuationApplication.setId(id);
+
+    var licenceContinuationApplicationDetail = LicenceContinuationApplicationTestUtil.builder()
+        .withId(UUID.randomUUID())
+        .withLicenceContinuationApplication(licenceContinuationApplication)
+        .build();
+
+    externalContributors.setScopeType(ApplicationType.CONTINUATION_APPLICATION.name());
+
+    when(teamManagementService.getTeam(externalContributors.getId())).thenReturn(externalContributors);
+    when(teamManagementService.isMemberOfTeam(externalContributors, invokingUser.wuaId())).thenReturn(true);
+    when(teamManagementService.canManageTeam(externalContributors, invokingUser.wuaId())).thenReturn(true);
+    when(teamManagementService.teamHasMembers(externalContributors)).thenReturn(false);
+    when(teamManagementService.getTeamMemberViewsForTeam(externalContributors)).thenReturn(List.of());
+    when(licenceContinuationService.getLatestLicenceContinuationApplicationDetailByApplicationIdOrThrow(id))
+        .thenReturn(licenceContinuationApplicationDetail);
+
+    var result = mockMvc.perform(
+            post(ReverseRouter.route(on(TeamManagementController.class).handleExternalContributorsSaveAndComplete(
+                externalContributors.getId(), null)))
+                .with(csrf())
+                .with(user(invokingUser)))
+        .andExpect(status().isOk())
+        .andExpect(view().name("lms/teamManagement/teamMembers"))
+        .andExpect(model().attribute("teamMemberViews", List.of()))
+        .andReturn();
+
+    var expectedErrorSummaryItems = List.of(new ErrorSummaryItem(
+        0,
+        TeamManagementController.NO_EXTERNAL_CONTRIBUTORS_ERROR_FIELD,
+        TeamManagementController.NO_EXTERNAL_CONTRIBUTORS_ERROR_MESSAGE
+    ));
+    assertThat(result.getModelAndView().getModel().get("errorSummaryItems"))
+        .usingRecursiveComparison()
+        .isEqualTo(expectedErrorSummaryItems);
+  }
+
+  @Test
+  void handleExternalContributorsSaveAndComplete_whenNoAccess_thenForbidden() throws Exception {
+    externalContributors.setScopeType(ApplicationType.CONTINUATION_APPLICATION.name());
+
+    when(teamManagementService.getTeam(externalContributors.getId())).thenReturn(externalContributors);
+    when(teamManagementService.isMemberOfTeam(externalContributors, invokingUser.wuaId())).thenReturn(false);
+
+    mockMvc.perform(
+            post(ReverseRouter.route(on(TeamManagementController.class).handleExternalContributorsSaveAndComplete(
+                externalContributors.getId(), null)))
+                .with(csrf())
+                .with(user(invokingUser)))
+        .andExpect(status().isForbidden());
+
+    verify(teamManagementService, never()).teamHasMembers(externalContributors);
   }
 
   @Test

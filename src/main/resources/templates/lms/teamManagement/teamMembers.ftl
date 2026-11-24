@@ -13,12 +13,14 @@
     <@roleDescriptions.roleDescriptions roles=rolesInTeam/>
 
     <#if canManageTeam>
-        <@fdsAction.link
-            linkText="Add user"
-            linkUrl=springUrl(addMemberUrl)
-            linkClass="govuk-button govuk-button--secondary"
-            role=true
-        />
+        <div id="add-external-contributor">
+            <@fdsAction.link
+                linkText="Add user"
+                linkUrl=springUrl(addMemberUrl)
+                linkClass="govuk-button govuk-button--secondary"
+                role=true
+            />
+        </div>
     </#if>
 
     <#if teamMemberViews?has_content>
@@ -89,20 +91,14 @@
         </@fdsInsetText.insetText>
     </#if>
     <#if saveAndCompleteUrl??>
-        <@fdsAction.buttonGroup>
-            <@fdsAction.link
-                linkText="Save and complete"
-                linkUrl=springUrl(saveAndCompleteUrl)
-                linkClass="govuk-button"
-                role=true
+        <@fdsForm.htmlForm actionUrl=springUrl(saveAndCompleteUrl)>
+            <@fdsAction.submitButtons
+                primaryButtonText="Save and complete"
+                secondaryLinkText="Cancel"
+                linkSecondaryAction=true
+                linkSecondaryActionUrl=springUrl(cancelUrl)
             />
-            <@fdsAction.link
-                linkText="Cancel"
-                linkUrl=springUrl(cancelUrl)
-                linkClass="govuk-button govuk-button--secondary"
-                role=true
-            />
-        </@fdsAction.buttonGroup>
+        </@fdsForm.htmlForm>
     <#else>
         <@fdsBackLink.backLink backLinkUrl=springUrl(backUrl)/>
     </#if>

@@ -4,6 +4,7 @@ import static org.springframework.web.servlet.mvc.method.annotation.MvcUriCompon
 
 import java.util.Comparator;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -24,6 +25,7 @@ import uk.co.nstauthority.licensingmanagementservice.configuration.EnergyPortalC
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.AllowedDomainService;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserJson;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPortalUserService;
+import uk.co.nstauthority.licensingmanagementservice.fds.error.ErrorSummaryItem;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.externalcontributorjourney.LicenceContinuationExternalContributorController;
@@ -50,6 +52,9 @@ import uk.co.nstauthority.licensingmanagementservice.util.StreamUtil;
 @Controller
 @RequestMapping("/team-management")
 public class TeamManagementController {
+
+  static final String NO_EXTERNAL_CONTRIBUTORS_ERROR_FIELD = "add-external-contributor";
+  static final String NO_EXTERNAL_CONTRIBUTORS_ERROR_MESSAGE = "Add at least one external contributor";
 
   private final TeamManagementService teamManagementService;
   private final TeamQueryService teamQueryService;
@@ -252,6 +257,27 @@ public class TeamManagementController {
     return buildTeamListView(teamManagementService.getTeam(teamId), user.wuaId());
   }
 
+  @PostMapping("/external-contributors/{teamId}")
+  @InvokingUserCanViewTeam
+  public ModelAndView handleExternalContributorsSaveAndComplete(
+      @PathVariable UUID teamId,
+      ServiceUserDetail user
+  ) {
+    var team = teamManagementService.getTeam(teamId);
+
+    if (!teamManagementService.teamHasMembers(team)) {
+      var errorSummaryItem = new ErrorSummaryItem(
+          0,
+          NO_EXTERNAL_CONTRIBUTORS_ERROR_FIELD,
+          NO_EXTERNAL_CONTRIBUTORS_ERROR_MESSAGE
+      );
+      return buildTeamListView(team, user.wuaId())
+          .addObject("errorSummaryItems", List.of(errorSummaryItem));
+    }
+
+    return ReverseRouter.redirectToUrl(getExternalContributorFormNavigation(team).saveAndCompleteUrl());
+  }
+
   @GetMapping("/external-contributors/{teamId}/add-member")
   @InvokingUserCanManageTeam
   public ModelAndView renderAddMemberToScheduleExternalContributorsTeam(
@@ -338,7 +364,8 @@ public class TeamManagementController {
     if (team.getTeamType().isApplicationScoped()) {
       var navigation = getExternalContributorFormNavigation(team);
       modelAndView
-          .addObject("saveAndCompleteUrl", navigation.saveAndCompleteUrl())
+          .addObject("saveAndCompleteUrl", ReverseRouter.route(on(TeamManagementController.class)
+              .handleExternalContributorsSaveAndComplete(team.getId(), null)))
           .addObject("cancelUrl", navigation.cancelUrl())
           .addObject("currentEndPoint", getCurrentEndPoint(team))
           .addObject("addMemberUrl",

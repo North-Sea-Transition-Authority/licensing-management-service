@@ -20,6 +20,7 @@ import uk.co.nstauthority.licensingmanagementservice.breadcrumbs.BreadcrumbsUtil
 import uk.co.nstauthority.licensingmanagementservice.feedback.FeedbackController;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationUpdateSummaryCardView;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.requestupdate.ConfirmOnlyRequestedChangesForm;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.requestupdate.ConfirmOnlyRequestedChangesFormValidator;
 import uk.co.nstauthority.licensingmanagementservice.licence.contact.LicenceContactService;
@@ -102,6 +103,9 @@ public class ScheduleAmendmentApplicationReviewAndSubmitController {
         .build();
 
     BreadcrumbsUtil.addBreadcrumbsToModel(modelAndView, breadcrumbs);
+    if (applicationDetail.isApplicationUpdate()) {
+      modelAndView.addObject("applicationUpdateSummaryCardView", ApplicationUpdateSummaryCardView.from(applicationDetail));
+    }
     return modelAndView;
   }
 

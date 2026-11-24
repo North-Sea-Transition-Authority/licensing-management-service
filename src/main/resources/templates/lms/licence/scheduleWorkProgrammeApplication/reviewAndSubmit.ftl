@@ -1,5 +1,6 @@
 <#include '../../layout/layout.ftl'>
 <#import '../../summary/_summaryMissingInformationNotificationBanner.ftl' as banner>
+<#import '../application/applicationUpdateComponents.ftl' as applicationUpdateComponents>
 <#import 'scheduleApplicationSummary.ftl' as scheduleApplicationSummary>
 
 <#assign pageTitle = "Review your application before submitting"/>
@@ -29,6 +30,9 @@ breadcrumbs=breadcrumbs>
 
     <@fdsForm.htmlForm>
         <@scheduleApplicationSummary.scheduleApplicationSummary accordionId=accordionId summarySections=summarySections/>
+        <#if applicationUpdateSummaryCardView??>
+            <@applicationUpdateComponents.applicationUpdateSummaryCard applicationUpdateSummaryCardView=applicationUpdateSummaryCardView/>
+        </#if>
 
         <#if isSubmittable && hasLicenceContact && userCanSubmit>
             <#if isUpdateDraft>

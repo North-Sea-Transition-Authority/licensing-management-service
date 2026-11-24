@@ -36,6 +36,7 @@ import uk.co.nstauthority.licensingmanagementservice.feedback.FeedbackController
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationUpdateSummaryCardView;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.requestupdate.ConfirmOnlyRequestedChangesFormValidator;
 import uk.co.nstauthority.licensingmanagementservice.licence.contact.LicenceContactService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
@@ -102,6 +103,7 @@ class ScheduleAmendmentApplicationReviewAndSubmitControllerTest extends Abstract
         .andExpect(status().isOk());
 
     assertRenderPageModelsAttributesArePresent(resultActions, applicationDetailId);
+    resultActions.andExpect(model().attributeDoesNotExist("applicationUpdateSummaryCardView"));
   }
 
   @Test
@@ -286,11 +288,12 @@ class ScheduleAmendmentApplicationReviewAndSubmitControllerTest extends Abstract
   }
 
   @Test
-  void getReviewAndSubmit_whenUpdateDraft_flagsUpdateDraft() throws Exception {
+  void getReviewAndSubmit_whenUpdateDraft_flagsUpdateDraftAndAddsUpdateSummaryCard() throws Exception {
     var application = scheduleWorkProgrammeApplicationDetail.getScheduleWorkProgrammeApplication();
     application.setApplicationReference("APP-REF-123");
     mockScheduleWorkProgrammeApplicationDetailScenario(SCHEDULE_APPLICATION_DETAIL_ID);
     scheduleWorkProgrammeApplicationDetail.setUpdateDeadlineDate(LocalDate.of(2024, Month.APRIL, 1));
+    scheduleWorkProgrammeApplicationDetail.setUpdateReason("Missing documents");
     scheduleWorkProgrammeApplicationDetail.setVersionNumber(2);
     when(licenceService.getLicencePageCaption(any())).thenReturn(CAPTION);
 
@@ -298,7 +301,11 @@ class ScheduleAmendmentApplicationReviewAndSubmitControllerTest extends Abstract
             .getReviewAndSubmit(SCHEDULE_APPLICATION_DETAIL_ID, null, null, null)))
             .with(user(USER)))
         .andExpect(status().isOk())
-        .andExpect(model().attribute("isUpdateDraft", true));
+        .andExpect(model().attribute("isUpdateDraft", true))
+        .andExpect(model().attribute(
+            "applicationUpdateSummaryCardView",
+            new ApplicationUpdateSummaryCardView("Missing documents", "1 April 2024")
+        ));
   }
 
   @Test

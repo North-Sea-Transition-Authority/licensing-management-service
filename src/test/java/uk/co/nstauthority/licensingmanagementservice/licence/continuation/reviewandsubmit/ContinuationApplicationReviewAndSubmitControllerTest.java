@@ -33,6 +33,7 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.feedback.FeedbackController;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationStatus;
+import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationUpdateSummaryCardView;
 import uk.co.nstauthority.licensingmanagementservice.licence.application.requestupdate.ConfirmOnlyRequestedChangesFormValidator;
 import uk.co.nstauthority.licensingmanagementservice.licence.contact.LicenceContactService;
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplication;
@@ -92,6 +93,7 @@ class ContinuationApplicationReviewAndSubmitControllerTest extends AbstractContr
         .andExpect(status().isOk());
 
     assertRenderPageModelsAttributesArePresent(resultActions, applicationDetailId);
+    resultActions.andExpect(model().attributeDoesNotExist("applicationUpdateSummaryCardView"));
   }
 
   @Test
@@ -170,8 +172,9 @@ class ContinuationApplicationReviewAndSubmitControllerTest extends AbstractContr
   }
 
   @Test
-  void getReviewAndSubmit_whenUpdateDraft_flagsUpdateDraft() throws Exception {
+  void getReviewAndSubmit_whenUpdateDraft_flagsUpdateDraftAndAddsUpdateSummaryCard() throws Exception {
     licenceContinuationApplicationDetail.setUpdateDeadlineDate(LocalDate.of(2024, Month.APRIL, 1));
+    licenceContinuationApplicationDetail.setUpdateReason("Missing documents");
     licenceContinuationApplicationDetail.setVersionNumber(2);
     when(licenceService.getLicencePageCaption(any())).thenReturn(CAPTION);
     when(applicationAccessService.userHasAccessToApplication(any(), any(), any())).thenReturn(true);
@@ -180,7 +183,11 @@ class ContinuationApplicationReviewAndSubmitControllerTest extends AbstractContr
             .getReviewAndSubmit(LICENCE_CONTINUATION_APPLICATION_DETAIL_ID, null, null, null)))
             .with(user(USER)))
         .andExpect(status().isOk())
-        .andExpect(model().attribute("isUpdateDraft", true));
+        .andExpect(model().attribute("isUpdateDraft", true))
+        .andExpect(model().attribute(
+            "applicationUpdateSummaryCardView",
+            new ApplicationUpdateSummaryCardView("Missing documents", "1 April 2024")
+        ));
   }
 
   @Test

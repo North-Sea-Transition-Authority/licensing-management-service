@@ -24,8 +24,7 @@ public class ApplicationDecisionDetailService {
   }
 
   public Optional<ApplicationDecisionDetail> findDraftDecision(Application application) {
-    return applicationDecisionDetailRepository.findByApplicationTypeAndApplicationIdAndStatus(
-        application.getApplicationType(),
+    return applicationDecisionDetailRepository.findByApplicationIdAndStatus(
         application.getId(),
         ApplicationDecisionStatus.DRAFT
     );
@@ -34,15 +33,11 @@ public class ApplicationDecisionDetailService {
   @Transactional
   public ApplicationDecisionDetail createDraftDecision(Application application, ServiceUserDetail user) {
     var nextVersionNumber = applicationDecisionDetailRepository
-        .findFirstByApplicationTypeAndApplicationIdOrderByVersionNumberDesc(
-            application.getApplicationType(),
-            application.getId()
-        )
+        .findFirstByApplicationIdOrderByVersionNumberDesc(application.getId())
         .map(latestDecisionDetail -> latestDecisionDetail.getVersionNumber() + 1)
         .orElse(1);
 
     var decisionDetail = new ApplicationDecisionDetail();
-    decisionDetail.setApplicationType(application.getApplicationType());
     decisionDetail.setApplicationId(application.getId());
     decisionDetail.setVersionNumber(nextVersionNumber);
     decisionDetail.setStatus(ApplicationDecisionStatus.DRAFT);

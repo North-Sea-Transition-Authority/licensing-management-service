@@ -145,8 +145,7 @@ The application type is stored as `TEXT` in `applications.application_type` and 
 `application_details.application_type`. The two always agree: `application_details` has a
 composite foreign key on `(application_id, application_type)` to `applications (id,
 application_type)`. The same string also appears outside these tables, in the team scope
-(§9), the document instance item type (§10), `application_decision_details` and the licence
-event cache.
+(§9), the document instance item type (§10) and the licence event cache.
 
 | Value | Display | Reference prefix | Type-specific detail table | Licence types that can start one |
 |---|---|---|---|---|

@@ -31,17 +31,16 @@ the application tables are where its status and content live.
 ```
                  applications (id UUID, application_type)
                                   ▲
-                                  │  application_id + application_type
-                                  │  (no FK)
+                                  │  application_id (FK)
                                   │
                      application_decision_details
 ```
 
-- `application_decision_details` serves **both** application types. `application_type` says
-  which type the application is, and always matches `applications.application_type`.
+- `application_decision_details` serves **both** application types. It holds no type of its
+  own: join to `applications` for `application_type`.
 - It is keyed on the **application**, not the application detail, so a decision detail is not
   tied to any one application version.
-- There is no foreign key to `applications`.
+- `application_id` has a foreign key to `applications.id`.
 
 ### 2.1 Entity relationship diagram
 
@@ -50,9 +49,9 @@ Read top to bottom: each layer is keyed on the layer above it.
 ```mermaid
 flowchart TB
     APP["<b>applications</b><br/>id · application_type · licence_id · application_reference<br/><i>both types — continuation has no decision rows yet</i>"]
-    ADD["<b>application_decision_details</b><br/>id · application_type · application_id · version_number · status<br/><i>one row per decision version</i>"]
+    ADD["<b>application_decision_details</b><br/>id · application_id · version_number · status<br/><i>one row per decision version</i>"]
 
-    APP -. "application_id + application_type<br/>(no FK)" .-> ADD
+    APP -- "1 : many" --> ADD
 ```
 
 ---
@@ -61,15 +60,14 @@ flowchart TB
 
 ```
 id                UUID        PK
-application_type  TEXT        NOT NULL ← §4.2
-application_id    UUID        NOT NULL (no FK)
+application_id    UUID        NOT NULL → applications.id
 version_number    INTEGER     NOT NULL
 status            TEXT        NOT NULL ← §4.1
 created_datetime  TIMESTAMPTZ NOT NULL
 created_by_wua_id BIGINT      NOT NULL
 ```
 
-Unique on `(application_type, application_id, version_number)`.
+Unique on `(application_id, version_number)`.
 
 ### 3.1 When a row is written
 
@@ -77,8 +75,8 @@ A row is written, with `status = 'DRAFT'`, at the moment a regulator starts reco
 decision on an extension and amendment application. At that point the application detail is
 in status `DSP_UPLOADED`.
 
-No continuation application gets a row. The `CONTINUATION_APPLICATION` value is allowed by
-the design of the table but is not written.
+No continuation application gets a row. Nothing in the table prevents one, but none is
+written.
 
 ### 3.2 What starting a decision writes
 
@@ -150,25 +148,15 @@ signal, not a documentation gap.
 | `DRAFT` | The regulator has started recording a decision and has not yet submitted it |
 | `COMPLETED` | The regulator has submitted the decision from the review page (§3.4) |
 
-### 4.2 `application_type`
-
-| Value | Display | Written |
-|---|---|---|
-| `SCHEDULE_AMENDMENT_APPLICATION` | Licence and work programme extension and amendment application | yes |
-| `CONTINUATION_APPLICATION` | Licence continuation application | not yet |
-
-In both cases `application_id` is an `applications.id` whose `application_type` is the same
-value.
-
 ---
 
 ## 5. Caveats and known gotchas
 
-### 5.1 Join on both key columns, and use a left join
+### 5.1 Use a left join, to the latest version
 
-`application_id` is an `applications.id`. Join on `application_type` as well, which keeps the
-join correct if the two ever disagree. There is no foreign key, so a dangling id is possible in
-principle.
+Only extension and amendment applications have decision rows (§3.1), and only once a decision
+has been started, so join from `applications` with a left join. Filter on
+`applications.application_type` for the type; this table does not store it.
 
 A decision can have more than one version (§3.5), so join to the latest one when you want
 a single row per application:
@@ -177,13 +165,11 @@ a single row per application:
 SELECT a.application_reference, d.version_number, d.status, d.created_datetime
 FROM applications a
 LEFT JOIN application_decision_details d
-  ON d.application_type = a.application_type
- AND d.application_id = a.id
+  ON d.application_id = a.id
  AND d.version_number = (
        SELECT MAX(latest.version_number)
        FROM application_decision_details latest
-       WHERE latest.application_type = d.application_type
-         AND latest.application_id = d.application_id
+       WHERE latest.application_id = d.application_id
      );
 ```
 
@@ -239,5 +225,4 @@ was made (`created_date_time`) and by whom (`user_wua_id`, `proxy_user_wua_id`).
 ## 7. Reference: current columns per table
 
 **`application_decision_details`**
-`id`, `application_type`, `application_id`, `version_number`, `status`, `created_datetime`,
-`created_by_wua_id`
+`id`, `application_id`, `version_number`, `status`, `created_datetime`, `created_by_wua_id`

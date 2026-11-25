@@ -19,7 +19,6 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.caseevent.CaseEventService;
 import uk.co.nstauthority.licensingmanagementservice.caseevent.CaseEventType;
 import uk.co.nstauthority.licensingmanagementservice.caseevent.payload.CaseNotePayload;
-import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplication;
 
 @ExtendWith(MockitoExtension.class)
@@ -59,7 +58,6 @@ class CaseNoteServiceTest {
     var result = caseNoteService.addCaseNote(application, "Chased the operator for the missing map", author);
 
     var expectedNote = new CaseNote(
-        ApplicationType.SCHEDULE_AMENDMENT_APPLICATION,
         application.getId(),
         "Chased the operator for the missing map",
         NOW,

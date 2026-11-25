@@ -36,7 +36,6 @@ import uk.co.nstauthority.licensingmanagementservice.energyportal.user.EnergyPor
 import uk.co.nstauthority.licensingmanagementservice.energyportal.user.WebUserAccountId;
 import uk.co.nstauthority.licensingmanagementservice.file.ApplicationFileTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplication;
 import uk.co.nstauthority.licensingmanagementservice.summary.UploadedFileView;
 import uk.co.nstauthority.licensingmanagementservice.util.EnergyPortalUserTestUtil;
@@ -129,8 +128,7 @@ class CaseEventServiceTest {
 
   @Test
   void getCaseEventViews_whenNoEvents_thenReturnsNoViews() {
-    when(caseEventRepository.findByApplicationTypeAndApplicationIdOrderByEventInstantDesc(
-        ApplicationType.SCHEDULE_AMENDMENT_APPLICATION, APPLICATION_ID))
+    when(caseEventRepository.findByApplicationIdOrderByEventInstantDesc(APPLICATION_ID))
         .thenReturn(List.of());
 
     var result = caseEventService.getCaseEventViews(application);
@@ -145,15 +143,14 @@ class CaseEventServiceTest {
     var userEventInstant = Instant.parse("2026-09-23T12:00:00Z");
     var systemEventInstant = Instant.parse("2026-09-22T12:00:00Z");
 
-    var proxyEvent = new CaseEvent(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION, APPLICATION_ID,
+    var proxyEvent = new CaseEvent(APPLICATION_ID,
         CaseEventType.APPLICATION_SUBMITTED, proxyEventInstant, new CaseEventUser(10L, 20L, false), null);
-    var userEvent = new CaseEvent(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION, APPLICATION_ID,
+    var userEvent = new CaseEvent(APPLICATION_ID,
         CaseEventType.APPLICATION_SUBMITTED, userEventInstant, new CaseEventUser(10L, null, false), null);
-    var systemEvent = new CaseEvent(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION, APPLICATION_ID,
+    var systemEvent = new CaseEvent(APPLICATION_ID,
         CaseEventType.APPLICATION_SUBMITTED, systemEventInstant, CaseEventUser.system(), null);
 
-    when(caseEventRepository.findByApplicationTypeAndApplicationIdOrderByEventInstantDesc(
-        ApplicationType.SCHEDULE_AMENDMENT_APPLICATION, APPLICATION_ID))
+    when(caseEventRepository.findByApplicationIdOrderByEventInstantDesc(APPLICATION_ID))
         .thenReturn(List.of(proxyEvent, userEvent, systemEvent));
 
     var proxyUser = EnergyPortalUserTestUtil.newBuilder()
@@ -194,12 +191,11 @@ class CaseEventServiceTest {
   @Test
   void getCaseEventViews_whenUpdateRequestedEvent_thenShowsDeadlineAndReason() {
     var eventInstant = Instant.parse("2026-09-24T12:00:00Z");
-    var updateRequestedEvent = new CaseEvent(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION, APPLICATION_ID,
+    var updateRequestedEvent = new CaseEvent(APPLICATION_ID,
         CaseEventType.APPLICATION_UPDATE_REQUESTED, eventInstant, new CaseEventUser(10L, null, false),
         new CaseUpdateRequestPayload(LocalDate.of(2026, Month.DECEMBER, 1), "Further information is needed"));
 
-    when(caseEventRepository.findByApplicationTypeAndApplicationIdOrderByEventInstantDesc(
-        ApplicationType.SCHEDULE_AMENDMENT_APPLICATION, APPLICATION_ID))
+    when(caseEventRepository.findByApplicationIdOrderByEventInstantDesc(APPLICATION_ID))
         .thenReturn(List.of(updateRequestedEvent));
 
     var caseManager = EnergyPortalUserTestUtil.newBuilder()
@@ -231,12 +227,11 @@ class CaseEventServiceTest {
   @Test
   void getCaseEventViews_whenUpdateSubmittedEvent_thenShowsVersion() {
     var eventInstant = Instant.parse("2026-09-24T12:00:00Z");
-    var updateSubmittedEvent = new CaseEvent(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION, APPLICATION_ID,
+    var updateSubmittedEvent = new CaseEvent(APPLICATION_ID,
         CaseEventType.APPLICATION_UPDATE_SUBMITTED, eventInstant, new CaseEventUser(10L, null, false),
         new CaseUpdateSubmittedPayload(2));
 
-    when(caseEventRepository.findByApplicationTypeAndApplicationIdOrderByEventInstantDesc(
-        ApplicationType.SCHEDULE_AMENDMENT_APPLICATION, APPLICATION_ID))
+    when(caseEventRepository.findByApplicationIdOrderByEventInstantDesc(APPLICATION_ID))
         .thenReturn(List.of(updateSubmittedEvent));
 
     var submitter = EnergyPortalUserTestUtil.newBuilder()
@@ -265,12 +260,11 @@ class CaseEventServiceTest {
   @Test
   void getCaseEventViews_whenAllocationEvent_thenShowsAllocatedToUser() {
     var eventInstant = Instant.parse("2026-09-24T12:00:00Z");
-    var allocationEvent = new CaseEvent(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION, APPLICATION_ID,
+    var allocationEvent = new CaseEvent(APPLICATION_ID,
         CaseEventType.STEWARD_ALLOCATED, eventInstant, new CaseEventUser(10L, null, false),
         new CaseAllocationPayload(30L));
 
-    when(caseEventRepository.findByApplicationTypeAndApplicationIdOrderByEventInstantDesc(
-        ApplicationType.SCHEDULE_AMENDMENT_APPLICATION, APPLICATION_ID))
+    when(caseEventRepository.findByApplicationIdOrderByEventInstantDesc(APPLICATION_ID))
         .thenReturn(List.of(allocationEvent));
 
     var caseManager = EnergyPortalUserTestUtil.newBuilder()
@@ -309,12 +303,11 @@ class CaseEventServiceTest {
   void getCaseEventViews_whenDspUploadedEvent_thenShowsDspFilesWithDownloadLinks() {
     var eventInstant = Instant.parse("2026-09-24T12:00:00Z");
     var file = ApplicationFileTestUtil.createUploadFile();
-    var dspUploadedEvent = new CaseEvent(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION, APPLICATION_ID,
+    var dspUploadedEvent = new CaseEvent(APPLICATION_ID,
         CaseEventType.DSP_UPLOADED, eventInstant, new CaseEventUser(10L, null, false),
         new DspUploadedPayload(List.of(file.getId())));
 
-    when(caseEventRepository.findByApplicationTypeAndApplicationIdOrderByEventInstantDesc(
-        ApplicationType.SCHEDULE_AMENDMENT_APPLICATION, APPLICATION_ID))
+    when(caseEventRepository.findByApplicationIdOrderByEventInstantDesc(APPLICATION_ID))
         .thenReturn(List.of(dspUploadedEvent));
     stubCaseManagerUser();
     when(fileService.findAll(List.of(file.getId()))).thenReturn(List.of(file));
@@ -336,15 +329,14 @@ class CaseEventServiceTest {
   void getCaseEventViews_whenSeveralEventsHaveFiles_thenResolvesAllFilesInOneCall() {
     var firstFile = ApplicationFileTestUtil.createUploadFile();
     var secondFile = ApplicationFileTestUtil.createUploadFile();
-    var firstEvent = new CaseEvent(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION, APPLICATION_ID,
+    var firstEvent = new CaseEvent(APPLICATION_ID,
         CaseEventType.DSP_UPLOADED, Instant.parse("2026-09-24T12:00:00Z"), new CaseEventUser(10L, null, false),
         new DspUploadedPayload(List.of(firstFile.getId())));
-    var secondEvent = new CaseEvent(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION, APPLICATION_ID,
+    var secondEvent = new CaseEvent(APPLICATION_ID,
         CaseEventType.DSP_UPLOADED, Instant.parse("2026-09-23T12:00:00Z"), new CaseEventUser(10L, null, false),
         new DspUploadedPayload(List.of(secondFile.getId())));
 
-    when(caseEventRepository.findByApplicationTypeAndApplicationIdOrderByEventInstantDesc(
-        ApplicationType.SCHEDULE_AMENDMENT_APPLICATION, APPLICATION_ID))
+    when(caseEventRepository.findByApplicationIdOrderByEventInstantDesc(APPLICATION_ID))
         .thenReturn(List.of(firstEvent, secondEvent));
     stubCaseManagerUser();
     when(fileService.findAll(List.of(firstFile.getId(), secondFile.getId())))
@@ -363,12 +355,11 @@ class CaseEventServiceTest {
   void getCaseEventViews_whenDspFileNoLongerExists_thenShowsNoFiles() {
     var eventInstant = Instant.parse("2026-09-24T12:00:00Z");
     var missingFileId = UUID.randomUUID();
-    var dspUploadedEvent = new CaseEvent(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION, APPLICATION_ID,
+    var dspUploadedEvent = new CaseEvent(APPLICATION_ID,
         CaseEventType.DSP_UPLOADED, eventInstant, new CaseEventUser(10L, null, false),
         new DspUploadedPayload(List.of(missingFileId)));
 
-    when(caseEventRepository.findByApplicationTypeAndApplicationIdOrderByEventInstantDesc(
-        ApplicationType.SCHEDULE_AMENDMENT_APPLICATION, APPLICATION_ID))
+    when(caseEventRepository.findByApplicationIdOrderByEventInstantDesc(APPLICATION_ID))
         .thenReturn(List.of(dspUploadedEvent));
     stubCaseManagerUser();
     when(fileService.findAll(List.of(missingFileId))).thenReturn(List.of());
@@ -388,15 +379,14 @@ class CaseEventServiceTest {
   @Test
   void isFileOnApplicationEvent_whenAnEventOnTheApplicationReferencesTheFile_thenTrue() {
     var fileId = UUID.randomUUID();
-    var dspUploadedEvent = new CaseEvent(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION, APPLICATION_ID,
+    var dspUploadedEvent = new CaseEvent(APPLICATION_ID,
         CaseEventType.DSP_UPLOADED, Instant.parse("2026-09-24T12:00:00Z"), new CaseEventUser(10L, null, false),
         new DspUploadedPayload(List.of(UUID.randomUUID(), fileId)));
-    var submittedEvent = new CaseEvent(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION, APPLICATION_ID,
+    var submittedEvent = new CaseEvent(APPLICATION_ID,
         CaseEventType.APPLICATION_SUBMITTED, Instant.parse("2026-09-23T12:00:00Z"), new CaseEventUser(10L, null, false),
         null);
 
-    when(caseEventRepository.findByApplicationTypeAndApplicationIdOrderByEventInstantDesc(
-        ApplicationType.SCHEDULE_AMENDMENT_APPLICATION, APPLICATION_ID))
+    when(caseEventRepository.findByApplicationIdOrderByEventInstantDesc(APPLICATION_ID))
         .thenReturn(List.of(dspUploadedEvent, submittedEvent));
 
     assertThat(caseEventService.isFileOnApplicationEvent(fileId, application)).isTrue();
@@ -404,15 +394,14 @@ class CaseEventServiceTest {
 
   @Test
   void isFileOnApplicationEvent_whenNoEventOnTheApplicationReferencesTheFile_thenFalse() {
-    var dspUploadedEvent = new CaseEvent(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION, APPLICATION_ID,
+    var dspUploadedEvent = new CaseEvent(APPLICATION_ID,
         CaseEventType.DSP_UPLOADED, Instant.parse("2026-09-24T12:00:00Z"), new CaseEventUser(10L, null, false),
         new DspUploadedPayload(List.of(UUID.randomUUID())));
-    var submittedEvent = new CaseEvent(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION, APPLICATION_ID,
+    var submittedEvent = new CaseEvent(APPLICATION_ID,
         CaseEventType.APPLICATION_SUBMITTED, Instant.parse("2026-09-23T12:00:00Z"), new CaseEventUser(10L, null, false),
         null);
 
-    when(caseEventRepository.findByApplicationTypeAndApplicationIdOrderByEventInstantDesc(
-        ApplicationType.SCHEDULE_AMENDMENT_APPLICATION, APPLICATION_ID))
+    when(caseEventRepository.findByApplicationIdOrderByEventInstantDesc(APPLICATION_ID))
         .thenReturn(List.of(dspUploadedEvent, submittedEvent));
 
     assertThat(caseEventService.isFileOnApplicationEvent(UUID.randomUUID(), application)).isFalse();
@@ -423,12 +412,11 @@ class CaseEventServiceTest {
     var eventInstant = Instant.parse("2026-09-24T12:00:00Z");
     var replacedFile = ApplicationFileTestUtil.createUploadFile();
     var correctedFile = ApplicationFileTestUtil.createUploadFile();
-    var dspCorrectedEvent = new CaseEvent(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION, APPLICATION_ID,
+    var dspCorrectedEvent = new CaseEvent(APPLICATION_ID,
         CaseEventType.DSP_CORRECTED, eventInstant, new CaseEventUser(10L, null, false),
         new DspCorrectedPayload(List.of(replacedFile.getId()), List.of(correctedFile.getId())));
 
-    when(caseEventRepository.findByApplicationTypeAndApplicationIdOrderByEventInstantDesc(
-        ApplicationType.SCHEDULE_AMENDMENT_APPLICATION, APPLICATION_ID))
+    when(caseEventRepository.findByApplicationIdOrderByEventInstantDesc(APPLICATION_ID))
         .thenReturn(List.of(dspCorrectedEvent));
     stubCaseManagerUser();
     when(fileService.findAll(List.of(replacedFile.getId(), correctedFile.getId())))
@@ -458,12 +446,11 @@ class CaseEventServiceTest {
   void getCaseEventViews_whenDspAddendumUploadedEvent_thenShowsAddendumFile() {
     var eventInstant = Instant.parse("2026-09-24T12:00:00Z");
     var addendumFile = ApplicationFileTestUtil.createUploadFile();
-    var addendumEvent = new CaseEvent(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION, APPLICATION_ID,
+    var addendumEvent = new CaseEvent(APPLICATION_ID,
         CaseEventType.DSP_ADDENDUM_UPLOADED, eventInstant, new CaseEventUser(10L, null, false),
         new DspAddendumUploadedPayload(List.of(addendumFile.getId())));
 
-    when(caseEventRepository.findByApplicationTypeAndApplicationIdOrderByEventInstantDesc(
-        ApplicationType.SCHEDULE_AMENDMENT_APPLICATION, APPLICATION_ID))
+    when(caseEventRepository.findByApplicationIdOrderByEventInstantDesc(APPLICATION_ID))
         .thenReturn(List.of(addendumEvent));
     stubCaseManagerUser();
     when(fileService.findAll(List.of(addendumFile.getId()))).thenReturn(List.of(addendumFile));
@@ -487,12 +474,11 @@ class CaseEventServiceTest {
   @Test
   void isFileOnApplicationEvent_whenTheFileWasReplacedByACorrection_thenTrue() {
     var replacedFileId = UUID.randomUUID();
-    var dspCorrectedEvent = new CaseEvent(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION, APPLICATION_ID,
+    var dspCorrectedEvent = new CaseEvent(APPLICATION_ID,
         CaseEventType.DSP_CORRECTED, Instant.parse("2026-09-24T12:00:00Z"), new CaseEventUser(10L, null, false),
         new DspCorrectedPayload(List.of(replacedFileId), List.of(UUID.randomUUID())));
 
-    when(caseEventRepository.findByApplicationTypeAndApplicationIdOrderByEventInstantDesc(
-        ApplicationType.SCHEDULE_AMENDMENT_APPLICATION, APPLICATION_ID))
+    when(caseEventRepository.findByApplicationIdOrderByEventInstantDesc(APPLICATION_ID))
         .thenReturn(List.of(dspCorrectedEvent));
 
     assertThat(caseEventService.isFileOnApplicationEvent(replacedFileId, application)).isTrue();
@@ -513,7 +499,6 @@ class CaseEventServiceTest {
 
   private CaseEvent expectedCaseEvent(CaseEventUser user) {
     return new CaseEvent(
-        ApplicationType.SCHEDULE_AMENDMENT_APPLICATION,
         APPLICATION_ID,
         CaseEventType.CASE_NOTE_ADDED,
         NOW,

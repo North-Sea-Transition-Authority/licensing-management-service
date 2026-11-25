@@ -10,7 +10,6 @@ import java.time.Instant;
 import java.util.UUID;
 import org.hibernate.annotations.UuidGenerator;
 import org.hibernate.envers.Audited;
-import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
 
 @Audited
 @Entity
@@ -20,9 +19,6 @@ public class ApplicationDecisionDetail {
   @Id
   @UuidGenerator
   private UUID id;
-
-  @Enumerated(EnumType.STRING)
-  private ApplicationType applicationType;
 
   private UUID applicationId;
 
@@ -45,14 +41,6 @@ public class ApplicationDecisionDetail {
 
   public UUID getId() {
     return id;
-  }
-
-  public ApplicationType getApplicationType() {
-    return applicationType;
-  }
-
-  public void setApplicationType(ApplicationType applicationType) {
-    this.applicationType = applicationType;
   }
 
   public UUID getApplicationId() {

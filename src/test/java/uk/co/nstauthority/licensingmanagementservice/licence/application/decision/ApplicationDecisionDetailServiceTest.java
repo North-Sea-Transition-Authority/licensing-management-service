@@ -21,7 +21,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
-import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplication;
 
 @ExtendWith(MockitoExtension.class)
@@ -54,8 +53,7 @@ class ApplicationDecisionDetailServiceTest {
   @Test
   void findDraftDecision() {
     var draftDecision = new ApplicationDecisionDetail(UUID.randomUUID());
-    when(applicationDecisionDetailRepository.findByApplicationTypeAndApplicationIdAndStatus(
-        ApplicationType.SCHEDULE_AMENDMENT_APPLICATION,
+    when(applicationDecisionDetailRepository.findByApplicationIdAndStatus(
         APPLICATION_ID,
         ApplicationDecisionStatus.DRAFT
     )).thenReturn(Optional.of(draftDecision));
@@ -68,17 +66,13 @@ class ApplicationDecisionDetailServiceTest {
   @Test
   void createDraftDecision_whenNoPreviousDecision_thenCreatesFirstVersionDraft() {
     var user = ServiceUserDetailTestUtil.newBuilder().withWuaId(10L).build();
-    when(applicationDecisionDetailRepository.findFirstByApplicationTypeAndApplicationIdOrderByVersionNumberDesc(
-        ApplicationType.SCHEDULE_AMENDMENT_APPLICATION,
-        APPLICATION_ID
-    )).thenReturn(Optional.empty());
+    when(applicationDecisionDetailRepository.findFirstByApplicationIdOrderByVersionNumberDesc(APPLICATION_ID)).thenReturn(Optional.empty());
     when(applicationDecisionDetailRepository.save(decisionDetailCaptor.capture()))
         .thenAnswer(invocation -> invocation.getArgument(0));
 
     var result = applicationDecisionDetailService.createDraftDecision(application, user);
 
     var expected = new ApplicationDecisionDetail();
-    expected.setApplicationType(ApplicationType.SCHEDULE_AMENDMENT_APPLICATION);
     expected.setApplicationId(APPLICATION_ID);
     expected.setVersionNumber(1);
     expected.setStatus(ApplicationDecisionStatus.DRAFT);
@@ -94,10 +88,7 @@ class ApplicationDecisionDetailServiceTest {
     var user = ServiceUserDetailTestUtil.newBuilder().withWuaId(10L).build();
     var previousDecision = new ApplicationDecisionDetail(UUID.randomUUID());
     previousDecision.setVersionNumber(2);
-    when(applicationDecisionDetailRepository.findFirstByApplicationTypeAndApplicationIdOrderByVersionNumberDesc(
-        ApplicationType.SCHEDULE_AMENDMENT_APPLICATION,
-        APPLICATION_ID
-    )).thenReturn(Optional.of(previousDecision));
+    when(applicationDecisionDetailRepository.findFirstByApplicationIdOrderByVersionNumberDesc(APPLICATION_ID)).thenReturn(Optional.of(previousDecision));
     when(applicationDecisionDetailRepository.save(decisionDetailCaptor.capture()))
         .thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -110,8 +101,7 @@ class ApplicationDecisionDetailServiceTest {
   void completeDraftDecision_whenDraftExists_thenSetsStatusToCompleted() {
     var draftDecision = new ApplicationDecisionDetail(UUID.randomUUID());
     draftDecision.setStatus(ApplicationDecisionStatus.DRAFT);
-    when(applicationDecisionDetailRepository.findByApplicationTypeAndApplicationIdAndStatus(
-        ApplicationType.SCHEDULE_AMENDMENT_APPLICATION,
+    when(applicationDecisionDetailRepository.findByApplicationIdAndStatus(
         APPLICATION_ID,
         ApplicationDecisionStatus.DRAFT
     )).thenReturn(Optional.of(draftDecision));
@@ -124,8 +114,7 @@ class ApplicationDecisionDetailServiceTest {
 
   @Test
   void completeDraftDecision_whenNoDraftExists_thenThrows() {
-    when(applicationDecisionDetailRepository.findByApplicationTypeAndApplicationIdAndStatus(
-        ApplicationType.SCHEDULE_AMENDMENT_APPLICATION,
+    when(applicationDecisionDetailRepository.findByApplicationIdAndStatus(
         APPLICATION_ID,
         ApplicationDecisionStatus.DRAFT
     )).thenReturn(Optional.empty());

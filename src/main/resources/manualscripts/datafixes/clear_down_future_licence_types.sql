@@ -56,18 +56,6 @@ WHERE (item_type = 'SCHEDULE_WORK_PROGRAMME_APPLICATION'
    OR (item_type = 'DRAFT_LICENCE_SCHEDULE' AND item_id IN (SELECT id FROM future_schedule_details))
    OR (item_type = 'LICENCE_CORRECTION' AND item_id IN (SELECT id FROM future_corrections));
 
-DELETE FROM lms.case_notes
-WHERE (application_type = 'SCHEDULE_AMENDMENT_APPLICATION' AND application_id IN (SELECT id FROM future_swp_applications))
-   OR (application_type = 'CONTINUATION_APPLICATION' AND application_id IN (SELECT id FROM future_continuation_applications));
-
-DELETE FROM lms.case_events
-WHERE (application_type = 'SCHEDULE_AMENDMENT_APPLICATION' AND application_id IN (SELECT id FROM future_swp_applications))
-   OR (application_type = 'CONTINUATION_APPLICATION' AND application_id IN (SELECT id FROM future_continuation_applications));
-
-DELETE FROM lms.application_decision_details
-WHERE (application_type = 'SCHEDULE_AMENDMENT_APPLICATION' AND application_id IN (SELECT id FROM future_swp_applications))
-   OR (application_type = 'CONTINUATION_APPLICATION' AND application_id IN (SELECT id FROM future_continuation_applications));
-
 CREATE TEMP TABLE future_contributor_teams AS
 SELECT id FROM lms.teams
 WHERE type = 'EXTERNAL_CONTRIBUTORS'
@@ -149,6 +137,15 @@ WHERE application_id IN (SELECT id FROM future_continuation_applications);
 
 -- Rows shared by both application types
 
+DELETE FROM lms.case_notes
+WHERE application_id IN (SELECT id FROM future_swp_applications)
+   OR application_id IN (SELECT id FROM future_continuation_applications);
+DELETE FROM lms.case_events
+WHERE application_id IN (SELECT id FROM future_swp_applications)
+   OR application_id IN (SELECT id FROM future_continuation_applications);
+DELETE FROM lms.application_decision_details
+WHERE application_id IN (SELECT id FROM future_swp_applications)
+   OR application_id IN (SELECT id FROM future_continuation_applications);
 DELETE FROM lms.application_details
 WHERE id IN (SELECT id FROM future_swp_application_details)
    OR id IN (SELECT id FROM future_continuation_application_details);

@@ -33,7 +33,6 @@ public class CaseNoteService {
       ServiceUserDetail author
   ) {
     var caseNote = caseNoteRepository.save(new CaseNote(
-        application.getApplicationType(),
         application.getId(),
         noteText,
         clock.instant(),

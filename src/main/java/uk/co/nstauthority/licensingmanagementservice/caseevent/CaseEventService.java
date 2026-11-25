@@ -72,7 +72,6 @@ public class CaseEventService {
       @Nullable CaseEventPayload payload
   ) {
     var caseEvent = new CaseEvent(
-        application.getApplicationType(),
         application.getId(),
         eventType,
         clock.instant(),
@@ -118,10 +117,7 @@ public class CaseEventService {
   }
 
   private List<CaseEvent> findCaseEvents(Application application) {
-    return caseEventRepository.findByApplicationTypeAndApplicationIdOrderByEventInstantDesc(
-        application.getApplicationType(),
-        application.getId()
-    );
+    return caseEventRepository.findByApplicationIdOrderByEventInstantDesc(application.getId());
   }
 
   private Map<UUID, UploadedFile> getFilesById(List<CaseEvent> caseEvents) {

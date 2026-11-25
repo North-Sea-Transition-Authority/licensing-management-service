@@ -12,7 +12,6 @@ import org.hibernate.annotations.UuidGenerator;
 import org.hibernate.envers.Audited;
 import org.hibernate.type.SqlTypes;
 import uk.co.nstauthority.licensingmanagementservice.caseevent.payload.CaseEventPayload;
-import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
 
 @Audited
 @Entity
@@ -22,9 +21,6 @@ public class CaseEvent {
   @Id
   @UuidGenerator
   private UUID id;
-
-  @Enumerated(EnumType.STRING)
-  private ApplicationType applicationType;
 
   private UUID applicationId;
 
@@ -46,14 +42,12 @@ public class CaseEvent {
   }
 
   CaseEvent(
-      ApplicationType applicationType,
       UUID applicationId,
       CaseEventType eventType,
       Instant eventInstant,
       CaseEventUser user,
       CaseEventPayload payload
   ) {
-    this.applicationType = applicationType;
     this.applicationId = applicationId;
     this.eventType = eventType;
     this.eventInstant = eventInstant;
@@ -65,10 +59,6 @@ public class CaseEvent {
 
   public UUID getId() {
     return id;
-  }
-
-  public ApplicationType getApplicationType() {
-    return applicationType;
   }
 
   public UUID getApplicationId() {

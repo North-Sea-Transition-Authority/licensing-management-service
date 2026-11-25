@@ -9,7 +9,6 @@ import java.time.Month;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Stream;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -27,12 +26,18 @@ import uk.co.nstauthority.licensingmanagementservice.caseevent.payload.CaseUpdat
 import uk.co.nstauthority.licensingmanagementservice.caseevent.payload.DspAddendumUploadedPayload;
 import uk.co.nstauthority.licensingmanagementservice.caseevent.payload.DspCorrectedPayload;
 import uk.co.nstauthority.licensingmanagementservice.caseevent.payload.DspUploadedPayload;
-import uk.co.nstauthority.licensingmanagementservice.licence.application.ApplicationType;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSchedule;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplication;
+import uk.co.nstauthority.licensingmanagementservice.licence.scheduleworkprogrammeapplication.ScheduleWorkProgrammeApplicationRepository;
 import uk.co.nstauthority.licensingmanagementservice.util.IntegrationTest;
 
 @IntegrationTest
 class CaseEventIntegrationTest {
+
+  private static final int LICENCE_ID = 9801;
 
   @Autowired
   private CaseEventRepository caseEventRepository;
@@ -44,43 +49,45 @@ class CaseEventIntegrationTest {
   private CaseNoteService caseNoteService;
 
   @Autowired
+  private ScheduleWorkProgrammeApplicationRepository scheduleWorkProgrammeApplicationRepository;
+
+  @Autowired
   private TransactionTemplate transactionTemplate;
 
   @Autowired
   private EntityManager em;
 
-  private ScheduleWorkProgrammeApplication application;
-
-  @BeforeEach
-  void setUp() {
-    application = new ScheduleWorkProgrammeApplication();
-    application.setId(UUID.randomUUID());
-  }
-
   @Test
   void addCaseNote_whenTransactionRollsBack_thenNeitherNoteNorEventIsSaved() {
     var author = ServiceUserDetailTestUtil.newBuilder().build();
 
-    var caseNoteId = transactionTemplate.execute(status -> {
+    var saved = transactionTemplate.execute(status -> {
+      var application = persistApplication(persistLicenceSchedule());
       var caseNote = caseNoteService.addCaseNote(application, "Chased the operator for the missing map", author);
       status.setRollbackOnly();
-      return caseNote.getId();
+      return new SavedCaseNote(application.getId(), caseNote.getId());
     });
 
-    assertThat(caseNoteRepository.findById(caseNoteId)).isEmpty();
-    assertThat(eventsForApplication()).isEmpty();
+    assertThat(caseNoteRepository.findById(saved.caseNoteId())).isEmpty();
+    assertThat(caseEventRepository.findByApplicationIdOrderByEventInstantDesc(saved.applicationId())).isEmpty();
+  }
+
+  private record SavedCaseNote(UUID applicationId, UUID caseNoteId) {
   }
 
   @Test
-  void findByApplicationTypeAndApplicationIdOrderByEventInstantDesc_returnsThisApplicationsEventsNewestFirst() {
+  void findByApplicationIdOrderByEventInstantDesc_returnsThisApplicationsEventsNewestFirst() {
     transactionTemplate.executeWithoutResult(status -> {
+      var licenceSchedule = persistLicenceSchedule();
+      var application = persistApplication(licenceSchedule);
+      var otherApplication = persistApplication(licenceSchedule);
       var older = saveEvent(application.getId(), Instant.parse("2026-09-01T09:00:00Z"));
       var newer = saveEvent(application.getId(), Instant.parse("2026-09-02T09:00:00Z"));
-      saveEvent(UUID.randomUUID(), Instant.parse("2026-09-03T09:00:00Z"));
+      saveEvent(otherApplication.getId(), Instant.parse("2026-09-03T09:00:00Z"));
       em.flush();
       em.clear();
 
-      assertThat(eventsForApplication())
+      assertThat(caseEventRepository.findByApplicationIdOrderByEventInstantDesc(application.getId()))
           .extracting(CaseEvent::getId)
           .containsExactly(newer.getId(), older.getId());
 
@@ -92,8 +99,8 @@ class CaseEventIntegrationTest {
   @MethodSource("payloads")
   void payload_isSavedAsJsonAndReadBackAsTheSameType(CaseEventType eventType, CaseEventPayload payload) {
     transactionTemplate.executeWithoutResult(status -> {
+      var application = persistApplication(persistLicenceSchedule());
       caseEventRepository.save(new CaseEvent(
-          application.getApplicationType(),
           application.getId(),
           eventType,
           Instant.parse("2026-09-01T09:00:00Z"),
@@ -103,7 +110,7 @@ class CaseEventIntegrationTest {
       em.flush();
       em.clear();
 
-      assertThat(eventsForApplication())
+      assertThat(caseEventRepository.findByApplicationIdOrderByEventInstantDesc(application.getId()))
           .extracting(CaseEvent::getPayload)
           .containsExactly(payload);
 
@@ -114,8 +121,8 @@ class CaseEventIntegrationTest {
   @Test
   void payload_whenStoredRowIsMissingAField_thenStillLoads() {
     transactionTemplate.executeWithoutResult(status -> {
+      var application = persistApplication(persistLicenceSchedule());
       caseEventRepository.save(new CaseEvent(
-          application.getApplicationType(),
           application.getId(),
           CaseEventType.CASE_NOTE_ADDED,
           Instant.parse("2026-09-01T09:00:00Z"),
@@ -125,7 +132,7 @@ class CaseEventIntegrationTest {
       em.flush();
       em.clear();
 
-      assertThat(eventsForApplication())
+      assertThat(caseEventRepository.findByApplicationIdOrderByEventInstantDesc(application.getId()))
           .extracting(CaseEvent::getPayload)
           .containsExactly(new CaseNotePayload(null));
 
@@ -138,9 +145,13 @@ class CaseEventIntegrationTest {
     var caseNoteId = UUID.randomUUID();
 
     transactionTemplate.executeWithoutResult(status -> {
-      insertRawPayload("{\"type\": \"case-note\", \"caseNoteId\": \"%s\", \"removedField\": \"x\"}".formatted(caseNoteId));
+      var application = persistApplication(persistLicenceSchedule());
+      insertRawPayload(
+          application.getId(),
+          "{\"type\": \"case-note\", \"caseNoteId\": \"%s\", \"removedField\": \"x\"}".formatted(caseNoteId)
+      );
 
-      assertThat(eventsForApplication())
+      assertThat(caseEventRepository.findByApplicationIdOrderByEventInstantDesc(application.getId()))
           .extracting(CaseEvent::getPayload)
           .containsExactly(new CaseNotePayload(caseNoteId));
 
@@ -148,9 +159,27 @@ class CaseEventIntegrationTest {
     });
   }
 
+  private LicenceSchedule persistLicenceSchedule() {
+    var licence = LicenceTestUtil.builder()
+        .withId(LICENCE_ID)
+        .withLicenceType(LicenceType.SEAWARD_PRODUCTION)
+        .withLicenceReference("P " + LICENCE_ID)
+        .build();
+    em.persist(licence);
+
+    var licenceSchedule = LicenceScheduleTestUtil.createLicenceSchedule(null, licence);
+    em.persist(licenceSchedule);
+    return licenceSchedule;
+  }
+
+  private ScheduleWorkProgrammeApplication persistApplication(LicenceSchedule licenceSchedule) {
+    var application = new ScheduleWorkProgrammeApplication();
+    application.setLicenceSchedule(licenceSchedule);
+    return scheduleWorkProgrammeApplicationRepository.saveAndFlush(application);
+  }
+
   private CaseEvent saveEvent(UUID applicationId, Instant eventInstant) {
     return caseEventRepository.save(new CaseEvent(
-        ApplicationType.SCHEDULE_AMENDMENT_APPLICATION,
         applicationId,
         CaseEventType.CASE_NOTE_ADDED,
         eventInstant,
@@ -171,22 +200,14 @@ class CaseEventIntegrationTest {
     );
   }
 
-  private void insertRawPayload(String json) {
+  private void insertRawPayload(UUID applicationId, String json) {
     em.createNativeQuery(
-            "INSERT INTO lms.case_events (id, application_type, application_id, event_type, event_instant, is_system, payload) "
-                + "VALUES (:id, :applicationType, :applicationId, 'CASE_NOTE_ADDED', now(), TRUE, CAST(:payload AS jsonb))")
+            "INSERT INTO lms.case_events (id, application_id, event_type, event_instant, is_system, payload) "
+                + "VALUES (:id, :applicationId, 'CASE_NOTE_ADDED', now(), TRUE, CAST(:payload AS jsonb))")
         .setParameter("id", UUID.randomUUID())
-        .setParameter("applicationType", application.getApplicationType().name())
-        .setParameter("applicationId", application.getId())
+        .setParameter("applicationId", applicationId)
         .setParameter("payload", json)
         .executeUpdate();
     em.clear();
-  }
-
-  private List<CaseEvent> eventsForApplication() {
-    return caseEventRepository.findByApplicationTypeAndApplicationIdOrderByEventInstantDesc(
-        application.getApplicationType(),
-        application.getId()
-    );
   }
 }

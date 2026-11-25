@@ -180,10 +180,21 @@ public class EventCommentService {
 
     return new EventCommentView(
         eventComment.getComment(),
-        authorName != null ? authorName : "Unknown",
+        authorName(eventComment, authorName),
         DateFormatUtil.convertToDisplayTextWithTime(eventComment.getTimestamp()),
         deleteUrl
     );
+  }
+
+  /**
+   * A comment with no author, such as one migrated from PEARS with the author's name in its text, shows a blank author.
+   * "Unknown" is kept for an author whose user can no longer be found.
+   */
+  private static String authorName(EventComment eventComment, String authorName) {
+    if (eventComment.getAuthorWuaId() == null) {
+      return "";
+    }
+    return authorName != null ? authorName : "Unknown";
   }
 
   void checkCommenterHasPermissionsOrThrow(

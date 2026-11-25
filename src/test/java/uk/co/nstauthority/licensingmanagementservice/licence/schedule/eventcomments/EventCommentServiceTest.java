@@ -298,7 +298,7 @@ class EventCommentServiceTest {
   }
 
   @Test
-  void getEventCommentViewsForSchedule_whenAuthorWuaIdIsNull_usesUnknownAuthorName() {
+  void getEventCommentViewsForSchedule_whenAuthorWuaIdIsNull_usesBlankAuthorName() {
     var licenceSchedule = new LicenceSchedule();
 
     var scheduleEvent = new WorkProgrammeActivity();
@@ -327,11 +327,41 @@ class EventCommentServiceTest {
         .usingRecursiveComparison()
         .isEqualTo(List.of(new EventCommentView(
             "A comment",
-            "Unknown",
+            "",
             DateFormatUtil.convertToDisplayTextWithTime(comment.getTimestamp()),
             ReverseRouter.route(on(EventCommentDeletionController.class)
                 .renderDeleteCommentPage(comment.getId(), null))
         )));
+  }
+
+  @Test
+  void getEventCommentViewsForSchedule_whenAuthorCannotBeFound_usesUnknownAuthorName() {
+    var licenceSchedule = new LicenceSchedule();
+
+    var scheduleEvent = new WorkProgrammeActivity();
+    scheduleEvent.setId(UUID.randomUUID());
+    scheduleEvent.setOriginalEventId(scheduleEvent.getId());
+
+    var comment = new EventComment();
+    comment.setId(UUID.randomUUID());
+    comment.setScheduleEvent(scheduleEvent);
+    comment.setComment("A comment");
+    comment.setAuthorWuaId(123L);
+    comment.setTimestamp(Instant.parse("2025-01-01T10:00:00Z"));
+
+    when(eventCommentRepository.getAllByScheduleEvent_LicenceScheduleAndStatus(licenceSchedule, EventCommentStatus.PUBLISHED))
+        .thenReturn(List.of(comment));
+
+    when(energyPortalUserService.findByWuaIds(
+        List.of(WebUserAccountId.from(123L)),
+        EventCommentService.COMMENT_AUTHOR_PURPOSE
+    )).thenReturn(List.of());
+
+    var result = eventCommentService.getEventCommentViewsForSchedule(licenceSchedule);
+
+    assertThat(result.get(scheduleEvent.getOriginalEventId()))
+        .extracting(EventCommentView::author)
+        .containsExactly("Unknown");
   }
 
   @Test

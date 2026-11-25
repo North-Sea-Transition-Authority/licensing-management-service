@@ -93,7 +93,7 @@ class WorkProgrammeActivityStatusControllerTest extends AbstractControllerTest {
         .andExpect(model().attribute("form", form))
         .andExpect(model().attribute("pageCaption", PAGE_CAPTION))
         .andExpect(model().attribute("summaryView", WorkProgrammeActivitySummaryView.fromWorkProgrammeActivity(workProgrammeActivity)))
-        .andExpect(model().attribute("statusRadioOptions", WorkProgrammeStatus.getRadioOptions()))
+        .andExpect(model().attribute("statusRadioOptions", WorkProgrammeStatus.getRadioOptions(WorkProgrammeActivityCategory.WELL_TEST)))
         .andExpect(model().attribute("licenceSearchUrl", SearchSelectorService.route(on(LicenceInternalApiRestController.class)
             .searchLicencesByReferenceAndType(licence.getType().getUrlSlug(), null)))
         )
@@ -105,7 +105,7 @@ class WorkProgrammeActivityStatusControllerTest extends AbstractControllerTest {
   @Test
   void submitStatusUpdatePage() throws Exception {
     when(licenceService.getLicencePageCaption(licence)).thenReturn(PAGE_CAPTION);
-    when(workProgrammeActivityStatusValidator.isValid(any(), any())).thenReturn(true);
+    when(workProgrammeActivityStatusValidator.isValid(any(), any(), any())).thenReturn(true);
 
     mockMvc.perform(
             post(ReverseRouter.route(on(WorkProgrammeActivityStatusController.class)
@@ -119,7 +119,7 @@ class WorkProgrammeActivityStatusControllerTest extends AbstractControllerTest {
   @Test
   void submitStatusUpdatePage_invalidForm() throws Exception {
     when(licenceService.getLicencePageCaption(licence)).thenReturn(PAGE_CAPTION);
-    when(workProgrammeActivityStatusValidator.isValid(any(), any())).thenReturn(false);
+    when(workProgrammeActivityStatusValidator.isValid(any(), any(), any())).thenReturn(false);
 
     mockMvc.perform(
             post(ReverseRouter.route(on(WorkProgrammeActivityStatusController.class)
@@ -131,7 +131,7 @@ class WorkProgrammeActivityStatusControllerTest extends AbstractControllerTest {
         .andExpect(view().name("lms/licence/schedule/updateWorkProgrammeActivityStatus"))
         .andExpect(model().attribute("pageCaption", PAGE_CAPTION))
         .andExpect(model().attribute("summaryView", WorkProgrammeActivitySummaryView.fromWorkProgrammeActivity(workProgrammeActivity)))
-        .andExpect(model().attribute("statusRadioOptions", WorkProgrammeStatus.getRadioOptions()))
+        .andExpect(model().attribute("statusRadioOptions", WorkProgrammeStatus.getRadioOptions(WorkProgrammeActivityCategory.WELL_TEST)))
         .andExpect(model().attribute("licenceSearchUrl", SearchSelectorService.route(on(LicenceInternalApiRestController.class)
             .searchLicencesByReferenceAndType(licence.getType().getUrlSlug(), null)))
         )

@@ -17,7 +17,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogra
 public class WorkProgrammeActivityDeadlineServiceEvent implements EventReminderDeadlineSource {
 
   static final Set<WorkProgrammeStatus> CLOSED_STATUSES =
-      Set.of(WorkProgrammeStatus.COMPLETE, WorkProgrammeStatus.FULL_WAIVER, WorkProgrammeStatus.TRANSFERRED);
+      Set.of(WorkProgrammeStatus.COMPLETE, WorkProgrammeStatus.FULL_WAIVER, WorkProgrammeStatus.TRANSFERRED,
+          WorkProgrammeStatus.DROPPED);
 
   private static final Logger LOGGER = LoggerFactory.getLogger(WorkProgrammeActivityDeadlineServiceEvent.class);
 

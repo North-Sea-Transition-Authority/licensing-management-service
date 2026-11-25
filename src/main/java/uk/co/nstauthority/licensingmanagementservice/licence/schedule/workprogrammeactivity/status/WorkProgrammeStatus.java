@@ -3,6 +3,8 @@ package uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogr
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityCategory;
 import uk.co.nstauthority.licensingmanagementservice.util.enumutil.Displayable;
 import uk.co.nstauthority.licensingmanagementservice.util.enumutil.DisplayableEnumOptionUtil;
 
@@ -11,7 +13,13 @@ public enum WorkProgrammeStatus implements Displayable {
   IN_PROGRESS("In progress", 2, "govuk-tag--light-blue"),
   COMPLETE("Complete", 3, ""),
   FULL_WAIVER("Full waiver", 4, "govuk-tag--red"),
-  TRANSFERRED("Transferred", 5, "govuk-tag--yellow");
+  TRANSFERRED("Transferred", 5, "govuk-tag--yellow"),
+  DROPPED("Dropped (not drilled)", 6, "govuk-tag--grey");
+
+  private static final Set<WorkProgrammeActivityCategory> DROPPED_CATEGORIES = Set.of(
+      WorkProgrammeActivityCategory.DRILL_OR_DROP_WELL,
+      WorkProgrammeActivityCategory.OTHER_ACTIVITY
+  );
 
   private final String displayName;
   private final int displayOrder;
@@ -43,8 +51,13 @@ public enum WorkProgrammeStatus implements Displayable {
         .findFirst();
   }
 
-  public static Map<String, String> getRadioOptions() {
-    return DisplayableEnumOptionUtil.getDisplayableOptions(WorkProgrammeStatus.class);
+  public static Map<String, String> getRadioOptions(WorkProgrammeActivityCategory category) {
+    return DisplayableEnumOptionUtil.getDisplayableOptionsFromStream(
+        Arrays.stream(values()).filter(status -> status.isAvailableFor(category)));
+  }
+
+  public boolean isAvailableFor(WorkProgrammeActivityCategory category) {
+    return this != DROPPED || DROPPED_CATEGORIES.contains(category);
   }
 
   public String getTagDisplayClass() {

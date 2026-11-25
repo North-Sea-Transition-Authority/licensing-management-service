@@ -68,7 +68,7 @@ public class WorkProgrammeActivityStatusController {
       BindingResult bindingResult,
       RedirectAttributes redirectAttributes
   ) {
-    if (!workProgrammeActivityStatusValidator.isValid(form, bindingResult)) {
+    if (!workProgrammeActivityStatusValidator.isValid(form, workProgrammeActivity, bindingResult)) {
       return getStatusUpdateModelAndView(
           workProgrammeActivity,
           form
@@ -96,7 +96,7 @@ public class WorkProgrammeActivityStatusController {
         .addObject("form", form)
         .addObject("pageCaption", licenceService.getLicencePageCaption(licence))
         .addObject("summaryView", WorkProgrammeActivitySummaryView.fromWorkProgrammeActivity(workProgrammeActivity))
-        .addObject("statusRadioOptions", WorkProgrammeStatus.getRadioOptions())
+        .addObject("statusRadioOptions", WorkProgrammeStatus.getRadioOptions(workProgrammeActivity.getCategory()))
         .addObject("licenceSearchUrl", SearchSelectorService.route(on(LicenceInternalApiRestController.class)
             .searchLicencesByReferenceAndType(licence.getType().getUrlSlug(), null))
         )

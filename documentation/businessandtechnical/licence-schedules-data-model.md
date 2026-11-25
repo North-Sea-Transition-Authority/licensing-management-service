@@ -617,6 +617,7 @@ END AS activity_label
 | `COMPLETE` | Complete |
 | `FULL_WAIVER` | Full waiver |
 | `TRANSFERRED` | Transferred |
+| `DROPPED` | Dropped (not drilled) — the drill-or-drop decision was to drop rather than drill. Can only be chosen for a `DRILL_OR_DROP_WELL` or `OTHER_ACTIVITY` activity |
 
 ### 7.8 `work_programme_activities.date_option` and `other_schedule_events.date_option`
 

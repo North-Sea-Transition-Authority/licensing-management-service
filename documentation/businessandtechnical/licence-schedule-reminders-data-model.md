@@ -165,7 +165,7 @@ ORDER BY r.queued_at DESC, r.notification_batch_reference;
 
 ## 4. What decides whether a reminder is sent
 
-Four gates, in order. A deadline that fails any of them produces no row at all, so **the
+Five gates, in order. A deadline that fails any of them produces no row at all, so **the
 absence of a row is not evidence that a deadline does not exist.**
 
 Before any of them apply, the job only runs at all in an environment where the LMS1 release
@@ -178,7 +178,11 @@ phase is switched on. Where it is not, the job does nothing and writes no rows.
 3. **The deadline does not fall on the licence's expiry date.** Any deadline other than
    `LICENCE_EXPIRY` that falls on the same date as the licence's expiry is superseded by the
    expiry reminder (§4.3). Nothing is written to say it was superseded.
-4. **No matching row already exists.** The job discards any deadline that already has a row
+4. **A work programme activity is still open.** A `WORK_PROGRAMME_ACTIVITY` deadline is skipped
+   when the activity's current status (its latest `work_programme_activity_statuses` row) is
+   closed: `COMPLETE`, `FULL_WAIVER`, `TRANSFERRED` or `DROPPED`. Nothing is written to say it
+   was skipped.
+5. **No matching row already exists.** The job discards any deadline that already has a row
    for the same combination (§4.2).
 
 Deadlines are read from the licence's **`ACTIVE`** schedule version only. A deadline that

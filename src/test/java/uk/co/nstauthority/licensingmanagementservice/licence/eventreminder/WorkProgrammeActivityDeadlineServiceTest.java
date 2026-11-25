@@ -26,6 +26,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogra
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityDateOption;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.status.WorkProgrammeActivityStatusService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.status.WorkProgrammeStatus;
 
 @ExtendWith(MockitoExtension.class)
 class WorkProgrammeActivityDeadlineServiceTest {
@@ -162,6 +163,11 @@ class WorkProgrammeActivityDeadlineServiceTest {
     when(clock.getZone()).thenReturn(ZoneOffset.UTC);
     when(workProgrammeActivityService.getRelativeDateActivitiesDueBetweenOnActiveSchedules(today, latestDueDate))
         .thenReturn(activities);
+  }
+
+  @Test
+  void closedStatuses_includeDropped() {
+    assertThat(WorkProgrammeActivityDeadlineServiceEvent.CLOSED_STATUSES).contains(WorkProgrammeStatus.DROPPED);
   }
 
   private void mockClosedActivities(List<WorkProgrammeActivity> activities, Set<UUID> closedActivityIds) {

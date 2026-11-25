@@ -2,7 +2,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.position.change.ut
 
 import java.util.List;
 import java.util.Objects;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.UpdateLicencePositionPayload;
 
@@ -24,9 +24,9 @@ public final class LicencePositionChangeUtil {
         .toList();
   }
 
-  public static boolean positionDateAndOrderUnchanged(LicencePositionCorrection positionCorrection) {
-    var payload = (UpdateLicencePositionPayload) positionCorrection.getPayload();
-    var licencePosition = positionCorrection.getTargetLicencePosition();
+  public static boolean positionDateAndOrderUnchanged(LicencePositionStagedPayload positionStagedPayload) {
+    var payload = (UpdateLicencePositionPayload) positionStagedPayload.getPayload();
+    var licencePosition = positionStagedPayload.getTargetLicencePosition();
     var dateUnchanged = payload.effectiveDate() == null
         || payload.effectiveDate().equals(licencePosition.getPositionDate());
     var orderUnchanged = payload.effectiveDateOrder() == null

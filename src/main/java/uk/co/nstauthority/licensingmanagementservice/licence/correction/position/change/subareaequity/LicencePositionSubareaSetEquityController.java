@@ -26,7 +26,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectionPosition;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionRouteUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadRouteUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.LicencePositionAddChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.setequity.LicencePositionSetEquityForm;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.setequity.LicencePositionSetEquityFormValidator;
@@ -131,7 +131,7 @@ public class LicencePositionSubareaSetEquityController {
         subareaOption,
         operations,
         ReverseRouter.route(on(this.getClass()).renderForPosition(correctionPosition, subareaKey)),
-        LicencePositionCorrectionRouteUtil.getPositionPageUrl(correctionPosition),
+        LicencePositionStagedPayloadRouteUtil.getPositionPageUrl(correctionPosition),
         ReverseRouter.route(on(this.getClass()).submitSummaryForPosition(correctionPosition)),
         removeUrls
     );
@@ -140,7 +140,7 @@ public class LicencePositionSubareaSetEquityController {
   @PostMapping("/position/{licencePositionId}/subarea-set-equity/summary")
   @LicencePositionIsNotRemovedInCorrection
   ModelAndView submitSummaryForPosition(CorrectionPosition correctionPosition) {
-    return LicencePositionCorrectionRouteUtil.redirectToPositionPage(correctionPosition);
+    return LicencePositionStagedPayloadRouteUtil.redirectToPositionPage(correctionPosition);
   }
 
   @PostMapping("/position/{licencePositionId}/subarea-set-equity/remove")

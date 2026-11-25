@@ -36,9 +36,9 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionRouteUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayload;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadRouteUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.PositionMove;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.PositionMoveDirection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.PositionOrderView;
@@ -60,8 +60,8 @@ class CorrectChangeOrderControllerTest extends AbstractControllerTest {
   private static final UUID CHANGE_ID = UUID.randomUUID();
   private static final UUID OTHER_CHANGE_ID = UUID.randomUUID();
   private static final UUID ADDED_CORRECTION_ID = UUID.randomUUID();
-  private static final LicencePositionCorrection ADDED_POSITION_CORRECTION =
-      LicencePositionCorrectionTestUtil.newBuilder().withId(ADDED_CORRECTION_ID).build();
+  private static final LicencePositionStagedPayload ADDED_POSITION_STAGED_PAYLOAD =
+      LicencePositionStagedPayloadTestUtil.newBuilder().withId(ADDED_CORRECTION_ID).build();
   private static final String SINGLE_OUTCOME_TITLE = "Do you want REF-A to be moved after REF-B?";
   private static final String MOVE_AFTER_OTHER =
       new PositionMove(PositionMoveDirection.AFTER, OTHER_CHANGE_ID).toFormValue();
@@ -71,7 +71,7 @@ class CorrectChangeOrderControllerTest extends AbstractControllerTest {
   private static final LicenceCorrection CORRECTION = LicenceCorrectionTestUtil.newBuilder()
       .withId(CORRECTION_ID).withLicence(LICENCE).build();
 
-  private final String positionUrl = LicencePositionCorrectionRouteUtil.getPositionPageUrl(CORRECTION, POSITION_ID);
+  private final String positionUrl = LicencePositionStagedPayloadRouteUtil.getPositionPageUrl(CORRECTION, POSITION_ID);
 
   @Test
   void renderCorrectChangeOrder_whenNotLoggedIn() throws Exception {
@@ -213,8 +213,8 @@ class CorrectChangeOrderControllerTest extends AbstractControllerTest {
   @Test
   void renderCorrectChangeOrder_whenAddedPosition_backLinkPointsToAddedPosition() throws Exception {
     givenCorrectionAllocatedToUser();
-    when(licencePositionCorrectionService.findFirstAddedPositionCorrection(CORRECTION, POSITION_ID))
-        .thenReturn(Optional.of(ADDED_POSITION_CORRECTION));
+    when(licencePositionStagedPayloadService.findFirstAddedPositionStagedPayload(CORRECTION, POSITION_ID))
+        .thenReturn(Optional.of(ADDED_POSITION_STAGED_PAYLOAD));
     when(correctChangeOrderService.getOrderableChanges(CORRECTION, POSITION_ID))
         .thenReturn(List.of(orderable(CHANGE_ID, "REF-A"), orderable(OTHER_CHANGE_ID, "REF-B")));
 
@@ -300,8 +300,8 @@ class CorrectChangeOrderControllerTest extends AbstractControllerTest {
   @Test
   void correctChangeOrder_whenValidOnAddedPosition_redirectsToAddedPosition() throws Exception {
     givenCorrectionAllocatedToUser();
-    when(licencePositionCorrectionService.findFirstAddedPositionCorrection(CORRECTION, POSITION_ID))
-        .thenReturn(Optional.of(ADDED_POSITION_CORRECTION));
+    when(licencePositionStagedPayloadService.findFirstAddedPositionStagedPayload(CORRECTION, POSITION_ID))
+        .thenReturn(Optional.of(ADDED_POSITION_STAGED_PAYLOAD));
     var form = new CorrectChangeOrderForm();
     form.getChangeMove().setInputValue(MOVE_AFTER_OTHER);
 
@@ -385,7 +385,7 @@ class CorrectChangeOrderControllerTest extends AbstractControllerTest {
   }
 
   private void givenExecutedPosition() {
-    when(licencePositionCorrectionService.findFirstAddedPositionCorrection(CORRECTION, POSITION_ID))
+    when(licencePositionStagedPayloadService.findFirstAddedPositionStagedPayload(CORRECTION, POSITION_ID))
         .thenReturn(Optional.empty());
   }
 

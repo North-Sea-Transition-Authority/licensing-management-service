@@ -21,9 +21,9 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectionPosition;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionChangeType;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadChangeType;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeoperation.LicencePositionChangeOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.UpdateLicencePositionPayload;
@@ -47,7 +47,7 @@ class SetEquityCorrectionServiceTest {
   private static final int TRANSFER_TO_ID = 116;
 
   @Mock
-  private LicencePositionCorrectionService licencePositionCorrectionService;
+  private LicencePositionStagedPayloadService licencePositionStagedPayloadService;
 
   @Mock
   private OrganisationUnitQueryService organisationUnitQueryService;
@@ -59,23 +59,23 @@ class SetEquityCorrectionServiceTest {
   void getCommittedSetEquityOperations_returnsSetEquityOperationsFromThePayload() {
     var change = setEquityAddChange(UUID.randomUUID().toString());
     var payload = new UpdateLicencePositionPayload(null, null, CORRECTION_REFERENCE, List.of(change));
-    var correction = LicencePositionCorrectionTestUtil.newBuilder().withPayload(payload).build();
+    var positionStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder().withPayload(payload).build();
     var operations = List.of(setEquityOp(TRANSFER_TO_ID, 10));
 
-    when(licencePositionCorrectionService.getAddOperationsOfType(List.of(change), SetEquityOperation.class))
+    when(licencePositionStagedPayloadService.getAddOperationsOfType(List.of(change), SetEquityOperation.class))
         .thenReturn(operations);
 
-    assertThat(setEquityCorrectionService.getCommittedSetEquityOperations(correction)).isEqualTo(operations);
+    assertThat(setEquityCorrectionService.getCommittedSetEquityOperations(positionStagedPayload)).isEqualTo(operations);
   }
 
   @Test
   void commitSetEquity_replacesTheSetEquityAddChangeOnTheCorrection() {
-    var correction = LicencePositionCorrectionTestUtil.newBuilder().build();
+    var positionStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder().build();
     var operations = List.of(setEquityOp(TRANSFER_TO_ID, 10));
 
-    setEquityCorrectionService.commitSetEquity(correction, operations);
+    setEquityCorrectionService.commitSetEquity(positionStagedPayload, operations);
 
-    verify(licencePositionCorrectionService).replaceAddChangeFor(correction, SetEquityOperation.class, operations);
+    verify(licencePositionStagedPayloadService).replaceAddChangeFor(positionStagedPayload, SetEquityOperation.class, operations);
   }
 
   @Test
@@ -103,36 +103,36 @@ class SetEquityCorrectionServiceTest {
   }
 
   @Test
-  void commitSetEquity_whenExecutedPosition_replacesSetEquityOnTheUpdateCorrection() {
+  void commitSetEquity_whenExecutedPosition_replacesSetEquityOnTheUpdatePositionStagedPayload() {
     var operations = List.of(setEquityOp(TRANSFER_TO_ID, 10));
-    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
-        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+    var positionStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder()
+        .withChangeType(LicencePositionStagedPayloadChangeType.UPDATE_POSITION)
         .withTargetLicencePosition(LICENCE_POSITION)
         .build();
 
-    when(licencePositionCorrectionService.getOrBuildUpdatePositionCorrection(LICENCE_CORRECTION, LICENCE_POSITION))
-        .thenReturn(positionCorrection);
+    when(licencePositionStagedPayloadService.getOrBuildUpdatePositionStagedPayload(LICENCE_CORRECTION, LICENCE_POSITION))
+        .thenReturn(positionStagedPayload);
 
     setEquityCorrectionService.commitSetEquity(new CorrectionPosition.Executed(LICENCE_CORRECTION, LICENCE_POSITION), operations);
 
-    verify(licencePositionCorrectionService)
-        .replaceAddChangeFor(positionCorrection, SetEquityOperation.class, operations);
+    verify(licencePositionStagedPayloadService)
+        .replaceAddChangeFor(positionStagedPayload, SetEquityOperation.class, operations);
   }
 
   @Test
-  void getCommittedSetEquityOperations_whenExecutedPositionAndUpdateCorrectionExists_returnsOperations() {
+  void getCommittedSetEquityOperations_whenExecutedPositionAndUpdatePositionStagedPayloadExists_returnsOperations() {
     var change = setEquityAddChange(UUID.randomUUID().toString());
     var payload = new UpdateLicencePositionPayload(null, null, CORRECTION_REFERENCE, List.of(change));
-    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
-        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+    var positionStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder()
+        .withChangeType(LicencePositionStagedPayloadChangeType.UPDATE_POSITION)
         .withTargetLicencePosition(LICENCE_POSITION)
         .withPayload(payload)
         .build();
     var operations = List.of(setEquityOp(TRANSFER_TO_ID, 10));
 
-    when(licencePositionCorrectionService.findUpdatePositionCorrection(LICENCE_CORRECTION, LICENCE_POSITION))
-        .thenReturn(Optional.of(positionCorrection));
-    when(licencePositionCorrectionService.getAddOperationsOfType(List.of(change), SetEquityOperation.class))
+    when(licencePositionStagedPayloadService.findUpdatePositionStagedPayload(LICENCE_CORRECTION, LICENCE_POSITION))
+        .thenReturn(Optional.of(positionStagedPayload));
+    when(licencePositionStagedPayloadService.getAddOperationsOfType(List.of(change), SetEquityOperation.class))
         .thenReturn(operations);
 
     assertThat(setEquityCorrectionService
@@ -141,8 +141,8 @@ class SetEquityCorrectionServiceTest {
   }
 
   @Test
-  void getCommittedSetEquityOperations_whenExecutedPositionAndNoCorrection_returnsEmpty() {
-    when(licencePositionCorrectionService.findUpdatePositionCorrection(LICENCE_CORRECTION, LICENCE_POSITION))
+  void getCommittedSetEquityOperations_whenExecutedPositionAndNoPositionStagedPayload_returnsEmpty() {
+    when(licencePositionStagedPayloadService.findUpdatePositionStagedPayload(LICENCE_CORRECTION, LICENCE_POSITION))
         .thenReturn(Optional.empty());
 
     assertThat(setEquityCorrectionService

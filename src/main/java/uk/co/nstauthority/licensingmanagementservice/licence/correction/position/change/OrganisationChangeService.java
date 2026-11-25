@@ -8,9 +8,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectionPosition;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionChangeType;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayload;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadChangeType;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.AddChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.LicencePositionPayload;
@@ -32,16 +32,16 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.vie
 
 @Service
 public class OrganisationChangeService {
-  private final LicencePositionCorrectionService licencePositionCorrectionService;
+  private final LicencePositionStagedPayloadService licencePositionStagedPayloadService;
   private final ChronologicalPositionService chronologicalPositionService;
   private final LicencePositionNameService licencePositionNameService;
 
   public OrganisationChangeService(
-      LicencePositionCorrectionService licencePositionCorrectionService,
+      LicencePositionStagedPayloadService licencePositionStagedPayloadService,
       ChronologicalPositionService chronologicalPositionService,
       LicencePositionNameService licencePositionNameService
   ) {
-    this.licencePositionCorrectionService = licencePositionCorrectionService;
+    this.licencePositionStagedPayloadService = licencePositionStagedPayloadService;
     this.chronologicalPositionService = chronologicalPositionService;
     this.licencePositionNameService = licencePositionNameService;
   }
@@ -60,16 +60,16 @@ public class OrganisationChangeService {
           operation
       );
       case CorrectionPosition.Staged staged ->
-          addOrganisationChangeForAddedLicencePosition(staged.licencePositionCorrection(), operationType, operation);
+          addOrganisationChangeForAddedLicencePosition(staged.licencePositionStagedPayload(), operationType, operation);
     }
   }
 
   private void addOrganisationChangeForAddedLicencePosition(
-      LicencePositionCorrection licencePositionCorrection,
+      LicencePositionStagedPayload licencePositionStagedPayload,
       Class<? extends LicenceOperation> operationType,
       LicenceOperation operation
   ) {
-    var payload = (CreateLicencePositionPayload) licencePositionCorrection.getPayload();
+    var payload = (CreateLicencePositionPayload) licencePositionStagedPayload.getPayload();
 
     var changes = LicencePositionChangeOperationUtil.upsertAddOrganisationChange(
         payload.changes(),
@@ -77,8 +77,8 @@ public class OrganisationChangeService {
         operation
     );
 
-    licencePositionCorrection.setPayload(LicencePositionPayload.withChanges(payload, changes));
-    licencePositionCorrectionService.save(licencePositionCorrection);
+    licencePositionStagedPayload.setPayload(LicencePositionPayload.withChanges(payload, changes));
+    licencePositionStagedPayloadService.save(licencePositionStagedPayload);
   }
 
   private void addOrganisationChangeForExistingLicencePosition(
@@ -87,14 +87,14 @@ public class OrganisationChangeService {
       Class<? extends LicenceOperation> operationType,
       LicenceOperation operation
   ) {
-    var existingPositionCorrection = licencePositionCorrectionService
-        .findUpdatePositionCorrection(licenceCorrection, licencePosition);
+    var existingPositionStagedPayload = licencePositionStagedPayloadService
+        .findUpdatePositionStagedPayload(licenceCorrection, licencePosition);
 
-    LicencePositionCorrection positionCorrection;
+    LicencePositionStagedPayload positionStagedPayload;
 
-    if (existingPositionCorrection.isPresent()) {
-      positionCorrection = existingPositionCorrection.get();
-      var payload = (UpdateLicencePositionPayload) positionCorrection.getPayload();
+    if (existingPositionStagedPayload.isPresent()) {
+      positionStagedPayload = existingPositionStagedPayload.get();
+      var payload = (UpdateLicencePositionPayload) positionStagedPayload.getPayload();
 
       var changes = LicencePositionChangeOperationUtil.upsertAddOrganisationChange(
           payload.changes(),
@@ -102,9 +102,9 @@ public class OrganisationChangeService {
           operation
       );
 
-      positionCorrection.setPayload(LicencePositionPayload.withChanges(payload, changes));
+      positionStagedPayload.setPayload(LicencePositionPayload.withChanges(payload, changes));
     } else {
-      positionCorrection = new LicencePositionCorrection();
+      positionStagedPayload = new LicencePositionStagedPayload();
       var payload = LicencePositionPayload.newUpdateLicencePositionPayload()
           .withCorrectionReference(licenceCorrection.getCorrectionReference())
           .withChanges(List.of(AddChange.buildOperationsChange(
@@ -112,12 +112,12 @@ public class OrganisationChangeService {
               1
           ))).build();
 
-      positionCorrection.setLicenceCorrection(licenceCorrection);
-      positionCorrection.setChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION);
-      positionCorrection.setTargetLicencePosition(licencePosition);
-      positionCorrection.setPayload(payload);
+      positionStagedPayload.setLicenceCorrection(licenceCorrection);
+      positionStagedPayload.setChangeType(LicencePositionStagedPayloadChangeType.UPDATE_POSITION);
+      positionStagedPayload.setTargetLicencePosition(licencePosition);
+      positionStagedPayload.setPayload(payload);
     }
-    licencePositionCorrectionService.save(positionCorrection);
+    licencePositionStagedPayloadService.save(positionStagedPayload);
   }
 
   /**
@@ -131,10 +131,10 @@ public class OrganisationChangeService {
       String liveChangeId,
       LicenceOperation operation
   ) {
-    var positionCorrection = licencePositionCorrectionService
-        .getOrBuildUpdatePositionCorrection(licenceCorrection, licencePosition);
+    var positionStagedPayload = licencePositionStagedPayloadService
+        .getOrBuildUpdatePositionStagedPayload(licenceCorrection, licencePosition);
 
-    var payload = positionCorrection.getPayload();
+    var payload = positionStagedPayload.getPayload();
 
     var changes = LicencePositionChangeOperationUtil.upsertUpdateChange(
         payload.changes(),
@@ -143,8 +143,8 @@ public class OrganisationChangeService {
         operation
     );
 
-    positionCorrection.setPayload(LicencePositionPayload.withChanges(payload, changes));
-    licencePositionCorrectionService.save(positionCorrection);
+    positionStagedPayload.setPayload(LicencePositionPayload.withChanges(payload, changes));
+    licencePositionStagedPayloadService.save(positionStagedPayload);
   }
 
   /**
@@ -160,7 +160,7 @@ public class OrganisationChangeService {
       case CorrectionPosition.Executed executed ->
           populateExistingOrganisationForm(currentId, executed.correction(), executed.licencePosition(), form);
       case CorrectionPosition.Staged staged ->
-          populateAddedOrganisationForm(currentId, staged.licencePositionCorrection(), form);
+          populateAddedOrganisationForm(currentId, staged.licencePositionStagedPayload(), form);
     };
   }
 
@@ -171,7 +171,7 @@ public class OrganisationChangeService {
       T form
   ) {
     if (currentId != null
-        && licencePositionCorrectionService.hasPendingChange(position, correction, form.operationType())
+        && licencePositionStagedPayloadService.hasPendingChange(position, correction, form.operationType())
     ) {
       form.getId().setInputValue(String.valueOf(currentId));
     }
@@ -180,10 +180,10 @@ public class OrganisationChangeService {
 
   private <T extends OrganisationChangeForm> T populateAddedOrganisationForm(
       Integer currentId,
-      LicencePositionCorrection positionCorrection,
+      LicencePositionStagedPayload positionStagedPayload,
       T form
   ) {
-    var payload = (CreateLicencePositionPayload) positionCorrection.getPayload();
+    var payload = (CreateLicencePositionPayload) positionStagedPayload.getPayload();
     if (currentId != null
         && LicencePositionChangeOperationUtil.changeExists(payload.changes(), form.operationType())) {
       form.getId().setInputValue(String.valueOf(currentId));
@@ -240,19 +240,19 @@ public class OrganisationChangeService {
 
   public String getJoiningOrganisationForReinstating(
       LicenceCorrection licenceCorrection,
-      LicencePositionCorrection positionCorrectionToUndo,
+      LicencePositionStagedPayload positionStagedPayloadToUndo,
       Class<? extends LicenceOperation> operationType
   ) {
-    var licencePositionId = positionCorrectionToUndo.getPositionId();
+    var licencePositionId = positionStagedPayloadToUndo.getPositionId();
 
-    var remainingPositionCorrections = licencePositionCorrectionService.getPositionCorrections(licenceCorrection)
+    var remainingPositionStagedPayloads = licencePositionStagedPayloadService.getPositionStagedPayloads(licenceCorrection)
         .stream()
-        .filter(correction -> !correction.getId().equals(positionCorrectionToUndo.getId()))
+        .filter(positionStagedPayload -> !positionStagedPayload.getId().equals(positionStagedPayloadToUndo.getId()))
         .toList();
 
     var targetPositions = chronologicalPositionService.getCorrectedChronologicalPositions(
         licenceCorrection,
-        remainingPositionCorrections,
+        remainingPositionStagedPayloads,
         Set.of(licencePositionId)
     );
 

@@ -18,9 +18,9 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 
 @Audited
-@Entity(name = "licence_position_corrections")
-@PathVariableEntity(pathVariableName = "licencePositionCorrectionId")
-public class LicencePositionCorrection {
+@Entity(name = "licence_position_staged_payloads")
+@PathVariableEntity(pathVariableName = "licencePositionStagedPayloadId")
+public class LicencePositionStagedPayload {
 
   @Id
   @UuidGenerator
@@ -31,7 +31,7 @@ public class LicencePositionCorrection {
   private LicenceCorrection licenceCorrection;
 
   @Enumerated(EnumType.STRING)
-  private LicencePositionCorrectionChangeType changeType;
+  private LicencePositionStagedPayloadChangeType changeType;
 
   @ManyToOne
   @JoinColumn(name = "target_licence_position_id")
@@ -40,11 +40,11 @@ public class LicencePositionCorrection {
   @JdbcTypeCode(SqlTypes.JSON)
   private LicencePositionPayload payload;
 
-  public LicencePositionCorrection() {
+  public LicencePositionStagedPayload() {
 
   }
 
-  LicencePositionCorrection(UUID id) {
+  LicencePositionStagedPayload(UUID id) {
     this.id = id;
   }
 
@@ -53,7 +53,7 @@ public class LicencePositionCorrection {
   }
 
   /**
-   * The position this correction acts on, whether that is a position it adds or an executed one it targets.
+   * The position this staged payload acts on, whether that is a position it adds or an executed one it targets.
    */
   public UUID getPositionId() {
     if (payload instanceof CreateLicencePositionPayload create) {
@@ -70,11 +70,11 @@ public class LicencePositionCorrection {
     this.licenceCorrection = licenceCorrection;
   }
 
-  public LicencePositionCorrectionChangeType getChangeType() {
+  public LicencePositionStagedPayloadChangeType getChangeType() {
     return changeType;
   }
 
-  public void setChangeType(LicencePositionCorrectionChangeType changeType) {
+  public void setChangeType(LicencePositionStagedPayloadChangeType changeType) {
     this.changeType = changeType;
   }
 

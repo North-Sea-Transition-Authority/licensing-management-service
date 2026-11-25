@@ -36,9 +36,9 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceC
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionChangeType;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayload;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadChangeType;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.PartialSurrenderCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeoperation.LicencePositionChangeOperation;
@@ -163,11 +163,11 @@ class CorrectionApplyServiceTest {
 
   @Test
   void applyCorrection_whenTimelineHasBlockingErrors_thenNothingIsApplied() {
-    var positionCorrection = removePositionCorrection(LicencePositionTestUtil.newBuilder().build());
+    var positionStagedPayload = removePositionStagedPayload(LicencePositionTestUtil.newBuilder().build());
     var blockingError = new PositionValidationError(
         UUID.randomUUID(), "1 March 2026", null, null, "Beneficial interests must total 100%");
 
-    stubTimeline(List.of(positionCorrection), List.of(blockingError));
+    stubTimeline(List.of(positionStagedPayload), List.of(blockingError));
 
     var result = correctionApplyService.applyCorrection(licenceCorrection);
 
@@ -186,7 +186,7 @@ class CorrectionApplyServiceTest {
         .withRegulatorReference(CORRECTION_REFERENCE)
         .build();
 
-    stubTimeline(List.of(addPositionCorrection(positionId, transactionId, List.of())), List.of());
+    stubTimeline(List.of(addPositionStagedPayload(positionId, transactionId, List.of())), List.of());
     when(licenceTransactionRepository.findById(transactionId)).thenReturn(Optional.empty());
     when(licenceTransactionService.createLicenceTransaction(transactionId, CORRECTION_REFERENCE))
         .thenReturn(createdTransaction);
@@ -211,7 +211,7 @@ class CorrectionApplyServiceTest {
     var positionId = UUID.randomUUID();
     var liveTransaction = LicenceTransactionTestUtil.newBuilder().build();
 
-    stubTimeline(List.of(addPositionCorrection(positionId, liveTransaction.getId(), List.of())), List.of());
+    stubTimeline(List.of(addPositionStagedPayload(positionId, liveTransaction.getId(), List.of())), List.of());
     when(licenceTransactionRepository.findById(liveTransaction.getId())).thenReturn(Optional.of(liveTransaction));
 
     correctionApplyService.applyCorrection(licenceCorrection);
@@ -236,7 +236,7 @@ class CorrectionApplyServiceTest {
         .withRegulatorReference(CORRECTION_REFERENCE)
         .build();
 
-    stubTimeline(List.of(updatePositionCorrection(livePosition, CORRECTION_REFERENCE, List.of())), List.of());
+    stubTimeline(List.of(updatePositionStagedPayload(livePosition, CORRECTION_REFERENCE, List.of())), List.of());
     when(licenceTransactionService.createLicenceTransaction(CORRECTION_REFERENCE)).thenReturn(createdTransaction);
 
     correctionApplyService.applyCorrection(licenceCorrection);
@@ -259,7 +259,7 @@ class CorrectionApplyServiceTest {
         .withLicenceTransaction(liveTransaction)
         .build();
 
-    stubTimeline(List.of(updatePositionCorrection(livePosition, CORRECTION_REFERENCE, List.of())), List.of());
+    stubTimeline(List.of(updatePositionStagedPayload(livePosition, CORRECTION_REFERENCE, List.of())), List.of());
 
     correctionApplyService.applyCorrection(licenceCorrection);
 
@@ -273,7 +273,7 @@ class CorrectionApplyServiceTest {
         .withStatus(LicencePositionStatus.EXECUTED)
         .build();
 
-    stubTimeline(List.of(removePositionCorrection(livePosition)), List.of());
+    stubTimeline(List.of(removePositionStagedPayload(livePosition)), List.of());
 
     correctionApplyService.applyCorrection(licenceCorrection);
 
@@ -315,13 +315,13 @@ class CorrectionApplyServiceTest {
         .withOperations(List.of(operation3))
         .build();
 
-    var positionCorrection1 = updatePositionCorrection(position1, "reference1", List.of());
-    var positionCorrection2 = updatePositionCorrection(position2, "reference2", List.of());
-    var positionCorrection3 = updatePositionCorrection(position3, "reference3", List.of());
+    var positionStagedPayload1 = updatePositionStagedPayload(position1, "reference1", List.of());
+    var positionStagedPayload2 = updatePositionStagedPayload(position2, "reference2", List.of());
+    var positionStagedPayload3 = updatePositionStagedPayload(position3, "reference3", List.of());
     var chronologicalPositions = List.of(addChronologicalPosition(position1, change1), addChronologicalPosition(position2, change2), addChronologicalPosition(position3, change3));
     var correctedTimeline = new CorrectedTimeline(
         licenceCorrection,
-        List.of(positionCorrection1, positionCorrection2, positionCorrection3),
+        List.of(positionStagedPayload1, positionStagedPayload2, positionStagedPayload3),
         chronologicalPositions,
         LicencePositionStateResolver.resolve(chronologicalPositions, Set.of())
     );
@@ -332,7 +332,7 @@ class CorrectionApplyServiceTest {
     when(licencePositionValidationService.validate(
         correctedTimeline.positionsToApply(),
         correctedTimeline.resolvedStates(),
-        correctedTimeline.positionCorrections(),
+        correctedTimeline.positionStagedPayloads(),
         correctedTimeline.licenceType(),
         LicenceStatusType.EXTANT
     )).thenReturn(List.of());
@@ -353,7 +353,7 @@ class CorrectionApplyServiceTest {
         .build();
 
     stubTimeline(
-        List.of(updatePositionCorrection(livePosition, null, List.of(addChange))), List.of());
+        List.of(updatePositionStagedPayload(livePosition, null, List.of(addChange))), List.of());
 
     correctionApplyService.applyCorrection(licenceCorrection);
 
@@ -376,7 +376,7 @@ class CorrectionApplyServiceTest {
         .build();
 
     stubTimeline(
-        List.of(updatePositionCorrection(livePosition, null, List.of(addChange))), List.of());
+        List.of(updatePositionStagedPayload(livePosition, null, List.of(addChange))), List.of());
     when(partialSurrenderCorrectionService.toExecutedSurrender(stagedSurrender)).thenReturn(executedSurrender);
 
     correctionApplyService.applyCorrection(licenceCorrection);
@@ -414,7 +414,7 @@ class CorrectionApplyServiceTest {
         .withOperations(List.of(addOperation(stagedSurrender)))
         .build();
 
-    stubTimeline(List.of(updatePositionCorrection(livePosition, null, List.of(addChange))), List.of());
+    stubTimeline(List.of(updatePositionStagedPayload(livePosition, null, List.of(addChange))), List.of());
     when(partialSurrenderCorrectionService.toExecutedSurrender(stagedSurrender)).thenReturn(executedSurrender);
     when(featureService.getFeaturesByIds(Set.of(firstRetainedPart.getId(), secondRetainedPart.getId())))
         .thenReturn(List.of(firstRetainedPart, secondRetainedPart));
@@ -442,7 +442,7 @@ class CorrectionApplyServiceTest {
         .withOperations(List.of(addOperation(stagedSurrender)))
         .build();
 
-    stubTimeline(List.of(updatePositionCorrection(livePosition, null, List.of(updateChange))), List.of());
+    stubTimeline(List.of(updatePositionStagedPayload(livePosition, null, List.of(updateChange))), List.of());
     when(licencePositionChangeService.findById(liveChange.getId())).thenReturn(Optional.of(liveChange));
     when(partialSurrenderCorrectionService.toExecutedSurrender(stagedSurrender)).thenReturn(executedSurrender);
 
@@ -479,7 +479,7 @@ class CorrectionApplyServiceTest {
         .withOperations(List.of(addOperation(stagedSurrender)))
         .build();
 
-    stubTimeline(List.of(updatePositionCorrection(livePosition, null, List.of(updateChange))), List.of());
+    stubTimeline(List.of(updatePositionStagedPayload(livePosition, null, List.of(updateChange))), List.of());
     when(licencePositionChangeService.findById(liveChange.getId())).thenReturn(Optional.of(liveChange));
     when(partialSurrenderCorrectionService.toExecutedSurrender(stagedSurrender)).thenReturn(executedSurrender);
 
@@ -500,7 +500,7 @@ class CorrectionApplyServiceTest {
         .build();
     var removeChange = LicencePositionChangeType.removeChange().withChangeId(liveChange.getId().toString()).build();
 
-    stubTimeline(List.of(updatePositionCorrection(livePosition, null, List.of(removeChange))), List.of());
+    stubTimeline(List.of(updatePositionStagedPayload(livePosition, null, List.of(removeChange))), List.of());
     when(licencePositionChangeService.findById(liveChange.getId())).thenReturn(Optional.of(liveChange));
 
     correctionApplyService.applyCorrection(licenceCorrection);
@@ -517,7 +517,7 @@ class CorrectionApplyServiceTest {
         LicencePositionChangeTestUtil.newBuilder().withLicencePosition(livePosition).withOperations(List.of(liveSurrender)).build()
     );
 
-    stubTimeline(List.of(removePositionCorrection(livePosition)), List.of());
+    stubTimeline(List.of(removePositionStagedPayload(livePosition)), List.of());
     when(licencePositionChangeService.findByLicencePositionId(livePosition.getId())).thenReturn(liveChanges);
 
     correctionApplyService.applyCorrection(licenceCorrection);
@@ -535,7 +535,7 @@ class CorrectionApplyServiceTest {
         LicencePositionChangeTestUtil.newBuilder().withLicencePosition(livePosition).withOperations(List.of(liveSurrender)).build()
     );
 
-    stubTimeline(List.of(updatePositionCorrection(livePosition, null, List.of())), List.of());
+    stubTimeline(List.of(updatePositionStagedPayload(livePosition, null, List.of())), List.of());
     when(licencePositionChangeService.findByLicencePositionId(livePosition.getId())).thenReturn(liveChanges);
 
     correctionApplyService.applyCorrection(licenceCorrection);
@@ -547,14 +547,14 @@ class CorrectionApplyServiceTest {
   @Test
   void applyCorrection_whenPositionIsNotMovedToANewDate_thenTheSurrendersOnItAreNotDatedAfresh() {
     var livePosition = LicencePositionTestUtil.newBuilder().build();
-    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+    var positionStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder()
         .withLicenceCorrection(licenceCorrection)
-        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+        .withChangeType(LicencePositionStagedPayloadChangeType.UPDATE_POSITION)
         .withTargetLicencePosition(livePosition)
         .withPayload(LicencePositionPayload.newUpdateLicencePositionPayload().withEffectiveDateOrder(2).build())
         .build();
 
-    stubTimeline(List.of(positionCorrection), List.of());
+    stubTimeline(List.of(positionStagedPayload), List.of());
 
     correctionApplyService.applyCorrection(licenceCorrection);
 
@@ -574,7 +574,7 @@ class CorrectionApplyServiceTest {
         .withOperations(List.of(addOperation(OPERATION)))
         .build();
 
-    stubTimeline(List.of(updatePositionCorrection(livePosition, null, List.of(updateChange))), List.of());
+    stubTimeline(List.of(updatePositionStagedPayload(livePosition, null, List.of(updateChange))), List.of());
     when(licencePositionChangeService.findById(liveChange.getId())).thenReturn(Optional.of(liveChange));
 
     correctionApplyService.applyCorrection(licenceCorrection);
@@ -607,7 +607,7 @@ class CorrectionApplyServiceTest {
             .build()
     );
 
-    stubTimeline(List.of(updatePositionCorrection(targetPosition, null, stagedMove)), List.of());
+    stubTimeline(List.of(updatePositionStagedPayload(targetPosition, null, stagedMove)), List.of());
     when(licencePositionChangeService.findById(liveChange.getId())).thenReturn(Optional.of(liveChange));
 
     correctionApplyService.applyCorrection(licenceCorrection);
@@ -634,7 +634,7 @@ class CorrectionApplyServiceTest {
         .withOperations(List.of(addOperation(OPERATION)))
         .build();
 
-    stubTimeline(List.of(updatePositionCorrection(livePosition, null, List.of(updateChange))), List.of());
+    stubTimeline(List.of(updatePositionStagedPayload(livePosition, null, List.of(updateChange))), List.of());
     when(licencePositionChangeService.findById(changeId)).thenReturn(Optional.empty());
     when(licencePositionChangeService.findByLicencePositionId(livePosition.getId()))
         .thenReturn(List.of(LicencePositionChangeTestUtil.newBuilder().withChangeOrder(7).build()));
@@ -654,7 +654,7 @@ class CorrectionApplyServiceTest {
         .withChangeOrder(5)
         .build();
 
-    stubTimeline(List.of(updatePositionCorrection(livePosition, null, List.of(updateChangeOrder))), List.of());
+    stubTimeline(List.of(updatePositionStagedPayload(livePosition, null, List.of(updateChangeOrder))), List.of());
     when(licencePositionChangeService.findById(liveChange.getId())).thenReturn(Optional.of(liveChange));
 
     correctionApplyService.applyCorrection(licenceCorrection);
@@ -671,7 +671,7 @@ class CorrectionApplyServiceTest {
         .withChangeId(liveChange.getId().toString())
         .build();
 
-    stubTimeline(List.of(updatePositionCorrection(livePosition, null, List.of(removeChange))), List.of());
+    stubTimeline(List.of(updatePositionStagedPayload(livePosition, null, List.of(removeChange))), List.of());
     when(licencePositionChangeService.findById(liveChange.getId())).thenReturn(Optional.of(liveChange));
 
     correctionApplyService.applyCorrection(licenceCorrection);
@@ -706,7 +706,7 @@ class CorrectionApplyServiceTest {
             .build()
     );
 
-    stubTimeline(List.of(updatePositionCorrection(livePosition, null, changes)), List.of());
+    stubTimeline(List.of(updatePositionStagedPayload(livePosition, null, changes)), List.of());
     when(licencePositionChangeService.findById(removedChange.getId())).thenReturn(Optional.of(removedChange));
     when(licencePositionChangeService.findById(updatedChange.getId())).thenReturn(Optional.of(updatedChange));
     when(licencePositionChangeService.findById(reorderedChange.getId())).thenReturn(Optional.of(reorderedChange));
@@ -749,12 +749,12 @@ class CorrectionApplyServiceTest {
   }
 
   private void stubTimeline(
-      List<LicencePositionCorrection> positionCorrections,
+      List<LicencePositionStagedPayload> positionStagedPayloads,
       List<PositionValidationError> blockingErrors
   ) {
     var correctedTimeline = new CorrectedTimeline(
         licenceCorrection,
-        positionCorrections,
+        positionStagedPayloads,
         List.of(),
         LicencePositionStateResolver.resolve(List.of(), Set.of())
     );
@@ -765,7 +765,7 @@ class CorrectionApplyServiceTest {
     when(licencePositionValidationService.validate(
         correctedTimeline.positionsToApply(),
         correctedTimeline.resolvedStates(),
-        correctedTimeline.positionCorrections(),
+        correctedTimeline.positionStagedPayloads(),
         correctedTimeline.licenceType(),
         LicenceStatusType.EXTANT
     )).thenReturn(blockingErrors);
@@ -780,14 +780,14 @@ class CorrectionApplyServiceTest {
     return ChronologicalPosition.fromLicencePosition(position, "", position.getPositionDate(), position.getPositionDateOrder(), List.of(change));
   }
 
-  private LicencePositionCorrection addPositionCorrection(
+  private LicencePositionStagedPayload addPositionStagedPayload(
       UUID positionId,
       UUID transactionId,
       List<LicencePositionChangeType> changes
   ) {
-    return LicencePositionCorrectionTestUtil.newBuilder()
+    return LicencePositionStagedPayloadTestUtil.newBuilder()
         .withLicenceCorrection(licenceCorrection)
-        .withChangeType(LicencePositionCorrectionChangeType.ADD_POSITION)
+        .withChangeType(LicencePositionStagedPayloadChangeType.ADD_POSITION)
         .withTargetLicencePosition(null)
         .withPayload(LicencePositionPayload.newCreateLicencePositionPayload()
             .withLicencePositionId(positionId.toString())
@@ -800,14 +800,14 @@ class CorrectionApplyServiceTest {
         .build();
   }
 
-  private LicencePositionCorrection updatePositionCorrection(
+  private LicencePositionStagedPayload updatePositionStagedPayload(
       LicencePosition targetPosition,
       String correctionReference,
       List<LicencePositionChangeType> changes
   ) {
-    return LicencePositionCorrectionTestUtil.newBuilder()
+    return LicencePositionStagedPayloadTestUtil.newBuilder()
         .withLicenceCorrection(licenceCorrection)
-        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+        .withChangeType(LicencePositionStagedPayloadChangeType.UPDATE_POSITION)
         .withTargetLicencePosition(targetPosition)
         .withPayload(LicencePositionPayload.newUpdateLicencePositionPayload()
             .withEffectiveDate(EFFECTIVE_DATE)
@@ -818,10 +818,10 @@ class CorrectionApplyServiceTest {
         .build();
   }
 
-  private LicencePositionCorrection removePositionCorrection(LicencePosition targetPosition) {
-    return LicencePositionCorrectionTestUtil.newBuilder()
+  private LicencePositionStagedPayload removePositionStagedPayload(LicencePosition targetPosition) {
+    return LicencePositionStagedPayloadTestUtil.newBuilder()
         .withLicenceCorrection(licenceCorrection)
-        .withChangeType(LicencePositionCorrectionChangeType.REMOVE_POSITION)
+        .withChangeType(LicencePositionStagedPayloadChangeType.REMOVE_POSITION)
         .withTargetLicencePosition(targetPosition)
         .withPayload(null)
         .build();

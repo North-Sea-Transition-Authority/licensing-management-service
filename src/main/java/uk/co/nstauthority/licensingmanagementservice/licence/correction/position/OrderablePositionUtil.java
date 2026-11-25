@@ -35,20 +35,20 @@ public class OrderablePositionUtil {
   }
 
   public static List<OrderablePosition> toOrderablePositions(CorrectionPositions correctionPositions) {
-    var updatedPayloadsByPositionId = correctionPositions.updateCorrections()
+    var updatedPayloadsByPositionId = correctionPositions.updateStagedPayloads()
         .stream()
         .collect(Collectors.toMap(
-            correction -> correction.getTargetLicencePosition().getId(),
-            correction -> (UpdateLicencePositionPayload) correction.getPayload()));
+            positionStagedPayload -> positionStagedPayload.getTargetLicencePosition().getId(),
+            positionStagedPayload -> (UpdateLicencePositionPayload) positionStagedPayload.getPayload()));
 
     var executedPositions = correctionPositions.executedPositions()
         .stream()
         .filter(position -> !correctionPositions.removedPositionIds().contains(position.getId()))
         .map(position -> toOrderablePosition(position, updatedPayloadsByPositionId.get(position.getId())));
 
-    var addedPositions = correctionPositions.addCorrections()
+    var addedPositions = correctionPositions.addStagedPayloads()
         .stream()
-        .map(correction -> (CreateLicencePositionPayload) correction.getPayload())
+        .map(positionStagedPayload -> (CreateLicencePositionPayload) positionStagedPayload.getPayload())
         .map(payload -> new OrderablePosition(
             UUID.fromString(payload.licencePositionId()),
             payload.effectiveDate(),

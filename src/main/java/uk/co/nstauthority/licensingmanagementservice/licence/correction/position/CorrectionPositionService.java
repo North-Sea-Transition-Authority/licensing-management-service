@@ -13,14 +13,14 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePos
 public class CorrectionPositionService {
 
   private final LicencePositionService licencePositionService;
-  private final LicencePositionCorrectionService licencePositionCorrectionService;
+  private final LicencePositionStagedPayloadService licencePositionStagedPayloadService;
 
   CorrectionPositionService(
       LicencePositionService licencePositionService,
-      LicencePositionCorrectionService licencePositionCorrectionService
+      LicencePositionStagedPayloadService licencePositionStagedPayloadService
   ) {
     this.licencePositionService = licencePositionService;
-    this.licencePositionCorrectionService = licencePositionCorrectionService;
+    this.licencePositionStagedPayloadService = licencePositionStagedPayloadService;
   }
 
   public List<CorrectionPosition> getCorrectionPositions(LicenceCorrection licenceCorrection) {
@@ -31,7 +31,8 @@ public class CorrectionPositionService {
       correctionPositions.add(new CorrectionPosition.Executed(licenceCorrection, executedLicencePosition));
     }
 
-    for (var addedLicencePosition : licencePositionCorrectionService.getAddedLicencePositionCorrections(licenceCorrection)) {
+    var addedLicencePositions = licencePositionStagedPayloadService.getAddedLicencePositionStagedPayloads(licenceCorrection);
+    for (var addedLicencePosition : addedLicencePositions) {
       correctionPositions.add(new CorrectionPosition.Staged(addedLicencePosition));
     }
 
@@ -44,8 +45,8 @@ public class CorrectionPositionService {
    * position on the correction's licence. Empty when the id is neither.
    */
   public Optional<CorrectionPosition> findCorrectionPosition(LicenceCorrection licenceCorrection, UUID positionId) {
-    var stagedPosition = licencePositionCorrectionService
-        .findFirstAddedPositionCorrection(licenceCorrection, positionId)
+    var stagedPosition = licencePositionStagedPayloadService
+        .findFirstAddedPositionStagedPayload(licenceCorrection, positionId)
         .<CorrectionPosition>map(CorrectionPosition.Staged::new);
 
     if (stagedPosition.isPresent()) {

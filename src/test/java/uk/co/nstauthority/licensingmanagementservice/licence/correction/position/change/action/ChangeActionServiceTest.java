@@ -25,9 +25,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayload;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.administrator.AdministratorChangeActionHandler;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.equity.EquityChangeActionHandler;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.licensee.LicenseeChangeActionHandler;
@@ -51,14 +51,14 @@ class ChangeActionServiceTest {
   private static final String CHANGE_ID = UUID.randomUUID().toString();
   private static final LicenceCorrection CORRECTION = LicenceCorrectionTestUtil.newBuilder().build();
   private static final LicencePosition POSITION = LicencePositionTestUtil.newBuilder().build();
-  private static final LicencePositionCorrection POSITION_CORRECTION = LicencePositionCorrectionTestUtil.newBuilder().build();
+  private static final LicencePositionStagedPayload POSITION_STAGED_PAYLOAD = LicencePositionStagedPayloadTestUtil.newBuilder().build();
   private static final LicenceOperation HIDDEN_OPERATION = LicenceOperation.newBlockEndOperation().withEndedFeatureIds(List.of(UUID.randomUUID())).build();
   private static final SubareaOperation SUBAREA_OPERATION = LicenceOperation.newSubAreaOperation().withBlockFeatureId(UUID.randomUUID()).build();
   private static final AdministratorOperation ADMINISTRATOR_OPERATION = LicenceOperation.newAdministratorChange().withOperator(1).build();
   private static final LicencePositionChangeType STAGED_CHANGE = LicencePositionChangeType.removeChange().withChangeId(CHANGE_ID).build();
 
   @Mock
-  private LicencePositionCorrectionService licencePositionCorrectionService;
+  private LicencePositionStagedPayloadService licencePositionStagedPayloadService;
 
   @Mock
   private SubareaChangeActionHandler subareaHandler;
@@ -68,7 +68,7 @@ class ChangeActionServiceTest {
   @BeforeEach
   void setUp() {
     changeActionService = new ChangeActionService(
-        licencePositionCorrectionService,
+        licencePositionStagedPayloadService,
         List.of(
             mock(AdministratorChangeActionHandler.class),
             mock(EquityChangeActionHandler.class),
@@ -114,7 +114,7 @@ class ChangeActionServiceTest {
   void getOperationOfStagedChange() {
     givenStagedChangeWith(HIDDEN_OPERATION, SUBAREA_OPERATION);
 
-    var result = changeActionService.getOperationOfStagedChange(POSITION_CORRECTION, CHANGE_ID);
+    var result = changeActionService.getOperationOfStagedChange(POSITION_STAGED_PAYLOAD, CHANGE_ID);
 
     assertThat(result).isEqualTo(SUBAREA_OPERATION);
   }
@@ -132,7 +132,7 @@ class ChangeActionServiceTest {
 
   @Test
   void getHandler_whenNamedHandlerIsNotABean_thenThrows() {
-    var serviceWithoutHandlers = new ChangeActionService(licencePositionCorrectionService, List.of());
+    var serviceWithoutHandlers = new ChangeActionService(licencePositionStagedPayloadService, List.of());
 
     assertThatThrownBy(() -> serviceWithoutHandlers.getHandler(SUBAREA_OPERATION))
         .isInstanceOf(IllegalStateException.class)
@@ -145,10 +145,10 @@ class ChangeActionServiceTest {
 
     changeActionService.removeLiveChange(CORRECTION, POSITION, liveChange);
 
-    var inOrder = inOrder(licencePositionCorrectionService);
-    inOrder.verify(licencePositionCorrectionService)
+    var inOrder = inOrder(licencePositionStagedPayloadService);
+    inOrder.verify(licencePositionStagedPayloadService)
         .dropStagedChangesOf(CORRECTION, POSITION, AdministratorOperation.class);
-    inOrder.verify(licencePositionCorrectionService).stageRemovalOfExecutedChange(CORRECTION, POSITION, CHANGE_ID);
+    inOrder.verify(licencePositionStagedPayloadService).stageRemovalOfExecutedChange(CORRECTION, POSITION, CHANGE_ID);
   }
 
   @Test
@@ -157,19 +157,19 @@ class ChangeActionServiceTest {
 
     changeActionService.removeLiveChange(CORRECTION, POSITION, liveChange);
 
-    verify(licencePositionCorrectionService, never()).dropStagedChangesOf(any(), any(), any());
-    verify(licencePositionCorrectionService).stageRemovalOfExecutedChange(CORRECTION, POSITION, CHANGE_ID);
+    verify(licencePositionStagedPayloadService, never()).dropStagedChangesOf(any(), any(), any());
+    verify(licencePositionStagedPayloadService).stageRemovalOfExecutedChange(CORRECTION, POSITION, CHANGE_ID);
   }
 
   @Test
   void undoStagedChange() {
     givenStagedChangeWith(SUBAREA_OPERATION);
 
-    changeActionService.undoStagedChange(POSITION_CORRECTION, CHANGE_ID);
+    changeActionService.undoStagedChange(POSITION_STAGED_PAYLOAD, CHANGE_ID);
 
-    var inOrder = inOrder(subareaHandler, licencePositionCorrectionService);
-    inOrder.verify(subareaHandler).beforeDroppingStagedChange(POSITION_CORRECTION, STAGED_CHANGE);
-    inOrder.verify(licencePositionCorrectionService).dropStagedChange(POSITION_CORRECTION, CHANGE_ID);
+    var inOrder = inOrder(subareaHandler, licencePositionStagedPayloadService);
+    inOrder.verify(subareaHandler).beforeDroppingStagedChange(POSITION_STAGED_PAYLOAD, STAGED_CHANGE);
+    inOrder.verify(licencePositionStagedPayloadService).dropStagedChange(POSITION_STAGED_PAYLOAD, CHANGE_ID);
   }
 
   private static Stream<Arguments> operationsAndTheirHandlerTypes() {
@@ -217,7 +217,7 @@ class ChangeActionServiceTest {
   }
 
   private void givenStagedChangeWith(LicenceOperation... operations) {
-    when(licencePositionCorrectionService.getStagedChangeOrThrow(POSITION_CORRECTION, CHANGE_ID)).thenReturn(STAGED_CHANGE);
-    when(licencePositionCorrectionService.resolveStagedChangeOperations(STAGED_CHANGE)).thenReturn(List.of(operations));
+    when(licencePositionStagedPayloadService.getStagedChangeOrThrow(POSITION_STAGED_PAYLOAD, CHANGE_ID)).thenReturn(STAGED_CHANGE);
+    when(licencePositionStagedPayloadService.resolveStagedChangeOperations(STAGED_CHANGE)).thenReturn(List.of(operations));
   }
 }

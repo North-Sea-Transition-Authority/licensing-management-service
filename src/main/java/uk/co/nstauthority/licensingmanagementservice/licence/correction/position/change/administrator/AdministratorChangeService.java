@@ -6,9 +6,9 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionChangeType;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayload;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadChangeType;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.UpdateChangeOperations;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.LicencePositionPayload;
@@ -25,18 +25,18 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.uti
 @Service
 public class AdministratorChangeService {
 
-  private final LicencePositionCorrectionService licencePositionCorrectionService;
+  private final LicencePositionStagedPayloadService licencePositionStagedPayloadService;
   private final LicencePositionChangeService licencePositionChangeService;
   private final ChronologicalPositionService chronologicalPositionService;
   private final LicencePositionNameService licencePositionNameService;
 
   public AdministratorChangeService(
-      LicencePositionCorrectionService licencePositionCorrectionService,
+      LicencePositionStagedPayloadService licencePositionStagedPayloadService,
       LicencePositionChangeService licencePositionChangeService,
       ChronologicalPositionService chronologicalPositionService,
       LicencePositionNameService licencePositionNameService
   ) {
-    this.licencePositionCorrectionService = licencePositionCorrectionService;
+    this.licencePositionStagedPayloadService = licencePositionStagedPayloadService;
     this.licencePositionChangeService = licencePositionChangeService;
     this.chronologicalPositionService = chronologicalPositionService;
     this.licencePositionNameService = licencePositionNameService;
@@ -49,14 +49,14 @@ public class AdministratorChangeService {
       String originalChangeId,
       Integer administratorId
   ) {
-    var existingPositionCorrection = licencePositionCorrectionService
-        .findUpdatePositionCorrection(licenceCorrection, licencePosition);
+    var existingPositionStagedPayload = licencePositionStagedPayloadService
+        .findUpdatePositionStagedPayload(licenceCorrection, licencePosition);
 
-    LicencePositionCorrection positionCorrection;
+    LicencePositionStagedPayload positionStagedPayload;
 
-    if (existingPositionCorrection.isPresent()) {
-      positionCorrection = existingPositionCorrection.get();
-      var payload = (UpdateLicencePositionPayload) positionCorrection.getPayload();
+    if (existingPositionStagedPayload.isPresent()) {
+      positionStagedPayload = existingPositionStagedPayload.get();
+      var payload = (UpdateLicencePositionPayload) positionStagedPayload.getPayload();
 
       List<LicencePositionChangeType> changes;
       if (LicencePositionAdministratorChangeUtil.adminChangeExists(payload.changes())) {
@@ -73,7 +73,7 @@ public class AdministratorChangeService {
         changes = updatedChanges;
       }
 
-      positionCorrection.setPayload(LicencePositionPayload.withChanges(payload, changes));
+      positionStagedPayload.setPayload(LicencePositionPayload.withChanges(payload, changes));
 
     } else {
       var originalChange = licencePositionChangeService.getByIdOrThrow(UUID.fromString(originalChangeId));
@@ -82,7 +82,7 @@ public class AdministratorChangeService {
         return;
       }
 
-      positionCorrection = new LicencePositionCorrection();
+      positionStagedPayload = new LicencePositionStagedPayload();
       var payload = LicencePositionPayload.newUpdateLicencePositionPayload()
           .withCorrectionReference(licenceCorrection.getCorrectionReference())
           .withChanges(List.of(UpdateChangeOperations
@@ -90,14 +90,14 @@ public class AdministratorChangeService {
           )
           .build();
 
-      positionCorrection.setLicenceCorrection(licenceCorrection);
-      positionCorrection.setChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION);
-      positionCorrection.setTargetLicencePosition(licencePosition);
-      positionCorrection.setPayload(payload);
+      positionStagedPayload.setLicenceCorrection(licenceCorrection);
+      positionStagedPayload.setChangeType(LicencePositionStagedPayloadChangeType.UPDATE_POSITION);
+      positionStagedPayload.setTargetLicencePosition(licencePosition);
+      positionStagedPayload.setPayload(payload);
 
     }
 
-    licencePositionCorrectionService.save(positionCorrection);
+    licencePositionStagedPayloadService.save(positionStagedPayload);
   }
 
   private static AdministratorOperation administratorOperation(Integer administratorId) {

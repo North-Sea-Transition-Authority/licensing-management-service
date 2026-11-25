@@ -77,7 +77,7 @@ public class ReviewCorrectionController {
     var blockingErrors = licencePositionValidationService.validate(
         correctedTimeline.positionsToApply(),
         correctedTimeline.resolvedStates(),
-        correctedTimeline.positionCorrections(),
+        correctedTimeline.positionStagedPayloads(),
         correctedTimeline.licenceType(),
         licenceStatusType
     );

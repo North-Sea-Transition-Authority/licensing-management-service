@@ -6,7 +6,7 @@ import java.util.Objects;
 import java.util.Optional;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadService;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryCard;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryDataView;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryItem;
@@ -21,26 +21,26 @@ public class PartialSurrenderDetailsSummarySectionService implements SummarySect
   static final String SURRENDER_DETAILS = "Surrender details";
   static final int SECTION_ORDER = 10;
 
-  private final LicencePositionCorrectionService licencePositionCorrectionService;
+  private final LicencePositionStagedPayloadService licencePositionStagedPayloadService;
 
-  public PartialSurrenderDetailsSummarySectionService(LicencePositionCorrectionService licencePositionCorrectionService) {
-    this.licencePositionCorrectionService = licencePositionCorrectionService;
+  public PartialSurrenderDetailsSummarySectionService(LicencePositionStagedPayloadService licencePositionStagedPayloadService) {
+    this.licencePositionStagedPayloadService = licencePositionStagedPayloadService;
   }
 
   @Override
   public Optional<SummarySection> getSummarySection(PartialSurrenderSummaryContext context, ServiceUserDetail user) {
     return switch (context) {
-      case PartialSurrenderSummaryContext.Staged(var licencePositionCorrection, var ignored, var ignoredState) ->
+      case PartialSurrenderSummaryContext.Staged(var licencePositionStagedPayload, var ignored, var ignoredState) ->
           Optional.of(getSummarySection(
-              licencePositionCorrection.getLicenceCorrection().getLicence().getLicenceReference(),
-              licencePositionCorrectionService.resolveEffectiveDate(licencePositionCorrection)));
+              licencePositionStagedPayload.getLicenceCorrection().getLicence().getLicenceReference(),
+              licencePositionStagedPayloadService.resolveEffectiveDate(licencePositionStagedPayload)));
       case PartialSurrenderSummaryContext.LiveChange(
           var correction, var licencePosition, var ignored, var surrender, var ignoredState) ->
           Optional.of(getSummarySection(
               licencePosition.getLicence().getLicenceReference(),
               correction == null
                   ? Objects.requireNonNullElseGet(surrender.surrenderDate(), licencePosition::getPositionDate)
-                  : licencePositionCorrectionService.getEffectivePositionDate(correction, licencePosition)));
+                  : licencePositionStagedPayloadService.getEffectivePositionDate(correction, licencePosition)));
     };
   }
 

@@ -12,9 +12,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionChangeType;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadChangeType;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.ChronologicalPositionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionStateResolver;
@@ -24,7 +24,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.vie
 class CorrectedTimelineServiceTest {
 
   @Mock
-  private LicencePositionCorrectionService licencePositionCorrectionService;
+  private LicencePositionStagedPayloadService licencePositionStagedPayloadService;
 
   @Mock
   private ChronologicalPositionService chronologicalPositionService;
@@ -39,32 +39,32 @@ class CorrectedTimelineServiceTest {
     var removedPosition = LicencePositionTestUtil.newBuilder().build();
     var updatedPosition = LicencePositionTestUtil.newBuilder().build();
 
-    var removeCorrection = LicencePositionCorrectionTestUtil.newBuilder()
-        .withChangeType(LicencePositionCorrectionChangeType.REMOVE_POSITION)
+    var removeStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder()
+        .withChangeType(LicencePositionStagedPayloadChangeType.REMOVE_POSITION)
         .withTargetLicencePosition(removedPosition)
         .withPayload(null)
         .build();
-    var updateCorrection = LicencePositionCorrectionTestUtil.newBuilder()
-        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+    var updateStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder()
+        .withChangeType(LicencePositionStagedPayloadChangeType.UPDATE_POSITION)
         .withTargetLicencePosition(updatedPosition)
         .build();
 
-    var positionCorrections = List.of(removeCorrection, updateCorrection);
+    var positionStagedPayloads = List.of(removeStagedPayload, updateStagedPayload);
     var removedPositionIds = Set.of(removedPosition.getId());
     var positions = List.of(
         ChronologicalPositionTestUtil.newBuilder().withId(removedPosition.getId()).build(),
         ChronologicalPositionTestUtil.newBuilder().withId(updatedPosition.getId()).build());
 
-    when(licencePositionCorrectionService.getPositionCorrections(correction)).thenReturn(positionCorrections);
+    when(licencePositionStagedPayloadService.getPositionStagedPayloads(correction)).thenReturn(positionStagedPayloads);
     when(chronologicalPositionService.getCorrectedChronologicalPositions(
-        correction, positionCorrections, removedPositionIds))
+        correction, positionStagedPayloads, removedPositionIds))
         .thenReturn(positions);
 
     var result = correctedTimelineService.getCorrectedTimeline(correction);
 
     var expected = new CorrectedTimeline(
         correction,
-        positionCorrections,
+        positionStagedPayloads,
         positions,
         LicencePositionStateResolver.resolve(positions, removedPositionIds));
 

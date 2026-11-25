@@ -8,9 +8,9 @@ import java.time.Month;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionChangeType;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayload;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadChangeType;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeoperation.LicencePositionChangeOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.UpdateLicencePositionPayload;
@@ -97,28 +97,28 @@ class LicencePositionChangeUtilTest {
 
   @Test
   void positionDateAndOrderUnchanged_whenUpdatePositionWithNullDateAndOrder_returnsTrue() {
-    var correction = updatePositionCorrection(null, null);
+    var correction = updatePositionStagedPayload(null, null);
 
     assertThat(LicencePositionChangeUtil.positionDateAndOrderUnchanged(correction)).isTrue();
   }
 
   @Test
   void positionDateAndOrderUnchanged_whenDateMatchesLivePosition_returnsTrue() {
-    var correction = updatePositionCorrection(POSITION_DATE, POSITION_DATE_ORDER);
+    var correction = updatePositionStagedPayload(POSITION_DATE, POSITION_DATE_ORDER);
 
     assertThat(LicencePositionChangeUtil.positionDateAndOrderUnchanged(correction)).isTrue();
   }
 
   @Test
   void positionDateAndOrderUnchanged_whenDateChanged_returnsFalse() {
-    var correction = updatePositionCorrection(LocalDate.of(2026, Month.MARCH, 1), null);
+    var correction = updatePositionStagedPayload(LocalDate.of(2026, Month.MARCH, 1), null);
 
     assertThat(LicencePositionChangeUtil.positionDateAndOrderUnchanged(correction)).isFalse();
   }
 
   @Test
   void positionDateAndOrderUnchanged_whenOrderChanged_returnsFalse() {
-    var correction = updatePositionCorrection(null, 2);
+    var correction = updatePositionStagedPayload(null, 2);
 
     assertThat(LicencePositionChangeUtil.positionDateAndOrderUnchanged(correction)).isFalse();
   }
@@ -169,14 +169,14 @@ class LicencePositionChangeUtilTest {
     assertThat(LicencePositionChange.operationsOf(new LicencePositionChange())).isEmpty();
   }
 
-  private LicencePositionCorrection updatePositionCorrection(LocalDate effectiveDate, Integer effectiveDateOrder) {
+  private LicencePositionStagedPayload updatePositionStagedPayload(LocalDate effectiveDate, Integer effectiveDateOrder) {
     var position = LicencePositionTestUtil.newBuilder()
         .withPositionDate(POSITION_DATE)
         .withPositionOrder(POSITION_DATE_ORDER)
         .build();
     var payload = new UpdateLicencePositionPayload(effectiveDate, effectiveDateOrder, "TEST-REF", List.of());
-    return LicencePositionCorrectionTestUtil.newBuilder()
-        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+    return LicencePositionStagedPayloadTestUtil.newBuilder()
+        .withChangeType(LicencePositionStagedPayloadChangeType.UPDATE_POSITION)
         .withTargetLicencePosition(position)
         .withPayload(payload)
         .build();

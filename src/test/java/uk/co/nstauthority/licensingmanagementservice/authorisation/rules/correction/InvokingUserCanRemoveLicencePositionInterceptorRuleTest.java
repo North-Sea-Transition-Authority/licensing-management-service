@@ -22,7 +22,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
@@ -35,7 +35,7 @@ class InvokingUserCanRemoveLicencePositionInterceptorRuleTest extends AbstractIn
   private LicenceCorrectionService licenceCorrectionService;
 
   @Mock
-  private LicencePositionCorrectionService licencePositionCorrectionService;
+  private LicencePositionStagedPayloadService licencePositionStagedPayloadService;
 
   @Mock
   private LicencePositionService licencePositionService;
@@ -52,7 +52,7 @@ class InvokingUserCanRemoveLicencePositionInterceptorRuleTest extends AbstractIn
   @Test
   void check_whenPositionRemovable_rulePasses() throws NoSuchMethodException {
     var position = mockCorrectionAndPosition();
-    when(licencePositionCorrectionService.canRemovePosition(any(LicenceCorrection.class), eq(position)))
+    when(licencePositionStagedPayloadService.canRemovePosition(any(LicenceCorrection.class), eq(position)))
         .thenReturn(true);
 
     var annotation = getAnnotation(
@@ -69,7 +69,7 @@ class InvokingUserCanRemoveLicencePositionInterceptorRuleTest extends AbstractIn
   @Test
   void check_whenPositionNotRemovable_ruleFailsForbidden() throws NoSuchMethodException {
     var position = mockCorrectionAndPosition();
-    when(licencePositionCorrectionService.canRemovePosition(any(LicenceCorrection.class), eq(position)))
+    when(licencePositionStagedPayloadService.canRemovePosition(any(LicenceCorrection.class), eq(position)))
         .thenReturn(false);
 
     var annotation = getAnnotation(
@@ -109,7 +109,7 @@ class InvokingUserCanRemoveLicencePositionInterceptorRuleTest extends AbstractIn
         HttpStatus.NOT_FOUND,
         "Licence correction %s not found".formatted(correctionId)
     ));
-    verifyNoInteractions(licencePositionService, licencePositionCorrectionService);
+    verifyNoInteractions(licencePositionService, licencePositionStagedPayloadService);
   }
 
   private LicencePosition mockCorrectionAndPosition() {

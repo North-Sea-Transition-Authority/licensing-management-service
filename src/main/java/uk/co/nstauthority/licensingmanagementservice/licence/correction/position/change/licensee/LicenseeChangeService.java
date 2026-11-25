@@ -7,8 +7,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectionPosition;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayload;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.LicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenseeOperation;
@@ -27,14 +27,14 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.vie
 @Service
 public class LicenseeChangeService {
 
-  private final LicencePositionCorrectionService licencePositionCorrectionService;
+  private final LicencePositionStagedPayloadService licencePositionStagedPayloadService;
   private final ChronologicalPositionService chronologicalPositionService;
   private final LicencePositionNameService licencePositionNameService;
 
-  LicenseeChangeService(LicencePositionCorrectionService licencePositionCorrectionService,
+  LicenseeChangeService(LicencePositionStagedPayloadService licencePositionStagedPayloadService,
                         ChronologicalPositionService chronologicalPositionService,
                         LicencePositionNameService licencePositionNameService) {
-    this.licencePositionCorrectionService = licencePositionCorrectionService;
+    this.licencePositionStagedPayloadService = licencePositionStagedPayloadService;
     this.chronologicalPositionService = chronologicalPositionService;
     this.licencePositionNameService = licencePositionNameService;
   }
@@ -53,7 +53,7 @@ public class LicenseeChangeService {
           withdrawingLicenseeIds
       );
       case CorrectionPosition.Staged staged -> addLicenseeChangeForAddedLicencePosition(
-          staged.licencePositionCorrection(),
+          staged.licencePositionStagedPayload(),
           joiningLicenseeIds,
           withdrawingLicenseeIds
       );
@@ -61,11 +61,11 @@ public class LicenseeChangeService {
   }
 
   private void addLicenseeChangeForAddedLicencePosition(
-      LicencePositionCorrection licencePositionCorrection,
+      LicencePositionStagedPayload licencePositionStagedPayload,
       List<Integer> joiningLicenseeIds,
       List<Integer> withdrawingLicenseeIds
   ) {
-    stageLicenseeChange(licencePositionCorrection, joiningLicenseeIds, withdrawingLicenseeIds);
+    stageLicenseeChange(licencePositionStagedPayload, joiningLicenseeIds, withdrawingLicenseeIds);
   }
 
   private void addLicenseeChangeForExistingLicencePosition(
@@ -74,10 +74,10 @@ public class LicenseeChangeService {
       List<Integer> joiningLicenseeIds,
       List<Integer> withdrawingLicenseeIds
   ) {
-    var positionCorrection = licencePositionCorrectionService
-        .getOrBuildUpdatePositionCorrection(licenceCorrection, licencePosition);
+    var positionStagedPayload = licencePositionStagedPayloadService
+        .getOrBuildUpdatePositionStagedPayload(licenceCorrection, licencePosition);
 
-    stageLicenseeChange(positionCorrection, joiningLicenseeIds, withdrawingLicenseeIds);
+    stageLicenseeChange(positionStagedPayload, joiningLicenseeIds, withdrawingLicenseeIds);
   }
 
   @Transactional
@@ -88,10 +88,10 @@ public class LicenseeChangeService {
       List<Integer> withdrawingLicenseeIds,
       String originalChangeId
   ) {
-    var positionCorrection = licencePositionCorrectionService
-        .getOrBuildUpdatePositionCorrection(licenceCorrection, licencePosition);
+    var positionStagedPayload = licencePositionStagedPayloadService
+        .getOrBuildUpdatePositionStagedPayload(licenceCorrection, licencePosition);
 
-    var payload = positionCorrection.getPayload();
+    var payload = positionStagedPayload.getPayload();
 
     var licenseeOperation = LicenceOperation.newLicenseeOperation()
         .withLicenseesToAdd(joiningLicenseeIds)
@@ -105,8 +105,8 @@ public class LicenseeChangeService {
         licenseeOperation
     );
 
-    positionCorrection.setPayload(LicencePositionPayload.withChanges(payload, changes));
-    licencePositionCorrectionService.save(positionCorrection);
+    positionStagedPayload.setPayload(LicencePositionPayload.withChanges(payload, changes));
+    licencePositionStagedPayloadService.save(positionStagedPayload);
   }
 
   public LicenseeChangeView getRestoredLicenseeChangeView(List<String> withdrawingNames, List<String> joiningNames) {
@@ -124,19 +124,19 @@ public class LicenseeChangeService {
 
   public UndoLicenseeChangeContext getUndoLicenseeChangeContext(
       LicenceCorrection licenceCorrection,
-      LicencePositionCorrection positionCorrectionToUndo,
+      LicencePositionStagedPayload positionStagedPayloadToUndo,
       UUID licencePositionId
   ) {
     var correctedChangeContext = getLicenseeChangeContext(licenceCorrection, licencePositionId);
 
-    var remainingPositionCorrections = licencePositionCorrectionService.getPositionCorrections(licenceCorrection)
+    var remainingPositionStagedPayloads = licencePositionStagedPayloadService.getPositionStagedPayloads(licenceCorrection)
         .stream()
-        .filter(correction -> !correction.getId().equals(positionCorrectionToUndo.getId()))
+        .filter(positionStagedPayload -> !positionStagedPayload.getId().equals(positionStagedPayloadToUndo.getId()))
         .toList();
 
     var targetPositions = chronologicalPositionService.getCorrectedChronologicalPositions(
         licenceCorrection,
-        remainingPositionCorrections,
+        remainingPositionStagedPayloads,
         Set.of(licencePositionId)
     );
 
@@ -174,11 +174,11 @@ public class LicenseeChangeService {
   }
 
   private void stageLicenseeChange(
-      LicencePositionCorrection positionCorrection,
+      LicencePositionStagedPayload positionStagedPayload,
       List<Integer> joiningLicenseeIds,
       List<Integer> withdrawingLicenseeIds
   ) {
-    var payload = positionCorrection.getPayload();
+    var payload = positionStagedPayload.getPayload();
 
     var changes = LicencePositionLicenseeChangeUtil.upsertAddLicenseeChange(
         payload.changes(),
@@ -186,8 +186,8 @@ public class LicenseeChangeService {
         withdrawingLicenseeIds
     );
 
-    positionCorrection.setPayload(LicencePositionPayload.withChanges(payload, changes));
-    licencePositionCorrectionService.save(positionCorrection);
+    positionStagedPayload.setPayload(LicencePositionPayload.withChanges(payload, changes));
+    licencePositionStagedPayloadService.save(positionStagedPayload);
   }
 
   private LicenseeChangeContext buildLicenseeChangeContext(

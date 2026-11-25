@@ -35,17 +35,17 @@ public sealed interface CorrectionPosition extends Comparable<CorrectionPosition
   }
 
   /**
-   * The position a position correction stages changes against: the position it adds, or the executed position it
+   * The position a position staged payload stages changes against: the position it adds, or the executed position it
    * updates.
    */
-  static CorrectionPosition of(LicencePositionCorrection positionCorrection) {
-    return switch (positionCorrection.getChangeType()) {
-      case ADD_POSITION -> new Staged(positionCorrection);
+  static CorrectionPosition of(LicencePositionStagedPayload positionStagedPayload) {
+    return switch (positionStagedPayload.getChangeType()) {
+      case ADD_POSITION -> new Staged(positionStagedPayload);
       case UPDATE_POSITION ->
-          new Executed(positionCorrection.getLicenceCorrection(), positionCorrection.getTargetLicencePosition());
+          new Executed(positionStagedPayload.getLicenceCorrection(), positionStagedPayload.getTargetLicencePosition());
       case REMOVE_POSITION -> throw new IllegalStateException(
-          "Licence position correction %s removes a position so cannot have changes made against it"
-              .formatted(positionCorrection.getId()));
+          "Licence position staged payload %s removes a position so cannot have changes made against it"
+              .formatted(positionStagedPayload.getId()));
     };
   }
 
@@ -81,26 +81,26 @@ public sealed interface CorrectionPosition extends Comparable<CorrectionPosition
   /**
    * A position the correction adds, which is not executed until the correction is applied.
    */
-  record Staged(LicencePositionCorrection licencePositionCorrection) implements CorrectionPosition {
+  record Staged(LicencePositionStagedPayload licencePositionStagedPayload) implements CorrectionPosition {
 
     @Override
     public LicenceCorrection correction() {
-      return licencePositionCorrection.getLicenceCorrection();
+      return licencePositionStagedPayload.getLicenceCorrection();
     }
 
     @Override
     public UUID positionId() {
-      return licencePositionCorrection.getPositionId();
+      return licencePositionStagedPayload.getPositionId();
     }
 
     @Override
     public LocalDate effectiveDate() {
-      return licencePositionCorrection().getPayload().effectiveDate();
+      return licencePositionStagedPayload().getPayload().effectiveDate();
     }
 
     @Override
     public Integer effectiveDateOrder() {
-      return licencePositionCorrection().getPayload().effectiveDateOrder();
+      return licencePositionStagedPayload().getPayload().effectiveDateOrder();
     }
   }
 }

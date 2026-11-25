@@ -25,8 +25,8 @@ class LicenceCleardownServiceTest {
 
   private static final String DELETE_CHANGES =
       "DELETE FROM licence_position_changes c WHERE c.licencePosition IN :licencePositions";
-  private static final String DELETE_POSITION_CORRECTIONS =
-      "DELETE FROM licence_position_corrections c WHERE c.licenceCorrection IN :licenceCorrections";
+  private static final String DELETE_POSITION_STAGED_PAYLOADS =
+      "DELETE FROM licence_position_staged_payloads c WHERE c.licenceCorrection IN :licenceCorrections";
 
   private static final Licence LICENCE = LicenceTestUtil.builder().build();
   private static final Licence OTHER_LICENCE = LicenceTestUtil.builder().build();
@@ -47,7 +47,7 @@ class LicenceCleardownServiceTest {
   private Query deleteChangesQuery;
 
   @Mock
-  private Query deletePositionCorrectionsQuery;
+  private Query deletePositionStagedPayloadsQuery;
 
   @InjectMocks
   private LicenceCleardownService licenceCleardownService;
@@ -66,21 +66,21 @@ class LicenceCleardownServiceTest {
     when(licencePositionRepository.findByLicenceTransactionIn(List.of(transaction))).thenReturn(positions);
     when(entityManager.createQuery(DELETE_CHANGES)).thenReturn(deleteChangesQuery);
     when(deleteChangesQuery.setParameter("licencePositions", positions)).thenReturn(deleteChangesQuery);
-    when(entityManager.createQuery(DELETE_POSITION_CORRECTIONS)).thenReturn(deletePositionCorrectionsQuery);
-    when(deletePositionCorrectionsQuery.setParameter("licenceCorrections", corrections))
-        .thenReturn(deletePositionCorrectionsQuery);
+    when(entityManager.createQuery(DELETE_POSITION_STAGED_PAYLOADS)).thenReturn(deletePositionStagedPayloadsQuery);
+    when(deletePositionStagedPayloadsQuery.setParameter("licenceCorrections", corrections))
+        .thenReturn(deletePositionStagedPayloadsQuery);
 
     licenceCleardownService.clear(LICENCE);
 
     var inOrder = inOrder(
         deleteChangesQuery,
-        deletePositionCorrectionsQuery,
+        deletePositionStagedPayloadsQuery,
         licenceCorrectionRepository,
         licencePositionRepository,
         licenceTransactionRepository
     );
     inOrder.verify(deleteChangesQuery).executeUpdate();
-    inOrder.verify(deletePositionCorrectionsQuery).executeUpdate();
+    inOrder.verify(deletePositionStagedPayloadsQuery).executeUpdate();
     inOrder.verify(licenceCorrectionRepository).deleteAll(corrections);
     inOrder.verify(licencePositionRepository).deleteAll(positions);
     inOrder.verify(licenceTransactionRepository).deleteAll(List.of(transaction));
@@ -126,6 +126,6 @@ class LicenceCleardownServiceTest {
     licenceCleardownService.clear(LICENCE);
 
     verify(entityManager, never()).createQuery(DELETE_CHANGES);
-    verify(entityManager, never()).createQuery(DELETE_POSITION_CORRECTIONS);
+    verify(entityManager, never()).createQuery(DELETE_POSITION_STAGED_PAYLOADS);
   }
 }

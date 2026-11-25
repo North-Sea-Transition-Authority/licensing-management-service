@@ -26,17 +26,17 @@ import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 @RequestMapping("/licence-corrections/{correctionId}/positions/{licencePositionId}/correct-position-order")
 @CorrectionHasStatus(LicenceCorrectionStatus.IN_PROGRESS)
 @InvokingUserCanViewCorrection
-public class LicencePositionCorrectionOrderChangeController {
+public class LicencePositionStagedPayloadOrderChangeController {
 
   private final CorrectPositionOrderFormValidator correctPositionOrderFormValidator;
-  private final LicencePositionCorrectionService licencePositionCorrectionService;
+  private final LicencePositionStagedPayloadService licencePositionStagedPayloadService;
 
-  public LicencePositionCorrectionOrderChangeController(
+  public LicencePositionStagedPayloadOrderChangeController(
       CorrectPositionOrderFormValidator correctPositionOrderFormValidator,
-      LicencePositionCorrectionService licencePositionCorrectionService
+      LicencePositionStagedPayloadService licencePositionStagedPayloadService
   ) {
     this.correctPositionOrderFormValidator = correctPositionOrderFormValidator;
-    this.licencePositionCorrectionService = licencePositionCorrectionService;
+    this.licencePositionStagedPayloadService = licencePositionStagedPayloadService;
   }
 
   @GetMapping
@@ -44,43 +44,43 @@ public class LicencePositionCorrectionOrderChangeController {
       LicenceCorrection correction,
       @PathVariable UUID licencePositionId
   ) {
-    var orderedPositions = licencePositionCorrectionService.getOrderableSameDatePositions(correction, licencePositionId);
+    var orderedPositions = licencePositionStagedPayloadService.getOrderableSameDatePositions(correction, licencePositionId);
     var moveOptions = PositionMoveOptionUtil.buildMoveOptions(orderedPositions, licencePositionId);
 
     if (moveOptions.isEmpty()) {
       return ReverseRouter.redirect(on(LicenceCorrectionController.class).renderCorrection(correction, null));
     }
 
-    return correctPositionCorrectionOrderModelAndView(
+    return correctPositionStagedPayloadOrderModelAndView(
         correction, orderedPositions, licencePositionId, moveOptions, new CorrectPositionOrderForm());
   }
 
   @PostMapping
-  public ModelAndView correctLicencePositionCorrectionOrder(
+  public ModelAndView correctLicencePositionStagedPayloadOrder(
       LicenceCorrection correction,
       @PathVariable UUID licencePositionId,
       @ModelAttribute("form") CorrectPositionOrderForm form,
       BindingResult bindingResult,
       RedirectAttributes redirectAttributes
   ) {
-    var orderedPositions = licencePositionCorrectionService.getOrderableSameDatePositions(correction, licencePositionId);
+    var orderedPositions = licencePositionStagedPayloadService.getOrderableSameDatePositions(correction, licencePositionId);
     var moveOptions = PositionMoveOptionUtil.buildMoveOptions(orderedPositions, licencePositionId);
 
     if (correctPositionOrderFormValidator.hasErrors(form, bindingResult, moveOptions.keySet())) {
-      return correctPositionCorrectionOrderModelAndView(correction, orderedPositions, licencePositionId, moveOptions, form);
+      return correctPositionStagedPayloadOrderModelAndView(correction, orderedPositions, licencePositionId, moveOptions, form);
     }
 
     var move = PositionMove.fromFormValue(form.getPositionMove().getInputValue());
 
-    licencePositionCorrectionService.correctPositionOrder(
+    licencePositionStagedPayloadService.correctPositionOrder(
         correction, licencePositionId, move.targetId(), move.direction());
 
     NotificationBanner.newSuccessBannerWithHeader("Licence position order updated", redirectAttributes);
 
-    return LicencePositionCorrectionRouteUtil.redirectToPositionPage(correction, licencePositionId);
+    return LicencePositionStagedPayloadRouteUtil.redirectToPositionPage(correction, licencePositionId);
   }
 
-  private ModelAndView correctPositionCorrectionOrderModelAndView(
+  private ModelAndView correctPositionStagedPayloadOrderModelAndView(
       LicenceCorrection correction,
       List<OrderablePosition> orderedPositions,
       UUID positionBeingMovedId,
@@ -88,7 +88,7 @@ public class LicencePositionCorrectionOrderChangeController {
       CorrectPositionOrderForm form
   ) {
 
-    return new ModelAndView("lms/licence/correction/correctPositionCorrectionOrder")
+    return new ModelAndView("lms/licence/correction/correctPositionStagedPayloadOrder")
         .addObject("pageTitle", buildPageTitle(orderedPositions, positionBeingMovedId, moveOptions))
         .addObject("form", form)
         .addObject("positionMoveOptions", moveOptions)

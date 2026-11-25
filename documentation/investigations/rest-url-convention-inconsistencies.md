@@ -78,13 +78,13 @@ are the deviation.
 The same underlying position id is reached via three different nouns:
 
 - `positions` (plural) — `CorrectPositionDateController`,
-  `LicencePositionCorrectionOrderChangeController`, `ReinstateLicencePositionCorrectionController`,
-  `RemoveExecutedLicencePositionCorrectionController`, `UndoLicencePositionCorrectionController`
+  `LicencePositionStagedPayloadOrderChangeController`, `ReinstateLicencePositionStagedPayloadController`,
+  `RemoveExecutedLicencePositionStagedPayloadController`, `UndoLicencePositionStagedPayloadController`
   (`/licence-corrections/{correctionId}/positions/{licencePositionId}/…`).
 - `position` (singular) — all `…change.*` controllers (add-change, administrator, set-equity,
   transfer-equity, partial-surrender) (`/licence-corrections/{correctionId}/position/{…}/…`).
-- `added-positions` vs `added-position` vs `position-correction` — three spellings for the
-  added-position-correction id across `LicenceCorrectionController`, the change controllers, and
+- `added-positions` vs `added-position` vs `position-staged-payload` — three spellings for the
+  added-position staged payload id across `LicenceCorrectionController`, the change controllers, and
   `PartialSurrenderTaskListController`.
 
 *Severity:* consistency smell, localised to `licence.correction.*` (all `@Profile("enable-lms2")`,

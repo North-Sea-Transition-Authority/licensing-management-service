@@ -12,17 +12,17 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.CorrectionHasStatus;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.CorrectionLicenceIsType;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanViewCorrection;
-import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.LicencePositionCorrectionBelongsToCorrection;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.LicencePositionIsNotRemovedInCorrection;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.LicencePositionStagedPayloadBelongsToCorrection;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.LicencePositionChangeBelongsToPosition;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.LicencePositionChangeIsOfType;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.position.LicencePositionBelongsToCorrectionLicence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionRouteUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayload;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadRouteUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.LicencePositionPartialSurrenderController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.PartialSurrenderCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.definearea.PartialSurrenderDefineAreaController;
@@ -44,51 +44,51 @@ public class PartialSurrenderTaskListController {
 
   public static final String TASK_LIST_PAGE_TITLE = "Partial surrender";
 
-  private final LicencePositionCorrectionService licencePositionCorrectionService;
+  private final LicencePositionStagedPayloadService licencePositionStagedPayloadService;
   private final PartialSurrenderCorrectionService partialSurrenderCorrectionService;
   private final PartialSurrenderTaskListService partialSurrenderTaskListService;
 
   public PartialSurrenderTaskListController(
-      LicencePositionCorrectionService licencePositionCorrectionService,
+      LicencePositionStagedPayloadService licencePositionStagedPayloadService,
       PartialSurrenderCorrectionService partialSurrenderCorrectionService,
       PartialSurrenderTaskListService partialSurrenderTaskListService
   ) {
-    this.licencePositionCorrectionService = licencePositionCorrectionService;
+    this.licencePositionStagedPayloadService = licencePositionStagedPayloadService;
     this.partialSurrenderCorrectionService = partialSurrenderCorrectionService;
     this.partialSurrenderTaskListService = partialSurrenderTaskListService;
   }
 
-  @GetMapping("/position-correction/{licencePositionCorrectionId}/partial-surrender/task-list")
-  @LicencePositionCorrectionBelongsToCorrection
+  @GetMapping("/position-staged-payload/{licencePositionStagedPayloadId}/partial-surrender/task-list")
+  @LicencePositionStagedPayloadBelongsToCorrection
   public ModelAndView renderTaskList(
       LicenceCorrection correction,
-      LicencePositionCorrection licencePositionCorrection,
+      LicencePositionStagedPayload licencePositionStagedPayload,
       ServiceUserDetail user
   ) {
-    partialSurrenderCorrectionService.getCommittedPartialSurrenderOrThrow(licencePositionCorrection);
+    partialSurrenderCorrectionService.getCommittedPartialSurrenderOrThrow(licencePositionStagedPayload);
 
-    var correctedLiveChangeId = partialSurrenderCorrectionService.findCorrectedLiveChangeId(licencePositionCorrection);
+    var correctedLiveChangeId = partialSurrenderCorrectionService.findCorrectedLiveChangeId(licencePositionStagedPayload);
     if (correctedLiveChangeId.isPresent()) {
       return ReverseRouter.redirect(on(PartialSurrenderTaskListController.class).renderForCorrectingChange(
           correction,
-          licencePositionCorrection.getTargetLicencePosition(),
+          licencePositionStagedPayload.getTargetLicencePosition(),
           new LicencePositionChange(UUID.fromString(correctedLiveChangeId.get())),
           null));
     }
 
-    var singleBlock = partialSurrenderCorrectionService.findSingleBlockNotOperatedOn(licencePositionCorrection);
+    var singleBlock = partialSurrenderCorrectionService.findSingleBlockNotOperatedOn(licencePositionStagedPayload);
     if (singleBlock.isPresent()) {
       return ReverseRouter.redirect(on(PartialSurrenderDefineAreaController.class)
-          .renderDefineArea(correction, licencePositionCorrection, singleBlock.get().getId()));
+          .renderDefineArea(correction, licencePositionStagedPayload, singleBlock.get().getId()));
     }
 
     return taskListModelAndView(
         correction,
         partialSurrenderTaskListService.getTaskListSections(
-            new PartialSurrenderTaskListContext.Staged(licencePositionCorrection), user),
-        positionReference(licencePositionCorrection),
-        DateUtil.formatLongDate(licencePositionCorrectionService.resolveEffectiveDate(licencePositionCorrection)),
-        LicencePositionCorrectionRouteUtil.getPositionPageUrl(licencePositionCorrection));
+            new PartialSurrenderTaskListContext.Staged(licencePositionStagedPayload), user),
+        positionReference(licencePositionStagedPayload),
+        DateUtil.formatLongDate(licencePositionStagedPayloadService.resolveEffectiveDate(licencePositionStagedPayload)),
+        LicencePositionStagedPayloadRouteUtil.getPositionPageUrl(licencePositionStagedPayload));
   }
 
   @GetMapping("/position/{licencePositionId}/change/{changeId}/partial-surrender/task-list")
@@ -102,13 +102,13 @@ public class PartialSurrenderTaskListController {
       LicencePositionChange change,
       ServiceUserDetail user
   ) {
-    var positionCorrection = licencePositionCorrectionService
-        .findUpdatePositionCorrection(correction, licencePosition)
+    var positionStagedPayload = licencePositionStagedPayloadService
+        .findUpdatePositionStagedPayload(correction, licencePosition)
         .orElse(null);
 
     // If only a single block, go to the PartialSurrenderController to stage a single block correction
     if (partialSurrenderCorrectionService
-        .findSingleBlockNotOperatedOn(correction, licencePosition, positionCorrection, change.getId().toString())
+        .findSingleBlockNotOperatedOn(correction, licencePosition, positionStagedPayload, change.getId().toString())
         .isPresent()
     ) {
       return ReverseRouter.redirect(on(LicencePositionPartialSurrenderController.class)
@@ -121,7 +121,7 @@ public class PartialSurrenderTaskListController {
             new PartialSurrenderTaskListContext.LiveChange(correction, licencePosition, change), user),
         licencePosition.getLicenceTransaction().getRegulatorReference(),
         licencePosition.getFormattedPositionDate(),
-        LicencePositionCorrectionRouteUtil.getPositionPageUrl(correction, licencePosition.getId()));
+        LicencePositionStagedPayloadRouteUtil.getPositionPageUrl(correction, licencePosition.getId()));
   }
 
   private ModelAndView taskListModelAndView(
@@ -140,11 +140,11 @@ public class PartialSurrenderTaskListController {
         .addObject("backLinkUrl", backLinkUrl);
   }
 
-  private String positionReference(LicencePositionCorrection positionCorrection) {
-    return switch (positionCorrection.getPayload()) {
+  private String positionReference(LicencePositionStagedPayload positionStagedPayload) {
+    return switch (positionStagedPayload.getPayload()) {
       case CreateLicencePositionPayload create -> create.correctionReference();
       case UpdateLicencePositionPayload ignored ->
-          positionCorrection.getTargetLicencePosition().getLicenceTransaction().getRegulatorReference();
+          positionStagedPayload.getTargetLicencePosition().getLicenceTransaction().getRegulatorReference();
     };
   }
 }

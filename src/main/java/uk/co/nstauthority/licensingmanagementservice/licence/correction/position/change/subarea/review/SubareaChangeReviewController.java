@@ -16,8 +16,8 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.CorrectionHasStatus;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.CorrectionLicenceIsType;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanViewCorrection;
-import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.LicencePositionCorrectionBelongsToCorrection;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.LicencePositionIsNotRemovedInCorrection;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.LicencePositionStagedPayloadBelongsToCorrection;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.LicencePositionChangeBelongsToPosition;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.LicencePositionChangeIsOfType;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.position.LicencePositionBelongsToCorrectionLicence;
@@ -26,8 +26,8 @@ import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.Noti
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionRouteUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayload;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadRouteUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subarea.SubareaChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subarea.SubareaChangeService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subarea.SubareaChangeValidator;
@@ -46,7 +46,7 @@ import uk.co.nstauthority.licensingmanagementservice.summary.SummarySection;
 public class SubareaChangeReviewController {
 
   private static final String STAGED_REVIEW_PATH =
-      "/position-correction/{licencePositionCorrectionId}/subarea-change/{blockFeatureId}/review";
+      "/position-staged-payload/{licencePositionStagedPayloadId}/subarea-change/{blockFeatureId}/review";
   private static final String LIVE_REVIEW_PATH = "/position/{licencePositionId}/change/{changeId}/subarea-change-review";
   private static final String CHANGE_SUBAREAS_PATH = "/change-subareas";
   private static final String PAGE_TITLE = "Review and submit subarea changes for Block %s";
@@ -74,51 +74,51 @@ public class SubareaChangeReviewController {
   }
 
   @GetMapping(STAGED_REVIEW_PATH)
-  @LicencePositionCorrectionBelongsToCorrection
+  @LicencePositionStagedPayloadBelongsToCorrection
   public ModelAndView renderStagedReview(
       LicenceCorrection correction,
-      LicencePositionCorrection licencePositionCorrection,
+      LicencePositionStagedPayload licencePositionStagedPayload,
       @PathVariable UUID blockFeatureId,
       ServiceUserDetail user
   ) {
-    return getStagedReviewModelAndView(correction, licencePositionCorrection, blockFeatureId, user);
+    return getStagedReviewModelAndView(correction, licencePositionStagedPayload, blockFeatureId, user);
   }
 
   @PostMapping(STAGED_REVIEW_PATH)
-  @LicencePositionCorrectionBelongsToCorrection
+  @LicencePositionStagedPayloadBelongsToCorrection
   ModelAndView submit(
       LicenceCorrection correction,
-      LicencePositionCorrection licencePositionCorrection,
+      LicencePositionStagedPayload licencePositionStagedPayload,
       @PathVariable UUID blockFeatureId,
       ServiceUserDetail user,
       RedirectAttributes redirectAttributes
   ) {
     var commandJourneyId = subareaChangeService
-        .getSubareaOperationOrThrow(licencePositionCorrection, blockFeatureId)
+        .getSubareaOperationOrThrow(licencePositionStagedPayload, blockFeatureId)
         .commandJourneyIdOrThrow();
 
     if (subareaChangeValidator.hasErrors(commandJourneyId)) {
-      return getStagedReviewModelAndView(correction, licencePositionCorrection, blockFeatureId, user)
+      return getStagedReviewModelAndView(correction, licencePositionStagedPayload, blockFeatureId, user)
           .addObject("errorSummaryItems", List.of(new ErrorSummaryItem(1, "summaryaccordion-subarea-changes", NO_CHANGE_ERROR)));
     }
 
-    subareaChangeService.completeSubareaChange(licencePositionCorrection, blockFeatureId);
+    subareaChangeService.completeSubareaChange(licencePositionStagedPayload, blockFeatureId);
 
     NotificationBanner.newSuccessBannerWithHeader(SAVED_BANNER, redirectAttributes);
-    return LicencePositionCorrectionRouteUtil.redirectToPositionPage(licencePositionCorrection);
+    return LicencePositionStagedPayloadRouteUtil.redirectToPositionPage(licencePositionStagedPayload);
   }
 
   @PostMapping(STAGED_REVIEW_PATH + CHANGE_SUBAREAS_PATH)
-  @LicencePositionCorrectionBelongsToCorrection
+  @LicencePositionStagedPayloadBelongsToCorrection
   ModelAndView changeStagedSubareas(
       LicenceCorrection correction,
-      LicencePositionCorrection licencePositionCorrection,
+      LicencePositionStagedPayload licencePositionStagedPayload,
       @PathVariable UUID blockFeatureId
   ) {
-    subareaChangeService.getOrCreateCommandJourney(licencePositionCorrection, blockFeatureId);
+    subareaChangeService.getOrCreateCommandJourney(licencePositionStagedPayload, blockFeatureId);
 
     return ReverseRouter.redirect(on(SubareaChangeController.class)
-        .renderSubareaChange(correction, licencePositionCorrection, blockFeatureId));
+        .renderSubareaChange(correction, licencePositionStagedPayload, blockFeatureId));
   }
 
   @GetMapping(LIVE_REVIEW_PATH)
@@ -165,23 +165,23 @@ public class SubareaChangeReviewController {
       LicencePosition licencePosition,
       LicencePositionChange change
   ) {
-    var positionCorrection = subareaChangeService.correctExistingSubareaChange(correction, licencePosition, change);
+    var positionStagedPayload = subareaChangeService.correctExistingSubareaChange(correction, licencePosition, change);
     var blockFeatureId = subareaChangeService.getLiveSubareaOperationOrThrow(change).blockFeatureId();
 
     return ReverseRouter.redirect(on(SubareaChangeController.class)
-        .renderSubareaChange(correction, positionCorrection, blockFeatureId));
+        .renderSubareaChange(correction, positionStagedPayload, blockFeatureId));
   }
 
   private ModelAndView getStagedReviewModelAndView(
       LicenceCorrection correction,
-      LicencePositionCorrection licencePositionCorrection,
+      LicencePositionStagedPayload licencePositionStagedPayload,
       UUID blockFeatureId,
       ServiceUserDetail user
   ) {
-    var changeId = subareaChangeService.getSubareaChangeOrThrow(licencePositionCorrection, blockFeatureId).changeId();
-    var operation = subareaChangeService.getSubareaOperationOrThrow(licencePositionCorrection, blockFeatureId);
+    var changeId = subareaChangeService.getSubareaChangeOrThrow(licencePositionStagedPayload, blockFeatureId).changeId();
+    var operation = subareaChangeService.getSubareaOperationOrThrow(licencePositionStagedPayload, blockFeatureId);
     var commandJourneyId = operation.commandJourneyId();
-    var originalSubareas = licencePositionSpatialService.getStateGoingIntoChange(licencePositionCorrection, changeId)
+    var originalSubareas = licencePositionSpatialService.getStateGoingIntoChange(licencePositionStagedPayload, changeId)
         .subareasOf(blockFeatureId);
     var context = new SubareaChangeSummaryContext.Staged(
         blockFeatureId,
@@ -189,9 +189,9 @@ public class SubareaChangeReviewController {
         commandJourneyId == null
             ? operation.transfers()
             : subareaChangeService.getTransfers(commandJourneyId, originalSubareas),
-        licencePositionSpatialService.getStateAtEndOfPositionWithoutChange(licencePositionCorrection, changeId),
+        licencePositionSpatialService.getStateAtEndOfPositionWithoutChange(licencePositionStagedPayload, changeId),
         ReverseRouter.route(on(SubareaChangeReviewController.class)
-            .changeStagedSubareas(correction, licencePositionCorrection, blockFeatureId))
+            .changeStagedSubareas(correction, licencePositionStagedPayload, blockFeatureId))
     );
 
     var modelAndView = getReviewModelAndView(
@@ -205,12 +205,12 @@ public class SubareaChangeReviewController {
           .addObject(
               "submitUrl",
               ReverseRouter.route(on(SubareaChangeReviewController.class)
-                  .submit(correction, licencePositionCorrection, blockFeatureId, null, null))
+                  .submit(correction, licencePositionStagedPayload, blockFeatureId, null, null))
           )
           .addObject(
               "backLinkUrl",
               ReverseRouter.route(on(SubareaChangeController.class)
-                  .renderSubareaChange(correction, licencePositionCorrection, blockFeatureId))
+                  .renderSubareaChange(correction, licencePositionStagedPayload, blockFeatureId))
           );
     }
     return modelAndView;

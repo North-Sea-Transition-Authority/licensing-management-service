@@ -28,7 +28,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayloadTestUtil;
@@ -83,7 +83,7 @@ class LicencePositionSpatialServiceTest {
   private LicencePositionSpatialService licencePositionSpatialService;
 
   @Test
-  void getBlockFeaturesGoingIntoChange_whenAnUpdatePositionCorrection_thenResolvesUpToTheNamedChange() {
+  void getBlockFeaturesGoingIntoChange_whenAnUpdatePositionStagedPayload_thenResolvesUpToTheNamedChange() {
     var targetPosition = LicencePositionTestUtil.newBuilder().withLicence(LICENCE).build();
 
     when(chronologicalPositionService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, targetPosition.getId()))
@@ -134,9 +134,9 @@ class LicencePositionSpatialServiceTest {
   }
 
   @Test
-  void getBlockFeaturesGoingIntoChange_whenAnAddedPositionCorrection_thenResolvesUpToTheNamedChange() {
+  void getBlockFeaturesGoingIntoChange_whenAnAddedPositionStagedPayload_thenResolvesUpToTheNamedChange() {
     var addedPositionId = UUID.randomUUID();
-    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+    var positionStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder()
         .withLicenceCorrection(LICENCE_CORRECTION)
         .withTargetLicencePosition(null)
         .withPayload(CreateLicencePositionPayloadTestUtil.newBuilder()
@@ -162,12 +162,12 @@ class LicencePositionSpatialServiceTest {
                 .build()));
     when(featureService.getFeaturesByIds(Set.of(BLOCK_30_1.getId()))).thenReturn(List.of(BLOCK_30_1));
 
-    assertThat(licencePositionSpatialService.getBlockFeaturesGoingIntoChange(positionCorrection, "later-change"))
+    assertThat(licencePositionSpatialService.getBlockFeaturesGoingIntoChange(positionStagedPayload, "later-change"))
         .containsExactly(BLOCK_30_1);
   }
 
   @Test
-  void getBlockFeaturesGoingIntoChange_whenAnUpdatePositionCorrection_thenExcludesSubareasAndOrdersByBlock() {
+  void getBlockFeaturesGoingIntoChange_whenAnUpdatePositionStagedPayload_thenExcludesSubareasAndOrdersByBlock() {
     var targetPosition = LicencePositionTestUtil.newBuilder().withLicence(LICENCE).build();
     var heldFeatureIds = Set.of(SUBAREA.getId(), BLOCK_30_2.getId(), BLOCK_30_1.getId());
 
@@ -186,9 +186,9 @@ class LicencePositionSpatialServiceTest {
   }
 
   @Test
-  void getBlockFeaturesGoingIntoChange_whenAPositionCorrection_thenExcludesSubareasAndOrdersByBlock() {
+  void getBlockFeaturesGoingIntoChange_whenAPositionStagedPayload_thenExcludesSubareasAndOrdersByBlock() {
     var targetPosition = LicencePositionTestUtil.newBuilder().withLicence(LICENCE).build();
-    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+    var positionStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder()
         .withLicenceCorrection(LICENCE_CORRECTION)
         .withTargetLicencePosition(targetPosition)
         .withPayload(UpdateLicencePositionPayloadTestUtil.newBuilder().build())
@@ -205,7 +205,7 @@ class LicencePositionSpatialServiceTest {
                 .build()));
     when(featureService.getFeaturesByIds(heldFeatureIds)).thenReturn(List.of(SUBAREA, BLOCK_30_2, BLOCK_30_1));
 
-    assertThat(licencePositionSpatialService.getBlockFeaturesGoingIntoChange(positionCorrection, null))
+    assertThat(licencePositionSpatialService.getBlockFeaturesGoingIntoChange(positionStagedPayload, null))
         .containsExactly(BLOCK_30_1, BLOCK_30_2);
   }
 
@@ -905,9 +905,9 @@ class LicencePositionSpatialServiceTest {
   }
 
   @Test
-  void getBlockFeaturesGoingIntoChange_whenAnAddedPositionCorrectionCarriesBlockOperations_thenTheyAreApplied() {
+  void getBlockFeaturesGoingIntoChange_whenAnAddedPositionStagedPayloadCarriesBlockOperations_thenTheyAreApplied() {
     var addedPositionId = UUID.randomUUID();
-    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+    var positionStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder()
         .withLicenceCorrection(LICENCE_CORRECTION)
         .withTargetLicencePosition(null)
         .withPayload(CreateLicencePositionPayloadTestUtil.newBuilder()
@@ -926,7 +926,7 @@ class LicencePositionSpatialServiceTest {
         ));
     when(featureService.getFeaturesByIds(Set.of(BLOCK_30_2.getId()))).thenReturn(List.of(BLOCK_30_2));
 
-    assertThat(licencePositionSpatialService.getBlockFeaturesGoingIntoChange(positionCorrection, null))
+    assertThat(licencePositionSpatialService.getBlockFeaturesGoingIntoChange(positionStagedPayload, null))
         .containsExactly(BLOCK_30_2);
   }
 
@@ -1191,9 +1191,9 @@ class LicencePositionSpatialServiceTest {
   }
 
   @Test
-  void getSubareasGoingIntoChange_whenPositionCorrection_thenResolvedForItsPosition() {
+  void getSubareasGoingIntoChange_whenPositionStagedPayload_thenResolvedForItsPosition() {
     var targetPosition = LicencePositionTestUtil.newBuilder().withId(FIRST_POSITION_ID).withLicence(LICENCE).build();
-    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+    var positionStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder()
         .withLicenceCorrection(LICENCE_CORRECTION)
         .withTargetLicencePosition(targetPosition)
         .withPayload(UpdateLicencePositionPayloadTestUtil.newBuilder().build())
@@ -1206,7 +1206,7 @@ class LicencePositionSpatialServiceTest {
     ));
 
     var result = licencePositionSpatialService
-        .getSubareasGoingIntoChange(positionCorrection, BLOCK_30_1.getId(), "second-change");
+        .getSubareasGoingIntoChange(positionStagedPayload, BLOCK_30_1.getId(), "second-change");
 
     assertThat(result).containsExactly(SUBAREA_A);
   }
@@ -1236,7 +1236,7 @@ class LicencePositionSpatialServiceTest {
   @Test
   void getStateAtEndOfPositionWithoutChange_whenSubareaChangeFollowedByEquity_thenAppliesTheRestOfThePositionOnly() {
     var subareaBc = new SubareaDetails(UUID.randomUUID(), "Subarea BC", "BC");
-    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+    var positionStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder()
         .withLicenceCorrection(LICENCE_CORRECTION)
         .withTargetLicencePosition(LicencePositionTestUtil.newBuilder().withId(SECOND_POSITION_ID).build())
         .withPayload(UpdateLicencePositionPayloadTestUtil.newBuilder().build())
@@ -1276,7 +1276,7 @@ class LicencePositionSpatialServiceTest {
         ));
 
     var result = licencePositionSpatialService.getStateAtEndOfPositionWithoutChange(
-        positionCorrection,
+        positionStagedPayload,
         "subarea-change"
     );
 

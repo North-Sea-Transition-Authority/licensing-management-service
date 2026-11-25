@@ -26,7 +26,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectionPosition;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionRouteUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadRouteUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.LicencePositionAddChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.EquitySetterOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
@@ -102,7 +102,7 @@ public class LicencePositionSetEquityController {
         correctionPosition.correction(),
         operations,
         ReverseRouter.route(on(this.getClass()).renderForPosition(correctionPosition)),
-        LicencePositionCorrectionRouteUtil.getPositionPageUrl(correctionPosition),
+        LicencePositionStagedPayloadRouteUtil.getPositionPageUrl(correctionPosition),
         ReverseRouter.route(on(this.getClass()).submitSummaryForPosition(correctionPosition)),
         removeUrls
     );
@@ -111,7 +111,7 @@ public class LicencePositionSetEquityController {
   @PostMapping("/position/{licencePositionId}/set-equity/summary")
   @LicencePositionIsNotRemovedInCorrection
   ModelAndView submitSummaryForPosition(CorrectionPosition correctionPosition) {
-    return LicencePositionCorrectionRouteUtil.redirectToPositionPage(correctionPosition);
+    return LicencePositionStagedPayloadRouteUtil.redirectToPositionPage(correctionPosition);
   }
 
   @PostMapping("/position/{licencePositionId}/set-equity/remove")

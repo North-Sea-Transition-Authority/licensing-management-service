@@ -2,36 +2,36 @@ package uk.co.nstauthority.licensingmanagementservice.licence.correction.reviewa
 
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.ChronologicalPositionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionStateResolver;
 
 @Service
 public class CorrectedTimelineService {
 
-  private final LicencePositionCorrectionService licencePositionCorrectionService;
+  private final LicencePositionStagedPayloadService licencePositionStagedPayloadService;
   private final ChronologicalPositionService chronologicalPositionService;
 
   public CorrectedTimelineService(
-      LicencePositionCorrectionService licencePositionCorrectionService,
+      LicencePositionStagedPayloadService licencePositionStagedPayloadService,
       ChronologicalPositionService chronologicalPositionService
   ) {
-    this.licencePositionCorrectionService = licencePositionCorrectionService;
+    this.licencePositionStagedPayloadService = licencePositionStagedPayloadService;
     this.chronologicalPositionService = chronologicalPositionService;
   }
 
   public CorrectedTimeline getCorrectedTimeline(LicenceCorrection licenceCorrection) {
-    var positionCorrections = licencePositionCorrectionService.getPositionCorrections(licenceCorrection);
-    var removedPositionIds = LicencePositionCorrectionService.getRemovedPositionIds(positionCorrections);
+    var positionStagedPayloads = licencePositionStagedPayloadService.getPositionStagedPayloads(licenceCorrection);
+    var removedPositionIds = LicencePositionStagedPayloadService.getRemovedPositionIds(positionStagedPayloads);
     var displayedPositions = chronologicalPositionService.getCorrectedChronologicalPositions(
         licenceCorrection,
-        positionCorrections,
+        positionStagedPayloads,
         removedPositionIds
     );
 
     return new CorrectedTimeline(
         licenceCorrection,
-        positionCorrections,
+        positionStagedPayloads,
         displayedPositions,
         LicencePositionStateResolver.resolve(displayedPositions, removedPositionIds)
     );

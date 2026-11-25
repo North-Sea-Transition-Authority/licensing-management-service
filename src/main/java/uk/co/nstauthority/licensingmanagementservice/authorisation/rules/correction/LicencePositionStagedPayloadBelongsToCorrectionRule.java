@@ -10,46 +10,46 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.SecurityRuleR
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.AccessInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionService;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayload;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadService;
 
 @Component
 @Order(10)
-public class LicencePositionCorrectionBelongsToCorrectionRule implements AccessInterceptorRule {
+public class LicencePositionStagedPayloadBelongsToCorrectionRule implements AccessInterceptorRule {
 
-  private final LicencePositionCorrectionService licencePositionCorrectionService;
+  private final LicencePositionStagedPayloadService licencePositionStagedPayloadService;
   private final LicenceCorrectionService licenceCorrectionService;
 
-  LicencePositionCorrectionBelongsToCorrectionRule(LicencePositionCorrectionService licencePositionCorrectionService,
+  LicencePositionStagedPayloadBelongsToCorrectionRule(LicencePositionStagedPayloadService licencePositionStagedPayloadService,
                                                    LicenceCorrectionService licenceCorrectionService) {
-    this.licencePositionCorrectionService = licencePositionCorrectionService;
+    this.licencePositionStagedPayloadService = licencePositionStagedPayloadService;
     this.licenceCorrectionService = licenceCorrectionService;
   }
 
   @Override
   public Class<? extends Annotation> supports() {
-    return LicencePositionCorrectionBelongsToCorrection.class;
+    return LicencePositionStagedPayloadBelongsToCorrection.class;
   }
 
   @Override
   public SecurityRuleResult check(Object annotation, HttpServletRequest request, HttpServletResponse response) {
-    var licencePositionCorrectionId = getPathVariableEntityIdFromRequest(request, LicencePositionCorrection.class);
+    var licencePositionStagedPayloadId = getPathVariableEntityIdFromRequest(request, LicencePositionStagedPayload.class);
     var correctionId = getPathVariableEntityIdFromRequest(request, LicenceCorrection.class);
 
 
-    var licencePositionCorrection = licencePositionCorrectionService.findById(licencePositionCorrectionId).orElse(null);
+    var licencePositionStagedPayload = licencePositionStagedPayloadService.findById(licencePositionStagedPayloadId).orElse(null);
     var correction = licenceCorrectionService.findById(correctionId).orElse(null);
 
-    if (licencePositionCorrection == null || correction == null) {
+    if (licencePositionStagedPayload == null || correction == null) {
       return SecurityRuleResult.checkFailedWithStatusAndMessage(
-          HttpStatus.NOT_FOUND, "No licence position correction %s".formatted(licencePositionCorrectionId)
+          HttpStatus.NOT_FOUND, "No licence position staged payload %s".formatted(licencePositionStagedPayloadId)
       );
     }
 
-    if (!licencePositionCorrection.getLicenceCorrection().getId().equals(correction.getId())) {
+    if (!licencePositionStagedPayload.getLicenceCorrection().getId().equals(correction.getId())) {
       return SecurityRuleResult.checkFailedWithStatusAndMessage(HttpStatus.NOT_FOUND,
-          "Licence position correction %s does not belong to correction %s".formatted(
-              licencePositionCorrectionId,
+          "Licence position staged payload %s does not belong to correction %s".formatted(
+              licencePositionStagedPayloadId,
               correction.getId())
       );
     }

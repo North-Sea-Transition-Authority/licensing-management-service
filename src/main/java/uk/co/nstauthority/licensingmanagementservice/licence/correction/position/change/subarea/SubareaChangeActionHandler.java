@@ -3,7 +3,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.correction.positio
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.ModelAndView;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.action.ChangeAction;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.action.ChangeActionHandler;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
@@ -34,16 +34,16 @@ public class SubareaChangeActionHandler implements ChangeActionHandler {
   @Override
   public ModelAndView stagedChangeConfirmation(
       LicenceCorrection licenceCorrection,
-      LicencePositionCorrection positionCorrection,
+      LicencePositionStagedPayload positionStagedPayload,
       String changeId,
       ChangeAction action
   ) {
-    return confirmation(subareaChangeService.getStagedSubareaOperationOrThrow(positionCorrection, changeId));
+    return confirmation(subareaChangeService.getStagedSubareaOperationOrThrow(positionStagedPayload, changeId));
   }
 
   @Override
   public void beforeDroppingStagedChange(
-      LicencePositionCorrection positionCorrection,
+      LicencePositionStagedPayload positionStagedPayload,
       LicencePositionChangeType stagedChange
   ) {
     subareaChangeService.deleteStagedSubareaArtefacts(stagedChange);

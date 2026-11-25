@@ -7,52 +7,52 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
 
-public class LicencePositionCorrectionTestUtil {
+public class LicencePositionStagedPayloadTestUtil {
 
   private UUID id = UUID.randomUUID();
   private LicenceCorrection licenceCorrection = LicenceCorrectionTestUtil.newBuilder().build();
-  private LicencePositionCorrectionChangeType changeType = LicencePositionCorrectionChangeType.ADD_POSITION;
+  private LicencePositionStagedPayloadChangeType changeType = LicencePositionStagedPayloadChangeType.ADD_POSITION;
   private LicencePosition targetLicencePosition = LicencePositionTestUtil.newBuilder().build();
   private LicencePositionPayload payload = LicencePositionPayload.newCreateLicencePositionPayload()
       .withLicencePositionId(UUID.randomUUID().toString())
       .build();
 
-  public static LicencePositionCorrectionTestUtil newBuilder() {
-    return new LicencePositionCorrectionTestUtil();
+  public static LicencePositionStagedPayloadTestUtil newBuilder() {
+    return new LicencePositionStagedPayloadTestUtil();
   }
 
-  public LicencePositionCorrectionTestUtil withId(UUID id) {
+  public LicencePositionStagedPayloadTestUtil withId(UUID id) {
     this.id = id;
     return this;
   }
 
-  public LicencePositionCorrectionTestUtil withLicenceCorrection(LicenceCorrection licenceCorrection) {
+  public LicencePositionStagedPayloadTestUtil withLicenceCorrection(LicenceCorrection licenceCorrection) {
     this.licenceCorrection = licenceCorrection;
     return this;
   }
 
-  public LicencePositionCorrectionTestUtil withChangeType(LicencePositionCorrectionChangeType changeType) {
+  public LicencePositionStagedPayloadTestUtil withChangeType(LicencePositionStagedPayloadChangeType changeType) {
     this.changeType = changeType;
     return this;
   }
 
-  public LicencePositionCorrectionTestUtil withTargetLicencePosition(LicencePosition targetLicencePosition) {
+  public LicencePositionStagedPayloadTestUtil withTargetLicencePosition(LicencePosition targetLicencePosition) {
     this.targetLicencePosition = targetLicencePosition;
     return this;
   }
 
-  public LicencePositionCorrectionTestUtil withPayload(LicencePositionPayload payload) {
+  public LicencePositionStagedPayloadTestUtil withPayload(LicencePositionPayload payload) {
     this.payload = payload;
     return this;
   }
 
-  public LicencePositionCorrection build() {
-    var licencePositionCorrection = new LicencePositionCorrection(id);
-    licencePositionCorrection.setLicenceCorrection(licenceCorrection);
-    licencePositionCorrection.setChangeType(changeType);
-    licencePositionCorrection.setTargetLicencePosition(targetLicencePosition);
-    licencePositionCorrection.setPayload(payload);
+  public LicencePositionStagedPayload build() {
+    var licencePositionStagedPayload = new LicencePositionStagedPayload(id);
+    licencePositionStagedPayload.setLicenceCorrection(licenceCorrection);
+    licencePositionStagedPayload.setChangeType(changeType);
+    licencePositionStagedPayload.setTargetLicencePosition(targetLicencePosition);
+    licencePositionStagedPayload.setPayload(payload);
 
-    return licencePositionCorrection;
+    return licencePositionStagedPayload;
   }
 }

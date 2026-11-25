@@ -28,7 +28,7 @@ import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderType;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.AdministratorOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.BlockCreateOperation;
@@ -81,7 +81,7 @@ class LicencePositionViewServiceTest {
   private LicencePositionChangeService licencePositionChangeService;
 
   @Mock
-  private LicencePositionCorrectionService licencePositionCorrectionService;
+  private LicencePositionStagedPayloadService licencePositionStagedPayloadService;
 
   @Mock
   private OrganisationUnitQueryService organisationUnitQueryService;
@@ -98,7 +98,7 @@ class LicencePositionViewServiceTest {
         new ChronologicalPositionService(
             licencePositionService,
             licencePositionChangeService,
-            licencePositionCorrectionService
+            licencePositionStagedPayloadService
         ),
         new LicencePositionNameService(organisationUnitQueryService, featureService)
     );

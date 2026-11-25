@@ -41,9 +41,9 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceC
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
-@ContextConfiguration(classes = LicencePositionCorrectionOrderChangeController.class)
+@ContextConfiguration(classes = LicencePositionStagedPayloadOrderChangeController.class)
 @ActiveProfiles("test")
-class LicencePositionCorrectionOrderChangeControllerTest extends AbstractControllerTest {
+class LicencePositionStagedPayloadOrderChangeControllerTest extends AbstractControllerTest {
 
   @MockitoBean
   private CorrectPositionOrderFormValidator correctPositionOrderFormValidator;
@@ -54,7 +54,7 @@ class LicencePositionCorrectionOrderChangeControllerTest extends AbstractControl
   private static final UUID OTHER_POSITION_ID = UUID.randomUUID();
   private static final LocalDate DATE = LocalDate.of(2026, Month.JUNE, 1);
   private static final String SINGLE_OUTCOME_TITLE = "Do you want position REF-A to be moved after REF-B?";
-  private static final String VIEW_NAME = "lms/licence/correction/correctPositionCorrectionOrder";
+  private static final String VIEW_NAME = "lms/licence/correction/correctPositionStagedPayloadOrder";
 
   private static final LicenceCorrection CORRECTION = LicenceCorrectionTestUtil.newBuilder()
       .withId(CORRECTION_ID).withLicence(LICENCE).build();
@@ -64,7 +64,7 @@ class LicencePositionCorrectionOrderChangeControllerTest extends AbstractControl
 
   @Test
   void renderCorrectPositionOrder_whenNotLoggedIn() throws Exception {
-    mockMvc.perform(get(ReverseRouter.route(on(LicencePositionCorrectionOrderChangeController.class)
+    mockMvc.perform(get(ReverseRouter.route(on(LicencePositionStagedPayloadOrderChangeController.class)
             .renderCorrectionLicencePositionOrder(CORRECTION, POSITION_ID))))
         .andExpect(redirectionToLoginUrl());
   }
@@ -79,7 +79,7 @@ class LicencePositionCorrectionOrderChangeControllerTest extends AbstractControl
     when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
         .thenReturn(Optional.of(correction));
     when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(correction));
-    mockMvc.perform(get(ReverseRouter.route(on(LicencePositionCorrectionOrderChangeController.class)
+    mockMvc.perform(get(ReverseRouter.route(on(LicencePositionStagedPayloadOrderChangeController.class)
             .renderCorrectionLicencePositionOrder(correction, POSITION_ID)))
             .with(user(regulatorUser)))
         .andExpect(status().isForbidden())
@@ -91,10 +91,10 @@ class LicencePositionCorrectionOrderChangeControllerTest extends AbstractControl
   @Test
   void renderCorrectPositionOrder_whenAllocatedToUser() throws Exception {
     givenCorrectionAllocatedToUser();
-    when(licencePositionCorrectionService.getOrderableSameDatePositions(CORRECTION, POSITION_ID))
+    when(licencePositionStagedPayloadService.getOrderableSameDatePositions(CORRECTION, POSITION_ID))
         .thenReturn(List.of(orderable(POSITION_ID, 1, "REF-A"), orderable(OTHER_POSITION_ID, 2, "REF-B")));
 
-    mockMvc.perform(get(ReverseRouter.route(on(LicencePositionCorrectionOrderChangeController.class)
+    mockMvc.perform(get(ReverseRouter.route(on(LicencePositionStagedPayloadOrderChangeController.class)
             .renderCorrectionLicencePositionOrder(CORRECTION, POSITION_ID)))
             .with(user(regulatorUser)))
         .andExpectAll(
@@ -112,13 +112,13 @@ class LicencePositionCorrectionOrderChangeControllerTest extends AbstractControl
   @Test
   void renderCorrectPositionOrder_whenMoreThanTwoSameDatePositions_offersMultipleOptions() throws Exception {
     givenCorrectionAllocatedToUser();
-    when(licencePositionCorrectionService.getOrderableSameDatePositions(CORRECTION, POSITION_ID))
+    when(licencePositionStagedPayloadService.getOrderableSameDatePositions(CORRECTION, POSITION_ID))
         .thenReturn(List.of(
             orderable(POSITION_ID, 1, "REF-A"),
             orderable(OTHER_POSITION_ID, 2, "REF-B"),
             orderable(UUID.randomUUID(), 3, "REF-C")));
 
-    mockMvc.perform(get(ReverseRouter.route(on(LicencePositionCorrectionOrderChangeController.class)
+    mockMvc.perform(get(ReverseRouter.route(on(LicencePositionStagedPayloadOrderChangeController.class)
             .renderCorrectionLicencePositionOrder(CORRECTION, POSITION_ID)))
             .with(user(regulatorUser)))
         .andExpectAll(
@@ -136,7 +136,7 @@ class LicencePositionCorrectionOrderChangeControllerTest extends AbstractControl
     var lastId = UUID.randomUUID();
 
     givenCorrectionAllocatedToUser();
-    when(licencePositionCorrectionService.getOrderableSameDatePositions(CORRECTION, POSITION_ID))
+    when(licencePositionStagedPayloadService.getOrderableSameDatePositions(CORRECTION, POSITION_ID))
         .thenReturn(List.of(
             orderable(POSITION_ID, 1, "REF-MOVED"),
             orderable(middleId, 2, "REF-MIDDLE"),
@@ -148,7 +148,7 @@ class LicencePositionCorrectionOrderChangeControllerTest extends AbstractControl
     expectedOptions.put(
         new PositionMove(PositionMoveDirection.AFTER, lastId).toFormValue(), "After REF-LAST");
 
-    mockMvc.perform(get(ReverseRouter.route(on(LicencePositionCorrectionOrderChangeController.class)
+    mockMvc.perform(get(ReverseRouter.route(on(LicencePositionStagedPayloadOrderChangeController.class)
             .renderCorrectionLicencePositionOrder(CORRECTION, POSITION_ID)))
             .with(user(regulatorUser)))
         .andExpectAll(
@@ -166,10 +166,10 @@ class LicencePositionCorrectionOrderChangeControllerTest extends AbstractControl
   @Test
   void renderCorrectPositionOrder_whenNoOtherSameDatePositions_redirectsToCorrection() throws Exception {
     givenCorrectionAllocatedToUser();
-    when(licencePositionCorrectionService.getOrderableSameDatePositions(CORRECTION, POSITION_ID))
+    when(licencePositionStagedPayloadService.getOrderableSameDatePositions(CORRECTION, POSITION_ID))
         .thenReturn(List.of(orderable(POSITION_ID, 1, "REF-A")));
 
-    mockMvc.perform(get(ReverseRouter.route(on(LicencePositionCorrectionOrderChangeController.class)
+    mockMvc.perform(get(ReverseRouter.route(on(LicencePositionStagedPayloadOrderChangeController.class)
             .renderCorrectionLicencePositionOrder(CORRECTION, POSITION_ID)))
             .with(user(regulatorUser)))
         .andExpectAll(
@@ -182,7 +182,7 @@ class LicencePositionCorrectionOrderChangeControllerTest extends AbstractControl
   void renderCorrectPositionOrder_whenNotAllocatedToUser() throws Exception {
     givenCorrectionNotAllocatedToUser();
 
-    mockMvc.perform(get(ReverseRouter.route(on(LicencePositionCorrectionOrderChangeController.class)
+    mockMvc.perform(get(ReverseRouter.route(on(LicencePositionStagedPayloadOrderChangeController.class)
             .renderCorrectionLicencePositionOrder(CORRECTION, POSITION_ID)))
             .with(user(regulatorUser)))
         .andExpect(status().isForbidden())
@@ -193,8 +193,8 @@ class LicencePositionCorrectionOrderChangeControllerTest extends AbstractControl
 
   @Test
   void correctPositionOrder_whenNotLoggedIn() throws Exception {
-    mockMvc.perform(post(ReverseRouter.route(on(LicencePositionCorrectionOrderChangeController.class)
-            .correctLicencePositionCorrectionOrder(CORRECTION, POSITION_ID, null, null, null)))
+    mockMvc.perform(post(ReverseRouter.route(on(LicencePositionStagedPayloadOrderChangeController.class)
+            .correctLicencePositionStagedPayloadOrder(CORRECTION, POSITION_ID, null, null, null)))
             .with(csrf()))
         .andExpect(redirectionToLoginUrl());
   }
@@ -209,8 +209,8 @@ class LicencePositionCorrectionOrderChangeControllerTest extends AbstractControl
     when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
         .thenReturn(Optional.of(correction));
     when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(correction));
-    mockMvc.perform(post(ReverseRouter.route(on(LicencePositionCorrectionOrderChangeController.class)
-            .correctLicencePositionCorrectionOrder(correction, POSITION_ID, null, null, null)))
+    mockMvc.perform(post(ReverseRouter.route(on(LicencePositionStagedPayloadOrderChangeController.class)
+            .correctLicencePositionStagedPayloadOrder(correction, POSITION_ID, null, null, null)))
             .with(user(regulatorUser))
             .with(csrf()))
         .andExpect(status().isForbidden())
@@ -226,24 +226,24 @@ class LicencePositionCorrectionOrderChangeControllerTest extends AbstractControl
     form.getPositionMove().setInputValue(
         new PositionMove(PositionMoveDirection.AFTER, OTHER_POSITION_ID).toFormValue());
 
-    when(licencePositionCorrectionService.getOrderableSameDatePositions(CORRECTION, POSITION_ID))
+    when(licencePositionStagedPayloadService.getOrderableSameDatePositions(CORRECTION, POSITION_ID))
         .thenReturn(List.of(orderable(POSITION_ID, 1, "REF-A"), orderable(OTHER_POSITION_ID, 2, "REF-B")));
     when(correctPositionOrderFormValidator.hasErrors(eq(form), any(), any())).thenReturn(false);
 
-    mockMvc.perform(post(ReverseRouter.route(on(LicencePositionCorrectionOrderChangeController.class)
-            .correctLicencePositionCorrectionOrder(CORRECTION, POSITION_ID, null, null, null)))
+    mockMvc.perform(post(ReverseRouter.route(on(LicencePositionStagedPayloadOrderChangeController.class)
+            .correctLicencePositionStagedPayloadOrder(CORRECTION, POSITION_ID, null, null, null)))
             .with(user(regulatorUser))
             .with(csrf())
             .flashAttr("form", form))
         .andExpectAll(
             status().is3xxRedirection(),
-            redirectedUrl(LicencePositionCorrectionRouteUtil.getPositionPageUrl(CORRECTION, new LicencePosition(POSITION_ID).getId())),
+            redirectedUrl(LicencePositionStagedPayloadRouteUtil.getPositionPageUrl(CORRECTION, new LicencePosition(POSITION_ID).getId())),
             notificationBanner(NotificationBanner.newSuccessBanner()
                 .withHeadingContent("Licence position order updated")
                 .build())
         );
 
-    verify(licencePositionCorrectionService)
+    verify(licencePositionStagedPayloadService)
         .correctPositionOrder(CORRECTION, POSITION_ID, OTHER_POSITION_ID, PositionMoveDirection.AFTER);
   }
 
@@ -252,12 +252,12 @@ class LicencePositionCorrectionOrderChangeControllerTest extends AbstractControl
     givenCorrectionAllocatedToUser();
     var form = new CorrectPositionOrderForm();
 
-    when(licencePositionCorrectionService.getOrderableSameDatePositions(CORRECTION, POSITION_ID))
+    when(licencePositionStagedPayloadService.getOrderableSameDatePositions(CORRECTION, POSITION_ID))
         .thenReturn(List.of(orderable(POSITION_ID, 1, "REF-A"), orderable(OTHER_POSITION_ID, 2, "REF-B")));
     when(correctPositionOrderFormValidator.hasErrors(eq(form), any(), any())).thenReturn(true);
 
-    mockMvc.perform(post(ReverseRouter.route(on(LicencePositionCorrectionOrderChangeController.class)
-            .correctLicencePositionCorrectionOrder(CORRECTION, POSITION_ID, null, null, null)))
+    mockMvc.perform(post(ReverseRouter.route(on(LicencePositionStagedPayloadOrderChangeController.class)
+            .correctLicencePositionStagedPayloadOrder(CORRECTION, POSITION_ID, null, null, null)))
             .with(user(regulatorUser))
             .with(csrf())
             .flashAttr("form", form))
@@ -271,7 +271,7 @@ class LicencePositionCorrectionOrderChangeControllerTest extends AbstractControl
             model().attribute("backLinkUrl", backLinkUrl)
         );
 
-    verify(licencePositionCorrectionService, never())
+    verify(licencePositionStagedPayloadService, never())
         .correctPositionOrder(any(), any(), any(), any());
   }
 
@@ -279,8 +279,8 @@ class LicencePositionCorrectionOrderChangeControllerTest extends AbstractControl
   void correctPositionOrder_whenNotAllocatedToUser() throws Exception {
     givenCorrectionNotAllocatedToUser();
 
-    mockMvc.perform(post(ReverseRouter.route(on(LicencePositionCorrectionOrderChangeController.class)
-            .correctLicencePositionCorrectionOrder(CORRECTION, POSITION_ID, null, null, null)))
+    mockMvc.perform(post(ReverseRouter.route(on(LicencePositionStagedPayloadOrderChangeController.class)
+            .correctLicencePositionStagedPayloadOrder(CORRECTION, POSITION_ID, null, null, null)))
             .with(user(regulatorUser))
             .with(csrf()))
         .andExpect(status().isForbidden())
@@ -289,7 +289,7 @@ class LicencePositionCorrectionOrderChangeControllerTest extends AbstractControl
         );
 
     verifyNoInteractions(correctPositionOrderFormValidator);
-    verifyNoInteractions(licencePositionCorrectionService);
+    verifyNoInteractions(licencePositionStagedPayloadService);
   }
 
   private void givenCorrectionAllocatedToUser() {

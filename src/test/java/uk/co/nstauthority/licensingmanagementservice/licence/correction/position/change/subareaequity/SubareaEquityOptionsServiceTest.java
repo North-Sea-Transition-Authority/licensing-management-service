@@ -17,7 +17,7 @@ import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFound
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectionPosition;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.LicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaDetails;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
@@ -111,7 +111,7 @@ class SubareaEquityOptionsServiceTest {
   @Test
   void getSubareaOptions_whenAddedPosition_thenOptionsForSubareasOnAddedPosition() {
     var addedPositionId = UUID.randomUUID();
-    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+    var positionStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder()
         .withLicenceCorrection(CORRECTION)
         .withPayload(LicencePositionPayload.newCreateLicencePositionPayload()
             .withLicencePositionId(addedPositionId.toString())
@@ -121,7 +121,7 @@ class SubareaEquityOptionsServiceTest {
     when(licencePositionSpatialService.getBlockSubareasGoingIntoChange(CORRECTION, addedPositionId, null))
         .thenReturn(List.of(new BlockSubareas(BLOCK_30_1, List.of(subarea))));
 
-    var result = subareaEquityOptionsService.getSubareaOptions(new CorrectionPosition.Staged(positionCorrection));
+    var result = subareaEquityOptionsService.getSubareaOptions(new CorrectionPosition.Staged(positionStagedPayload));
 
     assertThat(result).containsExactly(
         entry("%s:%s".formatted(BLOCK_30_1.getId(), subarea.featureId()), "Block 30/1 - Subarea A"));
@@ -145,7 +145,7 @@ class SubareaEquityOptionsServiceTest {
   @Test
   void getSubareaOptionOrThrow_whenAddedPositionAndLegacyKey_thenReturnsLegacySubarea() {
     var addedPositionId = UUID.randomUUID();
-    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+    var positionStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder()
         .withLicenceCorrection(CORRECTION)
         .withPayload(LicencePositionPayload.newCreateLicencePositionPayload()
             .withLicencePositionId(addedPositionId.toString())
@@ -155,7 +155,7 @@ class SubareaEquityOptionsServiceTest {
     when(licencePositionSpatialService.getBlockSubareasGoingIntoChange(CORRECTION, addedPositionId, null))
         .thenReturn(List.of(new BlockSubareas(BLOCK_30_1, List.of(legacySubarea))));
 
-    var result = subareaEquityOptionsService.getSubareaOptionOrThrow(new CorrectionPosition.Staged(positionCorrection), "%s:LEG".formatted(BLOCK_30_1.getId()));
+    var result = subareaEquityOptionsService.getSubareaOptionOrThrow(new CorrectionPosition.Staged(positionStagedPayload), "%s:LEG".formatted(BLOCK_30_1.getId()));
 
     assertThat(result).isEqualTo(new SubareaOption(BLOCK_30_1, legacySubarea));
   }

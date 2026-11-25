@@ -363,7 +363,7 @@ class ReviewCorrectionControllerTest extends AbstractControllerTest {
     when(licencePositionValidationService.validate(
         correctedTimeline.positionsToApply(),
         correctedTimeline.resolvedStates(),
-        correctedTimeline.positionCorrections(),
+        correctedTimeline.positionStagedPayloads(),
         correctedTimeline.licenceType(),
         LicenceStatusType.EXTANT
     )).thenReturn(blockingErrors);

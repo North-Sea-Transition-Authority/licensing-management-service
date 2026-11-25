@@ -13,8 +13,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.web.servlet.ModelAndView;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayload;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.action.ChangeAction;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
@@ -28,7 +28,7 @@ class SubareaChangeActionHandlerTest {
   private static final String TEMPLATE_NAME = "lms/licence/correction/change/subarea/removeSubareaChange";
   private static final String CHANGE_ID = UUID.randomUUID().toString();
   private static final LicenceCorrection CORRECTION = LicenceCorrectionTestUtil.newBuilder().build();
-  private static final LicencePositionCorrection POSITION_CORRECTION = LicencePositionCorrectionTestUtil.newBuilder().build();
+  private static final LicencePositionStagedPayload POSITION_STAGED_PAYLOAD = LicencePositionStagedPayloadTestUtil.newBuilder().build();
   private static final SubareaOperation SUBAREA_OPERATION = LicenceOperation.newSubAreaOperation()
       .withBlockFeatureId(UUID.randomUUID())
       .build();
@@ -57,13 +57,13 @@ class SubareaChangeActionHandlerTest {
 
   @Test
   void stagedChangeConfirmation() {
-    when(subareaChangeService.getStagedSubareaOperationOrThrow(POSITION_CORRECTION, CHANGE_ID))
+    when(subareaChangeService.getStagedSubareaOperationOrThrow(POSITION_STAGED_PAYLOAD, CHANGE_ID))
         .thenReturn(SUBAREA_OPERATION);
     when(subareaChangeService.getBlockName(SUBAREA_OPERATION)).thenReturn("30/1");
 
     var result = subareaChangeActionHandler.stagedChangeConfirmation(
         CORRECTION,
-        POSITION_CORRECTION,
+        POSITION_STAGED_PAYLOAD,
         CHANGE_ID,
         ChangeAction.UNDO
     );
@@ -75,7 +75,7 @@ class SubareaChangeActionHandlerTest {
   void beforeDroppingStagedChange() {
     var stagedChange = LicencePositionChangeType.removeChange().withChangeId(CHANGE_ID).build();
 
-    subareaChangeActionHandler.beforeDroppingStagedChange(POSITION_CORRECTION, stagedChange);
+    subareaChangeActionHandler.beforeDroppingStagedChange(POSITION_STAGED_PAYLOAD, stagedChange);
 
     verify(subareaChangeService).deleteStagedSubareaArtefacts(stagedChange);
   }

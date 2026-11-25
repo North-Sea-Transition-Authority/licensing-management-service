@@ -22,8 +22,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayload;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.PartialSurrenderCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.AdministratorOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.ExplorationOperatorOperation;
@@ -51,13 +51,13 @@ class AddPositionChangeFormValidatorTest {
 
   private AddPositionChangeForm form;
   private Errors errors;
-  private LicencePositionCorrection positionCorrection;
+  private LicencePositionStagedPayload positionStagedPayload;
 
   @BeforeEach
   void setUp() {
     form = new AddPositionChangeForm();
     errors = new BeanPropertyBindingResult(form, "form");
-    positionCorrection = LicencePositionCorrectionTestUtil.newBuilder().build();
+    positionStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder().build();
   }
 
   private LicenceCorrection correctionForLicenceType(LicenceType licenceType) {
@@ -69,7 +69,7 @@ class AddPositionChangeFormValidatorTest {
   @Test
   void hasErrors_whenChangeTypeEmpty_thenErrorWithMessage() {
     var result = addPositionChangeFormValidator.hasErrors(
-        form, errors, correctionForLicenceType(LicenceType.SEAWARD_PRODUCTION), positionCorrection, Set.of());
+        form, errors, correctionForLicenceType(LicenceType.SEAWARD_PRODUCTION), positionStagedPayload, Set.of());
 
     assertThat(result).isTrue();
     assertThat(ValidatorTestingUtil.getErrorsFieldsAndMessages(errors))
@@ -81,7 +81,7 @@ class AddPositionChangeFormValidatorTest {
     form.setChangeType("NOT_A_CHANGE_TYPE");
 
     var result = addPositionChangeFormValidator.hasErrors(
-        form, errors, correctionForLicenceType(LicenceType.SEAWARD_PRODUCTION), positionCorrection, Set.of());
+        form, errors, correctionForLicenceType(LicenceType.SEAWARD_PRODUCTION), positionStagedPayload, Set.of());
 
     assertThat(result).isTrue();
     assertThat(ValidatorTestingUtil.getErrorsFieldsAndMessages(errors))
@@ -93,7 +93,7 @@ class AddPositionChangeFormValidatorTest {
     form.setChangeType(AddPositionChangeType.SET_EQUITY.name());
 
     var result = addPositionChangeFormValidator.hasErrors(
-        form, errors, correctionForLicenceType(LicenceType.SEAWARD_PRODUCTION), positionCorrection, Set.of());
+        form, errors, correctionForLicenceType(LicenceType.SEAWARD_PRODUCTION), positionStagedPayload, Set.of());
 
     assertThat(result).isTrue();
     assertThat(ValidatorTestingUtil.getErrorsFieldsAndMessages(errors))
@@ -103,11 +103,11 @@ class AddPositionChangeFormValidatorTest {
   @Test
   void hasErrors_whenSetEquityAlreadyExistsForPosition_thenErrorWithMessage() {
     form.setChangeType(AddPositionChangeType.SET_EQUITY.name());
-    when(licencePositionChangeService.changeExists(positionCorrection.getTargetLicencePosition().getId(), SetEquityOperation.class))
+    when(licencePositionChangeService.changeExists(positionStagedPayload.getTargetLicencePosition().getId(), SetEquityOperation.class))
         .thenReturn(true);
 
     var result = addPositionChangeFormValidator.hasErrors(
-        form, errors, correctionForLicenceType(LicenceType.CARBON_STORAGE), positionCorrection, Set.of());
+        form, errors, correctionForLicenceType(LicenceType.CARBON_STORAGE), positionStagedPayload, Set.of());
 
     assertThat(result).isTrue();
     assertThat(ValidatorTestingUtil.getErrorsFieldsAndMessages(errors))
@@ -118,11 +118,11 @@ class AddPositionChangeFormValidatorTest {
   @Test
   void hasErrors_whenSetEquityDoesNotExistForPosition_thenNoErrors() {
     form.setChangeType(AddPositionChangeType.SET_EQUITY.name());
-    when(licencePositionChangeService.changeExists(positionCorrection.getTargetLicencePosition().getId(), SetEquityOperation.class))
+    when(licencePositionChangeService.changeExists(positionStagedPayload.getTargetLicencePosition().getId(), SetEquityOperation.class))
         .thenReturn(false);
 
     var result = addPositionChangeFormValidator.hasErrors(
-        form, errors, correctionForLicenceType(LicenceType.CARBON_STORAGE), positionCorrection, Set.of());
+        form, errors, correctionForLicenceType(LicenceType.CARBON_STORAGE), positionStagedPayload, Set.of());
 
     assertThat(result).isFalse();
     assertThat(errors.hasErrors()).isFalse();
@@ -131,11 +131,11 @@ class AddPositionChangeFormValidatorTest {
   @Test
   void hasErrors_whenAdministratorChangeAndNoneExistsForPosition_thenNoErrors() {
     form.setChangeType(AddPositionChangeType.ADMINISTRATOR.name());
-    when(licencePositionChangeService.changeExists(positionCorrection.getTargetLicencePosition().getId(), AdministratorOperation.class))
+    when(licencePositionChangeService.changeExists(positionStagedPayload.getTargetLicencePosition().getId(), AdministratorOperation.class))
         .thenReturn(false);
 
     var result = addPositionChangeFormValidator.hasErrors(
-        form, errors, correctionForLicenceType(LicenceType.SEAWARD_PRODUCTION), positionCorrection, Set.of());
+        form, errors, correctionForLicenceType(LicenceType.SEAWARD_PRODUCTION), positionStagedPayload, Set.of());
 
     assertThat(result).isFalse();
     assertThat(errors.hasErrors()).isFalse();
@@ -146,7 +146,7 @@ class AddPositionChangeFormValidatorTest {
     form.setChangeType(AddPositionChangeType.ADMINISTRATOR.name());
 
     var result = addPositionChangeFormValidator.hasErrors(
-        form, errors, correctionForLicenceType(LicenceType.CARBON_STORAGE), positionCorrection, Set.of());
+        form, errors, correctionForLicenceType(LicenceType.CARBON_STORAGE), positionStagedPayload, Set.of());
 
     assertThat(result).isTrue();
     assertThat(ValidatorTestingUtil.getErrorsFieldsAndMessages(errors))
@@ -156,11 +156,11 @@ class AddPositionChangeFormValidatorTest {
   @Test
   void hasErrors_whenAdministratorChangeAlreadyExistsForPosition_thenErrorWithMessage() {
     form.setChangeType(AddPositionChangeType.ADMINISTRATOR.name());
-    when(licencePositionChangeService.changeExists(positionCorrection.getTargetLicencePosition().getId(), AdministratorOperation.class))
+    when(licencePositionChangeService.changeExists(positionStagedPayload.getTargetLicencePosition().getId(), AdministratorOperation.class))
         .thenReturn(true);
 
     var result = addPositionChangeFormValidator.hasErrors(
-        form, errors, correctionForLicenceType(LicenceType.SEAWARD_PRODUCTION), positionCorrection, Set.of());
+        form, errors, correctionForLicenceType(LicenceType.SEAWARD_PRODUCTION), positionStagedPayload, Set.of());
 
     assertThat(result).isTrue();
     assertThat(ValidatorTestingUtil.getErrorsFieldsAndMessages(errors))
@@ -171,11 +171,11 @@ class AddPositionChangeFormValidatorTest {
   @Test
   void hasErrors_whenLicenseeChangeAndNoneExistsForPosition_thenNoErrors() {
     form.setChangeType(AddPositionChangeType.LICENSEE.name());
-    when(licencePositionChangeService.changeExists(positionCorrection.getTargetLicencePosition().getId(), LicenseeOperation.class))
+    when(licencePositionChangeService.changeExists(positionStagedPayload.getTargetLicencePosition().getId(), LicenseeOperation.class))
         .thenReturn(false);
 
     var result = addPositionChangeFormValidator.hasErrors(
-        form, errors, correctionForLicenceType(LicenceType.SEAWARD_PRODUCTION), positionCorrection, Set.of());
+        form, errors, correctionForLicenceType(LicenceType.SEAWARD_PRODUCTION), positionStagedPayload, Set.of());
 
     assertThat(result).isFalse();
     assertThat(errors.hasErrors()).isFalse();
@@ -184,11 +184,11 @@ class AddPositionChangeFormValidatorTest {
   @Test
   void hasErrors_whenLicenseeChangeAlreadyExistsForPosition_thenErrorWithMessage() {
     form.setChangeType(AddPositionChangeType.LICENSEE.name());
-    when(licencePositionChangeService.changeExists(positionCorrection.getTargetLicencePosition().getId(), LicenseeOperation.class))
+    when(licencePositionChangeService.changeExists(positionStagedPayload.getTargetLicencePosition().getId(), LicenseeOperation.class))
         .thenReturn(true);
 
     var result = addPositionChangeFormValidator.hasErrors(
-        form, errors, correctionForLicenceType(LicenceType.SEAWARD_PRODUCTION), positionCorrection, Set.of());
+        form, errors, correctionForLicenceType(LicenceType.SEAWARD_PRODUCTION), positionStagedPayload, Set.of());
 
     assertThat(result).isTrue();
     assertThat(ValidatorTestingUtil.getErrorsFieldsAndMessages(errors))
@@ -205,7 +205,7 @@ class AddPositionChangeFormValidatorTest {
         form,
         errors,
         correctionForLicenceType(licenceType),
-        positionCorrection,
+        positionStagedPayload,
         Set.of()
     );
 
@@ -217,14 +217,14 @@ class AddPositionChangeFormValidatorTest {
   @Test
   void hasErrors_whenStorageOperatorChangeAndNoneExistsForPosition_thenNoErrors() {
     form.setChangeType(AddPositionChangeType.STORAGE_OPERATOR.name());
-    when(licencePositionChangeService.changeExists(positionCorrection.getTargetLicencePosition().getId(), StorageOperatorOperation.class))
+    when(licencePositionChangeService.changeExists(positionStagedPayload.getTargetLicencePosition().getId(), StorageOperatorOperation.class))
         .thenReturn(false);
 
     var result = addPositionChangeFormValidator.hasErrors(
         form,
         errors,
         correctionForLicenceType(LicenceType.CARBON_STORAGE),
-        positionCorrection,
+        positionStagedPayload,
         Set.of()
     );
 
@@ -235,14 +235,14 @@ class AddPositionChangeFormValidatorTest {
   @Test
   void hasErrors_whenStorageOperatorChangeAlreadyExistsForPosition_thenErrorWithMessage() {
     form.setChangeType(AddPositionChangeType.STORAGE_OPERATOR.name());
-    when(licencePositionChangeService.changeExists(positionCorrection.getTargetLicencePosition().getId(), StorageOperatorOperation.class))
+    when(licencePositionChangeService.changeExists(positionStagedPayload.getTargetLicencePosition().getId(), StorageOperatorOperation.class))
         .thenReturn(true);
 
     var result = addPositionChangeFormValidator.hasErrors(
         form,
         errors,
         correctionForLicenceType(LicenceType.CARBON_STORAGE),
-        positionCorrection,
+        positionStagedPayload,
         Set.of()
     );
 
@@ -261,7 +261,7 @@ class AddPositionChangeFormValidatorTest {
         form,
         errors,
         correctionForLicenceType(licenceType),
-        positionCorrection,
+        positionStagedPayload,
         Set.of()
     );
 
@@ -273,14 +273,14 @@ class AddPositionChangeFormValidatorTest {
   @Test
   void hasErrors_whenExplorationOperatorChangeAndNoneExistsForPosition_thenNoErrors() {
     form.setChangeType(AddPositionChangeType.EXPLORATION_OPERATOR.name());
-    when(licencePositionChangeService.changeExists(positionCorrection.getTargetLicencePosition().getId(), ExplorationOperatorOperation.class))
+    when(licencePositionChangeService.changeExists(positionStagedPayload.getTargetLicencePosition().getId(), ExplorationOperatorOperation.class))
         .thenReturn(false);
 
     var result = addPositionChangeFormValidator.hasErrors(
         form,
         errors,
         correctionForLicenceType(LicenceType.CARBON_STORAGE),
-        positionCorrection,
+        positionStagedPayload,
         Set.of()
     );
 
@@ -291,14 +291,14 @@ class AddPositionChangeFormValidatorTest {
   @Test
   void hasErrors_whenExplorationOperatorChangeAlreadyExistsForPosition_thenErrorWithMessage() {
     form.setChangeType(AddPositionChangeType.EXPLORATION_OPERATOR.name());
-    when(licencePositionChangeService.changeExists(positionCorrection.getTargetLicencePosition().getId(), ExplorationOperatorOperation.class))
+    when(licencePositionChangeService.changeExists(positionStagedPayload.getTargetLicencePosition().getId(), ExplorationOperatorOperation.class))
         .thenReturn(true);
 
     var result = addPositionChangeFormValidator.hasErrors(
         form,
         errors,
         correctionForLicenceType(LicenceType.CARBON_STORAGE),
-        positionCorrection,
+        positionStagedPayload,
         Set.of()
     );
 
@@ -315,7 +315,7 @@ class AddPositionChangeFormValidatorTest {
     form.setChangeType(AddPositionChangeType.PARTIAL_SURRENDER.name());
 
     var result = addPositionChangeFormValidator.hasErrors(
-        form, errors, correctionForLicenceType(licenceType), positionCorrection, Set.of());
+        form, errors, correctionForLicenceType(licenceType), positionStagedPayload, Set.of());
 
     assertThat(result).isTrue();
     assertThat(ValidatorTestingUtil.getErrorsFieldsAndMessages(errors))
@@ -326,11 +326,11 @@ class AddPositionChangeFormValidatorTest {
   void hasErrors_whenPartialSurrenderAlreadyExecutedOnPosition_thenErrorWithMessage() {
     form.setChangeType(AddPositionChangeType.PARTIAL_SURRENDER.name());
     when(licencePositionChangeService.changeExists(
-        positionCorrection.getTargetLicencePosition().getId(), PartialSurrenderOperation.class))
+        positionStagedPayload.getTargetLicencePosition().getId(), PartialSurrenderOperation.class))
         .thenReturn(true);
 
     var result = addPositionChangeFormValidator.hasErrors(
-        form, errors, correctionForLicenceType(LicenceType.SEAWARD_PRODUCTION), positionCorrection, Set.of());
+        form, errors, correctionForLicenceType(LicenceType.SEAWARD_PRODUCTION), positionStagedPayload, Set.of());
 
     assertThat(result).isTrue();
     assertThat(ValidatorTestingUtil.getErrorsFieldsAndMessages(errors))
@@ -342,12 +342,12 @@ class AddPositionChangeFormValidatorTest {
   void hasErrors_whenPartialSurrenderAlreadyStagedInThisCorrection_thenErrorWithMessage() {
     form.setChangeType(AddPositionChangeType.PARTIAL_SURRENDER.name());
     when(licencePositionChangeService.changeExists(
-        positionCorrection.getTargetLicencePosition().getId(), PartialSurrenderOperation.class))
+        positionStagedPayload.getTargetLicencePosition().getId(), PartialSurrenderOperation.class))
         .thenReturn(false);
-    when(partialSurrenderCorrectionService.hasStagedPartialSurrender(positionCorrection)).thenReturn(true);
+    when(partialSurrenderCorrectionService.hasStagedPartialSurrender(positionStagedPayload)).thenReturn(true);
 
     var result = addPositionChangeFormValidator.hasErrors(
-        form, errors, correctionForLicenceType(LicenceType.SEAWARD_PRODUCTION), positionCorrection, Set.of());
+        form, errors, correctionForLicenceType(LicenceType.SEAWARD_PRODUCTION), positionStagedPayload, Set.of());
 
     assertThat(result).isTrue();
     assertThat(ValidatorTestingUtil.getErrorsFieldsAndMessages(errors))
@@ -360,12 +360,12 @@ class AddPositionChangeFormValidatorTest {
   void hasErrors_whenPartialSurrenderDoesNotExistForPosition_thenNoErrors(LicenceType licenceType) {
     form.setChangeType(AddPositionChangeType.PARTIAL_SURRENDER.name());
     when(licencePositionChangeService.changeExists(
-        positionCorrection.getTargetLicencePosition().getId(), PartialSurrenderOperation.class))
+        positionStagedPayload.getTargetLicencePosition().getId(), PartialSurrenderOperation.class))
         .thenReturn(false);
-    when(partialSurrenderCorrectionService.hasStagedPartialSurrender(positionCorrection)).thenReturn(false);
+    when(partialSurrenderCorrectionService.hasStagedPartialSurrender(positionStagedPayload)).thenReturn(false);
 
     var result = addPositionChangeFormValidator.hasErrors(
-        form, errors, correctionForLicenceType(licenceType), positionCorrection, Set.of());
+        form, errors, correctionForLicenceType(licenceType), positionStagedPayload, Set.of());
 
     assertThat(result).isFalse();
     assertThat(errors.hasErrors()).isFalse();
@@ -377,7 +377,7 @@ class AddPositionChangeFormValidatorTest {
     form.setChangeType(AddPositionChangeType.SUBAREA.name());
 
     var result = addPositionChangeFormValidator.hasErrors(
-        form, errors, correctionForLicenceType(licenceType), positionCorrection, Set.of());
+        form, errors, correctionForLicenceType(licenceType), positionStagedPayload, Set.of());
 
     assertThat(result).isTrue();
     assertThat(ValidatorTestingUtil.getErrorsFieldsAndMessages(errors))
@@ -390,7 +390,7 @@ class AddPositionChangeFormValidatorTest {
     form.setChangeType(AddPositionChangeType.SUBAREA.name());
 
     var result = addPositionChangeFormValidator.hasErrors(
-        form, errors, correctionForLicenceType(licenceType), positionCorrection, Set.of());
+        form, errors, correctionForLicenceType(licenceType), positionStagedPayload, Set.of());
 
     assertThat(result).isFalse();
     assertThat(errors.hasErrors()).isFalse();
@@ -402,7 +402,7 @@ class AddPositionChangeFormValidatorTest {
     form.setChangeType(AddPositionChangeType.SUBAREA_SET_EQUITY.name());
 
     var result = addPositionChangeFormValidator.hasErrors(
-        form, errors, correctionForLicenceType(licenceType), positionCorrection, Set.of());
+        form, errors, correctionForLicenceType(licenceType), positionStagedPayload, Set.of());
 
     assertThat(result).isTrue();
     assertThat(ValidatorTestingUtil.getErrorsFieldsAndMessages(errors))
@@ -416,7 +416,7 @@ class AddPositionChangeFormValidatorTest {
     form.setSubarea(SUBAREA_KEY);
 
     var result = addPositionChangeFormValidator.hasErrors(
-        form, errors, correctionForLicenceType(licenceType), positionCorrection, Set.of(SUBAREA_KEY));
+        form, errors, correctionForLicenceType(licenceType), positionStagedPayload, Set.of(SUBAREA_KEY));
 
     assertThat(result).isFalse();
     assertThat(errors.hasErrors()).isFalse();
@@ -430,7 +430,7 @@ class AddPositionChangeFormValidatorTest {
     form.setSubarea(subarea);
 
     var result = addPositionChangeFormValidator.hasErrors(
-        form, errors, correctionForLicenceType(LicenceType.SEAWARD_PRODUCTION), positionCorrection, Set.of(SUBAREA_KEY));
+        form, errors, correctionForLicenceType(LicenceType.SEAWARD_PRODUCTION), positionStagedPayload, Set.of(SUBAREA_KEY));
 
     assertThat(result).isTrue();
     assertThat(ValidatorTestingUtil.getErrorsFieldsAndMessages(errors))

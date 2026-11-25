@@ -26,9 +26,9 @@ import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectionPosition;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayload;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.UpdateLicencePositionPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenseeOperation;
@@ -46,10 +46,10 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.vie
 class LicenseeChangeServiceTest {
 
   @Captor
-  private ArgumentCaptor<LicencePositionCorrection> licencePositionCorrectionCaptor;
+  private ArgumentCaptor<LicencePositionStagedPayload> licencePositionStagedPayloadCaptor;
 
   @Mock
-  private LicencePositionCorrectionService licencePositionCorrectionService;
+  private LicencePositionStagedPayloadService licencePositionStagedPayloadService;
 
   @Mock
   private ChronologicalPositionService chronologicalPositionService;
@@ -68,7 +68,7 @@ class LicenseeChangeServiceTest {
   @BeforeEach
   void setUp() {
     licenseeChangeService = new LicenseeChangeService(
-        licencePositionCorrectionService,
+        licencePositionStagedPayloadService,
         chronologicalPositionService,
         new LicencePositionNameService(organisationUnitQueryService, featureService)
     );
@@ -79,14 +79,14 @@ class LicenseeChangeServiceTest {
     var payload = CreateLicencePositionPayloadTestUtil.newBuilder().build();
     var joiningLicenseeIds = List.of(2, 3, 4);
     var withdrawingLicenseeIds = List.of(1);
-    var licencePositionCorrection = LicencePositionCorrectionTestUtil.newBuilder().withPayload(payload).build();
+    var licencePositionStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder().withPayload(payload).build();
 
-    licenseeChangeService.addLicenseeChange(new CorrectionPosition.Staged(licencePositionCorrection), joiningLicenseeIds, withdrawingLicenseeIds);
+    licenseeChangeService.addLicenseeChange(new CorrectionPosition.Staged(licencePositionStagedPayload), joiningLicenseeIds, withdrawingLicenseeIds);
 
-    verify(licencePositionCorrectionService).save(licencePositionCorrection);
+    verify(licencePositionStagedPayloadService).save(licencePositionStagedPayload);
     var expectedLicenseeOperation = (LicenseeOperation)
-        licencePositionCorrection.getPayload().changes().getFirst().operations().getFirst().operation();
-    assertThat(licencePositionCorrection.getPayload().changes()).hasSize(1);
+        licencePositionStagedPayload.getPayload().changes().getFirst().operations().getFirst().operation();
+    assertThat(licencePositionStagedPayload.getPayload().changes()).hasSize(1);
     assertThat(expectedLicenseeOperation.licenseesToAdd()).isEqualTo(joiningLicenseeIds);
     assertThat(expectedLicenseeOperation.licenseesToRemove()).isEqualTo(withdrawingLicenseeIds);
   }
@@ -98,20 +98,20 @@ class LicenseeChangeServiceTest {
     var joiningLicenseeIds = List.of(2, 3, 4);
     var withdrawingLicenseeIds = List.of(1);
     var payload = UpdateLicencePositionPayloadTestUtil.newBuilder().build();
-    var licencePositionCorrection = LicencePositionCorrectionTestUtil.newBuilder().withPayload(payload).build();
+    var licencePositionStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder().withPayload(payload).build();
 
-    when(licencePositionCorrectionService.getOrBuildUpdatePositionCorrection(licenceCorrection, licencePosition))
-        .thenReturn(licencePositionCorrection);
+    when(licencePositionStagedPayloadService.getOrBuildUpdatePositionStagedPayload(licenceCorrection, licencePosition))
+        .thenReturn(licencePositionStagedPayload);
 
     licenseeChangeService.addLicenseeChange(new CorrectionPosition.Executed(licenceCorrection, licencePosition), joiningLicenseeIds, withdrawingLicenseeIds);
 
-    ArgumentCaptor<LicencePositionCorrection> captor = ArgumentCaptor.forClass(LicencePositionCorrection.class);
-    verify(licencePositionCorrectionService).save(captor.capture());
+    ArgumentCaptor<LicencePositionStagedPayload> captor = ArgumentCaptor.forClass(LicencePositionStagedPayload.class);
+    verify(licencePositionStagedPayloadService).save(captor.capture());
 
-    var positionCorrection = captor.getValue();
+    var positionStagedPayload = captor.getValue();
     var expectedLicenseeOperation = (LicenseeOperation)
-        positionCorrection.getPayload().changes().getFirst().operations().getFirst().operation();
-    assertThat(positionCorrection.getPayload().changes()).hasSize(1);
+        positionStagedPayload.getPayload().changes().getFirst().operations().getFirst().operation();
+    assertThat(positionStagedPayload.getPayload().changes()).hasSize(1);
     assertThat(expectedLicenseeOperation.licenseesToAdd()).isEqualTo(joiningLicenseeIds);
     assertThat(expectedLicenseeOperation.licenseesToRemove()).isEqualTo(withdrawingLicenseeIds);
   }
@@ -124,10 +124,10 @@ class LicenseeChangeServiceTest {
     var withdrawingLicenseeIds = List.of(1);
     var changeId = UUID.randomUUID().toString();
     var payload = UpdateLicencePositionPayloadTestUtil.newBuilder().build();
-    var licencePositionCorrection = LicencePositionCorrectionTestUtil.newBuilder().withPayload(payload).build();
+    var licencePositionStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder().withPayload(payload).build();
 
-    when(licencePositionCorrectionService.getOrBuildUpdatePositionCorrection(licenceCorrection, licencePosition))
-        .thenReturn(licencePositionCorrection);
+    when(licencePositionStagedPayloadService.getOrBuildUpdatePositionStagedPayload(licenceCorrection, licencePosition))
+        .thenReturn(licencePositionStagedPayload);
 
     licenseeChangeService.correctExistingLicenseeChange(
         licencePosition,
@@ -137,13 +137,13 @@ class LicenseeChangeServiceTest {
         changeId
     );
 
-    ArgumentCaptor<LicencePositionCorrection> captor = ArgumentCaptor.forClass(LicencePositionCorrection.class);
-    verify(licencePositionCorrectionService).save(captor.capture());
+    ArgumentCaptor<LicencePositionStagedPayload> captor = ArgumentCaptor.forClass(LicencePositionStagedPayload.class);
+    verify(licencePositionStagedPayloadService).save(captor.capture());
 
-    var positionCorrection = captor.getValue();
+    var positionStagedPayload = captor.getValue();
     var expectedLicenseeOperation = (LicenseeOperation)
-        positionCorrection.getPayload().changes().getFirst().operations().getFirst().operation();
-    assertThat(positionCorrection.getPayload().changes()).hasSize(1);
+        positionStagedPayload.getPayload().changes().getFirst().operations().getFirst().operation();
+    assertThat(positionStagedPayload.getPayload().changes()).hasSize(1);
     assertThat(expectedLicenseeOperation.licenseesToAdd()).isEqualTo(joiningLicenseeIds);
     assertThat(expectedLicenseeOperation.licenseesToRemove()).isEqualTo(withdrawingLicenseeIds);
   }
@@ -152,10 +152,10 @@ class LicenseeChangeServiceTest {
   void getUndoLicenseeChangeContext_whenPositionHasBeenChanged_restoresPreviousVersion() {
     var correction = LicenceCorrectionTestUtil.newBuilder().withLicence(LICENCE).build();
 
-    var correctionToUndo = LicencePositionCorrectionTestUtil.newBuilder()
+    var positionStagedPayloadToUndo = LicencePositionStagedPayloadTestUtil.newBuilder()
         .withId(UUID.randomUUID())
         .build();
-    var otherCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+    var otherStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder()
         .withId(UUID.randomUUID())
         .build();
 
@@ -167,15 +167,15 @@ class LicenseeChangeServiceTest {
         .thenReturn(correctedPositions);
     when(organisationUnitQueryService.getOrganisationNameHistoriesByIds(List.of(1, 2)))
         .thenReturn(Map.of(1, namePeriods("BP"), 2, namePeriods("FLAMSTONE")));
-    when(licencePositionCorrectionService.getPositionCorrections(correction))
-        .thenReturn(List.of(correctionToUndo, otherCorrection));
-    when(chronologicalPositionService.getCorrectedChronologicalPositions(correction, List.of(otherCorrection), Set.of(POSITION_ID)))
+    when(licencePositionStagedPayloadService.getPositionStagedPayloads(correction))
+        .thenReturn(List.of(positionStagedPayloadToUndo, otherStagedPayload));
+    when(chronologicalPositionService.getCorrectedChronologicalPositions(correction, List.of(otherStagedPayload), Set.of(POSITION_ID)))
         .thenReturn(targetPositions);
     when(organisationUnitQueryService.getOrganisationNameHistoriesByIds(List.of(1, 2, 3)))
         .thenReturn(Map.of(1, namePeriods("BP"), 2, namePeriods("FLAMSTONE"), 3, namePeriods("SHELL")));
 
     var result = licenseeChangeService.getUndoLicenseeChangeContext(
-        correction, correctionToUndo, POSITION_ID);
+        correction, positionStagedPayloadToUndo, POSITION_ID);
 
     assertThat(result.currentWithdrawingLicenseeNames()).containsExactly("BP");
     assertThat(result.currentJoiningLicenseeNames()).isEmpty();
@@ -188,10 +188,10 @@ class LicenseeChangeServiceTest {
   void getUndoLicenseeChangeContext_whenPositionHasNotBeenChanged_returnsRemovalToExistingPosition() {
     var correction = LicenceCorrectionTestUtil.newBuilder().withLicence(LICENCE).build();
 
-    var correctionToUndo = LicencePositionCorrectionTestUtil.newBuilder()
+    var positionStagedPayloadToUndo = LicencePositionStagedPayloadTestUtil.newBuilder()
         .withId(UUID.randomUUID())
         .build();
-    var otherCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+    var otherStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder()
         .withId(UUID.randomUUID())
         .build();
 
@@ -204,13 +204,13 @@ class LicenseeChangeServiceTest {
         .thenReturn(correctedPositions);
     when(organisationUnitQueryService.getOrganisationNameHistoriesByIds(List.of(1, 2, 3)))
         .thenReturn(Map.of(1, namePeriods("BP"), 2, namePeriods("FLAMSTONE"), 3, namePeriods("SHELL")));
-    when(licencePositionCorrectionService.getPositionCorrections(correction))
-        .thenReturn(List.of(correctionToUndo, otherCorrection));
-    when(chronologicalPositionService.getCorrectedChronologicalPositions(correction, List.of(otherCorrection), Set.of(POSITION_ID)))
+    when(licencePositionStagedPayloadService.getPositionStagedPayloads(correction))
+        .thenReturn(List.of(positionStagedPayloadToUndo, otherStagedPayload));
+    when(chronologicalPositionService.getCorrectedChronologicalPositions(correction, List.of(otherStagedPayload), Set.of(POSITION_ID)))
         .thenReturn(List.of());
 
     var result = licenseeChangeService.getUndoLicenseeChangeContext(
-        correction, correctionToUndo, POSITION_ID);
+        correction, positionStagedPayloadToUndo, POSITION_ID);
 
     assertThat(result.currentWithdrawingLicenseeNames()).containsExactly("BP");
     assertThat(result.currentJoiningLicenseeNames()).containsExactly("SHELL");

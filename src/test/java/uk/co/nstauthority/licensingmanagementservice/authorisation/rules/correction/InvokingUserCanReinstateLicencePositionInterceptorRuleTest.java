@@ -22,7 +22,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
@@ -38,7 +38,7 @@ class InvokingUserCanReinstateLicencePositionInterceptorRuleTest extends Abstrac
   private LicenceCorrectionService licenceCorrectionService;
 
   @Mock
-  private LicencePositionCorrectionService licencePositionCorrectionService;
+  private LicencePositionStagedPayloadService licencePositionStagedPayloadService;
 
   @Mock
   private LicencePositionService licencePositionService;
@@ -55,7 +55,7 @@ class InvokingUserCanReinstateLicencePositionInterceptorRuleTest extends Abstrac
   @Test
   void check_whenPositionReinstatable_rulePasses() throws NoSuchMethodException {
     var position = mockCorrectionAndPosition();
-    when(licencePositionCorrectionService.canReinstateDeletedPositionCorrection(any(LicenceCorrection.class), eq(position)))
+    when(licencePositionStagedPayloadService.canReinstateDeletedPositionStagedPayload(any(LicenceCorrection.class), eq(position)))
         .thenReturn(true);
 
     var annotation = getAnnotation(
@@ -72,7 +72,7 @@ class InvokingUserCanReinstateLicencePositionInterceptorRuleTest extends Abstrac
   @Test
   void check_whenPositionNotReinstatable_ruleFailsForbidden() throws NoSuchMethodException {
     var position = mockCorrectionAndPosition();
-    when(licencePositionCorrectionService.canReinstateDeletedPositionCorrection(any(LicenceCorrection.class), eq(position)))
+    when(licencePositionStagedPayloadService.canReinstateDeletedPositionStagedPayload(any(LicenceCorrection.class), eq(position)))
         .thenReturn(false);
 
     var annotation = getAnnotation(
@@ -111,7 +111,7 @@ class InvokingUserCanReinstateLicencePositionInterceptorRuleTest extends Abstrac
         HttpStatus.NOT_FOUND,
         "Licence correction %s not found".formatted(CORRECTION.getId())
     ));
-    verifyNoInteractions(licencePositionService, licencePositionCorrectionService);
+    verifyNoInteractions(licencePositionService, licencePositionStagedPayloadService);
   }
 
   private LicencePosition mockCorrectionAndPosition() {

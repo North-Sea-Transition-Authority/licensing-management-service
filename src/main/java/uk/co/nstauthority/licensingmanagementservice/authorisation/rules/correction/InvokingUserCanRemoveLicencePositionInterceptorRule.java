@@ -10,7 +10,7 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.SecurityRuleR
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.AccessInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionService;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionService;
 
 @Component
@@ -18,16 +18,16 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePos
 public class InvokingUserCanRemoveLicencePositionInterceptorRule implements AccessInterceptorRule {
 
   private final LicenceCorrectionService licenceCorrectionService;
-  private final LicencePositionCorrectionService licencePositionCorrectionService;
+  private final LicencePositionStagedPayloadService licencePositionStagedPayloadService;
   private final LicencePositionService licencePositionService;
 
   public InvokingUserCanRemoveLicencePositionInterceptorRule(
       LicenceCorrectionService licenceCorrectionService,
-      LicencePositionCorrectionService licencePositionCorrectionService,
+      LicencePositionStagedPayloadService licencePositionStagedPayloadService,
       LicencePositionService licencePositionService
   ) {
     this.licenceCorrectionService = licenceCorrectionService;
-    this.licencePositionCorrectionService = licencePositionCorrectionService;
+    this.licencePositionStagedPayloadService = licencePositionStagedPayloadService;
     this.licencePositionService = licencePositionService;
   }
 
@@ -55,7 +55,7 @@ public class InvokingUserCanRemoveLicencePositionInterceptorRule implements Acce
     }
 
     var position  = licencePositionService.getPositionForLicence(correction.getLicence(), positionId);
-    if (!licencePositionCorrectionService.canRemovePosition(correction, position)) {
+    if (!licencePositionStagedPayloadService.canRemovePosition(correction, position)) {
       return SecurityRuleResult.checkFailedWithStatusAndMessage(
           HttpStatus.FORBIDDEN,
           "Position %s is not removable".formatted(positionId));

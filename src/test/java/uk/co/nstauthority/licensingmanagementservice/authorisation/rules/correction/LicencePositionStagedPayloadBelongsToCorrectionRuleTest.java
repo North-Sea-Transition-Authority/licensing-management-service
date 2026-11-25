@@ -18,37 +18,37 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.Interce
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadTestUtil;
 
-class LicencePositionCorrectionBelongsToCorrectionRuleTest extends AbstractInterceptorRuleTest {
+class LicencePositionStagedPayloadBelongsToCorrectionRuleTest extends AbstractInterceptorRuleTest {
 
-  private static final UUID POSITION_CORRECTION_ID = UUID.randomUUID();
+  private static final UUID POSITION_STAGED_PAYLOAD_ID = UUID.randomUUID();
   private static final LicenceCorrection CORRECTION = LicenceCorrectionTestUtil.newBuilder().build();
 
   @Mock
-  private LicencePositionCorrectionService licencePositionCorrectionService;
+  private LicencePositionStagedPayloadService licencePositionStagedPayloadService;
 
   @Mock
   private LicenceCorrectionService licenceCorrectionService;
 
   @InjectMocks
-  private LicencePositionCorrectionBelongsToCorrectionRule rule;
+  private LicencePositionStagedPayloadBelongsToCorrectionRule rule;
 
   @Test
   void supports() {
-    assertThat(rule.supports()).isEqualTo(LicencePositionCorrectionBelongsToCorrection.class);
+    assertThat(rule.supports()).isEqualTo(LicencePositionStagedPayloadBelongsToCorrection.class);
   }
 
   @Test
-  void check_whenPositionCorrectionBelongsToCorrection_thenContinueAsNormal() throws NoSuchMethodException {
-    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
-        .withId(POSITION_CORRECTION_ID)
+  void check_whenPositionStagedPayloadBelongsToCorrection_thenContinueAsNormal() throws NoSuchMethodException {
+    var positionStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder()
+        .withId(POSITION_STAGED_PAYLOAD_ID)
         .withLicenceCorrection(CORRECTION)
         .build();
 
     stubRequest();
-    when(licencePositionCorrectionService.findById(POSITION_CORRECTION_ID)).thenReturn(Optional.of(positionCorrection));
+    when(licencePositionStagedPayloadService.findById(POSITION_STAGED_PAYLOAD_ID)).thenReturn(Optional.of(positionStagedPayload));
     when(licenceCorrectionService.findById(CORRECTION.getId())).thenReturn(Optional.of(CORRECTION));
 
     var result = rule.check(annotation(), request, response);
@@ -58,55 +58,55 @@ class LicencePositionCorrectionBelongsToCorrectionRuleTest extends AbstractInter
   }
 
   @Test
-  void check_whenPositionCorrectionNotFound_thenNotFound() throws NoSuchMethodException {
+  void check_whenPositionStagedPayloadNotFound_thenNotFound() throws NoSuchMethodException {
     stubRequest();
-    when(licencePositionCorrectionService.findById(POSITION_CORRECTION_ID)).thenReturn(Optional.empty());
+    when(licencePositionStagedPayloadService.findById(POSITION_STAGED_PAYLOAD_ID)).thenReturn(Optional.empty());
     when(licenceCorrectionService.findById(CORRECTION.getId())).thenReturn(Optional.of(CORRECTION));
 
     var result = rule.check(annotation(), request, response);
 
     assertThat(result).isEqualTo(SecurityRuleResult.checkFailedWithStatusAndMessage(
         HttpStatus.NOT_FOUND,
-        "No licence position correction %s".formatted(POSITION_CORRECTION_ID)
+        "No licence position staged payload %s".formatted(POSITION_STAGED_PAYLOAD_ID)
     ));
   }
 
   @Test
   void check_whenCorrectionNotFound_thenNotFound() throws NoSuchMethodException {
-    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
-        .withId(POSITION_CORRECTION_ID)
+    var positionStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder()
+        .withId(POSITION_STAGED_PAYLOAD_ID)
         .withLicenceCorrection(CORRECTION)
         .build();
 
     stubRequest();
-    when(licencePositionCorrectionService.findById(POSITION_CORRECTION_ID)).thenReturn(Optional.of(positionCorrection));
+    when(licencePositionStagedPayloadService.findById(POSITION_STAGED_PAYLOAD_ID)).thenReturn(Optional.of(positionStagedPayload));
     when(licenceCorrectionService.findById(CORRECTION.getId())).thenReturn(Optional.empty());
 
     var result = rule.check(annotation(), request, response);
 
     assertThat(result).isEqualTo(SecurityRuleResult.checkFailedWithStatusAndMessage(
         HttpStatus.NOT_FOUND,
-        "No licence position correction %s".formatted(POSITION_CORRECTION_ID)
+        "No licence position staged payload %s".formatted(POSITION_STAGED_PAYLOAD_ID)
     ));
   }
 
   @Test
-  void check_whenPositionCorrectionBelongsToAnotherCorrection_thenNotFound() throws NoSuchMethodException {
-    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
-        .withId(POSITION_CORRECTION_ID)
+  void check_whenPositionStagedPayloadBelongsToAnotherCorrection_thenNotFound() throws NoSuchMethodException {
+    var positionStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder()
+        .withId(POSITION_STAGED_PAYLOAD_ID)
         .withLicenceCorrection(LicenceCorrectionTestUtil.newBuilder().build())
         .build();
 
     stubRequest();
-    when(licencePositionCorrectionService.findById(POSITION_CORRECTION_ID)).thenReturn(Optional.of(positionCorrection));
+    when(licencePositionStagedPayloadService.findById(POSITION_STAGED_PAYLOAD_ID)).thenReturn(Optional.of(positionStagedPayload));
     when(licenceCorrectionService.findById(CORRECTION.getId())).thenReturn(Optional.of(CORRECTION));
 
     var result = rule.check(annotation(), request, response);
 
     assertThat(result).isEqualTo(SecurityRuleResult.checkFailedWithStatusAndMessage(
         HttpStatus.NOT_FOUND,
-        "Licence position correction %s does not belong to correction %s".formatted(
-            POSITION_CORRECTION_ID,
+        "Licence position staged payload %s does not belong to correction %s".formatted(
+            POSITION_STAGED_PAYLOAD_ID,
             CORRECTION.getId())
     ));
   }
@@ -114,15 +114,15 @@ class LicencePositionCorrectionBelongsToCorrectionRuleTest extends AbstractInter
   private void stubRequest() {
     when(request.getAttribute(HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE))
         .thenReturn(Map.of(
-            "licencePositionCorrectionId", POSITION_CORRECTION_ID.toString(),
+            "licencePositionStagedPayloadId", POSITION_STAGED_PAYLOAD_ID.toString(),
             "correctionId", CORRECTION.getId().toString()
         ));
   }
 
-  private LicencePositionCorrectionBelongsToCorrection annotation() throws NoSuchMethodException {
+  private LicencePositionStagedPayloadBelongsToCorrection annotation() throws NoSuchMethodException {
     return getAnnotation(
-        InterceptorRuleTestEndpoints.class.getDeclaredMethod("licencePositionCorrectionBelongsToCorrection"),
-        LicencePositionCorrectionBelongsToCorrection.class
+        InterceptorRuleTestEndpoints.class.getDeclaredMethod("licencePositionStagedPayloadBelongsToCorrection"),
+        LicencePositionStagedPayloadBelongsToCorrection.class
     );
   }
 }

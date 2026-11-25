@@ -29,11 +29,11 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectionPosition;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionChangeType;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionRepository;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayload;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadChangeType;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadRepository;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeoperation.LicencePositionAddOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeoperation.LicencePositionChangeOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.AddChange;
@@ -66,7 +66,7 @@ class TransferEquityCorrectionServiceTest {
   private static final UUID POSITION_ID = UUID.randomUUID();
 
   @Mock
-  private LicencePositionCorrectionRepository licencePositionCorrectionRepository;
+  private LicencePositionStagedPayloadRepository licencePositionStagedPayloadRepository;
 
   @Mock
   private OrganisationUnitQueryService organisationUnitQueryService;
@@ -75,20 +75,20 @@ class TransferEquityCorrectionServiceTest {
   private ChronologicalPositionService chronologicalPositionService;
 
   @Captor
-  private ArgumentCaptor<LicencePositionCorrection> licencePositionCorrectionCaptor;
+  private ArgumentCaptor<LicencePositionStagedPayload> licencePositionStagedPayloadCaptor;
 
   private TransferEquityCorrectionService transferEquityCorrectionService;
 
   @BeforeEach
   void setUp() {
-    var licencePositionCorrectionService = new LicencePositionCorrectionService(
-        licencePositionCorrectionRepository,
+    var licencePositionStagedPayloadService = new LicencePositionStagedPayloadService(
+        licencePositionStagedPayloadRepository,
         null,
         null
     );
     transferEquityCorrectionService = new TransferEquityCorrectionService(
-        licencePositionCorrectionRepository,
-        licencePositionCorrectionService,
+        licencePositionStagedPayloadRepository,
+        licencePositionStagedPayloadService,
         organisationUnitQueryService,
         chronologicalPositionService
     );
@@ -185,7 +185,7 @@ class TransferEquityCorrectionServiceTest {
 
   @Test
   void getEquityHoldings_whenStagedPosition_resolvesHoldingsForTheStagedPositionId() {
-    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+    var positionStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder()
         .withLicenceCorrection(LICENCE_CORRECTION)
         .withPayload(CreateLicencePositionPayloadTestUtil.newBuilder()
             .withLicencePositionId(POSITION_ID.toString())
@@ -196,25 +196,25 @@ class TransferEquityCorrectionServiceTest {
     when(chronologicalPositionService.getCorrectedChronologicalPositions(LICENCE_CORRECTION, POSITION_ID))
         .thenReturn(List.of(currentPosition));
 
-    assertThat(transferEquityCorrectionService.getEquityHoldings(new CorrectionPosition.Staged(positionCorrection)))
+    assertThat(transferEquityCorrectionService.getEquityHoldings(new CorrectionPosition.Staged(positionStagedPayload)))
         .isEqualTo(Map.of(1, BigDecimal.valueOf(100)));
   }
 
   @Test
   void getCommittedTransferEquityOperations_whenNoTransferEquityChange_returnsEmpty() {
-    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+    var positionStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder()
         .withPayload(CreateLicencePositionPayloadTestUtil.newBuilder().withChanges(List.of()).build())
         .build();
 
-    assertThat(transferEquityCorrectionService.getCommittedTransferEquityOperations(positionCorrection)).isEmpty();
+    assertThat(transferEquityCorrectionService.getCommittedTransferEquityOperations(positionStagedPayload)).isEmpty();
   }
 
   @Test
   void getCommittedTransferEquityOperations_returnsOperations() {
-    var positionCorrection = positionCorrectionWithTransferEquity(
+    var positionStagedPayload = positionStagedPayloadWithTransferEquity(
         List.of(transferEquityOp(1, 2, BigDecimal.valueOf(100), true)));
 
-    var operations = transferEquityCorrectionService.getCommittedTransferEquityOperations(positionCorrection);
+    var operations = transferEquityCorrectionService.getCommittedTransferEquityOperations(positionStagedPayload);
 
     assertThat(operations)
         .singleElement()
@@ -224,13 +224,13 @@ class TransferEquityCorrectionServiceTest {
 
   @Test
   void addTransferEquity_appendsOperationToChanges() {
-    var positionCorrection = positionCorrectionWithTransferEquity(
+    var positionStagedPayload = positionStagedPayloadWithTransferEquity(
         List.of(transferEquityOp(1, 2, BigDecimal.valueOf(50), true)));
 
-    transferEquityCorrectionService.addTransferEquity(positionCorrection, transferForm("2", "3", "50"));
+    transferEquityCorrectionService.addTransferEquity(positionStagedPayload, transferForm("2", "3", "50"));
 
-    verify(licencePositionCorrectionRepository).save(licencePositionCorrectionCaptor.capture());
-    var payload = (CreateLicencePositionPayload) licencePositionCorrectionCaptor.getValue().getPayload();
+    verify(licencePositionStagedPayloadRepository).save(licencePositionStagedPayloadCaptor.capture());
+    var payload = (CreateLicencePositionPayload) licencePositionStagedPayloadCaptor.getValue().getPayload();
     var change = (AddChange) payload.changes().getFirst();
 
     assertThat(change.operations()).hasSize(2);
@@ -242,13 +242,13 @@ class TransferEquityCorrectionServiceTest {
 
   @Test
   void setTransferEquityRetention_whenValidIndex_updatesRetention() {
-    var positionCorrection = positionCorrectionWithTransferEquity(
+    var positionStagedPayload = positionStagedPayloadWithTransferEquity(
         List.of(transferEquityOp(1, 2, BigDecimal.valueOf(100), null)));
 
-    transferEquityCorrectionService.setTransferEquityRetention(positionCorrection, 0, false);
+    transferEquityCorrectionService.setTransferEquityRetention(positionStagedPayload, 0, false);
 
-    verify(licencePositionCorrectionRepository).save(licencePositionCorrectionCaptor.capture());
-    var payload = (CreateLicencePositionPayload) licencePositionCorrectionCaptor.getValue().getPayload();
+    verify(licencePositionStagedPayloadRepository).save(licencePositionStagedPayloadCaptor.capture());
+    var payload = (CreateLicencePositionPayload) licencePositionStagedPayloadCaptor.getValue().getPayload();
     var change = (AddChange) payload.changes().getFirst();
     var op = (TransferEquityOperation) ((LicencePositionAddOperation) change.operations().getFirst()).operation();
 
@@ -257,33 +257,33 @@ class TransferEquityCorrectionServiceTest {
 
   @Test
   void setTransferEquityRetention_whenIndexOutOfRange_doesNothing() {
-    var positionCorrection = positionCorrectionWithTransferEquity(List.of());
+    var positionStagedPayload = positionStagedPayloadWithTransferEquity(List.of());
 
-    transferEquityCorrectionService.setTransferEquityRetention(positionCorrection, 0, false);
+    transferEquityCorrectionService.setTransferEquityRetention(positionStagedPayload, 0, false);
 
-    verify(licencePositionCorrectionRepository, never()).save(any());
+    verify(licencePositionStagedPayloadRepository, never()).save(any());
   }
 
   @Test
   void removeTransferEquity_whenValidIndex_removesOperation() {
-    var positionCorrection = positionCorrectionWithTransferEquity(
+    var positionStagedPayload = positionStagedPayloadWithTransferEquity(
         List.of(transferEquityOp(1, 2, BigDecimal.valueOf(100), null)));
 
-    transferEquityCorrectionService.removeTransferEquity(positionCorrection, 0);
+    transferEquityCorrectionService.removeTransferEquity(positionStagedPayload, 0);
 
-    verify(licencePositionCorrectionRepository).save(licencePositionCorrectionCaptor.capture());
-    var payload = (CreateLicencePositionPayload) licencePositionCorrectionCaptor.getValue().getPayload();
+    verify(licencePositionStagedPayloadRepository).save(licencePositionStagedPayloadCaptor.capture());
+    var payload = (CreateLicencePositionPayload) licencePositionStagedPayloadCaptor.getValue().getPayload();
 
     assertThat(payload.changes()).isEmpty();
   }
 
   @Test
   void removeTransferEquity_whenIndexOutOfRange_doesNothing() {
-    var positionCorrection = positionCorrectionWithTransferEquity(List.of());
+    var positionStagedPayload = positionStagedPayloadWithTransferEquity(List.of());
 
-    transferEquityCorrectionService.removeTransferEquity(positionCorrection, 0);
+    transferEquityCorrectionService.removeTransferEquity(positionStagedPayload, 0);
 
-    verify(licencePositionCorrectionRepository, never()).save(any());
+    verify(licencePositionStagedPayloadRepository, never()).save(any());
   }
 
   @Test
@@ -389,13 +389,13 @@ class TransferEquityCorrectionServiceTest {
   }
 
   @Test
-  void getCommittedTransferEquityOperations_whenExecutedPositionAndCorrectionExists_returnsOperations() {
-    var positionCorrection = updatePositionCorrectionWithTransferEquity(
+  void getCommittedTransferEquityOperations_whenExecutedPositionAndPositionStagedPayloadExists_returnsOperations() {
+    var positionStagedPayload = updatePositionStagedPayloadWithTransferEquity(
         List.of(transferEquityOp(1, 2, BigDecimal.valueOf(100), true)));
 
-    when(licencePositionCorrectionRepository.findByLicenceCorrectionAndTargetLicencePositionAndChangeType(
-        LICENCE_CORRECTION, LICENCE_POSITION, LicencePositionCorrectionChangeType.UPDATE_POSITION))
-        .thenReturn(Optional.of(positionCorrection));
+    when(licencePositionStagedPayloadRepository.findByLicenceCorrectionAndTargetLicencePositionAndChangeType(
+        LICENCE_CORRECTION, LICENCE_POSITION, LicencePositionStagedPayloadChangeType.UPDATE_POSITION))
+        .thenReturn(Optional.of(positionStagedPayload));
 
     var operations = transferEquityCorrectionService
         .getCommittedTransferEquityOperations(new CorrectionPosition.Executed(LICENCE_CORRECTION, LICENCE_POSITION));
@@ -407,29 +407,29 @@ class TransferEquityCorrectionServiceTest {
   }
 
   @Test
-  void getCommittedTransferEquityOperations_whenExecutedPositionAndNoCorrection_returnsEmptyWithoutSaving() {
-    when(licencePositionCorrectionRepository.findByLicenceCorrectionAndTargetLicencePositionAndChangeType(
-        LICENCE_CORRECTION, LICENCE_POSITION, LicencePositionCorrectionChangeType.UPDATE_POSITION))
+  void getCommittedTransferEquityOperations_whenExecutedPositionAndNoPositionStagedPayload_returnsEmptyWithoutSaving() {
+    when(licencePositionStagedPayloadRepository.findByLicenceCorrectionAndTargetLicencePositionAndChangeType(
+        LICENCE_CORRECTION, LICENCE_POSITION, LicencePositionStagedPayloadChangeType.UPDATE_POSITION))
         .thenReturn(Optional.empty());
 
     var operations = transferEquityCorrectionService
         .getCommittedTransferEquityOperations(new CorrectionPosition.Executed(LICENCE_CORRECTION, LICENCE_POSITION));
 
     assertThat(operations).isEmpty();
-    verify(licencePositionCorrectionRepository, never()).save(any());
+    verify(licencePositionStagedPayloadRepository, never()).save(any());
   }
 
   @Test
-  void addTransferEquity_whenExecutedPositionAndNoExistingCorrection_createsUpdatePositionCorrectionAndAppendsOperation() {
-    when(licencePositionCorrectionRepository.findByLicenceCorrectionAndTargetLicencePositionAndChangeType(
-        LICENCE_CORRECTION, LICENCE_POSITION, LicencePositionCorrectionChangeType.UPDATE_POSITION))
+  void addTransferEquity_whenExecutedPositionAndNoExistingPositionStagedPayload_createsUpdatePositionStagedPayloadAndAppendsOperation() {
+    when(licencePositionStagedPayloadRepository.findByLicenceCorrectionAndTargetLicencePositionAndChangeType(
+        LICENCE_CORRECTION, LICENCE_POSITION, LicencePositionStagedPayloadChangeType.UPDATE_POSITION))
         .thenReturn(Optional.empty());
 
     transferEquityCorrectionService.addTransferEquity(new CorrectionPosition.Executed(LICENCE_CORRECTION, LICENCE_POSITION), transferForm("1", "2", "100"));
 
-    verify(licencePositionCorrectionRepository).save(licencePositionCorrectionCaptor.capture());
-    var saved = licencePositionCorrectionCaptor.getValue();
-    assertThat(saved.getChangeType()).isEqualTo(LicencePositionCorrectionChangeType.UPDATE_POSITION);
+    verify(licencePositionStagedPayloadRepository).save(licencePositionStagedPayloadCaptor.capture());
+    var saved = licencePositionStagedPayloadCaptor.getValue();
+    assertThat(saved.getChangeType()).isEqualTo(LicencePositionStagedPayloadChangeType.UPDATE_POSITION);
 
     var payload = (UpdateLicencePositionPayload) saved.getPayload();
     assertThat(payload.changes()).hasSize(1);
@@ -443,16 +443,16 @@ class TransferEquityCorrectionServiceTest {
 
   @Test
   void setTransferEquityRetention_whenExecutedPosition_updatesRetention() {
-    var existing = updatePositionCorrectionWithTransferEquity(
+    var existing = updatePositionStagedPayloadWithTransferEquity(
         List.of(transferEquityOp(1, 2, BigDecimal.valueOf(100), null)));
 
-    when(licencePositionCorrectionRepository.findByLicenceCorrectionAndTargetLicencePositionAndChangeType(
-        LICENCE_CORRECTION, LICENCE_POSITION, LicencePositionCorrectionChangeType.UPDATE_POSITION))
+    when(licencePositionStagedPayloadRepository.findByLicenceCorrectionAndTargetLicencePositionAndChangeType(
+        LICENCE_CORRECTION, LICENCE_POSITION, LicencePositionStagedPayloadChangeType.UPDATE_POSITION))
         .thenReturn(Optional.of(existing));
 
     transferEquityCorrectionService.setTransferEquityRetention(new CorrectionPosition.Executed(LICENCE_CORRECTION, LICENCE_POSITION), 0, true);
 
-    verify(licencePositionCorrectionRepository).save(existing);
+    verify(licencePositionStagedPayloadRepository).save(existing);
     var payload = (UpdateLicencePositionPayload) existing.getPayload();
     var op = (TransferEquityOperation) ((LicencePositionAddOperation)
         ((AddChange) payload.changes().getFirst()).operations().getFirst()).operation();
@@ -462,40 +462,40 @@ class TransferEquityCorrectionServiceTest {
 
   @Test
   void setTransferEquityRetention_whenExecutedPositionAndIndexOutOfRange_doesNothing() {
-    when(licencePositionCorrectionRepository.findByLicenceCorrectionAndTargetLicencePositionAndChangeType(
-        LICENCE_CORRECTION, LICENCE_POSITION, LicencePositionCorrectionChangeType.UPDATE_POSITION))
+    when(licencePositionStagedPayloadRepository.findByLicenceCorrectionAndTargetLicencePositionAndChangeType(
+        LICENCE_CORRECTION, LICENCE_POSITION, LicencePositionStagedPayloadChangeType.UPDATE_POSITION))
         .thenReturn(Optional.empty());
 
     transferEquityCorrectionService.setTransferEquityRetention(new CorrectionPosition.Executed(LICENCE_CORRECTION, LICENCE_POSITION), 0, true);
 
-    verify(licencePositionCorrectionRepository, never()).save(any());
+    verify(licencePositionStagedPayloadRepository, never()).save(any());
   }
 
   @Test
   void removeTransferEquity_whenExecutedPosition_removesOperation() {
-    var existing = updatePositionCorrectionWithTransferEquity(
+    var existing = updatePositionStagedPayloadWithTransferEquity(
         List.of(transferEquityOp(1, 2, BigDecimal.valueOf(100), null)));
 
-    when(licencePositionCorrectionRepository.findByLicenceCorrectionAndTargetLicencePositionAndChangeType(
-        LICENCE_CORRECTION, LICENCE_POSITION, LicencePositionCorrectionChangeType.UPDATE_POSITION))
+    when(licencePositionStagedPayloadRepository.findByLicenceCorrectionAndTargetLicencePositionAndChangeType(
+        LICENCE_CORRECTION, LICENCE_POSITION, LicencePositionStagedPayloadChangeType.UPDATE_POSITION))
         .thenReturn(Optional.of(existing));
 
     transferEquityCorrectionService.removeTransferEquity(new CorrectionPosition.Executed(LICENCE_CORRECTION, LICENCE_POSITION), 0);
 
-    verify(licencePositionCorrectionRepository).save(existing);
+    verify(licencePositionStagedPayloadRepository).save(existing);
     var payload = (UpdateLicencePositionPayload) existing.getPayload();
     assertThat(payload.changes()).isEmpty();
   }
 
   @Test
   void removeTransferEquity_whenExecutedPositionAndIndexOutOfRange_doesNothing() {
-    when(licencePositionCorrectionRepository.findByLicenceCorrectionAndTargetLicencePositionAndChangeType(
-        LICENCE_CORRECTION, LICENCE_POSITION, LicencePositionCorrectionChangeType.UPDATE_POSITION))
+    when(licencePositionStagedPayloadRepository.findByLicenceCorrectionAndTargetLicencePositionAndChangeType(
+        LICENCE_CORRECTION, LICENCE_POSITION, LicencePositionStagedPayloadChangeType.UPDATE_POSITION))
         .thenReturn(Optional.empty());
 
     transferEquityCorrectionService.removeTransferEquity(new CorrectionPosition.Executed(LICENCE_CORRECTION, LICENCE_POSITION), 0);
 
-    verify(licencePositionCorrectionRepository, never()).save(any());
+    verify(licencePositionStagedPayloadRepository, never()).save(any());
   }
 
   private LicencePositionTransferEquityForm transferForm(String from, String to, String equity) {
@@ -517,21 +517,21 @@ class TransferEquityCorrectionServiceTest {
     return new TransferEquityOperation(from, to, equity, retain);
   }
 
-  private static LicencePositionCorrection positionCorrectionWithTransferEquity(List<TransferEquityOperation> operations) {
+  private static LicencePositionStagedPayload positionStagedPayloadWithTransferEquity(List<TransferEquityOperation> operations) {
     var payload = CreateLicencePositionPayloadTestUtil.newBuilder()
         .withChanges(operations.isEmpty() ? List.of() : List.of(transferEquityChange(operations)))
         .build();
-    return LicencePositionCorrectionTestUtil.newBuilder()
+    return LicencePositionStagedPayloadTestUtil.newBuilder()
         .withTargetLicencePosition(null)
         .withPayload(payload)
         .build();
   }
 
-  private static LicencePositionCorrection updatePositionCorrectionWithTransferEquity(List<TransferEquityOperation> operations) {
+  private static LicencePositionStagedPayload updatePositionStagedPayloadWithTransferEquity(List<TransferEquityOperation> operations) {
     var payload = UpdateLicencePositionPayloadTestUtil.newBuilder()
         .withChanges(operations.isEmpty() ? List.of() : List.of(transferEquityChange(operations)))
         .build();
-    return LicencePositionCorrectionTestUtil.newBuilder().withPayload(payload).build();
+    return LicencePositionStagedPayloadTestUtil.newBuilder().withPayload(payload).build();
   }
 
   private static LicencePositionChangeType transferEquityChange(List<TransferEquityOperation> operations) {

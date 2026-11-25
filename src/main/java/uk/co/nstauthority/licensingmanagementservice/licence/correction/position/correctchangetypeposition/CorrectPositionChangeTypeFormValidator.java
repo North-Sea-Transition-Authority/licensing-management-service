@@ -7,7 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.validation.Errors;
 import uk.co.fivium.formlibrary.validator.date.ThreeFieldDateInputValidator;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeorder.CorrectChangeOrderService;
 import uk.co.nstauthority.licensingmanagementservice.util.DateUtil;
 
@@ -19,16 +19,16 @@ public class CorrectPositionChangeTypeFormValidator {
       "Enter a date that does not already have a partial surrender for this transaction";
 
   private final Clock clock;
-  private final LicencePositionCorrectionService licencePositionCorrectionService;
+  private final LicencePositionStagedPayloadService licencePositionStagedPayloadService;
   private final CorrectChangeOrderService correctChangeOrderService;
 
   CorrectPositionChangeTypeFormValidator(
       Clock clock,
-      LicencePositionCorrectionService licencePositionCorrectionService,
+      LicencePositionStagedPayloadService licencePositionStagedPayloadService,
       CorrectChangeOrderService correctChangeOrderService
   ) {
     this.clock = clock;
-    this.licencePositionCorrectionService = licencePositionCorrectionService;
+    this.licencePositionStagedPayloadService = licencePositionStagedPayloadService;
     this.correctChangeOrderService = correctChangeOrderService;
   }
 
@@ -49,7 +49,7 @@ public class CorrectPositionChangeTypeFormValidator {
 
     if (!errors.hasErrors()) {
       var positionDate = form.getCorrectPositionDate().getAsLocalDate().orElseThrow();
-      var matchingPositionId = licencePositionCorrectionService
+      var matchingPositionId = licencePositionStagedPayloadService
           .findSameTransactionPositionOnDate(correction, sourcePositionId, positionDate)
           .matchingPositionId();
 

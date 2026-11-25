@@ -9,7 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.validation.BeanPropertyBindingResult;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectionPosition;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.LicencePositionPartialSurrenderController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.PartialSurrenderCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.PartialSurrenderDetailsForm;
@@ -54,37 +54,37 @@ public class PartialSurrenderDetailsTaskListSectionService
 
   private boolean isSurrenderDetailsComplete(PartialSurrenderTaskListContext context) {
     return switch (context) {
-      case PartialSurrenderTaskListContext.Staged(var positionCorrection) ->
-          isSurrenderDetailsComplete(positionCorrection);
+      case PartialSurrenderTaskListContext.Staged(var positionStagedPayload) ->
+          isSurrenderDetailsComplete(positionStagedPayload);
       case PartialSurrenderTaskListContext.LiveChange ignored -> true;
     };
   }
 
-  private boolean isSurrenderDetailsComplete(LicencePositionCorrection positionCorrection) {
+  private boolean isSurrenderDetailsComplete(LicencePositionStagedPayload positionStagedPayload) {
     var form = PartialSurrenderDetailsForm.from(
-        partialSurrenderCorrectionService.getCommittedPartialSurrender(positionCorrection).orElse(null));
+        partialSurrenderCorrectionService.getCommittedPartialSurrender(positionStagedPayload).orElse(null));
     var errors = new BeanPropertyBindingResult(form, "form");
     var stagedChangeId = partialSurrenderCorrectionService
-        .getCommittedPartialSurrenderChangeId(positionCorrection)
+        .getCommittedPartialSurrenderChangeId(positionStagedPayload)
         .orElse(null);
-    var blockFeatures = licencePositionSpatialService.getBlockFeaturesGoingIntoChange(positionCorrection, stagedChangeId);
+    var blockFeatures = licencePositionSpatialService.getBlockFeaturesGoingIntoChange(positionStagedPayload, stagedChangeId);
 
     return !partialSurrenderDetailsFormValidator.hasErrors(form, errors, blockFeatures, Set.of());
   }
 
   private String surrenderDetailsUrl(PartialSurrenderTaskListContext context) {
     return switch (context) {
-      case PartialSurrenderTaskListContext.Staged(var positionCorrection) ->
-          surrenderDetailsUrl(positionCorrection);
+      case PartialSurrenderTaskListContext.Staged(var positionStagedPayload) ->
+          surrenderDetailsUrl(positionStagedPayload);
       case PartialSurrenderTaskListContext.LiveChange(var correction, var licencePosition, var change) ->
           ReverseRouter.route(on(LicencePositionPartialSurrenderController.class)
               .renderForCorrectingChange(correction, licencePosition, change));
     };
   }
 
-  private String surrenderDetailsUrl(LicencePositionCorrection positionCorrection) {
+  private String surrenderDetailsUrl(LicencePositionStagedPayload positionStagedPayload) {
     return ReverseRouter.route(on(LicencePositionPartialSurrenderController.class)
-        .renderForPosition(CorrectionPosition.of(positionCorrection)));
+        .renderForPosition(CorrectionPosition.of(positionStagedPayload)));
   }
 
 }

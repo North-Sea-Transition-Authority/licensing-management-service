@@ -2,7 +2,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.correction.positio
 
 import org.springframework.web.servlet.ModelAndView;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
@@ -34,7 +34,7 @@ public interface ChangeActionHandler {
    */
   ModelAndView stagedChangeConfirmation(
       LicenceCorrection licenceCorrection,
-      LicencePositionCorrection positionCorrection,
+      LicencePositionStagedPayload positionStagedPayload,
       String changeId,
       ChangeAction action
   );
@@ -42,6 +42,9 @@ public interface ChangeActionHandler {
   /**
    * Runs before a staged change is dropped by an undo or reinstate, within the same transaction.
    */
-  default void beforeDroppingStagedChange(LicencePositionCorrection positionCorrection, LicencePositionChangeType stagedChange) {
+  default void beforeDroppingStagedChange(
+      LicencePositionStagedPayload positionStagedPayload,
+      LicencePositionChangeType stagedChange
+  ) {
   }
 }

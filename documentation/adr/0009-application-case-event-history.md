@@ -51,7 +51,7 @@ Derive the history by reading each entity's `_aud` revisions and inferring what 
 
 An append-only `case_events` table. Each event stores the user, item type + id (parent application), event type, event
 time, and an optional typed `jsonb` payload. A thin `CaseEventService.record(...)` is called from the relevant service
-inside the existing `@Transactional` unit of work. This mirrors the established `LicencePositionCorrection` /
+inside the existing `@Transactional` unit of work. This mirrors the established `LicencePositionStagedPayload` /
 `LicencePositionPayload` pattern (`@JdbcTypeCode(SqlTypes.JSON)` + a sealed interface with `@JsonTypeInfo`/`@JsonSubTypes`).
 
 * Good, because it models the domain directly — one row per meaningful event, queryable and orderable.

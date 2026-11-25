@@ -22,8 +22,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectionPosition;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayload;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.form.ChangeFormTarget;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
@@ -47,7 +47,7 @@ class LicenseeChangeFormHandlerTest {
       .withId(UUID.randomUUID())
       .withLicencePosition(POSITION)
       .build();
-  private static final LicencePositionCorrection ADDED_POSITION_CORRECTION = LicencePositionCorrectionTestUtil.newBuilder()
+  private static final LicencePositionStagedPayload ADDED_POSITION_STAGED_PAYLOAD = LicencePositionStagedPayloadTestUtil.newBuilder()
       .withLicenceCorrection(CORRECTION)
       .withTargetLicencePosition(null)
       .withPayload(CreateLicencePositionPayloadTestUtil.newBuilder()
@@ -107,7 +107,7 @@ class LicenseeChangeFormHandlerTest {
     when(licenceFormService.getPreselectedOrganisationUnits(null)).thenReturn(List.of());
 
     var result = licenseeChangeFormHandler.formPage(
-        new ChangeFormTarget.NewChange(new CorrectionPosition.Staged(ADDED_POSITION_CORRECTION))
+        new ChangeFormTarget.NewChange(new CorrectionPosition.Staged(ADDED_POSITION_STAGED_PAYLOAD))
     );
 
     var expected = expectedFormPage(
@@ -169,7 +169,7 @@ class LicenseeChangeFormHandlerTest {
 
   @Test
   void save_whenNewChange_thenAddsChangeToPosition() {
-    var correctionPosition = new CorrectionPosition.Staged(ADDED_POSITION_CORRECTION);
+    var correctionPosition = new CorrectionPosition.Staged(ADDED_POSITION_STAGED_PAYLOAD);
 
     licenseeChangeFormHandler.save(new ChangeFormTarget.NewChange(correctionPosition), validForm());
 

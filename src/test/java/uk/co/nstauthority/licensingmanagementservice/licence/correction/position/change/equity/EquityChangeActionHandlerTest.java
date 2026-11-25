@@ -14,7 +14,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.web.servlet.ModelAndView;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.action.ChangeAction;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeTestUtil;
@@ -62,7 +62,7 @@ class EquityChangeActionHandlerTest {
 
     var result = equityChangeActionHandler.stagedChangeConfirmation(
         CORRECTION,
-        LicencePositionCorrectionTestUtil.newBuilder().build(),
+        LicencePositionStagedPayloadTestUtil.newBuilder().build(),
         CHANGE_ID,
         ChangeAction.UNDO
     );

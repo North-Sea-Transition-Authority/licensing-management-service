@@ -17,28 +17,28 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.filter.Lic
 import uk.co.nstauthority.licensingmanagementservice.licence.position.filter.LicenceTimelineFilterOptions;
 
 @Service
-public class LicencePositionCorrectionFilterService {
+public class LicencePositionStagedPayloadFilterService {
 
-  private final LicencePositionCorrectionService licencePositionCorrectionService;
+  private final LicencePositionStagedPayloadService licencePositionStagedPayloadService;
   private final ChronologicalPositionService chronologicalPositionService;
   private final LicencePositionNameService licencePositionNameService;
 
-  public LicencePositionCorrectionFilterService(
-      LicencePositionCorrectionService licencePositionCorrectionService,
+  public LicencePositionStagedPayloadFilterService(
+      LicencePositionStagedPayloadService licencePositionStagedPayloadService,
       ChronologicalPositionService chronologicalPositionService,
       LicencePositionNameService licencePositionNameService
   ) {
-    this.licencePositionCorrectionService = licencePositionCorrectionService;
+    this.licencePositionStagedPayloadService = licencePositionStagedPayloadService;
     this.chronologicalPositionService = chronologicalPositionService;
     this.licencePositionNameService = licencePositionNameService;
   }
 
   public LicenceTimelineFilterOptions getCorrectionFilterOptions(LicenceCorrection licenceCorrection) {
-    var positionCorrections = licencePositionCorrectionService.getPositionCorrections(licenceCorrection);
+    var positionStagedPayloads = licencePositionStagedPayloadService.getPositionStagedPayloads(licenceCorrection);
     var correctionTimelinePositions = chronologicalPositionService.getCorrectedChronologicalPositions(
         licenceCorrection,
-        positionCorrections,
-        LicencePositionCorrectionService.getRemovedPositionIds(positionCorrections)
+        positionStagedPayloads,
+        LicencePositionStagedPayloadService.getRemovedPositionIds(positionStagedPayloads)
     );
 
     return getCorrectionFilterOptions(
@@ -55,12 +55,12 @@ public class LicencePositionCorrectionFilterService {
       LicenceCorrection licenceCorrection,
       LicenceTimelineFilter filter
   ) {
-    var positionCorrections = licencePositionCorrectionService.getPositionCorrections(licenceCorrection);
-    var removedPositionIds = LicencePositionCorrectionService.getRemovedPositionIds(positionCorrections);
+    var positionStagedPayloads = licencePositionStagedPayloadService.getPositionStagedPayloads(licenceCorrection);
+    var removedPositionIds = LicencePositionStagedPayloadService.getRemovedPositionIds(positionStagedPayloads);
     var correctionTimelinePositions =
         chronologicalPositionService.getCorrectedChronologicalPositions(
             licenceCorrection,
-            positionCorrections,
+            positionStagedPayloads,
             removedPositionIds
         );
     var matchingPositionIds =
@@ -71,7 +71,7 @@ public class LicencePositionCorrectionFilterService {
         .filter(matchingPositionIds::contains)
         .findFirst()
         .<FilteredCorrectionTimeline>map(positionId -> new FilteredCorrectionTimeline.LatestMatchingPosition(
-            LicencePositionCorrectionRouteUtil.getPositionPageUrl(licenceCorrection, positionId)
+            LicencePositionStagedPayloadRouteUtil.getPositionPageUrl(licenceCorrection, positionId)
         ))
         .orElseGet(() -> new FilteredCorrectionTimeline.NoMatchingPositions(
             LicencePositionPageView.noMatchingPositions(

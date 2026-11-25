@@ -10,7 +10,7 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.SecurityRuleR
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.AccessInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionService;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionService;
 
 @Component
@@ -18,16 +18,16 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePos
 public class LicencePositionIsNotRemovedInCorrectionRule implements AccessInterceptorRule {
 
   private final LicenceCorrectionService licenceCorrectionService;
-  private final LicencePositionCorrectionService licencePositionCorrectionService;
+  private final LicencePositionStagedPayloadService licencePositionStagedPayloadService;
   private final LicencePositionService licencePositionService;
 
   public LicencePositionIsNotRemovedInCorrectionRule(
       LicenceCorrectionService licenceCorrectionService,
-      LicencePositionCorrectionService licencePositionCorrectionService,
+      LicencePositionStagedPayloadService licencePositionStagedPayloadService,
       LicencePositionService licencePositionService
   ) {
     this.licenceCorrectionService = licenceCorrectionService;
-    this.licencePositionCorrectionService = licencePositionCorrectionService;
+    this.licencePositionStagedPayloadService = licencePositionStagedPayloadService;
     this.licencePositionService = licencePositionService;
   }
 
@@ -50,12 +50,12 @@ public class LicencePositionIsNotRemovedInCorrectionRule implements AccessInterc
 
     var positionId = getPathVariableEntityIdFromRequest(request, "licencePositionId");
 
-    if (licencePositionCorrectionService.findFirstAddedPositionCorrection(correction, positionId).isPresent()) {
+    if (licencePositionStagedPayloadService.findFirstAddedPositionStagedPayload(correction, positionId).isPresent()) {
       return SecurityRuleResult.continueAsNormal();
     }
 
     var position = licencePositionService.getPositionForLicence(correction.getLicence(), positionId);
-    var positionRemovedInCorrection = licencePositionCorrectionService.isPositionRemovedInCorrection(correction, position);
+    var positionRemovedInCorrection = licencePositionStagedPayloadService.isPositionRemovedInCorrection(correction, position);
     if (positionRemovedInCorrection) {
       return SecurityRuleResult.checkFailedWithStatusAndMessage(
           HttpStatus.FORBIDDEN,

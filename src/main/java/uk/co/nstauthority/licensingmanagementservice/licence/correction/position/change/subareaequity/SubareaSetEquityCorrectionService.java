@@ -8,8 +8,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectionPosition;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayload;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadService;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaDetails;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaSetEquityOperation;
@@ -20,18 +20,18 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.vie
 @Service
 public class SubareaSetEquityCorrectionService {
 
-  private final LicencePositionCorrectionService licencePositionCorrectionService;
+  private final LicencePositionStagedPayloadService licencePositionStagedPayloadService;
 
-  SubareaSetEquityCorrectionService(LicencePositionCorrectionService licencePositionCorrectionService) {
-    this.licencePositionCorrectionService = licencePositionCorrectionService;
+  SubareaSetEquityCorrectionService(LicencePositionStagedPayloadService licencePositionStagedPayloadService) {
+    this.licencePositionStagedPayloadService = licencePositionStagedPayloadService;
   }
 
   List<SubareaSetEquityOperation> getCommittedSubareaSetEquityOperations(
-      LicencePositionCorrection licencePositionCorrection,
+      LicencePositionStagedPayload licencePositionStagedPayload,
       SubareaOption subareaOption
   ) {
-    return licencePositionCorrectionService
-        .getAddOperationsOfType(licencePositionCorrection.getPayload().changes(), SubareaSetEquityOperation.class)
+    return licencePositionStagedPayloadService
+        .getAddOperationsOfType(licencePositionStagedPayload.getPayload().changes(), SubareaSetEquityOperation.class)
         .stream()
         .filter(isForSubarea(subareaOption.key()))
         .toList();
@@ -44,8 +44,8 @@ public class SubareaSetEquityCorrectionService {
     return switch (correctionPosition) {
       case CorrectionPosition.Executed(LicenceCorrection correction, LicencePosition licencePosition) ->
           getCommittedSubareaSetEquityOperationsForExecutedPosition(correction, licencePosition, subareaOption);
-      case CorrectionPosition.Staged(LicencePositionCorrection licencePositionCorrection) ->
-          getCommittedSubareaSetEquityOperations(licencePositionCorrection, subareaOption);
+      case CorrectionPosition.Staged(LicencePositionStagedPayload licencePositionStagedPayload) ->
+          getCommittedSubareaSetEquityOperations(licencePositionStagedPayload, subareaOption);
     };
   }
 
@@ -58,8 +58,8 @@ public class SubareaSetEquityCorrectionService {
     switch (correctionPosition) {
       case CorrectionPosition.Executed(LicenceCorrection correction, LicencePosition licencePosition) ->
           commitSubareaSetEquityForExecutedPosition(correction, licencePosition, subareaOption, operations);
-      case CorrectionPosition.Staged(LicencePositionCorrection licencePositionCorrection) ->
-          commitSubareaSetEquity(licencePositionCorrection, subareaOption, operations);
+      case CorrectionPosition.Staged(LicencePositionStagedPayload licencePositionStagedPayload) ->
+          commitSubareaSetEquity(licencePositionStagedPayload, subareaOption, operations);
     }
   }
 
@@ -68,19 +68,19 @@ public class SubareaSetEquityCorrectionService {
       LicencePosition licencePosition,
       SubareaOption subareaOption
   ) {
-    return licencePositionCorrectionService.findUpdatePositionCorrection(licenceCorrection, licencePosition)
-        .map(positionCorrection -> getCommittedSubareaSetEquityOperations(positionCorrection, subareaOption))
+    return licencePositionStagedPayloadService.findUpdatePositionStagedPayload(licenceCorrection, licencePosition)
+        .map(positionStagedPayload -> getCommittedSubareaSetEquityOperations(positionStagedPayload, subareaOption))
         .orElse(List.of());
   }
 
   @Transactional
   void commitSubareaSetEquity(
-      LicencePositionCorrection licencePositionCorrection,
+      LicencePositionStagedPayload licencePositionStagedPayload,
       SubareaOption subareaOption,
       List<SubareaSetEquityOperation> operations
   ) {
-    licencePositionCorrectionService.replaceAddChangeFor(
-        licencePositionCorrection,
+    licencePositionStagedPayloadService.replaceAddChangeFor(
+        licencePositionStagedPayload,
         SubareaSetEquityOperation.class,
         isForSubarea(subareaOption.key()),
         withCurrentSubarea(operations, subareaOption)
@@ -93,14 +93,14 @@ public class SubareaSetEquityCorrectionService {
       SubareaOption subareaOption,
       List<SubareaSetEquityOperation> operations
   ) {
-    var positionCorrection = licencePositionCorrectionService
-        .getOrBuildUpdatePositionCorrection(licenceCorrection, licencePosition);
+    var positionStagedPayload = licencePositionStagedPayloadService
+        .getOrBuildUpdatePositionStagedPayload(licenceCorrection, licencePosition);
 
     // the subarea may have been created by a live change, so the equity is ordered after the live changes too
-    licencePositionCorrectionService.replaceAddChangeForExecutedPosition(
+    licencePositionStagedPayloadService.replaceAddChangeForExecutedPosition(
         licenceCorrection,
         licencePosition,
-        positionCorrection,
+        positionStagedPayload,
         SubareaSetEquityOperation.class,
         isForSubarea(subareaOption.key()),
         withCurrentSubarea(operations, subareaOption)
@@ -113,13 +113,13 @@ public class SubareaSetEquityCorrectionService {
    */
   @Transactional
   public void cascadeSubareaEquity(
-      LicencePositionCorrection positionCorrection,
+      LicencePositionStagedPayload positionStagedPayload,
       LicencePositionState state,
       UUID blockFeatureId,
       List<SubareaTransfer> transfers
   ) {
-    var stagedOperations = licencePositionCorrectionService
-        .getAddOperationsOfType(positionCorrection.getPayload().changes(), SubareaSetEquityOperation.class);
+    var stagedOperations = licencePositionStagedPayloadService
+        .getAddOperationsOfType(positionStagedPayload.getPayload().changes(), SubareaSetEquityOperation.class);
 
     List<List<SubareaSetEquityOperation>> subareaEquityOperationsPerSubarea = transfers
         .stream()
@@ -137,15 +137,15 @@ public class SubareaSetEquityCorrectionService {
       return;
     }
 
-    var targetLicencePosition = positionCorrection.getTargetLicencePosition();
+    var targetLicencePosition = positionStagedPayload.getTargetLicencePosition();
 
     if (targetLicencePosition == null) {
-      licencePositionCorrectionService.addChanges(positionCorrection, subareaEquityOperationsPerSubarea);
+      licencePositionStagedPayloadService.addChanges(positionStagedPayload, subareaEquityOperationsPerSubarea);
     } else {
-      licencePositionCorrectionService.addChangesForExecutedPosition(
-          positionCorrection.getLicenceCorrection(),
+      licencePositionStagedPayloadService.addChangesForExecutedPosition(
+          positionStagedPayload.getLicenceCorrection(),
           targetLicencePosition,
-          positionCorrection,
+          positionStagedPayload,
           subareaEquityOperationsPerSubarea
       );
     }

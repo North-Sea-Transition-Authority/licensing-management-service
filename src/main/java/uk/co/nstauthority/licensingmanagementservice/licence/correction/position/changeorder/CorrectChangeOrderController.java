@@ -18,7 +18,7 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correct
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionRouteUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadRouteUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.PositionMove;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.PositionMoveDirection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.PositionMoveOptionUtil;
@@ -49,10 +49,10 @@ public class CorrectChangeOrderController {
   ) {
     var orderedChanges = correctChangeOrderService.getOrderableChanges(correction, licencePositionId);
     var moveOptions = PositionMoveOptionUtil.buildMoveOptions(orderedChanges, changeId);
-    var positionPageUrl = LicencePositionCorrectionRouteUtil.getPositionPageUrl(correction, licencePositionId);
+    var positionPageUrl = LicencePositionStagedPayloadRouteUtil.getPositionPageUrl(correction, licencePositionId);
 
     if (doesNotContainChange(orderedChanges, changeId) || moveOptions.isEmpty()) {
-      return LicencePositionCorrectionRouteUtil.redirectToPositionPage(correction, licencePositionId);
+      return LicencePositionStagedPayloadRouteUtil.redirectToPositionPage(correction, licencePositionId);
     }
 
     return correctChangeOrderModelAndView(positionPageUrl, orderedChanges, changeId, moveOptions,
@@ -70,10 +70,10 @@ public class CorrectChangeOrderController {
   ) {
     var orderedChanges = correctChangeOrderService.getOrderableChanges(correction, licencePositionId);
     var moveOptions = PositionMoveOptionUtil.buildMoveOptions(orderedChanges, changeId);
-    var positionPageUrl = LicencePositionCorrectionRouteUtil.getPositionPageUrl(correction, licencePositionId);
+    var positionPageUrl = LicencePositionStagedPayloadRouteUtil.getPositionPageUrl(correction, licencePositionId);
 
     if (doesNotContainChange(orderedChanges, changeId) || moveOptions.isEmpty()) {
-      return LicencePositionCorrectionRouteUtil.redirectToPositionPage(correction, licencePositionId);
+      return LicencePositionStagedPayloadRouteUtil.redirectToPositionPage(correction, licencePositionId);
     }
 
     if (correctChangeOrderFormValidator.hasErrors(form, bindingResult, moveOptions.keySet())) {
@@ -87,7 +87,7 @@ public class CorrectChangeOrderController {
 
     NotificationBanner.newSuccessBannerWithHeader("Change order updated", redirectAttributes);
 
-    return LicencePositionCorrectionRouteUtil.redirectToPositionPage(correction, licencePositionId);
+    return LicencePositionStagedPayloadRouteUtil.redirectToPositionPage(correction, licencePositionId);
   }
 
   private ModelAndView correctChangeOrderModelAndView(

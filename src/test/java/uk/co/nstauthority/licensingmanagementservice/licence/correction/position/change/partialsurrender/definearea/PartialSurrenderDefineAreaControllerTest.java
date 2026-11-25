@@ -47,10 +47,10 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionChangeType;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionRouteUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayload;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadChangeType;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadRouteUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.PartialSurrenderCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.PartialSurrenderValidator;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderType;
@@ -80,7 +80,7 @@ class PartialSurrenderDefineAreaControllerTest extends AbstractControllerTest {
       .withLicenceReference("P/1")
       .build();
   private static final UUID CORRECTION_ID = UUID.randomUUID();
-  private static final UUID POSITION_CORRECTION_ID = UUID.randomUUID();
+  private static final UUID POSITION_STAGED_PAYLOAD_ID = UUID.randomUUID();
   private static final UUID STAGED_POSITION_ID = UUID.randomUUID();
   private static final UUID POSITION_ID = UUID.randomUUID();
   private static final LicencePositionChange LIVE_CHANGE = LicencePositionChangeTestUtil.newBuilder().build();
@@ -92,8 +92,8 @@ class PartialSurrenderDefineAreaControllerTest extends AbstractControllerTest {
       .withId(POSITION_ID)
       .withLicence(LICENCE)
       .build();
-  private static final LicencePositionCorrection POSITION_CORRECTION = LicencePositionCorrectionTestUtil.newBuilder()
-      .withId(POSITION_CORRECTION_ID)
+  private static final LicencePositionStagedPayload POSITION_STAGED_PAYLOAD = LicencePositionStagedPayloadTestUtil.newBuilder()
+      .withId(POSITION_STAGED_PAYLOAD_ID)
       .withLicenceCorrection(CORRECTION)
       .withPayload(CreateLicencePositionPayloadTestUtil.newBuilder()
           .withLicencePositionId(STAGED_POSITION_ID.toString())
@@ -205,9 +205,9 @@ class PartialSurrenderDefineAreaControllerTest extends AbstractControllerTest {
   @Test
   void renderDefineArea_whenCorrectingAnExecutedChange_backLinkGoesToTheCorrectingChangeRoute() throws Exception {
     var correction = givenCorrectionAllocatedToUser(LICENCE);
-    var positionCorrection = correctingPositionCorrection(correction);
-    givenBlockSurrender(positionCorrection, List.of(), List.of(FEATURE));
-    when(partialSurrenderCorrectionService.findCorrectedLiveChangeId(positionCorrection))
+    var positionStagedPayload = correctingPositionStagedPayload(correction);
+    givenBlockSurrender(positionStagedPayload, List.of(), List.of(FEATURE));
+    when(partialSurrenderCorrectionService.findCorrectedLiveChangeId(positionStagedPayload))
         .thenReturn(Optional.of(LIVE_CHANGE.getId().toString()));
 
     mockMvc.perform(get(defineAreaUrl())
@@ -220,9 +220,9 @@ class PartialSurrenderDefineAreaControllerTest extends AbstractControllerTest {
 
   @Test
   void renderDefineArea_whenSingleBlockOnAddedPosition_backLinkGoesToAddChange() throws Exception {
-    var positionCorrection = givenBlockSurrender(List.of(), List.of(FEATURE));
+    var positionStagedPayload = givenBlockSurrender(List.of(), List.of(FEATURE));
 
-    when(partialSurrenderCorrectionService.findSingleBlockNotOperatedOn(positionCorrection))
+    when(partialSurrenderCorrectionService.findSingleBlockNotOperatedOn(positionStagedPayload))
         .thenReturn(Optional.of(FEATURE));
 
     mockMvc.perform(get(defineAreaUrl())
@@ -230,17 +230,17 @@ class PartialSurrenderDefineAreaControllerTest extends AbstractControllerTest {
         .andExpectAll(
             status().isOk(),
             view().name(VIEW_NAME),
-            model().attribute("backLinkUrl", LicencePositionCorrectionRouteUtil.getPositionPageUrl(CORRECTION, STAGED_POSITION_ID))
+            model().attribute("backLinkUrl", LicencePositionStagedPayloadRouteUtil.getPositionPageUrl(CORRECTION, STAGED_POSITION_ID))
         );
   }
 
   @Test
   void renderDefineArea_whenSingleBlockOnExecutedPosition_backLinkGoesToAddChange() throws Exception {
     var correction = givenCorrectionAllocatedToUser(LICENCE);
-    var positionCorrection = correctingPositionCorrection(correction);
+    var positionStagedPayload = correctingPositionStagedPayload(correction);
 
-    givenBlockSurrender(positionCorrection, List.of(), List.of(FEATURE));
-    when(partialSurrenderCorrectionService.findSingleBlockNotOperatedOn(positionCorrection))
+    givenBlockSurrender(positionStagedPayload, List.of(), List.of(FEATURE));
+    when(partialSurrenderCorrectionService.findSingleBlockNotOperatedOn(positionStagedPayload))
         .thenReturn(Optional.of(FEATURE));
 
     mockMvc.perform(get(defineAreaUrl())
@@ -248,19 +248,19 @@ class PartialSurrenderDefineAreaControllerTest extends AbstractControllerTest {
         .andExpectAll(
             status().isOk(),
             view().name(VIEW_NAME),
-            model().attribute("backLinkUrl", LicencePositionCorrectionRouteUtil.getPositionPageUrl(CORRECTION, POSITION.getId()))
+            model().attribute("backLinkUrl", LicencePositionStagedPayloadRouteUtil.getPositionPageUrl(CORRECTION, POSITION.getId()))
         );
   }
 
   @Test
   void renderDefineArea_whenSingleBlockCorrectingAnExecutedChange_backLinkGoesToThePosition() throws Exception {
     var correction = givenCorrectionAllocatedToUser(LICENCE);
-    var positionCorrection = correctingPositionCorrection(correction);
+    var positionStagedPayload = correctingPositionStagedPayload(correction);
 
-    givenBlockSurrender(positionCorrection, List.of(), List.of(FEATURE));
-    when(partialSurrenderCorrectionService.findSingleBlockNotOperatedOn(positionCorrection))
+    givenBlockSurrender(positionStagedPayload, List.of(), List.of(FEATURE));
+    when(partialSurrenderCorrectionService.findSingleBlockNotOperatedOn(positionStagedPayload))
         .thenReturn(Optional.of(FEATURE));
-    when(partialSurrenderCorrectionService.findCorrectedLiveChangeId(positionCorrection))
+    when(partialSurrenderCorrectionService.findCorrectedLiveChangeId(positionStagedPayload))
         .thenReturn(Optional.of(LIVE_CHANGE.getId().toString()));
 
     mockMvc.perform(get(defineAreaUrl())
@@ -268,7 +268,7 @@ class PartialSurrenderDefineAreaControllerTest extends AbstractControllerTest {
         .andExpectAll(
             status().isOk(),
             view().name(VIEW_NAME),
-            model().attribute("backLinkUrl", LicencePositionCorrectionRouteUtil.getPositionPageUrl(CORRECTION, POSITION.getId()))
+            model().attribute("backLinkUrl", LicencePositionStagedPayloadRouteUtil.getPositionPageUrl(CORRECTION, POSITION.getId()))
         );
   }
 
@@ -309,7 +309,7 @@ class PartialSurrenderDefineAreaControllerTest extends AbstractControllerTest {
 
   @Test
   void defineArea_whenBlockSplit_removesStaleIdsAndRedirectsToSelectAreas() throws Exception {
-    var positionCorrection = givenBlockSurrender(List.of(), List.of(FIRST_AREA, SECOND_AREA));
+    var positionStagedPayload = givenBlockSurrender(List.of(), List.of(FIRST_AREA, SECOND_AREA));
 
     mockMvc.perform(post(defineAreaUrl())
             .with(user(regulatorUser)).with(csrf()))
@@ -317,7 +317,7 @@ class PartialSurrenderDefineAreaControllerTest extends AbstractControllerTest {
         .andExpect(redirectedUrl(selectAreasUrl()));
 
     verify(partialSurrenderCorrectionService).clearSurrenderedIds(
-        positionCorrection, FEATURE_ID, List.of(FIRST_AREA.getId(), SECOND_AREA.getId()));
+        positionStagedPayload, FEATURE_ID, List.of(FIRST_AREA.getId(), SECOND_AREA.getId()));
   }
 
   @Test
@@ -342,8 +342,8 @@ class PartialSurrenderDefineAreaControllerTest extends AbstractControllerTest {
 
   @Test
   void selectAreas_whenValidSelection_savesAndRedirectsToTaskList() throws Exception {
-    var positionCorrection = givenBlockSurrender(List.of(), List.of(FIRST_AREA, SECOND_AREA));
-    givenOtherActiveBlocks(positionCorrection);
+    var positionStagedPayload = givenBlockSurrender(List.of(), List.of(FIRST_AREA, SECOND_AREA));
+    givenOtherActiveBlocks(positionStagedPayload);
 
     givenSelectionErrors(false);
     givenOverlapErrors(false);
@@ -355,17 +355,17 @@ class PartialSurrenderDefineAreaControllerTest extends AbstractControllerTest {
         .andExpect(redirectedUrl(taskListUrl()));
 
     verify(partialSurrenderCorrectionService)
-        .setSurrenderedFeatureIds(positionCorrection, FEATURE_ID, Set.of(FIRST_AREA.getId()));
+        .setSurrenderedFeatureIds(positionStagedPayload, FEATURE_ID, Set.of(FIRST_AREA.getId()));
   }
 
   @Test
   void selectAreas_whenSingleBlock_savesAndRedirectsToReviewAndSubmit() throws Exception {
-    var positionCorrection = givenBlockSurrender(List.of(), List.of(FIRST_AREA, SECOND_AREA));
-    givenOtherActiveBlocks(positionCorrection);
+    var positionStagedPayload = givenBlockSurrender(List.of(), List.of(FIRST_AREA, SECOND_AREA));
+    givenOtherActiveBlocks(positionStagedPayload);
 
     givenSelectionErrors(false);
     givenOverlapErrors(false);
-    when(partialSurrenderCorrectionService.findSingleBlockNotOperatedOn(positionCorrection))
+    when(partialSurrenderCorrectionService.findSingleBlockNotOperatedOn(positionStagedPayload))
         .thenReturn(Optional.of(FEATURE));
 
     mockMvc.perform(post(selectAreasUrl())
@@ -373,24 +373,24 @@ class PartialSurrenderDefineAreaControllerTest extends AbstractControllerTest {
             .with(user(regulatorUser)).with(csrf()))
         .andExpect(status().is3xxRedirection())
         .andExpect(redirectedUrl(ReverseRouter.route(on(PartialSurrenderReviewAndSubmitController.class)
-            .renderReviewAndSubmit(CORRECTION, POSITION_CORRECTION, null))));
+            .renderReviewAndSubmit(CORRECTION, POSITION_STAGED_PAYLOAD, null))));
 
     verify(partialSurrenderCorrectionService)
-        .setSurrenderedFeatureIds(positionCorrection, FEATURE_ID, Set.of(FIRST_AREA.getId()));
+        .setSurrenderedFeatureIds(positionStagedPayload, FEATURE_ID, Set.of(FIRST_AREA.getId()));
   }
 
   @Test
   void selectAreas_whenSingleBlockCorrectingAnExecutedChange_redirectsToCorrectingReviewAndSubmit() throws Exception {
     var correction = givenCorrectionAllocatedToUser(LICENCE);
-    var positionCorrection = correctingPositionCorrection(correction);
-    givenBlockSurrender(positionCorrection, List.of(), List.of(FIRST_AREA, SECOND_AREA));
-    givenOtherActiveBlocks(positionCorrection);
+    var positionStagedPayload = correctingPositionStagedPayload(correction);
+    givenBlockSurrender(positionStagedPayload, List.of(), List.of(FIRST_AREA, SECOND_AREA));
+    givenOtherActiveBlocks(positionStagedPayload);
 
     givenSelectionErrors(false);
     givenOverlapErrors(false);
-    when(partialSurrenderCorrectionService.findSingleBlockNotOperatedOn(positionCorrection))
+    when(partialSurrenderCorrectionService.findSingleBlockNotOperatedOn(positionStagedPayload))
         .thenReturn(Optional.of(FEATURE));
-    when(partialSurrenderCorrectionService.findCorrectedLiveChangeId(positionCorrection))
+    when(partialSurrenderCorrectionService.findCorrectedLiveChangeId(positionStagedPayload))
         .thenReturn(Optional.of(LIVE_CHANGE.getId().toString()));
 
     mockMvc.perform(post(selectAreasUrl())
@@ -418,8 +418,8 @@ class PartialSurrenderDefineAreaControllerTest extends AbstractControllerTest {
 
   @Test
   void selectAreas_whenAreasKeptOverlap_renderForm() throws Exception {
-    var positionCorrection = givenBlockSurrender(List.of(), List.of(FIRST_AREA, SECOND_AREA));
-    givenOtherActiveBlocks(positionCorrection);
+    var positionStagedPayload = givenBlockSurrender(List.of(), List.of(FIRST_AREA, SECOND_AREA));
+    givenOtherActiveBlocks(positionStagedPayload);
     givenSelectionErrors(false);
     givenOverlapErrors(true);
 
@@ -452,16 +452,16 @@ class PartialSurrenderDefineAreaControllerTest extends AbstractControllerTest {
     )).thenReturn(hasErrors);
   }
 
-  private void givenOtherActiveBlocks(LicencePositionCorrection positionCorrection) {
+  private void givenOtherActiveBlocks(LicencePositionStagedPayload positionStagedPayload) {
     var surrender = LicenceOperation.newPartialSurrenderOperation()
         .withSurrenderedFeatureIds(List.of(FEATURE_ID))
         .build();
     var positionDate = LocalDate.of(2026, Month.JUNE, 1);
     var stagedChangeId = UUID.randomUUID().toString();
-    when(partialSurrenderCorrectionService.getCommittedPartialSurrenderOrThrow(positionCorrection))
+    when(partialSurrenderCorrectionService.getCommittedPartialSurrenderOrThrow(positionStagedPayload))
         .thenReturn(surrender);
-    when(licencePositionCorrectionService.resolveEffectiveDate(positionCorrection)).thenReturn(positionDate);
-    when(partialSurrenderCorrectionService.getCommittedPartialSurrenderChangeId(positionCorrection))
+    when(licencePositionStagedPayloadService.resolveEffectiveDate(positionStagedPayload)).thenReturn(positionDate);
+    when(partialSurrenderCorrectionService.getCommittedPartialSurrenderChangeId(positionStagedPayload))
         .thenReturn(Optional.of(stagedChangeId));
     when(partialSurrenderValidator.getOtherActiveBlocks(surrender, positionDate, stagedChangeId))
         .thenReturn(OTHER_ACTIVE_BLOCKS);
@@ -480,36 +480,36 @@ class PartialSurrenderDefineAreaControllerTest extends AbstractControllerTest {
     givenBlockSurrender(licence, List.of(), activeFeatures);
   }
 
-  private LicencePositionCorrection givenBlockSurrender(
+  private LicencePositionStagedPayload givenBlockSurrender(
       List<UUID> surrenderedFeatureIds, List<Feature> activeFeatures
   ) {
     return givenBlockSurrender(LICENCE, surrenderedFeatureIds, activeFeatures);
   }
 
-  private LicencePositionCorrection givenBlockSurrender(
+  private LicencePositionStagedPayload givenBlockSurrender(
       Licence licence, List<UUID> surrenderedFeatureIds, List<Feature> activeFeatures
   ) {
     var correction = givenCorrectionAllocatedToUser(licence);
-    return givenBlockSurrender(positionCorrection(correction), surrenderedFeatureIds, activeFeatures);
+    return givenBlockSurrender(positionStagedPayload(correction), surrenderedFeatureIds, activeFeatures);
   }
 
-  private LicencePositionCorrection givenBlockSurrender(
-      LicencePositionCorrection positionCorrection,
+  private LicencePositionStagedPayload givenBlockSurrender(
+      LicencePositionStagedPayload positionStagedPayload,
       List<UUID> surrenderedFeatureIds,
       List<Feature> activeFeatures
   ) {
-    when(licencePositionCorrectionService.findById(POSITION_CORRECTION_ID))
-        .thenReturn(Optional.of(positionCorrection));
+    when(licencePositionStagedPayloadService.findById(POSITION_STAGED_PAYLOAD_ID))
+        .thenReturn(Optional.of(positionStagedPayload));
 
-    when(partialSurrenderCorrectionService.getSurrenderDetailsOrThrow(positionCorrection, FEATURE_ID))
+    when(partialSurrenderCorrectionService.getSurrenderDetailsOrThrow(positionStagedPayload, FEATURE_ID))
         .thenReturn(new SurrenderDetails(BlockSurrenderType.PARTIAL_SURRENDER, COMMAND_JOURNEY_ID, surrenderedFeatureIds));
 
     when(commandJourneyService.getActiveFeatures(COMMAND_JOURNEY_ID)).thenReturn(activeFeatures);
 
-    when(partialSurrenderCorrectionService.getSurrenderedBlockFeatureOrThrow(positionCorrection, FEATURE_ID))
+    when(partialSurrenderCorrectionService.getSurrenderedBlockFeatureOrThrow(positionStagedPayload, FEATURE_ID))
         .thenReturn(FEATURE);
 
-    return positionCorrection;
+    return positionStagedPayload;
   }
 
   private LicenceCorrection givenCorrectionAllocatedToUser(Licence licence) {
@@ -520,9 +520,9 @@ class PartialSurrenderDefineAreaControllerTest extends AbstractControllerTest {
     return correction;
   }
 
-  private LicencePositionCorrection positionCorrection(LicenceCorrection correction) {
-    return LicencePositionCorrectionTestUtil.newBuilder()
-        .withId(POSITION_CORRECTION_ID)
+  private LicencePositionStagedPayload positionStagedPayload(LicenceCorrection correction) {
+    return LicencePositionStagedPayloadTestUtil.newBuilder()
+        .withId(POSITION_STAGED_PAYLOAD_ID)
         .withLicenceCorrection(correction)
         .withPayload(CreateLicencePositionPayloadTestUtil.newBuilder()
             .withLicencePositionId(STAGED_POSITION_ID.toString())
@@ -530,11 +530,11 @@ class PartialSurrenderDefineAreaControllerTest extends AbstractControllerTest {
         .build();
   }
 
-  private LicencePositionCorrection correctingPositionCorrection(LicenceCorrection correction) {
-    return LicencePositionCorrectionTestUtil.newBuilder()
-        .withId(POSITION_CORRECTION_ID)
+  private LicencePositionStagedPayload correctingPositionStagedPayload(LicenceCorrection correction) {
+    return LicencePositionStagedPayloadTestUtil.newBuilder()
+        .withId(POSITION_STAGED_PAYLOAD_ID)
         .withLicenceCorrection(correction)
-        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+        .withChangeType(LicencePositionStagedPayloadChangeType.UPDATE_POSITION)
         .withTargetLicencePosition(LicencePositionTestUtil.newBuilder()
             .withId(POSITION_ID)
             .withLicence(LICENCE)
@@ -545,17 +545,17 @@ class PartialSurrenderDefineAreaControllerTest extends AbstractControllerTest {
 
   private static String defineAreaUrl() {
     return ReverseRouter.route(on(PartialSurrenderDefineAreaController.class)
-        .renderDefineArea(CORRECTION, POSITION_CORRECTION, FEATURE_ID));
+        .renderDefineArea(CORRECTION, POSITION_STAGED_PAYLOAD, FEATURE_ID));
   }
 
   private static String selectAreasUrl() {
     return ReverseRouter.route(on(PartialSurrenderDefineAreaController.class)
-        .renderSelectAreas(CORRECTION, POSITION_CORRECTION, FEATURE_ID));
+        .renderSelectAreas(CORRECTION, POSITION_STAGED_PAYLOAD, FEATURE_ID));
   }
 
   private static String surrenderTypeUrl() {
     return ReverseRouter.route(on(BlockSurrenderTypeController.class)
-        .renderSurrenderTypeForm(CORRECTION, POSITION_CORRECTION, FEATURE_ID));
+        .renderSurrenderTypeForm(CORRECTION, POSITION_STAGED_PAYLOAD, FEATURE_ID));
   }
 
   private static String correctingChangeSurrenderTypeUrl() {
@@ -565,6 +565,6 @@ class PartialSurrenderDefineAreaControllerTest extends AbstractControllerTest {
 
   private static String taskListUrl() {
     return ReverseRouter.route(on(PartialSurrenderTaskListController.class)
-        .renderTaskList(CORRECTION, POSITION_CORRECTION, null));
+        .renderTaskList(CORRECTION, POSITION_STAGED_PAYLOAD, null));
   }
 }

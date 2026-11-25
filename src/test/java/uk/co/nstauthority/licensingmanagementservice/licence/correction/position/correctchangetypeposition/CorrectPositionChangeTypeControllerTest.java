@@ -42,7 +42,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceC
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectPositionOrderForm;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectPositionOrderFormValidator;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionRouteUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadRouteUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.OrderablePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.PositionMove;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.PositionMoveDirection;
@@ -81,7 +81,7 @@ class CorrectPositionChangeTypeControllerTest extends AbstractControllerTest {
   private static final String VIEW_NAME = "lms/licence/correction/change/moveChangeTypePosition";
   private static final String NEW_POSITION_ORDER_PAGE_TITLE = "Where should the new position on 30 June 2026 go?";
   private static final String NEW_POSITION_ORDER_VIEW_NAME =
-      "lms/licence/correction/correctPositionCorrectionOrder";
+      "lms/licence/correction/correctPositionStagedPayloadOrder";
 
   private static final LicenceCorrection CORRECTION = LicenceCorrectionTestUtil.newBuilder()
       .withId(CORRECTION_ID)
@@ -113,7 +113,7 @@ class CorrectPositionChangeTypeControllerTest extends AbstractControllerTest {
   private final String correctionUrl = ReverseRouter.route(on(LicenceCorrectionController.class)
       .renderCorrection(CORRECTION, null));
 
-  private final String executedPositionUrl = LicencePositionCorrectionRouteUtil.getPositionPageUrl(CORRECTION, new LicencePosition(POSITION_ID).getId());
+  private final String executedPositionUrl = LicencePositionStagedPayloadRouteUtil.getPositionPageUrl(CORRECTION, new LicencePosition(POSITION_ID).getId());
 
   private final String changeTypePageUrl = ReverseRouter.route(on(CorrectPositionChangeTypeController.class)
       .renderMoveChangeTypePosition(CORRECTION_ID, POSITION_ID, CHANGE_ID, null));
@@ -345,7 +345,7 @@ class CorrectPositionChangeTypeControllerTest extends AbstractControllerTest {
   void renderNewPositionOrder_whenNoPositionsOnTheDate_redirectsToTheChangeTypePage() throws Exception {
     givenCorrectionAllocatedToUser();
     givenChangeOnPosition();
-    when(licencePositionCorrectionService.getOrderablePositionsOnDate(CORRECTION, OTHER_DATE)).thenReturn(List.of());
+    when(licencePositionStagedPayloadService.getOrderablePositionsOnDate(CORRECTION, OTHER_DATE)).thenReturn(List.of());
 
     mockMvc.perform(get(newPositionOrderUrl())
             .with(user(regulatorUser)))
@@ -472,7 +472,7 @@ class CorrectPositionChangeTypeControllerTest extends AbstractControllerTest {
   void placeNewPosition_whenNoPositionsOnTheDate_redirectsToTheChangeTypePage() throws Exception {
     givenCorrectionAllocatedToUser();
     givenChangeOnPosition();
-    when(licencePositionCorrectionService.getOrderablePositionsOnDate(CORRECTION, OTHER_DATE)).thenReturn(List.of());
+    when(licencePositionStagedPayloadService.getOrderablePositionsOnDate(CORRECTION, OTHER_DATE)).thenReturn(List.of());
 
     mockMvc.perform(post(placeNewPositionUrl())
             .with(user(regulatorUser))
@@ -572,7 +572,7 @@ class CorrectPositionChangeTypeControllerTest extends AbstractControllerTest {
   }
 
   private void givenPosition() {
-    when(licencePositionCorrectionService.getOrderableDatePosition(CORRECTION, POSITION_ID))
+    when(licencePositionStagedPayloadService.getOrderableDatePosition(CORRECTION, POSITION_ID))
         .thenReturn(CURRENT_POSITION);
   }
 
@@ -585,7 +585,7 @@ class CorrectPositionChangeTypeControllerTest extends AbstractControllerTest {
   }
 
   private void givenExecutedPosition() {
-    when(licencePositionCorrectionService.findFirstAddedPositionCorrection(CORRECTION, POSITION_ID))
+    when(licencePositionStagedPayloadService.findFirstAddedPositionStagedPayload(CORRECTION, POSITION_ID))
         .thenReturn(Optional.empty());
   }
 
@@ -597,11 +597,11 @@ class CorrectPositionChangeTypeControllerTest extends AbstractControllerTest {
   private void givenPositionRemovedInCorrection() {
     var position = LicencePositionTestUtil.newBuilder().withId(POSITION_ID).withLicence(LICENCE).build();
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(position);
-    when(licencePositionCorrectionService.isPositionRemovedInCorrection(CORRECTION, position)).thenReturn(true);
+    when(licencePositionStagedPayloadService.isPositionRemovedInCorrection(CORRECTION, position)).thenReturn(true);
   }
 
   private void givenPositionsOnOtherDate() {
-    when(licencePositionCorrectionService.getOrderablePositionsOnDate(CORRECTION, OTHER_DATE))
+    when(licencePositionStagedPayloadService.getOrderablePositionsOnDate(CORRECTION, OTHER_DATE))
         .thenReturn(List.of(FIRST_ON_OTHER_DATE, SECOND_ON_OTHER_DATE));
   }
 

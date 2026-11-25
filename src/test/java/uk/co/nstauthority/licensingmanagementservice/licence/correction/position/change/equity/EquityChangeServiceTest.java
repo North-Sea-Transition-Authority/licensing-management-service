@@ -16,10 +16,10 @@ import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionChangeType;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayload;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadChangeType;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.setequity.SetEquityCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.transferequity.TransferEquityCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeoperation.LicencePositionChangeOperation;
@@ -57,7 +57,7 @@ class EquityChangeServiceTest {
   private static final SubareaDetails SUBAREA = new SubareaDetails(UUID.randomUUID(), "Subarea A", "A");
 
   @Mock
-  private LicencePositionCorrectionService licencePositionCorrectionService;
+  private LicencePositionStagedPayloadService licencePositionStagedPayloadService;
 
   @Mock
   private LicencePositionChangeService licencePositionChangeService;
@@ -186,24 +186,24 @@ class EquityChangeServiceTest {
     assertThat(context.transferEquityRows()).containsExactly(transferEquityRow);
   }
 
-  private LicencePositionCorrection givenStagedChange(
+  private LicencePositionStagedPayload givenStagedChange(
       LicencePositionChangeType change,
       LicenceOperation... resolvedOperations
   ) {
-    var correction = LicencePositionCorrectionTestUtil.newBuilder()
-        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+    var positionStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder()
+        .withChangeType(LicencePositionStagedPayloadChangeType.UPDATE_POSITION)
         .withTargetLicencePosition(LICENCE_POSITION)
         .withPayload(new UpdateLicencePositionPayload(null, null, CORRECTION_REFERENCE, List.of(change)))
         .build();
 
-    when(licencePositionCorrectionService.getPositionCorrectionContainingChange(LICENCE_CORRECTION, change.changeId()))
-        .thenReturn(correction);
-    when(licencePositionCorrectionService.getStagedChangeOrThrow(correction, change.changeId()))
+    when(licencePositionStagedPayloadService.getPositionStagedPayloadContainingChange(LICENCE_CORRECTION, change.changeId()))
+        .thenReturn(positionStagedPayload);
+    when(licencePositionStagedPayloadService.getStagedChangeOrThrow(positionStagedPayload, change.changeId()))
         .thenReturn(change);
-    when(licencePositionCorrectionService.resolveStagedChangeOperations(change))
+    when(licencePositionStagedPayloadService.resolveStagedChangeOperations(change))
         .thenReturn(List.of(resolvedOperations));
 
-    return correction;
+    return positionStagedPayload;
   }
 
   private static SetEquityOperation setEquityOperation() {

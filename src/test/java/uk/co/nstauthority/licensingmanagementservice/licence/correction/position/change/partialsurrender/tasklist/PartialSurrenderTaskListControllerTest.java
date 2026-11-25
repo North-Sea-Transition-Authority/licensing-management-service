@@ -32,10 +32,10 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionChangeType;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionRouteUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayload;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadChangeType;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadRouteUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.LicencePositionPartialSurrenderController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.PartialSurrenderCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.definearea.PartialSurrenderDefineAreaController;
@@ -65,7 +65,7 @@ class PartialSurrenderTaskListControllerTest extends AbstractControllerTest {
       .withLicenceReference("P/1")
       .build();
   private static final UUID CORRECTION_ID = UUID.randomUUID();
-  private static final UUID POSITION_CORRECTION_ID = UUID.randomUUID();
+  private static final UUID POSITION_STAGED_PAYLOAD_ID = UUID.randomUUID();
   private static final UUID STAGED_POSITION_ID = UUID.randomUUID();
   private static final UUID POSITION_ID = UUID.randomUUID();
   private static final String LIVE_CHANGE_ID = UUID.randomUUID().toString();
@@ -75,7 +75,7 @@ class PartialSurrenderTaskListControllerTest extends AbstractControllerTest {
 
   private static final LocalDate POSITION_DATE = LocalDate.of(2026, Month.JUNE, 5);
   private static final String POSITION_REGULATOR_REFERENCE = "TRANSACTION-REF";
-  private static final String ADDED_POSITION_CORRECTION_REFERENCE = "CORRECTION-REF";
+  private static final String ADDED_POSITION_STAGED_PAYLOAD_REFERENCE = "CORRECTION-REF";
   private static final LicencePosition POSITION = LicencePositionTestUtil.newBuilder()
       .withId(POSITION_ID)
       .withLicence(LICENCE)
@@ -95,8 +95,8 @@ class PartialSurrenderTaskListControllerTest extends AbstractControllerTest {
       .withId(CORRECTION_ID)
       .withLicence(LICENCE)
       .build();
-  private static final LicencePositionCorrection POSITION_CORRECTION = LicencePositionCorrectionTestUtil.newBuilder()
-      .withId(POSITION_CORRECTION_ID)
+  private static final LicencePositionStagedPayload POSITION_STAGED_PAYLOAD = LicencePositionStagedPayloadTestUtil.newBuilder()
+      .withId(POSITION_STAGED_PAYLOAD_ID)
       .withLicenceCorrection(CORRECTION)
       .withPayload(CreateLicencePositionPayloadTestUtil.newBuilder()
           .withLicencePositionId(STAGED_POSITION_ID.toString())
@@ -114,13 +114,13 @@ class PartialSurrenderTaskListControllerTest extends AbstractControllerTest {
   @Test
   void renderTaskList_whenExecutedPosition_thenBackLinkGoesToThePosition() throws Exception {
     var correction = givenCorrectionAllocatedToUser(LICENCE);
-    var positionCorrection = givenPositionCorrection(
-        correction, LicencePositionCorrectionChangeType.UPDATE_POSITION);
-    when(partialSurrenderCorrectionService.getCommittedPartialSurrenderOrThrow(positionCorrection))
+    var positionStagedPayload = givenPositionStagedPayload(
+        correction, LicencePositionStagedPayloadChangeType.UPDATE_POSITION);
+    when(partialSurrenderCorrectionService.getCommittedPartialSurrenderOrThrow(positionStagedPayload))
         .thenReturn(SURRENDER);
-    when(licencePositionCorrectionService.resolveEffectiveDate(positionCorrection)).thenReturn(POSITION_DATE);
+    when(licencePositionStagedPayloadService.resolveEffectiveDate(positionStagedPayload)).thenReturn(POSITION_DATE);
     when(partialSurrenderTaskListService.getTaskListSections(
-        new PartialSurrenderTaskListContext.Staged(positionCorrection), regulatorUser)).thenReturn(SECTIONS);
+        new PartialSurrenderTaskListContext.Staged(positionStagedPayload), regulatorUser)).thenReturn(SECTIONS);
 
     mockMvc.perform(get(taskListUrl()).with(user(regulatorUser)))
         .andExpectAll(
@@ -131,18 +131,18 @@ class PartialSurrenderTaskListControllerTest extends AbstractControllerTest {
             model().attribute("positionReference", POSITION_REGULATOR_REFERENCE),
             model().attribute("positionDate", DateUtil.formatLongDate(POSITION_DATE)),
             model().attribute("taskListSections", SECTIONS),
-            model().attribute("backLinkUrl", LicencePositionCorrectionRouteUtil.getPositionPageUrl(CORRECTION, POSITION.getId())));
+            model().attribute("backLinkUrl", LicencePositionStagedPayloadRouteUtil.getPositionPageUrl(CORRECTION, POSITION.getId())));
   }
 
   @Test
   void renderTaskList_whenTheStagedSurrenderCorrectsALiveChange_thenRedirectsToTheLiveChangeTaskList()
       throws Exception {
     var correction = givenCorrectionAllocatedToUser(LICENCE);
-    var positionCorrection = givenPositionCorrection(
-        correction, LicencePositionCorrectionChangeType.UPDATE_POSITION);
-    when(partialSurrenderCorrectionService.getCommittedPartialSurrenderOrThrow(positionCorrection))
+    var positionStagedPayload = givenPositionStagedPayload(
+        correction, LicencePositionStagedPayloadChangeType.UPDATE_POSITION);
+    when(partialSurrenderCorrectionService.getCommittedPartialSurrenderOrThrow(positionStagedPayload))
         .thenReturn(SURRENDER);
-    when(partialSurrenderCorrectionService.findCorrectedLiveChangeId(positionCorrection))
+    when(partialSurrenderCorrectionService.findCorrectedLiveChangeId(positionStagedPayload))
         .thenReturn(Optional.of(LIVE_CHANGE.getId().toString()));
 
     mockMvc.perform(get(taskListUrl()).with(user(regulatorUser)))
@@ -155,20 +155,20 @@ class PartialSurrenderTaskListControllerTest extends AbstractControllerTest {
   @Test
   void renderTaskList_whenSingleBlock_thenRedirectsToDefineArea() throws Exception {
     var correction = givenCorrectionAllocatedToUser(LICENCE);
-    var positionCorrection = givenPositionCorrection(
+    var positionStagedPayload = givenPositionStagedPayload(
         correction,
-        LicencePositionCorrectionChangeType.UPDATE_POSITION
+        LicencePositionStagedPayloadChangeType.UPDATE_POSITION
     );
 
-    when(partialSurrenderCorrectionService.getCommittedPartialSurrenderOrThrow(positionCorrection))
+    when(partialSurrenderCorrectionService.getCommittedPartialSurrenderOrThrow(positionStagedPayload))
         .thenReturn(SURRENDER);
-    when(partialSurrenderCorrectionService.findSingleBlockNotOperatedOn(positionCorrection))
+    when(partialSurrenderCorrectionService.findSingleBlockNotOperatedOn(positionStagedPayload))
         .thenReturn(Optional.of(BLOCK));
 
     mockMvc.perform(get(taskListUrl()).with(user(regulatorUser)))
         .andExpect(status().is3xxRedirection())
         .andExpect(redirectedUrl(ReverseRouter.route(on(PartialSurrenderDefineAreaController.class)
-            .renderDefineArea(CORRECTION, POSITION_CORRECTION, BLOCK.getId()))));
+            .renderDefineArea(CORRECTION, POSITION_STAGED_PAYLOAD, BLOCK.getId()))));
 
     verifyNoInteractions(partialSurrenderTaskListService);
   }
@@ -176,44 +176,44 @@ class PartialSurrenderTaskListControllerTest extends AbstractControllerTest {
   @Test
   void renderTaskList_whenAddedPosition_thenBackLinkGoesToTheAddedPosition() throws Exception {
     var correction = givenCorrectionAllocatedToUser(LICENCE);
-    var positionCorrection = givenPositionCorrection(correction, LicencePositionCorrectionChangeType.ADD_POSITION);
-    when(partialSurrenderCorrectionService.getCommittedPartialSurrenderOrThrow(positionCorrection))
+    var positionStagedPayload = givenPositionStagedPayload(correction, LicencePositionStagedPayloadChangeType.ADD_POSITION);
+    when(partialSurrenderCorrectionService.getCommittedPartialSurrenderOrThrow(positionStagedPayload))
         .thenReturn(SURRENDER);
-    when(licencePositionCorrectionService.resolveEffectiveDate(positionCorrection)).thenReturn(POSITION_DATE);
+    when(licencePositionStagedPayloadService.resolveEffectiveDate(positionStagedPayload)).thenReturn(POSITION_DATE);
     when(partialSurrenderTaskListService.getTaskListSections(
-        new PartialSurrenderTaskListContext.Staged(positionCorrection), regulatorUser)).thenReturn(SECTIONS);
+        new PartialSurrenderTaskListContext.Staged(positionStagedPayload), regulatorUser)).thenReturn(SECTIONS);
 
     mockMvc.perform(get(taskListUrl()).with(user(regulatorUser)))
         .andExpectAll(
             status().isOk(),
-            model().attribute("positionReference", ADDED_POSITION_CORRECTION_REFERENCE),
+            model().attribute("positionReference", ADDED_POSITION_STAGED_PAYLOAD_REFERENCE),
             model().attribute("positionDate", DateUtil.formatLongDate(POSITION_DATE)),
-            model().attribute("backLinkUrl", LicencePositionCorrectionRouteUtil.getPositionPageUrl(CORRECTION, STAGED_POSITION_ID)));
+            model().attribute("backLinkUrl", LicencePositionStagedPayloadRouteUtil.getPositionPageUrl(CORRECTION, STAGED_POSITION_ID)));
   }
 
   @Test
   void renderTaskList_whenPositionIsBeingRemoved_thenThrows() {
     var correction = givenCorrectionAllocatedToUser(LICENCE);
-    var positionCorrection = givenPositionCorrection(
-        correction, LicencePositionCorrectionChangeType.REMOVE_POSITION);
-    when(partialSurrenderCorrectionService.getCommittedPartialSurrenderOrThrow(positionCorrection))
+    var positionStagedPayload = givenPositionStagedPayload(
+        correction, LicencePositionStagedPayloadChangeType.REMOVE_POSITION);
+    when(partialSurrenderCorrectionService.getCommittedPartialSurrenderOrThrow(positionStagedPayload))
         .thenReturn(SURRENDER);
-    when(licencePositionCorrectionService.resolveEffectiveDate(positionCorrection)).thenReturn(POSITION_DATE);
+    when(licencePositionStagedPayloadService.resolveEffectiveDate(positionStagedPayload)).thenReturn(POSITION_DATE);
     when(partialSurrenderTaskListService.getTaskListSections(
-        new PartialSurrenderTaskListContext.Staged(positionCorrection), regulatorUser)).thenReturn(SECTIONS);
+        new PartialSurrenderTaskListContext.Staged(positionStagedPayload), regulatorUser)).thenReturn(SECTIONS);
 
     assertThatThrownBy(() -> mockMvc.perform(get(taskListUrl()).with(user(regulatorUser))))
         .hasRootCauseInstanceOf(IllegalStateException.class)
-        .hasRootCauseMessage("Licence position correction %s removes a position so cannot have changes made against it"
-            .formatted(POSITION_CORRECTION_ID));
+        .hasRootCauseMessage("Licence position staged payload %s removes a position so cannot have changes made against it"
+            .formatted(POSITION_STAGED_PAYLOAD_ID));
   }
 
   @Test
   void renderTaskList_whenNoPartialSurrenderStaged_thenNotFound() throws Exception {
     var correction = givenCorrectionAllocatedToUser(LICENCE);
-    var positionCorrection = givenPositionCorrection(
-        correction, LicencePositionCorrectionChangeType.UPDATE_POSITION);
-    when(partialSurrenderCorrectionService.getCommittedPartialSurrenderOrThrow(positionCorrection))
+    var positionStagedPayload = givenPositionStagedPayload(
+        correction, LicencePositionStagedPayloadChangeType.UPDATE_POSITION);
+    when(partialSurrenderCorrectionService.getCommittedPartialSurrenderOrThrow(positionStagedPayload))
         .thenThrow(new LmsEntityNotFoundException("no partial surrender"));
 
     mockMvc.perform(get(taskListUrl()).with(user(regulatorUser)))
@@ -240,7 +240,7 @@ class PartialSurrenderTaskListControllerTest extends AbstractControllerTest {
         .thenReturn(Optional.of(correction));
     when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(correction));
     mockMvc.perform(get(ReverseRouter.route(on(PartialSurrenderTaskListController.class)
-            .renderTaskList(correction, POSITION_CORRECTION, null)))
+            .renderTaskList(correction, POSITION_STAGED_PAYLOAD, null)))
             .with(user(regulatorUser)))
         .andExpect(status().isForbidden())
         .andExpect(status().reason(
@@ -265,13 +265,13 @@ class PartialSurrenderTaskListControllerTest extends AbstractControllerTest {
         .withLicenceReference("P/1")
         .build();
     var correction = givenCorrectionAllocatedToUser(allowedLicence);
-    var positionCorrection = givenPositionCorrection(
-        correction, LicencePositionCorrectionChangeType.UPDATE_POSITION);
-    when(partialSurrenderCorrectionService.getCommittedPartialSurrenderOrThrow(positionCorrection))
+    var positionStagedPayload = givenPositionStagedPayload(
+        correction, LicencePositionStagedPayloadChangeType.UPDATE_POSITION);
+    when(partialSurrenderCorrectionService.getCommittedPartialSurrenderOrThrow(positionStagedPayload))
         .thenReturn(SURRENDER);
-    when(licencePositionCorrectionService.resolveEffectiveDate(positionCorrection)).thenReturn(POSITION_DATE);
+    when(licencePositionStagedPayloadService.resolveEffectiveDate(positionStagedPayload)).thenReturn(POSITION_DATE);
     when(partialSurrenderTaskListService.getTaskListSections(
-        new PartialSurrenderTaskListContext.Staged(positionCorrection), regulatorUser)).thenReturn(SECTIONS);
+        new PartialSurrenderTaskListContext.Staged(positionStagedPayload), regulatorUser)).thenReturn(SECTIONS);
 
     mockMvc.perform(get(taskListUrl()).with(user(regulatorUser)))
         .andExpect(status().isOk());
@@ -294,19 +294,19 @@ class PartialSurrenderTaskListControllerTest extends AbstractControllerTest {
             model().attribute("positionReference", POSITION_REGULATOR_REFERENCE),
             model().attribute("positionDate", DateUtil.formatLongDate(POSITION_DATE)),
             model().attribute("taskListSections", SECTIONS),
-            model().attribute("backLinkUrl", LicencePositionCorrectionRouteUtil.getPositionPageUrl(CORRECTION, POSITION.getId())));
+            model().attribute("backLinkUrl", LicencePositionStagedPayloadRouteUtil.getPositionPageUrl(CORRECTION, POSITION.getId())));
   }
 
   @Test
   void renderForCorrectingChange_whenSingleBlock_thenRedirectsToCorrectSurrenderDetails() throws Exception {
     var correction = givenCorrectionAllocatedToUser(LICENCE);
     givenPositionOnCorrectionLicence(correction);
-    var positionCorrection = givenUpdatePositionCorrectionFound(correction);
+    var positionStagedPayload = givenUpdatePositionStagedPayloadFound(correction);
 
     when(partialSurrenderCorrectionService.findSingleBlockNotOperatedOn(
         correction,
         POSITION,
-        positionCorrection,
+        positionStagedPayload,
         LIVE_CHANGE_ID
     )).thenReturn(Optional.of(BLOCK));
 
@@ -346,7 +346,7 @@ class PartialSurrenderTaskListControllerTest extends AbstractControllerTest {
 
   private String taskListUrl() {
     return ReverseRouter.route(on(PartialSurrenderTaskListController.class)
-        .renderTaskList(CORRECTION, POSITION_CORRECTION, null));
+        .renderTaskList(CORRECTION, POSITION_STAGED_PAYLOAD, null));
   }
 
   private String correctingChangeTaskListUrl() {
@@ -354,18 +354,18 @@ class PartialSurrenderTaskListControllerTest extends AbstractControllerTest {
         .renderForCorrectingChange(CORRECTION, POSITION, LIVE_CHANGE, null));
   }
 
-  private LicencePositionCorrection givenUpdatePositionCorrectionFound(LicenceCorrection correction) {
-    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
-        .withId(POSITION_CORRECTION_ID)
+  private LicencePositionStagedPayload givenUpdatePositionStagedPayloadFound(LicenceCorrection correction) {
+    var positionStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder()
+        .withId(POSITION_STAGED_PAYLOAD_ID)
         .withLicenceCorrection(correction)
-        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+        .withChangeType(LicencePositionStagedPayloadChangeType.UPDATE_POSITION)
         .withTargetLicencePosition(POSITION)
         .withPayload(UpdateLicencePositionPayloadTestUtil.newBuilder().build())
         .build();
-    when(licencePositionCorrectionService.findUpdatePositionCorrection(correction, POSITION))
-        .thenReturn(Optional.of(positionCorrection));
+    when(licencePositionStagedPayloadService.findUpdatePositionStagedPayload(correction, POSITION))
+        .thenReturn(Optional.of(positionStagedPayload));
 
-    return positionCorrection;
+    return positionStagedPayload;
   }
 
   private void givenPositionOnCorrectionLicence(LicenceCorrection correction) {
@@ -392,25 +392,25 @@ class PartialSurrenderTaskListControllerTest extends AbstractControllerTest {
     return correction;
   }
 
-  private LicencePositionCorrection givenPositionCorrection(
+  private LicencePositionStagedPayload givenPositionStagedPayload(
       LicenceCorrection correction,
-      LicencePositionCorrectionChangeType changeType
+      LicencePositionStagedPayloadChangeType changeType
   ) {
-    var payload = changeType == LicencePositionCorrectionChangeType.ADD_POSITION
+    var payload = changeType == LicencePositionStagedPayloadChangeType.ADD_POSITION
         ? CreateLicencePositionPayloadTestUtil.newBuilder()
             .withLicencePositionId(STAGED_POSITION_ID.toString())
-            .withCorrectionReference(ADDED_POSITION_CORRECTION_REFERENCE)
+            .withCorrectionReference(ADDED_POSITION_STAGED_PAYLOAD_REFERENCE)
             .build()
         : UpdateLicencePositionPayloadTestUtil.newBuilder().build();
-    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
-        .withId(POSITION_CORRECTION_ID)
+    var positionStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder()
+        .withId(POSITION_STAGED_PAYLOAD_ID)
         .withLicenceCorrection(correction)
         .withChangeType(changeType)
         .withTargetLicencePosition(POSITION)
         .withPayload(payload)
         .build();
-    when(licencePositionCorrectionService.findById(POSITION_CORRECTION_ID))
-        .thenReturn(Optional.of(positionCorrection));
-    return positionCorrection;
+    when(licencePositionStagedPayloadService.findById(POSITION_STAGED_PAYLOAD_ID))
+        .thenReturn(Optional.of(positionStagedPayload));
+    return positionStagedPayload;
   }
 }

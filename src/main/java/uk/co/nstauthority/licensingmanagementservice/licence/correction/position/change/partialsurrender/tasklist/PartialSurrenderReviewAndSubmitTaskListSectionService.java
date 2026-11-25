@@ -28,10 +28,10 @@ public class PartialSurrenderReviewAndSubmitTaskListSectionService
 
   private String reviewAndSubmitUrl(PartialSurrenderTaskListContext context) {
     return switch (context) {
-      case PartialSurrenderTaskListContext.Staged(var positionCorrection) ->
+      case PartialSurrenderTaskListContext.Staged(var positionStagedPayload) ->
           ReverseRouter.route(on(PartialSurrenderReviewAndSubmitController.class).renderReviewAndSubmit(
-              positionCorrection.getLicenceCorrection(),
-              positionCorrection,
+              positionStagedPayload.getLicenceCorrection(),
+              positionStagedPayload,
               null));
       case PartialSurrenderTaskListContext.LiveChange(var correction, var licencePosition, var change) ->
           ReverseRouter.route(on(PartialSurrenderReviewAndSubmitController.class)

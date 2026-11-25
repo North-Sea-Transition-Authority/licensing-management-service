@@ -21,9 +21,9 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.Interce
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionChangeType;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadChangeType;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.UpdateChangeOperations;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.UpdateLicencePositionPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaOperation;
@@ -42,7 +42,7 @@ class LicencePositionChangeBelongsToPositionRuleTest extends AbstractInterceptor
   private LicenceCorrectionService licenceCorrectionService;
 
   @Mock
-  private LicencePositionCorrectionService licencePositionCorrectionService;
+  private LicencePositionStagedPayloadService licencePositionStagedPayloadService;
 
   @InjectMocks
   private LicencePositionChangeBelongsToPositionRule rule;
@@ -165,9 +165,9 @@ class LicencePositionChangeBelongsToPositionRuleTest extends AbstractInterceptor
   }
 
   private void givenChangeStagedOnPosition(LicenceCorrection correction, LicencePosition position, UUID changeId) {
-    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+    var positionStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder()
         .withLicenceCorrection(correction)
-        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+        .withChangeType(LicencePositionStagedPayloadChangeType.UPDATE_POSITION)
         .withTargetLicencePosition(position)
         .withPayload(UpdateLicencePositionPayloadTestUtil.newBuilder()
             .withChanges(List.of(UpdateChangeOperations.buildUpdateChange(
@@ -178,7 +178,7 @@ class LicencePositionChangeBelongsToPositionRuleTest extends AbstractInterceptor
         .build();
 
     when(licenceCorrectionService.findById(correction.getId())).thenReturn(Optional.of(correction));
-    when(licencePositionCorrectionService.getPositionCorrections(correction)).thenReturn(List.of(positionCorrection));
+    when(licencePositionStagedPayloadService.getPositionStagedPayloads(correction)).thenReturn(List.of(positionStagedPayload));
   }
 
   private void stubPathVariables(UUID licencePositionId, UUID changeId) {

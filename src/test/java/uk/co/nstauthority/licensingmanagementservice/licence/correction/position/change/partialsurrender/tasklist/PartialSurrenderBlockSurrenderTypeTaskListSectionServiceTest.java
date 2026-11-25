@@ -23,8 +23,8 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayload;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.PartialSurrenderCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderTypeController;
@@ -44,7 +44,7 @@ import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListSection;
 class PartialSurrenderBlockSurrenderTypeTaskListSectionServiceTest {
 
   private static final UUID CORRECTION_ID = UUID.randomUUID();
-  private static final UUID POSITION_CORRECTION_ID = UUID.randomUUID();
+  private static final UUID POSITION_STAGED_PAYLOAD_ID = UUID.randomUUID();
   private static final LicenceCorrection CORRECTION = LicenceCorrectionTestUtil.newBuilder()
       .withId(CORRECTION_ID)
       .build();
@@ -69,9 +69,9 @@ class PartialSurrenderBlockSurrenderTypeTaskListSectionServiceTest {
 
   @Test
   void getSection_whenNoSurrenderStaged_thenEmpty() {
-    var positionCorrection = positionCorrection();
-    var context = new PartialSurrenderTaskListContext.Staged(positionCorrection);
-    when(partialSurrenderCorrectionService.getCommittedPartialSurrender(positionCorrection))
+    var positionStagedPayload = positionStagedPayload();
+    var context = new PartialSurrenderTaskListContext.Staged(positionStagedPayload);
+    when(partialSurrenderCorrectionService.getCommittedPartialSurrender(positionStagedPayload))
         .thenReturn(Optional.empty());
 
     var section = partialSurrenderBlockSurrenderTypeTaskListSectionService.getSection(context, USER);
@@ -81,10 +81,10 @@ class PartialSurrenderBlockSurrenderTypeTaskListSectionServiceTest {
 
   @Test
   void getSection_whenBlocksStaged_thenItemPerSurrenderedBlock() {
-    var positionCorrection = positionCorrection();
-    var context = new PartialSurrenderTaskListContext.Staged(positionCorrection);
+    var positionStagedPayload = positionStagedPayload();
+    var context = new PartialSurrenderTaskListContext.Staged(positionStagedPayload);
     givenStagedSurrender(
-        positionCorrection,
+        positionStagedPayload,
         operation(
             List.of(FIRST_BLOCK.getId(), SECOND_BLOCK.getId()),
             Map.of(FIRST_BLOCK.getId(), BlockSurrenderType.FULL_SURRENDER)
@@ -98,8 +98,8 @@ class PartialSurrenderBlockSurrenderTypeTaskListSectionServiceTest {
         PartialSurrenderBlockSurrenderTypeTaskListSectionService.SURRENDERED_BLOCKS,
         PartialSurrenderBlockSurrenderTypeTaskListSectionService.SECTION_ORDER,
         List.of(
-            expectedItem(positionCorrection, FIRST_BLOCK, TaskListLabel.COMPLETE),
-            expectedItem(positionCorrection, SECOND_BLOCK, TaskListLabel.NOT_COMPLETE))));
+            expectedItem(positionStagedPayload, FIRST_BLOCK, TaskListLabel.COMPLETE),
+            expectedItem(positionStagedPayload, SECOND_BLOCK, TaskListLabel.NOT_COMPLETE))));
   }
 
   private static Stream<Arguments> blockSurrenderToLabel() {
@@ -127,10 +127,10 @@ class PartialSurrenderBlockSurrenderTypeTaskListSectionServiceTest {
       Map<UUID, PartialSurrenderOperation.SurrenderDetails> featureIdToSurrenderDetails,
       TaskListLabel expectedLabel
   ) {
-    var positionCorrection = positionCorrection();
-    var context = new PartialSurrenderTaskListContext.Staged(positionCorrection);
+    var positionStagedPayload = positionStagedPayload();
+    var context = new PartialSurrenderTaskListContext.Staged(positionStagedPayload);
     givenStagedSurrender(
-        positionCorrection,
+        positionStagedPayload,
         LicenceOperation.newPartialSurrenderOperation()
             .withSurrenderedFeatureIds(List.of(FIRST_BLOCK.getId()))
             .withSurrenderDetails(featureIdToSurrenderDetails)
@@ -143,7 +143,7 @@ class PartialSurrenderBlockSurrenderTypeTaskListSectionServiceTest {
     assertThat(section).contains(new TaskListSection(
         PartialSurrenderBlockSurrenderTypeTaskListSectionService.SURRENDERED_BLOCKS,
         PartialSurrenderBlockSurrenderTypeTaskListSectionService.SECTION_ORDER,
-        List.of(expectedItem(positionCorrection, FIRST_BLOCK, expectedLabel))));
+        List.of(expectedItem(positionStagedPayload, FIRST_BLOCK, expectedLabel))));
   }
 
   @Test
@@ -187,11 +187,11 @@ class PartialSurrenderBlockSurrenderTypeTaskListSectionServiceTest {
   }
 
   private void givenStagedSurrender(
-      LicencePositionCorrection positionCorrection,
+      LicencePositionStagedPayload positionStagedPayload,
       PartialSurrenderOperation operation,
       List<Feature> surrenderedBlocks
   ) {
-    when(partialSurrenderCorrectionService.getCommittedPartialSurrender(positionCorrection))
+    when(partialSurrenderCorrectionService.getCommittedPartialSurrender(positionStagedPayload))
         .thenReturn(Optional.of(operation));
     when(partialSurrenderCorrectionService.getSurrenderedBlockFeatures(operation)).thenReturn(surrenderedBlocks);
   }
@@ -213,15 +213,15 @@ class PartialSurrenderBlockSurrenderTypeTaskListSectionServiceTest {
     return new PartialSurrenderOperation.SurrenderDetails(type, UUID.randomUUID(), List.of());
   }
 
-  private LicencePositionCorrection positionCorrection() {
-    return LicencePositionCorrectionTestUtil.newBuilder()
-        .withId(POSITION_CORRECTION_ID)
+  private LicencePositionStagedPayload positionStagedPayload() {
+    return LicencePositionStagedPayloadTestUtil.newBuilder()
+        .withId(POSITION_STAGED_PAYLOAD_ID)
         .withLicenceCorrection(CORRECTION)
         .build();
   }
 
   private TaskListItem expectedItem(
-      LicencePositionCorrection positionCorrection,
+      LicencePositionStagedPayload positionStagedPayload,
       Feature block,
       TaskListLabel label
   ) {
@@ -229,6 +229,6 @@ class PartialSurrenderBlockSurrenderTypeTaskListSectionServiceTest {
         "Block %s".formatted(block.getFeatureName()),
         label,
         ReverseRouter.route(on(BlockSurrenderTypeController.class).renderSurrenderTypeForm(
-            CORRECTION, positionCorrection, block.getId())));
+            CORRECTION, positionStagedPayload, block.getId())));
   }
 }

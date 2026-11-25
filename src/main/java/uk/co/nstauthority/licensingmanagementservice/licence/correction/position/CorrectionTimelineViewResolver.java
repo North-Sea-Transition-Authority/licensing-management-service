@@ -37,9 +37,9 @@ final class CorrectionTimelineViewResolver {
     var correctionTimelinePositions = correctionPositions.correctionTimelinePositions();
     var executedPositionsById = correctionPositions.executedPositions().stream()
         .collect(Collectors.toMap(LicencePosition::getId, Function.identity()));
-    var addedCorrectionsByPositionId = LicencePositionCorrectionService.correctionsOfType(
-            correctionPositions.positionCorrections(),
-            LicencePositionCorrectionChangeType.ADD_POSITION
+    var addedStagedPayloadsByPositionId = LicencePositionStagedPayloadService.stagedPayloadsOfType(
+            correctionPositions.positionStagedPayloads(),
+            LicencePositionStagedPayloadChangeType.ADD_POSITION
         ).stream()
         .collect(Collectors.toMap(CorrectionTimelineViewResolver::addedPositionId, Function.identity()));
 
@@ -54,13 +54,13 @@ final class CorrectionTimelineViewResolver {
         .map(position -> {
           var hasSameDatePositions = sameDateCount.getOrDefault(position.date(), 0L) > 1;
           var hasError = invalidPositionIds.contains(position.id());
-          var addedCorrection = addedCorrectionsByPositionId.get(position.id());
+          var addedStagedPayload = addedStagedPayloadsByPositionId.get(position.id());
 
-          if (addedCorrection != null) {
+          if (addedStagedPayload != null) {
             return getAddedPositionTimelineView(
                 licenceCorrection,
                 position,
-                addedCorrection,
+                addedStagedPayload,
                 hasError,
                 hasSameDatePositions
             );
@@ -79,8 +79,8 @@ final class CorrectionTimelineViewResolver {
         .toList();
   }
 
-  static UUID addedPositionId(LicencePositionCorrection addedCorrection) {
-    return UUID.fromString(((CreateLicencePositionPayload) addedCorrection.getPayload()).licencePositionId());
+  static UUID addedPositionId(LicencePositionStagedPayload addedStagedPayload) {
+    return UUID.fromString(((CreateLicencePositionPayload) addedStagedPayload.getPayload()).licencePositionId());
   }
 
   private static LicencePositionTimelineView getExecutedPositionTimelineView(
@@ -97,7 +97,7 @@ final class CorrectionTimelineViewResolver {
 
     var timelineViewBuilder = LicencePositionTimelineView.builder()
         .withPositionId(position.id())
-        .withUrl(LicencePositionCorrectionRouteUtil.getPositionPageUrl(licenceCorrection, position.id()))
+        .withUrl(LicencePositionStagedPayloadRouteUtil.getPositionPageUrl(licenceCorrection, position.id()))
         .withRegulatorReference(position.reference())
         .withFormattedPositionDate(position.positionName())
         .withCorrectedInThisCorrection(hasPendingCorrection(correctedPayload) || movedAway)
@@ -105,13 +105,13 @@ final class CorrectionTimelineViewResolver {
         .withHasError(hasError);
 
     if (removed) {
-      timelineViewBuilder.withReinstateUrl(ReverseRouter.route(on(ReinstateLicencePositionCorrectionController.class)
+      timelineViewBuilder.withReinstateUrl(ReverseRouter.route(on(ReinstateLicencePositionStagedPayloadController.class)
           .renderReinstatePosition(licenceCorrection, licencePosition)));
     } else {
-      timelineViewBuilder.withRemoveUrl(ReverseRouter.route(on(RemoveExecutedLicencePositionCorrectionController.class)
+      timelineViewBuilder.withRemoveUrl(ReverseRouter.route(on(RemoveExecutedLicencePositionStagedPayloadController.class)
           .renderRemovePosition(licenceCorrection, licencePosition)));
       timelineViewBuilder.withCorrectDateUrl(ReverseRouter.route(on(CorrectPositionDateController.class)
-          .renderCorrectLicencePositionCorrectionDate(licenceCorrection, licencePosition)));
+          .renderCorrectLicencePositionStagedPayloadDate(licenceCorrection, licencePosition)));
       if (hasSameDatePositions) {
         timelineViewBuilder.withCorrectOrderUrl(getCorrectOrderPositionUrl(licenceCorrection, position.id()));
       }
@@ -123,19 +123,19 @@ final class CorrectionTimelineViewResolver {
   private static LicencePositionTimelineView getAddedPositionTimelineView(
       LicenceCorrection licenceCorrection,
       ChronologicalPosition position,
-      LicencePositionCorrection addedCorrection,
+      LicencePositionStagedPayload addedStagedPayload,
       boolean hasError,
       boolean hasSameDatePositions
   ) {
     var timelineViewBuilder = LicencePositionTimelineView.builder()
         .withPositionId(position.id())
-        .withUrl(LicencePositionCorrectionRouteUtil.getPositionPageUrl(licenceCorrection, position.id()))
+        .withUrl(LicencePositionStagedPayloadRouteUtil.getPositionPageUrl(licenceCorrection, position.id()))
         .withRegulatorReference(position.reference())
         .withFormattedPositionDate(position.positionName())
         .withAddedInThisCorrection(true)
         .withHasError(hasError)
-        .withUndoUrl(ReverseRouter.route(on(UndoLicencePositionCorrectionController.class)
-            .renderUndoPosition(licenceCorrection, addedCorrection)));
+        .withUndoUrl(ReverseRouter.route(on(UndoLicencePositionStagedPayloadController.class)
+            .renderUndoPosition(licenceCorrection, addedStagedPayload)));
 
     if (hasSameDatePositions) {
       timelineViewBuilder.withCorrectOrderUrl(getCorrectOrderPositionUrl(licenceCorrection, position.id()));
@@ -145,7 +145,7 @@ final class CorrectionTimelineViewResolver {
   }
 
   private static String getCorrectOrderPositionUrl(LicenceCorrection licenceCorrection, UUID positionId) {
-    return ReverseRouter.route(on(LicencePositionCorrectionOrderChangeController.class)
+    return ReverseRouter.route(on(LicencePositionStagedPayloadOrderChangeController.class)
         .renderCorrectionLicencePositionOrder(licenceCorrection, positionId));
   }
 

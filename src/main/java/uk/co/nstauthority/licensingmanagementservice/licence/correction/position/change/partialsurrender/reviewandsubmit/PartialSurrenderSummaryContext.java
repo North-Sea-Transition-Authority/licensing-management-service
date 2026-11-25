@@ -2,14 +2,14 @@ package uk.co.nstauthority.licensingmanagementservice.licence.correction.positio
 
 import jakarta.annotation.Nullable;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.LicencePositionState;
 
 /**
  * Scopes the summary sections to a partial surrender. Sections are typed against this context rather than
- * {@link LicencePositionCorrection} directly so that summaries for other change types staged on the same entity
+ * {@link LicencePositionStagedPayload} directly so that summaries for other change types staged on the same entity
  * cannot be injected into the partial surrender summary.
  */
 public sealed interface PartialSurrenderSummaryContext {
@@ -19,14 +19,14 @@ public sealed interface PartialSurrenderSummaryContext {
   LicencePositionState stateBefore();
 
   /**
-   * A partial surrender staged on a position correction.
+   * A partial surrender staged on a position staged payload.
    *
-   * @param licencePositionCorrection The position correction the surrender is staged on.
+   * @param licencePositionStagedPayload The position staged payload the surrender is staged on.
    * @param surrender                 The partial surrender being summarised.
    * @param stateBefore               The state of the position going into the surrender.
    */
   record Staged(
-      LicencePositionCorrection licencePositionCorrection,
+      LicencePositionStagedPayload licencePositionStagedPayload,
       PartialSurrenderOperation surrender,
       LicencePositionState stateBefore
   ) implements PartialSurrenderSummaryContext {

@@ -36,9 +36,9 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePos
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.util.DateUtil;
 
-@ContextConfiguration(classes = ReinstateLicencePositionCorrectionController.class)
+@ContextConfiguration(classes = ReinstateLicencePositionStagedPayloadController.class)
 @ActiveProfiles("test")
-class ReinstateLicencePositionCorrectionControllerTest extends AbstractControllerTest {
+class ReinstateLicencePositionStagedPayloadControllerTest extends AbstractControllerTest {
 
   private static final Licence LICENCE = LicenceTestUtil.builder().withId(10).build();
   private static final UUID CORRECTION_ID = UUID.randomUUID();
@@ -61,7 +61,7 @@ class ReinstateLicencePositionCorrectionControllerTest extends AbstractControlle
 
   @Test
   void renderReinstatePosition_whenNotLoggedIn() throws Exception {
-    mockMvc.perform(get(ReverseRouter.route(on(ReinstateLicencePositionCorrectionController.class)
+    mockMvc.perform(get(ReverseRouter.route(on(ReinstateLicencePositionStagedPayloadController.class)
             .renderReinstatePosition(CORRECTION, POSITION))))
         .andExpect(redirectionToLoginUrl());
   }
@@ -76,7 +76,7 @@ class ReinstateLicencePositionCorrectionControllerTest extends AbstractControlle
     when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
         .thenReturn(Optional.of(correction));
     when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(correction));
-    mockMvc.perform(get(ReverseRouter.route(on(ReinstateLicencePositionCorrectionController.class)
+    mockMvc.perform(get(ReverseRouter.route(on(ReinstateLicencePositionStagedPayloadController.class)
             .renderReinstatePosition(correction, POSITION)))
             .with(user(regulatorUser)))
         .andExpect(status().isForbidden());
@@ -88,7 +88,7 @@ class ReinstateLicencePositionCorrectionControllerTest extends AbstractControlle
     givenPositionReinstatable(correction, true);
     when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(POSITION));
 
-    mockMvc.perform(get(ReverseRouter.route(on(ReinstateLicencePositionCorrectionController.class)
+    mockMvc.perform(get(ReverseRouter.route(on(ReinstateLicencePositionStagedPayloadController.class)
             .renderReinstatePosition(CORRECTION, POSITION)))
             .with(user(regulatorUser)))
         .andExpectAll(
@@ -104,7 +104,7 @@ class ReinstateLicencePositionCorrectionControllerTest extends AbstractControlle
   void renderReinstatePosition_whenNotAllocatedToUser() throws Exception {
     givenCorrectionNotAllocatedToUser();
     var reasonNotAllocated = String.format("Licence correction %s is not assigned to wuaId 1", CORRECTION_ID);
-    mockMvc.perform(get(ReverseRouter.route(on(ReinstateLicencePositionCorrectionController.class)
+    mockMvc.perform(get(ReverseRouter.route(on(ReinstateLicencePositionStagedPayloadController.class)
             .renderReinstatePosition(CORRECTION, POSITION)))
             .with(user(regulatorUser)))
         .andExpectAll(
@@ -120,7 +120,7 @@ class ReinstateLicencePositionCorrectionControllerTest extends AbstractControlle
 
 
     var reasonNotReinstatable = String.format("Licence position %s is not marked for deletion and cannot be reinstated", POSITION_ID);
-    mockMvc.perform(get(ReverseRouter.route(on(ReinstateLicencePositionCorrectionController.class)
+    mockMvc.perform(get(ReverseRouter.route(on(ReinstateLicencePositionStagedPayloadController.class)
             .renderReinstatePosition(CORRECTION, POSITION)))
             .with(user(regulatorUser)))
         .andExpectAll(
@@ -131,7 +131,7 @@ class ReinstateLicencePositionCorrectionControllerTest extends AbstractControlle
 
   @Test
   void reinstatePosition_whenNotLoggedIn() throws Exception {
-    mockMvc.perform(post(ReverseRouter.route(on(ReinstateLicencePositionCorrectionController.class)
+    mockMvc.perform(post(ReverseRouter.route(on(ReinstateLicencePositionStagedPayloadController.class)
             .reinstatePosition(CORRECTION, POSITION, null)))
             .with(csrf()))
         .andExpect(redirectionToLoginUrl());
@@ -147,7 +147,7 @@ class ReinstateLicencePositionCorrectionControllerTest extends AbstractControlle
     when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
         .thenReturn(Optional.of(correction));
     when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(correction));
-    mockMvc.perform(post(ReverseRouter.route(on(ReinstateLicencePositionCorrectionController.class)
+    mockMvc.perform(post(ReverseRouter.route(on(ReinstateLicencePositionStagedPayloadController.class)
             .reinstatePosition(correction, POSITION, null)))
             .with(user(regulatorUser))
             .with(csrf()))
@@ -160,19 +160,19 @@ class ReinstateLicencePositionCorrectionControllerTest extends AbstractControlle
     var position = givenPositionReinstatable(correction, true);
     when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(POSITION));
 
-    mockMvc.perform(post(ReverseRouter.route(on(ReinstateLicencePositionCorrectionController.class)
+    mockMvc.perform(post(ReverseRouter.route(on(ReinstateLicencePositionStagedPayloadController.class)
             .reinstatePosition(CORRECTION, POSITION, null)))
             .with(user(regulatorUser))
             .with(csrf()))
         .andExpectAll(
             status().is3xxRedirection(),
-            redirectedUrl(LicencePositionCorrectionRouteUtil.getPositionPageUrl(CORRECTION, POSITION.getId())),
+            redirectedUrl(LicencePositionStagedPayloadRouteUtil.getPositionPageUrl(CORRECTION, POSITION.getId())),
             notificationBanner(NotificationBanner.newSuccessBanner()
                 .withHeadingContent("Licence correction position reinstated")
                 .build())
         );
 
-    verify(licencePositionCorrectionService).reinstateDeletedPositionCorrection(correction, position);
+    verify(licencePositionStagedPayloadService).reinstateDeletedPositionStagedPayload(correction, position);
   }
 
   @Test
@@ -180,7 +180,7 @@ class ReinstateLicencePositionCorrectionControllerTest extends AbstractControlle
     givenCorrectionNotAllocatedToUser();
 
     var reasonNotAllocated = String.format("Licence correction %s is not assigned to wuaId 1", CORRECTION_ID);
-    mockMvc.perform(post(ReverseRouter.route(on(ReinstateLicencePositionCorrectionController.class)
+    mockMvc.perform(post(ReverseRouter.route(on(ReinstateLicencePositionStagedPayloadController.class)
             .reinstatePosition(CORRECTION, POSITION, null)))
             .with(user(regulatorUser))
             .with(csrf()))
@@ -189,7 +189,7 @@ class ReinstateLicencePositionCorrectionControllerTest extends AbstractControlle
             status().reason(reasonNotAllocated)
         );
 
-    verify(licencePositionCorrectionService, never()).reinstateDeletedPositionCorrection(any(), any());
+    verify(licencePositionStagedPayloadService, never()).reinstateDeletedPositionStagedPayload(any(), any());
   }
 
   @Test
@@ -198,7 +198,7 @@ class ReinstateLicencePositionCorrectionControllerTest extends AbstractControlle
     givenPositionReinstatable(correction, false);
 
     var reasonNotReinstatable = String.format("Licence position %s is not marked for deletion and cannot be reinstated", POSITION_ID);
-    mockMvc.perform(post(ReverseRouter.route(on(ReinstateLicencePositionCorrectionController.class)
+    mockMvc.perform(post(ReverseRouter.route(on(ReinstateLicencePositionStagedPayloadController.class)
             .reinstatePosition(CORRECTION, POSITION, null)))
             .with(user(regulatorUser))
             .with(csrf()))
@@ -207,12 +207,12 @@ class ReinstateLicencePositionCorrectionControllerTest extends AbstractControlle
             status().reason(reasonNotReinstatable)
         );
 
-    verify(licencePositionCorrectionService, never()).reinstateDeletedPositionCorrection(any(), any());
+    verify(licencePositionStagedPayloadService, never()).reinstateDeletedPositionStagedPayload(any(), any());
   }
 
   private LicencePosition givenPositionReinstatable(LicenceCorrection correction, boolean reinstatable) {
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(POSITION);
-    when(licencePositionCorrectionService.canReinstateDeletedPositionCorrection(correction, POSITION))
+    when(licencePositionStagedPayloadService.canReinstateDeletedPositionStagedPayload(correction, POSITION))
         .thenReturn(reinstatable);
     return POSITION;
   }

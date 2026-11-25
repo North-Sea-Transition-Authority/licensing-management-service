@@ -10,8 +10,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayload;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.RemoveChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.VisibleLicenceOperation;
@@ -21,14 +21,14 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.Lic
 @Service
 public class ChangeActionService {
 
-  private final LicencePositionCorrectionService licencePositionCorrectionService;
+  private final LicencePositionStagedPayloadService licencePositionStagedPayloadService;
   private final Map<Class<?>, ChangeActionHandler> handlersByType;
 
   ChangeActionService(
-      LicencePositionCorrectionService licencePositionCorrectionService,
+      LicencePositionStagedPayloadService licencePositionStagedPayloadService,
       List<ChangeActionHandler> changeActionHandlers
   ) {
-    this.licencePositionCorrectionService = licencePositionCorrectionService;
+    this.licencePositionStagedPayloadService = licencePositionStagedPayloadService;
     this.handlersByType = changeActionHandlers.stream()
         .collect(Collectors.toMap(AopUtils::getTargetClass, Function.identity()));
   }
@@ -37,9 +37,9 @@ public class ChangeActionService {
     return firstVisibleOperation(liveChange.getId().toString(), LicencePositionChange.operationsOf(liveChange));
   }
 
-  public VisibleLicenceOperation getOperationOfStagedChange(LicencePositionCorrection positionCorrection, String changeId) {
-    var stagedChange = licencePositionCorrectionService.getStagedChangeOrThrow(positionCorrection, changeId);
-    return firstVisibleOperation(changeId, licencePositionCorrectionService.resolveStagedChangeOperations(stagedChange));
+  public VisibleLicenceOperation getOperationOfStagedChange(LicencePositionStagedPayload positionStagedPayload, String changeId) {
+    var stagedChange = licencePositionStagedPayloadService.getStagedChangeOrThrow(positionStagedPayload, changeId);
+    return firstVisibleOperation(changeId, licencePositionStagedPayloadService.resolveStagedChangeOperations(stagedChange));
   }
 
   public ChangeActionHandler getHandler(VisibleLicenceOperation operation) {
@@ -55,8 +55,8 @@ public class ChangeActionService {
     return handler;
   }
 
-  public ChangeAction getUndoAction(LicencePositionCorrection positionCorrection, String changeId) {
-    if (licencePositionCorrectionService.getStagedChangeOrThrow(positionCorrection, changeId) instanceof RemoveChange) {
+  public ChangeAction getUndoAction(LicencePositionStagedPayload positionStagedPayload, String changeId) {
+    if (licencePositionStagedPayloadService.getStagedChangeOrThrow(positionStagedPayload, changeId) instanceof RemoveChange) {
       return ChangeAction.REINSTATE;
     }
 
@@ -72,10 +72,10 @@ public class ChangeActionService {
     var operation = getOperationOfLiveChange(liveChange);
 
     if (operation.atMostOnePerTransaction()) {
-      licencePositionCorrectionService.dropStagedChangesOf(licenceCorrection, licencePosition, operation.getClass());
+      licencePositionStagedPayloadService.dropStagedChangesOf(licenceCorrection, licencePosition, operation.getClass());
     }
 
-    licencePositionCorrectionService.stageRemovalOfExecutedChange(
+    licencePositionStagedPayloadService.stageRemovalOfExecutedChange(
         licenceCorrection,
         licencePosition,
         liveChange.getId().toString()
@@ -83,16 +83,16 @@ public class ChangeActionService {
   }
 
   @Transactional
-  public void undoStagedChange(LicencePositionCorrection positionCorrection, String changeId) {
-    var stagedChange = licencePositionCorrectionService.getStagedChangeOrThrow(positionCorrection, changeId);
+  public void undoStagedChange(LicencePositionStagedPayload positionStagedPayload, String changeId) {
+    var stagedChange = licencePositionStagedPayloadService.getStagedChangeOrThrow(positionStagedPayload, changeId);
     var operation = firstVisibleOperation(
         changeId,
-        licencePositionCorrectionService.resolveStagedChangeOperations(stagedChange)
+        licencePositionStagedPayloadService.resolveStagedChangeOperations(stagedChange)
     );
 
-    getHandler(operation).beforeDroppingStagedChange(positionCorrection, stagedChange);
+    getHandler(operation).beforeDroppingStagedChange(positionStagedPayload, stagedChange);
 
-    licencePositionCorrectionService.dropStagedChange(positionCorrection, changeId);
+    licencePositionStagedPayloadService.dropStagedChange(positionStagedPayload, changeId);
   }
 
   // TODO: LMS2-499 Update changes to store a single operation rather than allowing a list

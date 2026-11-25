@@ -30,9 +30,9 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionRouteUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayload;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadRouteUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subarea.review.SubareaChangeReviewController;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.FeatureTestUtil;
@@ -46,7 +46,7 @@ class SubareaChangeControllerTest extends AbstractControllerTest {
       .withLicenceReference("P/1")
       .build();
   private static final UUID CORRECTION_ID = UUID.randomUUID();
-  private static final UUID POSITION_CORRECTION_ID = UUID.randomUUID();
+  private static final UUID POSITION_STAGED_PAYLOAD_ID = UUID.randomUUID();
   private static final UUID COMMAND_JOURNEY_ID = UUID.randomUUID();
   private static final int ED50_WKID = 4230;
   private static final String VIEW_NAME = "lms/licence/correction/change/subarea/subareaChange";
@@ -55,8 +55,8 @@ class SubareaChangeControllerTest extends AbstractControllerTest {
       .withId(CORRECTION_ID)
       .withLicence(LICENCE)
       .build();
-  private static final LicencePositionCorrection POSITION_CORRECTION = LicencePositionCorrectionTestUtil.newBuilder()
-      .withId(POSITION_CORRECTION_ID)
+  private static final LicencePositionStagedPayload POSITION_STAGED_PAYLOAD = LicencePositionStagedPayloadTestUtil.newBuilder()
+      .withId(POSITION_STAGED_PAYLOAD_ID)
       .withLicenceCorrection(CORRECTION)
       .build();
   private static final Feature BLOCK_FEATURE = FeatureTestUtil.builder()
@@ -95,7 +95,7 @@ class SubareaChangeControllerTest extends AbstractControllerTest {
         .thenReturn(Optional.of(correction));
     when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(correction));
     mockMvc.perform(get(ReverseRouter.route(on(SubareaChangeController.class)
-            .renderSubareaChange(correction, POSITION_CORRECTION, BLOCK_FEATURE_ID)))
+            .renderSubareaChange(correction, POSITION_STAGED_PAYLOAD, BLOCK_FEATURE_ID)))
             .with(user(regulatorUser)))
         .andExpect(status().isForbidden())
         .andExpect(status().reason(
@@ -122,7 +122,7 @@ class SubareaChangeControllerTest extends AbstractControllerTest {
   @Test
   void renderSubareaChange_rendersMapWithCommandJourneyAndSrsWkid() throws Exception {
     var correction = givenCorrectionAllocatedToUser();
-    var positionCorrection = givenSubareaChange(addedPositionCorrection(correction));
+    var positionStagedPayload = givenSubareaChange(addedPositionStagedPayload(correction));
     when(featureService.getFeatureOrThrow(BLOCK_FEATURE_ID)).thenReturn(BLOCK_FEATURE);
 
     mockMvc.perform(get(subareaChangeUrl())
@@ -134,7 +134,7 @@ class SubareaChangeControllerTest extends AbstractControllerTest {
             model().attribute("srsWkid", ED50_WKID),
             model().attribute("pageTitle", "Subarea change"),
             model().attribute("pageCaption", LICENCE.getLicenceReference()),
-            model().attribute("backLinkUrl", LicencePositionCorrectionRouteUtil.getPositionPageUrl(correction, positionCorrection.getPositionId())));
+            model().attribute("backLinkUrl", LicencePositionStagedPayloadRouteUtil.getPositionPageUrl(correction, positionStagedPayload.getPositionId())));
   }
 
   @Test
@@ -148,7 +148,7 @@ class SubareaChangeControllerTest extends AbstractControllerTest {
         .thenReturn(Optional.of(correction));
     when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(correction));
     mockMvc.perform(post(ReverseRouter.route(on(SubareaChangeController.class)
-            .complete(correction, POSITION_CORRECTION, BLOCK_FEATURE_ID)))
+            .complete(correction, POSITION_STAGED_PAYLOAD, BLOCK_FEATURE_ID)))
             .with(user(regulatorUser))
             .with(csrf()))
         .andExpect(status().isForbidden())
@@ -159,7 +159,7 @@ class SubareaChangeControllerTest extends AbstractControllerTest {
   @Test
   void complete_whenChangeMade_redirectsToReview() throws Exception {
     var correction = givenCorrectionAllocatedToUser();
-    var positionCorrection = givenSubareaChange(addedPositionCorrection(correction));
+    var positionStagedPayload = givenSubareaChange(addedPositionStagedPayload(correction));
     when(subareaChangeValidator.hasErrors(COMMAND_JOURNEY_ID)).thenReturn(false);
 
     mockMvc.perform(post(completeUrl())
@@ -168,13 +168,13 @@ class SubareaChangeControllerTest extends AbstractControllerTest {
         .andExpectAll(
             status().is3xxRedirection(),
             redirectedUrl(ReverseRouter.route(on(SubareaChangeReviewController.class)
-                .renderStagedReview(correction, positionCorrection, BLOCK_FEATURE_ID, null))));
+                .renderStagedReview(correction, positionStagedPayload, BLOCK_FEATURE_ID, null))));
   }
 
   @Test
   void complete_whenNoChangeMade_rendersMapWithError() throws Exception {
     var correction = givenCorrectionAllocatedToUser();
-    givenSubareaChange(addedPositionCorrection(correction));
+    givenSubareaChange(addedPositionStagedPayload(correction));
     when(subareaChangeValidator.hasErrors(COMMAND_JOURNEY_ID)).thenReturn(true);
     when(featureService.getFeatureOrThrow(BLOCK_FEATURE_ID)).thenReturn(BLOCK_FEATURE);
 
@@ -193,12 +193,12 @@ class SubareaChangeControllerTest extends AbstractControllerTest {
         .isEqualTo(List.of(new ErrorSummaryItem(1, "subarea-change", NO_CHANGE_ERROR)));
   }
 
-  private LicencePositionCorrection givenSubareaChange(LicencePositionCorrection positionCorrection) {
-    when(licencePositionCorrectionService.findById(POSITION_CORRECTION_ID))
-        .thenReturn(Optional.of(positionCorrection));
-    when(subareaChangeService.getSubareaOperationOrThrow(positionCorrection, BLOCK_FEATURE_ID))
+  private LicencePositionStagedPayload givenSubareaChange(LicencePositionStagedPayload positionStagedPayload) {
+    when(licencePositionStagedPayloadService.findById(POSITION_STAGED_PAYLOAD_ID))
+        .thenReturn(Optional.of(positionStagedPayload));
+    when(subareaChangeService.getSubareaOperationOrThrow(positionStagedPayload, BLOCK_FEATURE_ID))
         .thenReturn(new SubareaOperation(UUID.randomUUID(), BLOCK_FEATURE_ID, List.of(), COMMAND_JOURNEY_ID));
-    return positionCorrection;
+    return positionStagedPayload;
   }
 
   private LicenceCorrection givenCorrectionAllocatedToUser() {
@@ -209,20 +209,20 @@ class SubareaChangeControllerTest extends AbstractControllerTest {
     return correction;
   }
 
-  private LicencePositionCorrection addedPositionCorrection(LicenceCorrection correction) {
-    return LicencePositionCorrectionTestUtil.newBuilder()
-        .withId(POSITION_CORRECTION_ID)
+  private LicencePositionStagedPayload addedPositionStagedPayload(LicenceCorrection correction) {
+    return LicencePositionStagedPayloadTestUtil.newBuilder()
+        .withId(POSITION_STAGED_PAYLOAD_ID)
         .withLicenceCorrection(correction)
         .build();
   }
 
   private static String subareaChangeUrl() {
     return ReverseRouter.route(on(SubareaChangeController.class)
-        .renderSubareaChange(CORRECTION, POSITION_CORRECTION, BLOCK_FEATURE_ID));
+        .renderSubareaChange(CORRECTION, POSITION_STAGED_PAYLOAD, BLOCK_FEATURE_ID));
   }
 
   private static String completeUrl() {
     return ReverseRouter.route(on(SubareaChangeController.class)
-        .complete(CORRECTION, POSITION_CORRECTION, BLOCK_FEATURE_ID));
+        .complete(CORRECTION, POSITION_STAGED_PAYLOAD, BLOCK_FEATURE_ID));
   }
 }

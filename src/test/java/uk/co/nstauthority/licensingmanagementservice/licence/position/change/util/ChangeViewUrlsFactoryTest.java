@@ -14,8 +14,8 @@ import org.junit.jupiter.params.provider.MethodSource;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectionPosition;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayload;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.AddPositionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.action.ChangeActionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.form.ChangeFormController;
@@ -46,19 +46,19 @@ class ChangeViewUrlsFactoryTest {
 
   private static final LicenceCorrection CORRECTION = LicenceCorrectionTestUtil.newBuilder().build();
   private static final LicencePosition LICENCE_POSITION = LicencePositionTestUtil.newBuilder().withId(POSITION_ID).build();
-  private static final LicencePositionCorrection POSITION_CORRECTION =
-      LicencePositionCorrectionTestUtil.newBuilder().build();
+  private static final LicencePositionStagedPayload POSITION_STAGED_PAYLOAD =
+      LicencePositionStagedPayloadTestUtil.newBuilder().build();
   private static final LicencePositionChange CHANGE_ENTITY =
       LicencePositionChangeTestUtil.newBuilder().withId(CHANGE_ID).build();
 
   private static final CorrectionPosition EXECUTED_CORRECTION_POSITION =
       new CorrectionPosition.Executed(CORRECTION, LICENCE_POSITION);
-  private static final CorrectionPosition STAGED_POSITION = new CorrectionPosition.Staged(POSITION_CORRECTION);
+  private static final CorrectionPosition STAGED_POSITION = new CorrectionPosition.Staged(POSITION_STAGED_PAYLOAD);
 
   private static final PositionChangeUrlContext EXECUTED_POSITION =
-      PositionChangeUrlContext.forExecutedPosition(CORRECTION, LICENCE_POSITION, POSITION_CORRECTION);
+      PositionChangeUrlContext.forExecutedPosition(CORRECTION, LICENCE_POSITION, POSITION_STAGED_PAYLOAD);
   private static final PositionChangeUrlContext ADDED_POSITION =
-      PositionChangeUrlContext.forAddedPosition(CORRECTION, POSITION_CORRECTION);
+      PositionChangeUrlContext.forAddedPosition(CORRECTION, POSITION_STAGED_PAYLOAD);
 
   private static final VisibleLicenceOperation ADMINISTRATOR =
       LicenceOperation.newAdministratorChange().withOperator(1).build();
@@ -217,11 +217,11 @@ class ChangeViewUrlsFactoryTest {
         .renderSummaryForPosition(EXECUTED_CORRECTION_POSITION));
 
     var partialSurrenderStaged = ReverseRouter.route(on(PartialSurrenderTaskListController.class)
-        .renderTaskList(CORRECTION, POSITION_CORRECTION, null));
+        .renderTaskList(CORRECTION, POSITION_STAGED_PAYLOAD, null));
     var partialSurrenderCorrecting = ReverseRouter.route(on(PartialSurrenderTaskListController.class)
         .renderForCorrectingChange(CORRECTION, LICENCE_POSITION, CHANGE_ENTITY, null));
     var partialSurrenderReviewStaged = ReverseRouter.route(on(PartialSurrenderReviewAndSubmitController.class)
-        .renderReviewAndSubmit(CORRECTION, POSITION_CORRECTION, null));
+        .renderReviewAndSubmit(CORRECTION, POSITION_STAGED_PAYLOAD, null));
     var partialSurrenderReviewCorrecting = ReverseRouter.route(on(PartialSurrenderReviewAndSubmitController.class)
         .renderReviewAndSubmitForCorrectingChange(CORRECTION, LICENCE_POSITION, CHANGE_ENTITY, null));
 
@@ -236,14 +236,14 @@ class ChangeViewUrlsFactoryTest {
         .correctLiveChange(CORRECTION, LICENCE_POSITION, CHANGE_ENTITY, null, null, null));
 
     var explorationOperatorAdded = ReverseRouter.route(on(ChangeFormController.class)
-        .addToPosition(new CorrectionPosition.Staged(POSITION_CORRECTION), AddPositionChangeType.EXPLORATION_OPERATOR, null, null, null));
+        .addToPosition(new CorrectionPosition.Staged(POSITION_STAGED_PAYLOAD), AddPositionChangeType.EXPLORATION_OPERATOR, null, null, null));
     var explorationOperatorExecuted = ReverseRouter.route(on(ChangeFormController.class)
         .addToPosition(new CorrectionPosition.Executed(CORRECTION, LICENCE_POSITION), AddPositionChangeType.EXPLORATION_OPERATOR, null, null, null));
     var explorationOperatorCorrecting = ReverseRouter.route(on(ChangeFormController.class)
         .correctLiveChange(CORRECTION, LICENCE_POSITION, CHANGE_ENTITY, null, null, null));
 
     var subareaCorrect = ReverseRouter.route(on(SubareaChangeReviewController.class)
-        .renderStagedReview(CORRECTION, POSITION_CORRECTION, SUBAREA_BLOCK_FEATURE_ID, null));
+        .renderStagedReview(CORRECTION, POSITION_STAGED_PAYLOAD, SUBAREA_BLOCK_FEATURE_ID, null));
     var subareaCorrecting = ReverseRouter.route(on(SubareaChangeReviewController.class)
         .renderLiveReview(CORRECTION, LICENCE_POSITION, CHANGE_ENTITY, null));
 

@@ -15,8 +15,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
@@ -37,7 +37,7 @@ class PartialSurrenderDetailsSummarySectionServiceTest {
       .build();
 
   @Mock
-  private LicencePositionCorrectionService licencePositionCorrectionService;
+  private LicencePositionStagedPayloadService licencePositionStagedPayloadService;
 
   @InjectMocks
   private PartialSurrenderDetailsSummarySectionService partialSurrenderDetailsSummarySectionService;
@@ -46,14 +46,14 @@ class PartialSurrenderDetailsSummarySectionServiceTest {
   void getSummarySection_whenStaged_thenSectionShowsLicenceAndSurrenderDate() {
     var licence = LicenceTestUtil.builder().withLicenceReference("P/1").build();
     var correction = LicenceCorrectionTestUtil.newBuilder().withLicence(licence).build();
-    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+    var positionStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder()
         .withLicenceCorrection(correction)
         .build();
 
-    when(licencePositionCorrectionService.resolveEffectiveDate(positionCorrection)).thenReturn(SURRENDER_DATE);
+    when(licencePositionStagedPayloadService.resolveEffectiveDate(positionStagedPayload)).thenReturn(SURRENDER_DATE);
 
     var result = partialSurrenderDetailsSummarySectionService.getSummarySection(
-        new PartialSurrenderSummaryContext.Staged(positionCorrection, SURRENDER, LicencePositionState.EMPTY),
+        new PartialSurrenderSummaryContext.Staged(positionStagedPayload, SURRENDER, LicencePositionState.EMPTY),
         null
     );
 
@@ -67,7 +67,7 @@ class PartialSurrenderDetailsSummarySectionServiceTest {
     var licencePosition = LicencePositionTestUtil.newBuilder().withLicence(licence).build();
     var changeId = UUID.randomUUID().toString();
 
-    when(licencePositionCorrectionService.getEffectivePositionDate(correction, licencePosition))
+    when(licencePositionStagedPayloadService.getEffectivePositionDate(correction, licencePosition))
         .thenReturn(SURRENDER_DATE);
 
     var result = partialSurrenderDetailsSummarySectionService.getSummarySection(
@@ -104,7 +104,7 @@ class PartialSurrenderDetailsSummarySectionServiceTest {
     );
 
     assertThat(result).get().usingRecursiveComparison().isEqualTo(expectedSection("P/1"));
-    verifyNoInteractions(licencePositionCorrectionService);
+    verifyNoInteractions(licencePositionStagedPayloadService);
   }
 
   @Test
@@ -131,7 +131,7 @@ class PartialSurrenderDetailsSummarySectionServiceTest {
     );
 
     assertThat(result).get().usingRecursiveComparison().isEqualTo(expectedSection("P/1"));
-    verifyNoInteractions(licencePositionCorrectionService);
+    verifyNoInteractions(licencePositionStagedPayloadService);
   }
 
   private SummarySection expectedSection(String licenceReference) {

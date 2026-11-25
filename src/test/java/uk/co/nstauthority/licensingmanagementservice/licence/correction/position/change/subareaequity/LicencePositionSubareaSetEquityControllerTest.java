@@ -36,9 +36,9 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceC
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectionPosition;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionRouteUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayload;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadRouteUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.LicencePositionAddChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.setequity.LicencePositionSetEquityForm;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.setequity.LicencePositionSetEquityFormValidator;
@@ -64,14 +64,14 @@ class LicencePositionSubareaSetEquityControllerTest extends AbstractControllerTe
       .withLicenceReference("P/1")
       .build();
   private static final UUID CORRECTION_ID = UUID.randomUUID();
-  private static final UUID POSITION_CORRECTION_ID = UUID.randomUUID();
+  private static final UUID POSITION_STAGED_PAYLOAD_ID = UUID.randomUUID();
   private static final UUID POSITION_ID = UUID.randomUUID();
   private static final LicenceCorrection CORRECTION = LicenceCorrectionTestUtil.newBuilder()
       .withId(CORRECTION_ID)
       .withLicence(LICENCE)
       .build();
-  private static final LicencePositionCorrection POSITION_CORRECTION = LicencePositionCorrectionTestUtil.newBuilder()
-      .withId(POSITION_CORRECTION_ID)
+  private static final LicencePositionStagedPayload POSITION_STAGED_PAYLOAD = LicencePositionStagedPayloadTestUtil.newBuilder()
+      .withId(POSITION_STAGED_PAYLOAD_ID)
       .withLicenceCorrection(CORRECTION)
       .build();
   private static final LicencePosition POSITION = LicencePositionTestUtil.newBuilder()
@@ -259,7 +259,7 @@ class LicencePositionSubareaSetEquityControllerTest extends AbstractControllerTe
                 .renderForPosition(new CorrectionPosition.Executed(CORRECTION, POSITION), SUBAREA_KEY))),
             model().attribute("saveAndContinueUrl", ReverseRouter.route(on(LicencePositionSubareaSetEquityController.class)
                 .submitSummaryForPosition(new CorrectionPosition.Executed(CORRECTION, POSITION)))),
-            model().attribute("backLinkUrl", LicencePositionCorrectionRouteUtil.getPositionPageUrl(CORRECTION, POSITION.getId())));
+            model().attribute("backLinkUrl", LicencePositionStagedPayloadRouteUtil.getPositionPageUrl(CORRECTION, POSITION.getId())));
   }
 
   @Test
@@ -289,7 +289,7 @@ class LicencePositionSubareaSetEquityControllerTest extends AbstractControllerTe
             .submitSummaryForPosition(new CorrectionPosition.Executed(CORRECTION, POSITION))))
             .with(user(regulatorUser)).with(csrf()))
         .andExpect(status().is3xxRedirection())
-        .andExpect(redirectedUrl(LicencePositionCorrectionRouteUtil.getPositionPageUrl(CORRECTION, POSITION.getId())));
+        .andExpect(redirectedUrl(LicencePositionStagedPayloadRouteUtil.getPositionPageUrl(CORRECTION, POSITION.getId())));
 
     verifyNoInteractions(subareaSetEquityCorrectionService);
   }
@@ -298,7 +298,7 @@ class LicencePositionSubareaSetEquityControllerTest extends AbstractControllerTe
   void submitForPosition_whenStagedPositionAndOrganisationAlreadyAddedToSubarea_rendersFormAndDoesNotPersist() throws Exception {
     givenCorrectionAllocatedToUser();
     givenAddedPositionWithSubarea();
-    when(subareaSetEquityCorrectionService.getCommittedSubareaSetEquityOperations(new CorrectionPosition.Staged(POSITION_CORRECTION), SUBAREA_OPTION))
+    when(subareaSetEquityCorrectionService.getCommittedSubareaSetEquityOperations(new CorrectionPosition.Staged(POSITION_STAGED_PAYLOAD), SUBAREA_OPTION))
         .thenReturn(List.of(subareaSetEquityOperation(123, 40)));
 
     var form = new LicencePositionSetEquityForm();
@@ -308,7 +308,7 @@ class LicencePositionSubareaSetEquityControllerTest extends AbstractControllerTe
     when(validator.hasErrors(eq(form), any(BindingResult.class), eq(List.of(123)))).thenReturn(true);
 
     mockMvc.perform(post(ReverseRouter.route(on(LicencePositionSubareaSetEquityController.class)
-            .submitForPosition(new CorrectionPosition.Staged(POSITION_CORRECTION), SUBAREA_KEY, null, null, null)))
+            .submitForPosition(new CorrectionPosition.Staged(POSITION_STAGED_PAYLOAD), SUBAREA_KEY, null, null, null)))
             .with(user(regulatorUser)).with(csrf())
             .flashAttr("form", form))
         .andExpectAll(
@@ -316,22 +316,22 @@ class LicencePositionSubareaSetEquityControllerTest extends AbstractControllerTe
             view().name(FORM_VIEW),
             model().attribute("pageCaption", PAGE_CAPTION),
             model().attribute("backLinkUrl", ReverseRouter.route(on(LicencePositionAddChangeController.class)
-                .renderForPosition(new CorrectionPosition.Staged(POSITION_CORRECTION)))));
+                .renderForPosition(new CorrectionPosition.Staged(POSITION_STAGED_PAYLOAD)))));
 
-    verify(subareaSetEquityCorrectionService).getCommittedSubareaSetEquityOperations(new CorrectionPosition.Staged(POSITION_CORRECTION), SUBAREA_OPTION);
+    verify(subareaSetEquityCorrectionService).getCommittedSubareaSetEquityOperations(new CorrectionPosition.Staged(POSITION_STAGED_PAYLOAD), SUBAREA_OPTION);
     verifyNoMoreInteractions(subareaSetEquityCorrectionService);
   }
 
   @Test
   void submitSummaryForPosition_whenStagedPosition_redirectsToAddedPosition() throws Exception {
     givenCorrectionAllocatedToUser();
-    givenCorrectionPosition(new CorrectionPosition.Staged(POSITION_CORRECTION));
+    givenCorrectionPosition(new CorrectionPosition.Staged(POSITION_STAGED_PAYLOAD));
 
     mockMvc.perform(post(ReverseRouter.route(on(LicencePositionSubareaSetEquityController.class)
-            .submitSummaryForPosition(new CorrectionPosition.Staged(POSITION_CORRECTION))))
+            .submitSummaryForPosition(new CorrectionPosition.Staged(POSITION_STAGED_PAYLOAD))))
             .with(user(regulatorUser)).with(csrf()))
         .andExpect(status().is3xxRedirection())
-        .andExpect(redirectedUrl(LicencePositionCorrectionRouteUtil.getPositionPageUrl(CORRECTION, POSITION_CORRECTION.getPositionId())));
+        .andExpect(redirectedUrl(LicencePositionStagedPayloadRouteUtil.getPositionPageUrl(CORRECTION, POSITION_STAGED_PAYLOAD.getPositionId())));
 
     verifyNoInteractions(subareaSetEquityCorrectionService);
   }
@@ -347,7 +347,7 @@ class LicencePositionSubareaSetEquityControllerTest extends AbstractControllerTe
     when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(carbonStorageCorrection));
 
     mockMvc.perform(get(ReverseRouter.route(on(LicencePositionSubareaSetEquityController.class)
-            .renderForPosition(new CorrectionPosition.Staged(POSITION_CORRECTION), SUBAREA_KEY)))
+            .renderForPosition(new CorrectionPosition.Staged(POSITION_STAGED_PAYLOAD), SUBAREA_KEY)))
             .with(user(regulatorUser)))
         .andExpect(status().isForbidden());
 
@@ -360,7 +360,7 @@ class LicencePositionSubareaSetEquityControllerTest extends AbstractControllerTe
         .thenReturn(Optional.empty());
 
     mockMvc.perform(get(ReverseRouter.route(on(LicencePositionSubareaSetEquityController.class)
-            .renderForPosition(new CorrectionPosition.Staged(POSITION_CORRECTION), SUBAREA_KEY)))
+            .renderForPosition(new CorrectionPosition.Staged(POSITION_STAGED_PAYLOAD), SUBAREA_KEY)))
             .with(user(regulatorUser)))
         .andExpect(status().isForbidden());
 
@@ -379,7 +379,7 @@ class LicencePositionSubareaSetEquityControllerTest extends AbstractControllerTe
   }
 
   private void givenAddedPositionWithSubarea() {
-    var correctionPosition = givenCorrectionPosition(new CorrectionPosition.Staged(POSITION_CORRECTION));
+    var correctionPosition = givenCorrectionPosition(new CorrectionPosition.Staged(POSITION_STAGED_PAYLOAD));
     when(subareaEquityOptionsService.getSubareaOptionOrThrow(correctionPosition, SUBAREA_KEY)).thenReturn(SUBAREA_OPTION);
   }
 

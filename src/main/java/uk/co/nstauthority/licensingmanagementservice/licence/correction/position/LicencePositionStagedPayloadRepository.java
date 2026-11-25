@@ -10,25 +10,25 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceC
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 
 @Repository
-public interface LicencePositionCorrectionRepository
-    extends JpaRepository<LicencePositionCorrection, UUID>, NotDuplicationSource {
+public interface LicencePositionStagedPayloadRepository
+    extends JpaRepository<LicencePositionStagedPayload, UUID>, NotDuplicationSource {
 
-  List<LicencePositionCorrection> findByLicenceCorrection(LicenceCorrection licenceCorrection);
+  List<LicencePositionStagedPayload> findByLicenceCorrection(LicenceCorrection licenceCorrection);
 
-  List<LicencePositionCorrection> findByLicenceCorrectionAndChangeType(
+  List<LicencePositionStagedPayload> findByLicenceCorrectionAndChangeType(
       LicenceCorrection licenceCorrection,
-      LicencePositionCorrectionChangeType changeType
+      LicencePositionStagedPayloadChangeType changeType
   );
 
   boolean existsByLicenceCorrectionAndTargetLicencePositionAndChangeType(
       LicenceCorrection licenceCorrection,
       LicencePosition licencePosition,
-      LicencePositionCorrectionChangeType changeType
+      LicencePositionStagedPayloadChangeType changeType
   );
 
-  Optional<LicencePositionCorrection> findByLicenceCorrectionAndTargetLicencePositionAndChangeType(
+  Optional<LicencePositionStagedPayload> findByLicenceCorrectionAndTargetLicencePositionAndChangeType(
       LicenceCorrection licenceCorrection,
       LicencePosition licencePosition,
-      LicencePositionCorrectionChangeType changeType
+      LicencePositionStagedPayloadChangeType changeType
   );
 }

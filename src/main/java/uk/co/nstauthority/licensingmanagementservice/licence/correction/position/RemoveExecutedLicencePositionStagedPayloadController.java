@@ -9,8 +9,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.CorrectionHasStatus;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanRemoveLicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanViewCorrection;
-import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.LicencePositionCanBeReinstantiated;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.position.LicencePositionBelongsToCorrectionLicence;
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
@@ -20,51 +20,54 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePos
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @Controller
-@RequestMapping("/licence-corrections/{correctionId}/positions/{licencePositionId}/reinstate")
+@RequestMapping("/licence-corrections/{correctionId}/positions/{licencePositionId}/remove")
 @InvokingUserCanViewCorrection
+@InvokingUserCanRemoveLicencePosition
 @CorrectionHasStatus(LicenceCorrectionStatus.IN_PROGRESS)
-@LicencePositionCanBeReinstantiated
 @LicencePositionBelongsToCorrectionLicence
-public class ReinstateLicencePositionCorrectionController {
+public class RemoveExecutedLicencePositionStagedPayloadController {
 
-  private static final String PAGE_TITLE = "Are you sure you want to reinstate this position?";
+  private static final String PAGE_TITLE = "Are you sure you want to remove this position?";
 
-  private final LicencePositionCorrectionService licencePositionCorrectionService;
+  private final LicencePositionStagedPayloadService licencePositionStagedPayloadService;
 
-  public ReinstateLicencePositionCorrectionController(LicencePositionCorrectionService licencePositionCorrectionService) {
-    this.licencePositionCorrectionService = licencePositionCorrectionService;
+  public RemoveExecutedLicencePositionStagedPayloadController(
+      LicencePositionStagedPayloadService licencePositionStagedPayloadService
+  ) {
+    this.licencePositionStagedPayloadService = licencePositionStagedPayloadService;
   }
 
   @GetMapping
-  public ModelAndView renderReinstatePosition(
+  public ModelAndView renderRemovePosition(
       LicenceCorrection correction,
       LicencePosition licencePosition
   ) {
-    return reinstatePositionModelAndView(correction, licencePosition);
+    return removePositionModelAndView(correction, licencePosition);
   }
 
   @PostMapping
-  ModelAndView reinstatePosition(
+  ModelAndView removePosition(
       LicenceCorrection correction,
       LicencePosition licencePosition,
       RedirectAttributes redirectAttributes
   ) {
-    licencePositionCorrectionService.reinstateDeletedPositionCorrection(correction, licencePosition);
+    licencePositionStagedPayloadService.removeExecutedPosition(correction, licencePosition);
 
     NotificationBanner.newSuccessBanner()
-        .withHeadingContent("Licence correction position reinstated")
+        .withHeadingContent("Licence correction position removed")
         .applyTo(redirectAttributes);
 
-    return LicencePositionCorrectionRouteUtil.redirectToPositionPage(correction, licencePosition.getId());
+    return LicencePositionStagedPayloadRouteUtil.redirectToPositionPage(correction, licencePosition.getId());
   }
 
-  private ModelAndView reinstatePositionModelAndView(LicenceCorrection correction, LicencePosition licencePosition) {
-    return new ModelAndView("lms/licence/correction/reinstatePosition")
+  private ModelAndView removePositionModelAndView(
+      LicenceCorrection correction,
+      LicencePosition licencePosition
+  ) {
+    return new ModelAndView("lms/licence/correction/removePosition")
         .addObject("pageTitle", PAGE_TITLE)
         .addObject("positionDate", licencePosition.getFormattedPositionDate())
-        .addObject("correctionReference", correction.getCorrectionReference())
         .addObject("cancelUrl",
-            ReverseRouter.route(on(LicenceCorrectionController.class)
-                .renderCorrection(correction, null)));
+            ReverseRouter.route(on(LicenceCorrectionController.class).renderCorrection(correction, null)));
   }
 }

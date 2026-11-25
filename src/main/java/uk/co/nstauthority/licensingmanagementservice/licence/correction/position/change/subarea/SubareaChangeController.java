@@ -15,22 +15,22 @@ import uk.co.fivium.gisframework.feature.FeatureService;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.CorrectionHasStatus;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.CorrectionLicenceIsType;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanViewCorrection;
-import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.LicencePositionCorrectionBelongsToCorrection;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.LicencePositionStagedPayloadBelongsToCorrection;
 import uk.co.nstauthority.licensingmanagementservice.fds.error.ErrorSummaryItem;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionRouteUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayload;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadRouteUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subarea.review.SubareaChangeReviewController;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @Controller
 @RequestMapping(
-    "/licence-corrections/{correctionId}/position-correction/{licencePositionCorrectionId}/subarea-change/{blockFeatureId}"
+    "/licence-corrections/{correctionId}/position-staged-payload/{licencePositionStagedPayloadId}/subarea-change/{blockFeatureId}"
 )
 @InvokingUserCanViewCorrection
-@LicencePositionCorrectionBelongsToCorrection
+@LicencePositionStagedPayloadBelongsToCorrection
 @CorrectionHasStatus(LicenceCorrectionStatus.IN_PROGRESS)
 @CorrectionLicenceIsType({LicenceType.SEAWARD_PRODUCTION, LicenceType.LANDWARD_PRODUCTION})
 public class SubareaChangeController {
@@ -55,39 +55,39 @@ public class SubareaChangeController {
   @GetMapping
   public ModelAndView renderSubareaChange(
       LicenceCorrection correction,
-      LicencePositionCorrection licencePositionCorrection,
+      LicencePositionStagedPayload licencePositionStagedPayload,
       @PathVariable UUID blockFeatureId
   ) {
     var commandJourneyId = subareaChangeService
-        .getSubareaOperationOrThrow(licencePositionCorrection, blockFeatureId)
+        .getSubareaOperationOrThrow(licencePositionStagedPayload, blockFeatureId)
         .commandJourneyIdOrThrow();
 
-    return getSubareaChangeModelAndView(correction, licencePositionCorrection, blockFeatureId, commandJourneyId);
+    return getSubareaChangeModelAndView(correction, licencePositionStagedPayload, blockFeatureId, commandJourneyId);
   }
 
   @PostMapping
   ModelAndView complete(
       LicenceCorrection correction,
-      LicencePositionCorrection licencePositionCorrection,
+      LicencePositionStagedPayload licencePositionStagedPayload,
       @PathVariable UUID blockFeatureId
   ) {
     var commandJourneyId = subareaChangeService
-        .getSubareaOperationOrThrow(licencePositionCorrection, blockFeatureId)
+        .getSubareaOperationOrThrow(licencePositionStagedPayload, blockFeatureId)
         .commandJourneyIdOrThrow();
 
     if (subareaChangeValidator.hasErrors(commandJourneyId)) {
-      return getSubareaChangeModelAndView(correction, licencePositionCorrection, blockFeatureId, commandJourneyId)
+      return getSubareaChangeModelAndView(correction, licencePositionStagedPayload, blockFeatureId, commandJourneyId)
           .addObject("errorSummaryItems", List.of(new ErrorSummaryItem(1, "subarea-change", NO_CHANGE_ERROR)))
           .addObject("mapErrorMessage", NO_CHANGE_ERROR);
     }
 
     return ReverseRouter.redirect(on(SubareaChangeReviewController.class)
-        .renderStagedReview(correction, licencePositionCorrection, blockFeatureId, null));
+        .renderStagedReview(correction, licencePositionStagedPayload, blockFeatureId, null));
   }
 
   private ModelAndView getSubareaChangeModelAndView(
       LicenceCorrection correction,
-      LicencePositionCorrection licencePositionCorrection,
+      LicencePositionStagedPayload licencePositionStagedPayload,
       UUID blockFeatureId,
       UUID commandJourneyId
   ) {
@@ -98,6 +98,6 @@ public class SubareaChangeController {
         .addObject("srsWkid", CoordinateSystemUtils.getWkid(coordinateSystem))
         .addObject("pageTitle", PAGE_TITLE)
         .addObject("pageCaption", correction.getLicence().getLicenceReference())
-        .addObject("backLinkUrl", LicencePositionCorrectionRouteUtil.getPositionPageUrl(licencePositionCorrection));
+        .addObject("backLinkUrl", LicencePositionStagedPayloadRouteUtil.getPositionPageUrl(licencePositionStagedPayload));
   }
 }

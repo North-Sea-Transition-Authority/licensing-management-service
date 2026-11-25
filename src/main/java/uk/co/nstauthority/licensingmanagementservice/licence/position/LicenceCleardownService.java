@@ -55,7 +55,7 @@ public class LicenceCleardownService {
         .toList();
 
     deleteChangesOf(licencePositions);
-    deletePositionCorrectionsOf(licenceCorrections);
+    deletePositionStagedPayloadsOf(licenceCorrections);
     licenceCorrectionRepository.deleteAll(licenceCorrections);
     licencePositionRepository.deleteAll(licencePositions);
     licenceTransactionRepository.deleteAll(unheldLicenceTransactions);
@@ -79,12 +79,12 @@ public class LicenceCleardownService {
    * A bulk delete never loads the rows, so payloads stored in a shape that no longer
    * deserialises are cleared all the same. It is not audited.
    */
-  private void deletePositionCorrectionsOf(List<LicenceCorrection> licenceCorrections) {
+  private void deletePositionStagedPayloadsOf(List<LicenceCorrection> licenceCorrections) {
     if (licenceCorrections.isEmpty()) {
       return;
     }
 
-    entityManager.createQuery("DELETE FROM licence_position_corrections c WHERE c.licenceCorrection IN :licenceCorrections")
+    entityManager.createQuery("DELETE FROM licence_position_staged_payloads c WHERE c.licenceCorrection IN :licenceCorrections")
         .setParameter("licenceCorrections", licenceCorrections)
         .executeUpdate();
   }

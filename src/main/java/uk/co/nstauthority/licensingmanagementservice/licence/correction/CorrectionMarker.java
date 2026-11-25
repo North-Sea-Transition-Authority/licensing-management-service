@@ -1,7 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.correction;
 
 import jakarta.annotation.Nullable;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionChangeType;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
 
 public enum CorrectionMarker {
@@ -32,7 +32,7 @@ public enum CorrectionMarker {
     return tagClass;
   }
 
-  public static CorrectionMarker forPosition(LicencePositionCorrectionChangeType changeType) {
+  public static CorrectionMarker forPosition(LicencePositionStagedPayloadChangeType changeType) {
     return switch (changeType) {
       case ADD_POSITION -> POSITION_ADDED;
       case UPDATE_POSITION -> POSITION_CORRECTED;

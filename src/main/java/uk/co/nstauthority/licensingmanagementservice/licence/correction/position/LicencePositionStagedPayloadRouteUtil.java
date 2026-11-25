@@ -10,9 +10,9 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceC
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.util.IllegalUtilClassInstantiationException;
 
-public class LicencePositionCorrectionRouteUtil {
+public class LicencePositionStagedPayloadRouteUtil {
 
-  private LicencePositionCorrectionRouteUtil() {
+  private LicencePositionStagedPayloadRouteUtil() {
     throw new IllegalUtilClassInstantiationException(this.getClass());
   }
 
@@ -34,19 +34,19 @@ public class LicencePositionCorrectionRouteUtil {
   }
 
   /**
-   * The page for the position a position correction stages changes against: the position it adds, or the executed
+   * The page for the position a position staged payload stages changes against: the position it adds, or the executed
    * position it updates.
    */
-  public static String getPositionPageUrl(LicencePositionCorrection positionCorrection) {
-    return getPositionPageUrl(positionCorrection.getLicenceCorrection(), getStagedPositionId(positionCorrection));
+  public static String getPositionPageUrl(LicencePositionStagedPayload positionStagedPayload) {
+    return getPositionPageUrl(positionStagedPayload.getLicenceCorrection(), getStagedPositionId(positionStagedPayload));
   }
 
   /**
-   * Redirect to the page for the position a position correction stages changes against: the position it adds, or the
+   * Redirect to the page for the position a position staged payload stages changes against: the position it adds, or the
    * executed position it updates.
    */
-  public static ModelAndView redirectToPositionPage(LicencePositionCorrection positionCorrection) {
-    return redirectToPositionPage(positionCorrection.getLicenceCorrection(), getStagedPositionId(positionCorrection));
+  public static ModelAndView redirectToPositionPage(LicencePositionStagedPayload positionStagedPayload) {
+    return redirectToPositionPage(positionStagedPayload.getLicenceCorrection(), getStagedPositionId(positionStagedPayload));
   }
 
   /**
@@ -74,13 +74,13 @@ public class LicencePositionCorrectionRouteUtil {
     );
   }
 
-  private static UUID getStagedPositionId(LicencePositionCorrection positionCorrection) {
-    return switch (positionCorrection.getChangeType()) {
-      case ADD_POSITION -> positionCorrection.getPositionId();
-      case UPDATE_POSITION -> positionCorrection.getTargetLicencePosition().getId();
+  private static UUID getStagedPositionId(LicencePositionStagedPayload positionStagedPayload) {
+    return switch (positionStagedPayload.getChangeType()) {
+      case ADD_POSITION -> positionStagedPayload.getPositionId();
+      case UPDATE_POSITION -> positionStagedPayload.getTargetLicencePosition().getId();
       case REMOVE_POSITION -> throw new IllegalStateException(
-          "Licence position correction %s removes a position so cannot have changes made against it"
-              .formatted(positionCorrection.getId()));
+          "Licence position staged payload %s removes a position so cannot have changes made against it"
+              .formatted(positionStagedPayload.getId()));
     };
   }
 }

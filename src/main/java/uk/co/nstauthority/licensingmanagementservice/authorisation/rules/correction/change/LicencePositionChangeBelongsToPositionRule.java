@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.SecurityRuleResult;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.AccessInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionService;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeService;
 import uk.co.nstauthority.licensingmanagementservice.util.RequestUtil;
 
@@ -22,16 +22,16 @@ public class LicencePositionChangeBelongsToPositionRule implements AccessInterce
 
   private final LicencePositionChangeService licencePositionChangeService;
   private final LicenceCorrectionService licenceCorrectionService;
-  private final LicencePositionCorrectionService licencePositionCorrectionService;
+  private final LicencePositionStagedPayloadService licencePositionStagedPayloadService;
 
   public LicencePositionChangeBelongsToPositionRule(
       LicencePositionChangeService licencePositionChangeService,
       LicenceCorrectionService licenceCorrectionService,
-      LicencePositionCorrectionService licencePositionCorrectionService
+      LicencePositionStagedPayloadService licencePositionStagedPayloadService
   ) {
     this.licencePositionChangeService = licencePositionChangeService;
     this.licenceCorrectionService = licenceCorrectionService;
-    this.licencePositionCorrectionService = licencePositionCorrectionService;
+    this.licencePositionStagedPayloadService = licencePositionStagedPayloadService;
   }
 
   @Override
@@ -65,8 +65,8 @@ public class LicencePositionChangeBelongsToPositionRule implements AccessInterce
   private boolean isMovedToPositionInCorrection(HttpServletRequest request, UUID licencePositionId, UUID changeId) {
     return RequestUtil.getId(request, CORRECTION_ID_PATH_VARIABLE)
         .flatMap(licenceCorrectionService::findById)
-        .map(licencePositionCorrectionService::getPositionCorrections)
-        .map(LicencePositionCorrectionService::getUpdatedChangePositionIds)
+        .map(licencePositionStagedPayloadService::getPositionStagedPayloads)
+        .map(LicencePositionStagedPayloadService::getUpdatedChangePositionIds)
         .map(stagedPositionIds -> licencePositionId.equals(stagedPositionIds.get(changeId.toString())))
         .orElse(false);
   }

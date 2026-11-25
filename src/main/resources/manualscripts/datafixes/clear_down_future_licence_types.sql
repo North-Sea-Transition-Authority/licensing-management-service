@@ -189,7 +189,7 @@ DELETE FROM lms.licence_schedules WHERE id IN (SELECT id FROM future_schedules);
 
 -- Corrections and positions
 
-DELETE FROM lms.licence_position_corrections
+DELETE FROM lms.licence_position_staged_payloads
 WHERE licence_correction_id IN (SELECT id FROM future_corrections)
    OR target_licence_position_id IN (SELECT id FROM future_positions);
 DELETE FROM lms.licence_corrections WHERE id IN (SELECT id FROM future_corrections);

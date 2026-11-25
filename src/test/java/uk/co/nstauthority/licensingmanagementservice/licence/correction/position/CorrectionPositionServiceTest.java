@@ -34,7 +34,7 @@ class CorrectionPositionServiceTest {
   private LicencePositionService licencePositionService;
 
   @Mock
-  private LicencePositionCorrectionService licencePositionCorrectionService;
+  private LicencePositionStagedPayloadService licencePositionStagedPayloadService;
 
   @InjectMocks
   private CorrectionPositionService correctionPositionService;
@@ -48,7 +48,7 @@ class CorrectionPositionServiceTest {
 
     when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE))
         .thenReturn(List.of(executedFirstJune, executedTenthJune));
-    when(licencePositionCorrectionService.getAddedLicencePositionCorrections(LICENCE_CORRECTION))
+    when(licencePositionStagedPayloadService.getAddedLicencePositionStagedPayloads(LICENCE_CORRECTION))
         .thenReturn(List.of(stagedFifthJune, stagedFirstJune));
 
     var result = correctionPositionService.getCorrectionPositions(LICENCE_CORRECTION);
@@ -65,8 +65,8 @@ class CorrectionPositionServiceTest {
   void findCorrectionPosition_whenPositionStagedInCorrection_thenStagedPosition() {
     var stagedPosition = stagedPosition(LocalDate.of(2026, Month.JUNE, 1), 1);
 
-    when(licencePositionCorrectionService
-        .findFirstAddedPositionCorrection(LICENCE_CORRECTION, stagedPosition.getPositionId()))
+    when(licencePositionStagedPayloadService
+        .findFirstAddedPositionStagedPayload(LICENCE_CORRECTION, stagedPosition.getPositionId()))
         .thenReturn(Optional.of(stagedPosition));
 
     var result = correctionPositionService.findCorrectionPosition(LICENCE_CORRECTION, stagedPosition.getPositionId());
@@ -78,7 +78,7 @@ class CorrectionPositionServiceTest {
   void findCorrectionPosition_whenExecutedPositionOnTheCorrectionLicence_thenExecutedPosition() {
     var position = LicencePositionTestUtil.newBuilder().withLicence(LICENCE).build();
 
-    when(licencePositionCorrectionService.findFirstAddedPositionCorrection(LICENCE_CORRECTION, position.getId()))
+    when(licencePositionStagedPayloadService.findFirstAddedPositionStagedPayload(LICENCE_CORRECTION, position.getId()))
         .thenReturn(Optional.empty());
     when(licencePositionService.findById(position.getId())).thenReturn(Optional.of(position));
 
@@ -93,7 +93,7 @@ class CorrectionPositionServiceTest {
         .withLicence(LicenceTestUtil.builder().withId(2).build())
         .build();
 
-    when(licencePositionCorrectionService.findFirstAddedPositionCorrection(LICENCE_CORRECTION, position.getId()))
+    when(licencePositionStagedPayloadService.findFirstAddedPositionStagedPayload(LICENCE_CORRECTION, position.getId()))
         .thenReturn(Optional.empty());
     when(licencePositionService.findById(position.getId())).thenReturn(Optional.of(position));
 
@@ -106,7 +106,7 @@ class CorrectionPositionServiceTest {
   void findCorrectionPosition_whenNoSuchPosition_thenEmpty() {
     var positionId = UUID.randomUUID();
 
-    when(licencePositionCorrectionService.findFirstAddedPositionCorrection(LICENCE_CORRECTION, positionId))
+    when(licencePositionStagedPayloadService.findFirstAddedPositionStagedPayload(LICENCE_CORRECTION, positionId))
         .thenReturn(Optional.empty());
     when(licencePositionService.findById(positionId)).thenReturn(Optional.empty());
 
@@ -123,10 +123,10 @@ class CorrectionPositionServiceTest {
         .build();
   }
 
-  private static LicencePositionCorrection stagedPosition(LocalDate effectiveDate, int effectiveDateOrder) {
-    return LicencePositionCorrectionTestUtil.newBuilder()
+  private static LicencePositionStagedPayload stagedPosition(LocalDate effectiveDate, int effectiveDateOrder) {
+    return LicencePositionStagedPayloadTestUtil.newBuilder()
         .withLicenceCorrection(LICENCE_CORRECTION)
-        .withChangeType(LicencePositionCorrectionChangeType.ADD_POSITION)
+        .withChangeType(LicencePositionStagedPayloadChangeType.ADD_POSITION)
         .withPayload(CreateLicencePositionPayloadTestUtil.newBuilder()
             .withEffectiveDate(effectiveDate)
             .withEffectiveDateOrder(effectiveDateOrder)

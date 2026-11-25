@@ -20,7 +20,7 @@ import uk.co.fivium.gisframework.feature.FeatureService;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderType;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation.SurrenderDetails;
@@ -66,7 +66,7 @@ class PartialSurrenderLicenceAreaSummarySectionServiceTest {
         .withSurrenderedFeatureIds(List.of(SECOND_BLOCK.getId()))
         .build();
     var context = new PartialSurrenderSummaryContext.Staged(
-        LicencePositionCorrectionTestUtil.newBuilder().build(),
+        LicencePositionStagedPayloadTestUtil.newBuilder().build(),
         surrender,
         LicencePositionState.EMPTY
     );
@@ -91,7 +91,7 @@ class PartialSurrenderLicenceAreaSummarySectionServiceTest {
         )))
         .build();
     var context = new PartialSurrenderSummaryContext.Staged(
-        LicencePositionCorrectionTestUtil.newBuilder().withLicenceCorrection(correction).build(),
+        LicencePositionStagedPayloadTestUtil.newBuilder().withLicenceCorrection(correction).build(),
         surrender,
         STATE_BEFORE
     );
@@ -130,7 +130,7 @@ class PartialSurrenderLicenceAreaSummarySectionServiceTest {
         ))
         .build();
     var context = new PartialSurrenderSummaryContext.Staged(
-        LicencePositionCorrectionTestUtil.newBuilder().withLicenceCorrection(correction).build(),
+        LicencePositionStagedPayloadTestUtil.newBuilder().withLicenceCorrection(correction).build(),
         surrender,
         STATE_BEFORE
     );

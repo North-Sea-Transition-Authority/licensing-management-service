@@ -34,9 +34,9 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectionPosition;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayload;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subareaequity.SubareaSetEquityCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.AddChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
@@ -65,7 +65,7 @@ class SubareaChangeServiceTest {
   private static final UUID COMMAND_JOURNEY_ID = UUID.randomUUID();
 
   @Mock
-  private LicencePositionCorrectionService licencePositionCorrectionService;
+  private LicencePositionStagedPayloadService licencePositionStagedPayloadService;
 
   @Mock
   private LicencePositionSpatialService licencePositionSpatialService;
@@ -91,23 +91,23 @@ class SubareaChangeServiceTest {
   @Test
   void commitSubareaChange_whenExecutedPosition() {
     var licencePosition = LicencePositionTestUtil.newBuilder().build();
-    var positionCorrection = positionCorrectionWithChanges(List.of());
-    var savedPositionCorrection = positionCorrectionWithChanges(List.of());
-    when(licencePositionCorrectionService.getOrBuildUpdatePositionCorrection(LICENCE_CORRECTION, licencePosition))
-        .thenReturn(positionCorrection);
-    givenCommandJourneyCreatedForSubareas(positionCorrection);
-    when(licencePositionCorrectionService.replaceAddChangeForExecutedPosition(
+    var positionStagedPayload = positionStagedPayloadWithChanges(List.of());
+    var savedPositionStagedPayload = positionStagedPayloadWithChanges(List.of());
+    when(licencePositionStagedPayloadService.getOrBuildUpdatePositionStagedPayload(LICENCE_CORRECTION, licencePosition))
+        .thenReturn(positionStagedPayload);
+    givenCommandJourneyCreatedForSubareas(positionStagedPayload);
+    when(licencePositionStagedPayloadService.replaceAddChangeForExecutedPosition(
         eq(LICENCE_CORRECTION),
         eq(licencePosition),
-        eq(positionCorrection),
+        eq(positionStagedPayload),
         eq(SubareaOperation.class),
         operationToReplaceCaptor.capture(),
         operationsCaptor.capture()
-    )).thenReturn(savedPositionCorrection);
+    )).thenReturn(savedPositionStagedPayload);
 
     var result = subareaChangeService.commitSubareaChange(new CorrectionPosition.Executed(LICENCE_CORRECTION, licencePosition), BLOCK_FEATURE_ID);
 
-    assertThat(result).isSameAs(savedPositionCorrection);
+    assertThat(result).isSameAs(savedPositionStagedPayload);
     assertThat(operationsCaptor.getValue())
         .usingRecursiveComparison()
         .ignoringFields("id")
@@ -118,15 +118,15 @@ class SubareaChangeServiceTest {
   }
 
   @Test
-  void commitSubareaChange_whenStagedPosition_thenStagesOnTheAddCorrectionAndReturnsIt() {
-    var positionCorrection = positionCorrectionWithChanges(List.of());
-    givenCommandJourneyCreatedForSubareas(positionCorrection);
+  void commitSubareaChange_whenStagedPosition_thenStagesOnTheAddedPositionStagedPayloadAndReturnsIt() {
+    var positionStagedPayload = positionStagedPayloadWithChanges(List.of());
+    givenCommandJourneyCreatedForSubareas(positionStagedPayload);
 
-    var result = subareaChangeService.commitSubareaChange(new CorrectionPosition.Staged(positionCorrection), BLOCK_FEATURE_ID);
+    var result = subareaChangeService.commitSubareaChange(new CorrectionPosition.Staged(positionStagedPayload), BLOCK_FEATURE_ID);
 
-    assertThat(result).isSameAs(positionCorrection);
-    verify(licencePositionCorrectionService).replaceAddChangeFor(
-        eq(positionCorrection),
+    assertThat(result).isSameAs(positionStagedPayload);
+    verify(licencePositionStagedPayloadService).replaceAddChangeFor(
+        eq(positionStagedPayload),
         eq(SubareaOperation.class),
         operationToReplaceCaptor.capture(),
         operationsCaptor.capture()
@@ -139,9 +139,9 @@ class SubareaChangeServiceTest {
 
   @Test
   void commitSubareaChange_whenSubareaHasNoFeature_createsJourneyForOnlySubareasWithFeatures() {
-    var positionCorrection = positionCorrectionWithChanges(List.of());
+    var positionStagedPayload = positionStagedPayloadWithChanges(List.of());
     var subareaFeature = FeatureTestUtil.builder().build();
-    when(licencePositionSpatialService.getSubareasGoingIntoChange(positionCorrection, BLOCK_FEATURE_ID, null))
+    when(licencePositionSpatialService.getSubareasGoingIntoChange(positionStagedPayload, BLOCK_FEATURE_ID, null))
         .thenReturn(List.of(
             new SubareaDetails(subareaFeature.getId(), "ALL", "A"),
             new SubareaDetails(null, "DISCOVERY AREA", "B")
@@ -150,10 +150,10 @@ class SubareaChangeServiceTest {
     when(commandJourneyService.createAndAssignCommandJourney(List.of(subareaFeature)))
         .thenReturn(commandJourney());
 
-    subareaChangeService.commitSubareaChange(positionCorrection, BLOCK_FEATURE_ID);
+    subareaChangeService.commitSubareaChange(positionStagedPayload, BLOCK_FEATURE_ID);
 
-    verify(licencePositionCorrectionService).replaceAddChangeFor(
-        eq(positionCorrection),
+    verify(licencePositionStagedPayloadService).replaceAddChangeFor(
+        eq(positionStagedPayload),
         eq(SubareaOperation.class),
         operationToReplaceCaptor.capture(),
         operationsCaptor.capture()
@@ -166,13 +166,13 @@ class SubareaChangeServiceTest {
 
   @Test
   void commitSubareaChange_whenAllSubareasHaveFeatures_thenReplacesOnlyTheBlocksSubareaChange() {
-    var positionCorrection = positionCorrectionWithChanges(List.of());
-    givenCommandJourneyCreatedForSubareas(positionCorrection);
+    var positionStagedPayload = positionStagedPayloadWithChanges(List.of());
+    givenCommandJourneyCreatedForSubareas(positionStagedPayload);
 
-    subareaChangeService.commitSubareaChange(positionCorrection, BLOCK_FEATURE_ID);
+    subareaChangeService.commitSubareaChange(positionStagedPayload, BLOCK_FEATURE_ID);
 
-    verify(licencePositionCorrectionService).replaceAddChangeFor(
-        eq(positionCorrection),
+    verify(licencePositionStagedPayloadService).replaceAddChangeFor(
+        eq(positionStagedPayload),
         eq(SubareaOperation.class),
         operationToReplaceCaptor.capture(),
         operationsCaptor.capture()
@@ -194,9 +194,9 @@ class SubareaChangeServiceTest {
         AddChange.buildOperationsChange(List.of(otherOperation), 1),
         AddChange.buildOperationsChange(List.of(operation), 2)
     );
-    var positionCorrection = positionCorrectionWithChanges(changes);
+    var positionStagedPayload = positionStagedPayloadWithChanges(changes);
 
-    var result = subareaChangeService.getSubareaOperationOrThrow(positionCorrection, BLOCK_FEATURE_ID);
+    var result = subareaChangeService.getSubareaOperationOrThrow(positionStagedPayload, BLOCK_FEATURE_ID);
 
     assertThat(result).isEqualTo(operation);
   }
@@ -204,11 +204,11 @@ class SubareaChangeServiceTest {
   @Test
   void getSubareaOperationOrThrow_whenCorrectionToLiveSubareaChangeForBlock_returnsIt() {
     var operation = expectedOperation();
-    var positionCorrection = positionCorrectionWithChanges(List.of(
+    var positionStagedPayload = positionStagedPayloadWithChanges(List.of(
         UpdateChangeOperations.buildUpdateChange(UUID.randomUUID().toString(), operation)
     ));
 
-    var result = subareaChangeService.getSubareaOperationOrThrow(positionCorrection, BLOCK_FEATURE_ID);
+    var result = subareaChangeService.getSubareaOperationOrThrow(positionStagedPayload, BLOCK_FEATURE_ID);
 
     assertThat(result).isEqualTo(operation);
   }
@@ -217,9 +217,9 @@ class SubareaChangeServiceTest {
   void getSubareaOperationOrThrow_whenNoSubareaChangeForBlock_throws() {
     var otherOperation = new SubareaOperation(UUID.randomUUID(), List.of(), List.of());
     var changes = List.<LicencePositionChangeType>of(AddChange.buildOperationsChange(List.of(otherOperation), 1));
-    var positionCorrection = positionCorrectionWithChanges(changes);
+    var positionStagedPayload = positionStagedPayloadWithChanges(changes);
 
-    assertThatThrownBy(() -> subareaChangeService.getSubareaOperationOrThrow(positionCorrection, BLOCK_FEATURE_ID))
+    assertThatThrownBy(() -> subareaChangeService.getSubareaOperationOrThrow(positionStagedPayload, BLOCK_FEATURE_ID))
         .isInstanceOf(LmsEntityNotFoundException.class);
   }
 
@@ -227,29 +227,29 @@ class SubareaChangeServiceTest {
   void getOrCreateCommandJourney_whenStagedOperationHasJourney_thenReturnsIt() {
     var operation = expectedOperation();
     var addChange = AddChange.buildOperationsChange(List.of(operation), 1);
-    var positionCorrection = positionCorrectionWithChanges(List.of(addChange));
-    when(licencePositionCorrectionService.findStagedChangeOperation(addChange, SubareaOperation.class))
+    var positionStagedPayload = positionStagedPayloadWithChanges(List.of(addChange));
+    when(licencePositionStagedPayloadService.findStagedChangeOperation(addChange, SubareaOperation.class))
         .thenReturn(Optional.of(operation));
 
-    var result = subareaChangeService.getOrCreateCommandJourney(positionCorrection, BLOCK_FEATURE_ID);
+    var result = subareaChangeService.getOrCreateCommandJourney(positionStagedPayload, BLOCK_FEATURE_ID);
 
     assertThat(result).isEqualTo(COMMAND_JOURNEY_ID);
     verifyNoInteractions(commandJourneyService);
-    verify(licencePositionCorrectionService, never()).save(positionCorrection);
+    verify(licencePositionStagedPayloadService, never()).save(positionStagedPayload);
   }
 
   @Test
   void getOrCreateCommandJourney_whenRemovalOfLiveChangeOnSameBlockIsStagedFirst_thenReturnsAddedChangeJourney() {
     var operation = expectedOperation();
     var addChange = AddChange.buildOperationsChange(List.of(operation), 1);
-    var positionCorrection = positionCorrectionWithChanges(List.of(
+    var positionStagedPayload = positionStagedPayloadWithChanges(List.of(
         new RemoveChange(UUID.randomUUID().toString()),
         addChange
     ));
-    when(licencePositionCorrectionService.findStagedChangeOperation(addChange, SubareaOperation.class))
+    when(licencePositionStagedPayloadService.findStagedChangeOperation(addChange, SubareaOperation.class))
         .thenReturn(Optional.of(operation));
 
-    var result = subareaChangeService.getOrCreateCommandJourney(positionCorrection, BLOCK_FEATURE_ID);
+    var result = subareaChangeService.getOrCreateCommandJourney(positionStagedPayload, BLOCK_FEATURE_ID);
 
     assertThat(result).isEqualTo(COMMAND_JOURNEY_ID);
     verifyNoInteractions(commandJourneyService);
@@ -261,16 +261,16 @@ class SubareaChangeServiceTest {
     var movedOperation = new SubareaOperation(BLOCK_FEATURE_ID, List.of(), List.of());
     var orderChange = new UpdateChangeOrder(changeId, 3);
     var movedChange = UpdateChangeOperations.buildUpdateChange(changeId, movedOperation);
-    var positionCorrection = positionCorrectionWithChanges(List.of(orderChange, movedChange));
-    when(licencePositionCorrectionService.findStagedChangeOperation(movedChange, SubareaOperation.class))
+    var positionStagedPayload = positionStagedPayloadWithChanges(List.of(orderChange, movedChange));
+    when(licencePositionStagedPayloadService.findStagedChangeOperation(movedChange, SubareaOperation.class))
         .thenReturn(Optional.of(movedOperation));
-    givenCommandJourneyCreatedForSubareas(positionCorrection, changeId);
+    givenCommandJourneyCreatedForSubareas(positionStagedPayload, changeId);
 
-    var result = subareaChangeService.getOrCreateCommandJourney(positionCorrection, BLOCK_FEATURE_ID);
+    var result = subareaChangeService.getOrCreateCommandJourney(positionStagedPayload, BLOCK_FEATURE_ID);
 
     assertThat(result).isEqualTo(COMMAND_JOURNEY_ID);
-    verify(licencePositionCorrectionService).save(positionCorrection);
-    assertThat(positionCorrection.getPayload().changes())
+    verify(licencePositionStagedPayloadService).save(positionStagedPayload);
+    assertThat(positionStagedPayload.getPayload().changes())
         .usingRecursiveComparison()
         .ignoringFieldsMatchingRegexes(".*operationId", ".*operation\\.id")
         .isEqualTo(List.of(orderChange, UpdateChangeOperations.buildUpdateChange(changeId, expectedOperation())));
@@ -280,25 +280,25 @@ class SubareaChangeServiceTest {
   void getOrCreateCommandJourney_whenNoSubareaChangeForBlock_thenThrows() {
     var otherOperation = new SubareaOperation(UUID.randomUUID(), List.of(), List.of());
     var addChange = AddChange.buildOperationsChange(List.of(otherOperation), 1);
-    var positionCorrection = positionCorrectionWithChanges(List.of(addChange));
+    var positionStagedPayload = positionStagedPayloadWithChanges(List.of(addChange));
 
-    assertThatThrownBy(() -> subareaChangeService.getOrCreateCommandJourney(positionCorrection, BLOCK_FEATURE_ID))
+    assertThatThrownBy(() -> subareaChangeService.getOrCreateCommandJourney(positionStagedPayload, BLOCK_FEATURE_ID))
         .isInstanceOf(LmsEntityNotFoundException.class)
-        .hasMessage("No subarea change staged for block %s on position correction %s"
-            .formatted(BLOCK_FEATURE_ID, positionCorrection.getId()));
+        .hasMessage("No subarea change staged for block %s on position staged payload %s"
+            .formatted(BLOCK_FEATURE_ID, positionStagedPayload.getId()));
   }
 
   @Test
   void getStagedSubareaOperationOrThrow_whenChangeIsASubareaChange_returnsItsOperation() {
     var operation = expectedOperation();
     var change = AddChange.buildOperationsChange(List.of(operation), 1);
-    var positionCorrection = positionCorrectionWithChanges(List.of(change));
-    when(licencePositionCorrectionService.getStagedChangeOrThrow(positionCorrection, change.changeId()))
+    var positionStagedPayload = positionStagedPayloadWithChanges(List.of(change));
+    when(licencePositionStagedPayloadService.getStagedChangeOrThrow(positionStagedPayload, change.changeId()))
         .thenReturn(change);
-    when(licencePositionCorrectionService.findStagedChangeOperation(change, SubareaOperation.class))
+    when(licencePositionStagedPayloadService.findStagedChangeOperation(change, SubareaOperation.class))
         .thenReturn(Optional.of(operation));
 
-    var result = subareaChangeService.getStagedSubareaOperationOrThrow(positionCorrection, change.changeId());
+    var result = subareaChangeService.getStagedSubareaOperationOrThrow(positionStagedPayload, change.changeId());
 
     assertThat(result).isEqualTo(operation);
   }
@@ -308,13 +308,13 @@ class SubareaChangeServiceTest {
     var operation = LicenceOperation.newAdministratorChange().withOperator(2).build();
     var change = AddChange.buildOperationsChange(List.of(operation), 1);
     var changeId = change.changeId();
-    var positionCorrection = positionCorrectionWithChanges(List.of(change));
-    when(licencePositionCorrectionService.getStagedChangeOrThrow(positionCorrection, changeId))
+    var positionStagedPayload = positionStagedPayloadWithChanges(List.of(change));
+    when(licencePositionStagedPayloadService.getStagedChangeOrThrow(positionStagedPayload, changeId))
         .thenReturn(change);
-    when(licencePositionCorrectionService.findStagedChangeOperation(change, SubareaOperation.class))
+    when(licencePositionStagedPayloadService.findStagedChangeOperation(change, SubareaOperation.class))
         .thenReturn(Optional.empty());
 
-    assertThatThrownBy(() -> subareaChangeService.getStagedSubareaOperationOrThrow(positionCorrection, changeId))
+    assertThatThrownBy(() -> subareaChangeService.getStagedSubareaOperationOrThrow(positionStagedPayload, changeId))
         .isInstanceOf(IllegalStateException.class)
         .hasMessage("Change with id %s is not a subarea change".formatted(changeId));
   }
@@ -356,7 +356,7 @@ class SubareaChangeServiceTest {
   void deleteStagedSubareaArtefacts_whenCommandJourneyStarted_thenDeletesJourney() {
     var operation = expectedOperation();
     var change = AddChange.buildOperationsChange(List.of(operation), 1);
-    when(licencePositionCorrectionService.findStagedChangeOperation(change, SubareaOperation.class))
+    when(licencePositionStagedPayloadService.findStagedChangeOperation(change, SubareaOperation.class))
         .thenReturn(Optional.of(operation));
 
     subareaChangeService.deleteStagedSubareaArtefacts(change);
@@ -368,7 +368,7 @@ class SubareaChangeServiceTest {
   void deleteStagedSubareaArtefacts_whenNoCommandJourneyStarted_thenDeletesNothing() {
     var operation = new SubareaOperation(BLOCK_FEATURE_ID, List.of(), List.of());
     var change = AddChange.buildOperationsChange(List.of(operation), 1);
-    when(licencePositionCorrectionService.findStagedChangeOperation(change, SubareaOperation.class))
+    when(licencePositionStagedPayloadService.findStagedChangeOperation(change, SubareaOperation.class))
         .thenReturn(Optional.of(operation));
 
     subareaChangeService.deleteStagedSubareaArtefacts(change);
@@ -379,7 +379,7 @@ class SubareaChangeServiceTest {
   @Test
   void deleteStagedSubareaArtefacts_whenRemovalOfLiveChange_thenDeletesNothing() {
     var change = new RemoveChange(UUID.randomUUID().toString());
-    when(licencePositionCorrectionService.findStagedChangeOperation(change, SubareaOperation.class))
+    when(licencePositionStagedPayloadService.findStagedChangeOperation(change, SubareaOperation.class))
         .thenReturn(Optional.of(expectedOperation()));
 
     subareaChangeService.deleteStagedSubareaArtefacts(change);
@@ -391,7 +391,7 @@ class SubareaChangeServiceTest {
   void deleteStagedSubareaArtefacts_whenCorrectionToLiveChange_thenDeletesJourney() {
     var operation = expectedOperation();
     var change = UpdateChangeOperations.buildUpdateChange(UUID.randomUUID().toString(), operation);
-    when(licencePositionCorrectionService.findStagedChangeOperation(change, SubareaOperation.class))
+    when(licencePositionStagedPayloadService.findStagedChangeOperation(change, SubareaOperation.class))
         .thenReturn(Optional.of(operation));
 
     subareaChangeService.deleteStagedSubareaArtefacts(change);
@@ -408,18 +408,18 @@ class SubareaChangeServiceTest {
         List.of(new SubareaOperation(UUID.randomUUID(), List.of(), List.of())),
         1
     );
-    var positionCorrection = positionCorrectionWithChanges(List.of(otherChange));
-    when(licencePositionCorrectionService.getOrBuildUpdatePositionCorrection(LICENCE_CORRECTION, licencePosition))
-        .thenReturn(positionCorrection);
-    when(licencePositionCorrectionService.findStagedChange(positionCorrection, liveChangeId))
+    var positionStagedPayload = positionStagedPayloadWithChanges(List.of(otherChange));
+    when(licencePositionStagedPayloadService.getOrBuildUpdatePositionStagedPayload(LICENCE_CORRECTION, licencePosition))
+        .thenReturn(positionStagedPayload);
+    when(licencePositionStagedPayloadService.findStagedChange(positionStagedPayload, liveChangeId))
         .thenReturn(Optional.empty());
-    givenCommandJourneyCreatedForSubareas(positionCorrection, liveChangeId);
+    givenCommandJourneyCreatedForSubareas(positionStagedPayload, liveChangeId);
 
     var result = subareaChangeService.correctExistingSubareaChange(LICENCE_CORRECTION, licencePosition, liveChange);
 
-    assertThat(result).isSameAs(positionCorrection);
-    verify(licencePositionCorrectionService).save(positionCorrection);
-    assertThat(positionCorrection.getPayload().changes())
+    assertThat(result).isSameAs(positionStagedPayload);
+    verify(licencePositionStagedPayloadService).save(positionStagedPayload);
+    assertThat(positionStagedPayload.getPayload().changes())
         .usingRecursiveComparison()
         .ignoringFieldsMatchingRegexes(".*operationId", ".*operation\\.id")
         .isEqualTo(List.of(otherChange, UpdateChangeOperations.buildUpdateChange(liveChangeId, expectedOperation())));
@@ -432,19 +432,19 @@ class SubareaChangeServiceTest {
     var liveChangeId = liveChange.getId().toString();
     var movedOperation = new SubareaOperation(BLOCK_FEATURE_ID, List.of(), List.of());
     var movedChange = UpdateChangeOperations.buildUpdateChange(liveChangeId, movedOperation);
-    var positionCorrection = positionCorrectionWithChanges(List.of(movedChange));
-    when(licencePositionCorrectionService.getOrBuildUpdatePositionCorrection(LICENCE_CORRECTION, licencePosition))
-        .thenReturn(positionCorrection);
-    when(licencePositionCorrectionService.findStagedChange(positionCorrection, liveChangeId))
+    var positionStagedPayload = positionStagedPayloadWithChanges(List.of(movedChange));
+    when(licencePositionStagedPayloadService.getOrBuildUpdatePositionStagedPayload(LICENCE_CORRECTION, licencePosition))
+        .thenReturn(positionStagedPayload);
+    when(licencePositionStagedPayloadService.findStagedChange(positionStagedPayload, liveChangeId))
         .thenReturn(Optional.of(movedChange));
-    when(licencePositionCorrectionService.findStagedChangeOperation(movedChange, SubareaOperation.class))
+    when(licencePositionStagedPayloadService.findStagedChangeOperation(movedChange, SubareaOperation.class))
         .thenReturn(Optional.of(movedOperation));
-    givenCommandJourneyCreatedForSubareas(positionCorrection, liveChangeId);
+    givenCommandJourneyCreatedForSubareas(positionStagedPayload, liveChangeId);
 
     subareaChangeService.correctExistingSubareaChange(LICENCE_CORRECTION, licencePosition, liveChange);
 
-    verify(licencePositionCorrectionService).save(positionCorrection);
-    assertThat(positionCorrection.getPayload().changes())
+    verify(licencePositionStagedPayloadService).save(positionStagedPayload);
+    assertThat(positionStagedPayload.getPayload().changes())
         .usingRecursiveComparison()
         .ignoringFieldsMatchingRegexes(".*operationId", ".*operation\\.id")
         .isEqualTo(List.of(UpdateChangeOperations.buildUpdateChange(liveChangeId, expectedOperation())));
@@ -461,19 +461,19 @@ class SubareaChangeServiceTest {
         .build();
     var liveChangeId = liveChange.getId().toString();
     var movedChange = UpdateChangeOperations.buildUpdateChange(liveChangeId, liveOperation);
-    var positionCorrection = positionCorrectionWithChanges(List.of(movedChange));
-    when(licencePositionCorrectionService.getOrBuildUpdatePositionCorrection(LICENCE_CORRECTION, licencePosition))
-        .thenReturn(positionCorrection);
-    when(licencePositionCorrectionService.findStagedChange(positionCorrection, liveChangeId))
+    var positionStagedPayload = positionStagedPayloadWithChanges(List.of(movedChange));
+    when(licencePositionStagedPayloadService.getOrBuildUpdatePositionStagedPayload(LICENCE_CORRECTION, licencePosition))
+        .thenReturn(positionStagedPayload);
+    when(licencePositionStagedPayloadService.findStagedChange(positionStagedPayload, liveChangeId))
         .thenReturn(Optional.of(movedChange));
-    when(licencePositionCorrectionService.findStagedChangeOperation(movedChange, SubareaOperation.class))
+    when(licencePositionStagedPayloadService.findStagedChangeOperation(movedChange, SubareaOperation.class))
         .thenReturn(Optional.of(liveOperation));
-    givenCommandJourneyCreatedForSubareas(positionCorrection, liveChangeId);
+    givenCommandJourneyCreatedForSubareas(positionStagedPayload, liveChangeId);
 
     subareaChangeService.correctExistingSubareaChange(LICENCE_CORRECTION, licencePosition, liveChange);
 
-    verify(licencePositionCorrectionService).save(positionCorrection);
-    assertThat(positionCorrection.getPayload().changes())
+    verify(licencePositionStagedPayloadService).save(positionStagedPayload);
+    assertThat(positionStagedPayload.getPayload().changes())
         .usingRecursiveComparison()
         .ignoringFieldsMatchingRegexes(".*operationId", ".*operation\\.id")
         .isEqualTo(List.of(UpdateChangeOperations.buildUpdateChange(liveChangeId, expectedOperation())));
@@ -486,20 +486,20 @@ class SubareaChangeServiceTest {
     var liveChangeId = liveChange.getId().toString();
     var operation = expectedOperation();
     var stagedChange = UpdateChangeOperations.buildUpdateChange(liveChangeId, operation);
-    var positionCorrection = positionCorrectionWithChanges(List.of(stagedChange));
-    when(licencePositionCorrectionService.getOrBuildUpdatePositionCorrection(LICENCE_CORRECTION, licencePosition))
-        .thenReturn(positionCorrection);
-    when(licencePositionCorrectionService.findStagedChange(positionCorrection, liveChangeId))
+    var positionStagedPayload = positionStagedPayloadWithChanges(List.of(stagedChange));
+    when(licencePositionStagedPayloadService.getOrBuildUpdatePositionStagedPayload(LICENCE_CORRECTION, licencePosition))
+        .thenReturn(positionStagedPayload);
+    when(licencePositionStagedPayloadService.findStagedChange(positionStagedPayload, liveChangeId))
         .thenReturn(Optional.of(stagedChange));
-    when(licencePositionCorrectionService.findStagedChangeOperation(stagedChange, SubareaOperation.class))
+    when(licencePositionStagedPayloadService.findStagedChangeOperation(stagedChange, SubareaOperation.class))
         .thenReturn(Optional.of(operation));
 
     var result = subareaChangeService.correctExistingSubareaChange(LICENCE_CORRECTION, licencePosition, liveChange);
 
-    assertThat(result).isSameAs(positionCorrection);
-    assertThat(positionCorrection.getPayload().changes()).isEqualTo(List.of(stagedChange));
+    assertThat(result).isSameAs(positionStagedPayload);
+    assertThat(positionStagedPayload.getPayload().changes()).isEqualTo(List.of(stagedChange));
     verifyNoInteractions(commandJourneyService);
-    verify(licencePositionCorrectionService, never()).save(positionCorrection);
+    verify(licencePositionStagedPayloadService, never()).save(positionStagedPayload);
   }
 
   @Test
@@ -513,12 +513,12 @@ class SubareaChangeServiceTest {
         List.of(new SubareaOperation(UUID.randomUUID(), List.of(), List.of())),
         2
     );
-    var positionCorrection = positionCorrectionWithChanges(List.of(change, otherBlockChange));
+    var positionStagedPayload = positionStagedPayloadWithChanges(List.of(change, otherBlockChange));
     var stateGoingIntoChange = stateWithSubareas(subareaA, subareaB);
     var stateWithoutChange = stateGoingIntoChange
         .withSubareaEquity(BLOCK_FEATURE_ID, SubareaDetails.from(subareaA), 1, BigDecimal.TEN);
     givenCompletedJourney(
-        positionCorrection,
+        positionStagedPayload,
         change,
         stateGoingIntoChange,
         stateWithoutChange,
@@ -529,10 +529,10 @@ class SubareaChangeServiceTest {
         List.of(subareaA1, subareaA2)
     );
 
-    subareaChangeService.completeSubareaChange(positionCorrection, BLOCK_FEATURE_ID);
+    subareaChangeService.completeSubareaChange(positionStagedPayload, BLOCK_FEATURE_ID);
 
-    verify(licencePositionCorrectionService).save(positionCorrection);
-    assertThat(positionCorrection.getPayload().changes())
+    verify(licencePositionStagedPayloadService).save(positionStagedPayload);
+    assertThat(positionStagedPayload.getPayload().changes())
         .usingRecursiveComparison()
         .ignoringFieldsMatchingRegexes(".*operationId", ".*operation\\.id")
         .isEqualTo(List.of(
@@ -547,7 +547,7 @@ class SubareaChangeServiceTest {
             otherBlockChange
         ));
     verify(subareaSetEquityCorrectionService).cascadeSubareaEquity(
-        positionCorrection,
+        positionStagedPayload,
         stateWithoutChange,
         BLOCK_FEATURE_ID,
         List.of(transfer(List.of(subareaA), List.of(subareaA1, subareaA2)))
@@ -563,12 +563,12 @@ class SubareaChangeServiceTest {
     var subareaA2C = subareaFeature("A2C");
     var liveChangeId = UUID.randomUUID().toString();
     var change = UpdateChangeOperations.buildUpdateChange(liveChangeId, expectedOperation());
-    var positionCorrection = positionCorrectionWithChanges(List.of(change));
+    var positionStagedPayload = positionStagedPayloadWithChanges(List.of(change));
     var stateGoingIntoChange = stateWithSubareas(subareaA, subareaB, subareaC);
     var stateWithoutChange = stateGoingIntoChange
         .withSubareaEquity(BLOCK_FEATURE_ID, SubareaDetails.from(subareaB), 1, BigDecimal.TEN);
     givenCompletedJourney(
-        positionCorrection,
+        positionStagedPayload,
         change,
         stateGoingIntoChange,
         stateWithoutChange,
@@ -579,9 +579,9 @@ class SubareaChangeServiceTest {
         List.of(subareaA1B, subareaA2C)
     );
 
-    subareaChangeService.completeSubareaChange(positionCorrection, BLOCK_FEATURE_ID);
+    subareaChangeService.completeSubareaChange(positionStagedPayload, BLOCK_FEATURE_ID);
 
-    assertThat(positionCorrection.getPayload().changes())
+    assertThat(positionStagedPayload.getPayload().changes())
         .usingRecursiveComparison()
         .ignoringFieldsMatchingRegexes(".*operationId", ".*operation\\.id")
         .isEqualTo(List.of(UpdateChangeOperations.buildUpdateChange(
@@ -592,7 +592,7 @@ class SubareaChangeServiceTest {
             )
         )));
     verify(subareaSetEquityCorrectionService).cascadeSubareaEquity(
-        positionCorrection,
+        positionStagedPayload,
         stateWithoutChange,
         BLOCK_FEATURE_ID,
         List.of(
@@ -603,18 +603,18 @@ class SubareaChangeServiceTest {
   }
 
   private void givenCompletedJourney(
-      LicencePositionCorrection positionCorrection,
+      LicencePositionStagedPayload positionStagedPayload,
       LicencePositionChangeType change,
       LicencePositionState stateGoingIntoChange,
       LicencePositionState stateWithoutChange,
       Map<UUID, Set<UUID>> initialFeatureIdsByCreatedFeatureId,
       List<Feature> createdFeatures
   ) {
-    when(licencePositionCorrectionService.findStagedChangeOperation(change, SubareaOperation.class))
+    when(licencePositionStagedPayloadService.findStagedChangeOperation(change, SubareaOperation.class))
         .thenReturn(Optional.of(expectedOperation()));
-    when(licencePositionSpatialService.getStateGoingIntoChange(positionCorrection, change.changeId()))
+    when(licencePositionSpatialService.getStateGoingIntoChange(positionStagedPayload, change.changeId()))
         .thenReturn(stateGoingIntoChange);
-    when(licencePositionSpatialService.getStateAtEndOfPositionWithoutChange(positionCorrection, change.changeId()))
+    when(licencePositionSpatialService.getStateAtEndOfPositionWithoutChange(positionStagedPayload, change.changeId()))
         .thenReturn(stateWithoutChange);
     when(commandJourneyService.getInitialFeatureIdsByCreatedFeatureId(COMMAND_JOURNEY_ID))
         .thenReturn(initialFeatureIdsByCreatedFeatureId);
@@ -661,13 +661,13 @@ class SubareaChangeServiceTest {
         .build();
   }
 
-  private void givenCommandJourneyCreatedForSubareas(LicencePositionCorrection positionCorrection) {
-    givenCommandJourneyCreatedForSubareas(positionCorrection, null);
+  private void givenCommandJourneyCreatedForSubareas(LicencePositionStagedPayload positionStagedPayload) {
+    givenCommandJourneyCreatedForSubareas(positionStagedPayload, null);
   }
 
-  private void givenCommandJourneyCreatedForSubareas(LicencePositionCorrection positionCorrection, String changeId) {
+  private void givenCommandJourneyCreatedForSubareas(LicencePositionStagedPayload positionStagedPayload, String changeId) {
     var subareaFeature = FeatureTestUtil.builder().build();
-    when(licencePositionSpatialService.getSubareasGoingIntoChange(positionCorrection, BLOCK_FEATURE_ID, changeId))
+    when(licencePositionSpatialService.getSubareasGoingIntoChange(positionStagedPayload, BLOCK_FEATURE_ID, changeId))
         .thenReturn(List.of(new SubareaDetails(subareaFeature.getId(), "ALL", "A")));
     when(featureService.getFeaturesByIds(Set.of(subareaFeature.getId()))).thenReturn(List.of(subareaFeature));
     when(commandJourneyService.createAndAssignCommandJourney(List.of(subareaFeature)))
@@ -684,8 +684,8 @@ class SubareaChangeServiceTest {
     return new SubareaOperation(UUID.randomUUID(), BLOCK_FEATURE_ID, List.of(), COMMAND_JOURNEY_ID);
   }
 
-  private LicencePositionCorrection positionCorrectionWithChanges(List<LicencePositionChangeType> changes) {
-    return LicencePositionCorrectionTestUtil.newBuilder()
+  private LicencePositionStagedPayload positionStagedPayloadWithChanges(List<LicencePositionChangeType> changes) {
+    return LicencePositionStagedPayloadTestUtil.newBuilder()
         .withPayload(LicencePositionPayload.newUpdateLicencePositionPayload()
             .withChanges(changes)
             .build())

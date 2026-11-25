@@ -3,7 +3,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.correction.positio
 import uk.co.fivium.formlibrary.input.StringInput;
 import uk.co.fivium.formlibrary.input.ThreeFieldDateInput;
 
-class AddLicencePositionCorrectionForm {
+class AddLicencePositionStagedPayloadForm {
 
   private final StringInput correctionReference = new StringInput(
       "correctionReference",

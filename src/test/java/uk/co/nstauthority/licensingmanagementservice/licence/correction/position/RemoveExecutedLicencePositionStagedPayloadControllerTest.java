@@ -37,9 +37,9 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePos
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.util.DateUtil;
 
-@ContextConfiguration(classes = RemoveExecutedLicencePositionCorrectionController.class)
+@ContextConfiguration(classes = RemoveExecutedLicencePositionStagedPayloadController.class)
 @ActiveProfiles("test")
-class RemoveExecutedLicencePositionCorrectionControllerTest extends AbstractControllerTest {
+class RemoveExecutedLicencePositionStagedPayloadControllerTest extends AbstractControllerTest {
 
   private static final Licence LICENCE = LicenceTestUtil.builder().withId(10).build();
   private static final UUID CORRECTION_ID = UUID.randomUUID();
@@ -62,7 +62,7 @@ class RemoveExecutedLicencePositionCorrectionControllerTest extends AbstractCont
 
   @Test
   void renderRemovePosition_whenNotLoggedIn() throws Exception {
-    mockMvc.perform(get(ReverseRouter.route(on(RemoveExecutedLicencePositionCorrectionController.class)
+    mockMvc.perform(get(ReverseRouter.route(on(RemoveExecutedLicencePositionStagedPayloadController.class)
             .renderRemovePosition(CORRECTION, POSITION))))
         .andExpect(redirectionToLoginUrl());
   }
@@ -77,7 +77,7 @@ class RemoveExecutedLicencePositionCorrectionControllerTest extends AbstractCont
     when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
         .thenReturn(Optional.of(correction));
     when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(correction));
-    mockMvc.perform(get(ReverseRouter.route(on(RemoveExecutedLicencePositionCorrectionController.class)
+    mockMvc.perform(get(ReverseRouter.route(on(RemoveExecutedLicencePositionStagedPayloadController.class)
             .renderRemovePosition(correction, POSITION)))
             .with(user(regulatorUser)))
         .andExpect(status().isForbidden());
@@ -89,7 +89,7 @@ class RemoveExecutedLicencePositionCorrectionControllerTest extends AbstractCont
     givenPositionRemovable(correction, true);
     when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(POSITION));
 
-    mockMvc.perform(get(ReverseRouter.route(on(RemoveExecutedLicencePositionCorrectionController.class)
+    mockMvc.perform(get(ReverseRouter.route(on(RemoveExecutedLicencePositionStagedPayloadController.class)
             .renderRemovePosition(CORRECTION, POSITION)))
             .with(user(regulatorUser)))
         .andExpectAll(
@@ -105,7 +105,7 @@ class RemoveExecutedLicencePositionCorrectionControllerTest extends AbstractCont
   void renderRemovePosition_whenNotAllocatedToUser() throws Exception {
     givenCorrectionNotAllocatedToUser();
 
-    mockMvc.perform(get(ReverseRouter.route(on(RemoveExecutedLicencePositionCorrectionController.class)
+    mockMvc.perform(get(ReverseRouter.route(on(RemoveExecutedLicencePositionStagedPayloadController.class)
             .renderRemovePosition(CORRECTION, POSITION)))
             .with(user(regulatorUser)))
         .andExpect(status().isForbidden())
@@ -119,7 +119,7 @@ class RemoveExecutedLicencePositionCorrectionControllerTest extends AbstractCont
     var correction = givenCorrectionAllocatedToUser();
     givenPositionRemovable(correction, false);
 
-    mockMvc.perform(get(ReverseRouter.route(on(RemoveExecutedLicencePositionCorrectionController.class)
+    mockMvc.perform(get(ReverseRouter.route(on(RemoveExecutedLicencePositionStagedPayloadController.class)
             .renderRemovePosition(CORRECTION, POSITION)))
             .with(user(regulatorUser)))
         .andExpect(status().isForbidden());
@@ -127,7 +127,7 @@ class RemoveExecutedLicencePositionCorrectionControllerTest extends AbstractCont
 
   @Test
   void removePosition_whenNotLoggedIn() throws Exception {
-    mockMvc.perform(post(ReverseRouter.route(on(RemoveExecutedLicencePositionCorrectionController.class)
+    mockMvc.perform(post(ReverseRouter.route(on(RemoveExecutedLicencePositionStagedPayloadController.class)
             .removePosition(CORRECTION, POSITION, null)))
             .with(csrf()))
         .andExpect(redirectionToLoginUrl());
@@ -143,7 +143,7 @@ class RemoveExecutedLicencePositionCorrectionControllerTest extends AbstractCont
     when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
         .thenReturn(Optional.of(correction));
     when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(correction));
-    mockMvc.perform(post(ReverseRouter.route(on(RemoveExecutedLicencePositionCorrectionController.class)
+    mockMvc.perform(post(ReverseRouter.route(on(RemoveExecutedLicencePositionStagedPayloadController.class)
             .removePosition(correction, POSITION, null)))
             .with(user(regulatorUser))
             .with(csrf()))
@@ -156,26 +156,26 @@ class RemoveExecutedLicencePositionCorrectionControllerTest extends AbstractCont
     var position = givenPositionRemovable(correction, true);
     when(licencePositionService.findById(POSITION_ID)).thenReturn(Optional.of(POSITION));
 
-    mockMvc.perform(post(ReverseRouter.route(on(RemoveExecutedLicencePositionCorrectionController.class)
+    mockMvc.perform(post(ReverseRouter.route(on(RemoveExecutedLicencePositionStagedPayloadController.class)
             .removePosition(CORRECTION, POSITION, null)))
             .with(user(regulatorUser))
             .with(csrf()))
         .andExpectAll(
             status().is3xxRedirection(),
-            redirectedUrl(LicencePositionCorrectionRouteUtil.getPositionPageUrl(CORRECTION, POSITION.getId())),
+            redirectedUrl(LicencePositionStagedPayloadRouteUtil.getPositionPageUrl(CORRECTION, POSITION.getId())),
             notificationBanner(NotificationBanner.newSuccessBanner()
                 .withHeadingContent("Licence correction position removed")
                 .build())
         );
 
-    verify(licencePositionCorrectionService).removeExecutedPosition(correction, position);
+    verify(licencePositionStagedPayloadService).removeExecutedPosition(correction, position);
   }
 
   @Test
   void removePosition_whenNotAllocatedToUser() throws Exception {
     givenCorrectionNotAllocatedToUser();
 
-    mockMvc.perform(post(ReverseRouter.route(on(RemoveExecutedLicencePositionCorrectionController.class)
+    mockMvc.perform(post(ReverseRouter.route(on(RemoveExecutedLicencePositionStagedPayloadController.class)
             .removePosition(CORRECTION, POSITION, null)))
             .with(user(regulatorUser))
             .with(csrf()))
@@ -184,7 +184,7 @@ class RemoveExecutedLicencePositionCorrectionControllerTest extends AbstractCont
             InvokingUserCanViewCorrectionInterceptorRule.notAssignedMessage(CORRECTION_ID, regulatorUser.wuaId()))
         );
 
-    verify(licencePositionCorrectionService, never()).removeExecutedPosition(any(), any());
+    verify(licencePositionStagedPayloadService, never()).removeExecutedPosition(any(), any());
   }
 
   @Test
@@ -192,18 +192,18 @@ class RemoveExecutedLicencePositionCorrectionControllerTest extends AbstractCont
     var correction = givenCorrectionAllocatedToUser();
     givenPositionRemovable(correction, false);
 
-    mockMvc.perform(post(ReverseRouter.route(on(RemoveExecutedLicencePositionCorrectionController.class)
+    mockMvc.perform(post(ReverseRouter.route(on(RemoveExecutedLicencePositionStagedPayloadController.class)
             .removePosition(CORRECTION, POSITION, null)))
             .with(user(regulatorUser))
             .with(csrf()))
         .andExpect(status().isForbidden());
 
-    verify(licencePositionCorrectionService, never()).removeExecutedPosition(any(), any());
+    verify(licencePositionStagedPayloadService, never()).removeExecutedPosition(any(), any());
   }
 
   private LicencePosition givenPositionRemovable(LicenceCorrection correction, boolean removable) {
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(POSITION);
-    when(licencePositionCorrectionService.canRemovePosition(correction, POSITION)).thenReturn(removable);
+    when(licencePositionStagedPayloadService.canRemovePosition(correction, POSITION)).thenReturn(removable);
     return POSITION;
   }
 

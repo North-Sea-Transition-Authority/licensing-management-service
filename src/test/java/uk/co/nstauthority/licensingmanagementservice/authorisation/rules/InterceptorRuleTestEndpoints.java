@@ -12,8 +12,8 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correct
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanViewCorrection;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserHasCorrectorRoleForCorrection;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.LicencePositionCanBeReinstantiated;
-import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.LicencePositionCorrectionBelongsToCorrection;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.LicencePositionIsNotRemovedInCorrection;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.LicencePositionStagedPayloadBelongsToCorrection;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.LicencePositionChangeBelongsToPosition;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.LicencePositionChangeIsOfType;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.position.LicencePositionBelongsToCorrectionLicence;
@@ -165,10 +165,10 @@ public class InterceptorRuleTestEndpoints {
     return ResponseEntity.ok("licence position belongs to correction licence test endpoint");
   }
 
-  @GetMapping("correction/{correctionId}/position-correction/{licencePositionCorrectionId}/belongs-to-correction")
-  @LicencePositionCorrectionBelongsToCorrection
-  public ResponseEntity<String> licencePositionCorrectionBelongsToCorrection() {
-    return ResponseEntity.ok("licence position correction belongs to correction test endpoint");
+  @GetMapping("correction/{correctionId}/position-staged-payload/{licencePositionStagedPayloadId}/belongs-to-correction")
+  @LicencePositionStagedPayloadBelongsToCorrection
+  public ResponseEntity<String> licencePositionStagedPayloadBelongsToCorrection() {
+    return ResponseEntity.ok("licence position staged payload belongs to correction test endpoint");
   }
 
   @GetMapping("has-corrector-role-for-correction/{correctionId}")

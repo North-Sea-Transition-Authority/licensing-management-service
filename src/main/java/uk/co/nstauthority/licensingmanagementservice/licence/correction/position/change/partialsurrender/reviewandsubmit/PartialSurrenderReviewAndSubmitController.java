@@ -18,8 +18,8 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.CorrectionHasStatus;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.CorrectionLicenceIsType;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanViewCorrection;
-import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.LicencePositionCorrectionBelongsToCorrection;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.LicencePositionIsNotRemovedInCorrection;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.LicencePositionStagedPayloadBelongsToCorrection;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.LicencePositionChangeBelongsToPosition;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.change.LicencePositionChangeIsOfType;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.position.LicencePositionBelongsToCorrectionLicence;
@@ -28,9 +28,9 @@ import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.Noti
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionRouteUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayload;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadRouteUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.PartialSurrenderCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.PartialSurrenderValidator;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.definearea.PartialSurrenderDefineAreaController;
@@ -56,49 +56,49 @@ public class PartialSurrenderReviewAndSubmitController {
   private static final String BACK_TO_TASK_LIST_LINK_TEXT = "Back to task list";
   static final String SUBMITTED_BANNER = "Partial surrender saved";
 
-  private final LicencePositionCorrectionService licencePositionCorrectionService;
+  private final LicencePositionStagedPayloadService licencePositionStagedPayloadService;
   private final PartialSurrenderCorrectionService partialSurrenderCorrectionService;
   private final PartialSurrenderSummarySectionService partialSurrenderSummarySectionService;
   private final PartialSurrenderValidator partialSurrenderValidator;
   private final LicencePositionSpatialService licencePositionSpatialService;
 
   public PartialSurrenderReviewAndSubmitController(
-      LicencePositionCorrectionService licencePositionCorrectionService,
+      LicencePositionStagedPayloadService licencePositionStagedPayloadService,
       PartialSurrenderCorrectionService partialSurrenderCorrectionService,
       PartialSurrenderSummarySectionService partialSurrenderSummarySectionService,
       PartialSurrenderValidator partialSurrenderValidator,
       LicencePositionSpatialService licencePositionSpatialService
   ) {
-    this.licencePositionCorrectionService = licencePositionCorrectionService;
+    this.licencePositionStagedPayloadService = licencePositionStagedPayloadService;
     this.partialSurrenderCorrectionService = partialSurrenderCorrectionService;
     this.partialSurrenderSummarySectionService = partialSurrenderSummarySectionService;
     this.partialSurrenderValidator = partialSurrenderValidator;
     this.licencePositionSpatialService = licencePositionSpatialService;
   }
 
-  @GetMapping("/position-correction/{licencePositionCorrectionId}/partial-surrender/review-and-submit")
-  @LicencePositionCorrectionBelongsToCorrection
+  @GetMapping("/position-staged-payload/{licencePositionStagedPayloadId}/partial-surrender/review-and-submit")
+  @LicencePositionStagedPayloadBelongsToCorrection
   public ModelAndView renderReviewAndSubmit(
       LicenceCorrection correction,
-      LicencePositionCorrection licencePositionCorrection,
+      LicencePositionStagedPayload licencePositionStagedPayload,
       ServiceUserDetail user
   ) {
     var stagedChangeId = partialSurrenderCorrectionService
-        .getCommittedPartialSurrenderChangeId(licencePositionCorrection)
+        .getCommittedPartialSurrenderChangeId(licencePositionStagedPayload)
         .orElse(null);
-    var surrender = partialSurrenderCorrectionService.getCommittedPartialSurrenderOrThrow(licencePositionCorrection);
+    var surrender = partialSurrenderCorrectionService.getCommittedPartialSurrenderOrThrow(licencePositionStagedPayload);
     var stateGoingIntoChange =
-        licencePositionSpatialService.getStateGoingIntoChange(licencePositionCorrection, stagedChangeId);
+        licencePositionSpatialService.getStateGoingIntoChange(licencePositionStagedPayload, stagedChangeId);
     var errorMessages = validate(
         surrender,
         stateGoingIntoChange,
-        licencePositionCorrectionService.resolveEffectiveDate(licencePositionCorrection),
+        licencePositionStagedPayloadService.resolveEffectiveDate(licencePositionStagedPayload),
         stagedChangeId
     );
 
     return getReviewAndSubmitModelAndView(
         correction,
-        licencePositionCorrection,
+        licencePositionStagedPayload,
         surrender,
         stateGoingIntoChange,
         errorMessages,
@@ -106,31 +106,31 @@ public class PartialSurrenderReviewAndSubmitController {
     );
   }
 
-  @PostMapping("/position-correction/{licencePositionCorrectionId}/partial-surrender/review-and-submit")
-  @LicencePositionCorrectionBelongsToCorrection
+  @PostMapping("/position-staged-payload/{licencePositionStagedPayloadId}/partial-surrender/review-and-submit")
+  @LicencePositionStagedPayloadBelongsToCorrection
   public ModelAndView submitReviewAndSubmit(
       LicenceCorrection correction,
-      LicencePositionCorrection licencePositionCorrection,
+      LicencePositionStagedPayload licencePositionStagedPayload,
       ServiceUserDetail user,
       RedirectAttributes redirectAttributes
   ) {
     var stagedChangeId = partialSurrenderCorrectionService
-        .getCommittedPartialSurrenderChangeId(licencePositionCorrection)
+        .getCommittedPartialSurrenderChangeId(licencePositionStagedPayload)
         .orElse(null);
-    var surrender = partialSurrenderCorrectionService.getCommittedPartialSurrenderOrThrow(licencePositionCorrection);
+    var surrender = partialSurrenderCorrectionService.getCommittedPartialSurrenderOrThrow(licencePositionStagedPayload);
     var stateGoingIntoChange =
-        licencePositionSpatialService.getStateGoingIntoChange(licencePositionCorrection, stagedChangeId);
+        licencePositionSpatialService.getStateGoingIntoChange(licencePositionStagedPayload, stagedChangeId);
     var errorMessages = validate(
         surrender,
         stateGoingIntoChange,
-        licencePositionCorrectionService.resolveEffectiveDate(licencePositionCorrection),
+        licencePositionStagedPayloadService.resolveEffectiveDate(licencePositionStagedPayload),
         stagedChangeId
     );
 
     if (!errorMessages.isEmpty()) {
       return getReviewAndSubmitModelAndView(
           correction,
-          licencePositionCorrection,
+          licencePositionStagedPayload,
           surrender,
           stateGoingIntoChange,
           errorMessages,
@@ -139,7 +139,7 @@ public class PartialSurrenderReviewAndSubmitController {
     }
 
     NotificationBanner.newSuccessBannerWithHeader(SUBMITTED_BANNER, redirectAttributes);
-    return LicencePositionCorrectionRouteUtil.redirectToPositionPage(licencePositionCorrection);
+    return LicencePositionStagedPayloadRouteUtil.redirectToPositionPage(licencePositionStagedPayload);
   }
 
   @GetMapping("/position/{licencePositionId}/change/{changeId}/partial-surrender/review-and-submit")
@@ -161,7 +161,7 @@ public class PartialSurrenderReviewAndSubmitController {
     var errorMessages = validate(
         surrender,
         stateGoingIntoChange,
-        licencePositionCorrectionService.getEffectivePositionDate(correction, licencePosition),
+        licencePositionStagedPayloadService.getEffectivePositionDate(correction, licencePosition),
         changeId
     );
 
@@ -196,7 +196,7 @@ public class PartialSurrenderReviewAndSubmitController {
     var errorMessages = validate(
         surrender,
         stateGoingIntoChange,
-        licencePositionCorrectionService.getEffectivePositionDate(correction, licencePosition),
+        licencePositionStagedPayloadService.getEffectivePositionDate(correction, licencePosition),
         changeId
     );
 
@@ -213,7 +213,7 @@ public class PartialSurrenderReviewAndSubmitController {
     }
 
     NotificationBanner.newSuccessBannerWithHeader(SUBMITTED_BANNER, redirectAttributes);
-    return LicencePositionCorrectionRouteUtil.redirectToPositionPage(correction, licencePosition.getId());
+    return LicencePositionStagedPayloadRouteUtil.redirectToPositionPage(correction, licencePosition.getId());
   }
 
   private List<String> validate(
@@ -245,23 +245,23 @@ public class PartialSurrenderReviewAndSubmitController {
 
   private ModelAndView getReviewAndSubmitModelAndView(
       LicenceCorrection correction,
-      LicencePositionCorrection licencePositionCorrection,
+      LicencePositionStagedPayload licencePositionStagedPayload,
       PartialSurrenderOperation surrender,
       LicencePositionState stateGoingIntoChange,
       List<String> errorMessages,
       ServiceUserDetail user
   ) {
     var taskListUrl = ReverseRouter.route(on(PartialSurrenderTaskListController.class)
-        .renderTaskList(correction, licencePositionCorrection, null));
-    var singleBlockSelectAreasUrl = singleBlockSelectAreasUrl(licencePositionCorrection);
+        .renderTaskList(correction, licencePositionStagedPayload, null));
+    var singleBlockSelectAreasUrl = singleBlockSelectAreasUrl(licencePositionStagedPayload);
     var sections = partialSurrenderSummarySectionService.getSummarySections(
-        new PartialSurrenderSummaryContext.Staged(licencePositionCorrection, surrender, stateGoingIntoChange),
+        new PartialSurrenderSummaryContext.Staged(licencePositionStagedPayload, surrender, stateGoingIntoChange),
         user
     );
 
     return reviewAndSubmitModelAndView(
         correction,
-        licencePositionCorrection.getId(),
+        licencePositionStagedPayload.getId(),
         sections,
         errorMessages,
         singleBlockSelectAreasUrl.orElse(taskListUrl),
@@ -280,9 +280,9 @@ public class PartialSurrenderReviewAndSubmitController {
     var changeId = change.getId().toString();
     var taskListUrl = ReverseRouter.route(on(PartialSurrenderTaskListController.class)
         .renderForCorrectingChange(correction, licencePosition, change, null));
-    var singleBlockSelectAreasUrl = licencePositionCorrectionService
-        .findUpdatePositionCorrection(correction, licencePosition)
-        .filter(positionCorrection -> partialSurrenderCorrectionService.findCorrectedLiveChangeId(positionCorrection)
+    var singleBlockSelectAreasUrl = licencePositionStagedPayloadService
+        .findUpdatePositionStagedPayload(correction, licencePosition)
+        .filter(positionStagedPayload -> partialSurrenderCorrectionService.findCorrectedLiveChangeId(positionStagedPayload)
             .filter(changeId::equals)
             .isPresent())
         .flatMap(this::singleBlockSelectAreasUrl);
@@ -308,11 +308,11 @@ public class PartialSurrenderReviewAndSubmitController {
   }
 
   private Optional<String> singleBlockSelectAreasUrl(
-      LicencePositionCorrection positionCorrection
+      LicencePositionStagedPayload positionStagedPayload
   ) {
-    return partialSurrenderCorrectionService.findSingleBlockNotOperatedOn(positionCorrection)
+    return partialSurrenderCorrectionService.findSingleBlockNotOperatedOn(positionStagedPayload)
         .map(block -> ReverseRouter.route(on(PartialSurrenderDefineAreaController.class)
-            .renderSelectAreas(positionCorrection.getLicenceCorrection(), positionCorrection, block.getId())));
+            .renderSelectAreas(positionStagedPayload.getLicenceCorrection(), positionStagedPayload, block.getId())));
   }
 
   private ModelAndView reviewAndSubmitModelAndView(

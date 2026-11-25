@@ -12,7 +12,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListItem;
 import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListLabel;
 import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListSection;
@@ -23,7 +23,7 @@ class PartialSurrenderTaskListServiceTest {
 
   private static final ServiceUserDetail USER = ServiceUserDetailTestUtil.newBuilder().build();
   private static final PartialSurrenderTaskListContext CONTEXT =
-      new PartialSurrenderTaskListContext.Staged(LicencePositionCorrectionTestUtil.newBuilder().build());
+      new PartialSurrenderTaskListContext.Staged(LicencePositionStagedPayloadTestUtil.newBuilder().build());
 
   private static final TaskListSection SURRENDER_DETAILS_SECTION = new TaskListSection("Surrender details", 10,
       List.of(new TaskListItem("Surrender details", TaskListLabel.COMPLETE, "/surrender-details")));

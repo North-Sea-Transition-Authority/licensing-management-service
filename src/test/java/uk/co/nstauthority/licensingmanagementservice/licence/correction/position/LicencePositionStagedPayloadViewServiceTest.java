@@ -88,7 +88,7 @@ import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryMapView;
 
 @ExtendWith(MockitoExtension.class)
-class LicencePositionCorrectionViewServiceTest {
+class LicencePositionStagedPayloadViewServiceTest {
 
   private static final Licence LICENCE = LicenceTestUtil.builder().withLicenceType(LicenceType.SEAWARD_PRODUCTION).build();
   private static final UUID POSITION_ID = UUID.randomUUID();
@@ -107,7 +107,7 @@ class LicencePositionCorrectionViewServiceTest {
   private LicencePositionChangeService licencePositionChangeService;
 
   @Mock
-  private LicencePositionCorrectionService licencePositionCorrectionService;
+  private LicencePositionStagedPayloadService licencePositionStagedPayloadService;
 
   @Mock
   private OrganisationUnitQueryService organisationUnitQueryService;
@@ -118,7 +118,7 @@ class LicencePositionCorrectionViewServiceTest {
   @Mock
   private LicencePositionValidationService licencePositionValidationService;
 
-  private LicencePositionCorrectionViewService licencePositionCorrectionViewService;
+  private LicencePositionStagedPayloadViewService licencePositionStagedPayloadViewService;
 
   @Captor
   private ArgumentCaptor<List<ChronologicalPosition>> validationPositionsCaptor;
@@ -131,15 +131,15 @@ class LicencePositionCorrectionViewServiceTest {
     var chronologicalPositionService = new ChronologicalPositionService(
         licencePositionService,
         licencePositionChangeService,
-        licencePositionCorrectionService
+        licencePositionStagedPayloadService
     );
     var licencePositionNameService = new LicencePositionNameService(organisationUnitQueryService, featureService);
 
-    licencePositionCorrectionViewService = new LicencePositionCorrectionViewService(
+    licencePositionStagedPayloadViewService = new LicencePositionStagedPayloadViewService(
         licencePositionService,
-        licencePositionCorrectionService,
-        new LicencePositionCorrectionFilterService(
-            licencePositionCorrectionService,
+        licencePositionStagedPayloadService,
+        new LicencePositionStagedPayloadFilterService(
+            licencePositionStagedPayloadService,
             chronologicalPositionService,
             licencePositionNameService
         ),
@@ -167,10 +167,10 @@ class LicencePositionCorrectionViewServiceTest {
     when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(executed));
     when(licencePositionChangeService.findByLicencePositionIn(List.of(executed)))
         .thenReturn(List.of(liveSurrenderChange));
-    when(licencePositionCorrectionService.getPositionCorrections(correction)).thenReturn(List.of());
+    when(licencePositionStagedPayloadService.getPositionStagedPayloads(correction)).thenReturn(List.of());
     when(featureService.getFeaturesByIds(any())).thenReturn(List.of(SURRENDERED_BLOCK));
 
-    var result = licencePositionCorrectionViewService.getCorrectionPositionPageView(
+    var result = licencePositionStagedPayloadViewService.getCorrectionPositionPageView(
         new CorrectionPosition.Executed(correction, executed),
         LicenceTimelineFilter.empty()
     );
@@ -188,9 +188,9 @@ class LicencePositionCorrectionViewServiceTest {
     var correction = LicenceCorrectionTestUtil.newBuilder().withId(correctionId).withLicence(LICENCE).build();
     var executed = executedPosition();
 
-    var updateCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+    var updateStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder()
         .withLicenceCorrection(correction)
-        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+        .withChangeType(LicencePositionStagedPayloadChangeType.UPDATE_POSITION)
         .withTargetLicencePosition(executed)
         .withPayload(UpdateLicencePositionPayloadTestUtil.newBuilder()
             .withChanges(List.of(AddChange.buildOperationsChange(List.of(partialSurrenderOperation()), 1)))
@@ -200,10 +200,10 @@ class LicencePositionCorrectionViewServiceTest {
     when(licenceStatusService.getCurrentStatus(LICENCE)).thenReturn(LicenceStatusType.EXTANT);
     when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(executed));
     when(licencePositionChangeService.findByLicencePositionIn(List.of(executed))).thenReturn(List.of());
-    when(licencePositionCorrectionService.getPositionCorrections(correction)).thenReturn(List.of(updateCorrection));
+    when(licencePositionStagedPayloadService.getPositionStagedPayloads(correction)).thenReturn(List.of(updateStagedPayload));
     when(featureService.getFeaturesByIds(any())).thenReturn(List.of(SURRENDERED_BLOCK));
 
-    var result = licencePositionCorrectionViewService.getCorrectionPositionPageView(
+    var result = licencePositionStagedPayloadViewService.getCorrectionPositionPageView(
         new CorrectionPosition.Executed(correction, executed),
         LicenceTimelineFilter.empty()
     );
@@ -212,7 +212,7 @@ class LicencePositionCorrectionViewServiceTest {
         (PartialSurrenderChangeView) changeViewOfType(result, LicenceOperation.PARTIAL_SURRENDER);
     assertThat(surrenderChange.urls().correct())
         .isEqualTo(ReverseRouter.route(on(PartialSurrenderTaskListController.class)
-            .renderTaskList(correction, updateCorrection, null)));
+            .renderTaskList(correction, updateStagedPayload, null)));
   }
 
   @Test
@@ -224,9 +224,9 @@ class LicencePositionCorrectionViewServiceTest {
         .withLicenceTransaction(LicenceTransactionTestUtil.newBuilder().withRegulatorReference("REF-1").build())
         .withPositionDate(LocalDate.of(2026, Month.JANUARY, 1)).withPositionOrder(1).build();
 
-    var dateCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+    var dateStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder()
         .withLicenceCorrection(correction)
-        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+        .withChangeType(LicencePositionStagedPayloadChangeType.UPDATE_POSITION)
         .withTargetLicencePosition(executed)
         .withPayload(UpdateLicencePositionPayloadTestUtil.newBuilder()
             .withEffectiveDate(LocalDate.of(1990, Month.JANUARY, 1))
@@ -237,12 +237,12 @@ class LicencePositionCorrectionViewServiceTest {
 
     when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(executed));
     when(licencePositionChangeService.findByLicencePositionIn(List.of(executed))).thenReturn(List.of(change));
-    when(licencePositionCorrectionService.getPositionCorrections(correction)).thenReturn(List.of(dateCorrection));
+    when(licencePositionStagedPayloadService.getPositionStagedPayloads(correction)).thenReturn(List.of(dateStagedPayload));
     when(organisationUnitQueryService.getOrganisationNameHistoriesByIds(List.of(1)))
         .thenReturn(Map.of(1, namePeriods("Admin Ltd",
             namePeriod("Admin Ltd", LocalDate.of(2000, Month.JANUARY, 1), null))));
 
-    var result = licencePositionCorrectionViewService.getCorrectionPositionPageView(
+    var result = licencePositionStagedPayloadViewService.getCorrectionPositionPageView(
         new CorrectionPosition.Executed(correction, executed),
         LicenceTimelineFilter.empty()
     );
@@ -272,7 +272,7 @@ class LicencePositionCorrectionViewServiceTest {
         .thenReturn(Map.of(1, namePeriods("Admin Ltd",
             namePeriod("Admin Ltd", LocalDate.of(2000, Month.JANUARY, 1), null))));
 
-    var result = licencePositionCorrectionViewService.getCorrectionPositionPageView(
+    var result = licencePositionStagedPayloadViewService.getCorrectionPositionPageView(
         new CorrectionPosition.Executed(correction, executed),
         LicenceTimelineFilter.empty()
     );
@@ -302,7 +302,7 @@ class LicencePositionCorrectionViewServiceTest {
             2, namePeriods("Org Ltd",
                 namePeriod("Org Ltd", LocalDate.of(2000, Month.JANUARY, 2), null))));
 
-    var result = licencePositionCorrectionViewService.getCorrectionPositionPageView(
+    var result = licencePositionStagedPayloadViewService.getCorrectionPositionPageView(
         new CorrectionPosition.Executed(correction, executed),
         LicenceTimelineFilter.empty()
     );
@@ -321,9 +321,9 @@ class LicencePositionCorrectionViewServiceTest {
         .withLicenceTransaction(LicenceTransactionTestUtil.newBuilder().withRegulatorReference("REF-1").build())
         .withPositionDate(LocalDate.of(2026, Month.JANUARY, 1)).withPositionOrder(1).build();
 
-    var dateCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+    var dateStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder()
         .withLicenceCorrection(correction)
-        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+        .withChangeType(LicencePositionStagedPayloadChangeType.UPDATE_POSITION)
         .withTargetLicencePosition(executed)
         .withPayload(UpdateLicencePositionPayloadTestUtil.newBuilder()
             .withEffectiveDate(LocalDate.of(1990, Month.JANUARY, 1))
@@ -335,14 +335,14 @@ class LicencePositionCorrectionViewServiceTest {
     when(licenceStatusService.getCurrentStatus(LICENCE)).thenReturn(LicenceStatusType.EXTANT);
     when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(executed));
     when(licencePositionChangeService.findByLicencePositionIn(List.of(executed))).thenReturn(List.of(change));
-    when(licencePositionCorrectionService.getPositionCorrections(correction)).thenReturn(List.of(dateCorrection));
+    when(licencePositionStagedPayloadService.getPositionStagedPayloads(correction)).thenReturn(List.of(dateStagedPayload));
     when(organisationUnitQueryService.getOrganisationNameHistoriesByIds(List.of(1)))
         .thenReturn(Map.of(1, namePeriods("Shell plc",
             namePeriod("Shell UK Exploration", LocalDate.of(1987, Month.JANUARY, 12), LocalDate.of(1999, Month.MARCH, 3)),
             namePeriod("Shell plc", LocalDate.of(1999, Month.MARCH, 3), null))
         ));
 
-    var result = licencePositionCorrectionViewService.getCorrectionPositionPageView(
+    var result = licencePositionStagedPayloadViewService.getCorrectionPositionPageView(
         new CorrectionPosition.Executed(correction, executed),
         LicenceTimelineFilter.empty()
     );
@@ -381,9 +381,9 @@ class LicencePositionCorrectionViewServiceTest {
         .withOperations(List.of(partialSurrenderOperation()))
         .build();
 
-    var removeCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+    var removeStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder()
         .withLicenceCorrection(correction)
-        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+        .withChangeType(LicencePositionStagedPayloadChangeType.UPDATE_POSITION)
         .withTargetLicencePosition(executed)
         .withPayload(UpdateLicencePositionPayloadTestUtil.newBuilder()
             .withEffectiveDate(executed.getPositionDate())
@@ -396,10 +396,10 @@ class LicencePositionCorrectionViewServiceTest {
     when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(executed));
     when(licencePositionChangeService.findByLicencePositionIn(List.of(executed)))
         .thenReturn(List.of(liveSurrenderChange));
-    when(licencePositionCorrectionService.getPositionCorrections(correction)).thenReturn(List.of(removeCorrection));
+    when(licencePositionStagedPayloadService.getPositionStagedPayloads(correction)).thenReturn(List.of(removeStagedPayload));
     when(featureService.getFeaturesByIds(Set.of(SURRENDERED_BLOCK.getId()))).thenReturn(List.of(SURRENDERED_BLOCK));
 
-    var result = licencePositionCorrectionViewService.getCorrectionPositionPageView(
+    var result = licencePositionStagedPayloadViewService.getCorrectionPositionPageView(
         new CorrectionPosition.Executed(correction, executed),
         LicenceTimelineFilter.empty()
     );
@@ -473,7 +473,7 @@ class LicencePositionCorrectionViewServiceTest {
         .withEffectiveDate(LocalDate.of(2026, Month.JUNE, 1))
         .withCorrectionReference("ADD-REF")
         .build();
-    var addedPositionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+    var addedPositionStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder()
         .withLicenceCorrection(correction)
         .withPayload(addedPayload)
         .build();
@@ -481,10 +481,10 @@ class LicencePositionCorrectionViewServiceTest {
     when(licenceStatusService.getCurrentStatus(LICENCE)).thenReturn(LicenceStatusType.EXTANT);
     when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(executed));
     when(licencePositionChangeService.findByLicencePositionIn(List.of(executed))).thenReturn(List.of());
-    when(licencePositionCorrectionService.getPositionCorrections(correction))
-        .thenReturn(List.of(addedPositionCorrection));
+    when(licencePositionStagedPayloadService.getPositionStagedPayloads(correction))
+        .thenReturn(List.of(addedPositionStagedPayload));
 
-    var result = licencePositionCorrectionViewService.getCorrectionPositionPageView(
+    var result = licencePositionStagedPayloadViewService.getCorrectionPositionPageView(
         new CorrectionPosition.Executed(correction, executed),
         LicenceTimelineFilter.empty()
     );
@@ -508,7 +508,7 @@ class LicencePositionCorrectionViewServiceTest {
         .withEffectiveDate(LocalDate.of(2026, Month.JUNE, 5))
         .withCorrectionReference("ADD-REF")
         .build();
-    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+    var positionStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder()
         .withLicenceCorrection(correction)
         .withPayload(payload)
         .build();
@@ -522,17 +522,17 @@ class LicencePositionCorrectionViewServiceTest {
     when(licenceStatusService.getCurrentStatus(LICENCE)).thenReturn(LicenceStatusType.EXTANT);
     when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(executed));
     when(licencePositionChangeService.findByLicencePositionIn(List.of(executed))).thenReturn(List.of());
-    when(licencePositionCorrectionService.getPositionCorrections(correction))
-        .thenReturn(List.of(positionCorrection));
+    when(licencePositionStagedPayloadService.getPositionStagedPayloads(correction))
+        .thenReturn(List.of(positionStagedPayload));
 
-    var result = licencePositionCorrectionViewService.getCorrectionPositionPageView(
-        new CorrectionPosition.Staged(positionCorrection),
+    var result = licencePositionStagedPayloadViewService.getCorrectionPositionPageView(
+        new CorrectionPosition.Staged(positionStagedPayload),
         LicenceTimelineFilter.empty()
     );
 
     assertThat(result.actions().addChangeUrl())
         .isEqualTo(ReverseRouter.route(on(LicencePositionAddChangeController.class)
-            .renderForPosition(new CorrectionPosition.Staged(positionCorrection))));
+            .renderForPosition(new CorrectionPosition.Staged(positionStagedPayload))));
     assertThat(result.orderedChangeViews()).isEmpty();
     assertThat(result.stateView()).isEqualTo(new LicencePositionStateView(
         new AdministratorStateView(""),
@@ -557,9 +557,9 @@ class LicencePositionCorrectionViewServiceTest {
         .withId(POSITION_ID).withLicence(LICENCE).withStatus(LicencePositionStatus.EXECUTED)
         .withPositionDate(LocalDate.of(2026, Month.JANUARY, 1)).withPositionOrder(1).build();
 
-    var updateCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+    var updateStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder()
         .withLicenceCorrection(correction)
-        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+        .withChangeType(LicencePositionStagedPayloadChangeType.UPDATE_POSITION)
         .withTargetLicencePosition(executed)
         .withPayload(UpdateLicencePositionPayloadTestUtil.newBuilder()
             .withChanges(List.of(AddChange.buildOperationsChange(List.of(ADMINISTRATOR_OPERATION), 1)))
@@ -568,10 +568,10 @@ class LicencePositionCorrectionViewServiceTest {
 
     when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(executed));
     when(licencePositionChangeService.findByLicencePositionIn(List.of(executed))).thenReturn(List.of());
-    when(licencePositionCorrectionService.getPositionCorrections(correction)).thenReturn(List.of(updateCorrection));
+    when(licencePositionStagedPayloadService.getPositionStagedPayloads(correction)).thenReturn(List.of(updateStagedPayload));
     when(organisationUnitQueryService.getOrganisationNameHistoriesByIds(any())).thenReturn(Map.of());
 
-    var result = licencePositionCorrectionViewService.getCorrectionPositionPageView(
+    var result = licencePositionStagedPayloadViewService.getCorrectionPositionPageView(
         new CorrectionPosition.Executed(correction, executed),
         LicenceTimelineFilter.empty()
     );
@@ -608,10 +608,10 @@ class LicencePositionCorrectionViewServiceTest {
 
     when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(executed));
     when(licencePositionChangeService.findByLicencePositionIn(List.of(executed))).thenReturn(List.of(committedChange));
-    when(licencePositionCorrectionService.getPositionCorrections(correction)).thenReturn(List.of());
+    when(licencePositionStagedPayloadService.getPositionStagedPayloads(correction)).thenReturn(List.of());
     when(organisationUnitQueryService.getOrganisationNameHistoriesByIds(any())).thenReturn(Map.of());
 
-    var result = licencePositionCorrectionViewService.getCorrectionPositionPageView(
+    var result = licencePositionStagedPayloadViewService.getCorrectionPositionPageView(
         new CorrectionPosition.Executed(correction, executed),
         LicenceTimelineFilter.empty()
     );
@@ -637,9 +637,9 @@ class LicencePositionCorrectionViewServiceTest {
         .withOperations(List.of(LicenceOperation.newAdministratorChange().withOperator(5).build()))
         .build();
 
-    var removeCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+    var removeStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder()
         .withLicenceCorrection(correction)
-        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+        .withChangeType(LicencePositionStagedPayloadChangeType.UPDATE_POSITION)
         .withTargetLicencePosition(executed)
         .withPayload(UpdateLicencePositionPayloadTestUtil.newBuilder()
             .withChanges(List.of(LicencePositionChangeType.removeChange().withChangeId(changeId.toString()).build()))
@@ -648,11 +648,11 @@ class LicencePositionCorrectionViewServiceTest {
 
     when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(executed));
     when(licencePositionChangeService.findByLicencePositionIn(List.of(executed))).thenReturn(List.of(liveChange));
-    when(licencePositionCorrectionService.getPositionCorrections(correction)).thenReturn(List.of(removeCorrection));
+    when(licencePositionStagedPayloadService.getPositionStagedPayloads(correction)).thenReturn(List.of(removeStagedPayload));
     when(organisationUnitQueryService.getOrganisationNameHistoriesByIds(any())).thenReturn(Map.of(5, namePeriods(
         "Executed Admin Org", namePeriod("Executed Admin Org", LocalDate.of(1990, Month.JANUARY, 1), null))));
 
-    var result = licencePositionCorrectionViewService.getCorrectionPositionPageView(
+    var result = licencePositionStagedPayloadViewService.getCorrectionPositionPageView(
         new CorrectionPosition.Executed(correction, executed),
         LicenceTimelineFilter.empty()
     );
@@ -691,9 +691,9 @@ class LicencePositionCorrectionViewServiceTest {
         .withOperations(List.of(
             new BlockCreateOperation(List.of(block.getId()), Map.of(block.getId(), List.of(liveSubarea)))))
         .build();
-    var stagedCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+    var stagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder()
         .withLicenceCorrection(correction)
-        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+        .withChangeType(LicencePositionStagedPayloadChangeType.UPDATE_POSITION)
         .withTargetLicencePosition(earlierPosition)
         .withPayload(UpdateLicencePositionPayloadTestUtil.newBuilder()
             .withEffectiveDate(earlierPosition.getPositionDate())
@@ -707,11 +707,11 @@ class LicencePositionCorrectionViewServiceTest {
         .thenReturn(List.of(earlierPosition, laterPosition));
     when(licencePositionChangeService.findByLicencePositionIn(List.of(earlierPosition, laterPosition)))
         .thenReturn(List.of(liveChange));
-    when(licencePositionCorrectionService.getPositionCorrections(correction)).thenReturn(List.of(stagedCorrection));
+    when(licencePositionStagedPayloadService.getPositionStagedPayloads(correction)).thenReturn(List.of(stagedPayload));
     when(featureService.getFeaturesByIds(Set.of(block.getId(), liveSubareaFeature.getId(), stagedSubareaFeature.getId())))
         .thenReturn(List.of(block, liveSubareaFeature, stagedSubareaFeature));
 
-    var result = licencePositionCorrectionViewService.getCorrectionPositionPageView(
+    var result = licencePositionStagedPayloadViewService.getCorrectionPositionPageView(
         new CorrectionPosition.Executed(correction, laterPosition),
         LicenceTimelineFilter.empty()
     );
@@ -746,24 +746,24 @@ class LicencePositionCorrectionViewServiceTest {
         .withCorrectionReference("ADD-REF")
         .withChanges(List.of(AddChange.buildOperationsChange(List.of(ADMINISTRATOR_OPERATION), 1)))
         .build();
-    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+    var positionStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder()
         .withLicenceCorrection(correction)
         .withPayload(payload)
         .build();
 
     when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of());
-    when(licencePositionCorrectionService.getPositionCorrections(correction)).thenReturn(List.of(positionCorrection));
+    when(licencePositionStagedPayloadService.getPositionStagedPayloads(correction)).thenReturn(List.of(positionStagedPayload));
     when(organisationUnitQueryService.getOrganisationNameHistoriesByIds(any())).thenReturn(Map.of());
 
-    var result = licencePositionCorrectionViewService.getCorrectionPositionPageView(
-        new CorrectionPosition.Staged(positionCorrection),
+    var result = licencePositionStagedPayloadViewService.getCorrectionPositionPageView(
+        new CorrectionPosition.Staged(positionStagedPayload),
         LicenceTimelineFilter.empty()
     );
 
     var adminChange = (AdministratorChangeView) changeViewOfType(result, LicenceOperation.LICENCE_ADMINISTRATOR);
     assertThat(adminChange.urls().correct())
         .isEqualTo(ReverseRouter.route(on(ChangeFormController.class).addToPosition(
-            new CorrectionPosition.Staged(positionCorrection),
+            new CorrectionPosition.Staged(positionStagedPayload),
             AddPositionChangeType.ADMINISTRATOR,
             null,
             null,
@@ -790,18 +790,18 @@ class LicencePositionCorrectionViewServiceTest {
         .withLicenceTransaction(LicenceTransactionTestUtil.newBuilder().withRegulatorReference("REMOVED").build())
         .withPositionDate(LocalDate.of(2026, Month.JANUARY, 1)).withPositionOrder(1).withStatus(LicencePositionStatus.EXECUTED).build();
 
-    var removeCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+    var removeStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder()
         .withLicenceCorrection(correction)
-        .withChangeType(LicencePositionCorrectionChangeType.REMOVE_POSITION)
+        .withChangeType(LicencePositionStagedPayloadChangeType.REMOVE_POSITION)
         .withTargetLicencePosition(removed)
         .build();
 
     when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE))
         .thenReturn(List.of(removed, current));
     when(licencePositionChangeService.findByLicencePositionIn(List.of(removed, current))).thenReturn(List.of());
-    when(licencePositionCorrectionService.getPositionCorrections(correction)).thenReturn(List.of(removeCorrection));
+    when(licencePositionStagedPayloadService.getPositionStagedPayloads(correction)).thenReturn(List.of(removeStagedPayload));
 
-    var result = licencePositionCorrectionViewService.getCorrectionPositionPageView(
+    var result = licencePositionStagedPayloadViewService.getCorrectionPositionPageView(
         new CorrectionPosition.Executed(correction, current),
         LicenceTimelineFilter.empty()
     );
@@ -840,17 +840,17 @@ class LicencePositionCorrectionViewServiceTest {
         .withLicenceTransaction(LicenceTransactionTestUtil.newBuilder().withRegulatorReference("REMOVED").build())
         .withPositionDate(LocalDate.of(2026, Month.JUNE, 1)).withPositionOrder(1).withStatus(LicencePositionStatus.EXECUTED).build();
 
-    var removeCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+    var removeStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder()
         .withLicenceCorrection(correction)
-        .withChangeType(LicencePositionCorrectionChangeType.REMOVE_POSITION)
+        .withChangeType(LicencePositionStagedPayloadChangeType.REMOVE_POSITION)
         .withTargetLicencePosition(removed)
         .build();
 
     when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(removed));
     when(licencePositionChangeService.findByLicencePositionIn(List.of(removed))).thenReturn(List.of());
-    when(licencePositionCorrectionService.getPositionCorrections(correction)).thenReturn(List.of(removeCorrection));
+    when(licencePositionStagedPayloadService.getPositionStagedPayloads(correction)).thenReturn(List.of(removeStagedPayload));
 
-    var result = licencePositionCorrectionViewService.getCorrectionPositionPageView(
+    var result = licencePositionStagedPayloadViewService.getCorrectionPositionPageView(
         new CorrectionPosition.Executed(correction, removed),
         LicenceTimelineFilter.empty()
     );
@@ -881,20 +881,20 @@ class LicencePositionCorrectionViewServiceTest {
         .withOperations(List.of(LicenceOperation.newAdministratorChange().withOperator(5).build()))
         .build();
 
-    var removeCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+    var removeStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder()
         .withLicenceCorrection(correction)
-        .withChangeType(LicencePositionCorrectionChangeType.REMOVE_POSITION)
+        .withChangeType(LicencePositionStagedPayloadChangeType.REMOVE_POSITION)
         .withTargetLicencePosition(removed)
         .build();
 
     when(licenceStatusService.getCurrentStatus(LICENCE)).thenReturn(LicenceStatusType.EXTANT);
     when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(removed));
     when(licencePositionChangeService.findByLicencePositionIn(List.of(removed))).thenReturn(List.of(liveChange));
-    when(licencePositionCorrectionService.getPositionCorrections(correction)).thenReturn(List.of(removeCorrection));
+    when(licencePositionStagedPayloadService.getPositionStagedPayloads(correction)).thenReturn(List.of(removeStagedPayload));
     when(organisationUnitQueryService.getOrganisationNameHistoriesByIds(any())).thenReturn(Map.of(5, namePeriods(
         "Executed Admin Org", namePeriod("Executed Admin Org", LocalDate.of(1990, Month.JANUARY, 1), null))));
 
-    var result = licencePositionCorrectionViewService.getCorrectionPositionPageView(
+    var result = licencePositionStagedPayloadViewService.getCorrectionPositionPageView(
         new CorrectionPosition.Executed(correction, removed),
         LicenceTimelineFilter.empty()
     );
@@ -921,9 +921,9 @@ class LicencePositionCorrectionViewServiceTest {
         .withOperations(List.of(LicenceOperation.newAdministratorChange().withOperator(7).build()))
         .build();
 
-    var removeCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+    var removeStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder()
         .withLicenceCorrection(correction)
-        .withChangeType(LicencePositionCorrectionChangeType.REMOVE_POSITION)
+        .withChangeType(LicencePositionStagedPayloadChangeType.REMOVE_POSITION)
         .withTargetLicencePosition(removed)
         .build();
 
@@ -933,10 +933,10 @@ class LicencePositionCorrectionViewServiceTest {
         .thenReturn(List.of(removed, following));
     when(licencePositionChangeService.findByLicencePositionIn(List.of(removed, following)))
         .thenReturn(List.of(removedAdminChange));
-    when(licencePositionCorrectionService.getPositionCorrections(correction))
-        .thenReturn(List.of(removeCorrection));
+    when(licencePositionStagedPayloadService.getPositionStagedPayloads(correction))
+        .thenReturn(List.of(removeStagedPayload));
 
-    licencePositionCorrectionViewService.getCorrectionPositionPageView(
+    licencePositionStagedPayloadViewService.getCorrectionPositionPageView(
         new CorrectionPosition.Executed(correction, removed),
         LicenceTimelineFilter.empty()
     );
@@ -944,7 +944,7 @@ class LicencePositionCorrectionViewServiceTest {
     verify(licencePositionValidationService).validate(
         validationPositionsCaptor.capture(),
         validationStatesCaptor.capture(),
-        eq(List.of(removeCorrection)),
+        eq(List.of(removeStagedPayload)),
         eq(LICENCE.getType()),
         eq(LicenceStatusType.EXTANT)
     );
@@ -975,9 +975,9 @@ class LicencePositionCorrectionViewServiceTest {
         .withEffectiveDateOrder(3)
         .withCorrectionReference("CORR-REF")
         .build();
-    var updateCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+    var updateStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder()
         .withLicenceCorrection(correction)
-        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+        .withChangeType(LicencePositionStagedPayloadChangeType.UPDATE_POSITION)
         .withTargetLicencePosition(current)
         .withPayload(correctedPayload)
         .build();
@@ -985,9 +985,9 @@ class LicencePositionCorrectionViewServiceTest {
     when(licenceStatusService.getCurrentStatus(LICENCE)).thenReturn(LicenceStatusType.EXTANT);
     when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(current));
     when(licencePositionChangeService.findByLicencePositionIn(List.of(current))).thenReturn(List.of());
-    when(licencePositionCorrectionService.getPositionCorrections(correction)).thenReturn(List.of(updateCorrection));
+    when(licencePositionStagedPayloadService.getPositionStagedPayloads(correction)).thenReturn(List.of(updateStagedPayload));
 
-    var result = licencePositionCorrectionViewService.getCorrectionPositionPageView(
+    var result = licencePositionStagedPayloadViewService.getCorrectionPositionPageView(
         new CorrectionPosition.Executed(correction, current),
         LicenceTimelineFilter.empty()
     );
@@ -1020,9 +1020,9 @@ class LicencePositionCorrectionViewServiceTest {
         .withEffectiveDateOrder(null)
         .withChanges(List.of())
         .build();
-    var updateCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+    var updateStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder()
         .withLicenceCorrection(correction)
-        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+        .withChangeType(LicencePositionStagedPayloadChangeType.UPDATE_POSITION)
         .withTargetLicencePosition(current)
         .withPayload(emptyPayload)
         .build();
@@ -1030,9 +1030,9 @@ class LicencePositionCorrectionViewServiceTest {
     when(licenceStatusService.getCurrentStatus(LICENCE)).thenReturn(LicenceStatusType.EXTANT);
     when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(current));
     when(licencePositionChangeService.findByLicencePositionIn(List.of(current))).thenReturn(List.of());
-    when(licencePositionCorrectionService.getPositionCorrections(correction)).thenReturn(List.of(updateCorrection));
+    when(licencePositionStagedPayloadService.getPositionStagedPayloads(correction)).thenReturn(List.of(updateStagedPayload));
 
-    var result = licencePositionCorrectionViewService.getCorrectionPositionPageView(
+    var result = licencePositionStagedPayloadViewService.getCorrectionPositionPageView(
         new CorrectionPosition.Executed(correction, current),
         LicenceTimelineFilter.empty()
     );
@@ -1065,9 +1065,9 @@ class LicencePositionCorrectionViewServiceTest {
         .withOperations(List.of(ADMINISTRATOR_OPERATION))
         .build();
 
-    var moveCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+    var moveStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder()
         .withLicenceCorrection(correction)
-        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+        .withChangeType(LicencePositionStagedPayloadChangeType.UPDATE_POSITION)
         .withTargetLicencePosition(target)
         .withPayload(UpdateLicencePositionPayloadTestUtil.newBuilder()
             .withEffectiveDate(null)
@@ -1082,9 +1082,9 @@ class LicencePositionCorrectionViewServiceTest {
     when(licenceStatusService.getCurrentStatus(LICENCE)).thenReturn(LicenceStatusType.EXTANT);
     when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(source, target));
     when(licencePositionChangeService.findByLicencePositionIn(List.of(source, target))).thenReturn(List.of(liveChange));
-    when(licencePositionCorrectionService.getPositionCorrections(correction)).thenReturn(List.of(moveCorrection));
+    when(licencePositionStagedPayloadService.getPositionStagedPayloads(correction)).thenReturn(List.of(moveStagedPayload));
 
-    var result = licencePositionCorrectionViewService.getCorrectionPositionPageView(
+    var result = licencePositionStagedPayloadViewService.getCorrectionPositionPageView(
         new CorrectionPosition.Executed(correction, source),
         LicenceTimelineFilter.empty()
     );
@@ -1113,16 +1113,16 @@ class LicencePositionCorrectionViewServiceTest {
         .withLicenceTransaction(LicenceTransactionTestUtil.newBuilder().withRegulatorReference("OTHER").build())
         .withPositionDate(sameDate).withPositionOrder(2).withStatus(LicencePositionStatus.EXECUTED).build();
 
-    var movedUpdate = LicencePositionCorrectionTestUtil.newBuilder()
+    var movedUpdate = LicencePositionStagedPayloadTestUtil.newBuilder()
         .withLicenceCorrection(correction)
-        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+        .withChangeType(LicencePositionStagedPayloadChangeType.UPDATE_POSITION)
         .withTargetLicencePosition(moved)
         .withPayload(UpdateLicencePositionPayloadTestUtil.newBuilder()
             .withEffectiveDate(sameDate).withEffectiveDateOrder(2).build())
         .build();
-    var otherUpdate = LicencePositionCorrectionTestUtil.newBuilder()
+    var otherUpdate = LicencePositionStagedPayloadTestUtil.newBuilder()
         .withLicenceCorrection(correction)
-        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+        .withChangeType(LicencePositionStagedPayloadChangeType.UPDATE_POSITION)
         .withTargetLicencePosition(other)
         .withPayload(UpdateLicencePositionPayloadTestUtil.newBuilder()
             .withEffectiveDate(sameDate).withEffectiveDateOrder(1).build())
@@ -1140,10 +1140,10 @@ class LicencePositionCorrectionViewServiceTest {
     when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE))
         .thenReturn(List.of(moved, other));
     when(licencePositionChangeService.findByLicencePositionIn(List.of(moved, other))).thenReturn(List.of());
-    when(licencePositionCorrectionService.getPositionCorrections(correction))
+    when(licencePositionStagedPayloadService.getPositionStagedPayloads(correction))
         .thenReturn(List.of(movedUpdate, otherUpdate));
 
-    var result = licencePositionCorrectionViewService.getCorrectionPositionPageView(
+    var result = licencePositionStagedPayloadViewService.getCorrectionPositionPageView(
         new CorrectionPosition.Executed(correction, moved),
         LicenceTimelineFilter.empty()
     );
@@ -1159,17 +1159,17 @@ class LicencePositionCorrectionViewServiceTest {
     var liveJun1 = executedPosition("LIVE-JUN-1", LocalDate.of(2026, Month.JUNE, 1), 1);
     var liveJun2 = executedPosition("LIVE-JUN-2", LocalDate.of(2026, Month.JUNE, 1), 2);
 
-    var addedMar = addedCorrection(correction, "ADD-MAR", LocalDate.of(2026, Month.MARCH, 1), 1);
-    var addedJun3 = addedCorrection(correction, "ADD-JUN-3", LocalDate.of(2026, Month.JUNE, 1), 3);
+    var addedMar = addedStagedPayload(correction, "ADD-MAR", LocalDate.of(2026, Month.MARCH, 1), 1);
+    var addedJun3 = addedStagedPayload(correction, "ADD-JUN-3", LocalDate.of(2026, Month.JUNE, 1), 3);
 
     when(licenceStatusService.getCurrentStatus(LICENCE)).thenReturn(LicenceStatusType.EXTANT);
     when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE))
         .thenReturn(List.of(liveJan, liveJun1, liveJun2));
     when(licencePositionChangeService.findByLicencePositionIn(List.of(liveJan, liveJun1, liveJun2))).thenReturn(List.of());
-    when(licencePositionCorrectionService.getPositionCorrections(correction))
+    when(licencePositionStagedPayloadService.getPositionStagedPayloads(correction))
         .thenReturn(List.of(addedMar, addedJun3));
 
-    var result = licencePositionCorrectionViewService.getCorrectionPositionPageView(
+    var result = licencePositionStagedPayloadViewService.getCorrectionPositionPageView(
         new CorrectionPosition.Staged(addedMar),
         LicenceTimelineFilter.empty()
     );
@@ -1201,18 +1201,18 @@ class LicencePositionCorrectionViewServiceTest {
     when(licenceStatusService.getCurrentStatus(LICENCE)).thenReturn(LicenceStatusType.EXTANT);
     when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(pos1, pos2));
     when(licencePositionChangeService.findByLicencePositionIn(List.of(pos1, pos2))).thenReturn(List.of());
-    when(licencePositionCorrectionService.getPositionCorrections(correction)).thenReturn(List.of());
+    when(licencePositionStagedPayloadService.getPositionStagedPayloads(correction)).thenReturn(List.of());
 
-    var result = licencePositionCorrectionViewService.getCorrectionPositionPageView(
+    var result = licencePositionStagedPayloadViewService.getCorrectionPositionPageView(
         new CorrectionPosition.Executed(correction, pos1),
         LicenceTimelineFilter.empty()
     );
 
     var expectedCorrectOrderUrl1 = ReverseRouter.route(
-        on(uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionOrderChangeController.class)
+        on(uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadOrderChangeController.class)
             .renderCorrectionLicencePositionOrder(correction, pos1Id));
     var expectedCorrectOrderUrl2 = ReverseRouter.route(
-        on(uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionOrderChangeController.class)
+        on(uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadOrderChangeController.class)
             .renderCorrectionLicencePositionOrder(correction, pos2Id));
 
     assertThat(result.timelineViews())
@@ -1238,9 +1238,9 @@ class LicencePositionCorrectionViewServiceTest {
     when(licenceStatusService.getCurrentStatus(LICENCE)).thenReturn(LicenceStatusType.EXTANT);
     when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(pos1));
     when(licencePositionChangeService.findByLicencePositionIn(List.of(pos1))).thenReturn(List.of());
-    when(licencePositionCorrectionService.getPositionCorrections(correction)).thenReturn(List.of());
+    when(licencePositionStagedPayloadService.getPositionStagedPayloads(correction)).thenReturn(List.of());
 
-    var result = licencePositionCorrectionViewService.getCorrectionPositionPageView(
+    var result = licencePositionStagedPayloadViewService.getCorrectionPositionPageView(
         new CorrectionPosition.Executed(correction, pos1),
         LicenceTimelineFilter.empty()
     );
@@ -1255,9 +1255,9 @@ class LicencePositionCorrectionViewServiceTest {
     var correction = LicenceCorrectionTestUtil.newBuilder().withLicence(LICENCE).build();
     var administrated = executedPosition("ADMIN", LocalDate.of(2026, Month.JANUARY, 1));
     var corrected = executedPosition("CORRECTED", LocalDate.of(2026, Month.JUNE, 1));
-    var updateCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+    var updateStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder()
         .withLicenceCorrection(correction)
-        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+        .withChangeType(LicencePositionStagedPayloadChangeType.UPDATE_POSITION)
         .withTargetLicencePosition(corrected)
         .withPayload(UpdateLicencePositionPayloadTestUtil.newBuilder()
             .withChanges(List.of(AddChange.buildOperationsChange(List.of(setEquityOperation(1)), 1)))
@@ -1268,11 +1268,11 @@ class LicencePositionCorrectionViewServiceTest {
         .thenReturn(List.of(administrated, corrected));
     when(licencePositionChangeService.findByLicencePositionIn(List.of(administrated, corrected)))
         .thenReturn(List.of(changeOn(administrated, 1, ADMINISTRATOR_OPERATION)));
-    when(licencePositionCorrectionService.getPositionCorrections(correction)).thenReturn(List.of(updateCorrection));
+    when(licencePositionStagedPayloadService.getPositionStagedPayloads(correction)).thenReturn(List.of(updateStagedPayload));
     when(organisationUnitQueryService.getOrganisationNameHistoriesByIds(List.of(1)))
         .thenReturn(Map.of(1, namePeriods("Admin Ltd")));
 
-    var result = licencePositionCorrectionViewService.getCorrectionPositionPageView(
+    var result = licencePositionStagedPayloadViewService.getCorrectionPositionPageView(
         new CorrectionPosition.Executed(correction, administrated),
         changeTypeFilter(LicenceOperation.SET_EQUITY)
     );
@@ -1303,7 +1303,7 @@ class LicencePositionCorrectionViewServiceTest {
             1
         )))
         .build();
-    var addedPositionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+    var addedPositionStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder()
         .withLicenceCorrection(correction)
         .withPayload(addedPayload)
         .build();
@@ -1311,10 +1311,10 @@ class LicencePositionCorrectionViewServiceTest {
     when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(executed));
     when(licencePositionChangeService.findByLicencePositionIn(List.of(executed)))
         .thenReturn(List.of(changeOn(executed, 1, ADMINISTRATOR_OPERATION)));
-    when(licencePositionCorrectionService.getPositionCorrections(correction))
-        .thenReturn(List.of(addedPositionCorrection));
+    when(licencePositionStagedPayloadService.getPositionStagedPayloads(correction))
+        .thenReturn(List.of(addedPositionStagedPayload));
 
-    var result = licencePositionCorrectionViewService.getCorrectionPositionPageView(
+    var result = licencePositionStagedPayloadViewService.getCorrectionPositionPageView(
         new CorrectionPosition.Executed(correction, executed),
         organisationFilter(2)
     );
@@ -1332,20 +1332,20 @@ class LicencePositionCorrectionViewServiceTest {
     var correction = LicenceCorrectionTestUtil.newBuilder().withLicence(LICENCE).build();
     var removed = executedPosition("REMOVED", LocalDate.of(2026, Month.JANUARY, 1));
     var current = executedPosition("CURRENT", LocalDate.of(2026, Month.JUNE, 1));
-    var removeCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+    var removeStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder()
         .withLicenceCorrection(correction)
-        .withChangeType(LicencePositionCorrectionChangeType.REMOVE_POSITION)
+        .withChangeType(LicencePositionStagedPayloadChangeType.REMOVE_POSITION)
         .withTargetLicencePosition(removed)
         .build();
 
     when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(removed, current));
     when(licencePositionChangeService.findByLicencePositionIn(List.of(removed, current)))
         .thenReturn(List.of(changeOn(removed, 1, ADMINISTRATOR_OPERATION)));
-    when(licencePositionCorrectionService.getPositionCorrections(correction)).thenReturn(List.of(removeCorrection));
+    when(licencePositionStagedPayloadService.getPositionStagedPayloads(correction)).thenReturn(List.of(removeStagedPayload));
     when(organisationUnitQueryService.getOrganisationNameHistoriesByIds(List.of(1)))
         .thenReturn(Map.of(1, namePeriods("Admin Ltd")));
 
-    var result = licencePositionCorrectionViewService.getCorrectionPositionPageView(
+    var result = licencePositionStagedPayloadViewService.getCorrectionPositionPageView(
         new CorrectionPosition.Executed(correction, current),
         organisationFilter(1)
     );
@@ -1365,16 +1365,16 @@ class LicencePositionCorrectionViewServiceTest {
     when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(matching, other));
     when(licencePositionChangeService.findByLicencePositionIn(List.of(matching, other)))
         .thenReturn(List.of(changeOn(matching, 1, ADMINISTRATOR_OPERATION)));
-    when(licencePositionCorrectionService.getPositionCorrections(correction)).thenReturn(List.of());
+    when(licencePositionStagedPayloadService.getPositionStagedPayloads(correction)).thenReturn(List.of());
 
-    var result = licencePositionCorrectionViewService.getCorrectionPositionPageView(
+    var result = licencePositionStagedPayloadViewService.getCorrectionPositionPageView(
         new CorrectionPosition.Executed(correction, matching),
         changeTypeFilter(LicenceOperation.LICENCE_ADMINISTRATOR)
     );
 
     assertThat(result.timelineViews())
         .extracting(LicencePositionTimelineView::regulatorReference, LicencePositionTimelineView::correctOrderUrl)
-        .containsExactly(tuple("MATCHING", ReverseRouter.route(on(LicencePositionCorrectionOrderChangeController.class)
+        .containsExactly(tuple("MATCHING", ReverseRouter.route(on(LicencePositionStagedPayloadOrderChangeController.class)
             .renderCorrectionLicencePositionOrder(correction, matching.getId()))));
   }
 
@@ -1389,7 +1389,7 @@ class LicencePositionCorrectionViewServiceTest {
     when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(invalid, selected));
     when(licencePositionChangeService.findByLicencePositionIn(List.of(invalid, selected)))
         .thenReturn(List.of(changeOn(selected, 1, ADMINISTRATOR_OPERATION)));
-    when(licencePositionCorrectionService.getPositionCorrections(correction)).thenReturn(List.of());
+    when(licencePositionStagedPayloadService.getPositionStagedPayloads(correction)).thenReturn(List.of());
     when(organisationUnitQueryService.getOrganisationNameHistoriesByIds(List.of(1)))
         .thenReturn(Map.of(1, namePeriods("Admin Ltd")));
     when(licencePositionValidationService.validate(
@@ -1400,7 +1400,7 @@ class LicencePositionCorrectionViewServiceTest {
         eq(LicenceStatusType.EXTANT)
     )).thenReturn(List.of(validationError));
 
-    var result = licencePositionCorrectionViewService.getCorrectionPositionPageView(
+    var result = licencePositionStagedPayloadViewService.getCorrectionPositionPageView(
         new CorrectionPosition.Executed(correction, selected),
         changeTypeFilter(LicenceOperation.LICENCE_ADMINISTRATOR)
     );
@@ -1425,18 +1425,18 @@ class LicencePositionCorrectionViewServiceTest {
             AddChange.buildOperationsChange(List.of(setEquityOperation(1)), 2)
         ))
         .build();
-    var addedPositionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+    var addedPositionStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder()
         .withLicenceCorrection(correction)
         .withPayload(addedPayload)
         .build();
 
     when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(executed));
     when(licencePositionChangeService.findByLicencePositionIn(List.of(executed))).thenReturn(List.of());
-    when(licencePositionCorrectionService.getPositionCorrections(correction))
-        .thenReturn(List.of(addedPositionCorrection));
+    when(licencePositionStagedPayloadService.getPositionStagedPayloads(correction))
+        .thenReturn(List.of(addedPositionStagedPayload));
 
-    var result = licencePositionCorrectionViewService.getCorrectionPositionPageView(
-        new CorrectionPosition.Staged(addedPositionCorrection),
+    var result = licencePositionStagedPayloadViewService.getCorrectionPositionPageView(
+        new CorrectionPosition.Staged(addedPositionStagedPayload),
         changeTypeFilter(LicenceOperation.SET_EQUITY)
     );
 
@@ -1459,13 +1459,13 @@ class LicencePositionCorrectionViewServiceTest {
         .build();
   }
 
-  private static LicencePositionCorrection addedCorrection(
+  private static LicencePositionStagedPayload addedStagedPayload(
       LicenceCorrection correction,
       String correctionReference,
       LocalDate effectiveDate,
       int effectiveDateOrder
   ) {
-    return LicencePositionCorrectionTestUtil.newBuilder()
+    return LicencePositionStagedPayloadTestUtil.newBuilder()
         .withLicenceCorrection(correction)
         .withPayload(CreateLicencePositionPayloadTestUtil.newBuilder()
             .withEffectiveDate(effectiveDate)

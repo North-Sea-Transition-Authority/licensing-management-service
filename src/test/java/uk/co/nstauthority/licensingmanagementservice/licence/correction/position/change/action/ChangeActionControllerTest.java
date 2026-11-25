@@ -38,10 +38,10 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionChangeType;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionRouteUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayload;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadChangeType;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadRouteUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
@@ -80,14 +80,14 @@ class ChangeActionControllerTest extends AbstractControllerTest {
       .withLicencePosition(POSITION)
       .withOperations(List.of(OPERATION))
       .build();
-  private static final LicencePositionCorrection EXECUTED_POSITION_CORRECTION = LicencePositionCorrectionTestUtil.newBuilder()
+  private static final LicencePositionStagedPayload EXECUTED_POSITION_STAGED_PAYLOAD = LicencePositionStagedPayloadTestUtil.newBuilder()
       .withLicenceCorrection(CORRECTION)
-      .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+      .withChangeType(LicencePositionStagedPayloadChangeType.UPDATE_POSITION)
       .withTargetLicencePosition(POSITION)
       .build();
-  private static final LicencePositionCorrection ADDED_POSITION_CORRECTION = LicencePositionCorrectionTestUtil.newBuilder()
+  private static final LicencePositionStagedPayload ADDED_POSITION_STAGED_PAYLOAD = LicencePositionStagedPayloadTestUtil.newBuilder()
       .withLicenceCorrection(CORRECTION)
-      .withChangeType(LicencePositionCorrectionChangeType.ADD_POSITION)
+      .withChangeType(LicencePositionStagedPayloadChangeType.ADD_POSITION)
       .withTargetLicencePosition(null)
       .build();
 
@@ -96,9 +96,9 @@ class ChangeActionControllerTest extends AbstractControllerTest {
 
   private final ChangeActionHandler handler = mock(ChangeActionHandler.class);
 
-  private final String positionUrl = LicencePositionCorrectionRouteUtil.getPositionPageUrl(CORRECTION, POSITION.getId());
+  private final String positionUrl = LicencePositionStagedPayloadRouteUtil.getPositionPageUrl(CORRECTION, POSITION.getId());
   private final String addedPositionUrl =
-      LicencePositionCorrectionRouteUtil.getPositionPageUrl(CORRECTION, ADDED_POSITION_CORRECTION.getPositionId());
+      LicencePositionStagedPayloadRouteUtil.getPositionPageUrl(CORRECTION, ADDED_POSITION_STAGED_PAYLOAD.getPositionId());
 
   @Test
   void removeChange_whenNotLoggedIn_thenRedirectsToLogin() throws Exception {
@@ -120,7 +120,7 @@ class ChangeActionControllerTest extends AbstractControllerTest {
   void removeChange_whenPositionIsRemovedInCorrection_thenForbidden() throws Exception {
     givenCorrectionAllocatedToUser();
     givenLiveChange();
-    when(licencePositionCorrectionService.isPositionRemovedInCorrection(CORRECTION, POSITION)).thenReturn(true);
+    when(licencePositionStagedPayloadService.isPositionRemovedInCorrection(CORRECTION, POSITION)).thenReturn(true);
 
     mockMvc.perform(get(removeUrl())
             .with(user(regulatorUser)))
@@ -213,9 +213,9 @@ class ChangeActionControllerTest extends AbstractControllerTest {
   @Test
   void undoChange_whenGetForChangeOnExecutedPosition_thenAsksToUndoAndCancelsBackToPosition() throws Exception {
     givenCorrectionAllocatedToUser();
-    givenStagedChange(EXECUTED_POSITION_CORRECTION, ChangeAction.UNDO);
+    givenStagedChange(EXECUTED_POSITION_STAGED_PAYLOAD, ChangeAction.UNDO);
     when(changeActionService.getHandler(OPERATION)).thenReturn(handler);
-    when(handler.stagedChangeConfirmation(CORRECTION, EXECUTED_POSITION_CORRECTION, CHANGE_ID, ChangeAction.UNDO))
+    when(handler.stagedChangeConfirmation(CORRECTION, EXECUTED_POSITION_STAGED_PAYLOAD, CHANGE_ID, ChangeAction.UNDO))
         .thenReturn(new ModelAndView(TEMPLATE_NAME).addObject("blockName", BLOCK_NAME));
 
     mockMvc.perform(get(undoUrl())
@@ -228,15 +228,15 @@ class ChangeActionControllerTest extends AbstractControllerTest {
             model().attribute("blockName", BLOCK_NAME),
             model().attribute("cancelUrl", positionUrl)
         );
-    verify(changeActionService, never()).undoStagedChange(EXECUTED_POSITION_CORRECTION, CHANGE_ID);
+    verify(changeActionService, never()).undoStagedChange(EXECUTED_POSITION_STAGED_PAYLOAD, CHANGE_ID);
   }
 
   @Test
   void undoChange_whenGetForStagedRemoval_thenAsksToReinstate() throws Exception {
     givenCorrectionAllocatedToUser();
-    givenStagedChange(EXECUTED_POSITION_CORRECTION, ChangeAction.REINSTATE);
+    givenStagedChange(EXECUTED_POSITION_STAGED_PAYLOAD, ChangeAction.REINSTATE);
     when(changeActionService.getHandler(OPERATION)).thenReturn(handler);
-    when(handler.stagedChangeConfirmation(CORRECTION, EXECUTED_POSITION_CORRECTION, CHANGE_ID, ChangeAction.REINSTATE))
+    when(handler.stagedChangeConfirmation(CORRECTION, EXECUTED_POSITION_STAGED_PAYLOAD, CHANGE_ID, ChangeAction.REINSTATE))
         .thenReturn(new ModelAndView(TEMPLATE_NAME).addObject("blockName", BLOCK_NAME));
 
     mockMvc.perform(get(undoUrl())
@@ -254,9 +254,9 @@ class ChangeActionControllerTest extends AbstractControllerTest {
   @Test
   void undoChange_whenGetForChangeOnAddedPosition_thenCancelsBackToAddedPosition() throws Exception {
     givenCorrectionAllocatedToUser();
-    givenStagedChange(ADDED_POSITION_CORRECTION, ChangeAction.UNDO);
+    givenStagedChange(ADDED_POSITION_STAGED_PAYLOAD, ChangeAction.UNDO);
     when(changeActionService.getHandler(OPERATION)).thenReturn(handler);
-    when(handler.stagedChangeConfirmation(CORRECTION, ADDED_POSITION_CORRECTION, CHANGE_ID, ChangeAction.UNDO))
+    when(handler.stagedChangeConfirmation(CORRECTION, ADDED_POSITION_STAGED_PAYLOAD, CHANGE_ID, ChangeAction.UNDO))
         .thenReturn(new ModelAndView(TEMPLATE_NAME).addObject("blockName", BLOCK_NAME));
 
     mockMvc.perform(get(undoUrl())
@@ -282,7 +282,7 @@ class ChangeActionControllerTest extends AbstractControllerTest {
   @Test
   void undoChange_whenPostForChangeOnExecutedPosition_thenUndoesAndRedirectsToPosition() throws Exception {
     givenCorrectionAllocatedToUser();
-    givenStagedChange(EXECUTED_POSITION_CORRECTION, ChangeAction.UNDO);
+    givenStagedChange(EXECUTED_POSITION_STAGED_PAYLOAD, ChangeAction.UNDO);
 
     mockMvc.perform(post(undoUrl())
             .with(user(regulatorUser))
@@ -295,13 +295,13 @@ class ChangeActionControllerTest extends AbstractControllerTest {
                 .build())
         );
 
-    verify(changeActionService).undoStagedChange(EXECUTED_POSITION_CORRECTION, CHANGE_ID);
+    verify(changeActionService).undoStagedChange(EXECUTED_POSITION_STAGED_PAYLOAD, CHANGE_ID);
   }
 
   @Test
   void undoChange_whenPostForStagedRemoval_thenReinstatesIt() throws Exception {
     givenCorrectionAllocatedToUser();
-    givenStagedChange(EXECUTED_POSITION_CORRECTION, ChangeAction.REINSTATE);
+    givenStagedChange(EXECUTED_POSITION_STAGED_PAYLOAD, ChangeAction.REINSTATE);
 
     mockMvc.perform(post(undoUrl())
             .with(user(regulatorUser))
@@ -314,13 +314,13 @@ class ChangeActionControllerTest extends AbstractControllerTest {
                 .build())
         );
 
-    verify(changeActionService).undoStagedChange(EXECUTED_POSITION_CORRECTION, CHANGE_ID);
+    verify(changeActionService).undoStagedChange(EXECUTED_POSITION_STAGED_PAYLOAD, CHANGE_ID);
   }
 
   @Test
   void undoChange_whenPostForChangeOnAddedPosition_thenRedirectsToAddedPosition() throws Exception {
     givenCorrectionAllocatedToUser();
-    givenStagedChange(ADDED_POSITION_CORRECTION, ChangeAction.UNDO);
+    givenStagedChange(ADDED_POSITION_STAGED_PAYLOAD, ChangeAction.UNDO);
 
     mockMvc.perform(post(undoUrl())
             .with(user(regulatorUser))
@@ -330,7 +330,7 @@ class ChangeActionControllerTest extends AbstractControllerTest {
             redirectedUrl(addedPositionUrl)
         );
 
-    verify(changeActionService).undoStagedChange(ADDED_POSITION_CORRECTION, CHANGE_ID);
+    verify(changeActionService).undoStagedChange(ADDED_POSITION_STAGED_PAYLOAD, CHANGE_ID);
   }
 
   private String removeUrl() {
@@ -347,11 +347,11 @@ class ChangeActionControllerTest extends AbstractControllerTest {
     when(licencePositionChangeService.findById(LIVE_CHANGE.getId())).thenReturn(Optional.of(LIVE_CHANGE));
   }
 
-  private void givenStagedChange(LicencePositionCorrection positionCorrection, ChangeAction action) {
-    when(licencePositionCorrectionService.getPositionCorrectionContainingChange(CORRECTION, CHANGE_ID))
-        .thenReturn(positionCorrection);
-    when(changeActionService.getOperationOfStagedChange(positionCorrection, CHANGE_ID)).thenReturn(OPERATION);
-    when(changeActionService.getUndoAction(positionCorrection, CHANGE_ID)).thenReturn(action);
+  private void givenStagedChange(LicencePositionStagedPayload positionStagedPayload, ChangeAction action) {
+    when(licencePositionStagedPayloadService.getPositionStagedPayloadContainingChange(CORRECTION, CHANGE_ID))
+        .thenReturn(positionStagedPayload);
+    when(changeActionService.getOperationOfStagedChange(positionStagedPayload, CHANGE_ID)).thenReturn(OPERATION);
+    when(changeActionService.getUndoAction(positionStagedPayload, CHANGE_ID)).thenReturn(action);
   }
 
   private void givenCorrectionAllocatedToUser() {

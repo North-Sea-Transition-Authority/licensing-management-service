@@ -9,9 +9,9 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionChangeType;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayload;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadChangeType;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.UpdateLicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationError;
@@ -24,18 +24,18 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.uti
 public class CorrectionReviewService {
 
   private final ChronologicalPositionService chronologicalPositionService;
-  private final LicencePositionCorrectionService licencePositionCorrectionService;
+  private final LicencePositionStagedPayloadService licencePositionStagedPayloadService;
   private final LicencePositionService licencePositionService;
   private final LicencePositionNameService licencePositionNameService;
 
   public CorrectionReviewService(
       ChronologicalPositionService chronologicalPositionService,
-      LicencePositionCorrectionService licencePositionCorrectionService,
+      LicencePositionStagedPayloadService licencePositionStagedPayloadService,
       LicencePositionService licencePositionService,
       LicencePositionNameService licencePositionNameService
   ) {
     this.chronologicalPositionService = chronologicalPositionService;
-    this.licencePositionCorrectionService = licencePositionCorrectionService;
+    this.licencePositionStagedPayloadService = licencePositionStagedPayloadService;
     this.licencePositionService = licencePositionService;
     this.licencePositionNameService = licencePositionNameService;
   }
@@ -48,8 +48,8 @@ public class CorrectionReviewService {
         .map(PositionValidationError::positionId)
         .collect(Collectors.toSet());
 
-    var positionCorrections = correctedTimeline.positionCorrections();
-    var detailsByPositionId = positionDetailsByPositionId(positionCorrections);
+    var positionStagedPayloads = correctedTimeline.positionStagedPayloads();
+    var detailsByPositionId = positionDetailsByPositionId(positionStagedPayloads);
 
     var correctedPositions = correctedTimeline.displayedPositions();
     var executedPositions = chronologicalPositionService.getLiveChronologicalPositions(
@@ -72,7 +72,7 @@ public class CorrectionReviewService {
         organisationNames,
         featuresById
     );
-    var changeEdits = ChangeEdits.from(positionCorrections, correctedContext, executedContext);
+    var changeEdits = ChangeEdits.from(positionStagedPayloads, correctedContext, executedContext);
     var movedFromPositionIds = changeEdits.movedFromPositionIds();
 
     return correctedPositions.stream()
@@ -85,15 +85,16 @@ public class CorrectionReviewService {
   }
 
   public List<ReviewPositionView> getAppliedPositions(LicenceCorrection licenceCorrection) {
-    var positionCorrections = licencePositionCorrectionService.getPositionCorrections(licenceCorrection);
-    var detailsByPositionId = positionDetailsByPositionId(positionCorrections);
-    var removedPositionIds = LicencePositionCorrectionService.getRemovedPositionIds(positionCorrections);
+    var positionStagedPayloads = licencePositionStagedPayloadService.getPositionStagedPayloads(licenceCorrection);
+    var detailsByPositionId = positionDetailsByPositionId(positionStagedPayloads);
+    var removedPositionIds = LicencePositionStagedPayloadService.getRemovedPositionIds(positionStagedPayloads);
 
     var positions = Stream.concat(
         licencePositionService.getExecutedChronologicalLicencePositions(licenceCorrection.getLicence()).stream(),
-        positionCorrections.stream()
-            .filter(correction -> correction.getChangeType() == LicencePositionCorrectionChangeType.REMOVE_POSITION)
-            .map(LicencePositionCorrection::getTargetLicencePosition)
+        positionStagedPayloads.stream()
+            .filter(positionStagedPayload ->
+                positionStagedPayload.getChangeType() == LicencePositionStagedPayloadChangeType.REMOVE_POSITION)
+            .map(LicencePositionStagedPayload::getTargetLicencePosition)
     ).toList();
 
     var appliedPositions = chronologicalPositionService.getLiveChronologicalPositions(positions);
@@ -114,43 +115,43 @@ public class CorrectionReviewService {
   }
 
   private Map<UUID, PositionDetails> positionDetailsByPositionId(
-      List<LicencePositionCorrection> positionCorrections
+      List<LicencePositionStagedPayload> positionStagedPayloads
   ) {
-    return positionCorrections.stream()
+    return positionStagedPayloads.stream()
         .map(CorrectionReviewService::toPositionDetails)
         .collect(Collectors.toMap(PositionDetails::positionId, Function.identity()));
   }
 
-  private static PositionDetails toPositionDetails(LicencePositionCorrection correction) {
-    return switch (correction.getChangeType()) {
+  private static PositionDetails toPositionDetails(LicencePositionStagedPayload stagedPayload) {
+    return switch (stagedPayload.getChangeType()) {
       case ADD_POSITION -> {
-        var payload = (CreateLicencePositionPayload) correction.getPayload();
+        var payload = (CreateLicencePositionPayload) stagedPayload.getPayload();
         yield new PositionDetails(
             UUID.fromString(payload.licencePositionId()),
-            correction.getChangeType(),
+            stagedPayload.getChangeType(),
             payload.correctionReference()
         );
       }
       case UPDATE_POSITION -> {
-        var payload = (UpdateLicencePositionPayload) correction.getPayload();
+        var payload = (UpdateLicencePositionPayload) stagedPayload.getPayload();
         yield new PositionDetails(
-            correction.getTargetLicencePosition().getId(),
-            correction.getChangeType(),
+            stagedPayload.getTargetLicencePosition().getId(),
+            stagedPayload.getChangeType(),
             payload.correctionReference() != null ? payload.correctionReference() :
-                correction.getTargetLicencePosition().getLicenceTransaction().getRegulatorReference()
+                stagedPayload.getTargetLicencePosition().getLicenceTransaction().getRegulatorReference()
         );
       }
       case REMOVE_POSITION -> new PositionDetails(
-          correction.getTargetLicencePosition().getId(),
-          correction.getChangeType(),
-          correction.getTargetLicencePosition().getLicenceTransaction().getRegulatorReference()
+          stagedPayload.getTargetLicencePosition().getId(),
+          stagedPayload.getChangeType(),
+          stagedPayload.getTargetLicencePosition().getLicenceTransaction().getRegulatorReference()
       );
     };
   }
 
   record PositionDetails(
       UUID positionId,
-      LicencePositionCorrectionChangeType changeType,
+      LicencePositionStagedPayloadChangeType changeType,
       String correctionReference
   ) {
   }

@@ -35,12 +35,12 @@ import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanViewCorrectionInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.AddLicencePositionCorrectionController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.AddLicencePositionStagedPayloadController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectionPosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.FilteredCorrectionTimeline;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionFilterService;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionRouteUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadFilterService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadRouteUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.reviewandapply.ReviewCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
@@ -67,10 +67,10 @@ class LicenceCorrectionControllerTest extends AbstractControllerTest {
   private CorrectionDetailsViewService correctionDetailsViewService;
 
   @MockitoBean
-  private LicencePositionCorrectionFilterService licencePositionCorrectionFilterService;
+  private LicencePositionStagedPayloadFilterService licencePositionStagedPayloadFilterService;
 
   private static final UUID CORRECTION_ID = UUID.randomUUID();
-  private static final UUID POSITION_CORRECTION_ID = UUID.randomUUID();
+  private static final UUID POSITION_STAGED_PAYLOAD_ID = UUID.randomUUID();
   private static final int LICENCE_ID = 10;
   private static final String LICENCE_REFERENCE = "P1234";
   private static final String CORRECTION_REFERENCE = "COR-1";
@@ -138,8 +138,8 @@ class LicenceCorrectionControllerTest extends AbstractControllerTest {
             model().attribute("pageCaption", PAGE_CAPTION),
             model().attribute("correctionDetails", CORRECTION_DETAILS),
             model().attribute("addPositionUrl",
-                ReverseRouter.route(on(AddLicencePositionCorrectionController.class)
-                    .renderAddLicencePositionCorrection(correction))),
+                ReverseRouter.route(on(AddLicencePositionStagedPayloadController.class)
+                    .renderAddLicencePositionStagedPayload(correction))),
             model().attributeExists("licencePositionPageView"),
             model().attribute("cancelCorrectionUrl", ReverseRouter.route(on(LicenceCorrectionCancelController.class)
                 .renderCancelCorrection(correction))),
@@ -163,7 +163,7 @@ class LicenceCorrectionControllerTest extends AbstractControllerTest {
         .build();
 
     var executedPosition = LicencePositionTestUtil.newBuilder().withStatus(LicencePositionStatus.EXECUTED).build();
-    var stagedPosition = LicencePositionCorrectionTestUtil.newBuilder().withId(POSITION_CORRECTION_ID).build();
+    var stagedPosition = LicencePositionStagedPayloadTestUtil.newBuilder().withId(POSITION_STAGED_PAYLOAD_ID).build();
 
     when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
         .thenReturn(Optional.of(correction));
@@ -179,7 +179,7 @@ class LicenceCorrectionControllerTest extends AbstractControllerTest {
             .with(user(regulatorUser)))
         .andExpect(status().is3xxRedirection())
         .andExpect(redirectedUrl(
-            LicencePositionCorrectionRouteUtil.getPositionPageUrl(correction, stagedPosition.getPositionId())
+            LicencePositionStagedPayloadRouteUtil.getPositionPageUrl(correction, stagedPosition.getPositionId())
         ));
   }
 
@@ -218,13 +218,13 @@ class LicenceCorrectionControllerTest extends AbstractControllerTest {
     when(licenceService.getLicencePageCaption(licence)).thenReturn(PAGE_CAPTION);
     when(correctionPositionService.findCorrectionPosition(correction, position.getId()))
         .thenReturn(Optional.of(new CorrectionPosition.Executed(correction, position)));
-    when(licencePositionCorrectionViewService.getCorrectionPositionPageView(
+    when(licencePositionStagedPayloadViewService.getCorrectionPositionPageView(
         new CorrectionPosition.Executed(correction, position),
         LicenceTimelineFilter.empty()
     )).thenReturn(pageView);
     when(correctionDetailsViewService.getDetailsView(correction)).thenReturn(CORRECTION_DETAILS);
 
-    mockMvc.perform(get(LicencePositionCorrectionRouteUtil.getPositionPageUrl(correction, position.getId()))
+    mockMvc.perform(get(LicencePositionStagedPayloadRouteUtil.getPositionPageUrl(correction, position.getId()))
             .with(user(regulatorUser)))
         .andExpectAll(
             status().isOk(),
@@ -259,7 +259,7 @@ class LicenceCorrectionControllerTest extends AbstractControllerTest {
     when(correctionPositionService.findCorrectionPosition(correction, position.getId()))
         .thenReturn(Optional.of(new CorrectionPosition.Executed(correction, position)));
 
-    mockMvc.perform(get(LicencePositionCorrectionRouteUtil.getPositionPageUrl(correction, position.getId()))
+    mockMvc.perform(get(LicencePositionStagedPayloadRouteUtil.getPositionPageUrl(correction, position.getId()))
             .with(user(regulatorUser)))
         .andExpect(redirectedUrl(ReverseRouter.route(on(ReviewCorrectionController.class)
             .renderReviewCorrection(correction))));
@@ -319,13 +319,13 @@ class LicenceCorrectionControllerTest extends AbstractControllerTest {
     when(licenceService.getLicencePageCaption(licence)).thenReturn(PAGE_CAPTION);
     when(correctionPositionService.findCorrectionPosition(correction, position.getId()))
         .thenReturn(Optional.of(new CorrectionPosition.Executed(correction, position)));
-    when(licencePositionCorrectionViewService.getCorrectionPositionPageView(
+    when(licencePositionStagedPayloadViewService.getCorrectionPositionPageView(
         new CorrectionPosition.Executed(correction, position),
         LicenceTimelineFilter.empty()
     )).thenReturn(pageView);
     when(correctionDetailsViewService.getDetailsView(correction)).thenReturn(CORRECTION_DETAILS);
 
-    mockMvc.perform(get(LicencePositionCorrectionRouteUtil.getPositionPageUrl(correction, position.getId()))
+    mockMvc.perform(get(LicencePositionStagedPayloadRouteUtil.getPositionPageUrl(correction, position.getId()))
             .with(user(regulatorUser)))
         .andExpectAll(
             status().isOk(),
@@ -352,8 +352,8 @@ class LicenceCorrectionControllerTest extends AbstractControllerTest {
         .withReason(REASON)
         .withAllocatedToWuaId(ALLOCATED_TO_WUA_ID)
         .build();
-    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
-        .withId(POSITION_CORRECTION_ID)
+    var positionStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder()
+        .withId(POSITION_STAGED_PAYLOAD_ID)
         .withLicenceCorrection(correction)
         .build();
     var pageView = LicencePositionPageView.fromAddedPosition(
@@ -362,7 +362,7 @@ class LicenceCorrectionControllerTest extends AbstractControllerTest {
         "REF-1",
         List.of(),
         null,
-        positionCorrection.getPositionId(),
+        positionStagedPayload.getPositionId(),
         LicencePositionPageView.Actions.none(),
         LICENCE_TYPE,
         List.of(),
@@ -373,16 +373,16 @@ class LicenceCorrectionControllerTest extends AbstractControllerTest {
     when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
         .thenReturn(Optional.of(correction));
     when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(correction));
-    when(correctionPositionService.findCorrectionPosition(correction, positionCorrection.getPositionId()))
-        .thenReturn(Optional.of(new CorrectionPosition.Staged(positionCorrection)));
+    when(correctionPositionService.findCorrectionPosition(correction, positionStagedPayload.getPositionId()))
+        .thenReturn(Optional.of(new CorrectionPosition.Staged(positionStagedPayload)));
     when(licenceService.getLicencePageCaption(licence)).thenReturn(PAGE_CAPTION);
-    when(licencePositionCorrectionViewService.getCorrectionPositionPageView(
-        new CorrectionPosition.Staged(positionCorrection),
+    when(licencePositionStagedPayloadViewService.getCorrectionPositionPageView(
+        new CorrectionPosition.Staged(positionStagedPayload),
         LicenceTimelineFilter.empty()
     )).thenReturn(pageView);
     when(correctionDetailsViewService.getDetailsView(correction)).thenReturn(CORRECTION_DETAILS);
 
-    mockMvc.perform(get(LicencePositionCorrectionRouteUtil.getPositionPageUrl(correction, positionCorrection.getPositionId()))
+    mockMvc.perform(get(LicencePositionStagedPayloadRouteUtil.getPositionPageUrl(correction, positionStagedPayload.getPositionId()))
             .with(user(regulatorUser)))
         .andExpectAll(
             status().isOk(),
@@ -407,7 +407,7 @@ class LicenceCorrectionControllerTest extends AbstractControllerTest {
     when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(correction));
     when(correctionPositionService.findCorrectionPosition(correction, positionId)).thenReturn(Optional.empty());
 
-    mockMvc.perform(get(LicencePositionCorrectionRouteUtil.getPositionPageUrl(correction, positionId))
+    mockMvc.perform(get(LicencePositionStagedPayloadRouteUtil.getPositionPageUrl(correction, positionId))
             .with(user(regulatorUser)))
         .andExpect(status().isNotFound());
   }
@@ -437,7 +437,7 @@ class LicenceCorrectionControllerTest extends AbstractControllerTest {
     when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
         .thenReturn(Optional.of(correction));
     when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(correction));
-    when(licencePositionCorrectionFilterService.getFilteredCorrectionTimeline(correction, SET_EQUITY_FILTER))
+    when(licencePositionStagedPayloadFilterService.getFilteredCorrectionTimeline(correction, SET_EQUITY_FILTER))
         .thenReturn(new FilteredCorrectionTimeline.LatestMatchingPosition("/matching-position"));
 
     mockMvc.perform(get(correctionUrl(correction))
@@ -456,7 +456,7 @@ class LicenceCorrectionControllerTest extends AbstractControllerTest {
     when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(correction));
     when(licenceService.getLicencePageCaption(correction.getLicence())).thenReturn(PAGE_CAPTION);
     when(correctionDetailsViewService.getDetailsView(correction)).thenReturn(CORRECTION_DETAILS);
-    when(licencePositionCorrectionFilterService.getFilteredCorrectionTimeline(correction, filter))
+    when(licencePositionStagedPayloadFilterService.getFilteredCorrectionTimeline(correction, filter))
         .thenReturn(new FilteredCorrectionTimeline.NoMatchingPositions(
             LicencePositionPageView.noMatchingPositions(LICENCE_TYPE, FILTER_OPTIONS)
         ));
@@ -496,7 +496,7 @@ class LicenceCorrectionControllerTest extends AbstractControllerTest {
     mockMvc.perform(get(correctionUrl(correction))
             .sessionAttr(FILTER_SESSION_ATTRIBUTE, filterSession(UUID.randomUUID(), SET_EQUITY_FILTER))
             .with(user(regulatorUser)))
-        .andExpect(redirectedUrl(LicencePositionCorrectionRouteUtil.getPositionPageUrl(correction, latestExecuted.getId())));
+        .andExpect(redirectedUrl(LicencePositionStagedPayloadRouteUtil.getPositionPageUrl(correction, latestExecuted.getId())));
   }
 
   @Test
@@ -524,13 +524,13 @@ class LicenceCorrectionControllerTest extends AbstractControllerTest {
     when(correctionDetailsViewService.getDetailsView(correction)).thenReturn(CORRECTION_DETAILS);
     when(correctionPositionService.findCorrectionPosition(correction, position.getId()))
         .thenReturn(Optional.of(new CorrectionPosition.Executed(correction, position)));
-    when(licencePositionCorrectionViewService.getCorrectionPositionPageView(
+    when(licencePositionStagedPayloadViewService.getCorrectionPositionPageView(
         new CorrectionPosition.Executed(correction, position),
         SET_EQUITY_FILTER
     ))
         .thenReturn(pageView);
 
-    mockMvc.perform(get(LicencePositionCorrectionRouteUtil.getPositionPageUrl(correction, position.getId()))
+    mockMvc.perform(get(LicencePositionStagedPayloadRouteUtil.getPositionPageUrl(correction, position.getId()))
             .sessionAttr(FILTER_SESSION_ATTRIBUTE, filterSession(CORRECTION_ID, SET_EQUITY_FILTER))
             .with(user(regulatorUser)))
         .andExpectAll(
@@ -562,7 +562,7 @@ class LicenceCorrectionControllerTest extends AbstractControllerTest {
     when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
         .thenReturn(Optional.of(correction));
     when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(correction));
-    when(licencePositionCorrectionFilterService.getCorrectionFilterOptions(correction)).thenReturn(FILTER_OPTIONS);
+    when(licencePositionStagedPayloadFilterService.getCorrectionFilterOptions(correction)).thenReturn(FILTER_OPTIONS);
 
     mockMvc.perform(post(filterUrl(correction))
             .param("changeTypes", LicenceOperation.SET_EQUITY, "not-a-change-type")

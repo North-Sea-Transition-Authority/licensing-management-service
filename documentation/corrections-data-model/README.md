@@ -41,12 +41,12 @@ CREATE TABLE licence_corrections (
     licence_id UUID NOT NULL REFERENCES licences(id)
 );
 
-CREATE TABLE licence_position_corrections (
+CREATE TABLE licence_position_staged_payloads (
     id                         UUID PRIMARY KEY,
     licence_correction_id      UUID  NOT NULL REFERENCES licence_corrections(id),
     target_licence_position_id UUID REFERENCES licence_positions(id),
     change_type                TEXT  NOT NULL CHECK (change_type IN ('ADD_POSITION', 'REMOVE_POSITION', 'UPDATE_POSITION')),
-    payload                    JSONB NOT NULL
+    payload                    JSONB 
 );
 ```
 
@@ -56,13 +56,13 @@ CREATE TABLE licence_position_corrections (
 
 ### Creating a new licence position
 
-To create a new licence position, a row will be inserted into the `licence_position_corrections` table. It will
+To create a new licence position, a row will be inserted into the `licence_position_staged_payloads` table. It will
 have an 'ADD_POSITION' change type, and the payload will contain the new position's data. When the correction is
 applied, the new position is created and any changes within are propagated into the `licence_position_changes` table.
 
 ```sql
 -- target_licence_position_id will be null in this case, the position_id will be within the payload
-INSERT INTO licence_position_corrections (licence_correction_id, change_type, payload) 
+INSERT INTO licence_position_staged_payloads (licence_correction_id, change_type, payload) 
 VALUES ('correction-id', 'ADD_POSITION', '{...}'::jsonb);
 ```
 
@@ -78,13 +78,13 @@ type CreateLicencePositionPayload = {
 
 ### Removing a licence position
 
-To remove a licence position, a row will be inserted into the `licence_position_corrections` table. It will 
+To remove a licence position, a row will be inserted into the `licence_position_staged_payloads` table. It will 
 have a 'REMOVE_POSITION' change type, and the `target_licence_position_id` will be the id of the position to remove.
 When the correction is applied, the position row and its changes are removed from the `licence_positions` and 
 `licence_position_changes` tables. The _aud tables will audit the removal of this data.
 
 ```sql
-INSERT INTO licence_position_corrections (licence_correction_id, change_type, target_licence_position_id) 
+INSERT INTO licence_position_staged_payloads (licence_correction_id, change_type, target_licence_position_id) 
 VALUES ('correction-id', 'REMOVE_POSITION', 'position-id');
 ```
 
@@ -92,12 +92,12 @@ VALUES ('correction-id', 'REMOVE_POSITION', 'position-id');
 
 ### Updating a licence position
 
-To update a licence position, a row will be inserted into the `licence_position_corrections` table. It will 
+To update a licence position, a row will be inserted into the `licence_position_staged_payloads` table. It will 
 have an 'UPDATE_POSITION' change type. The payload will contain position and change data that will be written back to the 
 `licence_positions` and `licence_position_changes` tables once the correction is applied.
 
 ```sql
-INSERT INTO licence_position_corrections (licence_correction_id, change_type, target_licence_position_id, payload) 
+INSERT INTO licence_position_staged_payloads (licence_correction_id, change_type, target_licence_position_id, payload) 
 VALUES ('correction-id', 'UPDATE_POSITION', 'position-id', '{...}'::jsonb);
 ```
 

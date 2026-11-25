@@ -31,9 +31,9 @@ import uk.co.fivium.gisframework.feature.Line;
 import uk.co.fivium.gisframework.relationship.BoundingBox;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatusType;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionChangeType;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayload;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadChangeType;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.PartialSurrenderValidator;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.LicencePositionPayload;
@@ -89,7 +89,7 @@ class LicencePositionValidationServiceTest {
         licenseeChange()
     );
     var positions = List.of(position);
-    var corrections = List.of(stagingCorrection(addChange(surrenderChange.changeId())));
+    var corrections = List.of(stagedPayloadFor(addChange(surrenderChange.changeId())));
     when(partialSurrenderValidator.validateForms(surrender, LicencePositionState.EMPTY.withBlock(blockFeatureId, List.of())))
         .thenReturn(List.of("Surrender error"));
 
@@ -132,9 +132,9 @@ class LicencePositionValidationServiceTest {
     var positions = List.of(first, second, third);
     var states = LicencePositionStateResolver.resolve(positions);
     var corrections = List.of(
-        stagingCorrection(addChange(firstSurrenderChange.changeId())),
-        stagingCorrection(addChange(secondSurrenderChange.changeId())),
-        stagingCorrection(addChange(thirdSurrenderChange.changeId()))
+        stagedPayloadFor(addChange(firstSurrenderChange.changeId())),
+        stagedPayloadFor(addChange(secondSurrenderChange.changeId())),
+        stagedPayloadFor(addChange(thirdSurrenderChange.changeId()))
     );
     var stateGoingIntoFirstSurrender = LicencePositionState.EMPTY.withBlock(blockFeatureId, List.of());
     when(partialSurrenderValidator.validateForms(firstSurrender, stateGoingIntoFirstSurrender))
@@ -185,7 +185,7 @@ class LicencePositionValidationServiceTest {
         removedSurrender
     );
     var positions = List.of(position);
-    var corrections = List.of(stagingCorrection(
+    var corrections = List.of(stagedPayloadFor(
         LicencePositionChangeType.removeChange().withChangeId(removedSurrender.changeId()).build()));
 
     service.validate(positions, LicencePositionStateResolver.resolve(positions), corrections, LicenceType.CARBON_STORAGE, LicenceStatusType.EXTANT);
@@ -230,7 +230,7 @@ class LicencePositionValidationServiceTest {
     when(spatialStateValidator.validate(secondContext, addedSubareaCreate, stateAfterFirstPosition))
         .thenReturn(List.of(spatialError));
 
-    var corrections = List.of(stagingCorrection(addChange(addedSubareaCreate.changeId())));
+    var corrections = List.of(stagedPayloadFor(addChange(addedSubareaCreate.changeId())));
 
     var errors = service.validate(positions, states, corrections, LicenceType.CARBON_STORAGE, LicenceStatusType.EXTANT);
 
@@ -257,7 +257,7 @@ class LicencePositionValidationServiceTest {
         stagedBlockCreate
     );
     var positions = List.of(position);
-    var corrections = List.of(stagingCorrection(addChange(stagedBlockCreate.changeId())));
+    var corrections = List.of(stagedPayloadFor(addChange(stagedBlockCreate.changeId())));
 
     service.validate(positions, LicencePositionStateResolver.resolve(positions), corrections, LicenceType.CARBON_STORAGE, LicenceStatusType.EXTANT);
 
@@ -272,8 +272,8 @@ class LicencePositionValidationServiceTest {
         .build();
     var position = ChronologicalPositionTestUtil.live(licencePosition, surrender);
     var positions = List.of(position);
-    var corrections = List.of(LicencePositionCorrectionTestUtil.newBuilder()
-        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+    var corrections = List.of(LicencePositionStagedPayloadTestUtil.newBuilder()
+        .withChangeType(LicencePositionStagedPayloadChangeType.UPDATE_POSITION)
         .withTargetLicencePosition(licencePosition)
         .withPayload(LicencePositionPayload.newUpdateLicencePositionPayload().withEffectiveDate(POSITION_DATE).build())
         .build());
@@ -301,7 +301,7 @@ class LicencePositionValidationServiceTest {
     var position = position(UUID.randomUUID(), POSITION_DATE, liveBlockCreate);
     var positions = List.of(position);
     var states = LicencePositionStateResolver.resolve(positions);
-    var corrections = List.of(stagingCorrection(stagedChange.apply(liveBlockCreate.changeId())));
+    var corrections = List.of(stagedPayloadFor(stagedChange.apply(liveBlockCreate.changeId())));
 
     service.validate(positions, states, corrections, LicenceType.CARBON_STORAGE, LicenceStatusType.EXTANT);
 
@@ -311,15 +311,15 @@ class LicencePositionValidationServiceTest {
 
 
   @ParameterizedTest
-  @MethodSource("positionCorrections")
+  @MethodSource("positionStagedPayloads")
   void validate_whenPositionWithSpatialOperationCorrected_thenSpatialStateChecked(
-      LicencePositionCorrectionTestUtil positionCorrection
+      LicencePositionStagedPayloadTestUtil positionStagedPayload
   ) {
     var licencePosition = LicencePositionTestUtil.newBuilder().build();
     var position = ChronologicalPositionTestUtil.live(licencePosition, blockCreate(UUID.randomUUID()));
     var positions = List.of(position);
     var states = LicencePositionStateResolver.resolve(positions);
-    var corrections = List.of(positionCorrection.withTargetLicencePosition(licencePosition).build());
+    var corrections = List.of(positionStagedPayload.withTargetLicencePosition(licencePosition).build());
 
     service.validate(positions, states, corrections, LicenceType.CARBON_STORAGE, LicenceStatusType.EXTANT);
 
@@ -330,16 +330,16 @@ class LicencePositionValidationServiceTest {
     );
   }
 
-  private static Stream<Arguments> positionCorrections() {
+  private static Stream<Arguments> positionStagedPayloads() {
     return Stream.of(
-        Arguments.of(LicencePositionCorrectionTestUtil.newBuilder()
-            .withChangeType(LicencePositionCorrectionChangeType.REMOVE_POSITION)
+        Arguments.of(LicencePositionStagedPayloadTestUtil.newBuilder()
+            .withChangeType(LicencePositionStagedPayloadChangeType.REMOVE_POSITION)
             .withPayload(null)),
-        Arguments.of(LicencePositionCorrectionTestUtil.newBuilder()
-            .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+        Arguments.of(LicencePositionStagedPayloadTestUtil.newBuilder()
+            .withChangeType(LicencePositionStagedPayloadChangeType.UPDATE_POSITION)
             .withPayload(LicencePositionPayload.newUpdateLicencePositionPayload().withEffectiveDate(POSITION_DATE).build())),
-        Arguments.of(LicencePositionCorrectionTestUtil.newBuilder()
-            .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+        Arguments.of(LicencePositionStagedPayloadTestUtil.newBuilder()
+            .withChangeType(LicencePositionStagedPayloadChangeType.UPDATE_POSITION)
             .withPayload(LicencePositionPayload.newUpdateLicencePositionPayload().withEffectiveDateOrder(2).build()))
     );
   }
@@ -350,8 +350,8 @@ class LicencePositionValidationServiceTest {
     var position = ChronologicalPositionTestUtil.live(licencePosition, blockCreate(UUID.randomUUID()));
     var stagedAdministratorChange = administratorChange();
     var positions = List.of(position, position(UUID.randomUUID(), POSITION_DATE, stagedAdministratorChange));
-    var corrections = List.of(LicencePositionCorrectionTestUtil.newBuilder()
-        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+    var corrections = List.of(LicencePositionStagedPayloadTestUtil.newBuilder()
+        .withChangeType(LicencePositionStagedPayloadChangeType.UPDATE_POSITION)
         .withTargetLicencePosition(licencePosition)
         .withPayload(LicencePositionPayload.newUpdateLicencePositionPayload()
             .withCorrectionReference("NEW_REFERENCE")
@@ -613,9 +613,9 @@ class LicencePositionValidationServiceTest {
     );
   }
 
-  private static LicencePositionCorrection stagingCorrection(LicencePositionChangeType stagedChange) {
-    return LicencePositionCorrectionTestUtil.newBuilder()
-        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+  private static LicencePositionStagedPayload stagedPayloadFor(LicencePositionChangeType stagedChange) {
+    return LicencePositionStagedPayloadTestUtil.newBuilder()
+        .withChangeType(LicencePositionStagedPayloadChangeType.UPDATE_POSITION)
         .withPayload(LicencePositionPayload.newUpdateLicencePositionPayload().withChanges(List.of(stagedChange)).build())
         .build();
   }

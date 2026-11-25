@@ -11,7 +11,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.UpdateLicencePositionPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
 
-class LicencePositionCorrectionRouteUtilTest {
+class LicencePositionStagedPayloadRouteUtilTest {
 
   private static final UUID CORRECTION_ID = UUID.randomUUID();
   private static final UUID POSITION_ID = UUID.randomUUID();
@@ -23,7 +23,7 @@ class LicencePositionCorrectionRouteUtilTest {
 
   @Test
   void getPositionPageUrl() {
-    var result = LicencePositionCorrectionRouteUtil.getPositionPageUrl(LICENCE_CORRECTION, POSITION_ID);
+    var result = LicencePositionStagedPayloadRouteUtil.getPositionPageUrl(LICENCE_CORRECTION, POSITION_ID);
 
     assertThat(result).isEqualTo(POSITION_PAGE_URL);
   }
@@ -35,7 +35,7 @@ class LicencePositionCorrectionRouteUtilTest {
         LicencePositionTestUtil.newBuilder().withId(POSITION_ID).build()
     );
 
-    var result = LicencePositionCorrectionRouteUtil.getPositionPageUrl(correctionPosition);
+    var result = LicencePositionStagedPayloadRouteUtil.getPositionPageUrl(correctionPosition);
 
     assertThat(result).isEqualTo(POSITION_PAGE_URL);
   }
@@ -47,15 +47,15 @@ class LicencePositionCorrectionRouteUtilTest {
         LicencePositionTestUtil.newBuilder().withId(POSITION_ID).build()
     );
 
-    var result = LicencePositionCorrectionRouteUtil.redirectToPositionPage(correctionPosition);
+    var result = LicencePositionStagedPayloadRouteUtil.redirectToPositionPage(correctionPosition);
 
     assertThat(result.getViewName()).isEqualTo("redirect:" + POSITION_PAGE_URL);
   }
 
   @Test
   void getPositionPageUrl_whenAddedPosition_thenAddedPositionPage() {
-    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
-        .withChangeType(LicencePositionCorrectionChangeType.ADD_POSITION)
+    var positionStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder()
+        .withChangeType(LicencePositionStagedPayloadChangeType.ADD_POSITION)
         .withLicenceCorrection(LICENCE_CORRECTION)
         .withTargetLicencePosition(null)
         .withPayload(CreateLicencePositionPayloadTestUtil.newBuilder()
@@ -63,35 +63,35 @@ class LicencePositionCorrectionRouteUtilTest {
             .build())
         .build();
 
-    var result = LicencePositionCorrectionRouteUtil.getPositionPageUrl(positionCorrection);
+    var result = LicencePositionStagedPayloadRouteUtil.getPositionPageUrl(positionStagedPayload);
 
     assertThat(result).isEqualTo(POSITION_PAGE_URL);
   }
 
   @Test
   void getPositionPageUrl_whenUpdatedPosition_thenTargetPositionPage() {
-    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
-        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+    var positionStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder()
+        .withChangeType(LicencePositionStagedPayloadChangeType.UPDATE_POSITION)
         .withLicenceCorrection(LICENCE_CORRECTION)
         .withTargetLicencePosition(LicencePositionTestUtil.newBuilder().withId(POSITION_ID).build())
         .withPayload(UpdateLicencePositionPayloadTestUtil.newBuilder().build())
         .build();
 
-    var result = LicencePositionCorrectionRouteUtil.getPositionPageUrl(positionCorrection);
+    var result = LicencePositionStagedPayloadRouteUtil.getPositionPageUrl(positionStagedPayload);
 
     assertThat(result).isEqualTo(POSITION_PAGE_URL);
   }
 
   @Test
   void getPositionPageUrl_whenRemovedPosition_thenThrows() {
-    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
-        .withChangeType(LicencePositionCorrectionChangeType.REMOVE_POSITION)
+    var positionStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder()
+        .withChangeType(LicencePositionStagedPayloadChangeType.REMOVE_POSITION)
         .build();
 
-    assertThatThrownBy(() -> LicencePositionCorrectionRouteUtil.getPositionPageUrl(positionCorrection))
+    assertThatThrownBy(() -> LicencePositionStagedPayloadRouteUtil.getPositionPageUrl(positionStagedPayload))
         .isInstanceOf(IllegalStateException.class)
-        .hasMessage("Licence position correction %s removes a position so cannot have changes made against it"
-            .formatted(positionCorrection.getId())
+        .hasMessage("Licence position staged payload %s removes a position so cannot have changes made against it"
+            .formatted(positionStagedPayload.getId())
         );
   }
 }

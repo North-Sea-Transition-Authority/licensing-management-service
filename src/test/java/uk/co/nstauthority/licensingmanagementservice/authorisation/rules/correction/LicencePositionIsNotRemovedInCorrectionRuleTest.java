@@ -22,8 +22,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
@@ -41,7 +41,7 @@ class LicencePositionIsNotRemovedInCorrectionRuleTest extends AbstractIntercepto
   private LicenceCorrectionService licenceCorrectionService;
 
   @Mock
-  private LicencePositionCorrectionService licencePositionCorrectionService;
+  private LicencePositionStagedPayloadService licencePositionStagedPayloadService;
 
   @Mock
   private LicencePositionService licencePositionService;
@@ -58,7 +58,7 @@ class LicencePositionIsNotRemovedInCorrectionRuleTest extends AbstractIntercepto
   @Test
   void check_whenPositionNotMarkedForRemoval_rulePasses() throws NoSuchMethodException {
     var position = mockCorrectionAndPosition();
-    when(licencePositionCorrectionService.isPositionRemovedInCorrection(any(LicenceCorrection.class),
+    when(licencePositionStagedPayloadService.isPositionRemovedInCorrection(any(LicenceCorrection.class),
         eq(position)))
         .thenReturn(false);
 
@@ -76,7 +76,7 @@ class LicencePositionIsNotRemovedInCorrectionRuleTest extends AbstractIntercepto
   @Test
   void check_whenPositionMarkedForRemoved_ruleFailsForbidden() throws NoSuchMethodException {
     var position = mockCorrectionAndPosition();
-    when(licencePositionCorrectionService.isPositionRemovedInCorrection(any(LicenceCorrection.class),
+    when(licencePositionStagedPayloadService.isPositionRemovedInCorrection(any(LicenceCorrection.class),
         eq(position)))
         .thenReturn(true);
 
@@ -96,8 +96,8 @@ class LicencePositionIsNotRemovedInCorrectionRuleTest extends AbstractIntercepto
   @Test
   void check_whenPositionAddedInCorrection_rulePasses() throws NoSuchMethodException {
     givenCorrectionExists();
-    when(licencePositionCorrectionService.findFirstAddedPositionCorrection(CORRECTION, POSITION_ID))
-        .thenReturn(Optional.of(LicencePositionCorrectionTestUtil.newBuilder().build()));
+    when(licencePositionStagedPayloadService.findFirstAddedPositionStagedPayload(CORRECTION, POSITION_ID))
+        .thenReturn(Optional.of(LicencePositionStagedPayloadTestUtil.newBuilder().build()));
 
     var annotation = getAnnotation(
         InterceptorRuleTestEndpoints.class.getDeclaredMethod("licencePositionIsNotRemovedInCorrection"),
@@ -126,7 +126,7 @@ class LicencePositionIsNotRemovedInCorrectionRuleTest extends AbstractIntercepto
         HttpStatus.NOT_FOUND,
         "Licence correction %s not found".formatted(CORRECTION.getId())
     ));
-    verifyNoInteractions(licencePositionService, licencePositionCorrectionService);
+    verifyNoInteractions(licencePositionService, licencePositionStagedPayloadService);
   }
 
   private LicencePosition mockCorrectionAndPosition() {

@@ -44,7 +44,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceC
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectionPosition;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionRouteUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadRouteUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.AddPositionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.administrator.AdministratorChangeForm;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
@@ -87,7 +87,7 @@ class ChangeFormControllerTest extends AbstractControllerTest {
   private final ChangeFormHandler<AdministratorChangeForm> handler = mock(ChangeFormHandler.class);
 
   private final String positionUrl =
-      LicencePositionCorrectionRouteUtil.getPositionPageUrl(CORRECTION, POSITION.getId());
+      LicencePositionStagedPayloadRouteUtil.getPositionPageUrl(CORRECTION, POSITION.getId());
 
   @Test
   void addToPosition_whenNotLoggedIn_thenRedirectsToLogin() throws Exception {
@@ -129,7 +129,7 @@ class ChangeFormControllerTest extends AbstractControllerTest {
   void addToPosition_whenPositionIsRemovedInCorrection_thenForbidden() throws Exception {
     givenCorrectionAllocatedToUser();
     givenExecutedPosition();
-    when(licencePositionCorrectionService.isPositionRemovedInCorrection(CORRECTION, POSITION)).thenReturn(true);
+    when(licencePositionStagedPayloadService.isPositionRemovedInCorrection(CORRECTION, POSITION)).thenReturn(true);
 
     mockMvc.perform(get(addToPositionUrl())
             .with(user(regulatorUser)))

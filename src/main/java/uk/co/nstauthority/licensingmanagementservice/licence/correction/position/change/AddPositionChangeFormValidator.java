@@ -6,7 +6,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.validation.Errors;
 import org.springframework.validation.ValidationUtils;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.PartialSurrenderCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.AdministratorOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.ExplorationOperatorOperation;
@@ -38,7 +38,7 @@ public class AddPositionChangeFormValidator {
       AddPositionChangeForm form,
       Errors errors,
       LicenceCorrection correction,
-      LicencePositionCorrection positionCorrection,
+      LicencePositionStagedPayload positionStagedPayload,
       Set<String> subareaKeys
   ) {
     ValidationUtils.rejectIfEmptyOrWhitespace(errors, CHANGE_TYPE_FIELD, "changeType.required",
@@ -52,7 +52,7 @@ public class AddPositionChangeFormValidator {
 
     if (selected == null || !selected.isAvailableFor(correction.getLicence().getType())) {
       errors.rejectValue(CHANGE_TYPE_FIELD, "changeType.invalid", "Select the type of change to add");
-    } else if (changeAlreadyExists(selected, positionCorrection)) {
+    } else if (changeAlreadyExists(selected, positionStagedPayload)) {
       errors.rejectValue(CHANGE_TYPE_FIELD, "changeType.exists",
           "%s has already been added to this position".formatted(selected.getDisplayName()));
     } else if (AddPositionChangeType.SUBAREA_SET_EQUITY == selected
@@ -71,9 +71,9 @@ public class AddPositionChangeFormValidator {
     }
   }
 
-  private boolean changeAlreadyExists(AddPositionChangeType selected, LicencePositionCorrection positionCorrection) {
-    var livePositionId = positionCorrection.getTargetLicencePosition() != null
-        ? positionCorrection.getTargetLicencePosition().getId()
+  private boolean changeAlreadyExists(AddPositionChangeType selected, LicencePositionStagedPayload positionStagedPayload) {
+    var livePositionId = positionStagedPayload.getTargetLicencePosition() != null
+        ? positionStagedPayload.getTargetLicencePosition().getId()
         : null;
     return switch (selected) {
       case ADMINISTRATOR ->
@@ -82,7 +82,7 @@ public class AddPositionChangeFormValidator {
       case TRANSFER_EQUITY -> licencePositionChangeService.changeExists(livePositionId, TransferEquityOperation.class);
       case PARTIAL_SURRENDER ->
           licencePositionChangeService.changeExists(livePositionId, PartialSurrenderOperation.class)
-              || partialSurrenderCorrectionService.hasStagedPartialSurrender(positionCorrection);
+              || partialSurrenderCorrectionService.hasStagedPartialSurrender(positionStagedPayload);
       case SUBAREA, SUBAREA_SET_EQUITY -> false;
       case STORAGE_OPERATOR -> licencePositionChangeService.changeExists(livePositionId, StorageOperatorOperation.class);
       case EXPLORATION_OPERATOR -> licencePositionChangeService.changeExists(livePositionId, ExplorationOperatorOperation.class);

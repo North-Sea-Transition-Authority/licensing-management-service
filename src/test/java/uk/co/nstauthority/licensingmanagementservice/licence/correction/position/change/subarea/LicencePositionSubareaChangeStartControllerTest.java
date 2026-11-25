@@ -35,8 +35,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceC
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectionPosition;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayload;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.LicencePositionAddChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
@@ -55,7 +55,7 @@ class LicencePositionSubareaChangeStartControllerTest extends AbstractController
       .build();
   private static final UUID CORRECTION_ID = UUID.randomUUID();
   private static final UUID POSITION_ID = UUID.randomUUID();
-  private static final UUID POSITION_CORRECTION_ID = UUID.randomUUID();
+  private static final UUID POSITION_STAGED_PAYLOAD_ID = UUID.randomUUID();
   private static final String VIEW_NAME = "lms/licence/correction/change/subarea/startSubareaChange";
   private static final LicenceCorrection CORRECTION = LicenceCorrectionTestUtil.newBuilder()
       .withId(CORRECTION_ID)
@@ -64,10 +64,6 @@ class LicencePositionSubareaChangeStartControllerTest extends AbstractController
   private static final LicencePosition POSITION = LicencePositionTestUtil.newBuilder()
       .withId(POSITION_ID)
       .withLicence(LICENCE)
-      .build();
-  private static final LicencePositionCorrection POSITION_CORRECTION = LicencePositionCorrectionTestUtil.newBuilder()
-      .withId(POSITION_CORRECTION_ID)
-      .withLicenceCorrection(CORRECTION)
       .build();
 
   private static final Feature BLOCK_30_1 = FeatureTestUtil.builder().withFeatureName("30/1").build();
@@ -140,9 +136,9 @@ class LicencePositionSubareaChangeStartControllerTest extends AbstractController
     var licencePosition = executedPosition();
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(licencePosition);
     givenCorrectionPosition(new CorrectionPosition.Executed(correction, licencePosition));
-    when(licencePositionCorrectionService.findPositionCorrection(new CorrectionPosition.Executed(correction, licencePosition)))
+    when(licencePositionStagedPayloadService.findPositionStagedPayload(new CorrectionPosition.Executed(correction, licencePosition)))
         .thenReturn(Optional.empty());
-    when(licencePositionCorrectionService.getCommittedChangeOfType(null, SubareaOperation.class))
+    when(licencePositionStagedPayloadService.getCommittedChangeOfType(null, SubareaOperation.class))
         .thenReturn(Optional.empty());
     when(licencePositionSpatialService.getBlockFeaturesGoingIntoChange(correction, licencePosition.getId(), null))
         .thenReturn(BLOCK_FEATURES);
@@ -186,7 +182,7 @@ class LicencePositionSubareaChangeStartControllerTest extends AbstractController
     givenCorrectionPosition(new CorrectionPosition.Executed(correction, licencePosition));
     when(licencePositionSpatialService.getBlockFeaturesGoingIntoChange(correction, licencePosition.getId(), null))
         .thenReturn(BLOCK_FEATURES);
-    when(licencePositionCorrectionService.blockFeatureIdsAlreadyOperatedOn(new CorrectionPosition.Executed(correction, licencePosition))).thenReturn(ALREADY_OPERATED_ON);
+    when(licencePositionStagedPayloadService.blockFeatureIdsAlreadyOperatedOn(new CorrectionPosition.Executed(correction, licencePosition))).thenReturn(ALREADY_OPERATED_ON);
     when(subareaChangeStartFormValidator.hasErrors(
         any(SubareaChangeStartForm.class), any(BindingResult.class), eq(BLOCK_FEATURES), eq(ALREADY_OPERATED_ON)))
         .thenReturn(true);
@@ -231,13 +227,13 @@ class LicencePositionSubareaChangeStartControllerTest extends AbstractController
     givenCorrectionPosition(new CorrectionPosition.Executed(correction, licencePosition));
     when(licencePositionSpatialService.getBlockFeaturesGoingIntoChange(correction, licencePosition.getId(), null))
         .thenReturn(BLOCK_FEATURES);
-    when(licencePositionCorrectionService.blockFeatureIdsAlreadyOperatedOn(new CorrectionPosition.Executed(correction, licencePosition))).thenReturn(ALREADY_OPERATED_ON);
+    when(licencePositionStagedPayloadService.blockFeatureIdsAlreadyOperatedOn(new CorrectionPosition.Executed(correction, licencePosition))).thenReturn(ALREADY_OPERATED_ON);
     when(subareaChangeStartFormValidator.hasErrors(
         any(SubareaChangeStartForm.class), any(BindingResult.class), eq(BLOCK_FEATURES), eq(ALREADY_OPERATED_ON)))
         .thenReturn(false);
-    var savedPositionCorrection = addedPositionCorrection(correction);
+    var savedPositionStagedPayload = addedPositionStagedPayload(correction);
     when(subareaChangeService.commitSubareaChange(new CorrectionPosition.Executed(correction, licencePosition), BLOCK_30_1.getId()))
-        .thenReturn(savedPositionCorrection);
+        .thenReturn(savedPositionStagedPayload);
 
     var form = new SubareaChangeStartForm();
     form.setFeatureId(BLOCK_30_1.getId().toString());
@@ -248,7 +244,7 @@ class LicencePositionSubareaChangeStartControllerTest extends AbstractController
             .flashAttr("form", form))
         .andExpect(status().is3xxRedirection())
         .andExpect(redirectedUrl(ReverseRouter.route(on(SubareaChangeController.class)
-            .renderSubareaChange(correction, savedPositionCorrection, BLOCK_30_1.getId()))));
+            .renderSubareaChange(correction, savedPositionStagedPayload, BLOCK_30_1.getId()))));
   }
 
   private LicenceCorrection givenCorrectionAllocatedToUser() {
@@ -266,9 +262,9 @@ class LicencePositionSubareaChangeStartControllerTest extends AbstractController
         .build();
   }
 
-  private LicencePositionCorrection addedPositionCorrection(LicenceCorrection correction) {
-    return LicencePositionCorrectionTestUtil.newBuilder()
-        .withId(POSITION_CORRECTION_ID)
+  private LicencePositionStagedPayload addedPositionStagedPayload(LicenceCorrection correction) {
+    return LicencePositionStagedPayloadTestUtil.newBuilder()
+        .withId(POSITION_STAGED_PAYLOAD_ID)
         .withLicenceCorrection(correction)
         .build();
   }

@@ -6,8 +6,8 @@ import java.util.Objects;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.ModelAndView;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayload;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.action.ChangeAction;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.action.ChangeActionHandler;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
@@ -21,14 +21,14 @@ public class PartialSurrenderChangeActionHandler implements ChangeActionHandler 
 
   private static final String TEMPLATE_NAME = "lms/licence/correction/change/partialSurrender/removePartialSurrenderChange";
 
-  private final LicencePositionCorrectionService licencePositionCorrectionService;
+  private final LicencePositionStagedPayloadService licencePositionStagedPayloadService;
   private final PartialSurrenderCorrectionService partialSurrenderCorrectionService;
 
   PartialSurrenderChangeActionHandler(
-      LicencePositionCorrectionService licencePositionCorrectionService,
+      LicencePositionStagedPayloadService licencePositionStagedPayloadService,
       PartialSurrenderCorrectionService partialSurrenderCorrectionService
   ) {
-    this.licencePositionCorrectionService = licencePositionCorrectionService;
+    this.licencePositionStagedPayloadService = licencePositionStagedPayloadService;
     this.partialSurrenderCorrectionService = partialSurrenderCorrectionService;
   }
 
@@ -42,7 +42,7 @@ public class PartialSurrenderChangeActionHandler implements ChangeActionHandler 
 
     var surrenderDate = Objects.requireNonNullElseGet(
         executedSurrender.surrenderDate(),
-        () -> licencePositionCorrectionService.getEffectivePositionDate(licenceCorrection, licencePosition)
+        () -> licencePositionStagedPayloadService.getEffectivePositionDate(licenceCorrection, licencePosition)
     );
 
     return confirmation(executedSurrender, surrenderDate);
@@ -51,15 +51,15 @@ public class PartialSurrenderChangeActionHandler implements ChangeActionHandler 
   @Override
   public ModelAndView stagedChangeConfirmation(
       LicenceCorrection licenceCorrection,
-      LicencePositionCorrection positionCorrection,
+      LicencePositionStagedPayload positionStagedPayload,
       String changeId,
       ChangeAction action
   ) {
-    var stagedSurrender = partialSurrenderCorrectionService.getStagedPartialSurrenderOrThrow(positionCorrection, changeId);
+    var stagedSurrender = partialSurrenderCorrectionService.getStagedPartialSurrenderOrThrow(positionStagedPayload, changeId);
 
     var surrenderDate = Objects.requireNonNullElseGet(
         stagedSurrender.surrenderDate(),
-        () -> licencePositionCorrectionService.resolveEffectiveDate(positionCorrection)
+        () -> licencePositionStagedPayloadService.resolveEffectiveDate(positionStagedPayload)
     );
 
     return confirmation(stagedSurrender, surrenderDate);
@@ -67,7 +67,7 @@ public class PartialSurrenderChangeActionHandler implements ChangeActionHandler 
 
   @Override
   public void beforeDroppingStagedChange(
-      LicencePositionCorrection positionCorrection,
+      LicencePositionStagedPayload positionStagedPayload,
       LicencePositionChangeType stagedChange
   ) {
     partialSurrenderCorrectionService.deleteStagedSurrenderArtefacts(stagedChange);

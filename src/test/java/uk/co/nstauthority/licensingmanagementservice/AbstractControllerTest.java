@@ -42,8 +42,8 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correct
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanViewCorrectionInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserHasCorrectorRoleForCorrectionInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.LicencePositionCanBeReinstantiatedRule;
-import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.LicencePositionCorrectionBelongsToCorrectionRule;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.LicencePositionIsNotRemovedInCorrectionRule;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.LicencePositionStagedPayloadBelongsToCorrectionRule;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.position.LicencePositionBelongsToCorrectionLicenceRule;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.position.LicencePositionBelongsToLicenceRule;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.scheduleworkprogrammeapplication.InvokingUserCanAccessScheduleApplicationInterceptorRule;
@@ -74,9 +74,9 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceC
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectionPosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectionPositionArgumentResolver;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectionPositionService;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionArgumentResolver;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionViewService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadArgumentResolver;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadViewService;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.overview.LicenceSummaryCardService;
 import uk.co.nstauthority.licensingmanagementservice.licence.overview.action.LicenceActionService;
@@ -158,12 +158,12 @@ import uk.co.nstauthority.licensingmanagementservice.workarea.workareaitemview.W
     CorrectionLicenceIsTypeRule.class,
     LicencePositionIsNotRemovedInCorrectionRule.class,
     LicencePositionArgumentResolver.class,
-    LicencePositionCorrectionArgumentResolver.class,
+    LicencePositionStagedPayloadArgumentResolver.class,
     CorrectionPositionArgumentResolver.class,
     LicencePositionChangeArgumentResolver.class,
     LicencePositionBelongsToLicenceRule.class,
     LicencePositionBelongsToCorrectionLicenceRule.class,
-    LicencePositionCorrectionBelongsToCorrectionRule.class,
+    LicencePositionStagedPayloadBelongsToCorrectionRule.class,
     LicenceCorrectionArgumentResolver.class,
     InvokingUserHasCorrectorRoleForCorrectionInterceptorRule.class,
     IsMemberOfRegulatorTeamInterceptorRule.class
@@ -256,10 +256,10 @@ public abstract class AbstractControllerTest {
   protected LicenceCorrectionService licenceCorrectionService;
 
   @MockitoBean
-  protected LicencePositionCorrectionService licencePositionCorrectionService;
+  protected LicencePositionStagedPayloadService licencePositionStagedPayloadService;
 
   @MockitoBean
-  protected LicencePositionCorrectionViewService licencePositionCorrectionViewService;
+  protected LicencePositionStagedPayloadViewService licencePositionStagedPayloadViewService;
 
   @MockitoBean
   protected CorrectionPositionService correctionPositionService;

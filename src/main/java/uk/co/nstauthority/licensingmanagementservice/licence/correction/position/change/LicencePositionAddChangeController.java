@@ -17,8 +17,8 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correct
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectionPosition;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionRouteUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadRouteUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.form.ChangeFormController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.LicencePositionPartialSurrenderController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.PartialSurrenderCorrectionService;
@@ -41,18 +41,18 @@ public class LicencePositionAddChangeController {
   private static final String PAGE_TITLE = "Add change";
 
   private final AddPositionChangeFormValidator addPositionChangeFormValidator;
-  private final LicencePositionCorrectionService licencePositionCorrectionService;
+  private final LicencePositionStagedPayloadService licencePositionStagedPayloadService;
   private final PartialSurrenderCorrectionService partialSurrenderCorrectionService;
   private final SubareaEquityOptionsService subareaEquityOptionsService;
 
   public LicencePositionAddChangeController(
       AddPositionChangeFormValidator addPositionChangeFormValidator,
-      LicencePositionCorrectionService licencePositionCorrectionService,
+      LicencePositionStagedPayloadService licencePositionStagedPayloadService,
       PartialSurrenderCorrectionService partialSurrenderCorrectionService,
       SubareaEquityOptionsService subareaEquityOptionsService
   ) {
     this.addPositionChangeFormValidator = addPositionChangeFormValidator;
-    this.licencePositionCorrectionService = licencePositionCorrectionService;
+    this.licencePositionStagedPayloadService = licencePositionStagedPayloadService;
     this.partialSurrenderCorrectionService = partialSurrenderCorrectionService;
     this.subareaEquityOptionsService = subareaEquityOptionsService;
   }
@@ -64,7 +64,7 @@ public class LicencePositionAddChangeController {
         correctionPosition.correction(),
         new AddPositionChangeForm(),
         subareaEquityOptionsService.getSubareaOptions(correctionPosition),
-        LicencePositionCorrectionRouteUtil.getPositionPageUrl(correctionPosition)
+        LicencePositionStagedPayloadRouteUtil.getPositionPageUrl(correctionPosition)
     );
   }
 
@@ -76,21 +76,21 @@ public class LicencePositionAddChangeController {
       BindingResult bindingResult
   ) {
     var correction = correctionPosition.correction();
-    var positionCorrection = licencePositionCorrectionService.getOrBuildPositionCorrection(correctionPosition);
+    var positionStagedPayload = licencePositionStagedPayloadService.getOrBuildPositionStagedPayload(correctionPosition);
     var subareaOptions = subareaEquityOptionsService.getSubareaOptions(correctionPosition);
 
     if (addPositionChangeFormValidator.hasErrors(
         form,
         bindingResult,
         correction,
-        positionCorrection,
+        positionStagedPayload,
         subareaOptions.keySet()
     )) {
       return addChangeModelAndView(
           correction,
           form,
           subareaOptions,
-          LicencePositionCorrectionRouteUtil.getPositionPageUrl(correctionPosition)
+          LicencePositionStagedPayloadRouteUtil.getPositionPageUrl(correctionPosition)
       );
     }
 
@@ -135,7 +135,7 @@ public class LicencePositionAddChangeController {
   private ModelAndView redirectToDefineArea(LicenceCorrection correction, SingleBlockSurrender singleBlockSurrender) {
     return ReverseRouter.redirect(on(PartialSurrenderDefineAreaController.class).renderDefineArea(
         correction,
-        singleBlockSurrender.licencePositionCorrection(),
+        singleBlockSurrender.licencePositionStagedPayload(),
         singleBlockSurrender.block().getId()
     ));
   }

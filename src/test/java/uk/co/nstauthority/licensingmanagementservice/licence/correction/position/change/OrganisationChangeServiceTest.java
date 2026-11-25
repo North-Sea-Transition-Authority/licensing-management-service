@@ -27,10 +27,10 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectionPosition;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionChangeType;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayload;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadChangeType;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.administrator.AdministratorChangeForm;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.explorationoperator.ExplorationOperatorChangeForm;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.storageoperator.StorageOperatorChangeForm;
@@ -60,7 +60,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.vie
 class OrganisationChangeServiceTest {
 
   @Mock
-  private LicencePositionCorrectionService licencePositionCorrectionService;
+  private LicencePositionStagedPayloadService licencePositionStagedPayloadService;
 
   @Mock
   private ChronologicalPositionService chronologicalPositionService;
@@ -72,7 +72,7 @@ class OrganisationChangeServiceTest {
   private OrganisationChangeService organisationChangeService;
 
   @Captor
-  private ArgumentCaptor<LicencePositionCorrection> licencePositionCorrectionCaptor;
+  private ArgumentCaptor<LicencePositionStagedPayload> licencePositionStagedPayloadCaptor;
 
   private static final Integer ORGANISATION_ID = 116;
   private static final Integer UPDATED_ORGANISATION_ID = 999;
@@ -101,7 +101,7 @@ class OrganisationChangeServiceTest {
       Class<? extends LicenceOperation> operationType,
       LicenceOperation operation
   ) {
-    var correction = addPositionCorrectionFor(List.of());
+    var correction = addPositionStagedPayloadFor(List.of());
 
     organisationChangeService.addOrganisationChange(
         new CorrectionPosition.Staged(correction),
@@ -109,8 +109,8 @@ class OrganisationChangeServiceTest {
         operation
     );
 
-    verify(licencePositionCorrectionService).save(licencePositionCorrectionCaptor.capture());
-    var payload = (CreateLicencePositionPayload) licencePositionCorrectionCaptor.getValue().getPayload();
+    verify(licencePositionStagedPayloadService).save(licencePositionStagedPayloadCaptor.capture());
+    var payload = (CreateLicencePositionPayload) licencePositionStagedPayloadCaptor.getValue().getPayload();
 
     assertThat(payload.licencePositionId()).isEqualTo(POSITION_ID.toString());
     assertThat(payload.changes()).hasSize(1);
@@ -126,7 +126,7 @@ class OrganisationChangeServiceTest {
       LicenceOperation previousOperation,
       LicenceOperation currentOperation
   ) {
-    var correction = addPositionCorrectionFor(List.of(organisationAddChange(previousOperation)));
+    var correction = addPositionStagedPayloadFor(List.of(organisationAddChange(previousOperation)));
 
     organisationChangeService.addOrganisationChange(
         new CorrectionPosition.Staged(correction),
@@ -134,8 +134,8 @@ class OrganisationChangeServiceTest {
         currentOperation
     );
 
-    verify(licencePositionCorrectionService).save(licencePositionCorrectionCaptor.capture());
-    var payload = (CreateLicencePositionPayload) licencePositionCorrectionCaptor.getValue().getPayload();
+    verify(licencePositionStagedPayloadService).save(licencePositionStagedPayloadCaptor.capture());
+    var payload = (CreateLicencePositionPayload) licencePositionStagedPayloadCaptor.getValue().getPayload();
     assertThat(payload.changes()).hasSize(1);
     var change = payload.changes().getFirst();
     assertThat(change).isInstanceOf(AddChange.class);
@@ -144,11 +144,11 @@ class OrganisationChangeServiceTest {
 
   @ParameterizedTest(name = "{argumentSetName}")
   @MethodSource("addOrganisationChange_whenNoChangeAlreadyExists")
-  void addOrganisationChange_whenExecutedPositionAndNoExistingUpdateCorrection_createsNewCorrection(
+  void addOrganisationChange_whenExecutedPositionAndNoExistingUpdatePositionStagedPayload_createsNewPositionStagedPayload(
       Class<? extends LicenceOperation> operationType,
       LicenceOperation operation
   ) {
-    when(licencePositionCorrectionService.findUpdatePositionCorrection(LICENCE_CORRECTION, LICENCE_POSITION))
+    when(licencePositionStagedPayloadService.findUpdatePositionStagedPayload(LICENCE_CORRECTION, LICENCE_POSITION))
         .thenReturn(Optional.empty());
 
     organisationChangeService.addOrganisationChange(
@@ -157,11 +157,11 @@ class OrganisationChangeServiceTest {
         operation
     );
 
-    verify(licencePositionCorrectionService).save(licencePositionCorrectionCaptor.capture());
-    var saved = licencePositionCorrectionCaptor.getValue();
+    verify(licencePositionStagedPayloadService).save(licencePositionStagedPayloadCaptor.capture());
+    var saved = licencePositionStagedPayloadCaptor.getValue();
 
     assertThat(saved.getLicenceCorrection()).isEqualTo(LICENCE_CORRECTION);
-    assertThat(saved.getChangeType()).isEqualTo(LicencePositionCorrectionChangeType.UPDATE_POSITION);
+    assertThat(saved.getChangeType()).isEqualTo(LicencePositionStagedPayloadChangeType.UPDATE_POSITION);
     assertThat(saved.getTargetLicencePosition()).isEqualTo(LICENCE_POSITION);
 
     var payload = (UpdateLicencePositionPayload) saved.getPayload();
@@ -171,15 +171,15 @@ class OrganisationChangeServiceTest {
 
   @ParameterizedTest(name = "{argumentSetName}")
   @MethodSource("addOrganisationChange_whenNoChangeAlreadyExists")
-  void addOrganisationChange_whenExecutedPositionAndExistingUpdateCorrection_appendsOrganisationChange(
+  void addOrganisationChange_whenExecutedPositionAndExistingUpdatePositionStagedPayload_appendsOrganisationChange(
       Class<? extends LicenceOperation> operationType,
       LicenceOperation operation
   ) {
-    var existing = LicencePositionCorrectionTestUtil.newBuilder()
+    var existing = LicencePositionStagedPayloadTestUtil.newBuilder()
         .withPayload(LicencePositionPayload.newUpdateLicencePositionPayload().withChanges(List.of()).build())
         .build();
 
-    when(licencePositionCorrectionService.findUpdatePositionCorrection(LICENCE_CORRECTION, LICENCE_POSITION))
+    when(licencePositionStagedPayloadService.findUpdatePositionStagedPayload(LICENCE_CORRECTION, LICENCE_POSITION))
         .thenReturn(Optional.of(existing));
 
     organisationChangeService.addOrganisationChange(
@@ -188,8 +188,8 @@ class OrganisationChangeServiceTest {
         operation
     );
 
-    verify(licencePositionCorrectionService).save(licencePositionCorrectionCaptor.capture());
-    var payload = (UpdateLicencePositionPayload) licencePositionCorrectionCaptor.getValue().getPayload();
+    verify(licencePositionStagedPayloadService).save(licencePositionStagedPayloadCaptor.capture());
+    var payload = (UpdateLicencePositionPayload) licencePositionStagedPayloadCaptor.getValue().getPayload();
     assertThat(payload.changes()).hasSize(1);
     assertThat(payload.changes().getFirst().operations().getFirst().operation()).isEqualTo(operation);
   }
@@ -201,14 +201,14 @@ class OrganisationChangeServiceTest {
       LicenceOperation previousOperation,
       LicenceOperation currentOperation
   ) {
-    var existing = LicencePositionCorrectionTestUtil.newBuilder()
+    var existing = LicencePositionStagedPayloadTestUtil.newBuilder()
         .withPayload(
             LicencePositionPayload.newUpdateLicencePositionPayload()
                 .withChanges(List.of(organisationAddChange(previousOperation)))
                 .build())
         .build();
 
-    when(licencePositionCorrectionService.findUpdatePositionCorrection(LICENCE_CORRECTION, LICENCE_POSITION))
+    when(licencePositionStagedPayloadService.findUpdatePositionStagedPayload(LICENCE_CORRECTION, LICENCE_POSITION))
         .thenReturn(Optional.of(existing));
 
     organisationChangeService.addOrganisationChange(
@@ -217,8 +217,8 @@ class OrganisationChangeServiceTest {
         currentOperation
     );
 
-    verify(licencePositionCorrectionService).save(licencePositionCorrectionCaptor.capture());
-    var payload = (UpdateLicencePositionPayload) licencePositionCorrectionCaptor.getValue().getPayload();
+    verify(licencePositionStagedPayloadService).save(licencePositionStagedPayloadCaptor.capture());
+    var payload = (UpdateLicencePositionPayload) licencePositionStagedPayloadCaptor.getValue().getPayload();
     assertThat(payload.changes()).hasSize(1);
     var change = payload.changes().getFirst();
     assertThat(change).isInstanceOf(AddChange.class);
@@ -237,10 +237,10 @@ class OrganisationChangeServiceTest {
         AddChange.buildOperationsChange(List.of(operation), 1)
     );
     var payload = CreateLicencePositionPayloadTestUtil.newBuilder().withChanges(changes).build();
-    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder().withPayload(payload).build();
+    var positionStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder().withPayload(payload).build();
     assertThat(organisationChangeService.populateOrganisationForm(
         ORGANISATION_ID,
-        new CorrectionPosition.Staged(positionCorrection),
+        new CorrectionPosition.Staged(positionStagedPayload),
         newForm
     )).usingRecursiveComparison().isEqualTo(expectedForm);
   }
@@ -252,10 +252,10 @@ class OrganisationChangeServiceTest {
       OrganisationChangeForm expectedForm
   ) {
     var payload = CreateLicencePositionPayloadTestUtil.newBuilder().withChanges(List.of()).build();
-    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder().withPayload(payload).build();
+    var positionStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder().withPayload(payload).build();
     assertThat(organisationChangeService.populateOrganisationForm(
         ORGANISATION_ID,
-        new CorrectionPosition.Staged(positionCorrection),
+        new CorrectionPosition.Staged(positionStagedPayload),
         newForm
     )).usingRecursiveComparison().isEqualTo(expectedForm);
   }
@@ -267,10 +267,10 @@ class OrganisationChangeServiceTest {
       OrganisationChangeForm expectedForm
   ) {
     var payload = CreateLicencePositionPayloadTestUtil.newBuilder().build();
-    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder().withPayload(payload).build();
+    var positionStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder().withPayload(payload).build();
     assertThat(organisationChangeService.populateOrganisationForm(
         null,
-        new CorrectionPosition.Staged(positionCorrection),
+        new CorrectionPosition.Staged(positionStagedPayload),
         newForm
     )).usingRecursiveComparison().isEqualTo(expectedForm);
   }
@@ -283,7 +283,7 @@ class OrganisationChangeServiceTest {
       OrganisationChangeForm newForm,
       OrganisationChangeForm expectedForm
   ) {
-    when(licencePositionCorrectionService.hasPendingChange(LICENCE_POSITION, LICENCE_CORRECTION, operationType))
+    when(licencePositionStagedPayloadService.hasPendingChange(LICENCE_POSITION, LICENCE_CORRECTION, operationType))
         .thenReturn(true);
     assertThat(organisationChangeService.populateOrganisationForm(
         ORGANISATION_ID,
@@ -298,7 +298,7 @@ class OrganisationChangeServiceTest {
       OrganisationChangeForm newForm,
       OrganisationChangeForm expectedForm
   ) {
-    when(licencePositionCorrectionService.hasPendingChange(LICENCE_POSITION, LICENCE_CORRECTION, newForm.operationType()))
+    when(licencePositionStagedPayloadService.hasPendingChange(LICENCE_POSITION, LICENCE_CORRECTION, newForm.operationType()))
         .thenReturn(false);
     assertThat(organisationChangeService.populateOrganisationForm(
         ORGANISATION_ID,
@@ -411,16 +411,16 @@ class OrganisationChangeServiceTest {
 
   @ParameterizedTest(name = "{argumentSetName}")
   @MethodSource("addOrganisationChange_whenNoChangeAlreadyExists")
-  void correctOrganisationChange_whenCorrectionHasNoChangeOfType_appendsUpdateChange(
+  void correctOrganisationChange_whenPositionStagedPayloadHasNoChangeOfType_appendsUpdateChange(
       Class<? extends LicenceOperation> operationType,
       LicenceOperation operation
   ) {
     var liveChangeId = UUID.randomUUID().toString();
-    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+    var positionStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder()
         .withPayload(LicencePositionPayload.newUpdateLicencePositionPayload().withChanges(List.of()).build())
         .build();
-    when(licencePositionCorrectionService.getOrBuildUpdatePositionCorrection(LICENCE_CORRECTION, LICENCE_POSITION))
-        .thenReturn(positionCorrection);
+    when(licencePositionStagedPayloadService.getOrBuildUpdatePositionStagedPayload(LICENCE_CORRECTION, LICENCE_POSITION))
+        .thenReturn(positionStagedPayload);
 
     organisationChangeService.correctOrganisationChange(
         LICENCE_POSITION,
@@ -430,26 +430,26 @@ class OrganisationChangeServiceTest {
         operation
     );
 
-    verify(licencePositionCorrectionService).save(licencePositionCorrectionCaptor.capture());
-    var payload = (UpdateLicencePositionPayload) licencePositionCorrectionCaptor.getValue().getPayload();
+    verify(licencePositionStagedPayloadService).save(licencePositionStagedPayloadCaptor.capture());
+    var payload = (UpdateLicencePositionPayload) licencePositionStagedPayloadCaptor.getValue().getPayload();
     assertThat(payload.changes()).containsExactly(UpdateChangeOperations.buildUpdateChange(liveChangeId, operation));
   }
 
   @ParameterizedTest(name = "{argumentSetName}")
   @MethodSource("addOrganisationChange_whenChangeAlreadyExists")
-  void correctOrganisationChange_whenCorrectionAlreadyCorrectsChangeOfType_rewritesUpdateChange(
+  void correctOrganisationChange_whenPositionStagedPayloadAlreadyCorrectsChangeOfType_rewritesUpdateChange(
       Class<? extends LicenceOperation> operationType,
       LicenceOperation previousOperation,
       LicenceOperation currentOperation
   ) {
     var liveChangeId = UUID.randomUUID().toString();
-    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+    var positionStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder()
         .withPayload(LicencePositionPayload.newUpdateLicencePositionPayload()
             .withChanges(List.of(UpdateChangeOperations.buildUpdateChange(liveChangeId, previousOperation)))
             .build())
         .build();
-    when(licencePositionCorrectionService.getOrBuildUpdatePositionCorrection(LICENCE_CORRECTION, LICENCE_POSITION))
-        .thenReturn(positionCorrection);
+    when(licencePositionStagedPayloadService.getOrBuildUpdatePositionStagedPayload(LICENCE_CORRECTION, LICENCE_POSITION))
+        .thenReturn(positionStagedPayload);
 
     organisationChangeService.correctOrganisationChange(
         LICENCE_POSITION,
@@ -459,8 +459,8 @@ class OrganisationChangeServiceTest {
         currentOperation
     );
 
-    verify(licencePositionCorrectionService).save(licencePositionCorrectionCaptor.capture());
-    var payload = (UpdateLicencePositionPayload) licencePositionCorrectionCaptor.getValue().getPayload();
+    verify(licencePositionStagedPayloadService).save(licencePositionStagedPayloadCaptor.capture());
+    var payload = (UpdateLicencePositionPayload) licencePositionStagedPayloadCaptor.getValue().getPayload();
     assertThat(payload.changes())
         .containsExactly(UpdateChangeOperations.buildUpdateChange(liveChangeId, currentOperation));
   }
@@ -481,11 +481,11 @@ class OrganisationChangeServiceTest {
         .newBuilder()
         .withLicencePositionId(POSITION_ID.toString())
         .build();
-    var positionCorrectionToUndo = LicencePositionCorrectionTestUtil.newBuilder()
+    var positionStagedPayloadToUndo = LicencePositionStagedPayloadTestUtil.newBuilder()
         .withId(UUID.randomUUID())
         .withPayload(payloadToUndo)
         .build();
-    var otherPositionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+    var otherPositionStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder()
         .withId(UUID.randomUUID())
         .withPayload(otherPayload)
         .build();
@@ -506,13 +506,13 @@ class OrganisationChangeServiceTest {
         2, new OrganisationNamePeriods("Uncorrected Current Org Name", List.of())
     ));
 
-    when(licencePositionCorrectionService.getPositionCorrections(correction))
-        .thenReturn(List.of(positionCorrectionToUndo, otherPositionCorrection));
-    when(chronologicalPositionService.getCorrectedChronologicalPositions(correction, List.of(otherPositionCorrection), Set.of(POSITION_ID)))
+    when(licencePositionStagedPayloadService.getPositionStagedPayloads(correction))
+        .thenReturn(List.of(positionStagedPayloadToUndo, otherPositionStagedPayload));
+    when(chronologicalPositionService.getCorrectedChronologicalPositions(correction, List.of(otherPositionStagedPayload), Set.of(POSITION_ID)))
         .thenReturn(targetPositions);
     when(licencePositionNameService.getOrganisationNameContext(targetPositions)).thenReturn(organisationNameContext);
 
-    assertThat(organisationChangeService.getJoiningOrganisationForReinstating(correction, positionCorrectionToUndo, operationType))
+    assertThat(organisationChangeService.getJoiningOrganisationForReinstating(correction, positionStagedPayloadToUndo, operationType))
         .isEqualTo("Uncorrected Current Org Name");
   }
 
@@ -601,12 +601,12 @@ class OrganisationChangeServiceTest {
     );
   }
 
-  private LicencePositionCorrection addPositionCorrectionFor(List<LicencePositionChangeType> changes) {
+  private LicencePositionStagedPayload addPositionStagedPayloadFor(List<LicencePositionChangeType> changes) {
     var payload = LicencePositionPayload.newCreateLicencePositionPayload()
         .withLicencePositionId(POSITION_ID.toString())
         .withChanges(changes)
         .build();
-    return LicencePositionCorrectionTestUtil.newBuilder()
+    return LicencePositionStagedPayloadTestUtil.newBuilder()
         .withTargetLicencePosition(null)
         .withPayload(payload)
         .build();

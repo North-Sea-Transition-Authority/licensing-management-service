@@ -20,15 +20,15 @@ import uk.co.fivium.gisframework.relationship.FeatureRelationshipService;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.CorrectionHasStatus;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.CorrectionLicenceIsType;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanViewCorrection;
-import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.LicencePositionCorrectionBelongsToCorrection;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.LicencePositionStagedPayloadBelongsToCorrection;
 import uk.co.nstauthority.licensingmanagementservice.fds.error.ErrorSummaryItem;
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionRouteUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayload;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadRouteUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.PartialSurrenderCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.PartialSurrenderValidator;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderTypeController;
@@ -40,11 +40,11 @@ import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
 @Controller
 @RequestMapping(
-    "/licence-corrections/{correctionId}/position-correction" +
-        "/{licencePositionCorrectionId}/partial-surrender/{featureId}"
+    "/licence-corrections/{correctionId}/position-staged-payload" +
+        "/{licencePositionStagedPayloadId}/partial-surrender/{featureId}"
 )
 @InvokingUserCanViewCorrection
-@LicencePositionCorrectionBelongsToCorrection
+@LicencePositionStagedPayloadBelongsToCorrection
 @CorrectionHasStatus(LicenceCorrectionStatus.IN_PROGRESS)
 @CorrectionLicenceIsType({LicenceType.CARBON_STORAGE, LicenceType.SEAWARD_PRODUCTION, LicenceType.LANDWARD_PRODUCTION})
 public class PartialSurrenderDefineAreaController {
@@ -58,7 +58,7 @@ public class PartialSurrenderDefineAreaController {
   private final PartialSurrenderSelectAreasFormValidator partialSurrenderSelectAreasFormValidator;
   private final PartialSurrenderDefineAreaValidator partialSurrenderDefineAreaValidator;
   private final PartialSurrenderValidator partialSurrenderValidator;
-  private final LicencePositionCorrectionService licencePositionCorrectionService;
+  private final LicencePositionStagedPayloadService licencePositionStagedPayloadService;
   private final FeatureRelationshipService featureRelationshipService;
 
   public PartialSurrenderDefineAreaController(
@@ -67,7 +67,7 @@ public class PartialSurrenderDefineAreaController {
       PartialSurrenderSelectAreasFormValidator partialSurrenderSelectAreasFormValidator,
       PartialSurrenderDefineAreaValidator partialSurrenderDefineAreaValidator,
       PartialSurrenderValidator partialSurrenderValidator,
-      LicencePositionCorrectionService licencePositionCorrectionService,
+      LicencePositionStagedPayloadService licencePositionStagedPayloadService,
       FeatureRelationshipService featureRelationshipService
   ) {
     this.commandJourneyService = commandJourneyService;
@@ -75,24 +75,24 @@ public class PartialSurrenderDefineAreaController {
     this.partialSurrenderSelectAreasFormValidator = partialSurrenderSelectAreasFormValidator;
     this.partialSurrenderDefineAreaValidator = partialSurrenderDefineAreaValidator;
     this.partialSurrenderValidator = partialSurrenderValidator;
-    this.licencePositionCorrectionService = licencePositionCorrectionService;
+    this.licencePositionStagedPayloadService = licencePositionStagedPayloadService;
     this.featureRelationshipService = featureRelationshipService;
   }
 
   @GetMapping("/define-area")
   public ModelAndView renderDefineArea(
       LicenceCorrection correction,
-      LicencePositionCorrection licencePositionCorrection,
+      LicencePositionStagedPayload licencePositionStagedPayload,
       @PathVariable UUID featureId
   ) {
     var commandJourneyId = partialSurrenderCorrectionService
-        .getSurrenderDetailsOrThrow(licencePositionCorrection, featureId)
+        .getSurrenderDetailsOrThrow(licencePositionStagedPayload, featureId)
         .commandJourneyIdOrThrow();
 
     var activeFeatures = commandJourneyService.getActiveFeatures(commandJourneyId);
 
     return getDefineAreaModelAndView(
-        licencePositionCorrection,
+        licencePositionStagedPayload,
         featureId,
         correction,
         commandJourneyId,
@@ -103,18 +103,18 @@ public class PartialSurrenderDefineAreaController {
   @PostMapping("/define-area")
   public ModelAndView defineArea(
       LicenceCorrection correction,
-      LicencePositionCorrection licencePositionCorrection,
+      LicencePositionStagedPayload licencePositionStagedPayload,
       @PathVariable UUID featureId
   ) {
     var commandJourneyId = partialSurrenderCorrectionService
-        .getSurrenderDetailsOrThrow(licencePositionCorrection, featureId)
+        .getSurrenderDetailsOrThrow(licencePositionStagedPayload, featureId)
         .commandJourneyIdOrThrow();
 
     var activeFeatures = commandJourneyService.getActiveFeatures(commandJourneyId);
 
     if (partialSurrenderDefineAreaValidator.hasErrors(activeFeatures)) {
       return getDefineAreaModelAndView(
-          licencePositionCorrection,
+          licencePositionStagedPayload,
           featureId,
           correction,
           commandJourneyId,
@@ -126,26 +126,26 @@ public class PartialSurrenderDefineAreaController {
     }
 
     partialSurrenderCorrectionService.clearSurrenderedIds(
-        licencePositionCorrection,
+        licencePositionStagedPayload,
         featureId,
         activeFeatures.stream().map(Feature::getId).toList()
     );
 
     return ReverseRouter.redirect(on(PartialSurrenderDefineAreaController.class)
-        .renderSelectAreas(correction, licencePositionCorrection, featureId));
+        .renderSelectAreas(correction, licencePositionStagedPayload, featureId));
   }
 
   @GetMapping("/select-areas")
   public ModelAndView renderSelectAreas(
       LicenceCorrection correction,
-      LicencePositionCorrection licencePositionCorrection,
+      LicencePositionStagedPayload licencePositionStagedPayload,
       @PathVariable UUID featureId
   ) {
-    var surrenderDetails = partialSurrenderCorrectionService.getSurrenderDetailsOrThrow(licencePositionCorrection, featureId);
+    var surrenderDetails = partialSurrenderCorrectionService.getSurrenderDetailsOrThrow(licencePositionStagedPayload, featureId);
     var activeFeatures = commandJourneyService.getActiveFeatures(surrenderDetails.commandJourneyIdOrThrow());
 
     return getSelectAreasModelAndView(
-        licencePositionCorrection,
+        licencePositionStagedPayload,
         featureId,
         correction,
         activeFeatures,
@@ -156,21 +156,24 @@ public class PartialSurrenderDefineAreaController {
   @PostMapping("/select-areas")
   public ModelAndView selectAreas(
       LicenceCorrection correction,
-      LicencePositionCorrection licencePositionCorrection,
+      LicencePositionStagedPayload licencePositionStagedPayload,
       @PathVariable UUID featureId,
       @ModelAttribute("form") PartialSurrenderSelectAreasForm form,
       BindingResult bindingResult,
       RedirectAttributes redirectAttributes
   ) {
-    var surrenderDetails = partialSurrenderCorrectionService.getSurrenderDetailsOrThrow(licencePositionCorrection, featureId);
+    var surrenderDetails = partialSurrenderCorrectionService.getSurrenderDetailsOrThrow(licencePositionStagedPayload, featureId);
     var activeFeatures = commandJourneyService.getActiveFeatures(surrenderDetails.commandJourneyIdOrThrow());
 
-    var blockFeature = partialSurrenderCorrectionService.getSurrenderedBlockFeatureOrThrow(licencePositionCorrection, featureId);
+    var blockFeature = partialSurrenderCorrectionService.getSurrenderedBlockFeatureOrThrow(
+        licencePositionStagedPayload,
+        featureId
+    );
 
     if (partialSurrenderSelectAreasFormValidator.hasSelectionErrors(form, bindingResult, activeFeatures, blockFeature)
-        || hasOverlapErrors(licencePositionCorrection, form, bindingResult, activeFeatures)) {
+        || hasOverlapErrors(licencePositionStagedPayload, form, bindingResult, activeFeatures)) {
       return getSelectAreasModelAndView(
-          licencePositionCorrection,
+          licencePositionStagedPayload,
           featureId,
           correction,
           activeFeatures,
@@ -179,7 +182,7 @@ public class PartialSurrenderDefineAreaController {
     }
 
     partialSurrenderCorrectionService.setSurrenderedFeatureIds(
-        licencePositionCorrection,
+        licencePositionStagedPayload,
         featureId,
         form.getSurrenderedFeatureIds()
     );
@@ -187,34 +190,34 @@ public class PartialSurrenderDefineAreaController {
     NotificationBanner.newSuccessBannerWithHeader("Areas to surrender saved", redirectAttributes);
 
     //TODO - EPGF-183: redirect to ended subareas when implemented
-    if (partialSurrenderCorrectionService.findSingleBlockNotOperatedOn(licencePositionCorrection).isPresent()) {
-      return partialSurrenderCorrectionService.findCorrectedLiveChangeId(licencePositionCorrection)
+    if (partialSurrenderCorrectionService.findSingleBlockNotOperatedOn(licencePositionStagedPayload).isPresent()) {
+      return partialSurrenderCorrectionService.findCorrectedLiveChangeId(licencePositionStagedPayload)
           .map(changeId -> ReverseRouter.redirect(on(PartialSurrenderReviewAndSubmitController.class)
               .renderReviewAndSubmitForCorrectingChange(
                   correction,
-                  licencePositionCorrection.getTargetLicencePosition(),
+                  licencePositionStagedPayload.getTargetLicencePosition(),
                   new LicencePositionChange(UUID.fromString(changeId)),
                   null)))
           .orElseGet(() -> ReverseRouter.redirect(on(PartialSurrenderReviewAndSubmitController.class)
-              .renderReviewAndSubmit(correction, licencePositionCorrection, null)));
+              .renderReviewAndSubmit(correction, licencePositionStagedPayload, null)));
     }
 
     //TODO - EPGF-183: redirect to ended subareas when implemented
     return ReverseRouter.redirect(on(PartialSurrenderTaskListController.class)
-        .renderTaskList(correction, licencePositionCorrection, null)
+        .renderTaskList(correction, licencePositionStagedPayload, null)
     );
   }
 
   private boolean hasOverlapErrors(
-      LicencePositionCorrection licencePositionCorrection,
+      LicencePositionStagedPayload licencePositionStagedPayload,
       PartialSurrenderSelectAreasForm form,
       BindingResult bindingResult,
       List<Feature> activeFeatures
   ) {
     var otherActiveBlocks = partialSurrenderValidator.getOtherActiveBlocks(
-        partialSurrenderCorrectionService.getCommittedPartialSurrenderOrThrow(licencePositionCorrection),
-        licencePositionCorrectionService.resolveEffectiveDate(licencePositionCorrection),
-        partialSurrenderCorrectionService.getCommittedPartialSurrenderChangeId(licencePositionCorrection).orElse(null)
+        partialSurrenderCorrectionService.getCommittedPartialSurrenderOrThrow(licencePositionStagedPayload),
+        licencePositionStagedPayloadService.resolveEffectiveDate(licencePositionStagedPayload),
+        partialSurrenderCorrectionService.getCommittedPartialSurrenderChangeId(licencePositionStagedPayload).orElse(null)
     );
 
     return partialSurrenderSelectAreasFormValidator.hasOverlapErrors(
@@ -226,7 +229,7 @@ public class PartialSurrenderDefineAreaController {
   }
 
   private ModelAndView getDefineAreaModelAndView(
-      LicencePositionCorrection positionCorrection,
+      LicencePositionStagedPayload positionStagedPayload,
       UUID featureId,
       LicenceCorrection correction,
       UUID commandJourneyId,
@@ -239,18 +242,18 @@ public class PartialSurrenderDefineAreaController {
         .addObject("srsWkid", CoordinateSystemUtils.getWkid(coordinateSystem))
         .addObject("pageCaption", correction.getLicence().getLicenceReference())
         .addObject("pageTitle", DEFINE_AREA_PAGE_TITLE)
-        .addObject("backLinkUrl", defineAreaBackLinkUrl(positionCorrection, featureId));
+        .addObject("backLinkUrl", defineAreaBackLinkUrl(positionStagedPayload, featureId));
   }
 
   private String defineAreaBackLinkUrl(
-      LicencePositionCorrection positionCorrection,
+      LicencePositionStagedPayload positionStagedPayload,
       UUID featureId
   ) {
-    if (partialSurrenderCorrectionService.findSingleBlockNotOperatedOn(positionCorrection).isEmpty()) {
-      return surrenderTypeUrl(positionCorrection, featureId);
+    if (partialSurrenderCorrectionService.findSingleBlockNotOperatedOn(positionStagedPayload).isEmpty()) {
+      return surrenderTypeUrl(positionStagedPayload, featureId);
     }
 
-    return LicencePositionCorrectionRouteUtil.getPositionPageUrl(positionCorrection);
+    return LicencePositionStagedPayloadRouteUtil.getPositionPageUrl(positionStagedPayload);
   }
 
   /**
@@ -258,23 +261,23 @@ public class PartialSurrenderDefineAreaController {
    * there rather than at the staged form.
    */
   private String surrenderTypeUrl(
-      LicencePositionCorrection positionCorrection,
+      LicencePositionStagedPayload positionStagedPayload,
       UUID featureId
   ) {
-    return partialSurrenderCorrectionService.findCorrectedLiveChangeId(positionCorrection)
+    return partialSurrenderCorrectionService.findCorrectedLiveChangeId(positionStagedPayload)
         .map(changeId -> new LicencePositionChange(UUID.fromString(changeId)))
         .map(change -> ReverseRouter.route(on(BlockSurrenderTypeController.class)
             .renderSurrenderTypeFormForCorrectingChange(
-                positionCorrection.getLicenceCorrection(),
-                positionCorrection.getTargetLicencePosition(),
+                positionStagedPayload.getLicenceCorrection(),
+                positionStagedPayload.getTargetLicencePosition(),
                 change,
                 featureId)))
         .orElseGet(() -> ReverseRouter.route(on(BlockSurrenderTypeController.class)
-            .renderSurrenderTypeForm(positionCorrection.getLicenceCorrection(), positionCorrection, featureId)));
+            .renderSurrenderTypeForm(positionStagedPayload.getLicenceCorrection(), positionStagedPayload, featureId)));
   }
 
   private ModelAndView getSelectAreasModelAndView(
-      LicencePositionCorrection licencePositionCorrection,
+      LicencePositionStagedPayload licencePositionStagedPayload,
       UUID featureId,
       LicenceCorrection correction,
       List<Feature> activeFeatures,
@@ -292,6 +295,6 @@ public class PartialSurrenderDefineAreaController {
         .addObject("activeFeatureIds", activeFeatureIds)
         .addObject("srsWkid", CoordinateSystemUtils.getWkid(coordinateSystem))
         .addObject("backLinkUrl", ReverseRouter.route(on(PartialSurrenderDefineAreaController.class)
-            .renderDefineArea(correction, licencePositionCorrection, featureId)));
+            .renderDefineArea(correction, licencePositionStagedPayload, featureId)));
   }
 }

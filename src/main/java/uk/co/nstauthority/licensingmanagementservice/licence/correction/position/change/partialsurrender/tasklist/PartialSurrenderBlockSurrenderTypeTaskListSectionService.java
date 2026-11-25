@@ -9,7 +9,7 @@ import java.util.function.Function;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.PartialSurrenderCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderTypeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
@@ -39,9 +39,9 @@ public class PartialSurrenderBlockSurrenderTypeTaskListSectionService
   @Override
   public Optional<TaskListSection> getSection(PartialSurrenderTaskListContext context, ServiceUserDetail user) {
     return switch (context) {
-      case PartialSurrenderTaskListContext.Staged(var positionCorrection) -> getSection(
-          partialSurrenderCorrectionService.getCommittedPartialSurrender(positionCorrection).orElse(null),
-          featureId -> blockSurrenderTypeUrl(positionCorrection, featureId));
+      case PartialSurrenderTaskListContext.Staged(var positionStagedPayload) -> getSection(
+          partialSurrenderCorrectionService.getCommittedPartialSurrender(positionStagedPayload).orElse(null),
+          featureId -> blockSurrenderTypeUrl(positionStagedPayload, featureId));
       case PartialSurrenderTaskListContext.LiveChange(var correction, var licencePosition, var change) -> getSection(
           partialSurrenderCorrectionService
               .getSurrenderUnderCorrectionOrThrow(correction, licencePosition, change.getId().toString()),
@@ -75,10 +75,10 @@ public class PartialSurrenderBlockSurrenderTypeTaskListSectionService
     return blockSurrender != null && blockSurrender.isComplete();
   }
 
-  private String blockSurrenderTypeUrl(LicencePositionCorrection positionCorrection, UUID featureId) {
+  private String blockSurrenderTypeUrl(LicencePositionStagedPayload positionStagedPayload, UUID featureId) {
     return ReverseRouter.route(on(BlockSurrenderTypeController.class).renderSurrenderTypeForm(
-        positionCorrection.getLicenceCorrection(),
-        positionCorrection,
+        positionStagedPayload.getLicenceCorrection(),
+        positionStagedPayload,
         featureId
     ));
   }

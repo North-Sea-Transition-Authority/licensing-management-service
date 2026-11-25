@@ -21,7 +21,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectionPosition;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.AddPositionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.AdministratorOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
@@ -139,7 +139,7 @@ class ChangeFormServiceTest {
   @Test
   void checkNoLiveChangeOfType_whenStagedPosition_thenPassesWithoutLookingForLiveChanges() {
     var service = service();
-    var correctionPosition = new CorrectionPosition.Staged(LicencePositionCorrectionTestUtil.newBuilder()
+    var correctionPosition = new CorrectionPosition.Staged(LicencePositionStagedPayloadTestUtil.newBuilder()
         .withLicenceCorrection(PRODUCTION_CORRECTION)
         .build());
 

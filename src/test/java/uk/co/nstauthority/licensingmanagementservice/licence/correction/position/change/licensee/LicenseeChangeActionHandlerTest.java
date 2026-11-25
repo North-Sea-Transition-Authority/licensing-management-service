@@ -14,9 +14,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.web.servlet.ModelAndView;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionChangeType;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayload;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadChangeType;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.action.ChangeAction;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.UpdateLicencePositionPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
@@ -34,8 +34,8 @@ class LicenseeChangeActionHandlerTest {
   private static final String CHANGE_ID = UUID.randomUUID().toString();
   private static final LicenceCorrection CORRECTION = LicenceCorrectionTestUtil.newBuilder().build();
   private static final LicencePosition POSITION = LicencePositionTestUtil.newBuilder().withId(UUID.randomUUID()).build();
-  private static final LicencePositionCorrection POSITION_CORRECTION = LicencePositionCorrectionTestUtil.newBuilder()
-      .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+  private static final LicencePositionStagedPayload POSITION_STAGED_PAYLOAD = LicencePositionStagedPayloadTestUtil.newBuilder()
+      .withChangeType(LicencePositionStagedPayloadChangeType.UPDATE_POSITION)
       .withTargetLicencePosition(POSITION)
       .withPayload(UpdateLicencePositionPayloadTestUtil.newBuilder().build())
       .build();
@@ -89,7 +89,7 @@ class LicenseeChangeActionHandlerTest {
 
     var result = licenseeChangeActionHandler.stagedChangeConfirmation(
         CORRECTION,
-        POSITION_CORRECTION,
+        POSITION_STAGED_PAYLOAD,
         CHANGE_ID,
         ChangeAction.UNDO
     );
@@ -108,7 +108,7 @@ class LicenseeChangeActionHandlerTest {
 
     var result = licenseeChangeActionHandler.stagedChangeConfirmation(
         CORRECTION,
-        POSITION_CORRECTION,
+        POSITION_STAGED_PAYLOAD,
         CHANGE_ID,
         ChangeAction.REINSTATE
     );
@@ -121,7 +121,7 @@ class LicenseeChangeActionHandlerTest {
   }
 
   private void givenUndoContext() {
-    when(licenseeChangeService.getUndoLicenseeChangeContext(CORRECTION, POSITION_CORRECTION, POSITION.getId()))
+    when(licenseeChangeService.getUndoLicenseeChangeContext(CORRECTION, POSITION_STAGED_PAYLOAD, POSITION.getId()))
         .thenReturn(UNDO_CONTEXT);
     when(licenseeChangeService.getRestoredLicenseeChangeView(List.of("Restored withdrawing"), List.of("Restored joining")))
         .thenReturn(RESTORED_VIEW);

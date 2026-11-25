@@ -15,8 +15,8 @@ import uk.co.fivium.gisframework.feature.Line;
 import uk.co.fivium.gisframework.relationship.BoundingBox;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceStatusType;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionChangeType;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayload;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.PartialSurrenderValidator;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.UpdateLicencePositionPayload;
@@ -46,7 +46,7 @@ public class LicencePositionValidationService {
   public List<PositionValidationError> validate(
       List<ChronologicalPosition> allChronologicalPositions,
       ResolvedStates resolvedStates,
-      List<LicencePositionCorrection> positionCorrections,
+      List<LicencePositionStagedPayload> positionStagedPayloads,
       LicenceType licenceType,
       LicenceStatusType licenceStatusType
   ) {
@@ -56,10 +56,10 @@ public class LicencePositionValidationService {
         ? transactionIdsWithMultipleBeneficialInterestChanges(allChronologicalPositions)
         : Set.<UUID>of();
 
-    var correctedChangeIds = getCorrectedChangeIds(allChronologicalPositions, positionCorrections);
+    var correctedChangeIds = getCorrectedChangeIds(allChronologicalPositions, positionStagedPayloads);
     var hasStagedSpatialChange = hasStagedSpatialChange(
         allChronologicalPositions,
-        positionCorrections,
+        positionStagedPayloads,
         correctedChangeIds
     );
     var subareaEquityChangeKeysByTransactionId = subareaEquityChangeKeysByTransactionId(allChronologicalPositions);
@@ -172,18 +172,18 @@ public class LicencePositionValidationService {
 
   private static Set<String> getCorrectedChangeIds(
       List<ChronologicalPosition> chronologicalPositions,
-      List<LicencePositionCorrection> positionCorrections
+      List<LicencePositionStagedPayload> positionStagedPayloads
   ) {
-    var stagedChangeIds = positionCorrections.stream()
-        .filter(correction -> correction.getPayload() != null)
-        .flatMap(correction -> correction.getPayload().changes().stream())
+    var stagedChangeIds = positionStagedPayloads.stream()
+        .filter(positionStagedPayload -> positionStagedPayload.getPayload() != null)
+        .flatMap(positionStagedPayload -> positionStagedPayload.getPayload().changes().stream())
         .map(LicencePositionChangeType::changeId)
         .collect(Collectors.toSet());
 
-    var movedPositionIds = positionCorrections.stream()
-        .filter(correction -> correction.getPayload() instanceof UpdateLicencePositionPayload payload
+    var movedPositionIds = positionStagedPayloads.stream()
+        .filter(positionStagedPayload -> positionStagedPayload.getPayload() instanceof UpdateLicencePositionPayload payload
             && payload.changesPositionDate())
-        .map(correction -> correction.getTargetLicencePosition().getId())
+        .map(positionStagedPayload -> positionStagedPayload.getTargetLicencePosition().getId())
         .collect(Collectors.toSet());
 
     return chronologicalPositions.stream()
@@ -210,11 +210,12 @@ public class LicencePositionValidationService {
 
   private static boolean hasStagedSpatialChange(
       List<ChronologicalPosition> chronologicalPositions,
-      List<LicencePositionCorrection> positionCorrections,
+      List<LicencePositionStagedPayload> positionStagedPayloads,
       Set<String> correctedChangeIds
   ) {
-    var hasRemovedPosition = positionCorrections.stream()
-        .anyMatch(correction -> correction.getChangeType() == LicencePositionCorrectionChangeType.REMOVE_POSITION);
+    var hasRemovedPosition = positionStagedPayloads.stream()
+        .anyMatch(positionStagedPayload ->
+            positionStagedPayload.getChangeType() == LicencePositionStagedPayloadChangeType.REMOVE_POSITION);
 
     return chronologicalPositions.stream()
         .flatMap(chronologicalPosition -> chronologicalPosition.changes().stream())

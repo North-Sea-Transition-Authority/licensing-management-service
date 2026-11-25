@@ -24,7 +24,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectionPosition;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionRouteUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadRouteUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.LicencePositionAddChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.TransferEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
@@ -172,7 +172,7 @@ public class LicencePositionTransferEquityController {
         correctionPosition.correction(),
         operations,
         ReverseRouter.route(on(this.getClass()).renderForPosition(correctionPosition)),
-        LicencePositionCorrectionRouteUtil.getPositionPageUrl(correctionPosition),
+        LicencePositionStagedPayloadRouteUtil.getPositionPageUrl(correctionPosition),
         removeUrls,
         withdrawUrls,
         holdings

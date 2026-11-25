@@ -8,7 +8,7 @@ import org.springframework.stereotype.Service;
 import uk.co.fivium.gisframework.feature.Feature;
 import uk.co.fivium.gisframework.feature.FeatureService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.setequity.SetEquityCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.transferequity.TransferEquityCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.EquitySetterOperation;
@@ -22,20 +22,20 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.Fe
 @Service
 public class EquityChangeService {
 
-  private final LicencePositionCorrectionService licencePositionCorrectionService;
+  private final LicencePositionStagedPayloadService licencePositionStagedPayloadService;
   private final TransferEquityCorrectionService transferEquityCorrectionService;
   private final SetEquityCorrectionService setEquityCorrectionService;
   private final LicencePositionChangeService licencePositionChangeService;
   private final FeatureService featureService;
 
   public EquityChangeService(
-      LicencePositionCorrectionService licencePositionCorrectionService,
+      LicencePositionStagedPayloadService licencePositionStagedPayloadService,
       TransferEquityCorrectionService transferEquityCorrectionService,
       SetEquityCorrectionService setEquityCorrectionService,
       LicencePositionChangeService licencePositionChangeService,
       FeatureService featureService
   ) {
-    this.licencePositionCorrectionService = licencePositionCorrectionService;
+    this.licencePositionStagedPayloadService = licencePositionStagedPayloadService;
     this.transferEquityCorrectionService = transferEquityCorrectionService;
     this.setEquityCorrectionService = setEquityCorrectionService;
     this.licencePositionChangeService = licencePositionChangeService;
@@ -48,11 +48,11 @@ public class EquityChangeService {
   }
 
   public EquityChangeContext getEquityChangeContext(LicenceCorrection licenceCorrection, String changeId) {
-    var positionCorrection = licencePositionCorrectionService
-        .getPositionCorrectionContainingChange(licenceCorrection, changeId);
+    var positionStagedPayload = licencePositionStagedPayloadService
+        .getPositionStagedPayloadContainingChange(licenceCorrection, changeId);
 
-    return buildContext(licencePositionCorrectionService.resolveStagedChangeOperations(
-        licencePositionCorrectionService.getStagedChangeOrThrow(positionCorrection, changeId)));
+    return buildContext(licencePositionStagedPayloadService.resolveStagedChangeOperations(
+        licencePositionStagedPayloadService.getStagedChangeOrThrow(positionStagedPayload, changeId)));
   }
 
   private EquityChangeContext buildContext(List<LicenceOperation> operations) {

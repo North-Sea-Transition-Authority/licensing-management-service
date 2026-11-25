@@ -9,24 +9,24 @@ import uk.co.fivium.formlibrary.validator.string.StringInputValidator;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 
 @Service
-public class AddLicencePositionCorrectionFormValidator {
+public class AddLicencePositionStagedPayloadFormValidator {
 
   private final Clock clock;
-  private final LicencePositionCorrectionService licencePositionCorrectionService;
+  private final LicencePositionStagedPayloadService licencePositionStagedPayloadService;
 
-  AddLicencePositionCorrectionFormValidator(
+  AddLicencePositionStagedPayloadFormValidator(
       Clock clock,
-      LicencePositionCorrectionService licencePositionCorrectionService
+      LicencePositionStagedPayloadService licencePositionStagedPayloadService
   ) {
     this.clock = clock;
-    this.licencePositionCorrectionService = licencePositionCorrectionService;
+    this.licencePositionStagedPayloadService = licencePositionStagedPayloadService;
   }
 
-  boolean hasErrors(AddLicencePositionCorrectionForm form, LicenceCorrection correction, Errors errors) {
+  boolean hasErrors(AddLicencePositionStagedPayloadForm form, LicenceCorrection correction, Errors errors) {
     StringInputValidator.builder().validate(form.getCorrectionReference(), errors);
 
     if (!errors.hasFieldErrors("correctionReference.inputValue")
-        && licencePositionCorrectionService.isCorrectionReferenceInUse(
+        && licencePositionStagedPayloadService.isCorrectionReferenceInUse(
         correction, form.getCorrectionReference().getInputValue())) {
       errors.rejectValue(
           "correctionReference.inputValue",

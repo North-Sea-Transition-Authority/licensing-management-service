@@ -20,7 +20,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectionPosition;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.LicencePositionAddChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.LicenceBlockFeatureUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.spatial.LicencePositionSpatialService;
@@ -36,18 +36,18 @@ public class LicencePositionSubareaChangeStartController {
   private static final String PAGE_TITLE = "Subarea change";
 
   private final LicencePositionSpatialService licencePositionSpatialService;
-  private final LicencePositionCorrectionService licencePositionCorrectionService;
+  private final LicencePositionStagedPayloadService licencePositionStagedPayloadService;
   private final SubareaChangeService subareaChangeService;
   private final SubareaChangeStartFormValidator subareaChangeStartFormValidator;
 
   public LicencePositionSubareaChangeStartController(
       LicencePositionSpatialService licencePositionSpatialService,
-      LicencePositionCorrectionService licencePositionCorrectionService,
+      LicencePositionStagedPayloadService licencePositionStagedPayloadService,
       SubareaChangeService subareaChangeService,
       SubareaChangeStartFormValidator subareaChangeStartFormValidator
   ) {
     this.licencePositionSpatialService = licencePositionSpatialService;
-    this.licencePositionCorrectionService = licencePositionCorrectionService;
+    this.licencePositionStagedPayloadService = licencePositionStagedPayloadService;
     this.subareaChangeService = subareaChangeService;
     this.subareaChangeStartFormValidator = subareaChangeStartFormValidator;
   }
@@ -71,7 +71,7 @@ public class LicencePositionSubareaChangeStartController {
       BindingResult bindingResult
   ) {
     var blockFeatures = getBlockFeatures(correctionPosition);
-    var featureIdsAlreadyOperatedOn = licencePositionCorrectionService.blockFeatureIdsAlreadyOperatedOn(correctionPosition);
+    var featureIdsAlreadyOperatedOn = licencePositionStagedPayloadService.blockFeatureIdsAlreadyOperatedOn(correctionPosition);
 
     if (subareaChangeStartFormValidator.hasErrors(form, bindingResult, blockFeatures, featureIdsAlreadyOperatedOn)) {
       return getSubareaChangeModelAndView(
@@ -83,10 +83,10 @@ public class LicencePositionSubareaChangeStartController {
     }
 
     var blockFeatureId = UUID.fromString(form.getFeatureId());
-    var positionCorrection = subareaChangeService.commitSubareaChange(correctionPosition, blockFeatureId);
+    var positionStagedPayload = subareaChangeService.commitSubareaChange(correctionPosition, blockFeatureId);
 
     return ReverseRouter.redirect(on(SubareaChangeController.class)
-        .renderSubareaChange(correctionPosition.correction(), positionCorrection, blockFeatureId));
+        .renderSubareaChange(correctionPosition.correction(), positionStagedPayload, blockFeatureId));
   }
 
   private ModelAndView getSubareaChangeModelAndView(

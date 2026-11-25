@@ -117,7 +117,7 @@ public class PartialSurrenderBlockSummarySectionService
   private String getSurrenderSource(PartialSurrenderSummaryContext context) {
     return switch (context) {
       case PartialSurrenderSummaryContext.Staged staged ->
-          "correction %s".formatted(staged.licencePositionCorrection().getId());
+          "correction %s".formatted(staged.licencePositionStagedPayload().getId());
       case PartialSurrenderSummaryContext.LiveChange liveChange -> "change %s".formatted(liveChange.changeId());
     };
   }
@@ -211,19 +211,19 @@ public class PartialSurrenderBlockSummarySectionService
       @Nullable SurrenderDetails blockSurrender
   ) {
     return switch (context) {
-      case PartialSurrenderSummaryContext.Staged(var licencePositionCorrection, var ignored, var ignoredState) -> {
-        var correction = licencePositionCorrection.getLicenceCorrection();
+      case PartialSurrenderSummaryContext.Staged(var licencePositionStagedPayload, var ignored, var ignoredState) -> {
+        var correction = licencePositionStagedPayload.getLicenceCorrection();
 
         if (blockSurrender != null && blockSurrender.type() == BlockSurrenderType.PARTIAL_SURRENDER) {
           yield ReverseRouter.route(on(PartialSurrenderDefineAreaController.class).renderDefineArea(
               correction,
-              licencePositionCorrection,
+              licencePositionStagedPayload,
               featureId
           ));
         }
         yield ReverseRouter.route(on(BlockSurrenderTypeController.class).renderSurrenderTypeForm(
             correction,
-            licencePositionCorrection,
+            licencePositionStagedPayload,
             featureId
         ));
       }

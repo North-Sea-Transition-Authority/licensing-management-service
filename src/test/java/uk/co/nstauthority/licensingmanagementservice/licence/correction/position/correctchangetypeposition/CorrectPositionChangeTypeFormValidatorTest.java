@@ -19,7 +19,7 @@ import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.SameTransactionPositionLookup;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeorder.CorrectChangeOrderService;
 
@@ -33,7 +33,7 @@ class CorrectPositionChangeTypeFormValidatorTest {
   private static final UUID TRANSACTION_ID = UUID.randomUUID();
 
   @Mock
-  private LicencePositionCorrectionService licencePositionCorrectionService;
+  private LicencePositionStagedPayloadService licencePositionStagedPayloadService;
 
   @Mock
   private CorrectChangeOrderService correctChangeOrderService;
@@ -47,7 +47,7 @@ class CorrectPositionChangeTypeFormValidatorTest {
   void setUp() {
     validator = new CorrectPositionChangeTypeFormValidator(
         Clock.fixed(TODAY.atStartOfDay(ZoneOffset.UTC).toInstant(), ZoneOffset.UTC),
-        licencePositionCorrectionService,
+        licencePositionStagedPayloadService,
         correctChangeOrderService
     );
     form = new CorrectPositionChangeTypeForm();
@@ -86,7 +86,7 @@ class CorrectPositionChangeTypeFormValidatorTest {
   @Test
   void hasErrors_whenDateIsTodayAndNoPositionForTheTransaction_isValid() {
     form.getCorrectPositionDate().setDate(TODAY);
-    when(licencePositionCorrectionService.findSameTransactionPositionOnDate(CORRECTION, SOURCE_POSITION_ID, TODAY))
+    when(licencePositionStagedPayloadService.findSameTransactionPositionOnDate(CORRECTION, SOURCE_POSITION_ID, TODAY))
         .thenReturn(new SameTransactionPositionLookup(TRANSACTION_ID, null));
 
     var hasErrors = validator.hasErrors(form, bindingResult, CORRECTION, SOURCE_POSITION_ID, CHANGE_ID);
@@ -98,7 +98,7 @@ class CorrectPositionChangeTypeFormValidatorTest {
   void hasErrors_whenDateMovesOntoAPositionAlreadyWithAPartialSurrender_flagsPartialSurrender() {
     var matchingPositionId = UUID.randomUUID();
     form.getCorrectPositionDate().setDate(TODAY);
-    when(licencePositionCorrectionService.findSameTransactionPositionOnDate(CORRECTION, SOURCE_POSITION_ID, TODAY))
+    when(licencePositionStagedPayloadService.findSameTransactionPositionOnDate(CORRECTION, SOURCE_POSITION_ID, TODAY))
         .thenReturn(new SameTransactionPositionLookup(TRANSACTION_ID, matchingPositionId));
     when(correctChangeOrderService.canMoveChangeToPosition(CORRECTION, SOURCE_POSITION_ID, CHANGE_ID, matchingPositionId))
         .thenReturn(false);
@@ -122,7 +122,7 @@ class CorrectPositionChangeTypeFormValidatorTest {
   void hasErrors_whenDateMovesOntoAPositionThatCanTakeTheChange_isValid() {
     var matchingPositionId = UUID.randomUUID();
     form.getCorrectPositionDate().setDate(TODAY);
-    when(licencePositionCorrectionService.findSameTransactionPositionOnDate(CORRECTION, SOURCE_POSITION_ID, TODAY))
+    when(licencePositionStagedPayloadService.findSameTransactionPositionOnDate(CORRECTION, SOURCE_POSITION_ID, TODAY))
         .thenReturn(new SameTransactionPositionLookup(TRANSACTION_ID, matchingPositionId));
     when(correctChangeOrderService.canMoveChangeToPosition(CORRECTION, SOURCE_POSITION_ID, CHANGE_ID, matchingPositionId))
         .thenReturn(true);

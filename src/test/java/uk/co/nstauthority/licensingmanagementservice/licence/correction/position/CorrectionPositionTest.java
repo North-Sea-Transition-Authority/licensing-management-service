@@ -25,41 +25,41 @@ class CorrectionPositionTest {
       .build();
 
   @Test
-  void of_whenPositionCorrectionAddsAPosition_thenStagedPosition() {
-    var addCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+  void of_whenPositionStagedPayloadAddsAPosition_thenStagedPosition() {
+    var addStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder()
         .withLicenceCorrection(CORRECTION)
-        .withChangeType(LicencePositionCorrectionChangeType.ADD_POSITION)
+        .withChangeType(LicencePositionStagedPayloadChangeType.ADD_POSITION)
         .build();
 
-    var result = CorrectionPosition.of(addCorrection);
+    var result = CorrectionPosition.of(addStagedPayload);
 
-    assertThat(result).isEqualTo(new CorrectionPosition.Staged(addCorrection));
+    assertThat(result).isEqualTo(new CorrectionPosition.Staged(addStagedPayload));
   }
 
   @Test
-  void of_whenPositionCorrectionUpdatesAPosition_thenTheExecutedPositionItUpdates() {
-    var updateCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+  void of_whenPositionStagedPayloadUpdatesAPosition_thenTheExecutedPositionItUpdates() {
+    var updateStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder()
         .withLicenceCorrection(CORRECTION)
-        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+        .withChangeType(LicencePositionStagedPayloadChangeType.UPDATE_POSITION)
         .withTargetLicencePosition(POSITION)
         .withPayload(UpdateLicencePositionPayloadTestUtil.newBuilder().build())
         .build();
 
-    var result = CorrectionPosition.of(updateCorrection);
+    var result = CorrectionPosition.of(updateStagedPayload);
 
     assertThat(result).isEqualTo(new CorrectionPosition.Executed(CORRECTION, POSITION));
   }
 
   @Test
-  void of_whenPositionCorrectionRemovesAPosition_thenThrows() {
-    var removeCorrection = LicencePositionCorrectionTestUtil.newBuilder()
-        .withChangeType(LicencePositionCorrectionChangeType.REMOVE_POSITION)
+  void of_whenPositionStagedPayloadRemovesAPosition_thenThrows() {
+    var removeStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder()
+        .withChangeType(LicencePositionStagedPayloadChangeType.REMOVE_POSITION)
         .build();
 
-    assertThatThrownBy(() -> CorrectionPosition.of(removeCorrection))
+    assertThatThrownBy(() -> CorrectionPosition.of(removeStagedPayload))
         .isInstanceOf(IllegalStateException.class)
-        .hasMessage("Licence position correction %s removes a position so cannot have changes made against it"
-            .formatted(removeCorrection.getId()));
+        .hasMessage("Licence position staged payload %s removes a position so cannot have changes made against it"
+            .formatted(removeStagedPayload.getId()));
   }
 
   @Test
@@ -71,14 +71,14 @@ class CorrectionPositionTest {
 
   @Test
   void getPathVariables_whenStagedPosition_thenTheCorrectionAndStagedPositionIds() {
-    var addCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+    var addStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder()
         .withLicenceCorrection(CORRECTION)
         .withPayload(CreateLicencePositionPayloadTestUtil.newBuilder()
             .withLicencePositionId(POSITION_ID.toString())
             .build())
         .build();
 
-    var result = new CorrectionPosition.Staged(addCorrection).getPathVariables();
+    var result = new CorrectionPosition.Staged(addStagedPayload).getPathVariables();
 
     assertThat(result).isEqualTo(Map.of("correctionId", CORRECTION_ID, "licencePositionId", POSITION_ID));
   }

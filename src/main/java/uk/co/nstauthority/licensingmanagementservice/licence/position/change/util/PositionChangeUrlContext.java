@@ -3,7 +3,7 @@ package uk.co.nstauthority.licensingmanagementservice.licence.position.change.ut
 import jakarta.annotation.Nullable;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectionPosition;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 
 /**
@@ -12,28 +12,28 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePos
  * @param correction the licence correction the position is being viewed within; null on the licence timeline, where
  *                   only the view url is built
  * @param licencePosition the executed position; null for a position added by this correction
- * @param positionCorrection the correction staging changes against that position; null for an executed position
- *                           this correction has not touched yet, and on the licence timeline
+ * @param positionStagedPayload the staged payload holding changes against that position; null for an executed
+ *                              position with no staged payload yet, and on the licence timeline
  */
 public record PositionChangeUrlContext(
     @Nullable LicenceCorrection correction,
     @Nullable LicencePosition licencePosition,
-    @Nullable LicencePositionCorrection positionCorrection
+    @Nullable LicencePositionStagedPayload positionStagedPayload
 ) {
 
   public static PositionChangeUrlContext forExecutedPosition(
       LicenceCorrection correction,
       LicencePosition licencePosition,
-      @Nullable LicencePositionCorrection positionCorrection
+      @Nullable LicencePositionStagedPayload positionStagedPayload
   ) {
-    return new PositionChangeUrlContext(correction, licencePosition, positionCorrection);
+    return new PositionChangeUrlContext(correction, licencePosition, positionStagedPayload);
   }
 
   public static PositionChangeUrlContext forAddedPosition(
       LicenceCorrection correction,
-      LicencePositionCorrection licencePositionCorrection
+      LicencePositionStagedPayload licencePositionStagedPayload
   ) {
-    return new PositionChangeUrlContext(correction, null, licencePositionCorrection);
+    return new PositionChangeUrlContext(correction, null, licencePositionStagedPayload);
   }
 
   public static PositionChangeUrlContext forTimelinePosition(LicencePosition licencePosition) {
@@ -48,7 +48,7 @@ public record PositionChangeUrlContext(
       throw new IllegalStateException("A position on the licence timeline is not being viewed within a correction");
     }
     return addedPosition()
-        ? new CorrectionPosition.Staged(positionCorrection)
+        ? new CorrectionPosition.Staged(positionStagedPayload)
         : new CorrectionPosition.Executed(correction, licencePosition);
   }
 

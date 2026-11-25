@@ -6,7 +6,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionChangeType;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
 
 class CorrectionMarkerTest {
@@ -17,7 +17,7 @@ class CorrectionMarkerTest {
       "UPDATE_POSITION, POSITION_CORRECTED",
       "REMOVE_POSITION, POSITION_REMOVED"
   })
-  void forPosition(LicencePositionCorrectionChangeType changeType, CorrectionMarker expectedMarker) {
+  void forPosition(LicencePositionStagedPayloadChangeType changeType, CorrectionMarker expectedMarker) {
     assertThat(CorrectionMarker.forPosition(changeType)).isEqualTo(expectedMarker);
   }
 

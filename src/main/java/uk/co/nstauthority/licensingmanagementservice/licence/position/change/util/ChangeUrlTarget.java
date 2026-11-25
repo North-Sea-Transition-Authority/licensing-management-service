@@ -4,7 +4,7 @@ import jakarta.annotation.Nullable;
 import java.util.UUID;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectionPosition;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
@@ -63,8 +63,8 @@ public record ChangeUrlTarget(PositionChangeUrlContext context, PositionChange c
   }
 
   @Nullable
-  public LicencePositionCorrection positionCorrection() {
-    return context.positionCorrection();
+  public LicencePositionStagedPayload positionStagedPayload() {
+    return context.positionStagedPayload();
   }
 
   public String changeId() {

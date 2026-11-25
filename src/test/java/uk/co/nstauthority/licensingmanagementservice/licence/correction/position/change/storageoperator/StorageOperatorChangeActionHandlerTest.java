@@ -12,9 +12,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.web.servlet.ModelAndView;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionChangeType;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayload;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadChangeType;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.OrganisationChangeService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.action.ChangeAction;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.UpdateLicencePositionPayloadTestUtil;
@@ -31,8 +31,8 @@ class StorageOperatorChangeActionHandlerTest {
   private static final String CHANGE_ID = UUID.randomUUID().toString();
   private static final LicenceCorrection CORRECTION = LicenceCorrectionTestUtil.newBuilder().build();
   private static final LicencePosition POSITION = LicencePositionTestUtil.newBuilder().withId(UUID.randomUUID()).build();
-  private static final LicencePositionCorrection POSITION_CORRECTION = LicencePositionCorrectionTestUtil.newBuilder()
-      .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+  private static final LicencePositionStagedPayload POSITION_STAGED_PAYLOAD = LicencePositionStagedPayloadTestUtil.newBuilder()
+      .withChangeType(LicencePositionStagedPayloadChangeType.UPDATE_POSITION)
       .withTargetLicencePosition(POSITION)
       .withPayload(UpdateLicencePositionPayloadTestUtil.newBuilder().build())
       .build();
@@ -66,7 +66,7 @@ class StorageOperatorChangeActionHandlerTest {
 
     var result = storageOperatorChangeActionHandler.stagedChangeConfirmation(
         CORRECTION,
-        POSITION_CORRECTION,
+        POSITION_STAGED_PAYLOAD,
         CHANGE_ID,
         ChangeAction.UNDO
     );
@@ -78,12 +78,12 @@ class StorageOperatorChangeActionHandlerTest {
   void stagedChangeSummary_whenReinstating_thenJoiningOperatorIsTheOneBeingReinstated() {
     when(organisationChangeService.getOrganisationChangeContext(CORRECTION, POSITION.getId(), StorageOperatorOperation.class))
         .thenReturn(CONTEXT);
-    when(organisationChangeService.getJoiningOrganisationForReinstating(CORRECTION, POSITION_CORRECTION, StorageOperatorOperation.class))
+    when(organisationChangeService.getJoiningOrganisationForReinstating(CORRECTION, POSITION_STAGED_PAYLOAD, StorageOperatorOperation.class))
         .thenReturn("Reinstated operator");
 
     var result = storageOperatorChangeActionHandler.stagedChangeConfirmation(
         CORRECTION,
-        POSITION_CORRECTION,
+        POSITION_STAGED_PAYLOAD,
         CHANGE_ID,
         ChangeAction.REINSTATE
     );

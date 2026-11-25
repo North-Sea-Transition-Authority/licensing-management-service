@@ -19,10 +19,10 @@ import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.CorrectionMarker;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionChangeType;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayload;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadChangeType;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.UpdateChangeOperations;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayloadTestUtil;
@@ -34,9 +34,9 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePos
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionNameService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionStateResolver;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.OrganisationNameContext;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPositionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.PositionChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.PositionChangeTestUtil;
@@ -62,7 +62,7 @@ class CorrectionReviewServiceTest {
   private ChronologicalPositionService chronologicalPositionService;
 
   @Mock
-  private LicencePositionCorrectionService licencePositionCorrectionService;
+  private LicencePositionStagedPayloadService licencePositionStagedPayloadService;
 
   @Mock
   private LicencePositionService licencePositionService;
@@ -80,15 +80,15 @@ class CorrectionReviewServiceTest {
     var updatedPosition = executedPosition();
     var addedPositionId = UUID.randomUUID();
 
-    var updateCorrection = LicencePositionCorrectionTestUtil.newBuilder()
-        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+    var updateStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder()
+        .withChangeType(LicencePositionStagedPayloadChangeType.UPDATE_POSITION)
         .withTargetLicencePosition(updatedPosition)
         .withPayload(UpdateLicencePositionPayloadTestUtil.newBuilder()
             .withCorrectionReference("COR-1")
             .build())
         .build();
-    var addCorrection = LicencePositionCorrectionTestUtil.newBuilder()
-        .withChangeType(LicencePositionCorrectionChangeType.ADD_POSITION)
+    var addStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder()
+        .withChangeType(LicencePositionStagedPayloadChangeType.ADD_POSITION)
         .withTargetLicencePosition(null)
         .withPayload(CreateLicencePositionPayloadTestUtil.newBuilder()
             .withLicencePositionId(addedPositionId.toString())
@@ -101,7 +101,7 @@ class CorrectionReviewServiceTest {
         chronologicalPosition(updatedPosition.getId(), LocalDate.of(2026, Month.FEBRUARY, 1)),
         chronologicalPosition(addedPositionId, LocalDate.of(2026, Month.MARCH, 1)));
 
-    var correctedTimeline = stubTimelines(List.of(updateCorrection, addCorrection), Set.of(), chronologicalPositions, List.of());
+    var correctedTimeline = stubTimelines(List.of(updateStagedPayload, addStagedPayload), Set.of(), chronologicalPositions, List.of());
 
     var result = correctionReviewService.getReviewPositions(correctedTimeline, List.of());
 
@@ -117,8 +117,8 @@ class CorrectionReviewServiceTest {
     var updatedPosition = executedPosition();
     var erroredPositionId = UUID.randomUUID();
 
-    var updateCorrection = LicencePositionCorrectionTestUtil.newBuilder()
-        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+    var updateStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder()
+        .withChangeType(LicencePositionStagedPayloadChangeType.UPDATE_POSITION)
         .withTargetLicencePosition(updatedPosition)
         .withPayload(UpdateLicencePositionPayloadTestUtil.newBuilder()
             .withCorrectionReference("COR-1")
@@ -130,7 +130,7 @@ class CorrectionReviewServiceTest {
         chronologicalPosition(updatedPosition.getId(), LocalDate.of(2026, Month.FEBRUARY, 1)),
         chronologicalPosition(UUID.randomUUID(), LocalDate.of(2026, Month.MARCH, 1)));
 
-    var correctedTimeline = stubTimelines(List.of(updateCorrection), Set.of(), chronologicalPositions, List.of());
+    var correctedTimeline = stubTimelines(List.of(updateStagedPayload), Set.of(), chronologicalPositions, List.of());
 
     var blockingError = new PositionValidationError(
         erroredPositionId, "1 January 2026", null, null, "Position is invalid");
@@ -147,8 +147,8 @@ class CorrectionReviewServiceTest {
   void getReviewPositions_whenUpdatedPositionHasNoCorrectedReference_usesTheExecutedReference() {
     var updatedPosition = executedPosition();
 
-    var updateCorrection = LicencePositionCorrectionTestUtil.newBuilder()
-        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+    var updateStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder()
+        .withChangeType(LicencePositionStagedPayloadChangeType.UPDATE_POSITION)
         .withTargetLicencePosition(updatedPosition)
         .withPayload(UpdateLicencePositionPayloadTestUtil.newBuilder().build())
         .build();
@@ -156,7 +156,7 @@ class CorrectionReviewServiceTest {
     var chronologicalPositions =
         List.of(chronologicalPosition(updatedPosition.getId(), LocalDate.of(2026, Month.FEBRUARY, 1)));
 
-    var correctedTimeline = stubTimelines(List.of(updateCorrection), Set.of(), chronologicalPositions, List.of());
+    var correctedTimeline = stubTimelines(List.of(updateStagedPayload), Set.of(), chronologicalPositions, List.of());
 
     var result = correctionReviewService.getReviewPositions(correctedTimeline, List.of());
 
@@ -168,8 +168,8 @@ class CorrectionReviewServiceTest {
   void getReviewPositions_whenPositionRemoved_retainsThePositionAndTheChangesExecutedOnIt() {
     var removedPosition = executedPosition();
 
-    var removeCorrection = LicencePositionCorrectionTestUtil.newBuilder()
-        .withChangeType(LicencePositionCorrectionChangeType.REMOVE_POSITION)
+    var removeStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder()
+        .withChangeType(LicencePositionStagedPayloadChangeType.REMOVE_POSITION)
         .withTargetLicencePosition(removedPosition)
         .withPayload(null)
         .build();
@@ -181,7 +181,7 @@ class CorrectionReviewServiceTest {
         .withChanges(List.of(administratorChange(changeId, 1, JOINING_ID, null)))
         .build());
 
-    var correctedTimeline = stubTimelines(List.of(removeCorrection), Set.of(removedPosition.getId()), chronologicalPositions, List.of());
+    var correctedTimeline = stubTimelines(List.of(removeStagedPayload), Set.of(removedPosition.getId()), chronologicalPositions, List.of());
 
     var result = correctionReviewService.getReviewPositions(correctedTimeline, List.of());
 
@@ -198,8 +198,8 @@ class CorrectionReviewServiceTest {
     var updatedPosition = executedPosition();
     var changeId = UUID.randomUUID().toString();
 
-    var updateCorrection = LicencePositionCorrectionTestUtil.newBuilder()
-        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+    var updateStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder()
+        .withChangeType(LicencePositionStagedPayloadChangeType.UPDATE_POSITION)
         .withTargetLicencePosition(updatedPosition)
         .withPayload(UpdateLicencePositionPayloadTestUtil.newBuilder()
             .withChanges(List.of(UpdateChangeOperations.buildUpdateChange(
@@ -221,7 +221,7 @@ class CorrectionReviewServiceTest {
         .withChanges(List.of(administratorChange(changeId, 1, JOINING_ID, null)))
         .build());
 
-    var correctedTimeline = stubTimelines(List.of(updateCorrection), Set.of(), correctedPositions, executedPositions);
+    var correctedTimeline = stubTimelines(List.of(updateStagedPayload), Set.of(), correctedPositions, executedPositions);
 
     var result = correctionReviewService.getReviewPositions(correctedTimeline, List.of());
 
@@ -244,8 +244,8 @@ class CorrectionReviewServiceTest {
     var targetPositionId = UUID.randomUUID();
     var changeId = UUID.randomUUID().toString();
 
-    var addCorrection = LicencePositionCorrectionTestUtil.newBuilder()
-        .withChangeType(LicencePositionCorrectionChangeType.ADD_POSITION)
+    var addStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder()
+        .withChangeType(LicencePositionStagedPayloadChangeType.ADD_POSITION)
         .withTargetLicencePosition(null)
         .withPayload(CreateLicencePositionPayloadTestUtil.newBuilder()
             .withLicencePositionId(targetPositionId.toString())
@@ -272,7 +272,7 @@ class CorrectionReviewServiceTest {
         .withChanges(List.of(administratorChange(changeId, 1, JOINING_ID, null)))
         .build());
 
-    var correctedTimeline = stubTimelines(List.of(addCorrection), Set.of(), correctedPositions, executedPositions);
+    var correctedTimeline = stubTimelines(List.of(addStagedPayload), Set.of(), correctedPositions, executedPositions);
 
     var result = correctionReviewService.getReviewPositions(correctedTimeline, List.of());
 
@@ -311,8 +311,8 @@ class CorrectionReviewServiceTest {
     var targetPositionId = UUID.randomUUID();
     var changeId = UUID.randomUUID().toString();
 
-    var addCorrection = LicencePositionCorrectionTestUtil.newBuilder()
-        .withChangeType(LicencePositionCorrectionChangeType.ADD_POSITION)
+    var addStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder()
+        .withChangeType(LicencePositionStagedPayloadChangeType.ADD_POSITION)
         .withTargetLicencePosition(null)
         .withPayload(CreateLicencePositionPayloadTestUtil.newBuilder()
             .withLicencePositionId(targetPositionId.toString())
@@ -339,7 +339,7 @@ class CorrectionReviewServiceTest {
         .withChanges(List.of(administratorChange(changeId, 1, JOINING_ID, null)))
         .build());
 
-    var correctedTimeline = stubTimelines(List.of(addCorrection), Set.of(), correctedPositions, executedPositions);
+    var correctedTimeline = stubTimelines(List.of(addStagedPayload), Set.of(), correctedPositions, executedPositions);
 
     var result = correctionReviewService.getReviewPositions(correctedTimeline, List.of());
 
@@ -374,15 +374,15 @@ class CorrectionReviewServiceTest {
     var updatedPosition = executedPosition();
     var addedPosition = executedPosition();
 
-    var updateCorrection = LicencePositionCorrectionTestUtil.newBuilder()
-        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+    var updateStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder()
+        .withChangeType(LicencePositionStagedPayloadChangeType.UPDATE_POSITION)
         .withTargetLicencePosition(updatedPosition)
         .withPayload(UpdateLicencePositionPayloadTestUtil.newBuilder()
             .withCorrectionReference("COR-1")
             .build())
         .build();
-    var addCorrection = LicencePositionCorrectionTestUtil.newBuilder()
-        .withChangeType(LicencePositionCorrectionChangeType.ADD_POSITION)
+    var addStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder()
+        .withChangeType(LicencePositionStagedPayloadChangeType.ADD_POSITION)
         .withTargetLicencePosition(null)
         .withPayload(CreateLicencePositionPayloadTestUtil.newBuilder()
             .withLicencePositionId(addedPosition.getId().toString())
@@ -391,7 +391,7 @@ class CorrectionReviewServiceTest {
         .build();
 
     stubAppliedTimeline(
-        List.of(updateCorrection, addCorrection),
+        List.of(updateStagedPayload, addStagedPayload),
         List.of(untouchedPosition, updatedPosition, addedPosition),
         List.of(
             chronologicalPosition(untouchedPosition.getId(), LocalDate.of(2026, Month.JANUARY, 1)),
@@ -412,14 +412,14 @@ class CorrectionReviewServiceTest {
     var removedPosition = executedPosition();
     var changeId = UUID.randomUUID().toString();
 
-    var removeCorrection = LicencePositionCorrectionTestUtil.newBuilder()
-        .withChangeType(LicencePositionCorrectionChangeType.REMOVE_POSITION)
+    var removeStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder()
+        .withChangeType(LicencePositionStagedPayloadChangeType.REMOVE_POSITION)
         .withTargetLicencePosition(removedPosition)
         .withPayload(null)
         .build();
 
     stubAppliedTimeline(
-        List.of(removeCorrection),
+        List.of(removeStagedPayload),
         List.of(),
         List.of(ChronologicalPositionTestUtil.newBuilder()
             .withId(removedPosition.getId())
@@ -438,16 +438,16 @@ class CorrectionReviewServiceTest {
   }
 
   private void stubAppliedTimeline(
-      List<LicencePositionCorrection> positionCorrections,
+      List<LicencePositionStagedPayload> positionStagedPayloads,
       List<LicencePosition> executedPositions,
       List<ChronologicalPosition> appliedPositions
   ) {
-    var removedPositions = positionCorrections.stream()
-        .filter(positionCorrection ->
-            positionCorrection.getChangeType() == LicencePositionCorrectionChangeType.REMOVE_POSITION)
-        .map(LicencePositionCorrection::getTargetLicencePosition);
+    var removedPositions = positionStagedPayloads.stream()
+        .filter(positionStagedPayload ->
+            positionStagedPayload.getChangeType() == LicencePositionStagedPayloadChangeType.REMOVE_POSITION)
+        .map(LicencePositionStagedPayload::getTargetLicencePosition);
 
-    when(licencePositionCorrectionService.getPositionCorrections(correction)).thenReturn(positionCorrections);
+    when(licencePositionStagedPayloadService.getPositionStagedPayloads(correction)).thenReturn(positionStagedPayloads);
     when(licencePositionService.getExecutedChronologicalLicencePositions(correction.getLicence()))
         .thenReturn(executedPositions);
     when(chronologicalPositionService.getLiveChronologicalPositions(
@@ -458,7 +458,7 @@ class CorrectionReviewServiceTest {
   }
 
   private CorrectedTimeline stubTimelines(
-      List<LicencePositionCorrection> positionCorrections,
+      List<LicencePositionStagedPayload> positionStagedPayloads,
       Set<UUID> removedPositionIds,
       List<ChronologicalPosition> correctedPositions,
       List<ChronologicalPosition> executedPositions
@@ -472,7 +472,7 @@ class CorrectionReviewServiceTest {
 
     return new CorrectedTimeline(
         correction,
-        positionCorrections,
+        positionStagedPayloads,
         correctedPositions,
         LicencePositionStateResolver.resolve(correctedPositions, removedPositionIds)
     );

@@ -32,7 +32,7 @@ public interface OperationRoutes {
 
   static String stagedPartialSurrenderTaskList(ChangeUrlTarget target) {
     return ReverseRouter.route(on(PartialSurrenderTaskListController.class)
-        .renderTaskList(target.correction(), target.positionCorrection(), null));
+        .renderTaskList(target.correction(), target.positionStagedPayload(), null));
   }
 
   /**

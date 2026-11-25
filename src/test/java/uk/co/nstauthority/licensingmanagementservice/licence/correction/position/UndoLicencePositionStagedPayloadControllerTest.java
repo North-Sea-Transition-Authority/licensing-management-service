@@ -1,7 +1,6 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.correction.position;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
@@ -23,8 +22,6 @@ import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.validation.BindingResult;
 import uk.co.nstauthority.licensingmanagementservice.AbstractControllerTest;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.CorrectionHasStatusInterceptorRule;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanViewCorrectionInterceptorRule;
@@ -35,38 +32,47 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceC
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.LicencePositionPayload;
+import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
+import uk.co.nstauthority.licensingmanagementservice.util.DateUtil;
 
-@ContextConfiguration(classes = AddLicencePositionCorrectionController.class)
+@ContextConfiguration(classes = UndoLicencePositionStagedPayloadController.class)
 @ActiveProfiles("test")
-class AddLicencePositionCorrectionControllerTest extends AbstractControllerTest {
-
-  @MockitoBean
-  private AddLicencePositionCorrectionFormValidator addLicencePositionCorrectionValidator;
+class UndoLicencePositionStagedPayloadControllerTest extends AbstractControllerTest {
 
   private static final Licence LICENCE = LicenceTestUtil.builder().build();
   private static final UUID CORRECTION_ID = UUID.randomUUID();
+  private static final UUID POSITION_STAGED_PAYLOAD_ID = UUID.randomUUID();
+  private static final LocalDate POSITION_DATE = LocalDate.of(2026, Month.JUNE, 1);
+  private static final String CORRECTION_REFERENCE = "CORR-123";
+  private static final String PAGE_TITLE = "Are you sure you want to undo this position?";
+  private static final String VIEW_NAME = "lms/licence/correction/undoPosition";
   private static final LicenceCorrection CORRECTION = LicenceCorrectionTestUtil.newBuilder()
       .withId(CORRECTION_ID)
       .withLicence(LICENCE)
       .build();
-  private static final LocalDate POSITION_DATE = LocalDate.of(2026, Month.JUNE, 1);
-  private static final String REGULATOR_REFERENCE = "TEST-REF";
-  private static final String PAGE_TITLE = "Add a position";
-  private static final String VIEW_NAME = "lms/licence/correction/addPosition";
+  private static final LicencePositionStagedPayload POSITION_STAGED_PAYLOAD = LicencePositionStagedPayloadTestUtil.newBuilder()
+      .withId(POSITION_STAGED_PAYLOAD_ID)
+      .withLicenceCorrection(CORRECTION)
+      .withPayload(LicencePositionPayload.newCreateLicencePositionPayload()
+          .withEffectiveDate(POSITION_DATE)
+          .withCorrectionReference(CORRECTION_REFERENCE)
+          .build())
+      .build();
 
-  private final String backLinkUrl = ReverseRouter.route(on(LicenceCorrectionController.class)
+  private final String cancelUrl = ReverseRouter.route(on(LicenceCorrectionController.class)
       .renderCorrection(CORRECTION, null));
 
   @Test
-  void renderAddLicencePositionCorrection_whenNotLoggedIn() throws Exception {
-    mockMvc.perform(get(ReverseRouter.route(on(AddLicencePositionCorrectionController.class)
-            .renderAddLicencePositionCorrection(CORRECTION))))
+  void renderUndoPosition_whenNotLoggedIn() throws Exception {
+    mockMvc.perform(get(ReverseRouter.route(on(UndoLicencePositionStagedPayloadController.class)
+            .renderUndoPosition(CORRECTION, POSITION_STAGED_PAYLOAD))))
         .andExpect(redirectionToLoginUrl());
   }
 
   @Test
-  void renderAddLicencePositionCorrection_whenCorrectionIsNotInProgress() throws Exception {
+  void renderUndoPosition_whenCorrectionIsNotInProgress() throws Exception {
     var correction = LicenceCorrectionTestUtil.newBuilder()
         .withId(CORRECTION_ID)
         .withStatus(LicenceCorrectionStatus.COMPLETE)
@@ -75,8 +81,8 @@ class AddLicencePositionCorrectionControllerTest extends AbstractControllerTest 
     when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
         .thenReturn(Optional.of(correction));
     when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(correction));
-    mockMvc.perform(get(ReverseRouter.route(on(AddLicencePositionCorrectionController.class)
-            .renderAddLicencePositionCorrection(correction)))
+    mockMvc.perform(get(ReverseRouter.route(on(UndoLicencePositionStagedPayloadController.class)
+            .renderUndoPosition(correction, POSITION_STAGED_PAYLOAD)))
             .with(user(regulatorUser)))
         .andExpect(status().isForbidden())
         .andExpect(status().reason(
@@ -85,27 +91,29 @@ class AddLicencePositionCorrectionControllerTest extends AbstractControllerTest 
   }
 
   @Test
-  void renderAddLicencePositionCorrection_whenAllocatedToUser() throws Exception {
+  void renderUndoPosition_whenAllocatedToUser() throws Exception {
     givenCorrectionAllocatedToUser();
+    when(licencePositionStagedPayloadService.findById(POSITION_STAGED_PAYLOAD_ID)).thenReturn(Optional.of(POSITION_STAGED_PAYLOAD));
 
-    mockMvc.perform(get(ReverseRouter.route(on(AddLicencePositionCorrectionController.class)
-            .renderAddLicencePositionCorrection(CORRECTION)))
+    mockMvc.perform(get(ReverseRouter.route(on(UndoLicencePositionStagedPayloadController.class)
+            .renderUndoPosition(CORRECTION, POSITION_STAGED_PAYLOAD)))
             .with(user(regulatorUser)))
         .andExpectAll(
             status().isOk(),
             view().name(VIEW_NAME),
             model().attribute("pageTitle", PAGE_TITLE),
-            model().attributeExists("form"),
-            model().attribute("backLinkUrl", backLinkUrl)
+            model().attribute("positionDate", DateUtil.formatLongDate(POSITION_DATE)),
+            model().attribute("correctionReference", CORRECTION_REFERENCE),
+            model().attribute("cancelUrl", cancelUrl)
         );
   }
 
   @Test
-  void renderAddLicencePositionCorrection_whenNotAllocatedToUser() throws Exception {
+  void renderUndoPosition_whenNotAllocatedToUser() throws Exception {
     givenCorrectionNotAllocatedToUser();
 
-    mockMvc.perform(get(ReverseRouter.route(on(AddLicencePositionCorrectionController.class)
-            .renderAddLicencePositionCorrection(CORRECTION)))
+    mockMvc.perform(get(ReverseRouter.route(on(UndoLicencePositionStagedPayloadController.class)
+            .renderUndoPosition(CORRECTION, POSITION_STAGED_PAYLOAD)))
             .with(user(regulatorUser)))
         .andExpect(status().isForbidden())
         .andExpect(status().reason(
@@ -114,15 +122,15 @@ class AddLicencePositionCorrectionControllerTest extends AbstractControllerTest 
   }
 
   @Test
-  void addLicencePositionCorrection_whenNotLoggedIn() throws Exception {
-    mockMvc.perform(post(ReverseRouter.route(on(AddLicencePositionCorrectionController.class)
-            .addLicencePositionCorrection(CORRECTION, null, null, null)))
+  void undoPosition_whenNotLoggedIn() throws Exception {
+    mockMvc.perform(post(ReverseRouter.route(on(UndoLicencePositionStagedPayloadController.class)
+            .undoPosition(CORRECTION, POSITION_STAGED_PAYLOAD, null)))
             .with(csrf()))
         .andExpect(redirectionToLoginUrl());
   }
 
   @Test
-  void addLicencePositionCorrection_whenCorrectionIsNotInProgress() throws Exception {
+  void undoPosition_whenCorrectionIsNotInProgress() throws Exception {
     var correction = LicenceCorrectionTestUtil.newBuilder()
         .withId(CORRECTION_ID)
         .withStatus(LicenceCorrectionStatus.COMPLETE)
@@ -131,8 +139,8 @@ class AddLicencePositionCorrectionControllerTest extends AbstractControllerTest 
     when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
         .thenReturn(Optional.of(correction));
     when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(correction));
-    mockMvc.perform(post(ReverseRouter.route(on(AddLicencePositionCorrectionController.class)
-            .addLicencePositionCorrection(correction, null, null, null)))
+    mockMvc.perform(post(ReverseRouter.route(on(UndoLicencePositionStagedPayloadController.class)
+            .undoPosition(correction, POSITION_STAGED_PAYLOAD, null)))
             .with(user(regulatorUser))
             .with(csrf()))
         .andExpect(status().isForbidden())
@@ -142,64 +150,55 @@ class AddLicencePositionCorrectionControllerTest extends AbstractControllerTest 
   }
 
   @Test
-  void addLicencePositionCorrection_whenValid() throws Exception {
-    var correction = givenCorrectionAllocatedToUser();
+  void undoPosition_whenAddedPositionUndone_thenRedirectsToCorrection() throws Exception {
+    givenCorrectionAllocatedToUser();
+    when(licencePositionStagedPayloadService.findById(POSITION_STAGED_PAYLOAD_ID)).thenReturn(Optional.of(POSITION_STAGED_PAYLOAD));
 
-    var form = new AddLicencePositionCorrectionForm();
-    form.getCorrectionReference().setInputValue(REGULATOR_REFERENCE);
-    form.getPositionDate().setDate(POSITION_DATE);
-
-    var addedPositionId = UUID.randomUUID();
-    when(addLicencePositionCorrectionValidator.hasErrors(eq(form), eq(correction), any(BindingResult.class)))
-        .thenReturn(false);
-    when(licencePositionCorrectionService.addNewPosition(correction, POSITION_DATE, REGULATOR_REFERENCE))
-        .thenReturn(addedPositionId);
-
-    mockMvc.perform(post(ReverseRouter.route(on(AddLicencePositionCorrectionController.class)
-            .addLicencePositionCorrection(CORRECTION, null, null, null)))
+    mockMvc.perform(post(ReverseRouter.route(on(UndoLicencePositionStagedPayloadController.class)
+            .undoPosition(CORRECTION, POSITION_STAGED_PAYLOAD, null)))
             .with(user(regulatorUser))
-            .with(csrf())
-            .flashAttr("form", form))
+            .with(csrf()))
         .andExpectAll(
             status().is3xxRedirection(),
-            redirectedUrl(LicencePositionCorrectionRouteUtil.getPositionPageUrl(correction, addedPositionId)),
+            redirectedUrl(cancelUrl),
             notificationBanner(NotificationBanner.newSuccessBanner()
-                .withHeadingContent("Licence correction position added")
+                .withHeadingContent("Licence correction position undone")
                 .build())
         );
+
+    verify(licencePositionStagedPayloadService).undoPositionStagedPayload(POSITION_STAGED_PAYLOAD);
   }
 
   @Test
-  void addLicencePositionCorrection_whenInvalid() throws Exception {
-    var correction = givenCorrectionAllocatedToUser();
+  void undoPosition_whenExecutedPositionStagedPayloadUndone_thenRedirectsToPosition() throws Exception {
+    givenCorrectionAllocatedToUser();
+    var position = LicencePositionTestUtil.newBuilder().withLicence(LICENCE).build();
+    var positionStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder()
+        .withId(POSITION_STAGED_PAYLOAD_ID)
+        .withLicenceCorrection(CORRECTION)
+        .withChangeType(LicencePositionStagedPayloadChangeType.REMOVE_POSITION)
+        .withTargetLicencePosition(position)
+        .build();
+    when(licencePositionStagedPayloadService.findById(POSITION_STAGED_PAYLOAD_ID)).thenReturn(Optional.of(positionStagedPayload));
 
-    var form = new AddLicencePositionCorrectionForm();
-
-    when(addLicencePositionCorrectionValidator.hasErrors(eq(form), eq(correction), any(BindingResult.class)))
-        .thenReturn(true);
-
-    mockMvc.perform(post(ReverseRouter.route(on(AddLicencePositionCorrectionController.class)
-            .addLicencePositionCorrection(CORRECTION, null, null, null)))
+    mockMvc.perform(post(ReverseRouter.route(on(UndoLicencePositionStagedPayloadController.class)
+            .undoPosition(CORRECTION, positionStagedPayload, null)))
             .with(user(regulatorUser))
-            .with(csrf())
-            .flashAttr("form", form))
+            .with(csrf()))
         .andExpectAll(
-            status().isOk(),
-            view().name(VIEW_NAME),
-            model().attribute("pageTitle", PAGE_TITLE),
-            model().attribute("form", form),
-            model().attribute("backLinkUrl", backLinkUrl)
+            status().is3xxRedirection(),
+            redirectedUrl(LicencePositionStagedPayloadRouteUtil.getPositionPageUrl(CORRECTION, position.getId()))
         );
 
-    verifyNoInteractions(licencePositionCorrectionService);
+    verify(licencePositionStagedPayloadService).undoPositionStagedPayload(positionStagedPayload);
   }
 
   @Test
-  void addLicencePositionCorrection_whenNotAllocatedToUser() throws Exception {
+  void undoPosition_whenNotAllocatedToUser() throws Exception {
     givenCorrectionNotAllocatedToUser();
 
-    mockMvc.perform(post(ReverseRouter.route(on(AddLicencePositionCorrectionController.class)
-            .addLicencePositionCorrection(CORRECTION, null, null, null)))
+    mockMvc.perform(post(ReverseRouter.route(on(UndoLicencePositionStagedPayloadController.class)
+            .undoPosition(CORRECTION, POSITION_STAGED_PAYLOAD, null)))
             .with(user(regulatorUser))
             .with(csrf()))
         .andExpect(status().isForbidden())
@@ -207,15 +206,13 @@ class AddLicencePositionCorrectionControllerTest extends AbstractControllerTest 
             InvokingUserCanViewCorrectionInterceptorRule.notAssignedMessage(CORRECTION_ID, regulatorUser.wuaId()))
         );
 
-    verifyNoInteractions(addLicencePositionCorrectionValidator);
-    verifyNoInteractions(licencePositionCorrectionService);
+    verifyNoInteractions(licencePositionStagedPayloadService);
   }
 
-  private LicenceCorrection givenCorrectionAllocatedToUser() {
+  private void givenCorrectionAllocatedToUser() {
     when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
         .thenReturn(Optional.of(CORRECTION));
     when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(CORRECTION));
-    return CORRECTION;
   }
 
   private void givenCorrectionNotAllocatedToUser() {

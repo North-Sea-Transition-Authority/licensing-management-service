@@ -32,10 +32,10 @@ import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionChangeType;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayload;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadChangeType;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.OrderablePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.PositionMove;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.PositionMoveDirection;
@@ -95,7 +95,7 @@ class CorrectChangeOrderServiceTest {
   private OrganisationUnitQueryService organisationUnitQueryService;
 
   @Mock
-  private LicencePositionCorrectionService licencePositionCorrectionService;
+  private LicencePositionStagedPayloadService licencePositionStagedPayloadService;
 
   @Mock
   private LicencePositionService licencePositionService;
@@ -110,7 +110,7 @@ class CorrectChangeOrderServiceTest {
     correctChangeOrderService = new CorrectChangeOrderService(
         chronologicalPositionService,
         new LicencePositionNameService(organisationUnitQueryService, featureService),
-        licencePositionCorrectionService,
+        licencePositionStagedPayloadService,
         licencePositionService,
         licencePositionChangeService
     );
@@ -212,22 +212,22 @@ class CorrectChangeOrderServiceTest {
     givenOrderableChangesOn(CHANGE_A, CHANGE_B, CHANGE_C);
 
     var position = LicencePositionTestUtil.newBuilder().withId(POSITION_ID).withLicence(LICENCE).build();
-    when(licencePositionCorrectionService.findFirstAddedPositionCorrection(CORRECTION, POSITION_ID))
+    when(licencePositionStagedPayloadService.findFirstAddedPositionStagedPayload(CORRECTION, POSITION_ID))
         .thenReturn(Optional.empty());
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(position);
     when(licencePositionChangeService.findByLicencePositionId(POSITION_ID)).thenReturn(List.of(
         liveChange(CHANGE_A, 1),
         liveChange(CHANGE_B, 2),
         liveChange(CHANGE_C, 3)));
-    var positionCorrection = updatePositionCorrection(List.of());
-    when(licencePositionCorrectionService.getOrBuildUpdatePositionCorrection(CORRECTION, position))
-        .thenReturn(positionCorrection);
+    var positionStagedPayload = updatePositionStagedPayload(List.of());
+    when(licencePositionStagedPayloadService.getOrBuildUpdatePositionStagedPayload(CORRECTION, position))
+        .thenReturn(positionStagedPayload);
 
     correctChangeOrderService.correctChangeOrder(
         CORRECTION, POSITION_ID, CHANGE_B, CHANGE_C, PositionMoveDirection.AFTER);
 
-    verify(licencePositionCorrectionService).saveOrDiscard(
-        positionCorrection,
+    verify(licencePositionStagedPayloadService).saveOrDiscard(
+        positionStagedPayload,
         List.of(new UpdateChangeOrder(CHANGE_C.toString(), 2), new UpdateChangeOrder(CHANGE_B.toString(), 3))
     );
   }
@@ -237,40 +237,40 @@ class CorrectChangeOrderServiceTest {
     givenOrderableChangesOn(CHANGE_B, CHANGE_A);
 
     var position = LicencePositionTestUtil.newBuilder().withId(POSITION_ID).withLicence(LICENCE).build();
-    when(licencePositionCorrectionService.findFirstAddedPositionCorrection(CORRECTION, POSITION_ID))
+    when(licencePositionStagedPayloadService.findFirstAddedPositionStagedPayload(CORRECTION, POSITION_ID))
         .thenReturn(Optional.empty());
     when(licencePositionService.getPositionForLicence(LICENCE, POSITION_ID)).thenReturn(position);
     when(licencePositionChangeService.findByLicencePositionId(POSITION_ID)).thenReturn(List.of(
         liveChange(CHANGE_A, 1),
         liveChange(CHANGE_B, 2)));
 
-    var positionCorrection = updatePositionCorrection(List.of(
+    var positionStagedPayload = updatePositionStagedPayload(List.of(
         new UpdateChangeOrder(CHANGE_B.toString(), 1),
         new UpdateChangeOrder(CHANGE_A.toString(), 2)));
-    when(licencePositionCorrectionService.getOrBuildUpdatePositionCorrection(CORRECTION, position))
-        .thenReturn(positionCorrection);
+    when(licencePositionStagedPayloadService.getOrBuildUpdatePositionStagedPayload(CORRECTION, position))
+        .thenReturn(positionStagedPayload);
 
     correctChangeOrderService.correctChangeOrder(
         CORRECTION, POSITION_ID, CHANGE_A, CHANGE_B, PositionMoveDirection.BEFORE);
 
-    verify(licencePositionCorrectionService).saveOrDiscard(positionCorrection, List.of());
+    verify(licencePositionStagedPayloadService).saveOrDiscard(positionStagedPayload, List.of());
   }
 
   @Test
   void correctChangeOrder_onAddedPosition_rewritesAddChangeOrders() {
     givenOrderableChangesOn(CHANGE_A, CHANGE_B);
 
-    var addedCorrection = addedPositionCorrection(List.of(
+    var addedStagedPayload = addedPositionStagedPayload(List.of(
         new AddChange(CHANGE_A.toString(), 1, List.of()),
         new AddChange(CHANGE_B.toString(), 2, List.of())));
-    when(licencePositionCorrectionService.findFirstAddedPositionCorrection(CORRECTION, POSITION_ID))
-        .thenReturn(Optional.of(addedCorrection));
+    when(licencePositionStagedPayloadService.findFirstAddedPositionStagedPayload(CORRECTION, POSITION_ID))
+        .thenReturn(Optional.of(addedStagedPayload));
 
     correctChangeOrderService.correctChangeOrder(
         CORRECTION, POSITION_ID, CHANGE_A, CHANGE_B, PositionMoveDirection.AFTER);
 
-    var captor = ArgumentCaptor.forClass(LicencePositionCorrection.class);
-    verify(licencePositionCorrectionService).save(captor.capture());
+    var captor = ArgumentCaptor.forClass(LicencePositionStagedPayload.class);
+    verify(licencePositionStagedPayloadService).save(captor.capture());
 
     assertThat(captor.getValue().getPayload().changes())
         .containsExactly(
@@ -284,15 +284,15 @@ class CorrectChangeOrderServiceTest {
 
     var subareaChangeA = new AddChange(CHANGE_A.toString(), 1, List.of(subareaAddOperation(UUID.randomUUID())));
     var subareaChangeB = new AddChange(CHANGE_B.toString(), 2, List.of(subareaAddOperation(UUID.randomUUID())));
-    var addedCorrection = addedPositionCorrection(List.of(subareaChangeA, subareaChangeB));
-    when(licencePositionCorrectionService.findFirstAddedPositionCorrection(CORRECTION, POSITION_ID))
-        .thenReturn(Optional.of(addedCorrection));
+    var addedStagedPayload = addedPositionStagedPayload(List.of(subareaChangeA, subareaChangeB));
+    when(licencePositionStagedPayloadService.findFirstAddedPositionStagedPayload(CORRECTION, POSITION_ID))
+        .thenReturn(Optional.of(addedStagedPayload));
 
     correctChangeOrderService.correctChangeOrder(
         CORRECTION, POSITION_ID, CHANGE_A, CHANGE_B, PositionMoveDirection.AFTER);
 
-    var captor = ArgumentCaptor.forClass(LicencePositionCorrection.class);
-    verify(licencePositionCorrectionService).save(captor.capture());
+    var captor = ArgumentCaptor.forClass(LicencePositionStagedPayload.class);
+    verify(licencePositionStagedPayloadService).save(captor.capture());
 
     assertThat(captor.getValue().getPayload().changes())
         .containsExactly(
@@ -305,13 +305,13 @@ class CorrectChangeOrderServiceTest {
     givenOrderableChangesOn(CHANGE_A, CHANGE_B);
 
     var movedLiveChange = updateChange(CHANGE_B, new SubareaOperation(UUID.randomUUID(), List.of(), List.of()));
-    var addedCorrection = addedPositionCorrection(List.of(
+    var addedStagedPayload = addedPositionStagedPayload(List.of(
         new AddChange(CHANGE_A.toString(), 1, List.of()),
         movedLiveChange,
         new UpdateChangeOrder(CHANGE_B.toString(), 2)
     ));
-    when(licencePositionCorrectionService.findFirstAddedPositionCorrection(CORRECTION, POSITION_ID))
-        .thenReturn(Optional.of(addedCorrection));
+    when(licencePositionStagedPayloadService.findFirstAddedPositionStagedPayload(CORRECTION, POSITION_ID))
+        .thenReturn(Optional.of(addedStagedPayload));
 
     correctChangeOrderService.correctChangeOrder(
         CORRECTION,
@@ -321,8 +321,8 @@ class CorrectChangeOrderServiceTest {
         PositionMoveDirection.BEFORE
     );
 
-    verify(licencePositionCorrectionService).save(addedCorrection);
-    assertThat(addedCorrection.getPayload().changes())
+    verify(licencePositionStagedPayloadService).save(addedStagedPayload);
+    assertThat(addedStagedPayload.getPayload().changes())
         .containsExactly(
             new AddChange(CHANGE_A.toString(), 2, List.of()),
             movedLiveChange,
@@ -343,7 +343,7 @@ class CorrectChangeOrderServiceTest {
             "Cannot move change %s to licence position %s as it is already on it".formatted(CHANGE_A, POSITION_ID)
         );
 
-    verifyNoInteractions(licencePositionCorrectionService);
+    verifyNoInteractions(licencePositionStagedPayloadService);
   }
 
   @Test
@@ -359,7 +359,7 @@ class CorrectChangeOrderServiceTest {
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessage("Cannot move change %s as it is not on licence position %s".formatted(CHANGE_A, POSITION_ID));
 
-    verifyNoInteractions(licencePositionCorrectionService);
+    verifyNoInteractions(licencePositionStagedPayloadService);
   }
 
   @Test
@@ -367,10 +367,10 @@ class CorrectChangeOrderServiceTest {
     givenOrderableChangesOn(CHANGE_A);
 
     var movedChange = new AddChange(CHANGE_A.toString(), 1, List.of(subareaAddOperation(UUID.randomUUID())));
-    var sourceCorrection = addedPositionCorrection(List.of(movedChange));
-    when(licencePositionCorrectionService.getOrBuildPositionCorrection(CORRECTION, POSITION_ID))
-        .thenReturn(sourceCorrection);
-    when(licencePositionCorrectionService.findStagedChange(sourceCorrection, CHANGE_A.toString()))
+    var sourceStagedPayload = addedPositionStagedPayload(List.of(movedChange));
+    when(licencePositionStagedPayloadService.getOrBuildPositionStagedPayload(CORRECTION, POSITION_ID))
+        .thenReturn(sourceStagedPayload);
+    when(licencePositionStagedPayloadService.findStagedChange(sourceStagedPayload, CHANGE_A.toString()))
         .thenReturn(Optional.of(movedChange));
     givenExecutedTargetChanges(
         TARGET_POSITION,
@@ -382,8 +382,8 @@ class CorrectChangeOrderServiceTest {
 
     correctChangeOrderService.moveChangeToPosition(CORRECTION, POSITION_ID, CHANGE_A, TARGET_POSITION_ID);
 
-    verify(licencePositionCorrectionService).dropStagedChangeAndOrder(sourceCorrection, CHANGE_A.toString());
-    verify(licencePositionCorrectionService).stageChangesOnPosition(
+    verify(licencePositionStagedPayloadService).dropStagedChangeAndOrder(sourceStagedPayload, CHANGE_A.toString());
+    verify(licencePositionStagedPayloadService).stageChangesOnPosition(
         CORRECTION,
         TARGET_POSITION_ID,
         List.of(new AddChange(CHANGE_A.toString(), 4, movedChange.operations()))
@@ -395,10 +395,10 @@ class CorrectChangeOrderServiceTest {
     givenOrderableChangesOn(CHANGE_A);
 
     var movedChange = new AddChange(CHANGE_A.toString(), 1, List.of(subareaAddOperation(UUID.randomUUID())));
-    var sourceCorrection = addedPositionCorrection(List.of(movedChange));
-    when(licencePositionCorrectionService.getOrBuildPositionCorrection(CORRECTION, POSITION_ID))
-        .thenReturn(sourceCorrection);
-    when(licencePositionCorrectionService.findStagedChange(sourceCorrection, CHANGE_A.toString()))
+    var sourceStagedPayload = addedPositionStagedPayload(List.of(movedChange));
+    when(licencePositionStagedPayloadService.getOrBuildPositionStagedPayload(CORRECTION, POSITION_ID))
+        .thenReturn(sourceStagedPayload);
+    when(licencePositionStagedPayloadService.findStagedChange(sourceStagedPayload, CHANGE_A.toString()))
         .thenReturn(Optional.of(movedChange));
     givenExecutedTargetChanges(TARGET_POSITION, List.of(new PositionChange(CHANGE_B.toString(), 1, null, List.of())));
     when(licencePositionChangeService.findByLicencePositionId(TARGET_POSITION_ID))
@@ -406,7 +406,7 @@ class CorrectChangeOrderServiceTest {
 
     correctChangeOrderService.moveChangeToPosition(CORRECTION, POSITION_ID, CHANGE_A, TARGET_POSITION_ID);
 
-    verify(licencePositionCorrectionService).stageChangesOnPosition(
+    verify(licencePositionStagedPayloadService).stageChangesOnPosition(
         CORRECTION,
         TARGET_POSITION_ID,
         List.of(new AddChange(CHANGE_A.toString(), 3, movedChange.operations()))
@@ -418,21 +418,21 @@ class CorrectChangeOrderServiceTest {
     givenOrderableChangesOn(CHANGE_A);
 
     var liveOperation = new SubareaOperation(UUID.randomUUID(), List.of(), List.of());
-    var sourceCorrection = updatePositionCorrection(List.of());
-    when(licencePositionCorrectionService.getOrBuildPositionCorrection(CORRECTION, POSITION_ID))
-        .thenReturn(sourceCorrection);
-    when(licencePositionCorrectionService.findStagedChange(sourceCorrection, CHANGE_A.toString()))
+    var sourceStagedPayload = updatePositionStagedPayload(List.of());
+    when(licencePositionStagedPayloadService.getOrBuildPositionStagedPayload(CORRECTION, POSITION_ID))
+        .thenReturn(sourceStagedPayload);
+    when(licencePositionStagedPayloadService.findStagedChange(sourceStagedPayload, CHANGE_A.toString()))
         .thenReturn(Optional.empty());
     when(licencePositionChangeService.getByIdOrThrow(CHANGE_A))
         .thenReturn(liveChangeOn(SOURCE_POSITION, CHANGE_A, 1, liveOperation));
-    var targetCorrection = addedPositionCorrection(List.of());
-    when(licencePositionCorrectionService.getOrBuildPositionCorrection(CORRECTION, TARGET_POSITION_ID))
-        .thenReturn(targetCorrection);
-    when(licencePositionCorrectionService.getChangesForAddedPosition(targetCorrection)).thenReturn(List.of());
+    var targetStagedPayload = addedPositionStagedPayload(List.of());
+    when(licencePositionStagedPayloadService.getOrBuildPositionStagedPayload(CORRECTION, TARGET_POSITION_ID))
+        .thenReturn(targetStagedPayload);
+    when(licencePositionStagedPayloadService.getChangesForAddedPosition(targetStagedPayload)).thenReturn(List.of());
 
     correctChangeOrderService.moveChangeToPosition(CORRECTION, POSITION_ID, CHANGE_A, TARGET_POSITION_ID);
 
-    verify(licencePositionCorrectionService).stageChangesOnPosition(
+    verify(licencePositionStagedPayloadService).stageChangesOnPosition(
         CORRECTION,
         TARGET_POSITION_ID,
         List.of(updateChange(CHANGE_A, liveOperation), new UpdateChangeOrder(CHANGE_A.toString(), 1))
@@ -444,10 +444,10 @@ class CorrectChangeOrderServiceTest {
     givenOrderableChangesOn(CHANGE_A);
 
     var stagedEdit = updateChange(CHANGE_A, new SubareaOperation(UUID.randomUUID(), List.of(), List.of()));
-    var sourceCorrection = updatePositionCorrection(List.of(stagedEdit, new UpdateChangeOrder(CHANGE_A.toString(), 3)));
-    when(licencePositionCorrectionService.getOrBuildPositionCorrection(CORRECTION, POSITION_ID))
-        .thenReturn(sourceCorrection);
-    when(licencePositionCorrectionService.findStagedChange(sourceCorrection, CHANGE_A.toString()))
+    var sourceStagedPayload = updatePositionStagedPayload(List.of(stagedEdit, new UpdateChangeOrder(CHANGE_A.toString(), 3)));
+    when(licencePositionStagedPayloadService.getOrBuildPositionStagedPayload(CORRECTION, POSITION_ID))
+        .thenReturn(sourceStagedPayload);
+    when(licencePositionStagedPayloadService.findStagedChange(sourceStagedPayload, CHANGE_A.toString()))
         .thenReturn(Optional.of(stagedEdit));
     when(licencePositionChangeService.getByIdOrThrow(CHANGE_A)).thenReturn(liveChangeOn(
         SOURCE_POSITION,
@@ -459,8 +459,8 @@ class CorrectChangeOrderServiceTest {
 
     correctChangeOrderService.moveChangeToPosition(CORRECTION, POSITION_ID, CHANGE_A, TARGET_POSITION_ID);
 
-    verify(licencePositionCorrectionService).dropStagedChangeAndOrder(sourceCorrection, CHANGE_A.toString());
-    verify(licencePositionCorrectionService).stageChangesOnPosition(
+    verify(licencePositionStagedPayloadService).dropStagedChangeAndOrder(sourceStagedPayload, CHANGE_A.toString());
+    verify(licencePositionStagedPayloadService).stageChangesOnPosition(
         CORRECTION,
         TARGET_POSITION_ID,
         List.of(stagedEdit, new UpdateChangeOrder(CHANGE_A.toString(), 3))
@@ -472,10 +472,10 @@ class CorrectChangeOrderServiceTest {
     givenOrderableChangesOn(CHANGE_A);
 
     var stagedEdit = updateChange(CHANGE_A, new SubareaOperation(UUID.randomUUID(), List.of(), List.of()));
-    var sourceCorrection = addedPositionCorrection(List.of(stagedEdit, new UpdateChangeOrder(CHANGE_A.toString(), 2)));
-    when(licencePositionCorrectionService.getOrBuildPositionCorrection(CORRECTION, POSITION_ID))
-        .thenReturn(sourceCorrection);
-    when(licencePositionCorrectionService.findStagedChange(sourceCorrection, CHANGE_A.toString()))
+    var sourceStagedPayload = addedPositionStagedPayload(List.of(stagedEdit, new UpdateChangeOrder(CHANGE_A.toString(), 2)));
+    when(licencePositionStagedPayloadService.getOrBuildPositionStagedPayload(CORRECTION, POSITION_ID))
+        .thenReturn(sourceStagedPayload);
+    when(licencePositionStagedPayloadService.findStagedChange(sourceStagedPayload, CHANGE_A.toString()))
         .thenReturn(Optional.of(stagedEdit));
     when(licencePositionChangeService.getByIdOrThrow(CHANGE_A)).thenReturn(liveChangeOn(
         TARGET_POSITION,
@@ -493,8 +493,8 @@ class CorrectChangeOrderServiceTest {
 
     correctChangeOrderService.moveChangeToPosition(CORRECTION, POSITION_ID, CHANGE_A, TARGET_POSITION_ID);
 
-    verify(licencePositionCorrectionService).dropStagedChangeAndOrder(sourceCorrection, CHANGE_A.toString());
-    verify(licencePositionCorrectionService).stageChangesOnPosition(
+    verify(licencePositionStagedPayloadService).dropStagedChangeAndOrder(sourceStagedPayload, CHANGE_A.toString());
+    verify(licencePositionStagedPayloadService).stageChangesOnPosition(
         CORRECTION,
         TARGET_POSITION_ID,
         List.of(stagedEdit, new UpdateChangeOrder(CHANGE_A.toString(), 3))
@@ -507,10 +507,10 @@ class CorrectChangeOrderServiceTest {
 
     var liveOperation = new SubareaOperation(UUID.randomUUID(), List.of(), List.of());
     var stagedMove = updateChange(CHANGE_A, liveOperation);
-    var sourceCorrection = addedPositionCorrection(List.of(stagedMove, new UpdateChangeOrder(CHANGE_A.toString(), 1)));
-    when(licencePositionCorrectionService.getOrBuildPositionCorrection(CORRECTION, POSITION_ID))
-        .thenReturn(sourceCorrection);
-    when(licencePositionCorrectionService.findStagedChange(sourceCorrection, CHANGE_A.toString()))
+    var sourceStagedPayload = addedPositionStagedPayload(List.of(stagedMove, new UpdateChangeOrder(CHANGE_A.toString(), 1)));
+    when(licencePositionStagedPayloadService.getOrBuildPositionStagedPayload(CORRECTION, POSITION_ID))
+        .thenReturn(sourceStagedPayload);
+    when(licencePositionStagedPayloadService.findStagedChange(sourceStagedPayload, CHANGE_A.toString()))
         .thenReturn(Optional.of(stagedMove));
     when(licencePositionChangeService.getByIdOrThrow(CHANGE_A))
         .thenReturn(liveChangeOn(TARGET_POSITION, CHANGE_A, 2, liveOperation));
@@ -525,7 +525,7 @@ class CorrectChangeOrderServiceTest {
 
     correctChangeOrderService.moveChangeToPosition(CORRECTION, POSITION_ID, CHANGE_A, TARGET_POSITION_ID);
 
-    verify(licencePositionCorrectionService).stageChangesOnPosition(
+    verify(licencePositionStagedPayloadService).stageChangesOnPosition(
         CORRECTION,
         TARGET_POSITION_ID,
         List.of(new UpdateChangeOrder(CHANGE_A.toString(), 3))
@@ -538,10 +538,10 @@ class CorrectChangeOrderServiceTest {
 
     var liveOperation = new SubareaOperation(UUID.randomUUID(), List.of(), List.of());
     var stagedMove = updateChange(CHANGE_A, liveOperation);
-    var sourceCorrection = addedPositionCorrection(List.of(stagedMove, new UpdateChangeOrder(CHANGE_A.toString(), 2)));
-    when(licencePositionCorrectionService.getOrBuildPositionCorrection(CORRECTION, POSITION_ID))
-        .thenReturn(sourceCorrection);
-    when(licencePositionCorrectionService.findStagedChange(sourceCorrection, CHANGE_A.toString()))
+    var sourceStagedPayload = addedPositionStagedPayload(List.of(stagedMove, new UpdateChangeOrder(CHANGE_A.toString(), 2)));
+    when(licencePositionStagedPayloadService.getOrBuildPositionStagedPayload(CORRECTION, POSITION_ID))
+        .thenReturn(sourceStagedPayload);
+    when(licencePositionStagedPayloadService.findStagedChange(sourceStagedPayload, CHANGE_A.toString()))
         .thenReturn(Optional.of(stagedMove));
     when(licencePositionChangeService.getByIdOrThrow(CHANGE_A))
         .thenReturn(liveChangeOn(TARGET_POSITION, CHANGE_A, 3, liveOperation));
@@ -556,13 +556,13 @@ class CorrectChangeOrderServiceTest {
 
     correctChangeOrderService.moveChangeToPosition(CORRECTION, POSITION_ID, CHANGE_A, TARGET_POSITION_ID);
 
-    verify(licencePositionCorrectionService).dropStagedChangeAndOrder(sourceCorrection, CHANGE_A.toString());
-    verify(licencePositionCorrectionService, never()).stageChangesOnPosition(any(), any(), any());
+    verify(licencePositionStagedPayloadService).dropStagedChangeAndOrder(sourceStagedPayload, CHANGE_A.toString());
+    verify(licencePositionStagedPayloadService, never()).stageChangesOnPosition(any(), any(), any());
   }
 
   @Test
   void moveChangeToDate_whenAnotherPositionOnTheDateHasTheSameTransaction_thenMovesTheChangeOntoIt() {
-    when(licencePositionCorrectionService.findSameTransactionPositionOnDate(CORRECTION, POSITION_ID, NEW_POSITION_DATE))
+    when(licencePositionStagedPayloadService.findSameTransactionPositionOnDate(CORRECTION, POSITION_ID, NEW_POSITION_DATE))
         .thenReturn(new SameTransactionPositionLookup(TRANSACTION_ID, TARGET_POSITION_ID));
     var movedChange = givenAnAddedChangeOnTheSource();
     givenEmptyAddedTarget();
@@ -571,29 +571,29 @@ class CorrectChangeOrderServiceTest {
 
     assertThat(result).isEqualTo(
         new MoveChangeToDateResult(MoveChangeToDateResult.Outcome.MOVED_TO_EXISTING_POSITION, TARGET_POSITION_ID));
-    verify(licencePositionCorrectionService).stageChangesOnPosition(CORRECTION, TARGET_POSITION_ID, List.of(
+    verify(licencePositionStagedPayloadService).stageChangesOnPosition(CORRECTION, TARGET_POSITION_ID, List.of(
         new AddChange(CHANGE_A.toString(), 1, movedChange.operations())));
-    verify(licencePositionCorrectionService, never()).addNewPosition(any(), any(), any(), any());
+    verify(licencePositionStagedPayloadService, never()).addNewPosition(any(), any(), any(), any());
   }
 
   @Test
   void moveChangeToDate_whenOnlyOtherTransactionsAreOnTheDateAndNoPlacementIsGiven_thenNeedsThePositionOrder() {
     givenNoSameTransactionPositionOnTheDate();
-    when(licencePositionCorrectionService.getOrderablePositionsOnDate(CORRECTION, NEW_POSITION_DATE))
+    when(licencePositionStagedPayloadService.getOrderablePositionsOnDate(CORRECTION, NEW_POSITION_DATE))
         .thenReturn(List.of(new OrderablePosition(UUID.randomUUID(), NEW_POSITION_DATE, 1, "REF-OTHER", false)));
 
     var result = correctChangeOrderService.moveChangeToDate(CORRECTION, POSITION_ID, CHANGE_A, NEW_POSITION_DATE, null);
 
     assertThat(result).isEqualTo(
         new MoveChangeToDateResult(MoveChangeToDateResult.Outcome.NEEDS_POSITION_ORDER, null));
-    verify(licencePositionCorrectionService, never()).stageChangesOnPosition(any(), any(), any());
-    verify(licencePositionCorrectionService, never()).addNewPosition(any(), any(), any(), any());
+    verify(licencePositionStagedPayloadService, never()).stageChangesOnPosition(any(), any(), any());
+    verify(licencePositionStagedPayloadService, never()).addNewPosition(any(), any(), any(), any());
   }
 
   @Test
   void moveChangeToDate_whenTheDateIsEmptyAndTheChangeWasAddedInTheCorrection_thenMovesItOntoANewPosition() {
     givenNoSameTransactionPositionOnTheDate();
-    when(licencePositionCorrectionService.getOrderablePositionsOnDate(CORRECTION, NEW_POSITION_DATE))
+    when(licencePositionStagedPayloadService.getOrderablePositionsOnDate(CORRECTION, NEW_POSITION_DATE))
         .thenReturn(List.of());
     givenNewPositionAddedWithTheSourceReferenceAndTransaction();
     var movedChange = givenAnAddedChangeOnTheSource();
@@ -603,9 +603,9 @@ class CorrectChangeOrderServiceTest {
 
     assertThat(result).isEqualTo(
         new MoveChangeToDateResult(MoveChangeToDateResult.Outcome.MOVED_TO_NEW_POSITION, TARGET_POSITION_ID));
-    verify(licencePositionCorrectionService).stageChangesOnPosition(CORRECTION, TARGET_POSITION_ID, List.of(
+    verify(licencePositionStagedPayloadService).stageChangesOnPosition(CORRECTION, TARGET_POSITION_ID, List.of(
         new AddChange(CHANGE_A.toString(), 1, movedChange.operations())));
-    verify(licencePositionCorrectionService, never()).correctPositionOrder(any(), any(), any(), any());
+    verify(licencePositionStagedPayloadService, never()).correctPositionOrder(any(), any(), any(), any());
   }
 
   @Test
@@ -622,19 +622,19 @@ class CorrectChangeOrderServiceTest {
     assertThat(result).isEqualTo(
         new MoveChangeToDateResult(MoveChangeToDateResult.Outcome.MOVED_TO_NEW_POSITION, TARGET_POSITION_ID));
 
-    var inOrder = inOrder(licencePositionCorrectionService);
-    inOrder.verify(licencePositionCorrectionService)
+    var inOrder = inOrder(licencePositionStagedPayloadService);
+    inOrder.verify(licencePositionStagedPayloadService)
         .correctPositionOrder(CORRECTION, TARGET_POSITION_ID, placementTargetId, PositionMoveDirection.BEFORE);
-    inOrder.verify(licencePositionCorrectionService).stageChangesOnPosition(CORRECTION, TARGET_POSITION_ID, List.of(
+    inOrder.verify(licencePositionStagedPayloadService).stageChangesOnPosition(CORRECTION, TARGET_POSITION_ID, List.of(
         new AddChange(CHANGE_A.toString(), 1, movedChange.operations())));
   }
 
   @Test
   void moveChangeToDate_whenTheDateIsTheSourcePositionsDate_thenMovesItOntoANewPositionWithANewTransaction() {
     givenNoSameTransactionPositionOnTheDate();
-    when(licencePositionCorrectionService.getOrderableDatePosition(CORRECTION, POSITION_ID))
+    when(licencePositionStagedPayloadService.getOrderableDatePosition(CORRECTION, POSITION_ID))
         .thenReturn(new OrderablePosition(POSITION_ID, NEW_POSITION_DATE, 1, SOURCE_REFERENCE, false));
-    when(licencePositionCorrectionService.addNewPosition(CORRECTION, NEW_POSITION_DATE, SOURCE_REFERENCE))
+    when(licencePositionStagedPayloadService.addNewPosition(CORRECTION, NEW_POSITION_DATE, SOURCE_REFERENCE))
         .thenReturn(TARGET_POSITION_ID);
     var movedChange = givenAnAddedChangeOnTheSource();
     givenEmptyAddedTarget();
@@ -644,26 +644,26 @@ class CorrectChangeOrderServiceTest {
 
     assertThat(result).isEqualTo(
         new MoveChangeToDateResult(MoveChangeToDateResult.Outcome.MOVED_TO_NEW_POSITION, TARGET_POSITION_ID));
-    verify(licencePositionCorrectionService, never()).addNewPosition(any(), any(), any(), any());
-    verify(licencePositionCorrectionService)
+    verify(licencePositionStagedPayloadService, never()).addNewPosition(any(), any(), any(), any());
+    verify(licencePositionStagedPayloadService)
         .correctPositionOrder(CORRECTION, TARGET_POSITION_ID, POSITION_ID, PositionMoveDirection.AFTER);
-    verify(licencePositionCorrectionService).stageChangesOnPosition(CORRECTION, TARGET_POSITION_ID, List.of(
+    verify(licencePositionStagedPayloadService).stageChangesOnPosition(CORRECTION, TARGET_POSITION_ID, List.of(
         new AddChange(CHANGE_A.toString(), 1, movedChange.operations())));
   }
 
   @Test
   void moveChangeToDate_whenTheDateIsEmptyAndALiveChangeHasNoStagedEdits_thenMovesItOntoANewPosition() {
     givenNoSameTransactionPositionOnTheDate();
-    when(licencePositionCorrectionService.getOrderablePositionsOnDate(CORRECTION, NEW_POSITION_DATE))
+    when(licencePositionStagedPayloadService.getOrderablePositionsOnDate(CORRECTION, NEW_POSITION_DATE))
         .thenReturn(List.of());
     givenOrderableChangesOn(CHANGE_A);
     givenNewPositionAddedWithTheSourceReferenceAndTransaction();
 
     var liveOperation = new SubareaOperation(UUID.randomUUID(), List.of(), List.of());
-    var sourceCorrection = updatePositionCorrection(List.of());
-    when(licencePositionCorrectionService.getOrBuildPositionCorrection(CORRECTION, POSITION_ID))
-        .thenReturn(sourceCorrection);
-    when(licencePositionCorrectionService.findStagedChange(sourceCorrection, CHANGE_A.toString()))
+    var sourceStagedPayload = updatePositionStagedPayload(List.of());
+    when(licencePositionStagedPayloadService.getOrBuildPositionStagedPayload(CORRECTION, POSITION_ID))
+        .thenReturn(sourceStagedPayload);
+    when(licencePositionStagedPayloadService.findStagedChange(sourceStagedPayload, CHANGE_A.toString()))
         .thenReturn(Optional.empty());
     when(licencePositionChangeService.getByIdOrThrow(CHANGE_A))
         .thenReturn(liveChangeOn(SOURCE_POSITION, CHANGE_A, 1, liveOperation));
@@ -673,20 +673,20 @@ class CorrectChangeOrderServiceTest {
 
     assertThat(result).isEqualTo(
         new MoveChangeToDateResult(MoveChangeToDateResult.Outcome.MOVED_TO_NEW_POSITION, TARGET_POSITION_ID));
-    verify(licencePositionCorrectionService).stageChangesOnPosition(CORRECTION, TARGET_POSITION_ID, List.of(
+    verify(licencePositionStagedPayloadService).stageChangesOnPosition(CORRECTION, TARGET_POSITION_ID, List.of(
         updateChange(CHANGE_A, liveOperation),
         new UpdateChangeOrder(CHANGE_A.toString(), 1)));
   }
 
   private void givenNoSameTransactionPositionOnTheDate() {
-    when(licencePositionCorrectionService.findSameTransactionPositionOnDate(CORRECTION, POSITION_ID, NEW_POSITION_DATE))
+    when(licencePositionStagedPayloadService.findSameTransactionPositionOnDate(CORRECTION, POSITION_ID, NEW_POSITION_DATE))
         .thenReturn(new SameTransactionPositionLookup(TRANSACTION_ID, null));
   }
 
   private void givenNewPositionAddedWithTheSourceReferenceAndTransaction() {
-    when(licencePositionCorrectionService.getOrderableDatePosition(CORRECTION, POSITION_ID))
+    when(licencePositionStagedPayloadService.getOrderableDatePosition(CORRECTION, POSITION_ID))
         .thenReturn(new OrderablePosition(POSITION_ID, NEW_POSITION_DATE.minusMonths(1), 1, SOURCE_REFERENCE, false));
-    when(licencePositionCorrectionService.addNewPosition(CORRECTION, NEW_POSITION_DATE, SOURCE_REFERENCE, TRANSACTION_ID))
+    when(licencePositionStagedPayloadService.addNewPosition(CORRECTION, NEW_POSITION_DATE, SOURCE_REFERENCE, TRANSACTION_ID))
         .thenReturn(TARGET_POSITION_ID);
   }
 
@@ -739,14 +739,14 @@ class CorrectChangeOrderServiceTest {
     var result = correctChangeOrderService.canMoveChangeToPosition(CORRECTION, POSITION_ID, CHANGE_A, TARGET_POSITION_ID);
 
     assertThat(result).isTrue();
-    verify(licencePositionCorrectionService, never()).getOrBuildPositionCorrection(CORRECTION, TARGET_POSITION_ID);
+    verify(licencePositionStagedPayloadService, never()).getOrBuildPositionStagedPayload(CORRECTION, TARGET_POSITION_ID);
   }
 
   private void givenAddedSourceChanges(List<PositionChange> changes) {
-    var sourceCorrection = addedPositionCorrection(List.of());
-    when(licencePositionCorrectionService.getOrBuildPositionCorrection(CORRECTION, POSITION_ID))
-        .thenReturn(sourceCorrection);
-    when(licencePositionCorrectionService.getChangesForAddedPosition(sourceCorrection)).thenReturn(changes);
+    var sourceStagedPayload = addedPositionStagedPayload(List.of());
+    when(licencePositionStagedPayloadService.getOrBuildPositionStagedPayload(CORRECTION, POSITION_ID))
+        .thenReturn(sourceStagedPayload);
+    when(licencePositionStagedPayloadService.getChangesForAddedPosition(sourceStagedPayload)).thenReturn(changes);
   }
 
   private static PartialSurrenderOperation partialSurrender() {
@@ -759,33 +759,33 @@ class CorrectChangeOrderServiceTest {
     givenOrderableChangesOn(CHANGE_A);
 
     var movedChange = new AddChange(CHANGE_A.toString(), 2, List.of(subareaAddOperation(UUID.randomUUID())));
-    var sourceCorrection = addedPositionCorrection(List.of(movedChange));
-    when(licencePositionCorrectionService.getOrBuildPositionCorrection(CORRECTION, POSITION_ID))
-        .thenReturn(sourceCorrection);
-    when(licencePositionCorrectionService.findStagedChange(sourceCorrection, CHANGE_A.toString()))
+    var sourceStagedPayload = addedPositionStagedPayload(List.of(movedChange));
+    when(licencePositionStagedPayloadService.getOrBuildPositionStagedPayload(CORRECTION, POSITION_ID))
+        .thenReturn(sourceStagedPayload);
+    when(licencePositionStagedPayloadService.findStagedChange(sourceStagedPayload, CHANGE_A.toString()))
         .thenReturn(Optional.of(movedChange));
     return movedChange;
   }
 
   private void givenEmptyAddedTarget() {
-    var targetCorrection = addedPositionCorrection(List.of());
-    when(licencePositionCorrectionService.getOrBuildPositionCorrection(CORRECTION, TARGET_POSITION_ID))
-        .thenReturn(targetCorrection);
-    when(licencePositionCorrectionService.getChangesForAddedPosition(targetCorrection)).thenReturn(List.of());
+    var targetStagedPayload = addedPositionStagedPayload(List.of());
+    when(licencePositionStagedPayloadService.getOrBuildPositionStagedPayload(CORRECTION, TARGET_POSITION_ID))
+        .thenReturn(targetStagedPayload);
+    when(licencePositionStagedPayloadService.getChangesForAddedPosition(targetStagedPayload)).thenReturn(List.of());
   }
 
   private void givenExecutedTargetChanges(LicencePosition targetPosition, List<PositionChange> changes) {
-    var targetCorrection = LicencePositionCorrectionTestUtil.newBuilder()
-        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+    var targetStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder()
+        .withChangeType(LicencePositionStagedPayloadChangeType.UPDATE_POSITION)
         .withTargetLicencePosition(targetPosition)
         .withPayload(LicencePositionPayload.newUpdateLicencePositionPayload()
             .withCorrectionReference("CORRECTION-REF")
             .withChanges(List.of())
             .build())
         .build();
-    when(licencePositionCorrectionService.getOrBuildPositionCorrection(CORRECTION, targetPosition.getId()))
-        .thenReturn(targetCorrection);
-    when(licencePositionCorrectionService.getChangesForExecutedPosition(CORRECTION, targetPosition, targetCorrection))
+    when(licencePositionStagedPayloadService.getOrBuildPositionStagedPayload(CORRECTION, targetPosition.getId()))
+        .thenReturn(targetStagedPayload);
+    when(licencePositionStagedPayloadService.getChangesForExecutedPosition(CORRECTION, targetPosition, targetStagedPayload))
         .thenReturn(changes);
   }
 
@@ -832,9 +832,9 @@ class CorrectChangeOrderServiceTest {
     return LicencePositionChangeTestUtil.newBuilder().withId(id).withChangeOrder(order).build();
   }
 
-  private static LicencePositionCorrection updatePositionCorrection(List<LicencePositionChangeType> changes) {
-    return LicencePositionCorrectionTestUtil.newBuilder()
-        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+  private static LicencePositionStagedPayload updatePositionStagedPayload(List<LicencePositionChangeType> changes) {
+    return LicencePositionStagedPayloadTestUtil.newBuilder()
+        .withChangeType(LicencePositionStagedPayloadChangeType.UPDATE_POSITION)
         .withPayload(LicencePositionPayload.newUpdateLicencePositionPayload()
             .withCorrectionReference("CORRECTION-REF")
             .withChanges(changes)
@@ -842,9 +842,9 @@ class CorrectChangeOrderServiceTest {
         .build();
   }
 
-  private static LicencePositionCorrection addedPositionCorrection(List<LicencePositionChangeType> changes) {
-    return LicencePositionCorrectionTestUtil.newBuilder()
-        .withChangeType(LicencePositionCorrectionChangeType.ADD_POSITION)
+  private static LicencePositionStagedPayload addedPositionStagedPayload(List<LicencePositionChangeType> changes) {
+    return LicencePositionStagedPayloadTestUtil.newBuilder()
+        .withChangeType(LicencePositionStagedPayloadChangeType.ADD_POSITION)
         .withPayload(CreateLicencePositionPayloadTestUtil.newBuilder()
             .withLicencePositionId(POSITION_ID.toString())
             .withChanges(changes)

@@ -37,12 +37,14 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceC
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionRepository;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionChangeType;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionRepository;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayload;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadChangeType;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadRepository;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisation;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisationRepository;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.AdministratorOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenseeOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionRepository;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionStatus;
@@ -51,8 +53,6 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.Lic
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeRepository;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.operation.AdministratorOperation;
-import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenseeOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.transaction.LicenceTransactionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.transaction.LicenceTransaction;
 import uk.co.nstauthority.licensingmanagementservice.licence.transaction.LicenceTransactionRepository;
@@ -118,7 +118,7 @@ class PearsLicenceWritebackEndpointIntegrationTest {
   private LicenceCorrectionRepository licenceCorrectionRepository;
 
   @Autowired
-  private LicencePositionCorrectionRepository licencePositionCorrectionRepository;
+  private LicencePositionStagedPayloadRepository licencePositionStagedPayloadRepository;
 
   @Autowired
   private LicenceResponsibleOrganisationRepository licenceResponsibleOrganisationRepository;
@@ -145,10 +145,10 @@ class PearsLicenceWritebackEndpointIntegrationTest {
   private LicenceCorrection completeCorrection;
   private LicenceCorrection otherLicenceCorrection;
 
-  private LicencePositionCorrection inProgressPositionCorrection;
-  private LicencePositionCorrection draftPositionCorrection;
-  private LicencePositionCorrection completePositionCorrection;
-  private LicencePositionCorrection otherLicencePositionCorrection;
+  private LicencePositionStagedPayload inProgressPositionStagedPayload;
+  private LicencePositionStagedPayload draftPositionStagedPayload;
+  private LicencePositionStagedPayload completePositionStagedPayload;
+  private LicencePositionStagedPayload otherLicencePositionStagedPayload;
 
   @BeforeEach
   void setUp() {
@@ -182,10 +182,10 @@ class PearsLicenceWritebackEndpointIntegrationTest {
           .build());
       otherLicenceCorrection = persist(correction(otherLicence, "CORRECTION-3", LicenceCorrectionStatus.IN_PROGRESS));
 
-      inProgressPositionCorrection = persist(positionCorrection(inProgressCorrection, firstPosition));
-      draftPositionCorrection = persist(positionCorrection(inProgressCorrection, draftPosition));
-      completePositionCorrection = persist(positionCorrection(completeCorrection, secondPosition));
-      otherLicencePositionCorrection = persist(positionCorrection(otherLicenceCorrection, otherLicencePosition));
+      inProgressPositionStagedPayload = persist(positionStagedPayload(inProgressCorrection, firstPosition));
+      draftPositionStagedPayload = persist(positionStagedPayload(inProgressCorrection, draftPosition));
+      completePositionStagedPayload = persist(positionStagedPayload(completeCorrection, secondPosition));
+      otherLicencePositionStagedPayload = persist(positionStagedPayload(otherLicenceCorrection, otherLicencePosition));
     });
   }
 
@@ -194,7 +194,7 @@ class PearsLicenceWritebackEndpointIntegrationTest {
     transactionTemplate.executeWithoutResult(status -> {
       licenceResponsibleOrganisationRepository.deleteAll(licenceResponsibleOrganisationRepository.findAllByLicenceIn(
           List.of(licence, otherLicence, licenceWithoutPositions)));
-      licencePositionCorrectionRepository.deleteAllInBatch();
+      licencePositionStagedPayloadRepository.deleteAllInBatch();
       licenceCorrectionRepository.deleteAllInBatch();
       licencePositionChangeRepository.deleteAllInBatch();
       licencePositionRepository.deleteAllInBatch();
@@ -250,9 +250,9 @@ class PearsLicenceWritebackEndpointIntegrationTest {
         .extracting(LicenceCorrection::getId)
         .containsExactly(otherLicenceCorrection.getId());
 
-    assertThat(licencePositionCorrectionRepository.findAll())
-        .extracting(LicencePositionCorrection::getId)
-        .containsExactly(otherLicencePositionCorrection.getId());
+    assertThat(licencePositionStagedPayloadRepository.findAll())
+        .extracting(LicencePositionStagedPayload::getId)
+        .containsExactly(otherLicencePositionStagedPayload.getId());
 
     assertThat(licenceTransactionRepository.findAll())
         .extracting(LicenceTransaction::getRegulatorReference)
@@ -299,8 +299,8 @@ class PearsLicenceWritebackEndpointIntegrationTest {
           .setParameter("id", firstPositionChange.getId())
           .executeUpdate();
       entityManager.createNativeQuery(
-              "UPDATE lms.licence_position_corrections SET payload = '{\"type\":\"removed-payload\"}'::jsonb WHERE id = :id")
-          .setParameter("id", inProgressPositionCorrection.getId())
+              "UPDATE lms.licence_position_staged_payloads SET payload = '{\"type\":\"removed-payload\"}'::jsonb WHERE id = :id")
+          .setParameter("id", inProgressPositionStagedPayload.getId())
           .executeUpdate();
     });
     when(pearsLicenceService.licenceHistory(eq("P"), eq(1), anySet())).thenReturn(pearsHistory());
@@ -314,9 +314,9 @@ class PearsLicenceWritebackEndpointIntegrationTest {
         .contains(otherLicencePositionChange.getId())
         .doesNotContain(firstPositionChange.getId(), secondPositionChange.getId(), draftPositionChange.getId());
 
-    assertThat(licencePositionCorrectionRepository.findAll())
-        .extracting(LicencePositionCorrection::getId)
-        .containsExactly(otherLicencePositionCorrection.getId());
+    assertThat(licencePositionStagedPayloadRepository.findAll())
+        .extracting(LicencePositionStagedPayload::getId)
+        .containsExactly(otherLicencePositionStagedPayload.getId());
   }
 
   @Test
@@ -350,13 +350,13 @@ class PearsLicenceWritebackEndpointIntegrationTest {
             otherLicenceCorrection.getId()
         );
 
-    assertThat(licencePositionCorrectionRepository.findAll())
-        .extracting(LicencePositionCorrection::getId)
+    assertThat(licencePositionStagedPayloadRepository.findAll())
+        .extracting(LicencePositionStagedPayload::getId)
         .containsExactlyInAnyOrder(
-            inProgressPositionCorrection.getId(),
-            draftPositionCorrection.getId(),
-            completePositionCorrection.getId(),
-            otherLicencePositionCorrection.getId()
+            inProgressPositionStagedPayload.getId(),
+            draftPositionStagedPayload.getId(),
+            completePositionStagedPayload.getId(),
+            otherLicencePositionStagedPayload.getId()
         );
 
     assertThat(licenceTransactionRepository.findAll())
@@ -558,11 +558,11 @@ class PearsLicenceWritebackEndpointIntegrationTest {
         .build();
   }
 
-  private LicencePositionCorrection positionCorrection(LicenceCorrection licenceCorrection, LicencePosition targetLicencePosition) {
-    return LicencePositionCorrectionTestUtil.newBuilder()
+  private LicencePositionStagedPayload positionStagedPayload(LicenceCorrection licenceCorrection, LicencePosition targetLicencePosition) {
+    return LicencePositionStagedPayloadTestUtil.newBuilder()
         .withId(null)
         .withLicenceCorrection(licenceCorrection)
-        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+        .withChangeType(LicencePositionStagedPayloadChangeType.UPDATE_POSITION)
         .withTargetLicencePosition(targetLicencePosition)
         .build();
   }

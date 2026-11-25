@@ -22,9 +22,9 @@ import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionChangeType;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadChangeType;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.UpdateChangeOperations;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayloadTestUtil;
@@ -54,7 +54,7 @@ class ChronologicalPositionServiceTest {
   private LicencePositionChangeService licencePositionChangeService;
 
   @Mock
-  private LicencePositionCorrectionService licencePositionCorrectionService;
+  private LicencePositionStagedPayloadService licencePositionStagedPayloadService;
 
   @InjectMocks
   private ChronologicalPositionService chronologicalPositionService;
@@ -142,17 +142,17 @@ class ChronologicalPositionServiceTest {
         .withPositionDate(LocalDate.of(2026, Month.JANUARY, 1)).withPositionOrder(1).build();
 
     var payload = UpdateLicencePositionPayloadTestUtil.newBuilder().withCorrectionReference("COR-1").build();
-    var referenceCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+    var referenceStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder()
         .withLicenceCorrection(correction)
-        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+        .withChangeType(LicencePositionStagedPayloadChangeType.UPDATE_POSITION)
         .withTargetLicencePosition(executed)
         .withPayload(payload)
         .build();
 
     when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(executed));
     when(licencePositionChangeService.findByLicencePositionIn(List.of(executed))).thenReturn(List.of());
-    when(licencePositionCorrectionService.getPositionCorrections(correction))
-        .thenReturn(List.of(referenceCorrection));
+    when(licencePositionStagedPayloadService.getPositionStagedPayloads(correction))
+        .thenReturn(List.of(referenceStagedPayload));
 
     var result = chronologicalPositionService.getCorrectedChronologicalPositions(correction, POSITION_ID);
 
@@ -175,7 +175,7 @@ class ChronologicalPositionServiceTest {
 
     when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(executed));
     when(licencePositionChangeService.findByLicencePositionIn(List.of(executed))).thenReturn(List.of());
-    when(licencePositionCorrectionService.getPositionCorrections(correction)).thenReturn(List.of());
+    when(licencePositionStagedPayloadService.getPositionStagedPayloads(correction)).thenReturn(List.of());
 
     var result = chronologicalPositionService.getCorrectedChronologicalPositions(correction, POSITION_ID);
 
@@ -207,9 +207,9 @@ class ChronologicalPositionServiceTest {
             LicenceOperation.newSetEquityOperation().withTransferTo(5).withEquity(BigDecimal.valueOf(100)).build()))
         .build();
 
-    var orderCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+    var orderStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder()
         .withLicenceCorrection(correction)
-        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+        .withChangeType(LicencePositionStagedPayloadChangeType.UPDATE_POSITION)
         .withTargetLicencePosition(executed)
         .withPayload(UpdateLicencePositionPayloadTestUtil.newBuilder()
             .withChanges(List.of(
@@ -223,7 +223,7 @@ class ChronologicalPositionServiceTest {
     when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(executed));
     when(licencePositionChangeService.findByLicencePositionIn(List.of(executed)))
         .thenReturn(List.of(liveAdminChange, liveSetEquityChange));
-    when(licencePositionCorrectionService.getPositionCorrections(correction)).thenReturn(List.of(orderCorrection));
+    when(licencePositionStagedPayloadService.getPositionStagedPayloads(correction)).thenReturn(List.of(orderStagedPayload));
 
     var result = chronologicalPositionService.getCorrectedChronologicalPositions(correction, POSITION_ID);
 
@@ -263,16 +263,16 @@ class ChronologicalPositionServiceTest {
                 .withChangeId(movedChangeId.toString()).withChangeOrder(4).build()
         ))
         .build();
-    var moveCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+    var moveStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder()
         .withLicenceCorrection(correction)
-        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+        .withChangeType(LicencePositionStagedPayloadChangeType.UPDATE_POSITION)
         .withTargetLicencePosition(target)
         .withPayload(targetPayload)
         .build();
 
     when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(source, target));
     when(licencePositionChangeService.findByLicencePositionIn(List.of(source, target))).thenReturn(List.of(liveChange));
-    when(licencePositionCorrectionService.getPositionCorrections(correction)).thenReturn(List.of(moveCorrection));
+    when(licencePositionStagedPayloadService.getPositionStagedPayloads(correction)).thenReturn(List.of(moveStagedPayload));
 
     var result = chronologicalPositionService.getCorrectedChronologicalPositions(correction, POSITION_ID);
 
@@ -329,16 +329,16 @@ class ChronologicalPositionServiceTest {
                 .withChangeId(movedChangeId.toString()).withChangeOrder(1).build()
         ))
         .build();
-    var addedPositionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+    var addedPositionStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder()
         .withLicenceCorrection(correction)
-        .withChangeType(LicencePositionCorrectionChangeType.ADD_POSITION)
+        .withChangeType(LicencePositionStagedPayloadChangeType.ADD_POSITION)
         .withPayload(addedPayload)
         .build();
 
     when(licencePositionService.getExecutedChronologicalLicencePositions(LICENCE)).thenReturn(List.of(source));
     when(licencePositionChangeService.findByLicencePositionIn(List.of(source))).thenReturn(List.of(liveChange));
-    when(licencePositionCorrectionService.getPositionCorrections(correction))
-        .thenReturn(List.of(addedPositionCorrection));
+    when(licencePositionStagedPayloadService.getPositionStagedPayloads(correction))
+        .thenReturn(List.of(addedPositionStagedPayload));
 
     var result = chronologicalPositionService.getCorrectedChronologicalPositions(correction, POSITION_ID);
 

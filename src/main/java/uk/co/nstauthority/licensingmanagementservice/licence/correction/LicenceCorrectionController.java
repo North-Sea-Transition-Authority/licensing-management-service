@@ -16,13 +16,13 @@ import org.springframework.web.servlet.ModelAndView;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.LogWorkAreaItemView;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanViewCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceService;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.AddLicencePositionCorrectionController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.AddLicencePositionStagedPayloadController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectionPosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectionPositionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.FilteredCorrectionTimeline;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionFilterService;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionRouteUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionViewService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadFilterService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadRouteUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadViewService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.reviewandapply.ReviewCorrectionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.update.UpdateCorrectionGeneralDetailsController;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionPageView;
@@ -46,21 +46,21 @@ public class LicenceCorrectionController {
   static final String FILTER_SESSION_ATTRIBUTE = "licenceCorrectionTimelineFilterSession";
 
   private final CorrectionPositionService correctionPositionService;
-  private final LicencePositionCorrectionViewService licencePositionCorrectionViewService;
-  private final LicencePositionCorrectionFilterService licencePositionCorrectionFilterService;
+  private final LicencePositionStagedPayloadViewService licencePositionStagedPayloadViewService;
+  private final LicencePositionStagedPayloadFilterService licencePositionStagedPayloadFilterService;
   private final LicenceService licenceService;
   private final CorrectionDetailsViewService correctionDetailsViewService;
 
   LicenceCorrectionController(
       CorrectionPositionService correctionPositionService,
-      LicencePositionCorrectionViewService licencePositionCorrectionViewService,
-      LicencePositionCorrectionFilterService licencePositionCorrectionFilterService,
+      LicencePositionStagedPayloadViewService licencePositionStagedPayloadViewService,
+      LicencePositionStagedPayloadFilterService licencePositionStagedPayloadFilterService,
       LicenceService licenceService,
       CorrectionDetailsViewService correctionDetailsViewService
   ) {
     this.correctionPositionService = correctionPositionService;
-    this.licencePositionCorrectionViewService = licencePositionCorrectionViewService;
-    this.licencePositionCorrectionFilterService = licencePositionCorrectionFilterService;
+    this.licencePositionStagedPayloadViewService = licencePositionStagedPayloadViewService;
+    this.licencePositionStagedPayloadFilterService = licencePositionStagedPayloadFilterService;
     this.licenceService = licenceService;
     this.correctionDetailsViewService = correctionDetailsViewService;
   }
@@ -77,7 +77,7 @@ public class LicenceCorrectionController {
     var filter = getFilter(licenceCorrection, filterSession);
 
     if (!filter.isEmpty()) {
-      return switch (licencePositionCorrectionFilterService.getFilteredCorrectionTimeline(licenceCorrection, filter)) {
+      return switch (licencePositionStagedPayloadFilterService.getFilteredCorrectionTimeline(licenceCorrection, filter)) {
         case FilteredCorrectionTimeline.LatestMatchingPosition(String url) ->
             ReverseRouter.redirectToUrl(url);
         case FilteredCorrectionTimeline.NoMatchingPositions(LicencePositionPageView pageView) ->
@@ -91,7 +91,7 @@ public class LicenceCorrectionController {
       return licencePositionsModelAndView(licenceCorrection, LicencePositionPageView.empty(), filter);
     }
 
-    return LicencePositionCorrectionRouteUtil.redirectToPositionPage(licenceCorrection, latestPositionId);
+    return LicencePositionStagedPayloadRouteUtil.redirectToPositionPage(licenceCorrection, latestPositionId);
   }
 
   @GetMapping("/{correctionId}/positions/{licencePositionId}")
@@ -107,7 +107,7 @@ public class LicenceCorrectionController {
 
     var filter = getFilter(licenceCorrection, filterSession);
     var licencePositionPageView =
-        licencePositionCorrectionViewService.getCorrectionPositionPageView(correctionPosition, filter);
+        licencePositionStagedPayloadViewService.getCorrectionPositionPageView(correctionPosition, filter);
 
     return licencePositionsModelAndView(licenceCorrection, licencePositionPageView, filter);
   }
@@ -124,7 +124,7 @@ public class LicenceCorrectionController {
 
     filterSession.update(
         filterKey(licenceCorrection),
-        LicenceTimelineFilter.from(form, licencePositionCorrectionFilterService.getCorrectionFilterOptions(licenceCorrection))
+        LicenceTimelineFilter.from(form, licencePositionStagedPayloadFilterService.getCorrectionFilterOptions(licenceCorrection))
     );
 
     return ReverseRouter.redirect(on(LicenceCorrectionController.class).renderCorrection(licenceCorrection, null));
@@ -208,8 +208,8 @@ public class LicenceCorrectionController {
         .addObject("licencePositionPageView", licencePositionPageView)
         .addObject("correctionDetails", correctionDetailsViewService.getDetailsView(licenceCorrection))
         .addObject("addPositionUrl",
-            ReverseRouter.route(on(AddLicencePositionCorrectionController.class)
-                .renderAddLicencePositionCorrection(licenceCorrection)))
+            ReverseRouter.route(on(AddLicencePositionStagedPayloadController.class)
+                .renderAddLicencePositionStagedPayload(licenceCorrection)))
         .addObject("updateGeneralDetailsUrl",
             ReverseRouter.route(on(UpdateCorrectionGeneralDetailsController.class)
                 .renderUpdateGeneralDetails(licenceCorrection)))

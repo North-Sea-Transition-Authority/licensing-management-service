@@ -29,10 +29,10 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectionPosition;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionChangeType;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayload;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadChangeType;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.AddChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.UpdateLicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
@@ -71,7 +71,7 @@ class SubareaSetEquityCorrectionServiceTest {
   );
 
   @Mock
-  private LicencePositionCorrectionService licencePositionCorrectionService;
+  private LicencePositionStagedPayloadService licencePositionStagedPayloadService;
 
   @InjectMocks
   private SubareaSetEquityCorrectionService subareaSetEquityCorrectionService;
@@ -86,27 +86,27 @@ class SubareaSetEquityCorrectionServiceTest {
   void getCommittedSubareaSetEquityOperations_whenSeveralSubareas_thenOnlyThoseForTheSubarea() {
     var subareaAOperation = subareaSetEquityOperation(SUBAREA_A, 1, 40);
     var subareaBOperation = subareaSetEquityOperation(SUBAREA_B, 2, 60);
-    var positionCorrection = positionCorrectionWith(subareaAOperation, subareaBOperation);
+    var positionStagedPayload = positionStagedPayloadWith(subareaAOperation, subareaBOperation);
 
-    when(licencePositionCorrectionService.getAddOperationsOfType(
-        positionCorrection.getPayload().changes(), SubareaSetEquityOperation.class))
+    when(licencePositionStagedPayloadService.getAddOperationsOfType(
+        positionStagedPayload.getPayload().changes(), SubareaSetEquityOperation.class))
         .thenReturn(List.of(subareaAOperation, subareaBOperation));
 
     var result = subareaSetEquityCorrectionService
-        .getCommittedSubareaSetEquityOperations(positionCorrection, SUBAREA_A_OPTION);
+        .getCommittedSubareaSetEquityOperations(positionStagedPayload, SUBAREA_A_OPTION);
 
     assertThat(result).containsExactly(subareaAOperation);
   }
 
   @Test
-  void getCommittedSubareaSetEquityOperations_whenExecutedPositionAndUpdateCorrectionExists_thenOperationsForTheSubarea() {
+  void getCommittedSubareaSetEquityOperations_whenExecutedPositionAndUpdatePositionStagedPayloadExists_thenOperationsForTheSubarea() {
     var subareaAOperation = subareaSetEquityOperation(SUBAREA_A, 1, 40);
-    var positionCorrection = positionCorrectionWith(subareaAOperation);
+    var positionStagedPayload = positionStagedPayloadWith(subareaAOperation);
 
-    when(licencePositionCorrectionService.findUpdatePositionCorrection(LICENCE_CORRECTION, LICENCE_POSITION))
-        .thenReturn(Optional.of(positionCorrection));
-    when(licencePositionCorrectionService.getAddOperationsOfType(
-        positionCorrection.getPayload().changes(), SubareaSetEquityOperation.class))
+    when(licencePositionStagedPayloadService.findUpdatePositionStagedPayload(LICENCE_CORRECTION, LICENCE_POSITION))
+        .thenReturn(Optional.of(positionStagedPayload));
+    when(licencePositionStagedPayloadService.getAddOperationsOfType(
+        positionStagedPayload.getPayload().changes(), SubareaSetEquityOperation.class))
         .thenReturn(List.of(subareaAOperation));
 
     var result = subareaSetEquityCorrectionService.getCommittedSubareaSetEquityOperations(new CorrectionPosition.Executed(LICENCE_CORRECTION, LICENCE_POSITION), SUBAREA_A_OPTION);
@@ -115,8 +115,8 @@ class SubareaSetEquityCorrectionServiceTest {
   }
 
   @Test
-  void getCommittedSubareaSetEquityOperations_whenExecutedPositionAndNoUpdateCorrection_thenEmpty() {
-    when(licencePositionCorrectionService.findUpdatePositionCorrection(LICENCE_CORRECTION, LICENCE_POSITION))
+  void getCommittedSubareaSetEquityOperations_whenExecutedPositionAndNoUpdatePositionStagedPayload_thenEmpty() {
+    when(licencePositionStagedPayloadService.findUpdatePositionStagedPayload(LICENCE_CORRECTION, LICENCE_POSITION))
         .thenReturn(Optional.empty());
 
     var result = subareaSetEquityCorrectionService.getCommittedSubareaSetEquityOperations(new CorrectionPosition.Executed(LICENCE_CORRECTION, LICENCE_POSITION), SUBAREA_A_OPTION);
@@ -126,13 +126,13 @@ class SubareaSetEquityCorrectionServiceTest {
 
   @Test
   void commitSubareaSetEquity_replacesOnlyTheAddChangeForTheSubarea() {
-    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder().build();
+    var positionStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder().build();
     var operations = List.of(subareaSetEquityOperation(SUBAREA_A, 1, 100));
 
-    subareaSetEquityCorrectionService.commitSubareaSetEquity(positionCorrection, SUBAREA_A_OPTION, operations);
+    subareaSetEquityCorrectionService.commitSubareaSetEquity(positionStagedPayload, SUBAREA_A_OPTION, operations);
 
-    verify(licencePositionCorrectionService).replaceAddChangeFor(
-        eq(positionCorrection),
+    verify(licencePositionStagedPayloadService).replaceAddChangeFor(
+        eq(positionStagedPayload),
         eq(SubareaSetEquityOperation.class),
         operationToReplaceCaptor.capture(),
         eq(operations));
@@ -143,36 +143,36 @@ class SubareaSetEquityCorrectionServiceTest {
 
   @Test
   void commitSubareaSetEquity_whenOperationHasOutdatedSubareaDetails_thenCommittedWithCurrentDetails() {
-    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder().build();
+    var positionStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder().build();
     var outdatedSubarea = new SubareaDetails(SUBAREA_A.featureId(), "Old subarea name", SUBAREA_A.shortName());
     var operations = List.of(subareaSetEquityOperation(outdatedSubarea, 1, 100));
 
-    subareaSetEquityCorrectionService.commitSubareaSetEquity(positionCorrection, SUBAREA_A_OPTION, operations);
+    subareaSetEquityCorrectionService.commitSubareaSetEquity(positionStagedPayload, SUBAREA_A_OPTION, operations);
 
-    verify(licencePositionCorrectionService).replaceAddChangeFor(
-        eq(positionCorrection),
+    verify(licencePositionStagedPayloadService).replaceAddChangeFor(
+        eq(positionStagedPayload),
         eq(SubareaSetEquityOperation.class),
         any(),
         eq(List.of(subareaSetEquityOperation(SUBAREA_A, 1, 100))));
   }
 
   @Test
-  void commitSubareaSetEquity_whenExecutedPosition_replacesOnlyTheAddChangeForTheSubareaOnTheUpdateCorrection() {
-    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
-        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+  void commitSubareaSetEquity_whenExecutedPosition_replacesOnlyTheAddChangeForTheSubareaOnTheUpdatePositionStagedPayload() {
+    var positionStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder()
+        .withChangeType(LicencePositionStagedPayloadChangeType.UPDATE_POSITION)
         .withTargetLicencePosition(LICENCE_POSITION)
         .build();
     var operations = List.of(subareaSetEquityOperation(SUBAREA_A, 1, 100));
 
-    when(licencePositionCorrectionService.getOrBuildUpdatePositionCorrection(LICENCE_CORRECTION, LICENCE_POSITION))
-        .thenReturn(positionCorrection);
+    when(licencePositionStagedPayloadService.getOrBuildUpdatePositionStagedPayload(LICENCE_CORRECTION, LICENCE_POSITION))
+        .thenReturn(positionStagedPayload);
 
     subareaSetEquityCorrectionService.commitSubareaSetEquity(new CorrectionPosition.Executed(LICENCE_CORRECTION, LICENCE_POSITION), SUBAREA_A_OPTION, operations);
 
-    verify(licencePositionCorrectionService).replaceAddChangeForExecutedPosition(
+    verify(licencePositionStagedPayloadService).replaceAddChangeForExecutedPosition(
         eq(LICENCE_CORRECTION),
         eq(LICENCE_POSITION),
-        eq(positionCorrection),
+        eq(positionStagedPayload),
         eq(SubareaSetEquityOperation.class),
         operationToReplaceCaptor.capture(),
         eq(operations));
@@ -183,17 +183,17 @@ class SubareaSetEquityCorrectionServiceTest {
 
   @Test
   void cascadeSubareaEquity_whenAddedPosition_stagesEachOutputSubareasEquityFromTheOriginalsInOneCall() {
-    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder().withTargetLicencePosition(null).build();
+    var positionStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder().withTargetLicencePosition(null).build();
     var state = stateWithSubareaEquity(Map.of(SUBAREA_A, SHARED_EQUITY, SUBAREA_B, SHARED_EQUITY));
 
     subareaSetEquityCorrectionService.cascadeSubareaEquity(
-        positionCorrection,
+        positionStagedPayload,
         state,
         BLOCK_FEATURE_ID,
         List.of(new SubareaTransfer(List.of(SUBAREA_A, SUBAREA_B), List.of(NEW_SUBAREA, OTHER_NEW_SUBAREA)))
     );
 
-    verify(licencePositionCorrectionService).addChanges(eq(positionCorrection), operationsPerChangeCaptor.capture());
+    verify(licencePositionStagedPayloadService).addChanges(eq(positionStagedPayload), operationsPerChangeCaptor.capture());
     assertThat(operationsPerChangeCaptor.getValue())
         .usingRecursiveComparison()
         .ignoringCollectionOrder()
@@ -208,34 +208,34 @@ class SubareaSetEquityCorrectionServiceTest {
 
   @Test
   void cascadeSubareaEquity_whenExecutedPosition_ordersTheNewSubareasEquityAfterTheLiveChanges() {
-    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder()
+    var positionStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder()
         .withLicenceCorrection(LICENCE_CORRECTION)
         .withTargetLicencePosition(LICENCE_POSITION)
         .build();
     var state = stateWithSubareaEquity(Map.of(SUBAREA_A, EQUITY));
 
     subareaSetEquityCorrectionService.cascadeSubareaEquity(
-        positionCorrection,
+        positionStagedPayload,
         state,
         BLOCK_FEATURE_ID,
         List.of(new SubareaTransfer(List.of(SUBAREA_A), List.of(NEW_SUBAREA)))
     );
 
-    verify(licencePositionCorrectionService).addChangesForExecutedPosition(
+    verify(licencePositionStagedPayloadService).addChangesForExecutedPosition(
         LICENCE_CORRECTION,
         LICENCE_POSITION,
-        positionCorrection,
+        positionStagedPayload,
         List.of(List.of(subareaSetEquityOperation(NEW_SUBAREA, 1, 100)))
     );
   }
 
   @Test
   void cascadeSubareaEquity_whenLineageLostForOneTransfer_thenOnlyCascadesTheOther() {
-    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder().withTargetLicencePosition(null).build();
+    var positionStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder().withTargetLicencePosition(null).build();
     var state = stateWithSubareaEquity(Map.of(SUBAREA_A, EQUITY, SUBAREA_B, OTHER_EQUITY));
 
     subareaSetEquityCorrectionService.cascadeSubareaEquity(
-        positionCorrection,
+        positionStagedPayload,
         state,
         BLOCK_FEATURE_ID,
         List.of(
@@ -244,8 +244,8 @@ class SubareaSetEquityCorrectionServiceTest {
         )
     );
 
-    verify(licencePositionCorrectionService).addChanges(
-        positionCorrection,
+    verify(licencePositionStagedPayloadService).addChanges(
+        positionStagedPayload,
         List.of(List.of(subareaSetEquityOperation(OTHER_NEW_SUBAREA, 1, 100)))
     );
   }
@@ -253,42 +253,42 @@ class SubareaSetEquityCorrectionServiceTest {
   @Test
   void cascadeSubareaEquity_whenEquityAlreadyStagedForOneOutput_thenOnlyCascadesTheOther() {
     var stagedOperation = subareaSetEquityOperation(NEW_SUBAREA, 2, 100);
-    var positionCorrection = positionCorrectionWith(stagedOperation);
+    var positionStagedPayload = positionStagedPayloadWith(stagedOperation);
     var state = stateWithSubareaEquity(Map.of(SUBAREA_A, EQUITY));
-    when(licencePositionCorrectionService.getAddOperationsOfType(
-        positionCorrection.getPayload().changes(),
+    when(licencePositionStagedPayloadService.getAddOperationsOfType(
+        positionStagedPayload.getPayload().changes(),
         SubareaSetEquityOperation.class
     )).thenReturn(List.of(stagedOperation));
 
     subareaSetEquityCorrectionService.cascadeSubareaEquity(
-        positionCorrection,
+        positionStagedPayload,
         state,
         BLOCK_FEATURE_ID,
         List.of(new SubareaTransfer(List.of(SUBAREA_A), List.of(NEW_SUBAREA, OTHER_NEW_SUBAREA)))
     );
 
-    verify(licencePositionCorrectionService).addChangesForExecutedPosition(
-        positionCorrection.getLicenceCorrection(),
-        positionCorrection.getTargetLicencePosition(),
-        positionCorrection,
+    verify(licencePositionStagedPayloadService).addChangesForExecutedPosition(
+        positionStagedPayload.getLicenceCorrection(),
+        positionStagedPayload.getTargetLicencePosition(),
+        positionStagedPayload,
         List.of(List.of(subareaSetEquityOperation(OTHER_NEW_SUBAREA, 1, 100)))
     );
   }
 
   @Test
   void cascadeSubareaEquity_whenNoOutputToCascadeTo_stagesNothing() {
-    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder().build();
+    var positionStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder().build();
     var state = stateWithSubareaEquity(Map.of(SUBAREA_A, EQUITY, SUBAREA_B, OTHER_EQUITY));
 
     subareaSetEquityCorrectionService.cascadeSubareaEquity(
-        positionCorrection,
+        positionStagedPayload,
         state,
         BLOCK_FEATURE_ID,
         List.of(new SubareaTransfer(List.of(SUBAREA_A, SUBAREA_B), List.of(NEW_SUBAREA)))
     );
 
-    verify(licencePositionCorrectionService, never()).addChanges(any(), any());
-    verify(licencePositionCorrectionService, never()).addChangesForExecutedPosition(any(), any(), any(), any());
+    verify(licencePositionStagedPayloadService, never()).addChanges(any(), any());
+    verify(licencePositionStagedPayloadService, never()).addChangesForExecutedPosition(any(), any(), any(), any());
   }
 
   @Test
@@ -343,9 +343,9 @@ class SubareaSetEquityCorrectionServiceTest {
     return new SubareaSetEquityOperation(BLOCK_FEATURE_ID, subarea, transferTo, BigDecimal.valueOf(equity));
   }
 
-  private static LicencePositionCorrection positionCorrectionWith(SubareaSetEquityOperation... operations) {
+  private static LicencePositionStagedPayload positionStagedPayloadWith(SubareaSetEquityOperation... operations) {
     var change = AddChange.buildOperationsChange(List.of(operations), 1);
     var payload = new UpdateLicencePositionPayload(null, null, "TEST-REF", List.of(change));
-    return LicencePositionCorrectionTestUtil.newBuilder().withPayload(payload).build();
+    return LicencePositionStagedPayloadTestUtil.newBuilder().withPayload(payload).build();
   }
 }

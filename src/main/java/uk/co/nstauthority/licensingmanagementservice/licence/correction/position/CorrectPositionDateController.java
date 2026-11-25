@@ -29,29 +29,29 @@ import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 public class CorrectPositionDateController {
 
   private final CorrectPositionDateFormValidator correctPositionDateFormValidator;
-  private final LicencePositionCorrectionService licencePositionCorrectionService;
+  private final LicencePositionStagedPayloadService licencePositionStagedPayloadService;
   private final PartialSurrenderCorrectionService partialSurrenderCorrectionService;
 
   public CorrectPositionDateController(
           CorrectPositionDateFormValidator correctPositionDateFormValidator,
-          LicencePositionCorrectionService licencePositionCorrectionService,
+          LicencePositionStagedPayloadService licencePositionStagedPayloadService,
           PartialSurrenderCorrectionService partialSurrenderCorrectionService
   ) {
     this.correctPositionDateFormValidator = correctPositionDateFormValidator;
-    this.licencePositionCorrectionService = licencePositionCorrectionService;
+    this.licencePositionStagedPayloadService = licencePositionStagedPayloadService;
     this.partialSurrenderCorrectionService = partialSurrenderCorrectionService;
   }
 
   @GetMapping
-  public ModelAndView renderCorrectLicencePositionCorrectionDate(
+  public ModelAndView renderCorrectLicencePositionStagedPayloadDate(
           LicenceCorrection correction,
           LicencePosition licencePosition
   ) {
-    return correctPositionCorrectionDateModelAndView(correction, licencePosition, new CorrectPositionDateForm());
+    return correctPositionStagedPayloadDateModelAndView(correction, licencePosition, new CorrectPositionDateForm());
   }
 
   @PostMapping
-  ModelAndView correctLicencePositionCorrectionDate(
+  ModelAndView correctLicencePositionStagedPayloadDate(
       LicenceCorrection correction,
       LicencePosition licencePosition,
       @ModelAttribute("form") CorrectPositionDateForm form,
@@ -59,31 +59,31 @@ public class CorrectPositionDateController {
       RedirectAttributes redirectAttributes
   ) {
     if (correctPositionDateFormValidator.hasErrors(form, bindingResult)) {
-      return correctPositionCorrectionDateModelAndView(correction, licencePosition, form);
+      return correctPositionStagedPayloadDateModelAndView(correction, licencePosition, form);
     }
 
-    var positionCorrection = licencePositionCorrectionService.correctPositionDate(
+    var positionStagedPayload = licencePositionStagedPayloadService.correctPositionDate(
         correction,
         licencePosition,
         form.getCorrectPositionDate().getAsLocalDate().orElseThrow()
     );
 
-    partialSurrenderCorrectionService.adjustPartialSurrenderBlocks(positionCorrection);
+    partialSurrenderCorrectionService.adjustPartialSurrenderBlocks(positionStagedPayload);
 
     NotificationBanner.newSuccessBanner()
         .withHeadingContent("Licence position correction date updated")
         .applyTo(redirectAttributes);
 
-    return LicencePositionCorrectionRouteUtil.redirectToPositionPage(correction, licencePosition.getId());
+    return LicencePositionStagedPayloadRouteUtil.redirectToPositionPage(correction, licencePosition.getId());
   }
 
-  private ModelAndView correctPositionCorrectionDateModelAndView(
+  private ModelAndView correctPositionStagedPayloadDateModelAndView(
       LicenceCorrection correction,
       LicencePosition licencePosition,
       CorrectPositionDateForm form
   ) {
     var pageTitle = "Correct the date of a licence position";
-    return new ModelAndView("lms/licence/correction/correctPositionCorrectionDate")
+    return new ModelAndView("lms/licence/correction/correctPositionStagedPayloadDate")
         .addObject("pageTitle", pageTitle)
         .addObject("regulatorReference", licencePosition.getLicenceTransaction().getRegulatorReference())
         .addObject("currentPositionDate", licencePosition.getFormattedPositionDate())

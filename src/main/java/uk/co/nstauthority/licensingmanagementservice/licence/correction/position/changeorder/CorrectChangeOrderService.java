@@ -14,9 +14,9 @@ import java.util.stream.Stream;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionChangeType;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayload;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadChangeType;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.PositionMove;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.PositionMoveDirection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.PositionOrderingUtil;
@@ -40,20 +40,20 @@ public class CorrectChangeOrderService {
 
   private final ChronologicalPositionService chronologicalPositionService;
   private final LicencePositionNameService licencePositionNameService;
-  private final LicencePositionCorrectionService licencePositionCorrectionService;
+  private final LicencePositionStagedPayloadService licencePositionStagedPayloadService;
   private final LicencePositionService licencePositionService;
   private final LicencePositionChangeService licencePositionChangeService;
 
   public CorrectChangeOrderService(
       ChronologicalPositionService chronologicalPositionService,
       LicencePositionNameService licencePositionNameService,
-      LicencePositionCorrectionService licencePositionCorrectionService,
+      LicencePositionStagedPayloadService licencePositionStagedPayloadService,
       LicencePositionService licencePositionService,
       LicencePositionChangeService licencePositionChangeService
   ) {
     this.chronologicalPositionService = chronologicalPositionService;
     this.licencePositionNameService = licencePositionNameService;
-    this.licencePositionCorrectionService = licencePositionCorrectionService;
+    this.licencePositionStagedPayloadService = licencePositionStagedPayloadService;
     this.licencePositionService = licencePositionService;
     this.licencePositionChangeService = licencePositionChangeService;
   }
@@ -97,8 +97,8 @@ public class CorrectChangeOrderService {
         PositionOrderingUtil.moveRelativeTo(changes, moved, target, direction)
     );
 
-    licencePositionCorrectionService.findFirstAddedPositionCorrection(licenceCorrection, licencePositionId).ifPresentOrElse(
-        addedPositionCorrection -> reorderAddedPositionChanges(addedPositionCorrection, newChangeOrders),
+    licencePositionStagedPayloadService.findFirstAddedPositionStagedPayload(licenceCorrection, licencePositionId).ifPresentOrElse(
+        addedPositionStagedPayload -> reorderAddedPositionChanges(addedPositionStagedPayload, newChangeOrders),
         () -> reorderExecutedPositionChanges(licenceCorrection, licencePositionId, newChangeOrders));
   }
 
@@ -139,15 +139,15 @@ public class CorrectChangeOrderService {
       );
     }
 
-    var sourcePositionCorrection =
-        licencePositionCorrectionService.getOrBuildPositionCorrection(licenceCorrection, sourcePositionId);
-    var stagedChange = licencePositionCorrectionService
-        .findStagedChange(sourcePositionCorrection, changeId.toString()).orElse(null);
+    var sourcePositionStagedPayload =
+        licencePositionStagedPayloadService.getOrBuildPositionStagedPayload(licenceCorrection, sourcePositionId);
+    var stagedChange = licencePositionStagedPayloadService
+        .findStagedChange(sourcePositionStagedPayload, changeId.toString()).orElse(null);
 
-    licencePositionCorrectionService.dropStagedChangeAndOrder(sourcePositionCorrection, changeId.toString());
+    licencePositionStagedPayloadService.dropStagedChangeAndOrder(sourcePositionStagedPayload, changeId.toString());
 
     if (stagedChange instanceof AddChange addChange) {
-      licencePositionCorrectionService.stageChangesOnPosition(
+      licencePositionStagedPayloadService.stageChangesOnPosition(
           licenceCorrection,
           targetPositionId,
           List.of(
@@ -171,7 +171,7 @@ public class CorrectChangeOrderService {
       LocalDate positionDate,
       @Nullable PositionMove placement
   ) {
-    var sameTransactionPosition = licencePositionCorrectionService.findSameTransactionPositionOnDate(
+    var sameTransactionPosition = licencePositionStagedPayloadService.findSameTransactionPositionOnDate(
         licenceCorrection,
         sourcePositionId,
         positionDate
@@ -184,15 +184,15 @@ public class CorrectChangeOrderService {
     }
 
     if (placement == null
-        && !licencePositionCorrectionService.getOrderablePositionsOnDate(licenceCorrection, positionDate).isEmpty()) {
+        && !licencePositionStagedPayloadService.getOrderablePositionsOnDate(licenceCorrection, positionDate).isEmpty()) {
       return new MoveChangeToDateResult(MoveChangeToDateResult.Outcome.NEEDS_POSITION_ORDER, null);
     }
 
-    var sourcePosition = licencePositionCorrectionService.getOrderableDatePosition(licenceCorrection, sourcePositionId);
+    var sourcePosition = licencePositionStagedPayloadService.getOrderableDatePosition(licenceCorrection, sourcePositionId);
 
     var newPositionId = positionDate.equals(sourcePosition.effectiveDate())
-        ? licencePositionCorrectionService.addNewPosition(licenceCorrection, positionDate, sourcePosition.reference())
-        : licencePositionCorrectionService.addNewPosition(
+        ? licencePositionStagedPayloadService.addNewPosition(licenceCorrection, positionDate, sourcePosition.reference())
+        : licencePositionStagedPayloadService.addNewPosition(
             licenceCorrection,
             positionDate,
             sourcePosition.reference(),
@@ -200,7 +200,7 @@ public class CorrectChangeOrderService {
         );
 
     if (placement != null) {
-      licencePositionCorrectionService.correctPositionOrder(
+      licencePositionStagedPayloadService.correctPositionOrder(
           licenceCorrection,
           newPositionId,
           placement.targetId(),
@@ -244,7 +244,7 @@ public class CorrectChangeOrderService {
     }
 
     if (!changesToStage.isEmpty()) {
-      licencePositionCorrectionService.stageChangesOnPosition(licenceCorrection, targetPositionId, changesToStage);
+      licencePositionStagedPayloadService.stageChangesOnPosition(licenceCorrection, targetPositionId, changesToStage);
     }
   }
 
@@ -264,15 +264,15 @@ public class CorrectChangeOrderService {
       LicenceCorrection licenceCorrection,
       UUID licencePositionId
   ) {
-    var positionCorrection =
-        licencePositionCorrectionService.getOrBuildPositionCorrection(licenceCorrection, licencePositionId);
+    var positionStagedPayload =
+        licencePositionStagedPayloadService.getOrBuildPositionStagedPayload(licenceCorrection, licencePositionId);
 
-    return positionCorrection.getChangeType() == LicencePositionCorrectionChangeType.ADD_POSITION
-        ? licencePositionCorrectionService.getChangesForAddedPosition(positionCorrection)
-        : licencePositionCorrectionService.getChangesForExecutedPosition(
+    return positionStagedPayload.getChangeType() == LicencePositionStagedPayloadChangeType.ADD_POSITION
+        ? licencePositionStagedPayloadService.getChangesForAddedPosition(positionStagedPayload)
+        : licencePositionStagedPayloadService.getChangesForExecutedPosition(
             licenceCorrection,
-            positionCorrection.getTargetLicencePosition(),
-            positionCorrection
+            positionStagedPayload.getTargetLicencePosition(),
+            positionStagedPayload
         );
   }
 
@@ -304,10 +304,10 @@ public class CorrectChangeOrderService {
   ) {
     var position = licencePositionService.getPositionForLicence(licenceCorrection.getLicence(), licencePositionId);
     var liveChangeOrders = liveChangeOrdersByChangeId(licencePositionId);
-    var positionCorrection =
-        licencePositionCorrectionService.getOrBuildUpdatePositionCorrection(licenceCorrection, position);
+    var positionStagedPayload =
+        licencePositionStagedPayloadService.getOrBuildUpdatePositionStagedPayload(licenceCorrection, position);
 
-    var payload = positionCorrection.getPayload();
+    var payload = positionStagedPayload.getPayload();
     var updatedChanges = new ArrayList<>(payload.changes());
     updatedChanges.removeIf(UpdateChangeOrder.class::isInstance);
 
@@ -327,19 +327,19 @@ public class CorrectChangeOrderService {
       }
     });
 
-    licencePositionCorrectionService.saveOrDiscard(positionCorrection, updatedChanges);
+    licencePositionStagedPayloadService.saveOrDiscard(positionStagedPayload, updatedChanges);
   }
 
   private void reorderAddedPositionChanges(
-      LicencePositionCorrection addedPositionCorrection,
+      LicencePositionStagedPayload addedPositionStagedPayload,
       Map<String, Integer> newChangeOrders
   ) {
-    var payload = addedPositionCorrection.getPayload();
+    var payload = addedPositionStagedPayload.getPayload();
     var updatedChanges = new ArrayList<>(payload.changes());
     updatedChanges.replaceAll(change -> withNewOrder(change, newChangeOrders));
 
-    addedPositionCorrection.setPayload(LicencePositionPayload.withChanges(payload, updatedChanges));
-    licencePositionCorrectionService.save(addedPositionCorrection);
+    addedPositionStagedPayload.setPayload(LicencePositionPayload.withChanges(payload, updatedChanges));
+    licencePositionStagedPayloadService.save(addedPositionStagedPayload);
   }
 
   private Map<String, Integer> liveChangeOrdersByChangeId(UUID licencePositionId) {

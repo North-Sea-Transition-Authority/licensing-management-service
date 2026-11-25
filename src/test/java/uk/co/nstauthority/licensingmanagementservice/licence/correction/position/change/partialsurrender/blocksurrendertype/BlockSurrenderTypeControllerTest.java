@@ -40,8 +40,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayload;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.PartialSurrenderCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.definearea.PartialSurrenderDefineAreaController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.tasklist.PartialSurrenderTaskListController;
@@ -65,7 +65,7 @@ class BlockSurrenderTypeControllerTest extends AbstractControllerTest {
       .withLicenceReference("P/1")
       .build();
   private static final UUID CORRECTION_ID = UUID.randomUUID();
-  private static final UUID POSITION_CORRECTION_ID = UUID.randomUUID();
+  private static final UUID POSITION_STAGED_PAYLOAD_ID = UUID.randomUUID();
   private static final UUID POSITION_ID = UUID.randomUUID();
   private static final LicencePosition POSITION = LicencePositionTestUtil.newBuilder()
       .withId(POSITION_ID)
@@ -75,8 +75,8 @@ class BlockSurrenderTypeControllerTest extends AbstractControllerTest {
       .withId(CORRECTION_ID)
       .withLicence(LICENCE)
       .build();
-  private static final LicencePositionCorrection POSITION_CORRECTION = LicencePositionCorrectionTestUtil.newBuilder()
-      .withId(POSITION_CORRECTION_ID)
+  private static final LicencePositionStagedPayload POSITION_STAGED_PAYLOAD = LicencePositionStagedPayloadTestUtil.newBuilder()
+      .withId(POSITION_STAGED_PAYLOAD_ID)
       .withLicenceCorrection(CORRECTION)
       .build();
   private static final String LIVE_CHANGE_ID = UUID.randomUUID().toString();
@@ -103,7 +103,7 @@ class BlockSurrenderTypeControllerTest extends AbstractControllerTest {
         .thenReturn(Optional.empty());
 
     mockMvc.perform(get(ReverseRouter.route(on(BlockSurrenderTypeController.class)
-            .renderSurrenderTypeForm(CORRECTION, POSITION_CORRECTION, FEATURE_ID)))
+            .renderSurrenderTypeForm(CORRECTION, POSITION_STAGED_PAYLOAD, FEATURE_ID)))
             .with(user(regulatorUser)))
         .andExpectAll(
             status().isForbidden(),
@@ -121,7 +121,7 @@ class BlockSurrenderTypeControllerTest extends AbstractControllerTest {
         .thenReturn(Optional.of(correction));
     when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(correction));
     mockMvc.perform(get(ReverseRouter.route(on(BlockSurrenderTypeController.class)
-            .renderSurrenderTypeForm(correction, POSITION_CORRECTION, FEATURE_ID)))
+            .renderSurrenderTypeForm(correction, POSITION_STAGED_PAYLOAD, FEATURE_ID)))
             .with(user(regulatorUser)))
         .andExpect(status().isForbidden())
         .andExpect(status().reason(
@@ -142,7 +142,7 @@ class BlockSurrenderTypeControllerTest extends AbstractControllerTest {
     when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(notAllowedCorrection));
 
     mockMvc.perform(get(ReverseRouter.route(on(BlockSurrenderTypeController.class)
-            .renderSurrenderTypeForm(CORRECTION, POSITION_CORRECTION, FEATURE_ID)))
+            .renderSurrenderTypeForm(CORRECTION, POSITION_STAGED_PAYLOAD, FEATURE_ID)))
             .with(user(regulatorUser)))
         .andExpectAll(
             status().isForbidden(),
@@ -163,16 +163,16 @@ class BlockSurrenderTypeControllerTest extends AbstractControllerTest {
     when(licenceCorrectionService.findByIdAndAllocatedToWuaId(CORRECTION_ID, regulatorUser))
         .thenReturn(Optional.of(correction));
     when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(correction));
-    var positionCorrection = positionCorrection(correction);
-    when(licencePositionCorrectionService.findById(POSITION_CORRECTION_ID))
-        .thenReturn(Optional.of(positionCorrection));
-    when(partialSurrenderCorrectionService.getSurrenderedBlockFeatureOrThrow(positionCorrection, FEATURE_ID))
+    var positionStagedPayload = positionStagedPayload(correction);
+    when(licencePositionStagedPayloadService.findById(POSITION_STAGED_PAYLOAD_ID))
+        .thenReturn(Optional.of(positionStagedPayload));
+    when(partialSurrenderCorrectionService.getSurrenderedBlockFeatureOrThrow(positionStagedPayload, FEATURE_ID))
         .thenReturn(BLOCK);
-    when(partialSurrenderCorrectionService.getCommittedPartialSurrender(positionCorrection))
+    when(partialSurrenderCorrectionService.getCommittedPartialSurrender(positionStagedPayload))
         .thenReturn(Optional.empty());
 
     mockMvc.perform(get(ReverseRouter.route(on(BlockSurrenderTypeController.class)
-            .renderSurrenderTypeForm(correction, positionCorrection, FEATURE_ID)))
+            .renderSurrenderTypeForm(correction, positionStagedPayload, FEATURE_ID)))
             .with(user(regulatorUser)))
         .andExpect(status().isOk());
   }
@@ -180,16 +180,16 @@ class BlockSurrenderTypeControllerTest extends AbstractControllerTest {
   @Test
   void renderSurrenderTypeForm_rendersFormWithBlockNameAndSurrenderTypeOptions() throws Exception {
     var correction = givenCorrectionAllocatedToUser();
-    var positionCorrection = positionCorrection(correction);
-    when(licencePositionCorrectionService.findById(POSITION_CORRECTION_ID))
-        .thenReturn(Optional.of(positionCorrection));
-    when(partialSurrenderCorrectionService.getSurrenderedBlockFeatureOrThrow(positionCorrection, FEATURE_ID))
+    var positionStagedPayload = positionStagedPayload(correction);
+    when(licencePositionStagedPayloadService.findById(POSITION_STAGED_PAYLOAD_ID))
+        .thenReturn(Optional.of(positionStagedPayload));
+    when(partialSurrenderCorrectionService.getSurrenderedBlockFeatureOrThrow(positionStagedPayload, FEATURE_ID))
         .thenReturn(BLOCK);
-    when(partialSurrenderCorrectionService.getCommittedPartialSurrender(positionCorrection))
+    when(partialSurrenderCorrectionService.getCommittedPartialSurrender(positionStagedPayload))
         .thenReturn(Optional.empty());
 
     mockMvc.perform(get(ReverseRouter.route(on(BlockSurrenderTypeController.class)
-            .renderSurrenderTypeForm(correction, positionCorrection, FEATURE_ID)))
+            .renderSurrenderTypeForm(correction, positionStagedPayload, FEATURE_ID)))
             .with(user(regulatorUser)))
         .andExpectAll(
             status().isOk(),
@@ -203,15 +203,15 @@ class BlockSurrenderTypeControllerTest extends AbstractControllerTest {
   @Test
   void submitSurrenderTypeForm_whenInvalid_rendersFormAndSavesNothing() throws Exception {
     var correction = givenCorrectionAllocatedToUser();
-    var positionCorrection = positionCorrection(correction);
-    when(licencePositionCorrectionService.findById(POSITION_CORRECTION_ID)).thenReturn(Optional.of(positionCorrection));
-    when(partialSurrenderCorrectionService.getSurrenderedBlockFeatureOrThrow(positionCorrection, FEATURE_ID))
+    var positionStagedPayload = positionStagedPayload(correction);
+    when(licencePositionStagedPayloadService.findById(POSITION_STAGED_PAYLOAD_ID)).thenReturn(Optional.of(positionStagedPayload));
+    when(partialSurrenderCorrectionService.getSurrenderedBlockFeatureOrThrow(positionStagedPayload, FEATURE_ID))
         .thenReturn(BLOCK);
     when(blockSurrenderTypeFormValidator.hasErrors(any(BlockSurrenderTypeForm.class), any(BindingResult.class)))
         .thenReturn(true);
 
     mockMvc.perform(post(ReverseRouter.route(on(BlockSurrenderTypeController.class)
-            .submitSurrenderTypeForm(correction, positionCorrection, FEATURE_ID, null, null, null)))
+            .submitSurrenderTypeForm(correction, positionStagedPayload, FEATURE_ID, null, null, null)))
             .with(user(regulatorUser)).with(csrf()))
         .andExpectAll(
             status().isOk(),
@@ -233,7 +233,7 @@ class BlockSurrenderTypeControllerTest extends AbstractControllerTest {
         .thenReturn(Optional.of(correction));
     when(licenceCorrectionService.findById(CORRECTION_ID)).thenReturn(Optional.of(correction));
     mockMvc.perform(post(ReverseRouter.route(on(BlockSurrenderTypeController.class)
-            .submitSurrenderTypeForm(correction, POSITION_CORRECTION, FEATURE_ID, null, null, null)))
+            .submitSurrenderTypeForm(correction, POSITION_STAGED_PAYLOAD, FEATURE_ID, null, null, null)))
             .with(user(regulatorUser))
             .with(csrf()))
         .andExpect(status().isForbidden())
@@ -245,9 +245,9 @@ class BlockSurrenderTypeControllerTest extends AbstractControllerTest {
   @Test
   void submitSurrenderTypeForm_whenValid_savesTypeAndRedirectsToTaskList() throws Exception {
     var correction = givenCorrectionAllocatedToUser();
-    var positionCorrection = positionCorrection(correction);
-    when(licencePositionCorrectionService.findById(POSITION_CORRECTION_ID)).thenReturn(Optional.of(positionCorrection));
-    when(partialSurrenderCorrectionService.getSurrenderedBlockFeatureOrThrow(positionCorrection, FEATURE_ID))
+    var positionStagedPayload = positionStagedPayload(correction);
+    when(licencePositionStagedPayloadService.findById(POSITION_STAGED_PAYLOAD_ID)).thenReturn(Optional.of(positionStagedPayload));
+    when(partialSurrenderCorrectionService.getSurrenderedBlockFeatureOrThrow(positionStagedPayload, FEATURE_ID))
         .thenReturn(BLOCK);
     when(blockSurrenderTypeFormValidator.hasErrors(any(BlockSurrenderTypeForm.class), any(BindingResult.class)))
         .thenReturn(false);
@@ -256,23 +256,23 @@ class BlockSurrenderTypeControllerTest extends AbstractControllerTest {
     form.setSurrenderType(BlockSurrenderType.FULL_SURRENDER.name());
 
     mockMvc.perform(post(ReverseRouter.route(on(BlockSurrenderTypeController.class)
-            .submitSurrenderTypeForm(correction, positionCorrection, FEATURE_ID, null, null, null)))
+            .submitSurrenderTypeForm(correction, positionStagedPayload, FEATURE_ID, null, null, null)))
             .with(user(regulatorUser)).with(csrf())
             .flashAttr("form", form))
         .andExpect(status().is3xxRedirection())
         .andExpect(redirectedUrl(taskListUrl()));
 
     verify(partialSurrenderCorrectionService)
-        .setBlockSurrenderType(positionCorrection, FEATURE_ID, BlockSurrenderType.FULL_SURRENDER);
+        .setBlockSurrenderType(positionStagedPayload, FEATURE_ID, BlockSurrenderType.FULL_SURRENDER);
   }
 
   @Test
   void submitSurrenderTypeForm_whenPartialSurrender_savesTypeAndRedirectsToDefineArea() throws Exception {
     var correction = givenCorrectionAllocatedToUser();
-    var positionCorrection = positionCorrection(correction);
-    when(licencePositionCorrectionService.findById(POSITION_CORRECTION_ID))
-        .thenReturn(Optional.of(positionCorrection));
-    when(partialSurrenderCorrectionService.getSurrenderedBlockFeatureOrThrow(positionCorrection, FEATURE_ID))
+    var positionStagedPayload = positionStagedPayload(correction);
+    when(licencePositionStagedPayloadService.findById(POSITION_STAGED_PAYLOAD_ID))
+        .thenReturn(Optional.of(positionStagedPayload));
+    when(partialSurrenderCorrectionService.getSurrenderedBlockFeatureOrThrow(positionStagedPayload, FEATURE_ID))
         .thenReturn(BLOCK);
     when(blockSurrenderTypeFormValidator.hasErrors(any(BlockSurrenderTypeForm.class), any(BindingResult.class)))
         .thenReturn(false);
@@ -281,14 +281,14 @@ class BlockSurrenderTypeControllerTest extends AbstractControllerTest {
     form.setSurrenderType(BlockSurrenderType.PARTIAL_SURRENDER.name());
 
     mockMvc.perform(post(ReverseRouter.route(on(BlockSurrenderTypeController.class)
-            .submitSurrenderTypeForm(correction, positionCorrection, FEATURE_ID, null, null, null)))
+            .submitSurrenderTypeForm(correction, positionStagedPayload, FEATURE_ID, null, null, null)))
             .with(user(regulatorUser)).with(csrf())
             .flashAttr("form", form))
         .andExpect(status().is3xxRedirection())
         .andExpect(redirectedUrl(defineAreaUrl()));
 
     verify(partialSurrenderCorrectionService)
-        .setBlockSurrenderType(positionCorrection, FEATURE_ID, BlockSurrenderType.PARTIAL_SURRENDER);
+        .setBlockSurrenderType(positionStagedPayload, FEATURE_ID, BlockSurrenderType.PARTIAL_SURRENDER);
   }
 
   @Test
@@ -403,7 +403,7 @@ class BlockSurrenderTypeControllerTest extends AbstractControllerTest {
         surrenderUnderCorrection, FEATURE_ID, BlockSurrenderType.PARTIAL_SURRENDER))
         .thenReturn(corrected);
     when(partialSurrenderCorrectionService.correctExistingPartialSurrender(
-        correction, POSITION, LIVE_CHANGE_ID, corrected)).thenReturn(positionCorrection(correction));
+        correction, POSITION, LIVE_CHANGE_ID, corrected)).thenReturn(positionStagedPayload(correction));
     when(blockSurrenderTypeFormValidator.hasErrors(any(BlockSurrenderTypeForm.class), any(BindingResult.class)))
         .thenReturn(false);
 
@@ -537,20 +537,20 @@ class BlockSurrenderTypeControllerTest extends AbstractControllerTest {
     return correction;
   }
 
-  private LicencePositionCorrection positionCorrection(LicenceCorrection correction) {
-    return LicencePositionCorrectionTestUtil.newBuilder()
-        .withId(POSITION_CORRECTION_ID)
+  private LicencePositionStagedPayload positionStagedPayload(LicenceCorrection correction) {
+    return LicencePositionStagedPayloadTestUtil.newBuilder()
+        .withId(POSITION_STAGED_PAYLOAD_ID)
         .withLicenceCorrection(correction)
         .build();
   }
 
   private static String taskListUrl() {
     return ReverseRouter.route(on(PartialSurrenderTaskListController.class)
-        .renderTaskList(CORRECTION, POSITION_CORRECTION, null));
+        .renderTaskList(CORRECTION, POSITION_STAGED_PAYLOAD, null));
   }
 
   private static String defineAreaUrl() {
     return ReverseRouter.route(on(PartialSurrenderDefineAreaController.class)
-        .renderDefineArea(CORRECTION, POSITION_CORRECTION, FEATURE_ID));
+        .renderDefineArea(CORRECTION, POSITION_STAGED_PAYLOAD, FEATURE_ID));
   }
 }

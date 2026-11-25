@@ -13,9 +13,9 @@ import java.util.stream.Stream;
 import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionChangeType;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayload;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadChangeType;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.CreateLicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.payloads.UpdateLicencePositionPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
@@ -32,16 +32,16 @@ public class ChronologicalPositionService {
 
   private final LicencePositionService licencePositionService;
   private final LicencePositionChangeService licencePositionChangeService;
-  private final LicencePositionCorrectionService licencePositionCorrectionService;
+  private final LicencePositionStagedPayloadService licencePositionStagedPayloadService;
 
   public ChronologicalPositionService(
       LicencePositionService licencePositionService,
       LicencePositionChangeService licencePositionChangeService,
-      LicencePositionCorrectionService licencePositionCorrectionService
+      LicencePositionStagedPayloadService licencePositionStagedPayloadService
   ) {
     this.licencePositionService = licencePositionService;
     this.licencePositionChangeService = licencePositionChangeService;
-    this.licencePositionCorrectionService = licencePositionCorrectionService;
+    this.licencePositionStagedPayloadService = licencePositionStagedPayloadService;
   }
 
   public List<ChronologicalPosition> getLiveChronologicalPositions(Licence licence) {
@@ -98,42 +98,43 @@ public class ChronologicalPositionService {
   ) {
     return getCorrectedChronologicalPositions(
         licenceCorrection,
-        licencePositionCorrectionService.getPositionCorrections(licenceCorrection),
+        licencePositionStagedPayloadService.getPositionStagedPayloads(licenceCorrection),
         retainedRemovedPositionIds
     );
   }
 
   public List<ChronologicalPosition> getCorrectedChronologicalPositions(
       LicenceCorrection licenceCorrection,
-      List<LicencePositionCorrection> positionCorrections,
+      List<LicencePositionStagedPayload> positionStagedPayloads,
       Set<UUID> retainedRemovedPositionIds
   ) {
     return getCorrectedChronologicalPositions(
         licencePositionService.getExecutedChronologicalLicencePositions(licenceCorrection.getLicence()),
-        positionCorrections,
+        positionStagedPayloads,
         retainedRemovedPositionIds
     );
   }
 
   public List<ChronologicalPosition> getCorrectedChronologicalPositions(
       List<LicencePosition> executedChronologicalLicencePositions,
-      List<LicencePositionCorrection> positionCorrections,
+      List<LicencePositionStagedPayload> positionStagedPayloads,
       Set<UUID> retainedRemovedPositionIds
   ) {
-    var removedPositionIds = LicencePositionCorrectionService.getRemovedPositionIds(positionCorrections);
-    var updatedCorrections = LicencePositionCorrectionService.correctionsOfType(
-        positionCorrections,
-        LicencePositionCorrectionChangeType.UPDATE_POSITION
+    var removedPositionIds = LicencePositionStagedPayloadService.getRemovedPositionIds(positionStagedPayloads);
+    var updatedStagedPayloads = LicencePositionStagedPayloadService.stagedPayloadsOfType(
+        positionStagedPayloads,
+        LicencePositionStagedPayloadChangeType.UPDATE_POSITION
     );
-    var addedCorrections = LicencePositionCorrectionService.correctionsOfType(
-        positionCorrections,
-        LicencePositionCorrectionChangeType.ADD_POSITION
+    var addedStagedPayloads = LicencePositionStagedPayloadService.stagedPayloadsOfType(
+        positionStagedPayloads,
+        LicencePositionStagedPayloadChangeType.ADD_POSITION
     );
     var liveChangesByPositionId = getLiveChangesByPositionId(executedChronologicalLicencePositions);
 
-    var correctedPayloadsByPositionId = LicencePositionCorrectionService.updatedPositionPayloadsByTargetId(updatedCorrections);
-    var updatedChangePositionIds = LicencePositionCorrectionService.getUpdatedChangePositionIds(
-        Stream.concat(updatedCorrections.stream(), addedCorrections.stream()).toList()
+    var correctedPayloadsByPositionId =
+        LicencePositionStagedPayloadService.updatedPositionPayloadsByTargetId(updatedStagedPayloads);
+    var updatedChangePositionIds = LicencePositionStagedPayloadService.getUpdatedChangePositionIds(
+        Stream.concat(updatedStagedPayloads.stream(), addedStagedPayloads.stream()).toList()
     );
 
     var chronologicalPositions = new ArrayList<ChronologicalPosition>();
@@ -150,7 +151,7 @@ public class ChronologicalPositionService {
                   correctedPayload != null ? correctedPayload.changes() : List.of()
               )
               .stream()
-              .map(change -> LicencePositionCorrectionService.isMovedAway(
+              .map(change -> LicencePositionStagedPayloadService.isMovedAway(
                   change.changeId(),
                   position.getId(),
                   updatedChangePositionIds
@@ -165,7 +166,7 @@ public class ChronologicalPositionService {
           ));
         });
 
-    addedCorrections.forEach(addedPosition ->
+    addedStagedPayloads.forEach(addedPosition ->
         chronologicalPositions.add(
             ChronologicalPosition.fromPayload((CreateLicencePositionPayload) addedPosition.getPayload())));
 

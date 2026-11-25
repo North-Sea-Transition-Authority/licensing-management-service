@@ -15,8 +15,8 @@ import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.positio
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionRouteUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadRouteUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
@@ -28,14 +28,14 @@ import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 public class ChangeActionController {
 
   private final ChangeActionService changeActionService;
-  private final LicencePositionCorrectionService licencePositionCorrectionService;
+  private final LicencePositionStagedPayloadService licencePositionStagedPayloadService;
 
   ChangeActionController(
       ChangeActionService changeActionService,
-      LicencePositionCorrectionService licencePositionCorrectionService
+      LicencePositionStagedPayloadService licencePositionStagedPayloadService
   ) {
     this.changeActionService = changeActionService;
-    this.licencePositionCorrectionService = licencePositionCorrectionService;
+    this.licencePositionStagedPayloadService = licencePositionStagedPayloadService;
   }
 
   @RequestMapping(
@@ -81,22 +81,23 @@ public class ChangeActionController {
       HttpMethod httpMethod,
       RedirectAttributes redirectAttributes
   ) {
-    var positionCorrection = licencePositionCorrectionService.getPositionCorrectionContainingChange(correction, changeId);
-    var operation = changeActionService.getOperationOfStagedChange(positionCorrection, changeId);
-    var action = changeActionService.getUndoAction(positionCorrection, changeId);
-    // the position correction can be deleted by the undo, so the page to return to is worked out first
-    var positionPageUrl = LicencePositionCorrectionRouteUtil.getPositionPageUrl(positionCorrection);
+    var positionStagedPayload = licencePositionStagedPayloadService
+        .getPositionStagedPayloadContainingChange(correction, changeId);
+    var operation = changeActionService.getOperationOfStagedChange(positionStagedPayload, changeId);
+    var action = changeActionService.getUndoAction(positionStagedPayload, changeId);
+    // the position staged payload can be deleted by the undo, so the page to return to is worked out first
+    var positionPageUrl = LicencePositionStagedPayloadRouteUtil.getPositionPageUrl(positionStagedPayload);
 
     if (HttpMethod.GET.equals(httpMethod)) {
       return withConfirmationObjects(
-          changeActionService.getHandler(operation).stagedChangeConfirmation(correction, positionCorrection, changeId, action),
+          changeActionService.getHandler(operation).stagedChangeConfirmation(correction, positionStagedPayload, changeId, action),
           operation.changeName(),
           action,
           positionPageUrl
       );
     }
 
-    changeActionService.undoStagedChange(positionCorrection, changeId);
+    changeActionService.undoStagedChange(positionStagedPayload, changeId);
 
     NotificationBanner.newSuccessBannerWithHeader(action.successBannerHeading(operation.changeName()), redirectAttributes);
 
@@ -116,6 +117,6 @@ public class ChangeActionController {
   }
 
   private static String positionPageUrl(LicenceCorrection correction, LicencePosition licencePosition) {
-    return LicencePositionCorrectionRouteUtil.getPositionPageUrl(correction, licencePosition.getId());
+    return LicencePositionStagedPayloadRouteUtil.getPositionPageUrl(correction, licencePosition.getId());
   }
 }

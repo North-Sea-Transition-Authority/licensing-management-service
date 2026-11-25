@@ -10,9 +10,9 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionChangeType;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayload;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadChangeType;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.ChronologicalPositionTestUtil;
@@ -25,13 +25,13 @@ class CorrectedTimelineTest {
     var removedPosition = LicencePositionTestUtil.newBuilder().build();
     var updatedPosition = LicencePositionTestUtil.newBuilder().build();
 
-    var removeCorrection = LicencePositionCorrectionTestUtil.newBuilder()
-        .withChangeType(LicencePositionCorrectionChangeType.REMOVE_POSITION)
+    var removeStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder()
+        .withChangeType(LicencePositionStagedPayloadChangeType.REMOVE_POSITION)
         .withTargetLicencePosition(removedPosition)
         .withPayload(null)
         .build();
-    var updateCorrection = LicencePositionCorrectionTestUtil.newBuilder()
-        .withChangeType(LicencePositionCorrectionChangeType.UPDATE_POSITION)
+    var updateStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder()
+        .withChangeType(LicencePositionStagedPayloadChangeType.UPDATE_POSITION)
         .withTargetLicencePosition(updatedPosition)
         .build();
 
@@ -44,7 +44,7 @@ class CorrectedTimelineTest {
 
     var correctedTimeline = correctedTimelineWith(
         LicenceCorrectionTestUtil.newBuilder().build(),
-        List.of(removeCorrection, updateCorrection),
+        List.of(removeStagedPayload, updateStagedPayload),
         List.of(removedChronologicalPosition, updatedChronologicalPosition));
 
     assertThat(correctedTimeline.positionsToApply()).containsExactly(updatedChronologicalPosition);
@@ -67,12 +67,12 @@ class CorrectedTimelineTest {
 
   private CorrectedTimeline correctedTimelineWith(
       LicenceCorrection licenceCorrection,
-      List<LicencePositionCorrection> positionCorrections,
+      List<LicencePositionStagedPayload> positionStagedPayloads,
       List<ChronologicalPosition> displayedPositions
   ) {
     return new CorrectedTimeline(
         licenceCorrection,
-        positionCorrections,
+        positionStagedPayloads,
         displayedPositions,
         new ResolvedStates(new TreeMap<>(), Map.of()));
   }

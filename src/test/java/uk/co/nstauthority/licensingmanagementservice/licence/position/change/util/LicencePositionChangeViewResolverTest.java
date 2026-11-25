@@ -20,8 +20,8 @@ import org.junit.jupiter.params.provider.MethodSource;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectionPosition;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayload;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.action.ChangeActionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.reviewandsubmit.PartialSurrenderReviewAndSubmitController;
@@ -89,8 +89,8 @@ class LicencePositionChangeViewResolverTest {
 
   private static final LicenceCorrection CORRECTION = LicenceCorrectionTestUtil.newBuilder().build();
   private static final LicencePosition LICENCE_POSITION = LicencePositionTestUtil.newBuilder().build();
-  private static final LicencePositionCorrection POSITION_CORRECTION =
-      LicencePositionCorrectionTestUtil.newBuilder().build();
+  private static final LicencePositionStagedPayload POSITION_STAGED_PAYLOAD =
+      LicencePositionStagedPayloadTestUtil.newBuilder().build();
 
   @Test
   void getChangeViews_filtersChangesNotOnCurrentPosition() {
@@ -186,7 +186,7 @@ class LicencePositionChangeViewResolverTest {
   void buildLicenseeChange_withCorrectChange_hasCorrectUrl() {
     var view = licenseeChangeView(
         LicencePositionChangeType.UPDATE_CHANGE_OPERATIONS,
-        PositionChangeUrlContext.forExecutedPosition(CORRECTION, LICENCE_POSITION, POSITION_CORRECTION)
+        PositionChangeUrlContext.forExecutedPosition(CORRECTION, LICENCE_POSITION, POSITION_STAGED_PAYLOAD)
     );
 
     assertThat(view.urls().correct()).endsWith("/correct");
@@ -198,7 +198,7 @@ class LicencePositionChangeViewResolverTest {
   void buildLicenseeChange_withAddChange_hasCorrectUrl() {
     var view = licenseeChangeView(
         LicencePositionChangeType.ADD_CHANGE,
-        PositionChangeUrlContext.forExecutedPosition(CORRECTION, LICENCE_POSITION, POSITION_CORRECTION)
+        PositionChangeUrlContext.forExecutedPosition(CORRECTION, LICENCE_POSITION, POSITION_STAGED_PAYLOAD)
     );
 
     assertThat(view.urls().correct()).endsWith("/change/add?type=LICENSEE");
@@ -210,7 +210,7 @@ class LicencePositionChangeViewResolverTest {
   void buildLicenseeChange_whenUntouchedExecutedChange_populatesRemoveNotUndo() {
     var view = licenseeChangeView(
         null,
-        PositionChangeUrlContext.forExecutedPosition(CORRECTION, LICENCE_POSITION, POSITION_CORRECTION)
+        PositionChangeUrlContext.forExecutedPosition(CORRECTION, LICENCE_POSITION, POSITION_STAGED_PAYLOAD)
     );
 
     assertThat(view.urls().correct()).endsWith("/correct");
@@ -222,7 +222,7 @@ class LicencePositionChangeViewResolverTest {
   void buildLicenseeChange_whenRemoveChange_populatesReinstateOnly() {
     var view = licenseeChangeView(
         LicencePositionChangeType.REMOVE_CHANGE,
-        PositionChangeUrlContext.forExecutedPosition(CORRECTION, LICENCE_POSITION, POSITION_CORRECTION)
+        PositionChangeUrlContext.forExecutedPosition(CORRECTION, LICENCE_POSITION, POSITION_STAGED_PAYLOAD)
     );
 
     assertThat(view.urls().correct()).isNull();
@@ -235,7 +235,7 @@ class LicencePositionChangeViewResolverTest {
   void buildLicenseeChange_whenAddedPosition_populatesUndoNotRemove() {
     var view = licenseeChangeView(
         LicencePositionChangeType.ADD_CHANGE,
-        PositionChangeUrlContext.forAddedPosition(CORRECTION, POSITION_CORRECTION)
+        PositionChangeUrlContext.forAddedPosition(CORRECTION, POSITION_STAGED_PAYLOAD)
     );
 
     assertThat(view.urls().remove()).isNull();
@@ -376,7 +376,7 @@ class LicencePositionChangeViewResolverTest {
   void buildAdministratorChange_whenUntouchedExecutedChange_populatesRemoveNotUndo() {
     var view = adminChangeView(
         null,
-        PositionChangeUrlContext.forExecutedPosition(CORRECTION, LICENCE_POSITION, POSITION_CORRECTION)
+        PositionChangeUrlContext.forExecutedPosition(CORRECTION, LICENCE_POSITION, POSITION_STAGED_PAYLOAD)
     );
 
     assertThat(view.urls().correct()).endsWith("/correct");
@@ -388,7 +388,7 @@ class LicencePositionChangeViewResolverTest {
   void buildAdministratorChange_whenExecutedUpdateChange_populatesCorrectAndUndoNotRemove() {
     var view = adminChangeView(
         LicencePositionChangeType.UPDATE_CHANGE_OPERATIONS,
-        PositionChangeUrlContext.forExecutedPosition(CORRECTION, LICENCE_POSITION, POSITION_CORRECTION)
+        PositionChangeUrlContext.forExecutedPosition(CORRECTION, LICENCE_POSITION, POSITION_STAGED_PAYLOAD)
     );
 
     assertThat(view.urls().correct()).endsWith("/correct");
@@ -400,7 +400,7 @@ class LicencePositionChangeViewResolverTest {
   void buildAdministratorChange_whenAddChange_populatesUndoNotRemove() {
     var view = adminChangeView(
         LicencePositionChangeType.ADD_CHANGE,
-        PositionChangeUrlContext.forExecutedPosition(CORRECTION, LICENCE_POSITION, POSITION_CORRECTION)
+        PositionChangeUrlContext.forExecutedPosition(CORRECTION, LICENCE_POSITION, POSITION_STAGED_PAYLOAD)
     );
 
     assertThat(view.urls().correct()).endsWith("/change/add?type=ADMINISTRATOR");
@@ -412,7 +412,7 @@ class LicencePositionChangeViewResolverTest {
   void buildAdministratorChange_whenRemoveChange_populatesReinstateOnly() {
     var view = adminChangeView(
         LicencePositionChangeType.REMOVE_CHANGE,
-        PositionChangeUrlContext.forExecutedPosition(CORRECTION, LICENCE_POSITION, POSITION_CORRECTION)
+        PositionChangeUrlContext.forExecutedPosition(CORRECTION, LICENCE_POSITION, POSITION_STAGED_PAYLOAD)
     );
 
     assertThat(view.urls().correct()).isNull();
@@ -432,7 +432,7 @@ class LicencePositionChangeViewResolverTest {
 
     var view = adminChangeViewFor(
         movedAwayChange,
-        PositionChangeUrlContext.forExecutedPosition(CORRECTION, LICENCE_POSITION, POSITION_CORRECTION)
+        PositionChangeUrlContext.forExecutedPosition(CORRECTION, LICENCE_POSITION, POSITION_STAGED_PAYLOAD)
     );
 
     assertThat(view.urls()).hasAllNullFieldsOrProperties();
@@ -442,7 +442,7 @@ class LicencePositionChangeViewResolverTest {
   void buildAdministratorChange_whenAddedPosition_populatesUndoNotRemove() {
     var view = adminChangeView(
         LicencePositionChangeType.ADD_CHANGE,
-        PositionChangeUrlContext.forAddedPosition(CORRECTION, POSITION_CORRECTION)
+        PositionChangeUrlContext.forAddedPosition(CORRECTION, POSITION_STAGED_PAYLOAD)
     );
 
     assertThat(view.urls().remove()).isNull();
@@ -607,7 +607,7 @@ class LicencePositionChangeViewResolverTest {
     var correction = LicenceCorrectionTestUtil.newBuilder().build();
     var licencePosition = LicencePositionTestUtil.newBuilder().build();
     var changeId = UUID.randomUUID().toString();
-    var urlContext = PositionChangeUrlContext.forExecutedPosition(correction, licencePosition, POSITION_CORRECTION);
+    var urlContext = PositionChangeUrlContext.forExecutedPosition(correction, licencePosition, POSITION_STAGED_PAYLOAD);
 
     var view = setEquityChangeView(changeId, LicencePositionChangeType.ADD_CHANGE, urlContext);
 
@@ -632,7 +632,7 @@ class LicencePositionChangeViewResolverTest {
   void buildSetEquityChangeView_whenExecutedUpdateChangeOperations_buildsUpdateUrlToExecutedSummary() {
     var correction = LicenceCorrectionTestUtil.newBuilder().build();
     var licencePosition = LicencePositionTestUtil.newBuilder().build();
-    var urlContext = PositionChangeUrlContext.forExecutedPosition(correction, licencePosition, POSITION_CORRECTION);
+    var urlContext = PositionChangeUrlContext.forExecutedPosition(correction, licencePosition, POSITION_STAGED_PAYLOAD);
 
     var view = setEquityChangeView(LicencePositionChangeType.UPDATE_CHANGE_OPERATIONS, urlContext);
 
@@ -643,13 +643,13 @@ class LicencePositionChangeViewResolverTest {
   @Test
   void buildSetEquityChangeView_whenAddedPositionAddChange_buildsUpdateUrlToAddedSummary() {
     var correction = LicenceCorrectionTestUtil.newBuilder().build();
-    var licencePositionCorrection = LicencePositionCorrectionTestUtil.newBuilder().build();
-    var urlContext = PositionChangeUrlContext.forAddedPosition(correction, licencePositionCorrection);
+    var licencePositionStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder().build();
+    var urlContext = PositionChangeUrlContext.forAddedPosition(correction, licencePositionStagedPayload);
 
     var view = setEquityChangeView(LicencePositionChangeType.ADD_CHANGE, urlContext);
 
     assertThat(view.urls().correct()).isEqualTo(ReverseRouter.route(on(LicencePositionSetEquityController.class)
-        .renderSummaryForPosition(new CorrectionPosition.Staged(licencePositionCorrection))));
+        .renderSummaryForPosition(new CorrectionPosition.Staged(licencePositionStagedPayload))));
   }
 
   @Test
@@ -677,7 +677,7 @@ class LicencePositionChangeViewResolverTest {
 
   @Test
   void buildSetEquityChangeView_whenExecutedUpdateChange_populatesUndoNotRemove() {
-    var urlContext = PositionChangeUrlContext.forExecutedPosition(CORRECTION, LICENCE_POSITION, POSITION_CORRECTION);
+    var urlContext = PositionChangeUrlContext.forExecutedPosition(CORRECTION, LICENCE_POSITION, POSITION_STAGED_PAYLOAD);
     var view = setEquityChangeView(LicencePositionChangeType.UPDATE_CHANGE_OPERATIONS, urlContext);
 
     assertThat(view.urls().remove()).isNull();
@@ -686,7 +686,7 @@ class LicencePositionChangeViewResolverTest {
 
   @Test
   void buildSetEquityChangeView_whenAddChange_populatesUndoNotRemove() {
-    var urlContext = PositionChangeUrlContext.forExecutedPosition(CORRECTION, LICENCE_POSITION, POSITION_CORRECTION);
+    var urlContext = PositionChangeUrlContext.forExecutedPosition(CORRECTION, LICENCE_POSITION, POSITION_STAGED_PAYLOAD);
     var view = setEquityChangeView(LicencePositionChangeType.ADD_CHANGE, urlContext);
 
     assertThat(view.urls().remove()).isNull();
@@ -695,7 +695,7 @@ class LicencePositionChangeViewResolverTest {
 
   @Test
   void buildSetEquityChangeView_whenRemoveChange_populatesReinstateOnly() {
-    var urlContext = PositionChangeUrlContext.forExecutedPosition(CORRECTION, LICENCE_POSITION, POSITION_CORRECTION);
+    var urlContext = PositionChangeUrlContext.forExecutedPosition(CORRECTION, LICENCE_POSITION, POSITION_STAGED_PAYLOAD);
     var view = setEquityChangeView(LicencePositionChangeType.REMOVE_CHANGE, urlContext);
 
     assertThat(view.urls().remove()).isNull();
@@ -705,7 +705,7 @@ class LicencePositionChangeViewResolverTest {
 
   @Test
   void buildSetEquityChangeView_whenAddedPosition_populatesUndoNotRemove() {
-    var urlContext = PositionChangeUrlContext.forAddedPosition(CORRECTION, POSITION_CORRECTION);
+    var urlContext = PositionChangeUrlContext.forAddedPosition(CORRECTION, POSITION_STAGED_PAYLOAD);
     var view = setEquityChangeView(LicencePositionChangeType.ADD_CHANGE, urlContext);
 
     assertThat(view.urls().remove()).isNull();
@@ -725,7 +725,7 @@ class LicencePositionChangeViewResolverTest {
     var previousPosition = LicencePositionTestUtil.newBuilder().withPositionOrder(1).build();
     var currentPosition = LicencePositionTestUtil.newBuilder().withPositionOrder(2).build();
     var changeId = UUID.randomUUID();
-    var urlContext = PositionChangeUrlContext.forAddedPosition(CORRECTION, POSITION_CORRECTION);
+    var urlContext = PositionChangeUrlContext.forAddedPosition(CORRECTION, POSITION_STAGED_PAYLOAD);
 
     var previousChronological = ChronologicalPositionTestUtil.live(
         previousPosition,
@@ -778,7 +778,7 @@ class LicencePositionChangeViewResolverTest {
   void getChangeViews_whenTransferEquityOrganisationNamesNotFound_usesEmptyNames() {
     var previousPosition = LicencePositionTestUtil.newBuilder().withPositionOrder(1).build();
     var currentPosition = LicencePositionTestUtil.newBuilder().withPositionOrder(2).build();
-    var urlContext = PositionChangeUrlContext.forAddedPosition(CORRECTION, POSITION_CORRECTION);
+    var urlContext = PositionChangeUrlContext.forAddedPosition(CORRECTION, POSITION_STAGED_PAYLOAD);
 
     var previousChronological = ChronologicalPositionTestUtil.live(
         previousPosition,
@@ -812,7 +812,7 @@ class LicencePositionChangeViewResolverTest {
   void buildTransferEquityChangeView_whenExecutedAddChange_buildsUpdateUrlToExecutedSummary() {
     var correction = LicenceCorrectionTestUtil.newBuilder().build();
     var licencePosition = LicencePositionTestUtil.newBuilder().build();
-    var urlContext = PositionChangeUrlContext.forExecutedPosition(correction, licencePosition, POSITION_CORRECTION);
+    var urlContext = PositionChangeUrlContext.forExecutedPosition(correction, licencePosition, POSITION_STAGED_PAYLOAD);
 
     var view = transferEquityChangeView(LicencePositionChangeType.ADD_CHANGE, urlContext, null);
 
@@ -823,13 +823,13 @@ class LicencePositionChangeViewResolverTest {
   @Test
   void buildTransferEquityChangeView_whenAddedPositionUpdateChangeOperations_buildsUpdateUrlToAddedSummary() {
     var correction = LicenceCorrectionTestUtil.newBuilder().build();
-    var licencePositionCorrection = LicencePositionCorrectionTestUtil.newBuilder().build();
-    var urlContext = PositionChangeUrlContext.forAddedPosition(correction, licencePositionCorrection);
+    var licencePositionStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder().build();
+    var urlContext = PositionChangeUrlContext.forAddedPosition(correction, licencePositionStagedPayload);
 
     var view = transferEquityChangeView(LicencePositionChangeType.UPDATE_CHANGE_OPERATIONS, urlContext, null);
 
     assertThat(view.urls().correct()).isEqualTo(ReverseRouter.route(on(LicencePositionTransferEquityController.class)
-        .renderSummaryForPosition(new CorrectionPosition.Staged(licencePositionCorrection))));
+        .renderSummaryForPosition(new CorrectionPosition.Staged(licencePositionStagedPayload))));
   }
 
   @Test
@@ -857,7 +857,7 @@ class LicencePositionChangeViewResolverTest {
 
   @Test
   void buildTransferEquityChangeView_whenExecutedAddChange_populatesUndoNotRemove() {
-    var urlContext = PositionChangeUrlContext.forExecutedPosition(CORRECTION, LICENCE_POSITION, POSITION_CORRECTION);
+    var urlContext = PositionChangeUrlContext.forExecutedPosition(CORRECTION, LICENCE_POSITION, POSITION_STAGED_PAYLOAD);
     var view = transferEquityChangeView(LicencePositionChangeType.ADD_CHANGE, urlContext, null);
 
     assertThat(view.urls().remove()).isNull();
@@ -1105,17 +1105,17 @@ class LicencePositionChangeViewResolverTest {
     var correction = LicenceCorrectionTestUtil.newBuilder().build();
     var positionId = UUID.randomUUID();
     var licencePosition = LicencePositionTestUtil.newBuilder().withId(positionId).build();
-    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder().build();
+    var positionStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder().build();
 
     var result = partialSurrenderChangeView(
         positionId, UUID.randomUUID().toString(),
         LicencePositionChangeType.UPDATE_CHANGE_OPERATIONS,
-        PositionChangeUrlContext.forExecutedPosition(correction, licencePosition, positionCorrection)
+        PositionChangeUrlContext.forExecutedPosition(correction, licencePosition, positionStagedPayload)
     );
 
     assertThat(result.urls().correct()).isEqualTo(
         ReverseRouter.route(on(PartialSurrenderTaskListController.class)
-            .renderTaskList(correction, positionCorrection, null)));
+            .renderTaskList(correction, positionStagedPayload, null)));
   }
 
   @Test
@@ -1123,16 +1123,16 @@ class LicencePositionChangeViewResolverTest {
     var correction = LicenceCorrectionTestUtil.newBuilder().build();
     var positionId = UUID.randomUUID();
     var licencePosition = LicencePositionTestUtil.newBuilder().withId(positionId).build();
-    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder().build();
+    var positionStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder().build();
 
     var result = partialSurrenderChangeView(
         positionId, UUID.randomUUID().toString(), LicencePositionChangeType.ADD_CHANGE,
-        PositionChangeUrlContext.forExecutedPosition(correction, licencePosition, positionCorrection)
+        PositionChangeUrlContext.forExecutedPosition(correction, licencePosition, positionStagedPayload)
     );
 
     assertThat(result.urls().correct()).isEqualTo(
         ReverseRouter.route(on(PartialSurrenderTaskListController.class)
-            .renderTaskList(correction, positionCorrection, null)));
+            .renderTaskList(correction, positionStagedPayload, null)));
   }
 
   @Test
@@ -1143,7 +1143,7 @@ class LicencePositionChangeViewResolverTest {
 
     var result = partialSurrenderChangeView(
         positionId, UUID.randomUUID().toString(), LicencePositionChangeType.REMOVE_CHANGE,
-        PositionChangeUrlContext.forExecutedPosition(correction, licencePosition, POSITION_CORRECTION)
+        PositionChangeUrlContext.forExecutedPosition(correction, licencePosition, POSITION_STAGED_PAYLOAD)
     );
 
     assertThat(result.urls().correct()).isNull();
@@ -1153,16 +1153,16 @@ class LicencePositionChangeViewResolverTest {
   void getChangeViews_whenPartialSurrenderOnAnAddedPosition_linksToTheStagedTaskList() {
     var correction = LicenceCorrectionTestUtil.newBuilder().build();
     var positionId = UUID.randomUUID();
-    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder().build();
+    var positionStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder().build();
 
     var result = partialSurrenderChangeView(
         positionId, UUID.randomUUID().toString(), LicencePositionChangeType.ADD_CHANGE,
-        PositionChangeUrlContext.forAddedPosition(correction, positionCorrection)
+        PositionChangeUrlContext.forAddedPosition(correction, positionStagedPayload)
     );
 
     assertThat(result.urls().correct()).isEqualTo(
         ReverseRouter.route(on(PartialSurrenderTaskListController.class)
-            .renderTaskList(correction, positionCorrection, null)));
+            .renderTaskList(correction, positionStagedPayload, null)));
   }
 
   @Test
@@ -1206,22 +1206,22 @@ class LicencePositionChangeViewResolverTest {
     var positionId = UUID.randomUUID();
     var licencePosition = LicencePositionTestUtil.newBuilder().withId(positionId).build();
     var changeId = UUID.randomUUID().toString();
-    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder().build();
+    var positionStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder().build();
 
     var result = partialSurrenderChangeView(
         positionId, changeId, changeType,
-        PositionChangeUrlContext.forExecutedPosition(correction, licencePosition, positionCorrection)
+        PositionChangeUrlContext.forExecutedPosition(correction, licencePosition, positionStagedPayload)
     );
 
     var correctUrl = correctable
         ? ReverseRouter.route(on(PartialSurrenderTaskListController.class)
-            .renderTaskList(correction, positionCorrection, null))
+            .renderTaskList(correction, positionStagedPayload, null))
         : null;
     var undoUrl = ReverseRouter.route(on(ChangeActionController.class)
         .undoChange(correction, changeId, null, null));
     var viewUrl = correctable
         ? ReverseRouter.route(on(PartialSurrenderReviewAndSubmitController.class)
-            .renderReviewAndSubmit(correction, positionCorrection, null))
+            .renderReviewAndSubmit(correction, positionStagedPayload, null))
         : null;
 
     assertThat(result.urls()).isEqualTo(new ChangeViewUrls(
@@ -1239,16 +1239,16 @@ class LicencePositionChangeViewResolverTest {
     var correction = LicenceCorrectionTestUtil.newBuilder().build();
     var positionId = UUID.randomUUID();
     var changeId = UUID.randomUUID().toString();
-    var positionCorrection = LicencePositionCorrectionTestUtil.newBuilder().build();
+    var positionStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder().build();
 
     var result = partialSurrenderChangeView(
         positionId, changeId, LicencePositionChangeType.ADD_CHANGE,
-        PositionChangeUrlContext.forAddedPosition(correction, positionCorrection)
+        PositionChangeUrlContext.forAddedPosition(correction, positionStagedPayload)
     );
 
     assertThat(result.urls()).isEqualTo(new ChangeViewUrls(
         ReverseRouter.route(on(PartialSurrenderTaskListController.class)
-            .renderTaskList(correction, positionCorrection, null)),
+            .renderTaskList(correction, positionStagedPayload, null)),
         null,
         ReverseRouter.route(on(ChangeActionController.class)
             .undoChange(correction, changeId, null, null)),
@@ -1256,7 +1256,7 @@ class LicencePositionChangeViewResolverTest {
         null,
         correctPositionUrl(correction.getId(), positionId, UUID.fromString(changeId)),
         ReverseRouter.route(on(PartialSurrenderReviewAndSubmitController.class)
-            .renderReviewAndSubmit(correction, positionCorrection, null))));
+            .renderReviewAndSubmit(correction, positionStagedPayload, null))));
   }
 
   @Test
@@ -1382,7 +1382,7 @@ class LicencePositionChangeViewResolverTest {
     var correction = LicenceCorrectionTestUtil.newBuilder().build();
     var licencePosition = LicencePositionTestUtil.newBuilder().build();
     var changeId = UUID.randomUUID().toString();
-    var urlContext = PositionChangeUrlContext.forExecutedPosition(correction, licencePosition, POSITION_CORRECTION);
+    var urlContext = PositionChangeUrlContext.forExecutedPosition(correction, licencePosition, POSITION_STAGED_PAYLOAD);
 
     var view = subareaEquityChangeView(changeId, LicencePositionChangeType.ADD_CHANGE, urlContext);
 
@@ -1434,13 +1434,13 @@ class LicencePositionChangeViewResolverTest {
   @Test
   void getChangeViews_whenAddedPositionSubareaEquityAddChange_thenCorrectLinksToAddedSummaryForThatSubarea() {
     var correction = LicenceCorrectionTestUtil.newBuilder().build();
-    var licencePositionCorrection = LicencePositionCorrectionTestUtil.newBuilder().build();
-    var urlContext = PositionChangeUrlContext.forAddedPosition(correction, licencePositionCorrection);
+    var licencePositionStagedPayload = LicencePositionStagedPayloadTestUtil.newBuilder().build();
+    var urlContext = PositionChangeUrlContext.forAddedPosition(correction, licencePositionStagedPayload);
 
     var view = subareaEquityChangeView(UUID.randomUUID().toString(), LicencePositionChangeType.ADD_CHANGE, urlContext);
 
     assertThat(view.urls().correct()).isEqualTo(ReverseRouter.route(on(LicencePositionSubareaSetEquityController.class)
-        .renderSummaryForPosition(new CorrectionPosition.Staged(licencePositionCorrection), SUBAREA_KEY)));
+        .renderSummaryForPosition(new CorrectionPosition.Staged(licencePositionStagedPayload), SUBAREA_KEY)));
   }
 
   private SubareaEquityChangeView subareaEquityChangeView(

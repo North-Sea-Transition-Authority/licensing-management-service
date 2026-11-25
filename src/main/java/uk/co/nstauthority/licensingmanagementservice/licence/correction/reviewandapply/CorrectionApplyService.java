@@ -22,8 +22,8 @@ import uk.co.fivium.gisframework.feature.FeatureService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionChangeType;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayload;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.PartialSurrenderCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.AddChange;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
@@ -125,7 +125,7 @@ public class CorrectionApplyService {
     var blockingErrors = licencePositionValidationService.validate(
         correctedTimeline.positionsToApply(),
         correctedTimeline.resolvedStates(),
-        correctedTimeline.positionCorrections(),
+        correctedTimeline.positionStagedPayloads(),
         correctedTimeline.licenceType(),
         licenceStatusType
     );
@@ -134,10 +134,10 @@ public class CorrectionApplyService {
       return blockingErrors;
     }
 
-    var positionCorrections = correctedTimeline.positionCorrections();
+    var positionStagedPayloads = correctedTimeline.positionStagedPayloads();
     var appliedCommandJourneyIds = new LinkedHashSet<UUID>();
 
-    revertReplacedPartialSurrenders(positionCorrections);
+    revertReplacedPartialSurrenders(positionStagedPayloads);
 
     if (!correctedTimeline.displayedPositions().isEmpty()) {
       var latestState = getLatestState(correctedTimeline.resolvedStates(), correctedTimeline.displayedPositions());
@@ -148,23 +148,24 @@ public class CorrectionApplyService {
       );
     }
 
-    positionCorrectionsOfType(positionCorrections, LicencePositionCorrectionChangeType.UPDATE_POSITION)
+    positionStagedPayloadsOfType(positionStagedPayloads, LicencePositionStagedPayloadChangeType.UPDATE_POSITION)
         .forEach(this::updatePosition);
 
     var addedPositionsById = new HashMap<UUID, LicencePosition>();
-    positionCorrectionsOfType(positionCorrections, LicencePositionCorrectionChangeType.ADD_POSITION)
-        .forEach(positionCorrection -> addedPositionsById.put(
-            positionCorrection.getPositionId(),
-            addPosition(licenceCorrection, positionCorrection)));
+    positionStagedPayloadsOfType(positionStagedPayloads, LicencePositionStagedPayloadChangeType.ADD_POSITION)
+        .forEach(positionStagedPayload -> addedPositionsById.put(
+            positionStagedPayload.getPositionId(),
+            addPosition(licenceCorrection, positionStagedPayload)));
 
-    var mergedRetainedSourceFeatureIds = mergedRetainedSourceFeatureIdsOf(positionCorrections);
+    var mergedRetainedSourceFeatureIds = mergedRetainedSourceFeatureIdsOf(positionStagedPayloads);
 
-    positionCorrections.stream()
-        .filter(positionCorrection ->
-            positionCorrection.getChangeType() != LicencePositionCorrectionChangeType.REMOVE_POSITION)
-        .forEach(positionCorrection -> applyStagedChanges(positionCorrection, addedPositionsById, appliedCommandJourneyIds));
+    positionStagedPayloads.stream()
+        .filter(positionStagedPayload ->
+            positionStagedPayload.getChangeType() != LicencePositionStagedPayloadChangeType.REMOVE_POSITION)
+        .forEach(positionStagedPayload ->
+            applyStagedChanges(positionStagedPayload, addedPositionsById, appliedCommandJourneyIds));
 
-    positionCorrectionsOfType(positionCorrections, LicencePositionCorrectionChangeType.REMOVE_POSITION)
+    positionStagedPayloadsOfType(positionStagedPayloads, LicencePositionStagedPayloadChangeType.REMOVE_POSITION)
         .forEach(this::removePosition);
 
     appliedCommandJourneyIds.forEach(commandJourneyService::deleteAllExcludingActiveFeatures);
@@ -177,11 +178,11 @@ public class CorrectionApplyService {
     licenceCorrectionService.completeCorrection(licenceCorrection);
 
     LOGGER.info(
-        "Applied licence correction {} ({}) to licence {} with {} position corrections",
+        "Applied licence correction {} ({}) to licence {} with {} position staged payloads",
         licenceCorrection.getId(),
         licenceCorrection.getCorrectionReference(),
         licenceCorrection.getLicence().getId(),
-        positionCorrections.size()
+        positionStagedPayloads.size()
     );
 
     return List.of();
@@ -195,9 +196,9 @@ public class CorrectionApplyService {
     return states.currentState(latestPosition.id());
   }
 
-  private void updatePosition(LicencePositionCorrection positionCorrection) {
-    var payload = (UpdateLicencePositionPayload) positionCorrection.getPayload();
-    var licencePosition = positionCorrection.getTargetLicencePosition();
+  private void updatePosition(LicencePositionStagedPayload positionStagedPayload) {
+    var payload = (UpdateLicencePositionPayload) positionStagedPayload.getPayload();
+    var licencePosition = positionStagedPayload.getTargetLicencePosition();
 
     if (payload.effectiveDate() != null) {
       licencePosition.setPositionDate(payload.effectiveDate());
@@ -218,9 +219,9 @@ public class CorrectionApplyService {
 
   private LicencePosition addPosition(
       LicenceCorrection licenceCorrection,
-      LicencePositionCorrection positionCorrection
+      LicencePositionStagedPayload positionStagedPayload
   ) {
-    var payload = createPayloadOf(positionCorrection);
+    var payload = createPayloadOf(positionStagedPayload);
     var licence = licenceCorrection.getLicence();
     var licenceTransactionId = UUID.fromString(payload.licenceTransactionId());
     var correctionReference = Objects.requireNonNullElse(
@@ -230,7 +231,7 @@ public class CorrectionApplyService {
         .orElseGet(() -> licenceTransactionService.createLicenceTransaction(
             licenceTransactionId, correctionReference));
 
-    var licencePosition = new LicencePosition(positionCorrection.getPositionId());
+    var licencePosition = new LicencePosition(positionStagedPayload.getPositionId());
     licencePosition.setLicence(licence);
     licencePosition.setLicenceTransaction(licenceTransaction);
     licencePosition.setPositionDate(payload.effectiveDate());
@@ -242,20 +243,20 @@ public class CorrectionApplyService {
     return licencePosition;
   }
 
-  private void removePosition(LicencePositionCorrection positionCorrection) {
-    var licencePosition = positionCorrection.getTargetLicencePosition();
+  private void removePosition(LicencePositionStagedPayload positionStagedPayload) {
+    var licencePosition = positionStagedPayload.getTargetLicencePosition();
     licencePosition.setStatus(LicencePositionStatus.REMOVED);
 
     licencePositionRepository.save(licencePosition);
   }
 
   private void applyStagedChanges(
-      LicencePositionCorrection positionCorrection,
+      LicencePositionStagedPayload positionStagedPayload,
       Map<UUID, LicencePosition> addedPositionsById,
       Set<UUID> appliedCommandJourneyIds
   ) {
-    var payload = positionCorrection.getPayload();
-    var licencePosition = resolvePosition(positionCorrection, addedPositionsById);
+    var payload = positionStagedPayload.getPayload();
+    var licencePosition = resolvePosition(positionStagedPayload, addedPositionsById);
 
     payload.changesOfType(RemoveChange.class).forEach(this::removeChange);
     payload.changesOfType(AddChange.class).forEach(change -> addChange(licencePosition, change, appliedCommandJourneyIds));
@@ -330,12 +331,12 @@ public class CorrectionApplyService {
         .toList();
   }
 
-  private static Set<UUID> mergedRetainedSourceFeatureIdsOf(List<LicencePositionCorrection> positionCorrections) {
-    return positionCorrections.stream()
-        .filter(positionCorrection ->
-            positionCorrection.getChangeType() != LicencePositionCorrectionChangeType.REMOVE_POSITION)
-        .filter(positionCorrection -> positionCorrection.getPayload() != null)
-        .flatMap(positionCorrection -> positionCorrection.getPayload().changes().stream())
+  private static Set<UUID> mergedRetainedSourceFeatureIdsOf(List<LicencePositionStagedPayload> positionStagedPayloads) {
+    return positionStagedPayloads.stream()
+        .filter(positionStagedPayload ->
+            positionStagedPayload.getChangeType() != LicencePositionStagedPayloadChangeType.REMOVE_POSITION)
+        .filter(positionStagedPayload -> positionStagedPayload.getPayload() != null)
+        .flatMap(positionStagedPayload -> positionStagedPayload.getPayload().changes().stream())
         .flatMap(change -> LicencePositionChangeType.operationsOf(change).stream())
         .filter(PartialSurrenderOperation.class::isInstance)
         .map(PartialSurrenderOperation.class::cast)
@@ -343,30 +344,30 @@ public class CorrectionApplyService {
         .collect(Collectors.toSet());
   }
 
-  private void revertReplacedPartialSurrenders(List<LicencePositionCorrection> positionCorrections) {
-    var stillCreatedFeatureIds = positionCorrections.stream()
-        .filter(positionCorrection -> positionCorrection.getPayload() != null)
-        .flatMap(positionCorrection -> positionCorrection.getPayload().changes().stream())
+  private void revertReplacedPartialSurrenders(List<LicencePositionStagedPayload> positionStagedPayloads) {
+    var stillCreatedFeatureIds = positionStagedPayloads.stream()
+        .filter(positionStagedPayload -> positionStagedPayload.getPayload() != null)
+        .flatMap(positionStagedPayload -> positionStagedPayload.getPayload().changes().stream())
         .flatMap(change -> LicencePositionChangeType.operationsOf(change).stream())
         .filter(PartialSurrenderOperation.class::isInstance)
         .map(PartialSurrenderOperation.class::cast)
         .flatMap(surrender -> surrender.createdFeatureIds().stream())
         .collect(Collectors.toSet());
 
-    positionCorrections.stream()
-        .flatMap(positionCorrection -> liveChangesReplacedBy(positionCorrection).stream())
+    positionStagedPayloads.stream()
+        .flatMap(positionStagedPayload -> liveChangesReplacedBy(positionStagedPayload).stream())
         .flatMap(change -> LicencePositionChangeOperationUtil
             .findOperation(change, PartialSurrenderOperation.class)
             .stream())
         .forEach(surrender -> partialSurrenderCorrectionService.revertFeatures(surrender, stillCreatedFeatureIds));
   }
 
-  private List<LicencePositionChange> liveChangesReplacedBy(LicencePositionCorrection positionCorrection) {
-    if (positionCorrection.getChangeType() == LicencePositionCorrectionChangeType.REMOVE_POSITION) {
-      return licencePositionChangeService.findByLicencePositionId(positionCorrection.getTargetLicencePosition().getId());
+  private List<LicencePositionChange> liveChangesReplacedBy(LicencePositionStagedPayload positionStagedPayload) {
+    if (positionStagedPayload.getChangeType() == LicencePositionStagedPayloadChangeType.REMOVE_POSITION) {
+      return licencePositionChangeService.findByLicencePositionId(positionStagedPayload.getTargetLicencePosition().getId());
     }
 
-    return positionCorrection.getPayload().changes().stream()
+    return positionStagedPayload.getPayload().changes().stream()
         .filter(change -> change instanceof RemoveChange || change instanceof UpdateChangeOperations)
         .flatMap(change -> licencePositionChangeService.findById(UUID.fromString(change.changeId())).stream())
         .toList();
@@ -390,12 +391,12 @@ public class CorrectionApplyService {
   }
 
   private static LicencePosition resolvePosition(
-      LicencePositionCorrection positionCorrection,
+      LicencePositionStagedPayload positionStagedPayload,
       Map<UUID, LicencePosition> addedPositionsById
   ) {
-    return switch (positionCorrection.getPayload()) {
-      case CreateLicencePositionPayload ignored -> addedPositionsById.get(positionCorrection.getPositionId());
-      case UpdateLicencePositionPayload ignored -> positionCorrection.getTargetLicencePosition();
+    return switch (positionStagedPayload.getPayload()) {
+      case CreateLicencePositionPayload ignored -> addedPositionsById.get(positionStagedPayload.getPositionId());
+      case UpdateLicencePositionPayload ignored -> positionStagedPayload.getTargetLicencePosition();
     };
   }
 
@@ -416,15 +417,15 @@ public class CorrectionApplyService {
         .findFirst();
   }
 
-  private static CreateLicencePositionPayload createPayloadOf(LicencePositionCorrection positionCorrection) {
-    return (CreateLicencePositionPayload) positionCorrection.getPayload();
+  private static CreateLicencePositionPayload createPayloadOf(LicencePositionStagedPayload positionStagedPayload) {
+    return (CreateLicencePositionPayload) positionStagedPayload.getPayload();
   }
 
-  private static Stream<LicencePositionCorrection> positionCorrectionsOfType(
-      List<LicencePositionCorrection> positionCorrections,
-      LicencePositionCorrectionChangeType changeType
+  private static Stream<LicencePositionStagedPayload> positionStagedPayloadsOfType(
+      List<LicencePositionStagedPayload> positionStagedPayloads,
+      LicencePositionStagedPayloadChangeType changeType
   ) {
-    return positionCorrections.stream()
-        .filter(positionCorrection -> positionCorrection.getChangeType() == changeType);
+    return positionStagedPayloads.stream()
+        .filter(positionStagedPayload -> positionStagedPayload.getChangeType() == changeType);
   }
 }

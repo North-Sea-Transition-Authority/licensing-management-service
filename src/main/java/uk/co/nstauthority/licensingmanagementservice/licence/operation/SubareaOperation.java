@@ -180,7 +180,7 @@ public record SubareaOperation(
       public String correct(ChangeUrlTarget target) {
         return switch (target.state()) {
           case ADDED, OPERATIONS_UPDATED -> ReverseRouter.route(on(SubareaChangeReviewController.class)
-              .renderStagedReview(target.correction(), target.positionCorrection(), blockFeatureId, null));
+              .renderStagedReview(target.correction(), target.positionStagedPayload(), blockFeatureId, null));
           case LIVE, ORDER_UPDATED -> ReverseRouter.route(on(SubareaChangeReviewController.class)
               .renderLiveReview(target.correction(), target.licencePosition(), target.changeEntity(), null));
           case REMOVED -> null;
@@ -208,7 +208,7 @@ public record SubareaOperation(
 
       private String stagedReviewAndSubmit(ChangeUrlTarget target) {
         return ReverseRouter.route(on(SubareaChangeReviewController.class)
-            .renderStagedReview(target.correction(), target.positionCorrection(), blockFeatureId, null));
+            .renderStagedReview(target.correction(), target.positionStagedPayload(), blockFeatureId, null));
       }
     };
   }

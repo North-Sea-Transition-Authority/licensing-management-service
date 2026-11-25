@@ -16,9 +16,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.web.servlet.ModelAndView;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayload;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.action.ChangeAction;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
@@ -40,14 +40,14 @@ class PartialSurrenderChangeActionHandlerTest {
   private static final LicencePositionChange LIVE_CHANGE = LicencePositionChangeTestUtil.newBuilder()
       .withId(UUID.fromString(CHANGE_ID))
       .build();
-  private static final LicencePositionCorrection POSITION_CORRECTION = LicencePositionCorrectionTestUtil.newBuilder().build();
+  private static final LicencePositionStagedPayload POSITION_STAGED_PAYLOAD = LicencePositionStagedPayloadTestUtil.newBuilder().build();
   private static final LocalDate SURRENDER_DATE = LocalDate.of(2024, Month.MARCH, 1);
   private static final LocalDate POSITION_DATE = LocalDate.of(2024, Month.JUNE, 1);
   private static final List<PartialSurrenderChangeView.BlockRow> BLOCK_ROWS =
       List.of(new PartialSurrenderChangeView.BlockRow("30/1", List.of("Full surrender")));
 
   @Mock
-  private LicencePositionCorrectionService licencePositionCorrectionService;
+  private LicencePositionStagedPayloadService licencePositionStagedPayloadService;
 
   @Mock
   private PartialSurrenderCorrectionService partialSurrenderCorrectionService;
@@ -71,7 +71,7 @@ class PartialSurrenderChangeActionHandlerTest {
     var surrender = surrenderDated(null);
     when(partialSurrenderCorrectionService.getLiveSurrenderOrThrow(CHANGE_ID)).thenReturn(surrender);
     when(partialSurrenderCorrectionService.getBlockRows(surrender)).thenReturn(BLOCK_ROWS);
-    when(licencePositionCorrectionService.getEffectivePositionDate(CORRECTION, POSITION)).thenReturn(POSITION_DATE);
+    when(licencePositionStagedPayloadService.getEffectivePositionDate(CORRECTION, POSITION)).thenReturn(POSITION_DATE);
 
     var result = partialSurrenderChangeActionHandler.executedChangeConfirmation(CORRECTION, POSITION, LIVE_CHANGE);
 
@@ -81,13 +81,13 @@ class PartialSurrenderChangeActionHandlerTest {
   @Test
   void stagedChangeSummary_whenSurrenderHasItsOwnDate_thenShowsThatDate() {
     var surrender = surrenderDated(SURRENDER_DATE);
-    when(partialSurrenderCorrectionService.getStagedPartialSurrenderOrThrow(POSITION_CORRECTION, CHANGE_ID))
+    when(partialSurrenderCorrectionService.getStagedPartialSurrenderOrThrow(POSITION_STAGED_PAYLOAD, CHANGE_ID))
         .thenReturn(surrender);
     when(partialSurrenderCorrectionService.getBlockRows(surrender)).thenReturn(BLOCK_ROWS);
 
     var result = partialSurrenderChangeActionHandler.stagedChangeConfirmation(
         CORRECTION,
-        POSITION_CORRECTION,
+        POSITION_STAGED_PAYLOAD,
         CHANGE_ID,
         ChangeAction.UNDO
     );
@@ -98,14 +98,14 @@ class PartialSurrenderChangeActionHandlerTest {
   @Test
   void stagedChangeSummary_whenSurrenderHasNoDate_thenShowsTheCorrectedPositionDate() {
     var surrender = surrenderDated(null);
-    when(partialSurrenderCorrectionService.getStagedPartialSurrenderOrThrow(POSITION_CORRECTION, CHANGE_ID))
+    when(partialSurrenderCorrectionService.getStagedPartialSurrenderOrThrow(POSITION_STAGED_PAYLOAD, CHANGE_ID))
         .thenReturn(surrender);
     when(partialSurrenderCorrectionService.getBlockRows(surrender)).thenReturn(BLOCK_ROWS);
-    when(licencePositionCorrectionService.resolveEffectiveDate(POSITION_CORRECTION)).thenReturn(POSITION_DATE);
+    when(licencePositionStagedPayloadService.resolveEffectiveDate(POSITION_STAGED_PAYLOAD)).thenReturn(POSITION_DATE);
 
     var result = partialSurrenderChangeActionHandler.stagedChangeConfirmation(
         CORRECTION,
-        POSITION_CORRECTION,
+        POSITION_STAGED_PAYLOAD,
         CHANGE_ID,
         ChangeAction.UNDO
     );
@@ -117,7 +117,7 @@ class PartialSurrenderChangeActionHandlerTest {
   void beforeDroppingStagedChange() {
     var stagedChange = LicencePositionChangeType.removeChange().withChangeId(CHANGE_ID).build();
 
-    partialSurrenderChangeActionHandler.beforeDroppingStagedChange(POSITION_CORRECTION, stagedChange);
+    partialSurrenderChangeActionHandler.beforeDroppingStagedChange(POSITION_STAGED_PAYLOAD, stagedChange);
 
     verify(partialSurrenderCorrectionService).deleteStagedSurrenderArtefacts(stagedChange);
   }

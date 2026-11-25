@@ -7,8 +7,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePos
 
 public record CorrectionPositions(
     List<LicencePosition> executedPositions,
-    List<LicencePositionCorrection> addCorrections,
-    List<LicencePositionCorrection> updateCorrections,
+    List<LicencePositionStagedPayload> addStagedPayloads,
+    List<LicencePositionStagedPayload> updateStagedPayloads,
     Set<UUID> removedPositionIds
 ) {
 }

@@ -15,7 +15,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetailTestUtil;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.LicencePositionState;
 import uk.co.nstauthority.licensingmanagementservice.summary.SummaryCard;
@@ -30,7 +30,7 @@ class PartialSurrenderSummarySectionServiceTest {
 
   private static final ServiceUserDetail USER = ServiceUserDetailTestUtil.newBuilder().build();
   private static final PartialSurrenderSummaryContext CONTEXT = new PartialSurrenderSummaryContext.Staged(
-      LicencePositionCorrectionTestUtil.newBuilder().build(),
+      LicencePositionStagedPayloadTestUtil.newBuilder().build(),
       LicenceOperation.newPartialSurrenderOperation().withSurrenderedFeatureIds(List.of(UUID.randomUUID())).build(),
       LicencePositionState.EMPTY
   );

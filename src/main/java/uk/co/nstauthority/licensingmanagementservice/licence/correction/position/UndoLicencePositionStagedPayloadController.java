@@ -10,7 +10,7 @@ import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.CorrectionHasStatus;
 import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.InvokingUserCanViewCorrection;
-import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.LicencePositionCorrectionBelongsToCorrection;
+import uk.co.nstauthority.licensingmanagementservice.authorisation.rules.correction.LicencePositionStagedPayloadBelongsToCorrection;
 import uk.co.nstauthority.licensingmanagementservice.fds.notificationbanner.NotificationBanner;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionController;
@@ -20,58 +20,58 @@ import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.util.DateUtil;
 
 @Controller
-@RequestMapping("/licence-corrections/{correctionId}/positions/{licencePositionCorrectionId}/undo")
+@RequestMapping("/licence-corrections/{correctionId}/positions/{licencePositionStagedPayloadId}/undo")
 @InvokingUserCanViewCorrection
 @CorrectionHasStatus(LicenceCorrectionStatus.IN_PROGRESS)
-@LicencePositionCorrectionBelongsToCorrection
-public class UndoLicencePositionCorrectionController {
+@LicencePositionStagedPayloadBelongsToCorrection
+public class UndoLicencePositionStagedPayloadController {
 
   private static final String PAGE_TITLE = "Are you sure you want to undo this position?";
 
-  private final LicencePositionCorrectionService licencePositionCorrectionService;
+  private final LicencePositionStagedPayloadService licencePositionStagedPayloadService;
 
-  public UndoLicencePositionCorrectionController(
-      LicencePositionCorrectionService licencePositionCorrectionService
+  public UndoLicencePositionStagedPayloadController(
+      LicencePositionStagedPayloadService licencePositionStagedPayloadService
   ) {
-    this.licencePositionCorrectionService = licencePositionCorrectionService;
+    this.licencePositionStagedPayloadService = licencePositionStagedPayloadService;
   }
 
   @GetMapping
   public ModelAndView renderUndoPosition(
       LicenceCorrection licenceCorrection,
-      LicencePositionCorrection licencePositionCorrection
+      LicencePositionStagedPayload licencePositionStagedPayload
   ) {
-    return undoPositionModelAndView(licenceCorrection, licencePositionCorrection);
+    return undoPositionModelAndView(licenceCorrection, licencePositionStagedPayload);
   }
 
   @PostMapping
   ModelAndView undoPosition(
       LicenceCorrection licenceCorrection,
-      LicencePositionCorrection licencePositionCorrection,
+      LicencePositionStagedPayload licencePositionStagedPayload,
       RedirectAttributes redirectAttributes
   ) {
-    licencePositionCorrectionService.undoPositionCorrection(licencePositionCorrection);
+    licencePositionStagedPayloadService.undoPositionStagedPayload(licencePositionStagedPayload);
 
     NotificationBanner.newSuccessBanner()
         .withHeadingContent("Licence correction position undone")
         .applyTo(redirectAttributes);
 
     // Undoing an added position deletes it, so there is no position left to return to.
-    if (licencePositionCorrection.getChangeType() == LicencePositionCorrectionChangeType.ADD_POSITION) {
+    if (licencePositionStagedPayload.getChangeType() == LicencePositionStagedPayloadChangeType.ADD_POSITION) {
       return ReverseRouter.redirect(on(LicenceCorrectionController.class).renderCorrection(licenceCorrection, null));
     }
 
-    return LicencePositionCorrectionRouteUtil.redirectToPositionPage(
+    return LicencePositionStagedPayloadRouteUtil.redirectToPositionPage(
         licenceCorrection,
-        licencePositionCorrection.getTargetLicencePosition().getId()
+        licencePositionStagedPayload.getTargetLicencePosition().getId()
     );
   }
 
   private ModelAndView undoPositionModelAndView(
       LicenceCorrection correction,
-      LicencePositionCorrection positionCorrection
+      LicencePositionStagedPayload positionStagedPayload
   ) {
-    var payload = (CreateLicencePositionPayload) positionCorrection.getPayload();
+    var payload = (CreateLicencePositionPayload) positionStagedPayload.getPayload();
     var positionDate = payload.effectiveDate();
     return new ModelAndView("lms/licence/correction/undoPosition")
         .addObject("pageTitle", PAGE_TITLE)

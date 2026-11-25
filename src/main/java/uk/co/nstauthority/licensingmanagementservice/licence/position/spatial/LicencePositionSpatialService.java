@@ -12,7 +12,7 @@ import org.springframework.stereotype.Service;
 import uk.co.fivium.gisframework.feature.Feature;
 import uk.co.fivium.gisframework.feature.FeatureService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayload;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaDetails;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.ChronologicalPositionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
@@ -45,12 +45,12 @@ public class LicencePositionSpatialService {
   }
 
   public List<Feature> getBlockFeaturesGoingIntoChange(
-      LicencePositionCorrection licencePositionCorrection,
+      LicencePositionStagedPayload licencePositionStagedPayload,
       @Nullable String changeId
   ) {
     return getBlockFeaturesGoingIntoChange(
-        licencePositionCorrection.getLicenceCorrection(),
-        licencePositionCorrection.getPositionId(),
+        licencePositionStagedPayload.getLicenceCorrection(),
+        licencePositionStagedPayload.getPositionId(),
         changeId
     );
   }
@@ -66,13 +66,13 @@ public class LicencePositionSpatialService {
   }
 
   public List<SubareaDetails> getSubareasGoingIntoChange(
-      LicencePositionCorrection licencePositionCorrection,
+      LicencePositionStagedPayload licencePositionStagedPayload,
       UUID blockFeatureId,
       @Nullable String changeId
   ) {
     return getSubareasGoingIntoChange(
-        licencePositionCorrection.getLicenceCorrection(),
-        licencePositionCorrection.getPositionId(),
+        licencePositionStagedPayload.getLicenceCorrection(),
+        licencePositionStagedPayload.getPositionId(),
         blockFeatureId,
         changeId
     );
@@ -105,12 +105,12 @@ public class LicencePositionSpatialService {
   }
 
   public LicencePositionState getStateGoingIntoChange(
-      LicencePositionCorrection licencePositionCorrection,
+      LicencePositionStagedPayload licencePositionStagedPayload,
       @Nullable String changeId
   ) {
     return getStateGoingIntoChange(
-        licencePositionCorrection.getLicenceCorrection(),
-        licencePositionCorrection.getPositionId(),
+        licencePositionStagedPayload.getLicenceCorrection(),
+        licencePositionStagedPayload.getPositionId(),
         changeId
     );
   }
@@ -147,15 +147,15 @@ public class LicencePositionSpatialService {
    * The state at the end of the position as if the given change had never been made, in either its live or staged form.
    */
   public LicencePositionState getStateAtEndOfPositionWithoutChange(
-      LicencePositionCorrection licencePositionCorrection,
+      LicencePositionStagedPayload licencePositionStagedPayload,
       String changeId
   ) {
-    var licencePositionId = licencePositionCorrection.getPositionId();
+    var licencePositionId = licencePositionStagedPayload.getPositionId();
     var state = LicencePositionState.EMPTY;
 
     var changes = getChangesGoingIntoChange(
         chronologicalPositionService.getCorrectedChronologicalPositions(
-            licencePositionCorrection.getLicenceCorrection(),
+            licencePositionStagedPayload.getLicenceCorrection(),
             licencePositionId
         ),
         licencePositionId,

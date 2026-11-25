@@ -10,7 +10,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.position.change.vie
 
 record CorrectionTimelinePositions(
     List<LicencePosition> executedPositions,
-    List<LicencePositionCorrection> positionCorrections,
+    List<LicencePositionStagedPayload> positionStagedPayloads,
     Set<UUID> removedPositionIds,
     Map<UUID, UpdateLicencePositionPayload> updatedPositionPayloadsByTargetId,
     List<ChronologicalPosition> correctionTimelinePositions

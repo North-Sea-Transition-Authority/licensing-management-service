@@ -19,9 +19,9 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectionPosition;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionChangeType;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayload;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadChangeType;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.LicencePositionPartialSurrenderController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.PartialSurrenderCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.PartialSurrenderDetailsFormValidator;
@@ -41,7 +41,7 @@ import uk.co.nstauthority.licensingmanagementservice.tasklist.TaskListSection;
 class PartialSurrenderDetailsTaskListSectionServiceTest {
 
   private static final UUID CORRECTION_ID = UUID.randomUUID();
-  private static final UUID POSITION_CORRECTION_ID = UUID.randomUUID();
+  private static final UUID POSITION_STAGED_PAYLOAD_ID = UUID.randomUUID();
   private static final UUID POSITION_ID = UUID.randomUUID();
 
   private static final LicenceCorrection CORRECTION = LicenceCorrectionTestUtil.newBuilder()
@@ -70,23 +70,23 @@ class PartialSurrenderDetailsTaskListSectionServiceTest {
 
   @Test
   void getSection_whenAddedPosition_thenLinksToTheAddedPositionSurrenderDetails() {
-    var positionCorrection = positionCorrection(LicencePositionCorrectionChangeType.ADD_POSITION);
-    var context = new PartialSurrenderTaskListContext.Staged(positionCorrection);
-    givenSurrenderDetails(positionCorrection, List.of(BLOCK.getId()), List.of(BLOCK));
+    var positionStagedPayload = positionStagedPayload(LicencePositionStagedPayloadChangeType.ADD_POSITION);
+    var context = new PartialSurrenderTaskListContext.Staged(positionStagedPayload);
+    givenSurrenderDetails(positionStagedPayload, List.of(BLOCK.getId()), List.of(BLOCK));
 
     var section = partialSurrenderDetailsTaskListSectionService.getSection(context, USER);
 
     assertThat(section).contains(expectedSection(
         TaskListLabel.COMPLETE,
         ReverseRouter.route(on(LicencePositionPartialSurrenderController.class)
-            .renderForPosition(new CorrectionPosition.Staged(positionCorrection)))));
+            .renderForPosition(new CorrectionPosition.Staged(positionStagedPayload)))));
   }
 
   @Test
   void getSection_whenExecutedPosition_thenLinksToTheExecutedPositionSurrenderDetails() {
-    var positionCorrection = positionCorrection(LicencePositionCorrectionChangeType.UPDATE_POSITION);
-    var context = new PartialSurrenderTaskListContext.Staged(positionCorrection);
-    givenSurrenderDetails(positionCorrection, List.of(BLOCK.getId()), List.of(BLOCK));
+    var positionStagedPayload = positionStagedPayload(LicencePositionStagedPayloadChangeType.UPDATE_POSITION);
+    var context = new PartialSurrenderTaskListContext.Staged(positionStagedPayload);
+    givenSurrenderDetails(positionStagedPayload, List.of(BLOCK.getId()), List.of(BLOCK));
 
     var section = partialSurrenderDetailsTaskListSectionService.getSection(context, USER);
 
@@ -98,9 +98,9 @@ class PartialSurrenderDetailsTaskListSectionServiceTest {
 
   @Test
   void getSection_whenNoSurrenderStaged_thenNotComplete() {
-    var positionCorrection = positionCorrection(LicencePositionCorrectionChangeType.UPDATE_POSITION);
-    var context = new PartialSurrenderTaskListContext.Staged(positionCorrection);
-    givenSurrenderDetails(positionCorrection, List.of(), List.of(BLOCK));
+    var positionStagedPayload = positionStagedPayload(LicencePositionStagedPayloadChangeType.UPDATE_POSITION);
+    var context = new PartialSurrenderTaskListContext.Staged(positionStagedPayload);
+    givenSurrenderDetails(positionStagedPayload, List.of(), List.of(BLOCK));
 
     var section = partialSurrenderDetailsTaskListSectionService.getSection(context, USER);
 
@@ -112,9 +112,9 @@ class PartialSurrenderDetailsTaskListSectionServiceTest {
 
   @Test
   void getSection_whenStagedBlockIsNoLongerSurrenderable_thenNotComplete() {
-    var positionCorrection = positionCorrection(LicencePositionCorrectionChangeType.UPDATE_POSITION);
-    var context = new PartialSurrenderTaskListContext.Staged(positionCorrection);
-    givenSurrenderDetails(positionCorrection, List.of(BLOCK.getId()), List.of(OTHER_BLOCK));
+    var positionStagedPayload = positionStagedPayload(LicencePositionStagedPayloadChangeType.UPDATE_POSITION);
+    var context = new PartialSurrenderTaskListContext.Staged(positionStagedPayload);
+    givenSurrenderDetails(positionStagedPayload, List.of(BLOCK.getId()), List.of(OTHER_BLOCK));
 
     var section = partialSurrenderDetailsTaskListSectionService.getSection(context, USER);
 
@@ -140,22 +140,22 @@ class PartialSurrenderDetailsTaskListSectionServiceTest {
   @Test
   void getSection_whenPositionIsBeingRemoved_thenThrows() {
     var context = new PartialSurrenderTaskListContext.Staged(
-        positionCorrection(LicencePositionCorrectionChangeType.REMOVE_POSITION));
+        positionStagedPayload(LicencePositionStagedPayloadChangeType.REMOVE_POSITION));
 
     assertThatThrownBy(() -> partialSurrenderDetailsTaskListSectionService.getSection(context, USER))
         .isInstanceOf(IllegalStateException.class)
-        .hasMessageContaining(POSITION_CORRECTION_ID.toString());
+        .hasMessageContaining(POSITION_STAGED_PAYLOAD_ID.toString());
   }
 
   private void givenSurrenderDetails(
-      LicencePositionCorrection positionCorrection,
+      LicencePositionStagedPayload positionStagedPayload,
       List<UUID> stagedFeatureIds,
       List<Feature> surrenderableBlockFeatures
   ) {
     if (stagedFeatureIds.isEmpty()) {
-      when(partialSurrenderCorrectionService.getCommittedPartialSurrender(positionCorrection))
+      when(partialSurrenderCorrectionService.getCommittedPartialSurrender(positionStagedPayload))
           .thenReturn(Optional.empty());
-      when(licencePositionSpatialService.getBlockFeaturesGoingIntoChange(positionCorrection, null))
+      when(licencePositionSpatialService.getBlockFeaturesGoingIntoChange(positionStagedPayload, null))
           .thenReturn(surrenderableBlockFeatures);
       return;
     }
@@ -163,19 +163,19 @@ class PartialSurrenderDetailsTaskListSectionServiceTest {
     var staged = LicenceOperation.newPartialSurrenderOperation()
         .withSurrenderedFeatureIds(stagedFeatureIds)
         .build();
-    when(partialSurrenderCorrectionService.getCommittedPartialSurrender(positionCorrection))
+    when(partialSurrenderCorrectionService.getCommittedPartialSurrender(positionStagedPayload))
         .thenReturn(Optional.of(staged));
 
     var stagedChange = AddChange.buildOperationsChange(List.of(staged), 1);
-    when(partialSurrenderCorrectionService.getCommittedPartialSurrenderChangeId(positionCorrection))
+    when(partialSurrenderCorrectionService.getCommittedPartialSurrenderChangeId(positionStagedPayload))
         .thenReturn(Optional.of(stagedChange.changeId()));
-    when(licencePositionSpatialService.getBlockFeaturesGoingIntoChange(positionCorrection, stagedChange.changeId()))
+    when(licencePositionSpatialService.getBlockFeaturesGoingIntoChange(positionStagedPayload, stagedChange.changeId()))
         .thenReturn(surrenderableBlockFeatures);
   }
 
-  private LicencePositionCorrection positionCorrection(LicencePositionCorrectionChangeType changeType) {
-    return LicencePositionCorrectionTestUtil.newBuilder()
-        .withId(POSITION_CORRECTION_ID)
+  private LicencePositionStagedPayload positionStagedPayload(LicencePositionStagedPayloadChangeType changeType) {
+    return LicencePositionStagedPayloadTestUtil.newBuilder()
+        .withId(POSITION_STAGED_PAYLOAD_ID)
         .withLicenceCorrection(CORRECTION)
         .withChangeType(changeType)
         .withTargetLicencePosition(POSITION)

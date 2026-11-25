@@ -61,7 +61,7 @@ public class PartialSurrenderLicenceAreaSummarySectionService implements Summary
   private String getLicenceReference(PartialSurrenderSummaryContext context) {
     var licence = switch (context) {
       case PartialSurrenderSummaryContext.Staged staged ->
-          staged.licencePositionCorrection().getLicenceCorrection().getLicence();
+          staged.licencePositionStagedPayload().getLicenceCorrection().getLicence();
       case PartialSurrenderSummaryContext.LiveChange liveChange -> liveChange.licencePosition().getLicence();
     };
     return licence.getLicenceReference();

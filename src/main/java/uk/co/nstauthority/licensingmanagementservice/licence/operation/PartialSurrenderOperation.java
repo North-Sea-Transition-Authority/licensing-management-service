@@ -468,7 +468,7 @@ public record PartialSurrenderOperation(
 
       private static String stagedReviewAndSubmit(ChangeUrlTarget target) {
         return ReverseRouter.route(on(PartialSurrenderReviewAndSubmitController.class)
-            .renderReviewAndSubmit(target.correction(), target.positionCorrection(), null));
+            .renderReviewAndSubmit(target.correction(), target.positionStagedPayload(), null));
       }
     };
   }

@@ -22,40 +22,40 @@ import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 @RequestMapping("/licence-corrections/{correctionId}/add-position")
 @CorrectionHasStatus(LicenceCorrectionStatus.IN_PROGRESS)
 @InvokingUserCanViewCorrection
-public class AddLicencePositionCorrectionController {
+public class AddLicencePositionStagedPayloadController {
 
   private static final String PAGE_TITLE = "Add a position";
 
-  private final AddLicencePositionCorrectionFormValidator addLicencePositionCorrectionValidator;
-  private final LicencePositionCorrectionService licencePositionCorrectionService;
+  private final AddLicencePositionStagedPayloadFormValidator addLicencePositionStagedPayloadValidator;
+  private final LicencePositionStagedPayloadService licencePositionStagedPayloadService;
 
-  public AddLicencePositionCorrectionController(
-      AddLicencePositionCorrectionFormValidator addLicencePositionCorrectionValidator,
-      LicencePositionCorrectionService licencePositionCorrectionService
+  public AddLicencePositionStagedPayloadController(
+      AddLicencePositionStagedPayloadFormValidator addLicencePositionStagedPayloadValidator,
+      LicencePositionStagedPayloadService licencePositionStagedPayloadService
   ) {
-    this.addLicencePositionCorrectionValidator = addLicencePositionCorrectionValidator;
-    this.licencePositionCorrectionService = licencePositionCorrectionService;
+    this.addLicencePositionStagedPayloadValidator = addLicencePositionStagedPayloadValidator;
+    this.licencePositionStagedPayloadService = licencePositionStagedPayloadService;
   }
 
   @GetMapping
-  public ModelAndView renderAddLicencePositionCorrection(
+  public ModelAndView renderAddLicencePositionStagedPayload(
       LicenceCorrection correction
   ) {
-    return addLicencePositionCorrectionModelAndView(correction, new AddLicencePositionCorrectionForm());
+    return addLicencePositionStagedPayloadModelAndView(correction, new AddLicencePositionStagedPayloadForm());
   }
 
   @PostMapping
-  ModelAndView addLicencePositionCorrection(
+  ModelAndView addLicencePositionStagedPayload(
       LicenceCorrection correction,
-      @ModelAttribute("form") AddLicencePositionCorrectionForm form,
+      @ModelAttribute("form") AddLicencePositionStagedPayloadForm form,
       BindingResult bindingResult,
       RedirectAttributes redirectAttributes
   ) {
-    if (addLicencePositionCorrectionValidator.hasErrors(form, correction, bindingResult)) {
-      return addLicencePositionCorrectionModelAndView(correction, form);
+    if (addLicencePositionStagedPayloadValidator.hasErrors(form, correction, bindingResult)) {
+      return addLicencePositionStagedPayloadModelAndView(correction, form);
     }
 
-    var addedPositionId = licencePositionCorrectionService.addNewPosition(
+    var addedPositionId = licencePositionStagedPayloadService.addNewPosition(
         correction,
         form.getPositionDate().getAsLocalDate().orElseThrow(),
         form.getCorrectionReference().getInputValue()
@@ -65,12 +65,12 @@ public class AddLicencePositionCorrectionController {
         .withHeadingContent("Licence correction position added")
         .applyTo(redirectAttributes);
 
-    return LicencePositionCorrectionRouteUtil.redirectToPositionPage(correction, addedPositionId);
+    return LicencePositionStagedPayloadRouteUtil.redirectToPositionPage(correction, addedPositionId);
   }
 
-  private ModelAndView addLicencePositionCorrectionModelAndView(
+  private ModelAndView addLicencePositionStagedPayloadModelAndView(
       LicenceCorrection correction,
-      AddLicencePositionCorrectionForm form
+      AddLicencePositionStagedPayloadForm form
   ) {
     return new ModelAndView("lms/licence/correction/addPosition")
         .addObject("pageTitle", PAGE_TITLE)

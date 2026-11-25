@@ -16,9 +16,9 @@ import org.springframework.util.CollectionUtils;
 import uk.co.nstauthority.licensingmanagementservice.energyportal.organisations.OrganisationUnitQueryService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectionPosition;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionRepository;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayload;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadRepository;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeoperation.LicencePositionAddOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changeoperation.LicencePositionChangeOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.AddChange;
@@ -36,19 +36,19 @@ import uk.co.nstauthority.licensingmanagementservice.util.StreamUtil;
 @Service
 public class TransferEquityCorrectionService {
 
-  private final LicencePositionCorrectionRepository licencePositionCorrectionRepository;
-  private final LicencePositionCorrectionService licencePositionCorrectionService;
+  private final LicencePositionStagedPayloadRepository licencePositionStagedPayloadRepository;
+  private final LicencePositionStagedPayloadService licencePositionStagedPayloadService;
   private final OrganisationUnitQueryService organisationUnitQueryService;
   private final ChronologicalPositionService chronologicalPositionService;
 
   TransferEquityCorrectionService(
-      LicencePositionCorrectionRepository licencePositionCorrectionRepository,
-      LicencePositionCorrectionService licencePositionCorrectionService,
+      LicencePositionStagedPayloadRepository licencePositionStagedPayloadRepository,
+      LicencePositionStagedPayloadService licencePositionStagedPayloadService,
       OrganisationUnitQueryService organisationUnitQueryService,
       ChronologicalPositionService chronologicalPositionService
   ) {
-    this.licencePositionCorrectionRepository = licencePositionCorrectionRepository;
-    this.licencePositionCorrectionService = licencePositionCorrectionService;
+    this.licencePositionStagedPayloadRepository = licencePositionStagedPayloadRepository;
+    this.licencePositionStagedPayloadService = licencePositionStagedPayloadService;
     this.organisationUnitQueryService = organisationUnitQueryService;
     this.chronologicalPositionService = chronologicalPositionService;
   }
@@ -96,43 +96,43 @@ public class TransferEquityCorrectionService {
   }
 
   public List<TransferEquityOperation> getCommittedTransferEquityOperations(
-      LicencePositionCorrection licencePositionCorrection
+      LicencePositionStagedPayload licencePositionStagedPayload
   ) {
-    return transferEquityOperations(licencePositionCorrection.getPayload().changes());
+    return transferEquityOperations(licencePositionStagedPayload.getPayload().changes());
   }
 
   @Transactional
   public void addTransferEquity(
-      LicencePositionCorrection licencePositionCorrection,
+      LicencePositionStagedPayload licencePositionStagedPayload,
       LicencePositionTransferEquityForm form
   ) {
-    var operations = new ArrayList<>(getCommittedTransferEquityOperations(licencePositionCorrection));
+    var operations = new ArrayList<>(getCommittedTransferEquityOperations(licencePositionStagedPayload));
     operations.add(toTransferEquityOperation(form));
-    applyTransferEquity(licencePositionCorrection, operations);
+    applyTransferEquity(licencePositionStagedPayload, operations);
   }
 
   @Transactional
   public void setTransferEquityRetention(
-      LicencePositionCorrection licencePositionCorrection,
+      LicencePositionStagedPayload licencePositionStagedPayload,
       int index,
       boolean retainsBeneficialInterest
   ) {
-    var operations = new ArrayList<>(getCommittedTransferEquityOperations(licencePositionCorrection));
+    var operations = new ArrayList<>(getCommittedTransferEquityOperations(licencePositionStagedPayload));
     if (isOutOfRange(operations, index)) {
       return;
     }
     operations.set(index, withRetention(operations.get(index), retainsBeneficialInterest));
-    applyTransferEquity(licencePositionCorrection, operations);
+    applyTransferEquity(licencePositionStagedPayload, operations);
   }
 
   @Transactional
-  public void removeTransferEquity(LicencePositionCorrection licencePositionCorrection, int index) {
-    var operations = new ArrayList<>(getCommittedTransferEquityOperations(licencePositionCorrection));
+  public void removeTransferEquity(LicencePositionStagedPayload licencePositionStagedPayload, int index) {
+    var operations = new ArrayList<>(getCommittedTransferEquityOperations(licencePositionStagedPayload));
     if (isOutOfRange(operations, index)) {
       return;
     }
     operations.remove(index);
-    applyTransferEquity(licencePositionCorrection, operations);
+    applyTransferEquity(licencePositionStagedPayload, operations);
   }
 
   public List<TransferEquityHoldingView> getTransferEquityViews(List<TransferEquityOperation> operations) {
@@ -189,7 +189,7 @@ public class TransferEquityCorrectionService {
     return switch (correctionPosition) {
       case CorrectionPosition.Executed executed ->
           getCommittedTransferEquityOperationsForExecutedPosition(executed.correction(), executed.licencePosition());
-      case CorrectionPosition.Staged staged -> getCommittedTransferEquityOperations(staged.licencePositionCorrection());
+      case CorrectionPosition.Staged staged -> getCommittedTransferEquityOperations(staged.licencePositionStagedPayload());
     };
   }
 
@@ -198,8 +198,8 @@ public class TransferEquityCorrectionService {
     switch (correctionPosition) {
       case CorrectionPosition.Executed(LicenceCorrection correction, LicencePosition licencePosition) ->
           addTransferEquityForExecutedPosition(correction, licencePosition, form);
-      case CorrectionPosition.Staged(LicencePositionCorrection licencePositionCorrection) ->
-          addTransferEquity(licencePositionCorrection, form);
+      case CorrectionPosition.Staged(LicencePositionStagedPayload licencePositionStagedPayload) ->
+          addTransferEquity(licencePositionStagedPayload, form);
     }
   }
 
@@ -208,8 +208,8 @@ public class TransferEquityCorrectionService {
     switch (correctionPosition) {
       case CorrectionPosition.Executed(LicenceCorrection correction, LicencePosition licencePosition) ->
           setTransferEquityRetentionForExecutedPosition(correction, licencePosition, index, retainsBeneficialInterest);
-      case CorrectionPosition.Staged(LicencePositionCorrection licencePositionCorrection) ->
-          setTransferEquityRetention(licencePositionCorrection, index, retainsBeneficialInterest);
+      case CorrectionPosition.Staged(LicencePositionStagedPayload licencePositionStagedPayload) ->
+          setTransferEquityRetention(licencePositionStagedPayload, index, retainsBeneficialInterest);
     }
   }
 
@@ -218,7 +218,7 @@ public class TransferEquityCorrectionService {
     switch (correctionPosition) {
       case CorrectionPosition.Executed executed ->
           removeTransferEquityForExecutedPosition(executed.correction(), executed.licencePosition(), index);
-      case CorrectionPosition.Staged staged -> removeTransferEquity(staged.licencePositionCorrection(), index);
+      case CorrectionPosition.Staged staged -> removeTransferEquity(staged.licencePositionStagedPayload(), index);
     }
   }
 
@@ -226,7 +226,7 @@ public class TransferEquityCorrectionService {
       LicenceCorrection licenceCorrection,
       LicencePosition licencePosition
   ) {
-    return licencePositionCorrectionService.findUpdatePositionCorrection(licenceCorrection, licencePosition)
+    return licencePositionStagedPayloadService.findUpdatePositionStagedPayload(licenceCorrection, licencePosition)
         .map(this::getCommittedTransferEquityOperations)
         .orElseGet(List::of);
   }
@@ -236,11 +236,12 @@ public class TransferEquityCorrectionService {
       LicencePosition licencePosition,
       LicencePositionTransferEquityForm form
   ) {
-    var positionCorrection = licencePositionCorrectionService.findUpdatePositionCorrection(licenceCorrection, licencePosition)
-        .orElseGet(() -> licencePositionCorrectionService.newUpdatePositionCorrection(licenceCorrection, licencePosition));
-    var operations = new ArrayList<>(getCommittedTransferEquityOperations(positionCorrection));
+    var positionStagedPayload = licencePositionStagedPayloadService
+        .findUpdatePositionStagedPayload(licenceCorrection, licencePosition)
+        .orElseGet(() -> licencePositionStagedPayloadService.newUpdatePositionStagedPayload(licenceCorrection, licencePosition));
+    var operations = new ArrayList<>(getCommittedTransferEquityOperations(positionStagedPayload));
     operations.add(toTransferEquityOperation(form));
-    applyTransferEquity(positionCorrection, operations);
+    applyTransferEquity(positionStagedPayload, operations);
   }
 
   private void setTransferEquityRetentionForExecutedPosition(
@@ -249,14 +250,15 @@ public class TransferEquityCorrectionService {
       int index,
       boolean retainsBeneficialInterest
   ) {
-    var positionCorrection = licencePositionCorrectionService.findUpdatePositionCorrection(licenceCorrection, licencePosition)
-        .orElseGet(() -> licencePositionCorrectionService.newUpdatePositionCorrection(licenceCorrection, licencePosition));
-    var operations = new ArrayList<>(getCommittedTransferEquityOperations(positionCorrection));
+    var positionStagedPayload = licencePositionStagedPayloadService
+        .findUpdatePositionStagedPayload(licenceCorrection, licencePosition)
+        .orElseGet(() -> licencePositionStagedPayloadService.newUpdatePositionStagedPayload(licenceCorrection, licencePosition));
+    var operations = new ArrayList<>(getCommittedTransferEquityOperations(positionStagedPayload));
     if (isOutOfRange(operations, index)) {
       return;
     }
     operations.set(index, withRetention(operations.get(index), retainsBeneficialInterest));
-    applyTransferEquity(positionCorrection, operations);
+    applyTransferEquity(positionStagedPayload, operations);
   }
 
   private void removeTransferEquityForExecutedPosition(
@@ -264,14 +266,15 @@ public class TransferEquityCorrectionService {
       LicencePosition licencePosition,
       int index
   ) {
-    var positionCorrection = licencePositionCorrectionService.findUpdatePositionCorrection(licenceCorrection, licencePosition)
-        .orElseGet(() -> licencePositionCorrectionService.newUpdatePositionCorrection(licenceCorrection, licencePosition));
-    var operations = new ArrayList<>(getCommittedTransferEquityOperations(positionCorrection));
+    var positionStagedPayload = licencePositionStagedPayloadService
+        .findUpdatePositionStagedPayload(licenceCorrection, licencePosition)
+        .orElseGet(() -> licencePositionStagedPayloadService.newUpdatePositionStagedPayload(licenceCorrection, licencePosition));
+    var operations = new ArrayList<>(getCommittedTransferEquityOperations(positionStagedPayload));
     if (isOutOfRange(operations, index)) {
       return;
     }
     operations.remove(index);
-    applyTransferEquity(positionCorrection, operations);
+    applyTransferEquity(positionStagedPayload, operations);
   }
 
   private List<TransferEquityOperation> transferEquityOperations(List<LicencePositionChangeType> changes) {
@@ -335,20 +338,20 @@ public class TransferEquityCorrectionService {
   }
 
   private void applyTransferEquity(
-      LicencePositionCorrection licencePositionCorrection,
+      LicencePositionStagedPayload licencePositionStagedPayload,
       List<TransferEquityOperation> operations
   ) {
-    var payload = licencePositionCorrection.getPayload();
+    var payload = licencePositionStagedPayload.getPayload();
 
     var changes = payload.changes().stream()
         .filter(change -> !isTransferEquityChange(change))
         .collect(Collectors.toCollection(ArrayList::new));
 
     if (!CollectionUtils.isEmpty(operations)) {
-      changes.add(buildTransferEquityChange(operations, licencePositionCorrectionService.nextChangeOrder(changes)));
+      changes.add(buildTransferEquityChange(operations, licencePositionStagedPayloadService.nextChangeOrder(changes)));
     }
 
-    licencePositionCorrection.setPayload(LicencePositionPayload.withChanges(payload, changes));
-    licencePositionCorrectionRepository.save(licencePositionCorrection);
+    licencePositionStagedPayload.setPayload(LicencePositionPayload.withChanges(payload, changes));
+    licencePositionStagedPayloadRepository.save(licencePositionStagedPayload);
   }
 }

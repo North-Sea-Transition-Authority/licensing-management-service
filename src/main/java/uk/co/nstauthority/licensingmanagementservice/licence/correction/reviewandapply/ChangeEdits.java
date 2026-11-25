@@ -9,8 +9,8 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrection;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionCorrectionService;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayload;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.UpdateChangeOperations;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionChangeViewResolver;
@@ -25,21 +25,21 @@ record ChangeEdits(
 ) {
 
   static ChangeEdits from(
-      List<LicencePositionCorrection> positionCorrections,
+      List<LicencePositionStagedPayload> positionStagedPayloads,
       ReviewPositionContext correctedContext,
       ReviewPositionContext executedContext
   ) {
-    var correctionChanges = positionCorrections.stream()
-        .map(LicencePositionCorrection::getPayload)
+    var stagedChanges = positionStagedPayloads.stream()
+        .map(LicencePositionStagedPayload::getPayload)
         .filter(Objects::nonNull)
         .flatMap(payload -> payload.changes().stream())
         .toList();
 
     var correctedChanges = changesByChangeId(correctedContext.positions());
     var executedChanges = changesByChangeId(executedContext.positions());
-    var movedChanges = movedChanges(positionCorrections, correctedContext, executedContext, executedChanges);
+    var movedChanges = movedChanges(positionStagedPayloads, correctedContext, executedContext, executedChanges);
 
-    var correctedChangeIds = changeIdsOfType(correctionChanges, UpdateChangeOperations.class).stream()
+    var correctedChangeIds = changeIdsOfType(stagedChanges, UpdateChangeOperations.class).stream()
         .filter(changeId -> !movedChanges.containsKey(changeId)
             || operationsDiffer(correctedChanges.get(changeId), executedChanges.get(changeId)))
         .collect(Collectors.toSet());
@@ -90,7 +90,7 @@ record ChangeEdits(
   }
 
   private static Map<String, MovedChange> movedChanges(
-      List<LicencePositionCorrection> positionCorrections,
+      List<LicencePositionStagedPayload> positionStagedPayloads,
       ReviewPositionContext correctedContext,
       ReviewPositionContext executedContext,
       Map<String, PositionChange> executedChanges
@@ -101,7 +101,7 @@ record ChangeEdits(
 
     var movedChanges = new HashMap<String, MovedChange>();
 
-    LicencePositionCorrectionService.getUpdatedChangePositionIds(positionCorrections)
+    LicencePositionStagedPayloadService.getUpdatedChangePositionIds(positionStagedPayloads)
         .forEach((changeId, targetPositionId) -> {
           var livePosition = livePositionsByChangeId.get(changeId);
           var targetPosition = correctedPositionsById.get(targetPositionId);
@@ -149,10 +149,10 @@ record ChangeEdits(
   }
 
   private static Set<String> changeIdsOfType(
-      List<LicencePositionChangeType> correctionChanges,
+      List<LicencePositionChangeType> stagedChanges,
       Class<? extends LicencePositionChangeType> changeType
   ) {
-    return correctionChanges.stream()
+    return stagedChanges.stream()
         .filter(changeType::isInstance)
         .map(LicencePositionChangeType::changeId)
         .collect(Collectors.toSet());

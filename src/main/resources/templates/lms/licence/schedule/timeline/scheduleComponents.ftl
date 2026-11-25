@@ -127,3 +127,24 @@
         </@fdsTimeline.timeline>
     </@fdsAccordion.accordionSection>
 </#macro>
+
+<#macro scheduleCommentsSection comments>
+    <#if comments?has_content>
+        <@fdsDetails.summaryDetails summaryTitle="Comments">
+            <#list comments as comment>
+                <@fdsCard.card>
+                    <@fdsDataItems.dataItem>
+                        <@fdsDataItems.dataValues key="Author" value=comment.author()/>
+                        <@fdsDataItems.dataValues key="Posted" value=comment.datetime()/>
+                    </@fdsDataItems.dataItem>
+                    <@fdsDataItems.dataItem>
+                        <@fdsDataItems.dataValues key="Comment" value=comment.comment()/>
+                    </@fdsDataItems.dataItem>
+                    <#if comment.removeCommentUrl()?has_content>
+                        <@fdsAction.link linkText="Remove" linkUrl=springUrl(comment.removeCommentUrl())/>
+                    </#if>
+                </@fdsCard.card>
+            </#list>
+        </@fdsDetails.summaryDetails>
+    </#if>
+</#macro>

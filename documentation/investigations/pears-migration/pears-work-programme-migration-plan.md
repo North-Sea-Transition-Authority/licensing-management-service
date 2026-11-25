@@ -201,14 +201,17 @@ history can be rebuilt from the notes.
   with `status` = `OPEN` | `IN_PROGRESS` | `COMPLETE` | `FULL_WAIVER` | `TRANSFERRED`,
   `appliedDatetime` and `licenceTransferredTo`.
 - `EventComment`: comments on the activity.
-- **Schedule comments (planned, not built yet):** a general comments area above the main schedule,
-  for comments that belong to the schedule as a whole rather than to one event. It is designed in
-  the LMS mockup `mockups/schedule/LicenceScheduleMockupController` (template
-  `lms/mockups/schedule/licenceScheduleTimeline.ftl`, macro `scheduleCommentsSection`).
-  - Each comment has text, author, date/time and a remove link.
-  - A comment can also carry an optional **linked licence** (`ScheduleCommentView.linkedLicenceReference`
-    + URL), shown as a "View licence …" link.
-  - One mockup example is exactly a PEARS transfer case: "Alternative work programme for drill one
+- **Schedule comments (prerequisite A):** a general comments area above the main schedule, for
+  comments that belong to the schedule as a whole rather than to one event. Designed in the LMS
+  mockup `mockups/schedule/LicenceScheduleMockupController`. As built: `ScheduleComment`
+  (`schedule_comments`), keyed on `licence_schedules`, not a version, with text, timestamp and an
+  optional `authorWuaId`.
+  - Shown to regulators only, on the licence's schedule tab and (read-only) on the draft timeline:
+    author, date/time and text.
+  - Schedule and work programme administrators can remove one from the schedule tab at any time.
+  - There is no screen to add one; the migration writes them straight to `ScheduleCommentRepository`.
+  - The mockup's optional **linked licence** ("View licence …") is not built yet. One mockup
+    example is exactly a PEARS transfer case: "Alternative work programme for drill one
     exploration well … to be completed under licence P2500".
 - Changes after licensing come through the schedule/work programme application journeys (amend
   work programme, record of decision), not through direct edits.
@@ -230,7 +233,7 @@ history can be rebuilt from the notes.
 | D7 | `COMPETED_BLOCKS` | Free text per activity (flat list) | No field | Append to the description, or drop. |
 | D8 | Activity statuses | `NOT_STARTED`, `IN_PROGRESS`, `COMPLETE`, `PART_WAIVER`, `FULL_WAIVER`, `WAIVER_DECLINED`, `DROPPED` | `OPEN`, `IN_PROGRESS`, `COMPLETE`, `FULL_WAIVER`, `TRANSFERRED` | `PART_WAIVER`, `WAIVER_DECLINED` and `DROPPED` have no LMS value (see M5). `DROPPED` alone is 466 activities, 10% (WP-S3). |
 | D9 | Status history | `NOTES_LIST` entries carrying `NEW_ACTIVITY_STATUS` + `DATETIME` | `WorkProgrammeActivityStatus` rows with `appliedDatetime` | Good fit: one status row per status note. |
-| D10 | Notes | `NOTE` per activity or `GENERAL` (programme-level). Activity notes often point to a general one ("See General Note below", WP-S3b) | `EventComment` per event, plus the planned **schedule comments** area (mockup) | Activity notes → event comments; general notes → schedule comments (M6). |
+| D10 | Notes | `NOTE` per activity or `GENERAL` (programme-level). Activity notes often point to a general one ("See General Note below", WP-S3b) | `EventComment` per event, plus **schedule comments** (prerequisite A) | Activity notes → event comments; general notes → schedule comments (M6). |
 | D11 | Programme status | `DRAFT` … `COMPLETE`, derived on save | None | Not migrated; LMS can derive it from the activities if needed. Not reliable on phase-organised programmes: a maintain save always sets `COMPLETE`, because the rule only counts flat activities (survey WP-S1f). |
 | D12 | Well-count matrix | 5 × 3 counts (obligated/completed/dropped/waived/waiver declined × firm/contingent/D&D), maintained **by hand**, separate from the activities | None | No home. **WP-S8:** where well activities exist, the matrix agrees with them on all but about 30 programmes, so it adds nothing there. But **872 programmes (844 `P`, 28 `PEDL`) count wells with no well activity at all**, almost certainly because the wells are inside a `LEGACY` summary. For those, the matrix is the only structured record of the well obligations and their outcomes. **Decided (25 November 2026): not migrated** (Open question 14, option C); the `LEGACY` summary text still carries the obligations. |
 | D13 | Breakpoint | Y/M/D from licence start; feeds the documents' `DRILL_DROP_PERIOD`. On only 233 programmes, all `P`/`PEDL` INITIAL, and nearly all whole years (WP-S6) | None (a D&D well could have a `RELATIVE_DATE`) | Due date for D&D wells on 228 programmes (M3 rule 2). The 5 with no D&D activity go to a schedule comment. |
@@ -469,7 +472,7 @@ person can appear under two names (e.g. "Mrs Jen Brzozowska" / "Jen Brzozowska")
 is a full name, not a WUA id. **Decided: `authorWuaId` is left empty** (D20). LMS shows a blank
 author for these, not "Unknown".
 
-**Everything else** goes to the planned **schedule comments** area above the schedule (see Target):
+**Everything else** goes to the **schedule comments** area above the schedule (see Target):
 - `GENERAL` notes;
 - activity notes whose activity isn't migrated, e.g. on the duplicate-programme licences (Q10);
 - activity notes whose `ACTIVITY_ID` matches no activity in the current version. **WP-S9c: none on
@@ -1004,7 +1007,7 @@ general notes as its own records, and PR 5 turns them into entities.
 
 | PR | Delivery step | Contents |
 |---|---|---|
-| A | 3 | **Schedule comments area**, from the mockup (`scheduleCommentsSection`): text, author, date, optional linked licence, with its form, timeline and tests. |
+| A | 3 | **Schedule comments area**, from the mockup (`scheduleCommentsSection`): `schedule_comments` (V140), shown to regulators with author, date and text, removable by schedule and work programme administrators. No add screen; the linked licence is left for later. |
 | B | 4 | **`DROPPED`** (and any waiver statuses WP-L4 adds) in `WorkProgrammeStatus`: form, timeline, reminder closed statuses, tests. Needs WP-L8 and WP-L4 answered. |
 | C | 6 | **Blank author** for comments with no `authorWuaId`, instead of "Unknown". |
 | D | 7 | **Commitment** default or optional, if WP-L9 changes LMS validation. |
@@ -1097,7 +1100,7 @@ the work programme steps in PR 6.
    - **The two waiver types are for the licensing team:** see Open question 12.
 5. **Programme-level data:** legal text, breakpoint, well-count matrix and review audit. Which of
    these must LMS hold? Legal text and breakpoint feed licence documents. **General notes:
-   resolved:** they go to the planned schedule comments area (M6). **Review audit: decided, not
+   resolved:** they go to the schedule comments area (M6, prerequisite A). **Review audit: decided, not
    migrated.** **Well-count matrix: decided, not migrated** (Open question 14). **Legal text: decided (23 November 2026), migrated separately, later.** This
    migration carries the activity descriptions only. LMS builds legal text first, then PEARS legal
    text is migrated in a piece of work of its own. WP-S13: legal text is on 926 programmes on

@@ -16,6 +16,8 @@
             <@scheduleTimeline.timelineSummaryCardReadOnly timelineSummaryCardView=timelineSummaryCardView/>
         </#if>
 
+        <@scheduleTimeline.scheduleCommentsSection comments=scheduleComments![]/>
+
         <#if scheduleHistoryOptions?has_content>
             <@fdsForm.htmlForm actionUrl=springUrl(viewScheduleHistoryUrl)>
                 <@inlineInputAction.inlineInputAction>

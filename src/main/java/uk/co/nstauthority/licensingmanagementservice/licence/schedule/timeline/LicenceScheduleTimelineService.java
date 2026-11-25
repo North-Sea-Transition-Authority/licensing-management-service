@@ -50,6 +50,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesta
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.otherscheduleevent.OtherScheduleEvent;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.otherscheduleevent.OtherScheduleEventDateOption;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.otherscheduleevent.OtherScheduleEventService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.schedulecomments.ScheduleCommentService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.schedulecomments.ScheduleCommentView;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivity;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityDateOption;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityService;
@@ -79,6 +81,7 @@ public class LicenceScheduleTimelineService {
   private final LicenceStatusService licenceStatusService;
   private final LicenceResponsibleOrganisationService licenceResponsibleOrganisationService;
   private final LicenceScheduleAreaEventService licenceScheduleAreaEventService;
+  private final ScheduleCommentService scheduleCommentService;
   private final Clock clock;
 
   public LicenceScheduleTimelineService(
@@ -97,7 +100,8 @@ public class LicenceScheduleTimelineService {
       LicenceResponsibleOrganisationService licenceResponsibleOrganisationService,
       Clock clock,
       LicenceScheduleTermRequestCache licenceScheduleTermRequestCache,
-      LicenceScheduleAreaEventService licenceScheduleAreaEventService
+      LicenceScheduleAreaEventService licenceScheduleAreaEventService,
+      ScheduleCommentService scheduleCommentService
   ) {
     this.licenceStartDateService = licenceStartDateService;
     this.licenceTypeRulesResolver = licenceTypeRulesResolver;
@@ -115,6 +119,7 @@ public class LicenceScheduleTimelineService {
     this.clock = clock;
     this.licenceScheduleTermRequestCache = licenceScheduleTermRequestCache;
     this.licenceScheduleAreaEventService = licenceScheduleAreaEventService;
+    this.scheduleCommentService = scheduleCommentService;
   }
 
   public TimelineSummaryCardView getTimelineSummaryCardView(LicenceScheduleDetail licenceScheduleDetail) {
@@ -301,6 +306,22 @@ public class LicenceScheduleTimelineService {
         eventRefCommentsMap,
         finalProgressDate
     );
+  }
+
+  public List<ScheduleCommentView> getScheduleCommentViewsForOverview(
+      LicenceScheduleDetail licenceScheduleDetail,
+      ServiceUserDetail userDetail
+  ) {
+    if (!teamQueryService.userIsInRegulatorTeam(userDetail.wuaId())) {
+      return List.of();
+    }
+
+    var licenceSchedule = licenceScheduleDetail.getLicenceSchedule();
+    var removeCommentRoles = Set.of(Role.SCHEDULE_ADMINISTRATOR, Role.WORK_PROGRAMME_ADMINISTRATOR);
+    if (teamQueryService.userHasAtLeastOneRoleIn(userDetail.wuaId(), removeCommentRoles)) {
+      return scheduleCommentService.getRemovableCommentViews(licenceSchedule);
+    }
+    return scheduleCommentService.getCommentViews(licenceSchedule);
   }
 
   public List<ScheduleEventAction> getAllowedEventActionsForUser(ServiceUserDetail userDetail) {

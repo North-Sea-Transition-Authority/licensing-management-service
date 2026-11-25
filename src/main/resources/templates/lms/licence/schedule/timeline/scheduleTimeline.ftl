@@ -13,6 +13,8 @@ extendContainerWidth=true>
         updateExpiryDateUrl=updateExpiryDateUrl
     />
 
+    <@scheduleComponents.scheduleCommentsSection comments=scheduleComments/>
+
     <@fdsActionDropdown.actionDropdown dropdownButtonText="Add an event">
         <#list actions as actionView>
             <@fdsActionDropdown.actionDropdownItem actionText=actionView.action().displayText linkActionUrl=springUrl(actionView.url()) linkAction=true/>

@@ -85,6 +85,9 @@ public class LicenceScheduleTabController {
 
     licenceScheduleDetail.ifPresent(scheduleDetail -> modelAndView
         .addObject("timelineSummaryCardView", licenceScheduleTimelineService.getTimelineSummaryCardView(scheduleDetail))
+        .addObject("scheduleComments",
+            licenceScheduleTimelineService.getScheduleCommentViewsForOverview(scheduleDetail, user)
+        )
         .addObject("timelineFilterOptions", ScheduleTimelineFilterOption.getOptions())
         .addObject("scheduleEventViews",
             licenceScheduleTimelineService.getLicenceScheduleEventViewsForOverview(scheduleDetail, form, user)

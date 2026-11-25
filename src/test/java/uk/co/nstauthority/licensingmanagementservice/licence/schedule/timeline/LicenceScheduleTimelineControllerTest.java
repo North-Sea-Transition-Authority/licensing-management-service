@@ -38,6 +38,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesta
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.otherscheduleevent.OtherScheduleEventCategory;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.reviewandapply.DeleteDraftScheduleController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.reviewandapply.ReviewAndApplyScheduleController;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.schedulecomments.ScheduleCommentService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.schedulecomments.ScheduleCommentView;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
@@ -47,6 +49,9 @@ class LicenceScheduleTimelineControllerTest extends AbstractControllerTest {
 
   @MockitoBean
   private LicenceScheduleTimelineService licenceScheduleTimelineService;
+
+  @MockitoBean
+  private ScheduleCommentService scheduleCommentService;
 
   private Licence licence;
 
@@ -90,6 +95,8 @@ class LicenceScheduleTimelineControllerTest extends AbstractControllerTest {
 
     when(licenceScheduleTimelineService.getTimelineSummaryCardView(licenceScheduleDetail)).thenReturn(timelineSummaryCardView);
     when(licenceScheduleTimelineService.getAllowedEventActionsForUser(regulatorUser)).thenReturn(allowedActions);
+    var scheduleComments = List.of(new ScheduleCommentView("comment", "", "1 January 2025 10:00:00", ""));
+    when(scheduleCommentService.getCommentViews(licenceScheduleDetail.getLicenceSchedule())).thenReturn(scheduleComments);
     when(licenceScheduleTimelineService.getLicenceScheduleTimelineActions(licenceScheduleDetail, allowedActions)).thenReturn(timelineActionViews);
     when(licenceScheduleTimelineService.getEditableLicenceScheduleEventViews(eq(licenceScheduleDetail), any(), eq(allowedActions))).thenReturn(scheduleEventViews);
 
@@ -101,6 +108,7 @@ class LicenceScheduleTimelineControllerTest extends AbstractControllerTest {
         .andExpect(view().name("lms/licence/schedule/timeline/scheduleTimeline"))
         .andExpect(model().attribute("pageTitle", LicenceScheduleTimelineController.PAGE_TITLE.formatted(licence.getLicenceReference())))
         .andExpect(model().attribute("timelineSummaryCardView", timelineSummaryCardView))
+        .andExpect(model().attribute("scheduleComments", scheduleComments))
         .andExpect(model().attribute("actions", timelineActionViews))
         .andExpect(model().attribute("scheduleEventViews", scheduleEventViews))
         .andExpect(model().attribute("timelineFilterOptions", ScheduleTimelineFilterOption.getOptions()))

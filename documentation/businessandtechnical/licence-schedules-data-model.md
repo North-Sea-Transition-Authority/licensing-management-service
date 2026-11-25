@@ -88,12 +88,15 @@ flowchart TB
         WPAS["work_programme_activity_statuses"]
     end
 
+    SC["<b>schedule_comments</b><br/><i>survives versioning, keyed on licence_schedule_id</i>"]
+
     LIC -- "1 : 1" --> LS
     LS -- "1 : many — the version chain" --> LSD
     LS -- "1 : many" --> SE
     LSD -- "1 : many" --> CONTENT
     SE -. "shared primary key, id to id<br/>(every table except licence_start_dates<br/>and licence_schedule_area_events)" .-> CONTENT
     SE -- "1 : many" --> SAT
+    LS -- "1 : many" --> SC
 ```
 
 Two of the eight content tables hold **at most one row per version** — `licence_start_dates`
@@ -355,7 +358,7 @@ the user explicitly deleted while editing.
 The one place whole schedules are physically deleted. To let the PEARS schedule migration run
 again in a non-production environment, its cleardown deletes every schedule listed in
 `pears_schedule_migrated_licences`: every version and event, comments, work programme activity
-statuses, area events, start dates, the PEARS link rows, and the schedule's reminders,
+statuses, schedule comments, area events, start dates, the PEARS link rows, and the schedule's reminders,
 missing-contact reports and event tracker rows ([reminders](licence-schedule-reminders-data-model.md),
 [event cache](licence-event-cache-data-model.md)). Its audit history goes too (§9), including that
 of events users had deleted, so a re-run leaves no history of the old schedule.
@@ -401,8 +404,9 @@ inclusive, end exclusive**.
 
 ## 6. Data that deliberately survives versioning
 
-Two tables hang off `schedule_events` rather than off a schedule version, so their history is
-not lost when a new version is created. **Neither is copied during versioning.**
+Two tables hang off `schedule_events` and one off `licence_schedules` rather than off a schedule
+version, so their history is not lost when a new version is created. **None is copied during
+versioning.**
 
 Two further tables outside this document also reach into the schedule this way and are worth
 knowing about before writing a query that joins on `schedule_events` or `original_event_id` —
@@ -471,6 +475,25 @@ ORDER BY se.original_event_id, s.applied_datetime DESC;
   activity was the last remaining `work_programme_activities` row carrying that
   `original_event_id`** across all versions. While any other version still holds the
   activity, the ledger stays.
+
+### 6.3 `schedule_comments`
+
+```
+id                  UUID PK
+licence_schedule_id UUID NOT NULL  → licence_schedules.id
+comment             TEXT NOT NULL
+timestamp           TIMESTAMPTZ NOT NULL
+author_wua_id       INTEGER        ← Energy Portal web user account id (nullable)
+```
+
+Comments on the schedule as a whole rather than on one event, such as PEARS general notes. They
+belong to the licence's schedule, not to a version, so they have no status: every row is visible
+to regulators on the licence's schedule tab and read-only on the draft timeline. Schedule and work
+programme administrators can remove them from the schedule tab at any time (a physical delete).
+There is no screen to add one; they come from the PEARS work programme migration.
+
+- A null `author_wua_id` shows a blank author. Migrated comments carry the PEARS author's name
+  in the comment text instead.
 
 ---
 
@@ -774,10 +797,10 @@ ORDER BY d.rev;
    the `work_programme_activity_statuses` ledger (§6.2), and it covers work programme
    activities only. Everything else takes its state from its parent
    `licence_schedule_details.status`.
-4. **Commentary lives in `event_comments`, with one exception.** The event tables have no
-   `comments` column, except `licence_schedule_expiry_dates.comments`, which holds free text
-   entered alongside the expiry date. All other schedule commentary is in `event_comments`
-   (§6.1).
+4. **Commentary lives in `event_comments` and `schedule_comments`, with one exception.** The
+   event tables have no `comments` column, except `licence_schedule_expiry_dates.comments`, which
+   holds free text entered alongside the expiry date. Comments on one event are in
+   `event_comments` (§6.1); comments on the schedule as a whole are in `schedule_comments` (§6.3).
 5. **Row counts grow with every schedule change, not with every changed field.** A single
    correction to one activity's due date produces a complete new copy of every term, phase,
    activity, rate and event for that licence. Volume growth is driven by number of *schedule
@@ -849,6 +872,9 @@ below do not.
 
 **`work_programme_activity_statuses`**
 `id`, `event_reference_id`, `status`, `applied_datetime`, `licence_transferred_to`
+
+**`schedule_comments`**
+`id`, `licence_schedule_id`, `comment`, `timestamp`, `author_wua_id`
 
 **`pears_schedule_event_migration_links`** *(migration only, §2.3)*
 `schedule_event_id`, `pears_plsd_id`, `pears_event_mnem`, `pears_event_index`, `pears_event_id`

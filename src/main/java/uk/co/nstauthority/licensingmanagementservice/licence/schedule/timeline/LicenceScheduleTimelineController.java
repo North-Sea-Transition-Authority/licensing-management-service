@@ -22,6 +22,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesch
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencestartdate.LicenceStartDateController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.reviewandapply.DeleteDraftScheduleController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.reviewandapply.ReviewAndApplyScheduleController;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.schedulecomments.ScheduleCommentService;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 import uk.co.nstauthority.licensingmanagementservice.teams.Role;
 import uk.co.nstauthority.licensingmanagementservice.teams.TeamType;
@@ -45,11 +46,14 @@ public class LicenceScheduleTimelineController {
   public static final String PAGE_TITLE = "%s - Licence schedule and work programme";
 
   private final LicenceScheduleTimelineService licenceScheduleTimelineService;
+  private final ScheduleCommentService scheduleCommentService;
 
   public LicenceScheduleTimelineController(
-      LicenceScheduleTimelineService licenceScheduleTimelineService
+      LicenceScheduleTimelineService licenceScheduleTimelineService,
+      ScheduleCommentService scheduleCommentService
   ) {
     this.licenceScheduleTimelineService = licenceScheduleTimelineService;
+    this.scheduleCommentService = scheduleCommentService;
   }
   
   @GetMapping
@@ -114,6 +118,9 @@ public class LicenceScheduleTimelineController {
         .addObject("form", scheduleTimelineFilterForm)
         .addObject("pageTitle", PAGE_TITLE.formatted(licence.getLicenceReference()))
         .addObject("timelineSummaryCardView", licenceScheduleTimelineService.getTimelineSummaryCardView(licenceScheduleDetail))
+        .addObject("scheduleComments",
+            scheduleCommentService.getCommentViews(licenceScheduleDetail.getLicenceSchedule())
+        )
         .addObject("actions",
             licenceScheduleTimelineService.getLicenceScheduleTimelineActions(
                 licenceScheduleDetail,

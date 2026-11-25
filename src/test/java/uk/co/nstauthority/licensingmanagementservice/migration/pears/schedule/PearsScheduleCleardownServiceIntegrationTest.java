@@ -39,6 +39,7 @@ class PearsScheduleCleardownServiceIntegrationTest {
 
   private static final UUID RUN_ID = UUID.randomUUID();
   private static final int AUDIT_REVISION = 987654;
+  private static final UUID SCHEDULE_COMMENT = UUID.randomUUID();
 
   @Autowired
   private EntityManager entityManager;
@@ -129,6 +130,10 @@ class PearsScheduleCleardownServiceIntegrationTest {
         count("SELECT count(*) FROM lms.licence_schedule_details_aud WHERE licence_schedule_id = :id", scheduleId));
     remaining.put("licence_schedules_aud",
         count("SELECT count(*) FROM lms.licence_schedules_aud WHERE id = :id", scheduleId));
+    remaining.put("schedule_comments",
+        count("SELECT count(*) FROM lms.schedule_comments WHERE id = :id", SCHEDULE_COMMENT));
+    remaining.put("schedule_comments_aud",
+        count("SELECT count(*) FROM lms.schedule_comments_aud WHERE id = :id", SCHEDULE_COMMENT));
     assertThat(remaining).allSatisfy((table, rows) -> assertThat(rows).as(table).isZero());
   }
 
@@ -296,6 +301,13 @@ class PearsScheduleCleardownServiceIntegrationTest {
     execute("""
         INSERT INTO lms.licence_schedule_rates_aud (rev, revtype, id) VALUES (:rev, 0, :event), (:rev + 1, 2, :event)
         """, Map.of("rev", AUDIT_REVISION, "event", deletedEvent));
+    execute("""
+        INSERT INTO lms.schedule_comments (id, licence_schedule_id, comment, timestamp)
+        VALUES (:comment, :schedule, 'Migrated general note', now())
+        """, Map.of("comment", SCHEDULE_COMMENT, "schedule", scheduleId));
+    execute("""
+        INSERT INTO lms.schedule_comments_aud (rev, revtype, id, licence_schedule_id) VALUES (:rev, 0, :comment, :schedule)
+        """, Map.of("rev", AUDIT_REVISION, "comment", SCHEDULE_COMMENT, "schedule", scheduleId));
   }
 
   private void givenAnotherLicencesRows() {

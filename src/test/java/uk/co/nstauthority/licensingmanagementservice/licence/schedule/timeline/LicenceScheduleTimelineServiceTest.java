@@ -1,6 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
 
@@ -64,6 +65,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.othersched
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.otherscheduleevent.OtherScheduleEventDateOption;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.otherscheduleevent.OtherScheduleEventDeletionController;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.otherscheduleevent.OtherScheduleEventService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.schedulecomments.ScheduleCommentService;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.schedulecomments.ScheduleCommentView;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivity;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityCategory;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityCommitment;
@@ -130,6 +133,9 @@ class LicenceScheduleTimelineServiceTest {
 
   @Mock
   private LicenceScheduleAreaEventService licenceScheduleAreaEventService;
+
+  @Mock
+  private ScheduleCommentService scheduleCommentService;
 
   @InjectMocks
   private LicenceScheduleTimelineService licenceScheduleTimelineService;
@@ -3125,5 +3131,42 @@ class LicenceScheduleTimelineServiceTest {
 
     assertThat(licenceScheduleTimelineService.getAllowedEventActionsForUser(userDetail))
         .isEmpty();
+  }
+
+  @Test
+  void getScheduleCommentViewsForOverview_whenRegulatorWithoutAdminRole_returnsReadOnlyComments() {
+    var user = ServiceUserDetailTestUtil.newBuilder().build();
+    when(teamQueryService.userIsInRegulatorTeam(user.wuaId())).thenReturn(true);
+    when(teamQueryService.userHasAtLeastOneRoleIn(
+        user.wuaId(), Set.of(Role.SCHEDULE_ADMINISTRATOR, Role.WORK_PROGRAMME_ADMINISTRATOR))).thenReturn(false);
+    var commentViews = List.of(new ScheduleCommentView("comment", "", "1 January 2025 10:00:00", ""));
+    when(scheduleCommentService.getCommentViews(licenceScheduleDetail.getLicenceSchedule())).thenReturn(commentViews);
+
+    assertThat(licenceScheduleTimelineService.getScheduleCommentViewsForOverview(licenceScheduleDetail, user))
+        .isEqualTo(commentViews);
+  }
+
+  @Test
+  void getScheduleCommentViewsForOverview_whenScheduleOrWorkProgrammeAdmin_returnsRemovableComments() {
+    var user = ServiceUserDetailTestUtil.newBuilder().build();
+    when(teamQueryService.userIsInRegulatorTeam(user.wuaId())).thenReturn(true);
+    when(teamQueryService.userHasAtLeastOneRoleIn(
+        user.wuaId(), Set.of(Role.SCHEDULE_ADMINISTRATOR, Role.WORK_PROGRAMME_ADMINISTRATOR))).thenReturn(true);
+    var commentViews = List.of(new ScheduleCommentView("comment", "", "1 January 2025 10:00:00", "remove"));
+    when(scheduleCommentService.getRemovableCommentViews(licenceScheduleDetail.getLicenceSchedule()))
+        .thenReturn(commentViews);
+
+    assertThat(licenceScheduleTimelineService.getScheduleCommentViewsForOverview(licenceScheduleDetail, user))
+        .isEqualTo(commentViews);
+  }
+
+  @Test
+  void getScheduleCommentViewsForOverview_whenNotRegulator_returnsNoComments() {
+    var user = ServiceUserDetailTestUtil.newBuilder().build();
+    when(teamQueryService.userIsInRegulatorTeam(user.wuaId())).thenReturn(false);
+
+    assertThat(licenceScheduleTimelineService.getScheduleCommentViewsForOverview(licenceScheduleDetail, user))
+        .isEmpty();
+    verifyNoInteractions(scheduleCommentService);
   }
 }

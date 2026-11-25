@@ -161,6 +161,7 @@ public class PearsScheduleCleardownService {
         .formatted(VERSIONS), scheduleId);
     delete("DELETE FROM lms.licence_start_dates_aud WHERE licence_schedule_detail_id IN (%s)".formatted(VERSIONS),
         scheduleId);
+    delete("DELETE FROM lms.schedule_comments_aud WHERE licence_schedule_id = :schedule", scheduleId);
   }
 
   private void deleteSchedule(UUID scheduleId, int licenceId) {
@@ -182,6 +183,7 @@ public class PearsScheduleCleardownService {
         scheduleId);
     delete("DELETE FROM lms.licence_schedule_details WHERE licence_schedule_id = :schedule", scheduleId);
     delete("DELETE FROM lms.pears_schedule_migrated_licences WHERE licence_schedule_id = :schedule", scheduleId);
+    delete("DELETE FROM lms.schedule_comments WHERE licence_schedule_id = :schedule", scheduleId);
     delete("DELETE FROM lms.licence_schedules WHERE id = :schedule", scheduleId);
 
     delete("DELETE FROM lms.schedule_events_aud WHERE licence_schedule_id = :schedule", scheduleId);

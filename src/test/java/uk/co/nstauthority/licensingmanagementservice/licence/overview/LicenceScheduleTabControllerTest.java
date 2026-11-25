@@ -36,6 +36,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceSch
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailStatus;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.schedulecomments.ScheduleCommentView;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.LicenceScheduleTimelineService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.ScheduleTimelineFilterOption;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.TimelineSummaryCardView;
@@ -111,6 +112,8 @@ class LicenceScheduleTabControllerTest extends AbstractControllerTest {
 
     when(licenceScheduleTimelineService.getTimelineSummaryCardView(licenceScheduleDetail)).thenReturn(timelineSummaryCardView);
     when(licenceScheduleTimelineService.getLicenceScheduleEventViewsForOverview(eq(licenceScheduleDetail), any(), any())).thenReturn(scheduleEventViews);
+    var scheduleComments = List.of(new ScheduleCommentView("comment", "", "1 January 2025 10:00:00", ""));
+    when(licenceScheduleTimelineService.getScheduleCommentViewsForOverview(licenceScheduleDetail, USER)).thenReturn(scheduleComments);
 
     mockMvc.perform(
             get(viewOverviewUrl)
@@ -126,6 +129,7 @@ class LicenceScheduleTabControllerTest extends AbstractControllerTest {
             .viewScheduleHistory(licence.getId(), null)))
         )
         .andExpect(model().attribute("timelineSummaryCardView", timelineSummaryCardView))
+        .andExpect(model().attribute("scheduleComments", scheduleComments))
         .andExpect(model().attribute("scheduleEventViews", scheduleEventViews))
         .andExpect(model().attribute("timelineFilterOptions", ScheduleTimelineFilterOption.getOptions()))
         .andExpect(model().attribute("clearFilterUrl", ReverseRouter.route(on(LicenceScheduleTabController.class)

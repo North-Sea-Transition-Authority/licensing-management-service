@@ -63,23 +63,35 @@ class ExplorationOperatorOperationTest {
   }
 
   @Test
-  void validate_whenNoPreviousExplorationOperator_returnsNull() {
-    var operation = LicenceOperation.newExplorationOperatorOperation().withOperator(100).build();
+  void validate_whenOperatorRemovedAndPreviousOperatorExists_returnsNull() {
+    var operation = LicenceOperation.newExplorationOperatorOperation().build();
 
     var context = PositionValidationContextTestUtil.newBuilder()
-        .withPreviousState(PositionStateTestUtil.newBuilder().withExplorationOperatorId(null).build())
+        .withPreviousState(PositionStateTestUtil.newBuilder().withExplorationOperatorId(100).build())
+        .withLicenceType(LicenceType.CARBON_STORAGE)
         .build();
 
     assertThat(operation.validate(context)).isNull();
   }
 
   @Test
-  void validate_whenJoiningOperatorIsNull_returnsNull() {
-    var operation = LicenceOperation.newExplorationOperatorOperation().withOperator(null).build();
+  void validate_whenNoOperatorJoiningAndNoPreviousOperator_returnsNull() {
+    var operation = LicenceOperation.newExplorationOperatorOperation().build();
 
     var context = PositionValidationContextTestUtil.newBuilder()
         .withPreviousState(PositionStateTestUtil.newBuilder().withExplorationOperatorId(null).build())
         .withLicenceType(LicenceType.CARBON_STORAGE)
+        .build();
+
+    assertThat(operation.validate(context)).isNull();
+  }
+
+  @Test
+  void validate_whenNoPreviousExplorationOperator_returnsNull() {
+    var operation = LicenceOperation.newExplorationOperatorOperation().withOperator(100).build();
+
+    var context = PositionValidationContextTestUtil.newBuilder()
+        .withPreviousState(PositionStateTestUtil.newBuilder().withExplorationOperatorId(null).build())
         .build();
 
     assertThat(operation.validate(context)).isNull();
@@ -112,8 +124,8 @@ class ExplorationOperatorOperationTest {
   }
 
   @Test
-  void applyState_joiningIdIsNull() {
-    var state = LicencePositionState.EMPTY;
+  void applyState_joiningIdIsNull_clearsExistingOperator() {
+    var state = LicencePositionState.EMPTY.withExplorationOperatorId(2);
     var explorationOperatorOperation = LicenceOperation.newExplorationOperatorOperation().withOperator(null).build();
     assertThat(explorationOperatorOperation.applyState(state)).usingRecursiveComparison()
         .isEqualTo(LicencePositionState.EMPTY);
@@ -190,4 +202,22 @@ class ExplorationOperatorOperationTest {
     )).isEqualTo(expectedChangeView);
   }
 
+  @Test
+  void getChangeView_noJoiningId_joiningNameIsNull() {
+    var positionChange = PositionChangeTestUtil.newBuilder().withChangeType("exploration operator").build();
+    var previousState = LicencePositionState.EMPTY.withExplorationOperatorId(1);
+    var context = new LicencePositionChangeViewContext(Map.of(1, "Zeta"), Map.of());
+    var urls = ChangeViewUrls.none();
+    var operation = LicenceOperation.newExplorationOperatorOperation().build();
+    var expectedChangeView = new ExplorationOperatorChangeView(
+        "Zeta",
+        null,
+        positionChange.changeId(),
+        positionChange.changeType(),
+        urls
+    );
+
+    assertThat(operation.getChangeView(positionChange, previousState, null, context, urls))
+        .isEqualTo(expectedChangeView);
+  }
 }

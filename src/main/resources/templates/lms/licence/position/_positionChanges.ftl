@@ -82,9 +82,11 @@
       ${change.withdrawingOrganisationName()}
     </@fdsSummaryList.summaryListRowNoAction>
   </#if>
-  <@fdsSummaryList.summaryListRowNoAction keyText=added>
-    ${change.joiningOrganisationName()}
-  </@fdsSummaryList.summaryListRowNoAction>
+  <#if change.joiningOrganisationName()??>
+    <@fdsSummaryList.summaryListRowNoAction keyText=added>
+      ${change.joiningOrganisationName()}
+    </@fdsSummaryList.summaryListRowNoAction>
+  </#if>
 </#macro>
 
 <#macro administratorChange change summaryListId="licence-administrator" correction="">
@@ -119,6 +121,25 @@
     headingText=headingText
     summaryListId=summaryListId
     cardActionsContent=cardActions
+  >
+    <@correctionRows correction=correction/>
+    <@organisationRows change=change/>
+  </@fdsSummaryList.summaryListCard>
+</#macro>
+
+<#macro explorationOperatorChange change summaryListId="exploration-operator" correction="">
+  <#assign headingText>
+    <@changeHeading change=change headingText="Exploration operator change" correction=correction/>
+  </#assign>
+
+  <#assign cardActions>
+    <@changeCardActions screenReaderText="exploration operator change" urls=change.urls()/>
+  </#assign>
+
+  <@fdsSummaryList.summaryListCard
+  headingText=headingText
+  summaryListId=summaryListId
+  cardActionsContent=cardActions
   >
     <@correctionRows correction=correction/>
     <@organisationRows change=change/>
@@ -416,6 +437,8 @@
     <@administratorChange change=change summaryListId=summaryListId correction=correction/>
   <#elseif change.type() == "storage-operator">
     <@storageOperatorChange change=change summaryListId=summaryListId correction=correction/>
+  <#elseif change.type() == "exploration-operator">
+    <@explorationOperatorChange change=change summaryListId=summaryListId correction=correction/>
   <#elseif change.type() == "licensee">
     <@licenseeChange change=change summaryListId=summaryListId correction=correction/>
   <#elseif change.type() == "set-equity">

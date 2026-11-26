@@ -83,10 +83,11 @@ public record ExplorationOperatorOperation(
     var organisationNames = context.organisationNames();
     var withdrawingId = previousState.explorationOperatorId();
     var withdrawingName = (withdrawingId == null) ? null : organisationNames.getOrDefault(withdrawingId, NOT_AVAILABLE);
+    var joiningName = (operatorId == null) ? null : organisationNames.getOrDefault(operatorId, NOT_AVAILABLE);
 
     return new ExplorationOperatorChangeView(
         withdrawingName,
-        organisationNames.getOrDefault(operatorId, NOT_AVAILABLE),
+        joiningName,
         change.changeId(),
         change.changeType(),
         urls

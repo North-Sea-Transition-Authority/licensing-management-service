@@ -122,11 +122,15 @@ queued_at                    TIMESTAMPTZ NOT NULL
 ```
 
 **Rows are inserted and never updated or deleted.** There is no status column and no
-completion flag; the presence of a row is the whole of the state. The one exception is the
-PEARS schedule migration's cleardown, outside production only, which deletes a migrated
-schedule's reminders and their audit rows: those about its events, and the licence's
-`LICENCE_EXPIRY` reminders ([schedules §5.3a](licence-schedules-data-model.md)). After a re-run,
-reminders already sent before the cleardown can be sent again. `licence_reminder_bounces` rows are
+completion flag; the presence of a row is the whole of the state. The exceptions are the PEARS
+migrations' cleardowns, outside production only, which delete reminders and their audit rows
+([schedules §5.3a](licence-schedules-data-model.md)):
+- the schedule migration's, a migrated schedule's: those about its events, and the licence's
+  `LICENCE_EXPIRY` reminders;
+- the work programme migration's, those about the work programme activities it migrated, and any
+  later copies of them.
+
+After a re-run, reminders already sent before the cleardown can be sent again. `licence_reminder_bounces` rows are
 left alone.
 
 | Column | What it means |
@@ -377,8 +381,8 @@ reported_at                  TIMESTAMPTZ NOT NULL
 
 One row per **(deadline, licensee with no contact)** that has been reported. Like
 `licence_reminders`, **its only job is to stop the same gap being reported again on the next
-run.** Rows are inserted and never updated or deleted, except by the PEARS schedule migration's
-cleardown, as for `licence_reminders` (§3).
+run.** Rows are inserted and never updated or deleted, except by the PEARS migrations'
+cleardowns, as for `licence_reminders` (§3).
 
 | Column | What it means |
 |---|---|

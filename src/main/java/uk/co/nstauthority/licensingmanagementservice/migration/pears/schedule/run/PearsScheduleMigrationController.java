@@ -1,26 +1,16 @@
 package uk.co.nstauthority.licensingmanagementservice.migration.pears.schedule.run;
 
 import jakarta.annotation.Nullable;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.UUID;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ResponseStatusException;
 import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserDetail;
-import uk.co.nstauthority.licensingmanagementservice.migration.MigrationPreconditionException;
 import uk.co.nstauthority.licensingmanagementservice.migration.pears.ConditionalOnPearsDataSource;
 import uk.co.nstauthority.licensingmanagementservice.migration.pears.PearsLicenceReference;
 import uk.co.nstauthority.licensingmanagementservice.migration.pears.schedule.PearsScheduleCleardownService;
@@ -38,12 +28,11 @@ import uk.co.nstauthority.licensingmanagementservice.migration.pears.schedule.Pe
 @ConditionalOnPearsDataSource
 @RestController
 @RequestMapping("/migration/pears-schedules")
-public class PearsScheduleMigrationController {
+public class PearsScheduleMigrationController extends PearsMigrationRunController {
 
   private final PearsScheduleMigrationService migrationService;
   private final PearsScheduleMigrationRunService runService;
   private final PearsScheduleCleardownService cleardownService;
-  private final boolean cleardownEnabled;
 
   public PearsScheduleMigrationController(
       PearsScheduleMigrationService migrationService,
@@ -51,10 +40,10 @@ public class PearsScheduleMigrationController {
       PearsScheduleCleardownService cleardownService,
       @Value("${pears.schedule-migration.cleardown-enabled}") boolean cleardownEnabled
   ) {
+    super(runService, PearsMigration.SCHEDULE, "pears-schedule-run", cleardownEnabled);
     this.migrationService = migrationService;
     this.runService = runService;
     this.cleardownService = cleardownService;
-    this.cleardownEnabled = cleardownEnabled;
   }
 
   /**
@@ -66,8 +55,7 @@ public class PearsScheduleMigrationController {
       ServiceUserDetail user
   ) {
     var licenceReferences = licencesWithAPearsSchedule(licenceReference);
-    var run = runService.startRun(licenceReferences, user.wuaId());
-    return ResponseEntity.status(HttpStatus.ACCEPTED).body(new StartedRun(run.getId(), licenceReferences.size()));
+    return started(runService.startRun(licenceReferences, user.wuaId()), licenceReferences.size());
   }
 
   /**
@@ -81,20 +69,15 @@ public class PearsScheduleMigrationController {
       ServiceUserDetail user
   ) {
     var licenceReferences = licencesWithAPearsSchedule(licenceReference);
-    var run = runService.startValidation(licenceReferences, user.wuaId());
-    return ResponseEntity.status(HttpStatus.ACCEPTED).body(new StartedRun(run.getId(), licenceReferences.size()));
+    return started(runService.startValidation(licenceReferences, user.wuaId()), licenceReferences.size());
   }
 
   private List<String> licencesWithAPearsSchedule(@Nullable String licenceReference) {
-    var licenceReferences = migrationService.licencesToMigrate().stream()
-        .map(PearsLicenceReference::licenceReference)
-        .filter(reference -> licenceReference == null || reference.equals(licenceReference))
-        .toList();
-
-    if (licenceReferences.isEmpty()) {
-      throw new MigrationPreconditionException("PEARS holds no schedule for %s".formatted(licenceReference));
-    }
-    return licenceReferences;
+    return licencesToQueue(
+        migrationService.licencesToMigrate().stream().map(PearsLicenceReference::licenceReference).toList(),
+        licenceReference,
+        "PEARS holds no schedule for the licence"
+    );
   }
 
   /**
@@ -107,62 +90,11 @@ public class PearsScheduleMigrationController {
       @RequestParam(required = false) String licenceReference,
       ServiceUserDetail user
   ) {
-    if (!cleardownEnabled) {
-      throw new ResponseStatusException(HttpStatus.NOT_FOUND);
-    }
-
-    var licenceReferences = cleardownService.licencesToClear().stream()
-        .filter(reference -> licenceReference == null || reference.equals(licenceReference))
-        .toList();
-
-    if (licenceReferences.isEmpty()) {
-      throw new MigrationPreconditionException(licenceReference == null
-          ? "No schedules from the PEARS migration to clear"
-          : "%s has no schedule from the PEARS migration".formatted(licenceReference));
-    }
-
-    var run = runService.startCleardown(licenceReferences, user.wuaId());
-    return ResponseEntity.status(HttpStatus.ACCEPTED).body(new StartedRun(run.getId(), licenceReferences.size()));
-  }
-
-  @GetMapping("/{runId}")
-  public ResponseEntity<PearsScheduleMigrationRunReport> getRun(@PathVariable UUID runId) {
-    return ResponseEntity.of(runService.report(runId));
-  }
-
-  /**
-   * Every licence of a run as a CSV download: what became of each, and for a dry run its issues and result counts.
-   */
-  @GetMapping("/{runId}/report")
-  public ResponseEntity<String> getRunReport(@PathVariable UUID runId) {
-    return runService.licences(runId)
-        .map(licences -> ResponseEntity.ok()
-            .contentType(new MediaType("text", "csv", StandardCharsets.UTF_8))
-            .header(HttpHeaders.CONTENT_DISPOSITION,
-                "attachment; filename=\"pears-schedule-run-%s.csv\"".formatted(runId))
-            .body(PearsScheduleMigrationRunCsv.csv(licences)))
-        .orElseGet(() -> ResponseEntity.notFound().build());
-  }
-
-  @PostMapping("/{runId}/retry-failed")
-  public ResponseEntity<PearsScheduleMigrationRunReport> retryFailed(@PathVariable UUID runId) {
-    return ResponseEntity.of(runService.retryFailed(runId));
-  }
-
-  @PostMapping("/{runId}/cancel")
-  public ResponseEntity<PearsScheduleMigrationRunReport> cancel(@PathVariable UUID runId) {
-    return ResponseEntity.of(runService.cancel(runId));
-  }
-
-  /**
-   * Returned when PEARS can't be read or has nothing to migrate, or a run can't be started, retried or cancelled in the
-   * state it is in. Nothing has changed, so the request can be made again.
-   */
-  @ExceptionHandler(MigrationPreconditionException.class)
-  public ResponseEntity<String> handleMigrationPreconditionException(MigrationPreconditionException exception) {
-    return ResponseEntity.status(HttpStatus.CONFLICT).body(exception.getMessage());
-  }
-
-  public record StartedRun(UUID runId, int licences) {
+    failUnlessCleardownEnabled();
+    var licenceReferences = licencesToQueue(cleardownService.licencesToClear(), licenceReference,
+        licenceReference == null
+            ? "No schedules from the PEARS migration to clear"
+            : "The licence has no schedule from the PEARS migration");
+    return started(runService.startCleardown(licenceReferences, user.wuaId()), licenceReferences.size());
   }
 }

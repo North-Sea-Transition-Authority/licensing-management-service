@@ -37,6 +37,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesch
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencestartdate.LicenceStartDateRepository;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.otherscheduleevent.OtherScheduleEventService;
+import uk.co.nstauthority.licensingmanagementservice.migration.pears.PearsLicenceComparisons;
 import uk.co.nstauthority.licensingmanagementservice.migration.pears.PearsLicenceReference;
 import uk.co.nstauthority.licensingmanagementservice.util.IntegrationTest;
 
@@ -55,6 +56,9 @@ class PearsScheduleValidationServiceIntegrationTest {
   private static final int LICENCE_ID = 9247;
   private static final String LICENCE_REFERENCE = "P9247";
   private static final PearsLicenceReference LICENCE = new PearsLicenceReference("P", 9247);
+
+  @Autowired
+  private PearsLicenceComparisons licenceComparisons;
 
   @Autowired
   private EntityManager entityManager;
@@ -144,7 +148,8 @@ class PearsScheduleValidationServiceIntegrationTest {
             eventMigrationLinkRepository
         ),
         migratedLicenceRepository,
-        entityManager
+        entityManager,
+        licenceComparisons
     );
     validationService = new PearsScheduleValidationService(migrationService, comparisonService, transactionManager);
   }

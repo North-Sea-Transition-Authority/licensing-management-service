@@ -51,3 +51,6 @@ CREATE TABLE IF NOT EXISTS lms.pears_schedule_migration_queue (
 
 CREATE INDEX IF NOT EXISTS pears_schedule_migration_queue_status_idx
     ON lms.pears_schedule_migration_queue (run_id, status);
+
+-- From manualscripts/pearsworkprogrammemigration/0002: which migration each run works
+ALTER TABLE lms.pears_schedule_migration_runs ADD COLUMN IF NOT EXISTS migration TEXT NOT NULL DEFAULT 'SCHEDULE';

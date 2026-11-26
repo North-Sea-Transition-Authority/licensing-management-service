@@ -37,6 +37,16 @@ class PearsScheduleMigrationRunCsvTest {
     assertThat(csv).isEqualTo("Licence,Status,Attempts,Outcome,Notes\r\nP1556,MIGRATED,1,,Default description: 1\r\n");
   }
 
+  @Test
+  void csv_whenAWorkProgrammeDryRun_hasItsResultColumnsToo() {
+    var csv = PearsScheduleMigrationRunCsv.csv(List.of(
+        licence("P2244", PearsScheduleMigrationQueueStatus.MATCHED, null,
+            Map.of("Result: Match", 3, "Result: Mapped", 2, "Result: Not migrated", 1, "Result: Added in LMS", 1))));
+
+    assertThat(csv.split("\r\n")[0])
+        .isEqualTo("Licence,Status,Attempts,Outcome,Match,Not migrated,Mapped,Added in LMS,Notes");
+  }
+
   private static PearsScheduleMigrationRunService.RunLicence licence(
       String licenceReference,
       PearsScheduleMigrationQueueStatus status,

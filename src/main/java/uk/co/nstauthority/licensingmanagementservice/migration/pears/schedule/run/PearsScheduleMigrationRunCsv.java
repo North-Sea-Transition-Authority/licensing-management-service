@@ -10,22 +10,27 @@ import java.util.stream.Stream;
 import uk.co.nstauthority.licensingmanagementservice.migration.pears.schedule.PearsScheduleComparison;
 import uk.co.nstauthority.licensingmanagementservice.migration.pears.schedule.PearsScheduleComparisonReport;
 import uk.co.nstauthority.licensingmanagementservice.migration.pears.schedule.PearsScheduleValidationService;
+import uk.co.nstauthority.licensingmanagementservice.migration.pears.workprogramme.PearsWorkProgrammeComparison;
 
 /**
  * A run's licences as a CSV file, a row each: what became of it, and for a dry run its issues and how many comparison
  * rows had each result. The mapper's notes go in the last column.
  */
-final class PearsScheduleMigrationRunCsv {
+public final class PearsScheduleMigrationRunCsv {
 
   private static final String LINE_END = "\r\n";
 
   private PearsScheduleMigrationRunCsv() {
   }
 
-  static String csv(List<PearsScheduleMigrationRunService.RunLicence> licences) {
-    // Only the results some licence of the run had, in the order the comparison report lists them
-    var results = Arrays.stream(PearsScheduleComparison.Result.values())
-        .map(PearsScheduleComparison.Result::getText)
+  public static String csv(List<PearsScheduleMigrationRunService.RunLicence> licences) {
+    // Only the results some licence of the run had, in the order the comparison reports list them
+    var scheduleResults = Arrays.stream(PearsScheduleComparison.Result.values())
+        .map(PearsScheduleComparison.Result::getText);
+    var workProgrammeResults = Arrays.stream(PearsWorkProgrammeComparison.Result.values())
+        .map(PearsWorkProgrammeComparison.Result::getText);
+    var results = Stream.concat(scheduleResults, workProgrammeResults)
+        .distinct()
         .filter(result -> licences.stream().anyMatch(licence -> licence.notes().containsKey(resultNote(result))))
         .toList();
 

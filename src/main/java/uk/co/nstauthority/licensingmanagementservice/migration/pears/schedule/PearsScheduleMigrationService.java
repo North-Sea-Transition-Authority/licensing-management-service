@@ -25,7 +25,7 @@ import uk.co.nstauthority.licensingmanagementservice.migration.pears.operation.M
 public class PearsScheduleMigrationService {
 
   static final String NOT_IN_LMS = "Not a licence in LMS";
-  static final String ALREADY_HAS_A_SCHEDULE = "Already has a schedule in LMS";
+  public static final String ALREADY_HAS_A_SCHEDULE = "Already has a schedule in LMS";
   // A failure of the write rather than of PEARS's data: a bug, where the mapper's failures are data to fix in PEARS
   static final String COULD_NOT_BE_WRITTEN = "Could not be written: ";
   static final String NEEDS_BESPOKE_MILESTONE =

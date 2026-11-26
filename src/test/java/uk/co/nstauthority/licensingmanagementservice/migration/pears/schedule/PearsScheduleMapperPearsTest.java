@@ -17,6 +17,7 @@ import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import uk.co.nstauthority.licensingmanagementservice.licence.PhaseType;
 import uk.co.nstauthority.licensingmanagementservice.migration.pears.PearsLicenceReference;
+import uk.co.nstauthority.licensingmanagementservice.migration.pears.PearsTestDataSource;
 
 /**
  * Checks the mapper's port of PEARS date arithmetic against Oracle itself, and maps the plan's example licences from a

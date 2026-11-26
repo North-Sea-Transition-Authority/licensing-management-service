@@ -156,13 +156,14 @@ these references never cross between versions (§5.2).
 
 Four tables only the PEARS schedule migration uses. They are made by hand-run scripts
 (`manualscripts/pearsschedulemigration`), not Flyway, in each environment the migration runs in, so
-other environments don't have them. Nothing else in LMS reads them.
+other environments don't have them. Only the PEARS work programme migration (§2.4) also
+reads them.
 
 | Table | One row per | Used for |
 |---|---|---|
 | `pears_schedule_event_migration_links` | Migrated schedule event | The PEARS event it came from, for the comparison report and the write-back |
 | `pears_schedule_migrated_licences` | Schedule the migration created | Telling migrated schedules from ones made in LMS; only these are cleared down (§5.3a) |
-| `pears_schedule_migration_runs` | Run | A migration, cleardown or dry run, and how far it has got. Only one is queued or running at a time (a unique partial index) |
+| `pears_schedule_migration_runs` | Run | A migration, cleardown or dry run, of schedules or work programmes, and how far it has got. Only one is queued or running at a time, across both migrations (a unique partial index) |
 | `pears_schedule_migration_queue` | Licence in a run | What happened to the licence in that run |
 
 | Column | Meaning |
@@ -173,6 +174,7 @@ other environments don't have them. Nothing else in LMS reads them.
 | `pears_schedule_event_migration_links.pears_event_id` | PEARS's `EVENT_ID`, where it has one |
 | `pears_schedule_migrated_licences.licence_schedule_id`, `licence_id` | The migrated schedule and its licence |
 | `pears_schedule_migrated_licences.run_id`, `migrated_at` | The run that migrated it, and when |
+| `pears_schedule_migration_runs.migration` | `SCHEDULE` (the default) or `WORK_PROGRAMME`: which migration the run works. Added by the work programme migration's script `0002` (§2.4); the runs need it, so that script is run wherever either migration runs |
 | `pears_schedule_migration_runs.kind` | `MIGRATE`, `CLEARDOWN` or `VALIDATE` (a dry run) |
 | `pears_schedule_migration_runs.status` | `QUEUED`, `RUNNING`, `COMPLETE` or `CANCELLED` |
 | `pears_schedule_migration_runs.requested_by`, `requested_at`, `completed_at` | Who started the run (a WUA id), when, and when it finished |
@@ -182,6 +184,30 @@ other environments don't have them. Nothing else in LMS reads them.
 | `pears_schedule_migration_queue.outcome` | Why it was skipped or failed, or a dry run's first issues; null while pending |
 | `pears_schedule_migration_queue.notes` | JSON counts of the migration's notes by reason, and a dry run's comparison results; null while pending |
 | `pears_schedule_migration_queue.started_at`, `finished_at` | The last attempt; null while pending |
+
+### 2.4 PEARS work programme migration tables
+
+Three tables only the PEARS work programme migration uses, made by hand-run scripts
+(`manualscripts/pearsworkprogrammemigration`) after the schedule migration's. The work programme
+migration writes activities onto the `ACTIVE` version of a schedule the schedule migration made, so it
+reads `pears_schedule_migrated_licences` (only those schedules are written to) and
+`pears_schedule_event_migration_links` (to find the migrated `DD` event a drill-or-drop well is dated
+from).
+
+| Table | One row per | Used for |
+|---|---|---|
+| `pears_work_programme_migrated_licences` | Schedule the work programme migration wrote to | Not writing a licence's work programme twice, even one with no activities to migrate; the work programme cleardown |
+| `pears_work_programme_activity_migration_links` | Migrated work programme activity | The PEARS activity it came from, for the comparison report and the cleardown |
+| `pears_work_programme_schedule_comment_links` | Schedule comment the migration wrote | Clearing down only those, leaving comments added in LMS |
+
+| Column | Meaning |
+|---|---|
+| `pears_work_programme_migrated_licences.licence_schedule_id`, `licence_id` | The schedule (`licence_schedules.id`) and its licence |
+| `pears_work_programme_migrated_licences.run_id`, `migrated_at` | The run that migrated it, and when |
+| `pears_work_programme_activity_migration_links.schedule_event_id` | The LMS activity (`schedule_events.id`), on the `ACTIVE` version |
+| `pears_work_programme_activity_migration_links.pears_wp_id`, `pears_wpd_id` | The PEARS programme (`PED_WORK_PROGRAMME.ID`) and the version of it read (`PED_WORK_PROGRAMME_DETAILS.ID`) |
+| `pears_work_programme_activity_migration_links.pears_activity_id`, `pears_type` | The activity's `ACTIVITY_ID` and `ACTIVITY_TYPE` |
+| `pears_work_programme_schedule_comment_links.schedule_comment_id` | The schedule comment (`schedule_comments.id`) |
 
 ---
 
@@ -368,6 +394,13 @@ The licence and everything else about it stay. Schedules LMS created itself have
 migration, so no application references a migrated schedule; if one did, its foreign key would
 stop that licence's cleardown. It is off unless `pears.schedule-migration.cleardown-enabled` is
 set, which it never is in production.
+
+The PEARS work programme migration has a cleardown of its own, behind the same switch, that deletes
+only what it wrote onto a migrated schedule: the activities it migrated and any later copies of them
+(by `original_event_id`), their statuses, comments, reminders and event tracker rows, the schedule
+comments it wrote, its §2.4 rows, and their audit history. The schedule stays, with any schedule
+comments added in LMS. The schedule cleardown above also deletes the §2.4 rows, where those tables
+exist, so it still clears a schedule whose work programme has been migrated.
 
 ### 5.4 Derived dates — what is stored versus what is calculated
 
@@ -883,7 +916,16 @@ below do not.
 `licence_schedule_id`, `licence_id`, `run_id`, `migrated_at`
 
 **`pears_schedule_migration_runs`** *(migration only, §2.3)*
-`id`, `kind`, `status`, `requested_by`, `requested_at`, `completed_at`
+`id`, `migration`, `kind`, `status`, `requested_by`, `requested_at`, `completed_at`
 
 **`pears_schedule_migration_queue`** *(migration only, §2.3)*
 `run_id`, `licence_reference`, `status`, `attempts`, `outcome`, `notes`, `started_at`, `finished_at`
+
+**`pears_work_programme_migrated_licences`** *(migration only, §2.4)*
+`licence_schedule_id`, `licence_id`, `run_id`, `migrated_at`
+
+**`pears_work_programme_activity_migration_links`** *(migration only, §2.4)*
+`schedule_event_id`, `pears_wp_id`, `pears_wpd_id`, `pears_activity_id`, `pears_type`
+
+**`pears_work_programme_schedule_comment_links`** *(migration only, §2.4)*
+`schedule_comment_id`

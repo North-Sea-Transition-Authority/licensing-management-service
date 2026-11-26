@@ -67,7 +67,7 @@ public class PearsScheduleComparisonController {
     var everyMigratedLicence = licences != null && licences.trim().equalsIgnoreCase(ALL);
     var references = everyMigratedLicence ? comparisonService.migratedLicences() : licenceReferences(licences);
 
-    var compared = comparisonService.compare(references, allVersions);
+    var compared = comparisonService.compareInParallel(references, allVersions);
     var filtered = onlyIssues || onlyNotMigrated;
     var comparisons = filtered
         ? compared.stream()
@@ -115,7 +115,7 @@ public class PearsScheduleComparisonController {
     return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(exception.getMessage());
   }
 
-  private static List<PearsLicenceReference> licenceReferences(@Nullable String licences) {
+  public static List<PearsLicenceReference> licenceReferences(@Nullable String licences) {
     if (licences == null) {
       throw new IllegalArgumentException(NO_LICENCES);
     }
@@ -132,7 +132,7 @@ public class PearsScheduleComparisonController {
     return references;
   }
 
-  private static boolean isOption(@Nullable String value, String option) {
+  public static boolean isOption(@Nullable String value, String option) {
     if (value == null || value.isBlank()) {
       return false;
     }

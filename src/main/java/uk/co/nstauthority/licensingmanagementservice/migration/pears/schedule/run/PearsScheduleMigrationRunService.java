@@ -65,7 +65,7 @@ public class PearsScheduleMigrationRunService {
    */
   @Transactional
   public PearsScheduleMigrationRun startRun(List<String> licenceReferences, long requestedBy) {
-    return start(PearsScheduleMigrationRunKind.MIGRATE, licenceReferences, requestedBy);
+    return start(PearsMigration.SCHEDULE, PearsScheduleMigrationRunKind.MIGRATE, licenceReferences, requestedBy);
   }
 
   /**
@@ -75,7 +75,7 @@ public class PearsScheduleMigrationRunService {
    */
   @Transactional
   public PearsScheduleMigrationRun startCleardown(List<String> licenceReferences, long requestedBy) {
-    return start(PearsScheduleMigrationRunKind.CLEARDOWN, licenceReferences, requestedBy);
+    return start(PearsMigration.SCHEDULE, PearsScheduleMigrationRunKind.CLEARDOWN, licenceReferences, requestedBy);
   }
 
   /**
@@ -85,17 +85,51 @@ public class PearsScheduleMigrationRunService {
    */
   @Transactional
   public PearsScheduleMigrationRun startValidation(List<String> licenceReferences, long requestedBy) {
-    return start(PearsScheduleMigrationRunKind.VALIDATE, licenceReferences, requestedBy);
+    return start(PearsMigration.SCHEDULE, PearsScheduleMigrationRunKind.VALIDATE, licenceReferences, requestedBy);
+  }
+
+  /**
+   * Queues a run migrating the work programmes of the licences given onto their migrated schedules.
+   *
+   * @throws MigrationPreconditionException if another run is still queued or running
+   */
+  @Transactional
+  public PearsScheduleMigrationRun startWorkProgrammeRun(List<String> licenceReferences, long requestedBy) {
+    return start(PearsMigration.WORK_PROGRAMME, PearsScheduleMigrationRunKind.MIGRATE, licenceReferences, requestedBy);
+  }
+
+  /**
+   * Queues a run clearing down the migrated work programmes of the licences given, leaving their schedules.
+   *
+   * @throws MigrationPreconditionException if another run is still queued or running
+   */
+  @Transactional
+  public PearsScheduleMigrationRun startWorkProgrammeCleardown(List<String> licenceReferences, long requestedBy) {
+    return start(PearsMigration.WORK_PROGRAMME, PearsScheduleMigrationRunKind.CLEARDOWN, licenceReferences,
+        requestedBy);
+  }
+
+  /**
+   * Queues a dry run of the work programmes of the licences given: each is migrated onto its migrated schedule and
+   * compared with PEARS, then rolled back.
+   *
+   * @throws MigrationPreconditionException if another run is still queued or running
+   */
+  @Transactional
+  public PearsScheduleMigrationRun startWorkProgrammeValidation(List<String> licenceReferences, long requestedBy) {
+    return start(PearsMigration.WORK_PROGRAMME, PearsScheduleMigrationRunKind.VALIDATE, licenceReferences,
+        requestedBy);
   }
 
   private PearsScheduleMigrationRun start(
+      PearsMigration migration,
       PearsScheduleMigrationRunKind kind,
       List<String> licenceReferences,
       long requestedBy
   ) {
     failIfARunIsActive();
 
-    var run = new PearsScheduleMigrationRun(UUID.randomUUID(), kind, requestedBy, clock.instant());
+    var run = new PearsScheduleMigrationRun(UUID.randomUUID(), migration, kind, requestedBy, clock.instant());
     // Persisted rather than saved, as saving an entity whose id is already set looks it up first
     entityManager.persist(run);
     flushOrFailIfAnotherRunIsActive();
@@ -105,7 +139,7 @@ public class PearsScheduleMigrationRunService {
             new PearsScheduleMigrationQueueEntryId(run.getId(), licenceReference)))
         .forEach(entityManager::persist);
 
-    LOGGER.info("Queued PEARS schedule {} run {} of {} licences", kind, run.getId(), licenceReferences.size());
+    LOGGER.info("Queued PEARS {} {} run {} of {} licences", migration, kind, run.getId(), licenceReferences.size());
     return run;
   }
 
@@ -128,8 +162,11 @@ public class PearsScheduleMigrationRunService {
 
     if (pending.isEmpty()) {
       run.finish(PearsScheduleMigrationRunStatus.COMPLETE, clock.instant());
-      LOGGER.info("Completed PEARS schedule {} run {}: {}", run.getKind(), run.getId(), licencesByStatus(run.getId()));
-      if (run.getKind() == PearsScheduleMigrationRunKind.CLEARDOWN && migratedLicenceRepository.count() == 0) {
+      LOGGER.info("Completed PEARS {} {} run {}: {}", run.getMigration(), run.getKind(), run.getId(),
+          licencesByStatus(run.getId()));
+      if (run.getMigration() == PearsMigration.SCHEDULE
+          && run.getKind() == PearsScheduleMigrationRunKind.CLEARDOWN
+          && migratedLicenceRepository.count() == 0) {
         deleteEveryRunExcept(run);
       }
       return Optional.empty();
@@ -140,6 +177,7 @@ public class PearsScheduleMigrationRunService {
     }
     return Optional.of(new Batch(
         run.getId(),
+        run.getMigration(),
         run.getKind(),
         pending.stream().map(entry -> entry.getId().licenceReference()).toList()
     ));
@@ -265,6 +303,7 @@ public class PearsScheduleMigrationRunService {
   private PearsScheduleMigrationRunReport report(PearsScheduleMigrationRun run) {
     return new PearsScheduleMigrationRunReport(
         run.getId(),
+        run.getMigration(),
         run.getKind(),
         run.getStatus(),
         run.getRequestedBy(),
@@ -355,6 +394,11 @@ public class PearsScheduleMigrationRunService {
   ) {
   }
 
-  public record Batch(UUID runId, PearsScheduleMigrationRunKind kind, List<String> licenceReferences) {
+  public record Batch(
+      UUID runId,
+      PearsMigration migration,
+      PearsScheduleMigrationRunKind kind,
+      List<String> licenceReferences
+  ) {
   }
 }

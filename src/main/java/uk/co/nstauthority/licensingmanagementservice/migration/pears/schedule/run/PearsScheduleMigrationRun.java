@@ -18,6 +18,9 @@ public class PearsScheduleMigrationRun {
   private UUID id;
 
   @Enumerated(EnumType.STRING)
+  private PearsMigration migration;
+
+  @Enumerated(EnumType.STRING)
   private PearsScheduleMigrationRunKind kind;
 
   @Enumerated(EnumType.STRING)
@@ -32,8 +35,15 @@ public class PearsScheduleMigrationRun {
   protected PearsScheduleMigrationRun() {
   }
 
-  PearsScheduleMigrationRun(UUID id, PearsScheduleMigrationRunKind kind, long requestedBy, Instant requestedAt) {
+  PearsScheduleMigrationRun(
+      UUID id,
+      PearsMigration migration,
+      PearsScheduleMigrationRunKind kind,
+      long requestedBy,
+      Instant requestedAt
+  ) {
     this.id = id;
+    this.migration = migration;
     this.kind = kind;
     this.status = PearsScheduleMigrationRunStatus.QUEUED;
     this.requestedBy = requestedBy;
@@ -42,6 +52,10 @@ public class PearsScheduleMigrationRun {
 
   public UUID getId() {
     return id;
+  }
+
+  public PearsMigration getMigration() {
+    return migration;
   }
 
   public PearsScheduleMigrationRunKind getKind() {

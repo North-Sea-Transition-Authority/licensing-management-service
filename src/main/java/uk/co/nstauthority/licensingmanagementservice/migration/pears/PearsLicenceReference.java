@@ -1,6 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.migration.pears;
 
 import java.util.regex.Pattern;
+import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 
 /**
  * One licence PEARS holds live positions for.
@@ -27,6 +28,18 @@ public record PearsLicenceReference(String licenceType, int licenceNo) {
 
   public String licenceReference() {
     return "%s%d".formatted(licenceType, licenceNo);
+  }
+
+  /**
+   * Whether LMS maps the licence type to a type PEARS manages, which is every type the PEARS migrations cover. False
+   * for a type LMS does not know.
+   */
+  public boolean isOfTypePearsManages() {
+    try {
+      return !LicenceType.getFromPrefix(licenceType).isManagedByLms();
+    } catch (RuntimeException e) {
+      return false;
+    }
   }
 
   @Override

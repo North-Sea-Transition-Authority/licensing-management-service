@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.entry;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -27,6 +28,7 @@ import org.springframework.test.context.jdbc.Sql;
 import org.springframework.test.context.jdbc.SqlConfig;
 import uk.co.fivium.energyportalapi.client.organisation.OrganisationApi;
 import uk.co.fivium.energyportalapi.client.user.UserApi;
+import uk.co.nstauthority.licensingmanagementservice.migration.MigrationPreconditionException;
 import uk.co.nstauthority.licensingmanagementservice.migration.pears.PearsLicenceReference;
 import uk.co.nstauthority.licensingmanagementservice.migration.pears.operation.MigrationNotes;
 import uk.co.nstauthority.licensingmanagementservice.migration.pears.schedule.PearsScheduleCleardownOutcome;
@@ -37,6 +39,10 @@ import uk.co.nstauthority.licensingmanagementservice.migration.pears.schedule.Pe
 import uk.co.nstauthority.licensingmanagementservice.migration.pears.schedule.PearsScheduleService;
 import uk.co.nstauthority.licensingmanagementservice.migration.pears.schedule.PearsScheduleValidationOutcome;
 import uk.co.nstauthority.licensingmanagementservice.migration.pears.schedule.PearsScheduleValidationService;
+import uk.co.nstauthority.licensingmanagementservice.migration.pears.workprogramme.PearsWorkProgrammeCleardownService;
+import uk.co.nstauthority.licensingmanagementservice.migration.pears.workprogramme.PearsWorkProgrammeMigrationOutcome;
+import uk.co.nstauthority.licensingmanagementservice.migration.pears.workprogramme.PearsWorkProgrammeMigrationService;
+import uk.co.nstauthority.licensingmanagementservice.migration.pears.workprogramme.PearsWorkProgrammeValidationService;
 import uk.co.nstauthority.licensingmanagementservice.util.IntegrationTest;
 
 /**
@@ -73,6 +79,9 @@ class PearsScheduleMigrationJobIntegrationTest {
   private PearsScheduleService pearsScheduleService;
   private PearsScheduleCleardownService cleardownService;
   private PearsScheduleValidationService validationService;
+  private PearsWorkProgrammeMigrationService workProgrammeMigrationService;
+  private PearsWorkProgrammeCleardownService workProgrammeCleardownService;
+  private PearsWorkProgrammeValidationService workProgrammeValidationService;
 
   @BeforeEach
   void setUp() {
@@ -80,6 +89,11 @@ class PearsScheduleMigrationJobIntegrationTest {
     pearsScheduleService = mock(PearsScheduleService.class);
     cleardownService = mock(PearsScheduleCleardownService.class);
     validationService = mock(PearsScheduleValidationService.class);
+    workProgrammeMigrationService = mock(PearsWorkProgrammeMigrationService.class);
+    workProgrammeCleardownService = mock(PearsWorkProgrammeCleardownService.class);
+    workProgrammeValidationService = mock(PearsWorkProgrammeValidationService.class);
+    when(workProgrammeMigrationService.migrateLicence(any(), any()))
+        .thenAnswer(invocation -> workProgrammeMigrated(invocation.getArgument(0)));
     when(pearsScheduleService.eventTypes()).thenReturn(EVENT_TYPES);
     when(migrationService.migrateLicence(any(), any(), any()))
         .thenAnswer(invocation -> migrated(invocation.getArgument(0)));
@@ -290,9 +304,138 @@ class PearsScheduleMigrationJobIntegrationTest {
     assertThat(runService.licences(UUID.randomUUID())).isEmpty();
   }
 
+  @Test
+  void workNextBatch_whenAWorkProgrammeRun_migratesEachLicenceWithTheWorkProgrammeMigration() {
+    var run = runService.startWorkProgrammeRun(List.of("P1", "P2"), 1L);
+    var notes = new MigrationNotes();
+    notes.note("General note: to the schedule comments area");
+    when(workProgrammeMigrationService.migrateLicence(new PearsLicenceReference("P", 1), run.getId()))
+        .thenReturn(new PearsWorkProgrammeMigrationOutcome(
+            new PearsLicenceReference("P", 1), PearsWorkProgrammeMigrationOutcome.Result.MIGRATED, null, notes));
+    when(workProgrammeMigrationService.migrateLicence(new PearsLicenceReference("P", 2), run.getId()))
+        .thenReturn(new PearsWorkProgrammeMigrationOutcome(new PearsLicenceReference("P", 2),
+            PearsWorkProgrammeMigrationOutcome.Result.SKIPPED, "Has no schedule from the schedule migration",
+            new MigrationNotes()));
+
+    job(10).workNextBatch();
+
+    verifyNoInteractions(migrationService);
+    assertThat(statuses(run.getId())).containsExactly(
+        entry("P1", PearsScheduleMigrationQueueStatus.MIGRATED),
+        entry("P2", PearsScheduleMigrationQueueStatus.SKIPPED)
+    );
+    assertThat(queueEntry(run.getId(), "P1").getNotes())
+        .containsExactly(entry("General note: to the schedule comments area", 1));
+    assertThat(runService.report(run.getId())).hasValueSatisfying(
+        report -> assertThat(report.migration()).isEqualTo(PearsMigration.WORK_PROGRAMME));
+  }
+
+  @Test
+  void startWorkProgrammeRun_whileAScheduleRunIsActive_isRefused() {
+    var licences = List.of("P1");
+    var scheduleRun = runService.startRun(licences, 1L);
+
+    assertThatThrownBy(() -> runService.startWorkProgrammeRun(licences, 1L))
+        .isInstanceOf(MigrationPreconditionException.class)
+        .hasMessageContaining(scheduleRun.getId().toString());
+  }
+
+  @Test
+  void workNextBatch_runsAWorkProgrammeRunOnceTheScheduleRunBeforeItCompletes() {
+    var scheduleRun = runService.startRun(List.of("P1"), 1L);
+    var job = job(10);
+    job.workNextBatch();
+    job.workNextBatch();
+    assertThat(scheduleRun.getStatus()).isEqualTo(PearsScheduleMigrationRunStatus.COMPLETE);
+
+    var workProgrammeRun = runService.startWorkProgrammeRun(List.of("P1"), 1L);
+    job.workNextBatch();
+
+    verify(workProgrammeMigrationService).migrateLicence(new PearsLicenceReference("P", 1), workProgrammeRun.getId());
+    assertThat(statuses(workProgrammeRun.getId()))
+        .containsExactly(entry("P1", PearsScheduleMigrationQueueStatus.MIGRATED));
+  }
+
+  @Test
+  void workNextBatch_whenAWorkProgrammeMigrationThrows_failsTheLicenceForARetry() {
+    var run = runService.startWorkProgrammeRun(List.of("P1"), 1L);
+    when(workProgrammeMigrationService.migrateLicence(any(), any())).thenThrow(new IllegalStateException("broken"));
+    var job = job(10);
+
+    job.workNextBatch();
+    assertThat(queueEntry(run.getId(), "P1").getOutcome()).isEqualTo("Could not be migrated: broken");
+    job.workNextBatch();
+    assertThat(run.getStatus()).isEqualTo(PearsScheduleMigrationRunStatus.COMPLETE);
+
+    doAnswer(invocation -> workProgrammeMigrated(invocation.getArgument(0)))
+        .when(workProgrammeMigrationService).migrateLicence(any(), any());
+    runService.retryFailed(run.getId());
+    job.workNextBatch();
+
+    assertThat(statuses(run.getId())).containsExactly(entry("P1", PearsScheduleMigrationQueueStatus.MIGRATED));
+    assertThat(queueEntry(run.getId(), "P1").getAttempts()).isEqualTo(2);
+  }
+
+  @Test
+  void workNextBatch_whenAWorkProgrammeRunIsCancelled_stopsTakingItsLicences() {
+    var run = runService.startWorkProgrammeRun(List.of("P1", "P2"), 1L);
+    runService.cancel(run.getId());
+
+    job(10).workNextBatch();
+
+    verifyNoInteractions(workProgrammeMigrationService);
+    assertThat(statuses(run.getId())).containsExactly(
+        entry("P1", PearsScheduleMigrationQueueStatus.PENDING),
+        entry("P2", PearsScheduleMigrationQueueStatus.PENDING)
+    );
+  }
+
+  @Test
+  void workNextBatch_whenAWorkProgrammeCleardown_clearsWithTheWorkProgrammeCleardown() {
+    var run = runService.startWorkProgrammeCleardown(List.of("P1", "P2"), 1L);
+    when(workProgrammeCleardownService.clear("P1")).thenReturn(
+        new PearsScheduleCleardownOutcome(PearsScheduleCleardownOutcome.Result.CLEARED, null));
+    when(workProgrammeCleardownService.clear("P2")).thenReturn(
+        new PearsScheduleCleardownOutcome(PearsScheduleCleardownOutcome.Result.POSTPONED, "Reminder job running"));
+
+    job(10).workNextBatch();
+
+    verifyNoInteractions(cleardownService);
+    assertThat(statuses(run.getId())).containsExactly(
+        entry("P1", PearsScheduleMigrationQueueStatus.CLEARED),
+        entry("P2", PearsScheduleMigrationQueueStatus.PENDING)
+    );
+  }
+
+  @Test
+  void workNextBatch_whenAWorkProgrammeDryRun_dryRunsEachLicenceWithTheWorkProgrammeValidation() {
+    var run = runService.startWorkProgrammeValidation(List.of("P1", "P2"), 1L);
+    when(workProgrammeValidationService.validate("P1", run.getId())).thenReturn(new PearsScheduleValidationOutcome(
+        PearsScheduleValidationOutcome.Result.MATCHED, null, Map.of("Result: Match", 3)));
+    when(workProgrammeValidationService.validate("P2", run.getId()))
+        .thenThrow(new IllegalStateException("PEARS went away"));
+
+    job(10).workNextBatch();
+
+    verifyNoInteractions(validationService);
+    assertThat(statuses(run.getId())).containsExactly(
+        entry("P1", PearsScheduleMigrationQueueStatus.MATCHED),
+        entry("P2", PearsScheduleMigrationQueueStatus.FAILED)
+    );
+    assertThat(queueEntry(run.getId(), "P2").getOutcome()).isEqualTo("Could not be dry run: PEARS went away");
+    assertThat(runService.report(run.getId())).hasValueSatisfying(
+        report -> assertThat(report.comparisonResults()).containsEntry("Match", 3L));
+  }
+
   private PearsScheduleMigrationJob job(int batchSize) {
     return new PearsScheduleMigrationJob(
-        runService, migrationService, pearsScheduleService, cleardownService, validationService, clock, batchSize);
+        runService, migrationService, pearsScheduleService, cleardownService, validationService,
+        workProgrammeMigrationService, workProgrammeCleardownService, workProgrammeValidationService, clock, batchSize);
+  }
+
+  private static PearsWorkProgrammeMigrationOutcome workProgrammeMigrated(PearsLicenceReference licence) {
+    return new PearsWorkProgrammeMigrationOutcome(
+        licence, PearsWorkProgrammeMigrationOutcome.Result.MIGRATED, null, new MigrationNotes());
   }
 
   private static PearsScheduleMigrationOutcome migrated(PearsLicenceReference licence) {

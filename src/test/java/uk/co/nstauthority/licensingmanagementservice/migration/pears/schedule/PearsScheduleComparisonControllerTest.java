@@ -62,7 +62,7 @@ class PearsScheduleComparisonControllerTest extends AbstractControllerTest {
         .andExpect(content().contentTypeCompatibleWith("text/html"))
         .andExpect(content().string(Matchers.containsString("<h2>P1556</h2>")));
 
-    verify(comparisonService).compare(List.of(new PearsLicenceReference("P", 1556)), false);
+    verify(comparisonService).compareInParallel(List.of(new PearsLicenceReference("P", 1556)), false);
   }
 
   @Test
@@ -76,7 +76,7 @@ class PearsScheduleComparisonControllerTest extends AbstractControllerTest {
         .andExpect(content().string(Matchers.containsString("<p>2 licences compared</p>")))
         .andExpect(content().string(Matchers.containsString("<h2>P1728</h2>")));
 
-    verify(comparisonService).compare(migrated, false);
+    verify(comparisonService).compareInParallel(migrated, false);
   }
 
   @Test
@@ -155,7 +155,7 @@ class PearsScheduleComparisonControllerTest extends AbstractControllerTest {
     mockMvc.perform(post(ROUTE).param("licences", " p1556, PEDL236 ,,P1556").with(user(regulatorUser)).with(csrf()))
         .andExpect(status().isOk());
 
-    verify(comparisonService).compare(
+    verify(comparisonService).compareInParallel(
         List.of(new PearsLicenceReference("P", 1556), new PearsLicenceReference("PEDL", 236)), false);
   }
 
@@ -166,7 +166,7 @@ class PearsScheduleComparisonControllerTest extends AbstractControllerTest {
     mockMvc.perform(get(ROUTE).param("licences", "P1556").param("versions", "all").with(user(regulatorUser)))
         .andExpect(status().isOk());
 
-    verify(comparisonService).compare(List.of(new PearsLicenceReference("P", 1556)), true);
+    verify(comparisonService).compareInParallel(List.of(new PearsLicenceReference("P", 1556)), true);
   }
 
   @Test
@@ -206,6 +206,6 @@ class PearsScheduleComparisonControllerTest extends AbstractControllerTest {
   }
 
   private void givenTheComparisons(PearsScheduleComparison... comparisons) {
-    when(comparisonService.compare(anyList(), anyBoolean())).thenReturn(List.of(comparisons));
+    when(comparisonService.compareInParallel(anyList(), anyBoolean())).thenReturn(List.of(comparisons));
   }
 }

@@ -6,7 +6,7 @@ import java.time.LocalDate;
  * PEARS's schedule date arithmetic, ported from Oracle so the migration can place an event the way PEARS does. LMS adds
  * offsets differently (months before days, and no month-end rule), so the two only agree away from month ends.
  */
-final class PearsDates {
+public final class PearsDates {
 
   private PearsDates() {
   }
@@ -29,7 +29,7 @@ final class PearsDates {
    * it out: the days are added first, then the years and months with {@link #addMonths}. So a start of 30-Jan plus
    * 1 month and 1 day is 31-Jan, then 28-Feb, where LMS gives 01-Mar.
    */
-  static LocalDate eventDate(LocalDate startDate, int years, int months, int days) {
+  public static LocalDate eventDate(LocalDate startDate, int years, int months, int days) {
     return addMonths(startDate.plusDays(days), years * 12 + months);
   }
 }

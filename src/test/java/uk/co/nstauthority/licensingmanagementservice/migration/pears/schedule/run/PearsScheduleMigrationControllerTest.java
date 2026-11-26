@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.context.ActiveProfiles;
@@ -72,6 +73,11 @@ class PearsScheduleMigrationControllerTest extends AbstractControllerTest {
 
   @MockitoBean
   private PearsScheduleCleardownService cleardownService;
+
+  @BeforeEach
+  void givenTheRunIsAScheduleRun() {
+    when(runService.report(RUN_ID)).thenReturn(Optional.of(report(PearsScheduleMigrationRunStatus.RUNNING)));
+  }
 
   @Test
   void startRun_whenPost_queuesEveryLicenceWithAPearsSchedule() throws Exception {
@@ -139,7 +145,7 @@ class PearsScheduleMigrationControllerTest extends AbstractControllerTest {
 
     mockMvc.perform(get(VALIDATE_ROUTE).param("licenceReference", "P9999").with(user(regulatorUser)))
         .andExpect(status().isConflict())
-        .andExpect(content().string("PEARS holds no schedule for P9999"));
+        .andExpect(content().string("PEARS holds no schedule for the licence"));
   }
 
   @Test
@@ -148,7 +154,7 @@ class PearsScheduleMigrationControllerTest extends AbstractControllerTest {
 
     mockMvc.perform(post(START_ROUTE).param("licenceReference", "P9999").with(user(regulatorUser)).with(csrf()))
         .andExpect(status().isConflict())
-        .andExpect(content().string("PEARS holds no schedule for P9999"));
+        .andExpect(content().string("PEARS holds no schedule for the licence"));
 
     verifyNoInteractions(runService);
   }
@@ -324,7 +330,7 @@ class PearsScheduleMigrationControllerTest extends AbstractControllerTest {
 
     mockMvc.perform(post(CLEARDOWN_ROUTE).param("licenceReference", "P9999").with(user(regulatorUser)).with(csrf()))
         .andExpect(status().isConflict())
-        .andExpect(content().string("P9999 has no schedule from the PEARS migration"));
+        .andExpect(content().string("The licence has no schedule from the PEARS migration"));
 
     verifyNoInteractions(runService);
   }
@@ -370,22 +376,23 @@ class PearsScheduleMigrationControllerTest extends AbstractControllerTest {
 
   private void givenTheDryRunStarts() {
     when(runService.startValidation(any(), anyLong())).thenAnswer(invocation -> new PearsScheduleMigrationRun(
-        RUN_ID, PearsScheduleMigrationRunKind.VALIDATE, invocation.getArgument(1), Instant.now()));
+        RUN_ID, PearsMigration.SCHEDULE, PearsScheduleMigrationRunKind.VALIDATE, invocation.getArgument(1), Instant.now()));
   }
 
   private void givenTheRunStarts() {
     when(runService.startRun(any(), anyLong())).thenAnswer(invocation -> new PearsScheduleMigrationRun(
-          RUN_ID, PearsScheduleMigrationRunKind.MIGRATE, invocation.getArgument(1), Instant.now()));
+          RUN_ID, PearsMigration.SCHEDULE, PearsScheduleMigrationRunKind.MIGRATE, invocation.getArgument(1), Instant.now()));
   }
 
   private void givenTheCleardownStarts() {
     when(runService.startCleardown(any(), anyLong())).thenAnswer(invocation -> new PearsScheduleMigrationRun(
-        RUN_ID, PearsScheduleMigrationRunKind.CLEARDOWN, invocation.getArgument(1), Instant.now()));
+        RUN_ID, PearsMigration.SCHEDULE, PearsScheduleMigrationRunKind.CLEARDOWN, invocation.getArgument(1), Instant.now()));
   }
 
   private static PearsScheduleMigrationRunReport report(PearsScheduleMigrationRunStatus status) {
     return new PearsScheduleMigrationRunReport(
         RUN_ID,
+        PearsMigration.SCHEDULE,
         PearsScheduleMigrationRunKind.MIGRATE,
         status,
         1L,

@@ -22,4 +22,16 @@ class PearsLicenceReferenceTest {
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessage("%s is not a PEARS licence reference".formatted(licenceReference));
   }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"P", "PEDL", "PL", "EXL", "AL"})
+  void isOfTypePearsManages_whenPearsManagesTheType_thenTrue(String licenceType) {
+    assertThat(new PearsLicenceReference(licenceType, 1).isOfTypePearsManages()).isTrue();
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"CS", "XL", "A"})
+  void isOfTypePearsManages_whenLmsManagesOrDoesNotKnowTheType_thenFalse(String licenceType) {
+    assertThat(new PearsLicenceReference(licenceType, 1).isOfTypePearsManages()).isFalse();
+  }
 }

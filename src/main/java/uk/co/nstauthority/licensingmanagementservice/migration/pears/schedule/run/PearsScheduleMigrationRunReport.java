@@ -13,6 +13,7 @@ import java.util.UUID;
  */
 public record PearsScheduleMigrationRunReport(
     UUID runId,
+    PearsMigration migration,
     PearsScheduleMigrationRunKind kind,
     PearsScheduleMigrationRunStatus status,
     long requestedBy,

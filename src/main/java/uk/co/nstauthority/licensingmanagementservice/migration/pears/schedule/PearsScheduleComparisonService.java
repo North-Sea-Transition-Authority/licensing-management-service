@@ -22,6 +22,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesch
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetailStatus;
 import uk.co.nstauthority.licensingmanagementservice.migration.pears.ConditionalOnPearsDataSource;
+import uk.co.nstauthority.licensingmanagementservice.migration.pears.PearsLicenceComparisons;
 import uk.co.nstauthority.licensingmanagementservice.migration.pears.PearsLicenceReference;
 
 /**
@@ -48,6 +49,7 @@ public class PearsScheduleComparisonService {
   private final LmsScheduleVersionReader lmsScheduleVersionReader;
   private final PearsScheduleMigratedLicenceRepository migratedLicenceRepository;
   private final EntityManager entityManager;
+  private final PearsLicenceComparisons licenceComparisons;
 
   PearsScheduleComparisonService(
       PearsScheduleService pearsScheduleService,
@@ -55,7 +57,8 @@ public class PearsScheduleComparisonService {
       LicenceScheduleDetailService licenceScheduleDetailService,
       LmsScheduleVersionReader lmsScheduleVersionReader,
       PearsScheduleMigratedLicenceRepository migratedLicenceRepository,
-      EntityManager entityManager
+      EntityManager entityManager,
+      PearsLicenceComparisons licenceComparisons
   ) {
     this.pearsScheduleService = pearsScheduleService;
     this.pearsScheduleMapper = new PearsScheduleMapper();
@@ -64,6 +67,7 @@ public class PearsScheduleComparisonService {
     this.lmsScheduleVersionReader = lmsScheduleVersionReader;
     this.migratedLicenceRepository = migratedLicenceRepository;
     this.entityManager = entityManager;
+    this.licenceComparisons = licenceComparisons;
   }
 
   /**
@@ -90,6 +94,15 @@ public class PearsScheduleComparisonService {
       entityManager.clear();
     }
     return comparisons;
+  }
+
+  /**
+   * As {@link #compare(List, boolean)}, but several licences at a time, each in a transaction of its own, so it only
+   * sees what is committed: for the report, not for a caller comparing what its own transaction wrote.
+   */
+  public List<PearsScheduleComparison> compareInParallel(List<PearsLicenceReference> licences, boolean allVersions) {
+    var eventTypes = pearsScheduleService.eventTypes();
+    return licenceComparisons.compare(licences, licence -> compare(licence, eventTypes, allVersions));
   }
 
   PearsScheduleComparison compare(

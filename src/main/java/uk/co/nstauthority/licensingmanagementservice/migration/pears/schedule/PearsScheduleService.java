@@ -18,7 +18,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
-import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.migration.MigrationPreconditionException;
 import uk.co.nstauthority.licensingmanagementservice.migration.pears.ConditionalOnPearsDataSource;
 import uk.co.nstauthority.licensingmanagementservice.migration.pears.PearsLicenceReference;
@@ -91,7 +90,7 @@ public class PearsScheduleService {
       statement.setFetchSize(5_000);
 
       for (var reference : readReferences(statement)) {
-        (isPearsManaged(reference.licenceType()) ? references : leftOut).add(reference);
+        (reference.isOfTypePearsManages() ? references : leftOut).add(reference);
       }
     } catch (SQLException e) {
       throw new IllegalStateException("Could not read the licences with a schedule from PEARS", e);
@@ -262,17 +261,6 @@ public class PearsScheduleService {
 
     PearsScheduleVersion toVersion() {
       return new PearsScheduleVersion(plsdId, start, end, originDate, events);
-    }
-  }
-
-  /**
-   * Whether LMS maps the PEARS licence type to a type PEARS manages, which is every type with a PEARS schedule.
-   */
-  private static boolean isPearsManaged(String licenceType) {
-    try {
-      return !LicenceType.getFromPrefix(licenceType).isManagedByLms();
-    } catch (RuntimeException e) {
-      return false;
     }
   }
 

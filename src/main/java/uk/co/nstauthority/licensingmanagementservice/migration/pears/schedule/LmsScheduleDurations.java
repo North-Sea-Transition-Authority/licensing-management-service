@@ -10,7 +10,7 @@ import uk.co.nstauthority.licensingmanagementservice.components.duration.ThreeFi
  * works the dates out itself ({@code LicenceScheduleCalculationService}), so a duration copied from PEARS's offset could
  * land a few days away. These durations are derived from the PEARS dates instead, so LMS lands on them exactly.
  */
-final class LmsScheduleDurations {
+public final class LmsScheduleDurations {
 
   private LmsScheduleDurations() {
   }
@@ -46,7 +46,7 @@ final class LmsScheduleDurations {
    *
    * @throws IllegalArgumentException if the date is before the start date
    */
-  static ThreeFieldDuration untilDate(LocalDate startDate, LocalDate date) {
+  public static ThreeFieldDuration untilDate(LocalDate startDate, LocalDate date) {
     if (date.isBefore(startDate)) {
       throw new IllegalArgumentException("%s is before %s".formatted(date, startDate));
     }

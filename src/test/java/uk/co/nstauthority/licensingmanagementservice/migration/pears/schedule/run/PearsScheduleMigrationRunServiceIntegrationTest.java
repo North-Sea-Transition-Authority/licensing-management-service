@@ -89,7 +89,7 @@ class PearsScheduleMigrationRunServiceIntegrationTest {
     var batch = runService.nextBatch(2);
 
     assertThat(batch).contains(new PearsScheduleMigrationRunService.Batch(
-        run.getId(), PearsScheduleMigrationRunKind.MIGRATE, List.of("P1", "P2")));
+        run.getId(), PearsMigration.SCHEDULE, PearsScheduleMigrationRunKind.MIGRATE, List.of("P1", "P2")));
     assertThat(run.getStatus()).isEqualTo(PearsScheduleMigrationRunStatus.RUNNING);
   }
 
@@ -100,7 +100,7 @@ class PearsScheduleMigrationRunServiceIntegrationTest {
 
     assertThat(runService.nextBatch(2))
         .contains(new PearsScheduleMigrationRunService.Batch(
-            run.getId(), PearsScheduleMigrationRunKind.MIGRATE, List.of("P2")));
+            run.getId(), PearsMigration.SCHEDULE, PearsScheduleMigrationRunKind.MIGRATE, List.of("P2")));
   }
 
   @Test
@@ -231,7 +231,7 @@ class PearsScheduleMigrationRunServiceIntegrationTest {
     assertThat(retried.getAttempts()).isEqualTo(1);
     assertThat(runService.nextBatch(10))
         .contains(new PearsScheduleMigrationRunService.Batch(
-            run.getId(), PearsScheduleMigrationRunKind.MIGRATE, List.of("P1")));
+            run.getId(), PearsMigration.SCHEDULE, PearsScheduleMigrationRunKind.MIGRATE, List.of("P1")));
   }
 
   @Test
@@ -309,7 +309,7 @@ class PearsScheduleMigrationRunServiceIntegrationTest {
     assertThat(run.getKind()).isEqualTo(PearsScheduleMigrationRunKind.CLEARDOWN);
     assertThat(statuses(run.getId())).containsExactly(entry("P2244", PearsScheduleMigrationQueueStatus.PENDING));
     assertThat(runService.nextBatch(10)).contains(new PearsScheduleMigrationRunService.Batch(
-        run.getId(), PearsScheduleMigrationRunKind.CLEARDOWN, List.of("P2244")));
+        run.getId(), PearsMigration.SCHEDULE, PearsScheduleMigrationRunKind.CLEARDOWN, List.of("P2244")));
   }
 
   @Test

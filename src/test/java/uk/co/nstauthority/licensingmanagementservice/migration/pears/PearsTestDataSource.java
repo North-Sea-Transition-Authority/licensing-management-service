@@ -1,4 +1,4 @@
-package uk.co.nstauthority.licensingmanagementservice.migration.pears.schedule;
+package uk.co.nstauthority.licensingmanagementservice.migration.pears;
 
 import com.zaxxer.hikari.HikariDataSource;
 
@@ -6,12 +6,12 @@ import com.zaxxer.hikari.HikariDataSource;
  * The PEARS database the {@code pears-migration} tests read, from {@code PEARS_DATASOURCE_URL},
  * {@code PEARS_DATASOURCE_USERNAME} and {@code PEARS_DATASOURCE_PASSWORD}. Read-only, with a small pool.
  */
-final class PearsTestDataSource {
+public final class PearsTestDataSource {
 
   private PearsTestDataSource() {
   }
 
-  static HikariDataSource connect() {
+  public static HikariDataSource connect() {
     var dataSource = new HikariDataSource();
     dataSource.setJdbcUrl(System.getenv("PEARS_DATASOURCE_URL"));
     dataSource.setUsername(System.getenv("PEARS_DATASOURCE_USERNAME"));

@@ -18,10 +18,12 @@ results are in the
    - `PEARS_DATASOURCE_URL`, `PEARS_DATASOURCE_USERNAME` and `PEARS_DATASOURCE_PASSWORD`, for dev PEARS.
    - Optionally, `PEARS_SCHEDULE_MIGRATION_CLEARDOWN_ENABLED=true`, so you can clear down and run it
      again.
-3. Run the two scripts in `src/main/resources/manualscripts/pearsschedulemigration/` against your
+3. Run these scripts from `src/main/resources/manualscripts/pearsschedulemigration/` against your
    local LMS database, in order. They aren't Flyway migrations, so you only run them once.
    1. `0001_pears_schedule_migration_tables.sql`
    2. `0002_pears_schedule_migration_runs.sql`
+   3. `../pearsworkprogrammemigration/0002_pears_work_programme_migration_runs.sql`, which adds the
+      column runs of either migration need
 4. Start LMS and sign in. The endpoints below use your normal login.
 
 All the URLs below are under `http://localhost:8080/lms`.
@@ -106,7 +108,57 @@ fetch('/lms/migration/pears-schedules/cleardown', { method: 'POST' })
 ```
 
 It deletes only the schedules the migration created, and leaves schedules made in LMS alone. Follow
-it like any run, then migrate again.
+it like any run, then migrate again. It clears any work programme migrated onto them too (step 6).
+
+## 6. Migrate work programmes
+
+The work programme migration puts each licence's current PEARS work programme onto the schedule the
+schedule migration wrote for it, so migrate schedules first. Its design is in the
+[work programme migration plan](../investigations/pears-migration/pears-work-programme-migration-plan.md).
+
+1. Run `src/main/resources/manualscripts/pearsworkprogrammemigration/0001_pears_work_programme_migration_tables.sql`
+   and then `0003_pears_work_programme_schedule_comment_links_cascade.sql` from the same folder against
+   your local LMS database, after the schedule migration's scripts (step 1 ran its `0002`). `0003` lets
+   a migrated schedule comment be removed in LMS; run it on its own if you ran `0001` before it existed.
+2. Optionally, dry run first: `/migration/pears-work-programmes/validate`, with `?licenceReference=…`
+   for one licence. Each licence's work programme is migrated onto its migrated schedule and compared
+   with PEARS, then rolled back, so nothing changes. Follow it as for a migration (next step).
+3. Start: `/migration/pears-work-programmes`. Add `?licenceReference=…` for one licence. It returns a
+   run ID. A licence with no migrated schedule is skipped and says so.
+4. Follow it, get its CSV, retry its failed licences and cancel it as for schedules (step 3), under
+   `/migration/pears-work-programmes/{runId}`.
+5. Compare with PEARS: `/migration/pears-work-programmes/compare`, with the same `licences`, `issues`,
+   `notMigrated` and `format` parameters as the schedule comparison (step 4), but no `versions`: it
+   compares the current PEARS work programmes with the `ACTIVE` schedule. For example, after a run,
+   `/migration/pears-work-programmes/compare?licences=all&issues=only` should list none.
+
+   Each licence lists its PEARS activities, each with the LMS activity it became, then the schedule
+   comments:
+
+   | Result | Issue? | Means |
+   |---|---|---|
+   | Match | | As the migration makes it |
+   | Mapped | | As the migration makes it, through a mapping that changes the PEARS status, such as `NOT_STARTED` to Open |
+   | Not migrated | | An activity the migration leaves out by its rules, such as "None", or every activity of a licence it doesn't migrate; the row says why |
+   | Differs | Yes | The LMS activity isn't what the migration makes of the PEARS one; the row names what differs |
+   | Missing in LMS | Yes | A PEARS activity or general note with nothing in LMS |
+   | LMS only | Yes | An LMS activity, or a schedule comment the migration wrote, with no PEARS counterpart |
+   | Added in LMS | | A schedule comment someone added in LMS |
+
+Work programme runs share the schedule migration's queue, so a work programme run can't start while a
+schedule run is active, and the other way round.
+
+To run it again, clear the work programmes down with the same cleardown switch
+(`PEARS_SCHEDULE_MIGRATION_CLEARDOWN_ENABLED=true`):
+
+```js
+fetch('/lms/migration/pears-work-programmes/cleardown', { method: 'POST' })
+  .then(r => r.json()).then(console.log)
+```
+
+It deletes only what the work programme migration wrote, with its audit history: the activities,
+their statuses, comments and reminders, and its schedule comments. The schedules stay, with any
+schedule comments added in LMS, ready to migrate the work programmes onto again.
 
 ## What to expect against dev PEARS
 
@@ -124,6 +176,17 @@ About 1,109 licences, taking about 13 minutes:
 A licence that already has a schedule in your LMS is skipped by the migration, and compared as it is
 by the dry run.
 
+For work programmes, after the schedule migration: about 2,204 licences, taking about 20 minutes.
+
+- **About 879 migrated**, all matching PEARS: the comparison with `issues=only` lists none.
+- **About 1,325 skipped**, as designed:
+  - about 1,137 "Has no schedule from the schedule migration": licences with no PEARS schedule
+    (mostly surrendered), and those whose schedule failed above;
+  - about 182 "Not a licence in LMS";
+  - 6 with two Initial work programmes (EXL253, PEDL120, PEDL133, PEDL180, PEDL181, PEDL225), until
+    the licensing team chooses one.
+- **None failed.**
+
 ## Alternative: the Gradle sweep
 
 This migrates and compares every licence in a test database, so it doesn't need a running LMS. It also
@@ -139,6 +202,9 @@ covers licences that aren't in your LMS.
 - Give it the same three `PEARS_DATASOURCE_*` variables.
 - To narrow it, set `PEARS_MIGRATION_LICENCES=P1556,PL211`.
 - The report is written to `build/reports/pears-migration/schedule-comparison.txt`.
+- For work programmes, run `pearsMigrationTest --tests '*PearsWorkProgrammeMigrationValidationTest'`.
+  It migrates each licence's schedule and then its work programme, compares the work programme, and
+  writes `build/reports/pears-migration/work-programme-comparison.txt`.
 
 ## Good to know
 

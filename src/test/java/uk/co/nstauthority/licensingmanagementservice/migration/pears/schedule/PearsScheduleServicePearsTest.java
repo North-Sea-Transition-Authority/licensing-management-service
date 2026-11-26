@@ -24,6 +24,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import uk.co.nstauthority.licensingmanagementservice.migration.pears.PearsLicenceReference;
+import uk.co.nstauthority.licensingmanagementservice.migration.pears.PearsTestDataSource;
 
 /**
  * Reads schedules out of a real PEARS database with {@link PearsScheduleService}, and checks they come back the shape

@@ -89,10 +89,14 @@ public class PearsScheduleValidationService {
       return new PearsScheduleValidationOutcome(PearsScheduleValidationOutcome.Result.MATCHED, null, notes);
     }
     return new PearsScheduleValidationOutcome(
-        PearsScheduleValidationOutcome.Result.DIFFERS, kept(comparison.issueDescriptions()), notes);
+        PearsScheduleValidationOutcome.Result.DIFFERS, keptIssues(comparison.issueDescriptions()), notes);
   }
 
-  private static String kept(List<String> issues) {
+  /**
+   * The first issues, a line each, and how many more there are: enough to start on, as the comparison report shows the
+   * rest. The work programme dry run keeps its issues the same way.
+   */
+  public static String keptIssues(List<String> issues) {
     if (issues.size() <= ISSUES_KEPT) {
       return String.join(System.lineSeparator(), issues);
     }

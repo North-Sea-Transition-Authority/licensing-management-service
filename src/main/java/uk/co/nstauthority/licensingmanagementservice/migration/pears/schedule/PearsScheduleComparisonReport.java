@@ -22,7 +22,7 @@ public final class PearsScheduleComparisonReport {
       "Result", "Detail"
   );
 
-  private static final String STYLE = """
+  public static final String STYLE = """
       body { font-family: Arial, sans-serif; font-size: 14px; margin: 16px; }
       table { border-collapse: collapse; margin-bottom: 24px; }
       th, td { border: 1px solid #b1b4b6; padding: 4px 6px; text-align: left; vertical-align: top; }

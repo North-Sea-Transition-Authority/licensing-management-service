@@ -5,6 +5,8 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.function.Supplier;
 import net.javacrumbs.shedlock.core.LockExtender;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.slf4j.Logger;
@@ -20,7 +22,11 @@ import uk.co.nstauthority.licensingmanagementservice.migration.pears.schedule.Pe
 import uk.co.nstauthority.licensingmanagementservice.migration.pears.schedule.PearsScheduleEventType;
 import uk.co.nstauthority.licensingmanagementservice.migration.pears.schedule.PearsScheduleMigrationService;
 import uk.co.nstauthority.licensingmanagementservice.migration.pears.schedule.PearsScheduleService;
+import uk.co.nstauthority.licensingmanagementservice.migration.pears.schedule.PearsScheduleValidationOutcome;
 import uk.co.nstauthority.licensingmanagementservice.migration.pears.schedule.PearsScheduleValidationService;
+import uk.co.nstauthority.licensingmanagementservice.migration.pears.workprogramme.PearsWorkProgrammeCleardownService;
+import uk.co.nstauthority.licensingmanagementservice.migration.pears.workprogramme.PearsWorkProgrammeMigrationService;
+import uk.co.nstauthority.licensingmanagementservice.migration.pears.workprogramme.PearsWorkProgrammeValidationService;
 
 /**
  * Works through the active run a batch of licences at a time, migrating, clearing down or dry running each in a
@@ -41,15 +47,22 @@ public class PearsScheduleMigrationJob {
   private final PearsScheduleService pearsScheduleService;
   private final PearsScheduleCleardownService cleardownService;
   private final PearsScheduleValidationService validationService;
+  private final PearsWorkProgrammeMigrationService workProgrammeMigrationService;
+  private final PearsWorkProgrammeCleardownService workProgrammeCleardownService;
+  private final PearsWorkProgrammeValidationService workProgrammeValidationService;
   private final Clock clock;
   private final int batchSize;
 
+  @SuppressWarnings("java:S107") // One collaborator per kind of work, for each migration
   PearsScheduleMigrationJob(
       PearsScheduleMigrationRunService runService,
       PearsScheduleMigrationService migrationService,
       PearsScheduleService pearsScheduleService,
       PearsScheduleCleardownService cleardownService,
       PearsScheduleValidationService validationService,
+      PearsWorkProgrammeMigrationService workProgrammeMigrationService,
+      PearsWorkProgrammeCleardownService workProgrammeCleardownService,
+      PearsWorkProgrammeValidationService workProgrammeValidationService,
       Clock clock,
       @Value("${pears.schedule-migration.batch-size}") int batchSize
   ) {
@@ -61,6 +74,9 @@ public class PearsScheduleMigrationJob {
     this.pearsScheduleService = pearsScheduleService;
     this.cleardownService = cleardownService;
     this.validationService = validationService;
+    this.workProgrammeMigrationService = workProgrammeMigrationService;
+    this.workProgrammeCleardownService = workProgrammeCleardownService;
+    this.workProgrammeValidationService = workProgrammeValidationService;
     this.clock = clock;
     this.batchSize = batchSize;
   }
@@ -116,12 +132,15 @@ public class PearsScheduleMigrationJob {
   }
 
   private LicenceWork work(PearsScheduleMigrationRunService.Batch batch) {
+    if (batch.migration() == PearsMigration.WORK_PROGRAMME) {
+      return workProgrammeWork(batch);
+    }
     return switch (batch.kind()) {
       case MIGRATE -> {
         var eventTypes = pearsScheduleService.eventTypes();
         yield licenceReference -> migrate(licenceReference, eventTypes, batch.runId());
       }
-      case CLEARDOWN -> licenceReference -> clear(licenceReference, batch.runId());
+      case CLEARDOWN -> licenceReference -> clear(licenceReference, batch.runId(), cleardownService::clear);
       case VALIDATE -> {
         var eventTypes = pearsScheduleService.eventTypes();
         yield licenceReference -> validate(licenceReference, eventTypes, batch.runId());
@@ -129,42 +148,75 @@ public class PearsScheduleMigrationJob {
     };
   }
 
+  private LicenceWork workProgrammeWork(PearsScheduleMigrationRunService.Batch batch) {
+    return switch (batch.kind()) {
+      case MIGRATE -> licenceReference -> migrateWorkProgramme(licenceReference, batch.runId());
+      case CLEARDOWN ->
+          licenceReference -> clear(licenceReference, batch.runId(), workProgrammeCleardownService::clear);
+      case VALIDATE -> licenceReference -> validated(licenceReference, batch.runId(),
+          () -> workProgrammeValidationService.validate(licenceReference, batch.runId()));
+    };
+  }
+
   private Outcome migrate(String licenceReference, List<PearsScheduleEventType> eventTypes, UUID runId) {
-    try {
+    return migrated(licenceReference, runId, () -> {
       var outcome = migrationService.migrateLicence(PearsLicenceReference.parse(licenceReference), eventTypes, runId);
-      return new Outcome(
-          PearsScheduleMigrationQueueStatus.valueOf(outcome.result().name()),
-          outcome.reason(),
-          outcome.notes().noteCountsByReason()
-      );
+      return new Outcome(PearsScheduleMigrationQueueStatus.valueOf(outcome.result().name()), outcome.reason(),
+          outcome.notes().noteCountsByReason());
+    });
+  }
+
+  private Outcome migrateWorkProgramme(String licenceReference, UUID runId) {
+    return migrated(licenceReference, runId, () -> {
+      var outcome = workProgrammeMigrationService.migrateLicence(PearsLicenceReference.parse(licenceReference), runId);
+      return new Outcome(PearsScheduleMigrationQueueStatus.valueOf(outcome.result().name()), outcome.reason(),
+          outcome.notes().noteCountsByReason());
+    });
+  }
+
+  private static Outcome migrated(String licenceReference, UUID runId, Supplier<Outcome> migration) {
+    try {
+      return migration.get();
     } catch (RuntimeException e) {
-      LOGGER.warn("Could not migrate the PEARS schedule of {} in run {}", licenceReference, runId, e);
+      LOGGER.warn("Could not migrate {} in run {}", licenceReference, runId, e);
       return new Outcome(
           PearsScheduleMigrationQueueStatus.FAILED, "Could not be migrated: %s".formatted(e.getMessage()), Map.of());
     }
   }
 
-  private Outcome clear(String licenceReference, UUID runId) {
+  private Outcome clear(
+      String licenceReference,
+      UUID runId,
+      Function<String, PearsScheduleCleardownOutcome> cleardown
+  ) {
     try {
-      var outcome = cleardownService.clear(licenceReference);
+      var outcome = cleardown.apply(licenceReference);
       var status = outcome.result() == PearsScheduleCleardownOutcome.Result.POSTPONED
           ? PearsScheduleMigrationQueueStatus.PENDING
           : PearsScheduleMigrationQueueStatus.valueOf(outcome.result().name());
       return new Outcome(status, outcome.reason(), Map.of());
     } catch (RuntimeException e) {
-      LOGGER.warn("Could not clear the migrated schedule of {} in run {}", licenceReference, runId, e);
+      LOGGER.warn("Could not clear {} in run {}", licenceReference, runId, e);
       return new Outcome(
           PearsScheduleMigrationQueueStatus.FAILED, "Could not be cleared: %s".formatted(e.getMessage()), Map.of());
     }
   }
 
   private Outcome validate(String licenceReference, List<PearsScheduleEventType> eventTypes, UUID runId) {
+    return validated(licenceReference, runId, () -> validationService.validate(licenceReference, eventTypes, runId));
+  }
+
+  private static Outcome validated(
+      String licenceReference,
+      UUID runId,
+      Supplier<PearsScheduleValidationOutcome> dryRun
+  ) {
     try {
-      var outcome = validationService.validate(licenceReference, eventTypes, runId);
+      var outcome = dryRun.get();
       return new Outcome(
           PearsScheduleMigrationQueueStatus.valueOf(outcome.result().name()), outcome.reason(), outcome.notes());
     } catch (RuntimeException e) {
-      LOGGER.warn("Could not dry run the PEARS schedule of {} in run {}", licenceReference, runId, e);
+      LOGGER.warn("Could not dry run {} in run {}", licenceReference, runId, e);
       return new Outcome(
           PearsScheduleMigrationQueueStatus.FAILED, "Could not be dry run: %s".formatted(e.getMessage()), Map.of());
     }

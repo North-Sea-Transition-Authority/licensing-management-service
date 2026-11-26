@@ -112,8 +112,11 @@ public class PearsScheduleCleardownService {
    *
    * <p>ShedLock only adds the row the first time the job runs, so it is added here first if missing, already let go of.
    * The job's first run then updates it, and waits for the cleardown like any other.
+   *
+   * <p>The work programme cleardown, which deletes event reminders too, takes the lock the same way, in its own
+   * transaction.
    */
-  private boolean reminderJobRunning() {
+  public boolean reminderJobRunning() {
     entityManager.createNativeQuery("""
             INSERT INTO lms.shedlock (name, lock_until, locked_at, locked_by)
             VALUES (:name, timezone('utc', CURRENT_TIMESTAMP), timezone('utc', CURRENT_TIMESTAMP), :lockedBy)
@@ -174,6 +177,7 @@ public class PearsScheduleCleardownService {
         scheduleId);
     delete("DELETE FROM lms.pears_schedule_event_migration_links WHERE schedule_event_id IN (%s)".formatted(EVENTS),
         scheduleId);
+    deleteWorkProgrammeMigrationRows(scheduleId);
     EVENT_TABLES.forEach(table -> delete("DELETE FROM lms.%s WHERE id IN (%s)".formatted(table, EVENTS), scheduleId));
     delete("DELETE FROM lms.schedule_events WHERE licence_schedule_id = :schedule", scheduleId);
 
@@ -189,6 +193,30 @@ public class PearsScheduleCleardownService {
     delete("DELETE FROM lms.schedule_events_aud WHERE licence_schedule_id = :schedule", scheduleId);
     delete("DELETE FROM lms.licence_schedule_details_aud WHERE licence_schedule_id = :schedule", scheduleId);
     delete("DELETE FROM lms.licence_schedules_aud WHERE id = :schedule", scheduleId);
+  }
+
+  /**
+   * The work programme migration's records of what it wrote onto the schedule, which would otherwise stop the delete.
+   * Its tables are only there once its manual script has been run, so they are left alone where they aren't.
+   */
+  private void deleteWorkProgrammeMigrationRows(UUID scheduleId) {
+    if (!tableExists("pears_work_programme_migrated_licences")) {
+      return;
+    }
+    delete("DELETE FROM lms.pears_work_programme_activity_migration_links WHERE schedule_event_id IN (%s)"
+        .formatted(EVENTS), scheduleId);
+    delete("""
+        DELETE FROM lms.pears_work_programme_schedule_comment_links
+        WHERE schedule_comment_id IN (SELECT id FROM lms.schedule_comments WHERE licence_schedule_id = :schedule)""",
+        scheduleId);
+    delete("DELETE FROM lms.pears_work_programme_migrated_licences WHERE licence_schedule_id = :schedule", scheduleId);
+  }
+
+  private boolean tableExists(String table) {
+    return entityManager.createNativeQuery("SELECT to_regclass(:table) IS NOT NULL")
+        .setParameter("table", "lms." + table)
+        .getSingleResult()
+        .equals(Boolean.TRUE);
   }
 
   private void delete(String sql, UUID scheduleId) {

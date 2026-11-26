@@ -35,6 +35,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesch
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencestartdate.LicenceStartDateRepository;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.otherscheduleevent.OtherScheduleEventService;
+import uk.co.nstauthority.licensingmanagementservice.migration.pears.PearsLicenceComparisons;
 import uk.co.nstauthority.licensingmanagementservice.migration.pears.PearsLicenceReference;
 import uk.co.nstauthority.licensingmanagementservice.migration.pears.ReportText;
 import uk.co.nstauthority.licensingmanagementservice.util.IntegrationTest;
@@ -74,6 +75,9 @@ class PearsScheduleMigrationValidationTest {
 
   // Threads run in separate rolled-back transactions, so max id + 1 from the database would repeat
   private final AtomicInteger nextLicenceId = new AtomicInteger();
+
+  @Autowired
+  private PearsLicenceComparisons licenceComparisons;
 
   @Autowired
   private PearsScheduleService pearsScheduleService;
@@ -143,7 +147,8 @@ class PearsScheduleMigrationValidationTest {
             eventMigrationLinkRepository
         ),
         migratedLicenceRepository,
-        entityManager
+        entityManager,
+        licenceComparisons
     );
   }
 

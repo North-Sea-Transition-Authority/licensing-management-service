@@ -43,6 +43,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencesch
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencestartdate.LicenceStartDateRepository;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.otherscheduleevent.OtherScheduleEvent;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.otherscheduleevent.OtherScheduleEventService;
+import uk.co.nstauthority.licensingmanagementservice.migration.pears.PearsLicenceComparisons;
 import uk.co.nstauthority.licensingmanagementservice.migration.pears.PearsLicenceReference;
 import uk.co.nstauthority.licensingmanagementservice.migration.pears.schedule.PearsScheduleComparison.Result;
 import uk.co.nstauthority.licensingmanagementservice.migration.pears.schedule.PearsScheduleComparison.Row;
@@ -63,6 +64,9 @@ class PearsScheduleComparisonServiceIntegrationTest {
 
   private static final LocalDate START = LocalDate.of(2014, Month.DECEMBER, 1);
   private static final PearsLicenceReference LICENCE = new PearsLicenceReference("P", 9244);
+
+  @Autowired
+  private PearsLicenceComparisons licenceComparisons;
 
   @Autowired
   private EntityManager entityManager;
@@ -140,7 +144,8 @@ class PearsScheduleComparisonServiceIntegrationTest {
             eventMigrationLinkRepository
         ),
         migratedLicenceRepository,
-        entityManager
+        entityManager,
+        licenceComparisons
     );
   }
 

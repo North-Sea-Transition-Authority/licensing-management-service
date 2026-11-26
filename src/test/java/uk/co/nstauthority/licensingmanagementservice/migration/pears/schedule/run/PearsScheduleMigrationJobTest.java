@@ -24,6 +24,9 @@ import uk.co.nstauthority.licensingmanagementservice.migration.pears.schedule.Pe
 import uk.co.nstauthority.licensingmanagementservice.migration.pears.schedule.PearsScheduleMigrationService;
 import uk.co.nstauthority.licensingmanagementservice.migration.pears.schedule.PearsScheduleService;
 import uk.co.nstauthority.licensingmanagementservice.migration.pears.schedule.PearsScheduleValidationService;
+import uk.co.nstauthority.licensingmanagementservice.migration.pears.workprogramme.PearsWorkProgrammeCleardownService;
+import uk.co.nstauthority.licensingmanagementservice.migration.pears.workprogramme.PearsWorkProgrammeMigrationService;
+import uk.co.nstauthority.licensingmanagementservice.migration.pears.workprogramme.PearsWorkProgrammeValidationService;
 
 class PearsScheduleMigrationJobTest {
 
@@ -37,7 +40,7 @@ class PearsScheduleMigrationJobTest {
   void workNextBatch_whenTheOutcomeCannotBeSaved_leavesTheLicencePendingRatherThanRecordingItAsFailed() {
     var licence = new PearsLicenceReference("P", 1);
     when(runService.nextBatch(10)).thenReturn(Optional.of(
-        new PearsScheduleMigrationRunService.Batch(RUN_ID, PearsScheduleMigrationRunKind.MIGRATE, List.of("P1"))));
+        new PearsScheduleMigrationRunService.Batch(RUN_ID, PearsMigration.SCHEDULE, PearsScheduleMigrationRunKind.MIGRATE, List.of("P1"))));
     when(runService.isActive(RUN_ID)).thenReturn(true);
     when(migrationService.migrateLicence(eq(licence), any(), eq(RUN_ID))).thenReturn(new PearsScheduleMigrationOutcome(
         licence, PearsScheduleMigrationOutcome.Result.MIGRATED, null, new MigrationNotes()));
@@ -45,7 +48,9 @@ class PearsScheduleMigrationJobTest {
     when(runService.recordOutcome(any(), any(), any(), any(), anyMap(), any())).thenThrow(databaseDown);
     var job = new PearsScheduleMigrationJob(
         runService, migrationService, pearsScheduleService, mock(PearsScheduleCleardownService.class),
-        mock(PearsScheduleValidationService.class), Clock.systemUTC(), 10);
+        mock(PearsScheduleValidationService.class), mock(PearsWorkProgrammeMigrationService.class),
+        mock(PearsWorkProgrammeCleardownService.class), mock(PearsWorkProgrammeValidationService.class),
+        Clock.systemUTC(), 10);
 
     assertThatThrownBy(job::workNextBatch).isSameAs(databaseDown);
 
@@ -57,13 +62,14 @@ class PearsScheduleMigrationJobTest {
   @Test
   void workNextBatch_whenAClearIsPutOff_leavesItAndTheRestOfTheBatchPendingForTheNextPass() {
     when(runService.nextBatch(10)).thenReturn(Optional.of(
-        new PearsScheduleMigrationRunService.Batch(RUN_ID, PearsScheduleMigrationRunKind.CLEARDOWN, List.of("P1", "P2"))));
+        new PearsScheduleMigrationRunService.Batch(RUN_ID, PearsMigration.SCHEDULE, PearsScheduleMigrationRunKind.CLEARDOWN, List.of("P1", "P2"))));
     when(runService.isActive(RUN_ID)).thenReturn(true);
     var cleardownService = mock(PearsScheduleCleardownService.class);
     when(cleardownService.clear("P1")).thenReturn(new PearsScheduleCleardownOutcome(
         PearsScheduleCleardownOutcome.Result.POSTPONED, "The licence reminder job is running"));
     var job = new PearsScheduleMigrationJob(
         runService, migrationService, pearsScheduleService, cleardownService, mock(PearsScheduleValidationService.class),
+        mock(PearsWorkProgrammeMigrationService.class), mock(PearsWorkProgrammeCleardownService.class), mock(PearsWorkProgrammeValidationService.class),
         Clock.systemUTC(), 10);
 
     job.workNextBatch();

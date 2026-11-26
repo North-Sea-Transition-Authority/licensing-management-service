@@ -22,6 +22,8 @@ final class PearsActivityMapper {
   static final String NONE_NOT_MIGRATED = "Activity recording \"None\": not migrated";
   static final String STUB_MIGRATED =
       "Stub activity from the 2011 LEGACY load: migrated with a comment (provisional, WP-L14)";
+  static final String EMPTY_STUB_NOT_MIGRATED =
+      "Stub activity from the 2011 LEGACY load, NOT_STARTED with no note by a person: not migrated (WP-L14)";
   static final String NO_COMMITMENT = "No commitment in PEARS: CONDITIONAL (provisional, WP-L9)";
   static final String COMMITMENT_FROM_TITLE = "Type holds no commitment, title says contingent: CONTINGENT";
   static final String TITLE_CONTRADICTS_COMMITMENT =
@@ -45,6 +47,7 @@ final class PearsActivityMapper {
   private static final String SEPARATOR = " - ";
 
   private static final String LEGACY_TYPE = "LEGACY";
+  private static final String NOT_STARTED = "NOT_STARTED";
   private static final String OTHER_TYPE = "OTHER";
 
   /**
@@ -111,16 +114,53 @@ final class PearsActivityMapper {
       }
 
       var description = StringUtils.strip(activity.description());
-      if (description != null && NONE.matcher(description).find()) {
-        notes.note(NONE_NOT_MIGRATED);
-        skipped.add(new SkippedActivity(activity, NONE_NOT_MIGRATED));
-        continue;
+      var skipReason = skipReason(workProgramme, activity, description);
+      if (skipReason != null) {
+        notes.note(skipReason);
+        skipped.add(new SkippedActivity(activity, skipReason));
+      } else {
+        activities.add(map(workProgramme, activity, description, notes));
       }
-
-      activities.add(map(workProgramme, activity, description, notes));
     }
 
     return new MappedActivities(activities, skipped);
+  }
+
+  /**
+   * Why the activity isn't migrated, or null when it is.
+   */
+  @Nullable
+  private static String skipReason(
+      PearsWorkProgramme workProgramme,
+      PearsActivity activity,
+      @Nullable String description
+  ) {
+    if (description != null && NONE.matcher(description).find()) {
+      return NONE_NOT_MIGRATED;
+    }
+    if (isEmptyStub(workProgramme, activity, description)) {
+      return EMPTY_STUB_NOT_MIGRATED;
+    }
+    return null;
+  }
+
+  /**
+   * A stub that says nothing about the work: still not started, and with no note written by a person. The 2011 bulk
+   * job's own notes don't count.
+   */
+  private static boolean isEmptyStub(
+      PearsWorkProgramme workProgramme,
+      PearsActivity activity,
+      @Nullable String description
+  ) {
+    var stub = description != null && STUB.matcher(description).find();
+    if (!stub || !NOT_STARTED.equals(StringUtils.strip(activity.status()))) {
+      return false;
+    }
+    var activityId = activity.activityId().strip();
+    return workProgramme.notes().stream()
+        .filter(note -> activityId.equals(StringUtils.strip(note.activityId())))
+        .allMatch(note -> PearsNoteMapper.SYSTEM_AUTHOR.equals(StringUtils.strip(note.createdBy())));
   }
 
   private static MappedActivity map(

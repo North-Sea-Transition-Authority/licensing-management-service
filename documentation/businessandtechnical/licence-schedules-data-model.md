@@ -194,6 +194,10 @@ reads `pears_schedule_migrated_licences` (only those schedules are written to) a
 `pears_schedule_event_migration_links` (to find the migrated `DD` event a drill-or-drop well is dated
 from).
 
+Not every PEARS activity gets an LMS activity: those recording "None", and the stubs from the 2011
+`LEGACY` load still `NOT_STARTED` (with no note on the activity by a person), are left out and listed in the
+run's report, so they have no row in `work_programme_activities` or the link table.
+
 | Table | One row per | Used for |
 |---|---|---|
 | `pears_work_programme_migrated_licences` | Schedule the work programme migration wrote to | Not writing a licence's work programme twice, even one with no activities to migrate; the work programme cleardown |

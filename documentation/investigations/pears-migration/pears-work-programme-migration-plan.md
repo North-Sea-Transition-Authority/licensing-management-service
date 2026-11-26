@@ -288,22 +288,26 @@ application fields on P1919. The eighth is PEDL40's only activity, a `LEGACY` "N
 `COMPLETE` with a note; the note goes to the schedule comments, so only that status is lost, on a
 surrendered licence. Decided: the rule stays as it is.
 
-**Stub activities are migrated (provisional, 25 November 2026; WP-S15, WP-S15b, WP-L14).** The 2011
-`LEGACY` bulk load gave 540 `P` licences a work programme of one placeholder activity: title
-"Initial Work Programme", description "Stub activity - no electronic copy was available at time of
-migration". It is always the programme's only activity. Unlike "None", it is kept:
-- **179 stubs carry something** (WP-S15b): every `COMPLETE` (146), `IN_PROGRESS` (2) and `DROPPED`
-  (1) stub has status notes written by people, as do 30 `NOT_STARTED`. The stub is the activity
-  that status history and those comments attach to (M5, M6). 134 of the 540 are on extant licences.
-- **361 hold nothing:** `NOT_STARTED`, no notes. 350 are on ended licences (348 surrendered, 2
-  expired) and 11 on extant ones (e.g. P116), whose real work programme PEARS doesn't hold.
-  Migrating them loses nothing, and leaving them out later is one mapper rule (WP-L14).
+**Not started stubs are left out; the rest migrate (decided 26 November 2026; WP-S15, WP-S15b,
+WP-L14).** The 2011 `LEGACY` bulk load gave 540 `P` licences a work programme of one placeholder
+activity: title "Initial Work Programme", description "Stub activity - no electronic copy was
+available at time of migration". It is always the programme's only activity:
+- **149 stubs have an outcome** (WP-S15b): `COMPLETE` (146), `IN_PROGRESS` (2: P138, P356) and
+  `DROPPED` (1), each with status notes on the activity written by people. The stub is the activity
+  that status history and those comments attach to (M5, M6).
+- **391 are `NOT_STARTED`**: 361 on ended licences and 30 on extant ones. None has a note on the
+  activity itself (live, 26 November 2026): the notes on 30 of these programmes (11 ended, 19
+  extant) are general notes, nearly all "Legacy.". A `NOT_STARTED` stub says nothing about the work.
 
-Rule: migrate every stub as any `LEGACY` activity, with its description unchanged (the title is a
-programme-level label, so not prefixed, as below). Add one `EventComment` to each: "PEARS stub from
-the 2011 legacy load: PEARS held no electronic copy of this work programme", so "at time of
-migration" isn't read as this migration. List every stub in the report, marked as a stub, with
-whether it holds notes, so the licensing team can find the extant ones with nothing.
+Rule:
+- **A `NOT_STARTED` stub with no note on it by a person is left out** and listed in the report, as
+  "None" is (the 2011 bulk job's "Migration Process" notes don't count). On live that is all 391.
+  Their programmes' general notes still become schedule comments (M6), so P19's note about its 1st
+  Round extensions, for example, is kept.
+- **Every other stub migrates** as any `LEGACY` activity, with its description unchanged (the title
+  is a programme-level label, so not prefixed, as below). Add one `EventComment` to each: "PEARS stub
+  from the 2011 legacy load: PEARS held no electronic copy of this work programme", so "at time of
+  migration" isn't read as this migration. The report marks each one as a stub.
 
 `description` = `DESCRIPTION`, with the defaults left by the PEARS templates (`***`) kept as they
 are and reported. Proposal: prefix `TITLE` when it isn't the auto-generated "<type> <n>", and append
@@ -568,7 +572,7 @@ Choices made while building it:
 - **Waiver statuses** (`PART_WAIVER` → `IN_PROGRESS`, `WAIVER_DECLINED` → `OPEN`, provisional
   WP-L4) also get a comment "PEARS status: PART_WAIVER, which LMS doesn't have", at the time the
   status was applied, besides the PEARS notes.
-- **Stubs** get their comment (WP-L14), dated from the first version holding their status (the 2011
+- **Migrated stubs** (those not left out as empty, M2) get their comment (WP-L14), dated from the first version holding their status (the 2011
   load).
 - **A status note with no text** becomes "Status changed to COMPLETE (PEARS note by …)".
 - **An unknown status** fails the licence, as an unknown activity type does.
@@ -1246,7 +1250,7 @@ data check a rule needs is added to the data survey as a query to run on live.
 | WP-L9 commitment (3) | `CONDITIONAL` where PEARS holds none | A commitment mapping, or prerequisite D |
 | WP-L12 FALLOW/EXTENSION (2) | Initial term, and reported | The M4 option the team picks |
 | WP-L13 seismic classification | The WP-S4b classification | The classification table |
-| WP-L14 stub activities (16) | Every stub migrated, description unchanged, with an explanatory comment, and listed in the report (M2) | Skip the empty stubs on ended licences: a skip rule in the mapper |
+| WP-L14 stub activities (16) | Decided: `NOT_STARTED` stubs (391) left out; the rest migrated, description unchanged, with an explanatory comment, and listed in the report (M2) | — |
 | General notes (M6) | Schedule comments, now prerequisite A is on `develop` | — |
 
 **Before the stack (straight to `develop`, each its own PR):** LMS features in their own right,
@@ -1265,7 +1269,7 @@ general notes as its own records, and PR 5 turns them into entities.
 | PR | Delivery step | Contents | Done when |
 |---|---|---|---|
 | 1 | 8 | **Read PEARS.** `PearsWorkProgrammeService` (`migration/pears/workprogramme`), `work-programme-licence-references.sql`, `work-programmes.sql`, `work-programme-activities.sql` (with the status dates), `work-programme-notes.sql`, the immutable records (`PearsWorkProgramme`, `PearsActivity`, `PearsNote`) and `checkReadable()`. | Unit tests over mocked JDBC, as for `PearsScheduleService`; fails clearly on a missing grant. `PearsWorkProgrammeServicePearsTest` (`pearsMigrationTest`) passes against dev or UAT PEARS for a flat, a phase-organised and a `LEGACY` licence. WP-S14 run on live. |
-| 2 | 9 | **Mapper: activities.** "None" skips, stub activities and their comment (WP-L14), category and commitment (M1, with the seismic classification and the WP-L13 and WP-L9 answers), description (M2), identity, `MigrationNotes`. | Unit tests from fixture XML: every `ACTIVITY_TYPE`, each seismic title pattern and the generic "Seismic Data n" cases, a "Legacy Obligations" title, an empty description, a stub, the pasted `javascript:` link, an unknown type failing the licence (`PearsActivityMapperTest`). WP-S16 run on live. |
+| 2 | 9 | **Mapper: activities.** "None" skips, stub activities and their comment (WP-L14; `NOT_STARTED` stubs left out since 26 November 2026), category and commitment (M1, with the seismic classification and the WP-L13 and WP-L9 answers), description (M2), identity, `MigrationNotes`. | Unit tests from fixture XML: every `ACTIVITY_TYPE`, each seismic title pattern and the generic "Seismic Data n" cases, a "Legacy Obligations" title, an empty description, a stub, the pasted `javascript:` link, an unknown type failing the licence (`PearsActivityMapperTest`). WP-S16 run on live. |
 | 3 | 9 | **Mapper: dates.** `PearsActivityDateMapper` and `MigratedSchedule`: M3 rules 1–5 against the migrated schedule (D&D wells first: the migrated `DD` event or the breakpoint as `RELATIVE_DATE`; then phase, the "Phase A:" prefix, Initial term, the first term present); `FALLOW`/`EXTENSION` within the Initial term (provisional, WP-L12). Reading `MigratedSchedule` from LMS is in PR 5. | Unit tests (`PearsActivityDateMapperTest`): a phase-organised programme, a D&D well with a `DD` event and one with only a breakpoint (including one with months and days at a month end), a "Phase A:" description, a schedule with no Initial term (patterns A and G). WP-S17 run on live. |
 | 4 | 9 | **Mapper: statuses and notes.** Status history from notes, the fallback date and the bulk-job `LEGACY` comment (M5), the WP-L4 and WP-L8 mappings, status notes as event comments, general notes as schedule comments, "Migration Process" notes left out (M6), a breakpoint with no D&D well (D13), and the stub comment (WP-L14). Also `PearsWorkProgrammeMapper`, bringing the three mappers together per licence, with the two-INITIAL skip (provisional, WP-L2). | Unit tests (`PearsNoteMapperTest`, `PearsWorkProgrammeMapperTest`): a history from notes, one with no notes, a changed-and-changed-back `NOT_STARTED`, a `GENERAL` note, a system-authored note, a note on an activity not migrated, waivers, a stub, two INITIAL programmes. WP-S18 run on live (25 November 2026). |
 | 5 | 10 | **Write.** `PearsWorkProgrammeMigrationService.migrateLicence` (PEARS read before the transaction, one licence per transaction, idempotent, skip reasons), `PearsWorkProgrammeWriter` onto the `ACTIVE` detail, reading the `MigratedSchedule` from LMS (the `ACTIVE` detail's terms, phases and the `DD` events found through `pears_schedule_event_migration_links`), date calculation, cross-licence cache refresh, and the link tables (manual script). Needs A, B and C on `develop`, which all are. **As built:** design section 3, "As built (PR 5)". | Integration test (Testcontainers Postgres, on a schedule migrated by `PearsScheduleWriter`, mapper input stubbed): migrate, re-run skips, failure rolls back the whole licence, a licence with no migrated schedule is skipped. |
@@ -1510,17 +1514,20 @@ the work programme steps in PR 6.
     schedule migration's decision (its Open question 15): let them all go out on go-live, with
     licence contacts filled in beforehand, and the volume counted in the UAT rehearsal (step 15)
     for awareness.
-16. **For the licensing team (WP-L14): stub activities (WP-S15, WP-S15b).** 540 `P` licences have a
-    work programme that is one placeholder `LEGACY` activity from the 2011 load, "Stub activity -
-    no electronic copy was available at time of migration". All migrate for now (M2). Questions:
-    - **The 350 empty stubs on ended licences** (`NOT_STARTED`, no notes; 348 surrendered, 2
-      expired, e.g. P100): migrate them as they are, or leave them out, so those licences have no
-      work programme in LMS?
-    - **The 32 extant licences whose stub is still open** (WP-S15c): 11 holding nothing (e.g.
-      P116), 19 `NOT_STARTED` with notes, nearly all "Legacy." (e.g. P19), and 2 `IN_PROGRESS`.
-      PEARS has no real work programme for them. Will the team enter it in LMS after go-live? They
-      are the "WP-L14 Stub activities" sheet (review document 2.6). P138's latest note says
-      "Sorry - Complete.", so its `IN_PROGRESS` is probably wrong.
+16. **For the licensing team (WP-L14): the extant stub licences still open (WP-S15, WP-S15c).**
+    The stub rule is decided (M2): the 391 `NOT_STARTED` stubs are left out and the 149 with an
+    outcome migrate. What is left is the extant licences where something is still open, as PEARS
+    holds no real work programme for them:
+    - **Left out, with a general note that says something:** P19 and P20 (1st Round licences with
+      extensions), P24 ("1st Round Licence"), P293 and P456 ("No WP as such") and P523 ("Tiny part
+      requested"). The note is kept as a schedule comment. Will the team enter the real work
+      programme in LMS after go-live?
+    - **Migrated as `IN_PROGRESS`:** P138 and P356. P138's latest note says "Sorry - Complete.", so
+      its status is probably wrong.
+
+    The other 24 extant `NOT_STARTED` stub licences (11 with no notes, e.g. P116, and 13 whose notes
+    only say "Legacy.") have no work programme in LMS and need nothing from the team. They are the
+    "WP-L14 Stub activities" sheet (review document 2.6).
 
 ## Follow-up: once the legal text area is built
 

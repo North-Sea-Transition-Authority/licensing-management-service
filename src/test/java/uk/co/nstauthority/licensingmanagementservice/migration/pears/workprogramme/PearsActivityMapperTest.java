@@ -277,16 +277,44 @@ class PearsActivityMapperTest {
   }
 
   @Test
-  void activities_stubIsMigratedAsItIsAndMarked() {
+  void activities_stubWithAStatusIsMigratedAsItIsAndMarked() {
     var notes = new MigrationNotes();
+    var stub = withStatus(stub(), "COMPLETE");
 
-    var mapped = PearsActivityMapper.activities(programme(activity("LEGACY", "Initial Work Programme",
-        "Stub activity - no electronic copy was available at time of migration")), notes).activities().getFirst();
+    var mapped = PearsActivityMapper.activities(programme(stub), notes).activities().getFirst();
 
     assertThat(mapped.stub()).isTrue();
     assertThat(mapped.otherCategoryName()).isEqualTo(PearsActivityMapper.LEGACY_NAME);
     assertThat(mapped.description()).isEqualTo("Stub activity - no electronic copy was available at time of migration");
     assertThat(notes.noteCountsByReason()).containsEntry(PearsActivityMapper.STUB_MIGRATED, 1);
+  }
+
+  @Test
+  void activities_notStartedStubWithANoteByAPersonIsMigrated() {
+    var stub = stub();
+    var programme = programme(List.of(stub), List.of(note(stub, "J Smith"), note(stub, "Migration Process")));
+
+    var mapped = PearsActivityMapper.activities(programme, new MigrationNotes());
+
+    assertThat(mapped.activities()).extracting(MappedActivity::source).containsExactly(stub);
+    assertThat(mapped.skipped()).isEmpty();
+  }
+
+  @Test
+  void activities_emptyStubIsNotMigratedButListed() {
+    var notes = new MigrationNotes();
+    var emptyStub = stub();
+    var bulkJobOnlyStub = stub();
+    var programme = programme(List.of(emptyStub, bulkJobOnlyStub), List.of(note(bulkJobOnlyStub, " Migration Process ")));
+
+    var mapped = PearsActivityMapper.activities(programme, notes);
+
+    assertThat(mapped.activities()).isEmpty();
+    assertThat(mapped.skipped()).containsExactly(
+        new MappedActivities.SkippedActivity(emptyStub, PearsActivityMapper.EMPTY_STUB_NOT_MIGRATED),
+        new MappedActivities.SkippedActivity(bulkJobOnlyStub, PearsActivityMapper.EMPTY_STUB_NOT_MIGRATED));
+    assertThat(notes.noteCountsByReason()).containsEntry(PearsActivityMapper.EMPTY_STUB_NOT_MIGRATED, 2)
+        .doesNotContainKey(PearsActivityMapper.STUB_MIGRATED);
   }
 
   @Test
@@ -380,8 +408,27 @@ class PearsActivityMapperTest {
         "NOT_STARTED", null, description, LocalDateTime.of(2011, Month.JULY, 12, 0, 0));
   }
 
+  private static PearsActivity stub() {
+    return activity("LEGACY", "Initial Work Programme", "Stub activity - no electronic copy was available at time of migration");
+  }
+
+  private static PearsActivity withStatus(PearsActivity activity, String status) {
+    return new PearsActivity(activity.position(), activity.listKind(), activity.phaseType(), activity.activityId(),
+        activity.activityType(), activity.title(), status, activity.competedBlocks(), activity.description(),
+        activity.statusSince());
+  }
+
+  private static PearsNote note(PearsActivity activity, String createdBy) {
+    return new PearsNote(1, "NOT_STARTED", activity.activityId(), activity.title(), "NOT_STARTED",
+        LocalDateTime.of(2011, Month.JULY, 12, 0, 0), createdBy, "Note");
+  }
+
   private static PearsWorkProgramme programme(PearsActivity... activities) {
+    return programme(List.of(activities), List.of());
+  }
+
+  private static PearsWorkProgramme programme(List<PearsActivity> activities, List<PearsNote> notes) {
     return new PearsWorkProgramme(P2244, 11L, 101L, LocalDateTime.of(2019, Month.MARCH, 4, 10, 0), "INITIAL", null, "NOT_STARTED",
-        null, List.of(activities), List.of());
+        null, activities, notes);
   }
 }

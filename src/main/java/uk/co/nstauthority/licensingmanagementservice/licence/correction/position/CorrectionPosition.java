@@ -8,6 +8,7 @@ import org.jspecify.annotations.NonNull;
 import uk.co.nstauthority.licensingmanagementservice.endpointvalidation.PathVariableSource;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
+import uk.co.nstauthority.licensingmanagementservice.licence.staged.LicencePositionStagedPayload;
 
 /**
  * A position on a correction's timeline, whether it is an executed position on the licence or one staged by the

@@ -1,7 +1,7 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender;
 
 import uk.co.fivium.gisframework.feature.Feature;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayload;
+import uk.co.nstauthority.licensingmanagementservice.licence.staged.LicencePositionStagedPayload;
 
 /**
  * A partial surrender staged straight onto the only block available to surrender.

@@ -1,9 +1,9 @@
 package uk.co.nstauthority.licensingmanagementservice.licence.position.change.util;
 
 import java.util.List;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.AdministratorOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
+import uk.co.nstauthority.licensingmanagementservice.licence.staged.changetypes.LicencePositionChangeType;
 
 public final class LicencePositionAdministratorChangeUtil {
 

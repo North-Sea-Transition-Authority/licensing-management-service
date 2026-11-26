@@ -341,7 +341,7 @@ jsonschemaGenerator {
 			target = 'uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange'
 		}
 		LicencePositionStagedPayload {
-			target = 'uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayload'
+			target = 'uk.co.nstauthority.licensingmanagementservice.licence.staged.LicencePositionStagedPayload'
 		}
 	}
 }

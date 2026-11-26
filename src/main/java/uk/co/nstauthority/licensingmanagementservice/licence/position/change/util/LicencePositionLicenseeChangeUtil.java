@@ -3,11 +3,11 @@ package uk.co.nstauthority.licensingmanagementservice.licence.position.change.ut
 import java.util.ArrayList;
 import java.util.List;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.licensee.LicenseeChangeForm;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.AddChange;
-import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.changetypes.LicencePositionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenseeOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.licensee.LicenseeChangeContext;
+import uk.co.nstauthority.licensingmanagementservice.licence.staged.changetypes.AddChange;
+import uk.co.nstauthority.licensingmanagementservice.licence.staged.changetypes.LicencePositionChangeType;
 import uk.co.nstauthority.licensingmanagementservice.util.ListUtil;
 
 public class LicencePositionLicenseeChangeUtil {

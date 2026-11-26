@@ -109,7 +109,7 @@ directly and reuses patterns already established in the codebase.
 ### Package layout
 
 New package `uk.co.nstauthority.licensingmanagementservice.caseevent`, with a `payload` sub-package mirroring
-`licence/correction/position/payloads`.
+`licence/staged/payloads`.
 
 ```
 caseevent/

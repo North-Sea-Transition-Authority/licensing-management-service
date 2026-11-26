@@ -19,16 +19,16 @@
       </ul>
     </#if>
     <#if isCarbonStorage>
-      <#assign storageOperatorName>
-        <#if licencePositionState.storageOperatorName()?has_content>
-          ${licencePositionState.storageOperatorName()}
-        <#else>
-          None
-        </#if>
-      </#assign>
-      <@fdsDataItems.dataItem>
-          <@fdsDataItems.dataValues key="Storage operator" value=storageOperatorName/>
-      </@fdsDataItems.dataItem>
+      <#if licencePositionState.explorationOperatorName()?has_content>
+          <@fdsDataItems.dataItem>
+            <@fdsDataItems.dataValues key="Exploration operator" value=licencePositionState.explorationOperatorName()/>
+          </@fdsDataItems.dataItem>
+      </#if>
+      <#if licencePositionState.storageOperatorName()?has_content>
+        <@fdsDataItems.dataItem>
+          <@fdsDataItems.dataValues key="Storage operator" value=licencePositionState.storageOperatorName()/>
+        </@fdsDataItems.dataItem>
+      </#if>
     <#else>
       <#assign adminName>
         <#if licencePositionState.administratorStateView().organisationName()?has_content>

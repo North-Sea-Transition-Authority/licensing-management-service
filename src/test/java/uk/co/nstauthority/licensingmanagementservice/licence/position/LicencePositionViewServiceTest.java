@@ -166,6 +166,7 @@ class LicencePositionViewServiceTest {
             new AdministratorStateView("Shell Expro"),
             new LicenseeStateView(List.of()),
             "",
+            "",
             List.of(),
             List.of(new OrganisationNameHistoryView(
                 "Shell Expro",
@@ -209,6 +210,7 @@ class LicencePositionViewServiceTest {
         .isEqualTo(new LicencePositionStateView(
             new AdministratorStateView("Shell Expro"),
             new LicenseeStateView(List.of()),
+            "",
             "",
             List.of(
                 new BeneficialInterestView("BP Exploration", new BigDecimal("40"), OrganisationMarker.NOT_A_LICENSEE),
@@ -262,6 +264,7 @@ class LicencePositionViewServiceTest {
         .isEqualTo(new LicencePositionStateView(
             new AdministratorStateView(""),
             new LicenseeStateView(List.of()),
+            "",
             "",
             List.of(),
             List.of(new OrganisationNameHistoryView(
@@ -365,6 +368,7 @@ class LicencePositionViewServiceTest {
             new AdministratorStateView("Current Name Ltd"),
             new LicenseeStateView(List.of()),
             "",
+            "",
             List.of(),
             List.of(new OrganisationNameHistoryView(
                 "Current Name Ltd",
@@ -420,6 +424,7 @@ class LicencePositionViewServiceTest {
     assertThat(result.stateView()).isEqualTo(new LicencePositionStateView(
         new AdministratorStateView(""),
         new LicenseeStateView(List.of()),
+        "",
         "",
         List.of(),
         List.of(),

@@ -301,6 +301,7 @@ class LicenceCorrectionControllerTest extends AbstractControllerTest {
             new AdministratorStateView("Operator Ltd"),
             new LicenseeStateView(List.of(new LicenseeView("Licensee", null))),
             "",
+            "",
             List.of(),
             List.of(),
             List.of()

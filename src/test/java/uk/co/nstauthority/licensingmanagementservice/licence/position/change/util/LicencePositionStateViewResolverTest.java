@@ -42,6 +42,7 @@ class LicencePositionStateViewResolverTest {
   private static final int CURRENT_STORAGE_OPERATOR_ID = 200;
   private static final String CURRENT_STORAGE_OPERATOR_NAME = "Current Storage Operator Ltd";
   private static final int CURRENT_EXPLORATION_OPERATOR_ID = 300;
+  private static final String CURRENT_EXPLORATION_OPERATOR_NAME = "Current Exploration Operator Ltd";
   private static final LocalDate POSITION_DATE = LocalDate.of(2010, Month.JUNE, 1);
   private static final LocalDate LONG_BEFORE_THE_POSITION_DATE = LocalDate.of(1990, Month.JANUARY, 1);
 
@@ -67,6 +68,7 @@ class LicencePositionStateViewResolverTest {
     var nameHistories = Map.of(
         CURRENT_ADMIN_ID, heldSince(CURRENT_ADMIN_NAME),
         CURRENT_STORAGE_OPERATOR_ID, heldSince(CURRENT_STORAGE_OPERATOR_NAME),
+        CURRENT_EXPLORATION_OPERATOR_ID, heldSince(CURRENT_EXPLORATION_OPERATOR_NAME),
         1, heldSince("charlie oil"),
         2, heldSince("alpha energy"),
         3, heldSince("Bravo gas"),
@@ -90,6 +92,7 @@ class LicencePositionStateViewResolverTest {
                 new LicenseeView("delta diff", OrganisationMarker.NO_BENEFICIAL_INTEREST),
                 new LicenseeView("echo location", OrganisationMarker.NO_BENEFICIAL_INTEREST))),
             CURRENT_STORAGE_OPERATOR_NAME,
+            CURRENT_EXPLORATION_OPERATOR_NAME,
             List.of(
                 new BeneficialInterestView("alpha energy", new BigDecimal("35"), OrganisationMarker.NOT_A_LICENSEE),
                 new BeneficialInterestView("Bravo gas", new BigDecimal("25"), OrganisationMarker.NOT_A_LICENSEE),
@@ -115,6 +118,7 @@ class LicencePositionStateViewResolverTest {
 
     assertThat(result).isEqualTo(new LicencePositionStateView(new AdministratorStateView(""),
         new LicenseeStateView(List.of()),
+        "",
         "",
         List.of(),
         List.of(),
@@ -261,6 +265,25 @@ class LicencePositionStateViewResolverTest {
   }
 
   @Test
+  void getStateView_whenExplorationOperatorNameNotFound_returnsEmptyName() {
+    var currentPositionId = UUID.randomUUID();
+
+    var state = LicencePositionState.EMPTY.withExplorationOperatorId(1);
+
+    var result = LicencePositionStateViewResolver.getStateView(
+        currentPositionId,
+        LicenceType.CARBON_STORAGE,
+        resolvedStatesFor(currentPositionId, state),
+        OrganisationNameContext.from(Map.of()),
+        Map.of(),
+        POSITION_DATE
+    );
+
+    assertThat(result.explorationOperatorName())
+        .isEqualTo("");
+  }
+
+  @Test
   void getStateView_whenStorageOperatorNameNotFound_returnsEmptyName() {
     var currentPositionId = UUID.randomUUID();
 
@@ -396,6 +419,10 @@ class LicencePositionStateViewResolverTest {
             new OrganisationNamePeriod(
                 "delta holdings", LONG_BEFORE_THE_POSITION_DATE, LocalDate.of(2000, Month.MARCH, 3)),
             new OrganisationNamePeriod("delta operator", LocalDate.of(2000, Month.MARCH, 3), null))),
+        CURRENT_EXPLORATION_OPERATOR_ID, new OrganisationNamePeriods("gamma operator", List.of(
+            new OrganisationNamePeriod(
+                "gamma holdings", LONG_BEFORE_THE_POSITION_DATE, LocalDate.of(2000, Month.MARCH, 3)),
+            new OrganisationNamePeriod("gamma operator", LocalDate.of(2000, Month.MARCH, 3), null))),
         1, new OrganisationNamePeriods("Alpha Renewables", List.of(
             new OrganisationNamePeriod("alpha energy", LONG_BEFORE_THE_POSITION_DATE, LocalDate.of(2020, Month.APRIL, 4)),
             new OrganisationNamePeriod("Alpha Renewables", LocalDate.of(2020, Month.APRIL, 4), null))),
@@ -426,6 +453,10 @@ class LicencePositionStateViewResolverTest {
             new OrganisationNameHistoryView(
                 "delta operator",
                 List.of(new NameHistoryEntryView("delta holdings", "to 3 March 2000")),
+                List.of()),
+            new OrganisationNameHistoryView(
+                "gamma operator",
+                List.of(new NameHistoryEntryView("gamma holdings", "to 3 March 2000")),
                 List.of()),
             new OrganisationNameHistoryView(
                 "zeta admin",

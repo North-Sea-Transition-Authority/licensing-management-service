@@ -352,6 +352,7 @@ class LicencePositionStagedPayloadViewServiceTest {
             new AdministratorStateView("Shell UK Exploration"),
             new LicenseeStateView(List.of()),
             "",
+            "",
             List.of(),
             List.of(new OrganisationNameHistoryView(
                 "Shell UK Exploration",
@@ -538,6 +539,7 @@ class LicencePositionStagedPayloadViewServiceTest {
         new AdministratorStateView(""),
         new LicenseeStateView(List.of()),
         "",
+        "",
         List.of(),
         List.of(),
         List.of()));
@@ -664,6 +666,7 @@ class LicencePositionStagedPayloadViewServiceTest {
     assertThat(result.stateView()).isEqualTo(new LicencePositionStateView(
         new AdministratorStateView(""),
         new LicenseeStateView(List.of()),
+        "",
         "",
         List.of(),
         List.of(),
@@ -810,6 +813,7 @@ class LicencePositionStagedPayloadViewServiceTest {
     assertThat(result.stateView()).isEqualTo(new LicencePositionStateView(
         new AdministratorStateView(""),
         new LicenseeStateView(List.of()),
+        "",
         "",
         List.of(),
         List.of(),
@@ -1131,6 +1135,7 @@ class LicencePositionStagedPayloadViewServiceTest {
     var stateView = new LicencePositionStateView(
         new AdministratorStateView(""),
         new LicenseeStateView(List.of()),
+        "",
         "",
         List.of(),
         List.of(),

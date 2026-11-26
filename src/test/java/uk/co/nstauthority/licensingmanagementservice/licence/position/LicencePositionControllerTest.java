@@ -254,6 +254,7 @@ class LicencePositionControllerTest extends AbstractControllerTest {
             new AdministratorStateView("admin organisation"),
             new LicenseeStateView(List.of(new LicenseeView("licenseeNames", null))),
             "",
+            "",
             List.of(),
             List.of(),
             List.of()
@@ -292,6 +293,7 @@ class LicencePositionControllerTest extends AbstractControllerTest {
     var stateView = new LicencePositionStateView(
         new AdministratorStateView("admin organisation"),
         new LicenseeStateView(List.of()),
+        "",
         "",
         List.of(),
         List.of(),
@@ -352,6 +354,7 @@ class LicencePositionControllerTest extends AbstractControllerTest {
     var stateView = new LicencePositionStateView(
         new AdministratorStateView("admin organisation"),
         new LicenseeStateView(List.of()),
+        "",
         "",
         List.of(),
         List.of(),

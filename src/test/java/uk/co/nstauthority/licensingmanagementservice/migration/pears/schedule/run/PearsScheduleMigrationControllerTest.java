@@ -62,6 +62,8 @@ class PearsScheduleMigrationControllerTest extends AbstractControllerTest {
       ReverseRouter.route(on(PearsScheduleMigrationController.class).getRun(RUN_ID));
   private static final String RETRY_ROUTE =
       ReverseRouter.route(on(PearsScheduleMigrationController.class).retryFailed(RUN_ID));
+  private static final String RESUME_ROUTE =
+      ReverseRouter.route(on(PearsScheduleMigrationController.class).resume(RUN_ID));
   private static final String CANCEL_ROUTE =
       ReverseRouter.route(on(PearsScheduleMigrationController.class).cancel(RUN_ID));
 
@@ -254,6 +256,32 @@ class PearsScheduleMigrationControllerTest extends AbstractControllerTest {
     when(runService.retryFailed(RUN_ID)).thenReturn(Optional.empty());
 
     mockMvc.perform(post(RETRY_ROUTE).with(user(regulatorUser)).with(csrf()))
+        .andExpect(status().isNotFound());
+  }
+
+  @Test
+  void resume_whenPost_resumesTheRun() throws Exception {
+    when(runService.resume(RUN_ID)).thenReturn(Optional.of(report(PearsScheduleMigrationRunStatus.RUNNING)));
+
+    mockMvc.perform(post(RESUME_ROUTE).with(user(regulatorUser)).with(csrf()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.status").value("RUNNING"));
+  }
+
+  @Test
+  void resume_whenTheRunHasFinished_isAConflict() throws Exception {
+    when(runService.resume(RUN_ID)).thenThrow(new MigrationPreconditionException("Run is already COMPLETE"));
+
+    mockMvc.perform(post(RESUME_ROUTE).with(user(regulatorUser)).with(csrf()))
+        .andExpect(status().isConflict())
+        .andExpect(content().string("Run is already COMPLETE"));
+  }
+
+  @Test
+  void resume_whenTheRunIsUnknown_isNotFound() throws Exception {
+    when(runService.resume(RUN_ID)).thenReturn(Optional.empty());
+
+    mockMvc.perform(post(RESUME_ROUTE).with(user(regulatorUser)).with(csrf()))
         .andExpect(status().isNotFound());
   }
 

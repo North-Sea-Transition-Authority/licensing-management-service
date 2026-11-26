@@ -30,8 +30,10 @@ import uk.co.nstauthority.licensingmanagementservice.migration.pears.workprogram
 
 /**
  * Works through the active run a batch of licences at a time, migrating, clearing down or dry running each in a
- * transaction of its own. A licence in flight when the instance stops is rolled back and stays pending, so the next
- * pass, on whichever instance, carries on from it.
+ * transaction of its own. A licence in flight when the instance stops is rolled back and stays pending.
+ *
+ * <p>It only looks for a run once {@link PearsMigrationWorkerSignal} wakes it, so it does nothing from start-up. A run
+ * left active by a restart waits until it is resumed, and then the next pass carries on from the pending licence.</p>
  */
 @Service
 @Profile("migration")
@@ -50,6 +52,7 @@ public class PearsScheduleMigrationJob {
   private final PearsWorkProgrammeMigrationService workProgrammeMigrationService;
   private final PearsWorkProgrammeCleardownService workProgrammeCleardownService;
   private final PearsWorkProgrammeValidationService workProgrammeValidationService;
+  private final PearsMigrationWorkerSignal signal;
   private final Clock clock;
   private final int batchSize;
 
@@ -63,6 +66,7 @@ public class PearsScheduleMigrationJob {
       PearsWorkProgrammeMigrationService workProgrammeMigrationService,
       PearsWorkProgrammeCleardownService workProgrammeCleardownService,
       PearsWorkProgrammeValidationService workProgrammeValidationService,
+      PearsMigrationWorkerSignal signal,
       Clock clock,
       @Value("${pears.schedule-migration.batch-size}") int batchSize
   ) {
@@ -77,6 +81,7 @@ public class PearsScheduleMigrationJob {
     this.workProgrammeMigrationService = workProgrammeMigrationService;
     this.workProgrammeCleardownService = workProgrammeCleardownService;
     this.workProgrammeValidationService = workProgrammeValidationService;
+    this.signal = signal;
     this.clock = clock;
     this.batchSize = batchSize;
   }
@@ -84,8 +89,14 @@ public class PearsScheduleMigrationJob {
   @Scheduled(fixedDelayString = "${pears.schedule-migration.poll}")
   @SchedulerLock(name = "pearsScheduleMigration", lockAtMostFor = "PT30M")
   public void workNextBatch() {
+    var wakeUp = signal.wakeUp();
+    if (wakeUp.isEmpty()) {
+      return;
+    }
+
     var foundBatch = runService.nextBatch(batchSize);
     if (foundBatch.isEmpty()) {
+      signal.idle(wakeUp.getAsLong());
       return;
     }
 

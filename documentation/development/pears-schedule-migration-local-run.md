@@ -48,9 +48,12 @@ All the URLs below are under `http://localhost:8080/lms`.
   ```
 
 - Cancel a run the same way, with `/lms/migration/pears-schedules/{runId}/cancel`.
+- If LMS restarts during a run, the run isn't picked up again by itself. Resume it the same way,
+  with `/lms/migration/pears-schedules/{runId}/resume`, or cancel it.
 
 Only one run can be active at a time. It works through the licences in batches of 10 in the
-background.
+background. The background worker doesn't touch the run tables from start-up: it only works
+once a run is started, its failed licences are retried, or it is resumed.
 
 ## 4. Compare with PEARS
 
@@ -125,7 +128,7 @@ schedule migration wrote for it, so migrate schedules first. Its design is in th
    with PEARS, then rolled back, so nothing changes. Follow it as for a migration (next step).
 3. Start: `/migration/pears-work-programmes`. Add `?licenceReference=…` for one licence. It returns a
    run ID. A licence with no migrated schedule is skipped and says so.
-4. Follow it, get its CSV, retry its failed licences and cancel it as for schedules (step 3), under
+4. Follow it, get its CSV, retry its failed licences, resume it and cancel it as for schedules (step 3), under
    `/migration/pears-work-programmes/{runId}`.
 5. Compare with PEARS: `/migration/pears-work-programmes/compare`, with the same `licences`, `issues`,
    `notMigrated` and `format` parameters as the schedule comparison (step 4), but no `versions`: it

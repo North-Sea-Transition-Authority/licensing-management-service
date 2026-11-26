@@ -1546,6 +1546,7 @@ run, so a cancel is never overwritten, and two requests that would make runs act
 | `GET /migration/pears-schedules/{runId}` | Run status: counts by status, requested/completed, and the failed and skipped licences with reasons and attempts. 404 for an unknown run. |
 | `GET /migration/pears-schedules/{runId}/report` | Every licence of the run as a CSV download: status, attempts, the outcome (for a dry run, its issues), a column per comparison result for a dry run, and the mapper's notes. 404 for an unknown run. |
 | `POST /migration/pears-schedules/{runId}/retry-failed` | Sets `FAILED` rows back to `PENDING` (e.g. after the licensing team fixes data in PEARS), and reopens the run if it had completed. 409 if the run was cancelled (start a new run instead), or it had completed and another run is active. |
+| `POST /migration/pears-schedules/{runId}/resume` | Wakes the worker for a run left `QUEUED`/`RUNNING` by a restart, which isn't picked up by itself. 409 if the run has already finished. |
 | `POST /migration/pears-schedules/{runId}/cancel` | Marks the run `CANCELLED`. The worker stops claiming its rows, and a licence mid-flight finishes. 409 if the run has already finished. |
 
 **Worker** (`PearsScheduleMigrationJob`, `@Profile("migration")`, only where the PEARS datasource is
@@ -1554,6 +1555,10 @@ configured):
 - `@Scheduled(fixedDelayString = "${pears.schedule-migration.poll}")` (`PT5S`) with
   `@SchedulerLock(name = "pearsScheduleMigration", lockAtMostFor = "PT30M")`, so only one LMS
   instance works a run at a time.
+- **Only once triggered:** the worker touches the run tables only after a run is started, retried
+  or resumed on that instance (`PearsMigrationWorkerSignal`, woken once the request commits), and
+  goes idle again when no run is active. So it does nothing from start-up, including where the
+  manual-script tables don't exist yet.
 - Each pass takes a batch of `PENDING` rows, in licence reference order, from the oldest
   `QUEUED`/`RUNNING` run (`pears.schedule-migration.batch-size`, 10; tune after the UAT rehearsal),
   and starts the run if it was queued. The PEARS event type catalogue is read once per pass. For
@@ -1566,7 +1571,8 @@ configured):
   outcome stands. The second migration of the licence is skipped anyway, as it already has a schedule.
 - When no `PENDING` rows remain, the run becomes `COMPLETE`.
 - **Restarts and deployments:** a licence in flight when an instance stops is rolled back and stays
-  `PENDING`, so the next pass carries on. Re-running is safe anyway, because licences with a schedule
+  `PENDING`. The run stays active but isn't picked up by itself: `POST {runId}/resume` carries it
+  on, or `cancel` ends it. Re-running is safe anyway, because licences with a schedule
   are skipped.
 - **PEARS load:** one licence at a time, so the worker holds at most one PEARS connection. The PEARS
   pool is shared with the positions write-back, so it is left as it is.

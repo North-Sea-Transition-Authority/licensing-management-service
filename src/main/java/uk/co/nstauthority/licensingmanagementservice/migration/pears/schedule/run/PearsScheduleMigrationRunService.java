@@ -42,6 +42,7 @@ public class PearsScheduleMigrationRunService {
   private final PearsScheduleMigrationQueueEntryRepository queueEntryRepository;
   private final PearsScheduleMigratedLicenceRepository migratedLicenceRepository;
   private final EntityManager entityManager;
+  private final PearsMigrationWorkerSignal workerSignal;
   private final Clock clock;
 
   PearsScheduleMigrationRunService(
@@ -49,12 +50,14 @@ public class PearsScheduleMigrationRunService {
       PearsScheduleMigrationQueueEntryRepository queueEntryRepository,
       PearsScheduleMigratedLicenceRepository migratedLicenceRepository,
       EntityManager entityManager,
+      PearsMigrationWorkerSignal workerSignal,
       Clock clock
   ) {
     this.runRepository = runRepository;
     this.queueEntryRepository = queueEntryRepository;
     this.migratedLicenceRepository = migratedLicenceRepository;
     this.entityManager = entityManager;
+    this.workerSignal = workerSignal;
     this.clock = clock;
   }
 
@@ -138,6 +141,7 @@ public class PearsScheduleMigrationRunService {
         .map(licenceReference -> new PearsScheduleMigrationQueueEntry(
             new PearsScheduleMigrationQueueEntryId(run.getId(), licenceReference)))
         .forEach(entityManager::persist);
+    workerSignal.wakeAfterCommit();
 
     LOGGER.info("Queued PEARS {} {} run {} of {} licences", migration, kind, run.getId(), licenceReferences.size());
     return run;
@@ -271,8 +275,30 @@ public class PearsScheduleMigrationRunService {
     }
     queueEntryRepository.requeue(
         runId, PearsScheduleMigrationQueueStatus.FAILED, PearsScheduleMigrationQueueStatus.PENDING);
+    workerSignal.wakeAfterCommit();
 
     LOGGER.info("Queued the {} failed licences of PEARS schedule migration run {} again", failed, runId);
+    return Optional.of(report(run));
+  }
+
+  /**
+   * Carries on a run left queued or running when the app restarted, as the worker doesn't pick one up by itself.
+   *
+   * @throws MigrationPreconditionException if the run has already finished
+   */
+  @Transactional
+  public Optional<PearsScheduleMigrationRunReport> resume(UUID runId) {
+    var foundRun = runRepository.findById(runId);
+    if (foundRun.isEmpty()) {
+      return Optional.empty();
+    }
+
+    var run = foundRun.get();
+    if (!run.getStatus().isActive()) {
+      throw new MigrationPreconditionException("Run %s is already %s".formatted(runId, run.getStatus()));
+    }
+    workerSignal.wakeAfterCommit();
+    LOGGER.info("Resumed PEARS schedule migration run {}", runId);
     return Optional.of(report(run));
   }
 
@@ -358,7 +384,7 @@ public class PearsScheduleMigrationRunService {
   private void failIfARunIsActive() {
     runRepository.findFirstByStatusInOrderByRequestedAt(ACTIVE).ifPresent(activeRun -> {
       throw new MigrationPreconditionException(
-          "Run %s is still %s. Wait for it to finish or cancel it first."
+          "Run %s is still %s. Wait for it to finish or cancel it first, or resume it if the app has restarted since."
               .formatted(activeRun.getId(), activeRun.getStatus()));
     });
   }

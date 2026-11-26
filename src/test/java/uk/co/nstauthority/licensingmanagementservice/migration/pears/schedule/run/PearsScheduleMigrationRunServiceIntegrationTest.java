@@ -175,6 +175,31 @@ class PearsScheduleMigrationRunServiceIntegrationTest {
   }
 
   @Test
+  void resume_whenTheRunIsActive_reportsIt() {
+    var run = runService.startRun(List.of("P1"), WUA_ID);
+
+    assertThat(runService.resume(run.getId()))
+        .hasValueSatisfying(resumed -> assertThat(resumed.status()).isEqualTo(PearsScheduleMigrationRunStatus.QUEUED));
+  }
+
+  @Test
+  void resume_whenTheRunHasFinished_isRefused() {
+    var run = runService.startRun(List.of("P1"), WUA_ID);
+    runService.cancel(run.getId());
+
+    var runId = run.getId();
+
+    assertThatThrownBy(() -> runService.resume(runId))
+        .isInstanceOf(MigrationPreconditionException.class)
+        .hasMessage("Run %s is already CANCELLED".formatted(run.getId()));
+  }
+
+  @Test
+  void resume_whenTheRunIsUnknown_isEmpty() {
+    assertThat(runService.resume(UUID.randomUUID())).isEmpty();
+  }
+
+  @Test
   void cancel_cancelsTheRun() {
     var run = runService.startRun(List.of("P1"), WUA_ID);
 

@@ -17,8 +17,8 @@ import uk.co.nstauthority.licensingmanagementservice.migration.MigrationPrecondi
 
 /**
  * The endpoints every PEARS migration has for following its runs, which share one queue: a run's status, its licences
- * as a CSV, retrying its failed licences and cancelling it. Each controller only acts on its own migration's runs: the
- * other migration's are not found.
+ * as a CSV, retrying its failed licences, resuming it after a restart and cancelling it. Each controller only acts
+ * on its own migration's runs: the other migration's are not found.
  *
  * <p>Messages never repeat the licence reference a request gave, so nothing from a request is written back.</p>
  */
@@ -68,6 +68,11 @@ public abstract class PearsMigrationRunController {
     return isOwnRun(runId) ? ResponseEntity.of(runService.retryFailed(runId)) : ResponseEntity.notFound().build();
   }
 
+  @PostMapping("/{runId}/resume")
+  public ResponseEntity<PearsScheduleMigrationRunReport> resume(@PathVariable UUID runId) {
+    return isOwnRun(runId) ? ResponseEntity.of(runService.resume(runId)) : ResponseEntity.notFound().build();
+  }
+
   @PostMapping("/{runId}/cancel")
   public ResponseEntity<PearsScheduleMigrationRunReport> cancel(@PathVariable UUID runId) {
     return isOwnRun(runId) ? ResponseEntity.of(runService.cancel(runId)) : ResponseEntity.notFound().build();
@@ -78,8 +83,8 @@ public abstract class PearsMigrationRunController {
   }
 
   /**
-   * Returned when PEARS can't be read or has nothing to migrate, or a run can't be started, retried or cancelled in the
-   * state it is in. Nothing has changed, so the request can be made again.
+   * Returned when PEARS can't be read or has nothing to migrate, or a run can't be started, retried, resumed or
+   * cancelled in the state it is in. Nothing has changed, so the request can be made again.
    */
   @ExceptionHandler(MigrationPreconditionException.class)
   public ResponseEntity<String> handleMigrationPreconditionException(MigrationPreconditionException exception) {

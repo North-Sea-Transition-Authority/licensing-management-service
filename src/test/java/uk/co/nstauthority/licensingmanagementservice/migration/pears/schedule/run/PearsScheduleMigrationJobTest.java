@@ -8,6 +8,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.time.Clock;
@@ -35,6 +36,29 @@ class PearsScheduleMigrationJobTest {
   private final PearsScheduleMigrationRunService runService = mock(PearsScheduleMigrationRunService.class);
   private final PearsScheduleMigrationService migrationService = mock(PearsScheduleMigrationService.class);
   private final PearsScheduleService pearsScheduleService = mock(PearsScheduleService.class);
+  private final PearsMigrationWorkerSignal signal = new PearsMigrationWorkerSignal();
+
+  @Test
+  void workNextBatch_untilWoken_doesNotLookForARun() {
+    job(mock(PearsScheduleCleardownService.class)).workNextBatch();
+
+    verifyNoInteractions(runService);
+  }
+
+  @Test
+  void workNextBatch_onceNoRunIsLeft_goesIdleUntilWokenAgain() {
+    signal.wakeAfterCommit();
+    when(runService.nextBatch(10)).thenReturn(Optional.empty());
+    var job = job(mock(PearsScheduleCleardownService.class));
+
+    job.workNextBatch();
+    job.workNextBatch();
+    verify(runService, times(1)).nextBatch(10);
+
+    signal.wakeAfterCommit();
+    job.workNextBatch();
+    verify(runService, times(2)).nextBatch(10);
+  }
 
   @Test
   void workNextBatch_whenTheOutcomeCannotBeSaved_leavesTheLicencePendingRatherThanRecordingItAsFailed() {
@@ -46,11 +70,8 @@ class PearsScheduleMigrationJobTest {
         licence, PearsScheduleMigrationOutcome.Result.MIGRATED, null, new MigrationNotes()));
     var databaseDown = new QueryTimeoutException("LMS database went away");
     when(runService.recordOutcome(any(), any(), any(), any(), anyMap(), any())).thenThrow(databaseDown);
-    var job = new PearsScheduleMigrationJob(
-        runService, migrationService, pearsScheduleService, mock(PearsScheduleCleardownService.class),
-        mock(PearsScheduleValidationService.class), mock(PearsWorkProgrammeMigrationService.class),
-        mock(PearsWorkProgrammeCleardownService.class), mock(PearsWorkProgrammeValidationService.class),
-        Clock.systemUTC(), 10);
+    signal.wakeAfterCommit();
+    var job = job(mock(PearsScheduleCleardownService.class));
 
     assertThatThrownBy(job::workNextBatch).isSameAs(databaseDown);
 
@@ -67,14 +88,18 @@ class PearsScheduleMigrationJobTest {
     var cleardownService = mock(PearsScheduleCleardownService.class);
     when(cleardownService.clear("P1")).thenReturn(new PearsScheduleCleardownOutcome(
         PearsScheduleCleardownOutcome.Result.POSTPONED, "The licence reminder job is running"));
-    var job = new PearsScheduleMigrationJob(
-        runService, migrationService, pearsScheduleService, cleardownService, mock(PearsScheduleValidationService.class),
-        mock(PearsWorkProgrammeMigrationService.class), mock(PearsWorkProgrammeCleardownService.class), mock(PearsWorkProgrammeValidationService.class),
-        Clock.systemUTC(), 10);
+    signal.wakeAfterCommit();
 
-    job.workNextBatch();
+    job(cleardownService).workNextBatch();
 
     verify(cleardownService, never()).clear("P2");
     verify(runService, never()).recordOutcome(any(), any(), any(), any(), anyMap(), any());
+  }
+
+  private PearsScheduleMigrationJob job(PearsScheduleCleardownService cleardownService) {
+    return new PearsScheduleMigrationJob(
+        runService, migrationService, pearsScheduleService, cleardownService, mock(PearsScheduleValidationService.class),
+        mock(PearsWorkProgrammeMigrationService.class), mock(PearsWorkProgrammeCleardownService.class),
+        mock(PearsWorkProgrammeValidationService.class), signal, Clock.systemUTC(), 10);
   }
 }

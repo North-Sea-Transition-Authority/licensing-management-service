@@ -18,6 +18,7 @@ import jakarta.transaction.Transactional;
 import java.time.Clock;
 import java.util.List;
 import java.util.Map;
+import java.util.OptionalLong;
 import java.util.TreeMap;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -430,7 +431,17 @@ class PearsScheduleMigrationJobIntegrationTest {
   private PearsScheduleMigrationJob job(int batchSize) {
     return new PearsScheduleMigrationJob(
         runService, migrationService, pearsScheduleService, cleardownService, validationService,
-        workProgrammeMigrationService, workProgrammeCleardownService, workProgrammeValidationService, clock, batchSize);
+        workProgrammeMigrationService, workProgrammeCleardownService, workProgrammeValidationService, new AlwaysAwake(),
+        clock, batchSize);
+  }
+
+  // Each test's transaction is rolled back, so the wake-up a run gives after it commits never comes
+  private static class AlwaysAwake extends PearsMigrationWorkerSignal {
+
+    @Override
+    OptionalLong wakeUp() {
+      return OptionalLong.of(1);
+    }
   }
 
   private static PearsWorkProgrammeMigrationOutcome workProgrammeMigrated(PearsLicenceReference licence) {

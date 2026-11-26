@@ -4,7 +4,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.LocalDate;
 import java.time.Month;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.areaevent.LicenceScheduleAreaEvent;
 
 class TimelineAreaEventViewTest {
@@ -82,6 +86,29 @@ class TimelineAreaEventViewTest {
 
     assertThat(view(areaEvent, EVENT_DATE).showProgress()).isTrue();
     assertThat(view(areaEvent, EVENT_DATE.minusDays(1)).showProgress()).isFalse();
+  }
+
+  @ParameterizedTest
+  @MethodSource("summaryCases")
+  void getSummary(LicenceScheduleAreaEvent areaEvent, String expectedSummary) {
+    var summary = TimelineAreaEventView.getSummary(areaEvent);
+
+    assertThat(summary).isEqualTo(expectedSummary);
+  }
+
+  private static Stream<Arguments> summaryCases() {
+    var typedExpiry = typedAreaEvent("RD", "RETENTION");
+    typedExpiry.setAreaVersion("2");
+    typedExpiry.setSubtype("EXPIRY");
+
+    var untypedWorkProgramme = typedAreaEvent("RD", null);
+    untypedWorkProgramme.setSubtype("WORK_PROGRAMME");
+
+    return Stream.of(
+        Arguments.of(typedExpiry, "Area one (A1v2) - Retention area - Expiry"),
+        Arguments.of(untypedWorkProgramme, "Area one (A1) - Retention or development area - Work programme"),
+        Arguments.of(areaEvent("PA", null, null, null, null), "Pre-producing area")
+    );
   }
 
   private static TimelineAreaEventView view(LicenceScheduleAreaEvent areaEvent, LocalDate finalProgressDate) {

@@ -113,9 +113,12 @@ a schedule version rather than as schedule events:
 - Rows are only written by the PEARS schedule migration, one per `RD`/`PA` event in each
   migrated PEARS version, against that version's detail. No LMS screen adds, edits or deletes
   them yet. Licences migrated without area events, and schedules created in LMS, have none.
-- Like `licence_start_dates`, they have **no `schedule_events` row**, so no `original_event_id`,
-  no `event_comments` rows (§6.1) and no event tracker entry. PEARS's comments on the event are
-  held in the row's own `comments` column instead.
+- Like `licence_start_dates`, they have **no `schedule_events` row**, so no `original_event_id`
+  and no `event_comments` rows (§6.1). PEARS's comments on the event are held in the row's own
+  `comments` column instead.
+- Those with an `event_date` are on the cross licence event tracker, and are replaced there
+  each time the schedule is applied rather than matched to an earlier row, since they have no
+  `original_event_id` ([event cache §4.6](licence-event-cache-data-model.md)).
 - They are **copied with the rest of the version** when a draft is created (§5.2).
 - `event_date` is the date PEARS holds, not one LMS works out: there is no duration or anchor.
 - `subtype`, the `area_*` columns and `pears_event_id` (PEARS's `EVENT_ID`, held as text) are

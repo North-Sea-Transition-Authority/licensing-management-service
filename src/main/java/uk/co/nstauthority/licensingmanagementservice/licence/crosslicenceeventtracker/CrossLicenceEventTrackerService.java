@@ -49,12 +49,15 @@ import uk.co.nstauthority.licensingmanagementservice.licence.continuation.Licenc
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.overview.LicenceContinuationApplicationOverviewController;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.overview.LicenceScheduleTabController;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.areaevent.LicenceScheduleAreaEvent;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.areaevent.LicenceScheduleAreaEventService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduledetail.LicenceScheduleDetail;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTermService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.ScheduleEventType;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline.TimelineAreaEventView;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivity;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityDateOption;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.workprogrammeactivity.WorkProgrammeActivityService;
@@ -94,6 +97,7 @@ public class CrossLicenceEventTrackerService {
   private final IndustryRoleService industryRoleService;
   private final LicenceContinuationApplicationDetailQueryService licenceContinuationApplicationDetailQueryService;
   private final OrganisationGroupQueryService organisationGroupQueryService;
+  private final LicenceScheduleAreaEventService licenceScheduleAreaEventService;
 
   public CrossLicenceEventTrackerService(
       LicenceScheduleTermService licenceScheduleTermService,
@@ -110,7 +114,8 @@ public class CrossLicenceEventTrackerService {
       EnergyPortalUserService energyPortalUserService,
       IndustryRoleService industryRoleService,
       LicenceContinuationApplicationDetailQueryService licenceContinuationApplicationDetailQueryService,
-      OrganisationGroupQueryService organisationGroupQueryService
+      OrganisationGroupQueryService organisationGroupQueryService,
+      LicenceScheduleAreaEventService licenceScheduleAreaEventService
   ) {
     this.licenceScheduleTermService = licenceScheduleTermService;
     this.licenceSchedulePhaseService = licenceSchedulePhaseService;
@@ -127,6 +132,7 @@ public class CrossLicenceEventTrackerService {
     this.industryRoleService = industryRoleService;
     this.licenceContinuationApplicationDetailQueryService = licenceContinuationApplicationDetailQueryService;
     this.organisationGroupQueryService = organisationGroupQueryService;
+    this.licenceScheduleAreaEventService = licenceScheduleAreaEventService;
   }
 
   public SortableTableView getEventTrackerTable(EventTrackerForm form, ServiceUserDetail user) {
@@ -163,7 +169,7 @@ public class CrossLicenceEventTrackerService {
         .newWithHeadings(
             "Licence",
             "Term / phase transition",
-            "Work programme activity",
+            "Work programme activity / area event",
             "Event end / due date",
             "Application status",
             "Licensee(s)",
@@ -435,17 +441,48 @@ public class CrossLicenceEventTrackerService {
   public void refreshScheduleCache(LicenceScheduleDetail licenceScheduleDetail) {
     var licence = licenceScheduleDetail.getLicenceSchedule().getLicence();
 
-    var existingEventCaches = licenceEventCacheRepository.getAllByLicenceId(licence.getId())
+    var eventCachesByIsAreaEvent = licenceEventCacheRepository.getAllByLicenceId(licence.getId())
+        .stream()
+        .collect(Collectors.partitioningBy(eventCache -> eventCache.getEventType() == ScheduleEventType.AREA));
+
+    var existingEventCaches = eventCachesByIsAreaEvent.get(false)
         .stream()
         .collect(StreamUtil.toLinkedHashMap(LicenceEventCache::getOriginalEventId, Function.identity()));
 
     var terms = licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail);
     var phases = licenceSchedulePhaseService.getPhasesByLicenceScheduleDetail(licenceScheduleDetail);
     var workProgrammeActivities = workProgrammeActivityService.getWorkProgrammeActivities(licenceScheduleDetail);
+    var areaEvents = licenceScheduleAreaEventService.getAreaEvents(licenceScheduleDetail);
 
     refreshLicenceTerms(licence, terms, phases, existingEventCaches);
     refreshLicencePhases(licence, terms, phases, existingEventCaches);
     refreshWorkProgrammeActivities(licence, workProgrammeActivities, terms, phases, existingEventCaches);
+    refreshAreaEvents(licence, areaEvents, eventCachesByIsAreaEvent.get(true));
+  }
+
+  // Area events have no original event id to match a row on, and can't be changed in LMS, so the licence's area
+  // event rows are replaced with those of the version being applied.
+  private void refreshAreaEvents(
+      Licence licence,
+      List<LicenceScheduleAreaEvent> areaEvents,
+      List<LicenceEventCache> existingAreaEventCaches
+  ) {
+    licenceEventCacheRepository.deleteAll(existingAreaEventCaches);
+
+    var areaEventsToAdd = areaEvents.stream()
+        .filter(areaEvent -> areaEvent.getEventDate() != null)
+        .map(areaEvent -> {
+          var cache = new LicenceEventCache();
+          cache.setLicenceId(licence.getId());
+          cache.setLicenceReference(licence.getLicenceReference());
+          cache.setEventType(ScheduleEventType.AREA);
+          cache.setActivityType(TimelineAreaEventView.getSummary(areaEvent));
+          cache.setEventDate(areaEvent.getEventDate());
+          return cache;
+        })
+        .toList();
+
+    licenceEventCacheRepository.saveAll(areaEventsToAdd);
   }
 
   @Transactional

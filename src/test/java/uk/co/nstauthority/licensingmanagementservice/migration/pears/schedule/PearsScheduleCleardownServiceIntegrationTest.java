@@ -120,6 +120,8 @@ class PearsScheduleCleardownServiceIntegrationTest {
         count("SELECT count(*) FROM lms.licence_reminder_missing_contacts WHERE licence_id = :id", licence.getId()));
     remaining.put("licence_event_cache",
         count("SELECT count(*) FROM lms.licence_event_cache WHERE licence_id = :id", licence.getId()));
+    remaining.put("licence_event_cache_aud",
+        count("SELECT count(*) FROM lms.licence_event_cache_aud WHERE licence_id = :id", licence.getId()));
     remaining.put("licence_reminders_aud",
         count("SELECT count(*) FROM lms.licence_reminders_aud WHERE licence_id = :id", licence.getId()));
     remaining.put("schedule_events_aud",
@@ -274,8 +276,9 @@ class PearsScheduleCleardownServiceIntegrationTest {
           (gen_random_uuid(), :licence, 1, NULL, 'LICENCE_EXPIRY', current_date, now())
         """, Map.of("event", event, "licence", licence.getId()));
     execute("""
-        INSERT INTO lms.licence_event_cache (id, licence_id, licence_reference, original_event_id)
-        VALUES (gen_random_uuid(), :licence, 'P9244', :event)
+        INSERT INTO lms.licence_event_cache (id, licence_id, licence_reference, original_event_id, event_type)
+        VALUES (gen_random_uuid(), :licence, 'P9244', :event, 'TERM'),
+          (gen_random_uuid(), :licence, 'P9244', NULL, 'AREA')
         """, Map.of("event", event, "licence", licence.getId()));
     execute("""
         INSERT INTO lms.work_programme_activity_statuses (id, event_reference_id, status)
@@ -283,6 +286,10 @@ class PearsScheduleCleardownServiceIntegrationTest {
         """, Map.of("event", event));
     execute("INSERT INTO lms.audit_revisions (rev, created_date_time) VALUES (:rev, now()), (:rev + 1, now())",
         Map.of("rev", AUDIT_REVISION));
+    execute("""
+        INSERT INTO lms.licence_event_cache_aud (rev, revtype, id, licence_id, event_type)
+        VALUES (:rev, 0, gen_random_uuid(), :licence, 'AREA')
+        """, Map.of("rev", AUDIT_REVISION, "licence", licence.getId()));
     execute("""
         INSERT INTO lms.licence_schedules_aud (rev, revtype, id, licence_id) VALUES (:rev, 0, :schedule, :licence)
         """, Map.of("rev", AUDIT_REVISION, "schedule", scheduleId, "licence", licence.getId()));
@@ -312,7 +319,8 @@ class PearsScheduleCleardownServiceIntegrationTest {
 
   private void givenAnotherLicencesRows() {
     execute("""
-        INSERT INTO lms.licence_event_cache (id, licence_id, licence_reference) VALUES (gen_random_uuid(), :licence, 'P9245')
+        INSERT INTO lms.licence_event_cache (id, licence_id, licence_reference, event_type)
+        VALUES (gen_random_uuid(), :licence, 'P9245', 'AREA')
         """, Map.of("licence", lmsLicence.getId()));
     execute("""
         INSERT INTO lms.licence_reminder_missing_contacts (id, licence_id, responsible_organisation_id,

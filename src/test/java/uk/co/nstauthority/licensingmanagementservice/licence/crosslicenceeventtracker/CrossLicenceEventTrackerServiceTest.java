@@ -37,6 +37,8 @@ import uk.co.nstauthority.licensingmanagementservice.licence.continuation.Licenc
 import uk.co.nstauthority.licensingmanagementservice.licence.continuation.LicenceContinuationApplicationDetailQueryService;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.LicenceScheduleTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.areaevent.LicenceScheduleAreaEvent;
+import uk.co.nstauthority.licensingmanagementservice.licence.schedule.areaevent.LicenceScheduleAreaEventService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhase;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licenceschedulephase.LicenceSchedulePhaseService;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.licencescheduleterm.LicenceScheduleTerm;
@@ -87,6 +89,9 @@ class CrossLicenceEventTrackerServiceTest {
   @Mock
   private LicenceContinuationApplicationDetailQueryService licenceContinuationApplicationDetailQueryService;
 
+  @Mock
+  private LicenceScheduleAreaEventService licenceScheduleAreaEventService;
+
   @InjectMocks
   private CrossLicenceEventTrackerService crossLicenceEventTrackerService;
 
@@ -118,7 +123,7 @@ class CrossLicenceEventTrackerServiceTest {
 
     crossLicenceEventTrackerService.refreshScheduleCache(licenceScheduleDetail);
 
-    verify(licenceEventCacheRepository, times(3)).saveAll(eventCacheListCaptor.capture());
+    verify(licenceEventCacheRepository, times(4)).saveAll(eventCacheListCaptor.capture());
     var savedTermCaches = eventCacheListCaptor.getAllValues().get(0);
     var savedPhaseCaches = eventCacheListCaptor.getAllValues().get(1);
 
@@ -168,7 +173,7 @@ class CrossLicenceEventTrackerServiceTest {
 
     crossLicenceEventTrackerService.refreshScheduleCache(licenceScheduleDetail);
 
-    verify(licenceEventCacheRepository, times(3)).saveAll(eventCacheListCaptor.capture());
+    verify(licenceEventCacheRepository, times(4)).saveAll(eventCacheListCaptor.capture());
     var savedTermCaches = eventCacheListCaptor.getAllValues().get(0);
 
     assertThat(savedTermCaches).hasSize(1);
@@ -199,7 +204,7 @@ class CrossLicenceEventTrackerServiceTest {
 
     crossLicenceEventTrackerService.refreshScheduleCache(licenceScheduleDetail);
 
-    verify(licenceEventCacheRepository, times(3)).saveAll(eventCacheListCaptor.capture());
+    verify(licenceEventCacheRepository, times(4)).saveAll(eventCacheListCaptor.capture());
     var savedTermCaches = eventCacheListCaptor.getAllValues().get(0);
     assertThat(savedTermCaches).isEmpty();
 
@@ -228,7 +233,7 @@ class CrossLicenceEventTrackerServiceTest {
 
     crossLicenceEventTrackerService.refreshScheduleCache(licenceScheduleDetail);
 
-    verify(licenceEventCacheRepository, times(3)).saveAll(eventCacheListCaptor.capture());
+    verify(licenceEventCacheRepository, times(4)).saveAll(eventCacheListCaptor.capture());
     var savedPhaseCaches = eventCacheListCaptor.getAllValues().get(1);
 
     assertThat(savedPhaseCaches)
@@ -276,7 +281,7 @@ class CrossLicenceEventTrackerServiceTest {
 
     crossLicenceEventTrackerService.refreshScheduleCache(licenceScheduleDetail);
 
-    verify(licenceEventCacheRepository, times(3)).saveAll(eventCacheListCaptor.capture());
+    verify(licenceEventCacheRepository, times(4)).saveAll(eventCacheListCaptor.capture());
     var savedActivityCaches = eventCacheListCaptor.getAllValues().get(2);
 
     assertThat(savedActivityCaches)
@@ -298,6 +303,52 @@ class CrossLicenceEventTrackerServiceTest {
                 null, null
             )
         );
+  }
+
+  @Test
+  void refreshScheduleCache_whenAreaEvents_thenReplacesExistingAreaEventCachesWithDatedAreaEvents() {
+    var licence = LicenceTestUtil.builder().withId(100).withLicenceReference("P 111").build();
+    var licenceScheduleDetail = LicenceScheduleTestUtil.createLicenceScheduleDetail(
+        LicenceScheduleTestUtil.createLicenceSchedule(licence)
+    );
+
+    var existingAreaEventCaches = List.of(buildExistingAreaEventCache(), buildExistingAreaEventCache());
+
+    var datedAreaEvent = new LicenceScheduleAreaEvent();
+    datedAreaEvent.setEventMnem("RD");
+    datedAreaEvent.setSubtype("EXPIRY");
+    datedAreaEvent.setEventDate(LocalDate.of(2031, Month.JUNE, 1));
+    datedAreaEvent.setAreaName("Area one");
+    datedAreaEvent.setAreaShortName("A1");
+    datedAreaEvent.setAreaType("RETENTION");
+    datedAreaEvent.setAreaVersion("2");
+
+    var undatedAreaEvent = new LicenceScheduleAreaEvent();
+    undatedAreaEvent.setEventMnem("PA");
+
+    when(licenceEventCacheRepository.getAllByLicenceId(licence.getId())).thenReturn(existingAreaEventCaches);
+    when(licenceScheduleTermService.getTermsByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(new ArrayList<>());
+    when(licenceSchedulePhaseService.getPhasesByLicenceScheduleDetail(licenceScheduleDetail)).thenReturn(new ArrayList<>());
+    when(workProgrammeActivityService.getWorkProgrammeActivities(licenceScheduleDetail)).thenReturn(List.of());
+    when(licenceScheduleAreaEventService.getAreaEvents(licenceScheduleDetail))
+        .thenReturn(List.of(datedAreaEvent, undatedAreaEvent));
+
+    crossLicenceEventTrackerService.refreshScheduleCache(licenceScheduleDetail);
+
+    verify(licenceEventCacheRepository).deleteAll(existingAreaEventCaches);
+    verify(licenceEventCacheRepository, times(4)).saveAll(eventCacheListCaptor.capture());
+    var savedAreaEventCaches = eventCacheListCaptor.getAllValues().get(3);
+
+    var expectedAreaEventCache = new LicenceEventCache();
+    expectedAreaEventCache.setLicenceId(licence.getId());
+    expectedAreaEventCache.setLicenceReference(licence.getLicenceReference());
+    expectedAreaEventCache.setEventType(ScheduleEventType.AREA);
+    expectedAreaEventCache.setActivityType("Area one (A1v2) - Retention area - Expiry");
+    expectedAreaEventCache.setEventDate(datedAreaEvent.getEventDate());
+
+    assertThat(savedAreaEventCaches)
+        .usingRecursiveFieldByFieldElementComparator()
+        .containsExactly(expectedAreaEventCache);
   }
 
   @Test
@@ -813,6 +864,13 @@ class CrossLicenceEventTrackerServiceTest {
     eventCache.setEventDate(eventDate);
     eventCache.setCurrentTermPhase(currentTermPhase);
     eventCache.setNextTermPhase(nextTermPhase);
+    return eventCache;
+  }
+
+  private LicenceEventCache buildExistingAreaEventCache() {
+    var eventCache = new LicenceEventCache();
+    eventCache.setId(UUID.randomUUID());
+    eventCache.setEventType(ScheduleEventType.AREA);
     return eventCache;
   }
 

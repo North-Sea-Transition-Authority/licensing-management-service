@@ -52,6 +52,10 @@ public class PearsScheduleCleardownService {
 
   private static final String MISSING_CONTACTS = "original_event_id IN (%s) OR %s".formatted(EVENTS, LICENCE_EXPIRY);
 
+  // Area event rows have no original event, and only a migrated schedule has area events
+  private static final String EVENT_CACHE =
+      "original_event_id IN (%s) OR (licence_id = :licence AND event_type = 'AREA')".formatted(EVENTS);
+
   // Children before parents
   private static final List<String> EVENT_TABLES = List.of(
       "licence_schedule_rates",
@@ -153,8 +157,7 @@ public class PearsScheduleCleardownService {
   private void deleteAuditHistory(UUID scheduleId, int licenceId) {
     delete("DELETE FROM lms.licence_reminders_aud WHERE " + REMINDERS, scheduleId, licenceId);
     delete("DELETE FROM lms.licence_reminder_missing_contacts_aud WHERE " + MISSING_CONTACTS, scheduleId, licenceId);
-    delete("DELETE FROM lms.licence_event_cache_aud WHERE original_event_id IN (%s)"
-        .formatted(EVENTS), scheduleId);
+    delete("DELETE FROM lms.licence_event_cache_aud WHERE " + EVENT_CACHE, scheduleId, licenceId);
     delete("DELETE FROM lms.event_comments_aud WHERE event_reference_id IN (%s)".formatted(EVENTS), scheduleId);
     delete("DELETE FROM lms.work_programme_activity_statuses_aud WHERE event_reference_id IN (%s)".formatted(EVENTS),
         scheduleId);
@@ -170,8 +173,7 @@ public class PearsScheduleCleardownService {
   private void deleteSchedule(UUID scheduleId, int licenceId) {
     delete("DELETE FROM lms.licence_reminders WHERE " + REMINDERS, scheduleId, licenceId);
     delete("DELETE FROM lms.licence_reminder_missing_contacts WHERE " + MISSING_CONTACTS, scheduleId, licenceId);
-    delete("DELETE FROM lms.licence_event_cache WHERE original_event_id IN (%s)"
-        .formatted(EVENTS), scheduleId);
+    delete("DELETE FROM lms.licence_event_cache WHERE " + EVENT_CACHE, scheduleId, licenceId);
     delete("DELETE FROM lms.event_comments WHERE event_reference_id IN (%s)".formatted(EVENTS), scheduleId);
     delete("DELETE FROM lms.work_programme_activity_statuses WHERE event_reference_id IN (%s)".formatted(EVENTS),
         scheduleId);

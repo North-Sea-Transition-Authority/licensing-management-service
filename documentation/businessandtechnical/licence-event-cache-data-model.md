@@ -41,8 +41,9 @@ licence_event_cache
 
 There is **one foreign key only** — to `licences`. `original_event_id` is a plain `UUID`
 column with no constraint behind it, even though its values come from
-`schedule_events.original_event_id`. Nothing in the database ties a cache row to the event it
-was derived from, and nothing removes a cache row when that event disappears.
+`schedule_events.original_event_id` (or are null, for area event rows — §4.6). Nothing in the
+database ties a cache row to the event it was derived from, and nothing removes a cache row when
+that event disappears.
 
 ### 2.1 Entity relationship diagram
 
@@ -54,6 +55,7 @@ flowchart TB
     LS["<b>licence_schedules</b><br/>id · licence_id"]
     LSD["<b>licence_schedule_details</b><br/>id · status<br/><i>only the ACTIVE version is ever cached</i>"]
     SE["<b>schedule_events</b><br/>id · event_type · original_event_id<br/><i>see the schedules data model</i>"]
+    AE["<b>licence_schedule_area_events</b><br/>id · licence_schedule_detail_id · event_date<br/><i>not a schedule event — no original_event_id</i>"]
     APP["<b>applications</b><br/>id · application_type · application_reference<br/><i>see the applications data model — both types</i>"]
     SWPA["<b>schedule_work_programme_applications</b><br/>id · steward_wua_id<br/><i>same id as the application; extension and amendment only, once a steward is allocated</i>"]
     CACHE["<b>licence_event_cache</b><br/>id · licence_id · licence_reference · original_event_id<br/>event_type · current_term_phase · next_term_phase<br/>activity_type · event_date<br/>application_id · application_type · steward_wua_id<br/><i>one row per logical event per application — rebuilt on apply and on PEARS schedule and work programme migration, application columns refreshed on submission</i>"]
@@ -61,8 +63,10 @@ flowchart TB
     LIC -- "1 : 1" --> LS
     LS -- "1 : many" --> LSD
     LS -- "1 : many" --> SE
+    LSD -- "1 : many" --> AE
     LIC -- "1 : many" --> CACHE
     SE -. "original_event_id — no foreign key" .-> CACHE
+    AE -. "no key — the licence's area rows are replaced on every refresh (§4.6)" .-> CACHE
     APP -- "1 : 0..1" --> SWPA
     APP -. "application_id + application_type — no foreign key<br/>(set on submission, §4.5)" .-> CACHE
     SWPA -. "steward_wua_id copied on submission (§4.5)" .-> CACHE
@@ -78,11 +82,11 @@ The dotted edges are the ones that matter: they are value correspondences, not c
 id                 UUID PK
 licence_id         INTEGER NOT NULL → licences.id
 licence_reference  TEXT             ← copied from licences at refresh time
-original_event_id  UUID             ← the logical schedule event (no FK)
+original_event_id  UUID             ← the logical schedule event (no FK); null for area events (§4.6)
 event_type         TEXT             ← §5.1
 current_term_phase TEXT             ← display text, not an enum value
 next_term_phase    TEXT             ← display text, not an enum value
-activity_type      TEXT             ← display text, not an enum value
+activity_type      TEXT             ← display text, not an enum value; an area summary for area events
 event_date         DATE
 quad_block         TEXT             ← never populated (§4.3)
 steward_wua_id     BIGINT           ← §4.5 — extension and amendment applications only
@@ -94,7 +98,9 @@ Rows are identified within a licence by `original_event_id` — that is the key 
 refresh matches on — but **no unique index enforces it**, and since §4.5 it is no longer just a
 theoretical gap: a term, phase or activity with more than one application currently targeting
 it will legitimately have more than one row sharing an `original_event_id`, one per
-application.
+application. Area event rows (`event_type` `AREA`) are the exception to identification by
+`original_event_id` altogether: theirs is always null, and they are replaced rather than matched
+(§4.6).
 
 ### 3.1 The text columns hold display strings
 
@@ -106,6 +112,7 @@ the text LMS shows on screen:
 | `current_term_phase` | `Initial Term`, `Phase A` | the term type's or phase type's display name |
 | `next_term_phase` | `Second Term`, `Phase B` | the next phase in the same term, or the next term if there is none |
 | `activity_type` | `Drill well`, or a user-entered name | the activity category's display name — or, for `OTHER_ACTIVITY`, the free-text `other_category_name` |
+| `activity_type` (area event rows) | `Area one (A1v2) - Retention area - Expiry`, `Pre-producing area` | a summary of the area event (§4.6) — not an activity at all |
 
 Two consequences:
 
@@ -121,7 +128,7 @@ Two consequences:
 
 ### 4.1 The triggers
 
-The cache rows themselves — one per term, phase and work programme activity — are rebuilt for
+The cache rows themselves — one per term, phase, work programme activity and area event — are rebuilt for
 one licence at the moment a **schedule version is applied**, the step that moves a draft to
 `ACTIVE` and the previous version to `REPLACED`. There is no scheduled rebuild and no rebuild
 on licence import.
@@ -137,8 +144,8 @@ the same rows again.
 The **PEARS work programme migration**, which runs after the schedule migration, rebuilds them
 again. It adds the licence's work programme activities to the migrated `ACTIVE` version, with no new
 version, then runs the same refresh, in its own transaction for the licence. So straight after the
-schedule migration alone, a migrated licence's cache has its terms and phases but no work programme
-activities; they are added once its work programme is migrated. It too happens once per licence.
+schedule migration alone, a migrated licence's cache has its terms, phases and area events but no
+work programme activities; they are added once its work programme is migrated. It too happens once per licence.
 
 It is always rebuilt from the **`ACTIVE`** version. Draft content is never cached, and nor are the
 `REPLACED` versions the migration creates.
@@ -153,15 +160,17 @@ will show that application's data without any schedule apply happening in betwee
 
 ### 4.2 What the refresh writes
 
-The refresh loads every existing cache row for the licence, keys them by `original_event_id`,
-and then for each event in the applied schedule either updates the matching row or inserts a
-new one. Three event types are written:
+The refresh loads every existing cache row for the licence, keys all but the area event rows by
+`original_event_id`, and then for each term, phase and activity in the applied schedule either
+updates the matching row or inserts a new one. Area events are handled differently (§4.6). Four
+event types are written:
 
 | Cached | Row written for | `event_date` |
 |---|---|---|
 | Terms | **only terms that have no phases** (§4.4) | the term's `end_date` |
 | Phases | every phase | the phase's `end_date` |
 | Work programme activities | every activity | the activity's effective due date — `due_date` for relative dates, otherwise the linked term's or phase's `end_date` |
+| Area events | **only area events with an `event_date`** (§4.6) | the area event's `event_date` |
 
 For work programme activities, `current_term_phase` and `next_term_phase` are populated **only
 when the activity is tied to a term or phase**. An activity with a relative date leaves both
@@ -187,8 +196,9 @@ Terms are cached only when they have no phases, because a term with phases is re
 the tracker by those phases instead. If a schedule update adds phases to a term that
 previously had none, the refresh **deletes** the term's cache row.
 
-This is the only delete the refresh performs. In particular, removing an event from the
-schedule does not remove its cache row (§6).
+Apart from the replacement of area event rows (§4.6), this is the only delete the refresh
+performs. In particular, removing a term, phase or activity from the schedule does not remove
+its cache row (§6).
 
 ### 4.5 Application columns are refreshed separately, at submission
 
@@ -252,6 +262,36 @@ Several things a reader is likely to assume, and shouldn't:
 - Deleting, withdrawing or otherwise changing the status of the application afterwards does not
   clear or update what was written here (§6).
 
+### 4.6 Area events are replaced, not matched
+
+Retention, development and pre-producing area events (`licence_schedule_area_events`, see
+[schedules §2.2](licence-schedules-data-model.md)) are not schedule events. They have no
+`original_event_id` to match a cache row on, and their own `id` changes with every schedule
+version they are copied into. So on every refresh (§4.1) the licence's existing area event rows
+— those with `event_type` `AREA` — are **deleted**, and one row is inserted for each area event
+in the version being applied. Each refresh therefore shows as deletes and inserts in the audit
+history (§7), not updates, and an area row's `id` does not survive a refresh.
+
+An area event row holds:
+
+| Column | Contents |
+|---|---|
+| `event_type` | `AREA` |
+| `event_date` | the area event's `event_date` |
+| `activity_type` | a one-line summary: the area name and short name (with `v` and the version from version 2 on), then the kind of area where the name doesn't already say it, then what the event is where PEARS holds it, joined with ` - ` — e.g. `Area one (A1v2) - Retention area - Expiry`. A hand-entered event with no area is just `Pre-producing area` or `Retention or development area` |
+| `original_event_id`, `current_term_phase`, `next_term_phase` | always null — an area event is not tied to a position in the term and phase sequence |
+| `application_id`, `application_type`, `steward_wua_id` | always null — no application targets an area event, and the submission refresh (§4.5) only looks rows up by `original_event_id` |
+
+Area events with no `event_date` are not cached. Only a schedule migrated from PEARS has area
+events, so a licence whose schedule was created in LMS never has area event rows.
+
+Area events were not always cached. Licences migrated before they were, and not applied since,
+were given their area event rows by a one-off manual backfill
+(`manualscripts/datafixes/backfill_area_events_into_licence_event_cache.sql`), run by hand in
+each environment. It writes the same rows a refresh would, from the `ACTIVE` version, and skips
+any licence that already has area event rows. Rows it wrote have **no audit history** (§7)
+until the licence's next refresh replaces them.
+
 ---
 
 ## 5. Enumerated values
@@ -266,6 +306,7 @@ constraint.
 | `TERM` | Terms | yes — only for terms without phases |
 | `PHASE` | Phases | yes |
 | `WORK_PROGRAMME_ACTIVITY` | Work programme activities | yes |
+| `AREA` | Retention, development and pre-producing areas | yes — only for area events with a date (§4.6) |
 | `RATE` | Rates | **no** |
 | `OTHER` | Other schedule events | **no** |
 | `EXPIRY` | Expiry | **no** |
@@ -295,14 +336,16 @@ inconsistent with how the refresh writes them — the two are always set togethe
 ## 6. Staleness — what the cache does not track
 
 The refresh only ever writes rows for events present in the schedule being applied, and its
-only delete is the term-gains-phases case. Outside the refresh, only the PEARS migrations'
-cleardowns (outside production only) delete rows, with their audit rows: the schedule cleardown
-those of a migrated schedule's events ([schedules §5.3a](licence-schedules-data-model.md)), and the
+only deletes are the term-gains-phases case (§4.4) and the replacement of area event rows
+(§4.6). Outside the refresh, only the PEARS migrations' cleardowns (outside production only)
+delete rows, with their audit rows: the schedule cleardown those of a migrated schedule's events
+and the licence's area event rows ([schedules §5.3a](licence-schedules-data-model.md)), and the
 work programme cleardown those of the work programme activities it migrated. Nothing else
 prunes it. So:
 
-- **An event deleted from the schedule keeps its cache row**, holding the last values it had.
-  The tracker will keep showing it.
+- **A term, phase or activity deleted from the schedule keeps its cache row**, holding the last
+  values it had. The tracker will keep showing it. Area events cannot be deleted in LMS, and
+  their rows are rebuilt from the applied version each time anyway.
 - **A licence whose schedule has never been applied or migrated from PEARS since the cache was
   introduced has no rows at all**, and is simply absent from the tracker rather than showing as
   empty.
@@ -351,14 +394,17 @@ last refreshed, which the table has no column for. Revision metadata lives in th
    applications; a row linked to a continuation application always leaves it null.
 3. **Three text columns hold display strings, not enum values** (§3.1). They cannot be joined
    to the schedule tables' enum columns, and `next_term_phase` uses an empty string rather
-   than null for "none".
+   than null for "none". On area event rows `activity_type` holds a summary of the area event,
+   not an activity — filter on `event_type` before treating it as one (§4.6).
 4. **`original_event_id` has no foreign key** and is not unique — and, since §4.5, it is
    expected to repeat when more than one application currently targets the same term, phase or
-   activity. A cache row can also outlive the event it describes.
+   activity. It is always null on area event rows (§4.6). A cache row can also outlive the
+   event it describes.
 5. **Rates, other schedule events and expiry dates are absent**, so the tracker is not a
    complete view of a schedule's dated items.
-6. **Rows are not deleted when events are**, with the single exception of a term that gains
-   phases (§4.4).
+6. **Rows are not deleted when events are**, with the exception of a term that gains phases
+   (§4.4). Area event rows are the other exception: they are deleted and reinserted on every
+   refresh, so their `id`s are not stable (§4.6).
 7. **`licence_reference` is a copy.** It is correct as of the licence's last schedule apply,
    not as of now.
 8. **The application-linked columns are a submission-time snapshot, not a live link** (§4.5).

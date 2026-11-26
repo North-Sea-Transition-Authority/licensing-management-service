@@ -3,6 +3,8 @@ package uk.co.nstauthority.licensingmanagementservice.licence.schedule.timeline;
 import java.time.LocalDate;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.apache.commons.lang3.StringUtils;
 import uk.co.nstauthority.licensingmanagementservice.formatting.DateFormatUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.schedule.areaevent.LicenceScheduleAreaEvent;
@@ -41,6 +43,20 @@ public record TimelineAreaEventView(
         DateFormatUtil.convertToDisplayText(areaEvent.getEventDate()),
         !areaEvent.getEventDate().isAfter(finalProgressDate)
     );
+  }
+
+  /**
+   * The event in one line, for the cross licence event tracker: the heading, the area type where the heading doesn't
+   * already say it, and what the event is ({@code Expiry}, {@code Approval}) where PEARS holds it.
+   */
+  public static String getSummary(LicenceScheduleAreaEvent areaEvent) {
+    var heading = heading(areaEvent);
+    var subtype = StringUtils.capitalize(
+        StringUtils.trimToEmpty(areaEvent.getSubtype()).toLowerCase(Locale.ROOT).replace('_', ' ')
+    );
+    return Stream.of(heading, areaType(areaEvent, heading), subtype)
+        .filter(StringUtils::isNotBlank)
+        .collect(Collectors.joining(" - "));
   }
 
   /**

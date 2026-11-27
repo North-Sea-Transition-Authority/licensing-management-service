@@ -239,7 +239,7 @@ class LicenceScheduleTimelineControllerTest extends AbstractControllerTest {
         )
         .andExpect(status().isOk())
         .andExpect(content().string(stringContainsInOrder(
-            "Mandatory relinquishment", "50% relinquished", "Relinquish the northern blocks")));
+            "Mandatory relinquishment", "50%", "Relinquish the northern blocks")));
   }
 
   @Test

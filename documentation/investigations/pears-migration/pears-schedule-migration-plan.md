@@ -1913,11 +1913,45 @@ same local LMS: 1,109 licences in about 13 minutes. It agreed with the dry run l
 skipped, for the same reasons. The comparison report of every migrated licence
 (`/migration/pears-schedules/compare?licences=all&issues=only`) then listed no issues.
 
+**Every licence, by dry run on UAT (26 November 2026):** a `VALIDATE` run (section 5) on UAT LMS
+against UAT PEARS: 1,799 licences, the same as the live scope (survey S2 and S18), in 38 minutes.
+Every licence the migration could map matched PEARS, and every failure and skip is a decided rule
+or a licence UAT LMS doesn't hold:
+
+| Status | Licences | Why |
+|---|---|---|
+| `MATCHED` | 1,708 | |
+| `DIFFERS` | 0 | |
+| `FAILED` | 40 | "No terms in PEARS" (rule 7): every `ML` (7) and `DL` (5), CE1, 5 `PL` and 22 `P`, the 40 expected. Not migrated; created in LMS by the licensing team |
+| `SKIPPED` | 26 | "Has a bespoke milestone": P1026, P1028, P1070, P1078, P1189, P1191, P1272, P1453, P1630, P1792, P1820, P2244, P2252, P2342, P2343, P2478, P2500, P2517, P2521, P2550, P2681, PEDL267, PEDL273, PEDL278, PEDL297 and PEDL316. They migrate on a later run once prerequisite A lands |
+| `SKIPPED` | 25 | "Not a licence in LMS": P2488, P2515, P2540, P2546, P2565, P2566, P2568, P2569, P2576, P2580, P2587, P2627, P2633, P2648, P2657, P2661, P2666, P2667, P2671, P2675, PEDL286, PEDL318, PEDL319, PEDL322 and PEDL323, all recent numbers. **To check:** that they are drafts in UAT PEARS, as the skips on dev were, and not issued licences missing from UAT LMS. An issued one must be in LMS before the production run, or it is skipped there too |
+
+Across every version compared: 149,738 rows match, 40,801 are dated from their offset, 1,042 have
+no start date and 1,419 no expiry in PEARS, 250 carry on, and 19,866 PEARS events aren't migrated
+(the failed and skipped licences, and the events the rules leave out). There are no `Differs`,
+`Value differs`, `Original event differs`, `Missing in LMS` or `LMS only` rows. None of the failures
+seen only on dev came up: no licence failed for a missing start date, an event type outside the
+catalogue, or P1948's term typo.
+
+**Every licence, migrated on UAT (26 November 2026):** a `MIGRATE` run on the same UAT LMS and
+PEARS, straight after the dry run. It agreed with the dry run licence for licence: 1,708 migrated
+(the 1,708 that matched), and the same 40 failed and 51 skipped, for the same reasons. Every
+licence took one attempt. A `MIGRATE` run doesn't compare, so the comparison report of every
+migrated licence (`/migration/pears-schedules/compare?licences=all&issues=only`) is still to run
+against the written schedules.
+
+**Timing:** the dry run took 38 minutes for 1,799 licences, about 1.3 seconds a licence, and the
+`MIGRATE` run 51 minutes, about 1.7 seconds a licence, as it also writes each schedule. Both ran
+with the batch size at 10 (the dev runs on a local LMS took 12 and 13 minutes for 1,109). The run
+status gives no per-licence times, so the largest licence (66 versions) is timed from the run
+tables.
+
 **Gaps in dev data:**
 
 - **No bespoke milestones:** dev PEARS holds no `BM` events. Add one to a dev licence through the
   PEARS schedule screen when prerequisite A is built, and test both the skip before it lands and
-  the migration as `BESPOKE_MILESTONE` after.
+  the migration as `BESPOKE_MILESTONE` after. UAT has 26 licences with one, which the UAT dry run
+  skipped as expected, so the migration after prerequisite A can be tested there too.
 - **Licences missing from local LMS:** P1884, P1949 (84 versions, the largest on dev), P1983,
   P1991, P2001, P2037 and P2039 have schedules on dev PEARS but did not come through the PEARS
   refresh, so the alternatives above were used. They are all `DRAFT` licences, never issued, which

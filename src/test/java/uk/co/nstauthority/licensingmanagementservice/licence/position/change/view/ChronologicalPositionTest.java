@@ -123,6 +123,27 @@ class ChronologicalPositionTest {
   }
 
   @Test
+  void validate_whenLicenseeChangeIsRemoved_noErrors() {
+    var change = PositionChangeTestUtil.newBuilder()
+        .withOperations(List.of(LicenceOperation.newLicenseeOperation().withLicenseesToAdd(List.of(1)).build()))
+        .withChangeType(LicencePositionChangeType.REMOVE_CHANGE)
+        .build();
+    var position = ChronologicalPositionTestUtil.newBuilder().withChanges(List.of(change)).build();
+    var previousState = LicencePositionState.EMPTY.withLicenseeIds(List.of(1), List.of());
+    var currentState = LicencePositionState.EMPTY.withLicenseeIds(List.of(1), List.of());
+
+    var errors = position.validate(
+        PositionValidationContextTestUtil.newBuilder()
+            .withResolvedState(currentState)
+            .withPreviousState(previousState)
+            .withPosition(position)
+            .build()
+    );
+
+    assertThat(errors).isEmpty();
+  }
+
+  @Test
   void validate_whenJoiningLicenseeOnPreviousState_returnsRepeatedJoinError() {
     var change = PositionChangeTestUtil.newBuilder()
         .withOperations(List.of(LicenceOperation.newLicenseeOperation().withLicenseesToAdd(List.of(1)).build()))
@@ -465,5 +486,51 @@ class ChronologicalPositionTest {
     return PositionChangeTestUtil.newBuilder()
         .withOperations(List.of(operations))
         .build();
+  }
+
+  @Test
+  void joiningLicensees_whenChangesAreActive_returnsAllJoiningLicensees() {
+    var change = PositionChangeTestUtil.newBuilder()
+        .withOperations(
+            List.of(LicenceOperation.newLicenseeOperation().withLicenseesToAdd(List.of(2,3,4,5)).build())
+        )
+        .build();
+    var position = ChronologicalPositionTestUtil.newBuilder().withChanges(List.of(change)).build();
+    assertThat(position.joiningLicensees()).isEqualTo(List.of(2,3,4,5));
+  }
+
+  @Test
+  void joiningLicenseeIds_whenRemoved_isEmpty() {
+    var change = PositionChangeTestUtil.newBuilder()
+        .withOperations(
+            List.of(LicenceOperation.newLicenseeOperation().withLicenseesToAdd(List.of(2)).build())
+        )
+        .withChangeType(LicencePositionChangeType.REMOVE_CHANGE)
+        .build();
+    var position = ChronologicalPositionTestUtil.newBuilder().withChanges(List.of(change)).build();
+    assertThat(position.joiningLicensees()).isEmpty();
+  }
+
+  @Test
+  void withdrawingLicensees_whenChangesAreActive_returnsAllWithdrawingLicensees() {
+    var change = PositionChangeTestUtil.newBuilder()
+        .withOperations(
+            List.of(LicenceOperation.newLicenseeOperation().withLicenseesToRemove(List.of(2,3,4,5)).build())
+        )
+        .build();
+    var position = ChronologicalPositionTestUtil.newBuilder().withChanges(List.of(change)).build();
+    assertThat(position.withdrawingLicensees()).isEqualTo(List.of(2,3,4,5));
+  }
+
+  @Test
+  void withdrawingLicenseeIds_whenRemoved_isEmpty() {
+    var change = PositionChangeTestUtil.newBuilder()
+        .withOperations(
+            List.of(LicenceOperation.newLicenseeOperation().withLicenseesToRemove(List.of(2)).build())
+        )
+        .withChangeType(LicencePositionChangeType.REMOVE_CHANGE)
+        .build();
+    var position = ChronologicalPositionTestUtil.newBuilder().withChanges(List.of(change)).build();
+    assertThat(position.withdrawingLicensees()).isEmpty();
   }
 }

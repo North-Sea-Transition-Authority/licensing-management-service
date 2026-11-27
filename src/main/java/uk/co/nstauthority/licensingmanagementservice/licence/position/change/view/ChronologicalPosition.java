@@ -176,6 +176,7 @@ public record ChronologicalPosition(
 
   public List<Integer> joiningLicensees() {
     return changes.stream()
+        .filter(positionChange -> !LicencePositionChangeType.REMOVE_CHANGE.equals(positionChange.changeType()))
         .map(PositionChange::licenseesToAdd)
         .flatMap(Collection::stream)
         .toList();
@@ -183,6 +184,7 @@ public record ChronologicalPosition(
 
   public List<Integer> withdrawingLicensees() {
     return changes.stream()
+        .filter(positionChange -> !LicencePositionChangeType.REMOVE_CHANGE.equals(positionChange.changeType()))
         .map(PositionChange::licenseesToRemove)
         .flatMap(Collection::stream)
         .toList();

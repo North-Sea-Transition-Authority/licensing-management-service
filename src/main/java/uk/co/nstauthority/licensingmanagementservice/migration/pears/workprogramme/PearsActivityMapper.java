@@ -21,7 +21,7 @@ final class PearsActivityMapper {
 
   static final String NONE_NOT_MIGRATED = "Activity recording \"None\": not migrated";
   static final String STUB_MIGRATED =
-      "Stub activity from the 2011 LEGACY load: migrated with a comment (provisional, WP-L14)";
+      "Stub activity from the 2011 LEGACY load: migrated with a comment (WP-L14)";
   static final String EMPTY_STUB_NOT_MIGRATED =
       "Stub activity from the 2011 LEGACY load, NOT_STARTED with no note by a person: not migrated (WP-L14)";
   static final String NO_COMMITMENT = "No commitment in PEARS: CONDITIONAL (provisional, WP-L9)";

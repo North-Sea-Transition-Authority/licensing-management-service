@@ -788,7 +788,9 @@ work programme of a licence it fails or skips is skipped too, with that reason:
   them still open. Put to the licensing team as WP-L16 (review 2.7): enter them in LMS when they
   create the schedules;
 - licences with a **bespoke milestone**, until prerequisite A (`BESPOKE_MILESTONE`) lands. They
-  migrate on a later schedule run, and their work programme with them;
+  migrate on a later schedule run, and their work programme with them. **Live outcome check (26
+  November 2026), confirmed by the UAT dry runs (27 November 2026):** 24 licences, 18 extant. Put
+  to the licensing team for awareness as WP-L17 (review 2.8, survey WP-S21);
 - licences not in LMS (never issued, as on dev's dry run).
 
 On dev PEARS the schedule migration migrated 892 licences, all matching PEARS (schedule plan,

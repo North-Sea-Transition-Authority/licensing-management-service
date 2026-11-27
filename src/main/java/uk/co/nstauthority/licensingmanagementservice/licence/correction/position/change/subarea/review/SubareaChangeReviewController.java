@@ -30,6 +30,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subarea.SubareaChangeController;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subarea.SubareaChangeService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subarea.SubareaChangeValidator;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaDetails;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChange;
@@ -51,7 +52,7 @@ public class SubareaChangeReviewController {
   private static final String CHANGE_SUBAREAS_PATH = "/change-subareas";
   private static final String PAGE_TITLE = "Review and submit subarea changes for Block %s";
   private static final String SAVED_BANNER = "Subarea change saved";
-  private static final String NO_CHANGE_ERROR = "You must make a change to the subareas before submitting";
+  private static final String ERROR_SUMMARY_FIELD_NAME = "summaryaccordion-subarea-changes";
 
   private final SubareaChangeSummarySectionService subareaChangeSummarySectionService;
   private final SubareaChangeService subareaChangeService;
@@ -97,9 +98,16 @@ public class SubareaChangeReviewController {
         .getSubareaOperationOrThrow(licencePositionStagedPayload, blockFeatureId)
         .commandJourneyIdOrThrow();
 
-    if (subareaChangeValidator.hasErrors(commandJourneyId)) {
+    var changeId = subareaChangeService.getSubareaChangeOrThrow(licencePositionStagedPayload, blockFeatureId).changeId();
+    var originalSubareas = getOriginalSubareas(licencePositionStagedPayload, changeId, blockFeatureId);
+    var errorMessages = subareaChangeValidator.getErrors(
+        originalSubareas,
+        subareaChangeService.getTransfers(commandJourneyId, originalSubareas)
+    );
+
+    if (!errorMessages.isEmpty()) {
       return getStagedReviewModelAndView(correction, licencePositionStagedPayload, blockFeatureId, user)
-          .addObject("errorSummaryItems", List.of(new ErrorSummaryItem(1, "summaryaccordion-subarea-changes", NO_CHANGE_ERROR)));
+          .addObject("errorSummaryItems", ErrorSummaryItem.fromMessages(errorMessages, ERROR_SUMMARY_FIELD_NAME));
     }
 
     subareaChangeService.completeSubareaChange(licencePositionStagedPayload, blockFeatureId);
@@ -148,11 +156,14 @@ public class SubareaChangeReviewController {
         ReverseRouter.route(on(SubareaChangeReviewController.class).changeLiveSubareas(correction, licencePosition, change))
     );
 
+    var errorMessages = subareaChangeValidator.getErrors(stateBefore.subareasOf(blockFeatureId), operation.transfers());
+
     return getReviewModelAndView(
         correction,
         blockFeatureId,
         subareaChangeSummarySectionService.getSummarySections(context, user)
-    );
+    )
+        .addObject("errorSummaryItems", ErrorSummaryItem.fromMessages(errorMessages, ERROR_SUMMARY_FIELD_NAME));
   }
 
   @PostMapping(LIVE_REVIEW_PATH + CHANGE_SUBAREAS_PATH)
@@ -181,8 +192,7 @@ public class SubareaChangeReviewController {
     var changeId = subareaChangeService.getSubareaChangeOrThrow(licencePositionStagedPayload, blockFeatureId).changeId();
     var operation = subareaChangeService.getSubareaOperationOrThrow(licencePositionStagedPayload, blockFeatureId);
     var commandJourneyId = operation.commandJourneyId();
-    var originalSubareas = licencePositionSpatialService.getStateGoingIntoChange(licencePositionStagedPayload, changeId)
-        .subareasOf(blockFeatureId);
+    var originalSubareas = getOriginalSubareas(licencePositionStagedPayload, changeId, blockFeatureId);
     var context = new SubareaChangeSummaryContext.Staged(
         blockFeatureId,
         originalSubareas,
@@ -227,5 +237,14 @@ public class SubareaChangeReviewController {
         .addObject("pageTitle", PAGE_TITLE.formatted(blockName))
         .addObject("pageCaption", correction.getLicence().getLicenceReference())
         .addObject("summarySections", summarySections);
+  }
+
+  private List<SubareaDetails> getOriginalSubareas(
+      LicencePositionStagedPayload licencePositionStagedPayload,
+      String changeId,
+      UUID blockFeatureId
+  ) {
+    return licencePositionSpatialService.getStateGoingIntoChange(licencePositionStagedPayload, changeId)
+        .subareasOf(blockFeatureId);
   }
 }

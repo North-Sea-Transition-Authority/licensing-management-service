@@ -4,10 +4,13 @@ import static uk.co.nstauthority.licensingmanagementservice.licence.position.cha
 
 import jakarta.annotation.Nullable;
 import java.util.Collection;
+import java.util.HashSet;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.apache.commons.lang3.StringUtils;
 import uk.co.fivium.gisframework.feature.Feature;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.feature.FeatureAttribute;
@@ -61,4 +64,19 @@ public record SubareaDetails(
         .collect(Collectors.toSet());
   }
 
+  public static boolean hasDuplicateNames(Collection<SubareaDetails> subareas) {
+    return hasDuplicates(subareas.stream().map(SubareaDetails::name));
+  }
+
+  public static boolean hasDuplicateShortNames(Collection<SubareaDetails> subareas) {
+    return hasDuplicates(subareas.stream().map(SubareaDetails::shortName));
+  }
+
+  private static boolean hasDuplicates(Stream<String> values) {
+    var normalisedValues = values
+        .filter(StringUtils::isNotBlank)
+        .map(value -> value.trim().toLowerCase(Locale.ROOT))
+        .toList();
+    return normalisedValues.size() != new HashSet<>(normalisedValues).size();
+  }
 }

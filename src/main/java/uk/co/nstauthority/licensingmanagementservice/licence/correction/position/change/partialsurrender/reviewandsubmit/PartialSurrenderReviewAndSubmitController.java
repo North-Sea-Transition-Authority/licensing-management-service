@@ -7,7 +7,6 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.IntStream;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -323,9 +322,7 @@ public class PartialSurrenderReviewAndSubmitController {
       String backLinkUrl,
       String backLinkText
   ) {
-    var errorSummaryItems = IntStream.range(0, errorMessages.size())
-        .mapToObj(index -> new ErrorSummaryItem(index, "summaryaccordion-" + accordionId, errorMessages.get(index)))
-        .toList();
+    var errorSummaryItems = ErrorSummaryItem.fromMessages(errorMessages, "summaryaccordion-" + accordionId);
 
     return new ModelAndView("lms/licence/correction/change/partialSurrender/partialSurrenderReviewAndSubmit")
         .addObject("pageTitle", REVIEW_AND_SUBMIT_PAGE_TITLE)

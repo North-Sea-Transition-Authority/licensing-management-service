@@ -22,6 +22,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceC
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadRouteUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subarea.review.SubareaChangeReviewController;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.SubareaPositionRule;
 import uk.co.nstauthority.licensingmanagementservice.licence.staged.LicencePositionStagedPayload;
 import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 
@@ -36,7 +37,6 @@ import uk.co.nstauthority.licensingmanagementservice.mvc.ReverseRouter;
 public class SubareaChangeController {
 
   private static final String PAGE_TITLE = "Subarea change";
-  private static final String NO_CHANGE_ERROR = "You must make a change to the subareas before completing";
 
   private final SubareaChangeService subareaChangeService;
   private final FeatureService featureService;
@@ -77,8 +77,12 @@ public class SubareaChangeController {
 
     if (subareaChangeValidator.hasErrors(commandJourneyId)) {
       return getSubareaChangeModelAndView(correction, licencePositionStagedPayload, blockFeatureId, commandJourneyId)
-          .addObject("errorSummaryItems", List.of(new ErrorSummaryItem(1, "subarea-change", NO_CHANGE_ERROR)))
-          .addObject("mapErrorMessage", NO_CHANGE_ERROR);
+          .addObject("errorSummaryItems", List.of(new ErrorSummaryItem(
+              1,
+              "subarea-change",
+              SubareaPositionRule.NO_CHANGE.getMessage()
+          )))
+          .addObject("mapErrorMessage", SubareaPositionRule.NO_CHANGE.getMessage());
     }
 
     return ReverseRouter.redirect(on(SubareaChangeReviewController.class)

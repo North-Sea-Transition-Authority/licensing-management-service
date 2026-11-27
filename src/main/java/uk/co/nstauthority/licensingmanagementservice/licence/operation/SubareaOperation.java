@@ -22,6 +22,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subarea.review.SubareaChangeType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationError;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.SubareaPositionRule;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeViewContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.ChangeUrlTarget;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.LicencePositionState;
@@ -105,7 +106,13 @@ public record SubareaOperation(
 
   @Override
   public PositionValidationError validate(PositionValidationContext positionValidationContext) {
-    //TODO - LMS2-164: identify when a subarea change results in an invalid licence position
+    if (transfers.isEmpty()) {
+      return PositionValidationError.forOperation(
+          positionValidationContext,
+          type(),
+          SubareaPositionRule.NO_CHANGE.getMessage()
+      );
+    }
     return null;
   }
 

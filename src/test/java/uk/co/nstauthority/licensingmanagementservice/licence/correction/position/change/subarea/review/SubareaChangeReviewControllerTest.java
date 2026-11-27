@@ -224,7 +224,9 @@ class SubareaChangeReviewControllerTest extends AbstractControllerTest {
   void submit_whenChangeMade_thenCompletesChangeAndRedirectsToPosition() throws Exception {
     givenCorrectionAllocatedToUser(CORRECTION);
     givenStagedSubareaChange(COMMAND_JOURNEY_ID);
-    when(subareaChangeValidator.hasErrors(COMMAND_JOURNEY_ID)).thenReturn(false);
+    givenStagedOriginalSubareas();
+    when(subareaChangeService.getTransfers(COMMAND_JOURNEY_ID, List.of(ORIGINAL_SUBAREA))).thenReturn(JOURNEY_TRANSFERS);
+    when(subareaChangeValidator.getErrors(List.of(ORIGINAL_SUBAREA), JOURNEY_TRANSFERS)).thenReturn(List.of());
 
     mockMvc.perform(post(stagedReviewUrl())
             .with(user(regulatorUser))
@@ -240,11 +242,12 @@ class SubareaChangeReviewControllerTest extends AbstractControllerTest {
   }
 
   @Test
-  void submit_whenNoChangeMade_thenRendersReviewWithError() throws Exception {
+  void submit_whenErrors_thenRendersReviewWithErrors() throws Exception {
     givenCorrectionAllocatedToUser(CORRECTION);
     givenStagedSubareaChange(COMMAND_JOURNEY_ID);
-    when(subareaChangeValidator.hasErrors(COMMAND_JOURNEY_ID)).thenReturn(true);
     when(subareaChangeService.getTransfers(COMMAND_JOURNEY_ID, List.of(ORIGINAL_SUBAREA))).thenReturn(JOURNEY_TRANSFERS);
+    when(subareaChangeValidator.getErrors(List.of(ORIGINAL_SUBAREA), JOURNEY_TRANSFERS))
+        .thenReturn(List.of("First error", "Second error"));
     givenStagedReview(JOURNEY_TRANSFERS);
 
     var result = mockMvc.perform(post(stagedReviewUrl())
@@ -258,11 +261,10 @@ class SubareaChangeReviewControllerTest extends AbstractControllerTest {
 
     assertThat(result.getModelAndView().getModel().get("errorSummaryItems"))
         .usingRecursiveComparison()
-        .isEqualTo(List.of(new ErrorSummaryItem(
-            1,
-            "summaryaccordion-subarea-changes",
-            "You must make a change to the subareas before submitting"
-        )));
+        .isEqualTo(List.of(
+            new ErrorSummaryItem(0, "summaryaccordion-subarea-changes", "First error"),
+            new ErrorSummaryItem(1, "summaryaccordion-subarea-changes", "Second error")
+        ));
     verify(subareaChangeService, never()).completeSubareaChange(POSITION_STAGED_PAYLOAD, BLOCK_FEATURE_ID);
   }
 
@@ -335,6 +337,8 @@ class SubareaChangeReviewControllerTest extends AbstractControllerTest {
     givenCorrectionAllocatedToUser(CORRECTION);
     var change = givenLiveSubareaChange();
     givenLiveReview(change);
+    when(subareaChangeValidator.getErrors(List.of(ORIGINAL_SUBAREA), OPERATION_TRANSFERS))
+        .thenReturn(List.of("Live error"));
 
     var result = mockMvc.perform(get(liveReviewUrl(change))
             .with(user(regulatorUser)))
@@ -347,6 +351,9 @@ class SubareaChangeReviewControllerTest extends AbstractControllerTest {
         .andReturn();
 
     assertThat(result.getModelAndView().getModel()).doesNotContainKey("submitUrl");
+    assertThat(result.getModelAndView().getModel().get("errorSummaryItems"))
+        .usingRecursiveComparison()
+        .isEqualTo(List.of(new ErrorSummaryItem(0, "summaryaccordion-subarea-changes", "Live error")));
   }
 
   @ParameterizedTest
@@ -417,10 +424,7 @@ class SubareaChangeReviewControllerTest extends AbstractControllerTest {
     var stateWithoutChange = LicencePositionState.EMPTY
         .withBlock(BLOCK_FEATURE_ID, List.of(ORIGINAL_SUBAREA))
         .withSubareaEquity(BLOCK_FEATURE_ID, ORIGINAL_SUBAREA, 1, BigDecimal.valueOf(100));
-    when(subareaChangeService.getSubareaChangeOrThrow(POSITION_STAGED_PAYLOAD, BLOCK_FEATURE_ID))
-        .thenReturn(new AddChange(CHANGE_ID, 1, List.of()));
-    when(licencePositionSpatialService.getStateGoingIntoChange(POSITION_STAGED_PAYLOAD, CHANGE_ID))
-        .thenReturn(LicencePositionState.EMPTY.withBlock(BLOCK_FEATURE_ID, List.of(ORIGINAL_SUBAREA)));
+    givenStagedOriginalSubareas();
     when(licencePositionSpatialService.getStateAtEndOfPositionWithoutChange(POSITION_STAGED_PAYLOAD, CHANGE_ID))
         .thenReturn(stateWithoutChange);
     givenSummarySections(new SubareaChangeSummaryContext.Staged(
@@ -430,6 +434,13 @@ class SubareaChangeReviewControllerTest extends AbstractControllerTest {
         stateWithoutChange,
         stagedChangeSubareasUrl()
     ));
+  }
+
+  private void givenStagedOriginalSubareas() {
+    when(subareaChangeService.getSubareaChangeOrThrow(POSITION_STAGED_PAYLOAD, BLOCK_FEATURE_ID))
+        .thenReturn(new AddChange(CHANGE_ID, 1, List.of()));
+    when(licencePositionSpatialService.getStateGoingIntoChange(POSITION_STAGED_PAYLOAD, CHANGE_ID))
+        .thenReturn(LicencePositionState.EMPTY.withBlock(BLOCK_FEATURE_ID, List.of(ORIGINAL_SUBAREA)));
   }
 
   private void givenLiveReview(LicencePositionChange change) {

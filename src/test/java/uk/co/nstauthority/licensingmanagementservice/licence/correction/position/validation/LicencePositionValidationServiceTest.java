@@ -37,6 +37,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.operation.BlockEndO
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaCreateOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaDetails;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaSetEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.util.LicencePositionStateResolver;
@@ -579,6 +580,29 @@ class LicencePositionValidationServiceTest {
     assertThat(errors).isEmpty();
   }
 
+  @Test
+  void validate_whenPositionsShareTransactionEachWithSubareaChangeToSameBlock_flagsEachPosition() {
+    var transactionId = UUID.randomUUID();
+    var first = position(transactionId, LocalDate.of(2026, Month.JUNE, 18), subareaChange(SUBAREA_A, "A1"));
+    var second = position(transactionId, LocalDate.of(2026, Month.JULY, 9), subareaChange(SUBAREA_B, "B1"));
+
+    var positions = List.of(subareasCreatedPosition(), first, second);
+    var errors = service.validate(positions, LicencePositionStateResolver.resolve(positions), List.of(), LicenceType.SEAWARD_PRODUCTION, LicenceStatusType.EXTANT);
+
+    assertThat(errors).containsExactly(singleBlockSubareaChangeError(first), singleBlockSubareaChangeError(second));
+  }
+
+  @Test
+  void validate_whenSubareaChangesToSameBlockOnDifferentTransactions_returnsNoErrors() {
+    var first = position(UUID.randomUUID(), LocalDate.of(2026, Month.JUNE, 18), subareaChange(SUBAREA_A, "A1"));
+    var second = position(UUID.randomUUID(), LocalDate.of(2026, Month.JULY, 9), subareaChange(SUBAREA_B, "B1"));
+
+    var positions = List.of(subareasCreatedPosition(), first, second);
+    var errors = service.validate(positions, LicencePositionStateResolver.resolve(positions), List.of(), LicenceType.SEAWARD_PRODUCTION, LicenceStatusType.EXTANT);
+
+    assertThat(errors).isEmpty();
+  }
+
   private static Stream<Arguments> stagedChangeTypes() {
     return Stream.of(
         Arguments.of((Function<String, LicencePositionChangeType>) LicencePositionValidationServiceTest::addChange),
@@ -682,6 +706,29 @@ class LicencePositionValidationServiceTest {
         1,
         null,
         List.of(new SubareaSetEquityOperation(BLOCK_FEATURE_ID, subarea, 1, new BigDecimal("100")))
+    );
+  }
+
+  private static PositionChange subareaChange(SubareaDetails replacedSubarea, String outputShortName) {
+    return new PositionChange(
+        UUID.randomUUID().toString(),
+        1,
+        null,
+        List.of(new SubareaOperation(
+            BLOCK_FEATURE_ID,
+            List.of(replacedSubarea),
+            List.of(new SubareaDetails(UUID.randomUUID(), "Subarea " + outputShortName, outputShortName))
+        ))
+    );
+  }
+
+  private static PositionValidationError singleBlockSubareaChangeError(ChronologicalPosition position) {
+    return new PositionValidationError(
+        position.id(),
+        position.positionName(),
+        null,
+        null,
+        SubareaPositionRule.SINGLE_CHANGE_PER_BLOCK_PER_TRANSACTION.getMessage()
     );
   }
 

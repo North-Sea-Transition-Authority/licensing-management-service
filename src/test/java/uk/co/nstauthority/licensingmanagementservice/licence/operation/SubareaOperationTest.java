@@ -14,6 +14,7 @@ import tools.jackson.databind.json.JsonMapper;
 import uk.co.nstauthority.licensingmanagementservice.fds.tag.Tag;
 import uk.co.nstauthority.licensingmanagementservice.fds.tag.TagColour;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationContextTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationError;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.LicencePositionChangeViewContext;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.LicencePositionState;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.change.view.PositionChangeTestUtil;
@@ -97,8 +98,22 @@ class SubareaOperationTest {
   }
 
   @Test
-  void validate() {
+  void validate_whenNoTransfers_thenNoChangeError() {
     var operation = new SubareaOperation(BLOCK_FEATURE_ID, List.of(), List.of());
+    var context = PositionValidationContextTestUtil.newBuilder().build();
+
+    var result = operation.validate(context);
+
+    assertThat(result).isEqualTo(PositionValidationError.forOperation(
+        context,
+        LicenceOperation.SUBAREA,
+        "Make a change to the subareas"
+    ));
+  }
+
+  @Test
+  void validate_whenTransfersGiven_thenNull() {
+    var operation = new SubareaOperation(BLOCK_FEATURE_ID, List.of(REPLACED_SUBAREA), List.of(OUTPUT_SUBAREA));
 
     var result = operation.validate(PositionValidationContextTestUtil.newBuilder().build());
 

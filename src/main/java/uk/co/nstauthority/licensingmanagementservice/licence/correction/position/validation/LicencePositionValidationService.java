@@ -63,6 +63,7 @@ public class LicencePositionValidationService {
         correctedChangeIds
     );
     var subareaEquityChangeKeysByTransactionId = subareaEquityChangeKeysByTransactionId(allChronologicalPositions);
+    var subareaChangeBlockFeatureIdsByTransactionId = subareaChangeBlockFeatureIdsByTransactionId(allChronologicalPositions);
 
     // Memoize supplier allows for block lines to be lazily loaded once per page load only when needed.
     var blockLines = Suppliers.memoize(() -> partialSurrenderValidator.getBlockLineBoundingBoxes(
@@ -110,6 +111,18 @@ public class LicencePositionValidationService {
         positionValidationErrors.add(PositionValidationError.forPosition(
             positionValidationContext,
             SubareaEquityPositionRule.SINGLE_CHANGE_PER_SUBAREA_PER_TRANSACTION
+        ));
+      }
+
+      var transactionBlockFeatureIds = subareaChangeBlockFeatureIdsByTransactionId
+          .getOrDefault(chronologicalPosition.transactionId(), List.of());
+      var hasDuplicateBlockSubareaChange = chronologicalPosition.subareaChangeBlockFeatureIds().stream()
+          .anyMatch(blockFeatureId -> Collections.frequency(transactionBlockFeatureIds, blockFeatureId) > 1);
+
+      if (hasDuplicateBlockSubareaChange) {
+        positionValidationErrors.add(PositionValidationError.forPosition(
+            positionValidationContext,
+            SubareaPositionRule.SINGLE_CHANGE_PER_BLOCK_PER_TRANSACTION
         ));
       }
 
@@ -245,6 +258,16 @@ public class LicencePositionValidationService {
         .collect(Collectors.groupingBy(
             ChronologicalPosition::transactionId,
             Collectors.flatMapping(position -> position.subareaEquityChangeKeys().stream(), Collectors.toList())
+        ));
+  }
+
+  private static Map<UUID, List<UUID>> subareaChangeBlockFeatureIdsByTransactionId(
+      List<ChronologicalPosition> chronologicalPositions
+  ) {
+    return chronologicalPositions.stream()
+        .collect(Collectors.groupingBy(
+            ChronologicalPosition::transactionId,
+            Collectors.flatMapping(position -> position.subareaChangeBlockFeatureIds().stream(), Collectors.toList())
         ));
   }
 }

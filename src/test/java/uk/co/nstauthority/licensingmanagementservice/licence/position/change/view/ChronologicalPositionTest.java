@@ -11,8 +11,10 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationContextTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationError;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.SubareaEquityPositionRule;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.SubareaPositionRule;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaDetails;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaSetEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.staged.changetypes.LicencePositionChangeType;
 
@@ -425,6 +427,153 @@ class ChronologicalPositionTest {
   }
 
   @Test
+  void validate_whenBlockLosesAllSubareas_returnsBlockMustHaveSubareasError() {
+    var position = ChronologicalPositionTestUtil.newBuilder().build();
+    var context = PositionValidationContextTestUtil.newBuilder()
+        .withPosition(position)
+        .withPreviousState(SUBAREAS_HELD)
+        .withResolvedState(LICENSEE_HELD.withBlock(BLOCK_FEATURE_ID, List.of()))
+        .build();
+
+    var errors = position.validate(context);
+
+    var expected = PositionValidationError.forPosition(context, SubareaPositionRule.BLOCK_MUST_HAVE_SUBAREAS);
+    assertThat(errors).containsExactly(expected);
+  }
+
+  @Test
+  void validate_whenBlockHadNoSubareasBefore_returnsNoErrors() {
+    var blockWithoutSubareas = LICENSEE_HELD.withBlock(BLOCK_FEATURE_ID, List.of());
+    var position = ChronologicalPositionTestUtil.newBuilder().build();
+    var context = PositionValidationContextTestUtil.newBuilder()
+        .withPosition(position)
+        .withPreviousState(blockWithoutSubareas)
+        .withResolvedState(blockWithoutSubareas)
+        .build();
+
+    var errors = position.validate(context);
+
+    assertThat(errors).isEmpty();
+  }
+
+  @Test
+  void validate_whenNewDuplicateSubareaName_returnsSubareaNameError() {
+    var position = ChronologicalPositionTestUtil.newBuilder().build();
+    var context = PositionValidationContextTestUtil.newBuilder()
+        .withPosition(position)
+        .withPreviousState(SUBAREAS_HELD)
+        .withResolvedState(LICENSEE_HELD.withBlock(
+            BLOCK_FEATURE_ID,
+            List.of(SUBAREA, new SubareaDetails(UUID.randomUUID(), "Subarea C", " a "))
+        ))
+        .build();
+
+    var errors = position.validate(context);
+
+    var expected = PositionValidationError.forPosition(context, SubareaPositionRule.SUBAREA_NAMES_MUST_BE_UNIQUE);
+    assertThat(errors).containsExactly(expected);
+  }
+
+  @Test
+  void validate_whenNewDuplicateMapDisplayName_returnsMapDisplayNameError() {
+    var position = ChronologicalPositionTestUtil.newBuilder().build();
+    var context = PositionValidationContextTestUtil.newBuilder()
+        .withPosition(position)
+        .withPreviousState(SUBAREAS_HELD)
+        .withResolvedState(LICENSEE_HELD.withBlock(
+            BLOCK_FEATURE_ID,
+            List.of(SUBAREA, new SubareaDetails(UUID.randomUUID(), "SUBAREA A", "C"))
+        ))
+        .build();
+
+    var errors = position.validate(context);
+
+    var expected = PositionValidationError.forPosition(context, SubareaPositionRule.MAP_DISPLAY_NAMES_MUST_BE_UNIQUE);
+    assertThat(errors).containsExactly(expected);
+  }
+
+  @Test
+  void validate_whenDuplicateNamesCarriedForward_returnsBothNameErrors() {
+    var duplicatesHeld = LICENSEE_HELD.withBlock(
+        BLOCK_FEATURE_ID,
+        List.of(SUBAREA, new SubareaDetails(UUID.randomUUID(), "Subarea A", "A"))
+    );
+    var position = ChronologicalPositionTestUtil.newBuilder().build();
+    var context = PositionValidationContextTestUtil.newBuilder()
+        .withPosition(position)
+        .withPreviousState(duplicatesHeld)
+        .withResolvedState(duplicatesHeld)
+        .build();
+
+    var errors = position.validate(context);
+
+    assertThat(errors).containsExactly(
+        PositionValidationError.forPosition(context, SubareaPositionRule.SUBAREA_NAMES_MUST_BE_UNIQUE),
+        PositionValidationError.forPosition(context, SubareaPositionRule.MAP_DISPLAY_NAMES_MUST_BE_UNIQUE)
+    );
+  }
+
+  @Test
+  void validate_whenSubareaReplacedBySubareaWithSameNames_returnsNoErrors() {
+    var position = ChronologicalPositionTestUtil.newBuilder().build();
+    var context = PositionValidationContextTestUtil.newBuilder()
+        .withPosition(position)
+        .withPreviousState(SUBAREAS_HELD)
+        .withResolvedState(LICENSEE_HELD.withBlock(
+            BLOCK_FEATURE_ID,
+            List.of(new SubareaDetails(UUID.randomUUID(), "Subarea A", "A"), OTHER_SUBAREA)
+        ))
+        .build();
+
+    var errors = position.validate(context);
+
+    assertThat(errors).isEmpty();
+  }
+
+  @Test
+  void subareaChangeBlockFeatureIds_whenTwoChangesToSameBlock_returnsBlockForEachChange() {
+    var position = ChronologicalPositionTestUtil.newBuilder()
+        .withChanges(List.of(change(subareaOperation(BLOCK_FEATURE_ID)), change(subareaOperation(BLOCK_FEATURE_ID))))
+        .build();
+
+    var result = position.subareaChangeBlockFeatureIds();
+
+    assertThat(result).containsExactly(BLOCK_FEATURE_ID, BLOCK_FEATURE_ID);
+  }
+
+  @Test
+  void subareaChangeBlockFeatureIds_whenChangeHasSeveralOperationsOnSameBlock_returnsBlockOnceForTheChange() {
+    var otherBlockFeatureId = UUID.randomUUID();
+    var position = ChronologicalPositionTestUtil.newBuilder()
+        .withChanges(List.of(change(
+            subareaOperation(BLOCK_FEATURE_ID),
+            subareaOperation(BLOCK_FEATURE_ID),
+            subareaOperation(otherBlockFeatureId)
+        )))
+        .build();
+
+    var result = position.subareaChangeBlockFeatureIds();
+
+    assertThat(result).containsExactly(BLOCK_FEATURE_ID, otherBlockFeatureId);
+  }
+
+  @Test
+  void subareaChangeBlockFeatureIds_whenChangeRemovedOrNotSubareaChange_returnsNoBlocks() {
+    var removedChange = PositionChangeTestUtil.newBuilder()
+        .withChangeType(LicencePositionChangeType.REMOVE_CHANGE)
+        .withOperations(List.of(subareaOperation(BLOCK_FEATURE_ID)))
+        .build();
+    var administratorChange = PositionChangeTestUtil.newBuilder().build();
+    var position = ChronologicalPositionTestUtil.newBuilder()
+        .withChanges(List.of(removedChange, administratorChange))
+        .build();
+
+    var result = position.subareaChangeBlockFeatureIds();
+
+    assertThat(result).isEmpty();
+  }
+
+  @Test
   void subareaEquityChangeKeys_whenChangeHasSeveralHolders_returnsOneKeyForTheChange() {
     var operation = subareaSetEquity(SUBAREA, 1, "60");
     var position = ChronologicalPositionTestUtil.newBuilder()
@@ -480,6 +629,14 @@ class ChronologicalPositionTest {
 
   private static SubareaSetEquityOperation subareaSetEquity(SubareaDetails subarea, int organisationId, String equity) {
     return new SubareaSetEquityOperation(BLOCK_FEATURE_ID, subarea, organisationId, new BigDecimal(equity));
+  }
+
+  private static SubareaOperation subareaOperation(UUID blockFeatureId) {
+    return new SubareaOperation(
+        blockFeatureId,
+        List.of(SUBAREA),
+        List.of(new SubareaDetails(UUID.randomUUID(), "Subarea A1", "A1"))
+    );
   }
 
   private static PositionChange change(LicenceOperation... operations) {

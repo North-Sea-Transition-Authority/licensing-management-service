@@ -21,7 +21,10 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.position
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationRule;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.StorageOperatorPositionRule;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.SubareaEquityPositionRule;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.SubareaPositionRule;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaDetails;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaSetEquityOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.staged.changetypes.LicencePositionChangeType;
@@ -148,6 +151,7 @@ public record ChronologicalPosition(
     positionValidationErrors.addAll(validateBeneficialInterest(positionValidationContext));
     positionValidationErrors.addAll(validateLicenseeChange(positionValidationContext));
     positionValidationErrors.addAll(validateSubareaEquityTotals(positionValidationContext));
+    positionValidationErrors.addAll(validateBlockSubareas(positionValidationContext));
 
     for (var change : changes) {
       positionValidationErrors.addAll(change.validate(positionValidationContext));
@@ -169,6 +173,18 @@ public record ChronologicalPosition(
             .filter(SubareaSetEquityOperation.class::isInstance)
             .map(SubareaSetEquityOperation.class::cast)
             .map(SubareaSetEquityOperation::subareaKey)
+            .distinct()
+        )
+        .toList();
+  }
+
+  public List<UUID> subareaChangeBlockFeatureIds() {
+    return changes.stream()
+        .filter(change -> !LicencePositionChangeType.REMOVE_CHANGE.equals(change.changeType()))
+        .flatMap(change -> change.operations().stream()
+            .filter(SubareaOperation.class::isInstance)
+            .map(SubareaOperation.class::cast)
+            .map(SubareaOperation::blockFeatureId)
             .distinct()
         )
         .toList();
@@ -356,6 +372,54 @@ public record ChronologicalPosition(
       errors.add(PositionValidationError.forPosition(
           positionValidationContext,
           EquityPositionRule.BENEFICIAL_INTERESTS_MUST_TOTAL_ONE_HUNDRED
+      ));
+    }
+
+    return errors;
+  }
+
+  private List<PositionValidationError> validateBlockSubareas(PositionValidationContext positionValidationContext) {
+    var anyBlockLostAllSubareas = false;
+    var anyDuplicateNames = false;
+    var anyDuplicateShortNames = false;
+
+    for (var blockFeatureId : positionValidationContext.resolvedState().blockFeatureIds()) {
+      var subareas = positionValidationContext.resolvedState().subareasOf(blockFeatureId);
+      var previousSubareas = positionValidationContext.previousState().subareasOf(blockFeatureId);
+
+      if (subareas.isEmpty() && !previousSubareas.isEmpty()) {
+        anyBlockLostAllSubareas = true;
+      }
+
+      if (SubareaDetails.hasDuplicateNames(subareas)) {
+        anyDuplicateNames = true;
+      }
+
+      if (SubareaDetails.hasDuplicateShortNames(subareas)) {
+        anyDuplicateShortNames = true;
+      }
+    }
+
+    var errors = new ArrayList<PositionValidationError>();
+
+    if (anyBlockLostAllSubareas) {
+      errors.add(PositionValidationError.forPosition(
+          positionValidationContext,
+          SubareaPositionRule.BLOCK_MUST_HAVE_SUBAREAS
+      ));
+    }
+
+    if (anyDuplicateShortNames) {
+      errors.add(PositionValidationError.forPosition(
+          positionValidationContext,
+          SubareaPositionRule.SUBAREA_NAMES_MUST_BE_UNIQUE
+      ));
+    }
+
+    if (anyDuplicateNames) {
+      errors.add(PositionValidationError.forPosition(
+          positionValidationContext,
+          SubareaPositionRule.MAP_DISPLAY_NAMES_MUST_BE_UNIQUE
       ));
     }
 

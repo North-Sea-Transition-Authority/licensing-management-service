@@ -50,7 +50,7 @@ class SubareaChangeControllerTest extends AbstractControllerTest {
   private static final UUID COMMAND_JOURNEY_ID = UUID.randomUUID();
   private static final int ED50_WKID = 4230;
   private static final String VIEW_NAME = "lms/licence/correction/change/subarea/subareaChange";
-  private static final String NO_CHANGE_ERROR = "You must make a change to the subareas before completing";
+  private static final String NO_CHANGE_ERROR = "Make a change to the subareas";
   private static final LicenceCorrection CORRECTION = LicenceCorrectionTestUtil.newBuilder()
       .withId(CORRECTION_ID)
       .withLicence(LICENCE)

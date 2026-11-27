@@ -14,6 +14,10 @@ steps:
   - name: restore-cache
     image: drillster/drone-volume-cache
     depends_on: [ fetch-fds-submodule ]
+    commands:
+      # Shared lock: concurrent restores can run together, but must wait out a concurrent rebuild-cache's
+      # exclusive lock, or its in-progress rsync into /cache can make this restore's source files vanish.
+      - flock -s /cache/.lock -c /usr/local/cacher.sh
     volumes:
       - name: drone-cache
         path: /cache
@@ -388,6 +392,10 @@ steps:
   - name: restore-cache
     image: drillster/drone-volume-cache
     depends_on: [ fetch-fds-submodule ]
+    commands:
+      # Shared lock: concurrent restores can run together, but must wait out a concurrent rebuild-cache's
+      # exclusive lock, or its in-progress rsync into /cache can make this restore's source files vanish.
+      - flock -s /cache/.lock -c /usr/local/cacher.sh
     volumes:
       - name: drone-cache
         path: /cache
@@ -586,6 +594,10 @@ name: pears-migration-validation
 steps:
   - name: restore-cache
     image: drillster/drone-volume-cache
+    commands:
+      # Shared lock: concurrent restores can run together, but must wait out a concurrent rebuild-cache's
+      # exclusive lock, or its in-progress rsync into /cache can make this restore's source files vanish.
+      - flock -s /cache/.lock -c /usr/local/cacher.sh
     volumes:
       - name: drone-cache
         path: /cache

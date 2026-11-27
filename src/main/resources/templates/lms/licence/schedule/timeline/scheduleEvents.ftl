@@ -380,7 +380,7 @@
         <@fdsTimeline.timelineEvent>
             <#if eventView.relinquishmentPercentage()?has_content>
                 <p class="govuk-body">
-                    ${eventView.relinquishmentPercentage()} relinquished
+                    ${eventView.relinquishmentPercentage()}
                 </p>
             </#if>
             <p class="govuk-body">
@@ -419,7 +419,7 @@
         <@fdsTimeline.timelineEvent>
             <#if eventView.relinquishmentPercentage()?has_content>
                 <p class="govuk-body">
-                    ${eventView.relinquishmentPercentage()} relinquished
+                    ${eventView.relinquishmentPercentage()}
                 </p>
             </#if>
             <p class="govuk-body">

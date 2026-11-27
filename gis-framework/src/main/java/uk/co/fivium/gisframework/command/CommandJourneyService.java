@@ -133,6 +133,15 @@ public class CommandJourneyService {
   }
 
   /**
+   * Returns which of the given command journey ids still exist.
+   */
+  public Set<UUID> findExistingCommandJourneyIds(Collection<UUID> commandJourneyIds) {
+    return commandJourneyRepository.findAllById(commandJourneyIds).stream()
+        .map(CommandJourney::getId)
+        .collect(Collectors.toSet());
+  }
+
+  /**
    * Deletes a command journey like {@link #deleteCommandJourney}, but keeps its active features.
    */
   @Transactional

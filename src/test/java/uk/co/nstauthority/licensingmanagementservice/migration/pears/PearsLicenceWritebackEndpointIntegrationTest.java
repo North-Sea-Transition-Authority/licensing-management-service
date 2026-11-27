@@ -13,6 +13,7 @@ import java.time.LocalDate;
 import java.time.Month;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -37,6 +38,9 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceC
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionRepository;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.ownedgisartefact.CorrectionOwnedGisArtefact;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.ownedgisartefact.CorrectionOwnedGisArtefactRepository;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.ownedgisartefact.CorrectionOwnedGisArtefactType;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisation;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisationRepository;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.AdministratorOperation;
@@ -121,6 +125,9 @@ class PearsLicenceWritebackEndpointIntegrationTest {
   private LicencePositionStagedPayloadRepository licencePositionStagedPayloadRepository;
 
   @Autowired
+  private CorrectionOwnedGisArtefactRepository correctionOwnedGisArtefactRepository;
+
+  @Autowired
   private LicenceResponsibleOrganisationRepository licenceResponsibleOrganisationRepository;
 
   private Licence licence;
@@ -149,6 +156,9 @@ class PearsLicenceWritebackEndpointIntegrationTest {
   private LicencePositionStagedPayload draftPositionStagedPayload;
   private LicencePositionStagedPayload completePositionStagedPayload;
   private LicencePositionStagedPayload otherLicencePositionStagedPayload;
+
+  private CorrectionOwnedGisArtefact inProgressOwnedGisArtefact;
+  private CorrectionOwnedGisArtefact otherLicenceOwnedGisArtefact;
 
   @BeforeEach
   void setUp() {
@@ -186,6 +196,9 @@ class PearsLicenceWritebackEndpointIntegrationTest {
       draftPositionStagedPayload = persist(positionStagedPayload(inProgressCorrection, draftPosition));
       completePositionStagedPayload = persist(positionStagedPayload(completeCorrection, secondPosition));
       otherLicencePositionStagedPayload = persist(positionStagedPayload(otherLicenceCorrection, otherLicencePosition));
+
+      inProgressOwnedGisArtefact = persist(ownedGisArtefact(inProgressCorrection));
+      otherLicenceOwnedGisArtefact = persist(ownedGisArtefact(otherLicenceCorrection));
     });
   }
 
@@ -195,6 +208,7 @@ class PearsLicenceWritebackEndpointIntegrationTest {
       licenceResponsibleOrganisationRepository.deleteAll(licenceResponsibleOrganisationRepository.findAllByLicenceIn(
           List.of(licence, otherLicence, licenceWithoutPositions)));
       licencePositionStagedPayloadRepository.deleteAllInBatch();
+      correctionOwnedGisArtefactRepository.deleteAllInBatch();
       licenceCorrectionRepository.deleteAllInBatch();
       licencePositionChangeRepository.deleteAllInBatch();
       licencePositionRepository.deleteAllInBatch();
@@ -254,6 +268,10 @@ class PearsLicenceWritebackEndpointIntegrationTest {
         .extracting(LicencePositionStagedPayload::getId)
         .containsExactly(otherLicencePositionStagedPayload.getId());
 
+    assertThat(correctionOwnedGisArtefactRepository.findAll())
+        .extracting(CorrectionOwnedGisArtefact::getId)
+        .containsExactly(otherLicenceOwnedGisArtefact.getId());
+
     assertThat(licenceTransactionRepository.findAll())
         .extracting(LicenceTransaction::getRegulatorReference)
         .containsExactlyInAnyOrder("XPT/EXISTING-SHARED", "XPT/1", "XPT/2", "XPT/3");
@@ -294,6 +312,7 @@ class PearsLicenceWritebackEndpointIntegrationTest {
   @Test
   void overwriteLicencePositionsFromPears_whenStoredOperationsCannotBeDeserialised_thenTheyAreStillCleared() {
     transactionTemplate.executeWithoutResult(status -> {
+      correctionOwnedGisArtefactRepository.deleteById(inProgressOwnedGisArtefact.getId());
       entityManager.createNativeQuery(
               "UPDATE lms.licence_position_changes SET operations = '[{\"type\":\"REMOVED_OPERATION\"}]'::jsonb WHERE id = :id")
           .setParameter("id", firstPositionChange.getId())
@@ -317,6 +336,31 @@ class PearsLicenceWritebackEndpointIntegrationTest {
     assertThat(licencePositionStagedPayloadRepository.findAll())
         .extracting(LicencePositionStagedPayload::getId)
         .containsExactly(otherLicencePositionStagedPayload.getId());
+  }
+
+  @Test
+  void overwriteLicencePositionsFromPears_whenCorrectionHoldsGisArtefactsAndOperationsCannotBeDeserialised_thenNothingIsDeleted() {
+    transactionTemplate.executeWithoutResult(status -> entityManager.createNativeQuery(
+            "UPDATE lms.licence_position_changes SET operations = '[{\"type\":\"REMOVED_OPERATION\"}]'::jsonb WHERE id = :id")
+        .setParameter("id", firstPositionChange.getId())
+        .executeUpdate());
+    when(pearsLicenceService.licenceHistory(eq("P"), eq(1), anySet())).thenReturn(pearsHistory());
+
+    var response = writeback("P1", String.class);
+
+    assertThat(response.getStatusCode().is5xxServerError()).isTrue();
+
+    assertThat(licenceCorrectionRepository.findAll())
+        .extracting(LicenceCorrection::getId)
+        .containsExactlyInAnyOrder(
+            inProgressCorrection.getId(),
+            completeCorrection.getId(),
+            otherLicenceCorrection.getId()
+        );
+
+    assertThat(correctionOwnedGisArtefactRepository.findAll())
+        .extracting(CorrectionOwnedGisArtefact::getId)
+        .containsExactlyInAnyOrder(inProgressOwnedGisArtefact.getId(), otherLicenceOwnedGisArtefact.getId());
   }
 
   @Test
@@ -565,5 +609,13 @@ class PearsLicenceWritebackEndpointIntegrationTest {
         .withChangeType(LicencePositionStagedPayloadChangeType.UPDATE_POSITION)
         .withTargetLicencePosition(targetLicencePosition)
         .build();
+  }
+
+  private CorrectionOwnedGisArtefact ownedGisArtefact(LicenceCorrection licenceCorrection) {
+    var ownedGisArtefact = new CorrectionOwnedGisArtefact();
+    ownedGisArtefact.setLicenceCorrection(licenceCorrection);
+    ownedGisArtefact.setArtefactType(CorrectionOwnedGisArtefactType.FEATURE);
+    ownedGisArtefact.setArtefactId(UUID.randomUUID());
+    return ownedGisArtefact;
   }
 }

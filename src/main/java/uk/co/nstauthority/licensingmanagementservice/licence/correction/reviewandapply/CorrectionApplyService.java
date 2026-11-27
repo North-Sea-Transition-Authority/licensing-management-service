@@ -22,12 +22,14 @@ import uk.co.fivium.gisframework.feature.FeatureService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.ownedgisartefact.CorrectionOwnedGisArtefactService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.PartialSurrenderCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.LicencePositionValidationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.PositionValidationError;
 import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleorganisation.LicenceResponsibleOrganisationService;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionRepository;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionStatus;
@@ -75,6 +77,7 @@ public class CorrectionApplyService {
   private final LicenceResponsibleOrganisationService licenceResponsibleOrganisationService;
   private final LicenceStatusService licenceStatusService;
   private final FeatureService featureService;
+  private final CorrectionOwnedGisArtefactService correctionOwnedGisArtefactService;
 
   public CorrectionApplyService(
       CorrectedTimelineService correctedTimelineService,
@@ -90,7 +93,8 @@ public class CorrectionApplyService {
       CommandJourneyService commandJourneyService,
       LicenceResponsibleOrganisationService licenceResponsibleOrganisationService,
       LicenceStatusService licenceStatusService,
-      FeatureService featureService
+      FeatureService featureService,
+      CorrectionOwnedGisArtefactService correctionOwnedGisArtefactService
   ) {
     this.correctedTimelineService = correctedTimelineService;
     this.licencePositionValidationService = licencePositionValidationService;
@@ -106,6 +110,7 @@ public class CorrectionApplyService {
     this.licenceResponsibleOrganisationService = licenceResponsibleOrganisationService;
     this.licenceStatusService = licenceStatusService;
     this.featureService = featureService;
+    this.correctionOwnedGisArtefactService = correctionOwnedGisArtefactService;
   }
 
   @Transactional
@@ -136,6 +141,13 @@ public class CorrectionApplyService {
 
     var positionStagedPayloads = correctedTimeline.positionStagedPayloads();
     var appliedCommandJourneyIds = new LinkedHashSet<UUID>();
+
+    var stagedCommandJourneyIds = stagedCommandJourneyIdsOf(positionStagedPayloads);
+    correctionOwnedGisArtefactService.deleteJourneysNotIn(licenceCorrection, stagedCommandJourneyIds);
+
+    var replacedLiveSubareaJourneyIds = commandJourneyService.findExistingCommandJourneyIds(
+        replacedLiveSubareaJourneyIdsOf(positionStagedPayloads, stagedCommandJourneyIds)
+    );
 
     revertReplacedPartialSurrenders(positionStagedPayloads);
 
@@ -168,12 +180,20 @@ public class CorrectionApplyService {
     positionStagedPayloadsOfType(positionStagedPayloads, LicencePositionStagedPayloadChangeType.REMOVE_POSITION)
         .forEach(this::removePosition);
 
+    var replacedLiveSubareaFeatureIds = replacedLiveSubareaJourneyIds.stream()
+        .flatMap(commandJourneyId -> commandJourneyService
+            .getInitialFeatureIdsByCreatedFeatureId(commandJourneyId).keySet().stream())
+        .collect(Collectors.toSet());
+
     appliedCommandJourneyIds.forEach(commandJourneyService::deleteAllExcludingActiveFeatures);
+    replacedLiveSubareaJourneyIds.forEach(commandJourneyService::deleteAllExcludingActiveFeatures);
 
     if (!mergedRetainedSourceFeatureIds.isEmpty()) {
       commandJourneyService.deleteFeaturesNotHeldByAJourney(
           featureService.getFeaturesByIds(mergedRetainedSourceFeatureIds));
     }
+
+    correctionOwnedGisArtefactService.deleteUnreferencedFeatures(licenceCorrection, replacedLiveSubareaFeatureIds);
 
     licenceCorrectionService.completeCorrection(licenceCorrection);
 
@@ -341,6 +361,35 @@ public class CorrectionApplyService {
         .filter(PartialSurrenderOperation.class::isInstance)
         .map(PartialSurrenderOperation.class::cast)
         .flatMap(partialSurrenderOperation -> partialSurrenderOperation.mergedRetainedSourceFeatureIds().stream())
+        .collect(Collectors.toSet());
+  }
+
+  private static Set<UUID> stagedCommandJourneyIdsOf(List<LicencePositionStagedPayload> positionStagedPayloads) {
+    return positionStagedPayloads.stream()
+        .filter(positionStagedPayload ->
+            positionStagedPayload.getChangeType() != LicencePositionStagedPayloadChangeType.REMOVE_POSITION)
+        .filter(positionStagedPayload -> positionStagedPayload.getPayload() != null)
+        .flatMap(positionStagedPayload -> positionStagedPayload.getPayload().changes().stream())
+        .flatMap(change -> LicencePositionChangeType.operationsOf(change).stream())
+        .flatMap(operation -> switch (operation) {
+          case PartialSurrenderOperation surrender ->
+              PartialSurrenderCorrectionService.commandJourneyIdsOf(surrender).stream();
+          case SubareaOperation subareaOperation -> Stream.ofNullable(subareaOperation.commandJourneyId());
+          default -> Stream.empty();
+        })
+        .collect(Collectors.toSet());
+  }
+
+  private Set<UUID> replacedLiveSubareaJourneyIdsOf(
+      List<LicencePositionStagedPayload> positionStagedPayloads,
+      Set<UUID> stagedCommandJourneyIds
+  ) {
+    return positionStagedPayloads.stream()
+        .flatMap(positionStagedPayload -> liveChangesReplacedBy(positionStagedPayload).stream())
+        .flatMap(change -> LicencePositionChangeOperationUtil.findOperation(change, SubareaOperation.class).stream())
+        .map(SubareaOperation::commandJourneyId)
+        .filter(Objects::nonNull)
+        .filter(commandJourneyId -> !stagedCommandJourneyIds.contains(commandJourneyId))
         .collect(Collectors.toSet());
   }
 

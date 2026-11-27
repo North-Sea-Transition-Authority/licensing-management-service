@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionRepository;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.ownedgisartefact.CorrectionOwnedGisArtefactService;
 import uk.co.nstauthority.licensingmanagementservice.licence.transaction.LicenceTransactionRepository;
 
 /**
@@ -21,23 +22,28 @@ public class LicenceCleardownService {
   private final LicenceCorrectionRepository licenceCorrectionRepository;
   private final LicenceTransactionRepository licenceTransactionRepository;
   private final EntityManager entityManager;
+  private final CorrectionOwnedGisArtefactService correctionOwnedGisArtefactService;
 
   LicenceCleardownService(
       LicencePositionRepository licencePositionRepository,
       LicenceCorrectionRepository licenceCorrectionRepository,
       LicenceTransactionRepository licenceTransactionRepository,
-      EntityManager entityManager
+      EntityManager entityManager,
+      CorrectionOwnedGisArtefactService correctionOwnedGisArtefactService
   ) {
     this.licencePositionRepository = licencePositionRepository;
     this.licenceCorrectionRepository = licenceCorrectionRepository;
     this.licenceTransactionRepository = licenceTransactionRepository;
     this.entityManager = entityManager;
+    this.correctionOwnedGisArtefactService = correctionOwnedGisArtefactService;
   }
 
   @Transactional
   public void clear(Licence licence) {
     var licencePositions = licencePositionRepository.findByLicence(licence);
     var licenceCorrections = licenceCorrectionRepository.findAllByLicence(licence);
+
+    cleanUpGisArtefactsOfCorrections(licenceCorrections);
 
     var licenceTransactions = licencePositions.stream().map(LicencePosition::getLicenceTransaction).distinct().toList();
     var licencePositionIds = licencePositions.stream().map(LicencePosition::getId).collect(Collectors.toSet());
@@ -59,6 +65,18 @@ public class LicenceCleardownService {
     licenceCorrectionRepository.deleteAll(licenceCorrections);
     licencePositionRepository.deleteAll(licencePositions);
     licenceTransactionRepository.deleteAll(unheldLicenceTransactions);
+  }
+
+  private void cleanUpGisArtefactsOfCorrections(List<LicenceCorrection> licenceCorrections) {
+
+    if (licenceCorrections.isEmpty()) {
+      return;
+    }
+
+    licenceCorrections.forEach(correctionOwnedGisArtefactService::cleanUpOnCancel);
+
+    entityManager.flush();
+    entityManager.clear();
   }
 
   /**

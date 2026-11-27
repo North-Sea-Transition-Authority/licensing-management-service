@@ -30,6 +30,7 @@ import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFound
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.ownedgisartefact.CorrectionOwnedGisArtefactService;
 import uk.co.nstauthority.licensingmanagementservice.phasedrelease.FeatureFlagService;
 import uk.co.nstauthority.licensingmanagementservice.phasedrelease.ReleaseFeature;
 
@@ -48,6 +49,9 @@ class LicenceCorrectionServiceTest {
   @Mock
   private FeatureFlagService featureFlagService;
 
+  @Mock
+  private CorrectionOwnedGisArtefactService correctionOwnedGisArtefactService;
+
   private LicenceCorrectionService licenceCorrectionService;
 
   @Captor
@@ -55,7 +59,12 @@ class LicenceCorrectionServiceTest {
 
   @BeforeEach
   void setUp() {
-    licenceCorrectionService = new LicenceCorrectionService(licenceCorrectionRepository, featureFlagService, CLOCK);
+    licenceCorrectionService = new LicenceCorrectionService(
+        licenceCorrectionRepository,
+        featureFlagService,
+        correctionOwnedGisArtefactService,
+        CLOCK
+    );
   }
 
   @Test
@@ -257,6 +266,7 @@ class LicenceCorrectionServiceTest {
 
     licenceCorrectionService.cancelCorrection(correction);
 
+    verify(correctionOwnedGisArtefactService).cleanUpOnCancel(correction);
     verify(licenceCorrectionRepository).save(licenceCorrectionCaptor.capture());
     var persistedCorrection = licenceCorrectionCaptor.getValue();
     assertThat(persistedCorrection)

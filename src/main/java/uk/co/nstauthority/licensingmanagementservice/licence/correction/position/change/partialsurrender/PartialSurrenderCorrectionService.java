@@ -27,6 +27,7 @@ import uk.co.fivium.gisframework.feature.FeatureService;
 import uk.co.fivium.gisframework.operator.merge.MergeOperatorService;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.ownedgisartefact.CorrectionOwnedGisArtefactService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectionPosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderType;
@@ -59,6 +60,7 @@ public class PartialSurrenderCorrectionService {
   private final CommandJourneyService commandJourneyService;
   private final PartialSurrenderSubareaService partialSurrenderSubareaService;
   private final MergeOperatorService mergeOperatorService;
+  private final CorrectionOwnedGisArtefactService correctionOwnedGisArtefactService;
 
   PartialSurrenderCorrectionService(
       LicencePositionStagedPayloadService licencePositionStagedPayloadService,
@@ -67,7 +69,8 @@ public class PartialSurrenderCorrectionService {
       FeatureService featureService,
       CommandJourneyService commandJourneyService,
       PartialSurrenderSubareaService partialSurrenderSubareaService,
-      MergeOperatorService mergeOperatorService
+      MergeOperatorService mergeOperatorService,
+      CorrectionOwnedGisArtefactService correctionOwnedGisArtefactService
   ) {
     this.licencePositionStagedPayloadService = licencePositionStagedPayloadService;
     this.licencePositionSpatialService = licencePositionSpatialService;
@@ -76,6 +79,7 @@ public class PartialSurrenderCorrectionService {
     this.commandJourneyService = commandJourneyService;
     this.partialSurrenderSubareaService = partialSurrenderSubareaService;
     this.mergeOperatorService = mergeOperatorService;
+    this.correctionOwnedGisArtefactService = correctionOwnedGisArtefactService;
   }
 
   public Optional<PartialSurrenderOperation> getCommittedPartialSurrender(
@@ -820,11 +824,35 @@ public class PartialSurrenderCorrectionService {
           );
         }));
 
-    return LicenceOperation.newPartialSurrenderOperation()
+    var processedOperation = LicenceOperation.newPartialSurrenderOperation()
         .withSurrenderDate(operation.surrenderDate())
         .withSurrenderedFeatureIds(operation.surrenderedFeatureIds())
         .withSurrenderDetails(blockIdToProcessedSurrenderDetails)
         .build();
+
+    recordCreatedGisArtefacts(licenceCorrection, processedOperation, previous.orElse(null));
+    return processedOperation;
+  }
+
+  /**
+   * Records the journeys and features (split parts, merged retained features and output subareas) the correction
+   * created, so they can be cleaned up on apply or cancel.
+   * @param previousSurrender null when there is no previous surrender
+   */
+  private void recordCreatedGisArtefacts(
+      LicenceCorrection licenceCorrection,
+      PartialSurrenderOperation processedSurrender,
+      @Nullable PartialSurrenderOperation previousSurrender
+  ) {
+    correctionOwnedGisArtefactService.recordCommandJourneys(licenceCorrection, commandJourneyIdsOf(processedSurrender));
+
+    var createdFeatureIds = new HashSet<>(processedSurrender.createdFeatureIds());
+
+    if (previousSurrender != null) {
+      createdFeatureIds.removeAll(previousSurrender.createdFeatureIds());
+    }
+
+    correctionOwnedGisArtefactService.recordFeatures(licenceCorrection, createdFeatureIds);
   }
 
   /**

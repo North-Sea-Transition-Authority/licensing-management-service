@@ -36,6 +36,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceC
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionStatus;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.ownedgisartefact.CorrectionOwnedGisArtefactService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.PartialSurrenderCorrectionService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.validation.LicencePositionValidationService;
@@ -44,6 +45,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.licenceresponsibleo
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.LicenceOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.operation.PartialSurrenderOperation.SurrenderDetails;
+import uk.co.nstauthority.licensingmanagementservice.licence.operation.SubareaOperation;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionRepository;
 import uk.co.nstauthority.licensingmanagementservice.licence.position.LicencePositionStatus;
@@ -118,6 +120,9 @@ class CorrectionApplyServiceTest {
 
   @Mock
   private FeatureService featureService;
+
+  @Mock
+  private CorrectionOwnedGisArtefactService correctionOwnedGisArtefactService;
 
   @InjectMocks
   private CorrectionApplyService correctionApplyService;
@@ -359,7 +364,9 @@ class CorrectionApplyServiceTest {
 
     verify(licencePositionChangeService).createLicencePositionChange(
         changeId, livePosition, List.of(OPERATION), 3, LicencePositionChangeStatus.CONSENTED);
-    verifyNoInteractions(partialSurrenderCorrectionService, commandJourneyService);
+    verifyNoInteractions(partialSurrenderCorrectionService);
+    verify(commandJourneyService).findExistingCommandJourneyIds(Set.of());
+    verifyNoMoreInteractions(commandJourneyService);
   }
 
   @Test
@@ -722,6 +729,123 @@ class CorrectionApplyServiceTest {
   }
 
   @Test
+  void applyCorrection_whenJourneysAreStaged_thenUnusedCorrectionJourneysAreDeletedBeforeReplacedSurrendersAreReverted() {
+    var livePosition = LicencePositionTestUtil.newBuilder().build();
+    var liveSurrender = surrenderWithJourney(null);
+    var liveChange = LicencePositionChangeTestUtil.newBuilder()
+        .withLicencePosition(livePosition)
+        .withOperations(List.of(liveSurrender))
+        .build();
+    var surrenderJourneyId = UUID.randomUUID();
+    var stagedSurrender = surrenderWithJourney(surrenderJourneyId);
+    var subareaJourneyId = UUID.randomUUID();
+    var stagedSubareaOperation = subareaOperationWithJourney(subareaJourneyId);
+    var executedSurrender = surrenderWithJourney(null);
+    List<LicencePositionChangeType> changes = List.of(
+        LicencePositionChangeType.updateChangeOperations()
+            .withChangeId(liveChange.getId().toString())
+            .withOperations(List.of(addOperation(stagedSurrender)))
+            .build(),
+        LicencePositionChangeType.addChange()
+            .withChangeId(UUID.randomUUID().toString())
+            .withChangeOrder(2)
+            .withOperations(List.of(addOperation(stagedSubareaOperation)))
+            .build()
+    );
+
+    stubTimeline(List.of(updatePositionStagedPayload(livePosition, null, changes)), List.of());
+    when(licencePositionChangeService.findById(liveChange.getId())).thenReturn(Optional.of(liveChange));
+    when(partialSurrenderCorrectionService.toExecutedSurrender(stagedSurrender)).thenReturn(executedSurrender);
+
+    correctionApplyService.applyCorrection(licenceCorrection);
+
+    var inOrder = inOrder(correctionOwnedGisArtefactService, partialSurrenderCorrectionService);
+    inOrder.verify(correctionOwnedGisArtefactService)
+        .deleteJourneysNotIn(licenceCorrection, Set.of(surrenderJourneyId, subareaJourneyId));
+    inOrder.verify(partialSurrenderCorrectionService).revertFeatures(liveSurrender, Set.of());
+  }
+
+  @Test
+  void applyCorrection_whenALiveSubareaChangeIsReplaced_thenItsJourneyIsCleanedUpAndItsOutputsAreSwept() {
+    var livePosition = LicencePositionTestUtil.newBuilder().build();
+    var liveJourneyId = UUID.randomUUID();
+    var liveChange = LicencePositionChangeTestUtil.newBuilder()
+        .withLicencePosition(livePosition)
+        .withOperations(List.of(subareaOperationWithJourney(liveJourneyId)))
+        .build();
+    var stagedJourneyId = UUID.randomUUID();
+    var updateChange = LicencePositionChangeType.updateChangeOperations()
+        .withChangeId(liveChange.getId().toString())
+        .withOperations(List.of(addOperation(subareaOperationWithJourney(stagedJourneyId))))
+        .build();
+    var liveOutputFeatureId = UUID.randomUUID();
+
+    stubTimeline(List.of(updatePositionStagedPayload(livePosition, null, List.of(updateChange))), List.of());
+    when(licencePositionChangeService.findById(liveChange.getId())).thenReturn(Optional.of(liveChange));
+    when(commandJourneyService.findExistingCommandJourneyIds(Set.of(liveJourneyId))).thenReturn(Set.of(liveJourneyId));
+    when(commandJourneyService.getInitialFeatureIdsByCreatedFeatureId(liveJourneyId))
+        .thenReturn(Map.of(liveOutputFeatureId, Set.of(UUID.randomUUID())));
+
+    correctionApplyService.applyCorrection(licenceCorrection);
+
+    var inOrder = inOrder(licencePositionChangeRepository, commandJourneyService, correctionOwnedGisArtefactService,
+        licenceCorrectionService);
+    inOrder.verify(licencePositionChangeRepository).save(liveChange);
+    inOrder.verify(commandJourneyService).getInitialFeatureIdsByCreatedFeatureId(liveJourneyId);
+    inOrder.verify(commandJourneyService).deleteAllExcludingActiveFeatures(liveJourneyId);
+    inOrder.verify(correctionOwnedGisArtefactService)
+        .deleteUnreferencedFeatures(licenceCorrection, Set.of(liveOutputFeatureId));
+    inOrder.verify(licenceCorrectionService).completeCorrection(licenceCorrection);
+    verify(commandJourneyService, never()).deleteAllExcludingActiveFeatures(stagedJourneyId);
+  }
+
+  @Test
+  void applyCorrection_whenAReplacedLiveSubareaJourneyNoLongerExists_thenItIsSkipped() {
+    var livePosition = LicencePositionTestUtil.newBuilder().build();
+    var missingJourneyId = UUID.randomUUID();
+    var liveChange = LicencePositionChangeTestUtil.newBuilder()
+        .withLicencePosition(livePosition)
+        .withOperations(List.of(subareaOperationWithJourney(missingJourneyId)))
+        .build();
+    var removeChange = LicencePositionChangeType.removeChange().withChangeId(liveChange.getId().toString()).build();
+
+    stubTimeline(List.of(updatePositionStagedPayload(livePosition, null, List.of(removeChange))), List.of());
+    when(licencePositionChangeService.findById(liveChange.getId())).thenReturn(Optional.of(liveChange));
+    when(commandJourneyService.findExistingCommandJourneyIds(Set.of(missingJourneyId))).thenReturn(Set.of());
+
+    correctionApplyService.applyCorrection(licenceCorrection);
+
+    verify(commandJourneyService, never()).getInitialFeatureIdsByCreatedFeatureId(missingJourneyId);
+    verify(commandJourneyService, never()).deleteAllExcludingActiveFeatures(missingJourneyId);
+    verify(correctionOwnedGisArtefactService).deleteUnreferencedFeatures(licenceCorrection, Set.of());
+  }
+
+  @Test
+  void applyCorrection_whenALiveSubareaChangeIsMovedWithItsJourney_thenTheJourneyIsKept() {
+    var livePosition = LicencePositionTestUtil.newBuilder().build();
+    var targetPosition = LicencePositionTestUtil.newBuilder().build();
+    var liveJourneyId = UUID.randomUUID();
+    var liveSubareaOperation = subareaOperationWithJourney(liveJourneyId);
+    var liveChange = LicencePositionChangeTestUtil.newBuilder()
+        .withLicencePosition(livePosition)
+        .withOperations(List.of(liveSubareaOperation))
+        .build();
+    var stagedMove = LicencePositionChangeType.updateChangeOperations()
+        .withChangeId(liveChange.getId().toString())
+        .withOperations(List.of(addOperation(liveSubareaOperation)))
+        .build();
+
+    stubTimeline(List.of(updatePositionStagedPayload(targetPosition, null, List.of(stagedMove))), List.of());
+    when(licencePositionChangeService.findById(liveChange.getId())).thenReturn(Optional.of(liveChange));
+
+    correctionApplyService.applyCorrection(licenceCorrection);
+
+    verify(correctionOwnedGisArtefactService).deleteJourneysNotIn(licenceCorrection, Set.of(liveJourneyId));
+    verify(commandJourneyService).findExistingCommandJourneyIds(Set.of());
+    verify(commandJourneyService, never()).deleteAllExcludingActiveFeatures(liveJourneyId);
+  }
+
+  @Test
   void applyCorrection_thenTheCorrectionIsCompletedWithNoBlockingErrors() {
     stubTimeline(List.of(), List.of());
 
@@ -745,6 +869,13 @@ class CorrectionApplyServiceTest {
         .withSurrenderedFeatureIds(List.of(featureId))
         .withSurrenderDetails(Map.of(featureId, new SurrenderDetails(
             BlockSurrenderType.FULL_SURRENDER, commandJourneyId, List.of(featureId))))
+        .build();
+  }
+
+  private static SubareaOperation subareaOperationWithJourney(UUID commandJourneyId) {
+    return LicenceOperation.newSubAreaOperation()
+        .withBlockFeatureId(UUID.randomUUID())
+        .withCommandJourneyId(commandJourneyId)
         .build();
   }
 

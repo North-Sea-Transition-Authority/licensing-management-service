@@ -60,6 +60,19 @@ class CommandJourneyServiceTest {
   }
 
   @Test
+  void findExistingCommandJourneyIds() {
+    var existingJourney = CommandJourneyTestUtil.newBuilder().withId(UUID.randomUUID()).build();
+    var missingJourneyId = UUID.randomUUID();
+    var requestedIds = List.of(existingJourney.getId(), missingJourneyId);
+
+    when(commandJourneyRepository.findAllById(requestedIds)).thenReturn(List.of(existingJourney));
+
+    var result = commandJourneyService.findExistingCommandJourneyIds(requestedIds);
+
+    assertThat(result).containsExactly(existingJourney.getId());
+  }
+
+  @Test
   void getCommandJourneyOrThrow_whenFound_returnsJourney() {
     var journeyId = UUID.randomUUID();
     var journey = new CommandJourney();

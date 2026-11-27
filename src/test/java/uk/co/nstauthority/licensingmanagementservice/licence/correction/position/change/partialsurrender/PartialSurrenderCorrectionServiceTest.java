@@ -38,6 +38,7 @@ import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.ownedgisartefact.CorrectionOwnedGisArtefactService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectionPosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.partialsurrender.blocksurrendertype.BlockSurrenderType;
@@ -109,6 +110,9 @@ class PartialSurrenderCorrectionServiceTest {
 
   @Mock
   private MergeOperatorService mergeOperatorService;
+
+  @Mock
+  private CorrectionOwnedGisArtefactService correctionOwnedGisArtefactService;
 
   @InjectMocks
   private PartialSurrenderCorrectionService partialSurrenderCorrectionService;
@@ -1343,6 +1347,53 @@ class PartialSurrenderCorrectionServiceTest {
         .replaceAddChangeFor(eq(positionStagedPayload), eq(PartialSurrenderOperation.class), partialSurrenderOperationCaptor.capture());
     assertThat(partialSurrenderOperationCaptor.getValue()).containsExactly(expectedOperation);
     verifyNoInteractions(mergeOperatorService);
+  }
+
+  @Test
+  void setSurrenderedFeatureIds_whenOnePartKept_thenTheJourneyAndBothSplitPartsAreRecorded() {
+    var surrenderedPart = FeatureTestUtil.builder().withFeatureName("SHAPE 1A").build();
+    var retainedPart = FeatureTestUtil.builder().withFeatureName("SHAPE 1B").build();
+    var existingOperation = LicenceOperation.newPartialSurrenderOperation()
+        .withSurrenderedFeatureIds(List.of(FIRST_FEATURE_ID))
+        .withSurrenderDetails(Map.of(FIRST_FEATURE_ID,
+            surrenderDetails(BlockSurrenderType.PARTIAL_SURRENDER, FIRST_COMMAND_JOURNEY_ID)))
+        .build();
+    var positionStagedPayload = positionStagedPayload(
+        List.of(AddChange.buildOperationsChange(List.of(existingOperation), 1)));
+    givenCommittedPartialSurrender(positionStagedPayload, existingOperation);
+    when(commandJourneyService.getActiveFeatures(FIRST_COMMAND_JOURNEY_ID))
+        .thenReturn(List.of(surrenderedPart, retainedPart));
+
+    partialSurrenderCorrectionService.setSurrenderedFeatureIds(
+        positionStagedPayload, FIRST_FEATURE_ID, List.of(surrenderedPart.getId()));
+
+    verify(correctionOwnedGisArtefactService)
+        .recordCommandJourneys(LICENCE_CORRECTION, Set.of(FIRST_COMMAND_JOURNEY_ID));
+    verify(correctionOwnedGisArtefactService)
+        .recordFeatures(LICENCE_CORRECTION, Set.of(surrenderedPart.getId(), retainedPart.getId()));
+  }
+
+  @Test
+  void correctExistingPartialSurrender_whenFeaturesComeFromTheLiveSurrender_thenOnlyTheNewOnesAreRecorded() {
+    var liveSurrenderedPartId = UUID.randomUUID();
+    var liveRetainedPartId = UUID.randomUUID();
+    var newSurrenderedPartId = UUID.randomUUID();
+    var liveSurrender = surrenderOf(FIRST_FEATURE_ID, new PartialSurrenderOperation.SurrenderDetails(
+        BlockSurrenderType.PARTIAL_SURRENDER, null, List.of(liveSurrenderedPartId), List.of(liveRetainedPartId)));
+    var correctedSurrender = surrenderOf(FIRST_FEATURE_ID, new PartialSurrenderOperation.SurrenderDetails(
+        BlockSurrenderType.PARTIAL_SURRENDER,
+        null,
+        List.of(liveSurrenderedPartId, newSurrenderedPartId),
+        List.of(liveRetainedPartId)
+    ));
+    givenPositionStagedPayload(updatePositionStagedPayload(List.of()));
+    givenLiveSurrenderChange(liveSurrender);
+
+    partialSurrenderCorrectionService.correctExistingPartialSurrender(
+        LICENCE_CORRECTION, LICENCE_POSITION, LIVE_CHANGE_ID, correctedSurrender);
+
+    verify(correctionOwnedGisArtefactService).recordCommandJourneys(LICENCE_CORRECTION, Set.of());
+    verify(correctionOwnedGisArtefactService).recordFeatures(LICENCE_CORRECTION, Set.of(newSurrenderedPartId));
   }
 
   @Test

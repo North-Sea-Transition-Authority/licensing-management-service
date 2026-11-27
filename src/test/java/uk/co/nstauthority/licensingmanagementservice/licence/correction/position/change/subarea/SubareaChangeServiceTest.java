@@ -33,6 +33,7 @@ import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFound
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceTestUtil;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrectionTestUtil;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.ownedgisartefact.CorrectionOwnedGisArtefactService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectionPosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subareaequity.SubareaSetEquityCorrectionService;
@@ -78,6 +79,9 @@ class SubareaChangeServiceTest {
 
   @Mock
   private SubareaSetEquityCorrectionService subareaSetEquityCorrectionService;
+
+  @Mock
+  private CorrectionOwnedGisArtefactService correctionOwnedGisArtefactService;
 
   @InjectMocks
   private SubareaChangeService subareaChangeService;
@@ -135,6 +139,17 @@ class SubareaChangeServiceTest {
         .usingRecursiveComparison()
         .ignoringFields("id")
         .isEqualTo(List.of(expectedOperation()));
+  }
+
+  @Test
+  void commitSubareaChange_whenStagedPosition_thenTheNewJourneyIsRecordedAgainstTheCorrection() {
+    var positionStagedPayload = positionStagedPayloadWithChanges(List.of());
+    givenCommandJourneyCreatedForSubareas(positionStagedPayload);
+
+    subareaChangeService.commitSubareaChange(new CorrectionPosition.Staged(positionStagedPayload), BLOCK_FEATURE_ID);
+
+    verify(correctionOwnedGisArtefactService)
+        .recordCommandJourneys(positionStagedPayload.getLicenceCorrection(), List.of(COMMAND_JOURNEY_ID));
   }
 
   @Test
@@ -552,6 +567,32 @@ class SubareaChangeServiceTest {
         BLOCK_FEATURE_ID,
         List.of(transfer(List.of(subareaA), List.of(subareaA1, subareaA2)))
     );
+  }
+
+  @Test
+  void completeSubareaChange_whenSubareaSplit_thenTheOutputSubareasAreRecordedAgainstTheCorrection() {
+    var subareaA = subareaFeature("A");
+    var subareaA1 = subareaFeature("A1");
+    var subareaA2 = subareaFeature("A2");
+    var change = AddChange.buildOperationsChange(List.of(expectedOperation()), 1);
+    var positionStagedPayload = positionStagedPayloadWithChanges(List.of(change));
+    var stateGoingIntoChange = stateWithSubareas(subareaA);
+    givenCompletedJourney(
+        positionStagedPayload,
+        change,
+        stateGoingIntoChange,
+        stateGoingIntoChange,
+        Map.of(
+            subareaA1.getId(), Set.of(subareaA.getId()),
+            subareaA2.getId(), Set.of(subareaA.getId())
+        ),
+        List.of(subareaA1, subareaA2)
+    );
+
+    subareaChangeService.completeSubareaChange(positionStagedPayload, BLOCK_FEATURE_ID);
+
+    verify(correctionOwnedGisArtefactService)
+        .recordFeatures(positionStagedPayload.getLicenceCorrection(), Set.of(subareaA1.getId(), subareaA2.getId()));
   }
 
   @Test

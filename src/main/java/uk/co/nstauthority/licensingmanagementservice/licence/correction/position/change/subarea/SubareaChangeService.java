@@ -13,6 +13,7 @@ import uk.co.fivium.gisframework.command.CommandJourneyService;
 import uk.co.fivium.gisframework.feature.FeatureService;
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.LicenceCorrection;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.ownedgisartefact.CorrectionOwnedGisArtefactService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.CorrectionPosition;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.LicencePositionStagedPayloadService;
 import uk.co.nstauthority.licensingmanagementservice.licence.correction.position.change.subareaequity.SubareaSetEquityCorrectionService;
@@ -38,19 +39,22 @@ public class SubareaChangeService {
   private final FeatureService featureService;
   private final CommandJourneyService commandJourneyService;
   private final SubareaSetEquityCorrectionService subareaSetEquityCorrectionService;
+  private final CorrectionOwnedGisArtefactService correctionOwnedGisArtefactService;
 
   SubareaChangeService(
       LicencePositionStagedPayloadService licencePositionStagedPayloadService,
       LicencePositionSpatialService licencePositionSpatialService,
       FeatureService featureService,
       CommandJourneyService commandJourneyService,
-      SubareaSetEquityCorrectionService subareaSetEquityCorrectionService
+      SubareaSetEquityCorrectionService subareaSetEquityCorrectionService,
+      CorrectionOwnedGisArtefactService correctionOwnedGisArtefactService
   ) {
     this.licencePositionStagedPayloadService = licencePositionStagedPayloadService;
     this.licencePositionSpatialService = licencePositionSpatialService;
     this.featureService = featureService;
     this.commandJourneyService = commandJourneyService;
     this.subareaSetEquityCorrectionService = subareaSetEquityCorrectionService;
+    this.correctionOwnedGisArtefactService = correctionOwnedGisArtefactService;
   }
 
   /**
@@ -163,6 +167,12 @@ public class SubareaChangeService {
         .withTransfers(transfers)
         .withCommandJourneyId(operation.commandJourneyId())
         .build();
+
+    correctionOwnedGisArtefactService.recordFeatures(
+        positionStagedPayload.getLicenceCorrection(),
+        SubareaDetails.featureIds(completedOperation.outputSubareas())
+    );
+
     var payload = positionStagedPayload.getPayload();
     var changes = payload.changes().stream()
         .map(stagedChange -> stagedChange.changeId().equals(change.changeId())
@@ -344,7 +354,12 @@ public class SubareaChangeService {
         changeId
     );
     var subareaFeatures = featureService.getFeaturesByIds(SubareaDetails.featureIds(subareas));
-    return commandJourneyService.createAndAssignCommandJourney(subareaFeatures).getId();
+    var commandJourneyId = commandJourneyService.createAndAssignCommandJourney(subareaFeatures).getId();
+    correctionOwnedGisArtefactService.recordCommandJourneys(
+        licencePositionStagedPayload.getLicenceCorrection(),
+        List.of(commandJourneyId)
+    );
+    return commandJourneyId;
   }
 
   private static Predicate<SubareaOperation> isForBlock(UUID blockFeatureId) {

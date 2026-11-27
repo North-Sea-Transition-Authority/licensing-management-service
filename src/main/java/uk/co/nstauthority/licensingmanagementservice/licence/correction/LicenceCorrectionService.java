@@ -13,6 +13,7 @@ import uk.co.nstauthority.licensingmanagementservice.authentication.ServiceUserD
 import uk.co.nstauthority.licensingmanagementservice.exception.LmsEntityNotFoundException;
 import uk.co.nstauthority.licensingmanagementservice.licence.Licence;
 import uk.co.nstauthority.licensingmanagementservice.licence.LicenceType;
+import uk.co.nstauthority.licensingmanagementservice.licence.correction.ownedgisartefact.CorrectionOwnedGisArtefactService;
 import uk.co.nstauthority.licensingmanagementservice.phasedrelease.FeatureFlagService;
 import uk.co.nstauthority.licensingmanagementservice.phasedrelease.ReleaseFeature;
 
@@ -21,15 +22,18 @@ public class LicenceCorrectionService {
 
   private final LicenceCorrectionRepository licenceCorrectionRepository;
   private final FeatureFlagService featureFlagService;
+  private final CorrectionOwnedGisArtefactService correctionOwnedGisArtefactService;
   private final Clock clock;
 
   public LicenceCorrectionService(
       LicenceCorrectionRepository licenceCorrectionRepository,
       FeatureFlagService featureFlagService,
+      CorrectionOwnedGisArtefactService correctionOwnedGisArtefactService,
       Clock clock
   ) {
     this.licenceCorrectionRepository = licenceCorrectionRepository;
     this.featureFlagService = featureFlagService;
+    this.correctionOwnedGisArtefactService = correctionOwnedGisArtefactService;
     this.clock = clock;
   }
 
@@ -80,6 +84,7 @@ public class LicenceCorrectionService {
 
   @Transactional
   public void cancelCorrection(LicenceCorrection licenceCorrection) {
+    correctionOwnedGisArtefactService.cleanUpOnCancel(licenceCorrection);
     licenceCorrection.setStatus(LicenceCorrectionStatus.CANCELLED);
     licenceCorrectionRepository.save(licenceCorrection);
   }

@@ -83,6 +83,16 @@ class LicencePositionServiceTest {
   }
 
   @Test
+  void findByLicence() {
+    var position = LicencePositionTestUtil.newBuilder().withLicence(LICENCE).build();
+    when(licencePositionRepository.findByLicence(LICENCE)).thenReturn(List.of(position));
+
+    var result = licencePositionService.findByLicence(LICENCE);
+
+    assertThat(result).containsExactly(position);
+  }
+
+  @Test
   void getPositionForLicence() {
     var position = LicencePositionTestUtil.newBuilder().withId(POSITION_ID).build();
     when(licencePositionRepository.findByIdAndLicence(POSITION_ID, LICENCE))

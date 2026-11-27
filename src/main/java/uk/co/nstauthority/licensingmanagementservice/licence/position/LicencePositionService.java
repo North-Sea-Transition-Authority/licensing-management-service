@@ -45,6 +45,10 @@ public class LicencePositionService {
     return licencePositionRepository.findById(licencePositionId);
   }
 
+  public List<LicencePosition> findByLicence(Licence licence) {
+    return licencePositionRepository.findByLicence(licence);
+  }
+
   public LicencePosition getPositionForLicence(Licence licence, UUID licencePositionId) {
     return licencePositionRepository.findByIdAndLicence(licencePositionId, licence)
         .orElseThrow(() -> new LmsEntityNotFoundException(

@@ -35,11 +35,11 @@ const previousActions: JsonHistoryAction[] = [
   { number: 1, transformationType: "SPLIT", inputFeatureNames: ["Block A"], outputFeatureNames: ["Block A_1", "Block A_2"] },
 ];
 
-function withRenamedFeature(featureId: string, featureName: string): JsonBodyType {
+function withRenamedFeature(featureId: string, featureName: string, name: string): JsonBodyType {
   return {
     ...depthMapEd50,
     features: depthMapEd50.features.map(feature => feature.attributes.featureId === featureId
-      ? { ...feature, attributes: { ...feature.attributes, featureId: `${featureId}-renamed`, featureName } }
+      ? { ...feature, attributes: { ...feature.attributes, featureId: `${featureId}-renamed`, featureName, name } }
       : feature),
   };
 }
@@ -88,7 +88,7 @@ function mockEndpoints(initialActions: JsonHistoryAction[] = []): { featuresRequ
       return HttpResponse.json({ outputFeatureIds: ["middle-above", "middle-below"] });
     }),
     http.post("/api/rename", () => {
-      perform("RENAME", withRenamedFeature("shallow", "Shallow renamed"), ["Shallow block"], ["Shallow renamed"]);
+      perform("RENAME", withRenamedFeature("shallow", "Shallow renamed", "Shallow"), ["Shallow block"], ["Shallow renamed"]);
       return HttpResponse.json({ outputFeatureIds: ["shallow-renamed"] });
     }),
     http.post("/api/undo/1", () => {
@@ -182,8 +182,8 @@ async function renameShallowBlock(
   names: { name: string, featureName: string },
 ) {
   await tickShallowBlockToRename(screen);
-  await screen.getByRole("textbox", { name: "Subarea name for Shallow block" }).fill(names.name);
-  await screen.getByRole("textbox", { name: "Map display name for Shallow block" }).fill(names.featureName);
+  await screen.getByRole("textbox", { name: "Subarea name for Shallow block" }).fill(names.featureName);
+  await screen.getByRole("textbox", { name: "Map display name for Shallow block" }).fill(names.name);
   await screen.getByRole("button", { name: "Rename" }).click();
 }
 
@@ -416,10 +416,10 @@ describe("map actions page", () => {
     await waitForPageLoaded();
     await chooseRename(screen);
 
-    await renameShallowBlock(screen, { name: "", featureName: "Middle block" });
+    await renameShallowBlock(screen, { featureName: "", name: "Shallow block 123" });
     await expect.element(screen.getByRole("link", { name: "Enter a subarea name for Shallow block" })).toBeVisible();
     await expect.element(screen.getByRole("link", {
-      name: "Map display name for Shallow block must be unique within the block",
+      name: "Map display name for Shallow block must be 15 characters or fewer",
     })).toBeVisible();
     await settleForScreenshot();
 
@@ -433,7 +433,7 @@ describe("map actions page", () => {
     await chooseRename(screen);
     const before = featuresRequests();
 
-    await renameShallowBlock(screen, { name: "Shallow subarea", featureName: "Shallow renamed" });
+    await renameShallowBlock(screen, { featureName: "Shallow renamed", name: "Shallow" });
 
     await expect.poll(() => featuresRequests(), { timeout: 15000, interval: 100 }).toBeGreaterThan(before);
     await expect.element(screen.getByRole("group", { name: "What action would you like to perform next?" }))
@@ -491,7 +491,7 @@ describe("map actions page", () => {
       await chooseRename(screen);
       const before = featuresRequests();
 
-      await renameShallowBlock(screen, { name: "Shallow subarea", featureName: "Shallow renamed" });
+      await renameShallowBlock(screen, { featureName: "Shallow renamed", name: "Shallow" });
       await expect.poll(() => featuresRequests(), { timeout: 15000, interval: 100 }).toBeGreaterThan(before);
       await openActionHistory(screen, 4);
       await expect.element(screen.getByText("Shallow renamed")).toBeVisible();

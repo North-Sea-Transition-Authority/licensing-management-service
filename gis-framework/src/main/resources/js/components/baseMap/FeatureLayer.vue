@@ -66,7 +66,7 @@ watch(() => props.selectedFeatureIds, () => {
 
 function featureLabel(feature: Feature<Geometry>) {
   return new Text({
-    text: feature.get("featureName") || "",
+    text: feature.get("name") || feature.get("featureName") || "",
     font: featureLabelFont,
     fill: new Fill({ color: "#000" }),
     stroke: new Stroke({ color: "#fff", width: 3 }),

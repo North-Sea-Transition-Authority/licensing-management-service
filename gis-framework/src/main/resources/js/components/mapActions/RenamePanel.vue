@@ -28,27 +28,27 @@
     >
       <template #conditional>
         <gv-input
-          :id="inputId(feature.featureId, 'name')"
-          v-model="renameInputs[feature.featureId].name"
+          :id="inputId(feature.featureId, 'featureName')"
+          v-model="renameInputs[feature.featureId].featureName"
           label-class="govuk-label--s"
           :disabled="isProcessing"
           :spellcheck="false"
           class="govuk-input--width-20"
-          :error-message="renameErrors[feature.featureId]?.name"
+          :error-message="renameErrors[feature.featureId]?.featureName"
         >
           <template #label>
             Subarea name <span class="govuk-visually-hidden">for {{ feature.featureName }}</span>
           </template>
         </gv-input>
         <gv-input
-          :id="inputId(feature.featureId, 'featureName')"
-          v-model="renameInputs[feature.featureId].featureName"
+          :id="inputId(feature.featureId, 'name')"
+          v-model="renameInputs[feature.featureId].name"
           label-class="govuk-label--s"
           :hint="`Must be ${MAP_DISPLAY_NAME_MAX_LENGTH} characters or fewer`"
           :disabled="isProcessing"
           :spellcheck="false"
           class="govuk-input--width-20"
-          :error-message="renameErrors[feature.featureId]?.featureName"
+          :error-message="renameErrors[feature.featureId]?.name"
         >
           <template #label>
             Map display name <span class="govuk-visually-hidden">for {{ feature.featureName }}</span>
@@ -177,19 +177,19 @@ function validateRenames(): ValidationError[] {
       const subarea = option.featureName;
       const featureErrors: Partial<Record<RenameField, string>> = {};
 
-      if (!name.trim()) {
-        featureErrors.name = `Enter a subarea name for ${subarea}`;
-      } else if (duplicateNames.has(normalise(name))) {
-        featureErrors.name = `Subarea name for ${subarea} must be unique within the block`;
+      if (!featureName.trim()) {
+        featureErrors.featureName = `Enter a subarea name for ${subarea}`;
+      } else if (duplicateFeatureNames.has(normalise(featureName))) {
+        featureErrors.featureName = `Subarea name for ${subarea} must be unique within the block`;
       }
 
-      if (!featureName.trim()) {
-        featureErrors.featureName = `Enter a map display name for ${subarea}`;
-      } else if (featureName.trim().length > MAP_DISPLAY_NAME_MAX_LENGTH) {
-        featureErrors.featureName
+      if (!name.trim()) {
+        featureErrors.name = `Enter a map display name for ${subarea}`;
+      } else if (name.trim().length > MAP_DISPLAY_NAME_MAX_LENGTH) {
+        featureErrors.name
           = `Map display name for ${subarea} must be ${MAP_DISPLAY_NAME_MAX_LENGTH} characters or fewer`;
-      } else if (duplicateFeatureNames.has(normalise(featureName))) {
-        featureErrors.featureName = `Map display name for ${subarea} must be unique within the block`;
+      } else if (duplicateNames.has(normalise(name))) {
+        featureErrors.name = `Map display name for ${subarea} must be unique within the block`;
       }
 
       renameErrors.value[option.featureId] = featureErrors;

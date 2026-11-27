@@ -66,11 +66,11 @@ async function tick(...featureNames: string[]) {
 }
 
 async function enterNames(featureName: string, names: { name?: string, featureName?: string }) {
-  if (names.name !== undefined) {
-    await fireEvent.update(subareaNameInput(featureName), names.name);
-  }
   if (names.featureName !== undefined) {
-    await fireEvent.update(mapDisplayNameInput(featureName), names.featureName);
+    await fireEvent.update(subareaNameInput(featureName), names.featureName);
+  }
+  if (names.name !== undefined) {
+    await fireEvent.update(mapDisplayNameInput(featureName), names.name);
   }
 }
 
@@ -103,9 +103,9 @@ describe("renamePanel", () => {
   it("pre-fills each subarea's inputs with its current names", () => {
     renderPanel();
 
-    expect(subareaNameInput("SHAPE 1")).toHaveValue("Alpha");
-    expect(mapDisplayNameInput("SHAPE 1")).toHaveValue("SHAPE 1");
-    expect(subareaNameInput("SHAPE 3")).toHaveValue("");
+    expect(subareaNameInput("SHAPE 1")).toHaveValue("SHAPE 1");
+    expect(mapDisplayNameInput("SHAPE 1")).toHaveValue("Alpha");
+    expect(mapDisplayNameInput("SHAPE 3")).toHaveValue("");
   });
 
   it("labels each subarea's inputs with the subarea they rename", async () => {
@@ -119,24 +119,24 @@ describe("renamePanel", () => {
     expect(screen.getByRole("textbox", { name: "Map display name for SHAPE 2" })).toBeInTheDocument();
   });
 
-  it("keeps the label's subarea when its map display name is edited", async () => {
+  it("keeps the label's subarea when its subarea name is edited", async () => {
     renderPanel();
     await tick("SHAPE 1");
 
-    await fireEvent.update(mapDisplayNameInput("SHAPE 1"), "SHAPE 1A");
+    await fireEvent.update(subareaNameInput("SHAPE 1"), "SHAPE 1A");
 
-    expect(screen.getByRole("textbox", { name: "Map display name for SHAPE 1" })).toHaveValue("SHAPE 1A");
+    expect(screen.getByRole("textbox", { name: "Subarea name for SHAPE 1" })).toHaveValue("SHAPE 1A");
   });
 
   it("keeps entered names when a subarea is unticked and ticked again", async () => {
     renderPanel();
     await tick("SHAPE 1");
-    await enterNames("SHAPE 1", { name: "Alpha 2", featureName: "SHAPE 1A" });
+    await enterNames("SHAPE 1", { featureName: "SHAPE 1A", name: "Alpha 2" });
 
     await tick("SHAPE 1", "SHAPE 1");
 
-    expect(subareaNameInput("SHAPE 1")).toHaveValue("Alpha 2");
-    expect(mapDisplayNameInput("SHAPE 1")).toHaveValue("SHAPE 1A");
+    expect(subareaNameInput("SHAPE 1")).toHaveValue("SHAPE 1A");
+    expect(mapDisplayNameInput("SHAPE 1")).toHaveValue("Alpha 2");
   });
 
   it("shows an error when no subareas are selected", async () => {
@@ -153,12 +153,12 @@ describe("renamePanel", () => {
   });
 
   it.each([
-    { names: { name: " " }, error: "Enter a subarea name for SHAPE 1" },
-    { names: { name: " bravo " }, error: "Subarea name for SHAPE 1 must be unique within the block" },
-  ])("shows '$error' on the subarea name on the first attempt", async ({ names, error }) => {
+    { featureName: " ", error: "Enter a subarea name for SHAPE 1" },
+    { featureName: " shape 2 ", error: "Subarea name for SHAPE 1 must be unique within the block" },
+  ])("shows '$error' on the subarea name on the first attempt", async ({ featureName, error }) => {
     const { emitted } = renderPanel();
     await tick("SHAPE 1");
-    await enterNames("SHAPE 1", names);
+    await enterNames("SHAPE 1", { featureName });
 
     await submit();
 
@@ -170,13 +170,13 @@ describe("renamePanel", () => {
   });
 
   it.each([
-    { featureName: "", error: "Enter a map display name for SHAPE 1" },
-    { featureName: "ABCDEFGHIJKLMNOP", error: "Map display name for SHAPE 1 must be 15 characters or fewer" },
-    { featureName: " shape 2 ", error: "Map display name for SHAPE 1 must be unique within the block" },
-  ])("shows '$error' on the map display name on the first attempt", async ({ featureName, error }) => {
+    { name: "", error: "Enter a map display name for SHAPE 1" },
+    { name: "ABCDEFGHIJKLMNOP", error: "Map display name for SHAPE 1 must be 15 characters or fewer" },
+    { name: " bravo ", error: "Map display name for SHAPE 1 must be unique within the block" },
+  ])("shows '$error' on the map display name on the first attempt", async ({ name, error }) => {
     const { emitted } = renderPanel();
     await tick("SHAPE 1");
-    await enterNames("SHAPE 1", { featureName });
+    await enterNames("SHAPE 1", { name });
 
     await submit();
 
@@ -190,8 +190,8 @@ describe("renamePanel", () => {
   it("shows an error on every selected subarea given the same new name", async () => {
     const { emitted } = renderPanel();
     await tick("SHAPE 1", "SHAPE 2");
-    await enterNames("SHAPE 1", { name: "Delta" });
-    await enterNames("SHAPE 2", { name: "delta" });
+    await enterNames("SHAPE 1", { featureName: "Delta" });
+    await enterNames("SHAPE 2", { featureName: "delta" });
 
     await submit();
 
@@ -202,7 +202,7 @@ describe("renamePanel", () => {
     expect(renameFeaturesMock).not.toHaveBeenCalled();
   });
 
-  it("shows an error for a selected subarea without a current subarea name", async () => {
+  it("shows an error for a selected subarea without a current map display name", async () => {
     const { emitted } = renderPanel();
     await tick("SHAPE 3");
     await enterNames("SHAPE 3", { featureName: "SHAPE 3A" });
@@ -210,7 +210,7 @@ describe("renamePanel", () => {
     await submit();
 
     expect(emitted("validation-error")).toEqual([[[
-      { message: "Enter a subarea name for SHAPE 3", fieldId: subareaNameInput("SHAPE 3").id },
+      { message: "Enter a map display name for SHAPE 3", fieldId: mapDisplayNameInput("SHAPE 3").id },
     ]]]);
     expect(renameFeaturesMock).not.toHaveBeenCalled();
   });

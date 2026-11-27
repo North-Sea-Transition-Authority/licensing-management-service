@@ -906,8 +906,8 @@ describe("mapActionsPage", () => {
       }
     }
 
-    function subareaNameInput(featureName: string) {
-      return screen.getByRole("textbox", { name: `Subarea name for ${featureName}` });
+    function mapDisplayNameInput(featureName: string) {
+      return screen.getByRole("textbox", { name: `Map display name for ${featureName}` });
     }
 
     function highlightedOnMap() {
@@ -939,8 +939,8 @@ describe("mapActionsPage", () => {
 
       await fireEvent.click(screen.getByRole("button", { name: "Rename" }));
 
-      expect(screen.getByRole("link", { name: "Enter a subarea name for deep block" }))
-        .toHaveAttribute("href", `#${subareaNameInput("deep block").id}`);
+      expect(screen.getByRole("link", { name: "Enter a map display name for deep block" }))
+        .toHaveAttribute("href", `#${mapDisplayNameInput("deep block").id}`);
       expect(renameFeaturesMock).not.toHaveBeenCalled();
     });
 
@@ -952,7 +952,7 @@ describe("mapActionsPage", () => {
       renderPage();
       await chooseRename();
       await tick("deep block");
-      await fireEvent.update(subareaNameInput("deep block"), "Deep subarea");
+      await fireEvent.update(mapDisplayNameInput("deep block"), "Deep");
 
       await fireEvent.click(screen.getByRole("button", { name: "Rename" }));
 
@@ -960,7 +960,7 @@ describe("mapActionsPage", () => {
         .toBeInTheDocument();
       expect(renameFeaturesMock).toHaveBeenCalledWith(
         "/api/gis-framework/rename",
-        [{ featureId: "deep", name: "Deep subarea", featureName: "deep block" }],
+        [{ featureId: "deep", name: "Deep", featureName: "deep block" }],
         "journey-1",
         "X-CSRF-TOKEN",
         "csrf-token",
@@ -974,7 +974,7 @@ describe("mapActionsPage", () => {
       renderPage();
       await chooseRename();
       await tick("deep block");
-      await fireEvent.update(subareaNameInput("deep block"), "Deep subarea");
+      await fireEvent.update(mapDisplayNameInput("deep block"), "Deep");
 
       await fireEvent.click(screen.getByRole("button", { name: "Rename" }));
 

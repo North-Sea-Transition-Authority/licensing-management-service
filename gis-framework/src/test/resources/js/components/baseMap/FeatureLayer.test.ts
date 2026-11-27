@@ -140,19 +140,31 @@ describe("featureLayer", () => {
     expect(fit).toHaveBeenCalledWith(sourceExtent, expectedFitOptions);
   });
 
-  it("styles an unselected feature with the default colours and its name", async () => {
+  it("styles an unselected feature with the default colours and its map display name", async () => {
     const { olMap } = createOlMapStub([1280, 1024]);
 
     renderFeatureLayer(olMap, sourceExtent);
 
     const style = vectorLayerProps.style?.({
-      get: property => property === "featureName" ? "Block A" : undefined,
+      get: property => ({ featureName: "Block A subarea", name: "Block A" } as Record<string, string>)[property],
     });
 
     expect(style?.getStroke()?.getColor()).toEqual([40, 50, 60, 0.75]);
     expect(style?.getStroke()?.getWidth()).toBe(2);
     expect(style?.getFill()?.getColor()).toEqual([10, 20, 30, 0.5]);
     expect(style?.getText()?.getText()).toBe("Block A");
+  });
+
+  it("labels a feature without a map display name with its feature name", async () => {
+    const { olMap } = createOlMapStub([1280, 1024]);
+
+    renderFeatureLayer(olMap, sourceExtent);
+
+    const style = vectorLayerProps.style?.({
+      get: property => ({ featureName: "Block A subarea", name: "" } as Record<string, string>)[property],
+    });
+
+    expect(style?.getText()?.getText()).toBe("Block A subarea");
   });
 
   it("styles a selected feature with the highlight colours", async () => {
